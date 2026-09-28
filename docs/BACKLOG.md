@@ -42,6 +42,37 @@ final (`:887`).
 - [ ] **Decide Felipe:** la ficha sin panel derecho hoy queda a `max-w-[1080px]` (medida del spike). ¿Se deja así o pasa a todo el ancho?
 - Cómo verificas: en Catálogo ▸ Productos ▸ Editar, cambia un precio y desactiva una talla → sube la barra ámbar → «Revisar y guardar» → la hoja lista los dos cambios → «Confirmar y guardar» → aviso detallado y vuelta a Productos. Con cambios sin guardar, prueba el menú lateral, «Atrás» y cerrar la pestaña: todos preguntan.
 
+## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
+Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
+cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo
+entero y contaba lo físico.
+- [x] Desde Existencias y desde «Corregir con un ajuste» (Movimientos) el modal muestra solo ese color, con el color en
+      el título (`soloDeLaPrenda`, prop `prenda`). Productos sigue abriendo el modelo entero.
+- [x] Total del lugar arriba de las tallas, con lo apartado aparte («9 en el piso · 1 apartada · 8 libres»: el 8 es la
+      cifra de la fila); cada talla dice su apartada; el ajuste que deja menos que lo apartado se frena en pantalla.
+- [x] **«Conteo físico» pregunta cuántas hay (opción A, Felipe 2026-09-28).** Antes el modal pedía la diferencia también
+      al contar: quien contó 4 y escribía 4 dejaba 8. Ahora el motivo va ANTES de las tallas y decide qué se escribe:
+      con «Conteo físico», lo contado (el rótulo dice «Contaste en el piso / en el almacén», vacío = «no la conté», 0 =
+      «conté cero») y la talla muestra la diferencia que se registra («→ 3 (−2)»); con los demás motivos, «Suma o resta»
+      como antes. Cambiar de motivo con cantidades escritas cambia su forma, no el resultado (`pasarCantidades`). Al
+      contar, cada apartada dice «(cuéntala)» (ADR-0141: el conteo incluye lo apartado) y, si lo contado queda por
+      debajo de lo apartado, el aviso pide contarla antes de liberar nada. La base no cambia: sigue recibiendo la
+      diferencia, calculada contra el stock que muestra la pantalla, igual que Conteo (`contado − foto`, ADR-0189).
+- [ ] **Queda sin cubrir, a propósito:** si se vende una talla MIENTRAS se cuenta con el modal abierto, la venta se
+      descuenta dos veces (la foto es de cuando se abrió el modal). Con 8 ventas en 5 días en TRU (producción,
+      2026-09-28) la probabilidad por conteo es ~0,1 %; revisar si las ventas por prenda suben o si se cuenta con el modal
+      abierto por mucho rato. El arreglo firme es que la base reciba el stock que vio la pantalla y rechace si cambió:
+      `ajustar_inventario` ya ignora claves de más en cada línea, así que la web puede mandarlo antes que la base lo lea.
+- [ ] **Propuesta (lo decide Felipe): «Merma» pide un número con signo, y la base acepta una merma POSITIVA** (suma prendas
+      y las registra como pérdida). Hoy hay 0 mermas en producción, así que no ha pasado. Misma trampa que la de contar,
+      al revés: que cada motivo pregunte lo suyo sin signo («¿cuántas se perdieron?») y que `registrar_movimiento`
+      rechace `merma` con cantidad > 0.
+- Cómo verificas: abre Existencias en TRU, fila «Test de Produto 2» Celeste ▸ Ajustar: 3 tallas (S 4 · M 5 · L 3) y
+  «0 en el almacén» (arranca en el almacén). Elige «Piso de venta» y «Conteo físico»: el rótulo dice «Contaste en el
+  piso»; escribe 4 en S (nada cambia) y 3 en M («→ 3 (−2)»); Confirmar deja M en 3, no en 8. La fila Gris ▸ Ajustar
+  ▸ Piso ▸ «Conteo físico»: M dice «1 apartada (cuéntala)»; escribe 0 y Confirmar: la pantalla lo frena sin ir a la
+  base. `pnpm --filter web exec vitest run lib/ajuste-reglas.test.ts`.
+
 ## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
 
 - [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
