@@ -7,7 +7,7 @@ Aplica la sección AUTONOMÍA de `~/.claude/CLAUDE.md` (global) sobre: $ARGUMENT
 
 Antes de preguntar, pasa este test y dile a Felipe en 1 línea si lo pasó o no:
 1. ¿La respuesta no vive en el repo, el schema, los ADRs (`/docs/adr/`) ni
-   `/docs/BACKLOG.md`?
+   el backlog (`/docs/backlog/` y `/docs/BACKLOG.md`)?
 2. ¿Elegir mal cuesta más que deshacerlo en menos de 30 minutos?
 3. ¿Depende de cómo opera CAYLA, no de cómo funciona Postgres/Next.js?
 

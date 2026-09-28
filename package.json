@@ -97,6 +97,7 @@
     "pruebas:pago-por-lote-medios": "node scripts/pruebas/pago_por_lote_medios.mjs",
     "pruebas:pagos-compras-endurecimiento": "node scripts/pruebas/pagos_compras_endurecimiento.mjs",
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
+    "pruebas:arreglos-en-vivo": "node scripts/pruebas/arreglos_en_vivo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:conteo-vacio": "node scripts/pruebas/conteo_vacio_no_se_cierra.mjs",
     "pruebas:terminales": "node scripts/pruebas/terminales_por_tienda.mjs",

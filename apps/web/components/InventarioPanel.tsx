@@ -14,6 +14,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -34,7 +35,7 @@ import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, t
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TEXTO_ACCION_HOY, type Recomendacion, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
+import { TEXTO_ACCION_HOY, type FilaParaRecomendaciones, type Recomendacion, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
 import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla, porColgar, puedeRetirarPiso, resumirPorColgar, type SentidoPiso } from "@/lib/inventario-reglas";
@@ -255,6 +256,7 @@ export function InventarioPanel({
   abrirVariante = null,
   apartados,
   esLider,
+  esAdmin = false,
   puedeAjustar,
   coberturaFallo = null,
   sedeNombre,
@@ -293,6 +295,8 @@ export function InventarioPanel({
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
   /** Sigue siendo del líder: resolver y liquidar prendas dañadas. */
   esLider: boolean;
+  /** Es Admin (ADR-0178): solo él ve «Eliminar el producto» en el detalle (ADR-0252; `permisosDelDetalle`). */
+  esAdmin?: boolean;
   /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0160). */
   puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
@@ -357,6 +361,8 @@ export function InventarioPanel({
     setMoviendo({ varianteId, sentido });
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
+  const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
   // «Pedir para una clienta» desde «Dónde más hay» (tarea #9): la talla y la tienda que la tiene.
@@ -517,6 +523,7 @@ export function InventarioPanel({
     puedeAjustar,
     veTraslados,
     esTienda,
+    esAdmin,
   });
   const puedeApartar = permisos.apartar;
   const puedeReponer = permisos.reponerYRetirar;
@@ -548,6 +555,20 @@ export function InventarioPanel({
     setBusqueda("");
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
+  }
+
+  /** Clic en una tarjeta de «Ver recomendaciones»: cierra el overlay y lleva directo a resolverla, con la
+   *  prenda y la talla ya marcadas — la persona solo confirma o escribe la cantidad. Con almacén en 0 no hay
+   *  nada que mover todavía (`ReponerPisoModal` lo confirmaría con «Disponible: 0» y el botón apagado, un
+   *  callejón sin salida), así que abre el detalle: ahí se ve el panorama completo para decidir qué sigue. */
+  function abrirDesdeRecomendacion(f: FilaParaRecomendaciones) {
+    setViendoRecomendaciones(false);
+    if ((f.almacenDisponible ?? 0) > 0) {
+      abrirMovimiento(f.varianteId, "bajar", null);
+      return;
+    }
+    const filaCompleta = stock.find((x) => x.varianteId === f.varianteId);
+    if (filaCompleta) abrirPrenda(agruparPorPrenda([filaCompleta])[0], filaCompleta.varianteId);
   }
 
   // «Reponer a piso hoy» (tarjeta A): variantes que ya cuenta `resumen.requierenReposicion`, y las
@@ -1361,6 +1382,16 @@ export function InventarioPanel({
         />
       )}
 
+      {/* ADR-0252: la misma ventana de Catálogo ▸ Productos. No sabe cuántas variantes tiene el producto entero (Existencias
+          mira un color en una sede): el texto dice «todas sus tallas y colores» sin el número, y la base decide. Al borrar,
+          la ventana refresca la pantalla y la prenda desaparece de la lista. */}
+      {eliminando && (
+        <EliminarProductoModal
+          producto={{ productoId: eliminando.productoId, referencia: eliminando.referencia, estado: eliminando.estado, numVariantes: null }}
+          onClose={() => setEliminando(null)}
+        />
+      )}
+
       {viendoDanados && (
         <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} otraSede={!enSedeActiva} onClose={() => setViendoDanados(false)} />
       )}
@@ -1397,7 +1428,9 @@ export function InventarioPanel({
 
       {viendoCobertura && <AnalisisCoberturaOverlay stock={stock} onClose={() => setViendoCobertura(false)} />}
 
-      {viendoRecomendaciones && <RecomendacionesOverlay recomendaciones={recomendaciones} onClose={() => setViendoRecomendaciones(false)} />}
+      {viendoRecomendaciones && (
+        <RecomendacionesOverlay recomendaciones={recomendaciones} onClose={() => setViendoRecomendaciones(false)} onSeleccionar={abrirDesdeRecomendacion} />
+      )}
 
       {/* El detalle de una prenda (ADR-0237). Sus acciones por talla no abren un modal encima de otro: cierran este y abren
           el suyo (Reponer, Apartar, Ajustar), que al guardar refresca la pantalla. */}
@@ -1414,6 +1447,11 @@ export function InventarioPanel({
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
+          puedeEliminar={permisos.eliminar}
+          onEliminar={() => {
+            setAbierta(null);
+            setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });
+          }}
           tiendasParaPedir={permisos.pedirAOtraSede ? tiendasParaPedir : []}
           onPedir={(f, tienda) => {
             setAbierta(null);
@@ -1457,7 +1495,9 @@ export function InventarioPanel({
 
       {/* Varias a la vez (ADR-0237): lo marcado llega a la otra pantalla con la lista ya cargada. Cada botón aparece solo si
           su rol ve esa pantalla y hay algo que llevar (Bajar al piso: solo las tallas que se pueden bajar). */}
-      {marcadas.size > 0 && (
+      {/* Lo marcado que SIGUE en la lista, no el conjunto crudo: tras eliminar un producto marcado (ADR-0252) sus tallas
+          ya no están, y la barra quedaba en «0 prendas · 0 tallas» sin botones. */}
+      {filasMarcadas.length > 0 && (
         <div
           role="region"
           aria-label="Prendas marcadas"
@@ -1509,7 +1549,7 @@ export function InventarioPanel({
 
       {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.
           Es una acción de esta pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
-      {stock.length > 0 && marcadas.size === 0 && !camara && (
+      {stock.length > 0 && filasMarcadas.length === 0 && !camara && (
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
           <button
             type="button"

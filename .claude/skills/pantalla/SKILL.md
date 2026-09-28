@@ -17,7 +17,7 @@ Analiza la pantalla o el flujo que Felipe adjunta: $ARGUMENTS
 3. Si existe `docs/pantallas/<slug>.md`, es un re-análisis: léelo, y al final agrega fila al historial y marca cuáles de las 12 tareas anteriores se cerraron. Antes, `git diff --stat <SHA del encabezado> origin/main -- <archivos de la pantalla>`: si cambiaron, el análisis previo está **vencido** (una pantalla rehecha no conserva sus tareas) y no se toma como base.
    Lee el código en el estado de `origin/main`: si la rama va detrás y esos archivos difieren (`git diff --stat HEAD origin/main -- <archivos>`), usa `git show origin/main:<archivo>`. Anota en el encabezado del archivo el SHA analizado (`git rev-parse --short origin/main`): sin él, nadie puede saber contra qué versión de la pantalla vale el análisis.
 4. Declara en pocas líneas: tipo de pantalla (formulario, listado, tablero, punto de venta, reporte, configuración); dispositivo que se juzga según el tipo (vender → mostrador/tablet, producción → taller, reportes → escritorio); rol y sede con que se ve; **finalidad** ("esta pantalla existe para X").
-   La finalidad sale de `docs/ARQUITECTURA.md`, `docs/datos/modulos/` y `docs/BACKLOG.md`, **nunca de la captura**: una pantalla no puede ser la fuente de su propia finalidad. Si docs y pantalla no coinciden, eso ya es hallazgo. Felipe la corrige si falla.
+   La finalidad sale de `docs/ARQUITECTURA.md`, `docs/datos/modulos/` y el backlog (`docs/backlog/`, `docs/BACKLOG.md`), **nunca de la captura**: una pantalla no puede ser la fuente de su propia finalidad. Si docs y pantalla no coinciden, eso ya es hallazgo. Felipe la corrige si falla.
 
 ## Paso 1 — Mapa del código (completo)
 
@@ -60,7 +60,7 @@ Solo las estructurales (Reconstruir, Replantear) llevan además:
 - **Privacidad:** todo dato personal de la captura o del SQL (nombres, DNI, teléfonos, correos, montos atados a una persona) se escribe a disco como `[colaborador]`, `[clienta]`, `[DNI]`. `docs/pantallas/` va a git y el historial no se borra.
 - **Salida:** todo va a `docs/pantallas/<slug>.md` (slug = ruta sin barras, ej. `productos-nuevo`) con `plantilla-analisis.md`. Al chat solo llegan: veredicto en 2 líneas, los dos puntajes, las 3 primeras tareas y el enlace al archivo.
 - **Contra análisis previos:** lee encabezados y tareas de `docs/pantallas/*.md`. El mismo defecto en 3 o más pantallas es **una** tarea raíz, no tres. Dos pantallas que resuelven lo mismo de dos formas: una está mal, dilo aunque las dos funcionen.
-- **BACKLOG:** no lo edites (otras sesiones lo tocan). Deja al final del archivo "Líneas propuestas para BACKLOG.md", una por tarea con `[pantalla:<slug>]`; Felipe aprueba antes de anexarlas.
+- **BACKLOG:** no lo edites (otras sesiones lo tocan). Deja al final del archivo "Líneas propuestas para el backlog", una por tarea con `[pantalla:<slug>]`; Felipe aprueba antes de pasarlas a un archivo de `docs/backlog/` (ADR-0259).
 
 ## Modo rápido
 

@@ -15,10 +15,6 @@ import { Volver } from "@/components/ui/Volver";
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
 // verdad decide.
 
-/** Cuántas variantes de la categoría se miran para saber qué colores se usan más (los primeros al agregar un color). Hoy
- *  una categoría tiene decenas; en 3 años, cientos. 2.000 alcanza de sobra y es una sola lectura liviana (un código). */
-const VENTANA_USO_COLORES = 2000;
-
 export default async function EditarProductoPage({
   params,
   searchParams,
@@ -81,18 +77,6 @@ export default async function EditarProductoPage({
   // lectura (red, permiso) no dice que la función falte y deja corregir: la base vuelve a exigir todo.
   const puedeCorregir = !esFuncionAusente(resEstado.error);
 
-  // Los colores más usados en la categoría de la prenda: una sugerencia, no un dato contable. Si la lectura falla, «Agregar
-  // color» sigue con el buscador y la paleta, sin «los más usados».
-  const usoColores: Record<string, number> = {};
-  if (producto.categoriaId) {
-    const { data: usados } = await supabase
-      .from("variantes")
-      .select("color_codigo, productos!inner ( categoria_id )")
-      .eq("productos.categoria_id", producto.categoriaId)
-      .not("color_codigo", "is", null)
-      .limit(VENTANA_USO_COLORES);
-    for (const v of usados ?? []) if (v.color_codigo) usoColores[v.color_codigo] = (usoColores[v.color_codigo] ?? 0) + 1;
-  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +93,6 @@ export default async function EditarProductoPage({
       <ProductoForm
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
         colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }))}
-        usoColores={usoColores}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}

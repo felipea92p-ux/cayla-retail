@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { construirCeldas } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
@@ -16,7 +15,7 @@ import {
   type FilaFicha,
   type Identidad,
 } from "@/lib/variantes-ficha-reglas";
-import { MontosNuevas, PieModal, type ContextoFicha } from "./piezas";
+import { MatrizNuevas, MontosNuevas, PieModal, type ContextoFicha } from "./piezas";
 
 // «Llegó una talla nueva»: las tallas habilitadas en la categoría que la prenda todavía no vende, en su orden (S, M, L…
 // y no alfabético). Cada talla elegida nace en cada color que la prenda ya vende (si están todas desactivadas, en los que
@@ -117,16 +116,13 @@ export function AgregarTallasModal({
                 <b className="tabular-nums">{combos.length}</b>{" "}
                 <span className="text-taupe">{combos.length === 1 ? "variante" : "variantes"} · toca una celda para quitarla</span>
               </p>
-              <MatrizVariantes
+              <MatrizNuevas
                 celdas={celdas}
                 tallas={tallasOrdenadas}
-                colores={colores}
+                colores={colores.map((c) => c.codigo)}
                 excluidas={excluidas}
                 onExcluidas={setExcluidas}
-                precioBase={precio}
-                precios={{}}
-                onPrecio={() => undefined}
-                editandoPrecios={false}
+                nombreColor={n.color}
               />
               {vuelven.length > 0 && (
                 <p className="text-[12.5px] text-taupe">

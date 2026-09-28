@@ -141,8 +141,7 @@ type FotoFicha = FotoLocal & { fijo?: boolean };
 
 export function ProductoForm({
   categorias,
-  colores,
-  usoColores,
+  colores: coloresVocabulario,
   ejes,
   imagenes,
   etiquetas,
@@ -157,8 +156,6 @@ export function ProductoForm({
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
   colores: ColorAlta[];
-  /** color → cuántas variantes de la categoría lo usan: los más usados salen primero al agregar un color. */
-  usoColores: Record<string, number>;
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
   /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
@@ -184,6 +181,13 @@ export function ProductoForm({
 }) {
   const router = useRouter();
   const editando = !!producto;
+  // Un color creado desde «Agregar color» (ElegirColores lo deja crear, ADR-0260) se suma al vocabulario de la ficha:
+  // así se nombra y se pinta igual que los que venían de la base.
+  const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
+  const colores = useMemo(
+    () => [...coloresVocabulario, ...coloresCreados.filter((c) => !coloresVocabulario.some((x) => x.codigo === c.codigo))],
+    [coloresVocabulario, coloresCreados]
+  );
 
   const [categoriaId, setCategoriaId] = useState(producto?.categoriaId ?? "");
   const [referencia, setReferencia] = useState(producto?.referencia ?? "");
@@ -848,8 +852,8 @@ export function ProductoForm({
           onFilas={setFilas}
           onBloquePendiente={setBloquePendiente}
           tallasCategoria={tallasCategoria}
-          usoColores={usoColores}
           categoriaNombre={categoriaActual?.nombre}
+          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
           etiquetas={opcionesEtiqueta}
           avisoEtiquetas={avisoEtiquetas}
           deshabilitado={loading}

@@ -2,7 +2,8 @@
 
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Punto } from "@/components/alta-producto/ElegirColores";
-import type { ColorAlta } from "@/lib/alta-producto";
+import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
+import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0257). Lo que comparten la sección y sus modales:
@@ -136,6 +137,85 @@ export function PieModal({ onCancelar, texto, onConfirmar, deshabilitado }: { on
       <button type="button" onClick={onConfirmar} disabled={deshabilitado} className="btn-cayla btn-primario">
         {texto}
       </button>
+    </div>
+  );
+}
+
+/**
+ * Las variantes que van a nacer, como tabla color × talla (la misma forma que el alta, `MatrizVariantes`): ✓ nace; tocar
+ * la celda la quita (queda rayada con «—», el mismo rayado del alta) y tocarla otra vez la devuelve. Sin la foto por
+ * color del alta: en la ficha las fotos viven en su propia sección, y aquí un botón de foto no haría nada.
+ */
+export function MatrizNuevas({
+  celdas,
+  tallas,
+  colores,
+  excluidas,
+  onExcluidas,
+  nombreColor,
+}: {
+  celdas: CeldaAlta[];
+  /** Ya ordenadas (S, M, L). Vacío = la prenda no tiene talla: una sola columna «Única». */
+  tallas: { id: string; texto: string }[];
+  /** Las filas, en su orden. Un código `null` es «Sin color». */
+  colores: (string | null)[];
+  excluidas: Set<string>;
+  onExcluidas: (s: Set<string>) => void;
+  nombreColor: (codigo: string | null) => string;
+}) {
+  const columnas: (string | null)[] = tallas.length ? tallas.map((t) => t.id) : [null];
+  const filas: (string | null)[] = colores.length ? colores : [null];
+  const textoTalla = (t: string | null) => (t === null ? "Única" : (tallas.find((x) => x.id === t)?.texto ?? ""));
+  function alternar(clave: string) {
+    const copia = new Set(excluidas);
+    if (copia.has(clave)) copia.delete(clave);
+    else copia.add(clave);
+    onExcluidas(copia);
+  }
+  return (
+    <div className="overflow-x-auto rounded-xl border border-sand">
+      <table className="w-full border-collapse text-[13px]">
+        <thead>
+          <tr className="bg-hueso">
+            <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-tinta">
+              Color
+            </th>
+            {columnas.map((t) => (
+              <th key={t ?? "sin-talla"} scope="col" className="px-2 py-2 text-xs font-semibold tabular-nums text-tinta">
+                {textoTalla(t)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((color) => (
+            <tr key={color ?? "sin-color"} className="border-t border-sand">
+              <th scope="row" className="whitespace-nowrap bg-papel px-3 py-2 text-left font-medium text-tinta">
+                {nombreColor(color)}
+              </th>
+              {columnas.map((talla) => {
+                const cel = celdas.find((c) => c.color === color && c.tallaId === talla);
+                if (!cel) return <td key={talla ?? "x"} className="border-l border-sand" />;
+                const fuera = excluidas.has(cel.clave);
+                const etiqueta = `${nombreColor(color)} · ${textoTalla(talla)}`;
+                return (
+                  <td key={cel.clave} className="border-l border-sand p-0 text-center">
+                    <button
+                      type="button"
+                      onClick={() => alternar(cel.clave)}
+                      aria-pressed={!fuera}
+                      aria-label={fuera ? `${etiqueta}: no nace. Volver a incluir` : `${etiqueta}: nace. Quitar`}
+                      className={`flex h-10 w-full min-w-11 items-center justify-center px-2 transition-colors hover:bg-tinta/[0.04] ${fuera ? RAYADO_FUERA : "text-verde"}`}
+                    >
+                      {fuera ? "—" : "✓"}
+                    </button>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

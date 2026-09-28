@@ -6,7 +6,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
-import { nivelMargen } from "@/lib/alta-producto";
+import { nivelMargen, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import {
   agregarCombinaciones,
@@ -70,8 +70,8 @@ export function VariantesFicha({
   onFilas,
   onBloquePendiente,
   tallasCategoria,
-  usoColores,
   categoriaNombre,
+  onColorCreado,
   etiquetas,
   avisoEtiquetas,
   deshabilitado,
@@ -84,8 +84,9 @@ export function VariantesFicha({
   onBloquePendiente: (pendiente: CampoBloque | null) => void;
   /** Las tallas habilitadas en la categoría elegida, ya ordenadas. */
   tallasCategoria: ValorVocabulario[];
-  usoColores: Record<string, number>;
   categoriaNombre?: string;
+  /** Un color creado desde «Agregar color»: la ficha lo suma a su vocabulario para nombrarlo y pintarlo. */
+  onColorCreado: (color: ColorAlta) => void;
   /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
   etiquetas: { valor: string; texto: string }[];
   avisoEtiquetas?: string;
@@ -320,9 +321,9 @@ export function VariantesFicha({
           ctx={ctx}
           filas={filas}
           tallas={tallasCategoria}
-          usoColores={usoColores}
           categoriaNombre={categoriaNombre}
           etiquetasTexto={etiquetasTexto}
+          onColorCreado={onColorCreado}
           onConfirmar={agregarColores}
           onClose={() => setModal(null)}
         />

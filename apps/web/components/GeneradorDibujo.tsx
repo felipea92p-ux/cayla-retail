@@ -30,7 +30,8 @@ export function GeneradorDibujo({
   descripcionInicial?: string;
   /** La propuesta marcada, para verla en grande arriba (o `null` al cerrar). */
   onVista?: (url: string | null) => void;
-  onUsar: (archivo: File) => void;
+  /** `descripcion` es la frase tal como quedó al elegir: quien la usa la guarda junto con el dibujo. */
+  onUsar: (archivo: File, descripcion: string) => void;
   onCancelar: () => void;
 }) {
   const [descripcion, setDescripcion] = useState(descripcionInicial);
@@ -54,7 +55,7 @@ export function GeneradorDibujo({
         avisar.error(listo.error);
         return;
       }
-      onUsar(listo.archivo);
+      onUsar(listo.archivo, descripcion);
     } finally {
       setPreparando(false);
     }

@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
-import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
-import { construirCeldas, ordenarColores } from "@/lib/alta-producto";
+import { construirCeldas, ordenarColores, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import {
@@ -27,7 +26,7 @@ import {
   type FilaFicha,
   type Identidad,
 } from "@/lib/variantes-ficha-reglas";
-import { ElegirUnColor, MontosNuevas, PieModal, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
+import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -52,9 +51,9 @@ export function AgregarColoresModal({
   ctx,
   filas,
   tallas,
-  usoColores,
   categoriaNombre,
   etiquetasTexto,
+  onColorCreado,
   onConfirmar,
   onClose,
 }: {
@@ -62,11 +61,11 @@ export function AgregarColoresModal({
   filas: FilaFicha[];
   /** Las tallas habilitadas HOY en la categoría elegida, ya ordenadas: una variante nueva solo nace en una de ellas. */
   tallas: ValorVocabulario[];
-  /** color → cuántas variantes de la categoría lo usan: los más usados salen primero. */
-  usoColores: Record<string, number>;
   categoriaNombre?: string;
   /** Los nombres de las etiquetas con que nacen las nuevas (las que tienen todas las activas), o null. */
   etiquetasTexto: string | null;
+  /** Un color creado aquí mismo (ElegirColores deja crearlo si no existe): la ficha lo suma a su vocabulario. */
+  onColorCreado: (color: ColorAlta) => void;
   onConfirmar: (r: ResultadoAgregarColores) => void;
   onClose: () => void;
 }) {
@@ -101,7 +100,8 @@ export function AgregarColoresModal({
   const yaVende = new Set(ejesDeLaPrenda(base, n).colores);
   // ~65 colores: ordenarlos en cada pintada cuesta nada (y un `useMemo` sobre un Set nuevo no ahorraría nada).
   const disponibles = ctx.colores.filter((c) => !yaVende.has(c.codigo));
-  const { frecuentes, grupos } = ordenarColores(disponibles, usoColores, FAMILIAS_COLOR, 6);
+  // Sin «los más usados» (ADR-0260: la carta de colores del alta va abierta de entrada, por familia).
+  const { grupos } = ordenarColores(disponibles, {}, FAMILIAS_COLOR);
 
   const tallasOrdenadas = tallasDeLaPrenda.filter((t) => t.habilitada && tallasElegidas.includes(t.id)).map((t) => ({ id: t.id, texto: n.talla(t.id) }));
   // Sin colores elegidos no hay nada que crear; con la prenda con tallas y ninguna marcada, tampoco (no nacen «sin talla»).
@@ -169,11 +169,14 @@ export function AgregarColoresModal({
             <p className="text-[12.5px] font-semibold text-tinta">{eraSinColor ? "2 · Los colores que llegaron" : "Los colores que llegaron"}</p>
             <ElegirColores
               colores={disponibles}
-              frecuentes={frecuentes}
               grupos={grupos}
               elegidos={nuevos}
               onAlternar={alternarColor}
-              categoriaNombre={categoriaNombre}
+              onCreado={(color) => {
+                // Como en el alta: el color recién creado se suma al vocabulario de la ficha y queda elegido.
+                onColorCreado(color);
+                setNuevos((a) => (a.includes(color.codigo) ? a : [...a, color.codigo]));
+              }}
             />
           </section>
 
@@ -204,16 +207,13 @@ export function AgregarColoresModal({
                 <b className="tabular-nums">{combos.length}</b>{" "}
                 <span className="text-taupe">{combos.length === 1 ? "variante" : "variantes"} · toca una celda para quitarla</span>
               </p>
-              <MatrizVariantes
+              <MatrizNuevas
                 celdas={celdas}
                 tallas={tallasOrdenadas}
-                colores={nuevos.map((c) => ctx.colores.find((x) => x.codigo === c)).filter((c): c is NonNullable<typeof c> => Boolean(c))}
+                colores={nuevos}
                 excluidas={excluidas}
                 onExcluidas={setExcluidas}
-                precioBase={precio}
-                precios={{}}
-                onPrecio={() => undefined}
-                editandoPrecios={false}
+                nombreColor={n.color}
               />
               {vuelven.length > 0 && (
                 <p className="text-[12.5px] text-taupe">
