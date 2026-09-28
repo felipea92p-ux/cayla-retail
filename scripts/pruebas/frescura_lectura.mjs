@@ -99,13 +99,22 @@
  *       vendida, la separada, la entregada en la ventana, el pedido de otra sede (bajada y separación en el mismo
  *       instante) y la separada a los 7 minutos dan 1; con piso libre antes, separada y liberada en la ventana, separada
  *       a los 11 minutos o la entrega de una separación de antes, lo del núcleo. El indicador de registro NO lo cuenta.
- *   T9e W = 10 minutos en las dos lecturas (una venta a los 7 minutos es tardía en fn_frescura_sede y en
- *       fn_confianza_registro) y el corte 2W del indicador (la de hace 17,5 minutos no cuenta; la de hace 21, sí).
+ *   T9e W = 10 minutos en las dos lecturas (una venta a los 7 minutos y otra a los 10 minutos justos son tardías en
+ *       fn_frescura_sede y en fn_confianza_registro; una a los 10 minutos y 1 segundo, no) y el corte 2W del indicador
+ *       (la de hace 19 minutos y 54 segundos no cuenta; la de hace 20 minutos y 6 segundos, sí).
+ *   T9f lo liberado SIN entregarse de una separación de antes de la bajada no resta en las tardías de la lectura (la
+ *       gemela liberada después de la venta es tardía como la retirada al almacén; también con una separación nueva
+ *       en la ventana, o si al liberarla se da de baja: una salida que no es venta no es la entrega); la entrega sí resta
+ *       cuando su venta cae dentro de la ventana de la bajada (a los 2 minutos de liberar, y a los 10 minutos justos de
+ *       la bajada), y no cuando cae después; el saldo de lo apartado al empezar la ventana (p_dias = 30) cuenta como lo
+ *       apartado de antes.
  *   T10e fn_confianza_registro() sin tienda: cada tienda con SUS cifras, las mismas que pedida sola (R9-MUT-1).
  *   T3b dos eventos del piso en el mismo instante: la entrada antes que la salida, sea cual sea su uuid (F3).
  *   T2j lo que entra al piso y se aparta entero en el mismo instante no es exhibición (N3): el pedido de hace 130 días
  *       no le quita «Nueva» al lote colgado hace 2; sin otra entrada, primera nula; entrar 3 y apartar 1, o apartar
- *       minutos después, sí es exhibición.
+ *       minutos después, sí es exhibición. El pedido que la clienta no recogió se exhibe desde que se LIBERA (hace 125
+ *       días: el lote de hace 2 ya no es «Nueva»); el que se entregó a los 3 minutos o a los 10 justos de liberarse, no;
+ *       a los 10 minutos y 1 segundo, sí.
  *   T4j la llegada a CAYLA de una orden del Taller solo cuenta si la orden sigue inventariada (R9-SQL-2): cerrar →
  *       revertir → anular y revertir sin volver a cerrar no mueven la temporada; cerrar → revertir → cerrar sí.
  *   T12 la guarda de 20260928120330 (la que manda fn_frescura_sede): pegada otra vez deja lo mismo; con fn_frescura_sede
@@ -120,7 +129,9 @@
  *       culpando a un «parche en vivo» (revisión 4, hallazgo 1).
  *   T13 el contrato con la web: siembra una tienda con de todo (la vara de las blusas, nueva, vieja, carga inicial,
  *       tardía, retiro, dudosa, solo almacén, apartada, chompa de invierno con otro lote en Trujillo —su llegada a la
- *       tienda y a CAYLA difieren—, clásico, sin temporada, y las cuatro gemelas de la revisión 9) y exige que la salida de
+ *       tienda y a CAYLA difieren—, clásico, sin temporada, las cuatro gemelas de la revisión 9, la separación de antes
+ *       liberada después de la venta con su gemela guardada, y el pedido que la clienta no recogió con su control
+ *       colgado) y exige que la salida de
  *       las dos lecturas tenga la MISMA forma (claves y tipos) que `apps/web/lib/__fixtures__/frescura-sede.json`, la
  *       salida real con la que `frescura-contrato.test.ts` prueba la web. Con FRESCURA_FIXTURE_ESCRIBIR=1 reescribe ese
  *       archivo.
@@ -1867,28 +1878,142 @@ ${k("CONF", CONF_TIENDA)}`,
   },
 );
 
+// W y 2W fijados por los dos lados (corrector de la revisión 9): con W = 9 la venta de los 10 minutos justos deja de ser
+// tardía; con W = 11 o 15, la de los 10 minutos y 1 segundo pasa a serlo; con 2W = 18 la bajada de hace 19 minutos y 54
+// segundos ya cuenta, y con 2W = 21 la de hace 20 minutos y 6 segundos todavía no. Antes solo se sabía que W estaba
+// entre 7 y 17,5 minutos y el corte entre 17,5 y 21.
 correr(
-  "T9e · W = 10 minutos en las DOS lecturas (una venta a los 7 minutos es tardía en fn_frescura_sede y en fn_confianza_registro) y el corte 2W del indicador (hace 17,5 minutos no cuenta; hace 21, sí)",
+  "T9e · W = 10 minutos en las DOS lecturas (a los 7 minutos y a los 10 justos es tardía en fn_frescura_sede y en fn_confianza_registro; a los 10 minutos y 1 segundo, no) y el corte 2W del indicador (hace 19 min 54 s no cuenta; hace 20 min 6 s, sí)",
   `${TB}
 select pg_temp.variante('ZZ-FL-T9E-A7') as va \\gset
-select pg_temp.variante('ZZ-FL-T9E-B17') as vb \\gset
-select pg_temp.variante('ZZ-FL-T9E-C21') as vc \\gset
-select count(pg_temp.llega(v, 2, :'tb'::timestamptz - interval '30 minutes')) as _l from unnest(array[:'va', :'vb', :'vc']::uuid[]) v \\gset
+select pg_temp.variante('ZZ-FL-T9E-A10') as va10 \\gset
+select pg_temp.variante('ZZ-FL-T9E-A10S') as va10s \\gset
+select pg_temp.variante('ZZ-FL-T9E-B199') as vb \\gset
+select pg_temp.variante('ZZ-FL-T9E-C201') as vc \\gset
+select count(pg_temp.llega(v, 2, :'tb'::timestamptz - interval '30 minutes')) as _l from unnest(array[:'va', :'va10', :'va10s', :'vb', :'vc']::uuid[]) v \\gset
 select pg_temp.bajada(:'va', 1, :'tb'::timestamptz) as _a1 \\gset
 select pg_temp.vende(:'va', 1, :'tb'::timestamptz + interval '7 minutes') as _a2 \\gset
-select pg_temp.bajada(:'vc', 1, now() - interval '21 minutes') as _c1 \\gset
-select pg_temp.vende(:'vc', 1, now() - interval '21 minutes' + interval '3 seconds') as _c2 \\gset
-select pg_temp.bajada(:'vb', 1, now() - interval '17 minutes 30 seconds') as _b1 \\gset
-select pg_temp.vende(:'vb', 1, now() - interval '17 minutes 30 seconds' + interval '3 seconds') as _b2 \\gset
+select pg_temp.bajada(:'va10', 1, :'tb'::timestamptz + interval '1 second') as _a3 \\gset
+select pg_temp.vende(:'va10', 1, :'tb'::timestamptz + interval '1 second' + interval '10 minutes') as _a4 \\gset
+select pg_temp.bajada(:'va10s', 1, :'tb'::timestamptz + interval '2 seconds') as _a5 \\gset
+select pg_temp.vende(:'va10s', 1, :'tb'::timestamptz + interval '2 seconds' + interval '10 minutes 1 second') as _a6 \\gset
+select pg_temp.bajada(:'vc', 1, now() - interval '20 minutes 6 seconds') as _c1 \\gset
+select pg_temp.vende(:'vc', 1, now() - interval '20 minutes 6 seconds' + interval '3 seconds') as _c2 \\gset
+select pg_temp.bajada(:'vb', 1, now() - interval '19 minutes 54 seconds') as _b1 \\gset
+select pg_temp.vende(:'vb', 1, now() - interval '19 minutes 54 seconds' + interval '3 seconds') as _b2 \\gset
 select pg_temp.lectura() as j \\gset
 ${k("LECTURA", TARDIAS_DE(":'j'", "ZZ-FL-T9E-"))}
 ${k("CONF", CONF_TIENDA)}`,
   (o) => {
-    afirmar("fn_frescura_sede: la venta a los 7 minutos delata la bajada (W = 10), y las otras dos también", o.LECTURA === "ZZ-FL-T9E-A7:1,ZZ-FL-T9E-B17:1,ZZ-FL-T9E-C21:1", `LECTURA=${o.LECTURA}`);
     afirmar(
-      "fn_confianza_registro: cuenta la de los 7 minutos y la de hace 21; la de hace 17,5 (menos de 2W = 20 minutos) todavía no: 2 filas, 2 unidades, 2 tardías",
-      o.CONF === "2,2,2",
+      "fn_frescura_sede: las ventas a los 7 minutos y a los 10 justos delatan la bajada (W = 10, el borde adentro), la de los 10 minutos y 1 segundo no; las dos de hace 20 minutos también",
+      o.LECTURA === "ZZ-FL-T9E-A10:1,ZZ-FL-T9E-A7:1,ZZ-FL-T9E-B199:1,ZZ-FL-T9E-C201:1",
+      `LECTURA=${o.LECTURA}`,
+    );
+    afirmar(
+      "fn_confianza_registro: cuenta las de 7, 10 y 10 min 1 s (esta sin tardía) y la de hace 20 min 6 s; la de hace 19 min 54 s (menos de 2W = 20 minutos) todavía no: 4 filas, 4 unidades, 3 tardías",
+      o.CONF === "4,4,3",
       `CONF=${o.CONF}`,
+    );
+  },
+);
+
+// T9f (corrector de la revisión 9). Lo apartado ANTES de la bajada en las tardías de la lectura. La web cierra primero lo
+// más viejo y lee lo liberado sin entregar como una pausa (R8, N2): la clienta de antes que no vino no explica la venta
+// de la ventana, igual que la unidad retirada al almacén que se vuelve a colgar. La entrega sí: su venta es la de la
+// separación, no la de la bajada, siempre que caiga dentro de la ventana (si cae después, no está en lo vendido).
+correr(
+  "T9f · en las tardías de la LECTURA, lo liberado sin entregar de una separación de ANTES de la bajada no resta (como la gemela retirada al almacén); la entrega resta solo si su venta cae en la ventana; el saldo al empezar la ventana es lo apartado de antes",
+  `${TB}
+select pg_temp.variante('ZZ-FL-T9F-LIBERADA') as vl \\gset
+select pg_temp.variante('ZZ-FL-T9F-RETIRADA') as vg \\gset
+select pg_temp.variante('ZZ-FL-T9F-NUEVA-Y-VIEJA') as vn \\gset
+select pg_temp.variante('ZZ-FL-T9F-ENTREGA-LUEGO') as ve \\gset
+select pg_temp.variante('ZZ-FL-T9F-ENTREGA-BORDE') as vb \\gset
+select pg_temp.variante('ZZ-FL-T9F-ENTREGA-FUERA') as vf \\gset
+select pg_temp.variante('ZZ-FL-T9F-SALDO') as vs \\gset
+select pg_temp.variante('ZZ-FL-T9F-LIBERADA-BAJA') as vm \\gset
+select count(pg_temp.llega(v, 4, now() - interval '25 days')) as _l
+  from unnest(array[:'vl', :'vg', :'vn', :'ve', :'vb', :'vf', :'vm']::uuid[]) v \\gset
+create function pg_temp.aparta(v uuid, cuando timestamptz) returns uuid language sql as $f$
+  select pg_temp.mov(v, 'apartado', 1, current_setting('prueba.sp')::uuid, 'apartado', cuando)
+$f$;
+create function pg_temp.libera(v uuid, cuando timestamptz) returns uuid language sql as $f$
+  select pg_temp.mov(v, 'liberacion_apartado', 1, current_setting('prueba.sp')::uuid, 'liberacion_apartado', cuando)
+$f$;
+-- En todas, la talla tiene 1 colgada desde hace 20 días, y una clienta la separa una hora antes de la bajada: el piso de
+-- antes del núcleo es 1 y el LIBRE, 0 (ENTREGA-LUEGO tiene 2 colgadas: 1 libre).
+select count(pg_temp.bajada(v, 1, now() - interval '20 days')) as _c
+  from unnest(array[:'vl', :'vg', :'vn', :'vb', :'vf', :'vm']::uuid[]) v \\gset
+select pg_temp.bajada(:'ve', 2, now() - interval '20 days') as _c2 \\gset
+select count(pg_temp.aparta(v, :'tb'::timestamptz - interval '60 minutes')) as _s
+  from unnest(array[:'vl', :'vn', :'ve', :'vb', :'vf', :'vm']::uuid[]) v \\gset
+-- LIBERADA: se baja 1, otra clienta la compra a los 3 minutos y a los 5 se libera la separación (la clienta no vino).
+select pg_temp.bajada(:'vl', 1, :'tb'::timestamptz) as _l1 \\gset
+select pg_temp.vende(:'vl', 1, :'tb'::timestamptz + interval '3 minutes') as _l2 \\gset
+select pg_temp.libera(:'vl', :'tb'::timestamptz + interval '5 minutes') as _l3 \\gset
+-- RETIRADA (su gemela, R8: la pausa es como guardarla): la unidad se retira al almacén una hora antes y se vuelve a
+-- colgar a los 5 minutos.
+select pg_temp.retiro(:'vg', 1, :'tb'::timestamptz - interval '60 minutes') as _g0 \\gset
+select pg_temp.bajada(:'vg', 1, :'tb'::timestamptz + interval '1 second') as _g1 \\gset
+select pg_temp.vende(:'vg', 1, :'tb'::timestamptz + interval '1 second' + interval '3 minutes') as _g2 \\gset
+select pg_temp.bajada(:'vg', 1, :'tb'::timestamptz + interval '1 second' + interval '5 minutes') as _g3 \\gset
+-- NUEVA-Y-VIEJA: se baja 1, otra clienta la separa a los 3 minutos y a los 5 se libera la separación de antes. La web
+-- cierra primero lo más viejo: la nueva sigue separada (una venta a los 3 minutos) y es tardía.
+select pg_temp.bajada(:'vn', 1, :'tb'::timestamptz + interval '2 seconds') as _n1 \\gset
+select pg_temp.aparta(:'vn', :'tb'::timestamptz + interval '2 seconds' + interval '3 minutes') as _n2 \\gset
+select pg_temp.libera(:'vn', :'tb'::timestamptz + interval '2 seconds' + interval '5 minutes') as _n3 \\gset
+-- ENTREGA-LUEGO: con 1 libre antes, se baja 1 y otra clienta compra a los 3 (la libre lo explica); la clienta de antes
+-- llega: se libera a los 4 («Se la entrego a la clienta ahora») y se cobra a los 6. Es una entrega: no es tardía.
+select pg_temp.bajada(:'ve', 1, :'tb'::timestamptz + interval '3 seconds') as _e1 \\gset
+select pg_temp.vende(:'ve', 1, :'tb'::timestamptz + interval '3 seconds' + interval '3 minutes') as _e2 \\gset
+select pg_temp.libera(:'ve', :'tb'::timestamptz + interval '3 seconds' + interval '4 minutes') as _e3 \\gset
+select pg_temp.vende(:'ve', 1, :'tb'::timestamptz + interval '3 seconds' + interval '6 minutes') as _e4 \\gset
+-- ENTREGA-BORDE: se bajan 2, otra clienta compra 1 a los 3 (tardía); a los 5 se libera y la entrega se cobra a los 10
+-- minutos justos de la bajada: está en lo vendido y es de la separación. 1 tardía, no 2.
+select pg_temp.bajada(:'vb', 2, :'tb'::timestamptz + interval '4 seconds') as _b1 \\gset
+select pg_temp.vende(:'vb', 1, :'tb'::timestamptz + interval '4 seconds' + interval '3 minutes') as _b2 \\gset
+select pg_temp.libera(:'vb', :'tb'::timestamptz + interval '4 seconds' + interval '5 minutes') as _b3 \\gset
+select pg_temp.vende(:'vb', 1, :'tb'::timestamptz + interval '4 seconds' + interval '10 minutes') as _b4 \\gset
+-- ENTREGA-FUERA: se baja 1, otra clienta la compra a los 3 (tardía); a los 5 se libera y la entrega se cobra a los 10
+-- minutos y 1 segundo de la bajada (la web la toma como entrega: 5 min 1 s después de liberar), fuera de la ventana: no
+-- quita nada de lo vendido en ella. 1 tardía, no 0.
+select pg_temp.bajada(:'vf', 1, :'tb'::timestamptz + interval '5 seconds') as _f1 \\gset
+select pg_temp.vende(:'vf', 1, :'tb'::timestamptz + interval '5 seconds' + interval '3 minutes') as _f2 \\gset
+select pg_temp.libera(:'vf', :'tb'::timestamptz + interval '5 seconds' + interval '5 minutes') as _f3 \\gset
+select pg_temp.vende(:'vf', 1, :'tb'::timestamptz + interval '5 seconds' + interval '10 minutes 1 second') as _f4 \\gset
+-- LIBERADA-BAJA: como LIBERADA, pero al minuto de liberarla se da de baja por conteo (una salida del piso que no es
+-- venta). La entrega tiene que ser una VENTA: esto sigue siendo una clienta que no vino, y la venta de los 3 minutos,
+-- tardía.
+select pg_temp.bajada(:'vm', 1, :'tb'::timestamptz + interval '6 seconds') as _m1 \\gset
+select pg_temp.vende(:'vm', 1, :'tb'::timestamptz + interval '6 seconds' + interval '3 minutes') as _m2 \\gset
+select pg_temp.libera(:'vm', :'tb'::timestamptz + interval '6 seconds' + interval '5 minutes') as _m3 \\gset
+select pg_temp.mov(:'vm', 'salida', 1, :'sp', 'conteo_fisico', :'tb'::timestamptz + interval '6 seconds' + interval '6 minutes') as _m4 \\gset
+-- SALDO (R9, el saldo de lo apartado): colgada hace 50 días, separada hace 40 (sigue separada); hace 5 días otra clienta
+-- pide la talla: se baja 1 y la compra a los 3 minutos. A 30 días, la separación es el saldo con que arranca la ventana.
+select pg_temp.llega(:'vs', 3, now() - interval '60 days') as _s1 \\gset
+select pg_temp.bajada(:'vs', 1, now() - interval '50 days') as _s2 \\gset
+select pg_temp.aparta(:'vs', now() - interval '40 days') as _s3 \\gset
+select pg_temp.bajada(:'vs', 1, now() - interval '5 days') as _s4 \\gset
+select pg_temp.vende(:'vs', 1, now() - interval '5 days' + interval '3 minutes') as _s5 \\gset
+select pg_temp.lectura() as j \\gset
+select pg_temp.lectura(30) as j30 \\gset
+${k("LECTURA", TARDIAS_DE(":'j'", "ZZ-FL-T9F-"))}
+${k("LECTURA30", TARDIAS_DE(":'j30'", "ZZ-FL-T9F-SALDO"))}
+${k("SALDO30", "(select string_agg(a ->> 1, ',') from jsonb_array_elements(:'j30'::jsonb -> 'apartados' -> :'vs') a)")}
+${k("NUCLEO", "(select string_agg(v.codigo || ':' || n.unidades_tardias, ',' order by v.codigo) from retail.fn_bajadas_del_piso_nucleo(:'ubic', now() - interval '30 days', null) n join retail.variantes v on v.id = n.variante_id where n.unidades_tardias > 0)")}`,
+  (o) => {
+    afirmar(
+      "la lectura: la liberada después de la venta es tardía como su gemela retirada al almacén; también si al liberarla se da de baja (una salida que no es venta no es la entrega); también con una separación nueva en la ventana; la entrega a los 2 minutos de liberar no lo es; la entrega cobrada a los 10 minutos justos resta (1, no 2) y la cobrada después de la ventana no (1, no 0); el saldo de hace 40 días cuenta",
+      o.LECTURA === "ZZ-FL-T9F-ENTREGA-BORDE:1,ZZ-FL-T9F-ENTREGA-FUERA:1,ZZ-FL-T9F-LIBERADA:1,ZZ-FL-T9F-LIBERADA-BAJA:1,ZZ-FL-T9F-NUEVA-Y-VIEJA:1,ZZ-FL-T9F-RETIRADA:1,ZZ-FL-T9F-SALDO:1",
+      `LECTURA=${o.LECTURA}`,
+    );
+    afirmar("a 30 días, la separación de hace 40 es el saldo de la ventana (−1)…", o.SALDO30 === "-1", `SALDO30=${o.SALDO30}`);
+    afirmar("…y la compra de la otra clienta sigue siendo tardía (lo libre antes era 0)", o.LECTURA30 === "ZZ-FL-T9F-SALDO:1", `LECTURA30=${o.LECTURA30}`);
+    afirmar(
+      "el núcleo (el indicador) cuenta lo apartado como colgado: para él solo son tardías la retirada y la del borde (2 vendidas contra 1 colgada)",
+      o.NUCLEO === "ZZ-FL-T9F-ENTREGA-BORDE:1,ZZ-FL-T9F-RETIRADA:1",
+      `NUCLEO=${o.NUCLEO}`,
     );
   },
 );
@@ -1953,7 +2078,7 @@ ${k("B", "pg_temp.ev(:'j', :'vb', :'t0')")}`,
 );
 
 correr(
-  "T2j · lo que entra al piso y se aparta ENTERO en el mismo instante no es exhibición (N3): el pedido de hace 130 días no le quita «Nueva» al lote de hace 2",
+  "T2j · lo que entra al piso y se aparta ENTERO en el mismo instante no es exhibición (N3): el pedido de hace 130 días no le quita «Nueva» al lote de hace 2; el que la clienta no recogió se exhibe desde que se libera",
   `-- Z: pedido de otra sede hace 130 días (se baja y se separa en el mismo instante; se entrega a los 5 días), y hace 2
 -- días llega un lote y se cuelga por primera vez.
 select pg_temp.variante('ZZ-FL-T2J-PEDIDO-VIEJO') as vz \\gset
@@ -1992,11 +2117,38 @@ select pg_temp.variante('ZZ-FL-T2J-MINUTOS') as vm \\gset
 select pg_temp.llega(:'vm', 1, now() - interval '11 days') as _m1 \\gset
 select pg_temp.bajada(:'vm', 1, now() - interval '10 days') as _m2 \\gset
 select pg_temp.mov(:'vm', 'apartado', 1, :'sp', 'apartado', now() - interval '10 days' + interval '3 minutes') as _m3 \\gset
+-- L (corrector de la revisión 9): el pedido de hace 130 días que la clienta NO recogió: se libera hace 125 sin entregarse,
+-- queda colgado un día y otra clienta lo compra desde el piso hace 124. Hace 2 días llega un lote y se cuelga. Desde que
+-- se liberó SÍ se exhibió: el lote de hoy no es «Nueva» (decisión 9), igual que si lo hubieran colgado hace 125.
+select pg_temp.variante('ZZ-FL-T2J-PEDIDO-LIBERADO') as vl \\gset
+select pg_temp.llega(:'vl', 1, now() - interval '131 days') as _l1 \\gset
+select pg_temp.bajada(:'vl', 1, now() - interval '130 days') as _l2 \\gset
+select pg_temp.mov(:'vl', 'apartado', 1, :'sp', 'apartado', now() - interval '130 days') as _l3 \\gset
+select pg_temp.mov(:'vl', 'liberacion_apartado', 1, :'sp', 'liberacion_apartado', now() - interval '125 days') as _l4 \\gset
+select pg_temp.vende(:'vl', 1, now() - interval '124 days') as _l5 \\gset
+select pg_temp.llega(:'vl', 3, now() - interval '3 days') as _l6 \\gset
+select pg_temp.bajada(:'vl', 3, now() - interval '2 days') as _l7 \\gset
+-- La entrega de un pedido que no se cobra en el mismo instante («Se la entrego a la clienta ahora» en Apartados, y el
+-- cobro en Vender): liberado hace 55 días y cobrado a los 3 minutos, o a los 10 justos (la ventana de la entrega de la
+-- web, el borde adentro): nunca se colgó. Cobrado a los 10 minutos y 1 segundo ya no es la entrega: se colgó al liberarse.
+create function pg_temp.pedido(p_codigo text, p_cobro interval) returns uuid language plpgsql as $f$
+declare v uuid := pg_temp.variante(p_codigo); sp uuid := current_setting('prueba.sp')::uuid;
+begin
+  perform pg_temp.llega(v, 1, now() - interval '61 days');
+  perform pg_temp.bajada(v, 1, now() - interval '60 days');
+  perform pg_temp.mov(v, 'apartado', 1, sp, 'apartado', now() - interval '60 days');
+  perform pg_temp.mov(v, 'liberacion_apartado', 1, sp, 'liberacion_apartado', now() - interval '55 days');
+  perform pg_temp.vende(v, 1, now() - interval '55 days' + p_cobro);
+  return v;
+end $f$;
+select pg_temp.pedido('ZZ-FL-T2J-COBRO-3MIN', interval '3 minutes') as _p1 \\gset
+select pg_temp.pedido('ZZ-FL-T2J-COBRO-10MIN', interval '10 minutes') as _p2 \\gset
+select pg_temp.pedido('ZZ-FL-T2J-COBRO-10MIN-1S', interval '10 minutes 1 second') as _p3 \\gset
 select pg_temp.lectura() as j \\gset
 create function pg_temp.primera(j jsonb, p_codigo text) returns text language sql as $f$
   select coalesce((select pg_temp.dias(x ->> 'primera_exhibicion') from jsonb_array_elements(j -> 'prendas') x where x ->> 'codigo' = p_codigo), 'ausente')
 $f$;
-${["PEDIDO-VIEJO", "COLGADA-1H", "PEDIDO-SEPARADO", "PEDIDO-ENTREGADO", "PARTE", "MINUTOS"].map((c) => k(c, `pg_temp.primera(:'j', 'ZZ-FL-T2J-${c}')`)).join("\n")}`,
+${["PEDIDO-VIEJO", "COLGADA-1H", "PEDIDO-SEPARADO", "PEDIDO-ENTREGADO", "PARTE", "MINUTOS", "PEDIDO-LIBERADO", "COBRO-3MIN", "COBRO-10MIN", "COBRO-10MIN-1S"].map((c) => k(c, `pg_temp.primera(:'j', 'ZZ-FL-T2J-${c}')`)).join("\n")}`,
   (o) => {
     afirmar("el pedido de hace 130 días no es exhibición: la primera es la del lote de hace 2 días (puede ser «Nueva»)", o["PEDIDO-VIEJO"] === "2", `PEDIDO-VIEJO=${o["PEDIDO-VIEJO"]}`);
     afirmar("(control) colgada 1 hora antes de separarse: sí se exhibió, hace 130 días", o["COLGADA-1H"] === "130", `COLGADA-1H=${o["COLGADA-1H"]}`);
@@ -2007,6 +2159,16 @@ ${["PEDIDO-VIEJO", "COLGADA-1H", "PEDIDO-SEPARADO", "PEDIDO-ENTREGADO", "PARTE",
     );
     afirmar("se bajan 3 y se aparta 1 en el mismo instante: quedan 2 colgadas, es exhibición", o.PARTE === "10", `PARTE=${o.PARTE}`);
     afirmar("se baja 1 y se aparta a los 3 minutos: estuvo colgada, es exhibición", o.MINUTOS === "10", `MINUTOS=${o.MINUTOS}`);
+    afirmar(
+      "el pedido que la clienta no recogió se exhibe desde que se libera (hace 125 días): el lote de hace 2 ya no puede ser «Nueva»",
+      o["PEDIDO-LIBERADO"] === "125",
+      `PEDIDO-LIBERADO=${o["PEDIDO-LIBERADO"]}`,
+    );
+    afirmar(
+      "la entrega cobrada a los 3 minutos o a los 10 justos de liberar no es exhibición (nula); a los 10 minutos y 1 segundo sí, desde que se liberó",
+      o["COBRO-3MIN"] === "null" && o["COBRO-10MIN"] === "null" && o["COBRO-10MIN-1S"] === "55",
+      `COBRO-3MIN=${o["COBRO-3MIN"]} COBRO-10MIN=${o["COBRO-10MIN"]} COBRO-10MIN-1S=${o["COBRO-10MIN-1S"]}`,
+    );
   },
 );
 
@@ -2414,6 +2576,46 @@ begin
   return 1;
 end $f$;
 select sum(pg_temp.gemela(modo, :'cat_a', :'t_s', :'t_m', :'c1')) as _gem from unnest(array['VENDIDA', 'SEPARADA', 'ENTREGADA', 'PEDIDO']) modo \\gset
+-- Corrector de la revisión 9, blusas: una colgada desde hace 2 días; ayer una clienta la separa (LIBERADA) o se guarda en
+-- el almacén (GUARDADA) una hora antes de que otra pida la talla: se baja 1 y se vende a los 3 minutos. A los 5, la
+-- separación se libera sin entregarse (la clienta no vino) o la guardada se vuelve a colgar. La web tiene que decir lo
+-- mismo de las dos (R8: la pausa es como guardarla), y la venta de los 3 minutos no entra a la vara en ninguna.
+create function pg_temp.pausa(p_modo text, p_cat uuid, p_tm uuid, p_color text) returns int language plpgsql as $f$
+declare v uuid; t timestamptz := now() - interval '1 day'; sp uuid := current_setting('prueba.sp')::uuid;
+begin
+  v := pg_temp.talla(pg_temp.variante('ZZ-FX-' || p_modo || '-M', pg_temp.producto('FX Blusa ' || lower(p_modo), null, p_cat), p_color), p_tm);
+  perform pg_temp.llega(v, 2, now() - interval '3 days');
+  perform pg_temp.bajada(v, 1, now() - interval '2 days');
+  if p_modo = 'LIBERADA' then perform pg_temp.mov(v, 'apartado', 1, sp, 'apartado', t - interval '60 minutes');
+  else perform pg_temp.retiro(v, 1, t - interval '60 minutes'); end if;
+  perform pg_temp.bajada(v, 1, t);
+  perform pg_temp.vende(v, 1, t + interval '3 minutes');
+  if p_modo = 'LIBERADA' then perform pg_temp.mov(v, 'liberacion_apartado', 1, sp, 'liberacion_apartado', t + interval '5 minutes');
+  else perform pg_temp.bajada(v, 1, t + interval '5 minutes'); end if;
+  return 1;
+end $f$;
+select sum(pg_temp.pausa(modo, :'cat_a', :'t_m', :'c1')) as _pausa from unnest(array['LIBERADA', 'GUARDADA']) modo \\gset
+-- Y vestidos: el pedido de otra sede de hace 130 días que la clienta no recogió (se libera hace 125 y otra clienta lo
+-- compra desde el piso hace 124), y su control colgado de verdad hace 125. Hace 2 días llega un lote de cada uno y se
+-- cuelga: ninguno es «Nueva» (decisión 9), los dos «sin edad conocida».
+create function pg_temp.pedido_viejo(p_modo text, p_cat uuid, p_tm uuid, p_color text) returns int language plpgsql as $f$
+declare v uuid; sp uuid := current_setting('prueba.sp')::uuid;
+begin
+  v := pg_temp.talla(pg_temp.variante('ZZ-FX-' || p_modo || '-M', pg_temp.producto('FX Vestido ' || lower(p_modo), null, p_cat), p_color), p_tm);
+  perform pg_temp.llega(v, 1, now() - interval '131 days');
+  if p_modo = 'PEDIDO-LIBERADO' then
+    perform pg_temp.bajada(v, 1, now() - interval '130 days');
+    perform pg_temp.mov(v, 'apartado', 1, sp, 'apartado', now() - interval '130 days');
+    perform pg_temp.mov(v, 'liberacion_apartado', 1, sp, 'liberacion_apartado', now() - interval '125 days');
+  else
+    perform pg_temp.bajada(v, 1, now() - interval '125 days');
+  end if;
+  perform pg_temp.vende(v, 1, now() - interval '124 days');
+  perform pg_temp.llega(v, 3, now() - interval '3 days');
+  perform pg_temp.bajada(v, 3, now() - interval '2 days');
+  return 1;
+end $f$;
+select sum(pg_temp.pedido_viejo(modo, :'cat_c', :'t_m', :'c1')) as _pv from unnest(array['PEDIDO-LIBERADO', 'COLGADO']) modo \\gset
 ${k("FX_SEDE", "pg_temp.lectura()")}
 ${k("FX_CONF", "(select coalesce(jsonb_agg(to_jsonb(c) order by c.mes), '[]'::jsonb) from retail.fn_confianza_registro(:'ubic') c)")}`,
   (o) => {

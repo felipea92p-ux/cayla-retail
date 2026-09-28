@@ -22,6 +22,13 @@
 --      La web aplica esto después de leer lo apartado como venta (`frescura-reglas.ts`, revisión 9).
 --      La ventana W = 10 minutos queda escrita UNA vez aquí (`c_minutos`) y se le pasa al núcleo: la misma para las
 --      ventas y para lo apartado.
+--      Corrección de la misma revisión (su corrector, 2026-09-28): lo que se LIBERA en la ventana sin entregarse, de una
+--      separación hecha ANTES de la bajada, no resta. La web lo lee como una pausa (R8, N2), igual que volver a colgar
+--      desde el almacén, y el núcleo no mira esas entradas: liberada después de la venta de la ventana, la clienta de
+--      antes no explica esa venta. A lo apartado al cerrar se le suma
+--        máximo(0, mínimo(apartado antes de la bajada, liberado en la ventana) − entregado en la ventana)
+--      con «entregado» = lo liberado que tiene una venta de su talla en el piso en los 10 minutos siguientes
+--      (`v_entrega`, la regla de la web) DENTRO de la ventana de la bajada (solo esa venta está en lo vendido).
 --   2. LA LLEGADA A CAYLA DE UNA ORDEN DEL TALLER REVERTIDA (R9-SQL-2). Una entrada de producción cuenta como llegada a
 --      CAYLA solo si su orden sigue inventariada (`producciones.inventariado_at`, la misma convención de
 --      `fn_origen_producto`). Cerrar → revertir → anular, o revertir sin volver a cerrar, ya no reinicia la temporada del
@@ -30,6 +37,9 @@
 --      la prenda pedida al piso y la separa en una transacción: 0 segundos a la vista. Esa entrada ya no es la primera
 --      exhibición del modelo+color; si fue hace más de 120 días, el modelo podía no volver a ser «Nueva» nunca en esa sede
 --      (decisión 9). Si es la única entrada al piso, `primera_exhibicion` es nula (la web: «Nueva» posible, revisión 9).
+--      Corrección del corrector: si la clienta no lo recoge y se libera sin entregarse (sin una venta de su talla en el
+--      piso en los 10 minutos siguientes), queda colgado: la liberación SÍ es exhibición. Sin esto, el pedido liberado
+--      y vendido desde el piso hace más de 120 días devolvía «Nueva» al lote de hoy (contra la decisión 9).
 --   4. DESEMPATE DE LOS EVENTOS DEL MISMO INSTANTE (F3): entradas antes que salidas (`delta desc`), no por el uuid (al
 --      azar). `fn_aplicar_movimiento` rechaza una salida sin stock, así que con el piso en 0 el único orden posible es la
 --      entrada primero (regularizar una «Prenda sin registrar» como «llegó nueva» escribe la entrada y la venta en la
@@ -43,6 +53,11 @@
 -- La primera exhibición busca, por cada entrada al piso, un apartado de su mismo instante por el índice de tienda y hora
 -- (sin esa búsqueda, ~14 ms menos a 120 días). Con esa carga, la lectura sale igual que la de 20260928120320 (no hay nada
 -- apartado junto a una bajada).
+-- Con las dos correcciones de su corrector (la misma carga, 11 corridas alternadas de los tres cuerpos, 2026-09-28):
+-- 849 ms (819-881) contra 807 (793-831) de 20260928120320 y 837 (820-844) del cuerpo anterior de este archivo a 120
+-- días; 322 (316-397) contra 303 (298-345) y 318 (312-416) a 30 días: +5 % y +6 % contra la revisión 8. La venta de una
+-- entrega solo se busca para lo liberado dentro de una ventana, y la de una liberación en la primera exhibición, por el
+-- índice de tienda y hora. Los tres cuerpos dan la misma lectura con esa carga.
 --
 -- LA GUARDA. Pide 20260928120310 ya pegada (las tres funciones que esto usa y no reescribe, con su cuerpo) y
 -- `fn_frescura_sede` con el cuerpo de 20260928120320 (`7da85d7b…`) o el de este archivo. Con el de 20260928120300 o el
@@ -64,11 +79,17 @@
 --     no vino) y en la ventana hubo otra venta que el piso libre de antes explicaba: la lectura saca de la vara esa venta
 --     (la web solo saca lo que en la ventana cuenta como venta, pero el tope viene de aquí). Pide una separación que se
 --     abandona y otra venta de la misma talla en los mismos 10 minutos.
+--   · de la 1 (corrección): dos o más liberaciones de la misma talla en los 10 minutos de una bajada, que cierran una
+--     separación de antes Y una de la ventana, con la entrega y el abandono en el orden contrario al que aquí se supone
+--     (lo entregado va primero a lo más viejo): una unidad de más o de menos. Y una misma venta que la web solo le da a
+--     una entrega se cuenta para dos liberaciones. Pide dos clientas con separaciones de la misma talla liberadas en los
+--     mismos 10 minutos de una bajada.
 --   · de la 2: una orden cerrada hace meses se revierte para corregir el costo y se vuelve a cerrar: la temporada cuenta
 --     desde el segundo cierre (ya pasaba antes de esta migración).
 --   · de la 3: alguien baja una prenda y la aparta en la misma transacción SIN que sea un pedido (hoy solo
 --     `separar_pedido_para_apartar` lo hace): tampoco cuenta como exhibición. Una bajada que se aparta minutos después
---     sí cuenta.
+--     sí cuenta. Y el pedido que se libera y, en los 10 minutos siguientes, otra clienta compra esa talla desde el piso:
+--     se lee como la entrega (la misma confusión que la web) y la liberación no cuenta como exhibición.
 --   · de la 4: un flujo nuevo escribe en una transacción una salida y DESPUÉS una entrada de la misma talla en el piso con
 --     stock de sobra (hoy ninguno): se leería al revés siempre, en vez de la mitad de las veces.
 -- ============================================================================
@@ -128,7 +149,7 @@ begin
   if v_md5 = '51babffc09da4073691ee251882967c8' then
     raise exception 'fn_frescura_sede es la de 20260928120310: pega antes 20260928120320_frescura_lectura_revision7.sql.';
   end if;
-  if v_md5 not in ('7da85d7b7010659ba5a36a2478c89ad4', 'affb0187f217b2da43c452007c1b2eed') then
+  if v_md5 not in ('7da85d7b7010659ba5a36a2478c89ad4', '33970c94c7dddf9530ee6b8175862661') then
     raise exception 'fn_frescura_sede tiene otro cuerpo (md5 %): no es la de 20260928120320 ni la de este archivo; alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
   end if;
 end $$;
@@ -152,6 +173,12 @@ declare
   -- núcleo para las ventas y se usa aquí para lo apartado. La web usa los mismos 10 minutos (VENTANA_TARDIA_SEGUNDOS).
   c_minutos constant integer := 10;
   v_ventana constant interval := make_interval(mins => c_minutos);
+  -- La ventana de la ENTREGA de lo apartado: una liberación con una venta de su talla en el piso en [liberación,
+  -- liberación + 10 min] es una entrega, no una clienta que no vino. Es la misma regla y el mismo número de la web
+  -- (VENTANA_ENTREGA_SEGUNDOS, `eventosConApartados`): «Se la entrego a la clienta ahora» libera en Apartados y se cobra
+  -- enseguida en Vender. La usan las tardías (lo que se libera sin entregar de una separación de antes no explica
+  -- ninguna venta) y la primera exhibición (el pedido que la clienta no recogió se cuelga desde que se libera).
+  v_entrega constant interval := make_interval(mins => 10);
   v_ahora timestamptz := now();
   v_desde timestamptz;
   v_piso uuid;
@@ -255,8 +282,20 @@ begin
   -- antes del núcleo la cuenta como colgada). La entrega de una separación de antes suma 1 a lo vendido y 1 a lo liberado:
   -- no pesa. Sin nada apartado en la talla, es el número del núcleo. El indicador de registro no cambia (no castiga lo
   -- traído a pedido para una clienta): sus tardías y las de la lectura ya no son las mismas cuando hay algo apartado.
+  -- LO LIBERADO SIN ENTREGARSE de una separación de ANTES de la bajada no resta: es la pausa que termina (R8, N2), como
+  -- volver a colgar desde el almacén, que el núcleo tampoco mira. Liberada después de la venta de la ventana, la clienta
+  -- de antes no explica esa venta, y su gemela guardada en el almacén es tardía. Por eso a lo apartado al cerrar se le
+  -- suma lo que la ventana liberó sin entregar de lo apartado de antes. La web cierra primero lo más viejo
+  -- (`eventosConApartados`): de lo liberado en la ventana, lo primero es de antes, y dentro de cada liberación lo
+  -- entregado va primero a lo más viejo. Aquí va sumado:
+  --   de antes, liberado sin entregar = máximo(0, mínimo(apartado antes de la bajada, liberado en la ventana) − entregado)
+  -- con «entregado» = lo liberado en la ventana que la web toma como entrega (una venta de su talla en el piso en los 10
+  -- minutos siguientes a la liberación, `v_entrega`) y cuya venta cae DENTRO de la ventana de la bajada: solo esa venta
+  -- está en lo vendido del núcleo, y la web se la quita (ya se contó al apartar). Una entrega cobrada después de la
+  -- ventana no quita nada de ella: cuenta como liberada sin entregar. Con una sola liberación en la ventana, lo normal,
+  -- es exacto.
   -- Lo apartado de cada talla se busca en `v_apartados` (el mismo mapa que va a la web, con su saldo): solo las tallas
-  -- con algo apartado en la lectura lo recorren.
+  -- con algo apartado en la lectura lo recorren, y la venta de una entrega solo se busca para lo liberado en una ventana.
   select coalesce(jsonb_object_agg(n.movimiento_id, true) filter (where n.es_carga_inicial), '{}'::jsonb),
          coalesce(jsonb_agg(jsonb_build_object('oid', n.movimiento_id, 'variante_id', n.variante_id,
                                                'bajada_en', n.bajada_en, 'unidades_tardias', n.tardias)
@@ -270,10 +309,25 @@ begin
              least(b.cantidad_efectiva,
                    greatest(0, b.vendidas_en_ventana - b.piso_antes
                                + case when v_apartados ? b.variante_id::text
-                                      then greatest(0, coalesce((
-                                             select -sum((a ->> 1)::integer)
-                                               from jsonb_array_elements(v_apartados -> b.variante_id::text) a
-                                              where (a ->> 0)::timestamptz <= b.bajada_en + v_ventana), 0))
+                                      then (select greatest(0, y.al_cerrar) + greatest(0, least(y.antes, y.liberado) - y.entregado)
+                                              from (select -coalesce(sum(x.d) filter (where x.ts <= b.bajada_en + v_ventana), 0) as al_cerrar,
+                                                           -coalesce(sum(x.d) filter (where x.ts < b.bajada_en), 0) as antes,
+                                                           coalesce(sum(x.d) filter (where x.en_ventana), 0) as liberado,
+                                                           coalesce(sum(case when x.en_ventana then least(x.d, (
+                                                                          select coalesce(sum(s.cantidad), 0)::integer
+                                                                            from movimientos s
+                                                                            left join venta_items vi on vi.id = s.venta_item_id
+                                                                            left join ventas ve on ve.id = vi.venta_id
+                                                                           where s.ubicacion_id = p_ubicacion_id
+                                                                             and s.created_at >= x.ts
+                                                                             and s.created_at <= least(x.ts + v_entrega, b.bajada_en + v_ventana)
+                                                                             and s.variante_id = b.variante_id and s.sububicacion_id = v_piso
+                                                                             and fn_es_venta_de_stock(s.tipo, s.motivo, s.cambio_id, s.venta_item_id, ve.estado)))
+                                                                        end), 0) as entregado
+                                                      from (select p.ts, p.d,
+                                                                   p.d > 0 and p.ts >= b.bajada_en and p.ts <= b.bajada_en + v_ventana as en_ventana
+                                                              from (select (a ->> 0)::timestamptz as ts, (a ->> 1)::integer as d
+                                                                      from jsonb_array_elements(v_apartados -> b.variante_id::text) a) p) x) y)
                                       else 0 end)) as tardias
         from fn_bajadas_del_piso_nucleo(p_ubicacion_id, v_desde, null, c_minutos) b
        where b.variante_id in (select unnest(v_ids))
@@ -348,6 +402,10 @@ begin
     -- Lo que entra al piso y se aparta ENTERO en el mismo instante no es exhibición (revisión 9, N3): es la huella de
     -- `separar_pedido_para_apartar` (el pedido de otra sede sube al piso y se separa en una transacción: 0 segundos a la
     -- vista). La búsqueda del apartado es por el índice de tienda y hora exacta.
+    -- Pero si la clienta no lo recoge y se libera sin entregarse, queda colgado: desde la LIBERACIÓN sí es exhibición.
+    -- Una liberación en el piso de la tienda cuenta si libera más de lo que se vende de esa talla en el piso en los 10
+    -- minutos siguientes (`v_entrega`, la entrega de la web). Solo pesa cuando todo lo de antes fue un pedido separado
+    -- al instante: si el modelo+color ya se había colgado, esa entrada es anterior.
     select coalesce(jsonb_object_agg(x.clave, pe.primera), '{}'::jsonb) as m
       from modelos x
       cross join lateral (
@@ -356,14 +414,23 @@ begin
           join movimientos m on m.variante_id = v2.id
          where v2.producto_id = x.producto_id
            and v2.color_codigo is not distinct from x.color_codigo
-           and ((m.ubicacion_id = p_ubicacion_id and m.sububicacion_id = v_piso
-                 and (m.tipo = 'entrada' or (m.tipo = 'ajuste' and m.cantidad > 0)))
-                or (m.tipo = 'traslado' and m.ubicacion_destino_id = p_ubicacion_id and m.sububicacion_destino_id = v_piso))
-           and m.cantidad > coalesce((select sum(a.cantidad)
-                                        from movimientos a
-                                       where a.ubicacion_id = p_ubicacion_id and a.created_at = m.created_at
-                                         and a.variante_id = m.variante_id and a.sububicacion_id = v_piso
-                                         and a.tipo = 'apartado'), 0)
+           and ((((m.ubicacion_id = p_ubicacion_id and m.sububicacion_id = v_piso
+                   and (m.tipo = 'entrada' or (m.tipo = 'ajuste' and m.cantidad > 0)))
+                  or (m.tipo = 'traslado' and m.ubicacion_destino_id = p_ubicacion_id and m.sububicacion_destino_id = v_piso))
+                 and m.cantidad > coalesce((select sum(a.cantidad)
+                                              from movimientos a
+                                             where a.ubicacion_id = p_ubicacion_id and a.created_at = m.created_at
+                                               and a.variante_id = m.variante_id and a.sububicacion_id = v_piso
+                                               and a.tipo = 'apartado'), 0))
+                or (m.ubicacion_id = p_ubicacion_id and m.sububicacion_id = v_piso and m.tipo = 'liberacion_apartado'
+                    and m.cantidad > coalesce((select sum(s.cantidad)
+                                                 from movimientos s
+                                                 left join venta_items vi on vi.id = s.venta_item_id
+                                                 left join ventas ve on ve.id = vi.venta_id
+                                                where s.ubicacion_id = p_ubicacion_id
+                                                  and s.created_at >= m.created_at and s.created_at <= m.created_at + v_entrega
+                                                  and s.variante_id = m.variante_id and s.sububicacion_id = v_piso
+                                                  and fn_es_venta_de_stock(s.tipo, s.motivo, s.cambio_id, s.venta_item_id, ve.estado)), 0)))
       ) pe
      where pe.primera is not null
   ),
@@ -473,7 +540,7 @@ end
 $fn$;
 
 comment on function retail.fn_frescura_sede(uuid, integer) is
-  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de la llegada de su modelo+color A CAYLA que cuenta (ultima_llegada_cayla: la última por lote o producción —de una orden que sigue inventariada— en cualquier sede, fn_es_llegada_a_cayla; sin ninguna, la primera carga inicial; la recepción de un traslado no), si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla; lo que entra al piso y se aparta entero en el mismo instante no cuenta) y su última llegada en esa tienda (fn_es_llegada), y su piso y almacén LIBRES de hoy (sin lo apartado) y lo apartado (apartadas_hoy); eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida; en un mismo instante, las entradas primero) para el FIFO de historiaDeCohortes; apartados del piso por prenda [ts, delta] (apartar resta, liberar suma; el saldo al empezar la ventana primero) para el reloj y la vara; tardias (las del núcleo de bajadas con lo que quedó apartado en sus 10 minutos contado como vendido: no son las del indicador de registro, que no lo cuenta) y dudosas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo (con W = 10 minutos). Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
+  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de la llegada de su modelo+color A CAYLA que cuenta (ultima_llegada_cayla: la última por lote o producción —de una orden que sigue inventariada— en cualquier sede, fn_es_llegada_a_cayla; sin ninguna, la primera carga inicial; la recepción de un traslado no), si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla; lo que entra al piso y se aparta entero en el mismo instante no cuenta, pero sí su liberación sin entrega: desde ahí se cuelga) y su última llegada en esa tienda (fn_es_llegada), y su piso y almacén LIBRES de hoy (sin lo apartado) y lo apartado (apartadas_hoy); eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida; en un mismo instante, las entradas primero) para el FIFO de historiaDeCohortes; apartados del piso por prenda [ts, delta] (apartar resta, liberar suma; el saldo al empezar la ventana primero) para el reloj y la vara; tardias (las del núcleo de bajadas con lo que quedó apartado en sus 10 minutos contado como vendido, contra el piso libre de antes, y sin restar lo liberado sin entrega de lo apartado de antes: no son las del indicador de registro, que no lo cuenta) y dudosas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo (con W = 10 minutos). Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
 
 revoke all on function retail.fn_frescura_sede(uuid, integer) from public, anon;
 grant execute on function retail.fn_frescura_sede(uuid, integer) to authenticated;

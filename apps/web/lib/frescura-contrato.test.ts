@@ -171,7 +171,12 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
     for (const modo of ["VENDIDA", "SEPARADA", "ENTREGADA", "PEDIDO"]) {
       expect(porCodigo(`ZZ-FX-GEM-${modo}-M`).map((t) => t.unidadesTardias), modo).toEqual([1, 1, 1]);
     }
-    expect(l.tardias).toHaveLength(13);
+    // Y la separación de antes liberada después de la venta, como su gemela guardada en el almacén (corrector de la
+    // revisión 9): lo liberado sin entregar no explica la venta de la ventana.
+    for (const modo of ["LIBERADA", "GUARDADA"]) {
+      expect(porCodigo(`ZZ-FX-${modo}-M`).map((t) => t.unidadesTardias), modo).toEqual([1]);
+    }
+    expect(l.tardias).toHaveLength(15);
     for (const t of l.tardias) {
       const bajada = l.eventos[t.varianteId].find((e) => e.oid === t.oid);
       expect(bajada?.delta, "la tardía apunta a una bajada de su prenda").toBe(1);
@@ -202,9 +207,10 @@ describe("contrato fn_confianza_registro → leerConfianzaRegistro", () => {
   });
 
   it("la tardía de la siembra está; la carga inicial y la dudosa no suman; lo separado para una clienta no castiga al equipo", () => {
-    // La tardía de la siembra y las de la vendida y la entregada (3 cada una). Las de la separada y el pedido son tardías
-    // de la LECTURA (salen de la vara), no del indicador de registro (ADR-0208, revisión 9; plan 3c, riesgo 3).
-    expect(filas.reduce((s, f) => s + f.tardias, 0)).toBe(7);
+    // La tardía de la siembra, las de la vendida y la entregada (3 cada una) y la de la blusa guardada. Las de la separada,
+    // el pedido y la blusa liberada son tardías de la LECTURA (salen de la vara), no del indicador de registro: para él lo
+    // apartado está colgado (ADR-0208, revisión 9; plan 3c, riesgo 3).
+    expect(filas.reduce((s, f) => s + f.tardias, 0)).toBe(8);
     // Las bajadas de hace 1 a 10 días de la siembra son 7 filas y 10 unidades efectivas (3 nueva, 1 + 2 tardía, 3 − 1
     // retiro, 2 sin temporada... ver T13); la carga inicial (2) y la dudosa (2) quedan fuera, así que ninguna fila puede
     // tener más unidades que el total sembrado sin ellas.
@@ -315,6 +321,32 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     }
     // Las blusas siguen con 25 ventas (las de la vara y el retiro): con las separaciones adentro eran 31.
     expect(sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!.vendidas).toBe(25);
+  });
+
+  it("la separación de antes liberada DESPUÉS de la venta (salida real) dice lo mismo que su gemela guardada en el almacén, y su venta de los 3 minutos no entra a la vara (corrector de la revisión 9)", async () => {
+    const sede = await laSede();
+    const liberada = prendaCon(sede, "ZZ-FX-LIBERADA-M");
+    const guardada = prendaCon(sede, "ZZ-FX-GUARDADA-M");
+    // R8: lo liberado sin entregarse es una pausa, como guardarla. Antes la liberación le restaba a las tardías y la venta
+    // de los 3 minutos entraba a la vara y a la rapidez de la liberada (rapidez con 1 vendida contra 0 de la guardada).
+    expect(liberada.rapidez).toEqual(guardada.rapidez);
+    expect(liberada.estado).toEqual(guardada.estado);
+    expect(liberada.ventasRecientes).toBe(guardada.ventasRecientes);
+    expect(liberada.reloj).toEqual(guardada.reloj);
+    expect(liberada.rapidez?.vendidas ?? 0).toBe(0);
+    // Las blusas siguen con 25 ventas: ninguna de las dos le suma la de los 3 minutos.
+    expect(sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!.vendidas).toBe(25);
+  });
+
+  it("el pedido que la clienta no recogió (salida real) se exhibió desde que se liberó hace 125 días: el lote de hace 2 no es «Nueva», como su control colgado (corrector de la revisión 9)", async () => {
+    const sede = await laSede();
+    const pedido = prendaCon(sede, "ZZ-FX-PEDIDO-LIBERADO-M");
+    const colgado = prendaCon(sede, "ZZ-FX-COLGADO-M");
+    expect(Date.parse(pedido.primeraExhibicion!)).toBeLessThan(Date.parse(SEDE.desde));
+    expect(pedido.reloj.alMenos).toBe(true);
+    expect(pedido.estado.tipo).toBe("sin_edad_conocida");
+    expect(pedido.estado).toEqual(colgado.estado);
+    expect(pedido.reloj).toEqual(colgado.reloj);
   });
 
   it("el vestido apartado para una clienta (R7-1) no envejece desde que se apartó ni recibe sugerencias: colgado 10 días, no 40", async () => {
