@@ -46,10 +46,11 @@
 
 ## Qué queda fuera
 
-- **La foto todavía no se ve al crear o editar un producto**: el alta (paso 3, `ElegirTejido`, patrón en
-  `NuevoProductoForm`) y la ficha (`ProductoForm`) siguen con el dibujo. Hay que leer `imagen_muestra_url` en
-  `lib/alta-producto-datos.ts` y pasarla a `MuestraTejido`/`MuestraPatron` (ya aceptan `imagenUrl`). No se hizo aquí
-  porque otra sesión estaba tocando ese paso el mismo día (`claude/ver-mas-tejidos-4f8aea`).
+- ~~La foto todavía no se ve al crear un producto~~ **Hecho el mismo día** (pedido de Felipe): el paso 3 de Nuevo
+  producto muestra la imagen elegida en cada tarjeta de Tejido (también en «Ver más») y de Patrón.
+  `getContextoAlta` devuelve `imagenes: { tejidos, patrones }` (id → URL) aparte de `universo`, para no ensanchar
+  `ValorVocabulario`, que también usan las tallas. **Sigue fuera:** la ficha de un producto existente (`ProductoForm`),
+  que lee sus patrones por otro camino.
 - Las fotos reemplazadas no se borran del bucket (regla de no borrar; pesan ~300 KB cada una).
 - En local, el contenedor de Storage (1.72.1) es más viejo que su esquema y **rechaza toda subida** (`42P10` en
   `ON CONFLICT (name, bucket_id)`), también la de fotos de prenda. La subida real se probó hasta la vista previa; el

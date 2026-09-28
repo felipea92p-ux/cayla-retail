@@ -18,6 +18,11 @@ Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas,
 Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
 Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
 
+## 2026-09-28 (Nuevo producto: la imagen del tejido y del patrón al elegirlos — ADR-0256)
+Qué hice: en el paso 3 de Nuevo producto, cada tarjeta de Tejido (también las de «Ver más») y de Patrón muestra la foto o el dibujo que un Líder eligió en Atributos; sin imagen, el dibujo automático de siempre.
+Por qué así: el alta recibe un mapa aparte «id → imagen» en vez de sumarle un campo al tipo que comparten tallas, tejidos y patrones: las tallas no tienen imagen, y ensanchar ese tipo habría tocado seis pantallas para nada.
+Qué se rompería sin esto: la foto se subía en Atributos pero quien crea el producto, que es quien más la necesita para no confundir Denim con Drill, seguía viendo el dibujo. Sin resolver: la ficha de un producto existente.
+
 ## 2026-09-28 (Tejidos y Patrones: dibujo generado desde una frase — ADR-0256 act.)
 Qué hice: «rayas azul marino finas sobre crudo» y el sistema propone al instante tres dibujos con los colores reales del catálogo; dice qué entendió, ofrece otras variantes, y quien edita decide: usar el dibujo, cambiar la frase o subir una foto. También al crear un tejido o patrón, como campo opcional.
 Por qué así: Felipe eligió el generador propio sobre la IA: un patrón de tela es geometría que se repite, y así es gratis, instantáneo, no depende de una API y el azul es el Azul marino del catálogo, no el que imagine un modelo. El dibujo elegido se guarda como una foto (JPG, misma columna): nada nuevo en la base.

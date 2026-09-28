@@ -68,7 +68,8 @@ Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas
 - [x] La ruta PATCH de tejidos y patrones acepta `imagenMuestraUrl` solo del bucket y la carpeta de su tipo (`leerUrlMuestra`, 17 pruebas).
 - [x] **Generar dibujo desde una frase (sin IA, decisión de Felipe):** «rayas azul marino finas sobre crudo» → 3 propuestas con los colores del catálogo, «Entendí: …», «Otras variantes», «Usar este dibujo» → se guarda como una foto. También como campo opcional «Cómo se ve» al crear un tejido/patrón (`lib/dibujo-generado.ts`, 23 pruebas; ADR-0256 «Actualización»).
 - [ ] Unificar el dibujo automático por nombre (`MuestraTejido`/`MuestraPatron`) con el generador (frase vacía = el automático): hoy son dos formas de dibujar lo mismo.
-- [ ] **Mostrar la foto también al elegir tejido/patrón en Nuevo producto y en la ficha** (`lib/alta-producto-datos.ts` → `imagenUrl`; los componentes ya lo aceptan). Esperar a que se fusione `claude/ver-mas-tejidos-4f8aea`, que toca el mismo paso.
+- [x] **La imagen se ve al elegir tejido y patrón en Nuevo producto** (paso 3, también en «Ver más»; `getContextoAlta` → `imagenes`).
+- [ ] La misma imagen en la ficha de un producto existente (`ProductoForm`, patrón).
 - [ ] Subir una foto real en producción con sesión de Líder (en local el Storage 1.72.1 rechaza toda subida, `42P10`; ver ADR-0256).
 - Cómo verificas: Catálogo ▸ Atributos ▸ Tejidos ▸ clic en «Denim» ▸ se ven las prendas de denim ▸ «Subir foto» ▸ elegir una foto ▸ «Así se verá» ▸ «Guardar foto» ▸ la tarjeta de Denim muestra la foto. «Quitar foto» vuelve al dibujo.
 
