@@ -104,6 +104,22 @@ jobs:
         if: ${{ always() }}
         run: node scripts/migraciones/versiones.mjs
 
+      # Ninguna migración nueva usa `drop trigger`: en Supabase toma en exclusiva auth y storage hasta el final de la
+      # pegada y choca con el Asesor de seguridad (40P01, ADR-0195). Pasó el 2026-09-27 (`20260927190000`, #538).
+      # Las 22 que ya lo tenían quedan en su legado. Solo lee archivos; no necesita node_modules.
+      - name: Migraciones sin drop trigger
+        if: ${{ always() }}
+        run: |
+          node --test scripts/migraciones/sin-drop-trigger.test.mjs
+          node scripts/migraciones/sin-drop-trigger.mjs
+
+      # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
+      # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
+      # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
+      - name: Pruebas del check SQL pegado y de la deriva
+        if: ${{ always() }}
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs
+
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
       # `main`; el 2026-09-17 hubo seis choques). Solo lee nombres de archivo; no necesita
@@ -954,3 +970,30 @@ jobs:
       - name: pruebas:eliminar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-producto
+
+      # Huellas del catálogo de main (`scripts/migraciones/deriva.sql`): prueba que la consulta corre sobre la base del CI
+      # y, en un push a main, las guarda como artefacto para compararlas con las de producción (`deriva.mjs`): qué SQL de
+      # main falta pegar y qué arreglo vive solo en producción (el 2026-09-27 se publicaron 6 cambios sin su SQL).
+      - name: Huellas de main (deriva)
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: |
+          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/huellas-main.tsv"
+          lineas=$(wc -l < "$RUNNER_TEMP/huellas-main.tsv")
+          echo "huellas de main: $lineas objetos"
+          test "$lineas" -gt 1000
+          # Cada línea es «grupo<TAB>clave<TAB>huella»: una línea suelta (un «SET» sin -q) rompería la comparación.
+          awk -F'\t' 'NF != 3 || length($3) != 12 || $3 !~ /^[0-9a-f]+$/ { print "línea rara: " $0; malo = 1 } END { exit malo }' "$RUNNER_TEMP/huellas-main.tsv"
+
+      # La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
+      # EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
+      - name: pruebas:huellas-catalogo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:huellas-catalogo
+
+      - name: Guardar huellas de main
+        if: ${{ github.event_name == 'push' && steps.supabase.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: huellas-main
+          path: ${{ runner.temp }}/huellas-main.tsv
+          retention-days: 30

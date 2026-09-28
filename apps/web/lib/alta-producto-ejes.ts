@@ -20,6 +20,13 @@ export type EjeIds = { tallaIds: string[]; tejidoIds: string[]; patronIds: strin
 
 export type TipoVocabulario = "tallas" | "tejidos" | "patrones";
 
+/** Lo que la categoría ofrece hoy, más `id` en el eje `tipo`: el conjunto COMPLETO que `guardarEjesCategoria` necesita para ofrecer
+ *  un valor más sin quitarle nada. Ofrecer uno que ya estaba no lo repite. */
+export function sumarAlEje(ejes: EjeIds, tipo: TipoVocabulario, id: string): EjeIds {
+  const clave = tipo === "tallas" ? "tallaIds" : tipo === "tejidos" ? "tejidoIds" : "patronIds";
+  return ejes[clave].includes(id) ? ejes : { ...ejes, [clave]: [...ejes[clave], id] };
+}
+
 export async function guardarEjesCategoria(
   categoriaId: string,
   ejes: EjeIds,
