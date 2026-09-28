@@ -57,6 +57,12 @@ const FILA = (donde = ":'ubic'") => `
 select concat_ws('|', fisico, danado, apartado, disponible, piso_libre, almacen_libre, sin_lugar, en_camino, talla_retirada)
 from retail.fn_existencias(${donde}) where variante_id = :'v';`;
 
+/** Una talla retirada CON prendas: el estado viejo que ya no se puede producir (20260929030000 lo rechaza) pero que existe
+ *  en producción desde antes. Se arma sin disparadores, solo dentro de esta transacción. */
+const RETIRADA_A_LA_FUERZA = `set local session_replication_role = replica;
+update retail.variantes set activo = false where id = :'v';
+set local session_replication_role = origin;`;
+
 let fallas = 0;
 let total = 0;
 function caso(nombre, fn) {
@@ -128,15 +134,15 @@ caso(
 
 caso(
   "una talla retirada CON unidades se ve, marcada (no desaparece como pasaba en Existencias)",
-  igual(`update retail.variantes set activo = false where id = :'v'; ${FILA()}`, "10|2|1|7|4|3|0|0|t")
+  igual(`${RETIRADA_A_LA_FUERZA} ${FILA()}`, "10|2|1|7|4|3|0|0|t")
 );
 
 caso(
   "una talla retirada SIN unidades no aparece",
   igual(
-    `update retail.stock set cantidad = 0, cantidad_apartada = 0 where variante_id = :'v' and ubicacion_id = :'ubic';
+    `update retail.stock set cantidad = 0, cantidad_apartada = 0 where variante_id = :'v';
      update retail.variantes set activo = false where id = :'v';
-     select count(*) from retail.fn_existencias(:'ubic') where variante_id = :'v';`,
+     select count(*) from retail.fn_existencias() where variante_id = :'v';`,
     "0"
   )
 );

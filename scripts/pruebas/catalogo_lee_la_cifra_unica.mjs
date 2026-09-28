@@ -71,6 +71,12 @@ const dentro = (cuerpo, { conLecturas = true } = {}) =>
 /** El «Stock total» que el Catálogo le pone a la tarjeta del producto de la escena. */
 const STOCK_CATALOGO = `select distinct stock_total from retail.fn_productos(p_busqueda => :'ref', p_por_pagina => 100) where producto_id = :'prod';`;
 
+/** Una talla retirada CON prendas: el estado viejo que ya no se puede producir (20260929030000 lo rechaza) pero que existe
+ *  en producción desde antes. Se arma sin disparadores, solo dentro de esta transacción. */
+const RETIRADA_A_LA_FUERZA = `set local session_replication_role = replica;
+update retail.variantes set activo = false where id = :'v';
+set local session_replication_role = origin;`;
+
 let fallas = 0;
 let total = 0;
 function caso(nombre, fn) {
@@ -186,7 +192,7 @@ caso(
 caso(
   "una talla retirada con unidades no suma a nada que se venda: sale como aviso aparte (14 físicas en la red)",
   igual(
-    `update retail.variantes set activo = false where id = :'v';
+    `${RETIRADA_A_LA_FUERZA}
      select concat_ws('|', aqui, en_otras_tiendas, en_tallas_retiradas,
                       (select count(*) from retail.fn_stock_por_sede() where variante_id = :'v'))
      from retail.fn_existencias_productos(array[:'prod']::uuid[], :'ubic');`,

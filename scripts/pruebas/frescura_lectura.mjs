@@ -844,7 +844,11 @@ select pg_temp.variante('ZZ-FL-T4D-COLOR-INACTIVO', :'pb', :'c1') as vc \\gset
 insert into retail.producto_color_temporadas (producto_id, color_codigo, temporada) values (:'pb', :'c1', 'otono');
 select count(pg_temp.llega(v, 3, '2026-07-15 12:00-05')) as _l from unnest(array[:'vi', :'va', :'vc']::uuid[]) v \\gset
 select count(pg_temp.bajada(v, 2, '2026-07-16 12:00-05')) as _b from unnest(array[:'vi', :'va', :'vc']::uuid[]) v \\gset
+-- Talla retirada CON prendas: desde 20260929030000 (ADR-0256) eso ya no se puede producir, pero existe en datos
+-- viejos y esta prueba cubre justo ese caso: se arma sin disparadores, solo dentro de esta transacción.
+set local session_replication_role = replica;
 update retail.variantes set activo = false where id in (:'vi', :'vc');
+set local session_replication_role = origin;
 select pg_temp.lectura() as j \\gset
 ${k("INACTIVA", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-INACTIVA') || '|' || coalesce((pg_temp.prenda(:'j', 'ZZ-FL-T4D-INACTIVA') ->> 'fin_estacion')::timestamptz = (pg_temp.prenda(:'j', 'ZZ-FL-T4D-ACTIVA') ->> 'fin_estacion')::timestamptz, false)")}
 ${k("ACTIVA", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-ACTIVA')")}

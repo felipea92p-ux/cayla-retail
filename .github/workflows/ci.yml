@@ -1003,6 +1003,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:catalogo-cifra-unica
 
+      # Una talla con prendas no se retira (20260929030000, ADR-0256 decisión 13): con prendas en cualquier sede (Cuarentena
+      # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
+      # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
+      - name: pruebas:talla-con-prendas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:talla-con-prendas
+
       # Huellas del catálogo de main (`scripts/migraciones/deriva.sql`): prueba que la consulta corre sobre la base del CI
       # y, en un push a main, las guarda como artefacto para compararlas con las de producción (`deriva.mjs`): qué SQL de
       # main falta pegar y qué arreglo vive solo en producción (el 2026-09-27 se publicaron 6 cambios sin su SQL).
