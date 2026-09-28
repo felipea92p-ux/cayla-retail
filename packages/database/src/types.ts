@@ -4988,6 +4988,7 @@ export type Database = {
       fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
+      fn_variantes_con_historia: { Args: { p_ids: string[] }; Returns: string[] }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
         Returns: number

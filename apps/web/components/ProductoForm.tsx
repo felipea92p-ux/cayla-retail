@@ -77,6 +77,11 @@ import {
    los combos de color/talla y el SKU en esas filas: se podían cambiar, la
    RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
    muestran de solo lectura (`fija`), con el código que lee la pistola.
+   Excepción (20260928230000, Felipe 2026-09-28): una variante SIN HISTORIA
+   (ningún movimiento, venta, compra ni traslado) es `corregible`: sus combos
+   de color y talla se muestran y la RPC los cambia y recalcula el código. El
+   SKU de una variante existente sigue sin tocarse. La base repite la regla
+   con un candado en la tabla, así que una ficha vieja no la salta.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -103,6 +108,8 @@ type FilaVariante = {
   /** Solo variantes existentes: lo que se muestra en lugar de los campos que ya no se pueden cambiar (color, talla y
    *  código). `codigo` es el que lee la pistola (BLU-0042-AZM-M); el SKU queda como respaldo si todavía no lo tiene. */
   fija: { color: string; talla: string; codigo: string } | null;
+  /** Variante existente sin historia (20260928230000): color y talla se pueden corregir. */
+  corregible: boolean;
 };
 
 const NUMERO =
@@ -172,7 +179,7 @@ function costoEfectivo(v: FilaVariante): string {
 }
 
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null, corregible: false };
 }
 
 export function ProductoForm({
@@ -255,6 +262,8 @@ export function ProductoForm({
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
           fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
+          // Sin saber (null: la migración aún no está) se trata como con historia: fija, como antes.
+          corregible: v.conHistoria === false,
         };
       });
   });
@@ -279,6 +288,15 @@ export function ProductoForm({
   // en cada guardado del producto (evitaría escribir sobre variantes cuyas
   // etiquetas nadie tocó, pisando su `created_at` sin motivo).
   const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
+  // Color y talla con que se abrió cada variante: una corregible muestra «Nuevo al guardar» en vez de su código apenas
+  // se le cambia alguno (el código viejo ya no sería el suyo).
+  const [identidadOriginal] = useState(
+    () => new Map((producto?.variantes ?? []).map((v) => [v.id, { colorCodigo: v.colorCodigo ?? "", tallaId: v.tallaId ?? "" }]))
+  );
+  const identidadCambiada = (v: FilaVariante) => {
+    const original = v.id ? identidadOriginal.get(v.id) : undefined;
+    return !!original && (original.colorCodigo !== v.colorCodigo || original.tallaId !== v.tallaId);
+  };
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
   // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
@@ -745,7 +763,7 @@ export function ProductoForm({
           {variantes.map((v, i) => (
             <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
             <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
-              {v.fija ? (
+              {v.fija && !v.corregible ? (
                 <>
                   <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
                     {v.fija.color}
@@ -773,13 +791,23 @@ export function ProductoForm({
                     opciones={opcionesTalla}
                     marcador={categoriaId ? "Sin talla" : "Elige categoría"}
                   />
-                  <input
-                    aria-label="SKU"
-                    id={`producto-variante-${i}-sku`}
-                    value={v.sku}
-                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-                  />
+                  {v.fija ? (
+                    // Variante corregible: el código lo recalcula la base al guardar con el color y la talla nuevos.
+                    <span
+                      className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70"
+                      title="El código se recalcula al guardar si cambias el color o la talla"
+                    >
+                      {identidadCambiada(v) ? "Nuevo" : v.fija.codigo}
+                    </span>
+                  ) : (
+                    <input
+                      aria-label="SKU"
+                      id={`producto-variante-${i}-sku`}
+                      value={v.sku}
+                      onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
+                      className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                    />
+                  )}
                 </>
               )}
               <input
@@ -865,10 +893,16 @@ export function ProductoForm({
             )}
             </div>
           ))}
-          {variantes.some((v) => v.fija) && (
+          {variantes.some((v) => v.fija && !v.corregible) && (
             <p className="text-xs text-tinta/55">
-              Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
-              Si está mal, desactívala y agrega la correcta.
+              Color, talla y código de una variante que ya tiene movimientos no se cambian: puede tener stock, ventas y etiquetas
+              impresas. Si está mal, desactívala y agrega la correcta.
+            </p>
+          )}
+          {variantes.some((v) => v.corregible) && (
+            <p className="text-xs text-tinta/55">
+              Las variantes que todavía no tienen movimientos (sin stock, ventas ni traslados) se corrigen aquí: al cambiarles
+              color o talla, su código se recalcula al guardar. Si ya imprimiste su etiqueta, vuelve a imprimirla.
             </p>
           )}
           {veCosto && variantes.some((v) => v.costoFijo) && (
