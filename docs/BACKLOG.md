@@ -28,6 +28,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
+
+- [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
+- [x] Variantes con *container query* sobre su tarjeta: una línea desde 40rem, ficha de tres líneas con rótulos por debajo. Medido de 375 a 1920 px: nada cortado ni fuera de la tarjeta.
+- [x] «Guardar cambios» al costado recién desde 1280 px (a 1024 px el formulario pasa de 329 a 657 px); por debajo, `BarraFija` abajo mientras el panel no se ve.
+- [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
+- [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
+- [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
+- [x] Compras ▸ Nueva también pregunta (mismo hook). Probado: sin tocar no pregunta; con Boleta elegida preguntan el menú, Cancelar y atrás; volver a Factura a mano no pregunta. **Sin probar:** registrar un comprobante de verdad y salir (se suelta con `salida.soltar()` apenas la base responde bien).
+- [x] Recibir (`RecepcionEnvio`) y Gastos (`RegistrarGastoModal`) también preguntan. En Gastos lo que se protege es cerrar la hoja (Escape, velo, ✕, Cancelar), con `pedirAccion`. Probado en ambas: sin tocar no pregunta; con cambios, sí; «Seguir editando» conserva lo hecho; «Salir sin guardar» no escribe nada en la base. En Recibir, +1 y −1 hasta volver a cero **sí** pregunta a propósito: 0 es «contado, no llegó», distinto de vacío («sin contar», D1).
+- [x] La guardia del historial se retira sola cuando ya no hay nada que perder: se acabó el «atrás» de dos toques.
+- [x] `<Modal>` no se cerraba si la pantalla de abajo se redibujaba más seguido que cada 220 ms (el temporizador de salida se reiniciaba con cada `onClose` nuevo). Arreglado en el componente, para todos los modales.
+- [ ] **Por mirar:** la hoja de Registrar gasto cambia ~100 veces por segundo sin que nadie la toque (medido con un MutationObserver). No rompe nada tras el arreglo de `<Modal>`, pero es trabajo inútil del navegador y en un celular gasta batería: buscar qué la redibuja.
+- [ ] **Sin probar:** recibir un envío de verdad y salir desde «Envío recibido»; registrar un gasto de verdad y confirmar que la hoja se cierra sin preguntar.
+
 ## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928175107`, md5 del cuerpo igual al local); rama `claude/table-view-decision-59a288`
 Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
 → «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
@@ -46,6 +61,17 @@ responsive posible».
   - Catálogo ▸ Productos ▸ Tabla: las filas traen foto, colores y margen; un clic abre las variantes; marca dos, «Descontinuar», confirma → salen «Descontinuado»; márcalas y «Reactivar».
   - En el celular (375 px): cada prenda es una tarjeta, sin scroll horizontal; la barra de marcadas ocupa el ancho.
   - Reactivar una prenda cuya marca diste de baja: no reactiva ninguna y dice cuál.
+
+## 🧶 Tejidos y Patrones: clic → foto de muestra y prendas que lo usan (2026-09-28, ADR-0256) — solo web, sin migración; rama `claude/tejidos-edit-images-garments-a6a649`
+Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas asociadas». La columna `imagen_muestra_url` y el bucket `retail-colores-muestras` ya estaban en producción sin uso (0 fotos).
+- [x] Clic en la tarjeta → `DetalleMuestraModal`: muestra en grande (foto o dibujo), subir / cambiar / quitar foto con vista previa y combo «Responsable», y la lista de prendas (activas primero, foto, código, categoría, «Descontinuada»; enlace a la ficha si ve Productos). Cada tarjeta dice «N prendas».
+- [x] La ruta PATCH de tejidos y patrones acepta `imagenMuestraUrl` solo del bucket y la carpeta de su tipo (`leerUrlMuestra`, 17 pruebas).
+- [x] **Generar dibujo desde una frase (sin IA, decisión de Felipe):** «rayas azul marino finas sobre crudo» → 3 propuestas con los colores del catálogo, «Entendí: …», «Otras variantes», «Usar este dibujo» → se guarda como una foto. También como campo opcional «Cómo se ve» al crear un tejido/patrón (`lib/dibujo-generado.ts`, 23 pruebas; ADR-0256 «Actualización»).
+- [ ] Unificar el dibujo automático por nombre (`MuestraTejido`/`MuestraPatron`) con el generador (frase vacía = el automático): hoy son dos formas de dibujar lo mismo.
+- [x] **La imagen se ve al elegir tejido y patrón en Nuevo producto** (paso 3, también en «Ver más»; `getContextoAlta` → `imagenes`).
+- [x] La misma imagen en la ficha de editar producto: Tejido y Patrón, en la lista del combo y bajo él (`getImagenesMuestra`, una lectura para alta y ficha).
+- [ ] Subir una foto real en producción con sesión de Líder (en local el Storage 1.72.1 rechaza toda subida, `42P10`; ver ADR-0256).
+- Cómo verificas: Catálogo ▸ Atributos ▸ Tejidos ▸ clic en «Denim» ▸ se ven las prendas de denim ▸ «Subir foto» ▸ elegir una foto ▸ «Así se verá» ▸ «Guardar foto» ▸ la tarjeta de Denim muestra la foto. «Quitar foto» vuelve al dibujo.
 
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
@@ -1100,6 +1126,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
     (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
     temporada». Retira el texto libre `productos.temporada` (vacío en producción).
+    - [x] **Pestaña en cuatro vistas (2026-09-28, sin migración):** «Por completar» (agrupada por categoría, con
+      «Ponérsela a la categoría»), «Por categoría» (abre en «Con prendas»), «Calendario» y «Las nueve», elegidas por
+      tarjetas de cifra; la vista va en `?vista=`. Detalle: ADR-0246, «Actualización 2026-09-28».
+    - [ ] **Limpiar las categorías y prendas de prueba de producción** («dsa», «Colores», «prueba Lapicero»; «Fhfh»,
+      «Y.j.j», «Test de Produto 2», «Producto de Prueba»): mientras estén activas, «Por completar» no llega a 0 con
+      prendas reales. Desactivar, nunca borrar. Decide Felipe cuáles son de prueba.
   - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
     y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
@@ -1309,6 +1341,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece todo menos un círculo sobre lo que hay que presionar, se puede terminar antes y retomar. Spike y propuesta: `docs/maquetas/ayuda-guiada-spike-2026-09/`.
 - [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
 - [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
+
+## 📐 Crear un color sin salir del producto, con gotero (2026-09-28) — SPIKE visual v2, sin código del ERP
+Una sola hoja de tres pasos (nombre → gotero → revisar y guardar) que se abre igual desde «Nuevo producto» y desde Catálogo ▸ Atributos ▸ Colores, con un gotero dentro de la hoja (foto del producto, carta de tonos o foto propia) en vez del selector nativo del navegador; el color nace en el mismo vocabulario y aparece en Atributos con «Pendiente» hasta que un líder lo aprueba. Spike y propuesta: `docs/maquetas/crear-color-spike-2026-09/`
+- [ ] Felipe revisa el spike y decide las 5 preguntas del README (¿el gotero dentro de la hoja es lo que pidió?, ¿la colaboradora crea colores o los pide?, ¿la hoja hereda el «Responsable»?, ¿la guía se ofrece sola?, ¿«Letra cómoda» va aparte?).
+- [ ] Si se aprueba: ADR (revierte `ProponerValor.tsx:29-31`), `components/catalogo/CrearColorHoja.tsx` (una pieza para `ColoresLista` y `ElegirColores`), `lib/gotero.ts` (con pruebas) y el «Siguiente paso» clicable de `FichaPrevia.tsx`. Sin migración; comprobar que el RPC de alta acepte un color pendiente.
 
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.

@@ -1,20 +1,24 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
+import { MuestraTejido } from "@/components/MuestraTejido";
 import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { BarraFija } from "@/components/ui/BarraFija";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { compararTallas } from "@/lib/tallas";
-import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
-import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import { claveReferencia, codigoVariantePrevisto, codigosRepetidos, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -51,12 +55,14 @@ import {
    fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
    principal la cree, y esta sesión no intenta adivinar ese id.
 
-   SKU: se sugiere solo (referencia + talla + color, ver `sugerirSku`) y
-   queda editable — decidido con Felipe 2026-09-15. Si la persona lo toca,
-   `skuManual` se prende y deja de recalcularse aunque cambie color/talla.
-   Es DISTINTO de `variantes.codigo` (el código corto BLU-0042-AZM-M que
-   arma el trigger `variantes_asignar_codigo` y que se ve recién después de
-   guardar) — acá no se intenta adivinar ese código, solo el SKU.
+   CÓDIGO DE UNA FILA NUEVA (2026-09-28). Muestra el mismo código que la base
+   le va a dar (`codigoVariantePrevisto`, espejo del trigger
+   `variantes_asignar_codigo`): el código del producto (CMS-0001) + color +
+   talla, y cambia solo al elegir color o talla. Hasta hoy la fila nueva
+   ofrecía un SKU inventado desde el nombre (BLUSACARLITA-U) bajo la misma
+   columna «Código» que sus hermanas: parecía el código de la prenda y no lo
+   era — la pistola lee `codigo`, no el SKU. El SKU es legado (nullable desde
+   20260915221633) y Nuevo producto tampoco lo pide: aquí ya no se manda.
 
    TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
    lista cerrada, y la primera opción dice qué pasa si no se elige nada
@@ -88,8 +94,6 @@ type FilaVariante = {
   colorCodigo: string;
   /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
   tallaId: string;
-  sku: string;
-  skuManual: boolean;
   precio: string;
   costo: string;
   /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
@@ -108,40 +112,29 @@ type FilaVariante = {
 const NUMERO =
   "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
-const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_3.5rem_4rem_2.5rem]";
+/* Variantes: la fila se acomoda al ancho de SU TARJETA (container query `@[40rem]`), no al de la pantalla. Con el menú
+   lateral y la columna «Guardar cambios», una pantalla de 944 px deja la tarjeta en 577 px y el código salía «CMS…».
+   Ancha (≥ 40rem): una línea por variante, bajo la cabecera de columnas. Angosta: ficha de tres líneas —color, talla y
+   «activa»; el código entero; precio, costo y margen— con su rótulo encima, para que ningún número quede sin nombre.
+   El código nunca se corta: si no entra, parte línea. Las clases van literales: Tailwind no ve las que se arman con `${}`. */
+const FILA_VARIANTE =
+  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
+/** Celda que en la ficha angosta ocupa el rincón de arriba a la derecha (interruptor «activa» o «Quitar»). */
+const ESQUINA = "col-span-2 col-start-11 row-start-1 flex flex-col items-end @[40rem]:col-span-1 @[40rem]:col-start-auto @[40rem]:row-start-auto";
+
+/** Rótulo de un campo, solo en la ficha angosta: en la ancha lo dice la cabecera de columnas. */
+function RotuloAngosto({ children, derecha = false }: { children: React.ReactNode; derecha?: boolean }) {
+  return (
+    <span aria-hidden className={`label-cayla block text-[10px] text-tinta/50 @[40rem]:hidden ${derecha ? "text-right" : ""}`}>
+      {children}
+    </span>
+  );
+}
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
   { valor: "descontinuado", texto: "Descontinuado" },
 ] as const;
-
-/** Referencia → token estable para el SKU sugerido: sin acentos, sin
- *  espacios, mayúsculas, cortado — no es `codigo` (eso lo arma el trigger
- *  con el correlativo real de la categoría; esto es solo una sugerencia
- *  legible que no gasta ningún número). */
-function tokenReferencia(referencia: string): string {
-  const limpio = referencia
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "");
-  return limpio.slice(0, 12) || "PRENDA";
-}
-
-function tokenTalla(talla: string): string {
-  const t = talla
-    .trim()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase();
-  if (!t) return "U";
-  if (["U", "UNICA", "UNICO", "TALLAUNICA"].includes(t.replace(/\s+/g, ""))) return "U";
-  return t.replace(/[^A-Z0-9]/g, "") || "U";
-}
-
-function sugerirSku(referencia: string, colorCodigo: string, talla: string): string {
-  return [tokenReferencia(referencia), tokenTalla(talla), colorCodigo || null].filter(Boolean).join("-");
-}
 
 /** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
  *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
@@ -171,14 +164,15 @@ function costoEfectivo(v: FilaVariante): string {
   return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
 }
 
-function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
+function filaVacia(): FilaVariante {
+  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
   categorias,
   colores,
   ejes,
+  imagenes,
   etiquetas,
   avisoEtiquetas,
   marcas,
@@ -188,6 +182,8 @@ export function ProductoForm({
   colores: Color[];
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
+  /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
+  imagenes: ImagenesMuestra;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
   /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
@@ -229,24 +225,16 @@ export function ProductoForm({
       })) ?? []
   );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
-    if (!producto) return [filaVacia("")];
+    if (!producto) return [filaVacia()];
     return [...producto.variantes]
       .sort((a, b) => compararTallas(a.talla ?? "", b.talla ?? ""))
       .map((v) => {
         const colorCodigo = v.colorCodigo ?? "";
         const talla = v.talla ?? "";
-        // Una variante que ya trae SKU (alguien lo tocó a mano antes) se
-        // respeta tal cual. Una que llegó sin él (censo, o creada fuera del
-        // formulario) se trata como recién agregada: el sugerido corre solo,
-        // igual que en una fila nueva — no se deja en blanco esperando que
-        // alguien lo escriba a mano.
-        const skuManual = !!v.sku.trim();
         return {
           id: v.id,
           colorCodigo,
           tallaId: v.tallaId ?? "",
-          sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
-          skuManual,
           precio: String(v.precio),
           costo: v.costo === null ? "" : String(v.costo),
           costoOriginal: v.costo === null ? "" : String(v.costo),
@@ -298,13 +286,23 @@ export function ProductoForm({
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
   const tallasCategoria = ejes.tallas[categoriaId] ?? [];
   const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
-  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({
+    valor: t.id,
+    texto: t.texto,
+    icono: <MuestraTejido nombre={t.texto} imagenUrl={imagenes.tejidos[t.id]} className="aspect-[3/1] w-[72px]" />,
+  }));
   const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({
     valor: t.id,
     texto: t.texto,
-    icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
+    icono: <MuestraPatron nombre={t.texto} imagenUrl={imagenes.patrones[t.id]} className="aspect-[3/1] w-[72px]" />,
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+  // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
+  // producto todavía —prenda que nunca tuvo variantes— no hay cómo saberlo: lo asigna el correlativo al guardar).
+  const codigosFilas = variantes.map((v) =>
+    v.fija ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
+  );
+  const repetidos = new Set(codigosRepetidos(codigosFilas));
 
   // ---------- temporada (ADR-0246) ----------
   // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
@@ -343,35 +341,43 @@ export function ProductoForm({
     setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
   }
 
-  // Al tocar color o talla de una fila SIN sku manual, el sugerido se
-  // recalcula con el estado ya actualizado — no con el de la fila vieja.
-  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "tallaId">>) {
-    setVariantes((actual) =>
-      actual.map((f, n) => {
-        if (n !== i) return f;
-        const siguiente = { ...f, ...cambio };
-        if (siguiente.skuManual) return siguiente;
-        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, tallaTexto(siguiente.tallaId)) };
-      })
-    );
-  }
-
-  function cambiarReferencia(v: string) {
-    setReferencia(v);
-    // Las filas nuevas (sin sku manual) siguen a la referencia; las que la
-    // persona ya editó a mano quedan como están.
-    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, tallaTexto(f.tallaId)) })));
-  }
-
   function agregarFila() {
-    setVariantes((a) => [...a, filaVacia(referencia)]);
+    setVariantes((a) => [...a, filaVacia()]);
   }
 
   function quitarFila(i: number) {
     setVariantes((a) => a.filter((_, n) => n !== i));
   }
 
+  // Barra de guardado abajo (2026-09-28). Bajo 1280 px el panel «Guardar cambios» deja de ir al costado (el formulario
+  // necesita ese ancho: a 1024 px quedaba en 329 px) y pasa al final de la página, a ~3500 px de un precio cambiado arriba.
+  // Mientras sus botones no se vean, una barra pegada abajo ofrece los mismos; cuando se ven, se va: nunca dos «Guardar» a la
+  // vista. Desde 1280 px no aparece: el panel vuelve al costado y fijo.
+  const accionesRef = useRef<HTMLDivElement>(null);
+  const [accionesALaVista, setAccionesALaVista] = useState(true);
+  useEffect(() => {
+    const el = accionesRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(([e]) => setAccionesALaVista(e.isIntersecting));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const panelGuardarRef = useRef<HTMLElement>(null);
+
+  // «¿Salir sin guardar?» (2026-09-28). La foto junta TODO lo que «Guardar cambios» manda; la de apertura se toma una
+  // vez. Una fila agregada y quitada, o un precio cambiado y devuelto, vuelve a la misma foto: no hay nada que perder.
+  const fotoActual = fotoFormulario({
+    categoriaId, referencia, descripcion, estado, stockMinimo, temporada, temporadaColor, permitirVentaSinStock,
+    tejidoId, patronId, marcaId, proveedorId,
+    fotos: fotos.map((f) => [f.id, f.url, f.esPrincipal, f.colorCodigo]),
+    variantes: variantes.map((v) => [v.id, v.colorCodigo, v.tallaId, v.precio, v.costo, v.activo, v.etiquetaIds]),
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir);
+
   function recargar() {
+    // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
+    salida.soltar();
     window.location.reload();
   }
 
@@ -381,9 +387,12 @@ export function ProductoForm({
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    // Solo filas nuevas: en una variante que ya existe el SKU no se edita (la base tampoco lo cambiaría).
-    const sinSku = variantes.findIndex((v) => !v.id && !v.sku.trim());
-    if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
+    // Dos filas con el mismo color y talla darían el mismo código: la base rechazaría el guardado entero con un error
+    // técnico. Se avisa aquí, en la fila nueva que repite.
+    const repetida = codigosRepetidos(codigosFilas)[0];
+    if (repetida !== undefined) {
+      return void avisar.error(`Ya hay una variante ${codigosFilas[repetida]}: cambia el color o la talla de la nueva, o quítala.`, { enfocar: `producto-variante-${repetida}-codigo` });
+    }
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
@@ -406,7 +415,6 @@ export function ProductoForm({
       ...(v.id ? { id: v.id } : {}),
       color_codigo: v.colorCodigo || null,
       talla_id: v.tallaId || null,
-      sku: v.sku.trim(),
       precio: Number(v.precio),
       costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
       activo: v.activo,
@@ -514,6 +522,7 @@ export function ProductoForm({
     setLoading(false);
     responsable.despues(null);
 
+    salida.soltar();
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
     });
@@ -522,7 +531,7 @@ export function ProductoForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+    <form onSubmit={onSubmit} className="grid gap-6 pb-28 sm:pb-24 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start xl:pb-0">
       <div className="min-w-0 space-y-6">
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
@@ -532,7 +541,7 @@ export function ProductoForm({
               etiqueta="Referencia"
               id="producto-referencia"
               value={referencia}
-              onChange={(e) => cambiarReferencia(e.target.value)}
+              onChange={(e) => setReferencia(e.target.value)}
               placeholder="Blusa Lino"
               autoFocus
             />
@@ -589,6 +598,13 @@ export function ProductoForm({
               {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
+              {tejidoId && (
+                <MuestraTejido
+                  nombre={opcionesTejido.find((o) => o.valor === tejidoId)?.texto ?? ""}
+                  imagenUrl={imagenes.tejidos[tejidoId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
@@ -606,7 +622,13 @@ export function ProductoForm({
               {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
-              {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
+              {patronId && (
+                <MuestraPatron
+                  nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""}
+                  imagenUrl={imagenes.patrones[patronId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             {editando &&
               (producto?.estadoAlta === "rechazado" ? (
@@ -733,55 +755,76 @@ export function ProductoForm({
         </section>
 
         {/* ---------- variantes ---------- */}
-        <section className="card-cayla space-y-3 p-5">
+        <section className="card-cayla @container space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
-          <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
+          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem]">
             {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
-              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
+              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : i === 6 ? "text-center" : ""}`}>
                 {t}
               </span>
             ))}
           </div>
           {variantes.map((v, i) => (
             <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
-            <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
+            <div className={FILA_VARIANTE}>
               {v.fija ? (
                 <>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
-                    {v.fija.color}
-                  </span>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
-                    {v.fija.talla}
-                  </span>
-                  <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
-                    {v.fija.codigo}
-                  </span>
+                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Color</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.color}</span>
+                  </div>
+                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Talla</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.talla}</span>
+                  </div>
+                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Código</RotuloAngosto>
+                    <span className="block break-all py-2 font-mono text-xs tracking-wide text-tinta/70">{v.fija.codigo}</span>
+                  </div>
                 </>
               ) : (
                 <>
+                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Color</RotuloAngosto>
                   <ComboBuscable
                     etiquetaAccesible="Color"
                     valor={v.colorCodigo}
-                    onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
+                    onValor={(c) => actualizarFila(i, { colorCodigo: c })}
                     opciones={opcionesColor}
                     marcador="Sin color"
                   />
+                  </div>
+                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Talla</RotuloAngosto>
                   <ComboBuscable
                     etiquetaAccesible="Talla"
                     valor={v.tallaId}
-                    onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                    onValor={(t) => actualizarFila(i, { tallaId: t })}
                     opciones={opcionesTalla}
                     marcador={categoriaId ? "Sin talla" : "Elige categoría"}
                   />
-                  <input
-                    aria-label="SKU"
-                    id={`producto-variante-${i}-sku`}
-                    value={v.sku}
-                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-                  />
+                  </div>
+                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Código</RotuloAngosto>
+                  <span
+                    id={`producto-variante-${i}-codigo`}
+                    tabIndex={-1}
+                    className={`block break-all py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
+                    title={
+                      codigosFilas[i]
+                        ? repetidos.has(i)
+                          ? "Ya existe una variante con este color y talla."
+                          : "Así quedará al guardar. Cambia solo al elegir color o talla."
+                        : "Se asigna al guardar."
+                    }
+                  >
+                    {codigosFilas[i] ?? "Se asigna al guardar"}
+                  </span>
+                  </div>
                 </>
               )}
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Precio</RotuloAngosto>
               <input
                 type="number"
                 min={0}
@@ -793,9 +836,12 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Costo</RotuloAngosto>
               {veCosto && v.costoFijo ? (
                 <span
-                  className="py-2 text-right text-sm tabular-nums text-tinta/70"
+                  className="block py-2 text-right text-sm tabular-nums text-tinta/70"
                   title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
                 >
                   {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
@@ -812,25 +858,34 @@ export function ProductoForm({
                   className={`${NUMERO} text-right`}
                 />
               ) : (
-                <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
+                <span className="block py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
               )}
-              <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Margen</RotuloAngosto>
+              <span className="block py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
                   if (!veCosto) return "—";
                   const m = margenPorcentaje(v.precio, costoEfectivo(v));
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}
               </span>
-              <span className="flex justify-center py-2">
-                {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
-              </span>
-              <span className="py-2 text-right">
+              </div>
+              {/* En la ficha angosta, «activa» (variante guardada) o «Quitar» (fila nueva) van arriba a la derecha: nunca
+                  están los dos, así que comparten el rincón; en la ancha, cada uno en su columna. */}
+              <div className={v.id ? `${ESQUINA} @[40rem]:items-center` : "hidden @[40rem]:block"}>
+                <RotuloAngosto derecha>Activa</RotuloAngosto>
+                <span className="flex py-2">
+                  {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
+                </span>
+              </div>
+              <div className={v.id ? "hidden @[40rem]:block" : `${ESQUINA} pt-4 @[40rem]:pt-0`}>
                 {!v.id && (
-                  <button type="button" onClick={() => quitarFila(i)} className="text-xs text-rojo">
+                  <button type="button" onClick={() => quitarFila(i)} className="py-2 text-xs text-rojo">
                     Quitar
                   </button>
                 )}
-              </span>
+              </div>
             </div>
             {v.id && (
               <div className="mt-1">
@@ -884,7 +939,7 @@ export function ProductoForm({
         </section>
       </div>
 
-      <aside className="card-cayla space-y-4 p-5 lg:sticky lg:top-24">
+      <aside ref={panelGuardarRef} className="card-cayla scroll-mt-24 space-y-4 p-5 xl:sticky xl:top-24">
         <p className="label-cayla text-[11px] text-tinta/65">{editando ? "Guardar cambios" : "Crear producto"}</p>
         <p className="text-sm text-tinta/65">
           El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
@@ -901,15 +956,47 @@ export function ProductoForm({
             </Boton>
           </div>
         )}
-        <div className="flex flex-col gap-2">
+        <div ref={accionesRef} className="flex flex-col gap-2">
           <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
-          <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading} className="w-full">
+          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading} className="w-full">
             Cancelar
           </Boton>
         </div>
       </aside>
+
+      <BarraFija
+        visible={!accionesALaVista}
+        className="xl:hidden"
+        resumen={
+          responsable.listo ? (
+            <span>Los cambios se guardan recién al pulsar «{editando ? "Guardar cambios" : "Crear producto"}».</span>
+          ) : (
+            <span>
+              {responsable.motivo ?? "Elige quién hace esta operación."}{" "}
+              <button
+                type="button"
+                onClick={() => panelGuardarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="font-medium text-rojo underline underline-offset-2"
+              >
+                Elegir responsable
+              </button>
+            </span>
+          )
+        }
+        acciones={
+          <>
+            <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading}>
+              Cancelar
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+              {editando ? "Guardar cambios" : "Crear producto"}
+            </Boton>
+          </>
+        }
+      />
+      {salida.aviso}
     </form>
   );
 }

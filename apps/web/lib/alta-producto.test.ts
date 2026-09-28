@@ -4,6 +4,7 @@ import {
   claveReferencia,
   codigoBasePrevisto,
   codigoVariantePrevisto,
+  codigosRepetidos,
   construirCeldas,
   desbloqueos,
   estadoSubidaSinConexion,
@@ -448,5 +449,14 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
     expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller): ya aparecen en Existencias.");
+  });
+});
+
+describe("codigosRepetidos — la fila nueva que choca con una que ya existe", () => {
+  it("marca solo la segunda aparición", () => {
+    expect(codigosRepetidos(["CMS-0001-BLA-L", "CMS-0001-NEG-L", "CMS-0001-BLA-L"])).toEqual([2]);
+  });
+  it("un código desconocido no se compara", () => {
+    expect(codigosRepetidos([null, null, "CMS-0001-U"])).toEqual([]);
   });
 });

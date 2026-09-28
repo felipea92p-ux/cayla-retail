@@ -3,8 +3,10 @@ import { exigir } from "@/lib/resultado";
 import {
   getCostosVariantes,
   getEjesPorCategoria,
+  getImagenesMuestra,
   getTemporadasCatalogo,
   type EjesPorCategoria,
+  type ImagenesMuestra,
   type TemporadasCatalogo,
   type ValorVocabulario,
 } from "@/lib/catalogo-v2";
@@ -56,6 +58,8 @@ export type ContextoAlta = CatalogoMarcas & {
   ejes: EjesPorCategoria;
   /** Todo el vocabulario aprobado: para configurar una categoría sin salir del alta. */
   universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
+  /** La imagen elegida de cada tejido y patrón (ADR-0256). */
+  imagenes: ImagenesMuestra;
   /** La lista de temporadas y la de cada categoría (ADR-0246). `null` = la base todavía no la tiene: el alta sigue
    *  sin la fila de temporada (lo dice en una nota), nunca se cae por eso. */
   temporadas: TemporadasCatalogo | null;
@@ -65,7 +69,7 @@ const VENTANA_VARIANTES = 2000;
 
 export async function getContextoAlta(): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -88,6 +92,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       getEjesPorCategoria(),
       getCatalogoMarcas(),
       getTemporadasCatalogo(),
+      getImagenesMuestra(),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -160,6 +165,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       tejidos: exigir(resTejidos, "los tejidos aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
       patrones: exigir(resPatrones, "los patrones aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
     },
+    imagenes,
     temporadas,
   };
 }
