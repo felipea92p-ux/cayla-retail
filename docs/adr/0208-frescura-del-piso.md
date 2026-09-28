@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final. Su corrector corrigió dos cosas más en el mismo `20260928120330` (la separación de antes liberada sin entregar ya no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera): su `fn_frescura_sede` es `33970c94…`.
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final. Su corrector corrigió dos cosas más en el mismo `20260928120330` (la separación de antes liberada sin entregar ya no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera): su `fn_frescura_sede` es `33970c94…`. *2026-09-28 (paso 4):* el paso 3 ya está en producción (los cuatro archivos) y la **pantalla** `/inventario/frescura` está construida con los colores A y las frases C que Felipe eligió en la maqueta; su migración (`20260929100000`: el módulo `frescura` y el candado nuevo de las tres lecturas) está **sin pegar**: «Actualización 2026-09-28 — paso 4», al final.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -2902,3 +2902,168 @@ apartados y 50 liberaciones. El cuerpo de 120320 y el de 120330, en la misma bas
     primera exhibición: se muestra «Nueva» con 0 segundos, como lo que solo está en el almacén. Si la clienta no lo
     recogió, su primera exhibición es la liberación.
   - «Sigue vendiendo» también para lo que no tiene dato de rapidez.
+
+## Actualización 2026-09-28 — paso 4: la pantalla
+
+**Estado:** construida en la rama `claude/frescura-paso4-pantalla` (sin PR todavía). La migración
+`20260929100000_frescura_modulo_y_candado.sql` está **sin pegar**. Se pega sola, ANTES de publicar la web. Si la web va
+primero, el menú no muestra Frescura ni al líder y la URL dice «Sin acceso»: sus módulos salen de `retail.modulos`. Al
+revés no pasa nada, porque la web de hoy ignora un módulo que no conoce.
+
+**Lo que Felipe eligió en la maqueta** (`docs/maquetas/frescura-3c-2026-09/`, 2026-09-28): colores A, frases C y la
+pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`).
+- **Colores A, «semáforo cálido»:** Nueva `verde`, Vigente `neutro`, Envejecida `ambar`. La Crítica es un tono nuevo de
+  `Chip`, `tinta`: contorno de tinta y letra gruesa, nunca rojo.
+  - Ninguna fila lleva rojo. El único rojo de la pantalla es la zona Crítica de la regla del detalle.
+  - La cifra «Por decidir» va en ámbar, porque `ResumenSede` no admite rojo.
+- **Frases C, «con el porqué»:** cada sugerencia dice su causa. «revisa sus ventas» distingue a la callada (30 días sin
+  vender) de la que no tiene dato. «cambiar de lugar» distingue la temporada pasada, la que dejó de venderse y la vieja y
+  lenta. La rapidez se compara «contra las demás» y el «al menos» se dice «quizá más».
+
+**Qué hay.**
+- **Base** (`20260929100000`):
+  - Suma el módulo `frescura` en Inventario, con orden 115 (entre Movimientos y Catálogo). `solo_lider = false`,
+    `delegable = true` y sin `rol_modulos`.
+  - Cambia el candado de tres funciones, reescritas desde el texto de su migración vigente. La guarda acepta el md5 de
+    antes y el de este archivo.
+  - `fn_frescura_sede` y `fn_bajadas_del_piso`: el líder, o quien tiene el módulo en su rol, y en los dos casos una sede
+    que opera.
+  - `fn_confianza_registro`: igual, y sin tienda cada cuenta recibe solo las tiendas que opera.
+  - `fn_bajadas_del_piso` entrega `persona_id` solo al líder.
+  - El cálculo no cambia: para el líder, las filas son las mismas (T37 lo compara).
+- **Web:**
+  - La ruta `app/(app)/inventario/frescura/` tiene `layout.tsx` con `exigirModulo("frescura")`, `page.tsx` y
+    `loading.tsx` con `<EsperaPantalla/>`.
+  - `lib/frescura.ts:getFrescuraPantalla` decide qué se lee. Con el líder, todas las tiendas, el registro al colgar y
+    la referencia de CAYLA. Con los demás, solo su sede, con `armarFrescuraSede`, nueva en `frescura-reglas.ts`.
+  - `lib/frescura-pantalla.ts` guarda todo lo que la pantalla dice, en funciones puras con 47 pruebas.
+  - Los componentes están en `components/frescura/`: el panel, la fila, la hoja de detalle, «Las N tiendas» y piezas.
+  - El menú suma la sexta fila de Inventario. Su ícono es un brote, dibujado en `AppShell`.
+- **Pruebas:**
+  - `menu.test.ts` tiene la excepción `EXCEPCIONES_TOPE_HIJAS = { inventario: 7 }` con su razón escrita.
+  - `menu-hoy.golden.json` cambió los 6 perfiles a propósito (Felipe: «hagámoslo», 2026-09-28).
+  - `modulos.test.ts` suma `frescura` a los módulos nacidos después de la siembra.
+  - En SQL, `frescura_lectura` tiene T1, T12 y T12b nuevos y `frescura_bajadas` tiene T13 y T37.
+
+### Decisiones
+
+**El módulo va en el grupo Inventario, no en Gestión**
+- **DECIDÍ:** grupo Inventario, orden 115 (plan: Gestión, 215). Roles y accesos agrupa por `grupo`. Felipe decidió el
+  2026-09-27 que Frescura vive directo en Inventario, así que ahí también la encuentra al darla a un rol, junto a
+  Existencias y Movimientos.
+- **DESCARTÉ:** Gestión, al lado de Análisis. El líder la buscaría en Inventario en el menú y en Gestión en Roles y
+  accesos: dos lugares para lo mismo. Análisis está en Gestión por historia (ADR-0161), no por una regla.
+- **SE ROMPE SI:** Felipe mueve Análisis a Inventario en Roles y accesos. Entonces el orden de los dos se revisa
+  junto, en una sola migración.
+
+**Candado: «el líder, o el módulo, en una sede que opera»**
+- **DECIDÍ:** `fn_puede_operar_ubicacion(p) and (fn_es_lider() or fn_ve_modulo('frescura'))`.
+  - Para el líder es lo mismo que antes, porque opera todas. Se mantiene la pregunta por la sede: la prueba la
+    reemplaza para vigilar que se haga.
+  - `fn_confianza_registro()` sin tienda filtra por `fn_puede_operar_ubicacion(u.id)`.
+  - `persona_id` es `case when fn_es_lider()`.
+  - La pista de error es `frescura_sin_permiso` en las tres. `fn_bajadas_del_piso` usaba `bajadas_solo_lider`, que
+    ya no dice la verdad.
+- **DESCARTÉ:**
+  - Dejar `fn_bajadas_del_piso` solo para el líder: ADR-0253 dice que ningún módulo es «solo del líder».
+  - Que `fn_confianza_registro()` sin tienda falle para quien no es líder: la pantalla tendría que saber de antemano a
+    quién no preguntarle. Con el filtro, la misma llamada sirve para los dos.
+- **SE ROMPE SI:**
+  - El líder le da el módulo a un rol de terminal: la terminal lee la frescura de su tienda, que es lo que pide el
+    módulo, y no ve ningún nombre.
+  - Una encargada llega a operar dos sedes: vería las dos. El cambio sería en `fn_puede_operar_ubicacion`, no en
+    estas tres funciones.
+
+**La referencia de CAYLA y «Las N tiendas»: solo el líder, dicho en pantalla**
+- **DECIDÍ:** la forma mínima.
+  - Quien tiene el módulo sin ser líder ve su sede entera: sus cifras, la tabla, la hoja y la comparación con su propia
+    tienda.
+  - No ve el registro al colgar, la referencia de CAYLA ni «Las N tiendas». Las tres leen las otras sedes, que no
+    opera. La web ni las pide (`armarFrescuraSede`).
+  - La nota lo dice: «El registro al colgar y la comparación con las otras tiendas los ve el líder: aquí se mide solo
+    <sede>».
+- **DESCARTÉ:** una lectura de agregados en SQL (los cortes de cada categoría con todas las tiendas juntas, sin
+  prendas):
+  - Es un contrato nuevo y una segunda lectura del libro de todas las sedes en cada carga.
+  - Hoy nadie la usaría: el módulo nace sin rol, y hasta que Felipe lo dé, solo lo ve el líder.
+- **SE ROMPE SI:** Felipe le da Frescura a una encargada y ella necesita la referencia de CAYLA para leer una categoría
+  que en su tienda tiene «pocos datos». Entonces se hace la lectura de agregados, que es lo que el paso 6 ya preveía
+  para el registro («de las otras, solo agregados»).
+
+**Las palabras de una categoría: «las prendas de <categoría>» y «las demás»**
+- **DECIDÍ:**
+  - Las frases dicen «la mitad de las prendas de Camisas y Blusas en Tienda Trujillo» y «Más rápida que las demás».
+  - La maqueta decía «las blusas» y «los pantalones» porque sus categorías estaban escritas a mano.
+- **DESCARTÉ:** deducir el género del nombre de la categoría. «Camisas y Blusas», «Polos», «Chompas»: una regla así se
+  equivoca en silencio. «Prenda» es femenino siempre.
+- **SE ROMPE SI:** una categoría se llama en singular («Denim»). La frase sigue siendo correcta, aunque suena más
+  formal.
+
+**Los filtros viven en la URL, sin volver al servidor**
+- **DECIDÍ:** `?cat=&estado=&pordecidir=1&q=&prenda=`, escritos con `history.replaceState`. Next sincroniza
+  `useSearchParams`. Es el mismo camino de Movimientos (`?mov=`) y Temporadas (`?vista=`).
+- **DESCARTÉ:** `router.replace`. Volvería a pedir la página, y para el líder eso son 3 lecturas del libro (~0,7 s
+  cada una con carga alta) y el loader a pantalla completa, por un cambio que no trae datos nuevos.
+- **SE ROMPE SI:** la sede llega a tener miles de prendas en la tabla. Hoy todo viaja al navegador de una vez (TRU
+  tiene 89 tallas; no se midió el peso con la carga sintética de 2.000 prendas). Entonces se pagina en el servidor.
+
+**Dos piezas del sistema crecen (sin cambiar a quien ya las usa)**
+- **`Chip`:** suma el tono `tinta` (contorno de 1,5 px por dentro y letra 600). `FilaMovimiento` le suma su punto,
+  porque su mapa cubre todos los tonos.
+- **`ResumenSede`:** suma cuatro cosas opcionales.
+  - `valor: null`, que se dibuja «—».
+  - `unidad` («%»).
+  - `nota` («quizá más»).
+  - `alTocar` + `presionada`: una cifra que filtra en la misma pantalla, como un botón con `aria-pressed`. Solo
+    funciona dentro de un componente de cliente.
+- Las cuatro pantallas que ya usan `ResumenSede` no pasan ninguna de las cuatro y se dibujan igual.
+
+### Lo que se aparta de la maqueta, a propósito
+
+- **El código del producto no sale en la fila.** `fn_frescura_sede` trae el código de UNA talla, no el del modelo. La
+  búsqueda sí lo encuentra.
+- **Falta el origen de la llegada** («lote de Gamarra», «producción del Taller»). La lectura trae solo la fecha. Los
+  datos de apoyo dicen cuándo llegó a CAYLA y cuándo a esta tienda.
+- **Falta «N apartadas» en la columna Vendió.** La lectura no separa cuántas de las ventas recientes fueron apartados.
+  La frase del detalle dice que lo apartado cuenta como vendido.
+- **La talla que no cuadra no se nombra.** `FrescuraPrenda` no guarda cuál es. La hoja dice «alguna de sus tallas» y
+  ofrece Conteo.
+- **Falta el botón «La dejo hasta agotar».** Anotar lo que el líder ya decidió está fuera de este paso (lo decide
+  Felipe aparte).
+  - Por eso «Por decidir» todavía no baja.
+  - La hoja y la nota lo dicen: «Todavía no hay dónde anotar lo que ya decidiste».
+- **Hay cambios de forma que vienen del sistema:**
+  - A 1280 px con el lateral abierto, las cuatro cifras bajan bajo el título (`EncabezadoPagina` las pone a la derecha
+    solo si caben).
+  - En el celular, las cifras usan la letra de `ResumenSede` con cuatro cifras.
+  - Los dos combos van a lo ancho en el celular.
+  - `ResumenSede` conserva su sombra suave. La maqueta la sacaba: es una regla del componente, no de esta pantalla.
+- **Días redondeados:** los de la prenda y los de los cortes se redondean al día más cercano. Un corte nunca dice «0
+  días».
+
+### Cómo se verificó (2026-09-28)
+
+- **SQL**, cada suite en una base nueva con todas las migraciones:
+  - `frescura_lectura`: **251** (antes 237).
+  - `frescura_bajadas`: **177** (antes 166).
+  - `roles_por_modulo`: 70.
+  - `roles_cobertura_modulos`: 32 (35 delegables, 26 con guardián; `frescura` entre ellos).
+  - `una_sola_firma`: 2.
+  - Todas en verde.
+- **La migración, sobre una base igual a producción** (paso 3 pegado): da los md5 de su encabezado, pegada dos veces
+  no cambia nada, y re-pegar `20260928120330`, `20260928120310` o `20260928120200` después aborta sin deshacer nada.
+- **Cambios a propósito en el SQL**, que las pruebas atrapan por conducta, no solo por md5:
+  - Devolverle a `fn_frescura_sede` el candado de solo líder: falla T1 («integrante CON el módulo»).
+  - Quitar el filtro de sedes de `fn_confianza_registro()`: fallan T1 («SOLO la suya») y «todas ya no trae la que no
+    opera».
+  - Entregar `persona_id` a todos: falla T13.
+- **Web:** `tsc` limpio; eslint limpio; vitest `frescura-pantalla` 47, `frescura-contrato` 26 (antes 24) y
+  `menu`/`modulos` en verde. El total está en la bitácora.
+- **Navegador** (página de prueba bajo `/login`, con la pantalla real y datos de mentira: las prendas de la maqueta y
+  la salida real de T13):
+  - A 1280 y 375 px, sin desplazamiento lateral de la página. A 1280, la tabla entra entera en su tarjeta con el
+    lateral.
+  - Rojo en pantalla: 0 en la lista y 1 con la hoja abierta (la zona Crítica).
+  - Escape cierra la hoja y el foco vuelve a la fila. El combo Estado (11 opciones) trae buscador.
+  - Los estados de quien no es líder, la lectura caída y el Taller se ven como deben.
+  - La consola no muestra errores.
