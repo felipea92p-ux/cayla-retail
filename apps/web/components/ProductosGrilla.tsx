@@ -8,12 +8,14 @@ import { Chip } from "@/components/ui/Chip";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import type { ProductoListado } from "@/lib/catalogo-v2";
+import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/productos-vista";
+import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
- * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
+ * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
  * misma fuente de datos (`ProductoListado[]`, ya filtrada/paginada por
  * `fn_productos`), sin pedir nada nuevo al servidor.
  *
@@ -22,117 +24,6 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
  * de ese color en vez de un ícono de "foto rota": un placeholder honesto,
  * nunca genérico.
  */
-
-type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null };
-
-function coloresDe(variantes: VarianteCatalogo[]): ColorDisponible[] {
-  const vistos = new Map<string, ColorDisponible>();
-  for (const v of variantes) {
-    if (!v.color) continue;
-    if (!vistos.has(v.color)) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
-  }
-  return [...vistos.values()];
-}
-
-/** Mismo criterio que `rangoCosto` en `ProductosAgrupados.tsx`, aplicado a precio. */
-function rangoPrecio(variantes: VarianteCatalogo[]): string {
-  if (variantes.length === 0) return "—";
-  const precios = variantes.map((v) => v.precio);
-  const min = Math.min(...precios);
-  const max = Math.max(...precios);
-  return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
-}
-
-/** Tinte de fondo del color activo, mezclado hacia crema — el mismo cálculo
- *  que se probó en el mockup antes de escribir este componente. */
-function mezclar(hex: string, pct: number): string {
-  const n = parseInt(hex.slice(1), 16) || 0;
-  const r = (n >> 16) & 255,
-    g = (n >> 8) & 255,
-    b = n & 255;
-  const base = { r: 245, g: 240, b: 232 }; // crema
-  const mr = Math.round(r * pct + base.r * (1 - pct));
-  const mg = Math.round(g * pct + base.g * (1 - pct));
-  const mb = Math.round(b * pct + base.b * (1 - pct));
-  return `rgb(${mr}, ${mg}, ${mb})`;
-}
-
-function IconoPercha({ color, size = 36 }: { color?: string; size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      width={size}
-      height={size}
-      fill="none"
-      stroke={color ?? "#1a1a18"}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="opacity-45"
-      aria-hidden
-    >
-      <path d="M32 8a5 5 0 1 1 5 5" />
-      <path d="M32 13v6" />
-      <path d="M8 40 L32 19 L56 40" />
-      <path d="M8 40 Q32 52 56 40" />
-    </svg>
-  );
-}
-
-/** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
- *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
- *  (hover, o si no hay hover, el fijado, o si no hay ninguno, el primero). */
-function SwatchesColor({
-  colores,
-  activo,
-  onHover,
-  onFijar,
-  tamano = "h-4 w-4",
-}: {
-  colores: ColorDisponible[];
-  activo: string | null;
-  onHover: (nombre: string | null) => void;
-  onFijar: (nombre: string) => void;
-  tamano?: string;
-}) {
-  if (colores.length === 0) return null;
-  return (
-    // onMouseLeave/onBlur van en el GRUPO, no en cada botón: `mouseleave` no
-    // burbujea entre hermanos, así que mover el mouse de un swatch al
-    // vecino nunca pasa por un instante "sin hover" — antes, con el
-    // handler en cada botón, ese instante hacía caer `activo` al primer
-    // color de la lista (el fallback de `nombreActivo`) y el anillo
-    // "saltaba" ahí antes de asentarse en el nuevo, un parpadeo que se
-    // sentía trabado. Mismo motivo para el blur por teclado: `relatedTarget`
-    // decide si el foco se fue del grupo entero, no solo del botón actual.
-    <div
-      role="radiogroup"
-      aria-label="Color"
-      className="flex items-center gap-1.5"
-      onMouseLeave={() => onHover(null)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
-      }}
-    >
-      {colores.map((c) => (
-        <button
-          key={c.nombre}
-          type="button"
-          role="radio"
-          aria-checked={c.nombre === activo}
-          aria-label={c.nombre}
-          onMouseEnter={() => onHover(c.nombre)}
-          onFocus={() => onHover(c.nombre)}
-          onClick={() => onFijar(c.nombre)}
-          className={`${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
-            c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
-          }`}
-          style={{ background: c.hex }}
-        />
-      ))}
-    </div>
-  );
-}
 
 export function ProductosGrilla({
   productos,
@@ -244,7 +135,7 @@ function TarjetaProducto({
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoPrecio(producto.variantes)}</span>
+          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(producto.variantes.map((v) => v.precio)) ?? "—"}</span>
           <span title={EXPLICACION_STOCK_TOTAL} className={`ml-auto whitespace-nowrap text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>
             {alerta === "sin_stock" ? (
               <Chip tono="neutro" versalitas={false}>

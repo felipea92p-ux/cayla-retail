@@ -28,6 +28,40 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
+
+- [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
+- [x] Variantes con *container query* sobre su tarjeta: una línea desde 40rem, ficha de tres líneas con rótulos por debajo. Medido de 375 a 1920 px: nada cortado ni fuera de la tarjeta.
+- [x] «Guardar cambios» al costado recién desde 1280 px (a 1024 px el formulario pasa de 329 a 657 px); por debajo, `BarraFija` abajo mientras el panel no se ve.
+- [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
+- [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
+- [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
+- [x] Compras ▸ Nueva también pregunta (mismo hook). Probado: sin tocar no pregunta; con Boleta elegida preguntan el menú, Cancelar y atrás; volver a Factura a mano no pregunta. **Sin probar:** registrar un comprobante de verdad y salir (se suelta con `salida.soltar()` apenas la base responde bien).
+- [x] Recibir (`RecepcionEnvio`) y Gastos (`RegistrarGastoModal`) también preguntan. En Gastos lo que se protege es cerrar la hoja (Escape, velo, ✕, Cancelar), con `pedirAccion`. Probado en ambas: sin tocar no pregunta; con cambios, sí; «Seguir editando» conserva lo hecho; «Salir sin guardar» no escribe nada en la base. En Recibir, +1 y −1 hasta volver a cero **sí** pregunta a propósito: 0 es «contado, no llegó», distinto de vacío («sin contar», D1).
+- [x] La guardia del historial se retira sola cuando ya no hay nada que perder: se acabó el «atrás» de dos toques.
+- [x] `<Modal>` no se cerraba si la pantalla de abajo se redibujaba más seguido que cada 220 ms (el temporizador de salida se reiniciaba con cada `onClose` nuevo). Arreglado en el componente, para todos los modales.
+- [ ] **Por mirar:** la hoja de Registrar gasto cambia ~100 veces por segundo sin que nadie la toque (medido con un MutationObserver). No rompe nada tras el arreglo de `<Modal>`, pero es trabajo inútil del navegador y en un celular gasta batería: buscar qué la redibuja.
+- [ ] **Sin probar:** recibir un envío de verdad y salir desde «Envío recibido»; registrar un gasto de verdad y confirmar que la hoja se cierra sin preguntar.
+
+## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928175107`, md5 del cuerpo igual al local); rama `claude/table-view-decision-59a288`
+Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
+→ «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
+responsive posible».
+- [x] Tabla nueva (`ProductosTabla.tsx`): foto, colores, tallas en curva, precio, costo, margen con barra, stock con ritmo, estado; ficha de variantes; acciones al pasar el mouse y en la ficha; tarjetas debajo de 768 px de tabla.
+- [x] Cabecera `EncabezadoPagina` con Grilla/Tabla y «+ Nuevo producto» a la derecha, sin cifras (Felipe quitó las cuatro el mismo día); `NotaStockTotal.tsx` borrada (su texto pasó a la frase). Sin el aviso de altas del conteo (`getProductosPendientesAlta` borrada).
+- [x] Filtros de una sola forma (la plegable de la Grilla) en las dos vistas.
+- [x] `cambiar_estado_productos`: todo o nada, al reactivar revisa marca y proveedor y nombra la prenda; prueba `pnpm pruebas:productos-estado-en-bloque` (16/16) en el CI.
+- [x] `ResumenSede` ya no desborda la página en tablet con cuatro cifras (también arregla Devoluciones).
+- [x] **`20260928235000` aplicada en producción** (2026-09-28, permiso de Felipe; verificada: una firma, invoker, `anon` sin permiso, md5 igual al local).
+- [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`, `pnpm datos:comparar`).
+- [ ] Decidir si las altas al vuelo pendientes de revisar necesitan una lista en otra pantalla (el aviso de Productos se quitó; Existencias las marca fila por fila).
+- [ ] **Decisión de Felipe: un solo umbral de margen.** Hoy hay tres: alta de producto 30 % (`nivelMargen`), Producción 40/60 % sobre costo directo (`semaforoMargen`) y la Tabla 45 % (`UMBRAL_MARGEN_BAJO`, provisional).
+- [ ] Mirar la Tabla con una cuenta de colaboradora que vea Productos sin `verDineroCompras`: no debe ver costo ni margen.
+- Cómo verificas:
+  - Catálogo ▸ Productos ▸ Tabla: las filas traen foto, colores y margen; un clic abre las variantes; marca dos, «Descontinuar», confirma → salen «Descontinuado»; márcalas y «Reactivar».
+  - En el celular (375 px): cada prenda es una tarjeta, sin scroll horizontal; la barra de marcadas ocupa el ancho.
+  - Reactivar una prenda cuya marca diste de baja: no reactiva ninguna y dice cuál.
+
 ## 🧶 Tejidos y Patrones: clic → foto de muestra y prendas que lo usan (2026-09-28, ADR-0256) — solo web, sin migración; rama `claude/tejidos-edit-images-garments-a6a649`
 Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas asociadas». La columna `imagen_muestra_url` y el bucket `retail-colores-muestras` ya estaban en producción sin uso (0 fotos).
 - [x] Clic en la tarjeta → `DetalleMuestraModal`: muestra en grande (foto o dibujo), subir / cambiar / quitar foto con vista previa y combo «Responsable», y la lista de prendas (activas primero, foto, código, categoría, «Descontinuada»; enlace a la ficha si ve Productos). Cada tarjeta dice «N prendas».
@@ -51,7 +85,7 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
 - Cómo verificas:
   - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
-  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ Tabla, la ficha de la prenda ▸ Eliminar (el menú «···» se fue con ADR-0254; en la Grilla, la vista rápida) sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
 
 ## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
 Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería

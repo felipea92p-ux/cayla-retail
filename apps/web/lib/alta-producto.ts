@@ -96,6 +96,12 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
+/** Posiciones cuyo código ya apareció antes en la lista (la primera aparición no cuenta: es la que se queda). `null` =
+ *  código todavía desconocido, nunca repetido. Dos variantes con el mismo código no caben (`variantes_codigo_unico`). */
+export function codigosRepetidos(codigos: readonly (string | null)[]): number[] {
+  return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
+}
+
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
 export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
 

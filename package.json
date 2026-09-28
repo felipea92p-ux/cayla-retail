@@ -57,6 +57,7 @@
     "pruebas:traslados-recibir-sin-perder-nada": "node scripts/pruebas/traslados_recibir_sin_perder_nada.mjs",
     "pruebas:pedir-a-otra-sede": "node scripts/pruebas/pedir_a_otra_sede.mjs",
     "pruebas:ajuste-no-es-primera-carga": "node scripts/pruebas/ajuste_no_es_primera_carga.mjs",
+    "pruebas:productos-estado-en-bloque": "node scripts/pruebas/productos_estado_en_bloque.mjs",
     "pruebas:movimientos-saldo": "node scripts/pruebas/movimientos_saldo.mjs",
     "pruebas:existencias-candados-y-ajuste": "node scripts/pruebas/existencias_candados_y_ajuste.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",

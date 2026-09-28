@@ -402,18 +402,21 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (Recibir: los `lotes` que devuelve `recibir_envio`), `RecepcionFormV2.tsx` (Ingreso sin comprobante: el id que devuelve
   `recibir_lote`), la sección «Siguiente paso» de `OrdenPanel.tsx` (orden del Taller cerrada, no muestra), la tarjeta de
   cada campaña en `EtiquetasLista.tsx` («Imprimir etiquetas de precio» / «Volver al precio normal») y Productos
-  (`ProductosAgrupados.tsx`, menú «···»; `ProductosGrilla.tsx`, la ficha).
+  (`ProductosTabla.tsx`, acciones de la fila y de la ficha; `ProductosGrilla.tsx`, la vista rápida; y lo marcado en la
+  Tabla, con `?variantes=`).
 
 **Productos (catálogo V2, integración final 2026-09-15)**
 - `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
   filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
-  `20260915160000_productos_listado_filtros.sql`) → `FiltrosProductos.tsx` +
-  `ProductosAgrupados.tsx` (una fila por producto, expandible a variantes;
-  checkboxes de selección y menú "..." por fila viven acá, es Server
-  Component el padre). El menú abre `AjustarInventarioModal.tsx` (RPC
-  `registrar_movimiento`, tipo='ajuste', piso/almacén vía
-  `lib/sububicaciones.ts`) como modal de `useState` normal, y "Ver
-  historial" navega a `/productos/[id]/historial`.
+  `20260915160000_productos_listado_filtros.sql`) → cabecera `EncabezadoPagina` + `ResumenSede` (ADR-0254) →
+  `FiltrosProductos.tsx` (una sola forma, plegable, en las dos vistas) → `ProductosGrilla.tsx` (`?vista=grilla`, default)
+  o `ProductosTabla.tsx` (`?vista=tabla`, ADR-0254: una fila por modelo con foto, colores, tallas, precio, costo, margen,
+  stock y estado; debajo de 768 px de tabla, una tarjeta por prenda; clic → ficha de variantes). Las dos usan
+  `ProductoPiezas.tsx` y `lib/productos-vista.ts` (colores, tallas en curva, margen con `UMBRAL_MARGEN_BAJO`). La Tabla abre
+  `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`) y `EliminarProductoModal.tsx` desde su nivel (no desde la fila,
+  ADR-0128); «Historial» navega a `/productos/[id]/historial`. Lo marcado se descontinúa o reactiva con la RPC
+  `cambiar_estado_productos` (`20260928235000`: todo o nada, al reactivar revisa marca y proveedor) y cae al `update`
+  directo si la migración no está en la base.
 - Historial de producto como modal (mismo mecanismo que el detalle de
   factura de Compras): `/productos/layout.tsx` tiene el slot `@modal/`, con
   la ruta interceptada `@modal/(.)[id]/historial`. Clic en "Ver historial"
@@ -428,8 +431,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   sobre `productos`/`variantes` — ADR-0059, ampliado en
   `20260915223000_historial_producto_estado.sql` para no perder los cambios
   de `estado`).
-- Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en el menú «···»
-  de `ProductosAgrupados.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
+- Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en la ficha
+  de la prenda en `ProductosTabla.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
   `EliminarProductoModal.tsx`, que PRIMERO pregunta a la RPC `fn_producto_se_puede_eliminar` (`20260926220000`) y solo
   entonces ofrece borrar (`eliminar_producto`, con el combo «Responsable»). La regla de qué es «historia» vive UNA vez, en la
   base; `lib/eliminar-producto-reglas.ts` solo redacta los textos. Se puede si el producto nunca se movió; con historia se
