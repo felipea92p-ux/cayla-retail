@@ -64,7 +64,8 @@ export function MovimientosLista({
   const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(() => new Set());
   const [venta, setVenta] = useState<Movimiento | null>(null);
   // «Corregir con un ajuste» (ADR-0241): cierra el detalle y abre el modal de siempre, nunca uno encima de otro (ADR-0237).
-  const [ajustando, setAjustando] = useState<string | null>(null);
+  // Guarda el modelo y el color del movimiento: se corrige esa prenda, no el modelo con todos sus colores.
+  const [ajustando, setAjustando] = useState<{ productoId: string; color: string | null } | null>(null);
   const movimientos = operaciones.flatMap((op) => op.filas);
   const abierto = abiertoId ? (movimientos.find((m) => m.id === abiertoId) ?? null) : null;
 
@@ -179,7 +180,7 @@ export function MovimientosLista({
           onAjustar={() => {
             const productoId = prendas[abierto.varianteId]?.productoId;
             cerrar();
-            if (productoId) setAjustando(productoId);
+            if (productoId) setAjustando({ productoId, color: abierto.color });
           }}
           onVerVenta={
             enlaceVentas
@@ -194,7 +195,8 @@ export function MovimientosLista({
       )}
       {ajustando && (
         <AjustarInventarioModal
-          productoId={ajustando}
+          productoId={ajustando.productoId}
+          prenda={{ color: ajustando.color }}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
           puedeBajarAlPiso={accesos.modulos.includes("bajada_piso")}
