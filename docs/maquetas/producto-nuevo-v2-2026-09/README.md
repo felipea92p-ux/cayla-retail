@@ -53,10 +53,10 @@ Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (je
 | Qué | Cómo se ve con mucho |
 |---|---|
 | Regla general | **A la vista, nunca más de 6 opciones por campo**: las de esta categoría, en el orden en que más se usan. El resto va detrás de **«Ver todos · N»**, que abre una hoja (`<Modal variante="hoja">`) con buscador sin tildes y grupos. **Lo elegido nunca se esconde**: si viene de la hoja, pasa al primer lugar de la fila |
-| Categorías (47) | Buscador arriba, fila **«Las que más usas»** (un toque y pasas al paso 2) y 6 familias con su cuenta. Al abrir una familia, sus categorías en grilla (Indumentaria tiene 18) |
+| Categorías (47) | Buscador arriba y 6 familias con su cuenta. Al abrir una familia, sus categorías en grilla (Indumentaria tiene 18). Sin fila de «las que más usas» (Felipe, 2026-09-28): una categoría se busca o se abre por su familia |
 | Tejidos (24) | 5 muestras de la categoría + tarjeta punteada **«Ver todos · 24 tejidos»**. La hoja muestra primero «Los de Camisas y Blusas · 10» y luego el resto en grupos (Naturales, De punto, Planos y de trabajo, Sintéticos). Elegir uno de fuera lo suma a la categoría, igual que el «Ver más» de `main` (b116c0cb) |
 | Patrones (9) | Igual que tejidos: 5 + «Ver todos · 9» |
-| Marcas y proveedores (84 / 78) | 3 parejas sugeridas por la categoría + buscador con lista flotante que dice cuántos resultados hay y marca lo que coincide |
+| Marcas y proveedores (84 / 78) | Solo el buscador: al tocarlo se abre la lista entera de la A a la Z («Blusa · la trae Taller Lima»); al escribir se filtra y marca lo que coincide. Sin «más usadas» (Felipe, 2026-09-28) |
 | Tallas (27) | Solo las de la categoría (máx. 9) como chips; atajos «Curva habitual» y «Todas»; **«+ Otra talla»** abre la hoja con las 26 restantes agrupadas (Letras, Números, Otras) |
 | Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. **Se elige de una sola manera:** buscándolo por nombre o tocándolo en la carta de 71 círculos por familia, que se abre de entrada (el nombre sale al pasar el mouse). Sin fila de «más usados» (Felipe, 2026-09-28). Antes el mismo estado se veía como chip con ✓ y como píldora con × («confuso») |
 | Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
@@ -79,7 +79,6 @@ Se leyó cada paso como alguien de tienda que abre la pantalla por primera vez:
 | «Quién lo registra» y «Crear» solo en la ficha de la derecha | **Al final del paso 4, donde la persona termina:** «Quién lo registra» (una sola vez) y «Crear producto». La ficha conserva su botón. El pie dice «Solo falta elegir quién lo registra» cuando es lo único que falta |
 | Sin pantalla final | «Blusa Lirio ya está en el catálogo»: código, variantes, unidades y fotos subiendo; **Crear otro parecido** o **Terminé, ir a Productos** (los mismos dos caminos que `ProductoCreado` en `main`). «Otro parecido» vuelve al paso 2 con categoría, marca, tejido, tallas y precio, y lo avisa arriba |
 | «Sano» / «Bajo para CAYLA» · «Para todas las variantes» | «Buen margen» / «Margen bajo» · «Para todas las tallas y colores» |
-| Sugerencias de marca sin título | «Las más usadas en Camisas y Blusas:» |
 
 ## Lo que NO cambia
 

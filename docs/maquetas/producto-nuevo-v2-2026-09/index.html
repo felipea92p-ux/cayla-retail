@@ -107,10 +107,6 @@ button{background:none;border:0;cursor:pointer}
 .chip.agregar::before{content:none}
 .quitable{display:inline-flex;align-items:center;gap:7px;min-height:36px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:4px 6px 4px 12px;font-size:13.5px;color:var(--tinta)}
 .elegidos{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;align-items:center}
-.sugeridos{margin-top:10px;align-items:center}
-.sugeridos>span{font-size:12px;margin-right:2px}
-.chip.sumar{border-style:dashed;color:var(--t75)}
-.chip.sumar::before{content:"+";color:var(--taupe);font-weight:600}
 .quitable button{width:24px;height:24px;border-radius:50%;font-size:15px;line-height:1;color:var(--t60)}
 .quitable button:hover{background:var(--t07);color:var(--tinta)}
 .punto{width:12px;height:12px;border-radius:50%;border:1px solid var(--t25);flex:none;display:inline-block}
@@ -144,8 +140,6 @@ button{background:none;border:0;cursor:pointer}
 mark{background:none;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:2px}
 
 /* paso 1 */
-.rapidas{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0 14px}
-.rapidas>span{font-size:12px;color:var(--taupe);margin-right:2px}
 .familias{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .fam{border:1px solid var(--sand);border-radius:12px;padding:11px 14px;text-align:left;transition:border-color 150ms,background 150ms;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .fam:hover{border-color:var(--t45)}
@@ -414,7 +408,7 @@ button.celda:hover{background:var(--t04)}
     <div class="nuevo">
       <h3>Propuesta · 4 preguntas</h3>
       <ol>
-        <li><i>1</i><div><b>¿A qué categoría pertenece?</b> <span>· buscador, las que más usas y las familias</span></div></li>
+        <li><i>1</i><div><b>¿A qué categoría pertenece?</b> <span>· buscador y familias</span></div></li>
         <li><i>2</i><div><b>¿Cómo es?</b> <span>· nombre, marca, tejido, patrón. Descripción, temporada y etiquetas plegadas en «Más detalles»</span></div></li>
         <li><i>3</i><div><b>¿En qué tallas y colores?</b> <span>· tallas, colores y <b>una tabla</b> con la foto de cada color en su fila</span></div></li>
         <li><i>4</i><div><b>¿Cuánto cuesta y cuántas hay?</b> <span>· precio, costo, margen y <b>la misma tabla</b> ya con cantidades</span></div></li>
@@ -427,7 +421,7 @@ button.celda:hover{background:var(--t04)}
         <li><b>A la vista, nunca más de 6 opciones por campo:</b> las de esta categoría, en el orden en que más se usan.</li>
         <li><b>El resto va detrás de «Ver todos · N»</b>: una hoja con buscador sin tildes y grupos (naturales, de punto…).</li>
         <li><b>Lo elegido nunca se esconde:</b> si viene de «Ver todos», pasa al primer lugar de la fila.</li>
-        <li><b>Categorías:</b> buscador + «Las que más usas» (un toque) + familias con su cuenta.</li>
+        <li><b>Categorías:</b> buscador + familias con su cuenta; al abrir una, sus categorías en grilla.</li>
         <li><b>La tabla:</b> la columna del color y la fila de tallas quedan fijas al desplazarte; «Llenar todas con…» llena las 68 casillas de un golpe.</li>
         <li><b>La ficha y los resúmenes:</b> hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)».</li>
       </ul>
@@ -453,7 +447,6 @@ const FAMILIAS = [
 const CUENTA = {}; // productos por categoría (inventado, estable)
 FAMILIAS.forEach(f => f.cats.forEach(([n], i) => CUENTA[n] = 3 + ((n.length * 37 + i * 11) % 140)));
 const TOTAL_CATS = FAMILIAS.reduce((a, x) => a + x.cats.length, 0);
-const MAS_USADAS = ["Camisas y Blusas","Jeans","Vestidos","Polos","Aretes","Bolsos y Carteras"];
 const famDe = n => FAMILIAS.find(x => x.cats.some(c => c[0] === n)).cod;
 
 const TEJIDOS = {"Algodón":"t-algodon","Algodón alicrado":"t-lino","Algodón pima":"t-algodon","Alpaca":"t-lana","Chifón":"t-seda","Denim":"t-denim","Drill":"t-drill","Gabardina":"t-drill","Hilo":"t-tejido","Hilo de algodón":"t-tejido","Jersey":"t-rib","Lana":"t-lana","Licra":"t-sheen","Lino":"t-lino","Pana":"t-pana","Piqué":"t-pique","Polar":"t-lana","Poliéster":"t-viscosa","Popelina":"t-algodon","Rib":"t-rib","Seda":"t-seda","Suplex":"t-sheen","Tela":"t-algodon","Viscosa":"t-viscosa"};
@@ -484,7 +477,6 @@ const FAM_COLOR = [
   ["Metálicos",[["Plateado","#B8BCC0"],["Plata vieja","#8C8D88"],["Champán","#E2D1A6"],["Dorado","#C8A951"],["Oro viejo","#A68A45"],["Oro rosa","#D6A08C"],["Cobre","#B46A3C"],["Bronce","#8C6B3B"]]],
 ];
 const COLORES = {}; for (const [, cs] of FAM_COLOR) for (const [n, h] of cs) COLORES[n] = h;
-const FRECUENTES = {"Camisas y Blusas":["Blanco","Crudo","Negro","Beige","Palo rosa","Azul marino"], "Jeans":["Azul denim","Índigo","Celeste","Negro","Gris","Blanco"]};
 const claro = h => { const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16); return (r*299+g*587+b*114)/1000 > 150; };
 
 /* 84 marcas y 78 proveedores (inventados, en la cantidad real). */
@@ -495,7 +487,6 @@ const PROVEEDORES = ["Taller Lima","Confecciones Andina","Taller Arequipa","Gama
 for (let i = 0; PROVEEDORES.length < 78; i++) PROVEEDORES.push(`${["Confecciones","Textil","Inversiones","Corporación","Industrias","Creaciones","Importaciones","Distribuidora"][i % 8]} ${RAIZ[(i * 5) % RAIZ.length]} ${["SAC","EIRL","SRL"][i % 3]}`);
 MARCAS.forEach(([, ps], i) => { if (!ps.length) ps.push(PROVEEDORES[3 + (i * 7) % 75]); if (i % 9 === 0 && i) ps.push(PROVEEDORES[3 + (i * 11) % 75]); });
 const PAREJAS = []; MARCAS.forEach(([m, ps]) => ps.forEach(p => PAREJAS.push([m, p])));
-const SUGERIDAS = {"Camisas y Blusas":[[0,"12 blusas"],[1,"5 blusas"],[4,"3 blusas"]], "Jeans":[[7,"18 jeans"],[12,"9 jeans"],[0,"4 jeans"]]};
 
 const ETIQUETAS = {"Campañas y fechas":["Aniversario CAYLA","Black Friday","CyberWow","Día de la Madre","Día de la Mujer","Día de la Tierra","Día Internacional del Gato","Día Internacional del Perro","Fiestas Patrias","Halloween","Navidad","San Valentín"],"La prenda":["Hecho a mano","Pieza única","Reedición","Nuevo"],"Para vender":["Top ventas","Últimas unidades","Para liquidar"]};
 const TODAS_ETIQ = Object.values(ETIQUETAS).flat();
@@ -509,7 +500,7 @@ const RESPONSABLES = ["Elige quién registra…","Rosa Quispe","Milagros Díaz",
    ESTADO
    ========================================================================= */
 let s;
-function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", tejido:null, patron:null,
+function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, tejido:null, patron:null,
   mas:false, desc:"", temporada:0, etiquetas:[],
   tallas:[], colores:[], busColor:"", paleta:true, nuevoColor:false, ncNombre:"", ncHex:"#9c6b4f", fotos:{},
   fuera:[], precio:"", costo:"", modo:"cant", cant:{}, precios:{}, relleno:"", donde:"piso", sinStock:false, responsable:0,
@@ -539,7 +530,6 @@ const PRESETS = {
 const fam = () => FAMILIAS.find(f => f.cod === s.familia);
 const cat = () => { const f = fam(); return f && f.cats.find(c => c[0] === s.cat); };
 const conf = () => CONFIG[s.cat] ?? confDefault(fam());
-const frecuentes = () => FRECUENTES[s.cat] ?? ["Negro","Blanco","Beige","Crudo","Azul marino","Camel"];
 const titulo = t => t.trim().replace(/\s+/g," ").toLowerCase().replace(/(^|\s)\S/g, m => m.toUpperCase());
 const nombreFinal = () => titulo(s.nombre);
 const sinTilde = x => x.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
@@ -649,7 +639,7 @@ function pie(n){
 }
 const cuerpo = n => [null, cuerpo1, cuerpo2, cuerpo3, cuerpo4][n]();
 
-/* ---- 1 · categoría: buscador + las que más usas + familias ---- */
+/* ---- 1 · categoría: buscador + familias (sin «las que más usas», Felipe 2026-09-28) ---- */
 function cuerpo1(){
   const q = s.busCat, f = fam();
   const halladas = q.trim() ? FAMILIAS.flatMap(x => x.cats.filter(c => coincide(c[0], q)).map(c => [x, c])) : [];
@@ -657,8 +647,7 @@ function cuerpo1(){
     <p class="paso-intro">Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.</p>
     <div class="buscar">${lupa}<input class="caja" data-campo="busCat" placeholder="Busca entre las ${TOTAL_CATS} categorías: jeans, aretes, blazers…" value="${esc(q)}" autocomplete="off"></div>
     ${q.trim() ? `<div class="cats revela">${halladas.length ? halladas.map(([x, c]) => `<button class="cat" data-cat="${esc(c[0])}"><b>${marcar(c[0], q)}</b><small>${x.nombre} · ${CUENTA[c[0]]} productos</small></button>`).join("") : `<p class="nada">Ninguna categoría se llama así. Crear una es de Catálogo → Categorías.</p>`}</div>` : `
-    <div class="rapidas"><span>Las que más usas:</span>${MAS_USADAS.map(n => `<button class="chip" data-cat="${esc(n)}">${n}</button>`).join("")}</div>
-    <div class="familias">${FAMILIAS.map(x => `<button class="fam" data-familia="${x.cod}" aria-pressed="${s.familia === x.cod}"><b>${x.nombre}</b><span>${plural(x.cats.length, "categoría", "categorías")}</span></button>`).join("")}</div>
+    <div class="familias" style="margin-top:14px">${FAMILIAS.map(x => `<button class="fam" data-familia="${x.cod}" aria-pressed="${s.familia === x.cod}"><b>${x.nombre}</b><span>${plural(x.cats.length, "categoría", "categorías")}</span></button>`).join("")}</div>
     ${f ? `<div class="cats revela">${f.cats.map(c => `<button class="cat" data-cat="${esc(c[0])}"><b>${c[0]}</b><small>${c[1]} · ${CUENTA[c[0]]} productos</small></button>`).join("")}</div>` : ""}`}`;
 }
 
@@ -671,8 +660,8 @@ function tiles(tipo, lista, elegido){
 function cuerpo2(){
   const p = pareja(), rep = repetido(), exige = fam()?.exige, c = conf();
   const q = s.busMP;
-  const res = q.trim() ? PAREJAS.map((x, i) => [x, i]).filter(([x]) => coincide(x[0] + " " + x[1], q)) : [];
-  const sug = SUGERIDAS[s.cat] ?? [[0, ""],[1, ""],[4, ""]];
+  // Sin «más usadas» (Felipe, 2026-09-28): al tocar el buscador se abre la lista entera, de la A a la Z, y al escribir se filtra.
+  const res = PAREJAS.map((x, i) => [x, i]).filter(([x]) => coincide(x[0] + " " + x[1], q)).sort((a, b) => a[0][0].localeCompare(b[0][0], "es"));
   return `
     <div class="bloque">
       <div class="et"><b>Nombre</b><small>Como se lo dirías a una clienta</small></div>
@@ -683,10 +672,9 @@ function cuerpo2(){
     <div class="bloque">
       <div class="et"><b>Marca y proveedor</b><small>Quién la hace y quién te la trae</small></div>
       ${p ? `<div class="elegida"><div><b>${esc(p[0])}</b> <span class="taupe">· la trae ${esc(p[1])}</span></div><button class="btn-enlace" data-accion="quitar-pareja">Cambiar</button></div>`
-        : `<div class="chips sugeridos" style="margin-top:0"><span class="taupe">Las más usadas en ${esc(s.cat)}:</span>${sug.map(([i, uso]) => `<button class="chip pareja" data-pareja="${i}"><span>${esc(PAREJAS[i][0])}</span><small>${esc(PAREJAS[i][1])}${uso ? ` · ${uso}` : ""}</small></button>`).join("")}</div>
-           <div class="buscar" style="margin-top:8px">${lupa}
-             <input class="caja" data-campo="busMP" placeholder="Busca entre ${MARCAS.length} marcas y ${PROVEEDORES.length} proveedores…" value="${esc(q)}" autocomplete="off">
-             ${q.trim() ? `<div class="lista"><p class="enc">${plural(res.length, "resultado", "resultados")}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear">+ Registrar «${esc(titulo(q))}» como marca nueva</button></div>` : ""}
+        : `<div class="buscar" data-combo="mp">${lupa}
+             <input class="caja" data-campo="busMP" placeholder="Toca para ver las ${MARCAS.length} marcas, o escribe la marca o el proveedor…" value="${esc(q)}" autocomplete="off">
+             ${s.listaMP || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear">+ Registrar ${q.trim() ? `«${esc(titulo(q))}»` : "una marca"} nueva</button></div>` : ""}
            </div>`}
     </div>
     ${c.tejidos.length || exige ? `<div class="bloque">
@@ -972,7 +960,7 @@ document.addEventListener("click", e => {
   if (d.seguir) return abrir(+d.seguir);
   if (d.familia) { s.familia = s.familia === d.familia ? null : d.familia; return render(); }
   if (d.cat) { const cambia = s.cat !== d.cat; s.familia = famDe(d.cat); s.cat = d.cat; s.busCat = ""; if (cambia) { s.tallas = [...conf().habituales]; s.tejido = null; s.patron = null; s.fuera = []; } return abrir(2); }
-  if (d.pareja !== undefined) { s.pareja = +d.pareja; s.busMP = ""; return render(); }
+  if (d.pareja !== undefined) { s.pareja = +d.pareja; s.busMP = ""; s.listaMP = false; return render(); }
   if (d.hoja) { s.hoja = {tipo:d.hoja, q:""}; return render(); }
   if (d.tejido) { s.tejido = s.tejido === d.tejido && !d.cierra ? null : d.tejido; if (d.cierra) s.hoja = null; return render(); }
   if (d.patron) { s.patron = s.patron === d.patron && !d.cierra ? null : d.patron; if (d.cierra) s.hoja = null; return render(); }
@@ -1000,6 +988,9 @@ document.addEventListener("click", e => {
   if (a === "resp") { s.responsable = s.responsable % (RESPONSABLES.length - 1) + 1; return vivo(); } // en el ERP es <ComboResponsable>; aquí rota
   if (a === "sin-stock") { s.sinStock = !s.sinStock; return vivo(); }
 });
+/* La lista de marcas se abre al entrar al buscador y se cierra al salir de él (el clic de una opción llega antes). */
+document.addEventListener("focusin", e => { if (e.target.dataset?.campo === "busMP" && !s.listaMP) { s.listaMP = true; render(); } });
+document.addEventListener("pointerdown", e => { if (s.listaMP && !e.target.closest('[data-combo="mp"]')) { s.listaMP = false; render(); } });
 /* El nombre del color bajo el mouse: la paleta no muestra nombres (círculos de 26 px). */
 document.addEventListener("pointerover", e => {
   const m = e.target.closest(".muestra"), el = $('[data-vivo="color-bajo"]'); if (!m || !el) return;
@@ -1022,7 +1013,8 @@ document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   // Escape libre (ADR-0136): primero cierra la lista de un buscador o borra la búsqueda de la hoja; después, la hoja.
   const act = document.activeElement?.dataset?.campo;
-  if (["busMP","busColor","busCat"].includes(act) && s[act]) { s[act] = ""; return render(); }
+  if (act === "busMP" && (s.busMP || s.listaMP)) { s.busMP = ""; s.listaMP = false; return render(); }
+  if (["busColor","busCat"].includes(act) && s[act]) { s[act] = ""; return render(); }
   if (s.hoja) { if (act === "hojaQ" && s.hoja.q) { s.hoja.q = ""; return render(); } s.hoja = null; render(); }
 });
 
