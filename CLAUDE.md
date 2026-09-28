@@ -334,14 +334,19 @@ Al abrir sesión: miro `git status --short`, los archivos tocados en las última
 `docs/SESIONES-ACTIVAS.md`, para no duplicar lo que otra sesión ya está haciendo. Luego
 leo **el camino mínimo**: este archivo, `docs/datos/15-COMO-OPERA-CAYLA.md`,
 `docs/datos/00-MAPA.md`, `docs/datos/generado/AVIARIO.md` y, si existe,
-`docs/pantallas/<pantalla>.md`. `/docs/BACKLOG.md` y `/docs/BITACORA.md` **se buscan, no
-se leen enteros** (por módulo, término o entrada reciente): juntos pasan de 15,000 líneas
-(2026-09) y no caben en una lectura; solo los leo completos en una auditoría o
-planificación global. Trabajo en pasos verificables (principio 7), cada
+`docs/pantallas/<pantalla>.md`. La bitácora y el backlog **se buscan, no se leen enteros**
+(por módulo, término o entrada reciente): `grep -rn <término> docs/bitacora docs/backlog
+docs/BITACORA.md docs/BACKLOG.md`; lo más reciente, `ls docs/bitacora | tail`. Solo los leo
+completos en una auditoría o planificación global. Trabajo en pasos verificables (principio 7), cada
 uno con "cómo verificas tú que funciona" explícito. Al cerrar un paso o la sesión:
-actualizo `/docs/BACKLOG.md`, agrego 3 líneas a `/docs/BITACORA.md`, ADR en
-`/docs/adr/` el mismo día si hubo decisión estructural (principio 8), commit con
-Conventional Commits. `/docs/ARQUITECTURA.md` es el mapa de rutas↔lib↔RPC/componentes
+**una entrada, un archivo (ADR-0259, desde el 2026-09-29)**: las 3 líneas de bitácora van en
+`docs/bitacora/AAAA-MM-DD-<tema>.md` y la sección del backlog en
+`docs/backlog/AAAA-MM-DD-<tema>.md` (`<tema>` = el nombre de la rama sin `claude/`; si ya
+existe, se edita ese). `docs/BITACORA.md` y `docs/BACKLOG.md` quedan como historia: se
+corrigen o se tachan pendientes, pero no reciben entradas nuevas —cada PR metía la suya
+en la misma línea y el segundo en fusionarse chocaba siempre; el CI rechaza una entrada
+nueva ahí—. ADR en `/docs/adr/` el mismo día si hubo decisión estructural (principio 8),
+commit con Conventional Commits. `/docs/ARQUITECTURA.md` es el mapa de rutas↔lib↔RPC/componentes
 del front — actualizarla cuando cambie una ruta, un RPC nuevo/renombrado, o esa relación.
 El modelo de datos **ya no vive aquí**: desde el 2026-09-12 vive en `/docs/datos/` (el
 propio `ARQUITECTURA.md` lo dice en su encabezado). No es estado vivo día a día (eso es
