@@ -36,8 +36,9 @@ type Crudo = {
     separa_piso: boolean;
     desde: string;
     ahora: string;
-    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number }[];
+    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number; apartadas_hoy: number }[];
     eventos: Record<string, [string, number, number, string | null][]>;
+    apartados: Record<string, [string, number][]>;
     tardias: { oid: string; variante_id: string; bajada_en: string; unidades_tardias: number }[];
     dudosas: string[];
   };
@@ -143,6 +144,21 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
     expect(l.eventos[idDe("ZZ-FX-CARGA-M")]).toEqual([expect.objectContaining({ delta: 2, esMovimientoInterno: true, edadDesconocida: true, esVenta: false })]);
     // La venta de la tardía, como venta.
     expect(l.eventos[idDe("ZZ-FX-TARDIA-M")].filter((e) => e.esVenta)).toHaveLength(1);
+  });
+
+  it("lo apartado (R7-1): cada punto llega con su hora y su signo, y cada prenda con lo libre y lo apartado", () => {
+    if (!l?.separaPiso) throw new Error("sin lectura");
+    const idsPrendas = new Set(SEDE.prendas.map((p) => p.variante_id));
+    expect(Object.keys(SEDE.apartados).length).toBeGreaterThan(0);
+    for (const [id, crudos] of Object.entries(SEDE.apartados)) {
+      expect(idsPrendas.has(id), `apartados de ${id}, que no está en prendas`).toBe(true);
+      expect(l.apartados?.[id]).toEqual(crudos.map(([ts, delta]) => ({ ts, delta })));
+    }
+    for (const t of l.tallas) expect(t.apartadasHoy, t.codigo ?? t.varianteId).toBe(SEDE.prendas.find((p) => p.variante_id === t.varianteId)!.apartadas_hoy);
+    // El vestido apartado: nada libre en el piso ni en el almacén, 3 apartadas, y lo del piso se apartó en un solo punto.
+    const apartada = l.tallas.find((t) => t.codigo === "ZZ-FX-APARTADA-M")!;
+    expect(apartada).toMatchObject({ pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 });
+    expect(l.apartados?.[apartada.varianteId]).toEqual([{ ts: expect.any(String), delta: -2 }]);
   });
 
   it("tardías y dudosas: todas, con el oid de su bajada (así las reconoce excluirTardias)", () => {
@@ -267,6 +283,16 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const clasico = prendaCon(sede, "ZZ-FX-CLASICO-M");
     expect(clasico.estado).toMatchObject({ tipo: "clasico", temporadaPasada: false, sinTemporada: false });
     expect(prendaCon(sede, "ZZ-FX-SINTEMP-M").estado).toMatchObject({ sinTemporada: true, temporadaPasada: false });
+  });
+
+  it("el vestido apartado para una clienta (R7-1) no envejece desde que se apartó ni recibe sugerencias: colgado 10 días, no 40", async () => {
+    const sede = await laSede();
+    const p = prendaCon(sede, "ZZ-FX-APARTADA-M");
+    expect(p).toMatchObject({ pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 });
+    expect(p.reloj.segundos / 86_400).toBeCloseTo(10, 3);
+    expect(p.estado).toMatchObject({ quieta: false, sugerencias: [] });
+    // Lo apartado no pesa en las cifras del piso.
+    expect(sede.cifras.unidadesEnPiso).toBe(SEDE.prendas.reduce((s, x) => s + x.piso_hoy, 0));
   });
 
   it("lo que solo está en el almacén viaja sin eventos y no pesa en las cifras del piso", async () => {
