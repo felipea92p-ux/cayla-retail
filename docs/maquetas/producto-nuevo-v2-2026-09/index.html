@@ -137,6 +137,10 @@ button{background:none;border:0;cursor:pointer}
 .opcion:hover{background:var(--hueso)}
 .opcion small{margin-left:auto;color:var(--taupe);font-size:11.5px;white-space:nowrap}
 .opcion.crear{border-top:1px solid var(--sand);margin-top:4px;padding-top:9px;font-weight:600}
+/* La opción de crear va PRIMERO y queda fija arriba mientras se baja por la lista: nadie tiene que llegar al final de 84 marcas. */
+.opcion.crear.fija{position:sticky;top:-4px;z-index:1;background:var(--papel);border-top:0;margin:-4px -4px 4px;padding:10px 14px;width:calc(100% + 8px);border-radius:10px 10px 0 0;border-bottom:1px solid var(--sand)}
+.opcion.crear.fija:hover{background:var(--hueso)}
+.fila-label{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 mark{background:none;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:2px}
 
 /* paso 1 */
@@ -689,7 +693,7 @@ function cuerpo2(){
       ${p ? `<div class="elegida"><div><b>${esc(p[0])}</b> <span class="taupe">· la trae ${esc(p[1])}</span></div><button class="btn-enlace" data-accion="quitar-pareja">Cambiar</button></div>`
         : s.nuevaMarca ? nuevaMarcaHtml() : `<div class="buscar" data-combo="mp">${lupa}
              <input class="caja" data-campo="busMP" placeholder="Toca para ver las ${MARCAS.length} marcas, o escribe la marca o el proveedor…" value="${esc(q)}" autocomplete="off">
-             ${s.listaMP || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear" data-accion="nm-abrir">+ Registrar ${q.trim() ? `«${esc(titulo(q))}»` : "una marca"} nueva</button></div>` : ""}
+             ${s.listaMP || q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nm-abrir">+ Registrar ${q.trim() ? `«${esc(titulo(q))}» como marca nueva` : "una marca o un proveedor nuevo"}</button><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}</div>` : ""}
            </div>
            <p class="ayuda">¿No está? <button class="btn-enlace" data-accion="nm-abrir">+ Registrar una marca o un proveedor nuevo</button></p>`}
     </div>
@@ -724,7 +728,7 @@ function nuevaMarcaHtml(){
            <div><label for="nm-ruc">RUC <span class="taupe" style="font-weight:400">· opcional</span></label><input class="caja" id="nm-ruc" data-campo="nmRuc" inputmode="numeric" placeholder="11 dígitos" value="${esc(s.nmRuc)}" autocomplete="off"></div></div>
          <p class="ayuda"><button class="btn-enlace" data-accion="nm-prov-existente">Mejor elijo uno que ya existe</button></p>`
       : `<div class="buscar" data-combo="prov">${lupa}<input class="caja" id="nm-prov" data-campo="nmProvQ" placeholder="Toca para ver los ${PROVEEDORES.length} proveedores, o escribe…" value="${esc(q)}" autocomplete="off">
-           ${s.listaProv || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(lista.length, "proveedor", "proveedores") : "Todos, de la A a la Z"}</p>${lista.map(([p, i]) => `<button class="opcion" data-nmprov="${i}">${marcar(p, q)}</button>`).join("")}<button class="opcion crear" data-accion="nm-prov-nuevo">+ Proveedor nuevo${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button></div>` : ""}</div>`;
+           ${s.listaProv || q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nm-prov-nuevo">+ Proveedor nuevo${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button><p class="enc">${q.trim() ? plural(lista.length, "proveedor", "proveedores") : "Todos, de la A a la Z"}</p>${lista.map(([p, i]) => `<button class="opcion" data-nmprov="${i}">${marcar(p, q)}</button>`).join("")}</div>` : ""}</div>`;
   // Marca: una que ya existe (para sumarle un proveedor) o una nueva. Se busca o se escribe en el mismo campo.
   const qm = s.nmMarca, sel = s.nmMarcaSel;
   const marcas = MARCAS.map(m => m[0]).filter(m => coincide(m, qm)).sort((a, b) => a.localeCompare(b, "es"));
@@ -733,13 +737,13 @@ function nuevaMarcaHtml(){
   const marca = sel
     ? `<div class="elegida"><div><b>${esc(sel.nombre)}</b> <span class="taupe">· ${sel.existe ? `ya existe. Hoy la trae${traenHoy.length > 1 ? "n" : ""} ${esc(traenHoy.join(", "))}` : "marca nueva"}</span></div><button class="btn-enlace" data-accion="nm-marca-cambiar">Cambiar</button></div>`
     : `<div class="buscar" data-combo="nmmarca">${lupa}<input class="caja" id="nm-marca" data-campo="nmMarca" placeholder="Busca una marca que ya existe o escribe una nueva…" value="${esc(qm)}" autocomplete="off">
-         ${s.listaMarca || qm.trim() ? `<div class="lista">${qm.trim() && !exacta ? `<button class="opcion crear" style="border-top:0;margin-top:0;padding-top:7px" data-accion="nm-marca-nueva">+ Marca nueva «${esc(titulo(qm))}»</button>` : ""}<p class="enc">${marcas.length ? (qm.trim() ? "Ya existen" : "Todas, de la A a la Z") : "Ninguna marca se llama así"}</p>${marcas.map(m => `<button class="opcion" data-nmmarca="${esc(m)}">${marcar(m, qm)}</button>`).join("")}</div>` : ""}</div>`;
+         ${s.listaMarca || qm.trim() ? `<div class="lista">${qm.trim() && !exacta ? `<button class="opcion crear fija" data-accion="nm-marca-nueva">+ Marca nueva «${esc(titulo(qm))}»</button>` : qm.trim() ? "" : `<p class="opcion crear fija" style="cursor:default;font-weight:500;color:var(--taupe)">+ ¿Es nueva? Escribe su nombre arriba</p>`}<p class="enc">${marcas.length ? (qm.trim() ? "Ya existen" : "Todas, de la A a la Z") : "Ninguna marca se llama así"}</p>${marcas.map(m => `<button class="opcion" data-nmmarca="${esc(m)}">${marcar(m, qm)}</button>`).join("")}</div>` : ""}</div>`;
   const repetida = nmRepetida();
   return `<div class="panel-nuevo revela">
     <p class="panel-tit">Registrar marca o proveedor</p>
     <p class="taupe" style="font-size:12.5px;margin-top:-6px">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
     <div><label for="nm-marca">Marca</label>${marca}</div>
-    <div><label for="nm-prov">¿Quién te la trae?</label>${prov}</div>
+    <div><div class="fila-label"><label for="nm-prov">¿Quién te la trae?</label>${s.nmProv === null && !s.nmProvNuevo ? `<button class="btn-enlace" data-accion="nm-prov-nuevo">+ Proveedor nuevo</button>` : ""}</div>${prov}</div>
     ${repetida ? `<div class="aviso ambar" style="margin:0">${esc(sel.nombre)} ya la trae ${esc(PROVEEDORES[s.nmProv])}. No hace falta registrarla: cancela y elígela en el buscador.</div>` : ""}
     <div class="acc"><button class="btn btn-secundario" data-accion="nm-cancelar">Cancelar</button><button class="btn btn-primario" data-accion="nm-crear" ${nmListo() ? "" : "disabled"}>Registrar y elegir</button></div>
   </div>`;
@@ -773,7 +777,7 @@ function cuerpo3(){
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
         <div class="buscar" style="flex:1;min-width:210px">${lupa}
           <input class="caja" data-campo="busColor" placeholder="Busca entre los ${total} colores: petróleo, coral…" value="${esc(q)}" autocomplete="off">
-          ${q.trim() ? `<div class="lista"><p class="enc">${plural(hallados.length, "color", "colores")}</p>${hallados.map(x => `<button class="opcion" data-color="${x}" data-limpia="1">${punto(x)}${marcar(x, q)}${s.colores.includes(x) ? "<small>elegido</small>" : ""}</button>`).join("")}<button class="opcion crear" data-accion="nuevo-color">+ Crear el color «${esc(titulo(q))}»</button></div>` : ""}
+          ${q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nuevo-color">+ Crear el color «${esc(titulo(q))}»</button><p class="enc">${plural(hallados.length, "color", "colores")}</p>${hallados.map(x => `<button class="opcion" data-color="${x}" data-limpia="1">${punto(x)}${marcar(x, q)}${s.colores.includes(x) ? "<small>elegido</small>" : ""}</button>`).join("")}</div>` : ""}
         </div>
         <button class="btn btn-secundario" data-accion="paleta">${s.paleta ? "Ocultar la carta" : `Ver los ${total} colores`}</button>
         <button class="btn btn-secundario" data-accion="nuevo-color">+ Nuevo color</button>

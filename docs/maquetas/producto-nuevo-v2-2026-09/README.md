@@ -61,6 +61,7 @@ Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (je
 | Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. **Se elige de una sola manera:** buscándolo por nombre o tocándolo en la carta de 71 círculos por familia, que se abre de entrada (el nombre sale al pasar el mouse). Sin fila de «más usados» (Felipe, 2026-09-28). Antes el mismo estado se veía como chip con ✓ y como píldora con × («confuso») |
 | Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
 | Tabla (72 celdas) | Cabecera de tallas y columna del color **fijas** al desplazarse; en celular la tabla se desliza de lado sin mover la página. En el paso 4, **«Poner en todas: [n] Aplicar»** llena las 68 celdas de un golpe y después se corrige a mano lo distinto |
+| Crear algo nuevo en una lista larga | **La opción de crear es la primera fila de la lista y queda fija arriba mientras se baja** (marca, proveedor, marca del formulario, color): nadie tiene que llegar al final de 84 marcas (Felipe, 2026-09-28). Junto a «¿Quién te la trae?» hay además un enlace visible «+ Proveedor nuevo» |
 | Ficha y resúmenes | Hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)» |
 
 ## Revisión de claridad (2026-09-28, pedido de Felipe: «entendible para cualquier usuario»)
