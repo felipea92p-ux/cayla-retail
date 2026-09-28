@@ -175,7 +175,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               Temporadas se completan de a varias; y si le pones temporada a su categoría, la heredan todas las que no tienen la suya.
             </p>
           </details>
-          <Link href="/productos/atributos?tipo=temporadas#sin-temporada" className="btn-cayla btn-enlace text-[13px]">
+          {/* `desde=productos`: la sección de destino muestra «← Productos» (Atributos está en el menú y no la lleva siempre). */}
+          <Link href="/productos/atributos?tipo=temporadas&desde=productos#sin-temporada" className="btn-cayla btn-enlace text-[13px]">
             Completar
           </Link>
         </div>
