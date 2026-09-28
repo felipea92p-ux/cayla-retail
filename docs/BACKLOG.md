@@ -28,6 +28,32 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔁 Los arreglos que vivían solo en producción, llevados a `main` (2026-09-28, ADR-0252) — dos migraciones **sin pegar en producción** (cambian solo 5 funciones de lectura); rama `claude/arreglos-en-vivo-a-main`
+La primera corrida de la deriva (ADR-0251) encontró 14 diferencias reales entre producción y `main`. Este cambio las deja
+en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se decide en su PR.
+- [x] `20260928200000`: `emitir_comprobante`, `emitir_nota`, `fn_aplicar_movimiento` y `recalcular_stock` solo para su
+  dueña; `stock` y `movimientos` sin escritura directa para `authenticated` ni `service_role` (la lectura intacta);
+  `fn_rentabilidad` con el cuerpo exacto de producción; las tres `_json`, la versión de `main`. Guarda de md5 y
+  verificación final que aborta si algo no quedó como en producción.
+- [x] `20260928200100`: notas de crédito de compras con la regla combinada (un cierre deja de esperar si tiene una nota
+  atada o si su comprobante ya tiene la nota por faltante). Decisión técnica: junta las dos reglas escritas, cumple lo
+  que Felipe pidió el 22-sep, y producción no tiene cierres ni notas hoy.
+- [x] Antes de cerrar las puertas: la web de `main` no llama a ninguna de las cuatro ni escribe `stock`/`movimientos`;
+  las 31 funciones que lo hacen son `security definer` de `postgres`; producción ya opera así desde el 26-sep.
+- [x] `pnpm pruebas:arreglos-en-vivo` (39/39), en `package.json` y en el job «Pruebas de RPC contra Postgres».
+- [ ] **POR PEGAR:** `20260928200000` y `20260928200100`, cada una sola, en cualquier orden (md5 esperados en ADR-0252).
+- [ ] Después de pegar: correr la deriva (ADR-0251). Debe quedar solo `clientas_fusiones.clientas_fusiones_select`.
+- [ ] **PR #168 (Rentabilidad):** quitar su creación de `fn_rentabilidad` o dejarla idéntica a la de producción. Si no,
+  la guarda de `20260928200000` aborta en el CI.
+- [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante». Una nota
+  por devolución registrada desde la pantalla no apaga el pendiente de su cierre (la base ya lo permite: falta mandar
+  `cierre_id` también con ese motivo).
+- Cómo verificas:
+  - `pnpm pruebas:arreglos-en-vivo` (39/39) y el job completo de Postgres: 102 de 104 pasos en verde. Los 2 rojos
+    (`proveedores-produccion` y `dinero-compras`) salen igual en `main` sin este cambio: son del Postgres desechable.
+  - Mutaciones: 14 del estado vivo y 7 de los archivos. Las 21 dejan la suite en rojo.
+  - En producción, después de pegar, la consulta de huellas de cada encabezado da los md5 de ADR-0252.
+
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
