@@ -160,6 +160,14 @@ describe("urlEtiquetasDePrecio", () => {
     expect(idsDeParam(new URL(url, "http://x").searchParams.get("lotes") ?? "")).toEqual([A, B]);
     expect(urlEtiquetasDePrecio({ produccion: A })).toBe(`/etiquetas-de-precio?produccion=${A}`);
   });
+
+  it("las tallas de varias prendas marcadas en la Tabla de Productos (ADR-0254) van como `variantes`", () => {
+    const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+    const B = "0a1b2c3d-4e5f-4a6b-9c7d-8e9f0a1b2c3d";
+    const url = urlEtiquetasDePrecio({ variantes: [A, B] });
+    expect(url).toBe(`/etiquetas-de-precio?variantes=${A},${B}`);
+    expect(idsDeParam(new URL(url, "http://x").searchParams.get("variantes") ?? "")).toEqual([A, B]);
+  });
 });
 
 describe("mejorCampanaPorVariante — la misma que elige la caja", () => {

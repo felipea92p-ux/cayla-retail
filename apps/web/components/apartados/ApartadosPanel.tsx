@@ -32,6 +32,8 @@ type Props = {
   lineasDesdeTicket?: { varianteId: string; cantidad: number }[];
   /** Lo que la tienda apagó en «Opciones» (paso 5). Vacío = Completo, el de fábrica. */
   apagadas?: string[];
+  /** El rol de la cuenta ve «Clientas»: si no, Apartar no ofrece buscar la ficha (ADR-0249, 2026-09-28). */
+  veClientas: boolean;
   /** Solo el líder cambia las opciones (`guardar_opciones_apartados`). */
   esLider?: boolean;
   /** Pedidos a otras tiendas para apartar (hechos y recibidos). */
@@ -146,6 +148,7 @@ export function ApartadosPanel(props: Props) {
           cabecera={cabecera}
           lineasIniciales={pedidoParaApartar ? undefined : props.lineasDesdeTicket}
           apagadas={apagadas}
+          veClientas={props.veClientas}
           tiendas={props.tiendas ?? []}
           pedido={pedidoParaApartar}
           key={pedidoParaApartar?.id ?? "apartar"}

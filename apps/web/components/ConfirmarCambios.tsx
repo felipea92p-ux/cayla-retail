@@ -8,7 +8,7 @@ import { agruparCambios, type ResumenCambios } from "@/lib/producto-cambios-regl
 import type { ControlResponsable } from "@/lib/useResponsable";
 
 /**
- * La hoja «Revisa y guarda los cambios» (ADR-0256; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
+ * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
  *
  * EL PROBLEMA. Guardar una ficha pedía elegir «Responsable» en un panel lejano y dejaba el botón gris sin decir por qué. Ahora
  * «Revisar y guardar» abre esta hoja: lista lo que va a cambiar, pide quién hace la operación justo aquí y confirma. El orden

@@ -4,26 +4,26 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 138 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 141 · **Sin pájaro:** 0
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
-| 01 | **Ganso** | Identidad y acceso | `colaboradores` · `colaboradores_historial` · `colaboradores_suspendidos` · `modulos` · `rol_modulos` · `roles` · `roles_historial` · `terminales` · `ubicaciones` |
+| 01 | **Ganso** | Identidad y acceso | `colaboradores` · `colaboradores_historial` · `colaboradores_suspendidos` · `lider_modulos_ocultos` · `modulos` · `rol_modulos` · `roles` · `roles_historial` · `terminales` · `ubicaciones` |
 | 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `producto_color_temporadas` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_piso` · `costo_historial` · `envio_extras` · `envio_traslados` · `envios` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
-| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `clientas` · `codigos_descuento` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
+| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `clientas` · `clientas_fusiones` · `codigos_descuento` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `series_comprobantes` · `ubicacion_datos_fiscales` |
 | 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compra_parte_por_tienda` · `compra_reasignaciones` · `compradores_de_tienda` · `compras` · `compras_resumen` · `proveedor_creditos` · `proveedores` |
 | 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_cierres` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `comprobantes_produccion_recepciones` · `cotizaciones_maquila` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_etapas_historial` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
 | 11 | **Garza** | Finanzas operativas | `categorias_gasto` · `conciliaciones` · `cuentas_asignadas` · `cuentas_dinero` · `dinero_revisados` · `egresos_no_gasto` · `gastos` · `gastos_fijos` · `gastos_fijos_descartados` · `gastos_legado_2026_09` · `medios_de_cobro` · `movimientos_dinero` · `parametros_finanzas` · `planilla_por_sede` · `presupuestos` |
 | 12 | **Urraca** | Contabilidad | `activos_fijos` · `cuentas` · `diario_cerrado` · `parametros_tributarios` · `periodo_cierres` · `periodos` · `saldos_iniciales` · `tipos_activo` |
 | 13 | **Águila** | Inteligencia y reportes | `actividad` |
-| 14 | **Gorrión** | Plataforma y esquema | *sin tablas hoy* |
+| 14 | **Gorrión** | Plataforma y esquema | `huellas_llave` |
 
 ## Por tabla
 
@@ -50,6 +50,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `categorias` | 02 · Loro |
 | `categorias_gasto` | 11 · Garza |
 | `clientas` | 07 · Colibrí |
+| `clientas_fusiones` | 07 · Colibrí |
 | `codigos_barras` | 02 · Loro |
 | `codigos_correlativos` | 02 · Loro |
 | `codigos_descuento` | 07 · Colibrí |
@@ -103,8 +104,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `gastos_fijos_descartados` | 11 · Garza |
 | `gastos_legado_2026_09` | 11 · Garza |
 | `historial_producto_cambios` | 02 · Loro |
+| `huellas_llave` | 14 · Gorrión |
 | `insumo_lotes` | 10 · Gallito |
 | `insumos` | 10 · Gallito |
+| `lider_modulos_ocultos` | 01 · Ganso |
 | `lotes` | 05 · Halcón |
 | `marca_proveedores` | 02 · Loro |
 | `marcas` | 02 · Loro |

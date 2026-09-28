@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
-import { esClaveModulo, type ClaveModulo } from "@/lib/modulos";
+import { CLAVES_MODULO, esClaveModulo, type ClaveModulo } from "@/lib/modulos";
 import type { CuentaConRol, RolVista } from "@/lib/roles-reglas";
 
 // Lectura de «Roles y accesos» (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). El líder o quien ve el módulo
@@ -11,12 +11,15 @@ const CLAVES_SISTEMA = ["lider", "integrante", "terminal_ventas", "terminal_admi
 
 export async function getRoles(): Promise<RolVista[]> {
   const supabase = await createClient();
-  const [roles, modulos] = await Promise.all([
+  const [roles, modulos, ocultosAlLider] = await Promise.all([
     supabase
       .from("roles")
       .select("id, clave, nombre, descripcion, es_sistema, fijo, limitado_como_hoy, archivado_at, version, pantalla_principal")
       .order("creado_at"),
     supabase.from("rol_modulos").select("rol_id, modulo"),
+    // ADR-0253: lo que se le QUITÓ al Líder (lo demás lo ve). Si la base aún no tiene la función (web publicada antes de
+    // pegar 20260928220100), el Líder se muestra viéndolo todo, como era; la base es la que decide de todos modos.
+    supabase.rpc("fn_lider_modulos_ocultos" as never),
   ]);
   const filas = exigir(roles, "los roles");
   const porRol = new Map<string, ClaveModulo[]>();
@@ -24,6 +27,8 @@ export async function getRoles(): Promise<RolVista[]> {
     if (!esClaveModulo(f.modulo)) continue;
     porRol.set(f.rol_id, [...(porRol.get(f.rol_id) ?? []), f.modulo]);
   }
+  const ocultos: readonly string[] = ocultosAlLider.error ? [] : ((ocultosAlLider.data as string[] | null) ?? []);
+  const delLider = CLAVES_MODULO.filter((c) => !ocultos.includes(c));
   return filas.map((r) => ({
     id: r.id,
     clave: (CLAVES_SISTEMA as readonly string[]).includes(r.clave ?? "") ? (r.clave as RolVista["clave"]) : null,
@@ -33,7 +38,7 @@ export async function getRoles(): Promise<RolVista[]> {
     fijo: r.fijo,
     limitadoComoHoy: r.limitado_como_hoy,
     archivado: r.archivado_at !== null,
-    modulos: porRol.get(r.id) ?? [],
+    modulos: r.fijo ? [...delLider] : (porRol.get(r.id) ?? []),
     version: r.version,
     pantallaPrincipal: esClaveModulo(r.pantalla_principal ?? "") ? (r.pantalla_principal as ClaveModulo) : null,
   }));

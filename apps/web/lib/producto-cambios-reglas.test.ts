@@ -8,6 +8,7 @@ import {
   formatoPrecio,
   resumenDeCambios,
   SIN_CAMBIOS,
+  textoDeSalidaDeFicha,
   textoPendienteDeVariante,
   type FichaEditable,
   type NombresFicha,
@@ -278,6 +279,15 @@ describe("las filas de la tabla", () => {
     const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [] }));
     const r = resumenDeCambios(ficha(), conFila, nombres);
     expect(textoPendienteDeVariante(cambiosDeVariante(r, 3))).toBe("Se agrega al guardar");
+  });
+});
+
+describe("textoDeSalidaDeFicha — lo que dice «¿Salir sin guardar?»", () => {
+  it("dice cuántos cambios se pierden y de qué prenda", () => {
+    expect(textoDeSalidaDeFicha(3, "Camisa Lino")).toBe("Tienes 3 cambios sin guardar en «Camisa Lino». Si sales ahora, se pierden.");
+  });
+  it("dice «1 cambio» en singular", () => {
+    expect(textoDeSalidaDeFicha(1, "Blusa")).toBe("Tienes 1 cambio sin guardar en «Blusa». Si sales ahora, se pierden.");
   });
 });
 

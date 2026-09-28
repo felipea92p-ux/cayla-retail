@@ -1,5 +1,8 @@
 # Spike visual · Guardar los cambios de un producto (2026-09-28)
 
+**Estado: elegidas A/A por Felipe y construidas — ver [ADR-0257](../../adr/0257-editar-producto-guarda-en-dos-tiempos-barra-de-cambios-y-hoja.md).**
+Este documento queda como registro del spike y del porqué; la pantalla real ya no es esto, es `ProductoForm.tsx`.
+
 `guardar-cambios-spike.html`: un solo archivo, se abre con doble clic en el navegador. Es la ficha real de «Editar producto»
 (`/productos/[id]/editar`, `ProductoForm.tsx`) con datos de ejemplo; nada se guarda. Pedido de Felipe, con una captura de
 CMS-0001: *una colaboradora desactiva una talla, activa otra o cambia un precio, pero no sabe qué paso sigue ni si lo que hizo
@@ -82,9 +85,9 @@ Con una cuenta de persona el costo es un clic; con la tablet, elegir quién es, 
 
 ## Preguntas abiertas para Felipe
 
-1. **Pregunta 1:** ¿A (barra fija), B (panel vivo) o C (aviso arriba)? Recomendada: A.
-2. **Pregunta 2:** ¿hoja «Revisar y guardar», pasos numerados o solo mejores textos? Recomendada: hoja.
-3. Si es A: ¿la ficha sin panel derecho queda a 1080 px o a todo el ancho?
+1. ~~**Pregunta 1:** ¿A (barra fija), B (panel vivo) o C (aviso arriba)?~~ **Decidida: A.** Construida (ADR-0257).
+2. ~~**Pregunta 2:** ¿hoja «Revisar y guardar», pasos numerados o solo mejores textos?~~ **Decidida: hoja.** Construida (ADR-0257).
+3. **Sigue abierta:** la ficha sin panel derecho quedó a 1080 px (la medida del spike). ¿Se deja así o pasa a todo el ancho?
 4. ¿Se lleva después a las otras pantallas de edición larga (Proveedor, Cuenta…)? Propuesta: no ahora; primero esta.
 
 ## Verificado

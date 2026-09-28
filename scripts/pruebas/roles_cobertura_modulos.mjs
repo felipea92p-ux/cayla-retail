@@ -25,9 +25,10 @@
  * cosas dentro de una transacción que termina en ROLLBACK.
  *
  * DEFINICIÓN DE «GUARDIÁN» (léela, Felipe: aquí hay decisiones discutibles)
- *   Un guardián es un objeto de `retail` que nombra el módulo con literal en `fn_ve_modulo('x')` o en
- *   `fn_capacidad_por_modulos(array['x', …])` —las dos únicas formas oficiales de preguntarle a la base por un módulo— y
- *   que está EN EL CAMINO de una operación real. Los objetos que cuentan son:
+ *   Un guardián es un objeto de `retail` que nombra el módulo con literal en `fn_ve_modulo('x')`, en
+ *   `fn_exigir_modulo('x')` (el ayudante que rechaza con 42501 y el hint `x_sin_modulo`, ADR-0249 2026-09-28: por dentro es
+ *   `fn_ve_modulo`) o en `fn_capacidad_por_modulos(array['x', …])` —las formas oficiales de preguntarle a la base por un
+ *   módulo— y que está EN EL CAMINO de una operación real. Los objetos que cuentan son:
  *     · una POLÍTICA RLS o una VISTA que nombra el módulo: la base la aplica sola al leer, nadie tiene que llamarla;
  *     · una FUNCIÓN que nombra el módulo (definición viva de `pg_get_functiondef`, sin comentarios) y a la que se llega
  *       desde una RAÍZ. Son raíces: la pantalla (un `.rpc("nombre")` en `apps/web`, sin contar las pruebas ni los
@@ -82,7 +83,7 @@
  *       una prueba de intención; si algún día se equivoca, se equivoca hacia el rojo.
  *
  * (d) AYUDANTES-CANDADO. Un ayudante-candado es una función `*exigir*` cuya guarda es «si no es líder, rechaza»
- *   (`fn_exigir_lider_dinero`, `fn_exigir_lider_balance`, `fn_flujo_exigir_lider`). Toda función que lo llama cuenta como
+ *   (`fn_exigir_lider_balance`, `fn_flujo_exigir_lider`; `fn_exigir_lider_dinero` dejó de serlo con el ADR-0253). Toda función que lo llama cuenta como
  *   «exige solo líder»: no se intenta adivinar si además tiene otro candado o lo pide solo en una rama, eso lo dice su razón.
  *   Cada una tiene que estar en SOLO_LIDER con el módulo delegable donde la pantalla la usa (o `null` si su pantalla es de un
  *   módulo no delegable) y qué hace esa pantalla con quien no es líder. Verificado a mano el 2026-09-26: la pantalla esconde
@@ -146,7 +147,6 @@ const SOLO_PANTALLA = {
   historial:
     "Módulo de lectura: ventas_select, comprobantes_select, cambios_select y devoluciones_select dejan leer a líder o a la sede, sin preguntar por el módulo.",
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
-  clientas: "registrar_clienta no tiene candado en su cuerpo (solo firma con fn_actor_persona_id) y clientas_select deja leer a toda cuenta autenticada.",
   movimientos: "Módulo de lectura: movimientos_select deja leer a líder o a quien opera la sede de origen o de destino, sin preguntar por el módulo.",
   recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
   produccion:
@@ -168,27 +168,11 @@ const SIN_GUARDIA = {
  * es de un módulo no delegable. Todo verificado a mano el 2026-09-26 contra `apps/web` (archivo citado en cada razón).
  */
 const SOLO_LIDER_GRUPOS = [
-  {
-    modulo: "cuentas_dinero",
-    funciones: [
-      "registrar_conciliacion", "anular_conciliacion", "marcar_revisados_dinero", "asignar_cuenta_pasada",
-      "fn_conciliacion", "fn_conciliacion_cuentas", "fn_medios_de_cobro", "fn_plata_del_dueno", "fn_dinero_sin_cuenta", "fn_pagos_sin_cuenta",
-    ],
-    razon:
-      "Las llama Cuentas y dinero (app/(app)/finanzas/dinero, components/finanzas/CuentasDinero.tsx y PagosSinCuenta.tsx) y solo se piden o " +
-      "se muestran si la cuenta es líder (`esLider`; la conciliación redirige a quien no lo es): la pantalla tapa lo que la base exige solo " +
-      "del líder. Falta decidir si el módulo lo incluye o pasa a «siempre solo del líder» (trabajo pendiente).",
-  },
-  {
-    modulo: null,
-    funciones: [
-      "crear_cuenta_dinero", "editar_cuenta_dinero", "eliminar_cuenta_dinero", "archivar_cuenta_dinero", "guardar_medio_de_cobro",
-      "fn_cuenta_dinero_detalle",
-    ],
-    razon:
-      "Solo las llaman ConfiguracionCuentas.tsx y EditarCuentaModal.tsx, que cuelgan de Configuración (app/(app)/configuracion), un módulo " +
-      "no delegable («solo líder por ahora»): no son deuda de ningún módulo delegable. Si Configuración se delega algún día, se revisan.",
-  },
+  // ADR-0253 (2026-09-28): `fn_exigir_lider_dinero` pasó a pedir «el líder o el módulo Configuración»
+  // (`fn_puede_configurar`). Las 16 funciones que lo llaman —crear, editar, archivar y eliminar cuentas, a qué cuenta
+  // entra cada cobro, conciliar, la plata del dueño, lo pasado sin cuenta— dejaron de ser «solo líder» y salieron de aquí.
+  // Deuda que queda (BACKLOG): Cuentas y dinero sigue mostrándolas solo si la cuenta es líder (`esLider`), aunque la
+  // base ya las deja a quien tiene Configuración.
   {
     modulo: "reportes_financieros",
     funciones: ["fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales", "fn_saldos_iniciales_propuesta", "registrar_saldo_inicial"],
@@ -334,17 +318,17 @@ llamadas_de_superficie as (
   select distinct m[1] as llamado
     from superficie s, regexp_matches(lower(regexp_replace(s.d, '''(?:[^'']|'''')*''', '', 'g')), '\m([a-z_][a-z0-9_]*)\s*\(', 'g') m
 ),
--- Cada vez que algo pregunta por un módulo con literal: fn_ve_modulo('x') o fn_capacidad_por_modulos(array['x', …]) («compartido»
--- si el arreglo trae más de un módulo).
+-- Cada vez que algo pregunta por un módulo con literal: fn_ve_modulo('x'), fn_exigir_modulo('x') o
+-- fn_capacidad_por_modulos(array['x', …]) («compartido» si el arreglo trae más de un módulo).
 menciones as (
   select p.proname::text as objeto, true as es_fn, m[1] as modulo, false as compartido
-    from prog p, regexp_matches(p.d, 'fn_ve_modulo\(\s*''([a-z_]+)''\s*(?:::text)?\s*\)', 'g') m
+    from prog p, regexp_matches(p.d, 'fn_(?:ve|exigir)_modulo\(\s*''([a-z_]+)''\s*(?:::text)?\s*\)', 'g') m
   union all
   select p.proname::text, true, x[1], (select count(*) from regexp_matches(m[1], '''([a-z_]+)''', 'g')) > 1
     from prog p, regexp_matches(p.d, 'fn_capacidad_por_modulos\(\s*array\[([^\]]*)\]', 'gi') m, regexp_matches(m[1], '''([a-z_]+)''', 'g') x
   union all
   select s.nombre, false, m[1], false
-    from superficie s, regexp_matches(s.d, 'fn_ve_modulo\(\s*''([a-z_]+)''\s*(?:::text)?\s*\)', 'g') m
+    from superficie s, regexp_matches(s.d, 'fn_(?:ve|exigir)_modulo\(\s*''([a-z_]+)''\s*(?:::text)?\s*\)', 'g') m
   union all
   select s.nombre, false, x[1], (select count(*) from regexp_matches(m[1], '''([a-z_]+)''', 'g')) > 1
     from superficie s, regexp_matches(s.d, 'fn_capacidad_por_modulos\(\s*array\[([^\]]*)\]', 'gi') m, regexp_matches(m[1], '''([a-z_]+)''', 'g') x
@@ -741,6 +725,28 @@ end; $f$;`;
     "CONTROL: una RPC que devuelve boolean, guarda y la pantalla llama SÍ cubre el módulo; sin que nadie la llame, no",
     conPantalla.join() === "zz_cobertura_registrar" && sinPantalla.length === 0,
     `con pantalla: [${conPantalla}]; sin pantalla: [${sinPantalla}]`
+  );
+}
+{
+  // fn_exigir_modulo('x') (ADR-0249, 2026-09-28) es la tercera forma oficial: una función que la pantalla llama y empieza por
+  // él cubre el módulo; si nadie la llama, no. Y con el nombre armado en tiempo de ejecución no cuenta (no se puede auditar).
+  const EXIGE = `create function retail.zz_cobertura_exige() returns jsonb language plpgsql as $f$
+begin
+  perform retail.fn_exigir_modulo('${FALSO}');
+  return '{}'::jsonb;
+end; $f$;`;
+  const EXIGE_ARMADO = `create function retail.zz_cobertura_exige_armado(p_clave text) returns jsonb language plpgsql as $f$
+begin
+  perform retail.fn_exigir_modulo(p_clave);
+  return '{}'::jsonb;
+end; $f$;`;
+  const conPantalla = cubiertoFalso(EXIGE, { web: ["zz_cobertura_exige"] });
+  const sinPantalla = cubiertoFalso(EXIGE);
+  const armado = cubiertoFalso(EXIGE_ARMADO, { web: ["zz_cobertura_exige_armado"] });
+  caso(
+    "CONTROL: fn_exigir_modulo('x') con literal en una función que la pantalla llama cubre el módulo; sin raíz, o con el nombre armado, no",
+    conPantalla.join() === "zz_cobertura_exige" && sinPantalla.length === 0 && armado.length === 0,
+    `con pantalla: [${conPantalla}]; sin pantalla: [${sinPantalla}]; nombre armado: [${armado}]`
   );
 }
 {

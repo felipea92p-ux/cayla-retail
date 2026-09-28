@@ -67,8 +67,8 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - registrarGastos:        ver y registrar los gastos de SU tienda (Finanzas ▸ Gastos, ADR-0195 F2; fn_gastos_ubicaciones)
  *  - verCuentasDinero:       Finanzas ▸ Cuentas y dinero de SU tienda (ADR-0195 F3/F4)
  *  - verReportesFinancieros: Finanzas ▸ Resumen y Reportes de SU tienda (ADR-0195 F5/F6/F7/F10)
- *  - verImpuestos:           Finanzas ▸ Impuestos (ADR-0195 F8; solo líder por ahora)
- *  - cerrarMes:              Finanzas ▸ Cierre de mes (ADR-0195 F9; siempre del líder)
+ *  - verImpuestos:           Finanzas ▸ Impuestos de CAYLA entera (ADR-0195 F8; delegable desde el ADR-0253, fn_puede_ver_impuestos)
+ *  - cerrarMes:              Finanzas ▸ Cierre de mes: cerrar y reabrir (ADR-0195 F9; delegable desde el ADR-0253, fn_puede_cerrar_mes)
  */
 export const PERMISOS = [
   "administrar", "verDinero", "analizar",

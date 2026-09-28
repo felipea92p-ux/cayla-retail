@@ -134,7 +134,7 @@ select count(*) from retail.configuracion_historial where hecho_en >= now() - in
   esperar("los 4 cambios quedan en el historial", r.ok && Number(hist) === 4, r);
 }
 
-// 5. Solo el líder guarda; la colaboradora lee lo que rige hoy (la caja lo necesita) pero no la configuración.
+// 5. Guarda el líder o quien tiene Configuración (ADR-0253); la colaboradora sin el módulo lee lo que rige hoy (la caja lo necesita) pero no la configuración.
 {
   const r = correr(`${ESCENA}${cambiaA(MICAELA)}
 select pg_temp.intento(format('select retail.guardar_metas_tienda(%L, array[1,1,1,1,1,1,1]::numeric[], 10)', :'tru'));
@@ -144,9 +144,9 @@ select meta from retail.fn_parametros_caja(:'tru', '2026-09-24');
 set local role authenticated;
 select pg_temp.intento('update retail.ubicacion_metas_dia set meta = 1');`);
   const [metas, efecto, config, lee, directo] = r.ok ? r.salida.split("\n") : [];
-  esperar("la colaboradora no cambia metas", r.ok && metas.startsWith("Solo el líder"), r);
-  esperar("la colaboradora no cambia campañas", r.ok && efecto.startsWith("Solo el líder"), r);
-  esperar("la colaboradora no lee la configuración", r.ok && config.startsWith("Solo el líder"), r);
+  esperar("la colaboradora sin el módulo no cambia metas", r.ok && metas.includes("necesita el módulo «Configuración»"), r);
+  esperar("la colaboradora no cambia campañas", r.ok && efecto.includes("necesita el módulo «Configuración»"), r);
+  esperar("la colaboradora no lee la configuración", r.ok && config.includes("necesita el módulo «Configuración»"), r);
   esperar("la colaboradora sí lee la meta de hoy (la ve en Caja)", r.ok && Number(lee) === 1700, r);
   esperar("nadie escribe la tabla por fuera de la RPC", r.ok && directo.includes("permission denied"), r);
 }
@@ -201,7 +201,7 @@ select pg_temp.intento(format('select retail.guardar_hora_cierre_tienda(%L, ''22
   const [hora, historia, otra] = r.ok ? r.salida.split("\n") : [];
   esperar("el líder pone la hora de cierre y Configuración la lee («21:00»)", r.ok && hora === "21:00", r);
   esperar("el cambio queda en la historia", r.ok && Number(historia) >= 1, r);
-  esperar("una colaboradora no la cambia", r.ok && otra.includes("Solo el líder"), r);
+  esperar("una colaboradora sin el módulo no la cambia", r.ok && otra.includes("necesita el módulo «Configuración»"), r);
 }
 
 // Caja y avisos (20260925103000): valores de arranque, límites, historia y quién la lee o la cambia.
@@ -228,7 +228,7 @@ select pg_temp.intento('select count(*) from retail.parametros_finanzas');`);
   esperar("cada cambio queda en la historia", r.ok && Number(historia) >= 1, r);
   esperar("sin un módulo de Finanzas no se leen", r.ok && sinModulo.includes("módulo de Finanzas"), r);
   esperar("con el módulo Gastos sí se leen (las pantallas que avisan los necesitan)", r.ok && conModulo === "SIN_ERROR", r);
-  esperar("pero solo el líder los cambia", r.ok && cambiar.includes("Solo el líder"), r);
+  esperar("pero solo el líder o quien tiene Configuración los cambia", r.ok && cambiar.includes("necesita el módulo «Configuración»"), r);
   esperar("nadie lee la tabla directo", r.ok && directo.includes("permission denied"), r);
 }
 

@@ -545,6 +545,24 @@ set constraints all immediate;
 select string_agg(accion, ',' order by accion) from retail.actividad
  where modulo = 'apartados' and (registro_id like :'sep' || '%' or detalle ->> 'codigo' = (select codigo from retail.separaciones where id = :'sep'));`,
   (x) => x === "abono_registrado,apartado_editado,apartado_registrado,aviso_whatsapp");
+// ADR-0249 (actualización 2026-09-28, Ley 29733): la actividad no copia a la clienta. Quién es lo guarda el apartado; el
+// diario dice «la clienta». Un apartado entero —apartar, abonar, avisar, editar, extender, liberar y devolver— sin que su
+// nombre, sus apellidos o su celular aparezcan en ninguna línea (ni en la frase ni en el detalle).
+exito("actividad: ninguna línea de un apartado copia el nombre, los apellidos ni el celular de la clienta",
+  `${preparar(FELIPE)}${separar()}${abonar(5)}
+select retail.registrar_aviso_separacion(:'sep') as _av \\gset
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)}) as _ed \\gset
+select retail.extender_separacion(:'sep') as _ex \\gset
+select retail.liberar_separacion(:'sep', 'clienta_desistio') as _l \\gset
+select retail.registrar_devolucion_separacion(:'sep', 'efectivo') as _d \\gset
+set constraints all immediate;
+select count(*),
+       count(*) filter (where a::text ~* '(\\mana\\M|lozano|vera|987 ?111 ?222)'),
+       count(*) filter (where a.descripcion ~ ' la clienta( |:|$)'),
+       string_agg(accion, ',' order by accion)
+  from retail.actividad a
+ where modulo = 'apartados' and (registro_id like :'sep' || '%' or detalle ->> 'codigo' = (select codigo from retail.separaciones where id = :'sep'));`,
+  (x) => x === "7|0|7|abono_registrado,adelanto_devuelto,apartado_editado,apartado_extendido,apartado_liberado,apartado_registrado,aviso_whatsapp");
 exito("actividad: liberar deja «liberó» con quién lo hizo",
   `${preparar(FELIPE)}${separar()}
 select retail.liberar_separacion(:'sep', 'clienta_desistio') as _l \\gset

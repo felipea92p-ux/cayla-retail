@@ -9,17 +9,17 @@ import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { BarraDeCambios } from "@/components/BarraDeCambios";
+import { ConfirmarCambios } from "@/components/ConfirmarCambios";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
-import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import { claveReferencia, codigoVariantePrevisto, codigosRepetidos, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
-import { BarraDeCambios } from "@/components/BarraDeCambios";
-import { ConfirmarCambios } from "@/components/ConfirmarCambios";
-import { useAvisoDeSalida } from "@/components/AvisoDeSalida";
 import { useResponsable } from "@/lib/useResponsable";
 import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { nombresCortos } from "@/lib/nombre-integrante";
@@ -27,6 +27,7 @@ import {
   cambioDeDato,
   cambiosDeVariante,
   resumenDeCambios,
+  textoDeSalidaDeFicha,
   textoPendienteDeVariante,
   type CampoDato,
   type FichaEditable,
@@ -64,12 +65,14 @@ import {
    fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
    principal la cree, y esta sesión no intenta adivinar ese id.
 
-   SKU: se sugiere solo (referencia + talla + color, ver `sugerirSku`) y
-   queda editable — decidido con Felipe 2026-09-15. Si la persona lo toca,
-   `skuManual` se prende y deja de recalcularse aunque cambie color/talla.
-   Es DISTINTO de `variantes.codigo` (el código corto BLU-0042-AZM-M que
-   arma el trigger `variantes_asignar_codigo` y que se ve recién después de
-   guardar) — acá no se intenta adivinar ese código, solo el SKU.
+   CÓDIGO DE UNA FILA NUEVA (2026-09-28). Muestra el mismo código que la base
+   le va a dar (`codigoVariantePrevisto`, espejo del trigger
+   `variantes_asignar_codigo`): el código del producto (CMS-0001) + color +
+   talla, y cambia solo al elegir color o talla. Hasta hoy la fila nueva
+   ofrecía un SKU inventado desde el nombre (BLUSACARLITA-U) bajo la misma
+   columna «Código» que sus hermanas: parecía el código de la prenda y no lo
+   era — la pistola lee `codigo`, no el SKU. El SKU es legado (nullable desde
+   20260915221633) y Nuevo producto tampoco lo pide: aquí ya no se manda.
 
    TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
    lista cerrada, y la primera opción dice qué pasa si no se elige nada
@@ -91,22 +94,22 @@ import {
    RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
    muestran de solo lectura (`fija`), con el código que lee la pistola.
 
-   GUARDAR EN DOS TIEMPOS (2026-09-28, ADR-0256). Antes el panel «Guardar
+   GUARDAR EN DOS TIEMPOS (2026-09-28, ADR-0257). Antes el panel «Guardar
    cambios» estaba a la derecha (al final de la página en una tablet), el botón
-   quedaba gris hasta elegir «Responsable» sin decir por qué, y «Cancelar» o el
-   menú salían sin preguntar: una colaboradora apagaba una talla, no sabía si
-   quedó hecho y a veces se iba sin guardar. Ahora (Felipe eligió la opción A de
-   cada pregunta):
+   quedaba gris hasta elegir «Responsable» sin decir por qué, y una colaboradora
+   apagaba una talla sin saber si quedó hecho. Ahora (Felipe eligió la opción A
+   de cada pregunta):
      · lo que se toca se marca (fila en ámbar, «antes: …», «Deshacer») y sube la
        barra «Tienes N cambios sin guardar» (`BarraDeCambios`, sobre `BarraFija`);
+       ya no hay panel a la derecha: la barra es el ÚNICO camino para guardar;
      · «Revisar y guardar» abre la hoja con lo que va a cambiar y el combo
        «Responsable» adentro (`ConfirmarCambios`); recién «Confirmar y guardar»
        llama a la base;
-     · salir con cambios pregunta (`useAvisoDeSalida`): enlaces, Atrás y cerrar
-       la pestaña; al guardar bien se sale sin preguntar.
+     · salir con cambios pregunta (`useSalidaSinGuardar`, el mismo aviso de
+       Compras y Recibir): enlaces, Atrás y cerrar la pestaña.
    Qué cambió lo decide UNA función pura (`lib/producto-cambios-reglas.ts`) que
-   compara TODO lo editable: sin barra no hay dónde guardar, así que un campo
-   que se escapara de esa comparación sería un campo que no se puede guardar.
+   compara TODO lo editable: sin barra no hay dónde guardar, así que un campo que
+   se escapara de esa comparación sería un campo que no se puede guardar.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -118,8 +121,6 @@ type FilaVariante = {
   colorCodigo: string;
   /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
   tallaId: string;
-  sku: string;
-  skuManual: boolean;
   precio: string;
   costo: string;
   /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
@@ -160,40 +161,29 @@ const NUMERO =
  *  otra: dos utilidades de color de borde en el mismo elemento las resuelve el orden de la hoja de estilos, no el del atributo. */
 const NUMERO_CAMBIADO = NUMERO.replace("border-tinta/25", "border-ambar");
 
-const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_3.5rem_4rem_2.5rem]";
+/* Variantes: la fila se acomoda al ancho de SU TARJETA (container query `@[40rem]`), no al de la pantalla. Con el menú
+   lateral y la columna «Guardar cambios», una pantalla de 944 px deja la tarjeta en 577 px y el código salía «CMS…».
+   Ancha (≥ 40rem): una línea por variante, bajo la cabecera de columnas. Angosta: ficha de tres líneas —color, talla y
+   «activa»; el código entero; precio, costo y margen— con su rótulo encima, para que ningún número quede sin nombre.
+   El código nunca se corta: si no entra, parte línea. Las clases van literales: Tailwind no ve las que se arman con `${}`. */
+const FILA_VARIANTE =
+  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
+/** Celda que en la ficha angosta ocupa el rincón de arriba a la derecha (interruptor «activa» o «Quitar»). */
+const ESQUINA = "col-span-2 col-start-11 row-start-1 flex flex-col items-end @[40rem]:col-span-1 @[40rem]:col-start-auto @[40rem]:row-start-auto";
+
+/** Rótulo de un campo, solo en la ficha angosta: en la ancha lo dice la cabecera de columnas. */
+function RotuloAngosto({ children, derecha = false }: { children: React.ReactNode; derecha?: boolean }) {
+  return (
+    <span aria-hidden className={`label-cayla block text-[10px] text-tinta/50 @[40rem]:hidden ${derecha ? "text-right" : ""}`}>
+      {children}
+    </span>
+  );
+}
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
   { valor: "descontinuado", texto: "Descontinuado" },
 ] as const;
-
-/** Referencia → token estable para el SKU sugerido: sin acentos, sin
- *  espacios, mayúsculas, cortado — no es `codigo` (eso lo arma el trigger
- *  con el correlativo real de la categoría; esto es solo una sugerencia
- *  legible que no gasta ningún número). */
-function tokenReferencia(referencia: string): string {
-  const limpio = referencia
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "");
-  return limpio.slice(0, 12) || "PRENDA";
-}
-
-function tokenTalla(talla: string): string {
-  const t = talla
-    .trim()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase();
-  if (!t) return "U";
-  if (["U", "UNICA", "UNICO", "TALLAUNICA"].includes(t.replace(/\s+/g, ""))) return "U";
-  return t.replace(/[^A-Z0-9]/g, "") || "U";
-}
-
-function sugerirSku(referencia: string, colorCodigo: string, talla: string): string {
-  return [tokenReferencia(referencia), tokenTalla(talla), colorCodigo || null].filter(Boolean).join("-");
-}
 
 /** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
  *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
@@ -223,8 +213,8 @@ function costoEfectivo(v: FilaVariante): string {
   return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
 }
 
-function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
+function filaVacia(): FilaVariante {
+  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
@@ -281,24 +271,16 @@ export function ProductoForm({
       })) ?? []
   );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
-    if (!producto) return [filaVacia("")];
+    if (!producto) return [filaVacia()];
     return [...producto.variantes]
       .sort((a, b) => compararTallas(a.talla ?? "", b.talla ?? ""))
       .map((v) => {
         const colorCodigo = v.colorCodigo ?? "";
         const talla = v.talla ?? "";
-        // Una variante que ya trae SKU (alguien lo tocó a mano antes) se
-        // respeta tal cual. Una que llegó sin él (censo, o creada fuera del
-        // formulario) se trata como recién agregada: el sugerido corre solo,
-        // igual que en una fila nueva — no se deja en blanco esperando que
-        // alguien lo escriba a mano.
-        const skuManual = !!v.sku.trim();
         return {
           id: v.id,
           colorCodigo,
           tallaId: v.tallaId ?? "",
-          sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
-          skuManual,
           precio: String(v.precio),
           costo: v.costo === null ? "" : String(v.costo),
           costoOriginal: v.costo === null ? "" : String(v.costo),
@@ -357,6 +339,12 @@ export function ProductoForm({
     icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+  // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
+  // producto todavía —prenda que nunca tuvo variantes— no hay cómo saberlo: lo asigna el correlativo al guardar).
+  const codigosFilas = variantes.map((v) =>
+    v.fija ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
+  );
+  const repetidos = new Set(codigosRepetidos(codigosFilas));
 
   // ---------- temporada (ADR-0246) ----------
   // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
@@ -383,9 +371,30 @@ export function ProductoForm({
   // Plegada: casi ninguna prenda la usa. Abierta si ya hay algún color con la suya, para que se vea sin buscarla.
   const [verTemporadaColor, setVerTemporadaColor] = useState(() => Object.keys(temporadas?.porColor ?? {}).length > 0);
 
-  // ---------- qué cambió, contra lo que había al abrir (ADR-0256) ----------
+  function elegirCategoria(id: string) {
+    setCategoriaId(id);
+    // Tejido/patrón están filtrados por categoría (20260917100400) — la
+    // elección anterior puede no aplicar más a la nueva.
+    setTejidoId("");
+    setPatronId("");
+  }
+
+  function actualizarFila(i: number, cambio: Partial<FilaVariante>) {
+    setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
+  }
+
+  function agregarFila() {
+    setVariantes((a) => [...a, filaVacia()]);
+  }
+
+  function quitarFila(i: number) {
+    setVariantes((a) => a.filter((_, n) => n !== i));
+  }
+
+  // ---------- qué cambió, contra lo que había al abrir (ADR-0257) ----------
   // De aquí salen la barra «Tienes N cambios sin guardar», las marcas de cada fila y la lista de la hoja «Revisa y guarda los
-  // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable.
+  // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable. Deshacer a mano
+  // un cambio lo quita de la cuenta (una fila agregada y quitada, o un precio devuelto, no son nada que perder).
   const [hojaAbierta, setHojaAbierta] = useState(false);
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
@@ -455,54 +464,13 @@ export function ProductoForm({
   };
   const resumen: ResumenCambios = resumenDeCambios(instantanea(inicial), instantanea(capturar()), nombres);
   const hayCambios = !guardado && resumen.total > 0;
-  // Salir con cambios sin guardar pregunta primero (ADR-0256): enlaces, Atrás y cerrar la pestaña.
-  const { dialogo: dialogoSalida, salirSinPreguntar } = useAvisoDeSalida({
-    activo: hayCambios,
-    cantidad: resumen.total,
-    nombre: producto?.referencia ?? referencia,
-  });
-
-  function elegirCategoria(id: string) {
-    setCategoriaId(id);
-    // Tejido/patrón están filtrados por categoría (20260917100400) — la
-    // elección anterior puede no aplicar más a la nueva.
-    setTejidoId("");
-    setPatronId("");
-  }
-
-  function actualizarFila(i: number, cambio: Partial<FilaVariante>) {
-    setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
-  }
-
-  // Al tocar color o talla de una fila SIN sku manual, el sugerido se
-  // recalcula con el estado ya actualizado — no con el de la fila vieja.
-  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "tallaId">>) {
-    setVariantes((actual) =>
-      actual.map((f, n) => {
-        if (n !== i) return f;
-        const siguiente = { ...f, ...cambio };
-        if (siguiente.skuManual) return siguiente;
-        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, tallaTexto(siguiente.tallaId)) };
-      })
-    );
-  }
-
-  function cambiarReferencia(v: string) {
-    setReferencia(v);
-    // Las filas nuevas (sin sku manual) siguen a la referencia; las que la
-    // persona ya editó a mano quedan como están.
-    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, tallaTexto(f.tallaId)) })));
-  }
-
-  function agregarFila() {
-    setVariantes((a) => [...a, filaVacia(referencia)]);
-  }
-
-  function quitarFila(i: number) {
-    setVariantes((a) => a.filter((_, n) => n !== i));
-  }
+  // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
+  // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
+  const salida = useSalidaSinGuardar(hayCambios, textoDeSalidaDeFicha(resumen.total, producto?.referencia ?? referencia));
 
   function recargar() {
+    // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
+    salida.soltar();
     window.location.reload();
   }
 
@@ -531,9 +499,12 @@ export function ProductoForm({
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    // Solo filas nuevas: en una variante que ya existe el SKU no se edita (la base tampoco lo cambiaría).
-    const sinSku = variantes.findIndex((v) => !v.id && !v.sku.trim());
-    if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
+    // Dos filas con el mismo color y talla darían el mismo código: la base rechazaría el guardado entero con un error
+    // técnico. Se avisa aquí, en la fila nueva que repite.
+    const repetida = codigosRepetidos(codigosFilas)[0];
+    if (repetida !== undefined) {
+      return void avisar.error(`Ya hay una variante ${codigosFilas[repetida]}: cambia el color o la talla de la nueva, o quítala.`, { enfocar: `producto-variante-${repetida}-codigo` });
+    }
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
@@ -569,7 +540,6 @@ export function ProductoForm({
       ...(v.id ? { id: v.id } : {}),
       color_codigo: v.colorCodigo || null,
       talla_id: v.tallaId || null,
-      sku: v.sku.trim(),
       precio: Number(v.precio),
       costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
       activo: v.activo,
@@ -685,17 +655,15 @@ export function ProductoForm({
     setLoading(false);
     responsable.despues(null);
 
-    // El aviso dice qué se guardó y quién lo firmó: la prueba de que quedó hecho (Felipe, 2026-09-28).
+    // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó y quién lo firmó (la prueba de que quedó hecho).
+    setGuardado(true);
+    setHojaAbierta(false);
+    salida.soltar();
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: [quien ? `Por ${quien}` : null, hecho.length > 0 ? hecho.join(", ") : null].filter(Boolean).join(" · ") || undefined,
     });
-    // La barra baja y nada más pregunta; se sale gastando antes la entrada extra del historial (ver `useAvisoDeSalida`).
-    setGuardado(true);
-    setHojaAbierta(false);
-    salirSinPreguntar(() => {
-      router.replace("/productos");
-      router.refresh();
-    });
+    router.replace("/productos");
+    router.refresh();
     return true;
   }
 
@@ -727,7 +695,7 @@ export function ProductoForm({
   function deshacerCampo(campo: CampoDato) {
     switch (campo) {
       case "referencia":
-        return cambiarReferencia(inicial.referencia);
+        return setReferencia(inicial.referencia);
       case "categoria":
         // Elegir categoría vacía el tejido y el patrón: se devuelven juntos.
         setCategoriaId(inicial.categoriaId);
@@ -770,8 +738,10 @@ export function ProductoForm({
   const tonoDe = (campo: CampoDato) => (cambioDeDato(resumen, campo) ? ("aviso" as const) : undefined);
 
   return (
-    <>
-      <form onSubmit={revisar} className="max-w-[1080px] space-y-6 pb-28 sm:pb-24">
+    // Sin panel a la derecha (ADR-0257): la ficha usa el ancho que hay, hasta 1080 px, y guarda desde la barra de abajo. El
+    // relleno de abajo deja aire para que la barra no tape la última fila.
+    <form onSubmit={revisar} className="max-w-[1080px] pb-28 sm:pb-24">
+      <div className="min-w-0 space-y-6">
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Producto</p>
@@ -780,7 +750,7 @@ export function ProductoForm({
               etiqueta="Referencia"
               id="producto-referencia"
               value={referencia}
-              onChange={(e) => cambiarReferencia(e.target.value)}
+              onChange={(e) => setReferencia(e.target.value)}
               placeholder="Blusa Lino"
               autoFocus
               pie={antesDe("referencia")}
@@ -994,176 +964,209 @@ export function ProductoForm({
         </section>
 
         {/* ---------- variantes ---------- */}
-        <section className="card-cayla space-y-3 p-5">
+        <section className="card-cayla @container space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
-          <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
+          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem]">
             {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
-              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
+              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : i === 6 ? "text-center" : ""}`}>
                 {t}
               </span>
             ))}
           </div>
-          <div>
-            {variantes.map((v, i) => {
-              // Lo que cambió en ESTA fila (ADR-0256): se marca en ámbar, con lo de antes y un «Deshacer», porque un interruptor
-              // o un precio se ven como algo ya hecho y no lo están hasta guardar.
-              const cambios = cambiosDeVariante(resumen, i);
-              const tocada = cambios.length > 0;
-              const seApaga = cambios.some((c) => c.tipo === "desactiva");
-              const precioCambio = cambios.some((c) => c.tipo === "precio");
-              const costoCambio = cambios.some((c) => c.tipo === "costo");
-              return (
-                <div
-                  key={i}
-                  className={`-mx-5 border-b border-tinta/10 px-5 pb-3 pt-2 transition-colors duration-300 ease-cayla last:border-0 ${
-                    tocada ? "bg-ambar/[0.08] shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
-                  }`}
-                >
-                  <div className={`grid gap-2 sm:items-center ${PLANTILLA} ${seApaga ? "[&>span:nth-child(-n+3)]:opacity-55" : ""}`}>
-                    {v.fija ? (
-                      <>
-                        <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
-                          {v.fija.color}
-                        </span>
-                        <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
-                          {v.fija.talla}
-                        </span>
-                        <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
-                          {v.fija.codigo}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <ComboBuscable
-                          etiquetaAccesible="Color"
-                          valor={v.colorCodigo}
-                          onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
-                          opciones={opcionesColor}
-                          marcador="Sin color"
-                        />
-                        <ComboBuscable
-                          etiquetaAccesible="Talla"
-                          valor={v.tallaId}
-                          onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
-                          opciones={opcionesTalla}
-                          marcador={categoriaId ? "Sin talla" : "Elige categoría"}
-                        />
-                        <input
-                          aria-label="SKU"
-                          id={`producto-variante-${i}-sku`}
-                          value={v.sku}
-                          onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                          className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-                        />
-                      </>
-                    )}
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      aria-label="Precio"
-                      id={`producto-variante-${i}-precio`}
-                      placeholder="0.00"
-                      value={v.precio}
-                      onChange={(e) => actualizarFila(i, { precio: e.target.value })}
-                      className={`${precioCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
-                    />
-                    {veCosto && v.costoFijo ? (
-                      <span
-                        className="py-2 text-right text-sm tabular-nums text-tinta/70"
-                        title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
-                      >
-                        {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
-                      </span>
-                    ) : veCosto ? (
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        aria-label="Costo"
-                        placeholder="0.00"
-                        value={v.costo}
-                        onChange={(e) => actualizarFila(i, { costo: e.target.value })}
-                        className={`${costoCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
-                      />
-                    ) : (
-                      <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
-                    )}
-                    <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
-                      {(() => {
-                        if (!veCosto) return "—";
-                        const m = margenPorcentaje(v.precio, costoEfectivo(v));
-                        return m === null ? "—" : `${m.toFixed(0)}%`;
-                      })()}
-                    </span>
-                    <span className="flex justify-center py-2">
-                      {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
-                    </span>
-                    <span className="py-2 text-right">
-                      {!v.id && (
-                        <button type="button" onClick={() => quitarFila(i)} className="text-xs text-rojo">
-                          Quitar
-                        </button>
-                      )}
-                    </span>
+          {variantes.map((v, i) => {
+            // Lo que cambió en ESTA fila (ADR-0257): se marca en ámbar, con lo de antes y un «Deshacer», porque un interruptor
+            // o un precio se ven como algo ya hecho y no lo están hasta guardar.
+            const cambios = cambiosDeVariante(resumen, i);
+            const tocada = cambios.length > 0;
+            const seApaga = cambios.some((c) => c.tipo === "desactiva");
+            const precioCambio = cambios.some((c) => c.tipo === "precio");
+            const costoCambio = cambios.some((c) => c.tipo === "costo");
+            return (
+            <div
+              key={i}
+              className={`-mx-5 border-b border-tinta/10 px-5 pb-3 pt-2 transition-colors duration-300 ease-cayla last:border-0 ${
+                tocada ? "bg-ambar/[0.08] shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
+              }`}
+            >
+            <div className={FILA_VARIANTE}>
+              {v.fija ? (
+                <>
+                  <div className={`col-span-6 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
+                    <RotuloAngosto>Color</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.color}</span>
                   </div>
-                  {(v.id || tocada) && (
-                    <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                      {v.id ? (
+                  <div className={`col-span-4 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
+                    <RotuloAngosto>Talla</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.talla}</span>
+                  </div>
+                  <div className={`col-span-12 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
+                    <RotuloAngosto>Código</RotuloAngosto>
+                    <span className="block break-all py-2 font-mono text-xs tracking-wide text-tinta/70">{v.fija.codigo}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Color</RotuloAngosto>
+                  <ComboBuscable
+                    etiquetaAccesible="Color"
+                    valor={v.colorCodigo}
+                    onValor={(c) => actualizarFila(i, { colorCodigo: c })}
+                    opciones={opcionesColor}
+                    marcador="Sin color"
+                  />
+                  </div>
+                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Talla</RotuloAngosto>
+                  <ComboBuscable
+                    etiquetaAccesible="Talla"
+                    valor={v.tallaId}
+                    onValor={(t) => actualizarFila(i, { tallaId: t })}
+                    opciones={opcionesTalla}
+                    marcador={categoriaId ? "Sin talla" : "Elige categoría"}
+                  />
+                  </div>
+                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Código</RotuloAngosto>
+                  <span
+                    id={`producto-variante-${i}-codigo`}
+                    tabIndex={-1}
+                    className={`block break-all py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
+                    title={
+                      codigosFilas[i]
+                        ? repetidos.has(i)
+                          ? "Ya existe una variante con este color y talla."
+                          : "Así quedará al guardar. Cambia solo al elegir color o talla."
+                        : "Se asigna al guardar."
+                    }
+                  >
+                    {codigosFilas[i] ?? "Se asigna al guardar"}
+                  </span>
+                  </div>
+                </>
+              )}
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Precio</RotuloAngosto>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                aria-label="Precio"
+                id={`producto-variante-${i}-precio`}
+                placeholder="0.00"
+                value={v.precio}
+                onChange={(e) => actualizarFila(i, { precio: e.target.value })}
+                className={`${precioCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
+              />
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Costo</RotuloAngosto>
+              {veCosto && v.costoFijo ? (
+                <span
+                  className="block py-2 text-right text-sm tabular-nums text-tinta/70"
+                  title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
+                >
+                  {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
+                </span>
+              ) : veCosto ? (
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  aria-label="Costo"
+                  placeholder="0.00"
+                  value={v.costo}
+                  onChange={(e) => actualizarFila(i, { costo: e.target.value })}
+                  className={`${costoCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
+                />
+              ) : (
+                <span className="block py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
+              )}
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Margen</RotuloAngosto>
+              <span className="block py-2 text-right text-xs tabular-nums text-tinta/55">
+                {(() => {
+                  if (!veCosto) return "—";
+                  const m = margenPorcentaje(v.precio, costoEfectivo(v));
+                  return m === null ? "—" : `${m.toFixed(0)}%`;
+                })()}
+              </span>
+              </div>
+              {/* En la ficha angosta, «activa» (variante guardada) o «Quitar» (fila nueva) van arriba a la derecha: nunca
+                  están los dos, así que comparten el rincón; en la ancha, cada uno en su columna. */}
+              <div className={v.id ? `${ESQUINA} @[40rem]:items-center` : "hidden @[40rem]:block"}>
+                <RotuloAngosto derecha>Activa</RotuloAngosto>
+                <span className="flex py-2">
+                  {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
+                </span>
+              </div>
+              <div className={v.id ? "hidden @[40rem]:block" : `${ESQUINA} pt-4 @[40rem]:pt-0`}>
+                {!v.id && (
+                  <button type="button" onClick={() => quitarFila(i)} className="py-2 text-xs text-rojo">
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+            {(v.id || tocada) && (
+              <div className="mt-1">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  {v.id ? (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      aria-expanded={etiquetasAbiertoEn === i}
+                      onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
+                      className={`label-cayla text-[11px] disabled:opacity-50 ${
+                        v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
+                      }`}
+                    >
+                      Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  {tocada && (
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ambar-profundo">
+                      <span className="inline-flex items-center gap-1.5 font-medium">
+                        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                        {textoPendienteDeVariante(cambios)}
+                      </span>
+                      {v.id && (
                         <button
                           type="button"
-                          disabled={loading}
-                          aria-expanded={etiquetasAbiertoEn === i}
-                          onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
-                          className={`label-cayla text-[11px] disabled:opacity-50 ${
-                            v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
-                          }`}
+                          onClick={() => deshacerFila(i)}
+                          className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo"
                         >
-                          Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
+                          <Undo2 aria-hidden className="h-3 w-3" />
+                          Deshacer
                         </button>
-                      ) : (
-                        <span />
                       )}
-                      {tocada && (
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ambar-profundo">
-                          <span className="inline-flex items-center gap-1.5 font-medium">
-                            <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
-                            {textoPendienteDeVariante(cambios)}
-                          </span>
-                          {v.id && (
-                            <button
-                              type="button"
-                              onClick={() => deshacerFila(i)}
-                              className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo"
-                            >
-                              <Undo2 aria-hidden className="h-3 w-3" />
-                              Deshacer
-                            </button>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {v.id && etiquetasAbiertoEn === i && (
-                    <div className="mt-2 space-y-1.5">
-                      {opcionesEtiqueta.length > 0 ? (
-                        <SelectorMultiple
-                          opciones={opcionesEtiqueta}
-                          seleccionadas={v.etiquetaIds}
-                          onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
-                          disabled={loading}
-                        />
-                      ) : (
-                        <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
-                      )}
-                      <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.</p>
-                      {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
-                    </div>
+                    </span>
                   )}
                 </div>
-              );
-            })}
-          </div>
+                {v.id && etiquetasAbiertoEn === i && (
+                  <div className="mt-2 space-y-1.5">
+                    {opcionesEtiqueta.length > 0 ? (
+                      <SelectorMultiple
+                        opciones={opcionesEtiqueta}
+                        seleccionadas={v.etiquetaIds}
+                        onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
+                        disabled={loading}
+                      />
+                    ) : (
+                      <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+                    )}
+                    <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.</p>
+                    {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
+            );
+          })}
           {variantes.some((v) => v.fija) && (
             <p className="text-xs text-tinta/55">
               Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
@@ -1184,11 +1187,10 @@ export function ProductoForm({
             + Agregar variante
           </button>
         </section>
+      </div>
 
-        {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0256). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
-        <BarraDeCambios cantidad={hayCambios ? resumen.total : 0} versionCambiada={versionCambiada} bloqueada={loading} onDescartar={descartar} onRecargar={recargar} />
-      </form>
-
+      {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
+      <BarraDeCambios cantidad={hayCambios ? resumen.total : 0} versionCambiada={versionCambiada} bloqueada={loading} onDescartar={descartar} onRecargar={recargar} />
       {hojaAbierta && (
         <ConfirmarCambios
           nombre={producto?.referencia ?? referencia}
@@ -1198,7 +1200,7 @@ export function ProductoForm({
           onClose={() => setHojaAbierta(false)}
         />
       )}
-      {dialogoSalida}
-    </>
+      {salida.aviso}
+    </form>
   );
 }

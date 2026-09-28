@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 
 /**
- * La barra «Tienes N cambios sin guardar» de Editar producto (ADR-0256; Felipe eligió la opción A el 2026-09-28).
+ * La barra «Tienes N cambios sin guardar» de Editar producto (ADR-0257; Felipe eligió la opción A el 2026-09-28).
  *
  * Sube pegada al borde de abajo en cuanto se toca algo y se va cuando no queda nada por guardar (`BarraFija` con `visible`).
  * Está ahí, a la vista, en la pantalla ancha y en la tablet: el panel «Guardar cambios» que tenía la ficha caía al final de la
@@ -32,6 +33,10 @@ export function BarraDeCambios({
   onDescartar: () => void;
   onRecargar: () => void;
 }) {
+  // Mientras la barra baja (240 ms) conserva la última cifra: «Tienes 0 cambios sin guardar» no debe verse al irse.
+  const [ultima, setUltima] = useState(cantidad);
+  if (cantidad > 0 && cantidad !== ultima) setUltima(cantidad);
+  const cifra = cantidad > 0 ? cantidad : ultima;
   return (
     <BarraFija
       visible={cantidad > 0}
@@ -48,7 +53,7 @@ export function BarraDeCambios({
         <div role="status" className="flex items-start gap-3">
           <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-tinta">Tienes {cantidad === 1 ? "1 cambio" : `${cantidad} cambios`} sin guardar</p>
+            <p className="text-sm font-semibold text-tinta">Tienes {cifra === 1 ? "1 cambio" : `${cifra} cambios`} sin guardar</p>
             <p className="text-[13px] text-tinta/65">
               Aún no se guardó nada.
               <span className="hidden sm:inline"> Cuando termines, pulsa «Revisar y guardar».</span>

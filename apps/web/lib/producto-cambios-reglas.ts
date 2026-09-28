@@ -1,5 +1,5 @@
 /**
- * Qué cambió en la ficha de un producto contra lo que había al abrirla (ADR-0256).
+ * Qué cambió en la ficha de un producto contra lo que había al abrirla (ADR-0257).
  *
  * EL PROBLEMA. «Editar producto» guarda todo junto, al final, pero el interruptor «Activa» y los precios se ven como acciones
  * que ya ocurrieron: una colaboradora apagaba una talla y se iba creyendo que estaba hecho, o no sabía qué paso seguía. Ahora
@@ -384,6 +384,14 @@ export function agruparCambios(cambios: readonly Cambio[]): GrupoCambios[] {
     const lineas = grupos.get(clave);
     return lineas ? [{ clave, titulo: TITULO_GRUPO[clave], lineas }] : [];
   });
+}
+
+/* ====================== para «¿Salir sin guardar?» ====================== */
+
+/** Lo que dice el aviso de salida de la ficha (el de Compras y Recibir, `useSalidaSinGuardar`): cuántos cambios se pierden y de qué prenda. */
+export function textoDeSalidaDeFicha(cantidad: number, nombre: string): string {
+  const cuantos = cantidad === 1 ? "1 cambio sin guardar" : `${cantidad} cambios sin guardar`;
+  return `Tienes ${cuantos} en «${nombre}». Si sales ahora, se pierden.`;
 }
 
 /* ====================== para las filas de la ficha ====================== */

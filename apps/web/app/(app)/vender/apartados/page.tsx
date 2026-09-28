@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
@@ -102,6 +102,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       hayMas={datos.hayMas}
       avisos={datos.avisos}
       apagadas={datos.apagadas}
+      // Buscar la ficha de la clienta es del módulo «Clientas» (ADR-0249, 2026-09-28): la base se lo rechaza a quien no lo tiene.
+      veClientas={veModulo(persona, "clientas")}
       pedidos={datos.pedidos}
       // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
       tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
