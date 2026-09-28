@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 («Sin stock» contra «movimientos de stock (12)»: no era el inventario, era la frase)
+Qué hice: reconcilié todo el inventario de producción en solo lectura. Rehice el stock desde los 188 movimientos y lo comparé con las 160 filas de `stock`: 0 descuadres. «Fdhh» tenía de verdad 0 unidades (+120 el 26-sep, −120 hoy). Cambié la ventana «No se puede eliminar»: si la prenda está en 0, lo dice primero y recién después nombra su historia.
+Por qué así: el «(12)» cuenta registros, pero pegado a «stock» se leía como unidades. El arreglo vive en la web y no en la base, porque la base ya distingue «unidades en stock» (y solo lo trae si hay unidades); lo que faltaba era decir el 0. Qué se rompería sin esto: cada prenda de prueba que alguien quiera borrar parecería tener stock escondido, y se buscaría una falla de sincronización que no existe.
+Felipe se lleva: **«movimientos» cuenta historia; «unidades» cuenta prendas.** Una prenda puede estar en 0 y aun así no poder borrarse. Y una prenda de prueba no se descontinúa: se archiva como prueba. Esa salida existe en la base, pero todavía no tiene botón (BACKLOG, Productos ▸ «Eliminar»).
+
 ## 2026-09-28 (Nuevo producto, paso 3: «Ver más» en Tejido)
 Qué hice: al final de los tejidos de la categoría aparece una tarjeta punteada «Ver más · N en el catálogo» (la misma del paso 1 con las familias); abre los tejidos aprobados que la categoría todavía no ofrece, y tocar uno lo ofrece en la categoría (con su combo «Responsable») y lo deja elegido. Sin cambio de base: usa la misma escritura que «+ Nuevo tejido» cuando el tejido ya existe. Primero un refactor sin cambio visible (`ElegirTejido`, `sumarAlEje`), después la función; 7 pruebas nuevas en `alta-producto.test.ts`.
 Por qué así: en producción hay 22 tejidos aprobados y cada categoría de Indumentaria ofrece entre 3 (Jeans) y 10; los otros solo se alcanzaban escribiendo su nombre exacto. Marcarlo sin ofrecerlo no sirve: `crear_producto_con_variantes` rechaza un tejido que la categoría no ofrece. Qué se rompería sin esto: quien no sabe que «Lino» existe lo crea de nuevo o elige uno parecido que no es, y el tejido del producto miente.

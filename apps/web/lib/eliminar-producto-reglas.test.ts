@@ -1,5 +1,6 @@
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { leerSePuedeEliminar, salidaSinEliminar, textoNoSePuede, textoSeBorra } from "./eliminar-producto-reglas";
+import { CONCEPTO_UNIDADES_EN_STOCK, leerSePuedeEliminar, salidaSinEliminar, textoNoSePuede, textoSeBorra } from "./eliminar-producto-reglas";
 
 describe("leerSePuedeEliminar", () => {
   it("lee la fila única que entrega PostgREST (arreglo de una fila)", () => {
@@ -29,9 +30,15 @@ describe("textoSeBorra", () => {
 });
 
 describe("textoNoSePuede", () => {
-  it("con historia: nombra el producto, la razón y por qué no", () => {
-    expect(textoNoSePuede("Top Aurora", "tiene líneas de venta (7), movimientos de stock (15)")).toBe(
-      "«Top Aurora» tiene líneas de venta (7), movimientos de stock (15). Eliminarlo borraría esa historia."
+  it("en 0 con historia: primero dice que no hay unidades, para que el número no se lea como stock (caso «Fdhh», 2026-09-28)", () => {
+    expect(textoNoSePuede("Fdhh", "tiene movimientos de stock (12)")).toBe(
+      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (12). Eliminarlo borraría esa historia."
+    );
+  });
+
+  it("con unidades: la razón ya las cuenta y no se afirma nada más", () => {
+    expect(textoNoSePuede("Top Aurora", "tiene líneas de venta (7), movimientos de stock (15), unidades en stock (3)")).toBe(
+      "«Top Aurora» tiene líneas de venta (7), movimientos de stock (15), unidades en stock (3). Eliminarlo borraría esa historia."
     );
   });
 
@@ -43,6 +50,20 @@ describe("textoNoSePuede", () => {
 
   it("sin razón (la base no la dio) sigue siendo una frase completa", () => {
     expect(textoNoSePuede("X", null)).toBe("«X» ya se usó. Eliminarlo borraría esa historia.");
+  });
+
+  // «No tiene unidades» se deduce de que la base NO trajo su renglón de unidades: si la última versión de la función lo
+  // renombra, la ventana afirmaría 0 de una prenda con stock. Se compara contra el SQL, no contra una copia del texto.
+  it("la base sigue llamando así al renglón de unidades", () => {
+    const dir = new URL("../../../supabase/migrations/", import.meta.url);
+    const ultima = readdirSync(dir)
+      .filter((f) => /^\d{14}_.+\.sql$/.test(f))
+      .sort()
+      .map((f) => readFileSync(new URL(f, dir), "utf8"))
+      .filter((sql) => /function\s+retail\.fn_producto_se_puede_eliminar\s*\(/i.test(sql))
+      .at(-1);
+    expect(ultima).toBeDefined();
+    expect(ultima).toContain(`'${CONCEPTO_UNIDADES_EN_STOCK}'`);
   });
 });
 

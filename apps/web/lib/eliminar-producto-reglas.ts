@@ -30,11 +30,23 @@ export function textoSeBorra(numVariantes: number): string {
   return `Nunca se vendió ni se movió, así que se borra por completo: su ficha, ${variantesEn(numVariantes)}, sus códigos de barras y sus fotos. No se puede deshacer.`;
 }
 
-/** Por qué NO se puede. La razón de la base empieza con «tiene …» (historia) o «es una pieza del sistema: …». */
+/** El renglón con que la base cuenta lo que queda en `stock` (renglón 3 de `fn_producto_se_puede_eliminar`). Solo aparece si
+ *  hay unidades: su ausencia en una razón de historia quiere decir 0 unidades en toda la red. Si la base lo renombra, esta
+ *  ventana diría «no tiene unidades» de una prenda que sí tiene: lo vigila `eliminar-producto-reglas.test.ts`. */
+export const CONCEPTO_UNIDADES_EN_STOCK = "unidades en stock";
+
+/**
+ * Por qué NO se puede. La razón de la base empieza con «tiene …» (historia) o «es una pieza del sistema: …».
+ *
+ * Una prenda en 0 con historia se lee primero por lo que la persona ve en la tarjeta («Sin stock») y recién después por su
+ * historia. Sin esa primera frase, «tiene movimientos de stock (12)» se leía como «le quedan 12» (Felipe, 2026-09-28, con
+ * «Fdhh»: 6 entradas y 6 ajustes que la dejaron en 0); el 12 cuenta registros de su historia, no prendas.
+ */
 export function textoNoSePuede(referencia: string, razon: string | null): string {
-  const cuerpo = razon ?? "ya se usó";
-  const conHistoria = razon === null || razon.startsWith("tiene");
-  return `«${referencia}» ${cuerpo}.${conHistoria ? " Eliminarlo borraría esa historia." : ""}`;
+  if (razon === null) return `«${referencia}» ya se usó. Eliminarlo borraría esa historia.`;
+  if (!razon.startsWith("tiene")) return `«${referencia}» ${razon}.`;
+  if (razon.includes(CONCEPTO_UNIDADES_EN_STOCK)) return `«${referencia}» ${razon}. Eliminarlo borraría esa historia.`;
+  return `«${referencia}» no tiene unidades en stock, pero ya tiene historia: ${razon.replace(/^tiene\s+/, "")}. Eliminarlo borraría esa historia.`;
 }
 
 /**
