@@ -10,7 +10,8 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - una orden cerrada del Taller (`?produccion=`);
 //   - una campaña (`?campana=`): sus prendas en la tienda, con el precio de campaña o, si ya terminó, el normal;
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
-//   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237).
+//   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237), las marcadas en la Tabla de
+//     Productos o la impresora de UNA talla (Tabla y Grilla); con `?desde=` de Productos el encabezado habla de Productos.
 // La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado (paso 2, ADR-0182).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
@@ -27,6 +28,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const [campana] = idsDeParam(params.campana);
   const [producto] = idsDeParam(params.producto);
   const variantes = idsDeParam(params.variantes);
+  const desde = desdeDeParams(params.desde);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion }
@@ -46,9 +48,11 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       ? { tipo: "campana", campana: datos.campana ?? null }
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
-        : origen
-          ? { tipo: origen.tipo }
-          : { tipo: "ninguno" };
+        : origen?.tipo === "variantes"
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length }
+          : origen
+            ? { tipo: origen.tipo }
+            : { tipo: "ninguno" };
   const cuenta = {
     unidades: datos.etiquetas.reduce((a, e) => a + e.cantidad, 0),
     modelos: new Set(datos.etiquetas.map((e) => e.prenda)).size,
@@ -60,7 +64,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desdeDeParams(params.desde))}
+      volver={volverDeEtiquetas(origen, desde)}
     />
   );
 }
