@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { Volver } from "@/components/ui/Volver";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Boton, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -639,6 +640,9 @@ function SeccionSinTemporada({
   onConfirmar: (c: Confirmacion) => void;
 }) {
   const router = useRouter();
+  // «Completar» (el aviso de Productos) salta directo a esta sección, lejos de la cabecera de Atributos: la vuelta va
+  // aquí arriba, donde cae la vista. Solo con `desde=productos`: quien entra por el menú no vino de Productos.
+  const vieneDeProductos = useSearchParams().get("desde") === "productos";
   const [texto, setTexto] = useState("");
   const [temporada, setTemporada] = useState("");
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
@@ -705,6 +709,7 @@ function SeccionSinTemporada({
 
   return (
     <section id="sin-temporada" className="scroll-mt-24 space-y-3" aria-labelledby="temporadas-sin-temporada">
+      {vieneDeProductos && <Volver href="/productos" a="Productos" />}
       <TituloSeccion
         id="temporadas-sin-temporada"
         sobre={`Sin temporada · ${lista.length}`}

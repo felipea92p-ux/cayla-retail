@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Productos ▸ «Completar» temporadas: la vuelta «← Productos»)
+Qué hice: el enlace «Completar» del aviso «N prendas sin temporada» ahora lleva `desde=productos`, y la sección «Prendas sin temporada» de Atributos ▸ Temporadas muestra «← Productos» sobre su título solo en ese caso.
+Por qué así: «Completar» salta al ancla de la sección, lejos de la cabecera de Atributos, así que la vuelta va donde cae la vista; y como Atributos está en el menú, quien entra por el lateral no vino de Productos y no la ve (misma regla que `Volver`: dice adónde vuelve, enlace fijo y no `history.back()`).
+Felipe se lleva: una pantalla del menú no tiene «arriba»; la vuelta depende de por dónde se entró, y eso viaja en la URL, no en la memoria del navegador.
+
 ## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
 Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928230000` sin pegar.
 Por qué así: de 33 productos, 22 solo tenían la carga inicial y ajustes, y el botón de ADR-0218 no los alcanzaba; la línea «¿hay una clienta, un proveedor, otra sede o dinero del otro lado?» deja al Admin limpiar pruebas sin poder borrar una venta cobrada. El candado del historial no aprendió excepciones: solo el dueño de la tabla lo apaga, dentro de su transacción, como la purga.
