@@ -13,6 +13,8 @@ import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/prod
 import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { usePantallaActual } from "@/lib/usePantallaActual";
+import { conDesde } from "@/lib/vuelta-productos";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -212,6 +214,7 @@ function VistaRapidaModal({
   onEliminar: () => void;
   puedeEliminar: boolean;
 }) {
+  const pantalla = usePantallaActual();
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
 
@@ -267,10 +270,10 @@ function VistaRapidaModal({
           </div>
 
           <div className="mt-auto flex gap-2 pt-2">
-            <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
+            <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
+            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId }, pantalla)} className={`${botonCancelar} text-center`}>
               Etiquetas
             </Link>
             {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}

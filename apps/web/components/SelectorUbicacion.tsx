@@ -16,9 +16,12 @@ import { Desplegable } from "@/components/ui/campos";
 export function SelectorUbicacion({
   ubicaciones,
   ubicacionActualId,
+  conservar,
 }: {
   ubicaciones: { id: string; nombre: string }[];
   ubicacionActualId: string;
+  /** Parámetros de la URL que sobreviven al cambio (ej. `desde`, la pantalla a la que vuelve «Volver»). */
+  conservar?: Record<string, string | undefined>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -40,7 +43,9 @@ export function SelectorUbicacion({
         onValor={(id) => {
           if (id === ubicacionActualId) return;
           setDestinoId(id);
-          startTransition(() => router.push(`${pathname}?ubicacion=${id}`));
+          const qs = new URLSearchParams({ ubicacion: id });
+          for (const [k, v] of Object.entries(conservar ?? {})) if (v) qs.set(k, v);
+          startTransition(() => router.push(`${pathname}?${qs}`));
         }}
       />
       <AvisoCambioDeSede
