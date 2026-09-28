@@ -40,13 +40,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
   `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
   main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
 
-## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **POR PEGAR** en producción; rama `claude/clientas-por-modulo-y-anonimizar`
+## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificado por md5); rama `claude/clientas-por-modulo-y-anonimizar`
 Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
 - [x] **(c) Por módulo:** las 11 funciones de la ficha empiezan por `retail.fn_exigir_modulo('clientas')` (42501 + hint `clientas_sin_modulo`, antes de pedir «Responsable»), y la lectura directa de `clientas` pregunta lo mismo (`clientas_select`). `clientas_fusiones` queda sin políticas ni permisos para la API.
 - [x] **(a)** `registrar_clienta` con el DNI de una ficha archivada la reactiva (mismo id, historial, `version`+1, una línea de actividad sin nombre). Candado nuevo `clientas_fusionada_implica_anonimizada`.
 - [x] **(b)** Anonimizar vacía la foto de `clientas_fusiones` de esa persona (todas las fichas que se le unieron) y no guarda el motivo escrito; la actividad de Clientas dice «una clienta» y la de Apartados «la clienta» (sin `detalle.clienta`). Lo escrito antes se limpia una vez al pegar: las líneas viejas de la actividad y, de cada ficha que la función de antes ya anonimizó, el motivo escrito y la foto de sus fusiones (sin tocar la de una fusión viva). Producción tiene 0 de todo.
 - [x] Web: `error-escritura.ts` traduce todo `<módulo>_sin_modulo`; el Punto de venta y Apartar no ofrecen buscar la clienta a una cuenta sin el módulo (`filaDeClienta`, `veClientas`).
-- [ ] **POR PEGAR, en este orden y cada una SOLA en el SQL Editor** (se pueden repetir; probado dos veces y al revés desde una copia de producción):
+- [x] **PEGADAS por Felipe el 2026-09-28** y verificadas en solo lectura: las 14 funciones con el md5 «despues» de la sección 0, `clientas_select` con `fn_ve_modulo('clientas')` y sin `clientas_fusiones_select`. Orden en que se pegaron, cada una SOLA en el SQL Editor:
       1. `20260928190000_clientas_por_modulo_y_anonimizar_todo.sql` (funciones; aborta sin tocar nada si alguna de las 13 cambió en vivo).
       2. `20260928190100_clientas_politicas_por_modulo.sql` (solo políticas).
       Después: los 14 md5 normalizados de la cabecera de la PARTE 1 dan su «después» (lista en el ADR) y `pg_policies` de `clientas`/`clientas_fusiones` devuelve una sola fila, `clientas_select` con `fn_ve_modulo('clientas')`.

@@ -186,8 +186,9 @@ Admin puede exportar la lista completa de clientas.» tal cual, sin jerga de bas
 
 **Decide:** Felipe — (c) «Clientas por módulo» el 2026-09-26 (B-03 de la revisión maestra, opción a); (a) y (b) el
 2026-09-27. **Migraciones:** `20260928190000_clientas_por_modulo_y_anonimizar_todo.sql` (PARTE 1, solo funciones) y
-`20260928190100_clientas_politicas_por_modulo.sql` (PARTE 2, solo políticas). **Sin pegar en producción** al escribir
-esto; el orden y los md5 están abajo. Producción, consultada en solo lectura el 2026-09-28: 0 clientas, 0 fusiones, 0
+`20260928190100_clientas_politicas_por_modulo.sql` (PARTE 2, solo políticas). **Pegadas en producción por Felipe el
+2026-09-28** (verificado en solo lectura: las 14 funciones con su md5 «despues», `clientas_select` con
+`fn_ve_modulo('clientas')` y `clientas_fusiones_select` inexistente); el orden y los md5 están abajo. Producción, consultada en solo lectura el 2026-09-28: 0 clientas, 0 fusiones, 0
 líneas de actividad de Clientas y 0 de Apartados; los 13 cuerpos que se recrean son idénticos a los de `main`.
 
 ### El problema
