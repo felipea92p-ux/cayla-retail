@@ -86,6 +86,20 @@ SE ROMPE SI: aparece un duplicado real con stock en las dos: hasta la fase «Uni
         su stock como hoy.
 ```
 
+### D-141 · En el Conteo, una prenda de color sobre un producto «Sin color» se frena (Felipe, 2026-09-29)
+
+```
+DECIDÍ: el alta al vuelo del Conteo (censo) que le sumaría una variante con color a un producto «Sin color» (o una «Sin
+        color» a uno con colores) se rechaza con palabras: «primero hay que ponerle su color a las que ya tiene, desde su
+        ficha en Productos» (mensajeMezclaEnCenso, apps/web/lib/conteo-reglas.ts). Lo exige la base con el disparador de
+        restricción variantes_sin_mezcla_de_color (T5), no solo la pantalla.
+DESCARTÉ: dejarla pasar como hasta hoy: la prenda quedaba con «Sin color S» y «Negro S» a la vez, y la curva, el análisis de
+        color y las etiquetas la leían partida hasta que alguien la ordenara a mano.
+SE ROMPE SI: en pleno conteo nadie con permiso de catálogo está a mano: esa unidad no se cuenta hasta que se corrija la
+        ficha (el conteo sigue con lo demás). Si pasa seguido, lo que hace falta es que el líder corrija las prendas «Sin
+        color» antes de contar, no aflojar el candado.
+```
+
 ## Decisiones técnicas
 
 Base: `supabase/migrations/20260929045000_corregir_siempre_color_y_talla_de_variantes.sql` (su cabecera tiene el detalle,
