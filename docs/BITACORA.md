@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Eliminar un producto también desde Existencias — ADR-0252, actualización)
+Qué hice: el detalle de cada prenda en Existencias termina con «Eliminar el producto» (en rojo, solo para un Admin en su sede); abre la misma ventana de Catálogo ▸ Productos, que pregunta a la base y dice que se van todas las tallas y colores, en todas las sedes. Solo web.
+Por qué así: Felipe buscó el botón donde mira su inventario y abrió «Ajustar inventario» creyendo que por ahí se borraba; el error era del lugar del botón. Un solo permiso (`permisosDelDetalle`) y una sola ventana: las dos pantallas preguntan lo mismo a la base.
+Felipe se lleva: **en Existencias una fila es un color en una sede, pero «Eliminar» borra el producto entero**; por eso el botón y la ventana lo dicen con esas palabras, y no hay un «eliminar este color».
+
 ## 2026-09-28 (Ajustar inventario, paso 2: «Conteo físico» pregunta cuántas hay)
 Qué hice: el motivo subió antes de las tallas y decide qué se escribe en ellas. Con «Conteo físico» se escribe lo contado («Contaste en el piso»; vacío = no la conté) y cada talla muestra la diferencia que se registra («→ 3 (−2)»); con los demás motivos, «Suma o resta» como antes. Si el motivo cambia con números escritos, cambian de forma pero no de resultado. Al contar, las apartadas dicen «(cuéntala)». Primero un refactor sin cambio visible (`lineasDeAjuste` a `ajuste-reglas.ts`), después el cambio; 12 pruebas nuevas. Solo web, sin migración.
 Por qué así: la base sigue guardando una diferencia, calculada contra el stock que muestra la pantalla: es la misma regla de Conteo (`contado − foto`), no una segunda. El rótulo nombra el lugar porque el modal arranca en el almacén, y contar el piso con el almacén elegido sumaría al almacén lo que está colgado. Qué se rompería sin esto: quien contó 4 y escribía 4 dejaba 8, sin que nada lo dijera antes de escribir.

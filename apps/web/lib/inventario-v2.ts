@@ -229,6 +229,9 @@ export type FilaExistencias = FilaStock & {
    *  página con `conMarca` (`existencias-catalogo-reglas.ts`) desde una lectura aparte y tolerante. Ausente o null = no se
    *  pudo leer. */
   marca?: string | null;
+  /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
+   *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
+  estadoProducto?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
