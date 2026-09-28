@@ -737,6 +737,19 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas
 
+      # La ficha de clienta es del módulo «Clientas» y anonimizar borra todo (ADR-0249, actualización 2026-09-28): sus 11
+      # funciones rechazan con 42501 `clientas_sin_modulo` a la cuenta cuyo rol no lo tiene (antes de pedir «Responsable») y la
+      # política de la tabla le devuelve 0 filas; líder, persona y terminal con el módulo pasan. Registrar con el DNI de una
+      # ficha archivada la reactiva (mismo id, historial, version+1). Anonimizar no deja el DNI, el nombre ni el celular en
+      # clientas, clientas_fusiones ni en la actividad (Clientas y Apartados). Control con el cambio deshecho (el ataque pasa),
+      # los archivos pegados sobre el estado de producción, dos veces y en el orden equivocado, candado de versión y
+      # vigilantes que muerden; las cinco ramas de la actividad de un apartado; y dos cajas a la vez con el mismo DNI (dos
+      # conexiones: la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK (la carrera con COMMIT solo
+      # corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:clientas-modulo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:clientas-modulo
+
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
       # nunca se aprobó. Cada caso termina en ROLLBACK.

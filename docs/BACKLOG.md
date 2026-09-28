@@ -74,7 +74,7 @@ reabrir un mes, quien tenga Cierre de mes.
 - [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
   permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
 - [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
-- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [x] Diccionario refrescado desde producción (foto del 2026-09-28 17:11 UTC: 141 relaciones, 655 funciones); `datos:comparar` sin pantallas rotas.
 - [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
   módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
 - [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
@@ -98,6 +98,22 @@ reabrir un mes, quien tenga Cierre de mes.
 - [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
   `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
   main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+
+## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificado por md5); rama `claude/clientas-por-modulo-y-anonimizar`
+Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
+- [x] **(c) Por módulo:** las 11 funciones de la ficha empiezan por `retail.fn_exigir_modulo('clientas')` (42501 + hint `clientas_sin_modulo`, antes de pedir «Responsable»), y la lectura directa de `clientas` pregunta lo mismo (`clientas_select`). `clientas_fusiones` queda sin políticas ni permisos para la API.
+- [x] **(a)** `registrar_clienta` con el DNI de una ficha archivada la reactiva (mismo id, historial, `version`+1, una línea de actividad sin nombre). Candado nuevo `clientas_fusionada_implica_anonimizada`.
+- [x] **(b)** Anonimizar vacía la foto de `clientas_fusiones` de esa persona (todas las fichas que se le unieron) y no guarda el motivo escrito; la actividad de Clientas dice «una clienta» y la de Apartados «la clienta» (sin `detalle.clienta`). Lo escrito antes se limpia una vez al pegar: las líneas viejas de la actividad y, de cada ficha que la función de antes ya anonimizó, el motivo escrito y la foto de sus fusiones (sin tocar la de una fusión viva). Producción tiene 0 de todo.
+- [x] Web: `error-escritura.ts` traduce todo `<módulo>_sin_modulo`; el Punto de venta y Apartar no ofrecen buscar la clienta a una cuenta sin el módulo (`filaDeClienta`, `veClientas`).
+- [x] **PEGADAS por Felipe el 2026-09-28** y verificadas en solo lectura: las 14 funciones con el md5 «despues» de la sección 0, `clientas_select` con `fn_ve_modulo('clientas')` y sin `clientas_fusiones_select`. Orden en que se pegaron, cada una SOLA en el SQL Editor:
+      1. `20260928190000_clientas_por_modulo_y_anonimizar_todo.sql` (funciones; aborta sin tocar nada si alguna de las 13 cambió en vivo).
+      2. `20260928190100_clientas_politicas_por_modulo.sql` (solo políticas).
+      Después: los 14 md5 normalizados de la cabecera de la PARTE 1 dan su «después» (lista en el ADR) y `pg_policies` de `clientas`/`clientas_fusiones` devuelve una sola fila, `clientas_select` con `fn_ve_modulo('clientas')`.
+- [ ] Refrescar el volcado (`pnpm datos:generar:produccion`) y correr `pnpm datos:comparar` después de pegar.
+- [ ] Con sesión real a 375 px (PL-105): una cuenta sin «Clientas» no ve la fila «Clienta» del ticket ni el buscador de Apartar, y vende igual.
+- [ ] **Felipe (no bloquea pegar):** la actividad de Apartados deja de decir el nombre («abonó S/ 20 al apartado APT-TRU-0007 de la clienta»). Es lo que pide «anonimizar borra todo»; si prefiere el nombre ahí, la clienta que apartó no queda borrada del todo.
+- [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
+- Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
@@ -1786,6 +1802,9 @@ Punto de partida en producción (2026-09-26, solo lectura): 0 clientas, 0 de 7 v
       375 px contra un stack de Supabase aislado (nunca el Docker compartido). **Cómo lo verifica Felipe:**
       busca por DNI y por celular, une dos fichas de prueba, y con una segunda sesión edita la misma ficha a
       la vez para ver el aviso de «alguien más editó esto».
+- [x] **Paso 2 en producción (PR #543)**, sin la política `clientas_fusiones_select`. Encima: la ficha por módulo, la
+      clienta que vuelve se reactiva y anonimizar borra todo — sección «🔒 Clientas por módulo…» al inicio de este
+      archivo (ADR-0249, actualización 2026-09-28), **POR PEGAR**.
 - [ ] **Paso 3 · Permiso y avisos** (bienvenida «responde SÍ», bandeja «Avisar», grupo testigo) — sin empezar.
 - [ ] **Paso 4 · Medir** (% identificadas, vuelven en 90 días contra el testigo) — sin empezar.
 

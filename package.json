@@ -112,6 +112,7 @@
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",
+    "pruebas:clientas-modulo": "node scripts/pruebas/clientas_por_modulo_y_anonimizar.mjs",
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",
