@@ -60,10 +60,18 @@ export const LEGADO = new Map([
   ["pegar-en-produccion-taxonomia-parte-segura.sql", 1],
 ]);
 
+/** Apertura de un texto `$tag$…$tag$` (o `$$`). `$1` no lo es: la marca empieza con letra o guion bajo. */
+const MARCA_DOLAR = /\$(?:[A-Za-z_\u0080-￿][\w\u0080-￿]*)?\$/y;
+
 /**
  * Borra los comentarios (`-- …` y `/* … *\/`, que en Postgres se anidan) y deja todo lo demás, incluidos los textos
  * entre comillas: un `drop trigger` dentro de un `execute '…'` corre igual. Cada carácter borrado se cambia por un
  * espacio y los saltos de línea se conservan, para que el número de línea siga siendo el del archivo.
+ *
+ * Un bloque `$tag$…$tag$` (el cuerpo de una función o de un `do`, o un texto como `$re$^[a-z' ]+$$re$`) se lee aparte:
+ * adentro se borran sus comentarios y se respetan sus textos, pero una comilla suelta de adentro (el apóstrofo de un
+ * `comment … is $$Don't$$`) no abre un texto que siga afuera. Sin esto, esa comilla desfasaba el resto del archivo: un
+ * comentario salía rojo, o un `drop trigger` real quedaba «dentro de un texto» y se escapaba.
  */
 export function sinComentarios(sql) {
   let out = "";
@@ -73,6 +81,17 @@ export function sinComentarios(sql) {
   while (i < sql.length) {
     const c = sql[i];
     const d = sql[i + 1];
+    if (!enTexto && c === "$" && !/[\w$]/.test(sql[i - 1] ?? "")) {
+      MARCA_DOLAR.lastIndex = i;
+      const marca = MARCA_DOLAR.exec(sql)?.[0];
+      if (marca) {
+        const cierre = sql.indexOf(marca, i + marca.length);
+        const fin = cierre === -1 ? sql.length : cierre;
+        out += marca + sinComentarios(sql.slice(i + marca.length, fin)) + (cierre === -1 ? "" : marca);
+        i = cierre === -1 ? sql.length : cierre + marca.length;
+        continue;
+      }
+    }
     if (enTexto) {
       out += c;
       if (conBarra && c === "\\") { out += d ?? ""; i += 2; continue; }

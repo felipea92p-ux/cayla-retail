@@ -1,10 +1,14 @@
 // Pruebas del candado de `drop trigger`. Sin dependencias: `node --test scripts/migraciones/sin-drop-trigger.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LEGADO, lineasConDropTrigger, migracionesConDropTrigger, sinComentarios } from "./sin-drop-trigger.mjs";
+
+const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "sin-drop-trigger.mjs");
 
 test("un drop trigger suelto se detecta con su línea, en mayúsculas o partido en dos líneas", () => {
   assert.deepEqual(lineasConDropTrigger("select 1;\ndrop trigger if exists t_x on retail.t;\n"), [2]);
@@ -28,6 +32,16 @@ test("un -- dentro de un texto no esconde lo que sigue en la línea", () => {
   assert.deepEqual(lineasConDropTrigger("select '--'; drop trigger x on t;"), [1]);
   assert.deepEqual(lineasConDropTrigger("select 'it''s -- no'; drop trigger x on t;"), [1]);
   assert.deepEqual(lineasConDropTrigger("select E'\\' -- no'; drop trigger x on t;"), [1]);
+});
+
+test("una comilla suelta dentro de un texto $tag$…$tag$ no desfasa el resto del archivo", () => {
+  // Rojo falso: el apóstrofo de la expresión regular abría un texto y el comentario de la línea 2 contaba.
+  assert.deepEqual(lineasConDropTrigger("alter table t add check (nombre ~ $re$^[[:alpha:]' .-]+$$re$);\n-- Aquí antes iba un drop trigger, ya no.\n"), []);
+  // Al revés: el apóstrofo de «Don't» dejaba el drop trigger de la línea 2 «dentro de un texto» y se escapaba.
+  assert.deepEqual(lineasConDropTrigger("comment on table retail.t is $$Don't$$;\nselect 'x -- y'; drop trigger x on retail.t;"), [2]);
+  // Adentro de un cuerpo los comentarios se siguen borrando y un $q$ anidado se sigue mirando; `$1` no abre nada.
+  assert.deepEqual(lineasConDropTrigger("do $$\nbegin\n  -- drop trigger viejo\n  execute $q$drop trigger x on t$q$;\nend $$;"), [4]);
+  assert.deepEqual(lineasConDropTrigger("create function f(int) returns int language sql as $$ select $1 $$;\ndrop trigger x on t;"), [2]);
 });
 
 test("borrar comentarios conserva los saltos de línea (la línea reportada es la del archivo)", () => {
@@ -55,6 +69,19 @@ test("un archivo nuevo con drop trigger sale; uno del legado se tolera pero no p
 
 test("un archivo que se pega a mano (pegar-en-produccion-*.sql) también se revisa", () => {
   assert.equal(migracionesConDropTrigger([["pegar-en-produccion-algo-nuevo.sql", "drop trigger x on t;"]], new Map()).length, 1);
+});
+
+test("el script (lo que corre el CI) sale con 1 y nombra archivo y línea, también en un pegar-en-produccion-*.sql", () => {
+  for (const nombre of ["20260929100000_nuevo.sql", "pegar-en-produccion-nuevo.sql"]) {
+    const carpeta = mkdtempSync(join(tmpdir(), "sin-drop-trigger-"));
+    writeFileSync(join(carpeta, nombre), "select 1;\ndrop trigger x on retail.t;\n");
+    const r = spawnSync(process.execPath, [SCRIPT, carpeta], { encoding: "utf8" });
+    assert.equal(r.status, 1, `${nombre}: ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, new RegExp(`${nombre.replace(/\./g, "\\.")}: línea 2`));
+  }
+  const limpia = mkdtempSync(join(tmpdir(), "sin-drop-trigger-"));
+  writeFileSync(join(limpia, "20260929100000_nuevo.sql"), "create or replace trigger x before insert on retail.t for each row execute function retail.f();\n");
+  assert.equal(spawnSync(process.execPath, [SCRIPT, limpia], { encoding: "utf8" }).status, 0);
 });
 
 test("el repo de hoy: ninguna migración fuera del legado usa drop trigger, y el legado dice la verdad", () => {
