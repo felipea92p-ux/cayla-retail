@@ -1060,7 +1060,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-producto-con-historia
 
-      # Una sola cifra de stock (20260929010000, ADR-0262): fn_existencias devuelve por talla y sede físico, dañado, apartado y
+      # Una sola cifra de stock (20260929010000, ADR-0270): fn_existencias devuelve por talla y sede físico, dañado, apartado y
       # disponible = físico − dañado − apartado = piso + almacén + sin lugar, en TODA fila del seed; el físico cuadra con `stock`;
       # la Cuarentena y lo apartado no se ofrecen; pruebas y «Monto manual» no cuentan; una talla retirada con unidades se ve;
       # «en camino» es solo lo en_transito (no lo recibido con diferencia); sin cuenta activa, nada. Cada caso termina en ROLLBACK.
@@ -1068,7 +1068,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-existencias
 
-      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0262): «Stock total» es lo disponible de la
+      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0270): «Stock total» es lo disponible de la
       # red (no la suma cruda con dañadas y apartadas), la cabecera cuenta con la misma cifra que la lista, un producto de
       # prueba no enciende alertas, fn_stock_por_sede ofrece lo disponible, y la tarjeta por sede (fn_existencias_productos)
       # separa aquí / otras tiendas / Taller / en camino / tallas retiradas. Con control: las versiones viejas fallan.
@@ -1076,7 +1076,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:catalogo-cifra-unica
 
-      # Una talla con prendas no se retira (20260929030000, ADR-0262 decisión 13): con prendas en cualquier sede (Cuarentena
+      # Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
       # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
       # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
       - name: pruebas:talla-con-prendas

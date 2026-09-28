@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de ADR-0262: «cuánto hay» se lee de UNA sola fórmula de la base (`fn_existencias`, y las funciones que la
+// Candado de ADR-0270: «cuánto hay» se lee de UNA sola fórmula de la base (`fn_existencias`, y las funciones que la
 // usan: `fn_productos`, `fn_stock_por_sede`, `fn_existencias_productos`). Ninguna pantalla vuelve a sumar la tabla `stock`
 // a su manera.
 //
@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 // ver una lectura armada con texto dinámico (`.from(nombre)`), ni una que llegue por otra vía (una vista, una función);
 // esas pasan por la base, donde manda `fn_existencias`.
 
-/** Quién puede leer `stock` directo todavía, y por qué. Achicar esta lista es la tarea #4 de ADR-0262; agrandarla, nunca. */
+/** Quién puede leer `stock` directo todavía, y por qué. Achicar esta lista es la tarea #4 de ADR-0270; agrandarla, nunca. */
 const LEGADO: Record<string, string> = {
   "lib/inventario-v2.ts":
     "Existencias y Vender: piso y almacén por sububicación con los datos de la prenda en una sola consulta. Ya aplica la regla (libre, sin Cuarentena, sin tallas retiradas, sin pruebas); pasa a fn_existencias en la tarea #4.",
@@ -66,7 +66,7 @@ describe("cómo se reconoce una lectura de `stock`", () => {
   });
 });
 
-describe("ADR-0262: ninguna pantalla nueva suma `stock` por su cuenta", () => {
+describe("ADR-0270: ninguna pantalla nueva suma `stock` por su cuenta", () => {
   const encontrados = ["app", "components", "lib"]
     .flatMap((d) => archivos(join(RAIZ, d)))
     .filter((ruta) => leeStock(readFileSync(ruta, "utf8")))

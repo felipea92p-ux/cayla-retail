@@ -1,4 +1,4 @@
-# ADR-0262 — Una sola cifra de stock para Catálogo e Inventario, y un solo candado de estado
+# ADR-0270 — Una sola cifra de stock para Catálogo e Inventario, y un solo candado de estado
 
 **Fecha:** 2026-09-28
 **Estado:** Aceptado (decisiones de Felipe). El plan y el orden están en

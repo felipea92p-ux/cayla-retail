@@ -84,7 +84,7 @@ describe("mensajeSinResultados — un vacío que se explica cuando la combinaci�
   });
 });
 
-describe("leerExistenciasProductos — lo que devuelve fn_existencias_productos (ADR-0262)", () => {
+describe("leerExistenciasProductos — lo que devuelve fn_existencias_productos (ADR-0270)", () => {
   it("lee cada producto con los nombres de la base; los enteros pueden venir como texto", () => {
     const m = leerExistenciasProductos([
       {
@@ -120,7 +120,7 @@ describe("leerExistenciasProductos — lo que devuelve fn_existencias_productos 
   });
 });
 
-describe("lineasDeStock — la tarjeta dice la sede elegida y aparte el resto (ADR-0262, decisiones 1 a 5)", () => {
+describe("lineasDeStock — la tarjeta dice la sede elegida y aparte el resto (ADR-0270, decisiones 1 a 5)", () => {
   it("el caso de Felipe: 0 aquí en TRU, 60 en LIM — la tarjeta no dice «Sin stock», dice dónde hay", () => {
     expect(lineasDeStock({ ...SIN_EXISTENCIAS, enOtrasTiendas: 60, otras: [{ ubicacionId: "lim", sede: "Tienda LIM", disponible: 60 }] })).toEqual({
       principal: "0 aquí",
@@ -157,7 +157,7 @@ describe("lineasDeStock — la tarjeta dice la sede elegida y aparte el resto (A
   });
 });
 
-describe("hrefEnExistencias — el Catálogo enlaza a donde se ajusta (ADR-0262, decisión 9)", () => {
+describe("hrefEnExistencias — el Catálogo enlaza a donde se ajusta (ADR-0270, decisión 9)", () => {
   const vs = [
     { varianteId: "a", activo: false, color: "Rojo" },
     { varianteId: "b", activo: true, color: "Rojo" },

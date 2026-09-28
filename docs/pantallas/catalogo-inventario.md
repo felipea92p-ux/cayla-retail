@@ -4,14 +4,14 @@
 > SHA analizado: `cac1d565` (origin/main). Si cambian `fn_productos`, `fn_productos_resumen`, `fn_stock_por_sede`, `fn_resumen_variantes`, `lib/inventario-v2.ts`, `lib/catalogo-v2.ts`, `ProductosGrilla.tsx`, `ProductosAgrupados.tsx` o `InventarioPanel.tsx`, este análisis está vencido.
 > Archivos: `app/(app)/productos/page.tsx` · `components/ProductosGrilla.tsx` · `components/ProductosAgrupados.tsx` · `lib/catalogo-v2.ts` · `app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `lib/inventario-v2.ts` · `lib/existencias-*.ts` · RPC `fn_productos`, `fn_productos_resumen`, `fn_stock_por_sede`, `fn_resumen_variantes` · tablas `productos`, `variantes`, `stock`, `movimientos`, `transferencia_items`
 > Otra sesión tocándola: no hay filas activas sobre Catálogo ni Existencias en `docs/SESIONES-ACTIVAS.md` (las de Existencias de esa tabla ya no existen en `origin`). Análisis previos de cada pantalla por separado: `docs/pantallas/productos.md` (2026-09-21) y `docs/pantallas/inventario.md`; este es el primero de la **costura** entre las dos.
-> Decisiones: las 32 respuestas de Felipe del 2026-09-28 están en **ADR-0262**. Este archivo las usa; no las repite todas.
+> Decisiones: las 32 respuestas de Felipe del 2026-09-28 están en **ADR-0270**. Este archivo las usa; no las repite todas.
 
 ## 0 · Veredicto
 El stock no está desincronizado (0 descuadres entre `movimientos` y `stock`), pero **el sistema usa al menos seis definiciones distintas de «stock» y cuatro palabras para «estado»**. Por eso la misma prenda dice cosas distintas según la pantalla. Además, **la base deja vender, trasladar, ajustar y recibir tallas retiradas y productos descontinuados**: solo algunas pantallas los filtran.
 **Cumple su finalidad:** 4/10 (tope 5: hay escrituras de stock sin candado de estado) · **Relevancia:** 9,0/10 — **Núcleo**
 
 ## 1 · Finalidad declarada
-«El Catálogo dice **qué vendemos** (modelo, precio, fotos, estado) y el Inventario dice **cuánto hay y dónde**; las dos hablan del mismo producto con el mismo número.» Fuente: `CLAUDE.md` principios 1, 2 y 4 (núcleo `productos`/`variantes`/`stock`/`movimientos`, una sola fuente de verdad), `docs/pantallas/productos.md` tarea #9 («un solo universo de variantes vigentes para Productos e Inventario», abierta) y la decisión de Felipe de hoy: «dos pantallas, un número» (ADR-0262). **¿Docs y pantallas coinciden?** No: los docs prometen una sola fuente y las pantallas calculan cada una la suya. Manda la promesa, así que el defecto está en las pantallas.
+«El Catálogo dice **qué vendemos** (modelo, precio, fotos, estado) y el Inventario dice **cuánto hay y dónde**; las dos hablan del mismo producto con el mismo número.» Fuente: `CLAUDE.md` principios 1, 2 y 4 (núcleo `productos`/`variantes`/`stock`/`movimientos`, una sola fuente de verdad), `docs/pantallas/productos.md` tarea #9 («un solo universo de variantes vigentes para Productos e Inventario», abierta) y la decisión de Felipe de hoy: «dos pantallas, un número» (ADR-0270). **¿Docs y pantallas coinciden?** No: los docs prometen una sola fuente y las pantallas calculan cada una la suya. Manda la promesa, así que el defecto está en las pantallas.
 
 ## 2 · Objeción
 1. **«Stock» significa seis cosas** `[código]` `[producción]`:
@@ -49,7 +49,7 @@ Trade-off: arreglar pantalla por pantalla es más rápido, pero las fórmulas se
 
 **Estética.** Los componentes son los del sistema (`TarjetaCifra`, `Tabla`, `Chip`). Lo que falla es que la misma idea tiene nombres distintos: la tarjeta dice «Stock total» y la nota fija aclara «suma de todas las sedes y el Taller» (`NotaStockTotal.tsx:12`), mientras Existencias dice «Disponible» de la sede.
 
-**Lógica de negocio.** Reglas de Felipe (ADR-0262) contra lo que existe:
+**Lógica de negocio.** Reglas de Felipe (ADR-0270) contra lo que existe:
 - **Stock de la sede elegida más el resto:** hoy el Catálogo muestra toda la red.
 - **Restar apartados y dejar fuera la cuarentena:** el Catálogo no lo hace.
 - **Descontinuado = se vende lo que queda:** Existencias le sigue pidiendo «Reponer».
@@ -87,7 +87,7 @@ Trade-off: arreglar pantalla por pantalla es más rápido, pero las fórmulas se
 Relevancia = (2·9 + 10 + 9 + 8) / 5 = **9,0** — Núcleo.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `recibir_lote`, `recibir_compras`, producción, `iniciar_traslado` → `confirmar_traslado`, `cerrar_conteo`, `fn_cargar_stock_inicial` (puerta temporal hasta el **15-oct**, ADR-0262).
+- **Aguas arriba:** `recibir_lote`, `recibir_compras`, producción, `iniciar_traslado` → `confirmar_traslado`, `cerrar_conteo`, `fn_cargar_stock_inicial` (puerta temporal hasta el **15-oct**, ADR-0270).
 - **Aguas abajo:** `registrar_venta`, `apartar_stock`, `separar_prendas`, Buscar, Etiquetas, Análisis (`fn_resumen_variantes`), «A quién pedirle» (`fn_productos(p_stock='reponer')`), Finanzas (`fn_bal_stock`).
 - **Pájaro dueño y vecinos:** Inventario es el dueño de la cifra; Catálogo es el dueño del estado (producto, talla, prueba).
 - **Externos, y qué pasa si caen:** ninguno. La lectura es local a Postgres: si Supabase no responde, ninguna pantalla muestra cifras (se degrada así, no pierde este dato, porque la cifra se deriva de `movimientos`).
@@ -113,7 +113,7 @@ Relevancia = (2·9 + 10 + 9 + 8) / 5 = **9,0** — Núcleo.
   - `fn_stock_por_sede` (`20260922170000:225-240`);
   - el `disponible` de `fn_resumen_variantes` (`20260919141804:277`).
 
-  Contrato completo en ADR-0262.
+  Contrato completo en ADR-0270.
 - **Por qué en este puesto:** es la raíz. Las tareas #3, #4, #8 y #11 son pantallas que la leen; sin ella, cada arreglo vuelve a ser una suma propia.
 - **Cómo lo verificas tú:** una consulta de solo lectura en producción compara `fn_existencias` con `recalcular_stock` y da 0 diferencias. «Test de Produto 2» en TRU (si sigue) dice físico 78, apartado 1 y disponible 77, igual en el Catálogo y en Existencias.
 - **Esfuerzo / dependencias:** L · ninguna (conviene después de la #1).

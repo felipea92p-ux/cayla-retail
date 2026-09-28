@@ -88,7 +88,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
-  // arriba para cada producto de esta página (ADR-0262): la misma cifra que Existencias. Las dos después de la lista, a la vez.
+  // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
   const [reposicion, existencias] = await Promise.all([
     resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
     getExistenciasProductos(

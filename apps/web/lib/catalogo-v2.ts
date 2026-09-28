@@ -420,7 +420,7 @@ export async function getReposicionPorProveedor(
 }
 
 /**
- * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0262):
+ * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0270):
  * la tarjeta del Catálogo dice lo mismo que Existencias. `null` si no se pudo leer (p. ej. la función todavía no está
  * pegada en producción): la tarjeta vuelve a «Stock total N» en vez de romperse o inventar un cero.
  */

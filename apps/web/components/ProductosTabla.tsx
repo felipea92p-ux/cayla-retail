@@ -71,7 +71,7 @@ type Fila = {
   costo: string | null;
   margen: MargenProducto | null;
   alerta: ReturnType<typeof alertaDeStock>;
-  /** Lo de la sede elegida (ADR-0262): «7 aquí» y aparte el resto. `null` si no se pudo leer o si no hay nada en la red. */
+  /** Lo de la sede elegida (ADR-0270): «7 aquí» y aparte el resto. `null` si no se pudo leer o si no hay nada en la red. */
   lineas: LineasStock | null;
   rotacion: string | null;
   descontinuado: boolean;
@@ -93,11 +93,11 @@ export function ProductosTabla({
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
-  /** Lo de la sede elegida por producto (ADR-0262). `null`: no se pudo leer, y la columna dice el total como antes. */
+  /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   /** Editar la ficha y descontinuar/reactivar (`editarCatalogo`). */
   puedeEditar: boolean;
-  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0262, decisión 9): el Catálogo solo enlaza. */
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
@@ -336,7 +336,7 @@ function EstadoChip({ fila }: { fila: Fila }) {
 function Stock({ fila, alinear = "right" }: { fila: Fila; alinear?: "right" | "left" }) {
   const { alerta, p, rotacion, lineas } = fila;
   const tono = alerta === "bajo" ? "text-ambar" : alerta === "sin_stock" ? "text-tinta/45" : "text-tinta";
-  // ADR-0262: lo de la sede elegida arriba, y debajo lo que está en otra sede, en el Taller o en camino.
+  // ADR-0270: lo de la sede elegida arriba, y debajo lo que está en otra sede, en el Taller o en camino.
   const resto = lineas ? [lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ") : "";
   return (
     <span className={`block ${alinear === "right" ? "text-right" : ""}`} title={resto || EXPLICACION_STOCK_TOTAL}>
@@ -371,7 +371,7 @@ type AccionesFila = {
   etiquetas: string;
   /** Las etiquetas de UNA sola variante (talla + color), para el ícono que flota sobre su tarjeta. */
   etiquetasDe: (varianteId: string) => string;
-  /** «Ver en Existencias»: ahí se ajusta el stock (ADR-0262, decisión 9). Null si no ve ese módulo. */
+  /** «Ver en Existencias»: ahí se ajusta el stock (ADR-0270, decisión 9). Null si no ve ese módulo. */
   existencias: string | null;
   eliminar: (() => void) | null;
 };
