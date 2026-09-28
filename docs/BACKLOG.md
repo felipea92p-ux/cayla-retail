@@ -1126,6 +1126,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
     (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
     temporada». Retira el texto libre `productos.temporada` (vacío en producción).
+    - [x] **Pestaña en cuatro vistas (2026-09-28, sin migración):** «Por completar» (agrupada por categoría, con
+      «Ponérsela a la categoría»), «Por categoría» (abre en «Con prendas»), «Calendario» y «Las nueve», elegidas por
+      tarjetas de cifra; la vista va en `?vista=`. Detalle: ADR-0246, «Actualización 2026-09-28».
+    - [ ] **Limpiar las categorías y prendas de prueba de producción** («dsa», «Colores», «prueba Lapicero»; «Fhfh»,
+      «Y.j.j», «Test de Produto 2», «Producto de Prueba»): mientras estén activas, «Por completar» no llega a 0 con
+      prendas reales. Desactivar, nunca borrar. Decide Felipe cuáles son de prueba.
   - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
     y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
