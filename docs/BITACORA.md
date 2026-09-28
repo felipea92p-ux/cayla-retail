@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (La purga por script alcanza los productos con documentos; 2 de 4 purgados en producción — ADR-0224)
+Qué hice: el script de purga ahora deshace ventas con boleta de pruebas de SUNAT o nunca enviada, separaciones, compras con su recepción y la carga, bajadas y conteos; una sola lista de «qué se borra» alimenta el candado, el respaldo y la demostración. Con ensayo y tu «dale» se fueron Blusa Xd (con su factura de S/ 10,620) y Test de Produto 2 (con sus 2 separaciones).
+Por qué así: nada con alguien del otro lado se borra sin que tú lo nombres, y un comprobante que llegó a SUNAT en producción no se toca jamás (tres capas: aborta, no calza en ninguna clase permitida y su huella se compara al final). La prueba encontró un NULL que dejaba pasar una boleta que ya había intentado salir.
+Felipe se lleva: **el candado frenó a Polo Básico por 2 proformas vigentes que nadie recordaba** — una cotización también es un documento con una clienta del otro lado; y Blusa Carlita espera a Polo Básico solo para que la serie de notas no quede con un hueco.
+
 ## 2026-09-28 (Análisis: escribir en su buscador tampoco abre el loader — ADR-0149)
 Qué hice: el buscador de Inventario ▸ Análisis ahora navega «sin loader» (`useResumenUrl` con `tipeado`) y su campo dice «Buscando…» mientras el servidor recalcula; el panel ya se atenuaba solo. Revisé los demás buscadores: Cambios, Devoluciones y Buscar por comprobante buscan con Enter (acción decidida, siguen con loader) y Gastos solo cambia la URL por clics.
 Por qué así: Análisis guarda todo su estado en la URL con su propio hook, no con los `FiltrosX` de las otras pantallas, y el primer barrido buscaba `router.push` junto a un `setTimeout`: no lo vio. Se reusó la misma pieza (`navegacionSinEspera`) en vez de un segundo mecanismo.

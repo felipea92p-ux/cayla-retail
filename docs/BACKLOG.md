@@ -82,10 +82,21 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
 - [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
 - [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
-- [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
+- [x] Los 4 con documentos: `scripts/purga/purgar-producto-de-prueba.sql` **ampliado** (ADR-0224, «Actualización 2026-09-28»): ventas con boleta
+  *sandbox* o nunca enviada, separaciones, compras con su recepción, carga inicial, bajadas, conteos y traslados dentro de la tienda. Una
+  boleta que llegó a SUNAT en producción aborta (tres capas). `pnpm pruebas:purgar-producto` 89/89, 20 de 21 mutaciones detectadas.
+- [x] **Purgados en producción el 2026-09-28** con ensayo y «dale» de Felipe, uno por lote y verificados por fuera: **Blusa Xd** (`BLZ-0006`,
+  con la factura F001-000022 de S/ 10,620 de Alicia Damian Flores, su lote, envío y 3 costos; respaldo «purga BLZ-0006 2026-09-28 14:11», 36
+  filas) y **Test de Produto 2** (`POL-0005`, 1 venta, separaciones APT-TRU-0004/0005, boletas B004-30/31/32 que nunca salieron; respaldo
+  «purga POL-0005 2026-09-28 14:13», 111 filas). Producción: 33 → 31 productos, 188 → 150 movimientos, libro 0 descuadres, B004-2/3 intactos.
+- [ ] **Polo Básico (`POL-0002`): Felipe lo deja para después.** El ensayo lo frenó por **2 proformas vigentes de TRU** que lo nombran en su
+  detalle (#2 del 22-sep, S/ 12,373.20, con 6 líneas de prendas que ya no existen; #3 del 23-sep, S/ 39.90). Para purgarlo hay que decidir qué
+  pasa con esas cotizaciones (ampliar el script con `cayla_purga.proformas`, o anularlas y aceptarlas como inertes).
+- [ ] **Blusa Carlita (`CMS-0001`): ensayo OK** (2 ventas con NV01-3 y NV01-6, 148 filas), **esperando a Polo Básico**: si se purga antes,
+  la serie de notas NV01 no puede volver al 3 (NV01-4 y 5, de Polo Básico, siguen ahí) y queda un hueco. Correrla justo después de POL-0002.
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
 - Cómo verificas:
-  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
+  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (89/89).
   - Con una cuenta Admin, en Catálogo ▸ Productos ▸ Tabla, la ficha de la prenda ▸ Eliminar (el menú «···» se fue con ADR-0254; en la Grilla, la vista rápida) sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
 
 ## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
