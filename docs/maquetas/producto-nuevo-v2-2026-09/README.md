@@ -58,7 +58,7 @@ Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (je
 | Patrones (9) | Igual que tejidos: 5 + «Ver todos · 9» |
 | Marcas y proveedores (84 / 78) | 3 parejas sugeridas por la categoría + buscador con lista flotante que dice cuántos resultados hay y marca lo que coincide |
 | Tallas (27) | Solo las de la categoría (máx. 9) como chips; atajos «Curva habitual» y «Todas»; **«+ Otra talla»** abre la hoja con las 26 restantes agrupadas (Letras, Números, Otras) |
-| Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. Debajo, «Los más usados en …» como sugerencias punteadas con «+» (las ya elegidas salen de ahí), buscador y carta de 71 círculos por familia con el nombre al pasar el mouse. Antes el mismo estado se veía como chip con ✓ arriba y píldora con × abajo (Felipe: «confuso») |
+| Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. **Se elige de una sola manera:** buscándolo por nombre o tocándolo en la carta de 71 círculos por familia, que se abre de entrada (el nombre sale al pasar el mouse). Sin fila de «más usados» (Felipe, 2026-09-28). Antes el mismo estado se veía como chip con ✓ y como píldora con × («confuso») |
 | Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
 | Tabla (72 celdas) | Cabecera de tallas y columna del color **fijas** al desplazarse; en celular la tabla se desliza de lado sin mover la página. En el paso 4, **«Poner en todas: [n] Aplicar»** llena las 68 celdas de un golpe y después se corrige a mano lo distinto |
 | Ficha y resúmenes | Hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)» |
@@ -79,7 +79,7 @@ Se leyó cada paso como alguien de tienda que abre la pantalla por primera vez:
 | «Quién lo registra» y «Crear» solo en la ficha de la derecha | **Al final del paso 4, donde la persona termina:** «Quién lo registra» (una sola vez) y «Crear producto». La ficha conserva su botón. El pie dice «Solo falta elegir quién lo registra» cuando es lo único que falta |
 | Sin pantalla final | «Blusa Lirio ya está en el catálogo»: código, variantes, unidades y fotos subiendo; **Crear otro parecido** o **Terminé, ir a Productos** (los mismos dos caminos que `ProductoCreado` en `main`). «Otro parecido» vuelve al paso 2 con categoría, marca, tejido, tallas y precio, y lo avisa arriba |
 | «Sano» / «Bajo para CAYLA» · «Para todas las variantes» | «Buen margen» / «Margen bajo» · «Para todas las tallas y colores» |
-| Sugerencias de marca sin título | «Las más usadas en Camisas y Blusas:», igual que en colores |
+| Sugerencias de marca sin título | «Las más usadas en Camisas y Blusas:» |
 
 ## Lo que NO cambia
 
