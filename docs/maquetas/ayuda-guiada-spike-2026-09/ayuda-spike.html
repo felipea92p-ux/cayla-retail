@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ayuda guiada · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Paleta oficial «CAYLA Dynamic» (ADR-0169), copiada de apps/web/app/globals.css. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --sand:#e8e0d0; --taupe:#805c4c; --hueso:#eae1d2; --pizarra:#4c5d6e; --verde:#48603f; --ambar:#74501a;
+  --yape:#6d3fa3; --efectivo:#d19a12; --tarjeta:#525a64; --plin:#1c6b56;
+  --ease-cayla:cubic-bezier(0.32,0.72,0.24,1);
+  --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --serif:"EB Garamond",ui-serif,Georgia,serif;
+  --velo:rgba(26,26,24,.8);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--crema);color:var(--tinta);font:15px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit;color:inherit}
+.oculto{display:none!important}
+
+/* ── Armazón: lateral + cabecera ───────────────────────── */
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+.lateral{background:var(--papel);border-right:1px solid var(--sand);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
+.marca{font:600 22px/1 var(--serif);letter-spacing:.14em;padding:0 10px 18px}
+.marca small{display:block;font:500 10px/1.6 var(--sans);letter-spacing:.16em;color:var(--taupe);margin-top:6px}
+.grupo-menu{font:600 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);padding:16px 10px 6px}
+.item-menu{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:0;background:none;text-align:left;width:100%}
+.item-menu:hover{background:var(--hueso)}
+.item-menu[aria-current="page"]{background:var(--tinta);color:var(--crema)}
+.item-menu svg{width:17px;height:17px;flex:none}
+.lateral .pie{margin-top:auto;font-size:12px;color:var(--taupe);padding:10px}
+.principal{min-width:0;display:flex;flex-direction:column}
+.barra{display:flex;align-items:center;gap:12px;padding:12px 28px;border-bottom:1px solid var(--sand)}
+.barra .sede{font-size:13px;color:var(--taupe)}
+.barra .sede b{color:var(--tinta);font-weight:600}
+.barra .espacio{flex:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font:600 12px var(--sans)}
+.hamburguesa{display:none;border:0;background:none;padding:6px}
+.contenido{padding:28px;max-width:1180px;width:100%}
+
+/* ── Cabecera de pantalla (CabeceraPantalla) ──────────── */
+.cabecera{display:flex;align-items:flex-end;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.cabecera .textos{flex:1;min-width:220px}
+.sobretitulo{font:600 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--rojo)}
+.cabecera h1{font:500 38px/1.05 var(--serif);margin:8px 0 6px}
+.bajada{color:var(--taupe);margin:0;max-width:56ch}
+.acciones{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── Botones (btn-cayla) ──────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 18px;border:1px solid transparent;font-weight:500;font-size:14px;line-height:1;white-space:nowrap;transition:background .2s var(--ease-cayla),border-color .2s}
+.btn svg{width:16px;height:16px}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-primario:hover{background:#000}
+.btn-primario:disabled{opacity:.4;cursor:not-allowed}
+.btn-secundario{background:var(--papel);border-color:var(--taupe)}
+.btn-secundario:hover{background:var(--hueso)}
+.btn-sutil{background:transparent;border-color:var(--sand)}
+.btn-sutil:hover{background:var(--hueso)}
+.btn-enlace{background:none;border:0;padding:6px 2px;color:var(--taupe);text-decoration:underline;text-underline-offset:3px}
+.btn-ayuda{background:var(--papel);border-color:var(--sand);padding:9px 14px 9px 10px}
+.btn-ayuda .signo{width:22px;height:22px;border-radius:50%;background:var(--rojo);color:var(--crema);display:grid;place-items:center;font:600 13px/1 var(--sans)}
+.btn-ayuda:hover{border-color:var(--taupe)}
+.btn-chico{padding:7px 12px;font-size:13px}
+
+/* ── Piezas comunes ───────────────────────────────────── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:14px}
+.caja{background:var(--hueso);border:1px solid transparent;border-radius:10px;padding:11px 14px;width:100%;outline:none}
+.caja:focus{border-color:var(--taupe);background:var(--papel)}
+.etiqueta{font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);display:block;margin-bottom:8px}
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.cifra{padding:16px 18px}
+.cifra .n{font:500 28px/1.1 var(--serif);margin-top:6px}
+.cifra .d{font-size:12px;color:var(--taupe)}
+.nota{background:var(--hueso);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--taupe)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--hueso)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde)} .chip.pizarra{color:var(--pizarra)} .chip.ambar{color:var(--ambar)}
+
+/* ── Vender ───────────────────────────────────────────── */
+.vender{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+.buscador{position:relative;margin-bottom:14px}
+.buscador svg{position:absolute;left:14px;top:50%;translate:0 -50%;width:18px;height:18px;color:var(--taupe)}
+.buscador .caja{padding-left:42px;padding-block:13px}
+.productos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.producto{padding:12px;display:flex;flex-direction:column;gap:8px}
+.foto{aspect-ratio:4/5;border-radius:10px;background:linear-gradient(160deg,var(--sand),var(--hueso));display:grid;place-items:center;font:500 30px var(--serif);color:var(--taupe)}
+.producto .nom{font-weight:500;font-size:14px;line-height:1.25}
+.producto .det{font-size:12px;color:var(--taupe)}
+.producto .fila{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.producto .precio{font:500 18px var(--serif)}
+.vacio{grid-column:1/-1;padding:28px;text-align:center;color:var(--taupe)}
+.carrito{padding:18px;position:sticky;top:18px}
+.carrito h2,.panel h2{font:500 22px/1.1 var(--serif);margin:0 0 12px}
+.lineas{display:flex;flex-direction:column;gap:10px;min-height:64px;margin-bottom:14px}
+.linea{display:flex;gap:10px;align-items:center;font-size:14px}
+.linea .n{flex:1}
+.linea .n small{display:block;color:var(--taupe);font-size:12px}
+.cant{display:flex;align-items:center;gap:6px}
+.cant button{width:24px;height:24px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);line-height:1}
+.carrito .sin{color:var(--taupe);font-size:13px;border:1px dashed var(--sand);border-radius:10px;padding:18px;text-align:center}
+.campo{margin-bottom:12px;position:relative}
+.combo{display:flex;align-items:center;justify-content:space-between;text-align:left}
+.combo .ph{color:var(--taupe)}
+.lista-flotante{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;z-index:40;box-shadow:0 14px 34px -18px rgba(26,26,24,.45)}
+.lista-flotante button{display:flex;width:100%;gap:10px;align-items:center;border:0;background:none;padding:9px 10px;border-radius:8px;text-align:left}
+.lista-flotante button:hover{background:var(--hueso)}
+.lista-flotante .ini{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-size:11px;font-weight:600}
+.totales{border-top:1px solid var(--sand);padding-top:12px;margin-top:4px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.totales .f{display:flex;justify-content:space-between}
+.totales .total{font:500 26px var(--serif);margin-top:4px}
+.totales .desc{color:var(--verde)}
+.carrito .botones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.carrito .cobrar{width:100%;padding:14px}
+
+/* ── Tabla ───────────────────────────────────────────── */
+.tabla{width:100%;border-collapse:collapse;font-size:14px}
+.tabla th{font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);text-align:left;padding:12px 16px;border-bottom:1px solid var(--sand)}
+.tabla td{padding:12px 16px;border-bottom:1px solid var(--sand)}
+.tabla tr:nth-child(even) td{background:rgba(234,225,210,.45)}
+.herramientas{display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--sand);flex-wrap:wrap}
+.herramientas .caja{max-width:280px}
+.pildora{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:8px 14px;font-size:13px}
+.pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.scroll-x{overflow-x:auto}
+
+/* ── Modal (ADR-0136) ─────────────────────────────────── */
+.modal-velo{position:fixed;inset:0;background:rgba(26,26,24,.36);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;z-index:100;animation:velo .28s var(--ease-cayla)}
+.modal{background:var(--papel);border:1px solid var(--sand);border-radius:18px;width:min(520px,100%);padding:24px;animation:hoja .42s var(--ease-cayla) both;max-height:84vh;overflow:auto}
+.modal>*{animation:cascada .42s var(--ease-cayla) both}
+.modal>*:nth-child(2){animation-delay:55ms}.modal>*:nth-child(3){animation-delay:110ms}.modal>*:nth-child(4){animation-delay:165ms}.modal>*:nth-child(5){animation-delay:220ms}.modal>*:nth-child(6){animation-delay:275ms}
+.modal h3{font:500 26px/1.1 var(--serif);margin:0 0 4px}
+.modal .bajada{margin-bottom:18px}
+.modal .pie-modal{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+@keyframes velo{from{opacity:0}}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.97)}}
+@keyframes cascada{from{opacity:0;transform:translateY(8px)}}
+.opciones{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.opcion{border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;text-align:left}
+.opcion:hover{border-color:var(--taupe)}
+.opcion[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.opcion .pt{width:10px;height:10px;border-radius:50%}
+.resumen-modal{display:flex;justify-content:space-between;align-items:baseline;background:var(--hueso);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.resumen-modal b{font:500 26px var(--serif)}
+
+/* ── Aviso (esquina superior derecha, ADR-0149) ───────── */
+.avisos{position:fixed;top:16px;right:16px;z-index:1200;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.aviso{background:var(--tinta);color:var(--crema);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:center;font-size:14px;max-width:360px;animation:hoja .36s var(--ease-cayla)}
+.aviso .ok{width:20px;height:20px;border-radius:50%;background:var(--verde);display:grid;place-items:center;flex:none}
+.aviso button{background:none;border:1px solid rgba(245,240,232,.4);color:var(--crema);border-radius:999px;padding:5px 11px;font-size:12px}
+
+/* ══════════════════════════════════════════════════════
+   AYUDA · panel «¿Qué quieres hacer?»
+   ══════════════════════════════════════════════════════ */
+.ayuda-velo{position:fixed;inset:0;background:rgba(26,26,24,.36);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:300;animation:velo .28s var(--ease-cayla)}
+.ayuda{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--papel);border-left:1px solid var(--sand);z-index:301;display:flex;flex-direction:column;animation:lado .42s var(--ease-cayla)}
+@keyframes lado{from{transform:translateX(24px);opacity:0}}
+.ayuda .enc{padding:22px 22px 14px;border-bottom:1px solid var(--sand)}
+.ayuda .enc .fila{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ayuda h2{font:500 28px/1.1 var(--serif);margin:6px 0 4px}
+.cerrar{border:0;background:var(--hueso);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ayuda .cuerpo{padding:16px 22px 28px;overflow:auto;flex:1}
+.ayuda .enc>*,.ayuda .cuerpo>*{animation:cascada .42s var(--ease-cayla) both}
+.ayuda .cuerpo>*:nth-child(2){animation-delay:55ms}.ayuda .cuerpo>*:nth-child(3){animation-delay:110ms}.ayuda .cuerpo>*:nth-child(4){animation-delay:165ms}.ayuda .cuerpo>*:nth-child(5){animation-delay:220ms}
+.retomar{display:flex;gap:12px;align-items:center;background:var(--tinta);color:var(--crema);border-radius:14px;padding:14px;margin-bottom:16px}
+.retomar .t{flex:1;font-size:13px}
+.retomar .t b{display:block;font-size:15px;font-weight:500;margin-bottom:2px}
+.retomar .btn{background:var(--crema);color:var(--tinta)}
+.recorrido{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px dashed var(--taupe);background:transparent;border-radius:14px;padding:14px;margin-bottom:18px}
+.recorrido:hover{background:var(--hueso)}
+.recorrido .ic{width:38px;height:38px;border-radius:50%;background:var(--rojo);color:var(--crema);display:grid;place-items:center;flex:none}
+.recorrido .ic svg{width:18px;height:18px}
+.recorrido b{display:block;font-weight:500}
+.recorrido span{font-size:13px;color:var(--taupe)}
+.grupo-tareas{font:600 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);margin:16px 0 8px}
+.tarea{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:12px 14px;margin-bottom:8px;transition:border-color .2s}
+.tarea:hover{border-color:var(--taupe)}
+.tarea .ic{width:34px;height:34px;border-radius:10px;background:var(--hueso);display:grid;place-items:center;flex:none;color:var(--taupe)}
+.tarea .ic svg{width:17px;height:17px}
+.tarea .tx{flex:1;min-width:0}
+.tarea .tx b{display:block;font-weight:500;font-size:14px}
+.tarea .tx span{font-size:12px;color:var(--taupe)}
+.tarea .flecha{color:var(--taupe)}
+.tarea.hecha .ic{background:var(--verde);color:var(--crema)}
+.ayuda .sin-resultados{color:var(--taupe);font-size:14px;padding:18px 4px}
+.ayuda .pie{padding:14px 22px;border-top:1px solid var(--sand);font-size:12px;color:var(--taupe);display:flex;gap:8px;align-items:center}
+kbd{font:500 11px var(--sans);border:1px solid var(--sand);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--papel);color:var(--tinta)}
+
+/* ══════════════════════════════════════════════════════
+   GUÍA · foco circular + tarjeta de instrucciones
+   ══════════════════════════════════════════════════════ */
+.guia-tapa{position:fixed;inset:0;z-index:900;cursor:default}
+/* El velo es un SVG con máscara: todo oscuro menos el agujero, que copia la forma de .guia-foco en cada cuadro. */
+.guia-velo{position:fixed;inset:0;width:100%;height:100%;z-index:900;pointer-events:none}
+.guia-velo .oscuro{fill:var(--velo)}
+.guia-foco{position:fixed;z-index:901;pointer-events:none;border-radius:999px;
+  box-shadow:0 0 0 2px var(--crema);
+  transition:left .46s var(--ease-cayla),top .46s var(--ease-cayla),width .46s var(--ease-cayla),height .46s var(--ease-cayla),border-radius .46s var(--ease-cayla),opacity .3s}
+.guia-foco.entrando{opacity:0}
+/* Anillo rojo: tres pulsos al llegar a cada paso (señal «aquí», no adorno) y se queda quieto. */
+.guia-foco::after{content:"";position:absolute;inset:-7px;border-radius:inherit;border:2px solid var(--rojo);opacity:0}
+.guia-foco.pulso::after{animation:pulso 1.1s var(--ease-cayla) 3}
+@keyframes pulso{0%{opacity:.95;transform:scale(1)}100%{opacity:0;transform:scale(1.28)}}
+.guia-foco.sin-agujero{width:0!important;height:0!important;left:50%!important;top:50%!important;box-shadow:none}
+
+.guia-tarjeta{position:fixed;z-index:902;width:340px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 18px 14px;
+  box-shadow:0 24px 50px -24px rgba(0,0,0,.55);transition:left .46s var(--ease-cayla),top .46s var(--ease-cayla)}
+.guia-tarjeta .cab{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.guia-tarjeta .paso{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--rojo)}
+.guia-tarjeta .tarea-nom{font-size:12px;color:var(--taupe);margin-bottom:2px}
+.guia-tarjeta h4{font:500 22px/1.15 var(--serif);margin:0 0 6px}
+.guia-tarjeta p{margin:0;font-size:14px;color:#3b3a36}
+.guia-tarjeta .cuerpo-paso{animation:cascada .36s var(--ease-cayla) both}
+.pista{display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;color:var(--rojo-profundo);background:rgba(184,65,45,.08);border-radius:999px;padding:5px 10px}
+.pista svg{width:14px;height:14px}
+.progreso{display:flex;gap:4px;margin:14px 0 12px}
+.progreso i{flex:1;height:3px;border-radius:3px;background:var(--sand);transition:background .3s var(--ease-cayla)}
+.progreso i.hecho{background:var(--tinta)}
+.progreso i.actual{background:var(--rojo)}
+.guia-tarjeta .botones{display:flex;align-items:center;gap:8px}
+.guia-tarjeta .botones .espacio{flex:1}
+.guia-tarjeta .terminar{font-size:13px}
+.guia-tarjeta .x{border:0;background:none;color:var(--taupe);padding:2px;display:grid;place-items:center}
+.guia-tarjeta .fin{text-align:center;padding:6px 0 4px}
+.guia-tarjeta .visto{width:56px;height:56px;margin:4px auto 10px;display:block}
+.guia-tarjeta .visto circle{fill:var(--verde)}
+.guia-tarjeta .visto path{fill:none;stroke:var(--crema);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30;animation:dibujar .45s var(--ease-cayla) .15s forwards}
+@keyframes dibujar{to{stroke-dashoffset:0}}
+.guia-tarjeta .fin .btns{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+
+/* Barra del spike (no es del producto) */
+.spike{position:fixed;left:16px;bottom:16px;z-index:50;background:var(--papel);border:1px solid var(--sand);border-radius:999px;padding:6px 6px 6px 14px;font-size:12px;color:var(--taupe);display:flex;gap:8px;align-items:center}
+.spike button{border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:5px 10px;font-size:12px}
+
+/* ── Celular ─────────────────────────────────────────── */
+@media (max-width:900px){
+  .vender{grid-template-columns:1fr}
+  .carrito{position:static}
+  .cifras{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  .lateral{position:fixed;inset:0 auto 0 0;width:260px;z-index:200;transform:translateX(-100%);transition:transform .36s var(--ease-cayla)}
+  .lateral.abierto{transform:none;box-shadow:0 0 0 100vmax rgba(26,26,24,.36)}
+  .hamburguesa{display:grid}
+  .barra{padding:10px 16px}
+  .contenido{padding:18px 16px 90px}
+  .cabecera h1{font-size:32px}
+  .productos{grid-template-columns:repeat(2,1fr)}
+  .btn-ayuda .txt{display:none}
+  .btn-ayuda{padding:9px}
+  .opciones{grid-template-columns:1fr}
+  .spike .txt{display:none}
+  .modal-velo{padding:0;align-items:flex-end}
+  .modal{border-radius:18px 18px 0 0;max-height:92vh}
+  /* En celular la tarjeta es una hoja fija abajo; el círculo queda libre arriba. */
+  .guia-tarjeta{left:10px!important;right:10px;width:auto;top:auto!important;bottom:10px}
+  body.guia-activa .contenido{padding-bottom:380px}   /* deja bajar lo último de la pantalla por encima de la hoja */
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .guia-tarjeta .visto path{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="lateral" id="lateral">
+    <div class="marca">CAYLA<small>ERP · TIENDA</small></div>
+    <div class="grupo-menu">Ventas</div>
+    <button class="item-menu" data-modulo="vender" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7h14l-1.5 11h-11z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Vender</button>
+    <button class="item-menu" data-modulo="caja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18M8 15h3"/></svg>Caja</button>
+    <div class="grupo-menu">Almacén</div>
+    <button class="item-menu" data-modulo="traslados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h13l-3-3M21 16H8l3 3"/></svg>Traslados</button>
+    <div class="pie">Spike visual · datos de ejemplo</div>
+  </nav>
+
+  <div class="principal">
+    <header class="barra">
+      <button class="hamburguesa" id="hamburguesa" aria-label="Menú"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="sede">Sede <b>Trujillo · Mall Plaza</b></div>
+      <div class="espacio"></div>
+      <div class="avatar">RQ</div>
+    </header>
+    <main class="contenido" id="contenido"></main>
+  </div>
+</div>
+
+<div class="avisos" id="avisos"></div>
+<div class="spike"><span class="txt">Spike · la ayuda vive en el botón</span> <b style="color:var(--rojo)">?</b> <span class="txt">de cada módulo</span><button id="reiniciar">Reiniciar demo</button></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   Datos de ejemplo
+   ════════════════════════════════════════════════════════════════════════ */
+const PRODUCTOS = [
+  {id:'p1', nom:'Blusa Ica de lino', det:'Crema · M', precio:129, ini:'BI'},
+  {id:'p2', nom:'Pantalón Nazca palazzo', det:'Arena · S', precio:159, ini:'PN'},
+  {id:'p3', nom:'Vestido Paracas', det:'Terracota · M', precio:219, ini:'VP'},
+  {id:'p4', nom:'Cárdigan Colca alpaca', det:'Hueso · U', precio:249, ini:'CC'},
+  {id:'p5', nom:'Blusa Chala manga globo', det:'Negro · L', precio:119, ini:'BC'},
+  {id:'p6', nom:'Falda Moray midi', det:'Taupe · M', precio:139, ini:'FM'},
+];
+const EQUIPO = [{ini:'RQ', nom:'Rosa Quispe'}, {ini:'MA', nom:'Milagros Alva'}, {ini:'JT', nom:'Jazmín Torres'}];
+const MEDIOS = [{c:'efectivo', n:'Efectivo', col:'var(--efectivo)'}, {c:'yape', n:'Yape', col:'var(--yape)'}, {c:'tarjeta', n:'Tarjeta', col:'var(--tarjeta)'}, {c:'plin', n:'Plin', col:'var(--plin)'}];
+
+const estado = {modulo:'vender', carrito:[], responsable:null, descuento:0, clienta:'', busqueda:'', retiros:0, traslados:[
+  {n:'TR-0142', destino:'Arequipa', prendas:6, estado:'En camino'}, {n:'TR-0141', destino:'Taller Lima', prendas:2, estado:'Recibido'}, {n:'TR-0139', destino:'Lima · Jockey', prendas:11, estado:'Recibido'}]};
+
+const $ = (s, r=document) => r.querySelector(s);
+const soles = n => 'S/ ' + n.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+const ICONO = {
+  ayuda:'<span class="signo">?</span>',
+  venta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14l-1.5 11h-11z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>',
+  pct:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>',
+  persona:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  reloj:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  caja:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18"/></svg>',
+  salida:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>',
+  envio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8h13l-3-3M21 16H8l3 3"/></svg>',
+  recibir:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12l5 5L20 6"/></svg>',
+  mapa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  dedo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v5m0-1a1.5 1.5 0 0 1 3 0v1m0 0a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.5 14a1.6 1.6 0 0 1 2.6-1.8L8 14"/></svg>',
+  teclado:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>',
+  ojo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  flecha:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 6 6 6-6 6"/></svg>',
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   Pantallas de ejemplo (lo mínimo para que la guía tenga dónde apuntar)
+   ════════════════════════════════════════════════════════════════════════ */
+function cabecera(sobre, titulo, bajada, acciones=''){
+  return `<div class="cabecera"><div class="textos"><div class="sobretitulo">${sobre}</div><h1>${titulo}</h1><p class="bajada">${bajada}</p></div>
+    <div class="acciones"><button class="btn btn-ayuda" id="btn-ayuda" data-accion="ayuda" aria-label="Ayuda de este módulo">${ICONO.ayuda}<span class="txt">Ayuda</span></button>${acciones}</div></div>`;
+}
+
+const PANTALLAS = {
+  vender(){
+    const sub = estado.carrito.reduce((s,l) => s + l.precio*l.cant, 0);
+    const desc = Math.round(sub*estado.descuento)/100;
+    return cabecera('Ventas', 'Vender', 'Busca la prenda, agrégala y cobra. La boleta sale sola al confirmar.') + `
+    <div class="vender">
+      <section>
+        <div class="buscador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input class="caja" id="v-buscar" placeholder="Buscar prenda o escanear código…" value="${estado.busqueda}" autocomplete="off"></div>
+        <div class="productos" id="v-productos">${productosHTML()}</div>
+      </section>
+      <aside class="tarjeta carrito" id="v-carrito">
+        <h2>Venta actual</h2>
+        <div class="lineas" id="v-lineas">${estado.carrito.length ? estado.carrito.map(l => `
+          <div class="linea"><div class="n">${l.nom}<small>${soles(l.precio)}</small></div>
+          <div class="cant"><button data-menos="${l.id}">−</button>${l.cant}<button data-mas="${l.id}">+</button></div></div>`).join('')
+          : '<div class="sin">Agrega prendas desde la izquierda.</div>'}</div>
+        <div class="campo"><span class="etiqueta">Clienta</span><input class="caja" id="v-clienta" placeholder="DNI o celular (opcional)" value="${estado.clienta}" autocomplete="off"></div>
+        <div class="campo" id="v-resp-campo"><span class="etiqueta">Responsable</span>
+          <button class="caja combo" id="v-responsable" data-accion="abrir-resp">${estado.responsable ? `<span>${estado.responsable}</span>` : '<span class="ph">¿Quién atendió?</span>'}<span>▾</span></button></div>
+        <div class="botones"><button class="btn btn-sutil" id="v-descuento" data-accion="descuento">${ICONO.pct.replace('<svg','<svg width="16" height="16"')}Descuento</button>
+          <button class="btn btn-sutil" id="v-separar" data-accion="separar">${ICONO.reloj.replace('<svg','<svg width="16" height="16"')}Separar</button></div>
+        <div class="totales"><div class="f"><span>Subtotal</span><span>${soles(sub)}</span></div>
+          ${estado.descuento ? `<div class="f desc"><span>Descuento ${estado.descuento}%</span><span>− ${soles(desc)}</span></div>` : ''}
+          <div class="f"><span>Total</span><span class="total">${soles(sub-desc)}</span></div></div>
+        <button class="btn btn-primario cobrar" id="v-cobrar" data-accion="cobrar" style="margin-top:12px">Cobrar ${sub ? soles(sub-desc) : ''}</button>
+      </aside>
+    </div>`;
+  },
+  caja(){
+    const esperado = 200 + 1340 - estado.retiros;
+    return cabecera('Ventas', 'Caja', 'Lo que entró y salió del cajón hoy. Al cierre, cuentas y dejas el fondo.',
+      `<button class="btn btn-secundario" id="c-retiro" data-accion="retiro">${ICONO.salida}Registrar retiro</button><button class="btn btn-primario" id="c-cerrar" data-accion="cerrar-caja">Cerrar caja</button>`) + `
+    <div class="cifras" id="c-cifras">
+      <div class="tarjeta cifra"><div class="etiqueta">Fondo inicial</div><div class="n">${soles(200)}</div><div class="d">Abierta 9:02 por Rosa</div></div>
+      <div class="tarjeta cifra"><div class="etiqueta">Ventas en efectivo</div><div class="n">${soles(1340)}</div><div class="d">14 boletas</div></div>
+      <div class="tarjeta cifra"><div class="etiqueta">Retiros</div><div class="n">${soles(estado.retiros)}</div><div class="d">${estado.retiros ? '1 retiro' : 'Ninguno'}</div></div>
+      <div class="tarjeta cifra" id="c-esperado"><div class="etiqueta">Debe haber</div><div class="n">${soles(esperado)}</div><div class="d">en el cajón ahora</div></div>
+    </div>
+    <div class="tarjeta"><div class="scroll-x"><table class="tabla"><thead><tr><th>Hora</th><th>Qué</th><th>Medio</th><th style="text-align:right">Monto</th></tr></thead><tbody>
+      <tr><td>17:48</td><td>Boleta B001-2231</td><td>Efectivo</td><td style="text-align:right">${soles(159)}</td></tr>
+      <tr><td>17:20</td><td>Boleta B001-2230</td><td>Yape</td><td style="text-align:right">${soles(219)}</td></tr>
+      <tr><td>16:55</td><td>Boleta B001-2229</td><td>Efectivo</td><td style="text-align:right">${soles(129)}</td></tr>
+      <tr><td>16:02</td><td>Boleta B001-2228</td><td>Tarjeta</td><td style="text-align:right">${soles(249)}</td></tr>
+    </tbody></table></div></div>
+    <p class="nota" style="margin-top:14px">Al cerrar, lo que sobra del fondo se traslada a la caja fuerte (ADR-0186).</p>`;
+  },
+  traslados(){
+    return cabecera('Almacén', 'Traslados', 'Mercadería que sale de esta tienda hacia otra sede o el taller, y la que llega.',
+      `<button class="btn btn-primario" id="t-nuevo" data-accion="nuevo-traslado">+ Nuevo traslado</button>`) + `
+    <div class="tarjeta" id="t-tabla"><div class="herramientas" id="t-filtros"><button class="pildora" aria-pressed="true">Todos</button><button class="pildora" id="t-filtro-camino" data-accion="filtro-camino">En camino</button><button class="pildora">Por recibir</button></div>
+    <div class="scroll-x"><table class="tabla"><thead><tr><th>Traslado</th><th>Destino</th><th>Prendas</th><th>Estado</th></tr></thead><tbody>
+    ${estado.traslados.map(t => `<tr><td>${t.n}</td><td>${t.destino}</td><td>${t.prendas}</td><td><span class="chip ${t.estado==='Recibido'?'verde':'pizarra'}">${t.estado}</span></td></tr>`).join('')}
+    </tbody></table></div></div>
+    <p class="nota" style="margin-top:14px">La tienda destino confirma lo que llegó desde «Por recibir»; hasta entonces las prendas figuran «en camino».</p>`;
+  },
+};
+
+function productosHTML(){
+  const visibles = PRODUCTOS.filter(p => !estado.busqueda || p.nom.toLowerCase().includes(estado.busqueda.toLowerCase()));
+  return visibles.length ? visibles.map(p => `
+    <article class="tarjeta producto"><div class="foto">${p.ini}</div><div><div class="nom">${p.nom}</div><div class="det">${p.det}</div></div>
+    <div class="fila"><span class="precio">${soles(p.precio)}</span><button class="btn btn-secundario btn-chico btn-agregar" data-agregar="${p.id}">Agregar</button></div></article>`).join('')
+    : `<div class="vacio">No hay prendas con «${estado.busqueda}».</div>`;
+}
+function pintar(){
+  $('#contenido').innerHTML = PANTALLAS[estado.modulo]();
+  document.querySelectorAll('.item-menu').forEach(b => b.toggleAttribute('aria-current', b.dataset.modulo === estado.modulo));
+  document.querySelectorAll('.item-menu[aria-current]').forEach(b => b.setAttribute('aria-current','page'));
+}
+
+/* ── Interacción de las pantallas ───────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.modulo){ irA(t.dataset.modulo); $('#lateral').classList.remove('abierto'); return; }
+  if(t.id === 'hamburguesa'){ $('#lateral').classList.toggle('abierto'); return; }
+  if(t.id === 'reiniciar'){ try{ localStorage.removeItem('cayla-guias'); }catch(_){} guias.hechas = {}; guias.pausa = null; Object.assign(estado,{carrito:[],responsable:null,descuento:0,clienta:'',busqueda:'',retiros:0}); pintar(); return; }
+  if(t.dataset.agregar){ agregar(t.dataset.agregar); return; }
+  if(t.dataset.mas){ estado.carrito.find(l=>l.id===t.dataset.mas).cant++; pintar(); return; }
+  if(t.dataset.menos){ const l = estado.carrito.find(l=>l.id===t.dataset.menos); l.cant--; if(!l.cant) estado.carrito = estado.carrito.filter(x=>x!==l); pintar(); return; }
+  const a = t.dataset.accion;
+  if(a === 'ayuda') abrirAyuda();
+  if(a === 'abrir-resp') abrirResponsable();
+  if(t.dataset.resp){ estado.responsable = t.dataset.resp; pintar(); }
+  if(a === 'cobrar') modalCobrar();
+  if(a === 'descuento') modalDescuento();
+  if(a === 'separar') modalSeparar();
+  if(a === 'retiro') modalRetiro();
+  if(a === 'cerrar-caja') modalCerrarCaja();
+  if(a === 'nuevo-traslado') modalTraslado();
+});
+document.addEventListener('input', e => {
+  if(e.target.id === 'v-buscar'){ estado.busqueda = e.target.value; $('#v-productos').innerHTML = productosHTML(); }
+  if(e.target.id === 'v-clienta'){ estado.clienta = e.target.value; }
+});
+function irA(m){ estado.modulo = m; pintar(); window.scrollTo(0,0); }
+function agregar(id){ const p = PRODUCTOS.find(p=>p.id===id); const l = estado.carrito.find(l=>l.id===id); l ? l.cant++ : estado.carrito.push({...p, cant:1}); pintar(); }
+function abrirResponsable(){
+  const campo = $('#v-resp-campo'); if($('.lista-flotante', campo)){ $('.lista-flotante', campo).remove(); return; }
+  campo.insertAdjacentHTML('beforeend', `<div class="lista-flotante" id="v-resp-lista">${EQUIPO.map(p => `<button class="resp-opcion" data-resp="${p.nom}"><span class="ini">${p.ini}</span>${p.nom}</button>`).join('')}</div>`);
+}
+
+/* ── Modales (ADR-0136: velo, hoja que sube, cascada) ───────────────────── */
+function modal(html, alMontar){
+  cerrarModal();
+  document.body.insertAdjacentHTML('beforeend', `<div class="modal-velo" id="modal-velo"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`);
+  $('#modal-velo').addEventListener('click', e => { if(e.target.id === 'modal-velo' || e.target.closest('[data-cerrar]')) cerrarModal(); });
+  alMontar && alMontar($('#modal-velo'));
+}
+function cerrarModal(){ $('#modal-velo')?.remove(); }
+function elegibles(contenedor){ contenedor.addEventListener('click', e => { const o = e.target.closest('.opcion'); if(!o) return;
+  contenedor.querySelectorAll('.opcion').forEach(x => x.setAttribute('aria-pressed', x===o)); contenedor.dispatchEvent(new CustomEvent('elegido', {detail:o.dataset.v})); }); }
+function totalVenta(){ const s = estado.carrito.reduce((a,l)=>a+l.precio*l.cant,0); return s - Math.round(s*estado.descuento)/100; }
+
+function modalCobrar(){
+  modal(`<h3>Cobrar</h3><p class="bajada">Elige cómo pagó la clienta. Si pagó con dos medios, agrega otro.</p>
+    <div class="resumen-modal"><span>Total a cobrar</span><b>${soles(totalVenta())}</b></div>
+    <span class="etiqueta">Medio de pago</span>
+    <div class="opciones" id="m-medios">${MEDIOS.map(m => `<button class="opcion" data-v="${m.c}"><span class="pt" style="background:${m.col}"></span>${m.n}</button>`).join('')}</div>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Volver</button><button class="btn btn-primario" id="m-confirmar" disabled>Confirmar venta</button></div>`, v => {
+    const ops = $('#m-medios', v); elegibles(ops); ops.addEventListener('elegido', () => $('#m-confirmar').disabled = false);
+    $('#m-confirmar', v).addEventListener('click', () => { cerrarModal(); estado.carrito = []; estado.descuento = 0; estado.clienta=''; pintar(); avisar('Venta registrada · Boleta B001-2232'); });
+  });
+}
+function modalDescuento(){
+  modal(`<h3>Descuento</h3><p class="bajada">Se aplica a toda la venta. Más de 20% lo autoriza el líder.</p>
+    <div class="opciones" id="m-descuentos">${[5,10,15,20].map(p => `<button class="opcion" data-v="${p}">${p}%</button>`).join('')}</div>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Cancelar</button><button class="btn btn-primario" id="m-aplicar" disabled>Aplicar</button></div>`, v => {
+    let elegido = 0; const ops = $('#m-descuentos', v); elegibles(ops);
+    ops.addEventListener('elegido', e => { elegido = +e.detail; $('#m-aplicar').disabled = false; });
+    $('#m-aplicar', v).addEventListener('click', () => { estado.descuento = elegido; cerrarModal(); pintar(); avisar(`Descuento de ${elegido}% aplicado`); });
+  });
+}
+function modalSeparar(){
+  modal(`<h3>Separar prendas</h3><p class="bajada">La clienta deja un adelanto y las prendas quedan reservadas a su nombre.</p>
+    <div class="campo"><span class="etiqueta">Adelanto</span><input class="caja" id="m-adelanto" inputmode="decimal" placeholder="S/ 0.00"></div>
+    <div class="campo"><span class="etiqueta">Vence en</span><div class="opciones" id="m-plazo">${['7 días','15 días','30 días'].map(p => `<button class="opcion" data-v="${p}">${p}</button>`).join('')}</div></div>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Cancelar</button><button class="btn btn-primario" id="m-separar">Separar</button></div>`, v => {
+    elegibles($('#m-plazo', v)); $('#m-separar', v).addEventListener('click', () => { cerrarModal(); estado.carrito=[]; pintar(); avisar('Separación registrada · vence en 15 días'); });
+  });
+}
+function modalRetiro(){
+  modal(`<h3>Registrar retiro</h3><p class="bajada">Plata que sale del cajón por algo que no es una venta.</p>
+    <div class="campo"><span class="etiqueta">Monto</span><input class="caja" id="m-monto" inputmode="decimal" placeholder="S/ 0.00"></div>
+    <span class="etiqueta">¿Para qué?</span><div class="opciones" id="m-motivos">${['Movilidad','Útiles de tienda','Pago a proveedor','Otro'].map(p => `<button class="opcion" data-v="${p}">${p}</button>`).join('')}</div>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Cancelar</button><button class="btn btn-primario" id="m-retirar">Registrar retiro</button></div>`, v => {
+    elegibles($('#m-motivos', v)); $('#m-retirar', v).addEventListener('click', () => { estado.retiros = +($('#m-monto').value.replace(/[^\d.]/g,'')) || 20; cerrarModal(); pintar(); avisar('Retiro registrado'); });
+  });
+}
+function modalCerrarCaja(){
+  const esperado = 1540 - estado.retiros;
+  modal(`<h3>Cerrar caja</h3><p class="bajada">Cuenta los billetes y monedas del cajón y escribe el total.</p>
+    <div class="resumen-modal"><span>Debe haber</span><b>${soles(esperado)}</b></div>
+    <div class="campo"><span class="etiqueta">Contaste</span><input class="caja" id="m-contado" inputmode="decimal" placeholder="S/ 0.00"></div>
+    <p class="bajada" id="m-diferencia" style="margin:0">&nbsp;</p>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Volver</button><button class="btn btn-primario" id="m-cerrar-ok">Cerrar caja</button></div>`, v => {
+    $('#m-contado', v).addEventListener('input', e => { const n = +e.target.value.replace(/[^\d.]/g,''); const d = n - esperado;
+      $('#m-diferencia').textContent = !e.target.value ? '' : d === 0 ? 'Cuadra exacto.' : d > 0 ? `Sobran ${soles(d)}.` : `Faltan ${soles(-d)}.`; });
+    $('#m-cerrar-ok', v).addEventListener('click', () => { cerrarModal(); avisar('Caja cerrada · traslado a caja fuerte propuesto'); });
+  });
+}
+function modalTraslado(){
+  modal(`<h3>Nuevo traslado</h3><p class="bajada">Elige a dónde va y qué prendas salen de esta tienda.</p>
+    <span class="etiqueta">Destino</span><div class="opciones" id="m-destinos">${['Arequipa · Yanahuara','Lima · Jockey','Taller Lima'].map(p => `<button class="opcion" data-v="${p}">${p}</button>`).join('')}</div>
+    <span class="etiqueta" style="margin-top:16px">Prendas</span><input class="caja" id="m-prenda" placeholder="Escanea o escribe el código…">
+    <p class="bajada" id="m-prendas-cuenta" style="margin:8px 0 0">Ninguna prenda todavía.</p>
+    <div class="pie-modal"><button class="btn btn-sutil" data-cerrar>Cancelar</button><button class="btn btn-primario" id="m-enviar">Enviar traslado</button></div>`, v => {
+    let destino = 'Arequipa'; const ops = $('#m-destinos', v); elegibles(ops); ops.addEventListener('elegido', e => destino = e.detail);
+    $('#m-prenda', v).addEventListener('keydown', e => { if(e.key==='Enter' && e.target.value){ e.target.value=''; const c = $('#m-prendas-cuenta'); c.dataset.n = (+c.dataset.n||0)+1; c.textContent = `${c.dataset.n} prenda(s) en este traslado.`; } });
+    $('#m-enviar', v).addEventListener('click', () => { estado.traslados.unshift({n:'TR-0143', destino, prendas:+($('#m-prendas-cuenta').dataset.n||1), estado:'En camino'}); cerrarModal(); pintar(); avisar('Traslado TR-0143 enviado'); });
+  });
+}
+
+/* Aviso: sale después de cerrar la guía o el modal, nunca encima (ADR-0149). */
+const avisosEnEspera = [];
+function avisar(texto, accion){
+  if(G){ avisosEnEspera.push([texto, accion]); return; }   // con la guía a la vista, el aviso espera a que se cierre
+  const el = document.createElement('div'); el.className = 'aviso';
+  el.innerHTML = `<span class="ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span><span style="flex:1">${texto}</span>`;
+  if(accion){ const b = document.createElement('button'); b.textContent = accion.texto; b.onclick = () => { el.remove(); accion.hacer(); }; el.append(b); }
+  $('#avisos').append(el); setTimeout(() => el.remove(), accion ? 8000 : 3600);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CATÁLOGO DE GUÍAS · una lista por módulo
+   Cada paso: dónde apunta (selector), qué hace la persona y cuándo avanza.
+     tipo 'clic'     → avanza cuando presiona dentro del círculo
+     tipo 'escribir' → avanza con Enter o «Listo» cuando `listo()` da verdadero
+     tipo 'ver'      → solo explica; avanza con «Siguiente»
+   `preparar()` deja la pantalla en el estado que el paso necesita (si la persona
+   se saltó un paso, la guía no se rompe: completa lo mínimo y sigue).
+   ════════════════════════════════════════════════════════════════════════ */
+const asegurarCarrito = () => { if(estado.modulo!=='vender') irA('vender'); if(!estado.carrito.length){ estado.busqueda=''; agregar('p1'); } };
+const GUIAS = {
+  vender:{
+    nombre:'Vender',
+    recorrido:[
+      {sel:'#v-buscar', tipo:'ver', t:'Aquí buscas', x:'Escribe parte del nombre o pasa el lector por el código de la etiqueta.'},
+      {sel:'#v-productos', tipo:'ver', t:'Las prendas de tu tienda', x:'Solo ves lo que hay en esta sede, con su precio de hoy.'},
+      {sel:'#v-carrito', tipo:'ver', t:'La venta que estás armando', x:'Lo que agregas cae aquí. Con + y − cambias la cantidad.'},
+      {sel:'#v-cobrar', tipo:'ver', t:'Cobrar', x:'Cuando la clienta está lista, cobras aquí. La boleta sale sola.'},
+      {sel:'#btn-ayuda', tipo:'ver', t:'Siempre puedes volver', x:'Si te pierdes, este botón te muestra todo lo que se puede hacer en Vender.'},
+    ],
+    grupos:[
+      {g:'Lo de todos los días', tareas:[
+        {id:'venta', ic:'venta', t:'Hacer una venta', d:'Buscar, agregar, cobrar', pasos:[
+          {sel:'#v-buscar', tipo:'escribir', t:'Busca la prenda', x:'Escribe parte del nombre. Prueba con «blusa».', listo:() => estado.busqueda.trim().length >= 3, preparar:() => irA('vender')},
+          {sel:'.btn-agregar', tipo:'clic', t:'Agrégala a la venta', x:'Presiona «Agregar» en la prenda que se lleva la clienta.', preparar:() => { if(!$('.btn-agregar')){ estado.busqueda=''; pintar(); } }},
+          {sel:'#v-carrito', tipo:'ver', t:'Revisa la venta', x:'Aquí está lo que lleva. Si se lleva dos, usa el +.', preparar:asegurarCarrito},
+          {sel:'#v-responsable', tipo:'clic', t:'¿Quién atendió?', x:'Abre la lista para elegir a la persona que atendió a la clienta.', preparar:asegurarCarrito},
+          {sel:'#v-resp-lista', tipo:'clic', t:'Elige tu nombre', x:'La venta queda firmada a nombre de quien elijas.', preparar:() => { if(!$('#v-resp-lista')) abrirResponsable(); }},
+          {sel:'#v-cobrar', tipo:'clic', t:'Cobra', x:'Presiona «Cobrar». Se abre la ventana de pago.', preparar:asegurarCarrito},
+          {sel:'#m-medios', tipo:'clic', t:'¿Cómo pagó?', x:'Elige efectivo, Yape, tarjeta o Plin.', preparar:() => { if(!$('#m-medios')) modalCobrar(); }},
+          {sel:'#m-confirmar', tipo:'clic', t:'Confirma la venta', x:'Listo: se descuenta del stock y sale la boleta.', preparar:() => { if(!$('#m-medios')) modalCobrar(); if($('#m-confirmar').disabled) $('#m-medios .opcion').click(); }},
+        ], fin:'Hiciste tu primera venta de principio a fin.'},
+        {id:'clienta', ic:'persona', t:'Registrar a la clienta', d:'Para su historial y puntos', pasos:[
+          {sel:'#v-clienta', tipo:'escribir', t:'Escribe su DNI o celular', x:'Si ya compró antes, aparece su nombre. Si no, se registra al cobrar.', listo:() => estado.clienta.trim().length >= 6, preparar:() => irA('vender')},
+          {sel:'#v-cobrar', tipo:'ver', t:'Cobra como siempre', x:'La boleta saldrá a su nombre y la compra queda en su historial.'},
+        ], fin:'La clienta queda asociada a la venta.'},
+      ]},
+      {g:'De vez en cuando', tareas:[
+        {id:'descuento', ic:'pct', t:'Aplicar un descuento', d:'A toda la venta', pasos:[
+          {sel:'#v-descuento', tipo:'clic', t:'Abre «Descuento»', x:'Necesitas al menos una prenda en la venta.', preparar:asegurarCarrito},
+          {sel:'#m-descuentos', tipo:'clic', t:'Elige el porcentaje', x:'Más de 20% necesita al líder.', preparar:() => { if(!$('#m-descuentos')) modalDescuento(); }},
+          {sel:'#m-aplicar', tipo:'clic', t:'Aplica', x:'El total se recalcula en la venta.', preparar:() => { if(!$('#m-descuentos')) modalDescuento(); if($('#m-aplicar').disabled) $('#m-descuentos .opcion').click(); }},
+        ], fin:'El descuento ya está en el total.'},
+        {id:'separar', ic:'reloj', t:'Separar una prenda', d:'Con adelanto y fecha de vencimiento', pasos:[
+          {sel:'#v-separar', tipo:'clic', t:'Presiona «Separar»', x:'Con las prendas ya agregadas a la venta.', preparar:asegurarCarrito},
+          {sel:'#m-adelanto', tipo:'escribir', t:'¿Cuánto deja de adelanto?', x:'Escribe el monto que la clienta paga hoy.', listo:() => $('#m-adelanto')?.value.trim().length > 0, preparar:() => { if(!$('#m-adelanto')) modalSeparar(); }},
+          {sel:'#m-plazo', tipo:'clic', t:'Elige cuándo vence', x:'Pasado ese día, las prendas vuelven a venderse.', preparar:() => { if(!$('#m-plazo')) modalSeparar(); }},
+          {sel:'#m-separar', tipo:'clic', t:'Confirma', x:'Queda en Apartados, a nombre de la clienta.', preparar:() => { if(!$('#m-separar')) modalSeparar(); }},
+        ], fin:'La prenda quedó separada.'},
+      ]},
+    ],
+  },
+  caja:{
+    nombre:'Caja',
+    recorrido:[
+      {sel:'#c-cifras', tipo:'ver', t:'Tu día en cuatro números', x:'Con qué abriste, cuánto entró en efectivo, qué salió y cuánto debe haber.'},
+      {sel:'#c-esperado', tipo:'ver', t:'Lo más importante', x:'«Debe haber» es lo que tienes que encontrar al contar el cajón.'},
+      {sel:'#c-cerrar', tipo:'ver', t:'Al final del día', x:'Aquí cierras la caja.'},
+    ],
+    grupos:[{g:'Lo de todos los días', tareas:[
+      {id:'cerrar', ic:'caja', t:'Cerrar la caja', d:'Contar y cuadrar el cajón', pasos:[
+        {sel:'#c-esperado', tipo:'ver', t:'Mira cuánto debe haber', x:'Este es el número al que tu conteo debe llegar.', preparar:() => irA('caja')},
+        {sel:'#c-cerrar', tipo:'clic', t:'Presiona «Cerrar caja»', x:'Se abre la ventana de conteo.'},
+        {sel:'#m-contado', tipo:'escribir', t:'Escribe lo que contaste', x:'Cuenta billetes y monedas. Si no cuadra, te lo dice al instante.', listo:() => $('#m-contado')?.value.trim().length > 0, preparar:() => { if(!$('#m-contado')) modalCerrarCaja(); }},
+        {sel:'#m-cerrar-ok', tipo:'clic', t:'Cierra', x:'Queda registrado quién cerró y con cuánto.', preparar:() => { if(!$('#m-cerrar-ok')) modalCerrarCaja(); }},
+      ], fin:'La caja quedó cerrada.'},
+      {id:'retiro', ic:'salida', t:'Sacar plata del cajón', d:'Movilidad, útiles, un pago', pasos:[
+        {sel:'#c-retiro', tipo:'clic', t:'Presiona «Registrar retiro»', x:'Todo sol que sale del cajón se anota, así la caja cuadra al cierre.', preparar:() => irA('caja')},
+        {sel:'#m-monto', tipo:'escribir', t:'¿Cuánto sacas?', x:'Escribe el monto.', listo:() => $('#m-monto')?.value.trim().length > 0, preparar:() => { if(!$('#m-monto')) modalRetiro(); }},
+        {sel:'#m-motivos', tipo:'clic', t:'¿Para qué?', x:'Elige el motivo.', preparar:() => { if(!$('#m-motivos')) modalRetiro(); }},
+        {sel:'#m-retirar', tipo:'clic', t:'Registra', x:'«Debe haber» baja en ese monto.', preparar:() => { if(!$('#m-retirar')) modalRetiro(); }},
+      ], fin:'El retiro quedó anotado.'},
+    ]}],
+  },
+  traslados:{
+    nombre:'Traslados',
+    recorrido:[
+      {sel:'#t-filtros', tipo:'ver', t:'Filtra', x:'Mira solo lo que está en camino o lo que te toca recibir.'},
+      {sel:'#t-tabla', tipo:'ver', t:'Todos los traslados', x:'Cada fila es un envío con su destino y su estado.'},
+      {sel:'#t-nuevo', tipo:'ver', t:'Enviar mercadería', x:'Desde aquí armas un traslado nuevo.'},
+    ],
+    grupos:[{g:'Lo de todos los días', tareas:[
+      {id:'enviar', ic:'envio', t:'Enviar mercadería a otra sede', d:'Destino, prendas y enviar', pasos:[
+        {sel:'#t-nuevo', tipo:'clic', t:'Presiona «Nuevo traslado»', x:'Se abre la ventana del envío.', preparar:() => irA('traslados')},
+        {sel:'#m-destinos', tipo:'clic', t:'¿A dónde va?', x:'Elige la sede o el taller.', preparar:() => { if(!$('#m-destinos')) modalTraslado(); }},
+        {sel:'#m-prenda', tipo:'escribir', t:'Escanea las prendas', x:'Pasa el lector por cada etiqueta (o escribe un código y Enter).', listo:() => +($('#m-prendas-cuenta')?.dataset.n||0) > 0, preparar:() => { if(!$('#m-prenda')) modalTraslado(); }},
+        {sel:'#m-enviar', tipo:'clic', t:'Envía', x:'Las prendas salen de tu stock y quedan «en camino».', preparar:() => { if(!$('#m-enviar')) modalTraslado(); }},
+      ], fin:'El traslado va en camino.'},
+      {id:'recibir', ic:'recibir', t:'Ver qué está en camino', d:'Envíos que aún no llegan', pasos:[
+        {sel:'#t-filtro-camino', tipo:'clic', t:'Presiona «En camino»', x:'La tabla muestra solo lo que todavía no confirma el destino.', preparar:() => irA('traslados')},
+        {sel:'#t-tabla', tipo:'ver', t:'Revisa', x:'Si algo lleva días en camino, llama a la sede destino.'},
+      ], fin:'Ya sabes dónde mirar.'},
+    ]}],
+  },
+};
+
+/* ── Lo que cada persona ya completó y dónde pausó (preferencia local) ── */
+const guias = {hechas:{}, pausa:null};
+try{ Object.assign(guias, JSON.parse(localStorage.getItem('cayla-guias')) || {}); }catch(_){}
+const guardarGuias = () => { try{ localStorage.setItem('cayla-guias', JSON.stringify(guias)); }catch(_){} };
+
+/* ════════════════════════════════════════════════════════════════════════
+   PANEL DE AYUDA
+   ════════════════════════════════════════════════════════════════════════ */
+function abrirAyuda(){
+  cerrarAyuda();
+  const g = GUIAS[estado.modulo];
+  const p = guias.pausa && guias.pausa.modulo === estado.modulo ? guias.pausa : null;
+  const tareaP = p && buscarTarea(p.modulo, p.tarea);
+  document.body.insertAdjacentHTML('beforeend', `
+  <div class="ayuda-velo" id="ayuda-velo"></div>
+  <aside class="ayuda" id="ayuda" role="dialog" aria-modal="true" aria-labelledby="ayuda-titulo">
+    <div class="enc"><div class="fila"><div><div class="sobretitulo">Ayuda · ${g.nombre}</div><h2 id="ayuda-titulo">¿Qué quieres hacer?</h2></div>
+      <button class="cerrar" data-ayuda="cerrar" aria-label="Cerrar">${ICONO.x}</button></div>
+      <input class="caja" id="ayuda-buscar" placeholder="Busca: vender, descuento, cerrar…" style="margin-top:12px" autocomplete="off"></div>
+    <div class="cuerpo" id="ayuda-cuerpo">
+      ${tareaP ? `<div class="retomar"><div class="t"><b>${tareaP.t}</b>Te quedaste en el paso ${p.paso+1} de ${tareaP.pasos.length}</div><button class="btn btn-chico" data-ayuda="retomar">Retomar</button></div>` : ''}
+      <button class="recorrido" data-ayuda="recorrido"><span class="ic">${ICONO.mapa}</span><span><b>Conoce esta pantalla</b><span>${g.recorrido.length} paradas · 30 segundos</span></span></button>
+      <div id="ayuda-lista">${listaTareas(g, '')}</div>
+    </div>
+    <div class="pie"><kbd>?</kbd> abre esta ayuda en cualquier pantalla · <kbd>Esc</kbd> sale de la guía</div>
+  </aside>`);
+  const b = $('#ayuda-buscar');
+  b.addEventListener('input', () => $('#ayuda-lista').innerHTML = listaTareas(g, b.value));
+  $('#ayuda-velo').onclick = cerrarAyuda;
+  $('#ayuda').addEventListener('click', e => {
+    const t = e.target.closest('[data-ayuda]'); if(!t) return;
+    const a = t.dataset.ayuda;
+    if(a === 'cerrar') cerrarAyuda();
+    if(a === 'recorrido'){ cerrarAyuda(); iniciarGuia({t:'Conoce esta pantalla', pasos:g.recorrido, fin:'Ya conoces la pantalla de ' + g.nombre + '.', id:'recorrido'}, estado.modulo); }
+    if(a === 'retomar'){ cerrarAyuda(); iniciarGuia(tareaP, p.modulo, p.paso); }
+    if(a === 'tarea'){ cerrarAyuda(); iniciarGuia(buscarTarea(estado.modulo, t.dataset.id), estado.modulo); }
+  });
+}
+function listaTareas(g, q){
+  q = q.trim().toLowerCase();
+  const html = g.grupos.map(gr => {
+    const ts = gr.tareas.filter(t => !q || (t.t+' '+t.d).toLowerCase().includes(q));
+    if(!ts.length) return '';
+    return `<div class="grupo-tareas">${gr.g}</div>` + ts.map(t => {
+      const hecha = guias.hechas[estado.modulo+'/'+t.id];
+      return `<button class="tarea ${hecha?'hecha':''}" data-ayuda="tarea" data-id="${t.id}"><span class="ic">${hecha ? ICONO.recibir : ICONO[t.ic]}</span>
+        <span class="tx"><b>${t.t}</b><span>${t.pasos.length} pasos · ${hecha ? 'ya lo hiciste' : t.d}</span></span><span class="flecha">${ICONO.flecha}</span></button>`;
+    }).join('');
+  }).join('');
+  return html || `<div class="sin-resultados">No hay una guía para «${q}» en ${g.nombre}. Prueba con otra palabra o revisa otro módulo.</div>`;
+}
+function cerrarAyuda(){ $('#ayuda')?.remove(); $('#ayuda-velo')?.remove(); }
+function buscarTarea(m, id){ for(const gr of GUIAS[m].grupos) for(const t of gr.tareas) if(t.id === id) return t; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   MOTOR DE LA GUÍA · foco circular + tarjeta
+   ════════════════════════════════════════════════════════════════════════ */
+let G = null;   // guía en curso: {tarea, modulo, i, el, limpiar}
+
+function iniciarGuia(tarea, modulo, desde=0){
+  terminarGuia(true);
+  G = {tarea, modulo, i:desde, el:null, limpiar:[]};
+  document.body.classList.add('guia-activa');
+  document.body.insertAdjacentHTML('beforeend', `<svg class="guia-velo" id="guia-velo" aria-hidden="true"><path class="oscuro" id="guia-hueco" fill-rule="evenodd"/></svg><div class="guia-tapa" id="guia-tapa"></div><div class="guia-foco entrando" id="guia-foco"></div><div class="guia-tarjeta" id="guia-tarjeta" role="dialog" aria-live="polite"></div>`);
+  $('#guia-tapa').addEventListener('click', clicEnTapa);
+  addEventListener('resize', reubicar); addEventListener('scroll', reubicar, true);
+  mostrarPaso();
+  requestAnimationFrame(seguirHueco);
+}
+/* Copia la posición y el radio (ya animados por CSS) del círculo al recorte del velo. */
+function seguirHueco(){ if(!G) return; pintarHueco(); requestAnimationFrame(seguirHueco); }
+function pintarHueco(){
+  const f = $('#guia-foco'), h = $('#guia-hueco'); if(!G || !f || !h) return;
+  const r = f.getBoundingClientRect(), br = getComputedStyle(f).borderTopLeftRadius;
+  const k = Math.min(br.endsWith('%') ? r.width * parseFloat(br) / 100 : parseFloat(br) || 0, r.width/2, r.height/2);
+  const {left:x, top:y, width:w, height:a} = r;
+  // Pantalla completa menos un rectángulo redondeado (con k = w/2 = a/2 es un círculo): evenodd deja el agujero.
+  h.setAttribute('d', `M0 0H${innerWidth}V${innerHeight}H0Z` + (w && a ? `M${x+k} ${y}H${x+w-k}A${k} ${k} 0 0 1 ${x+w} ${y+k}V${y+a-k}A${k} ${k} 0 0 1 ${x+w-k} ${y+a}H${x+k}A${k} ${k} 0 0 1 ${x} ${y+a-k}V${y+k}A${k} ${k} 0 0 1 ${x+k} ${y}Z` : ''));
+}
+
+async function mostrarPaso(){
+  const paso = G.tarea.pasos[G.i];
+  G.limpiar.forEach(f => f()); G.limpiar = [];
+  paso.preparar && paso.preparar();
+  const el = await esperarElemento(paso.sel);
+  if(!G) return;
+  G.el = el;
+  pintarTarjeta();
+  if(el){
+    // Zona libre: en celular, lo que queda sobre la hoja de instrucciones.
+    const r = el.getBoundingClientRect(), arriba = 64, abajo = innerWidth <= 760 ? innerHeight - $('#guia-tarjeta').offsetHeight - 30 : innerHeight - 20;
+    if(r.top < arriba || r.bottom > abajo) scrollBy({top: (r.top + r.bottom)/2 - (arriba + abajo)/2, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+    if(paso.tipo === 'escribir'){
+      el.focus({preventScroll:true});
+      const alEscribir = () => pintarTarjeta();
+      const alEnter = e => { if(e.key === 'Enter' && paso.listo()) setTimeout(avanzar, 60); };
+      document.addEventListener('input', alEscribir); document.addEventListener('keydown', alEnter);
+      G.limpiar.push(() => { document.removeEventListener('input', alEscribir); document.removeEventListener('keydown', alEnter); });
+    }
+  }
+  requestAnimationFrame(() => { reubicar(); $('#guia-foco')?.classList.remove('entrando'); pulsar(); });
+  setTimeout(reubicar, 420);   // tras el scroll suave
+}
+function esperarElemento(sel){
+  return new Promise(ok => { const t0 = performance.now();
+    (function mirar(){ const el = [...document.querySelectorAll(sel)].find(e => e.offsetParent !== null);
+      if(el || performance.now() - t0 > 1500) return ok(el || null); requestAnimationFrame(mirar); })(); });
+}
+function pulsar(){ const f = $('#guia-foco'); if(!f) return; f.classList.remove('pulso'); void f.offsetWidth; f.classList.add('pulso'); }
+
+/* Círculo si el objetivo es compacto; si es ancho (una fila, una tarjeta), píldora redondeada. */
+function reubicar(){
+  if(!G) return;
+  const f = $('#guia-foco'), c = $('#guia-tarjeta');
+  if(G.el && !G.el.isConnected) G.el = [...document.querySelectorAll(G.tarea.pasos[G.i].sel)].find(e => e.offsetParent !== null) || null;
+  if(!G.el){ f.classList.add('sin-agujero'); centrarTarjeta(c); return; }
+  f.classList.remove('sin-agujero');
+  const r = G.el.getBoundingClientRect(), pad = 10;
+  const ancho = r.width + pad*2, alto = r.height + pad*2;
+  let w, h, radio;
+  if(ancho / alto < 2.4 && Math.max(ancho, alto) < 260){ w = h = Math.hypot(r.width, r.height) + pad*1.2; radio = '50%'; }
+  else { w = ancho; h = alto; radio = Math.min(28, h/2) + 'px'; }
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  Object.assign(f.style, {left:(cx - w/2)+'px', top:(cy - h/2)+'px', width:w+'px', height:h+'px', borderRadius:radio});
+  G.hueco = {cx, cy, w, h, circulo: radio === '50%'};
+  pintarHueco();
+  if(innerWidth <= 760) return;   // en celular la tarjeta es hoja fija abajo
+  const tw = c.offsetWidth, th = c.offsetHeight, m = 18;
+  let x, y;
+  if(cy + h/2 + m + th < innerHeight - 12){ y = cy + h/2 + m; x = cx - tw/2; }           // debajo
+  else if(cy - h/2 - m - th > 12){ y = cy - h/2 - m - th; x = cx - tw/2; }               // encima
+  else if(cx + w/2 + m + tw < innerWidth - 12){ x = cx + w/2 + m; y = cy - th/2; }       // derecha
+  else { x = cx - w/2 - m - tw; y = cy - th/2; }                                          // izquierda
+  c.style.left = Math.max(12, Math.min(innerWidth - tw - 12, x)) + 'px';
+  c.style.top  = Math.max(12, Math.min(innerHeight - th - 12, y)) + 'px';
+}
+function centrarTarjeta(c){ if(innerWidth <= 760) return; c.style.left = (innerWidth - c.offsetWidth)/2 + 'px'; c.style.top = (innerHeight - c.offsetHeight)/2 + 'px'; }
+
+/* Un clic dentro del agujero pasa al elemento real; fuera, no hace nada. */
+function clicEnTapa(e){
+  if(!G || !G.el || !G.hueco) return;
+  const {cx, cy, w, h, circulo} = G.hueco;
+  const dentro = circulo ? Math.hypot(e.clientX - cx, e.clientY - cy) <= w/2
+                         : Math.abs(e.clientX - cx) <= w/2 && Math.abs(e.clientY - cy) <= h/2;
+  if(!dentro){ pulsar(); return; }        // presionó fuera: el círculo vuelve a latir para mostrar dónde
+  const tapa = $('#guia-tapa'); tapa.style.pointerEvents = 'none';
+  const bajo = document.elementFromPoint(e.clientX, e.clientY);
+  tapa.style.pointerEvents = '';
+  const destino = (bajo && G.el.contains(bajo)) ? bajo : G.el;
+  const paso = G.tarea.pasos[G.i];
+  if(destino.matches('input')){ destino.focus(); return; }
+  (destino.closest('button') || destino).click();
+  if(paso.tipo === 'clic') setTimeout(avanzar, 220);
+}
+
+function pintarTarjeta(){
+  const c = $('#guia-tarjeta'); if(!c || !G) return;
+  const paso = G.tarea.pasos[G.i], n = G.tarea.pasos.length, ultimo = G.i === n - 1;
+  const puede = paso.tipo !== 'escribir' || paso.listo();
+  const pista = paso.tipo === 'clic' ? `${ICONO.dedo}Presiona dentro del círculo`
+              : paso.tipo === 'escribir' ? `${ICONO.teclado}Escribe y presiona Enter` : '';
+  const siguiente = paso.tipo === 'clic' ? `<button class="btn btn-sutil btn-chico" data-guia="saltar">Lo hago después</button>`
+                  : `<button class="btn btn-primario btn-chico" data-guia="siguiente" ${puede?'':'disabled'}>${ultimo ? 'Terminar' : paso.tipo==='escribir' ? 'Listo' : 'Siguiente'}</button>`;
+  const yaPintada = c.dataset.paso == G.i;
+  c.dataset.paso = G.i;
+  c.innerHTML = `
+    <div class="cab"><span class="paso">Paso ${G.i+1} de ${n}</span><button class="x" data-guia="salir" aria-label="Salir de la guía">${ICONO.x}</button></div>
+    <div class="cuerpo-paso" style="${yaPintada?'animation:none':''}">
+      <div class="tarea-nom">${G.tarea.t}</div><h4>${paso.t}</h4><p>${paso.x}</p>
+      ${pista ? `<span class="pista">${pista}</span>` : ''}
+      ${G.el ? '' : `<p style="margin-top:8px;color:var(--ambar);font-size:13px">No encuentro este botón en la pantalla. Puedes seguir con «Siguiente».</p>`}
+    </div>
+    <div class="progreso">${G.tarea.pasos.map((_,k) => `<i class="${k<G.i?'hecho':k===G.i?'actual':''}"></i>`).join('')}</div>
+    <div class="botones">
+      ${G.i ? '<button class="btn btn-enlace" data-guia="atras">← Atrás</button>' : ''}
+      <button class="btn btn-enlace terminar" data-guia="salir">Terminar guía</button>
+      <span class="espacio"></span>${G.el ? siguiente : '<button class="btn btn-primario btn-chico" data-guia="siguiente">Siguiente</button>'}
+    </div>`;
+  c.onclick = e => { const a = e.target.closest('[data-guia]')?.dataset.guia;
+    if(a === 'siguiente' || a === 'saltar') avanzar(); if(a === 'atras'){ G.i--; mostrarPaso(); } if(a === 'salir') terminarGuia(); };
+  if(!yaPintada) setTimeout(() => $('[data-guia="siguiente"]:not([disabled])', c)?.focus({preventScroll:true}), 50);
+  reubicar();
+}
+
+function avanzar(){
+  if(!G) return;
+  if(G.i < G.tarea.pasos.length - 1){ G.i++; mostrarPaso(); } else completar();
+}
+function completar(){
+  const {tarea, modulo} = G;
+  if(tarea.id !== 'recorrido') guias.hechas[modulo+'/'+tarea.id] = true;
+  if(guias.pausa && guias.pausa.tarea === tarea.id) guias.pausa = null;
+  guardarGuias();
+  G.el = null; G.limpiar.forEach(f => f()); G.limpiar = [];
+  $('#guia-foco').classList.add('sin-agujero');
+  const c = $('#guia-tarjeta'); c.dataset.paso = 'fin';
+  c.innerHTML = `<div class="fin"><svg class="visto" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28"/><path d="m18 29 7 7 13-15"/></svg>
+    <h4>¡Listo!</h4><p>${tarea.fin}</p>
+    <div class="btns"><button class="btn btn-sutil btn-chico" data-guia="otra">Ver otras guías</button><button class="btn btn-primario btn-chico" data-guia="cerrar">Cerrar</button></div></div>`;
+  c.onclick = e => { const a = e.target.closest('[data-guia]')?.dataset.guia; if(a === 'cerrar') terminarGuia(true); if(a === 'otra'){ terminarGuia(true); abrirAyuda(); } };
+  centrarTarjeta(c);
+  setTimeout(() => $('[data-guia="cerrar"]', c)?.focus(), 60);
+}
+/* Salir antes de terminar: la guía recuerda el paso y ofrece retomarlo. */
+function terminarGuia(silencioso){
+  if(!G) return;
+  const {tarea, modulo, i} = G;
+  G.limpiar.forEach(f => f());
+  removeEventListener('resize', reubicar); removeEventListener('scroll', reubicar, true);
+  ['#guia-velo','#guia-tapa','#guia-foco','#guia-tarjeta'].forEach(s => $(s)?.remove());
+  G = null;
+  document.body.classList.remove('guia-activa');
+  avisosEnEspera.splice(0).forEach(a => avisar(...a));
+  if(silencioso) return;
+  if(tarea.id !== 'recorrido' && i > 0){
+    guias.pausa = {modulo, tarea:tarea.id, paso:i}; guardarGuias();
+    avisar(`Guía pausada en el paso ${i+1} de ${tarea.pasos.length}`, {texto:'Retomar', hacer:() => { if(estado.modulo!==modulo) irA(modulo); iniciarGuia(tarea, modulo, i); }});
+  }
+}
+
+addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ if(G) terminarGuia(); else if($('#ayuda')) cerrarAyuda(); else cerrarModal(); }
+  if(e.key === '?' && !G && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ e.preventDefault(); abrirAyuda(); }
+  if(G && e.key === 'ArrowRight' && !/INPUT/.test(document.activeElement.tagName) && G.tarea.pasos[G.i].tipo === 'ver') avanzar();
+});
+
+pintar();
+/* Enlace directo a una guía: #guia=vender/venta/3 (módulo/tarea/paso). Sirve para mandarle a alguien «mira cómo se hace». */
+(function(){
+  const m = location.hash.match(/guia=(\w+)\/(\w+)(?:\/(\d+))?/); if(!m || !GUIAS[m[1]]) return;
+  irA(m[1]);
+  const tarea = m[2] === 'recorrido' ? {t:'Conoce esta pantalla', pasos:GUIAS[m[1]].recorrido, fin:'Listo.', id:'recorrido'} : buscarTarea(m[1], m[2]);
+  if(!tarea) return;
+  const i = Math.max(0, Math.min(tarea.pasos.length - 1, (+m[3] || 1) - 1));
+  if(tarea.id === 'venta' && i >= 5) estado.responsable = 'Rosa Quispe';   // para no dejar la lista abierta al saltar
+  tarea.pasos.slice(0, i).forEach(p => p.preparar && !p.sel.includes('resp') && p.preparar());
+  iniciarGuia(tarea, m[1], i);
+})();
+</script>
+</body>
+</html>
