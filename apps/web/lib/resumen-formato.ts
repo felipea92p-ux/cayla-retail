@@ -128,6 +128,17 @@ export function textoRitmoReciente(r: RitmoReciente): string {
   return `${formatoVelocidad(r.unidadesDia)}/día`;
 }
 
+/** La celda «Ritmo reciente» de la tabla de Existencias tal como la dibuja el diseño aprobado (2026-09-28): «1 ud/día»,
+ *  «2 uds/día», «Sin salida reciente» y, con menos jornadas de las que pide la política, «Sin datos suficientes». Solo cambia
+ *  cómo se escribe: los hechos por jornada («D1: 3 · D2: 1») siguen en el detalle que abre la celda y `textoRitmoReciente`
+ *  (el CSV y el cálculo del detalle) no se toca. */
+export function textoRitmoRecienteCelda(r: RitmoReciente): string {
+  if (r.tipo === "insuficiente") return "Sin datos suficientes";
+  if (r.tipo === "sin_salida") return "Sin salida reciente";
+  const cifra = formatoVelocidad(r.unidadesDia);
+  return `${cifra} ${cifra === "1" ? "ud" : "uds"}/día`;
+}
+
 /** «5 d», «0 d» (agotado), «No estimable» (sin jornadas suficientes todavía) o «No estimable
  *  por ausencia de salida reciente» (sí hubo jornadas, pero cero ventas) — nunca infinito,
  *  nunca una cobertura fabricada sobre una tasa insuficiente o en cero (Felipe, 2026-09-25). */

@@ -176,6 +176,25 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
   return distintas.size === 1 ? coinciden[0] : null;
 }
 
+/** «Qué hacer» de una prenda en la lista «Por prenda» (diseño aprobado, 2026-09-28): SOLO el diagnóstico, nunca un botón —la
+ *  acción se hace en el cajón de la prenda—. No decide nada nuevo: cuenta lo que ya dicen las cifras libres y «Acción hoy».
+ *  - «N tallas sin stock en piso»: las que no tienen ni una libre colgada (piso libre en 0). `critico` cuando alguna no tiene
+ *    NADA en ningún lado (ni atrás para bajar): ahí no basta con colgar, y el chip lleva el triángulo rojo.
+ *  - «N tallas por reponer»: con todas colgadas, las que la regla física de piso ya pide reponer (piso libre ≤ umbral).
+ *  - «Mantener»: nada que hacer hoy con esta prenda. */
+export type QueHacerPrenda =
+  | { tipo: "sin_stock_piso"; n: number; critico: boolean }
+  | { tipo: "por_reponer"; n: number }
+  | { tipo: "mantener" };
+
+export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda {
+  const sinPiso = tallas.filter((f) => f.pisoDisponible !== null && f.pisoDisponible <= 0);
+  if (sinPiso.length > 0) return { tipo: "sin_stock_piso", n: sinPiso.length, critico: sinPiso.some((f) => f.disponible <= 0) };
+  const porReponer = tallas.filter((f) => f.accionHoy?.tipo === "reponer_a_piso").length;
+  if (porReponer > 0) return { tipo: "por_reponer", n: porReponer };
+  return { tipo: "mantener" };
+}
+
 /** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo
  *  atrás), 1 = pide reponer y se puede bajar, 2 = nada que hacer hoy. */
 export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasParaBajar">): 0 | 1 | 2 {

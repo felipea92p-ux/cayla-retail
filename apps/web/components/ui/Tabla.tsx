@@ -73,18 +73,30 @@ export function Tabla({ children, className = "", style }: { children: ReactNode
  *  `siempre`: para las tablas anchas que se desplazan dentro de su tarjeta en vez de apilarse en celular
  *  (las de Análisis): el encabezado no se esconde bajo `sm` y los títulos de una y de dos líneas se
  *  alinean por abajo. */
-export function Encabezado({ columnas, plantilla, siempre = false }: { columnas: Columna[]; plantilla: string; siempre?: boolean }) {
+export function Encabezado({
+  columnas,
+  plantilla,
+  siempre = false,
+  grande = false,
+}: {
+  columnas: Columna[];
+  plantilla: string;
+  siempre?: boolean;
+  /** Un poco más de alto y la segunda línea del mismo tamaño que el título: las listas de Existencias del diseño aprobado
+   *  (2026-09-28). Las demás tablas siguen con el encabezado chico de siempre. */
+  grande?: boolean;
+}) {
   return (
-    <div className={`${siempre ? "grid items-end" : "hidden sm:grid"} ${TABLA.encabezado} ${plantilla}`} role="row">
+    <div className={`${siempre ? "grid items-end" : "hidden sm:grid"} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
       {columnas.map((c, i) => (
         <span
           key={i}
           title={c.ayuda}
-          className={`${TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""}`}
+          className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""}`}
           role="columnheader"
         >
           {c.titulo}
-          {c.subtitulo && <span className="block truncate text-[10px] text-taupe">{c.subtitulo}</span>}
+          {c.subtitulo && <span className={`block truncate ${grande ? "text-xs" : "text-[10px]"} text-taupe`}>{c.subtitulo}</span>}
         </span>
       ))}
     </div>

@@ -457,6 +457,8 @@ const FORMA_DESPLEGABLE = {
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
   caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
+  /** La misma caja hundida, de 36 px y con la letra un punto más grande: los filtros de Existencias del diseño aprobado (2026-09-28). */
+  cajaBaja: { boton: "caja-cayla h-9 w-full justify-between gap-3 px-3.5 text-[13px] text-tinta", flecha: true, hilo: false, comoNativo: false },
   /** Finanzas (ADR-0195): cerrado, el control en caja de su spike (`fin-control`, app/estilos/finanzas.css). */
   fin: { boton: "fin-control fin-desplegable", flecha: false, hilo: false, comoNativo: true },
   /** Finanzas, dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026»): sin caja, hereda la letra. El contorno de

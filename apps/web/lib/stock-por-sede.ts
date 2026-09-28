@@ -69,6 +69,10 @@ export type ResumenRed = {
   total: number;
   /** «Taller: 14 · Lima: 22» — una línea, sede por sede. */
   detalle: string;
+  /** La celda «En la red» de Existencias tal como la dibuja el diseño aprobado (2026-09-28): UNA línea, «Disponible en
+   *  Taller: 14» si solo una sede la tiene (con su nombre) o «Disponible en 2 sedes: 11»; el desglose por sede queda en
+   *  `detalle`, que la celda muestra al pasar el mouse. */
+  linea: string;
 };
 
 /** Formato de Existencias (Felipe, 2026-09-16): «Disponible en 3 sedes:
@@ -80,9 +84,11 @@ export type ResumenRed = {
  *  `textoOtrasSedes`: nunca "0 sedes", directo nada que mostrar). */
 export function resumenRed(otras: SedeConStock[]): ResumenRed | null {
   if (otras.length === 0) return null;
+  const total = otras.reduce((acc, o) => acc + o.cantidad, 0);
   return {
     sedes: otras.length,
-    total: otras.reduce((acc, o) => acc + o.cantidad, 0),
+    total,
     detalle: otras.map((o) => `${o.sede}: ${o.cantidad}`).join(" · "),
+    linea: `Disponible en ${otras.length === 1 ? otras[0].sede : `${otras.length} sedes`}: ${total}`,
   };
 }

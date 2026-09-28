@@ -71,9 +71,11 @@ export type FilaParaRecomendaciones = FilaParaAccionHoy & {
 
 export type TipoAccionHoy = "reponer_a_piso" | "sin_accion";
 
+// «Mantener» (diseño aprobado de Existencias, 2026-09-28) es el texto de `sin_accion` en la fila, el filtro «Acción» y el CSV:
+// cambia la palabra, no la regla (`calcularAccionHoy` sigue devolviendo el mismo tipo con las mismas cifras).
 export const TEXTO_ACCION_HOY: Record<TipoAccionHoy, string> = {
   reponer_a_piso: "Reponer a piso",
-  sin_accion: "Sin acción",
+  sin_accion: "Mantener",
 };
 
 /** Orden de urgencia para la tabla y el filtro: lo que pide acción primero. */
