@@ -506,7 +506,8 @@ const RESPONSABLES = ["Elige quién registra…","Rosa Quispe","Milagros Díaz",
    ESTADO
    ========================================================================= */
 let s;
-function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, nuevaMarca:false, nmMarca:"", nmProvQ:"", listaProv:false, nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:"", tejido:null, patron:null,
+const NM_VACIO = {nuevaMarca:false, nmMarca:"", nmMarcaSel:null, listaMarca:false, nmProvQ:"", listaProv:false, nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""};
+function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, ...NM_VACIO, tejido:null, patron:null,
   mas:false, desc:"", temporada:0, etiquetas:[],
   tallas:[], colores:[], busColor:"", paleta:true, nuevoColor:false, ncNombre:"", ncHex:"#9c6b4f", fotos:{},
   fuera:[], precio:"", costo:"", modo:"cant", cant:{}, precios:{}, relleno:"", donde:"piso", sinStock:false, responsable:0,
@@ -527,8 +528,10 @@ const PRESETS = {
     colores:["Azul denim","Índigo","Celeste","Negro","Gris","Blanco","Caqui","Verde militar"], fotos:{"Azul denim":3,"Índigo":1,"Negro":2,"Caqui":1},
     fuera:["Blanco|40","Blanco|42","Caqui|42","Verde militar|42"], precio:"139.90", costo:"62.00"}),
   creado: () => ({...PRESETS.listo(), creado:true}),
+  /* Solo por enlace (#proveedor): sumarle un proveedor nuevo a una marca que ya existe. */
+  proveedor: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarcaSel:{nombre:"CAYLA", existe:true}, nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
   /* Solo por enlace (#marca): el formulario de marca nueva abierto, con un proveedor nuevo. */
-  marca: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarca:"Killa Denim", nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
+  marca: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarcaSel:{nombre:"Killa Denim", existe:false}, nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
   hoja: () => ({...blusa(), abierto:2, nombre:"blusa lirio", pareja:0, hoja:{tipo:"tejido", q:""}}),
 };
 
@@ -722,14 +725,27 @@ function nuevaMarcaHtml(){
          <p class="ayuda"><button class="btn-enlace" data-accion="nm-prov-existente">Mejor elijo uno que ya existe</button></p>`
       : `<div class="buscar" data-combo="prov">${lupa}<input class="caja" id="nm-prov" data-campo="nmProvQ" placeholder="Toca para ver los ${PROVEEDORES.length} proveedores, o escribe…" value="${esc(q)}" autocomplete="off">
            ${s.listaProv || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(lista.length, "proveedor", "proveedores") : "Todos, de la A a la Z"}</p>${lista.map(([p, i]) => `<button class="opcion" data-nmprov="${i}">${marcar(p, q)}</button>`).join("")}<button class="opcion crear" data-accion="nm-prov-nuevo">+ Proveedor nuevo${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button></div>` : ""}</div>`;
+  // Marca: una que ya existe (para sumarle un proveedor) o una nueva. Se busca o se escribe en el mismo campo.
+  const qm = s.nmMarca, sel = s.nmMarcaSel;
+  const marcas = MARCAS.map(m => m[0]).filter(m => coincide(m, qm)).sort((a, b) => a.localeCompare(b, "es"));
+  const exacta = MARCAS.some(m => sinTilde(m[0]) === sinTilde(qm.trim()));
+  const traenHoy = sel?.existe ? PAREJAS.filter(x => x[0] === sel.nombre).map(x => x[1]) : [];
+  const marca = sel
+    ? `<div class="elegida"><div><b>${esc(sel.nombre)}</b> <span class="taupe">· ${sel.existe ? `ya existe. Hoy la trae${traenHoy.length > 1 ? "n" : ""} ${esc(traenHoy.join(", "))}` : "marca nueva"}</span></div><button class="btn-enlace" data-accion="nm-marca-cambiar">Cambiar</button></div>`
+    : `<div class="buscar" data-combo="nmmarca">${lupa}<input class="caja" id="nm-marca" data-campo="nmMarca" placeholder="Busca una marca que ya existe o escribe una nueva…" value="${esc(qm)}" autocomplete="off">
+         ${s.listaMarca || qm.trim() ? `<div class="lista">${qm.trim() && !exacta ? `<button class="opcion crear" style="border-top:0;margin-top:0;padding-top:7px" data-accion="nm-marca-nueva">+ Marca nueva «${esc(titulo(qm))}»</button>` : ""}<p class="enc">${marcas.length ? (qm.trim() ? "Ya existen" : "Todas, de la A a la Z") : "Ninguna marca se llama así"}</p>${marcas.map(m => `<button class="opcion" data-nmmarca="${esc(m)}">${marcar(m, qm)}</button>`).join("")}</div>` : ""}</div>`;
+  const repetida = nmRepetida();
   return `<div class="panel-nuevo revela">
-    <p class="panel-tit">Marca nueva</p>
-    <div><label for="nm-marca">Nombre de la marca</label><input class="caja" id="nm-marca" data-campo="nmMarca" placeholder="Killa Denim" value="${esc(s.nmMarca)}" autocomplete="off"></div>
+    <p class="panel-tit">Registrar marca o proveedor</p>
+    <p class="taupe" style="font-size:12.5px;margin-top:-6px">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
+    <div><label for="nm-marca">Marca</label>${marca}</div>
     <div><label for="nm-prov">¿Quién te la trae?</label>${prov}</div>
-    <div class="acc"><button class="btn btn-secundario" data-accion="nm-cancelar">Cancelar</button><button class="btn btn-primario" data-accion="nm-crear" ${nmListo() ? "" : "disabled"}>Crear y elegir</button></div>
+    ${repetida ? `<div class="aviso ambar" style="margin:0">${esc(sel.nombre)} ya la trae ${esc(PROVEEDORES[s.nmProv])}. No hace falta registrarla: cancela y elígela en el buscador.</div>` : ""}
+    <div class="acc"><button class="btn btn-secundario" data-accion="nm-cancelar">Cancelar</button><button class="btn btn-primario" data-accion="nm-crear" ${nmListo() ? "" : "disabled"}>Registrar y elegir</button></div>
   </div>`;
 }
-const nmListo = () => s.nmMarca.trim() && (s.nmProv !== null || (s.nmProvNuevo && s.nmRazon.trim()));
+const nmRepetida = () => s.nmMarcaSel?.existe && s.nmProv !== null && PAREJAS.some(x => x[0] === s.nmMarcaSel.nombre && x[1] === PROVEEDORES[s.nmProv]);
+const nmListo = () => s.nmMarcaSel && (s.nmProv !== null || (s.nmProvNuevo && s.nmRazon.trim())) && !nmRepetida();
 function pieNombre(){ const f = nombreFinal(); return f && f !== s.nombre.trim() ? `Se guardará como <b>${esc(f)}</b>` : "Empieza por el tipo de prenda: Blusa, Jean, Vestido…"; }
 function avisoRepetido(r){ return `<div class="aviso ambar"><b>${esc(r)}</b> ya existe. Si es otro color de la misma prenda, <button class="btn-enlace">agrégale el color allá</button>; si es otra prenda, cámbiale el nombre.</div>`; }
 function resumenMas(){ const n = [s.temporada && TEMPORADAS[s.temporada], s.etiquetas.length && plural(s.etiquetas.length, "etiqueta", "etiquetas")].filter(Boolean); return n.length ? ` — <b style="color:var(--tinta);font-weight:600">${n.join(", ")}</b>` : ""; }
@@ -991,6 +1007,7 @@ document.addEventListener("click", e => {
   if (d.seguir) return abrir(+d.seguir);
   if (d.familia) { s.familia = s.familia === d.familia ? null : d.familia; return render(); }
   if (d.cat) { const cambia = s.cat !== d.cat; s.familia = famDe(d.cat); s.cat = d.cat; s.busCat = ""; if (cambia) { s.tallas = [...conf().habituales]; s.tejido = null; s.patron = null; s.fuera = []; } return abrir(2); }
+  if (d.nmmarca !== undefined) { s.nmMarcaSel = {nombre:d.nmmarca, existe:true}; s.listaMarca = false; return render(); }
   if (d.nmprov !== undefined) { s.nmProv = +d.nmprov; s.nmProvQ = ""; s.listaProv = false; return render(); }
   if (d.pareja !== undefined) { s.pareja = +d.pareja; s.busMP = ""; s.listaMP = false; return render(); }
   if (d.hoja) { s.hoja = {tipo:d.hoja, q:""}; return render(); }
@@ -1006,16 +1023,18 @@ document.addEventListener("click", e => {
   if (d.modo) { s.modo = d.modo; return render(); }
   if (d.donde) { s.donde = d.donde; return render(); }
   const a = d.accion;
-  if (a === "nm-abrir") { s.nuevaMarca = true; s.nmMarca = titulo(s.busMP); s.busMP = ""; s.listaMP = false; render(); $("#nm-marca")?.focus(); return; }
-  if (a === "nm-cancelar") { Object.assign(s, {nuevaMarca:false, nmMarca:"", nmProvQ:"", nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""}); return render(); }
+  if (a === "nm-abrir") { s.nuevaMarca = true; s.nmMarca = titulo(s.busMP); s.nmMarcaSel = null; s.busMP = ""; s.listaMP = false; render(); $("#nm-marca")?.focus(); return; }
+  if (a === "nm-cancelar") { Object.assign(s, NM_VACIO); return render(); }
+  if (a === "nm-marca-nueva") { s.nmMarcaSel = {nombre:titulo(s.nmMarca), existe:false}; s.listaMarca = false; return render(); }
+  if (a === "nm-marca-cambiar") { s.nmMarca = s.nmMarcaSel.nombre; s.nmMarcaSel = null; render(); $("#nm-marca")?.focus(); return; }
   if (a === "nm-prov-nuevo") { s.nmProvNuevo = true; s.nmRazon = titulo(s.nmProvQ); s.nmProvQ = ""; s.listaProv = false; render(); $("#nm-razon")?.focus(); return; }
   if (a === "nm-prov-existente" || a === "nm-prov-cambiar") { s.nmProvNuevo = false; s.nmProv = null; return render(); }
   if (a === "nm-crear") {
-    const marca = titulo(s.nmMarca), prov = s.nmProv !== null ? PROVEEDORES[s.nmProv] : titulo(s.nmRazon);
+    const marca = s.nmMarcaSel.nombre, prov = s.nmProv !== null ? PROVEEDORES[s.nmProv] : titulo(s.nmRazon);
     if (s.nmProv === null) PROVEEDORES.push(prov);
-    if (!MARCAS.some(m => m[0] === marca)) MARCAS.push([marca, [prov]]);
+    const m = MARCAS.find(x => x[0] === marca); if (m) m[1].push(prov); else MARCAS.push([marca, [prov]]);
     PAREJAS.push([marca, prov]); s.pareja = PAREJAS.length - 1;
-    Object.assign(s, {nuevaMarca:false, nmMarca:"", nmProvQ:"", nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""});
+    Object.assign(s, NM_VACIO);
     return render();
   }
   if (a === "cerrar-hoja") { s.hoja = null; return render(); }
@@ -1036,10 +1055,12 @@ document.addEventListener("click", e => {
 document.addEventListener("focusin", e => {
   if (e.target.dataset?.campo === "busMP" && !s.listaMP) { s.listaMP = true; render(); }
   if (e.target.dataset?.campo === "nmProvQ" && !s.listaProv) { s.listaProv = true; render(); }
+  if (e.target.dataset?.campo === "nmMarca" && !s.listaMarca) { s.listaMarca = true; render(); }
 });
 document.addEventListener("pointerdown", e => {
   if (s.listaMP && !e.target.closest('[data-combo="mp"]')) { s.listaMP = false; render(); }
   if (s.listaProv && !e.target.closest('[data-combo="prov"]')) { s.listaProv = false; render(); }
+  if (s.listaMarca && !e.target.closest('[data-combo="nmmarca"]')) { s.listaMarca = false; render(); }
 });
 /* El nombre del color bajo el mouse: la paleta no muestra nombres (círculos de 26 px). */
 document.addEventListener("pointerover", e => {
@@ -1051,8 +1072,8 @@ document.addEventListener("input", e => {
   if (d.campo === "hojaQ") { s.hoja.q = el.value; return render(); }
   if (d.campo) {
     s[d.campo] = el.value;
-    if (["busMP","busColor","busCat","nmProvQ"].includes(d.campo)) return render(); // abren o cierran su lista
-    if (["nmMarca","nmRazon","nmRuc"].includes(d.campo)) { const b = $('[data-accion="nm-crear"]'); if (b) b.disabled = !nmListo(); return; }
+    if (["busMP","busColor","busCat","nmProvQ","nmMarca"].includes(d.campo)) return render(); // abren o cierran su lista
+    if (["nmRazon","nmRuc"].includes(d.campo)) { const b = $('[data-accion="nm-crear"]'); if (b) b.disabled = !nmListo(); return; }
     if (d.campo === "ncNombre") { const btn = $('[data-accion="crear-color"]'); if (btn) btn.disabled = !el.value.trim(); return; }
     if (d.campo === "relleno" || d.campo === "ncHex") return;
     return vivo();
