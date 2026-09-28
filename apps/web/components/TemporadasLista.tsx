@@ -6,9 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
-import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
 import { Modal } from "@/components/ui/Modal";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import { BarraAtributos, GRILLA_ATRIBUTOS, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
+import { MuestraTemporada } from "@/components/MuestraTemporada";
+import { textoPrendas } from "@/lib/muestra-atributo-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Boton, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
@@ -34,8 +36,11 @@ import {
 import {
   fechasPorAgregar,
   filtrarSinTemporada,
+  grupoDeTemporada,
+  GRUPOS_TEMPORADA,
   gruposPorCategoria,
   MAX_ASIGNAR_POR_VEZ,
+  ORDEN_GRUPOS_TEMPORADA,
   primerAnioVisible,
   resumenVistas,
   revisarFechas,
@@ -47,6 +52,7 @@ import {
   type DatosPestanaTemporadas,
   type FechaEnEdicion,
   type GrupoSinTemporada,
+  type GrupoTemporada,
   type ResumenVistas,
   type RevisionFecha,
   type VistaTemporadas,
@@ -54,15 +60,15 @@ import {
 
 /**
  * La pestaña «Temporadas» de Productos ▸ Atributos (ADR-0246). A diferencia de las otras cinco, la lista es CERRADA
- * (nueve valores que siembra la base): no se propone, no se aprueba ni se rechaza. Se parte en CUATRO VISTAS y se ve una a
- * la vez, en el orden en que se usan («Actualización 2026-09-28» del ADR):
- *   1. «Por completar»: las prendas sin temporada, agrupadas por categoría, con el atajo de ponérsela a la categoría
- *      (completa el grupo entero) y la asignación en lote para las excepciones (todo o nada);
- *   2. «Por categoría»: la temporada por defecto de cada categoría, con la cifra de prendas que se reclasifican ANTES de
- *      guardar;
- *   3. «Calendario»: las estaciones por año (SENAMHI); solo el LÍDER corrige una fecha, y solo si esa estación no empezó;
- *   4. «Las nueve»: la lista fija y cuándo termina cada una.
- * La vista vive en la URL (`?vista=`); las cuatro tarjetas de arriba la eligen y dicen cuánto falta en cada una.
+ * (nueve valores que siembra la base): no se propone, no se aprueba ni se rechaza. Pero se VE como las otras cinco
+ * (ADR-0261, Felipe 2026-09-28): abre con «Las nueve» en grilla —misma barra de píldoras, mismo título de grupo, misma
+ * tarjeta con su dibujo— y el trabajo queda a un clic, en la franja sobre la grilla que dice cuánto falta en cada parte:
+ *   · «Por completar»: las prendas sin temporada, agrupadas por categoría, con el atajo de ponérsela a la categoría
+ *     (completa el grupo entero) y la asignación en lote para las excepciones (todo o nada);
+ *   · «Por categoría»: la temporada por defecto de cada categoría, con la cifra de prendas que se reclasifican ANTES de
+ *     guardar;
+ *   · «Calendario»: las estaciones por año (SENAMHI); solo el LÍDER corrige una fecha, y solo si esa estación no empezó.
+ * La vista vive en la URL (`?vista=`): «Completar» de Productos y el enlace de Categorías abren directo la suya.
  * Lo que la base resolvió (qué temporada tiene cada prenda) llega armado del servidor; tras cada guardado se vuelve a
  * pedir (`router.refresh`), así la pantalla nunca calcula por su cuenta una regla que vive en la base.
  */
@@ -125,8 +131,6 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
   // entra la nueva. Si la URL cambia por otro lado (atrás/adelante), se alcanza aquí mismo, sin salida.
   const [dibujada, setDibujada] = useState<VistaTemporadas>(vista);
   const [saliendo, setSaliendo] = useState(false);
-  // Al llegar a la pantalla el contenido entra DETRÁS de las tarjetas; al cambiar de vista, enseguida.
-  const [llegada, setLlegada] = useState(true);
   const reloj = useRef<ReturnType<typeof setTimeout> | null>(null);
   if (!saliendo && dibujada !== vista) setDibujada(vista);
   const resumen = useMemo(() => resumenVistas(datos), [datos]);
@@ -138,26 +142,24 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
     // Sin ida al servidor: Next sincroniza `useSearchParams` con el historial, y las cuatro vistas ya están cargadas
     // (pedir la página otra vez abriría el loader por un cambio que no trae datos nuevos).
     window.history.pushState(null, "", `?${q.toString()}`);
-    setLlegada(false);
     if (reloj.current) clearTimeout(reloj.current);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setSaliendo(true);
     reloj.current = setTimeout(() => setSaliendo(false), SALIDA_MS);
   }
 
-  const desfase = llegada ? 4 : 0;
+  const desfase = 0;
   return (
     <div className="space-y-6">
-      <Vuelta />
-      <TarjetasVista vista={vista} resumen={resumen} onElegir={elegir} />
+      <Vuelta enLista={vista === "lista"} onLista={() => elegir("lista")} />
 
-      <div key={dibujada} className={saliendo ? "anim-revelar-salida" : ""}>
+      <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
+        {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
         {dibujada === "completar" && (
           <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
         )}
         {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
         {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
-        {dibujada === "lista" && <VistaLista temporadas={datos.temporadas} porTemporada={datos.porTemporada} desfase={desfase} />}
       </div>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
@@ -167,110 +169,88 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
 
 /**
  * Dos pantallas saltan directo a una vista de esta pestaña: «Completar» del aviso de Productos (a «Por completar») y el
- * enlace de Categorías (a «Por categoría»). La vuelta va arriba, sobre las tarjetas, y solo con su `desde=`: Atributos
- * está en el menú, y quien entra por el lateral no vino de ninguna de las dos.
+ * enlace de Categorías (a «Por categoría»). Su vuelta va arriba, y solo con su `desde=`: Atributos está en el menú, y quien
+ * entra por el lateral no vino de ninguna de las dos. Dentro de una vista de trabajo, además, «← Las nueve temporadas»
+ * regresa a la grilla (sin ir al servidor: las cuatro vistas ya están cargadas).
  */
 const VUELTAS = {
   productos: { href: "/productos", a: "Productos" },
   categorias: { href: "/productos/categorias", a: "Categorías" },
 } as const;
 
-function Vuelta() {
+function Vuelta({ enLista, onLista }: { enLista: boolean; onLista: () => void }) {
   const desde = useSearchParams().get("desde");
-  return desde === "productos" || desde === "categorias" ? <Volver {...VUELTAS[desde]} /> : null;
+  const afuera = desde === "productos" || desde === "categorias" ? VUELTAS[desde] : null;
+  if (!afuera && enLista) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+      {afuera && <Volver {...afuera} />}
+      {!enLista && (
+        <button
+          type="button"
+          onClick={onLista}
+          className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-tinta/65 transition-[color,transform] duration-300 hover:-translate-x-0.5 hover:text-rojo"
+        >
+          <span aria-hidden>←</span> Las nueve temporadas
+        </button>
+      )}
+    </div>
+  );
 }
 
-// ---- Las cuatro tarjetas ------------------------------------------------------------------------------------------------
+// ---- La franja de trabajo -----------------------------------------------------------------------------------------------
 
 /**
- * Eligen la vista y dicen, sin entrar, cuánto falta en cada una. Son la tarjeta de cifra del sistema en su forma
- * tocable (`TarjetaCifra compacta viva`), la misma que Traslados usa como atajo que filtra: se levanta y la cruza el
- * barrido de luz al pasar el mouse, y la línea que viaja debajo (`IndicadorDeslizante`) lleva el ojo del clic al
- * contenido. A diferencia de Traslados, tocar la tarjeta ya elegida no hace nada: siempre hay una vista abierta.
+ * Sobre la grilla: el trabajo de Temporadas y lo que falta en cada parte, a un clic. Reemplaza a las cuatro tarjetas de
+ * cifra con que abría la pestaña (#566): ahora abre con la grilla, como las otras cinco (ADR-0261), y lo pendiente no
+ * pierde su cifra ni queda escondido. El punto rojo solo aparece mientras haya prendas sin temporada.
  */
-function TarjetasVista({ vista, resumen: r, onElegir }: { vista: VistaTemporadas; resumen: ResumenVistas; onElegir: (v: VistaTemporadas) => void }) {
-  const pista = (v: VistaTemporadas) => (
-    <span className="mt-1 block text-[11px] text-taupe">
-      {vista === v ? (
-        <b className="font-semibold text-tinta">Viendo ahora</b>
-      ) : (
-        <>
-          Toca para ver <span aria-hidden className="cmp-flecha">→</span>
-        </>
-      )}
-    </span>
-  );
-  // La cifra que cambió se re-asienta (`anim-asentar`): al completar un grupo, el 31 que pasa a 23 se nota sin releer.
-  const cifra = (n: number | string) => (
-    <span key={n} className="anim-asentar inline-block">
-      {n}
-    </span>
-  );
+function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onElegir: (v: VistaTemporadas) => void }) {
   const falta = r.sinTemporada;
+  const cifra = (n: number | string) => <b className="font-semibold tabular-nums text-tinta">{n}</b>;
   return (
-    <div className="relative grid grid-cols-2 gap-2 pb-2.5 sm:gap-3 lg:grid-cols-4" role="group" aria-label="Partes de Temporadas">
-      <TarjetaCifra
-        compacta
-        viva
-        etiqueta="Por completar"
-        valor={cifra(falta)}
-        unidad={falta === 1 ? "prenda" : "prendas"}
-        tono={falta > 0 ? "text-rojo-profundo" : "text-tinta/40"}
-        acento={falta > 0}
-        activa={vista === "completar"}
-        onClick={() => onElegir("completar")}
-        reparto={falta > 0 && r.prendasActivas > 0 ? { fraccion: falta / r.prendasActivas, tono: "rojo" } : undefined}
-        {...entra(0)}
-      >
-        {falta === 0
-          ? "Todas las prendas tienen temporada"
-          : `En ${r.categoriasConPendientes} ${r.categoriasConPendientes === 1 ? "categoría" : "categorías"}: pónsela a la categoría`}
-        {pista("completar")}
-      </TarjetaCifra>
-
-      <TarjetaCifra
-        compacta
-        viva
-        etiqueta="Por categoría"
-        valor={cifra(r.categoriasSinTemporada)}
-        unidad={`de ${r.categorias} sin temporada`}
-        tono={r.categoriasSinTemporada > 0 ? "text-ambar-profundo" : "text-tinta/40"}
-        activa={vista === "categorias"}
-        onClick={() => onElegir("categorias")}
-        reparto={r.categoriasSinTemporada > 0 && r.categorias > 0 ? { fraccion: r.categoriasSinTemporada / r.categorias, tono: "ambar" } : undefined}
-        {...entra(1)}
-      >
-        La que toma cada prenda sin la suya
-        {pista("categorias")}
-      </TarjetaCifra>
-
-      <TarjetaCifra
-        compacta
-        viva
-        etiqueta="Calendario"
-        punto={r.enCurso ? "verde" : undefined}
-        valor={r.enCurso ? NOMBRE_ESTACION[r.enCurso.estacion] : "—"}
-        activa={vista === "calendario"}
-        onClick={() => onElegir("calendario")}
-        {...entra(2)}
-      >
-        {/* «En curso» va en el contexto y no como unidad: al lado de «Primavera», en celular no cabe y se cortaba. */}
-        {r.enCurso?.hasta
-          ? `En curso: termina el ${textoDiaLima(r.enCurso.hasta)} y empieza ${r.enCurso.siguiente === "primavera" ? "la" : "el"} ${NOMBRE_ESTACION[r.enCurso.siguiente].toLowerCase()}`
-          : r.enCurso
-            ? "En curso"
-            : "Cuándo empieza cada estación"}
-        {pista("calendario")}
-      </TarjetaCifra>
-
-      <TarjetaCifra compacta viva etiqueta="Las nueve" valor={9} unidad="temporadas" activa={vista === "lista"} onClick={() => onElegir("lista")} {...entra(3)}>
-        Fijas y sin año: cuándo termina cada una
-        {pista("lista")}
-      </TarjetaCifra>
-
-      {/* En dos columnas (celular) la línea no sabría a qué fila bajar: ahí la elegida se lee por su fondo. */}
-      <IndicadorDeslizante activa={vista} id="temporadas-vistas" variante="linea-tinta" selector='[aria-pressed="true"]' className="hidden lg:block" />
+    <div role="group" aria-label="Trabajo de temporadas" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
+      <Atajo accion="Completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
+        {falta > 0 ? (
+          <>
+            {cifra(falta)} {falta === 1 ? "prenda" : "prendas"} sin temporada
+          </>
+        ) : (
+          "Todas las prendas tienen temporada"
+        )}
+      </Atajo>
+      <Atajo accion="Por categoría" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
+        {r.categoriasSinTemporada > 0 ? (
+          <>
+            {cifra(r.categoriasSinTemporada)} de {r.categorias} {r.categorias === 1 ? "categoría" : "categorías"} sin temporada
+          </>
+        ) : (
+          "Todas las categorías tienen temporada"
+        )}
+      </Atajo>
+      <Atajo accion="Calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
+        {r.enCurso ? (
+          <>
+            {cifra(NOMBRE_ESTACION[r.enCurso.estacion])} en curso
+            {r.enCurso.hasta ? `, termina el ${textoDiaLima(r.enCurso.hasta)}` : ""}
+          </>
+        ) : (
+          "Cuándo empieza cada estación"
+        )}
+      </Atajo>
     </div>
+  );
+}
+
+function Atajo({ accion, punto, onClick, children }: { accion: string; punto: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
+      <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />
+      <span>{children}</span>
+      <span className="label-cayla whitespace-nowrap text-[10.5px] text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
+        {accion} ›
+      </span>
+    </button>
   );
 }
 
@@ -287,40 +267,80 @@ function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; ba
   );
 }
 
-// ---- 4. Las nueve -------------------------------------------------------------------------------------------------------
+// ---- Las nueve, en grilla ------------------------------------------------------------------------------------------------
 
-const PLANTILLA_LISTA = "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem]";
-const COLUMNAS_LISTA: Columna[] = [
-  { titulo: "Temporada" },
-  {
-    titulo: "Cuándo termina",
-    ayuda: "Al empezar esa estación, Frescura del piso avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola). La temporada no cambia contra qué se mide si una prenda envejeció: siempre contra su categoría en su sede.",
-  },
-  { titulo: "Prendas", alinear: "der", ayuda: "Prendas activas que hoy tienen esta temporada (propia, de un color o de su categoría)." },
-];
-
-function VistaLista({ temporadas, porTemporada, desfase }: { temporadas: Temporada[]; porTemporada: Record<string, number>; desfase: number }) {
+/**
+ * Las nueve como tarjetas, igual que cualquier vocabulario de Atributos: su dibujo, cuántas prendas la tienen hoy (propia,
+ * de un color o de su categoría) y cuándo termina. Sin buscador ni «+ Agregar»: son nueve fijas y caben en una pantalla.
+ */
+function VistaNueve({
+  temporadas,
+  porTemporada,
+  resumen,
+  onElegir,
+}: {
+  temporadas: Temporada[];
+  porTemporada: Record<string, number>;
+  resumen: ResumenVistas;
+  onElegir: (v: VistaTemporadas) => void;
+}) {
+  const [grupo, setGrupo] = useState<GrupoTemporada | "todas">("todas");
+  // La grilla solo se re-asienta cuando la persona cambia un filtro, nunca al cargar la pantalla (ver globals.css).
+  const [animar, setAnimar] = useState(false);
+  const ordenadas = [...temporadas].sort((a, b) => a.orden - b.orden);
+  const delGrupo = (g: GrupoTemporada) => ordenadas.filter((t) => grupoDeTemporada(t) === g);
+  const gruposConAlgo = ORDEN_GRUPOS_TEMPORADA.filter((g) => delGrupo(g).length > 0);
+  const elegirGrupo = (g: GrupoTemporada | "todas") => {
+    setGrupo(g);
+    setAnimar(true);
+  };
   return (
-    <section className="space-y-3" aria-label="Las nueve temporadas">
-      <TituloVista
-        desfase={desfase}
-        titulo="Las nueve"
-        bajada="Fijas y sin año: el año de cada prenda sale de la fecha en que llegó a la sede. Una prenda versátil lleva «Primavera-Verano»; un bikini, «Verano»."
+    <>
+      <BarraAtributos
+        etiqueta="Filtrar temporadas"
+        filtros={
+          <>
+            <BotonFiltro activo={grupo === "todas"} onClick={() => elegirGrupo("todas")} cuenta={ordenadas.length}>
+              Todas
+            </BotonFiltro>
+            {gruposConAlgo.map((g) => (
+              <BotonFiltro key={g} activo={grupo === g} onClick={() => elegirGrupo(grupo === g ? "todas" : g)} cuenta={delGrupo(g).length}>
+                {GRUPOS_TEMPORADA[g].grupo}
+              </BotonFiltro>
+            ))}
+          </>
+        }
       />
-      <Tabla {...entra(desfase + 1)}>
-        <Encabezado columnas={COLUMNAS_LISTA} plantilla={PLANTILLA_LISTA} />
-        {[...temporadas]
-          .sort((a, b) => a.orden - b.orden)
-          .map((t, i) => (
-            <div key={t.clave} className={fila(PLANTILLA_LISTA, "anim-entra")} style={entra(desfase + 2 + i).style} role="row">
-              <span className={celda("izq", "text-tinta")}>{t.nombre}</span>
-              {/* Sin `truncate`: la frase de los clásicos es larga y cortada no se entiende. */}
-              <span className="min-w-0 text-tinta/75">{textoFinDeEstacion(t)}</span>
-              <span className={celda("der", "text-tinta/75")}>{porTemporada[t.clave] ?? 0}</span>
-            </div>
+
+      <FranjaTrabajo resumen={resumen} onElegir={onElegir} />
+
+      <div key={grupo} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+        {gruposConAlgo
+          .filter((g) => grupo === "todas" || g === grupo)
+          .map((g) => (
+            <section key={g} className="space-y-3">
+              <TituloGrupo punto={GRUPOS_TEMPORADA[g].punto} cuenta={delGrupo(g).length}>
+                {GRUPOS_TEMPORADA[g].grupo}
+              </TituloGrupo>
+              <div className={GRILLA_ATRIBUTOS}>
+                {delGrupo(g).map((t) => (
+                  <TarjetaAtributo
+                    key={t.clave}
+                    muestra={<MuestraTemporada temporada={t} />}
+                    nombre={t.nombre}
+                    detalle={
+                      <>
+                        <p className="text-[11px] tabular-nums text-tinta/60">{textoPrendas(porTemporada[t.clave] ?? 0)}</p>
+                        <p className="text-[11px] text-tinta/60">{textoFinDeEstacion(t)}</p>
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+            </section>
           ))}
-      </Tabla>
-    </section>
+      </div>
+    </>
   );
 }
 

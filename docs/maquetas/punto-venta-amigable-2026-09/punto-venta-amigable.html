@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punto de venta, más amigable · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Punto de venta: más amigable y mejor distribuido (2026-09-28)
+   Pedido de Felipe: una vuelta de calidez y distribución sobre la pantalla que
+   YA está publicada (ADR-0221 + «el ticket a lo alto»). No reabre lo que ya se
+   decidió ahí (accesos por rol, «Apartar»/«Más», ticket a lo alto, tarjeta con
+   «apartada para una clienta», solo-en-almacén): eso se leyó del código real de
+   PuntoDeVenta.tsx / PuntoDeVentaCatalogo.tsx / PuntoDeVentaTicket.tsx en
+   origin/main (59dad776) para que «Hoy» de este spike sea el de verdad, no una
+   reconstrucción vieja. Los 7 cambios de «Propuesta» están en el panel de la
+   izquierda. Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t60:rgba(26,26,24,.6);--t50:rgba(26,26,24,.5);--t45:rgba(26,26,24,.45);--t35:rgba(26,26,24,.35);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);
+  --ease:cubic-bezier(.32,.72,.24,1)
+}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.serif{font-family:'EB Garamond',serif}
+.lbl{text-transform:uppercase;letter-spacing:.12em;font-weight:600;font-size:10.5px}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(72,96,63,.35)}100%{box-shadow:0 0 0 8px rgba(72,96,63,0)}}
+@keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no existe en el ERP) ---------- */
+.spk{position:sticky;top:0;z-index:200;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:9px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}
+.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+
+/* ---------- panel de hallazgos ---------- */
+.escena{padding:20px 16px 70px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.panel{max-width:1320px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:16px 20px}
+.panel h2{font-size:13px;letter-spacing:.02em;margin-bottom:8px}
+.panel ol{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13px;color:var(--t80)}
+.panel ol b{color:var(--tinta);font-weight:600}
+.panel .nota{margin-top:10px;padding-top:10px;border-top:1px dashed var(--sand);font-size:12.5px;color:var(--t65)}
+
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.marco{margin:0 auto}
+
+/* =====================================================================
+   ESCRITORIO
+   ===================================================================== */
+.desk{width:1320px;height:840px;flex:none;position:relative;border-radius:16px;background:var(--crema);border:1px solid var(--t30);box-shadow:0 30px 60px -30px rgba(26,26,24,.45);overflow:hidden;padding:20px}
+.pos{height:100%;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+
+/* fila de cabecera (franja) */
+.franja{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 22px 12px;flex:none}
+.sede{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);margin-right:2px;white-space:nowrap}
+.b{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:12.5px;color:var(--t80);white-space:nowrap;transition:border-color .2s var(--ease),background .2s var(--ease)}
+.b.fuerte{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.b .n{min-width:18px;height:18px;border-radius:9px;background:var(--crema);color:var(--tinta);font-size:10.5px;font-weight:700;display:inline-grid;place-items:center;padding:0 5px}
+.b.fuerte .n{background:var(--crema);color:var(--tinta)}
+.b.simple .n{background:var(--rojo);color:var(--crema)}
+.hoy-txt{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t65);white-space:nowrap}
+.hoy-txt b{color:var(--tinta);font-weight:600}
+.hoy-txt .pct{color:var(--verde);font-weight:600}
+/* Propuesta: grupo "dónde estoy y qué hago" separado de "cómo voy" con una regla sutil + más aire */
+.grupo-izq{display:flex;align-items:center;gap:10px}
+.divisor{width:1px;align-self:stretch;background:var(--sand);margin:2px 4px}
+
+.cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 420px}
+.cat{min-height:0;overflow:hidden;padding:0 22px 16px;display:flex;flex-direction:column}
+.busca-f{display:flex;gap:8px}
+.busca{flex:1;display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t45);font-size:14.5px}
+.busca svg{color:var(--t45)}
+.qr{width:52px;height:52px;flex:none;display:grid;place-items:center;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t65)}
+.sinreg{height:52px;padding:0 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+
+.filt{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 8px}
+.sw-fila{display:flex;align-items:center;gap:9px}
+.sw{width:34px;height:19px;border-radius:10px;background:var(--tinta);position:relative}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:13px;height:13px;border-radius:50%;background:var(--crema)}
+.oculto-txt{font-size:11px;color:var(--t60);text-align:right}
+
+/* fila de categorías: hoy corta en seco; propuesta añade máscara de desvanecido */
+.cats-wrap{position:relative;margin-bottom:12px}
+.cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cats-wrap.desvanece .cats{mask-image:linear-gradient(to right, #000 88%, transparent 100%);-webkit-mask-image:linear-gradient(to right, #000 88%, transparent 100%)}
+.pl{height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;flex:none}
+.pl.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;overflow-y:auto;padding-bottom:8px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:10px;position:relative;transition:transform .2s var(--ease)}
+.card.recien{animation:entra .3s var(--ease)}
+.foto{aspect-ratio:1;border-radius:10px;background:linear-gradient(var(--sand),var(--hueso));display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:9px}
+.foto span.ini{font-family:'EB Garamond',serif;font-size:21px;color:var(--t30)}
+.foto .cat-tag{position:absolute;bottom:6px;left:6px;font:600 9px 'DM Sans';letter-spacing:.1em;text-transform:uppercase;color:var(--t65);background:rgba(251,248,242,.85);padding:2px 6px;border-radius:5px}
+.card .nombre{font-size:13px;font-weight:600;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .color{font-size:11.5px;color:var(--t60);margin:1px 0 7px}
+.tallas{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+.talla{height:26px;min-width:26px;padding:0 5px;border-radius:7px;border:1px solid var(--sand);background:var(--crema);font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+.talla.agotada{color:var(--t35);text-decoration:line-through;border-style:dashed}
+.talla.almacen{border-style:dashed;border-color:rgba(116,80,26,.55);color:var(--ambar-p)}
+.talla.apartada{border-style:dashed;border-color:rgba(76,93,110,.5);color:var(--pizarra)}
+.talla:not(.agotada):not(.almacen):not(.apartada){cursor:pointer}
+.talla.pulsando{animation:pulso .3s var(--ease)}
+.pie-card{display:flex;align-items:flex-end;justify-content:space-between;gap:6px}
+.precio{font-size:13.5px;font-weight:700}
+.stock-txt{font-size:10.5px;color:var(--t60);white-space:nowrap}
+.stock-txt.ambar{color:var(--ambar-p)}
+
+/* ---------- ticket ---------- */
+.aside{min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--sand)}
+.aside.elevado{background:var(--papel);box-shadow:inset 1px 0 0 var(--sand)}
+.tkt-head{padding:18px 20px 12px;flex:none}
+.tkt-head h2{font-size:23px}
+.espera{margin:0 20px 12px;padding:9px 12px;border:1px solid var(--sand);border-radius:10px;background:var(--hueso);display:flex;align-items:center;justify-content:space-between;font-size:12px;gap:8px}
+.espera b{font-weight:600}
+.retomar{height:26px;padding:0 10px;border-radius:6px;background:var(--tinta);color:var(--crema);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.clienta{margin:0 20px 12px;height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--sand);border-radius:10px;background:var(--crema);color:var(--t50);font-size:12.5px}
+
+.lineas{flex:1;min-height:0;overflow-y:auto}
+.linea{padding:12px 20px;border-top:1px solid var(--sand);display:flex;gap:11px;align-items:flex-start}
+.linea:first-child{border-top:0}
+.mini{width:42px;height:42px;flex:none;border-radius:9px;background:linear-gradient(var(--sand),var(--hueso));display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mini span{font-family:'EB Garamond',serif;font-size:13px;color:var(--t35)}
+.linea .cuerpo-linea{flex:1;min-width:0}
+.linea .top{display:flex;justify-content:space-between;gap:8px}
+.linea .ref{font-size:13.5px;font-weight:600}
+.linea .sku{font-size:10.5px;color:var(--t50);font-family:monospace}
+.linea .acciones{display:flex;gap:2px;flex:none}
+.linea .acciones button{height:26px;padding:0 7px;border-radius:6px;font-size:10.5px;display:inline-flex;align-items:center;gap:3px;color:var(--t65)}
+.linea .acciones button.quitar{color:var(--rojo-p)}
+.linea .fila2{margin-top:7px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.qty{display:flex;align-items:center;height:28px;border:1px solid var(--sand);border-radius:8px;background:var(--crema)}
+.qty button{width:26px;height:26px;font-size:14px}
+.qty .num{width:22px;text-align:center;font-size:12.5px;font-weight:600}
+.importe{font-size:13.5px;font-weight:700}
+
+.seam{margin:0 20px;border-top:1px dashed var(--sand)}
+.tkt-pie{padding:14px 20px 18px;flex:none}
+.desc-fila{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--t65);margin-bottom:10px}
+.filas-total{display:flex;justify-content:space-between;font-size:12px;color:var(--t65);margin-bottom:3px}
+.total-fila{display:flex;justify-content:space-between;align-items:flex-end;margin:8px 0 12px}
+.total-fila .num{font-size:34px;line-height:1}
+.responsable{height:36px;border:1px dashed var(--sand);border-radius:9px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--t60);margin-bottom:10px}
+.cobrar{height:56px;width:100%;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:14px;font-weight:600}
+
+.vacio{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 30px;text-align:center}
+.vacio svg{width:34px;height:34px;color:var(--t35)}
+.vacio p.t1{font-weight:600}
+.vacio p.t2{font-size:12.5px;color:var(--t60);max-width:220px}
+
+.oculta{display:none!important}
+
+/* =====================================================================
+   CELULAR
+   ===================================================================== */
+.tel{width:375px;height:780px;flex:none;position:relative;border-radius:36px;background:var(--tinta);padding:10px;box-shadow:0 30px 60px -30px rgba(26,26,24,.5)}
+.tel .pant{height:100%;border-radius:28px;background:var(--crema);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.tel .franja-m{padding:12px 14px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tel .sede{font-size:9.5px}
+.tel .b{height:30px;padding:0 9px;font-size:11px;gap:4px}
+.tel .hoy-txt{font-size:11px}
+.tel .busca-f{padding:0 14px 8px}
+.tel .busca{height:46px;font-size:13px}
+.tel .qr{width:46px;height:46px;border-radius:12px}
+.tel .cats-wrap{padding:0 14px}
+.tel .filt{padding:0 14px}
+.tel .grid{padding:0 14px 90px;grid-template-columns:repeat(2,1fr);gap:9px;overflow-y:auto;flex:1}
+.tel .card .nombre{font-size:12.5px}
+
+.barra-cobro{position:absolute;left:10px;right:10px;bottom:10px;height:60px;border-radius:14px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 -8px 24px -8px rgba(26,26,24,.35)}
+.barra-cobro .izq{display:flex;flex-direction:column;line-height:1.2}
+.barra-cobro .izq span{font-size:10px;opacity:.65}
+.barra-cobro .izq b{font-size:16px}
+.barra-cobro .der{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+
+.hoja{position:absolute;inset:0;top:auto;height:88%;border-radius:22px 22px 0 0;background:var(--crema);display:flex;flex-direction:column;box-shadow:0 -20px 40px -20px rgba(26,26,24,.4)}
+.hoja.elevado{background:var(--papel)}
+.hoja .agarre{width:36px;height:4px;border-radius:2px;background:var(--sand);margin:10px auto 4px}
+.hoja .tkt-head{padding:8px 18px 10px}
+.hoja .tkt-head h2{font-size:19px}
+.hoja .linea{padding:10px 18px}
+.hoja .clienta,.hoja .espera{margin:0 18px 10px}
+.hoja .seam,.hoja .tkt-pie{padding-left:18px;padding-right:18px}
+.hoja .tkt-pie{margin:0}
+.hoja .seam{margin:0 18px}
+</style>
+</head>
+<body data-vista="escritorio" data-version="propuesta">
+
+<div class="spk">
+  <span class="tag">Spike · más amigable</span>
+  <div class="seg" data-group="vista">
+    <button class="on" data-val="escritorio">Escritorio</button>
+    <button data-val="celular">Celular</button>
+  </div>
+  <div class="seg" data-group="version">
+    <button data-val="hoy">Hoy (publicado)</button>
+    <button class="on" data-val="propuesta">Propuesta</button>
+  </div>
+  <span class="tag" style="margin-left:auto">verificado contra origin/main 59dad776 · 2026-09-28</span>
+</div>
+
+<div class="escena">
+  <div class="panel">
+    <h2>Los 7 cambios de la propuesta</h2>
+    <ol>
+      <li><b>Cabecera con pausa.</b> «Sede · Apartar · Más» se agrupa aparte de «Hoy», con una regla vertical y más aire — hoy flota todo en una sola fila sin jerarquía.</li>
+      <li><b>Categorías con pista de continuidad.</b> Un desvanecido en el borde derecho de la fila de chips avisa que hay más para el lado — hoy corta en seco sin ninguna señal.</li>
+      <li><b>El ticket como superficie propia.</b> Toda la columna del ticket pasa a <code>papel</code>, separada del <code>crema</code> del catálogo — hoy los dos tonos casi se confunden y cuesta ver dónde termina la venta y empieza el catálogo.</li>
+      <li><b>Miniatura por línea.</b> Cada prenda del ticket suma su foto (o iniciales, igual que la tarjeta) — hoy es solo texto, y con 3-4 prendas cuesta ubicar cuál es cuál de un vistazo.</li>
+      <li><b>Costura de recibo.</b> Una línea punteada separa «lo que se lleva» del bloque de cobro, como la perforación de un recibo real — refuerza algo que cualquier colaboradora ya conoce de memoria.</li>
+      <li><b>Ticket vacío con un ícono.</b> Una bolsa de trazo sobre «El ticket está vacío» — hoy es puro texto, frío para lo primero que ve cualquiera al abrir caja.</li>
+      <li><b>Pulso al agregar.</b> Al tocar una talla, la miniatura que entra al ticket late una vez, corto y sin rebote (200 ms, <code>ease-cayla</code>) — respuesta a la acción, no decoración (permitido por ADR-0136).</li>
+    </ol>
+    <p class="nota">Lo que NO cambia, a propósito: accesos por rol, «Apartar»/«Más», el ticket a lo alto, la tarjeta con «apartada para una clienta» / «solo en almacén», los colores de los chips (mismo componente que el resto del ERP, ADR-0209). Esto es una pasada de calidez y distribución, no una reapertura de lo ya decidido en ADR-0221.</p>
+  </div>
+
+  <!-- ============================= ESCRITORIO ============================= -->
+  <div class="sx" data-scene="escritorio">
+    <div class="marco desk">
+      <div class="pos">
+        <div class="franja">
+          <div class="grupo-izq" data-hoy-only>
+            <span class="sede">Venta en tienda · Tienda TRU</span>
+            <button class="b fuerte"><svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V9.5l7-6 7 6V19a2 2 0 0 1-2 2Z"/></svg>Apartar<span class="n">3</span></button>
+            <button class="b"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Más</button>
+          </div>
+          <div class="grupo-izq" data-propuesta-only>
+            <span class="sede">Venta en tienda · Tienda TRU</span>
+            <button class="b fuerte"><svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V9.5l7-6 7 6V19a2 2 0 0 1-2 2Z"/></svg>Apartar<span class="n">3</span></button>
+            <button class="b"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Más</button>
+            <span class="divisor"></span>
+          </div>
+          <span class="hoy-txt">Hoy <b>S/98.00</b><span class="pct">· 62%</span></span>
+        </div>
+
+        <div class="cuerpo">
+          <!-- catálogo (compartido entre Hoy y Propuesta salvo la fila de categorías) -->
+          <div class="cat">
+            <div class="busca-f">
+              <label class="busca"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14"/></svg>Escanea la etiqueta o busca la prenda</label>
+              <button class="qr"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17.5 20.5h3v-3"/></svg></button>
+              <button class="sinreg">Prenda sin<br>registrar</button>
+            </div>
+            <div class="filt">
+              <div class="sw-fila"><span class="sw"></span><span class="lbl">Solo con stock</span></div>
+              <span class="oculto-txt">35 prendas ocultas (10 con stock en el almacén)</span>
+            </div>
+            <div class="cats-wrap" id="catsWrap">
+              <div class="cats">
+                <span class="pl on">TODO</span><span class="pl">BAILARINAS</span><span class="pl">BLAZERS</span><span class="pl">CAMISAS Y BLUSAS</span><span class="pl">FALDAS</span><span class="pl">JEANS</span><span class="pl">PANTALONES</span><span class="pl">POLOS</span><span class="pl">SHORTS</span><span class="pl">VESTIDOS</span><span class="pl">ACCESORIOS</span>
+              </div>
+            </div>
+            <div class="grid" id="grillaDesk"></div>
+          </div>
+
+          <!-- ticket: Hoy -->
+          <div class="aside" data-hoy-only>
+            <div class="tkt-head"><h2 class="serif">Ticket actual</h2></div>
+            <div class="espera"><span>En espera · 1 — <b>Ticket 1</b> · S/109.90 · hace 2 días</span><button class="retomar">Retomar</button></div>
+            <label class="clienta"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="8" r="3.3"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg>DNI, celular o nombre · opcional</label>
+            <div class="lineas" id="lineasHoy"></div>
+            <div class="tkt-pie">
+              <div class="desc-fila"><span>3 prendas</span><span style="display:flex;gap:14px"><a style="color:var(--t65)">Aplicar descuento</a><a style="color:var(--t65)">Dejar en espera</a></span></div>
+              <div class="filas-total"><span>Subtotal</span><span>S/124.58</span></div>
+              <div class="filas-total"><span>IGV (18%)</span><span>S/22.42</span></div>
+              <div class="responsable">Admin · queda a tu nombre</div>
+              <div class="total-fila"><span class="lbl" style="align-self:flex-end;margin-bottom:6px">Total</span><span class="serif num">S/147.00</span></div>
+              <button class="cobrar">Cobrar<span>S/147.00</span></button>
+            </div>
+          </div>
+
+          <!-- ticket: Propuesta -->
+          <div class="aside elevado" data-propuesta-only>
+            <div class="tkt-head"><h2 class="serif">Ticket actual</h2></div>
+            <div class="espera"><span>En espera · 1 — <b>Ticket 1</b> · S/109.90 · hace 2 días</span><button class="retomar">Retomar</button></div>
+            <label class="clienta"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="8" r="3.3"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg>DNI, celular o nombre · opcional</label>
+            <div class="lineas" id="lineasPropuesta"></div>
+            <div class="seam"></div>
+            <div class="tkt-pie">
+              <div class="desc-fila"><span>3 prendas</span><span style="display:flex;gap:14px"><a style="color:var(--t65)">Aplicar descuento</a><a style="color:var(--t65)">Dejar en espera</a></span></div>
+              <div class="filas-total"><span>Subtotal</span><span>S/124.58</span></div>
+              <div class="filas-total"><span>IGV (18%)</span><span>S/22.42</span></div>
+              <div class="responsable">Admin · queda a tu nombre</div>
+              <div class="total-fila"><span class="lbl" style="align-self:flex-end;margin-bottom:6px">Total</span><span class="serif num">S/147.00</span></div>
+              <button class="cobrar">Cobrar<span>S/147.00</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= CELULAR ============================= -->
+  <div class="sx" data-scene="celular">
+    <div class="marco tel">
+      <div class="pant">
+        <div class="franja-m" data-hoy-only>
+          <span class="sede lbl" style="color:var(--taupe)">Tienda TRU</span>
+          <button class="b fuerte"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V9.5l7-6 7 6V19a2 2 0 0 1-2 2Z"/></svg>Apartar<span class="n">3</span></button>
+          <button class="b"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Más</button>
+          <span class="hoy-txt">S/98 · 62%</span>
+        </div>
+        <div class="franja-m" data-propuesta-only>
+          <span class="sede lbl" style="color:var(--taupe)">Tienda TRU</span>
+          <button class="b fuerte"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V9.5l7-6 7 6V19a2 2 0 0 1-2 2Z"/></svg>Apartar<span class="n">3</span></button>
+          <button class="b"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Más</button>
+          <span class="divisor" style="height:18px"></span>
+          <span class="hoy-txt">S/98 · 62%</span>
+        </div>
+
+        <div class="busca-f">
+          <label class="busca"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14"/></svg>Escanea o busca</label>
+          <button class="qr"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17.5 20.5h3v-3"/></svg></button>
+        </div>
+        <div class="filt" style="margin-bottom:6px"><div class="sw-fila"><span class="sw"></span><span class="lbl" style="font-size:9.5px">Solo con stock</span></div></div>
+        <div class="cats-wrap" id="catsWrapTel"><div class="cats"><span class="pl on">TODO</span><span class="pl">BAILARINAS</span><span class="pl">BLAZERS</span><span class="pl">CAMISAS</span><span class="pl">JEANS</span><span class="pl">POLOS</span></div></div>
+        <div class="grid" id="grillaTel"></div>
+
+        <div class="barra-cobro">
+          <span class="izq"><span>3 prendas</span><b>S/147.00</b></span>
+          <span class="der">Ver ticket <svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M9 6l6 6-6 6"/></svg></span>
+        </div>
+
+        <!-- hoja del ticket: Hoy -->
+        <div class="hoja" data-hoy-only>
+          <div class="agarre"></div>
+          <div class="tkt-head"><h2 class="serif">Ticket actual</h2></div>
+          <div class="lineas" id="lineasHojaHoy" style="flex:1"></div>
+          <div class="tkt-pie">
+            <div class="desc-fila"><span>3 prendas</span><span style="display:flex;gap:10px;font-size:11px"><a style="color:var(--t65)">Descuento</a><a style="color:var(--t65)">En espera</a></span></div>
+            <div class="responsable">Admin · queda a tu nombre</div>
+            <div class="total-fila"><span class="lbl" style="align-self:flex-end;margin-bottom:6px">Total</span><span class="serif num" style="font-size:28px">S/147.00</span></div>
+            <button class="cobrar" style="height:50px">Cobrar<span>S/147.00</span></button>
+          </div>
+        </div>
+        <!-- hoja del ticket: Propuesta -->
+        <div class="hoja elevado" data-propuesta-only>
+          <div class="agarre"></div>
+          <div class="tkt-head"><h2 class="serif">Ticket actual</h2></div>
+          <div class="lineas" id="lineasHojaPropuesta" style="flex:1"></div>
+          <div class="seam"></div>
+          <div class="tkt-pie">
+            <div class="desc-fila"><span>3 prendas</span><span style="display:flex;gap:10px;font-size:11px"><a style="color:var(--t65)">Descuento</a><a style="color:var(--t65)">En espera</a></span></div>
+            <div class="responsable">Admin · queda a tu nombre</div>
+            <div class="total-fila"><span class="lbl" style="align-self:flex-end;margin-bottom:6px">Total</span><span class="serif num" style="font-size:28px">S/147.00</span></div>
+            <button class="cobrar" style="height:50px">Cobrar<span>S/147.00</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= TICKET VACÍO ============================= -->
+  <div class="panel" style="display:flex;gap:24px;align-items:center;justify-content:center;flex-wrap:wrap">
+    <div style="width:340px;border:1px solid var(--sand);border-radius:14px;overflow:hidden">
+      <div class="tkt-head" style="background:var(--crema)"><h2 class="serif" style="font-size:19px">Hoy</h2></div>
+      <div class="vacio" style="height:200px;background:var(--crema)">
+        <p class="t1">El ticket está vacío</p>
+        <p class="t2">Escanea una etiqueta o elige una prenda del catálogo.</p>
+      </div>
+    </div>
+    <div style="width:340px;border:1px solid var(--sand);border-radius:14px;overflow:hidden">
+      <div class="tkt-head" style="background:var(--papel)"><h2 class="serif" style="font-size:19px">Propuesta</h2></div>
+      <div class="vacio" style="height:200px;background:var(--papel)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <p class="t1">El ticket está vacío</p>
+        <p class="t2">Escanea una etiqueta o elige una prenda del catálogo.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRENDAS = [
+  {ini:"PB",cat:"POLOS",nombre:"Polo Básico M/corta",color:"Arena",tallas:[["S","ok"],["M","ok"],["L","ok"]],precio:"S/39.90",stock:"1 en piso"},
+  {ini:"TD",cat:"POLOS",nombre:"Test de Produto 2",color:"Gris",tallas:[["S","ok"],["M","ok"],["L","ok"]],precio:"S/49.00",stock:"8 en piso"},
+  {ini:"BC",cat:"CAMISAS",nombre:"Blusa Carlita",color:"Blanco",tallas:[["S","ok"],["M","apartada"],["L","ok"]],precio:"S/90.00",stock:"8 en piso"},
+  {ini:"TD",cat:"POLOS",nombre:"Test de Produto 2",color:"Celeste",tallas:[["S","ok"],["M","almacen"],["L","ok"]],precio:"S/49.00",stock:"12 en piso"},
+  {ini:"JB",cat:"JEANS",nombre:"Jean Baggy",color:"Azul claro",tallas:[["S","agotada"],["M","ok"],["L","ok"]],precio:"S/99.00",stock:"3 en piso"},
+  {ini:"F",cat:"BAILARINAS",nombre:"Fhfh",color:"Coral",tallas:[["S","ok"],["M","ok"],["L","agotada"]],precio:"S/79.00",stock:"4 en piso"},
+  {ini:"BC",cat:"CAMISAS",nombre:"Blusa Carlita",color:"Beige",tallas:[["S","ok"],["M","ok"],["L","almacen"]],precio:"S/90.00",stock:"2 en piso"},
+  {ini:"PB",cat:"POLOS",nombre:"Polo Básico M/corta",color:"Blanco",tallas:[["S","ok"],["M","ok"],["L","ok"]],precio:"S/39.90",stock:"2 en piso"},
+  {ini:"TD",cat:"POLOS",nombre:"Test de Produto 2",color:"Esmeralda",tallas:[["S","ok"],["M","ok"],["L","ok"]],precio:"S/49.00",stock:"45 en piso"},
+  {ini:"JB",cat:"JEANS",nombre:"Jean Baggy",color:"Negro",tallas:[["S","ok"],["M","ok"],["L","ok"]],precio:"S/99.00",stock:"6 en piso"},
+];
+
+const LINEAS = [
+  {ini:"TD",ref:"Test de Produto 2",sku:"POL-0005-CEL-M",precio:"S/49.00"},
+  {ini:"TD",ref:"Test de Produto 2",sku:"POL-0005-ESM-S",precio:"S/49.00"},
+  {ini:"BC",ref:"Blusa Carlita",sku:"CMS-0001-BLA-XS",precio:"S/49.00"},
+];
+
+function tarjeta(p){
+  const tallas = p.tallas.map(([t,est])=>`<span class="talla ${est==='ok'?'':est}">${t}</span>`).join("");
+  return `<div class="card"><div class="foto"><span class="ini">${p.ini}</span><span class="cat-tag">${p.cat}</span></div>
+    <p class="nombre">${p.nombre}</p><p class="color">${p.color}</p>
+    <div class="tallas">${tallas}</div>
+    <div class="pie-card"><span class="precio">${p.precio}</span><span class="stock-txt">${p.stock}</span></div></div>`;
+}
+function linea(l, conFoto, id){
+  return `<div class="linea">
+    ${conFoto? `<div class="mini"><span>${l.ini}</span></div>`:''}
+    <div class="cuerpo-linea">
+      <div class="top"><div><p class="ref">${l.ref}</p><p class="sku">${l.sku}</p></div>
+        <div class="acciones"><button><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20" transform="rotate(45 12 12)"/></svg>Desc.</button><button class="quitar">Quitar</button></div>
+      </div>
+      <div class="fila2">
+        <div class="qty"><button>−</button><span class="num">1</span><button>+</button></div>
+        <span class="importe">${l.precio}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('grillaDesk').innerHTML = PRENDAS.map(tarjeta).join("");
+document.getElementById('grillaTel').innerHTML = PRENDAS.slice(0,6).map(tarjeta).join("");
+document.getElementById('lineasHoy').innerHTML = LINEAS.map(l=>linea(l,false)).join("");
+document.getElementById('lineasPropuesta').innerHTML = LINEAS.map(l=>linea(l,true)).join("");
+document.getElementById('lineasHojaHoy').innerHTML = LINEAS.map(l=>linea(l,false)).join("");
+document.getElementById('lineasHojaPropuesta').innerHTML = LINEAS.map(l=>linea(l,true)).join("");
+
+function aplicar(){
+  const vista = document.body.dataset.vista, version = document.body.dataset.version;
+  document.querySelectorAll('[data-scene]').forEach(el=>el.classList.toggle('oculta', el.dataset.scene!==vista));
+  document.querySelectorAll('[data-hoy-only]').forEach(el=>el.classList.toggle('oculta', version!=='hoy'));
+  document.querySelectorAll('[data-propuesta-only]').forEach(el=>el.classList.toggle('oculta', version!=='propuesta'));
+  document.getElementById('catsWrap').classList.toggle('desvanece', version==='propuesta');
+  document.getElementById('catsWrapTel').classList.toggle('desvanece', version==='propuesta');
+}
+// Ítem 7 de la propuesta: pulso corto al agregar (solo demo visual, sin carrito real en el spike).
+document.body.addEventListener('click', e=>{
+  const t = e.target.closest('.talla');
+  if(!t || document.body.dataset.version!=='propuesta') return;
+  if(t.classList.contains('agotada')||t.classList.contains('almacen')||t.classList.contains('apartada')) return;
+  t.classList.remove('pulsando'); void t.offsetWidth; t.classList.add('pulsando');
+});
+document.querySelectorAll('.seg').forEach(seg=>{
+  seg.addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    seg.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    document.body.dataset[seg.dataset.group] = btn.dataset.val;
+    aplicar();
+  });
+});
+aplicar();
+</script>
+</body>
+</html>

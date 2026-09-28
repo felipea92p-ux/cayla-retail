@@ -341,12 +341,8 @@ export function DetalleMuestraModal({
   );
 }
 
-/** La parte de arriba de cada tarjeta de Tejidos y Patrones: abre este detalle. Los botones de abajo (Aprobar,
- *  Desactivar…) quedan fuera del botón, así un clic en ellos nunca abre el modal. */
-export const BOTON_TARJETA_MUESTRA =
-  "group/muestra flex flex-col gap-2 rounded-md text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
-
-/** «12 prendas · Ver ›» al pie de la tarjeta: cuántas la usan, y la pista de que se puede abrir. */
+/** «12 prendas · Ver ›» bajo el nombre de la tarjeta: cuántas la usan, y la pista de que se puede abrir. La parte de
+ *  arriba de la tarjeta es el botón que abre este detalle (`TarjetaAtributo` con `abrir`, components/atributos/kit.tsx). */
 export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">

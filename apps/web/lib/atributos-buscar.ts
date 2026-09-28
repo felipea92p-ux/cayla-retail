@@ -23,3 +23,22 @@ export function filtrarPorNombre<T extends NombreBuscable>(filas: readonly T[], 
   if (!q) return filas as T[];
   return filas.filter((f) => sinTildes(f.nombre).includes(q));
 }
+
+// ---- «En uso · Sin prendas»: las píldoras de Tejidos y Patrones (ADR-0261) ---------------------------------------------
+
+/**
+ * Tejidos y Patrones no tienen familias como Colores ni tipos como Tallas; lo que sí sirve partir es si alguna prenda los
+ * usa: «Sin prendas» es la lista de los que se pueden desactivar sin tocar nada, y la que dice qué se creó y nunca se
+ * usó. Cuenta productos activos y descontinuados (lo mismo que dice cada tarjeta): uno descontinuado sigue siendo
+ * historia de ese tejido.
+ */
+export type UsoAtributo = "en-uso" | "sin-prendas";
+export const ORDEN_USO: readonly UsoAtributo[] = ["en-uso", "sin-prendas"];
+export const GRUPOS_USO: Record<UsoAtributo, { grupo: string; punto: string }> = {
+  "en-uso": { grupo: "En uso", punto: "bg-verde" },
+  "sin-prendas": { grupo: "Sin prendas", punto: "bg-tinta/25" },
+};
+
+export function usoDe(id: string, prendasPorId: Readonly<Record<string, number>>): UsoAtributo {
+  return (prendasPorId[id] ?? 0) > 0 ? "en-uso" : "sin-prendas";
+}

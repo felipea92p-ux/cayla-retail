@@ -305,20 +305,64 @@ export type DatosPestanaTemporadas = {
   anioHoy: number;
 };
 
-// ---- Las cuatro vistas de la pestaña (ADR-0246, «Actualización 2026-09-28») ------------------------------------------
+// ---- Las cuatro vistas de la pestaña (ADR-0246, «Actualización 2026-09-28»; ADR-0261) --------------------------------
 
 /**
- * La pestaña se parte en cuatro vistas y se ve UNA a la vez, en el orden en que se usan: primero el trabajo pendiente
- * («Por completar»), después la configuración («Por categoría») y al final la consulta («Calendario», «Las nueve»). Antes
- * eran cuatro secciones seguidas y lo pendiente quedaba al fondo, detrás de ~65 filas de consulta. La vista vive en la
- * URL (`?vista=`), así «Completar» de Productos y el enlace de Categorías abren directo la suya.
+ * La pestaña se ve UNA vista a la vez. Desde el ADR-0261 (Felipe, 2026-09-28: «Grilla primero») abre con «Las nueve» en
+ * grilla, igual que las otras cinco pestañas de Atributos; el trabajo —«Por completar», «Por categoría», «Calendario»—
+ * queda a un clic, en la franja de arriba de la grilla, con lo que falta en cada uno. La vista vive en la URL (`?vista=`):
+ * «Completar» de Productos y el enlace de Categorías siguen abriendo directo la suya.
  */
 export const VISTAS_TEMPORADAS = ["completar", "categorias", "calendario", "lista"] as const;
 export type VistaTemporadas = (typeof VISTAS_TEMPORADAS)[number];
 
-/** La vista pedida en la URL; cualquier otra cosa (o nada) abre «Por completar», que es la que se trabaja. */
+/** La vista pedida en la URL; cualquier otra cosa (o nada) abre «Las nueve», como abre cualquier pestaña de Atributos. */
 export function vistaTemporadas(param: string | null | undefined): VistaTemporadas {
-  return VISTAS_TEMPORADAS.find((v) => v === param) ?? "completar";
+  return VISTAS_TEMPORADAS.find((v) => v === param) ?? "lista";
+}
+
+// ---- Las nueve en grilla (ADR-0261) -------------------------------------------------------------------------------------
+
+/**
+ * Las estaciones que cubre una temporada, en el orden del año: desde `estacion_desde` hasta la anterior a
+ * `estacion_hasta` (que es cuándo termina). Primavera-Verano cubre dos; Verano, una; el clásico de todo el año, ninguna en
+ * particular (no termina). Sale de los datos de `fn_temporadas`, no de la clave: una temporada nueva se dibuja sola.
+ */
+export function estacionesDe(t: Pick<Temporada, "estacion_desde" | "estacion_hasta">): Estacion[] {
+  if (!t.estacion_desde || !t.estacion_hasta) return [];
+  const desde = ORDEN_ESTACIONES.indexOf(t.estacion_desde);
+  const cubre: Estacion[] = [];
+  for (let k = 0; k < ORDEN_ESTACIONES.length; k++) {
+    const e = ORDEN_ESTACIONES[(desde + k) % ORDEN_ESTACIONES.length];
+    if (e === t.estacion_hasta) break;
+    cubre.push(e);
+  }
+  return cubre;
+}
+
+/** Los grupos de la grilla y de sus píldoras: una estación, las dos mitades del año y los clásicos. */
+export type GrupoTemporada = "una" | "dos" | "clasicos";
+export const ORDEN_GRUPOS_TEMPORADA: readonly GrupoTemporada[] = ["una", "dos", "clasicos"];
+export const GRUPOS_TEMPORADA: Record<GrupoTemporada, { grupo: string; punto: string }> = {
+  una: { grupo: "Una estación", punto: "bg-verde" },
+  dos: { grupo: "Dos estaciones", punto: "bg-taupe-profundo" },
+  clasicos: { grupo: "Clásicos", punto: "bg-tinta/25" },
+};
+
+export function grupoDeTemporada(t: Pick<Temporada, "es_clasico" | "estacion_desde" | "estacion_hasta">): GrupoTemporada {
+  if (t.es_clasico) return "clasicos";
+  return estacionesDe(t).length > 1 ? "dos" : "una";
+}
+
+/**
+ * El tono del dibujo: la mitad del año en que se vende. Primavera y verano, cálido (ámbar); otoño e invierno, frío
+ * (pizarra); los clásicos, neutro (tinta), porque no pertenecen a una mitad.
+ */
+export type TonoTemporada = "calido" | "frio" | "neutro";
+export function tonoDeTemporada(t: Pick<Temporada, "es_clasico" | "estacion_desde" | "estacion_hasta">): TonoTemporada {
+  if (t.es_clasico) return "neutro";
+  const [primera] = estacionesDe(t);
+  return primera === "primavera" || primera === "verano" ? "calido" : "frio";
 }
 
 /** Un grupo de «Por completar»: las prendas sin temporada de UNA categoría. */

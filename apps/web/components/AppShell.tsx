@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -15,6 +14,8 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { BuscadorGlobal } from "@/components/BuscadorGlobal";
+import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 
@@ -862,6 +863,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     modulos: persona.modulos ?? null,
     contadores: { trasladosPorAtender },
   });
+  // Buscador global (cabecera): toda pantalla que ESTE perfil ve, sin importar en qué grupo vive —
+  // mismo filtro por rol que ya resolvió `menuPara`, no uno nuevo.
+  const pantallasBuscables = menu.riel.flatMap(hojasDe);
 
   // Grupos colapsables: arrancan CERRADOS por defecto (pedido de Felipe,
   // 2026-09-16 — con "Catálogo" sumado a "Venta" se veía todo desplegado a
@@ -941,19 +945,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
-          <Image
-            src="/cayla-isotipo.png"
-            alt="CAYLA"
-            width={32}
-            height={32}
-            priority
-            className="h-8 w-auto transition-transform duration-500 ease-cayla group-hover:scale-105"
-          />
-          <span
-            className={`label-cayla text-sm text-tinta transition-[color,opacity] duration-200 group-hover:text-rojo ${compacto ? "opacity-0" : ""}`}
-            style={{ letterSpacing: "0.26em" }}
-          >
-            CAYLA
+          <IsotipoCayla className="h-8 w-auto shrink-0 transition-transform duration-500 ease-cayla group-hover:scale-105" />
+          <span className={`flex min-w-0 flex-col transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
+            <span className="label-cayla text-sm text-tinta transition-colors duration-200 group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
+              CAYLA
+            </span>
+            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
+            <span className="label-cayla text-[10px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
+              Retail
+            </span>
           </span>
         </Link>
         <button
@@ -1115,8 +1115,17 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               <path d="M15.5 9.5L13 12l2.5 2.5" className={`origin-center transition-transform duration-300 ease-cayla ${plegado ? "-scale-x-100" : ""}`} />
             </svg>
           </button>
+          {/* NUEVO — se agrega al lado del botón de plegar; ninguno de los dos existentes (Actividad,
+              Tienda TRU, más adelante) se mueve. Solo escritorio: en celular la lupa de siempre (abajo)
+              sigue yendo a `/buscar`, el buscador de prendas — este es otro buscador, otro trabajo. */}
+          <BuscadorGlobal
+            pantallas={pantallasBuscables}
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
+          />
           <Link href="/" className="flex items-center gap-2 sm:hidden">
-            <Image src="/cayla-isotipo.png" alt="CAYLA" width={26} height={26} priority className="h-[26px] w-auto" />
+            <IsotipoCayla className="h-[26px] w-auto" />
           </Link>
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción

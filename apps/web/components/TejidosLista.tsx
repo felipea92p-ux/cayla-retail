@@ -1,18 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import {
+  BarraAtributos,
+  BotonesPendiente,
+  BotonReactivar,
+  DesactivarTarjeta,
+  GRILLA_ATRIBUTOS,
+  PieTarjeta,
+  SinCoincidencias,
+  TarjetaAtributo,
+  TituloGrupo,
+  VocabularioVacio,
+} from "@/components/atributos/kit";
 import { MuestraTejido } from "@/components/MuestraTejido";
-import { BOTON_TARJETA_MUESTRA, DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
+import { DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
-import { filtrarPorNombre } from "@/lib/atributos-buscar";
+import { filtrarPorNombre, GRUPOS_USO, ORDEN_USO, usoDe, type UsoAtributo } from "@/lib/atributos-buscar";
 
 /**
  * Vocabulario cerrado de tejidos (ADR-0095/0096) — mismo mecanismo que
@@ -75,13 +87,23 @@ export function TejidosLista({
   const [descripcion, setDescripcion] = useState("");
   const [generarCon, setGenerarCon] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
+  // «En uso · Sin prendas» (ADR-0261): la píldora elegida. La grilla solo se re-asienta cuando la persona cambia un
+  // filtro, nunca al cargar la pantalla: el movimiento responde a una acción (ver globals.css).
+  const [uso, setUso] = useState<UsoAtributo | "todos">("todos");
+  const [animar, setAnimar] = useState(false);
 
   const activos = tejidos.filter((t) => t.activo);
   const desactivados = tejidos.filter((t) => !t.activo);
-  const activosVisibles = filtrarPorNombre(activos, busqueda);
-  const desactivadosVisibles = filtrarPorNombre(desactivados, busqueda);
-  const buscandoAlgo = busqueda.trim() !== "";
+  const pasaUso = (t: { id: string }) => uso === "todos" || usoDe(t.id, prendasPorId) === uso;
+  const activosVisibles = filtrarPorNombre(activos, busqueda).filter(pasaUso);
+  const desactivadosVisibles = filtrarPorNombre(desactivados, busqueda).filter(pasaUso);
+  const hayFiltros = uso !== "todos" || busqueda.trim() !== "";
+  const quitarFiltros = () => {
+    setUso("todos");
+    setBusqueda("");
+    setAnimar(true);
+  };
+  const usosConAlgo = ORDEN_USO.filter((u) => activos.some((t) => usoDe(t.id, prendasPorId) === u));
 
   async function guardar() {
     setGuardando(true);
@@ -233,98 +255,82 @@ export function TejidosLista({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <p className="text-sm text-tinta/70" aria-live="polite">
-          {buscandoAlgo ? `${activosVisibles.length} de ` : ""}
-          {activos.length} tejido{activos.length === 1 ? "" : "s"}
-        </p>
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              onFocus={() => setBuscando(true)}
-              onBlur={() => setBuscando(false)}
-              placeholder="Nombre del tejido"
-              aria-label="Buscar tejido"
-              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => setBusqueda("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
+      <BarraAtributos
+        etiqueta="Filtrar tejidos"
+        filtros={
+          <>
+            <BotonFiltro activo={uso === "todos"} onClick={() => { setUso("todos"); setAnimar(true); }} cuenta={activos.length}>
+              Todos
+            </BotonFiltro>
+            {usosConAlgo.map((u) => (
+              <BotonFiltro
+                key={u}
+                activo={uso === u}
+                onClick={() => { setUso(uso === u ? "todos" : u); setAnimar(true); }}
+                cuenta={activos.filter((t) => usoDe(t.id, prendasPorId) === u).length}
               >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <Hilo activo={buscando} />
-          </div>
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar tejido
-          </button>
-        </div>
-      </div>
+                {GRUPOS_USO[u].grupo}
+              </BotonFiltro>
+            ))}
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar tejido", placeholder: "Buscar tejido" }}
+        agregar={{ texto: "+ Agregar tejido", onClick: () => setAgregando(true) }}
+      />
 
-      {buscandoAlgo && activosVisibles.length + desactivadosVisibles.length === 0 && (
-        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-tinta/75">Ningún tejido coincide con «{busqueda.trim()}».</p>
-          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setBusqueda("")}>
-            Quitar búsqueda
-          </Boton>
-        </div>
+      {activos.length + desactivados.length === 0 && (
+        <VocabularioVacio>Todavía no hay tejidos en el vocabulario. Agrega el primero con «+ Agregar tejido».</VocabularioVacio>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {activosVisibles.map((t) => (
-          <div
+      {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {busqueda.trim() ? <>Ningún tejido coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ningún tejido cumple estos filtros."}
+        </SinCoincidencias>
+      )}
+
+      <div key={uso} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+        {ORDEN_USO.map((clave) => {
+          const delGrupo = activosVisibles.filter((t) => usoDe(t.id, prendasPorId) === clave);
+          if (delGrupo.length === 0) return null;
+          return (
+            <section key={clave} className="space-y-3">
+              <TituloGrupo punto={GRUPOS_USO[clave].punto} cuenta={delGrupo.length}>
+                {GRUPOS_USO[clave].grupo}
+              </TituloGrupo>
+              <div className={GRILLA_ATRIBUTOS}>
+                {delGrupo.map((t) => (
+                  <TarjetaAtributo
             key={t.id}
-            className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+            muestra={<MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />}
+            nombre={t.nombre}
+            insignia={t.estado === "pendiente" ? "Pendiente" : null}
+            detalle={<PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />}
+            abrir={{ onClick: () => abrirDetalle(t.id), titulo: "Ver la foto y las prendas" }}
           >
-            <button type="button" onClick={() => abrirDetalle(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
-              <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-tinta">{t.nombre}</span>
-                {t.estado === "pendiente" && (
-                  <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-                )}
-              </span>
-              <PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />
-            </button>
-            {puedeEditar && (
-              <div className="flex gap-2">
-                {t.estado === "pendiente" && (
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("aprobar", t.nombre, () => aprobar(t)))}>
-                    Aprobar
-                  </Boton>
-                )}
-                {t.estado === "pendiente" ? (
-                  <Boton
-                    peso="discreto"
-                    className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                    onClick={() => {
-                      setRechazandoAbierto(t.id);
-                      setMotivoRechazo("");
-                    }}
-                  >
-                    Rechazar
-                  </Boton>
-                ) : (
-                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("desactivar", t.nombre, () => desactivar(t)))}>
-                    Desactivar
-                  </Boton>
-                )}
+                    {puedeEditar &&
+                      (t.estado === "pendiente" ? (
+                        <BotonesPendiente
+                          aprobando={aprobandoId === t.id}
+                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", t.nombre, () => aprobar(t)))}
+                          onRechazar={() => {
+                            setRechazandoAbierto(t.id);
+                            setMotivoRechazo("");
+                          }}
+                        />
+                      ) : (
+                        <PieTarjeta>
+                          <DesactivarTarjeta
+                            cambiando={cambiandoId === t.id}
+                            onClick={() => setConfirmando(confirmacionCatalogo("desactivar", t.nombre, () => desactivar(t)))}
+                          />
+                        </PieTarjeta>
+                      ))}
+                  </TarjetaAtributo>
+                ))}
               </div>
-            )}
-          </div>
-        ))}
+            </section>
+          );
+        })}
       </div>
 
       {agregando && (
@@ -383,27 +389,26 @@ export function TejidosLista({
       )}
 
       {desactivadosVisibles.length > 0 && (
-        <section className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no se pueden elegir en un producto nuevo</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <section className="space-y-3">
+          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en un producto nuevo</TituloGrupo>
+          <div className={GRILLA_ATRIBUTOS}>
             {desactivadosVisibles.map((t) => (
-              <div key={t.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
-                <button type="button" onClick={() => abrirDetalle(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
-                  <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-tinta">{t.nombre}</span>
-                    {t.estado === "rechazado" && (
-                      <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                    )}
-                  </span>
-                  <PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />
-                </button>
+              <TarjetaAtributo
+                key={t.id}
+                muestra={<MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />}
+                nombre={t.nombre}
+                insignia={t.estado === "rechazado" ? "Rechazado" : null}
+                detalle={<PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />}
+                abrir={{ onClick: () => abrirDetalle(t.id), titulo: "Ver la foto y las prendas" }}
+                apagada
+              >
                 {puedeEditar && (
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", t.nombre, () => reactivar(t)))}>
-                    Reactivar
-                  </Boton>
+                  <BotonReactivar
+                    cambiando={cambiandoId === t.id}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", t.nombre, () => reactivar(t)))}
+                  />
                 )}
-              </div>
+              </TarjetaAtributo>
             ))}
           </div>
         </section>
