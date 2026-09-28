@@ -43,3 +43,8 @@ next-env.d.ts
 # La plantilla sí se versiona (va sin valores). Debe ir al final: en git
 # gana la última regla que coincide, y `.env*` de arriba la anularía.
 !.env.example
+
+# Responsive Quality Gate: cookies de sesión persistida y capturas/reportes de cada corrida.
+# Nunca se versionan — la sesión es un secreto local y la salida se regenera en cada corrida.
+responsive/.sesion/
+responsive/.salida/
