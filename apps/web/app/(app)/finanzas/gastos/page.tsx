@@ -64,6 +64,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       proveedores={proveedores}
       cajasAbiertas={contexto.cajasAbiertas}
       esLider={esLider}
+      puedeConfigurar={persona.modulos.some((m) => m.clave === "configuracion")}
       ver={ver}
       mes={mes}
       hoy={hoy}

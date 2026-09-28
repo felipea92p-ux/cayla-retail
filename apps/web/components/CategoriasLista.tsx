@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -9,10 +10,12 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect, CampoTexto, Hilo, SelectorMultiple } from "@/components/ui/campos";
+import { buscarCategorias } from "@/lib/categorias-reglas";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
 import { IconoFamilia } from "@/components/IconoFamilia";
+import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -62,10 +65,17 @@ import { IconoFamilia } from "@/components/IconoFamilia";
  * Aquí solo se MUESTRA: se elige en Atributos ▸ Temporadas, junto a la lista
  * y a cuántas prendas la heredan (cambiarla las reclasifica todas a la vez, y
  * esa cifra vive allá). Un solo lugar para cambiarla.
+ *
+ * BUSCADOR (2026-09-28). Por nombre o prefijo, sin tildes ni mayúsculas, como
+ * Marcas y Tallas. Una subcategoría que responde trae la tarjeta de su padre
+ * (las hijas no tienen tarjeta propia) y la tarjeta dice cuál respondió.
+ * Mientras se busca, las familias sin nada que mostrar se ocultan. La regla
+ * vive en `lib/categorias-reglas.ts`, con su prueba.
  */
 
 /** Dónde se elige la temporada de una categoría: la sección «por categoría» de la pestaña Temporadas (ADR-0246). */
-const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas#temporadas-por-categoria";
+// `desde=categorias`: la sección de destino muestra «← Categorías» (Atributos está en el menú y no la lleva siempre).
+const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas&desde=categorias#por-categoria";
 
 type Categoria = {
   id: string;
@@ -136,6 +146,11 @@ export function CategoriasLista({
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [subDraft, setSubDraft] = useState({ nombre: "", prefijo: "" });
   const [subGuardando, setSubGuardando] = useState(false);
+  // ¿El prefijo lo escribió la persona? Mientras no, sigue al nombre (`prefijoDesdeNombre`); apenas lo toca, se respeta
+  // lo suyo. Si lo vacía, queda vacío (para que pueda escribir otro) y la propuesta vuelve al cambiar el nombre. Al
+  // editar una categoría existente arranca en «propio»: su prefijo ya existe y cambiarle el nombre no debe moverlo.
+  const [prefijoPropio, setPrefijoPropio] = useState(false);
+  const [subPrefijoPropio, setSubPrefijoPropio] = useState(false);
   // Qué categoría está en "Vista rápida" (solo lectura, cualquier rol) —
   // separado de `borrador`: un clic en la tarjeta abre esto, nunca el
   // formulario directamente. `abrirBorrador` sigue siendo el único camino
@@ -147,16 +162,26 @@ export function CategoriasLista({
   // guardado en vez de la foto del primer render.
   const [ejesPorCategoria, setEjesPorCategoria] = useState(ejesPorCategoriaInicial);
   const [ejesDraft, setEjesDraft] = useState<EjesDraft>(EJES_VACIO);
+  const [busqueda, setBusqueda] = useState("");
+  const [buscando, setBuscando] = useState(false);
 
   const editando = borrador?.id !== null && borrador?.id !== undefined;
   const activas = categorias.filter((c) => c.activo);
   const desactivadas = categorias.filter((c) => !c.activo);
   const viendo = categorias.find((c) => c.id === viendoId) ?? null;
+  // `null` = no se busca nada. Si no, id → nombres de las subcategorías que respondieron (ver `buscarCategorias`).
+  // Activas y desactivadas por separado: una hija desactivada no debe hacer salir a su padre activo.
+  const coinciden = buscarCategorias(activas, busqueda);
+  const seVe = (c: Categoria) => coinciden === null || coinciden.has(c.id);
+  const desactivadasCoinciden = buscarCategorias(desactivadas, busqueda);
+  const desactivadasVisibles = desactivadas.filter((c) => desactivadasCoinciden === null || desactivadasCoinciden.has(c.id));
 
   function abrirBorrador(b: Borrador | null) {
     setViendoId(null);
     setBorrador(b);
+    setPrefijoPropio(Boolean(b?.id));
     setSubDraft({ nombre: "", prefijo: "" });
+    setSubPrefijoPropio(false);
     setEjesDraft(
       b?.id
         ? {
@@ -293,6 +318,7 @@ export function CategoriasLista({
       responsable.despues(null);
       avisar.exito(`Subcategoría ${nueva.nombre} agregada`);
       setSubDraft({ nombre: "", prefijo: "" });
+      setSubPrefijoPropio(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -332,24 +358,73 @@ export function CategoriasLista({
   // (`fn_categorias_vigencia_candados`), en vez de dejar tipearlo y rechazarlo al guardar.
   const productosConEstePrefijo = editando && borrador ? productosTotalesPorCategoria[borrador.id!] ?? 0 : 0;
   const prefijoFijo = productosConEstePrefijo > 0;
+  // Choques contra TODAS las categorías (también las desactivadas: los candados de la base no las excluyen). Se avisa
+  // al tipear y se bloquea «Guardar»; el candado real sigue en la base (dos líderes guardando a la vez).
+  const excluirId = borrador?.id ?? null;
+  const ejemplo = borrador ? ejemploParaFamilia(borrador.familia, categorias) : null;
+  const choquePrefijo = borrador && !prefijoFijo ? quienUsaPrefijo(borrador.prefijo, categorias, excluirId) : null;
+  const choqueNombre = borrador ? quienUsaNombre(borrador.nombre, categorias, excluirId) : null;
+  const subChoquePrefijo = quienUsaPrefijo(subDraft.prefijo, categorias, null);
+  const subChoqueNombre = quienUsaNombre(subDraft.nombre, categorias, null);
 
   return (
     <div className="space-y-3">
-      {puedeEditar && (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <span />
-          <button
-            type="button"
-            onClick={() => abrirBorrador(borradorVacio(familias))}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar categoría
-          </button>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        {coinciden !== null && (
+          <p className="text-sm text-tinta/70" aria-live="polite">
+            {activas.filter((c) => esRaizVisible(c) && seVe(c)).length} de {activas.filter(esRaizVisible).length} categorías
+          </p>
+        )}
+        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
+          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
+            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(ev) => setBusqueda(ev.target.value)}
+              onFocus={() => setBuscando(true)}
+              onBlur={() => setBuscando(false)}
+              placeholder="Categoría o prefijo"
+              aria-label="Buscar categoría o prefijo"
+              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => setBusqueda("")}
+                aria-label="Borrar búsqueda"
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
+              >
+                <X aria-hidden className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <Hilo activo={buscando} />
+          </div>
+          {puedeEditar && (
+            <button
+              type="button"
+              onClick={() => abrirBorrador(borradorVacio(familias))}
+              className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+            >
+              + Agregar categoría
+            </button>
+          )}
+        </div>
+      </div>
+
+      {coinciden !== null && coinciden.size === 0 && desactivadasVisibles.length === 0 && (
+        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
+          <p className="text-sm text-tinta/75">Ninguna categoría coincide con «{busqueda.trim()}».</p>
+          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setBusqueda("")}>
+            Quitar búsqueda
+          </Boton>
         </div>
       )}
 
       {familias.map(({ codigo: f }) => {
-        const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c));
+        const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c) && seVe(c));
+        // Buscando, una familia sin nada que mostrar no aparece: «Sin categorías todavía» mentiría.
+        if (coinciden !== null && raicesDeLaFamilia.length === 0) return null;
         return (
           <section key={f} className="card-cayla p-5">
             <div className="flex items-center justify-between">
@@ -370,6 +445,7 @@ export function CategoriasLista({
                     productos={productosPorCategoria[c.id] ?? 0}
                     subcategorias={hijasDe(c.id).length}
                     temporada={temporadaPorCategoria?.[c.id] ?? null}
+                    subcategoriasQueCoinciden={coinciden?.get(c.id) ?? []}
                     onClick={() => setViendoId(c.id)}
                   />
                 ))}
@@ -462,20 +538,38 @@ export function CategoriasLista({
               <CampoTexto
                 etiqueta="Nombre"
                 value={borrador.nombre}
-                onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                placeholder="Ej. Kimonos"
+                onChange={(e) => {
+                  const nombre = e.target.value;
+                  setBorrador({ ...borrador, nombre, prefijo: prefijoPropio ? borrador.prefijo : prefijoDesdeNombre(nombre, categorias, excluirId) ?? "" });
+                }}
+                placeholder={`Ej. ${ejemplo?.nombre ?? ""}`}
+                tono={choqueNombre ? "error" : undefined}
+                pie={choqueNombre ? avisoChoque("nombre", choqueNombre) : undefined}
               />
               <CampoTexto
                 etiqueta="Prefijo (3 letras)"
                 mono
                 value={borrador.prefijo}
                 maxLength={3}
-                onChange={(e) => setBorrador({ ...borrador, prefijo: e.target.value.toUpperCase() })}
-                placeholder="KIM"
+                onChange={(e) => {
+                  const prefijo = e.target.value.toUpperCase();
+                  setPrefijoPropio(prefijo !== "");
+                  setBorrador({ ...borrador, prefijo });
+                }}
+                placeholder={ejemplo?.prefijo}
                 disabled={prefijoFijo}
                 title={prefijoFijo ? "Es la letra del código de cada prenda: ya está impreso en sus etiquetas." : undefined}
                 className={prefijoFijo ? "cursor-not-allowed text-tinta/65" : ""}
-                pie={prefijoFijo ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}` : undefined}
+                tono={choquePrefijo ? "error" : undefined}
+                pie={
+                  prefijoFijo
+                    ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}`
+                    : choquePrefijo
+                      ? avisoChoque("prefijo", choquePrefijo)
+                      : !prefijoPropio && borrador.prefijo
+                        ? "Sale del nombre; puedes cambiarlo"
+                        : undefined
+                }
               />
             </div>
 
@@ -537,8 +631,13 @@ export function CategoriasLista({
                     <CampoTexto
                       etiqueta="Nueva subcategoría"
                       value={subDraft.nombre}
-                      onChange={(e) => setSubDraft({ ...subDraft, nombre: e.target.value })}
-                      placeholder="Ej. Vestidos largos"
+                      onChange={(e) => {
+                        const nombre = e.target.value;
+                        setSubDraft({ nombre, prefijo: subPrefijoPropio ? subDraft.prefijo : prefijoDesdeNombre(nombre, categorias, null) ?? "" });
+                      }}
+                      placeholder="Nombre de la subcategoría"
+                      tono={subChoqueNombre ? "error" : undefined}
+                      pie={subChoqueNombre ? avisoChoque("nombre", subChoqueNombre) : undefined}
                     />
                   </div>
                   <div className="w-24">
@@ -547,14 +646,20 @@ export function CategoriasLista({
                       mono
                       value={subDraft.prefijo}
                       maxLength={3}
-                      onChange={(e) => setSubDraft({ ...subDraft, prefijo: e.target.value.toUpperCase() })}
-                      placeholder="VLA"
+                      onChange={(e) => {
+                        const prefijo = e.target.value.toUpperCase();
+                        setSubPrefijoPropio(prefijo !== "");
+                        setSubDraft({ ...subDraft, prefijo });
+                      }}
+                      placeholder="ABC"
+                      tono={subChoquePrefijo ? "error" : undefined}
+                      pie={subChoquePrefijo ? avisoChoque("prefijo", subChoquePrefijo) : undefined}
                     />
                   </div>
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id || !responsable.listo}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || !borrador.id || !responsable.listo}
                     title={responsable.motivo ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
@@ -659,7 +764,7 @@ export function CategoriasLista({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !responsable.listo} title={responsable.motivo ?? undefined}>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || !responsable.listo} title={responsable.motivo ?? undefined}>
                 {editando ? "Guardar cambios" : "Guardar categoría"}
               </Boton>
             </div>
@@ -669,11 +774,11 @@ export function CategoriasLista({
         </Modal>
       )}
 
-      {desactivadas.length > 0 && (
+      {desactivadasVisibles.length > 0 && (
         <section className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
-            {desactivadas.map((c) => (
+            {desactivadasVisibles.map((c) => (
               <span
                 key={c.id}
                 className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/60"
@@ -718,6 +823,7 @@ function TarjetaCategoria({
   productos,
   subcategorias,
   temporada,
+  subcategoriasQueCoinciden,
   onClick,
 }: {
   c: Categoria;
@@ -725,6 +831,8 @@ function TarjetaCategoria({
   subcategorias: number;
   /** Nombre de su temporada por defecto (ADR-0246), o null si no tiene. */
   temporada: string | null;
+  /** Subcategorías que respondieron al buscador: la tarjeta dice por qué salió. */
+  subcategoriasQueCoinciden: string[];
   onClick: () => void;
 }) {
   return (
@@ -744,6 +852,9 @@ function TarjetaCategoria({
           {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
         </p>
         {temporada && <p className="mt-0.5 text-[11px] text-taupe">{temporada}</p>}
+        {subcategoriasQueCoinciden.length > 0 && (
+          <p className="mt-0.5 text-[11px] text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>
+        )}
       </div>
     </button>
   );

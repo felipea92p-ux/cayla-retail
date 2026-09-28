@@ -137,7 +137,7 @@
  {
   "cmd": "SELECT",
   "policyname": "clientas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_ve_modulo('clientas'::text) AS fn_ve_modulo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "clientas",

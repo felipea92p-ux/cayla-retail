@@ -18,8 +18,9 @@ import { firmar, type Firma } from "@/lib/responsable-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
-// `security definer` con RLS de "cualquier colaborador con sesión" — esta capa nunca es la única
-// puerta, la base la vuelve a exigir.
+// `security definer` y empiezan por preguntar si la cuenta ve el módulo «Clientas» (42501
+// `clientas_sin_modulo`, ADR-0249 act. 2026-09-28); la lectura directa de `clientas` también
+// (política `clientas_select`). Esta capa nunca es la única puerta: la base la vuelve a exigir.
 //
 // Paso 2 del acta (docs/datos/DECISIONES-2026-09-26-clientas.md sección H): editar, archivar/
 // anonimizar, unir y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77).

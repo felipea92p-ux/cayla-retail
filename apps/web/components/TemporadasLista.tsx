@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { Volver } from "@/components/ui/Volver";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Boton, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -121,6 +122,21 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
+}
+
+/**
+ * Dos pantallas saltan directo a una sección de esta pestaña, lejos de la cabecera de Atributos: «Completar» del aviso de
+ * Productos (a «Sin temporada») y el enlace de Categorías (a «Por categoría»). La vuelta va sobre la sección, donde cae
+ * la vista, y solo con su `desde=`: Atributos está en el menú, y quien entra por el lateral no vino de ninguna de las dos.
+ */
+const VUELTAS = {
+  productos: { href: "/productos", a: "Productos" },
+  categorias: { href: "/productos/categorias", a: "Categorías" },
+} as const;
+
+function VueltaSiVieneDe({ de }: { de: keyof typeof VUELTAS }) {
+  const desde = useSearchParams().get("desde");
+  return desde === de ? <Volver {...VUELTAS[de]} /> : null;
 }
 
 function TituloSeccion({ id, sobre, titulo, bajada }: { id: string; sobre: string; titulo: string; bajada: string }) {
@@ -576,7 +592,8 @@ function SeccionCategorias({
   }
 
   return (
-    <section className="space-y-3" aria-labelledby="temporadas-por-categoria">
+    <section id="por-categoria" className="scroll-mt-24 space-y-3" aria-labelledby="temporadas-por-categoria">
+      <VueltaSiVieneDe de="categorias" />
       <TituloSeccion
         id="temporadas-por-categoria"
         sobre="Por categoría"
@@ -705,6 +722,7 @@ function SeccionSinTemporada({
 
   return (
     <section id="sin-temporada" className="scroll-mt-24 space-y-3" aria-labelledby="temporadas-sin-temporada">
+      <VueltaSiVieneDe de="productos" />
       <TituloSeccion
         id="temporadas-sin-temporada"
         sobre={`Sin temporada · ${lista.length}`}

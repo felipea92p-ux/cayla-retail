@@ -46,7 +46,8 @@ const rol = (extra: Partial<RolVista> = {}): RolVista => ({
   pantallaPrincipal: null,
   ...extra,
 });
-const LIDER = rol({ id: "l", clave: "lider", nombre: "Líder de equipo", esSistema: true, fijo: true });
+// El Líder llega de `getRoles` con TODOS los módulos que ve (ADR-0253: todos menos lo que un Admin le quitó).
+const LIDER = rol({ id: "l", clave: "lider", nombre: "Líder de equipo", esSistema: true, fijo: true, modulos: MODULOS.map((m) => m.clave) });
 // «inicio» sumado a mano (20260925220000): `MODULOS_DE_HOY` quedó congelada a propósito en lo que ya había cuando se
 // escribió (es la foto de la siembra vieja), y no se actualiza con cada módulo nuevo — igual que «apartados» (ADR-0196).
 const INTEGRANTE = rol({
@@ -59,11 +60,35 @@ const INTEGRANTE = rol({
 });
 
 describe("controles del editor", () => {
-  it("el Líder ve todo, con interruptores que no se mueven", () => {
+  it("ADR-0253: el Líder lo edita un Admin, todo menos Roles y accesos; sin ser Admin, lo ve pero no lo mueve", () => {
+    const admin = { misModulos: null, miRolId: null, soyAdmin: true };
+    const liderSinAdmin = { misModulos: null, miRolId: null, soyAdmin: false };
     for (const m of MODULOS) {
       expect(veModulo(LIDER, m.clave)).toBe(true);
-      expect(controlDe(LIDER, m)).toEqual({ tipo: "interruptor", editable: false });
+      if (m.clave === "roles") {
+        expect(controlDe(LIDER, m, admin)).toEqual({ tipo: "candado", texto: "No se le quita" });
+      } else {
+        expect(controlDe(LIDER, m, admin), m.clave).toEqual({ tipo: "interruptor", editable: true });
+        expect(controlDe(LIDER, m, liderSinAdmin), m.clave).toEqual({ tipo: "interruptor", editable: false });
+      }
     }
+    // Aun un módulo que nazca «solo del líder» se le puede quitar al Líder (es su dueño).
+    expect(controlDe(LIDER, { ...modulo("caja"), soloLider: true }, admin)).toEqual({ tipo: "interruptor", editable: true });
+  });
+
+  it("ADR-0253: al Líder se le quita y se le devuelve cualquier módulo, menos Roles y accesos", () => {
+    const todos = LIDER.modulos;
+    expect(alternarModulo(todos, "caja", true)).not.toContain("caja");
+    expect(alternarModulo(alternarModulo(todos, "caja", true), "caja", true)).toEqual(todos);
+    expect(alternarModulo(todos, "roles", true)).toEqual(todos);
+    // «Quitar todo» en Gestión le deja Roles y accesos.
+    expect(alternarGrupo(todos, "Gestión", false, true).filter((c) => MODULOS.find((m) => m.clave === c)?.grupo === "Gestión")).toEqual(["roles"]);
+  });
+
+  it("ADR-0253: el menú del Líder sin Caja no la muestra (ni su permiso)", () => {
+    const ventas = (r: RolVista) => etiquetasDelMenu(menuDelRol(r)).find((f) => f.etiqueta === "Ventas")?.hijas ?? [];
+    expect(ventas(LIDER)).toContain("Caja");
+    expect(ventas({ ...LIDER, modulos: LIDER.modulos.filter((c) => c !== "caja") })).not.toContain("Caja");
   });
 
   it("hoy todo módulo sale con interruptor (Felipe, 2026-09-22: se abrieron los 7 que tenían candado); el candado sigue para uno que nazca así", () => {

@@ -166,8 +166,10 @@ export function NuevoProductoForm({
   const [sinStock, setSinStock] = useState(false);
   // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
   // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
+  // hereda por no mirar la pregunta.
   const puedePiso = destino.separaPiso && destino.puedeBajar;
-  const [alPiso, setAlPiso] = useState(puedePiso);
+  const [alPiso, setAlPiso] = useState(false);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
@@ -861,11 +863,11 @@ export function NuevoProductoForm({
               <div className="space-y-2">
                 <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
                 <div className="flex flex-wrap gap-1.5">
-                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
-                    Colgadas en el piso de venta
-                  </ChipOpcion>
                   <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
                     Guardadas en el almacén
+                  </ChipOpcion>
+                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                    En piso de venta
                   </ChipOpcion>
                 </div>
                 {!puedePiso && (
