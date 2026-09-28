@@ -34,7 +34,7 @@ import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, t
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TEXTO_ACCION_HOY, type Recomendacion, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
+import { TEXTO_ACCION_HOY, type FilaParaRecomendaciones, type Recomendacion, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
 import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla, porColgar, puedeRetirarPiso, resumirPorColgar, type SentidoPiso } from "@/lib/inventario-reglas";
@@ -548,6 +548,20 @@ export function InventarioPanel({
     setBusqueda("");
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
+  }
+
+  /** Clic en una tarjeta de «Ver recomendaciones»: cierra el overlay y lleva directo a resolverla, con la
+   *  prenda y la talla ya marcadas — la persona solo confirma o escribe la cantidad. Con almacén en 0 no hay
+   *  nada que mover todavía (`ReponerPisoModal` lo confirmaría con «Disponible: 0» y el botón apagado, un
+   *  callejón sin salida), así que abre el detalle: ahí se ve el panorama completo para decidir qué sigue. */
+  function abrirDesdeRecomendacion(f: FilaParaRecomendaciones) {
+    setViendoRecomendaciones(false);
+    if ((f.almacenDisponible ?? 0) > 0) {
+      abrirMovimiento(f.varianteId, "bajar", null);
+      return;
+    }
+    const filaCompleta = stock.find((x) => x.varianteId === f.varianteId);
+    if (filaCompleta) abrirPrenda(agruparPorPrenda([filaCompleta])[0], filaCompleta.varianteId);
   }
 
   // «Reponer a piso hoy» (tarjeta A): variantes que ya cuenta `resumen.requierenReposicion`, y las
@@ -1397,7 +1411,9 @@ export function InventarioPanel({
 
       {viendoCobertura && <AnalisisCoberturaOverlay stock={stock} onClose={() => setViendoCobertura(false)} />}
 
-      {viendoRecomendaciones && <RecomendacionesOverlay recomendaciones={recomendaciones} onClose={() => setViendoRecomendaciones(false)} />}
+      {viendoRecomendaciones && (
+        <RecomendacionesOverlay recomendaciones={recomendaciones} onClose={() => setViendoRecomendaciones(false)} onSeleccionar={abrirDesdeRecomendacion} />
+      )}
 
       {/* El detalle de una prenda (ADR-0237). Sus acciones por talla no abren un modal encima de otro: cierran este y abren
           el suyo (Reponer, Apartar, Ajustar), que al guardar refresca la pantalla. */}
