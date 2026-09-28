@@ -22,14 +22,14 @@ const ICONO: Record<AccionAnalisis["clave"], typeof ArrowRight> = {
 
 export type PedidoAbierto = Extract<AccionAnalisis, { clave: "pedir" }>;
 
-/** El botón de una acción. `forma`: `fila` (chico, en la tabla), `tarjeta` (celular, más alto para el pulgar) o `detalle`. */
+/** El botón de una acción. `forma`: `fila` (chico, en la tabla), `tarjeta` (celular, de 44 px de alto para el pulgar) o `detalle`. */
 export function BotonAccion({ accion, forma = "fila", onPedir }: { accion: AccionAnalisis; forma?: "fila" | "tarjeta" | "detalle"; onPedir: (a: PedidoAbierto) => void }) {
   const Icono = ICONO[accion.clave];
   const clase =
     forma === "detalle"
       ? "flex w-full items-center gap-2.5 rounded-xl border border-sand bg-papel px-3 py-2.5 text-left text-sm font-medium text-tinta transition-colors hover:border-taupe"
       : `inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-tinta bg-papel font-semibold text-tinta transition-colors hover:bg-tinta hover:text-crema ${
-          forma === "tarjeta" ? "px-3 py-2 text-[13px]" : "px-2.5 py-1 text-xs"
+          forma === "tarjeta" ? "min-h-11 px-4 py-2 text-sm" : "px-2.5 py-1 text-xs"
         }`;
   const contenido =
     forma === "detalle" ? (
@@ -88,32 +88,39 @@ export const PUNTO_GRUPO: Record<GrupoQueHacer, string> = {
 /**
  * La curva de tallas de la prenda: arriba la talla, al medio lo que VENDIÓ en el período y abajo lo que hay HOY
  * (piso · almacén). Borde rojo = vendió y el piso quedó vacío; apagada = no vendió nada. Los tonos salen de las
- * cifras, no de un umbral propio.
+ * cifras, no de un umbral propio. Cada pastilla es un botón: abre el detalle de la prenda con esa talla resaltada.
  */
-export function CurvaTallas({ prenda, conHoy = true }: { prenda: PrendaAnalisis; conHoy?: boolean }) {
+export function CurvaTallas({ prenda, conHoy = true, onAbrirTalla }: { prenda: PrendaAnalisis; conHoy?: boolean; onAbrirTalla: (varianteId: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5 sm:gap-1">
       {prenda.tallas.map((t) => {
         const f = t.x.fila;
         const hoy = f.stockActualPisoAlmacen;
         const vendio = t.x.periodo.ventasNetas;
         const vacio = hoy !== null && hoy.piso === 0 && vendio > 0;
         return (
-          <span
+          <button
+            type="button"
             key={f.varianteId}
+            onClick={(e) => {
+              // La fila o tarjeta entera también abre el detalle (sin talla): este clic es más específico y no debe llegar a ella.
+              e.stopPropagation();
+              onAbrirTalla(f.varianteId);
+            }}
+            aria-label={`Ver la talla ${f.talla ?? "Única"} de ${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
             title={`${f.talla ?? "Única"}: vendió ${vendio}${hoy ? ` · hoy ${hoy.piso} en piso y ${hoy.almacen} en almacén` : ""}`}
-            className={`inline-flex min-w-[2.4rem] flex-col items-center rounded-md px-1 py-0.5 text-[11px] leading-tight ${
+            className={`inline-flex min-h-11 min-w-11 cursor-pointer flex-col items-center justify-center rounded-md px-1 py-0.5 text-xs sm:min-h-0 sm:min-w-[2.4rem] sm:justify-start sm:text-[11px] leading-tight transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
               vendio === 0 ? "text-tinta/40 ring-1 ring-inset ring-sand" : "bg-hueso text-tinta"
             } ${vacio ? "ring-[1.5px] ring-inset ring-rojo" : ""}`}
           >
-            <span className="text-[10px] font-semibold text-taupe">{f.talla ?? "Única"}</span>
+            <span className="text-[11px] font-semibold text-taupe sm:text-[10px]">{f.talla ?? "Única"}</span>
             <span className="font-semibold tabular-nums">{vendio}</span>
             {conHoy && hoy && (
               <span className={`text-[9.5px] tabular-nums ${vacio ? "text-rojo-profundo" : "text-tinta/50"}`}>
                 {hoy.piso} · {hoy.almacen}
               </span>
             )}
-          </span>
+          </button>
         );
       })}
     </div>

@@ -34,6 +34,8 @@ import { margenPorcentaje } from "@/lib/alta-producto";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { usePantallaActual } from "@/lib/usePantallaActual";
+import { conDesde } from "@/lib/vuelta-productos";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -98,6 +100,7 @@ export function ProductosTabla({
   veDinero: boolean;
   mensajeVacio?: string;
 }) {
+  const pantalla = usePantallaActual();
   const filas = useMemo<Fila[]>(
     () =>
       productos.map((p) => ({
@@ -158,9 +161,10 @@ export function ProductosTabla({
   }
 
   const acciones = (f: Fila): AccionesFila => ({
-    editar: puedeEditar ? `/productos/${f.p.productoId}/editar` : null,
-    historial: `/productos/${f.p.productoId}/historial`,
-    etiquetas: urlEtiquetasDePrecio({ producto: f.p.productoId }),
+    editar: puedeEditar ? conDesde(`/productos/${f.p.productoId}/editar`, pantalla) : null,
+    historial: conDesde(`/productos/${f.p.productoId}/historial`, pantalla),
+    etiquetas: urlEtiquetasDePrecio({ producto: f.p.productoId }, pantalla),
+    etiquetasDe: (varianteId) => urlEtiquetasDePrecio({ variantes: [varianteId] }, pantalla),
     ajustar: puedeAjustar ? () => setAjustando(f.p.productoId) : null,
     eliminar: puedeEliminar ? () => setEliminando(f.p) : null,
   });
@@ -366,6 +370,8 @@ type AccionesFila = {
   editar: string | null;
   historial: string;
   etiquetas: string;
+  /** Las etiquetas de UNA sola variante (talla + color), para el ícono que flota sobre su tarjeta. */
+  etiquetasDe: (varianteId: string) => string;
   ajustar: (() => void) | null;
   eliminar: (() => void) | null;
 };
@@ -518,6 +524,24 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
   );
 }
 
+/** Lo que flota sobre la tarjeta de UNA variante al pasar el mouse: imprimir la etiqueta de esa talla y color, sin tener
+ *  que imprimir las del modelo entero. Mismo gesto que `AccionesFlotantes` (que actúa sobre el modelo). Sin hover
+ *  (celular) no aparece: ahí queda «Etiquetas» del modelo en la ficha. */
+function AccionesDeVariante({ href, descripcion }: { href: string; descripcion: string }) {
+  return (
+    <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
+      <Link
+        href={href}
+        className="grid h-8 w-8 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-hueso hover:text-tinta"
+        aria-label={`Etiqueta de precio de ${descripcion}`}
+        title="Imprimir la etiqueta de esta variante"
+      >
+        <Printer aria-hidden className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
 /* ─────────────────────────── Angosta ─────────────────────────── */
 
 function TarjetaFila({
@@ -599,7 +623,7 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
           return (
             <li
               key={v.varianteId}
-              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel px-3 py-2.5 ${v.activo ? "" : "opacity-50"}`}
+              className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel px-3 py-2.5 ${v.activo ? "" : "opacity-50"}`}
             >
               <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "#e8e0d0" }} />
               <span className="min-w-0 truncate text-[13px] text-tinta">
@@ -622,6 +646,7 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
                   "sin costo"
                 )}
               </span>
+              <AccionesDeVariante href={acciones.etiquetasDe(v.varianteId)} descripcion={[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante")} />
             </li>
           );
         })}
@@ -676,6 +701,7 @@ function BarraMarcadas({
   onReactivar: () => void;
   onLimpiar: () => void;
 }) {
+  const pantalla = usePantallaActual();
   const n = seleccion.length;
   const variantes = seleccion.flatMap((p) => p.variantes.filter((v) => v.activo).map((v) => v.varianteId));
   const hayActivas = seleccion.some((p) => p.estado === "activo");
@@ -708,7 +734,7 @@ function BarraMarcadas({
         </>
       )}
       <Link
-        href={variantes.length > 0 ? urlEtiquetasDePrecio({ variantes }) : "#"}
+        href={variantes.length > 0 ? urlEtiquetasDePrecio({ variantes }, pantalla) : "#"}
         aria-disabled={variantes.length === 0}
         tabIndex={n > 0 ? 0 : -1}
         className={`${boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`}
