@@ -1044,19 +1044,26 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       ventana, niveles, reloj, rapidez, estado de cada prenda, `armarFrescuraLider`), `lib/frescura.ts`,
       `lib/prenda-clave.ts`. El contrato SQL ↔ web se vigila con la salida real guardada en
       `apps/web/lib/__fixtures__/frescura-sede.json` (`frescura-contrato.test.ts` + T13). Pruebas:
-      `pnpm pruebas:frescura-lectura` (132). Detalle: ADR-0208, «Paso 3 construido (2026-09-27)». **Revisión 3 corregida
+      `pnpm pruebas:frescura-lectura` (152). Detalle: ADR-0208, «Paso 3 construido (2026-09-27)». **Revisión 3 corregida
       el 2026-09-27** (16 hallazgos): la confianza sin productos de prueba; `primera_exhibicion` del modelo+color; la
       temporada también de lo descontinuado (`fn_temporada_efectiva_nucleo`, que `fn_temporada_efectiva` ahora envuelve
       con las mismas filas); en la web, la tardía ya no quita la novedad, sin P50 no hay tramo, la rapidez contra el resto
-      de la categoría y «retirar» para la temporada pasada de un pilar. ADR-0208, «Revisión 3 del paso 3».
-      - [ ] **Pegar `20260928120300` en producción** (sola, en el SQL Editor, a cualquier hora: solo funciones; también
-        reescribe `fn_temporada_efectiva` como envoltorio, con las mismas filas). Después, `md5(prosrc)`: `fn_es_llegada`
-        `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede` `618e465d586cf3193e7e8197059f4071`,
-        `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo`
-        `2bf80eb239248cce88cf8062238f4dfc`, `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448` (antes
-        `1cc652ba…`). Si alguna ya existe con otro cuerpo (o `fn_temporada_efectiva` no es la de `20260928100000`), aborta
-        sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y
-        `pnpm datos:comparar`; regenerar los tipos a mano de `packages/database` con `supabase gen types`.
+      de la categoría y «retirar» para la temporada pasada de un pilar. ADR-0208, «Revisión 3 del paso 3». **Revisión 4
+      corregida el 2026-09-27** (10 hallazgos): las correcciones de la revisión 3 salieron de `20260928120300` (que vuelve a
+      ser la de main) a `20260928120310_frescura_lectura_revision3.sql`; en la web, la rapidez es «sin dato» si vendió de la
+      carga inicial, «Trasladar» exige 20 ventas del resto de la categoría, el tramo «al menos» cuando falta el corte, y el
+      reloj en milisegundos con tolerancia. ADR-0208, «Revisión 4 del paso 3».
+      - [ ] **Pegar `20260928120300` y DESPUÉS `20260928120310` en producción** (cada una sola, en el SQL Editor, a
+        cualquier hora: solo funciones). **No pegar solo la primera**: deja los errores de la revisión 3. Tras
+        `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
+        `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`. Tras
+        `20260928120310` (que también reescribe `fn_temporada_efectiva` como envoltorio, con las mismas filas):
+        `fn_es_llegada` igual, `fn_frescura_sede` `618e465d586cf3193e7e8197059f4071`, `fn_confianza_registro`
+        `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`,
+        `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448` (antes `1cc652ba…`). La guarda de la segunda acepta
+        la versión de la primera o la suya; con cualquier otro cuerpo aborta sin tocar nada. Luego
+        `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a mano de
+        `packages/database` con `supabase gen types`.
       - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «aún sin referencia» (categoría sin P50: la
         chompa de la salida real ya no sale «Nueva») y si esa prenda recibe «revisa sus ventas»; qué muestra una prenda
         que solo está en el almacén (hoy «Nueva» con 0 segundos); y si se agrega `llegada_estimada` para las 34 prendas
@@ -1066,6 +1073,10 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         (recomendado: la última llegada a CAYLA, con un segundo predicado); (2) ¿un pilar de temporada pasada entra en
         «Por decidir»? (hoy no, pero recibe «retirar»); (3) «colgada 100 días sin vender en una categoría que rota en
         días» dice «revisa sus ventas», no «por decidir»: ¿está bien? ADR-0208, «Revisión 3 del paso 3».
+      - [ ] **Decisiones de negocio de la revisión 4 (Felipe):** (5) ¿el tramo de una prenda se mide contra su categoría
+        SIN ella, como la rapidez? (hoy el pantalón de 70 días con 0 de 3 vendidas sale «Vigente» porque sus propias
+        unidades sostienen la curva; recomendado: sí, lo construye el paso 4 si no hay respuesta); (6) ¿«al menos Vigente»
+        sin dato de rapidez recibe «revisa sus ventas»? (recomendado: sí). ADR-0208, «Revisión 4 del paso 3».
       - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
         `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
         0 filas así). ADR-0208, «Revisión 4».

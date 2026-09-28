@@ -1489,7 +1489,9 @@ fila con destino suelto. T34 y T36 describen estados que hoy solo se arman a man
 
 **Estado:** construido en la rama `claude/frescura-3c-lectura`, **sin pegar en producción** (las tres funciones no existen
 allá; consulta de solo lectura del 2026-09-27). Se pega `20260928120300_frescura_lectura.sql` sola en el SQL Editor, a
-cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`).
+cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`), y
+DESPUÉS `20260928120310_frescura_lectura_revision3.sql`, también sola (las correcciones de la revisión 3; ver «Revisión 4
+del paso 3»).
 Ninguna pantalla la llama todavía: la web que la usa es la del paso 4.
 
 **Qué hay.**
@@ -1586,9 +1588,11 @@ líder, en escritorio y a 375 px.
 
 Tres revisores (SQL, reglas, pruebas) encontraron 16 problemas, todos confirmados ejecutando. Se arreglaron con una
 prueba que falla con el código de antes (o con el cambio a propósito que la dejaba pasar) y pasa con el de ahora. Nada
-de esto está en producción: la migración sigue sin pegar y se corrigió en su lugar (sus md5 cambiaron en la guarda).
+de esto está en producción: la migración sigue sin pegar y se corrigió en su lugar (sus md5 cambiaron en la guarda). *Eso
+fue un error: `20260928120300` ya estaba en main con la orden de pegarla. Las correcciones pasaron a su propio archivo,
+`20260928120310_frescura_lectura_revision3.sql`, y `20260928120300` volvió a ser la de main («Revisión 4 del paso 3»).*
 
-**Qué cambió en la base (`20260928120300_frescura_lectura.sql`):**
+**Qué cambió en la base (hoy en `20260928120310_frescura_lectura_revision3.sql`):**
 - `fn_confianza_registro` ya no cuenta las bajadas de productos `es_prueba` (fn_frescura_sede ya los sacaba). Una
   bajada de práctica tardía ponía la confianza del mes en 0 (T10b).
 - **`primera_exhibicion` es del modelo+color, no de la talla** (cambia lo que significa el campo, no su forma): la
@@ -1646,4 +1650,79 @@ de esto está en producción: la migración sigue sin pegar y se corrigió en su
    la vara y no estaba escrito.
 4. **Una prenda sin tramo (categoría sin P50) no recibe sugerencias** aunque lleve 60 días sin vender una: la maqueta
    del paso 4 decide cómo se dice «aún sin referencia» y si esa prenda merece un «revisa sus ventas».
+
+### Revisión 4 del paso 3 (2026-09-27): la migración partida en dos, la rapidez de lo que vino en la carga y los tramos «al menos»
+
+Tres revisores (SQL, reglas, pruebas) encontraron 10 problemas, todos confirmados ejecutando. Cada arreglo lleva una
+prueba que falla con el código de antes (o con el mutante que la dejaba pasar) y pasa con el de ahora. Nada de esto está
+en producción; consultado con un `select` el 2026-09-27: ninguna de las funciones del paso 3 existe y
+`fn_temporada_efectiva` tiene su cuerpo de `20260928100000` (`1cc652ba…`).
+
+**La migración, partida en dos (hallazgo 1).** La revisión 3 corrigió `20260928120300` editándola en su lugar, pero el PR
+#542 ya la había llevado a main con la orden de pegarla (en el BACKLOG de main, con los md5 viejos). Quien siguiera esa
+orden dejaba producción con los errores de la revisión 3, y la versión corregida ya no entraba: su guarda veía un cuerpo
+que no conocía y abortaba con «alguien la cambió en vivo», cuando era la versión anterior del mismo archivo. Además, una
+base local que ya corrió `20260928120300` no vuelve a ejecutar el archivo editado. Ahora:
+- `20260928120300_frescura_lectura.sql` es exactamente la de main (md5 del archivo `40bf970f…`).
+- `20260928120310_frescura_lectura_revision3.sql` trae las correcciones (`fn_temporada_efectiva_nucleo`, el envoltorio de
+  `fn_temporada_efectiva`, `fn_frescura_sede` y `fn_confianza_registro`, con los mismos cuerpos que la revisión 3). Su
+  guarda pide `20260928120300` ya pegada (`fn_es_llegada` `5089ba50…`, y las dos lecturas presentes) y, para cada función
+  que reescribe, acepta solo dos cuerpos: el de `20260928120300` (`644e1012…`, `9c714f98…`; `1cc652ba…` para
+  `fn_temporada_efectiva`) o el suyo. Se puede pegar dos veces. Al revés también es seguro: con ella pegada, volver a pegar
+  `20260928120300` aborta y no deshace nada.
+- La prueba T12b parte del estado real de producción y lo recorre: la de main entra, la corregida entra encima, la de main
+  otra vez aborta, y sin la de main la corregida la pide. Con la corrección editada en el mismo archivo, T12b falla en 5
+  verificaciones. Regla que queda: **una migración que ya está en main no se edita; la corrección va en un archivo nuevo
+  cuya guarda acepta el cuerpo anterior** (como `20260928120200` con `20260928120100`).
+
+**Qué cambió en la web (`lib/frescura-reglas.ts`):**
+- **La rapidez es «sin dato» si alguna venta de la ventana salió de lo que tiene edad desconocida** (hallazgo 2).
+  `historiaDeCohortes` le da las ventas a la cohorte más vieja: una talla de la carga inicial que se repone vende primero
+  lo de la carga, y las unidades repuestas (con edad conocida) parecían sin vender. La rapidez salía 0, «lenta», y la
+  prenda iba a «Por decidir» con «Trasladar», justo lo que prohíbe la corrección 4 del plan. Dos gemelas con la misma
+  historia física: K (todo con edad conocida) sale Crítica con rapidez 125, un pilar; U (la primera bajada de la carga)
+  salía rapidez 0 con [cambiar_lugar, trasladar] y ahora sale sin dato, con «revisa sus ventas». `unidadesParaVara`
+  (reemplaza a `observacionesDe`) devuelve, además de las unidades con edad conocida, cuántas ventas salieron de lo
+  desconocido; `rapidez` recibe ese número. En TRU (select del 27-sep) hay 21 tallas con unidades de edad desconocida en
+  el piso: la primera reposición de cualquiera lo habría disparado.
+- **«Trasladar» exige «Sólido» en la referencia que de verdad midió la rapidez** (hallazgo 3): 20 o más ventas del RESTO
+  de su categoría (`Rapidez.referencia`, que sale de `curvaSin`). La vara cuenta las ventas de la propia prenda: la
+  falda que es 28 de las 30 ventas de su categoría tenía vara «Sólido» y se medía contra 2. Ahora recibe solo
+  «cambiar de lugar». En TRU, 5 de las 8 categorías con stock tienen 1 o 2 modelo+color.
+- **Sin el corte siguiente, el tramo que ya pasó, como piso** (hallazgo 4, parte b): si falta P75 o P90 y la prenda ya
+  pasó todo lo que la curva vio (`tMax`), se sabe igual que pasó el corte anterior. Antes salía «aún sin referencia»
+  (null) y sin ninguna sugerencia; ahora es, por ejemplo, «al menos Envejecida» (`estado.alMenos`) y, si es vieja y sin
+  dato de rapidez, «revisa sus ventas». Es el caso de la prenda de la carga inicial, que siempre tiene el reloj más largo.
+  `tramoDe` devuelve `{ tramo, alMenos }`; `sin_vara` queda solo para la categoría sin P50. `estado.alMenos` pasa a decir
+  «el tramo es un piso» (por el reloj o por la curva).
+- **Tolerancia y reloj en milisegundos enteros** (hallazgo 5). El reloj sumaba tramos ya divididos entre 1000 y la
+  exposición de la unidad colgada era una sola resta: en 293 de 2.000 historias al azar el reloj de la prenda más vieja
+  quedaba 1e-11 arriba de `tMax` y salía «aún sin referencia» en vez de «Vigente». `relojNovedad` suma en milisegundos
+  y divide una vez, y `tramoDe` compara con 1 microsegundo de tolerancia hacia los dos lados (`tMax` y los cortes).
+- Pruebas nuevas (mataban mutantes vivos): el corte exacto con S = 0,5 y 0,25 (w15), el borde `segundos = tMax` (w20),
+  `curvaSin` con las unidades propias desordenadas como vienen del FIFO (x20), el reloj exacto con horas con
+  milisegundos, y las historias de las gemelas, la falda, el pantalón de la carga y la prenda más vieja por `analizarSede`.
+  En SQL: la talla cuyo único movimiento de la ventana es la venta o un ajuste negativo (T2e, T2f; mutantes m01 y m02: sin
+  ella, un modelo de 110 días colgado parecía recién llegado), el almacén → cuarentena que no es exhibición (T2g, p07), la
+  última llegada de ESTA tienda (T4e, m50: un lote de Trujillo movía el fin de estación), y tres casos de borde (T7b, T9b,
+  T9c).
+- Cifras: `frescura_lectura.mjs` 152 (antes 132); `frescura-reglas.test.ts` 94 (antes 80) y `frescura-contrato.test.ts` 18;
+  vitest completo 205 archivos, 78.410 pruebas; vecinas sin cambios (`temporadas` 25, `frescura_bajadas` 166,
+  `fn_resumen_comparacion` 25, `roles_por_modulo` 70, `roles_cobertura_modulos` 31, `fn_ledger_fuente_unica` 48,
+  `bajada_al_piso` 51). El código de antes falla 22 pruebas de la web; cada mutante (w15, w20, x20, el reloj por tramos y
+  la tolerancia quitada) hace fallar al menos una; los mutantes SQL m01, m02, m50 y p07 hacen fallar su caso nuevo.
+
+**Decisiones pendientes para Felipe** (no se tocaron; se suman a las cuatro de la revisión 3):
+5. **¿El tramo de una prenda se mide contra su categoría SIN ella, como ya se mide su rapidez?** Hoy los cortes (P50, P75,
+   P90 y `tMax`) incluyen las unidades de la propia prenda, y dos casos quedan mal: el pantalón de 70 días con 0 de 3
+   vendidas (edad conocida) sale «Vigente», porque sus 3 unidades sin vender llevan el P50 de su categoría de 10 a 30 días
+   y borran el P75 (sin ella: P50 10, P75 30, y sería «al menos Envejecida» y, lenta, «por decidir»); y la falda que es 28
+   de las 30 ventas de su categoría sale Crítica contra un P90 de 67,5 días que puso ella misma. Recomendación: sí.
+   Ganas: lo más quieto de cada categoría deja de esconderse detrás de sus propias unidades. Pagas: cada prenda se juzga
+   con cortes un poco distintos de los que la cabecera de su categoría muestra (hay que decirlo en la pantalla) y una
+   curva por prenda (medir antes de publicar). La prueba «PENDIENTE DE FELIPE: el pantalón de 70 días…» documenta lo de
+   hoy. Si no responde, el paso 4 lo construye así y la maqueta lo muestra para que lo objete.
+6. **«Al menos Vigente» sin dato de rapidez no recibe «revisa sus ventas».** El pantalón de la carga inicial (70 días,
+   nada vendido) en una categoría cuyo P75 no existe sale «al menos Vigente» y sin sugerencia: «revisa sus ventas» hoy
+   es solo para Envejecida y Crítica. Recomendación: que un tramo «al menos» sin dato también la reciba.
 

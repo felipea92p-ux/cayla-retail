@@ -181,7 +181,7 @@ verificación (9 temporadas, 12 fechas, 3 llaves hacia la lista, 1 sola versión
 
 `fn_temporada_efectiva` solo mira variantes activas: es la lista de lo que se puede completar. Frescura necesita la
 temporada de lo que está colgado, y una talla descontinuada con stock sigue colgada. Para no escribir la regla dos veces,
-`20260928120300_frescura_lectura.sql` (sin pegar) la mueve a `fn_temporada_efectiva_nucleo(p_producto_id,
+`20260928120310_frescura_lectura_revision3.sql` (sin pegar; la corrección de `20260928120300`) la mueve a `fn_temporada_efectiva_nucleo(p_producto_id,
 p_con_inactivas)` y deja `fn_temporada_efectiva(p)` como envoltorio con `false`: misma firma, mismas filas (la prueba T4d
 de `frescura_lectura.mjs` lo compara en todo el catálogo), mismos permisos. La regla (color → producto → categoría)
 sigue en UNA función. Si alguien vuelve a pegar `20260928100000`, `fn_temporada_efectiva` recupera su cuerpo original

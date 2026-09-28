@@ -14,7 +14,6 @@ import {
   leerConfianzaRegistro,
   leerFrescuraSede,
   nivelPorVentas,
-  observacionesDe,
   rapidez,
   recortarEventos,
   referenciaCayla,
@@ -22,6 +21,7 @@ import {
   varaPorVentanas,
   sugerenciasDe,
   tramoDe,
+  unidadesParaVara,
   type EntradaEstado,
   type LecturaFrescuraConPiso,
   type NivelConfianza,
@@ -46,6 +46,8 @@ const bajada = (dia: number, n: number, o: Partial<EventoPiso> = {}, minuto = 0)
 const venta = (dia: number, n: number, minuto = 0) => ev(dia, -n, { esVenta: true }, minuto);
 const vendida = (dias: number, peso = 1): Observacion => ({ segundos: dias * D, vendida: true, peso });
 const colgada = (dias: number, peso = 1): Observacion => ({ segundos: dias * D, vendida: false, peso });
+/** Solo las unidades con edad conocida (lo que entra a la curva). */
+const observacionesDe = (eventos: readonly EventoPiso[], ahora: string) => unidadesParaVara(eventos, ahora).observaciones;
 
 describe("kaplanMeier y cortes", () => {
   // Ejemplo calculado a mano: 8 unidades. Vendidas a los 2, 3, 3, 5 y 8 días; siguen colgadas (censuradas) a los 4, 6 y 9.
@@ -82,6 +84,14 @@ describe("kaplanMeier y cortes", () => {
 
   it("una unidad sin vender en el mismo instante que una venta cuenta en riesgo ese instante", () => {
     expect(kaplanMeier([vendida(2), colgada(2)]).supervivencia).toEqual([0.5]);
+  });
+
+  it("el corte exacto: vendida JUSTO la mitad (S = 0,5) ya es el P50; 3 de 4 (S = 0,25), el P75 (revisión 4)", () => {
+    // Con unidades enteras es lo común (10 de 20, 1 de 2): si el corte pidiera S < 0,5, el P50 saldría nulo y toda la
+    // categoría quedaría «aún sin referencia».
+    expect(cortes(kaplanMeier([vendida(2), colgada(3)])).p50).toBe(2 * D);
+    expect(cortes(kaplanMeier([vendida(1), vendida(2), vendida(3), colgada(9)])).p75).toBe(3 * D);
+    expect(cortes(kaplanMeier([...Array.from({ length: 9 }, (_, i) => vendida(i + 1)), colgada(20)])).p90).toBe(9 * D);
   });
 
   it("sin ventas, o con una curva que no baja de la mitad, los tres cortes son nulos", () => {
@@ -169,13 +179,30 @@ describe("tramoDe (por los cortes de su categoría en su sede)", () => {
     [20, "critica"],
     [90, "critica"],
   ])("%s días → %s", (dias, tramo) => {
-    expect(tramoDe(dias * D, c, 30 * D)).toBe(tramo);
+    expect(tramoDe(dias * D, c, 30 * D)).toEqual({ tramo, alMenos: false });
   });
 
-  it("un corte que la curva no alcanza queda después de su observación más larga: antes de eso se sabe, después no", () => {
+  it("un corte que la curva no alcanza queda después de su observación más larga: antes de eso el tramo es exacto; después, «al menos» el tramo que ya pasó (revisión 4)", () => {
     const sinP90 = { p50: 5 * D, p75: 10 * D, p90: null };
-    expect(tramoDe(14 * D, sinP90, 15 * D)).toBe("envejecida");
-    expect(tramoDe(16 * D, sinP90, 15 * D)).toBeNull();
+    expect(tramoDe(14 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: false });
+    // Pasó el P75 y todo lo que la curva vio: por lo menos Envejecida (antes: null, «aún sin referencia»).
+    expect(tramoDe(16 * D, sinP90, 15 * D)).toEqual({ tramo: "envejecida", alMenos: true });
+    expect(tramoDe(70 * D, { p50: 10 * D, p75: 30 * D, p90: null }, 45 * D)).toEqual({ tramo: "envejecida", alMenos: true });
+    expect(tramoDe(70 * D, { p50: 10 * D, p75: null, p90: null }, 45 * D)).toEqual({ tramo: "vigente", alMenos: true });
+  });
+
+  it("en el borde exacto (segundos = tMax) el tramo sigue siendo exacto: la prenda más vieja es la observación más larga (revisión 4, mutante w20)", () => {
+    expect(tramoDe(10 * D, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: false });
+  });
+
+  it("con tolerancia: un error de coma flotante de 1e-11 no cambia el tramo, ni en tMax ni en un corte (revisión 4)", () => {
+    // El caso real: reloj 345223.80700000003 contra tMax 345223.807.
+    expect(tramoDe(345223.80700000003, { p50: 3 * D, p75: null, p90: null }, 345223.807)).toEqual({ tramo: "vigente", alMenos: false });
+    // El espejo: un reloj que debía ser igual al P50 y quedó 1e-11 abajo ya es Vigente.
+    expect(tramoDe(5 * D - 1e-11, c, 30 * D)).toEqual({ tramo: "vigente", alMenos: false });
+    // Un segundo sí cuenta.
+    expect(tramoDe(5 * D - 1, c, 30 * D)).toEqual({ tramo: "nueva", alMenos: false });
+    expect(tramoDe(10 * D + 1, { p50: 2 * D, p75: null, p90: null }, 10 * D)).toEqual({ tramo: "vigente", alMenos: true });
   });
 
   it("sin P50 (su categoría no vendió ni la mitad) nadie tiene tramo: «aún sin referencia», nunca «Nueva» (ADR-0208, decisión 6)", () => {
@@ -225,7 +252,7 @@ describe("excluirTardias (por el movimiento de la bajada, no por la hora)", () =
   });
 });
 
-describe("observacionesDe y recortarEventos (sobre el único FIFO)", () => {
+describe("unidadesParaVara y recortarEventos (sobre el único FIFO)", () => {
   it("los días guardada en el almacén no cuentan: se vende con los días que estuvo colgada", () => {
     const obs = observacionesDe([bajada(0, 1), ev(2, -1, { esMovimientoInterno: true }), bajada(5, 1), venta(6, 1)], ts(10));
     expect(obs).toEqual([{ segundos: 3 * D, vendida: true, peso: 1 }]);
@@ -242,6 +269,18 @@ describe("observacionesDe y recortarEventos (sobre el único FIFO)", () => {
       { segundos: 4 * D, vendida: true, peso: 1 },
       { segundos: 10 * D, vendida: false, peso: 1 },
     ]);
+  });
+
+  it("sus observaciones NO vienen ordenadas: primero las salidas y después lo colgado (por eso curvaSin ordena, revisión 4)", () => {
+    expect(observacionesDe([bajada(0, 1), venta(30, 1), bajada(110, 1)], ts(120)).map((o) => o.segundos / D)).toEqual([30, 10]);
+  });
+
+  it("cuenta aparte las ventas que salieron de lo que tiene edad desconocida (el FIFO vende primero lo de la carga)", () => {
+    // 3 de la carga inicial, 2 bajadas después con edad conocida; se venden 3: las 3 salen de la carga.
+    const u = unidadesParaVara([bajada(0, 3, { edadDesconocida: true }), bajada(10, 2), venta(12, 1), venta(14, 1), venta(16, 1)], ts(20));
+    expect(u).toEqual({ observaciones: [{ segundos: 10 * D, vendida: false, peso: 2 }], ventasSinEdad: 3 });
+    // Una pérdida de lo desconocido no es una venta.
+    expect(unidadesParaVara([bajada(0, 2, { edadDesconocida: true }), ev(3, -1)], ts(5)).ventasSinEdad).toBe(0);
   });
 
   it("recortar la ventana convierte lo que había antes en un saldo de edad desconocida", () => {
@@ -289,6 +328,19 @@ describe("relojNovedad (modelo+color en la sede)", () => {
       tramo: "nueva",
       alMenos: false,
     });
+  });
+
+  it("se suma en milisegundos enteros: da exactamente la exposición de la unidad que sigue colgada (revisión 4)", () => {
+    // La salida real que salía 1e-11 arriba sumando tramos ya divididos entre 1000.
+    const talla = [
+      { ts: "2026-06-25T19:26:15.951Z", delta: 3, esVenta: false, esMovimientoInterno: true },
+      { ts: "2026-06-28T15:44:48.420Z", delta: -1, esVenta: true, esMovimientoInterno: false },
+      { ts: "2026-06-29T06:08:26.374Z", delta: -1, esVenta: true, esMovimientoInterno: false },
+    ];
+    const ahora = "2026-06-29T19:19:59.758Z";
+    const r = relojNovedad({ eventosPorTalla: [talla], primeraExhibicion: talla[0].ts, desde: "2026-03-01T00:00:00.000Z", ahora });
+    expect(r.segundos).toBe((Date.parse(ahora) - Date.parse(talla[0].ts)) / 1000);
+    expect(r.segundos).toBe(Math.max(...observacionesDe(talla, ahora).map((o) => o.segundos)));
   });
 
   it("un ajuste al piso DESPUÉS de una primera exhibición conocida no la vuelve desconocida", () => {
@@ -356,8 +408,9 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
   const curva = kaplanMeier([...a, ...b, ...c]);
 
   it("coincide con el cálculo a mano", () => {
-    expect(rapidez(a, curvaSin(curva, a))).toEqual({ indice: 500, vendidas: 2, esperadas: 0.4 });
-    expect(rapidez(b, curvaSin(curva, b))).toEqual({ indice: 41, vendidas: 1, esperadas: 2.47 });
+    // referencia: las ventas del RESTO (B + C = 3; A + C = 4).
+    expect(rapidez(a, curvaSin(curva, a))).toEqual({ indice: 500, vendidas: 2, esperadas: 0.4, referencia: 3 });
+    expect(rapidez(b, curvaSin(curva, b))).toEqual({ indice: 41, vendidas: 1, esperadas: 2.47, referencia: 4 });
   });
 
   it("curvaSin da lo mismo que armar la curva sin la prenda (restando instante por instante, sin reordenar)", () => {
@@ -370,7 +423,23 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
       const armada = kaplanMeier(resto);
       expect(sin.tiempos).toEqual(armada.tiempos);
       sin.riesgoAcumulado.forEach((x, i) => expect(x).toBeCloseTo(armada.riesgoAcumulado[i], 12));
+      expect(sin.vendidas).toBe(armada.vendidas);
     }
+  });
+
+  it("…también con las unidades propias DESORDENADAS, como las devuelve unidadesParaVara (revisión 4, mutante x20)", () => {
+    const d = [vendida(30), colgada(3), vendida(6)];
+    const curvaD = kaplanMeier([...a, ...b, ...d]);
+    const sin = curvaSin(curvaD, d);
+    const armada = kaplanMeier([...a, ...b]);
+    expect(sin.tiempos).toEqual(armada.tiempos);
+    sin.riesgoAcumulado.forEach((x, i) => expect(x).toBeCloseTo(armada.riesgoAcumulado[i], 12));
+    expect(rapidez(d, sin)).toEqual(rapidez(d, armada));
+  });
+
+  it("sin dato si alguna de sus ventas salió de lo que tiene edad desconocida, aunque lo repuesto parezca sin vender", () => {
+    expect(rapidez([colgada(25, 4)], curvaSin(curva, []))?.indice).toBe(0);
+    expect(rapidez([colgada(25, 4)], curvaSin(curva, []), 1)).toBeNull();
   });
 
   it("la única prenda de su categoría no se compara contra sí misma: sin dato, nunca «pilar» (con ella adentro daba 100 exacto)", () => {
@@ -387,7 +456,8 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
   });
 });
 
-const r = (indice: number): Rapidez => ({ indice, vendidas: 1, esperadas: 1 });
+/** Una rapidez medida contra `referencia` ventas del resto de su categoría (20: «Sólido»). */
+const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, esperadas: 1, referencia });
 
 describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca", () => {
   it("un pilar de venta nunca está quieto, aunque sea Crítica y de temporada pasada", () => {
@@ -416,14 +486,14 @@ describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca", () => 
   });
 });
 
-describe("«Trasladar» solo con «Sólido» y algo en el almacén", () => {
+describe("«Trasladar» solo con «Sólido» (en la vara Y en la referencia que midió su rapidez) y algo en el almacén", () => {
   const PERMITIDAS: readonly Sugerencia[] = ["revisar_ventas", "cambiar_lugar", "trasladar", "retirar", "guardar_hasta_su_estacion"];
 
   it("en ninguna combinación aparece sin «Sólido», sin almacén o sin dato de rapidez; y «Rebajar» no existe", () => {
     let vistas = 0;
     for (const nivel of [null, "pocos_datos", "aceptable", "solido"] as const)
       for (const almacenHoy of [0, 3])
-        for (const rap of [null, r(40), r(150)])
+        for (const rap of [null, r(40), r(150), r(40, 19), r(40, 2)])
           for (const tramo of [null, "nueva", "vigente", "envejecida", "critica"] as const)
             for (const temporadaPasada of [false, true])
               for (const pisoHoy of [0, 2]) {
@@ -435,6 +505,7 @@ describe("«Trasladar» solo con «Sólido» y algo en el almacén", () => {
                   expect(nivel).toBe("solido");
                   expect(almacenHoy).toBeGreaterThan(0);
                   expect(rap).not.toBeNull();
+                  expect(rap!.referencia).toBeGreaterThanOrEqual(20);
                 }
               }
     expect(vistas).toBeGreaterThan(0);
@@ -445,6 +516,8 @@ describe("«Trasladar» solo con «Sólido» y algo en el almacén", () => {
     expect(estadoFrescura(entrada(base)).sugerencias).toEqual(["cambiar_lugar", "trasladar"]);
     expect(estadoFrescura(entrada({ ...base, vara: { ...VARA_5_10_20, nivel: "aceptable" } })).sugerencias).toEqual(["cambiar_lugar"]);
     expect(estadoFrescura(entrada({ ...base, almacenHoy: 0 })).sugerencias).toEqual(["cambiar_lugar"]);
+    // Vara «Sólido», pero su rapidez se midió contra 19 ventas del resto: no se traslada.
+    expect(estadoFrescura(entrada({ ...base, rapidez: r(40, 19) })).sugerencias).toEqual(["cambiar_lugar"]);
   });
 });
 
@@ -479,9 +552,15 @@ describe("temporada: aviso aparte, nunca parte la vara", () => {
   it("dudosa no se juzga, y una categoría sin ventas en la sede no tiene semáforo", () => {
     expect(estadoFrescura(entrada({ dudosa: true })).tipo).toBe("dudosa");
     expect(estadoFrescura(entrada({ vara: { ...VARA_5_10_20, nivel: null } })).tipo).toBe("sin_ventas_sede");
-    expect(estadoFrescura(entrada({ reloj: { segundos: 70 * D, alMenos: false }, vara: { ...VARA_5_10_20, cortes: { p50: 5 * D, p75: null, p90: null } } })).tipo).toBe(
-      "sin_vara",
-    );
+    expect(estadoFrescura(entrada({ vara: { ...VARA_5_10_20, cortes: { p50: null, p75: null, p90: null } } })).tipo).toBe("sin_vara");
+  });
+
+  it("pasado todo lo que la curva vio y sin el corte siguiente: «al menos» el tramo que ya pasó, con «revisa sus ventas» si es vieja (revisión 4; antes «aún sin referencia»)", () => {
+    const sinP75 = { ...VARA_5_10_20, cortes: { p50: 5 * D, p75: null, p90: null } };
+    expect(estadoFrescura(entrada({ reloj: { segundos: 70 * D, alMenos: false }, vara: sinP75 }))).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: true });
+    const sinP90 = { ...VARA_5_10_20, cortes: { p50: 10 * D, p75: 30 * D, p90: null }, curva: { tMax: 45 * D } };
+    const e = estadoFrescura(entrada({ reloj: { segundos: 70 * D, alMenos: true }, vara: sinP90 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "envejecida", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
   });
 });
 
@@ -730,6 +809,114 @@ describe("analizarSede: la rapidez y los cortes de la categoría", () => {
     expect(cat.vendidoAlFinal).toBeCloseTo(28 / 110, 9);
     expect(sede.prendas.map((p) => p.estado.tipo)).toEqual(Array(5).fill("sin_vara"));
     expect(sede.cifras.pctNuevas).toBeNull();
+  });
+});
+
+describe("analizarSede: casos de la revisión 4 (con las historias que el revisor corrió contra la salida real de la base)", () => {
+  const cat = (id: string, nombre: string) => ({ categoriaId: id, categoriaNombre: nombre });
+
+  it("las gemelas K y U: misma historia física, U vino en la carga inicial. U nunca queda quieta ni recibe «Trasladar»: sus ventas salieron de la carga", () => {
+    // Vestidos: 10 modelos × 3 colgados hace 100 días, vendidos a los 10, 30 y 50 días. K y U: 10 colgadas hace 60 días,
+    // 1 vendida cada 6 días (10 ventas) y 4 bajadas del almacén hace 25 días (1 queda en el almacén). Solo cambia la marca
+    // de la primera bajada (U: edad desconocida). El FIFO le da las 10 ventas de U a las 10 de la carga: sus 4 repuestas
+    // (edad conocida) parecen sin vender. Antes: U rapidez 0, «lenta», quieta, [cambiar_lugar, trasladar].
+    const tallas: TallaFrescuraCruda[] = [];
+    const eventos: Record<string, EventoPiso[]> = {};
+    for (let i = 1; i <= 10; i++) {
+      const v = `VARAV-${i}`;
+      tallas.push(talla(v, `vestido-${i}`, { ...cat("vestidos", "Vestidos"), primeraExhibicion: ts(20, i) }));
+      eventos[v] = [bajada(20, 3, {}, i), venta(30, 1, i), venta(50, 1, i), venta(70, 1, i)];
+    }
+    const historia = (primera: Partial<EventoPiso>) => [
+      bajada(60, 10, primera),
+      ...[0, 1, 2, 3, 4, 5].map((k) => venta(63 + 6 * k, 1)),
+      bajada(95, 4),
+      ...[6, 7, 8, 9].map((k) => venta(63 + 6 * k, 1)),
+    ];
+    for (const [id, primera] of [
+      ["K", {}],
+      ["U", { edadDesconocida: true }],
+    ] as const) {
+      tallas.push(talla(id, id, { ...cat("vestidos", "Vestidos"), primeraExhibicion: ts(60), pisoHoy: 4, almacenHoy: 1 }));
+      eventos[id] = historia(primera);
+    }
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    expect(sede.categorias[0]).toMatchObject({ nivel: "solido", cortes: { p50: 30 * D, p75: 50 * D, p90: 50 * D } });
+    const k = sede.prendas.find((p) => p.productoId === "K")!;
+    const u = sede.prendas.find((p) => p.productoId === "U")!;
+    expect(k.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, quieta: false, sugerencias: [] });
+    expect(k.rapidez?.indice).toBeGreaterThanOrEqual(100); // un pilar
+    expect(u.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
+    expect(u.rapidez).toBeNull();
+  });
+
+  it("la falda que es casi toda su categoría: vara «Sólido» hecha de sus propias ventas, 2 del resto → no recibe «Trasladar»", () => {
+    // Faldas: X, 30 colgadas hace 80 días (2 más en el almacén), 28 vendidas, una cada 2,5 días. Y, el único otro
+    // modelo: 2 colgadas y vendidas a los 1 y 2 días. La vara: 30 ventas («Sólido»), 28 de X. Antes: [cambiar_lugar, trasladar].
+    const x = talla("X", "falda-x", { ...cat("faldas", "Faldas"), primeraExhibicion: ts(40), pisoHoy: 2, almacenHoy: 2 });
+    const y = talla("Y", "falda-y", { ...cat("faldas", "Faldas"), primeraExhibicion: ts(40, 1) });
+    const { sede } = analizarSede(
+      lectura([x, y], {
+        X: [bajada(40, 30), ...Array.from({ length: 28 }, (_, g) => ev(40 + 2.5 * (g + 1), -1, { esVenta: true }))],
+        Y: [bajada(40, 2, {}, 1), venta(41, 1), venta(42, 1)],
+      }),
+    );
+    expect(sede.categorias[0]).toMatchObject({ nivel: "solido", vendidas: 30 });
+    const p = sede.prendas.find((q) => q.productoId === "falda-x")!;
+    expect(p.rapidez).toMatchObject({ indice: 62, referencia: 2 });
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar"] });
+  });
+
+  /** Pantalones: 10 modelos × 2 colgados hace 45 días; 10 vendidas a los 10 días y 6 a los 30. P50 = 10, P75 = 30, sin P90. */
+  const pantalones = () => {
+    const tallas: TallaFrescuraCruda[] = [];
+    const eventos: Record<string, EventoPiso[]> = {};
+    for (let i = 1; i <= 10; i++) {
+      const v = `VARAP-${i}`;
+      tallas.push(talla(v, `pantalon-${i}`, { ...cat("pantalones", "Pantalones"), primeraExhibicion: ts(75) }));
+      eventos[v] = [bajada(75, 2), venta(85, 1), ...(i <= 6 ? [venta(105, 1)] : [])];
+    }
+    return { tallas, eventos };
+  };
+
+  it("el pantalón de la carga inicial, 70 días sin vender, pasó el P75 y todo lo que la curva vio: «al menos Envejecida» y «revisa sus ventas» (antes, «aún sin referencia» y nada)", () => {
+    const { tallas, eventos } = pantalones();
+    tallas.push(talla("Z", "carga-70d", { ...cat("pantalones", "Pantalones"), primeraExhibicion: ts(50), pisoHoy: 3 }));
+    eventos.Z = [bajada(50, 3, { edadDesconocida: true })];
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 10 * D, p75: 30 * D, p90: null }, tMax: 45 * D });
+    const z = sede.prendas.find((p) => p.productoId === "carga-70d")!;
+    expect(z.estado).toMatchObject({ tipo: "semaforo", tramo: "envejecida", alMenos: true, quieta: false, sugerencias: ["revisar_ventas"] });
+  });
+
+  it("PENDIENTE DE FELIPE: el pantalón de 70 días con edad conocida y 0 de 3 vendidas sale Vigente, porque sus propias unidades sostienen la curva", () => {
+    // Con Z2 en la curva, sus 3 unidades sin vender llevan el P50 de 10 a 30 días, borran el P75 y ponen tMax en 70: queda
+    // «Vigente» con rapidez 0 y no entra en «Por decidir». Sin ella, la categoría dice P50 = 10 y P75 = 30 (sería «al
+    // menos Envejecida» y, lenta, «por decidir»). Medir el tramo contra la categoría SIN la prenda (como ya se mide la
+    // rapidez) lo decide Felipe: ADR-0208, «Revisión 4 del paso 3». Si decide que sí, esta prueba cambia.
+    const { tallas, eventos } = pantalones();
+    tallas.push(talla("Z2", "lote-70d", { ...cat("pantalones", "Pantalones"), primeraExhibicion: ts(50), pisoHoy: 3 }));
+    eventos.Z2 = [bajada(50, 3)];
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    expect(sede.categorias[0]).toMatchObject({ cortes: { p50: 30 * D, p75: null, p90: null }, tMax: 70 * D });
+    const z2 = sede.prendas.find((p) => p.productoId === "lote-70d")!;
+    expect(z2.rapidez?.indice).toBe(0);
+    expect(z2.estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false, quieta: false, sugerencias: [] });
+  });
+
+  it("la prenda más vieja de una categoría sin P75 (su reloj ES la observación más larga) sale Vigente, no «aún sin referencia», con horas reales con milisegundos", () => {
+    // 3 colgadas, 2 vendidas: el reloj sumado por tramos daba 345223.80700000003 contra un tMax de 345223.807.
+    const e: EventoPiso[] = [
+      { ts: "2026-06-25T19:26:15.951Z", delta: 3, esVenta: false, esMovimientoInterno: true },
+      { ts: "2026-06-28T15:44:48.420Z", delta: -1, esVenta: true, esMovimientoInterno: false },
+      { ts: "2026-06-29T06:08:26.374Z", delta: -1, esVenta: true, esMovimientoInterno: false },
+    ];
+    const ahora = "2026-06-29T19:19:59.758Z";
+    const desde = new Date(Date.parse(ahora) - 120 * D * 1000).toISOString();
+    const { sede } = analizarSede(lectura([talla("A", "a", { primeraExhibicion: e[0].ts, pisoHoy: 1 })], { A: e }, { desde, ahora }));
+    expect(sede.categorias[0].cortes).toMatchObject({ p75: null });
+    expect(sede.categorias[0].cortes.p50).not.toBeNull();
+    expect(sede.prendas[0].estado).toMatchObject({ tipo: "semaforo", tramo: "vigente", alMenos: false });
   });
 });
 

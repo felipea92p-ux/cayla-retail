@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Prueba del paso 3 de Frescura 3c (ADR-0208, ADR-0246, ADR-0248): la lectura SQL
- * (`supabase/migrations/20260928120300_frescura_lectura.sql`): `fn_es_llegada`, `fn_frescura_sede` y
- * `fn_confianza_registro`.
+ * (`supabase/migrations/20260928120300_frescura_lectura.sql`, la de main, y sus correcciones de la revisión 3 en
+ * `20260928120310_frescura_lectura_revision3.sql`): `fn_es_llegada`, `fn_frescura_sede`, `fn_confianza_registro` y
+ * `fn_temporada_efectiva_nucleo`.
  *
  * POR QUÉ. La web arma la vara (Kaplan-Meier) y los tramos con lo que devuelve `fn_frescura_sede`: si una prenda colgada
  * sin moverse no llega, si una unidad de la carga inicial llega sin la marca de edad desconocida, o si la temporada sale
@@ -15,8 +16,9 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración nombra los md5 vivos (de las cinco: también fn_temporada_efectiva_nucleo, sin EXECUTE para nadie
- *       de afuera, y fn_temporada_efectiva, que conserva sus permisos); fn_confianza_registro lee el mes en hora de Lima.
+ *       de la migración que manda (20260928120310) nombra los md5 vivos (de las cinco: también
+ *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, y fn_temporada_efectiva, que conserva sus
+ *       permisos); fn_confianza_registro lee el mes en hora de Lima.
  *   T1  permisos: el líder sí; una integrante (sin líder) no, con la pista frescura_sin_permiso, en las dos (también
  *       fn_confianza_registro sin tienda); anon no (42501); si fn_puede_operar_ubicacion dice que no a esa tienda, el
  *       líder tampoco (hoy un líder opera todas: la prueba la reemplaza dentro de su transacción para vigilar que el
@@ -28,6 +30,8 @@
  *   T2b repuesta a través del borde de la ventana: la primera exhibición es la PRIMERA entrada de toda la historia.
  *   T2c piso, almacén y cuarentena a la vez: almacen_hoy sin la cuarentena.
  *   T2d la primera exhibición es del MODELO+COLOR: la talla agotada antes de la ventana (fuera de la lista) cuenta.
+ *   T2e la talla cuyo ÚNICO movimiento de la ventana es la venta sigue en la lista (sin ella el reloj del modelo+color
+ *       se acortaba); T2f lo mismo con un ajuste negativo; T2g pasar del almacén a la cuarentena NO es exhibir.
  *   T3  las marcas de cada evento: bajada 2, venta 1, retiro 2; carga inicial por la puerta real y a mano 6 (2 + 4);
  *       carga de otra hora 2; ajuste al piso 4 y su ajuste negativo 0; devolución 4; llegada directo al piso 0; carga
  *       directo al piso 4; cuarentena → piso 2; lo que llega de otra tienda como traslado directo 4; saldo inicial 4 con
@@ -38,25 +42,34 @@
  *       nulo; sin llegada, sin fin; en_estacion_ahora = ¿hoy es su estación?; con dos llegadas, manda la ÚLTIMA (con el
  *       calendario 2025 sembrado dentro de la prueba).
  *   T4c una sola llegada en el invierno 2025, todavía colgada: el fin es el de SU llegada, no el de hoy.
+ *   T4e la última llegada (y el fin de estación) es la de ESTA tienda: un lote recibido en Trujillo no cuenta.
  *   T4d una variante inactiva que sigue colgada conserva su temporada (del producto y del color); fn_temporada_efectiva
  *       ≡ fn_temporada_efectiva_nucleo(…, false) en todo el catálogo y la pantalla de Temporadas no cambia.
  *   T5  color nulo: la prenda sale con color nulo y su temporada del producto.
  *   T6  productos es_prueba y la «Prenda sin registrar» fuera; una tienda donde solo se movió un producto de prueba da
  *       prendas [], eventos {} y tardías [] — con la lista nula el libro SÍ los habría devuelto (se muestra).
  *   T7  Taller, tienda inactiva, tienda con piso y sin almacén, tienda nula o inexistente → {"separa_piso": false}.
+ *   T7b la tienda con almacén y sin piso tampoco separa; ni ella, ni la de piso sin almacén, ni una inactiva salen en
+ *       fn_confianza_registro().
  *   T8  fn_es_llegada ≡ el predicado de fn_resumen_comparacion: el predicado se LEE del cuerpo vivo de esa función y se
  *       evalúa contra fn_es_llegada en todas las filas del libro del seed y en todas las combinaciones de tipo, motivo y
  *       las tres llaves; 0 diferencias.
  *   T9  tardías y dudosas: la bajada tardía cerrada sale con su oid y sus unidades; la normal, la corregida, la que sigue
  *       abierta y la dudosa no; la dudosa sale en «dudosas». Ninguna persona en la salida.
+ *   T9b con p_dias = 30, las tardías y dudosas son de la ventana; T9c la bajada dudosa de hace 2 minutos (abierta) ya
+ *       deja a la prenda en «dudosas».
  *   T10 fn_confianza_registro: cuenta la normal, la tardía y la del retiro parcial (unidades = Σ efectiva); deja fuera
  *       la carga inicial, la corregida, la dudosa, la abierta y la de hace menos de 20 minutos; mes de Lima; una fila
  *       por tienda y mes aunque no haya bajadas; p_meses de 1 a 3; sin tienda, todas las tiendas y nunca el Taller.
  *   T10b sin las bajadas de productos es_prueba (como fn_frescura_sede).
  *   T10c mes de Lima con la sesión en UTC (como producción): la bajada del último día del mes a las 21:00 de Lima.
  *   T11 niveles: 9 filas «pocos_datos», 10 y 19 «aceptable», 20 «solido».
- *   T12 la guarda: pegada otra vez deja lo mismo; con cualquiera de las cinco funciones parchada en vivo aborta sin
- *       tocarla.
+ *   T12 la guarda de 20260928120310: pegada otra vez deja lo mismo; con cualquiera de las cinco funciones parchada en
+ *       vivo aborta sin tocarla.
+ *   T12b el orden de las dos migraciones, desde el estado de producción del 2026-09-27 (ninguna pegada,
+ *       fn_temporada_efectiva de 20260928100000): la de main entra y deja sus md5; la corregida entra ENCIMA; la de main
+ *       otra vez aborta sin deshacer nada; sin la de main, la corregida la pide. Antes, con la corrección editada en el
+ *       mismo archivo, la corregida abortaba culpando a un «parche en vivo» (revisión 4, hallazgo 1).
  *   T13 el contrato con la web: siembra una tienda con de todo (la vara de las blusas, nueva, vieja, carga inicial,
  *       tardía, retiro, dudosa, solo almacén, chompa de invierno, clásico, sin temporada) y exige que la salida de las
  *       dos lecturas tenga la MISMA forma (claves y tipos) que `apps/web/lib/__fixtures__/frescura-sede.json`, la salida
@@ -77,7 +90,17 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260928120300_frescura_lectura.sql"), "utf8");
+const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
+/** La lectura como la dejó main (PR #542): la primera versión, que se pega primero y ya no se edita. */
+const MIGRACION_0300 = leerMigracion("20260928120300_frescura_lectura.sql");
+/** Las correcciones de la revisión 3, en su propio archivo (revisión 4, hallazgo 1): es la que manda hoy. */
+const MIGRACION = leerMigracion("20260928120310_frescura_lectura_revision3.sql");
+/** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
+const TEMPORADA_EFECTIVA_0100 = (() => {
+  const t = leerMigracion("20260928100000_temporadas_como_atributo.sql");
+  const i = t.indexOf("create or replace function retail.fn_temporada_efectiva(");
+  return t.slice(i, t.indexOf("\n$$;", i) + 4);
+})();
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -1057,6 +1080,130 @@ ${FILA("N20", ":'u20'")}`,
 );
 
 // ---------------------------------------------------------------------------
+// Casos de la revisión 4 (lente pruebas): cada uno mata un mutante que las 132 verificaciones de antes dejaban vivo.
+//   T2e/T2f (m01, m02): la talla cuyo ÚNICO movimiento de la ventana es la venta, o un ajuste negativo, sigue en la
+//     lista; sin ella, el reloj del modelo+color se acorta (un modelo de 110 días parecía recién llegado).
+//   T2g (p07): pasar del almacén a la cuarentena NO es exhibir.
+//   T4e (m50): la última llegada (y el fin de estación) es la de ESTA tienda: un lote de Trujillo no cuenta.
+//   T7b, T9b, T9c: tiendas sin piso o inactivas fuera de la confianza; tardías y dudosas de la ventana; la dudosa abierta.
+// ======================= CASOS EXTRA DEL REVISOR (ronda 2, lente pruebas) =======================
+correr(
+  "T4e · ultima_llegada es de ESTA tienda: un lote recibido en otra tienda no cuenta (ni para el fin de estación)",
+  `alter table retail.temporada_fechas disable trigger user;
+insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
+  (2025, 'otono', '2025-03-20 04:01-05', 'usno'), (2025, 'invierno', '2025-06-20 21:42-05', 'usno'),
+  (2025, 'primavera', '2025-09-22 13:19-05', 'usno'), (2025, 'verano', '2025-12-21 10:03-05', 'usno')
+on conflict do nothing;
+alter table retail.temporada_fechas enable trigger user;
+select pg_temp.producto('RX1 Chompa', 'invierno') as pch \\gset
+select pg_temp.variante('ZZ-RX1-CHOMPA', :'pch') as v \\gset
+select pg_temp.llega(:'v', 3, '2025-07-15 12:00-05') as _1 \\gset
+select pg_temp.bajada(:'v', 2, '2025-07-16 12:00-05') as _2 \\gset
+select id as tru_sa from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'almacen_tienda' \\gset
+insert into retail.lotes (ubicacion_id, proveedor_id, fecha_recepcion)
+  select :'tru', mp.proveedor_id, now() from retail.marca_proveedores mp order by mp.created_at limit 1 returning id as lote_tru \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, lote_id, created_at)
+  values (:'v', :'tru', :'tru_sa', 'entrada', 4, 'recepcion', :'lote_tru', '2026-07-15 12:00-05') returning id as m_tru \\gset
+select retail.fn_aplicar_movimiento(:'m_tru') as _3 \\gset
+select pg_temp.lectura() as j \\gset
+${k("LLEGADA", "((pg_temp.prenda(:'j', 'ZZ-RX1-CHOMPA') ->> 'ultima_llegada')::timestamptz = '2025-07-15 12:00-05'::timestamptz)")}
+${k("FIN", "((pg_temp.prenda(:'j', 'ZZ-RX1-CHOMPA') ->> 'fin_estacion')::timestamptz = (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'primavera'))")}
+${k("VISTO", "(pg_temp.prenda(:'j', 'ZZ-RX1-CHOMPA') ->> 'ultima_llegada') || ' fin=' || (pg_temp.prenda(:'j', 'ZZ-RX1-CHOMPA') ->> 'fin_estacion')")}`,
+  (o) => {
+    afirmar("T4e ultima_llegada = la de esta tienda (2025), no el lote de Trujillo (2026)", o.LLEGADA === "true", `LLEGADA=${o.LLEGADA} ${o.VISTO}`);
+    afirmar("T4e fin_estacion = primavera 2025", o.FIN === "true", `FIN=${o.FIN} ${o.VISTO}`);
+  },
+);
+
+correr(
+  "T2e · talla cuyo ÚNICO movimiento en la ventana es la venta (colgada antes de la ventana y agotada dentro) sigue en la lista",
+  `select pg_temp.producto('RX2 Blusa') as px \\gset
+select pg_temp.variante('ZZ-RX2-S', :'px', :'c1') as vs \\gset
+select pg_temp.variante('ZZ-RX2-M', :'px', :'c1') as vm \\gset
+select pg_temp.llega(:'vs', 2, now() - interval '150 days') as _1 \\gset
+select pg_temp.bajada(:'vs', 2, now() - interval '149 days') as _2 \\gset
+select pg_temp.vende(:'vs', 2, now() - interval '10 days') as _3 \\gset
+select pg_temp.llega(:'vm', 1, now() - interval '6 days') as _4 \\gset
+select pg_temp.bajada(:'vm', 1, now() - interval '5 days') as _5 \\gset
+select pg_temp.lectura() as j \\gset
+${k("S", "pg_temp.resumen(:'j', 'ZZ-RX2-S') || ' ' || coalesce((select string_agg((e ->> 1) || ':' || (e ->> 2), ',') from jsonb_array_elements(:'j'::jsonb -> 'eventos' -> (:'vs')) e), '-')")}`,
+  (o) => afirmar("T2e S aparece (piso 0) con su saldo +2 marca 4 y la venta −2", o.S === "piso=0,alm=0,primera=149,llegada=150 2:4,-2:1", `S=${o.S}`),
+);
+
+correr(
+  "T2f · talla cuyo ÚNICO movimiento en la ventana es un ajuste negativo del piso (conteo) sigue en la lista",
+  `select pg_temp.variante('ZZ-RX3') as v \\gset
+select pg_temp.llega(:'v', 1, now() - interval '150 days') as _1 \\gset
+select pg_temp.bajada(:'v', 1, now() - interval '149 days') as _2 \\gset
+select pg_temp.mov(:'v', 'ajuste', -1, :'sp', 'conteo', now() - interval '10 days') as _3 \\gset
+select pg_temp.lectura() as j \\gset
+${k("X", "pg_temp.resumen(:'j', 'ZZ-RX3') || ' ' || coalesce((select string_agg((e ->> 1) || ':' || (e ->> 2), ',') from jsonb_array_elements(:'j'::jsonb -> 'eventos' -> (:'v')) e), '-')")}`,
+  (o) => afirmar("T2f aparece con su saldo +1 marca 4 y el ajuste −1", o.X === "piso=0,alm=0,primera=149,llegada=150 1:4,-1:0", `X=${o.X}`),
+);
+
+correr(
+  "T2g · primera exhibición: pasar del almacén a la cuarentena NO es exhibir; la primera es la entrada al piso",
+  `select pg_temp.variante('ZZ-RX4') as v \\gset
+select pg_temp.llega(:'v', 2, now() - interval '20 days') as _1 \\gset
+select pg_temp.mov(:'v', 'traslado', 2, :'sa', 'movimiento_interno', now() - interval '15 days', :'sc') as _2 \\gset
+select pg_temp.mov(:'v', 'traslado', 2, :'sc', 'movimiento_interno', now() - interval '5 days', :'sp') as _3 \\gset
+select pg_temp.lectura() as j \\gset
+${k("X", "pg_temp.resumen(:'j', 'ZZ-RX4')")}`,
+  (o) => afirmar("T2g primera = 5 (la cuarentena → piso), no 15 (almacén → cuarentena)", o.X === "piso=2,alm=0,primera=5,llegada=20", `X=${o.X}`),
+);
+
+correr(
+  "T9b · con p_dias = 30, las tardías y dudosas son de la ventana: una bajada tardía y una dudosa de hace 60 días no salen",
+  `select pg_temp.variante('ZZ-RX5-TARDIA') as vt \\gset
+select pg_temp.variante('ZZ-RX5-DUDOSA') as vd \\gset
+select count(pg_temp.llega(v, 3, now() - interval '70 days')) as _l from unnest(array[:'vt', :'vd']::uuid[]) v \\gset
+select pg_temp.bajada(:'vt', 1, now() - interval '60 days') as _1 \\gset
+select pg_temp.vende(:'vt', 1, now() - interval '60 days' + interval '3 minutes') as _2 \\gset
+select pg_temp.bajada(:'vd', 2, now() - interval '60 days') as _3 \\gset
+select pg_temp.vende(:'vd', 1, now() - interval '60 days' + interval '3 minutes') as _4 \\gset
+update retail.stock set cantidad = 0 where variante_id = :'vd' and ubicacion_id = :'ubic' and sububicacion_id = :'sp';
+select pg_temp.lectura(30) as j30 \\gset
+select pg_temp.lectura(120) as j120 \\gset
+${k("T30", "(:'j30'::jsonb -> 'tardias')::text || ' ' || (:'j30'::jsonb -> 'dudosas')::text")}
+${k("T120", "jsonb_array_length(:'j120'::jsonb -> 'tardias') || ',' || jsonb_array_length(:'j120'::jsonb -> 'dudosas')")}`,
+  (o) => {
+    afirmar("T9b (a 120 días sí salen: 1 tardía, 1 dudosa)", o.T120 === "1,1", `T120=${o.T120}`);
+    afirmar("T9b a 30 días: tardías [] y dudosas []", o.T30 === "[] []", `T30=${o.T30}`);
+  },
+);
+
+correr(
+  "T7b · tiendas que no separan piso: con almacén y sin piso → separa_piso false; ni esa, ni la de piso sin almacén, ni una inactiva salen en fn_confianza_registro()",
+  `select pg_temp.tienda('ZZ RX6 inactiva') as inactiva \\gset
+update retail.ubicaciones set activo = false where id = :'inactiva';
+select pg_temp.tienda('ZZ RX6 sin almacen', false) as sin_alm \\gset
+insert into retail.ubicaciones (nombre, tipo) values ('ZZ RX6 sin piso', 'tienda') returning id as sin_piso \\gset
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) values (:'sin_piso', 'Almacén de tienda', 'almacen_tienda');
+${k("SIN_PISO", "retail.fn_frescura_sede(:'sin_piso')")}
+${k("CONF", "(select string_agg(distinct sede, ',') from retail.fn_confianza_registro() where sede like 'ZZ RX6%')")}`,
+  (o) => {
+    afirmar("T7b tienda con almacén y sin piso: {separa_piso: false}", o.SIN_PISO === '{"separa_piso": false}', `SIN_PISO=${o.SIN_PISO}`);
+    afirmar("T7b ninguna de las tres en fn_confianza_registro()", o.CONF === "null", `CONF=${o.CONF}`);
+  },
+);
+
+correr(
+  "T9c · una bajada dudosa de hace 2 minutos (aún sin cerrar) ya deja a la prenda en «dudosas»",
+  `select pg_temp.variante('ZZ-RX7') as v \\gset
+select pg_temp.llega(:'v', 3, now() - interval '30 minutes') as _1 \\gset
+select pg_temp.bajada(:'v', 2, now() - interval '2 minutes') as _2 \\gset
+select pg_temp.vende(:'v', 1, now() - interval '1 minute') as _3 \\gset
+update retail.stock set cantidad = 0 where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'sp';
+select pg_temp.lectura() as j \\gset
+${k("D", "(:'j'::jsonb -> 'dudosas') ? :'v'")}
+${k("N", "(select string_agg(n.estado || ':' || n.cerrada, ',') from retail.fn_bajadas_del_piso_nucleo(:'ubic', now() - interval '1 day', null) n where n.variante_id = :'v')")}`,
+  (o) => {
+    afirmar("T9c (el núcleo la ve dudosa y abierta)", o.N === "dudosa:false", `N=${o.N}`);
+    afirmar("T9c sale en dudosas", o.D === "true", `D=${o.D}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
 const MD5S = `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc
   where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}))`;
 const FIRMAS = {
@@ -1067,7 +1214,12 @@ const FIRMAS = {
   fn_temporada_efectiva: FIRMA_TEMP,
 };
 /** Lo que dice la guarda al abortar por cada una (fn_temporada_efectiva se reescribe: su aviso es otro). */
-const AVISO_GUARDA = (f) => (f === "fn_temporada_efectiva" ? "fn_temporada_efectiva cambió desde 20260928100000" : `${f} ya existe con otro cuerpo`);
+const AVISO_GUARDA = (f) =>
+  f === "fn_temporada_efectiva"
+    ? "fn_temporada_efectiva cambió desde 20260928100000"
+    : f === "fn_temporada_efectiva_nucleo"
+      ? `${f} ya existe con otro cuerpo`
+      : `${f} tiene otro cuerpo`;
 correr(
   "T12 · la guarda: pegada otra vez deja lo mismo; con una función parchada en vivo aborta y no la pisa",
   `select ${MD5S} as antes \\gset
@@ -1090,12 +1242,59 @@ rollback to savepoint s${i};`;
   .join("\n")}`,
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
-    afirmar("…y los tres md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
+    afirmar("…y los cinco md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
     FUNCIONES.forEach((f, i) => {
       const e = json(o[`PARCHE_${i}`]);
       afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(AVISO_GUARDA(f)), o[`PARCHE_${i}`]);
       afirmar(`…y el parche de ${f} sigue ahí`, o[`SIGUE_${i}`] === "true", `SIGUE_${i}=${o[`SIGUE_${i}`]}`);
     });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// T12b · El orden de las dos migraciones (revisión 4, hallazgo 1). Producción el 2026-09-27: ninguna de las dos pegada y
+// fn_temporada_efectiva con su cuerpo de 20260928100000. Main trae 20260928120300 con la orden de pegarla; la corrección
+// vive en 20260928120310. Con la de main ya pegada, la corregida TIENE que entrar (antes, editada en su lugar, abortaba
+// culpando a un «parche en vivo» que no existía); y volver a pegar la de main después no deshace nada.
+const MD5_0300 = "fn_confianza_registro=9c714f98dd2776eebb505846eb24c33a,fn_es_llegada=5089ba50874f611d96d5df751b63ed57,fn_frescura_sede=644e10126796adc1111702290c14f2bb,fn_temporada_efectiva=1cc652ba0bef3e9783a014b840cb870f";
+correr(
+  "T12b · con la versión de main (20260928120300) ya pegada, la corregida (20260928120310) se aplica; la de main otra vez aborta; sin la de main, la corregida no entra",
+  `select ${MD5S} as nuevos \\gset
+-- Producción antes de pegar nada del paso 3: sin las lecturas ni el núcleo de temporadas, fn_temporada_efectiva de
+-- 20260928100000. (Las funciones SQL y plpgsql no dejan dependencias de cuerpo: se pueden quitar en cualquier orden.)
+drop function retail.fn_frescura_sede(uuid, integer);
+drop function retail.fn_confianza_registro(uuid, integer);
+drop function retail.fn_temporada_efectiva_nucleo(uuid, boolean);
+${k("TEMP_0100", `pg_temp.intento(${comoLiteral(TEMPORADA_EFECTIVA_0100)})`)}
+${k("MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
+${k("MD5_MAIN", MD5S)}
+${k("CORREGIDA", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
+${k("MD5_CORREGIDA", `${MD5S} = :'nuevos'`)}
+${k("CORREGIDA_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+${k("MAIN_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
+${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
+${k("CORREGIDA_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
+-- Sin la de main: la corregida la pide.
+drop function retail.fn_es_llegada(text, text, uuid, uuid, uuid);
+${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}`,
+  (o) => {
+    afirmar("fn_temporada_efectiva vuelve a su cuerpo de 20260928100000", json(o.TEMP_0100)?.ok === true, `TEMP_0100=${o.TEMP_0100}`);
+    afirmar("la de main se pega sobre producción de hoy", json(o.MAIN)?.ok === true, `MAIN=${o.MAIN}`);
+    afirmar("…y deja sus md5 (los que manda el BACKLOG de main)", o.MD5_MAIN === MD5_0300, `MD5_MAIN=${o.MD5_MAIN}`);
+    afirmar("la corregida se pega ENCIMA de la de main (su guarda acepta la versión anterior)", json(o.CORREGIDA)?.ok === true, `CORREGIDA=${o.CORREGIDA}`);
+    afirmar("…y deja los cinco md5 de este archivo", o.MD5_CORREGIDA === "true", `MD5_CORREGIDA=${o.MD5_CORREGIDA}`);
+    afirmar("…y la lectura responde", json(o.CORREGIDA_LEE)?.ok === true, `CORREGIDA_LEE=${o.CORREGIDA_LEE}`);
+    afirmar(
+      "volver a pegar la de main después aborta (su guarda no conoce el cuerpo nuevo) y no deshace nada",
+      json(o.MAIN_OTRA_VEZ)?.ok === false && (json(o.MAIN_OTRA_VEZ)?.msg ?? "").includes("fn_frescura_sede ya existe con otro cuerpo") && o.MD5_SIGUEN === "true",
+      `MAIN_OTRA_VEZ=${o.MAIN_OTRA_VEZ} MD5_SIGUEN=${o.MD5_SIGUEN}`,
+    );
+    afirmar("la corregida otra vez: ok", json(o.CORREGIDA_OTRA_VEZ)?.ok === true, `CORREGIDA_OTRA_VEZ=${o.CORREGIDA_OTRA_VEZ}`);
+    afirmar(
+      "sin la de main, la corregida aborta pidiendo pegarla antes",
+      json(o.SIN_MAIN)?.ok === false && (json(o.SIN_MAIN)?.msg ?? "").includes("pega antes 20260928120300"),
+      `SIN_MAIN=${o.SIN_MAIN}`,
+    );
   },
 );
 
