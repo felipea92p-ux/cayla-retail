@@ -155,6 +155,11 @@
   "tablename": "clientas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX clientas_fusiones_pkey ON retail.clientas_fusiones USING btree (id)",
+  "indexname": "clientas_fusiones_pkey",
+  "tablename": "clientas_fusiones"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX codigos_barras_codigo_key ON retail.codigos_barras USING btree (codigo)",
   "indexname": "codigos_barras_codigo_key",
   "tablename": "codigos_barras"
@@ -590,6 +595,11 @@
   "tablename": "historial_producto_cambios"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX huellas_llave_pkey ON retail.huellas_llave USING btree (id)",
+  "indexname": "huellas_llave_pkey",
+  "tablename": "huellas_llave"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX insumo_lotes_codigo_unico ON retail.insumo_lotes USING btree (insumo_id, codigo_lote) WHERE (codigo_lote IS NOT NULL)",
   "indexname": "insumo_lotes_codigo_unico",
   "tablename": "insumo_lotes"
@@ -613,6 +623,11 @@
   "indexdef": "CREATE UNIQUE INDEX insumos_pkey ON retail.insumos USING btree (id)",
   "indexname": "insumos_pkey",
   "tablename": "insumos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX lider_modulos_ocultos_pkey ON retail.lider_modulos_ocultos USING btree (modulo)",
+  "indexname": "lider_modulos_ocultos_pkey",
+  "tablename": "lider_modulos_ocultos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX lotes_pkey ON retail.lotes USING btree (id)",

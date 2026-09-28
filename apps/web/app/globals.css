@@ -315,6 +315,9 @@ body {
     opacity: 0.5;
   }
   .btn-chico {
+    min-height: 2.75rem; /* 44 px: el mínimo para tocarlo con el dedo (ADR-0185 lo pide para las pastillas de talla; se
+    extiende aquí porque es la misma clase compartida en 23 pantallas — subirla en un solo archivo habría dejado dos
+    botones «chicos» de alto distinto en la web). */
     padding: 0.3125rem 0.75rem;
     font-size: 12.5px;
   }
@@ -1019,6 +1022,21 @@ body {
 @keyframes cayla-hilo-barrido {
   0% { transform: translate3d(-100%, 0, 0); }
   100% { transform: translate3d(300%, 0, 0); }
+}
+
+/* BÚSQUEDA EN CURSO (ADR-0149, «Actualización 2026-09-28»). Mientras un buscador por URL espera a la base
+   (`useBusquedaEnUrl` pone `data-buscando` en <html>), los resultados de antes se atenúan en vez de taparse con
+   el loader: se siguen viendo, pero no pasan por la respuesta nueva. La página marca su zona con `data-resultados`. */
+[data-resultados] {
+  transition: opacity 200ms var(--ease-cayla);
+}
+html[data-buscando] [data-resultados] {
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-resultados] {
+    transition: none;
+  }
 }
 
 /* La barra de scroll nativa de Windows es gris cromo y aparece justo en el

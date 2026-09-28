@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -18,30 +19,21 @@ type OpcionColor = Opcion & { hex: string | null };
 const PRECIO_MIN = 0;
 const PRECIO_MAX = 999;
 
-/** `compacto` (2026-09-17, tres pasadas el mismo día): en la Grilla, la ropa
- *  tiene que ganarle a los controles. La 1ª pasada plegó todo detrás de un
- *  botón "Filtros"; la 2ª lo dejó siempre a la vista, más chico — a Felipe le
- *  gustaba más plegado. Esta 3ª vuelve al botón "Filtros" y al buscador con
- *  etiqueta de la 1ª, pero con los campos de la 2ª rehechos con estilo
- *  propio: `<select>` nativo no se puede vestir por dentro (la lista la
- *  dibuja el sistema operativo), así que Categoría/Color/Estado/Stock pasan
- *  a Radix Select — mismo paquete `radix-ui` que ya usa el Modal de Ajustar
- *  inventario, sin dependencia nueva. La Tabla sigue con la tarjeta completa
- *  de siempre: ahí sí se filtra seguido para el trabajo operativo
- *  (ADR-0077). Mismo estado, misma URL — nada más que otra piel. */
+/** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
+ *  de píldoras, en la Grilla y en la Tabla. Nació como el modo `compacto` de la Grilla (2026-09-17, tres pasadas: a
+ *  Felipe le gustaba más plegado). La tarjeta de nueve campos que usaba la Tabla se borró: dos pieles del mismo filtro
+ *  en la misma pantalla hacían que cambiar de vista pareciera cambiar de sistema. */
 export function FiltrosProductos({
   categorias,
   colores,
   marcas,
   proveedores,
-  compacto = false,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
   /** Marcas y proveedores activos (ADR-0109): filtrar el catálogo por de quién es y quién lo trae. */
   marcas: Opcion[];
   proveedores: Opcion[];
-  compacto?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,8 +43,16 @@ export function FiltrosProductos({
   const [precioMax, setPrecioMax] = useState(params.get("precioMax") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
   const primera = useRef(true);
+  const { buscando, buscar } = useBusquedaEnUrl();
+  const etiquetaBuscar = (
+    <span className="flex items-baseline justify-between gap-2">
+      Buscar
+      <SenalBuscando activo={buscando} />
+    </span>
+  );
 
-  function aplicar(cambios: Record<string, string>) {
+  /** `tipeado`: viene del buscador o del precio (se escribió o se arrastró): navega sin el loader, con «Buscando…». */
+  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -60,7 +60,9 @@ export function FiltrosProductos({
     }
     p.delete("pagina");
     const qs = p.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    if (tipeado) buscar(href);
+    else router.push(href);
   }
 
   // Búsqueda y precio se mandan solos al dejar de tipear/arrastrar (350 ms) —
@@ -76,7 +78,7 @@ export function FiltrosProductos({
       if ((params.get("q") ?? "") !== busqueda.trim()) cambios.q = busqueda.trim();
       if ((params.get("precioMin") ?? "") !== precioMin.trim()) cambios.precioMin = precioMin.trim();
       if ((params.get("precioMax") ?? "") !== precioMax.trim()) cambios.precioMax = precioMax.trim();
-      if (Object.keys(cambios).length > 0) aplicar(cambios);
+      if (Object.keys(cambios).length > 0) aplicar(cambios, { tipeado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,188 +156,111 @@ export function FiltrosProductos({
     </div>
   );
 
-  if (compacto) {
-    const activos = [cat, marca, proveedor, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
-    return (
-      <div className="space-y-2">
-        <div className="flex items-start gap-2">
-          <div className="flex-1">
-            <CampoTexto
-              etiqueta="Buscar"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Prenda, código o código de barras…"
-              autoComplete="off"
-              type="search"
-            />
-          </div>
-          {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
-              que el botón quede a la altura del input, no de toda la columna. */}
-          <div className="shrink-0">
-            <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-              {" "}
-            </span>
-            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
-          </div>
-        </div>
-
-        {panelAbierto && (
-          <PanelPildoras>
-            <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
-
-            <DesplegablePildora
-              icono={Shirt}
-              etiqueta="Categoría"
-              valor={cat ?? TODOS}
-              onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
-            />
-
-            <DesplegablePildora
-              icono={Tag}
-              etiqueta="Marca"
-              valor={marca ?? TODOS}
-              onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-            />
-
-            <DesplegablePildora
-              icono={Truck}
-              etiqueta="Proveedor"
-              valor={proveedor ?? TODOS}
-              onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-            />
-
-            <DesplegablePildora
-              icono={Palette}
-              etiqueta="Color"
-              valor={color ?? TODOS}
-              onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                ...colores.map((c) => ({
-                  valor: c.id,
-                  texto: c.nombre,
-                  icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
-                })),
-              ]}
-            />
-
-            <DesplegablePildora
-              icono={CircleCheck}
-              etiqueta="Estado"
-              valor={estado ?? TODOS}
-              onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                { valor: "activo", texto: "Activo" },
-                { valor: "descontinuado", texto: "Descontinuado" },
-              ]}
-            />
-
-            <DesplegablePildora
-              icono={PackageSearch}
-              etiqueta="Stock"
-              valor={stock ?? TODOS}
-              onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                { valor: "sin_stock", texto: "Sin stock" },
-                { valor: "bajo", texto: "Stock bajo" },
-                { valor: "reponer", texto: "Pedir a proveedor" },
-              ]}
-            />
-
-            <PildoraPrecio
-              precioMin={precioMin}
-              precioMax={precioMax}
-              onCambiar={(min, max) => {
-                setPrecioMin(min);
-                setPrecioMax(max);
-              }}
-            />
-          </PanelPildoras>
-        )}
-
-        {bloqueChips}
-      </div>
-    );
-  }
-
+  const activos = [cat, marca, proveedor, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
   return (
-    <div className="card-cayla p-4">
-      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
-        <CampoTexto
-          etiqueta="Buscar"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Referencia, código, SKU o código de barras"
-          autoComplete="off"
-          type="search"
-        />
-        <CampoSelect
-          etiqueta="Categoría"
-          valor={cat ?? ""}
-          onValor={(v) => aplicar({ cat: v })}
-          opciones={[{ valor: "", texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
-        />
-        <CampoSelect
-          etiqueta="Marca"
-          valor={marca ?? ""}
-          onValor={(v) => aplicar({ marca: v })}
-          opciones={[{ valor: "", texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-        />
-        <CampoSelect
-          etiqueta="Proveedor"
-          valor={proveedor ?? ""}
-          onValor={(v) => aplicar({ proveedor: v })}
-          opciones={[{ valor: "", texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-        />
-        <CampoSelect
-          etiqueta="Color"
-          valor={color ?? ""}
-          onValor={(v) => aplicar({ color: v })}
-          opciones={[{ valor: "", texto: "Todos" }, ...colores.map((c) => ({ valor: c.id, texto: c.nombre }))]}
-        />
-        <CampoSelect
-          etiqueta="Estado"
-          valor={estado ?? ""}
-          onValor={(v) => aplicar({ estado: v })}
-          opciones={[
-            { valor: "", texto: "Todos" },
-            { valor: "activo", texto: "Activo" },
-            { valor: "descontinuado", texto: "Descontinuado" },
-          ]}
-        />
-        <CampoTexto
-          etiqueta="Precio desde"
-          value={precioMin}
-          onChange={(e) => setPrecioMin(e.target.value)}
-          inputMode="decimal"
-          placeholder="S/ 0"
-        />
-        <CampoTexto
-          etiqueta="Precio hasta"
-          value={precioMax}
-          onChange={(e) => setPrecioMax(e.target.value)}
-          inputMode="decimal"
-          placeholder="S/ 999"
-        />
-        <CampoSelect
-          etiqueta="Stock"
-          valor={stock ?? ""}
-          onValor={(v) => aplicar({ stock: v })}
-          opciones={[
-            { valor: "", texto: "Todos" },
-            { valor: "sin_stock", texto: "Sin stock" },
-            { valor: "bajo", texto: "Stock bajo" },
-            { valor: "reponer", texto: "Pedir a proveedor" },
-          ]}
-        />
+    <div className="space-y-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <CampoTexto
+            etiqueta={etiquetaBuscar}
+            trabajando={buscando}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Prenda, código o código de barras…"
+            autoComplete="off"
+            type="search"
+          />
+        </div>
+        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
+            que el botón quede a la altura del input, no de toda la columna. */}
+        <div className="shrink-0">
+          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
+            {" "}
+          </span>
+          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+        </div>
       </div>
 
-      {bloqueChips && <div className="mt-2">{bloqueChips}</div>}
+      {panelAbierto && (
+        <PanelPildoras>
+          <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
+
+          <DesplegablePildora
+            icono={Shirt}
+            etiqueta="Categoría"
+            valor={cat ?? TODOS}
+            onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
+          />
+
+          <DesplegablePildora
+            icono={Tag}
+            etiqueta="Marca"
+            valor={marca ?? TODOS}
+            onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+          />
+
+          <DesplegablePildora
+            icono={Truck}
+            etiqueta="Proveedor"
+            valor={proveedor ?? TODOS}
+            onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
+            opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+          />
+
+          <DesplegablePildora
+            icono={Palette}
+            etiqueta="Color"
+            valor={color ?? TODOS}
+            onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todos" },
+              ...colores.map((c) => ({
+                valor: c.id,
+                texto: c.nombre,
+                icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
+              })),
+            ]}
+          />
+
+          <DesplegablePildora
+            icono={CircleCheck}
+            etiqueta="Estado"
+            valor={estado ?? TODOS}
+            onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todos" },
+              { valor: "activo", texto: "Activo" },
+              { valor: "descontinuado", texto: "Descontinuado" },
+            ]}
+          />
+
+          <DesplegablePildora
+            icono={PackageSearch}
+            etiqueta="Stock"
+            valor={stock ?? TODOS}
+            onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todos" },
+              { valor: "sin_stock", texto: "Sin stock" },
+              { valor: "bajo", texto: "Stock bajo" },
+              { valor: "reponer", texto: "Pedir a proveedor" },
+            ]}
+          />
+
+          <PildoraPrecio
+            precioMin={precioMin}
+            precioMax={precioMax}
+            onCambiar={(min, max) => {
+              setPrecioMin(min);
+              setPrecioMax(max);
+            }}
+          />
+        </PanelPildoras>
+      )}
+
+      {bloqueChips}
     </div>
   );
 }

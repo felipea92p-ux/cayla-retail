@@ -415,6 +415,24 @@ const HUELLAS: Huella[] = [
  */
 const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
 
+/**
+ * `hint` `<módulo>_sin_modulo`: la cuenta no tiene ese módulo en su rol (ADR-0161). Llega con `42501` y un mensaje ya en
+ * castellano que dice qué pedir («Tu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y
+ * accesos.»): lo escriben `retail.fn_exigir_modulo` (ADR-0249, 2026-09-28) y los candados de módulo que ya existían
+ * (`ajuste_sin_modulo`, `bajada_sin_modulo`, `apartar_sin_modulo`). Sin esto, los de `42501` caían al genérico «No se
+ * pudo… Vuelve a intentar», que manda a reintentar algo que no se arregla reintentando.
+ */
+const HINT_SIN_MODULO = /^[a-z_]+_sin_modulo$/;
+
+/**
+ * ¿La base rechazó porque el rol de la cuenta no tiene el módulo? (hint `<módulo>_sin_modulo`, ver arriba). Lo usan las
+ * pantallas que muestran su propio aviso en lugar del de `traducirError` (el buscador de clienta del Punto de venta): ahí
+ * «vuelve a intentar» sería mentira, y lo que sirve es el mensaje de la base, que dice qué pedir.
+ */
+export function esSinModulo(error: ErrorEscritura): boolean {
+  return !!error && !!error.hint && HINT_SIN_MODULO.test(error.hint) && !!error.message;
+}
+
 /** Textos que delatan que ni siquiera se llegó al servidor. */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
@@ -515,6 +533,7 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
   if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
+  if (esSinModulo(error)) return error.message;
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }

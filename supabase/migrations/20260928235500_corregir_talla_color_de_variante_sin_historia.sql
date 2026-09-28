@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260928230000_corregir_talla_color_de_variante_sin_historia.sql
+-- 20260928235500_corregir_talla_color_de_variante_sin_historia.sql (ADR-0258)
 -- Color y talla de una variante se corrigen mientras la variante no tenga historia (Felipe, 2026-09-28)
 --
 -- EL PROBLEMA PRIMERO. Al editar una prenda, color y talla de una variante que ya existe no se podían cambiar
@@ -107,7 +107,7 @@ revoke all on function retail.fn_variantes_con_historia(uuid[]) from public, ano
 grant execute on function retail.fn_variantes_con_historia(uuid[]) to authenticated;
 
 comment on function retail.fn_variantes_con_historia(uuid[]) is
-  'De las variantes pedidas, las que ya tienen historia: alguna fila en una tabla que las referencia (movimientos, ventas, compras, traslados…), salvo codigos_barras y variante_etiquetas. Color y talla solo se corrigen sin historia (20260928230000).';
+  'De las variantes pedidas, las que ya tienen historia: alguna fila en una tabla que las referencia (movimientos, ventas, compras, traslados…), salvo codigos_barras y variante_etiquetas. Color y talla solo se corrigen sin historia (20260928235500).';
 
 -- ----------------------------------------------------------------------------
 -- 2. El candado en la tabla
@@ -217,7 +217,7 @@ revoke all on function retail.fn_corregir_identidad_variante(uuid, uuid, uuid, j
 grant execute on function retail.fn_corregir_identidad_variante(uuid, uuid, uuid, jsonb) to authenticated;
 
 comment on function retail.fn_corregir_identidad_variante(uuid, uuid, uuid, jsonb) is
-  'Cambia color y talla de una variante existente si no tiene historia, recalcula su código y renombra su código de barras propio. La llama catalogo_actualizar_producto (20260928230000).';
+  'Cambia color y talla de una variante existente si no tiene historia, recalcula su código y renombra su código de barras propio. La llama catalogo_actualizar_producto (20260928235500).';
 
 -- ----------------------------------------------------------------------------
 -- 4. catalogo_actualizar_producto la llama por cada variante existente (ancla sobre la definición viva)
@@ -229,7 +229,7 @@ declare
   v_ancla constant text := $a$    if v_id is not null then
       if v_ve_costo then$a$;
   v_nuevo constant text := $n$    if v_id is not null then
-      -- 20260928230000: color y talla se corrigen si la variante no tiene historia; si tiene, lo dice.
+      -- 20260928235500: color y talla se corrigen si la variante no tiene historia; si tiene, lo dice.
       perform retail.fn_corregir_identidad_variante(v_id, p_producto_id, p_categoria_id, v_variante);
       if v_ve_costo then$n$;
   v_firma constant regprocedure :=
@@ -237,12 +237,12 @@ declare
 begin
   v_def := pg_get_functiondef(v_firma);
   if position('fn_corregir_identidad_variante' in v_def) > 0 then
-    raise notice '20260928230000: catalogo_actualizar_producto ya llamaba a fn_corregir_identidad_variante (se volvió a pegar)';
+    raise notice '20260928235500: catalogo_actualizar_producto ya llamaba a fn_corregir_identidad_variante (se volvió a pegar)';
     return;
   end if;
   v_veces := (length(v_def) - length(replace(v_def, v_ancla, ''))) / length(v_ancla);
   if v_veces <> 1 then
-    raise exception '20260928230000: catalogo_actualizar_producto no tiene el ancla esperada (aparece % veces). Revisar su definición antes de pegar.', v_veces;
+    raise exception '20260928235500: catalogo_actualizar_producto no tiene el ancla esperada (aparece % veces). Revisar su definición antes de pegar.', v_veces;
   end if;
   execute replace(v_def, v_ancla, v_nuevo);
 end;
@@ -257,7 +257,7 @@ declare
   v_veces int;
   v_ancla constant text := $a$elsif TG_TABLE_NAME = 'variantes' then$a$;
   v_nuevo constant text := $n$elsif TG_TABLE_NAME = 'variantes' then
-    -- 20260928230000: corregir color o talla de una variante sin historia queda anotado.
+    -- 20260928235500: corregir color o talla de una variante sin historia queda anotado.
     if new.color_codigo is distinct from old.color_codigo then
       insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
       values ('variante', new.id, 'color_codigo', old.color_codigo, new.color_codigo, v_usuario_id);
@@ -272,13 +272,13 @@ declare
     end if;$n$;
 begin
   v_def := pg_get_functiondef('retail.fn_registrar_cambio_producto()'::regprocedure);
-  if position('20260928230000' in v_def) > 0 then
-    raise notice '20260928230000: fn_registrar_cambio_producto ya anotaba color y talla (se volvió a pegar)';
+  if position('20260928235500' in v_def) > 0 then
+    raise notice '20260928235500: fn_registrar_cambio_producto ya anotaba color y talla (se volvió a pegar)';
     return;
   end if;
   v_veces := (length(v_def) - length(replace(v_def, v_ancla, ''))) / length(v_ancla);
   if v_veces <> 1 then
-    raise exception '20260928230000: fn_registrar_cambio_producto no tiene el ancla esperada (aparece % veces). Revisar su definición antes de pegar.', v_veces;
+    raise exception '20260928235500: fn_registrar_cambio_producto no tiene el ancla esperada (aparece % veces). Revisar su definición antes de pegar.', v_veces;
   end if;
   execute replace(v_def, v_ancla, v_nuevo);
 end;
