@@ -7,13 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
+import { MuestraTejido } from "@/components/MuestraTejido";
 import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { compararTallas } from "@/lib/tallas";
-import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
@@ -171,6 +172,7 @@ export function ProductoForm({
   categorias,
   colores,
   ejes,
+  imagenes,
   etiquetas,
   avisoEtiquetas,
   marcas,
@@ -181,6 +183,8 @@ export function ProductoForm({
   colores: Color[];
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
+  /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
+  imagenes: ImagenesMuestra;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
   /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
@@ -285,11 +289,15 @@ export function ProductoForm({
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
   const tallasCategoria = ejes.tallas[categoriaId] ?? [];
   const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
-  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({
+    valor: t.id,
+    texto: t.texto,
+    icono: <MuestraTejido nombre={t.texto} imagenUrl={imagenes.tejidos[t.id]} className="aspect-[3/1] w-[72px]" />,
+  }));
   const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({
     valor: t.id,
     texto: t.texto,
-    icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
+    icono: <MuestraPatron nombre={t.texto} imagenUrl={imagenes.patrones[t.id]} className="aspect-[3/1] w-[72px]" />,
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
   // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
@@ -593,6 +601,13 @@ export function ProductoForm({
               {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
+              {tejidoId && (
+                <MuestraTejido
+                  nombre={opcionesTejido.find((o) => o.valor === tejidoId)?.texto ?? ""}
+                  imagenUrl={imagenes.tejidos[tejidoId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
@@ -610,7 +625,13 @@ export function ProductoForm({
               {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
-              {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
+              {patronId && (
+                <MuestraPatron
+                  nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""}
+                  imagenUrl={imagenes.patrones[patronId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             {editando &&
               (producto?.estadoAlta === "rechazado" ? (

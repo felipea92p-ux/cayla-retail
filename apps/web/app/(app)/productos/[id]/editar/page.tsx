@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ProductoForm } from "@/components/ProductoForm";
 import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
@@ -26,7 +26,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -37,6 +37,7 @@ export default async function EditarProductoPage({
     supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
+    getImagenesMuestra(),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -75,6 +76,7 @@ export default async function EditarProductoPage({
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
         colores={colores}
         ejes={ejes}
+        imagenes={imagenes}
         etiquetas={etiquetas}
         avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
         marcas={marcas}

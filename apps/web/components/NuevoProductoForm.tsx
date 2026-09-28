@@ -723,6 +723,7 @@ export function NuevoProductoForm({
                     key={categoriaId}
                     deLaCategoria={tejidosCategoria}
                     universo={universo.tejidos}
+                    imagenes={contexto.imagenes.tejidos}
                     tejidoId={tejidoId}
                     onElegir={setTejidoId}
                     categoriaId={categoriaId}
@@ -761,7 +762,7 @@ export function NuevoProductoForm({
                           patronId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
                         }`}
                       >
-                        <MuestraPatron nombre={t.texto} />
+                        <MuestraPatron nombre={t.texto} imagenUrl={contexto.imagenes.patrones[t.id]} />
                         <span className="px-0.5">
                           {patronId === t.id && <span aria-hidden>✓ </span>}
                           {t.texto}

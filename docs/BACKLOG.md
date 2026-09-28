@@ -62,6 +62,17 @@ responsive posible».
   - En el celular (375 px): cada prenda es una tarjeta, sin scroll horizontal; la barra de marcadas ocupa el ancho.
   - Reactivar una prenda cuya marca diste de baja: no reactiva ninguna y dice cuál.
 
+## 🧶 Tejidos y Patrones: clic → foto de muestra y prendas que lo usan (2026-09-28, ADR-0256) — solo web, sin migración; rama `claude/tejidos-edit-images-garments-a6a649`
+Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas asociadas». La columna `imagen_muestra_url` y el bucket `retail-colores-muestras` ya estaban en producción sin uso (0 fotos).
+- [x] Clic en la tarjeta → `DetalleMuestraModal`: muestra en grande (foto o dibujo), subir / cambiar / quitar foto con vista previa y combo «Responsable», y la lista de prendas (activas primero, foto, código, categoría, «Descontinuada»; enlace a la ficha si ve Productos). Cada tarjeta dice «N prendas».
+- [x] La ruta PATCH de tejidos y patrones acepta `imagenMuestraUrl` solo del bucket y la carpeta de su tipo (`leerUrlMuestra`, 17 pruebas).
+- [x] **Generar dibujo desde una frase (sin IA, decisión de Felipe):** «rayas azul marino finas sobre crudo» → 3 propuestas con los colores del catálogo, «Entendí: …», «Otras variantes», «Usar este dibujo» → se guarda como una foto. También como campo opcional «Cómo se ve» al crear un tejido/patrón (`lib/dibujo-generado.ts`, 23 pruebas; ADR-0256 «Actualización»).
+- [ ] Unificar el dibujo automático por nombre (`MuestraTejido`/`MuestraPatron`) con el generador (frase vacía = el automático): hoy son dos formas de dibujar lo mismo.
+- [x] **La imagen se ve al elegir tejido y patrón en Nuevo producto** (paso 3, también en «Ver más»; `getContextoAlta` → `imagenes`).
+- [x] La misma imagen en la ficha de editar producto: Tejido y Patrón, en la lista del combo y bajo él (`getImagenesMuestra`, una lectura para alta y ficha).
+- [ ] Subir una foto real en producción con sesión de Líder (en local el Storage 1.72.1 rechaza toda subida, `42P10`; ver ADR-0256).
+- Cómo verificas: Catálogo ▸ Atributos ▸ Tejidos ▸ clic en «Denim» ▸ se ven las prendas de denim ▸ «Subir foto» ▸ elegir una foto ▸ «Así se verá» ▸ «Guardar foto» ▸ la tarjeta de Denim muestra la foto. «Quitar foto» vuelve al dibujo.
+
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
@@ -1324,6 +1335,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece todo menos un círculo sobre lo que hay que presionar, se puede terminar antes y retomar. Spike y propuesta: `docs/maquetas/ayuda-guiada-spike-2026-09/`.
 - [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
 - [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
+
+## 📐 Crear un color sin salir del producto, con gotero (2026-09-28) — SPIKE visual v2, sin código del ERP
+Una sola hoja de tres pasos (nombre → gotero → revisar y guardar) que se abre igual desde «Nuevo producto» y desde Catálogo ▸ Atributos ▸ Colores, con un gotero dentro de la hoja (foto del producto, carta de tonos o foto propia) en vez del selector nativo del navegador; el color nace en el mismo vocabulario y aparece en Atributos con «Pendiente» hasta que un líder lo aprueba. Spike y propuesta: `docs/maquetas/crear-color-spike-2026-09/`
+- [ ] Felipe revisa el spike y decide las 5 preguntas del README (¿el gotero dentro de la hoja es lo que pidió?, ¿la colaboradora crea colores o los pide?, ¿la hoja hereda el «Responsable»?, ¿la guía se ofrece sola?, ¿«Letra cómoda» va aparte?).
+- [ ] Si se aprueba: ADR (revierte `ProponerValor.tsx:29-31`), `components/catalogo/CrearColorHoja.tsx` (una pieza para `ColoresLista` y `ElegirColores`), `lib/gotero.ts` (con pruebas) y el «Siguiente paso» clicable de `FichaPrevia.tsx`. Sin migración; comprobar que el RPC de alta acepte un color pendiente.
 
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
