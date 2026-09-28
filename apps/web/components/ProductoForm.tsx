@@ -227,6 +227,7 @@ export function ProductoForm({
   avisoEtiquetas,
   marcas,
   producto,
+  volverA = "/productos",
 }: {
   categorias: Categoria[];
   colores: Color[];
@@ -242,6 +243,8 @@ export function ProductoForm({
   marcas: CatalogoMarcas;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
+  /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
+  volverA?: string;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -670,7 +673,7 @@ export function ProductoForm({
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: [quien ? `Por ${quien}` : null, hecho.length > 0 ? hecho.join(", ") : null].filter(Boolean).join(" · ") || undefined,
     });
-    router.replace("/productos");
+    router.replace(volverA);
     router.refresh();
     return true;
   }

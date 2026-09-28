@@ -315,6 +315,9 @@ body {
     opacity: 0.5;
   }
   .btn-chico {
+    min-height: 2.75rem; /* 44 px: el mínimo para tocarlo con el dedo (ADR-0185 lo pide para las pastillas de talla; se
+    extiende aquí porque es la misma clase compartida en 23 pantallas — subirla en un solo archivo habría dejado dos
+    botones «chicos» de alto distinto en la web). */
     padding: 0.3125rem 0.75rem;
     font-size: 12.5px;
   }
