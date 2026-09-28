@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Nuevo producto v2: spike visual de la distribución)
+Qué hice: un spike en `docs/maquetas/producto-nuevo-v2-2026-09/` que reparte el alta en 4 preguntas (¿Qué es? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay?). Tejido y patrón pasan a «¿Cómo es?»; descripción, temporada y etiquetas se pliegan en «Más detalles»; la foto va en la fila de su color; la tabla talla × color se dibuja una vez y en el paso 4 se llena con cantidades; la barra de 5 segmentos se reemplaza por la lista «Avance» bajo la ficha. No toca código del ERP.
+Por qué así: tras el spike del 24-09 el paso 3 acumuló 7 campos (temporada, etiquetas y fotos llegaron después) y el stock de hoy sumó un quinto paso con la misma tabla otra vez: cada color salía 4 veces y había 3 marcadores de avance.
+Felipe se lleva: **4 decisiones antes de implementar** (README del spike): precio y stock en un solo paso, fotos dentro de la fila del color, quién crea un color desde el alta, y si las etiquetas se pliegan o siguen a la vista.
+
 ## 2026-09-28 (Nuevo producto, paso 3: «Ver más» en Tejido)
 Qué hice: al final de los tejidos de la categoría aparece una tarjeta punteada «Ver más · N en el catálogo» (la misma del paso 1 con las familias); abre los tejidos aprobados que la categoría todavía no ofrece, y tocar uno lo ofrece en la categoría (con su combo «Responsable») y lo deja elegido. Sin cambio de base: usa la misma escritura que «+ Nuevo tejido» cuando el tejido ya existe. Primero un refactor sin cambio visible (`ElegirTejido`, `sumarAlEje`), después la función; 7 pruebas nuevas en `alta-producto.test.ts`.
 Por qué así: en producción hay 22 tejidos aprobados y cada categoría de Indumentaria ofrece entre 3 (Jeans) y 10; los otros solo se alcanzaban escribiendo su nombre exacto. Marcarlo sin ofrecerlo no sirve: `crear_producto_con_variantes` rechaza un tejido que la categoría no ofrece. Qué se rompería sin esto: quien no sabe que «Lino» existe lo crea de nuevo o elige uno parecido que no es, y el tejido del producto miente.
