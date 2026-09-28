@@ -19,6 +19,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
 import { faltaDatoDePago } from "@/lib/destino-de-pago";
 import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } from "@/lib/compra-form-progreso";
@@ -199,6 +201,21 @@ export function CompraFormV2({
   // ¿Ya existe este comprobante de este proveedor? Se consulta una vez al salir del campo (no en cada tecla) y se
   // recuerda por clave «proveedor|serie|número». Es una PISTA: quien manda es el candado `unique` de la base.
   const [existentes, setExistentes] = useState<Record<string, boolean>>({});
+
+  // «¿Salir sin guardar?» (2026-09-28). Un comprobante a medio tipear (proveedor, serie, diez líneas con su costo) se
+  // perdía con un toque al menú. La foto junta lo que la persona llenó; el `id` de cada línea sale de un contador interno
+  // y no cuenta como cambio. Registrado el comprobante, se suelta: ya no hay nada que perder.
+  const fotoActual = fotoFormulario({
+    proveedorId, tipo, serie, numero, fechaEmision, condicion, vencimientoEditado, llegadaEditada, ubicacionId, repartir,
+    tiendasReparto, igvPorcentaje, precioIncluyeIgv, pagarAhora, pagos, nota,
+    lineas: lineas.map((l) => [l.productoId, l.varianteId, l.cantidad, l.costoUnitario, l.descripcion, l.reparto]),
+    adjuntos: adjuntos.map((a) => [a.name, a.size]),
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(
+    fotoActual !== fotoAlAbrir,
+    "Llenaste parte de este comprobante y todavía no se registró. Si sales ahora, se pierde lo que llenaste."
+  );
   // Un reintento (red que se corta después del commit y antes de la respuesta — ADR-0032)
   // tiene que mandar el MISMO token para que `retail.compras.token_cliente` lo reconozca
   // como el mismo envío y devuelva la factura que ya existe, en vez del error
@@ -405,6 +422,7 @@ export function CompraFormV2({
 
     // La factura ya existe: lo que se envíe desde aquí en adelante es otra intención.
     token.current = crypto.randomUUID();
+    salida.soltar();
 
     // Los adjuntos se suben recién ahora (la ruta lleva
     // su id) y si alguno falla NO se pierde nada: se va al detalle con el
@@ -874,11 +892,12 @@ export function CompraFormV2({
           <BotonRegistrar estado={estadoRegistro} habilitado={progreso.completo} describe="compra-pendientes">
             {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
           </BotonRegistrar>
-          <Boton type="button" peso="discreto" onClick={() => router.push("/compras")} disabled={loading || registrada} className="w-full">
+          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
             Cancelar
           </Boton>
         </div>
       </aside>
+      {salida.aviso}
     </form>
   );
 }

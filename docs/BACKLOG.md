@@ -28,6 +28,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
+
+- [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
+- [x] Variantes con *container query* sobre su tarjeta: una línea desde 40rem, ficha de tres líneas con rótulos por debajo. Medido de 375 a 1920 px: nada cortado ni fuera de la tarjeta.
+- [x] «Guardar cambios» al costado recién desde 1280 px (a 1024 px el formulario pasa de 329 a 657 px); por debajo, `BarraFija` abajo mientras el panel no se ve.
+- [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
+- [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
+- [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
+- [x] Compras ▸ Nueva también pregunta (mismo hook). Probado: sin tocar no pregunta; con Boleta elegida preguntan el menú, Cancelar y atrás; volver a Factura a mano no pregunta. **Sin probar:** registrar un comprobante de verdad y salir (se suelta con `salida.soltar()` apenas la base responde bien).
+- [x] Recibir (`RecepcionEnvio`) y Gastos (`RegistrarGastoModal`) también preguntan. En Gastos lo que se protege es cerrar la hoja (Escape, velo, ✕, Cancelar), con `pedirAccion`. Probado en ambas: sin tocar no pregunta; con cambios, sí; «Seguir editando» conserva lo hecho; «Salir sin guardar» no escribe nada en la base. En Recibir, +1 y −1 hasta volver a cero **sí** pregunta a propósito: 0 es «contado, no llegó», distinto de vacío («sin contar», D1).
+- [x] La guardia del historial se retira sola cuando ya no hay nada que perder: se acabó el «atrás» de dos toques.
+- [x] `<Modal>` no se cerraba si la pantalla de abajo se redibujaba más seguido que cada 220 ms (el temporizador de salida se reiniciaba con cada `onClose` nuevo). Arreglado en el componente, para todos los modales.
+- [ ] **Por mirar:** la hoja de Registrar gasto cambia ~100 veces por segundo sin que nadie la toque (medido con un MutationObserver). No rompe nada tras el arreglo de `<Modal>`, pero es trabajo inútil del navegador y en un celular gasta batería: buscar qué la redibuja.
+- [ ] **Sin probar:** recibir un envío de verdad y salir desde «Envío recibido»; registrar un gasto de verdad y confirmar que la hoja se cierra sin preguntar.
+
 ## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928175107`, md5 del cuerpo igual al local); rama `claude/table-view-decision-59a288`
 Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
 → «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
