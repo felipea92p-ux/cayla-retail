@@ -18,6 +18,11 @@ Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas,
 Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
 Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
 
+## 2026-09-28 (Ficha de editar producto: la imagen del tejido y del patrón — ADR-0256)
+Qué hice: en Productos ▸ Editar, el combo de Tejido muestra ahora la muestra de cada tejido (antes solo el de Patrón la tenía) y los dos usan la foto o el dibujo elegido en Atributos; bajo cada combo se ve el elegido.
+Por qué así: el alta y la ficha leen las imágenes con la misma función (`getImagenesMuestra`); antes de este paso el alta las sacaba de su propia consulta, y dos lecturas de lo mismo terminan diciendo cosas distintas.
+Qué se rompería sin esto: quien corrige el tejido de una prenda ya creada elegía por nombre entre Denim y Drill, justo lo que la foto vino a resolver.
+
 ## 2026-09-28 (Nuevo producto: la imagen del tejido y del patrón al elegirlos — ADR-0256)
 Qué hice: en el paso 3 de Nuevo producto, cada tarjeta de Tejido (también las de «Ver más») y de Patrón muestra la foto o el dibujo que un Líder eligió en Atributos; sin imagen, el dibujo automático de siempre.
 Por qué así: el alta recibe un mapa aparte «id → imagen» en vez de sumarle un campo al tipo que comparten tallas, tejidos y patrones: las tallas no tienen imagen, y ensanchar ese tipo habría tocado seis pantallas para nada.

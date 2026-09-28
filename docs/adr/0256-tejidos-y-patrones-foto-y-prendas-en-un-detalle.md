@@ -48,9 +48,10 @@
 
 - ~~La foto todavía no se ve al crear un producto~~ **Hecho el mismo día** (pedido de Felipe): el paso 3 de Nuevo
   producto muestra la imagen elegida en cada tarjeta de Tejido (también en «Ver más») y de Patrón.
-  `getContextoAlta` devuelve `imagenes: { tejidos, patrones }` (id → URL) aparte de `universo`, para no ensanchar
-  `ValorVocabulario`, que también usan las tallas. **Sigue fuera:** la ficha de un producto existente (`ProductoForm`),
-  que lee sus patrones por otro camino.
+  Y en la ficha de editar producto (`ProductoForm`): el combo de Tejido gana su muestra en la lista y bajo el combo
+  (antes solo Patrón la tenía), y los dos usan la imagen elegida. Las dos pantallas leen las imágenes con UNA función,
+  `getImagenesMuestra()` (`lib/catalogo-v2.ts`: id → URL, solo de los que tienen), aparte de `ValorVocabulario` para no
+  ensanchar el tipo que también usan las tallas.
 - Las fotos reemplazadas no se borran del bucket (regla de no borrar; pesan ~300 KB cada una).
 - En local, el contenedor de Storage (1.72.1) es más viejo que su esquema y **rechaza toda subida** (`42P10` en
   `ON CONFLICT (name, bucket_id)`), también la de fotos de prenda. La subida real se probó hasta la vista previa; el

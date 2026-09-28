@@ -3,8 +3,10 @@ import { exigir } from "@/lib/resultado";
 import {
   getCostosVariantes,
   getEjesPorCategoria,
+  getImagenesMuestra,
   getTemporadasCatalogo,
   type EjesPorCategoria,
+  type ImagenesMuestra,
   type TemporadasCatalogo,
   type ValorVocabulario,
 } from "@/lib/catalogo-v2";
@@ -56,9 +58,8 @@ export type ContextoAlta = CatalogoMarcas & {
   ejes: EjesPorCategoria;
   /** Todo el vocabulario aprobado: para configurar una categoría sin salir del alta. */
   universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
-  /** id → la imagen que un Líder eligió en Atributos (foto o dibujo generado, ADR-0256). Sin entrada = el dibujo
-   *  automático por nombre. Aparte de `universo` para no ensanchar el tipo que también usan las tallas. */
-  imagenes: { tejidos: Record<string, string>; patrones: Record<string, string> };
+  /** La imagen elegida de cada tejido y patrón (ADR-0256). */
+  imagenes: ImagenesMuestra;
   /** La lista de temporadas y la de cada categoría (ADR-0246). `null` = la base todavía no la tiene: el alta sigue
    *  sin la fila de temporada (lo dice en una nota), nunca se cae por eso. */
   temporadas: TemporadasCatalogo | null;
@@ -66,14 +67,9 @@ export type ContextoAlta = CatalogoMarcas & {
 
 const VENTANA_VARIANTES = 2000;
 
-/** id → imagen, solo de los que tienen una. */
-function conImagen(filas: { id: string; imagen_muestra_url: string | null }[]): Record<string, string> {
-  return Object.fromEntries(filas.flatMap((f) => (f.imagen_muestra_url ? [[f.id, f.imagen_muestra_url]] : [])));
-}
-
 export async function getContextoAlta(): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -91,11 +87,12 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
         .eq("estado", "aprobado")
         .order("nombre"),
       supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
-      supabase.from("tejidos").select("id, nombre, imagen_muestra_url").eq("activo", true).eq("estado", "aprobado").order("nombre"),
-      supabase.from("patrones").select("id, nombre, imagen_muestra_url").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+      supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+      supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       getEjesPorCategoria(),
       getCatalogoMarcas(),
       getTemporadasCatalogo(),
+      getImagenesMuestra(),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -168,10 +165,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       tejidos: exigir(resTejidos, "los tejidos aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
       patrones: exigir(resPatrones, "los patrones aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
     },
-    imagenes: {
-      tejidos: conImagen(exigir(resTejidos, "los tejidos aprobados")),
-      patrones: conImagen(exigir(resPatrones, "los patrones aprobados")),
-    },
+    imagenes,
     temporadas,
   };
 }
