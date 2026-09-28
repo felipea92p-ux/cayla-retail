@@ -2915,7 +2915,8 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
 - **Colores A, «semáforo cálido»:** Nueva `verde`, Vigente `neutro`, Envejecida `ambar`. La Crítica es un tono nuevo de
   `Chip`, `tinta`: contorno de tinta y letra gruesa, nunca rojo.
   - Ninguna fila lleva rojo. El único rojo de la pantalla es la zona Crítica de la regla del detalle.
-  - La cifra «Por decidir» va en ámbar, porque `ResumenSede` no admite rojo.
+  - La cifra «Por decidir» va en ámbar, porque `ResumenSede` no admite rojo, y solo cuando hay alguna: con 0 es neutra,
+    como Devoluciones y Apartados (corrección del paso 4).
 - **Frases C, «con el porqué»:** cada sugerencia dice su causa. «revisa sus ventas» distingue a la callada (30 días sin
   vender) de la que no tiene dato. «cambiar de lugar» distingue la temporada pasada, la que dejó de venderse y la vieja y
   lenta. La rapidez se compara «contra las demás» y el «al menos» se dice «quizá más».
@@ -2930,6 +2931,8 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
     que opera.
   - `fn_confianza_registro`: igual, y sin tienda cada cuenta recibe solo las tiendas que opera.
   - `fn_bajadas_del_piso` entrega `persona_id` solo al líder.
+  - `fn_frescura_sede` suma a cada prenda `apartadas_piso_hoy`: lo apartado en el PISO (`apartadas_hoy` sigue siendo
+    piso y almacén). Es la corrección del paso 4, abajo.
   - El cálculo no cambia: para el líder, las filas son las mismas (T37 lo compara).
 - **Web:**
   - La ruta `app/(app)/inventario/frescura/` tiene `layout.tsx` con `exigirModulo("frescura")`, `page.tsx` y
@@ -2970,7 +2973,8 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
     quién no preguntarle. Con el filtro, la misma llamada sirve para los dos.
 - **SE ROMPE SI:**
   - El líder le da el módulo a un rol de terminal: la terminal lee la frescura de su tienda, que es lo que pide el
-    módulo, y no ve ningún nombre.
+    módulo, y no ve ningún nombre. Desde la corrección del paso 4 lo vigilan por conducta T1 de `frescura_lectura` y T13
+    de `frescura_bajadas`, con una terminal de ventas de Trujillo.
   - Una encargada llega a operar dos sedes: vería las dos. El cambio sería en `fn_puede_operar_ubicacion`, no en
     estas tres funciones.
 
@@ -2999,11 +3003,16 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
 - **SE ROMPE SI:** una categoría se llama en singular («Denim»). La frase sigue siendo correcta, aunque suena más
   formal.
 
-**Los filtros viven en la URL, sin volver al servidor**
-- **DECIDÍ:** `?cat=&estado=&pordecidir=1&q=&prenda=`, escritos con `history.replaceState`. Next sincroniza
-  `useSearchParams`. Es el mismo camino de Movimientos (`?mov=`) y Temporadas (`?vista=`).
-- **DESCARTÉ:** `router.replace`. Volvería a pedir la página, y para el líder eso son 3 lecturas del libro (~0,7 s
-  cada una con carga alta) y el loader a pantalla completa, por un cambio que no trae datos nuevos.
+**Los filtros viven en el estado del panel y se copian a la URL, sin volver al servidor** (corregido en la revisión)
+- **DECIDÍ:** los filtros y la prenda abierta son estado del panel. La URL (`?cat=&estado=&pordecidir=1&q=&prenda=`) se
+  lee UNA vez al abrir y después solo se escribe con `history.replaceState`. Es el camino de Movimientos (`?mov=`).
+  Un enlace abre exactamente lo mismo.
+- **DESCARTÉ:**
+  - `router.replace`. Volvería a pedir la página, y para el líder eso son 3 lecturas del libro (~0,7 s cada una con
+    carga alta) y el loader a pantalla completa, por un cambio que no trae datos nuevos.
+  - Leer los filtros de `useSearchParams` en cada render, como estaba al principio. El buscador tomaba su valor de la
+    URL, que se escribe recortada y vuelve después del evento: «blusa wayra» quedaba «blusawayra» y el cursor saltaba
+    al final.
 - **SE ROMPE SI:** la sede llega a tener miles de prendas en la tabla. Hoy todo viaja al navegador de una vez (TRU
   tiene 89 tallas; no se midió el peso con la carga sintética de 2.000 prendas). Entonces se pagina en el servidor.
 
@@ -3039,7 +3048,8 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
   - Los dos combos van a lo ancho en el celular.
   - `ResumenSede` conserva su sombra suave. La maqueta la sacaba: es una regla del componente, no de esta pantalla.
 - **Días redondeados:** los de la prenda y los de los cortes se redondean al día más cercano. Un corte nunca dice «0
-  días».
+  días». Cuando los dos enteros coinciden, la frase cambia en vez del número: «está por llegar a los 18» o «justo en
+  los 18» (corrección del paso 4).
 
 ### Cómo se verificó (2026-09-28)
 
@@ -3067,3 +3077,80 @@ pregunta 8 «recomendada». La pregunta 8 ya estaba en la base (`20260928120330`
   - Escape cierra la hoja y el foco vuelve a la fila. El combo Estado (11 opciones) trae buscador.
   - Los estados de quien no es líder, la lectura caída y el Taller se ven como deben.
   - La consola no muestra errores.
+
+### Corrección del paso 4 (2026-09-28, noche): lo que encontró la revisión
+
+Un escéptico confirmó 13 hallazgos (uno de SQL, nueve de lo que dice la pantalla y tres de cómo se comporta). Se
+aplicaron los 13. La migración `20260929100000` sigue **sin pegar**, así que se corrigió en el mismo archivo: cambia el
+md5 de `fn_frescura_sede` (`473f5d98…` → `a22655be615d72555032a7df98258876`). Los otros dos no cambian.
+
+**Lo apartado en el almacén no es «apartada»** (hallazgo de gravedad media)
+- **El problema:** `apartadas_hoy` junta lo apartado en el piso y en el almacén, y Apartar toma del almacén por defecto
+  cuando el piso está vacío (`ApartarModal`). Una blusa agotada en el piso, con 2 libres y 1 apartada en el almacén,
+  salía en la tabla como «Apartada para clientas · Nada: tiene dueña».
+- **DECIDÍ:** que la base lo diga. `fn_frescura_sede` suma `apartadas_piso_hoy` a cada prenda (ya lo calculaba para
+  `piso_libre`). La web lo lee y, si falta (producción antes de pegar), lo deduce de `apartados`: −Σ delta, entre 0 y
+  lo apartado. «Apartada» es solo con algo apartado en el PISO. «Guardada» es lo libre del almacén más lo apartado ahí,
+  y el pie dice «(3, 1 apartada)».
+- **DESCARTÉ:** deducirlo siempre en la web sumando los puntos de `apartados`. Funciona, pero son dos maneras de saber
+  lo mismo y una depende de que el saldo de la ventana esté bien armado. La deducción queda solo como puente.
+- **SE ROMPE SI:** alguien aparta desde la cuarentena. Hoy no se puede (`apartadas` ya la excluye), y la prueba T2i
+  exige que `apartadas_piso_hoy` nunca pase de `apartadas_hoy`.
+
+**Los clásicos se nombran por su estación**
+- En producción se llaman «Clásico · verano» y «Clásico · invierno». La web decía «Es de clásico · verano: ¿la guardas
+  hasta su estación?». Ahora dice «Es de verano», «Es un clásico de verano», «de todo el año».
+- `lib/frescura.ts` guarda `estacion_desde` de `fn_temporadas`. La estación se nombra con el NOMBRE de la temporada
+  cuya clave es esa («verano» → «Verano»), así que «otono» no pierde la ñ.
+- Si el catálogo de temporadas no se pudo leer, las frases dicen «su estación», nunca la clave cruda. Junto al color
+  sigue la clave, como antes.
+- Las pruebas usan ahora los nombres de producción (con nombres inventados, el error pasaba).
+
+**Las frases no se contradicen**
+- **Días:** cuando la prenda y el corte redondean al mismo entero, «está por llegar a los 18» o «justo en los 18». La
+  escala junta dos cortes del mismo día («Vigente 18 d», nunca «18–18 d»).
+  - DESCARTÉ piso para la prenda y techo para los cortes: con 17,95 contra 17,9 decía «Lleva 17 días: pasó los 18».
+- **Cabecera:** lo vendido «de cada 10» va hacia abajo, con tolerancia (8 de 17 son «4», no «5» junto a «no se sabe
+  cuánto tarda la mitad»). El % de Nuevas no dice 100 si falta alguna ni 0 si hay alguna.
+- **«1 día»:** una sola función (`textoDias`) para toda la pantalla. Con un día o menos, «desde que se colgó».
+- **«Sin contarla»:** no sale cuando no hay ventas en la sede, y si las demás no vendieron nada dice «ninguna de las
+  demás se vendió todavía», nunca «solo 0».
+- **«Con pocos datos»** se mide con las ventas de las demás SIN ella (D5), las mismas que ubicaron su estado: debajo del
+  chip, en el porqué y en la caja («Salen de 7 ventas de las demás»). La cabecera del grupo sigue con la categoría
+  completa. Es la misma regla que la revisión 4 aplicó a «Trasladar».
+- **Concordancias:** «se esperaba 1», «1 venta», «Otra tiene», «1 unidad». «Sigue vendiendo» usa el mismo lapso que
+  «Cómo se vende» («en sus 12 días en el piso», no «últimos 30»), y la tarjeta del celular también.
+
+**Filtros y cifras**
+- El buscador guarda lo escrito en el estado (ver la decisión de los filtros, arriba). Verificado con teclas reales:
+  «blusa wayra» encuentra la prenda y el cursor queda donde se escribió.
+- `?cat=` vacío es «Sin categoría», no «todas». Una categoría que ya no está en la tabla (un enlace viejo, o la otra
+  sede del selector) se trata como «todas»: el combo ya no dice «Elegir» con la tabla vacía.
+- La cifra «por decidir» va en ámbar solo si es mayor que 0.
+
+**La terminal con el módulo, vigilada** (hallazgo de SQL, gravedad baja)
+- El SQL ya la trataba bien, pero ninguna prueba lo decía: solo se probaban Felipe y Micaela.
+- T1 de `frescura_lectura` y T13 de `frescura_bajadas` crean una terminal de ventas de Trujillo dentro de su ROLLBACK.
+  Primero quitan «frescura» de todos los roles, para no depender de otra prueba. Sin el módulo, P0001 en las tres
+  lecturas. Con el módulo en `terminal_ventas` (y `fn_ve_modulo` en verdadero), lee Trujillo con `separa_piso`, las
+  mismas filas de bajadas que el líder, la de Felipe sin `persona_id`, y otra sede no en ninguna. El registro sin
+  tienda le da solo Trujillo.
+- **Mutación, corrida:** sacar a la terminal del candado hace fallar 2 verificaciones de conducta en `frescura_lectura`
+  y 2 en `frescura_bajadas`. Darle `persona_id` hace fallar 1 en `frescura_bajadas`. No son solo las del md5.
+
+**Cómo se verificó**
+- **SQL**, cada suite en una base nueva con todas las migraciones:
+  - `frescura_lectura`: **258** (antes 251). Suma 5 de la terminal, `apartadas_piso_hoy` en T2i (A 3, B 2, C 1, la
+    del almacén 0, y que cuadre con −Σ de sus puntos) y la clave nueva en el contrato de T9.
+  - `frescura_bajadas`: **183** (antes 177).
+  - `roles_por_modulo` 70, `roles_cobertura_modulos` 32, `una_sola_firma` 2, `bajada_al_piso` 51,
+    `roles_lider_editable` 13, `temporadas` 25, `terminales_por_tienda` y `terminales_sin_persona` 55. Todas en
+    verde.
+- `__fixtures__/frescura-sede.json` se rehízo con `FRESCURA_FIXTURE_ESCRIBIR=1`: la salida real trae
+  `apartadas_piso_hoy`, y el vestido apartado de T13 tiene 3 apartadas, 2 del piso. `frescura-contrato` exige que la
+  web lo lea tal cual y que la deducción sin la clave dé lo mismo.
+- **Web:** `tsc` y eslint limpios. Vitest completo: 221 archivos, 152.540 pruebas. `frescura-pantalla` pasa de 47 a
+  69; `frescura-reglas` suma la lectura de la clave nueva.
+- **Navegador**, con la página de prueba (ya borrada) a 1280 y 375 px: el buscador con teclas reales, un `?cat=` que no
+  existe, la hoja del clásico de verano, «1 día», la guardada con una apartada en el almacén, «0 por decidir» sin
+  ámbar. Sin desplazamiento lateral.

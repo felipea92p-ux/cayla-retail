@@ -8,18 +8,30 @@
       `fn_confianza_registro` y `fn_bajadas_del_piso`: «el líder, o el módulo, en una sede que opera»; `persona_id`
       solo para el líder.
 - [x] Pruebas en verde:
-  - `frescura_lectura` 251, `frescura_bajadas` 177, `roles_por_modulo` 70, `roles_cobertura_modulos` 32 y
-    `una_sola_firma` 2;
-  - `frescura-pantalla` 47 y `frescura-contrato` 26;
+  - `frescura_lectura` 258, `frescura_bajadas` 183, `roles_por_modulo` 70, `roles_cobertura_modulos` 32,
+    `una_sola_firma` 2, `bajada_al_piso` 51, `roles_lider_editable` 13, `temporadas` 25, `terminales_por_tienda` y
+    `terminales_sin_persona` 55;
+  - `frescura-pantalla` 69 y `frescura-contrato` 26; vitest completo 221 archivos, 152.540 pruebas;
   - menú y módulos, `tsc` y eslint.
+- [x] **Revisión del paso 4 (2026-09-28, noche): 13 hallazgos, los 13 aplicados** (ADR-0208, «Corrección del paso 4»):
+  - la prenda con lo apartado en el ALMACÉN ya no sale «apartada»: `fn_frescura_sede` suma `apartadas_piso_hoy`, y la
+    web lo deduce de `apartados` mientras producción no lo tenga;
+  - los clásicos se nombran por su estación («Es de verano»), con los nombres de producción en las pruebas;
+  - el buscador guarda lo escrito en el estado («blusa wayra» ya no queda «blusawayra»);
+  - «está por llegar a los 18» / «justo en los 18», la escala sin «18–18 d», «4 de cada 10» hacia abajo, el % sin
+    100 falso, «1 día», nada de «solo 0», «con pocos datos» con las demás sin ella, concordancias, «Sin categoría»
+    en el filtro, una categoría vieja en la URL vuelve a «todas» y «0 por decidir» sin ámbar;
+  - la terminal de ventas con el módulo, probada por conducta en T1 y T13 (con la mutación corrida).
 - [x] Navegador (página de prueba sin sesión) a 1280 y 375 px: sin desplazamiento lateral, 0 rojos en la lista y 1 con
       la hoja abierta, Escape y foco bien, consola limpia.
 
 ### SQL POR PEGAR (en este orden, cada parte sola en el SQL Editor)
 
-1. `supabase/migrations/20260929100000_frescura_modulo_y_candado.sql` (md5 del archivo `1e5880eff3b713de6fad701b6a289392`).
+1. `supabase/migrations/20260929100000_frescura_modulo_y_candado.sql` (md5 del archivo `a7fcf105df3381abeb082dc29ddfa0de`;
+   el de antes de la revisión, `1e5880ef…`, ya no vale).
    - Va **antes de publicar la web**: con la web nueva y sin esta migración, el menú no muestra Frescura ni al líder.
    - Solo trae un `insert` en `retail.modulos`, tres `create or replace function`, comentarios, `revoke` y `grant`.
+     `fn_frescura_sede` devuelve además `apartadas_piso_hoy` en cada prenda (la web de hoy lo ignora).
    - Pide el paso 3 pegado (ya está, 2026-09-28): la guarda compara el md5 vivo de cada función con el de producción y
      con el suyo.
    - Verificación, solo lectura:
@@ -31,7 +43,7 @@
      -- fn_bajadas_del_piso         9821874e6a32909680a9a5155bcdb68b
      -- fn_bajadas_del_piso_nucleo  fcfd2c4b2c4f24dd2184eb2cd7a12678   (sin cambio)
      -- fn_confianza_registro       dcedb83cff010817a17e023b9e8b2d92
-     -- fn_frescura_sede            473f5d985a7f515501d940a156aad0e5
+     -- fn_frescura_sede            a22655be615d72555032a7df98258876
      select clave, grupo, orden, solo_lider, delegable from retail.modulos where clave = 'frescura';  -- frescura | Inventario | 115 | f | t
      select count(*) from retail.rol_modulos where modulo = 'frescura';                                -- 0
      ```
@@ -58,3 +70,5 @@
   - cuál talla no cuadra.
 - [ ] **Sin probar con datos reales:** la pantalla se vio solo con la página de prueba (datos de mentira y la salida de
       T13). Producción tiene hoy 89 de 89 prendas sin temporada: el aviso único de arriba es lo que se va a ver.
+- [ ] **Frases con un corte de 1 día** («todavía no llega a los 1»): solo pasa si la mitad de una categoría se vende en
+      menos de un día y medio. No se tocó en la revisión; si aparece, va con `textoDias` como el resto.
