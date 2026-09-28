@@ -1,0 +1,4 @@
+## 2026-09-28 (Spike: Existencias que se entiende sin explicación)
+Qué hice: un spike clicable de Existencias en computadora y celular (`docs/maquetas/existencias-intuitiva-2026-09/`), con un solo verbo («Bajar al piso»), una mini tabla rotulada Piso/Almacén en cada prenda, «Para hacer hoy» en lugar de las 4 tarjetas y una frase que explica cada talla antes del botón. Sin código del ERP ni migración.
+Por qué así: la pantalla ya hace lo que debe (análisis `docs/pantallas/inventario.md`, 11 de 12 tareas cerradas); lo que marea es la lectura: cinco nombres para la misma tarea, una notación «0·6» que pide leyenda y siete bloques antes de la primera prenda.
+Felipe se lleva: el spike se prueba con clics; antes de implementar decide 4 cosas (README del spike): si se retira «Por colgar», a dónde va la vista «Por talla», la comparación semanal y los dos enlaces de análisis.
