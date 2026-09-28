@@ -445,6 +445,17 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   única definición, cada renglón `borrable` o no; `fn_producto_se_puede_eliminar` también la lee). Con historia SOLO de stock
   y cuenta Admin llama a `eliminar_producto_con_historia` (respaldo en `respaldo_purgas.filas`, que devuelve
   `scripts/purga/restaurar-purga.sql`).
+- `/productos/[id]/editar` → `ProductoForm.tsx` guarda en dos tiempos (ADR-0257): un `useState(capturar)` guarda la foto de «al
+  abrir» y `lib/producto-cambios-reglas.ts:resumenDeCambios` la compara contra el estado actual en cada render (función pura,
+  `CAMPOS_CUBIERTOS` obliga a decidir cómo se compara cada campo nuevo de la ficha). Mientras `resumen.total > 0`, sube
+  `BarraDeCambios.tsx` (sobre `ui/BarraFija.tsx`) — el ÚNICO camino para guardar, sin panel a la derecha — y cada variante o
+  campo tocado se marca en ámbar con «↺ Deshacer». «Revisar y guardar» valida y abre `ConfirmarCambios.tsx`
+  (`<Modal variante="hoja">`): lista lo que cambia agrupado y pide el «Responsable» (`useResponsable`/`ComboResponsable`,
+  ADR-0161/0162) ahí mismo. Guarda con `catalogo_actualizar_producto` y, en el mismo gesto si corresponde,
+  `actualizar_variantes_etiquetas` y `asignar_temporadas` (por color, ADR-0246); un `PT409` (versión vieja, ADR-0193) deja lo
+  escrito a la vista y cambia la barra a «Recargar la prenda». Salir con cambios sin guardar pregunta
+  (`components/ui/useSalidaSinGuardar.tsx`: enlaces del menú, «← Productos», Atrás, cerrar la pestaña) y al guardar, el aviso
+  dice qué cambió y quién firmó (`avisar.exito` con `detalle`) antes de volver a `/productos`.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
