@@ -434,6 +434,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   entonces ofrece borrar (`eliminar_producto`, con el combo «Responsable»). La regla de qué es «historia» vive UNA vez, en la
   base; `lib/eliminar-producto-reglas.ts` solo redacta los textos. Se puede si el producto nunca se movió; con historia se
   rechaza y la salida es descontinuarlo desde Editar. La pieza «Monto manual» del POS no se elimina nunca.
+  **Desde ADR-0252 (`20260928230000`)** la ventana pregunta a `fn_producto_como_eliminar` (nivel libre / con_historia /
+  con_documentos / sistema, si esta cuenta puede, prendas, movimientos y quién lo cargó), que lee `fn_producto_historia` (la
+  única definición, cada renglón `borrable` o no; `fn_producto_se_puede_eliminar` también la lee). Con historia SOLO de stock
+  y cuenta Admin llama a `eliminar_producto_con_historia` (respaldo en `respaldo_purgas.filas`, que devuelve
+  `scripts/purga/restaurar-purga.sql`).
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
