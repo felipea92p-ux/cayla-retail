@@ -340,7 +340,7 @@ button.celda:hover{background:var(--t04)}
     <div class="nuevo">
       <h3>Propuesta · 4 preguntas</h3>
       <ol>
-        <li><i>1</i><div><b>¿Qué es?</b> <span>· categoría (igual que hoy, avanza solo)</span></div></li>
+        <li><i>1</i><div><b>¿A qué categoría pertenece?</b> <span>· igual que hoy, avanza solo</span></div></li>
         <li><i>2</i><div><b>¿Cómo es?</b> <span>· nombre, marca, tejido, patrón. Descripción, temporada y etiquetas plegadas en «Más detalles»</span></div></li>
         <li><i>3</i><div><b>¿En qué tallas y colores?</b> <span>· tallas, colores y <b>una tabla</b> con la foto de cada color en su fila</span></div></li>
         <li><i>4</i><div><b>¿Cuánto cuesta y cuántas hay?</b> <span>· precio, costo, margen y <b>la misma tabla</b> ya con cantidades</span></div></li>
@@ -460,7 +460,7 @@ const alcanzable = n => n === 1 || [1,2,3,4].filter(m => m < n).every(m => !falt
 const estado = n => n === s.abierto ? "abierto" : hecho(n) ? "hecho" : "pendiente";
 const primerFalta = () => { for (const n of [1,2,3,4]) { const f = falta(n); if (f) return f; } return s.responsable ? null : "Elige quién registra"; };
 
-const TIT = {1:"¿Qué es?", 2:"¿Cómo es?", 3:"¿En qué tallas y colores?", 4:"¿Cuánto cuesta y cuántas hay?"};
+const TIT = {1:"¿A qué categoría pertenece?", 2:"¿Cómo es?", 3:"¿En qué tallas y colores?", 4:"¿Cuánto cuesta y cuántas hay?"};
 function resumen(n){
   if (n === 1) return cat() ? `${fam().nombre} › ${cat()[1]}` : "";
   if (n === 2) { const p = pareja(); return [nombreFinal(), p && p[0], s.tejido, s.patron].filter(Boolean).join(" · "); }

@@ -30,8 +30,9 @@ stock de hoy como paso 5 (ADR-0212). Todo eso cayó en el paso 3 o en un paso nu
 
 | Hoy | Propuesta |
 |---|---|
-| 5 pasos: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes · Cuántas tienes hoy | **4 preguntas:** ¿Qué es? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay? |
+| 5 pasos: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes · Cuántas tienes hoy | **4 preguntas:** ¿A qué categoría pertenece? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay? |
 | Tejido y patrón en «Cómo se hace» | **En «¿Cómo es?»**, junto al nombre y la marca: es lo que describe a la prenda |
+| «Qué producto es» (se elige una categoría) | **«¿A qué categoría pertenece?»**: el título dice lo que se elige (Felipe, 2026-09-28) |
 | Descripción, temporada y etiquetas a la vista, cada una con su fila | **Plegadas en «Más detalles · opcional»**. La línea plegada dice qué se llenó («descripción, Verano, 1 etiqueta») |
 | Fotos en una grilla aparte de casillas por color | **La foto va en la fila de su color, dentro de la tabla de variantes.** Una sola tabla (color × talla) muestra fotos, variantes y quitar |
 | Tabla de variantes en el paso 4 y tabla de stock en el paso 5 | **La tabla aparece al elegir las tallas y los colores (paso 3). En el paso 4 es la misma tabla, con cantidades**, total por fila y por columna. «Precios distintos» es un segmento de esa tabla, no otra vista |
