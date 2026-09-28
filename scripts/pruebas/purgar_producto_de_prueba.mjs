@@ -181,7 +181,7 @@ savepoint antes_del_ensayo;
 ${params()}${CUERPO}
 rollback to savepoint antes_del_ensayo;
 ${RESTOS}
-select count(*) from information_schema.tables where table_schema = 'respaldo_purgas';
+select count(*) from respaldo_purgas.filas;
 select ${SERIE};`,
       true
     );
@@ -190,7 +190,8 @@ select ${SERIE};`,
     esperar("ensayo: termina con una excepción que dice ENSAYO OK y trae el resumen", /ENSAYO OK — no quedó nada escrito/.test(r.err) && /productos 1 · variantes 2 · movimientos 6 · ventas 1 · líneas de venta 4 · pagos 1 · comprobantes 1 · prendas devueltas a stock \(en 2 filas\) 3/.test(r.err), r.err.slice(0, 900));
     esperar("ensayo: el resumen promete 0 filas descuadradas antes y después, y cita el respaldo", /0 filas descuadradas antes y 0 después/.test(r.err) && /respaldo_purgas\.filas, purga «purga /.test(r.err), r.err.slice(0, 900));
     esperar("ensayo: no queda nada escrito — todo sigue como estaba", r.ok && despues === RESTOS_ANTES, r);
-    esperar("ensayo: ni el esquema de respaldo se creó (la excepción lo deshizo)", r.ok && respaldo === "0", r);
+    // Desde ADR-0252 el esquema `respaldo_purgas` lo crea una migración (existe siempre): lo que no puede quedar es una FILA.
+    esperar("ensayo: no quedó ninguna fila de respaldo (la excepción la deshizo)", r.ok && respaldo === "0", r);
   }
 
   // 2. DEFINITIVO: el producto y su venta desaparecen; lo ajeno vuelve a su stock; la serie retrocede; el libro cuadra.
