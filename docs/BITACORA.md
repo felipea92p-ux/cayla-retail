@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Nuevo producto v2: el spike con el volumen real del catálogo)
+Qué hice: el spike ahora usa los nombres y el volumen de producción (47 categorías, 76 colores, 24 tejidos, 84 marcas, 78 proveedores; hasta 10 tejidos, 8 patrones y 9 tallas por categoría). A la vista nunca hay más de 6 opciones por campo; el resto va detrás de «Ver todos · N», una hoja con buscador y grupos. Las categorías tienen buscador y «Las que más usas». La tabla fija la columna del color y la fila de tallas, y en el paso 4 «Poner en todas» llena las celdas de una vez.
+Por qué así: Felipe pidió que con muchos tejidos, patrones o «mucho de algo» la pantalla siguiera viéndose bien. Con 24 tejidos en muestras de 92 px, mostrarlos todos ocupaba tres filas antes de llegar a Patrón; lo de la categoría cubre casi todos los casos y lo raro queda a un toque.
+Felipe se lleva: **lo elegido nunca se esconde**: si viene de «Ver todos», pasa al primer lugar de la fila. Esa regla vale para cualquier lista larga del ERP.
+
 ## 2026-09-28 (Nuevo producto v2: spike visual de la distribución)
 Qué hice: un spike en `docs/maquetas/producto-nuevo-v2-2026-09/` que reparte el alta en 4 preguntas (¿A qué categoría pertenece? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay?). Tejido y patrón pasan a «¿Cómo es?»; descripción, temporada y etiquetas se pliegan en «Más detalles»; la foto va en la fila de su color; la tabla talla × color se dibuja una vez y en el paso 4 se llena con cantidades; la barra de 5 segmentos se reemplaza por la lista «Avance» bajo la ficha. No toca código del ERP.
 Por qué así: tras el spike del 24-09 el paso 3 acumuló 7 campos (temporada, etiquetas y fotos llegaron después) y el stock de hoy sumó un quinto paso con la misma tabla otra vez: cada color salía 4 veces y había 3 marcadores de avance.

@@ -3,9 +3,9 @@
 > **Estado: propuesta, sin aprobar.** No toca `NuevoProductoForm.tsx` ni ninguna pieza de `components/alta-producto/`.
 
 `index.html`: un solo archivo, ábrelo en el navegador. Los datos son inventados. **No es la implementación.**
-La barra punteada salta a un estado (Vacío, Paso 2, Paso 3, Paso 4, Listo para crear), muestra la pantalla a
+La barra punteada salta a un estado (Vacío, Paso 2, Paso 3, Paso 4, Listo para crear, Mucho de todo, «Ver todos» abierto), muestra la pantalla a
 375 px y esconde o muestra la comparación «Hoy vs. propuesta». También se abre directo en un estado: `#listo`,
-`#p3`, `#p4,celular`.
+`#p3`, `#mucho`, `#hoja`, `#p4,celular`.
 
 Sucede al spike del 2026-09-24 (`../producto-nuevo-spike-2026-09/`, ADR-0197). Ese spike ordenó el alta en 4 pasos.
 Después se le sumaron temporada (ADR-0246), etiquetas con dibujo (ADR-0109 act. c), fotos revisadas (ADR-0228) y el
@@ -41,6 +41,27 @@ stock de hoy como paso 5 (ADR-0212). Todo eso cayó en el paso 3 o en un paso nu
 | Un color que falta se crea en otra pestaña | **«+ Nuevo color»** (y «+ Crear el color «…»» al final del buscador): nombre + muestra, y queda elegido |
 | Campos obligatorios sin marca | Etiqueta roja **«obligatorio»** en lo que bloquea «Seguir» |
 | Ficha: Tallas, Tejido y patrón, Etiquetas, Variantes, Stock, Precio | Ficha más corta: código, nombre, categoría · marca · tejido, dos cifras (**Variantes** y **Hoy en tienda**) y **Precio · margen** |
+
+## Cuando hay mucho (catálogo de producción, 2026-09-28)
+
+Pedido de Felipe: «si existen muchos tejidos, patrones o mucho de algo, debe verse bien». El spike usa el volumen y los
+nombres reales de producción (consultados en vivo, solo lectura): **47 categorías, 76 colores, 27 tallas, 24 tejidos,
+9 patrones, 24 etiquetas, 84 marcas y 78 proveedores**; por categoría, hasta **10 tejidos, 8 patrones y 9 tallas**.
+Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (jean)»** muestra el peor caso: 9 tallas ×
+8 colores = 72 celdas, 7 fotos y 4 etiquetas. **«"Ver todos" abierto»** muestra la hoja de tejidos.
+
+| Qué | Cómo se ve con mucho |
+|---|---|
+| Regla general | **A la vista, nunca más de 6 opciones por campo**: las de esta categoría, en el orden en que más se usan. El resto va detrás de **«Ver todos · N»**, que abre una hoja (`<Modal variante="hoja">`) con buscador sin tildes y grupos. **Lo elegido nunca se esconde**: si viene de la hoja, pasa al primer lugar de la fila |
+| Categorías (47) | Buscador arriba, fila **«Las que más usas»** (un toque y pasas al paso 2) y 6 familias con su cuenta. Al abrir una familia, sus categorías en grilla (Indumentaria tiene 18) |
+| Tejidos (24) | 5 muestras de la categoría + tarjeta punteada **«Ver todos · 24 tejidos»**. La hoja muestra primero «Los de Camisas y Blusas · 10» y luego el resto en grupos (Naturales, De punto, Planos y de trabajo, Sintéticos). Elegir uno de fuera lo suma a la categoría, igual que el «Ver más» de `main` (b116c0cb) |
+| Patrones (9) | Igual que tejidos: 5 + «Ver todos · 9» |
+| Marcas y proveedores (84 / 78) | 3 parejas sugeridas por la categoría + buscador con lista flotante que dice cuántos resultados hay y marca lo que coincide |
+| Tallas (27) | Solo las de la categoría (máx. 9) como chips; atajos «Curva habitual» y «Todas»; **«+ Otra talla»** abre la hoja con las 26 restantes agrupadas (Letras, Números, Otras) |
+| Colores (76) | 6 frecuentes de la categoría + «También elegiste» con × + buscador + carta de 71 círculos por familia, con el nombre al pasar el mouse |
+| Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
+| Tabla (72 celdas) | Cabecera de tallas y columna del color **fijas** al desplazarse; en celular la tabla se desliza de lado sin mover la página. En el paso 4, **«Poner en todas: [n] Aplicar»** llena las 68 celdas de un golpe y después se corrige a mano lo distinto |
+| Ficha y resúmenes | Hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)» |
 
 ## Lo que NO cambia
 
