@@ -234,7 +234,9 @@ export type ExtraComprobante = {
 };
 
 /** Se lee DESPUÉS de los comprobantes y nunca tumba la pantalla: si una de estas lecturas falla, la fila solo
- *  pierde su enlace (`tolerar`), el comprobante se sigue viendo. */
+ *  pierde su enlace (`tolerar`), el comprobante se sigue viendo. El WhatsApp sale de la ficha de clienta, que solo lee
+ *  la cuenta con el módulo «Clientas» (política `clientas_select`, ADR-0249 act. 2026-09-28): sin él, 0 filas y el
+ *  comprobante queda sin el botón de WhatsApp, sin error. */
 export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Record<string, ExtraComprobante>> {
   if (filas.length === 0) return {};
   const supabase = await createClient();
