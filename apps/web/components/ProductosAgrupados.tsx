@@ -74,10 +74,10 @@ export function ProductosAgrupados({
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
-  /** Lo de la sede elegida por producto (ADR-0256). `null`: no se pudo leer, y las filas dicen el total como antes. */
+  /** Lo de la sede elegida por producto (ADR-0261). `null`: no se pudo leer, y las filas dicen el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   puedeEditar: boolean;
-  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0256, decisión 9): el Catálogo solo enlaza. */
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0261, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
@@ -164,7 +164,7 @@ export function ProductosAgrupados({
         <span>Producto</span>
         <span>Categoría</span>
         <span className="text-right">Variantes</span>
-        {/* ADR-0256: lo de la sede elegida arriba; sin esa lectura, el total de la red como antes. En dos líneas si no cabe. */}
+        {/* ADR-0261: lo de la sede elegida arriba; sin esa lectura, el total de la red como antes. En dos líneas si no cabe. */}
         <span className="text-right leading-tight" title={EXPLICACION_STOCK_TOTAL}>
           {existencias ? "Stock aquí" : "Stock total"}
         </span>
@@ -323,7 +323,7 @@ function MenuFila({
   eliminable,
 }: {
   productoId: string;
-  /** «Ver en Existencias» (null si no ve ese módulo): ahí se ajusta el stock (ADR-0256, decisión 9). */
+  /** «Ver en Existencias» (null si no ve ese módulo): ahí se ajusta el stock (ADR-0261, decisión 9). */
   hrefExistencias: string | null;
   /** Los datos que la ventana de «Eliminar» necesita, o `null` si quien mira no es Admin ni Líder (entonces no hay opción). */
   eliminable: { referencia: string; estado: string; numVariantes: number } | null;
@@ -389,7 +389,7 @@ function MenuFila({
               Editar
             </Link>
           </li>
-          {/* ADR-0256, decisión 9: el stock se ajusta solo en Inventario; el Catálogo lleva a esa prenda en Existencias. */}
+          {/* ADR-0261, decisión 9: el stock se ajusta solo en Inventario; el Catálogo lleva a esa prenda en Existencias. */}
           {hrefExistencias && (
             <li role="none">
               <Link

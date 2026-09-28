@@ -131,7 +131,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
                  (:'va', :'lim', :'alm_l', 10)) x(v, u, s, n);
 select count(*) as _colchon from (select retail.fn_aplicar_movimiento(m.id) from retail.movimientos m
   where m.variante_id in (:'va', :'vb', :'vc', :'vd', :'ve', :'vx') and m.tipo = 'entrada') x \\gset
--- Talla retirada CON prendas: desde 20260929030000 (ADR-0256) eso ya no se puede producir, pero existe en datos
+-- Talla retirada CON prendas: desde 20260929030000 (ADR-0261) eso ya no se puede producir, pero existe en datos
 -- viejos y esta prueba cubre justo ese caso: se arma sin disparadores, solo dentro de esta transacción.
 set local session_replication_role = replica;
 update retail.variantes set activo = false where id = :'vx';

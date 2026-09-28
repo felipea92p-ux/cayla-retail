@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0256, tareas #3 y #4 (parte de la base): el Catálogo, su cabecera, «Dónde más hay» y la tarjeta por sede
+ * Prueba de ADR-0261, tareas #3 y #4 (parte de la base): el Catálogo, su cabecera, «Dónde más hay» y la tarjeta por sede
  * dicen el MISMO número que la cifra única (`fn_existencias_base`), no la suma cruda de `stock`
  * (migración `20260929020000_catalogo_y_otras_sedes_leen_la_cifra_unica.sql`, encima de `20260929010000`).
  *

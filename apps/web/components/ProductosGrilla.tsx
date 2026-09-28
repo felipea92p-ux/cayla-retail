@@ -149,9 +149,9 @@ export function ProductosGrilla({
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
-  /** Lo de la sede elegida por producto (ADR-0256). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
+  /** Lo de la sede elegida por producto (ADR-0261). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
-  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0256, decisión 9): el Catálogo solo enlaza. */
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0261, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
@@ -196,7 +196,7 @@ function TarjetaProducto({
   const descontinuado = producto.estado !== "activo";
   const alerta = alertaDeStock(producto);
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
-  // ADR-0256: lo de la sede elegida en grande y el resto aparte. «Sin stock» (nada en ninguna sede) sigue siendo el chip.
+  // ADR-0261: lo de la sede elegida en grande y el resto aparte. «Sin stock» (nada en ninguna sede) sigue siendo el chip.
   const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias) : null;
 
   return (
@@ -383,7 +383,7 @@ function VistaRapidaModal({
             <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
               Etiquetas
             </Link>
-            {/* ADR-0256, decisión 9 (Felipe, 2026-09-28): el stock se ajusta solo en Inventario. Antes había aquí un «Ajustar
+            {/* ADR-0261, decisión 9 (Felipe, 2026-09-28): el stock se ajusta solo en Inventario. Antes había aquí un «Ajustar
                 inventario» propio que validaba contra otro número que la base (aceptaba «2 → 0» con 1 apartada y la base lo
                 rechazaba). Existencias abre esta prenda en su talla, con su Ajustar y su candado (ADR-0250). */}
             {hrefExistencias && (

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0256, tarea #7: una talla con prendas no se retira
+ * Prueba de ADR-0261, tarea #7: una talla con prendas no se retira
  * (migración `20260929030000_talla_con_prendas_no_se_retira.sql`).
  *
  * El caso real (2026-09-28): 2 tallas de «Prueba Pantalon» se desactivaron con 6 prendas adentro y Existencias las
