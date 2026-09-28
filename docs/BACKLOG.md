@@ -28,6 +28,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 💾 Editar producto: que la colaboradora entienda cómo se guarda (2026-09-28) — spike visual, solo documentos; rama `claude/product-management-ui-improvement-a605ae`
+Pedido de Felipe (captura de CMS-0001): una colaboradora desactiva una talla o cambia un precio y no sabe qué paso sigue, ni si se
+guardó, y puede salirse y perder lo hecho. Causas en el código: nada marca lo pendiente (`ProductoForm.tsx:825`), el botón gris no
+dice por qué (`ComboResponsable.tsx:298`), Cancelar y el menú salen sin preguntar (`:908`) y en tablet el panel de Guardar cae al
+final (`:887`).
+- [x] Spike comparativo `docs/maquetas/producto-guardar-cambios-2026-09/` (README + `guardar-cambios-spike.html`): «Hoy» y tres avisos (A barra fija, B panel vivo, C franja arriba) por tres formas del responsable (hoja «Revisar y guardar», pasos numerados, mejores textos), a escritorio, tablet y celular. Verificado en el navegador: 30 combinaciones sin desborde ni errores.
+- [x] **Decidido por Felipe (2026-09-28):** al salir con cambios sin guardar se **pregunta** (Cancelar, «← Productos», menú, Atrás, cerrar pestaña); al guardar se **vuelve a Productos con un aviso detallado** («guardado · por Rosa · 1 variante desactivada, 1 precio cambiado»).
+- [ ] **Decide Felipe — pregunta 1:** ¿A barra fija, B panel vivo o C franja arriba? Recomendada: A (la única que se ve en la tablet).
+- [ ] **Decide Felipe — pregunta 2:** ¿hoja «Revisar y guardar», pasos numerados o solo mejores textos? Recomendada: la hoja (mismo patrón de `ConfirmarConResponsable`, 23-sep).
+- [ ] Si es A: ¿la ficha sin panel derecho queda a 1080 px o a todo el ancho?
+- [ ] Construir tras decidir (sin migración): `lib/producto-cambios-reglas.ts` (función pura con pruebas), `BarraDeCambios` sobre `ui/BarraFija.tsx`, `ConfirmarCambios` sobre `<Modal variante="hoja">`, hook de aviso al salir (patrón `BajarAlPisoForm.tsx:251`) y `ProductoForm.tsx` sin `<aside>`. ADR el día de la decisión: pasa a ser regla para formularios largos.
+- [ ] Probar el botón Atrás y el aviso de cerrar pestaña en una tablet real (el spike no lo puede probar).
+- Cómo verificas: abre `docs/maquetas/producto-guardar-cambios-2026-09/guardar-cambios-spike.html` ▸ «▶ Hacer 3 cambios de ejemplo» ▸ mira cada versión (barra de arriba) ▸ prueba salir con el menú, «← Productos» y «Atrás» ▸ cambia el ancho a Tablet y Celular.
+
 ## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
 
 - [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
