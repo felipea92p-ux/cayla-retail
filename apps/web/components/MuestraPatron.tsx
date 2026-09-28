@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactElement } from "react";
 import { familiaDePatron, type FamiliaPatron } from "@/lib/patron-visual";
 
@@ -5,8 +6,8 @@ import { familiaDePatron, type FamiliaPatron } from "@/lib/patron-visual";
  * La "muestra" de un patrón — el equivalente a la muestra de color de
  * ColoresLista. Es un dibujo de respaldo por familia (rayas, cuadros,
  * lunares…) para que quien elige o revisa un patrón lo VEA en vez de leer
- * solo una palabra. Cuando exista foto real por patrón, esta pieza pasa a
- * ser el respaldo de "no hay foto", igual que el hex en Colores.
+ * solo una palabra. Desde el ADR-0256 un Líder puede subir la foto real del
+ * estampado (`imagenUrl`); el dibujo queda de respaldo para lo que no la tiene.
  *
  * Paleta del brandbook v3.0: Tinta #1A1A18, Rojo #B8412D, Crema. Sin
  * gradientes ni sombras (el brandbook los prohíbe).
@@ -144,11 +145,28 @@ const DIBUJOS: Record<FamiliaPatron, () => Dibujo> = {
   }),
 };
 
-export function MuestraPatron({ nombre, className = "aspect-[3/1] w-full" }: { nombre: string; className?: string }) {
+export function MuestraPatron({
+  nombre,
+  imagenUrl = null,
+  className = "aspect-[3/1] w-full",
+}: {
+  nombre: string;
+  /** La foto real que subió un Líder (`imagen_muestra_url`, ADR-0256). Si está, manda sobre el dibujo. */
+  imagenUrl?: string | null;
+  className?: string;
+}) {
+  if (imagenUrl) {
+    return (
+      <div className={`${className} relative overflow-hidden rounded-lg border border-tinta/10 bg-sand/40`}>
+        <Image src={imagenUrl} alt={`Muestra del patrón ${nombre}`} fill unoptimized sizes="(max-width: 640px) 100vw, 480px" className="object-cover" />
+      </div>
+    );
+  }
+
   const familia = familiaDePatron(nombre);
 
   // Un nombre nuevo que no reconocemos: se dice claro en vez de dibujar algo
-  // que no es. Cuando exista foto por patrón, el Líder lo resuelve subiéndola.
+  // que no es. El Líder lo resuelve subiendo la foto desde el detalle.
   if (!familia) {
     return (
       <div

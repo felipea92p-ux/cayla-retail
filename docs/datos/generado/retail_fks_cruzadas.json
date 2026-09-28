@@ -55,9 +55,19 @@
   "src_table": "cambios"
  },
  {
+  "conname": "clientas_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "clientas"
+ },
+ {
   "conname": "clientas_created_por_fkey",
   "ref_table": "public.personas",
   "src_table": "clientas"
+ },
+ {
+  "conname": "clientas_fusiones_fusionada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "clientas_fusiones"
  },
  {
   "conname": "codigos_descuento_creado_por_fkey",

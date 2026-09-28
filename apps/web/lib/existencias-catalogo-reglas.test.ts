@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
+import { conEstadoProducto, conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
 
 // Los productos reales de producción al 2026-09-26.
 const p = (id: string, referencia: string, marca: string | null, extra: Partial<ProductoDeCatalogo> = {}): ProductoDeCatalogo => ({
@@ -26,6 +26,17 @@ const CATALOGO: ProductoDeCatalogo[] = [
   // Dada de alta al vuelo desde un Conteo y todavía sin revisar por un líder.
   p("alta-al-vuelo", "Blusa Nueva", "Marca Mal Escrita", { estadoAlta: "pendiente" }),
 ];
+
+describe("conEstadoProducto (ADR-0252)", () => {
+  it("pone a cada fila el estado de su producto: uno descontinuado sigue saliendo en Existencias y la ventana lo sabe", () => {
+    const filas = [{ productoId: "viejo", id: "a" }, { productoId: "aurora", id: "b" }];
+    expect(conEstadoProducto(filas, CATALOGO).map((f) => [f.id, f.estadoProducto])).toEqual([["a", "descontinuado"], ["b", "activo"]]);
+  });
+
+  it("si la lectura del catálogo falló o el producto es nuevo, queda en null sin romper", () => {
+    expect(conEstadoProducto([{ productoId: "aurora", talla: "M" }], [])).toEqual([{ productoId: "aurora", talla: "M", estadoProducto: null }]);
+  });
+});
 
 describe("conMarca", () => {
   it("pone a cada fila la marca de su producto", () => {

@@ -11,30 +11,46 @@ import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { leerSePuedeEliminar, salidaSinEliminar, textoNoSePuede, textoSeBorra, type SePuedeEliminar } from "@/lib/eliminar-producto-reglas";
+import {
+  TEXTO_RESPALDO,
+  leerComoEliminar,
+  ofreceEliminar,
+  rpcParaEliminar,
+  salidaSinEliminar,
+  textoNoSePuede,
+  textoQuienLoCargo,
+  textoSeBorra,
+  textoSeBorraConHistoria,
+  type ComoEliminar,
+} from "@/lib/eliminar-producto-reglas";
 
 /**
- * «Eliminar» un producto (Felipe, 2026-09-26: solo Admin y Líder; ADR-0218).
+ * «Eliminar» un producto (ADR-0218: Líder y Admin, sin historia; ADR-0252: solo Admin, con su historia de stock).
  *
- * Primero PREGUNTA a la base si se puede (`fn_producto_se_puede_eliminar`) y recién con la respuesta muestra algo:
- *  - se puede → qué se borra + el combo «Responsable» + Eliminar (`eliminar_producto`, todo o nada);
- *  - no se puede → por qué, y la salida (descontinuarlo desde Editar). NUNCA un botón de borrar que la base va a rechazar:
- *    el líder no tiene que descubrir por prueba y error que Top Aurora tiene 7 ventas.
+ * Primero PREGUNTA a la base cómo se puede eliminar (`fn_producto_como_eliminar`) y recién con la respuesta muestra algo:
+ *  - libre → qué se borra + el combo «Responsable» + Eliminar (`eliminar_producto`, todo o nada);
+ *  - con historia de stock y cuenta Admin → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su
+ *    historia» (`eliminar_producto_con_historia`, todo o nada). Un Líder que no es Admin ve por qué no puede y la salida;
+ *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (descontinuarlo desde
+ *    Editar). NUNCA un botón que la base va a rechazar;
  *  - no se pudo preguntar (la base no respondió, o todavía no tiene la función) → se dice, y no se ofrece borrar a ciegas.
  *
- * Quien decide de verdad es la base: aunque esta ventana mintiera, `eliminar_producto` vuelve a comprobar dentro de la
- * misma transacción, con la fila bloqueada. La pantalla solo evita el clic inútil.
+ * Quien decide de verdad es la base: aunque esta ventana mintiera, las dos funciones vuelven a comprobar dentro de la
+ * misma transacción, con las filas bloqueadas. La pantalla solo evita el clic inútil.
  */
 export function EliminarProductoModal({
   producto,
   onClose,
 }: {
-  producto: { productoId: string; referencia: string; estado: string; numVariantes: number };
+  /** `estado` y `numVariantes` solo redactan los textos; `null` = no se sabe (Existencias abre desde un color en una sede
+   *  y no sabe cuántas variantes tiene el producto; el estado, si su lectura del catálogo falló). Lo que se puede y lo que
+   *  se borra lo decide la base, no estos dos. */
+  producto: { productoId: string; referencia: string; estado: string | null; numVariantes: number | null };
   onClose: () => void;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const [comprobacion, setComprobacion] = useState<SePuedeEliminar | "cargando" | "fallo">("cargando");
+  const [comprobacion, setComprobacion] = useState<ComoEliminar | "cargando" | "fallo">("cargando");
   const [eliminando, setEliminando] = useState(false);
   // Sube cuando hay que volver a preguntar (otra persona movió el producto con esta ventana abierta).
   const [intento, setIntento] = useState(0);
@@ -42,20 +58,23 @@ export function EliminarProductoModal({
   useEffect(() => {
     let vigente = true;
     createClient()
-      .rpc("fn_producto_se_puede_eliminar", { p_producto_id: producto.productoId })
+      .rpc("fn_producto_como_eliminar", { p_producto_id: producto.productoId })
       .then(({ data, error }) => {
         if (!vigente) return;
-        setComprobacion(error ? "fallo" : (leerSePuedeEliminar(data) ?? "fallo"));
+        setComprobacion(error ? "fallo" : (leerComoEliminar(data) ?? "fallo"));
       });
     return () => {
       vigente = false;
     };
   }, [producto.productoId, intento]);
 
+  const como = typeof comprobacion === "object" ? comprobacion : null;
+  const rpc = como ? rpcParaEliminar(como) : null;
+
   async function eliminar(cerrar: () => void) {
-    if (!responsable.listo) return;
+    if (!responsable.listo || !rpc) return;
     setEliminando(true);
-    const { data, error } = await firmar(createClient().rpc("eliminar_producto", { p_producto_id: producto.productoId }), responsable.firma());
+    const { data, error } = await firmar(createClient().rpc(rpc, { p_producto_id: producto.productoId }), responsable.firma());
     setEliminando(false);
     responsable.despues(error);
     if (error) {
@@ -72,12 +91,16 @@ export function EliminarProductoModal({
     router.refresh();
   }
 
-  const puede = typeof comprobacion === "object" && comprobacion.puede;
-  const salida = typeof comprobacion === "object" && !comprobacion.puede ? salidaSinEliminar(producto.estado, comprobacion.razon) : null;
+  const puede = como ? ofreceEliminar(como) : false;
+  const conHistoria = puede && como?.nivel === "con_historia";
+  const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel) : null;
+  const quien = como && como.nivel !== "libre" ? textoQuienLoCargo(como.cargadoPor, como.cargadoEl) : null;
   // «No se puede» solo cuando la base lo dijo: si no se pudo ni preguntar, el título no afirma nada.
   const titulo = puede
-    ? `¿Eliminar «${producto.referencia}»?`
-    : typeof comprobacion === "object"
+    ? conHistoria
+      ? `¿Eliminar «${producto.referencia}» con su historia?`
+      : `¿Eliminar «${producto.referencia}»?`
+    : como
       ? `No se puede eliminar «${producto.referencia}»`
       : `Eliminar «${producto.referencia}»`;
 
@@ -93,19 +116,25 @@ export function EliminarProductoModal({
             </p>
           )}
 
-          {typeof comprobacion === "object" && !comprobacion.puede && (
+          {como && !puede && (
             <>
-              <p className="text-sm text-tinta/80">{textoNoSePuede(producto.referencia, comprobacion.razon)}</p>
+              <p className="text-sm text-tinta/80">{textoNoSePuede(producto.referencia, como)}</p>
+              {quien && <p className="text-sm text-tinta/70">{quien}</p>}
               {salida && <p className="text-sm text-tinta/70">{salida.texto}</p>}
             </>
           )}
 
-          {puede && (
+          {puede && !conHistoria && <p className="text-sm text-tinta/80">{textoSeBorra(producto.numVariantes)}</p>}
+
+          {conHistoria && como && (
             <>
-              <p className="text-sm text-tinta/80">{textoSeBorra(producto.numVariantes)}</p>
-              <ComboResponsable control={responsable} deshabilitado={eliminando} />
+              <p className="text-sm text-tinta/80">{textoSeBorraConHistoria(producto.numVariantes, como.prendas, como.movimientos)}</p>
+              {quien && <p className="text-sm font-medium text-rojo">{quien} Revisa que de verdad sea de prueba antes de seguir.</p>}
+              <p className="nota-cayla">{TEXTO_RESPALDO}</p>
             </>
           )}
+
+          {puede && <ComboResponsable control={responsable} deshabilitado={eliminando} />}
 
           <div className="flex gap-2">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={eliminando}>
@@ -118,7 +147,7 @@ export function EliminarProductoModal({
             )}
             {puede && (
               <Boton peso="primario" className="flex-1" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
-                Eliminar
+                {conHistoria ? "Eliminar con su historia" : "Eliminar"}
               </Boton>
             )}
           </div>

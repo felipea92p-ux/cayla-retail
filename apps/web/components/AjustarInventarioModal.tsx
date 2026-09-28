@@ -10,17 +10,31 @@ import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/camp
 import {
   MOTIVOS_AJUSTE,
   NOTA_REPOSICION_CERRADA,
+  apartadoEn,
   argumentosDeAjuste,
   armarVariantesAjuste,
   cargaInicialAlPiso,
   leerResultadoAjuste,
+  etiquetaCantidad,
+  lineasDeAjuste,
+  lugarDeAjuste,
+  modoDeAjuste,
   motivosAjusteDisponibles,
+  pasarCantidades,
   repartirLineasAjuste,
   reposicionCerrada,
+  soloDeLaPrenda,
+  stockEn,
   TEXTO_AJUSTE_INCIERTO,
+  textoApartadoTalla,
+  textoBajoApartado,
+  textoCambioTalla,
   textoExitoAjuste,
+  textoNegativas,
   textoPrendaNueva,
+  textoTotalAjuste,
   type MotivoAjuste,
+  type PrendaAjuste,
   type VarianteAjuste,
 } from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
@@ -40,18 +54,26 @@ import { firmar } from "@/lib/responsable-reglas";
 // Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
 // «En el piso» esa carga es además una bajada, que pide el módulo «Bajada al piso» (ADR-0212): sin él, lo nuevo entra al
 // almacén —como en «Nuevo producto»— y la fila lo avisa, en vez de fallar al confirmar.
+//
+// Lo que se escribe en cada talla depende del motivo (`modoDeAjuste`, Felipe 2026-09-28): con «Conteo físico», cuántas
+// hay; con los demás, cuánto se suma o se resta. Por eso el motivo va ANTES de las tallas: el número se escribe sabiendo
+// qué significa. Si el motivo cambia con cantidades ya escritas, cambian de forma pero no de resultado (`pasarCantidades`).
 
 // Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPisoModal`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
   productoId,
+  prenda,
   ubicacionId,
   sububicaciones,
   puedeBajarAlPiso,
   onClose,
 }: {
   productoId: string;
+  /** La prenda (modelo + color) de la fila que lo abre: el modal muestra solo ese color. Sin ella, el modelo entero
+   *  (Productos). `soloDeLaPrenda`. */
+  prenda?: PrendaAjuste;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   /** ¿El rol de la cuenta ve «Bajada al piso»? Lo decide la página, en el servidor (`veModulo`), como en Nuevo producto. */
@@ -62,12 +84,19 @@ export function AjustarInventarioModal({
   const sububicacionPiso = sububicaciones.find((s) => s.tipo === "piso_venta") ?? null;
   const sububicacionAlmacen = sububicaciones.find((s) => s.tipo === "almacen_tienda") ?? null;
   const separaPisoAlmacen = !!sububicacionPiso && !!sububicacionAlmacen;
+  // La prenda llega como objeto nuevo en cada render de quien abre el modal: la carga depende de sus valores, no del objeto
+  // (si no, se volvería a pedir a la base en cada render).
+  const hayPrenda = prenda !== undefined;
+  const colorPrenda = prenda?.color ?? null;
 
   const [cargando, setCargando] = useState(true);
   const [referencia, setReferencia] = useState("");
   const [variantes, setVariantes] = useState<VarianteAjuste[]>([]);
-  const [deltas, setDeltas] = useState<Record<string, string>>({});
-  const [ubicado, setUbicado] = useState<"piso" | "almacen">("piso");
+  // Lo escrito en cada talla, tal cual (texto): `lineasDeAjuste` decide qué es un ajuste.
+  const [cantidades, setCantidades] = useState<Record<string, string>>({});
+  // Arranca en almacén, igual que Nuevo producto (Felipe 2026-09-28): el piso se elige a propósito. De paso ofrece
+  // «Reposición», que en el piso de una tienda que separa piso y almacén está cerrada.
+  const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste | "">("");
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -100,7 +129,7 @@ export function AjustarInventarioModal({
          talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
-         stock ( cantidad, sububicacion_id )`
+         stock ( cantidad, cantidad_apartada, sububicacion_id )`
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
@@ -114,34 +143,26 @@ export function AjustarInventarioModal({
         }
         const filas = data ?? [];
         setReferencia(filas[0]?.producto?.referencia ?? "");
-        setVariantes(armarVariantesAjuste(filas, sububicacionPiso?.id, sububicacionAlmacen?.id));
+        const deLaPrenda = soloDeLaPrenda(filas, hayPrenda ? { color: colorPrenda } : undefined);
+        setVariantes(armarVariantesAjuste(deLaPrenda, sububicacionPiso?.id, sububicacionAlmacen?.id));
         setCargando(false);
       });
     return () => {
       vigente = false;
     };
-  }, [productoId, ubicacionId, sububicacionPiso?.id, sububicacionAlmacen?.id]);
+  }, [productoId, hayPrenda, colorPrenda, ubicacionId, sububicacionPiso?.id, sububicacionAlmacen?.id]);
 
-  function stockActual(v: VarianteAjuste): number {
-    if (!separaPisoAlmacen) return v.stockSinDividir;
-    return ubicado === "piso" ? v.stockPiso : v.stockAlmacen;
-  }
+  const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
 
-  // Filas con un ajuste entero distinto de cero, y las que dejarían el stock
-  // negativo — mismo cálculo que hace `fn_aplicar_movimiento`, adelantado acá
-  // para no obligar a un viaje a la base a enterarse.
-  const lineas = variantes
-    .map((v) => {
-      const texto = (deltas[v.varianteId] ?? "").trim();
-      if (texto === "") return null;
-      const delta = Number(texto);
-      if (!Number.isInteger(delta) || delta === 0) return null;
-      const actual = stockActual(v);
-      return { variante: v, delta, actual, resultado: actual + delta };
-    })
-    .filter((l): l is NonNullable<typeof l> => l !== null);
+  const modo = modoDeAjuste(motivo);
+
+  // Tallas con un ajuste, y las que dejarían el stock negativo o por debajo de lo apartado — los mismos dos candados de
+  // `fn_aplicar_movimiento`, adelantados acá para no obligar a un viaje a la base a enterarse.
+  const lineas = lineasDeAjuste(variantes, cantidades, lugar, modo);
+  const lineaDe = new Map(lineas.map((l) => [l.variante.varianteId, l]));
 
   const negativas = lineas.filter((l) => l.resultado < 0);
+  const bajoApartado = lineas.filter((l) => l.resultado >= 0 && l.resultado < l.apartado);
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
   const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
 
@@ -153,6 +174,13 @@ export function AjustarInventarioModal({
     setUbicado(siguiente);
     // Si «Reposición» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
     if (reposicionCerrada(siguiente, separaPisoAlmacen) && motivo === "reposicion") setMotivo("");
+  }
+
+  function cambiarMotivo(siguiente: MotivoAjuste | "") {
+    if (congelado) return;
+    const a = modoDeAjuste(siguiente);
+    if (a !== modo) setCantidades(pasarCantidades(variantes, cantidades, lugar, modo, a));
+    setMotivo(siguiente);
   }
 
   // Reporte de lo tipeado en el formulario, no de lo ya confirmado — sirve tanto
@@ -196,9 +224,11 @@ export function AjustarInventarioModal({
     // Reenviar lo congelado no es un ajuste nuevo sino la pregunta «¿se guardó?»: el stock de la pantalla puede ya
     // incluir ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
     if (!congelado && negativas.length > 0) {
-      setError(
-        `${negativas.map((l) => l.variante.sku).join(", ")}: el ajuste dejaría el stock en negativo — hay ${negativas[0].actual} y se pide ${negativas[0].delta}.`
-      );
+      setError(textoNegativas(negativas, modo));
+      return;
+    }
+    if (!congelado && bajoApartado.length > 0) {
+      setError(textoBajoApartado(bajoApartado[0], modo));
       return;
     }
 
@@ -252,13 +282,24 @@ export function AjustarInventarioModal({
   }
 
   return (
-    <Modal titulo="Ajustar inventario" subtitulo={referencia} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal
+      titulo="Ajustar inventario"
+      // El color va en el título: es lo que distingue esta prenda de las otras del mismo modelo en la lista de Existencias.
+      subtitulo={[referencia, colorPrenda].filter(Boolean).join(" · ")}
+      onClose={onClose}
+      ancho="max-w-md"
+      bloqueado={enviando}
+    >
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-2 space-y-4">
           {cargando ? (
             <p className="text-sm text-tinta/65">Cargando variantes…</p>
           ) : variantes.length === 0 ? (
-            <p className="text-sm text-tinta/65">Este producto no tiene variantes.</p>
+            <p className="text-sm text-tinta/65">
+              {hayPrenda
+                ? "No encontramos las tallas de esta prenda. Cierra y vuelve a abrirla desde la lista."
+                : "Este producto no tiene variantes."}
+            </p>
           ) : (
             <>
               {separaPisoAlmacen && (
@@ -267,27 +308,43 @@ export function AjustarInventarioModal({
                   valor={ubicado}
                   onValor={(v) => !congelado && cambiarUbicado(v)}
                   opciones={[
-                    { valor: "piso", texto: "Piso de venta" },
                     { valor: "almacen", texto: "Almacén de tienda" },
+                    { valor: "piso", texto: "Piso de venta" },
                   ]}
                 />
               )}
 
+              {/* Antes de las tallas: el motivo decide qué se escribe en ellas (contado o suma/resta). */}
+              <CampoSelect etiqueta="Motivo" valor={motivo} onValor={cambiarMotivo} opciones={motivos} marcador="Elegir motivo" />
+
               <div className="space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  {/* El total del lugar, con lo apartado aparte: lo libre es la cifra de la fila de Existencias. */}
+                  <p className="text-xs tabular-nums text-tinta/65" aria-live="polite">
+                    {textoTotalAjuste(variantes, lugar)}
+                  </p>
+                  {/* Qué se escribe en cada talla. Los dos rótulos se apilan en la misma celda y mide siempre lo del más
+                      largo: cambiar el motivo no mueve las tallas (ADR-0185). */}
+                  <p className="label-cayla ml-auto grid text-right text-[11px] text-tinta/55">
+                    {(["diferencia", "contado"] as const).map((m) => (
+                      <span key={m} className={`[grid-area:1/1] ${m === modo ? "" : "invisible"}`} aria-hidden={m !== modo || undefined}>
+                        {etiquetaCantidad(m, lugar)}
+                      </span>
+                    ))}
+                  </p>
+                </div>
                 {variantes.map((v) => {
-                  const actual = stockActual(v);
-                  const texto = deltas[v.varianteId] ?? "";
-                  const delta = Number(texto);
-                  const conAjuste = texto.trim() !== "" && Number.isInteger(delta) && delta !== 0;
+                  const actual = stockEn(v, lugar);
+                  const linea = lineaDe.get(v.varianteId);
+                  const nombre = [v.talla, v.color].filter(Boolean).join(" / ") || "Única";
                   return (
                     <div key={v.varianteId} className="flex items-center gap-3 border-b border-tinta/10 pb-2">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-tinta">
-                          {[v.talla, v.color].filter(Boolean).join(" / ") || "Única"}
-                        </p>
+                        <p className="truncate text-sm text-tinta">{nombre}</p>
                         <p className="font-mono text-[11px] text-tinta/55">
                           {v.sku} · stock {actual}
-                          {conAjuste ? ` → ${actual + delta}` : ""}
+                          {textoCambioTalla(linea, modo)}
+                          {textoApartadoTalla(apartadoEn(v, lugar), modo)}
                         </p>
                         {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
                       </div>
@@ -295,10 +352,13 @@ export function AjustarInventarioModal({
                         type="number"
                         inputMode="numeric"
                         step={1}
-                        placeholder="0"
-                        value={texto}
+                        // Al contar, vacío es «no la conté» (no cambia): el marcador no puede decir 0.
+                        min={modo === "contado" ? 0 : undefined}
+                        placeholder={modo === "contado" ? "—" : "0"}
+                        aria-label={`${etiquetaCantidad(modo, lugar)} · ${nombre}`}
+                        value={cantidades[v.varianteId] ?? ""}
                         disabled={congelado}
-                        onChange={(e) => setDeltas((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
+                        onChange={(e) => setCantidades((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
                         className="w-20 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-right text-sm text-tinta outline-none focus:border-rojo"
                       />
                     </div>
@@ -306,16 +366,8 @@ export function AjustarInventarioModal({
                 })}
               </div>
 
-              <CampoSelect
-                etiqueta="Motivo"
-                valor={motivo}
-                onValor={(m) => !congelado && setMotivo(m)}
-                opciones={motivos}
-                marcador="Elegir motivo"
-              />
-
-              {/* Bajo el motivo, y SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén,
-                  a la vista en Piso. Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
+              {/* SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén, a la vista en Piso.
+                  Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
               {separaPisoAlmacen && (
                 <p className={`nota-cayla ${cerrada ? "" : "invisible"}`} role="status" aria-hidden={!cerrada || undefined}>
                   {NOTA_REPOSICION_CERRADA}

@@ -103,6 +103,7 @@ export function ApartarVista({
   prendas: prendasProp,
   lineasIniciales,
   apagadas = [],
+  veClientas,
   cabecera,
   tiendas = [],
   pedido = null,
@@ -117,6 +118,10 @@ export function ApartarVista({
   lineasIniciales?: LineaApartar[];
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
+  /** El rol de la cuenta ve «Clientas»: sin el módulo, la base rechaza buscar la ficha (ADR-0249, 2026-09-28) y el
+   *  buscador por DNI o celular no se ofrece; los datos de la clienta se escriben a mano, como sin ficha. Es de la CUENTA,
+   *  no de la tienda: por eso no va en `apagadas`, que es lo que el líder apaga para toda la sede. */
+  veClientas: boolean;
   /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
   cabecera?: React.ReactNode;
   /** Las otras tiendas (nombre corto), para pedirles una prenda que aquí no queda (20260927140000). */
@@ -184,7 +189,7 @@ export function ApartarVista({
   // Teléfono: sin pistola, la etiqueta se lee con la cámara (el mismo escáner de Vender). El lector se baja ya, con red,
   // para que también funcione si después se corta la conexión (ADR-0210).
   const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
-  const conClienta = encendida(apagadas, "clienta");
+  const conClienta = veClientas && encendida(apagadas, "clienta");
   // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
   const [clientaQ, setClientaQ] = useState("");
   const [clientaId, setClientaId] = useState<string | null>(null);

@@ -648,6 +648,22 @@ export async function getSinTemporadaResumen(): Promise<{ prendas: number } | nu
 
 export type ValorVocabulario = { id: string; texto: string };
 
+/** id → la imagen que un Líder eligió en Atributos para un tejido o un patrón (foto o dibujo generado, ADR-0256). Sin
+ *  entrada = el dibujo automático por nombre. Aparte de `ValorVocabulario` para no ensanchar el tipo que también usan
+ *  las tallas. La leen el alta y la ficha del producto: UNA sola lectura para las dos. */
+export type ImagenesMuestra = { tejidos: Record<string, string>; patrones: Record<string, string> };
+
+export async function getImagenesMuestra(): Promise<ImagenesMuestra> {
+  const supabase = await createClient();
+  const [tejidos, patrones] = await Promise.all([
+    supabase.from("tejidos").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+    supabase.from("patrones").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+  ]);
+  const mapa = (filas: { id: string; imagen_muestra_url: string | null }[]) =>
+    Object.fromEntries(filas.flatMap((f) => (f.imagen_muestra_url ? [[f.id, f.imagen_muestra_url]] : [])));
+  return { tejidos: mapa(exigir(tejidos, "las imágenes de los tejidos")), patrones: mapa(exigir(patrones, "las imágenes de los patrones")) };
+}
+
 /** Qué tallas/tejidos/patrones ofrece el formulario según la categoría
  *  elegida (20260917100400) — reemplaza `categorias.tallas_sugeridas`.
  *  Cada tabla puente reemplaza, no hereda, entre categoría y subcategoría
@@ -698,31 +714,4 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
     tejidos: agrupar(tejidos.map((f) => ({ categoria_id: f.categoria_id, id: f.tejido.id, texto: f.tejido.nombre }))),
     patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
-}
-
-// ============================================================================
-// Alta al vuelo durante el censo (20260918): prendas creadas por alguien
-// que no es Líder mientras contaba, todavía sin revisar. `estado_alta` es
-// independiente de `estado` — un pendiente sigue activo y contable, este
-// listado es solo la cola de revisión del Líder.
-// ============================================================================
-
-export type ProductoPendienteAlta = {
-  id: string;
-  referencia: string;
-  categoria: string | null;
-  creadoEn: string;
-};
-
-export async function getProductosPendientesAlta(): Promise<ProductoPendienteAlta[]> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("productos")
-      .select("id, referencia, created_at, categoria:categorias ( nombre )")
-      .eq("estado_alta", "pendiente")
-      .order("created_at", { ascending: true }),
-    "las prendas pendientes de revisar"
-  );
-  return filas.map((f) => ({ id: f.id, referencia: f.referencia, categoria: f.categoria?.nombre ?? null, creadoEn: f.created_at }));
 }

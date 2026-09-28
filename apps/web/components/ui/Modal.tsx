@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
@@ -60,13 +60,22 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
   // ahí adentro disparaba `onClose` dos veces. Con `setModal(null)` daba
   // igual; con un cierre que navega (`router.back()` en ModalRuta) retrocedía
   // dos páginas. El efecto corre una vez por cierre y limpia su temporizador.
+  //
+  // `onClose` se lee de una ref y NO es dependencia del efecto (2026-09-28): casi todos los que usan <Modal> lo pasan
+  // como flecha nueva en cada render (`onClose={() => setX(null)}`), y cada render reiniciaba el temporizador. Con una
+  // pantalla que se redibuja más seguido que cada 220 ms (la hoja de Registrar gasto: ~100 cambios por segundo),
+  // `onClose` no llegaba nunca y el modal quedaba abierto e invisible, con la salida ya animada.
   const pedirCierre = useCallback(() => setCerrando(true), []);
+  const onCloseActual = useRef(onClose);
+  useEffect(() => {
+    onCloseActual.current = onClose;
+  }, [onClose]);
   useEffect(() => {
     if (!cerrando) return;
     const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const temporizador = setTimeout(onClose, sinMovimiento ? 0 : MS_SALIDA);
+    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : MS_SALIDA);
     return () => clearTimeout(temporizador);
-  }, [cerrando, onClose]);
+  }, [cerrando]);
 
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no

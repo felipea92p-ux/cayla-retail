@@ -196,19 +196,22 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             </p>
           )}
 
-          {filas.length === 0 && !cursor ? (
-            <EstadoVacio
-              titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
-              detalle={
-                buscando
-                  ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC, el nombre de la prenda o el nº de operación."
-                  : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
-              }
-            />
-          ) : (
-            // Buscando, los totales por día del período no corresponden a lo encontrado: cada día dice cuántas ventas trajo.
-            <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} />
-          )}
+          {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+          <div data-resultados>
+            {filas.length === 0 && !cursor ? (
+              <EstadoVacio
+                titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
+                detalle={
+                  buscando
+                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC, el nombre de la prenda o el nº de operación."
+                    : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
+                }
+              />
+            ) : (
+              // Buscando, los totales por día del período no corresponden a lo encontrado: cada día dice cuántas ventas trajo.
+              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} />
+            )}
+          </div>
 
           <PaginacionCursor
             mostradas={filas.length}

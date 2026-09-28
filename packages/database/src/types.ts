@@ -2650,6 +2650,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -2662,6 +2663,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -2674,6 +2676,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3784,6 +3787,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -3796,6 +3800,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3808,6 +3813,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -5561,6 +5567,10 @@ export type Database = {
         }
         Returns: string
       }
+      cambiar_estado_productos: {
+        Args: { p_estado: string; p_producto_ids: string[] }
+        Returns: number
+      }
       cambiar_estado_proveedor_produccion: {
         Args: { p_activo: boolean; p_proveedor_id: string }
         Returns: undefined
@@ -5610,6 +5620,10 @@ export type Database = {
         Returns: string
       }
       eliminar_producto: {
+        Args: { p_producto_id: string }
+        Returns: string
+      }
+      eliminar_producto_con_historia: {
         Args: { p_producto_id: string }
         Returns: string
       }
@@ -6174,6 +6188,18 @@ export type Database = {
           talla: string
           valor_en_riesgo: number
           variante_id: string
+        }[]
+      }
+      fn_producto_como_eliminar: {
+        Args: { p_producto_id: string }
+        Returns: {
+          cargado_el: string
+          cargado_por: string
+          movimientos: number
+          nivel: string
+          prendas: number
+          puedes: boolean
+          razon: string
         }[]
       }
       fn_producto_se_puede_eliminar: {
