@@ -92,7 +92,7 @@ export const PUNTO_GRUPO: Record<GrupoQueHacer, string> = {
  */
 export function CurvaTallas({ prenda, conHoy = true, onAbrirTalla }: { prenda: PrendaAnalisis; conHoy?: boolean; onAbrirTalla: (varianteId: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5 sm:gap-1">
       {prenda.tallas.map((t) => {
         const f = t.x.fila;
         const hoy = f.stockActualPisoAlmacen;
@@ -109,11 +109,11 @@ export function CurvaTallas({ prenda, conHoy = true, onAbrirTalla }: { prenda: P
             }}
             aria-label={`Ver la talla ${f.talla ?? "Única"} de ${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
             title={`${f.talla ?? "Única"}: vendió ${vendio}${hoy ? ` · hoy ${hoy.piso} en piso y ${hoy.almacen} en almacén` : ""}`}
-            className={`inline-flex min-w-[2.4rem] cursor-pointer flex-col items-center rounded-md px-1 py-0.5 text-[11px] leading-tight transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
+            className={`inline-flex min-h-11 min-w-11 cursor-pointer flex-col items-center justify-center rounded-md px-1 py-0.5 text-xs sm:min-h-0 sm:min-w-[2.4rem] sm:justify-start sm:text-[11px] leading-tight transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
               vendio === 0 ? "text-tinta/40 ring-1 ring-inset ring-sand" : "bg-hueso text-tinta"
             } ${vacio ? "ring-[1.5px] ring-inset ring-rojo" : ""}`}
           >
-            <span className="text-[10px] font-semibold text-taupe">{f.talla ?? "Única"}</span>
+            <span className="text-[11px] font-semibold text-taupe sm:text-[10px]">{f.talla ?? "Única"}</span>
             <span className="font-semibold tabular-nums">{vendio}</span>
             {conHoy && hoy && (
               <span className={`text-[9.5px] tabular-nums ${vacio ? "text-rojo-profundo" : "text-tinta/50"}`}>
