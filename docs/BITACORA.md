@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Eliminar un producto también desde Existencias — ADR-0252, actualización)
+Qué hice: el detalle de cada prenda en Existencias termina con «Eliminar el producto» (en rojo, solo para un Admin en su sede); abre la misma ventana de Catálogo ▸ Productos, que pregunta a la base y dice que se van todas las tallas y colores, en todas las sedes. Solo web.
+Por qué así: Felipe buscó el botón donde mira su inventario y abrió «Ajustar inventario» creyendo que por ahí se borraba; el error era del lugar del botón. Un solo permiso (`permisosDelDetalle`) y una sola ventana: las dos pantallas preguntan lo mismo a la base.
+Felipe se lleva: **en Existencias una fila es un color en una sede, pero «Eliminar» borra el producto entero**; por eso el botón y la ventana lo dicen con esas palabras, y no hay un «eliminar este color».
+
 ## 2026-09-28 (Productos: Editar, Historial y Etiquetas vuelven a la misma vista — Tabla o Grilla — y la etiqueta de UNA variante)
 Qué hice: quien salía de la Tabla a Editar, Historial o Etiquetas y volvía con «← Productos» caía en la Grilla sin filtros. Ahora el enlace de salida lleva la pantalla exacta (`?desde=/productos?vista=tabla&q=…`, `lib/vuelta-productos.ts`) y el «Volver» (y Cancelar / Guardar de Editar) regresa a ella; el `desde` sobrevive a paginar el Historial y a cambiar de sede (`SelectorUbicacion` acepta `conservar`). Además, cada tarjeta de variante de la ficha de la Tabla muestra al pasar el mouse una impresora que abre las etiquetas de ESA talla y color.
 Por qué así: «← Productos» era un enlace fijo a `/productos`, y esa ruta abre en Grilla; un `history.back()` no sirve en una pestaña recién abierta ni tras paginar. `desdeSeguro` solo deja pasar rutas `/productos…`: un `?desde=` escrito a mano no puede mandar a otro sitio.

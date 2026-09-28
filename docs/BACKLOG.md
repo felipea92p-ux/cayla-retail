@@ -80,7 +80,8 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
 - [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
 - [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
-- [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
+- [x] Web fusionada (#554) y publicada: la ventana nueva está en producción.
+- [x] **«Eliminar el producto» también en Existencias** (Felipe lo buscó ahí, 2026-09-28): al final del detalle de cada prenda, solo para un Admin en su sede (ahí todo ya tiene historia de stock); abre la misma ventana. Rama `claude/eliminar-desde-existencias`, solo web.
 - [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
 - [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
