@@ -98,8 +98,10 @@ rollback;`);
 }
 
 // 4. Nadie más crea llaves ni lee la tabla; authenticated no llama a huellas_catalogo.
-// Se exige el 42501 SIN pista: el de «permiso denegado». La propia función lanza 42501 (con la pista 'huellas_llave')
-// ante una llave mala, así que un 42501 cualquiera no distingue «sin permiso» de «llave mala»: por eso authenticated
+// Se exige el 42501 del «permiso denegado», es decir, con una pista que NO es 'huellas_llave' (la propia función lanza
+// 42501 con esa pista ante una llave mala, así que un 42501 cualquiera no distingue «sin permiso» de «llave mala»). La
+// pista del permiso denegado cambia según el Postgres: el de Supabase agrega «Grant the required privileges…» y uno
+// sin parches no pone ninguna; por eso no se exige vacía. Y por eso authenticated
 // llama con la llave VIGENTE, y además se pregunta el permiso directo (en producción, las funciones nuevas de retail
 // nacen con EXECUTE para authenticated: lo único que se lo quita es el revoke de la migración).
 {
@@ -113,6 +115,8 @@ ${intento("perform retail.huellas_catalogo(current_setting('prueba.llave'))", "a
 select 'P|' || string_agg(r || '.' || f || '=' || has_function_privilege(r, f, 'EXECUTE'), ' ' order by r, f)
 from unnest(array['anon', 'authenticated', 'service_role', 'public']) r,
      unnest(array['retail.huellas_catalogo(text)', 'retail.fn_huellas_nueva_llave()']) f;
+select 'T|' || string_agg(r || '=' || has_table_privilege(r, 'retail.huellas_llave', 'SELECT,INSERT,UPDATE,DELETE'), ' ' order by r)
+from unnest(array['anon', 'authenticated', 'service_role', 'public']) r;
 rollback;`);
   const rs = resultados(r.avisos);
   const nombres = [
@@ -122,7 +126,14 @@ rollback;`);
     "authenticated no lee la tabla de la llave",
     "authenticated no llama a huellas_catalogo, ni con la llave vigente",
   ];
-  nombres.forEach((n, i) => esperar(n, rs[i] === "ERR|42501|", rs[i] ?? "sin resultado"));
+  const permisoDenegado = (x) => typeof x === "string" && x.startsWith("ERR|42501|") && x !== "ERR|42501|huellas_llave";
+  nombres.forEach((n, i) => esperar(n, permisoDenegado(rs[i]), rs[i] ?? "sin resultado"));
+  const tabla = r.salida.match(/^T\|(.*)$/m)?.[1] ?? "";
+  esperar(
+    "la tabla de la llave: nadie la lee ni la escribe desde la API",
+    tabla === "anon=false authenticated=false public=false service_role=false",
+    tabla || r.avisos.slice(0, 300),
+  );
   const permisos = r.salida.match(/^P\|(.*)$/m)?.[1] ?? "";
   const esperado = [
     "anon.retail.fn_huellas_nueva_llave()=false",
