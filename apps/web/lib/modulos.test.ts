@@ -37,6 +37,9 @@ const SIEMBRA_DE_ROLES = new Set([
   "20260923030000_roles_por_modulo.sql",
   "20260923031000_integrante_hace_lo_que_ve.sql",
   "20260925220000_inicio_modulo_y_pantalla_principal.sql",
+  // ADR-0253: no siembra nada; vuelve a definir `guardar_modulos_rol`, cuyo cuerpo (el de la pantalla Roles y accesos)
+  // escribe en `rol_modulos`. El módulo nuevo sigue naciendo sin rol: al Líder le aparece solo, sin filas.
+  "20260928220100_lider_de_equipo_editable.sql",
 ]);
 
 describe("el catálogo de la web es el de la base", () => {
@@ -74,11 +77,11 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("«solo líder por ahora»: Configuración, Impuestos y Cierre de mes (ADR-0195); ninguno es «siempre solo del líder»", () => {
-    // 20260923130000 y 20260923131000 abrieron todos los de antes (Felipe, 2026-09-22). Configuración nace así porque sus
-    // funciones exigen fn_es_lider() (20260924210000); Impuestos y Cierre de mes son de CAYLA entera (20260925100000).
-    // Cuando se abran, salen de aquí.
-    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual(["configuracion", "impuestos", "cierre_mes"]);
+  it("ningún módulo es «solo del líder» ni «solo líder por ahora» (ADR-0253, Felipe 2026-09-28)", () => {
+    // 20260923130000 y 20260923131000 abrieron todos los de antes (Felipe, 2026-09-22); Configuración, Impuestos y Cierre
+    // de mes, los últimos, se abrieron con 20260928220000. Un módulo NUEVO que nazca así tiene que volver a aparecer aquí
+    // con su razón.
+    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual([]);
   });
 
   const sembrados = (clave: string) => {
@@ -191,7 +194,24 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     const todo = CLAVES_MODULO.map((clave) => ({ clave, completo: true }));
     expect(permisosDeModulos("integrante", todo)).not.toContain("administrar");
     expect(permisosDeModulos("integrante", todo)).not.toContain("verDinero");
-    expect([...permisosDeModulos("lider", [])].sort()).toEqual([...PERMISOS].sort());
+    expect([...permisosDeModulos("lider", todo)].sort()).toEqual([...PERMISOS].sort());
+  });
+
+  it("ADR-0253: al Líder que le quitaron un módulo pierde SOLO los permisos de ese módulo; administrar y verDinero, nunca", () => {
+    const sin = (...fuera: ClaveModulo[]) =>
+      permisosDeModulos("lider", CLAVES_MODULO.filter((c) => !fuera.includes(c)).map((clave) => ({ clave, completo: true })));
+    expect([...PERMISOS].filter((p) => !sin("caja").includes(p))).toEqual(["gestionarCaja"]);
+    // Ajustar inventario sale de Existencias, Conteos o Traslados: quitarle solo uno no se lo quita.
+    expect(sin("conteos")).toContain("ajustarInventario");
+    expect([...PERMISOS].filter((p) => !sin("impuestos", "cierre_mes").includes(p))).toEqual(["verImpuestos", "cerrarMes"]);
+    expect(sin(...CLAVES_MODULO)).toEqual(["administrar", "verDinero"]);
+  });
+
+  it("ADR-0253: Impuestos y Cierre de mes dan su permiso a un rol a medida", () => {
+    const con = (...cs: ClaveModulo[]) => permisosDeModulos("integrante", cs.map((clave) => ({ clave, completo: true })));
+    expect(con("impuestos")).toEqual(["verImpuestos"]);
+    expect(con("cierre_mes")).toEqual(["cerrarMes"]);
+    expect(con("configuracion")).toEqual([]);
   });
 
   it("limitado como hoy: ve Caja, Existencias y Productos pero no gana sus poderes de escritura", () => {

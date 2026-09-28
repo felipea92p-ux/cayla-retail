@@ -223,30 +223,33 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
           />
         </div>
 
-        {compras.length === 0 && !cursor ? (
-          conDeuda || hayFiltros ? (
-            <div className="card-cayla p-5 text-sm text-tinta/75">
-              Ningún comprobante por pagar coincide con esos filtros.
-              <Link href="/compras/por-pagar" className="label-cayla ml-3 text-[11px] text-rojo hover:underline">
-                Limpiar filtros
-              </Link>
-            </div>
+        {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+        <div data-resultados>
+          {compras.length === 0 && !cursor ? (
+            conDeuda || hayFiltros ? (
+              <div className="card-cayla p-5 text-sm text-tinta/75">
+                Ningún comprobante por pagar coincide con esos filtros.
+                <Link href="/compras/por-pagar" className="label-cayla ml-3 text-[11px] text-rojo hover:underline">
+                  Limpiar filtros
+                </Link>
+              </div>
+            ) : (
+              <TodoPagado />
+            )
           ) : (
-            <TodoPagado />
-          )
-        ) : (
-          <PorPagarLista
-            compras={compras}
-            totales={tramos}
-            hayMasPaginas={hayMasPaginas}
-            datosProveedores={datosProveedores}
-            notas={notas}
-            pagos={pagos}
-            seleccionInicial={seleccionInicial}
-            indice={10}
-            misTiendas={misTiendas}
-          />
-        )}
+            <PorPagarLista
+              compras={compras}
+              totales={tramos}
+              hayMasPaginas={hayMasPaginas}
+              datosProveedores={datosProveedores}
+              notas={notas}
+              pagos={pagos}
+              seleccionInicial={seleccionInicial}
+              indice={10}
+              misTiendas={misTiendas}
+            />
+          )}
+        </div>
 
         <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 

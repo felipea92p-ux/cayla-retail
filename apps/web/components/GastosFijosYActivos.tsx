@@ -55,7 +55,7 @@ export function FijosDelMes({
   fijos,
   sugeridos,
   verTodas,
-  esLider,
+  puedeConfigurar,
   onRegistrar,
   onMarcarFijo,
   onNoEsFijo,
@@ -63,7 +63,8 @@ export function FijosDelMes({
   fijos: GastoFijoMes[];
   sugeridos: FijoSugerido[];
   verTodas: boolean;
-  esLider: boolean;
+  /** ¿Ve Configuración, donde se editan los fijos? (ADR-0253: el módulo ya se da a un rol). */
+  puedeConfigurar: boolean;
   onRegistrar: (f: GastoFijoMes) => void;
   onMarcarFijo: (s: FijoSugerido) => void;
   onNoEsFijo: (s: FijoSugerido) => void;
@@ -74,7 +75,7 @@ export function FijosDelMes({
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
   const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · día ${f.diaDelMes}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
-  const editar = esLider ? (
+  const editar = puedeConfigurar ? (
     <Link href="/configuracion?tab=fijos" className="btn-cayla btn-sutil btn-chico">
       Editar fijos
     </Link>
@@ -84,8 +85,8 @@ export function FijosDelMes({
     return (
       <>
         <GuiaVacia sobre="Fijos del mes" titulo="Todavía no hay gastos fijos">
-          El alquiler, la luz o el contador: se guardan una vez {esLider ? "en Configuración ▸ Gastos fijos" : "(lo hace el líder)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
-          {esLider && (
+          El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
+          {puedeConfigurar && (
             <>
               {" "}
               <Link href="/configuracion?tab=fijos" className="btn-enlace">

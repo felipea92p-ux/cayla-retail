@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 
 // El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
 // número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda, el código de la etiqueta o el nº de operación
@@ -16,12 +17,12 @@ import { Search, X } from "lucide-react";
 const PAUSA_MS = 400;
 
 export function BuscadorHistorial({ valor }: { valor: string }) {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [texto, setTexto] = useState(valor);
   const campo = useRef<HTMLInputElement>(null);
   const ultimoEnviado = useRef(valor);
+  const { buscando, buscar } = useBusquedaEnUrl();
 
   // Si la URL cambia desde afuera («Limpiar todo», atrás del navegador), el campo la sigue.
   useEffect(() => {
@@ -41,10 +42,10 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
       else p.delete("q");
       p.delete("cursor");
       const qs = p.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      buscar(qs ? `${pathname}?${qs}` : pathname, { reemplazar: true });
     }, PAUSA_MS);
     return () => window.clearTimeout(t);
-  }, [texto, params, pathname, router]);
+  }, [texto, params, pathname, buscar]);
 
   useEffect(() => {
     function alTeclear(e: KeyboardEvent) {
@@ -82,6 +83,7 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
         title="Busca por comprobante, DNI o RUC, clienta, prenda, código de etiqueta o nº de operación de Yape o Plin"
         className="min-w-0 flex-1 bg-transparent text-[15px] text-tinta outline-none placeholder:text-tinta/50 [&::-webkit-search-cancel-button]:hidden"
       />
+      <SenalBuscando activo={buscando} className="shrink-0" />
       {texto ? (
         <button type="button" onClick={() => setTexto("")} aria-label="Borrar la búsqueda" className="grid h-8 w-8 place-items-center rounded-full text-tinta/55 hover:bg-sand hover:text-rojo">
           <X className="h-4 w-4" aria-hidden />

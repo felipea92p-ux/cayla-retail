@@ -5,7 +5,8 @@
  * QUÉ PRUEBA
  *   · La siembra: cuatro roles (Líder fijo, Integrante, las dos terminales) con los módulos de hoy, y cada cuenta con el
  *     rol que le toca. Integrante ya NO nace limitado: hace lo de los módulos que ve (B2d, Felipe 2026-09-22, 20260923031000).
- *   · Las reglas: Líder no se edita ni se archiva ni se asigna; Integrante se edita pero no se archiva; un rol con
+ *   · Las reglas: Líder no se archiva ni se renombra, y sus módulos los edita un Admin sin quitarle Roles y accesos
+ *     (ADR-0253: el resto, en `roles_lider_editable.mjs`); Integrante se edita pero no se archiva; un rol con
  *     cuentas no se archiva; solo el líder escribe; los módulos «solo del líder» y «solo líder por ahora» no se delegan;
  *     el historial solo se agrega.
  *   · `fn_ve_modulo` para una persona y para una terminal, y `fn_mis_modulos`.
@@ -952,13 +953,18 @@ alter table retail.rol_modulos enable trigger rol_modulos_coherente;\n` +
 );
 
 // ---------------- Reglas de los roles ----------------
+// ADR-0253 (Felipe, 2026-09-28): el Líder SÍ se edita (lo hace un Admin), pero nunca pierde Roles y accesos; archivarlo y
+// renombrarlo siguen cerrados. El detalle de editarlo vive en `roles_lider_editable.mjs`.
 caso(
-  "Líder no se edita, no se archiva y no se renombra",
+  "Líder: no se le quita Roles y accesos, no se archiva y no se renombra",
   como(FELIPE_AUTH) +
     intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('lider'), array['vender'])`) + "\n" +
     intento(`select retail.archivar_rol(retail.fn_rol_por_clave('lider'))`) + "\n" +
     intento(`select retail.renombrar_rol(retail.fn_rol_por_clave('lider'), 'Jefa')`),
-  (s) => s.split("\n").length === 3 && s.split("\n").every((l) => l.startsWith("42501|"))
+  (s) => {
+    const l = s.split("\n");
+    return l.length === 3 && l[0].startsWith("23514|«Roles y accesos» no se le quita") && l[1].startsWith("42501|") && l[2].startsWith("42501|");
+  }
 );
 caso(
   "entre líderes: se sube a Líder y se baja a otro líder (con sede si no tiene)",

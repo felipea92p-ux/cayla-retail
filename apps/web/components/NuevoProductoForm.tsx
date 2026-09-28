@@ -38,6 +38,8 @@ import { useColaProductos } from "@/lib/useColaProductos";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { guardarFotos } from "@/lib/fotos-pendientes";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import {
   PASOS_ALTA,
   codigoBasePrevisto,
@@ -164,8 +166,10 @@ export function NuevoProductoForm({
   const [sinStock, setSinStock] = useState(false);
   // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
   // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
+  // hereda por no mirar la pregunta.
   const puedePiso = destino.separaPiso && destino.puedeBajar;
-  const [alPiso, setAlPiso] = useState(puedePiso);
+  const [alPiso, setAlPiso] = useState(false);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
@@ -176,6 +180,21 @@ export function NuevoProductoForm({
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
+
+  // «¿Salir sin guardar?» (2026-09-28). Nuevo producto no guarda borrador: salir a medias pierde TODO lo llenado. La foto
+  // junta lo que la persona eligió (no el paso abierto ni lo que se creó a mitad del alta —una marca, una talla—, que ya
+  // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
+  // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
+  const fotoActual = fotoFormulario({
+    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
+    overridePrecio, etiquetasElegidas, cantidades, sinStock, alPiso,
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(
+    !creado && fotoActual !== fotoAlAbrir,
+    "Llenaste parte de este producto nuevo y todavía no se creó. Si sales ahora, se pierde lo que llenaste."
+  );
 
   const categoria = contexto.categorias.find((c) => c.id === categoriaId) ?? null;
   const familia = categoria ? (contexto.familias.find((f) => f.codigo === categoria.familia) ?? null) : null;
@@ -844,11 +863,11 @@ export function NuevoProductoForm({
               <div className="space-y-2">
                 <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
                 <div className="flex flex-wrap gap-1.5">
-                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
-                    Colgadas en el piso de venta
-                  </ChipOpcion>
                   <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
                     Guardadas en el almacén
+                  </ChipOpcion>
+                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                    En piso de venta
                   </ChipOpcion>
                 </div>
                 {!puedePiso && (
@@ -1021,9 +1040,10 @@ export function NuevoProductoForm({
           responsable={responsable}
           cargando={cargando}
           puedeGuardar={puedeGuardar}
-          onCancelar={() => router.push("/productos")}
+          onCancelar={() => salida.pedirSalir("/productos")}
         />
       </div>
+      {salida.aviso}
     </form>
   );
 }

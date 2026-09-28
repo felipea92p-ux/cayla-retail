@@ -83,7 +83,9 @@ export function AjustarInventarioModal({
   const [referencia, setReferencia] = useState("");
   const [variantes, setVariantes] = useState<VarianteAjuste[]>([]);
   const [deltas, setDeltas] = useState<Record<string, string>>({});
-  const [ubicado, setUbicado] = useState<"piso" | "almacen">("piso");
+  // Arranca en almacén, igual que Nuevo producto (Felipe 2026-09-28): el piso se elige a propósito. De paso ofrece
+  // «Reposición», que en el piso de una tienda que separa piso y almacén está cerrada.
+  const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste | "">("");
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -296,8 +298,8 @@ export function AjustarInventarioModal({
                   valor={ubicado}
                   onValor={(v) => !congelado && cambiarUbicado(v)}
                   opciones={[
-                    { valor: "piso", texto: "Piso de venta" },
                     { valor: "almacen", texto: "Almacén de tienda" },
+                    { valor: "piso", texto: "Piso de venta" },
                   ]}
                 />
               )}
