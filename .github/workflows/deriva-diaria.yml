@@ -1,0 +1,152 @@
+name: Deriva diaria
+
+# Cada mañana: ¿producción corre lo mismo que main? (ADR-0251). Arma main como el CI, le pide a producción las huellas
+# del catálogo de `retail` con su llave propia (`retail.huellas_catalogo`, 20260928210000) y las compara con
+# `scripts/migraciones/deriva.mjs`. Si hay diferencias, abre (o comenta) el aviso «Producción ≠ main» y el job sale en
+# rojo; si no, cierra el aviso abierto. Si no pudo comparar (producción no respondió, falta la configuración, main no
+# armó o el comparador no pudo leer), también sale en rojo y lo dice en el mismo aviso: «ningún aviso» nunca quiere
+# decir «hoy no se miró». Lo simula scripts/migraciones/deriva-diaria.test.mjs.
+#
+# El repo es PÚBLICO: el registro de este job y el aviso los ve cualquiera. Por eso publican solo SI hay diferencias,
+# nunca cuáles ni cuántas (`--resumen`): «este revoke de main no está en producción» diría qué puerta sigue abierta, y
+# «5 de main sin pegar» el día que se fusiona un PR que crea 5 funciones también. Los nombres y las cuentas se miran en
+# privado: deriva.sql en el SQL Editor (o con el conector de Supabase) y `pnpm migraciones:deriva <main> <produccion>`.
+#
+# Lo que hay que configurar una vez (Settings ▸ Secrets and variables ▸ Actions): el secreto DERIVA_LLAVE (lo que
+# devuelve `select retail.fn_huellas_nueva_llave();` en el SQL Editor) y las variables SUPABASE_URL y SUPABASE_ANON_KEY
+# (la URL y la llave pública de producción, las mismas de la web). Sin ellas el job sale en rojo diciendo qué falta.
+on:
+  schedule:
+    - cron: "0 12 * * *" # 07:00 en Lima
+  workflow_dispatch:
+
+concurrency:
+  group: deriva-diaria
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deriva:
+    name: Producción contra main
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      # Primero producción: si no responde o falta la configuración, se sabe en segundos y no se arma main para nada.
+      - name: Huellas de producción
+        id: produccion
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          ANON: ${{ vars.SUPABASE_ANON_KEY }}
+          LLAVE: ${{ secrets.DERIVA_LLAVE }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$ANON" ] || [ -z "$LLAVE" ]; then
+            echo "::error::Falta configurar la variable SUPABASE_URL, la variable SUPABASE_ANON_KEY o el secreto DERIVA_LLAVE (ADR-0251)."
+            exit 1
+          fi
+          cuerpo=$(jq -n --arg l "$LLAVE" '{p_llave: $l}')
+          codigo=$(curl -sS -o "$RUNNER_TEMP/produccion.json" -w '%{http_code}' --max-time 90 -X POST "$URL/rest/v1/rpc/huellas_catalogo" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" -H "Content-Profile: retail" \
+            --data "$cuerpo") || codigo="sin respuesta"
+          if [ "$codigo" != "200" ]; then
+            # No se imprime la respuesta: puede traer la pista de por qué rechazó la llave, y el registro es público.
+            echo "::error::No se pudo leer producción (HTTP $codigo). Si es 401/403, la llave no coincide: vuelve a crearla y a guardarla."
+            exit 1
+          fi
+          jq -r . "$RUNNER_TEMP/produccion.json" > "$RUNNER_TEMP/produccion.tsv"
+          echo "huellas de producción: $(wc -l < "$RUNNER_TEMP/produccion.tsv") objetos"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Igual que el job «Pruebas de RPC contra Postgres» del CI: main entero, con el stub de Dynamic.
+      - name: Main, como el CI
+        id: main
+        run: |
+          cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
+          npx supabase start
+
+      - name: Huellas de main
+        id: huellas_main
+        run: |
+          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/main.tsv"
+          echo "huellas de main: $(wc -l < "$RUNNER_TEMP/main.tsv") objetos"
+
+      - name: Comparar y avisar
+        id: comparar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          linea=$(node scripts/migraciones/deriva.mjs "$RUNNER_TEMP/main.tsv" "$RUNNER_TEMP/produccion.tsv" --resumen)
+          diferencias=$?
+          set -e
+          echo "$linea"
+          titulo="Producción ≠ main (deriva diaria)"
+          abierto=$(gh issue list --state open --search "\"$titulo\" in:title" --json number -q '.[0].number // empty')
+          hoy=$(TZ=America/Lima date +%F)
+          if [ "$diferencias" -eq 0 ]; then
+            if [ -n "$abierto" ]; then gh issue close "$abierto" --comment "$hoy: $linea"; fi
+            exit 0
+          fi
+          if [ "$diferencias" -ne 1 ]; then echo "::error::El comparador falló (código $diferencias)."; exit 1; fi
+          {
+            echo "**$hoy** — $linea"
+            echo
+            echo "Qué quiere decir: algo que está en main no está pegado en producción, o producción tiene un arreglo que main"
+            echo "no tiene (y se perdería la próxima vez que una migración recree esa función). Los nombres no se publican aquí"
+            echo "porque el repo es público: pídele a Claude «corre la deriva de producción» (usa el conector de Supabase, solo"
+            echo "lectura), o corre \`scripts/migraciones/deriva.sql\` en el SQL Editor y compáralo con \`pnpm migraciones:deriva\`."
+            echo "Ver ADR-0251."
+          } > "$RUNNER_TEMP/aviso.md"
+          if [ -n "$abierto" ]; then
+            gh issue comment "$abierto" --body-file "$RUNNER_TEMP/aviso.md"
+          else
+            gh issue create --title "$titulo" --body-file "$RUNNER_TEMP/aviso.md"
+          fi
+          # El aviso ya dice «hay diferencias»: el paso de abajo no tiene que decir también «no se pudo comparar».
+          echo "avisado=si" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      # Si algo de arriba falló (producción no respondió o falta configurarla, main no armó, el comparador no pudo leer),
+      # el aviso lo dice. Sin este paso, un paso rojo saltaba «Comparar y avisar»: la corrida quedaba roja en Actions sin
+      # aviso, y «ningún aviso» se leía como «sin deriva» (o el aviso abierto quedaba con la cuenta de otro día). No
+      # publica nada de la respuesta de producción.
+      - name: Avisar que hoy no se pudo comparar
+        if: ${{ failure() && steps.comparar.outputs.avisado != 'si' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCCION: ${{ steps.produccion.outcome }}
+          MAIN: ${{ steps.main.outcome }}
+          HUELLAS_MAIN: ${{ steps.huellas_main.outcome }}
+          COMPARAR: ${{ steps.comparar.outcome }}
+          CORRIDA: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$PRODUCCION" = failure ]; then paso="Huellas de producción: no respondió, la llave no coincide o falta configurarla"
+          elif [ "$MAIN" = failure ]; then paso="Main, como el CI: las migraciones de main no armaron"
+          elif [ "$HUELLAS_MAIN" = failure ]; then paso="Huellas de main"
+          elif [ "$COMPARAR" = failure ]; then paso="Comparar: el comparador no pudo leer las huellas"
+          else paso="preparar el job"; fi
+          titulo="Producción ≠ main (deriva diaria)"
+          abierto=$(gh issue list --state open --search "\"$titulo\" in:title" --json number -q '.[0].number // empty')
+          hoy=$(TZ=America/Lima date +%F)
+          {
+            echo "**$hoy** — ⚠ Hoy NO se pudo comparar producción con main (falló «$paso»)."
+            echo
+            echo "Esto no quiere decir que estén iguales: hoy nadie miró. El detalle está en la corrida: $CORRIDA"
+          } > "$RUNNER_TEMP/aviso-falla.md"
+          if [ -n "$abierto" ]; then
+            gh issue comment "$abierto" --body-file "$RUNNER_TEMP/aviso-falla.md"
+          else
+            gh issue create --title "$titulo" --body-file "$RUNNER_TEMP/aviso-falla.md"
+          fi
