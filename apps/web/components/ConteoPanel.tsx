@@ -1117,14 +1117,16 @@ function ConteoEnCurso({
                       </span>
                       <span className="ml-auto shrink-0 font-mono text-[11px] text-taupe">{g.codigoBase || "sin código"}</span>
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    {/* Este conteo se hace parada en el rack, con el celular en una mano: la pastilla mide 44 px, el mínimo
+                        para tocarla con el pulgar sin errar la de al lado. */}
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {g.tallas.map((t) => (
                         <button
                           key={t.varianteId}
                           type="button"
                           onClick={() => anotar(t.varianteId, { aMano: true })}
                           title={`Anotar a mano ${t.sku || ""}`.trim()}
-                          className="grid h-9 min-w-10 place-items-center rounded-lg border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:border-taupe/60 hover:bg-sand/40"
+                          className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:border-taupe/60 hover:bg-sand/40"
                         >
                           {t.talla ?? "Única"}
                         </button>
