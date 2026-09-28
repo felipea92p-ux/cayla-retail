@@ -1310,6 +1310,11 @@ Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece to
 - [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
 - [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
 
+## 📐 Crear un color sin salir del producto, con gotero (2026-09-28) — SPIKE visual v2, sin código del ERP
+Una sola hoja de tres pasos (nombre → gotero → revisar y guardar) que se abre igual desde «Nuevo producto» y desde Catálogo ▸ Atributos ▸ Colores, con un gotero dentro de la hoja (foto del producto, carta de tonos o foto propia) en vez del selector nativo del navegador; el color nace en el mismo vocabulario y aparece en Atributos con «Pendiente» hasta que un líder lo aprueba. Spike y propuesta: `docs/maquetas/crear-color-spike-2026-09/`
+- [ ] Felipe revisa el spike y decide las 5 preguntas del README (¿el gotero dentro de la hoja es lo que pidió?, ¿la colaboradora crea colores o los pide?, ¿la hoja hereda el «Responsable»?, ¿la guía se ofrece sola?, ¿«Letra cómoda» va aparte?).
+- [ ] Si se aprueba: ADR (revierte `ProponerValor.tsx:29-31`), `components/catalogo/CrearColorHoja.tsx` (una pieza para `ColoresLista` y `ElegirColores`), `lib/gotero.ts` (con pruebas) y el «Siguiente paso» clicable de `FichaPrevia.tsx`. Sin migración; comprobar que el RPC de alta acepte un color pendiente.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
