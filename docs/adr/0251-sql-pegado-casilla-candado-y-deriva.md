@@ -104,7 +104,9 @@ rojo (GitHub avisa por correo); si no, cierra el aviso.
 **SE ROMPE SI:**
 - **La llave se filtra:** se leen huellas, nada más. Se cambia con `select retail.fn_huellas_nueva_llave();` y el secreto.
 - **Producción no responde, o falta la configuración:** el job sale en rojo diciendo «No se pudo leer producción» o qué
-  falta configurar. Nunca queda verde sin haber comparado.
+  falta configurar, y el aviso «Producción ≠ main» dice «Hoy NO se pudo comparar (falló …)» (lo mismo si main no arma o
+  el comparador no puede leer). Nunca queda verde sin haber comparado, ni sin aviso: en la revisión del PR, un paso rojo
+  saltaba al que avisaba y «ningún aviso» se leía como «sin deriva». `deriva-diaria.test.mjs` simula el workflow.
 - **Alguien cambia `deriva.sql` sin cambiar la función** (o al revés): `deriva.test.mjs` y `pruebas:huellas-catalogo` se
   ponen rojos en el PR. Para cambiar la consulta hace falta una migración nueva que recree la función.
 

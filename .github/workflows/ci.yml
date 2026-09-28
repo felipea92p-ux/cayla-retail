@@ -115,9 +115,10 @@ jobs:
 
       # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
+      # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
       - name: Pruebas del check SQL pegado y de la deriva
         if: ${{ always() }}
-        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs
 
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en

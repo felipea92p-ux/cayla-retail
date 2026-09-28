@@ -25,7 +25,8 @@
 -- SE ROMPE SI: (1) la llave se filtra: se leen las huellas (nada más) hasta que Felipe corra otra vez
 --   `select retail.fn_huellas_nueva_llave();` y cambie el secreto de GitHub; (2) alguien cambia `deriva.sql` sin cambiar
 --   esta función: la deriva diaria diría «distinto» de todo y la prueba del CI se pone roja antes; (3) producción no
---   responde: el workflow falla con «no se pudo leer producción» y lo dice en el aviso; nunca queda verde a ciegas.
+--   responde: el workflow falla con «no se pudo leer producción» y el aviso dice «hoy NO se pudo comparar»; nunca queda
+--   verde a ciegas (lo simula scripts/migraciones/deriva-diaria.test.mjs).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Solo, en el SQL Editor, a cualquier hora: una tabla nueva (nadie la usa: sin políticas,
 -- RLS encendido, sin permisos para anon ni authenticated), dos funciones, `revoke` y `grant`. Sin `drop trigger`, sin
