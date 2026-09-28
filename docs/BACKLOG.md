@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
+
+- [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
+- [x] Variantes con *container query* sobre su tarjeta: una línea desde 40rem, ficha de tres líneas con rótulos por debajo. Medido de 375 a 1920 px: nada cortado ni fuera de la tarjeta.
+- [x] «Guardar cambios» al costado recién desde 1280 px (a 1024 px el formulario pasa de 329 a 657 px); por debajo, `BarraFija` abajo mientras el panel no se ve.
+- [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
+- [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
+- [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
+- [ ] **Otras pantallas con formulario largo** siguen sin el aviso (Compras ▸ Nueva, Recibir, Gastos): el hook ya sirve, se suma por pantalla.
+
 ## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
 
 - [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos

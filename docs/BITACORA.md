@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Ficha de producto: el código de la variante nueva, la ficha que se adapta y «¿Salir sin guardar?»)
+Qué hice: la variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`) en vez de un SKU armado con el nombre (`BLUSACARLITA-U`), y cambia al elegir color o talla. Las variantes se acomodan al ancho de su tarjeta (no de la pantalla); «Guardar cambios» va al costado recién desde 1280 px y por debajo tiene una barra abajo. La ficha y Nuevo producto preguntan antes de salir con cambios sin guardar.
+Por qué así: bajo la misma columna «Código» convivían dos datos distintos: el que lee la pistola y un SKU legado que nadie usa. Con el menú y el panel al costado, una pantalla de 944 px dejaba la tarjeta en 577 px y cortaba los códigos. Qué se rompería sin esto: una etiqueta anotada con un código que la pistola no reconoce, y ocho precios perdidos por tocar el menú lateral.
+Felipe se lleva: **un código que la base asigna no se escribe a mano, se muestra**; y el espacio que importa es el de la tarjeta, no el de la pantalla.
+
 ## 2026-09-28 (Nuevo producto, paso 3: «Ver más» en Tejido)
 Qué hice: al final de los tejidos de la categoría aparece una tarjeta punteada «Ver más · N en el catálogo» (la misma del paso 1 con las familias); abre los tejidos aprobados que la categoría todavía no ofrece, y tocar uno lo ofrece en la categoría (con su combo «Responsable») y lo deja elegido. Sin cambio de base: usa la misma escritura que «+ Nuevo tejido» cuando el tejido ya existe. Primero un refactor sin cambio visible (`ElegirTejido`, `sumarAlEje`), después la función; 7 pruebas nuevas en `alta-producto.test.ts`.
 Por qué así: en producción hay 22 tejidos aprobados y cada categoría de Indumentaria ofrece entre 3 (Jeans) y 10; los otros solo se alcanzaban escribiendo su nombre exacto. Marcarlo sin ofrecerlo no sirve: `crear_producto_con_variantes` rechaza un tejido que la categoría no ofrece. Qué se rompería sin esto: quien no sabe que «Lino» existe lo crea de nuevo o elige uno parecido que no es, y el tejido del producto miente.
