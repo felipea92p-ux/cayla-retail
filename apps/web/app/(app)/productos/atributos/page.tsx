@@ -105,8 +105,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
-    supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url").order("nombre"),
-    supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url").order("nombre"),
+    supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
+    supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
     // Etiquetas (y lo que necesita su editor de campaña) solo se pide al abrir esa pestaña:
     // así un despliegue que llegue antes que el SQL de producción no tumba Colores/Tallas/etc.
     tipo === "etiquetas"
@@ -169,6 +169,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     notas: t.notas,
     estado: t.estado as "pendiente" | "aprobado" | "rechazado",
     imagenUrl: t.imagen_muestra_url,
+    descripcionDibujo: t.descripcion_dibujo,
   }));
   const patrones = exigir(resPatrones, "los patrones del vocabulario").map((p) => ({
     id: p.id,
@@ -177,6 +178,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     notas: p.notas,
     estado: p.estado as "pendiente" | "aprobado" | "rechazado",
     imagenUrl: p.imagen_muestra_url,
+    descripcionDibujo: p.descripcion_dibujo,
   }));
   const prendasPorTejido: Record<string, number> = {};
   const prendasPorPatron: Record<string, number> = {};

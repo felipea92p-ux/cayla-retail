@@ -12,7 +12,7 @@ import { recomendacionesDeSede, accionHoyPorVariante } from "@/lib/existencias-r
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
-import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
+import { conEstadoProducto, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -103,13 +103,16 @@ export default async function InventarioPage({
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
   // decisión de reponer (que no depende de la RPC) sigue firme. La marca (2026-09-26) se suma
   // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
-  const stock = conMarca(
-    stockBase.map((f) => ({
-      ...f,
-      ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-      coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-      accionHoy: accionHoy.get(f.varianteId) ?? null,
-    })),
+  const stock = conEstadoProducto(
+    conMarca(
+      stockBase.map((f) => ({
+        ...f,
+        ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+        coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+        accionHoy: accionHoy.get(f.varianteId) ?? null,
+      })),
+      catalogo.productos
+    ),
     catalogo.productos
   );
   const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
@@ -231,6 +234,7 @@ export default async function InventarioPage({
         abrirVariante={variante ?? null}
         apartados={apartados}
         esLider={persona.rol === "lider"}
+        esAdmin={persona.esAdmin}
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}

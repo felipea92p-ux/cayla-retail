@@ -129,3 +129,37 @@ probada (`eliminar_producto_con_historia` `f24ff965…`, `fn_producto_como_elimi
 una sola versión de cada una, `authenticated` sí y `anon` no en las tres públicas, las dos internas sin permiso para la API;
 `respaldo_purgas.filas` con sus 87 filas, RLS encendido y sin lectura para `authenticated`. La ventana, sobre los 33 productos reales:
 **6 libres + 22 con historia (Admin puede) = 28**, 4 con documentos, 1 pieza del sistema.
+
+## Actualización 2026-09-28 (noche): «Eliminar» también desde Existencias
+
+**Pedido:** Felipe abrió Inventario ▸ Existencias, tocó «Ajustar inventario» en «Body Amir» y preguntó «¿ya puedo eliminar de
+existencias?». El botón vivía solo en Catálogo ▸ Productos. Buscarlo donde se mira el inventario es lo natural: el error era de
+dónde estaba el botón, no suyo (Norman). Felipe: «sí, agrégalo en Existencias».
+
+**DECIDÍ:** el detalle de una prenda (`DetallePrendaExistencias`, la flecha › de cada fila) termina con «Eliminar el producto», en
+rojo profundo, **solo para un Admin** y solo mirando la sede activa, como todo lo que escribe desde ahí. No para todo Líder como en
+Catálogo: toda fila de Existencias sale de `stock`, que solo escribe un movimiento, así que todo lo que se ve ya tiene historia, y
+con historia la base solo deja borrar a un Admin; un Líder vería un botón que nunca funciona. El permiso se suma a `permisosDelDetalle` (`lib/existencias-permisos.ts`, con su prueba), no a la pantalla. Al tocarlo se cierra
+el detalle y se abre la MISMA `EliminarProductoModal` (ADR-0136: nada de modal sobre modal): pregunta a `fn_producto_como_eliminar`,
+y la base decide igual que desde Productos. Ninguna migración.
+**DESCARTÉ:** un «Eliminar» por talla o por color: la base borra el producto entero y un botón por color mentiría sobre lo que hace. Y
+leer en Existencias cuántas variantes tiene el producto para los textos: su lectura de catálogo pide a propósito una sola variante
+por producto (`existencias-catalogo.ts`, la trampa de la columna `costo`). En su lugar, la ventana acepta no saberlo
+(`numVariantes` en `null`) y dice «todas sus tallas y colores». El estado sí se lee de esa misma lectura: la página lo pega a cada
+fila (`conEstadoProducto`), porque descontinuar no apaga las variantes y un producto descontinuado sigue saliendo en Existencias; si
+la lectura falla, llega `null` y la ventana ofrece descontinuar como a uno activo.
+**SE ROMPE SI:** una líder abre «Pantalon Jean · azul» y cree que borra solo el azul. Lo cubre el texto del botón («Todas sus tallas y
+colores, en todas las sedes») y el de la ventana; y la base igual no deja borrar nada con ventas, compras ni traslados.
+
+Desde Catálogo ▸ Productos el texto ahora dice «sus 6 variantes (todas sus tallas y colores)»: lo mismo con el número.
+Verificado en navegador con un andamio temporal (ya borrado): el botón aparece al final del detalle, abre la ventana sin apilar
+modales, el clic llama a `eliminar_producto_con_historia` y sale «eliminado»; sin permiso no se ve; a 375 px sin desplazamiento
+lateral. `vitest` en verde, `tsc` y `eslint` limpios.
+
+**Revisión adversarial** (tres lentes y un escéptico por hallazgo; 10 agentes). Confirmó tres defectos, arreglados antes de publicar:
+(1, media) el botón se ofrecía a todo Líder y desde Existencias solo un Admin puede completarlo → solo Admin; (2) el estado iba en
+`null` aunque la página lo lee, y a un producto ya descontinuado se le sugería descontinuarlo → `conEstadoProducto`; (3) borrar una
+prenda marcada dejaba la barra de marcadas en «0 prendas · 0 tallas» y escondía «Escanear prenda» en el celular → la barra y el botón
+se deciden por lo marcado que sigue en la lista (`filasMarcadas`), no por el conjunto crudo. Refutó uno: mirando otra sede el botón
+no aparece, por la misma regla que el resto de lo que escribe.
+
