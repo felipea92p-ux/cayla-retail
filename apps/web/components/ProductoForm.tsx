@@ -108,7 +108,24 @@ type FilaVariante = {
 const NUMERO =
   "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
-const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_3.5rem_4rem_2.5rem]";
+/* Variantes: la fila se acomoda al ancho de SU TARJETA (container query `@[40rem]`), no al de la pantalla. Con el menú
+   lateral y la columna «Guardar cambios», una pantalla de 944 px deja la tarjeta en 577 px y el código salía «CMS…».
+   Ancha (≥ 40rem): una línea por variante, bajo la cabecera de columnas. Angosta: ficha de tres líneas —color, talla y
+   «activa»; el código entero; precio, costo y margen— con su rótulo encima, para que ningún número quede sin nombre.
+   El código nunca se corta: si no entra, parte línea. Las clases van literales: Tailwind no ve las que se arman con `${}`. */
+const FILA_VARIANTE =
+  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
+/** Celda que en la ficha angosta ocupa el rincón de arriba a la derecha (interruptor «activa» o «Quitar»). */
+const ESQUINA = "col-span-2 col-start-11 row-start-1 flex flex-col items-end @[40rem]:col-span-1 @[40rem]:col-start-auto @[40rem]:row-start-auto";
+
+/** Rótulo de un campo, solo en la ficha angosta: en la ancha lo dice la cabecera de columnas. */
+function RotuloAngosto({ children, derecha = false }: { children: React.ReactNode; derecha?: boolean }) {
+  return (
+    <span aria-hidden className={`label-cayla block text-[10px] text-tinta/50 @[40rem]:hidden ${derecha ? "text-right" : ""}`}>
+      {children}
+    </span>
+  );
+}
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
@@ -685,32 +702,37 @@ export function ProductoForm({
         </section>
 
         {/* ---------- variantes ---------- */}
-        <section className="card-cayla space-y-3 p-5">
+        <section className="card-cayla @container space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
-          <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
+          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3rem_3rem_3rem]">
             {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
-              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
+              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : i === 6 ? "text-center" : ""}`}>
                 {t}
               </span>
             ))}
           </div>
           {variantes.map((v, i) => (
             <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
-            <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
+            <div className={FILA_VARIANTE}>
               {v.fija ? (
                 <>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
-                    {v.fija.color}
-                  </span>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
-                    {v.fija.talla}
-                  </span>
-                  <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
-                    {v.fija.codigo}
-                  </span>
+                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Color</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.color}</span>
+                  </div>
+                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Talla</RotuloAngosto>
+                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.talla}</span>
+                  </div>
+                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
+                    <RotuloAngosto>Código</RotuloAngosto>
+                    <span className="block break-all py-2 font-mono text-xs tracking-wide text-tinta/70">{v.fija.codigo}</span>
+                  </div>
                 </>
               ) : (
                 <>
+                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Color</RotuloAngosto>
                   <ComboBuscable
                     etiquetaAccesible="Color"
                     valor={v.colorCodigo}
@@ -718,6 +740,9 @@ export function ProductoForm({
                     opciones={opcionesColor}
                     marcador="Sin color"
                   />
+                  </div>
+                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Talla</RotuloAngosto>
                   <ComboBuscable
                     etiquetaAccesible="Talla"
                     valor={v.tallaId}
@@ -725,10 +750,13 @@ export function ProductoForm({
                     opciones={opcionesTalla}
                     marcador={categoriaId ? "Sin talla" : "Elige categoría"}
                   />
+                  </div>
+                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
+                  <RotuloAngosto>Código</RotuloAngosto>
                   <span
                     id={`producto-variante-${i}-codigo`}
                     tabIndex={-1}
-                    className={`truncate py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
+                    className={`block break-all py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
                     title={
                       codigosFilas[i]
                         ? repetidos.has(i)
@@ -739,8 +767,11 @@ export function ProductoForm({
                   >
                     {codigosFilas[i] ?? "Se asigna al guardar"}
                   </span>
+                  </div>
                 </>
               )}
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Precio</RotuloAngosto>
               <input
                 type="number"
                 min={0}
@@ -752,9 +783,12 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Costo</RotuloAngosto>
               {veCosto && v.costoFijo ? (
                 <span
-                  className="py-2 text-right text-sm tabular-nums text-tinta/70"
+                  className="block py-2 text-right text-sm tabular-nums text-tinta/70"
                   title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
                 >
                   {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
@@ -771,25 +805,34 @@ export function ProductoForm({
                   className={`${NUMERO} text-right`}
                 />
               ) : (
-                <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
+                <span className="block py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
               )}
-              <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
+              </div>
+              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
+              <RotuloAngosto derecha>Margen</RotuloAngosto>
+              <span className="block py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
                   if (!veCosto) return "—";
                   const m = margenPorcentaje(v.precio, costoEfectivo(v));
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}
               </span>
-              <span className="flex justify-center py-2">
-                {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
-              </span>
-              <span className="py-2 text-right">
+              </div>
+              {/* En la ficha angosta, «activa» (variante guardada) o «Quitar» (fila nueva) van arriba a la derecha: nunca
+                  están los dos, así que comparten el rincón; en la ancha, cada uno en su columna. */}
+              <div className={v.id ? `${ESQUINA} @[40rem]:items-center` : "hidden @[40rem]:block"}>
+                <RotuloAngosto derecha>Activa</RotuloAngosto>
+                <span className="flex py-2">
+                  {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
+                </span>
+              </div>
+              <div className={v.id ? "hidden @[40rem]:block" : `${ESQUINA} pt-4 @[40rem]:pt-0`}>
                 {!v.id && (
-                  <button type="button" onClick={() => quitarFila(i)} className="text-xs text-rojo">
+                  <button type="button" onClick={() => quitarFila(i)} className="py-2 text-xs text-rojo">
                     Quitar
                   </button>
                 )}
-              </span>
+              </div>
             </div>
             {v.id && (
               <div className="mt-1">
