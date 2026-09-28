@@ -94,14 +94,21 @@ rollback;`);
 }
 
 // 4. Nadie más crea llaves ni lee la tabla; authenticated no llama a huellas_catalogo.
+// Se exige el 42501 SIN pista: el de «permiso denegado». La propia función lanza 42501 (con la pista 'huellas_llave')
+// ante una llave mala, así que un 42501 cualquiera no distingue «sin permiso» de «llave mala»: por eso authenticated
+// llama con la llave VIGENTE, y además se pregunta el permiso directo (en producción, las funciones nuevas de retail
+// nacen con EXECUTE para authenticated: lo único que se lo quita es el revoke de la migración).
 {
   const r = psql(`begin;
-select retail.fn_huellas_nueva_llave();
+select set_config('prueba.llave', retail.fn_huellas_nueva_llave(), true);
 ${intento("perform retail.fn_huellas_nueva_llave()", "anon")}
 ${intento("perform retail.fn_huellas_nueva_llave()", "authenticated")}
 ${intento("perform count(*) from retail.huellas_llave", "anon")}
 ${intento("perform count(*) from retail.huellas_llave", "authenticated")}
-${intento("perform retail.huellas_catalogo('x')", "authenticated")}
+${intento("perform retail.huellas_catalogo(current_setting('prueba.llave'))", "authenticated")}
+select 'P|' || string_agg(r || '.' || f || '=' || has_function_privilege(r, f, 'EXECUTE'), ' ' order by r, f)
+from unnest(array['anon', 'authenticated', 'service_role', 'public']) r,
+     unnest(array['retail.huellas_catalogo(text)', 'retail.fn_huellas_nueva_llave()']) f;
 rollback;`);
   const rs = resultados(r.avisos);
   const nombres = [
@@ -109,9 +116,21 @@ rollback;`);
     "authenticated no crea llaves",
     "anon no lee la tabla de la llave",
     "authenticated no lee la tabla de la llave",
-    "authenticated no llama a huellas_catalogo",
+    "authenticated no llama a huellas_catalogo, ni con la llave vigente",
   ];
-  nombres.forEach((n, i) => esperar(n, rs[i]?.startsWith("ERR|42501"), rs[i] ?? "sin resultado"));
+  nombres.forEach((n, i) => esperar(n, rs[i] === "ERR|42501|", rs[i] ?? "sin resultado"));
+  const permisos = r.salida.match(/^P\|(.*)$/m)?.[1] ?? "";
+  const esperado = [
+    "anon.retail.fn_huellas_nueva_llave()=false",
+    "anon.retail.huellas_catalogo(text)=true",
+    "authenticated.retail.fn_huellas_nueva_llave()=false",
+    "authenticated.retail.huellas_catalogo(text)=false",
+    "public.retail.fn_huellas_nueva_llave()=false",
+    "public.retail.huellas_catalogo(text)=false",
+    "service_role.retail.fn_huellas_nueva_llave()=false",
+    "service_role.retail.huellas_catalogo(text)=false",
+  ].join(" ");
+  esperar("EXECUTE: solo anon llama a huellas_catalogo y nadie crea llaves desde la API", permisos === esperado, permisos || r.avisos.slice(0, 300));
 }
 
 // CONTROL: el caso 1 muerde. Una función que devuelve otra cosa (una línea de menos) tiene otra huella.
