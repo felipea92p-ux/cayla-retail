@@ -73,6 +73,13 @@ const PLANTILLA_SUGERENCIAS = "sm:grid-cols-[minmax(13.5rem,1.4fr)_minmax(7rem,1
  *  si el almacenamiento no está, el conteo arranca en «suma» y funciona igual. */
 const CLAVE_MODO = "cayla:conteo:modo";
 
+/** Qué hace cada modo, fijo bajo el segmento: antes solo se explicaba en el cuadro vacío de abajo, DESPUÉS de
+ *  haber elegido — quien abría la pantalla por primera vez no lo veía a tiempo. */
+const TEXTOS_MODO: Record<ModoConteo, string> = {
+  suma: "Cada disparo de la pistola suma 1 a esa prenda y se guarda solo.",
+  escribir: "Eliges la prenda, escribes cuántas hay y la registras. Sirve para pilas grandes o sin pistola.",
+};
+
 function money(n: number) {
   return `${n < 0 ? "−" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -867,16 +874,19 @@ function ConteoEnCurso({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <SegmentoDeslizante
-            etiqueta="Cómo se anota la cantidad"
-            valor={modo}
-            onCambio={(v) => setModo(modoConteoValido(v))}
-            opciones={[
-              { clave: "suma", etiqueta: "Suma por escaneo" },
-              { clave: "escribir", etiqueta: "Escribir cantidad" },
-            ]}
-          />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1.5">
+            <SegmentoDeslizante
+              etiqueta="Cómo se anota la cantidad"
+              valor={modo}
+              onCambio={(v) => setModo(modoConteoValido(v))}
+              opciones={[
+                { clave: "suma", etiqueta: "Suma por escaneo" },
+                { clave: "escribir", etiqueta: "Escribir cantidad" },
+              ]}
+            />
+            <p className="max-w-sm text-xs text-taupe">{TEXTOS_MODO[modo]}</p>
+          </div>
           {/* Mientras se cuenta el combo NO se vacía al guardar: en un censo se escanean cientos seguidas. */}
           <ComboResponsable control={responsable} deshabilitado={registrando || cancelando} className="w-full sm:w-72" />
         </div>
@@ -1118,7 +1128,8 @@ function ConteoEnCurso({
                       <span className="ml-auto shrink-0 font-mono text-[11px] text-taupe">{g.codigoBase || "sin código"}</span>
                     </p>
                     {/* Este conteo se hace parada en el rack, con el celular en una mano: la pastilla mide 44 px, el mínimo
-                        para tocarla con el pulgar sin errar la de al lado. */}
+                        para tocarla con el pulgar sin errar la de al lado. Borde firme + «+» EN REPOSO, no solo al
+                        pasar el mouse: sin eso se confundía con una etiqueta informativa, no un botón. */}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {g.tallas.map((t) => (
                         <button
@@ -1126,9 +1137,10 @@ function ConteoEnCurso({
                           type="button"
                           onClick={() => anotar(t.varianteId, { aMano: true })}
                           title={`Anotar a mano ${t.sku || ""}`.trim()}
-                          className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:border-taupe/60 hover:bg-sand/40"
+                          className="group grid min-h-11 min-w-11 grid-flow-col items-center justify-center gap-1.5 rounded-lg border border-taupe/40 bg-papel px-2.5 text-xs font-medium text-tinta transition-colors hover:border-tinta hover:bg-sand/45"
                         >
                           {t.talla ?? "Única"}
+                          <Plus aria-hidden className="h-3.5 w-3.5 shrink-0 rounded-full bg-sand p-0.5 text-taupe transition-colors group-hover:bg-tinta group-hover:text-crema" />
                         </button>
                       ))}
                     </div>
