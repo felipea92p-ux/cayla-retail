@@ -1,0 +1,119 @@
+# Spike visual · Nuevo producto v2 (2026-09-28)
+
+> **Estado: propuesta, sin aprobar.** No toca `NuevoProductoForm.tsx` ni ninguna pieza de `components/alta-producto/`.
+
+`index.html`: un solo archivo, ábrelo en el navegador. Los datos son inventados. **No es la implementación.**
+La barra punteada salta a un estado (Vacío, Paso 2, Paso 3, Paso 4, Listo para crear, Creado, Mucho de todo, «Ver todos» abierto), muestra la pantalla a
+375 px y esconde o muestra la comparación «Hoy vs. propuesta». También se abre directo en un estado: `#listo`,
+`#p3`, `#mucho`, `#hoja`, `#p4,celular`.
+
+Sucede al spike del 2026-09-24 (`../producto-nuevo-spike-2026-09/`, ADR-0197). Ese spike ordenó el alta en 4 pasos.
+Después se le sumaron temporada (ADR-0246), etiquetas con dibujo (ADR-0109 act. c), fotos revisadas (ADR-0228) y el
+stock de hoy como paso 5 (ADR-0212). Todo eso cayó en el paso 3 o en un paso nuevo, y la pantalla volvió a cargarse.
+
+## Qué confunde hoy (leído del código en `main`, `6b301666`)
+
+1. **El paso 3, «Cómo se hace», tiene 7 campos:** tallas, tejido, patrón, temporada, colores, etiquetas y fotos. El paso
+   2 tiene 3 y el 4 tiene 2. «Seguir al precio» queda a varias pantallas de distancia.
+2. **Cada color aparece 4 veces:** en los chips, en las casillas de fotos (`FotosAlta`), en la tabla de variantes
+   (paso 4) y en la tabla de stock (paso 5, `MatrizCantidades`). Esas dos tablas son la misma talla × color dibujada
+   dos veces en dos pasos distintos.
+3. **Hay tres marcadores de avance a la vez:** la barra de 5 segmentos de arriba, los números del acordeón y la caja
+   «Siguiente paso» de la ficha.
+4. **Tejido y patrón describen la prenda**, pero viven junto a las tallas y los colores, que son sus variantes.
+5. **El campo «Nombre» tiene la etiqueta «Referencia».**
+6. **Si falta un color, hay que ir a otra pestaña**: se crea en Catálogo → Atributos y después se toca «actualiza los
+   colores».
+7. **Los textos de ayuda son largos.** El de fotos ocupa 3 líneas, el de temporada 2 y la nota de carga inicial 3.
+
+## Qué propone
+
+| Hoy | Propuesta |
+|---|---|
+| 5 pasos: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes · Cuántas tienes hoy | **4 preguntas:** ¿A qué categoría pertenece? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay? |
+| Tejido y patrón en «Cómo se hace» | **En «¿Cómo es?»**, junto al nombre y la marca: es lo que describe a la prenda |
+| «Qué producto es» (se elige una categoría) | **«¿A qué categoría pertenece?»**: el título dice lo que se elige (Felipe, 2026-09-28) |
+| Descripción, temporada y etiquetas a la vista, cada una con su fila | **Descripción a la vista** bajo el nombre (opcional; Felipe no la encontró plegada). **Temporada y etiquetas plegadas** en «Temporada y etiquetas · opcional»; la línea plegada dice qué se llenó («Verano, 1 etiqueta») |
+| Fotos en una grilla aparte de casillas por color | **La foto va en la fila de su color, dentro de la tabla de variantes.** Una sola tabla (color × talla) muestra fotos, variantes y quitar |
+| Tabla de variantes en el paso 4 y tabla de stock en el paso 5 | **La tabla aparece al elegir las tallas y los colores (paso 3). En el paso 4 es la misma tabla, con cantidades**, total por fila y por columna. «Precios distintos» es un segmento de esa tabla, no otra vista |
+| Barra de 5 segmentos arriba + «Siguiente paso» en la ficha | **Sin barra arriba.** Bajo la ficha va la lista «Avance»: las 4 preguntas con ✓, su resumen o lo que falta. Se toca para volver a una |
+| «Referencia» como etiqueta del nombre | **«Nombre»**, en caja grande, con «Se guardará como Blusa Lirio» debajo |
+| Un color que falta se crea en otra pestaña | **«+ Nuevo color»** (y «+ Crear el color «…»» al final del buscador): nombre + muestra, y queda elegido |
+| Campos obligatorios sin marca | Etiqueta roja **«obligatorio»** en lo que bloquea «Seguir» |
+| Ficha: Tallas, Tejido y patrón, Etiquetas, Variantes, Stock, Precio | Ficha más corta: código, nombre, categoría · marca · tejido, dos cifras (**Variantes** y **Hoy en tienda**) y **Precio · margen** |
+
+## Cuando hay mucho (catálogo de producción, 2026-09-28)
+
+Pedido de Felipe: «si existen muchos tejidos, patrones o mucho de algo, debe verse bien». El spike usa el volumen y los
+nombres reales de producción (consultados en vivo, solo lectura): **47 categorías, 76 colores, 27 tallas, 24 tejidos,
+9 patrones, 24 etiquetas, 84 marcas y 78 proveedores**; por categoría, hasta **10 tejidos, 8 patrones y 9 tallas**.
+Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (jean)»** muestra el peor caso: 9 tallas ×
+8 colores = 72 celdas, 7 fotos y 4 etiquetas. **«"Ver todos" abierto»** muestra la hoja de tejidos.
+
+| Qué | Cómo se ve con mucho |
+|---|---|
+| Regla general | **A la vista, nunca más de 6 opciones por campo**: las de esta categoría, en el orden en que más se usan. El resto va detrás de **«Ver todos · N»**, que abre una hoja (`<Modal variante="hoja">`) con buscador sin tildes y grupos. **Lo elegido nunca se esconde**: si viene de la hoja, pasa al primer lugar de la fila |
+| Categorías (47) | Buscador arriba y 6 familias con su cuenta. Al abrir una familia, sus categorías en grilla (Indumentaria tiene 18). Sin fila de «las que más usas» (Felipe, 2026-09-28): una categoría se busca o se abre por su familia |
+| Tejidos (24) | 5 muestras de la categoría + tarjeta punteada **«Ver todos · 24 tejidos»**. La hoja muestra primero «Los de Camisas y Blusas · 10» y luego el resto en grupos (Naturales, De punto, Planos y de trabajo, Sintéticos). Elegir uno de fuera lo suma a la categoría, igual que el «Ver más» de `main` (b116c0cb) |
+| Patrones (9) | Igual que tejidos: 5 + «Ver todos · 9» |
+| Marcas y proveedores (84 / 78) | Solo el buscador: al tocarlo se abre la lista entera de la A a la Z («Blusa · la trae Taller Lima»); al escribir se filtra y marca lo que coincide. Sin «más usadas» (Felipe, 2026-09-28). Bajo el buscador, siempre a la vista: **«¿No está? + Registrar una marca o un proveedor nuevo»**. Abre UN formulario, «Registrar marca o proveedor», que cubre los tres casos: marca nueva con un proveedor que ya existe, marca nueva con proveedor nuevo, y **proveedor nuevo para una marca que ya existe** (Felipe: «¿y si quiero agregar un proveedor?»). La marca se busca o se escribe en el mismo campo; si ya existe, dice quién la trae hoy. Una pareja marca-proveedor que ya existe no se duplica: avisa y bloquea. Enlaces directos: `#marca` y `#proveedor` |
+| Tallas (27) | Solo las de la categoría (máx. 9) como chips; atajos «Curva habitual» y «Todas»; **«+ Otra talla»** abre la hoja con las 26 restantes agrupadas (Letras, Números, Otras) |
+| Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. **Se elige de una sola manera:** buscándolo por nombre o tocándolo en la carta de 71 círculos por familia, que se abre de entrada (el nombre sale al pasar el mouse). Sin fila de «más usados» (Felipe, 2026-09-28). Antes el mismo estado se veía como chip con ✓ y como píldora con × («confuso») |
+| Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
+| Tabla (72 celdas) | Cabecera de tallas y columna del color **fijas** al desplazarse; en celular la tabla se desliza de lado sin mover la página. En el paso 4, **«Poner en todas: [n] Aplicar»** llena las 68 celdas de un golpe y después se corrige a mano lo distinto |
+| Crear algo nuevo en una lista larga | **La opción de crear es la primera fila de la lista y queda fija arriba mientras se baja** (marca, proveedor, marca del formulario, color): nadie tiene que llegar al final de 84 marcas (Felipe, 2026-09-28). Junto a «¿Quién te la trae?» hay además un enlace visible «+ Proveedor nuevo» |
+| Ficha y resúmenes | Hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)» |
+
+## Revisión de claridad (2026-09-28, pedido de Felipe: «entendible para cualquier usuario»)
+
+Se leyó cada paso como alguien de tienda que abre la pantalla por primera vez:
+
+| Antes (en el spike) | Ahora |
+|---|---|
+| «OBLIGATORIO» en rojo en 4 campos | Sin la etiqueta roja: casi todo es obligatorio, así que se marca lo **opcional**. El rojo queda para errores |
+| Tejido y Patrón sin explicación | «De qué tela es» · «El dibujo de la tela. Si no tiene, elige Liso» |
+| Temporada «Sin temporada propia» | «Ninguna», con la aclaración de que usa la de su categoría |
+| «Curva habitual (28 30 32 34)» · «Todas» | «Solo las de siempre (28–34)» · «Todas las tallas» («curva» es palabra del taller, no de tienda) |
+| Tres formas de quitar en la tabla (celda, clic en la talla, × al final de la fila) | **Una por cosa:** la talla se quita arriba en Tallas, el color con su ×, y en la tabla solo se toca la combinación que no existe. La leyenda lo dice con un ejemplo de la misma prenda («como Terracota en L») |
+| Foto vacía como «+» | Ícono de cámara y «agrega su foto» |
+| «Cuántas hay hoy / Precios distintos» · «Poner en todas» | «Cuántas tienes hoy / ¿Alguna cuesta distinto?» · «Llenar todas con» · «— = no existe» |
+| «Quién lo registra» y «Crear» solo en la ficha de la derecha | **Al final del paso 4, donde la persona termina:** «Quién lo registra» (una sola vez) y «Crear producto». La ficha conserva su botón. El pie dice «Solo falta elegir quién lo registra» cuando es lo único que falta |
+| Sin pantalla final | «Blusa Lirio ya está en el catálogo»: código, variantes, unidades y fotos subiendo; **Crear otro parecido** o **Terminé, ir a Productos** (los mismos dos caminos que `ProductoCreado` en `main`). «Otro parecido» vuelve al paso 2 con categoría, marca, tejido, tallas y precio, y lo avisa arriba |
+| «Sano» / «Bajo para CAYLA» · «Para todas las variantes» | «Buen margen» / «Margen bajo» · «Para todas las tallas y colores» |
+
+## Lo que NO cambia
+
+- Toda la lógica de `lib/alta-producto.ts` (`problemasAlta`, `faltaDelPaso`, `construirCeldas`, código previsto), la
+  RPC `crear_producto_con_stock_inicial` con su token de idempotencia, el Enter bloqueado, el alta sin conexión, «Crear
+  otro parecido» y la subida de fotos después de crear.
+- `ArbolCategoria`, `ElegirMarcaProveedor`, `AvisoParecidos`, `ElegirTejido`, `ElegirColores`, `ElegirEtiquetas`,
+  `ProponerValor`, `ConfigurarCategoria`, `RevisarFotosModal` y `ComboResponsable` se mueven de lugar, no cambian por
+  dentro. Las etiquetas del spike son chips simples: en el ERP siguen siendo las de `ElegirEtiquetas`, con dibujo.
+- Celular: la barra fija de abajo (nombre, código, variantes, precio, «Crear», siguiente paso) queda igual.
+
+## Decisiones para Felipe antes de implementar
+
+1. **Precio y stock en el mismo paso.** Hoy son dos pasos. Juntos, la tabla se dibuja una sola vez y el paso 4 cierra
+   el alta. El costo: un paso más largo para quien carga 5 colores × 6 tallas.
+2. **Fotos dentro de la fila del color.** Ganas que no se repite la lista de colores. Pagas que la foto «para todos
+   los colores» no tiene fila propia: en el spike, la primera foto se usa en los colores que no tienen la suya. ¿Alcanza,
+   o hace falta una fila «Todos los colores»?
+3. **Crear un color desde el alta.** Hoy crear colores es de Catálogo → Atributos. ¿Quién puede crearlo desde aquí?
+   ¿Solo el líder, igual que marcas y proveedores?
+4. **Temporada y etiquetas plegadas** (la descripción volvió a la vista el 2026-09-28). Las etiquetas se pusieron a la vista a propósito el 2026-09-26
+   (ADR-0109). Si tienen que seguir a la vista, van como fila abierta al final de «¿Cómo es?».
+
+## Cómo se portaría (estimado)
+
+- `NuevoProductoForm.tsx`: pasa de 5 a 4 `PasoAlta`. `cuerpo(2)` recibe tejido, patrón y el plegable. `cuerpo(3)`
+  queda con tallas, colores y la tabla. El paso 4 junta el precio actual con `MatrizCantidades`. Se quita el `<nav>`
+  de 5 segmentos.
+- `lib/alta-producto.ts`: `PASOS_ALTA` y `faltaDelPaso` pasan a 4 pasos (el problema de tejido o patrón se mueve al
+  paso 2, el de stock al 4). Sus pruebas `.test.ts` cambian con eso.
+- `MatrizVariantes` gana una columna de fotos por fila (la de `FotosAlta`, con `RevisarFotosModal`). `MatrizCantidades`
+  gana el segmento «Cuántas hay hoy / Precios distintos» y absorbe la edición de precio de `MatrizVariantes`.
+- `FichaPrevia`: la tarjeta se achica y «Siguiente paso» pasa a ser la lista «Avance».
+- Crear un color desde el alta: si Felipe lo aprueba, hace falta una RPC o un permiso (la única pieza que podría
+  necesitar migración).
+- Hay otras sesiones sobre este formulario (ver `docs/SESIONES-ACTIVAS.md`): reconciliar contra `main` antes de
+  empezar.

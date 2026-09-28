@@ -20,9 +20,16 @@ export async function POST(request: Request) {
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del tejido." }, { status: 400 });
   }
+  // «Cómo se ve» al crear (opcional, ADR-0256): se guarda ya, aunque después se cancele el dibujo propuesto — así el
+  // generador la recuerda la próxima vez que se abra, en vez de caer de nuevo al nombre.
+  const descripcion = typeof cuerpo?.descripcion === "string" ? cuerpo.descripcion.trim().slice(0, 120) : "";
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await supabase.from("tejidos").insert({ nombre }).select("id, nombre, activo, notas, estado, imagen_muestra_url").single();
+  const { data, error } = await supabase
+    .from("tejidos")
+    .insert({ nombre, ...(descripcion ? { descripcion_dibujo: descripcion } : {}) })
+    .select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo")
+    .single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar el tejido") }, { status: 400 });
@@ -49,7 +56,14 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
-  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string; imagen_muestra_url?: string | null } = {};
+  const patch: {
+    nombre?: string;
+    activo?: boolean;
+    notas?: string | null;
+    estado?: string;
+    imagen_muestra_url?: string | null;
+    descripcion_dibujo?: string | null;
+  } = {};
 
   if ("estado" in cuerpoObj) {
     if (cuerpoObj.estado !== "aprobado" && cuerpoObj.estado !== "rechazado") {
@@ -80,6 +94,13 @@ export async function PATCH(request: Request) {
     patch.imagen_muestra_url = leida.valor;
   }
 
+  // La frase de «Generar dibujo» (ADR-0256): se guarda junto con el dibujo, así la próxima vez que se reabra el
+  // generador sobre este tejido —aunque ya exista desde antes solo con nombre— arranca desde ella, no desde el nombre.
+  if ("descripcionDibujo" in cuerpoObj) {
+    const valor = typeof cuerpoObj.descripcionDibujo === "string" ? cuerpoObj.descripcionDibujo.trim() : "";
+    patch.descripcion_dibujo = valor ? valor.slice(0, 120) : null;
+  }
+
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
@@ -108,7 +129,12 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("tejidos").update(patch).eq("id", id).select("id, nombre, activo, notas, estado, imagen_muestra_url").single();
+  const { data, error } = await supabase
+    .from("tejidos")
+    .update(patch)
+    .eq("id", id)
+    .select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo")
+    .single();
 
   if (error) {
     if (error.code === "PGRST116") {

@@ -2,6 +2,9 @@
 
 **Fecha:** 2026-09-26
 **Estado:** **Corrida real HECHA en producción el 2026-09-26 a las 10:06 (Lima)**, con el «dale» de Felipe. Verificada por consulta directa (abajo). Respaldo: `respaldo_purgas.filas`, purga «purga TOP-0011 2026-09-26 10:06» (87 filas).
+**Actualización 2026-09-28 (abajo):** el script alcanza productos con documentos (ventas con boleta de pruebas o nunca enviada, separaciones,
+compras). **Blusa Xd y Test de Produto 2 purgados en producción** con ensayo y «dale»; Polo Básico frenado por 2 proformas (Felipe lo deja
+para después) y Blusa Carlita con ensayo OK, esperando a Polo Básico.
 **Decide:** Felipe, 2026-09-26: «quiero eliminarlo por completo» (Top Aurora, `TOP-0011`) y confirmó que la venta `NV01-000007` «toda fue de prueba».
 **Afecta:** `scripts/purga/purgar-producto-de-prueba.sql`, `scripts/purga/restaurar-purga.sql`, `scripts/pruebas/purgar_producto_de_prueba.mjs`
 (sumada al CI), y un esquema nuevo `respaldo_purgas` (una tabla, creada por el propio script). **No toca ninguna función, tabla ni política de `retail`,
@@ -109,3 +112,112 @@ Verificado después con una consulta aparte, sin fiarse del resumen del propio s
 2. Volver atrás: `scripts/purga/restaurar-purga.sql` con `cayla_purga.nombre` = el nombre de la purga que trae el resumen («purga TOP-0011 2026-09-26 10:06»).
    Probado en la base desechable; en producción solo se comprobó que este rol puede poner `session_replication_role = replica`.
 3. `respaldo_purgas.filas` se conserva. Cuando Felipe confirme que no hace falta volver atrás, se borra a mano (es un respaldo, no historia del negocio).
+
+## Actualización 2026-09-28 — productos con documentos
+
+**Decide:** Felipe, 2026-09-28: todo el catálogo de producción era práctica. [ADR-0252](0252-eliminar-producto-con-historia-de-stock-solo-admin.md)
+dejó que un Admin borre desde la web lo que solo tiene historia de stock; cuatro productos tenían **documentos** (alguien del otro lado) y quedaban
+fuera del botón y de este script, que rechazaba todo lo que no fuera un ajuste simple y una nota interna: Polo Básico (`POL-0002`), Blusa
+Carlita (`CMS-0001`), Test de Produto 2 (`POL-0005`) y Blusa Xd (`BLZ-0006`).
+
+**Lo que había en producción (consultado en solo lectura el 2026-09-28):** 7 ventas de TRU, todas de un solo producto (ninguna mezclaba estos
+cuatro con otros); 9 comprobantes: 4 notas internas (NV01-3 a 6), 2 boletas del entorno de pruebas de SUNAT (B004-28 y 29, aceptadas en *sandbox*)
+y 3 boletas que nunca salieron de la base (B004-30 y 32, anticipos de separación; B004-31, la entrega que descuenta el anticipo); 2 separaciones
+(APT-TRU-0004 entregada, APT-TRU-0005 **abierta** con S/ 15 por Yape); 1 compra (F001-000022, S/ 10,620 a crédito, sin pagar, repartida entre TRU y
+AQP, con una reasignación, un lote, un envío y 3 costos); un conteo cerrado (#5) con líneas de Blusa Xd y Polo Básico; una bajada al piso con
+líneas solo de Test de Produto 2; 3 cajas de TRU ya cerradas; ningún mes cerrado. **B004-2 y B004-3 llegaron a SUNAT en producción y no tienen
+venta: no los cita ningún documento de estos productos.**
+
+**DECIDÍ:** ampliar el mismo script, no escribir otro (una sola manera de romper la promesa de «no se borra», Brooks), con estas reglas:
+1. **Una sola lista de lo que se borra** (`zz_borrar`: tabla + id; y las «hojas» sin id propio —stock, reparto de la compra, líneas de bajada,
+   marcas de reintento, anticipos— que se van con su padre). De esa lista salen el candado, el respaldo, el borrado y la demostración. El
+   candado por llave foránea deja de tener una lista de tablas «conocidas»: pregunta a **todas** las tablas de `retail` si alguna cita algo de la
+   lista (sin contar las que también se borran). Una tabla que nazca mañana y cite una venta frena la purga sola, sin tocar el script.
+2. **Nada se borra por omisión.** Dos parámetros nuevos, opcionales: `cayla_purga.separaciones` y `cayla_purga.compras` (ids, `-` si no hay).
+   Si el producto está en un documento que no se nombró, el ensayo lo rechaza **con su id**; si un documento nombrado no tiene el producto
+   (un id mal copiado), también.
+3. **La línea roja de SUNAT, en tres capas.** Un comprobante con `entorno_transmision = 'produccion'` aborta en el acto (error, no aviso). Solo
+   se borran tres clases: nota interna; lo que fue al entorno de pruebas (`sandbox`); y lo que nunca salió (pendiente, sin envío, sin respuesta,
+   sin intentos, sin anulación pedida). Y al final se comparan las huellas md5 de TODOS los comprobantes de producción de la base: si uno cambió
+   o faltó, no se guarda nada. Uno pendiente que el envío automático acaba de tomar (`proximo_reintento_at` en el futuro) espera 5 minutos.
+4. **Separaciones y compras, enteras o nada.** Una separación no puede traer prendas de otros productos (liberar sus apartados reescribiría otra
+   prenda) ni efectivo que entró a la caja con su propio movimiento; una compra no puede traer otras líneas, pagos, notas de crédito ni un lote
+   con prendas de otra compra. El envío se va solo si se queda vacío. Una venta sí puede traer otras prendas: vuelven a su stock, como con Top Aurora.
+5. **Candados de historial:** además de `movimientos` se apagan, solo dentro de la transacción, los de bajadas, marcas de reintento, costos,
+   reasignaciones y cierres de compra; cada uno vuelve **al modo en que estaba** y se comprueba (el mismo patrón de ADR-0252).
+6. **Series:** la de notas de venta vuelve si lo borrado era el final (y se identifica por su sede: dos sedes pueden llamar igual a su serie);
+   **la de boletas y facturas no retrocede nunca**, aunque lo borrado sea el final: SUNAT o el PSE pudieron ver ese número y reusarlo sería un
+   duplicado (la migración `20260924113817` cuenta que B004-4 y 5 existieron y ya no están).
+7. `set constraints all immediate` antes de la demostración: las revisiones diferidas (el reparto de una compra entre tiendas) corren dentro del
+   ensayo, que nunca confirma.
+8. **Rastro:** una línea de Actividad por documento, en su módulo (`vender`, `apartados`, `facturas_compra`), y otra por el producto
+   (`productos`); y la misma fila «eliminado» en `historial_producto_cambios` que deja ADR-0252.
+
+`restaurar-purga.sql` devuelve también separaciones, pagos de separación, compras con su reparto, reasignaciones y cierres, lotes, envíos,
+costos y anticipos; **se niega** si el respaldo trae una tabla que no sabe devolver (una restauración a medias es peor que ninguna) o si el
+número de una nota ya lo tiene otra; identifica la serie por su id y **nunca la hace retroceder**; y a las otras prendas les **resta** lo que la
+purga les devolvió en vez de pisar su stock con el número viejo (si la tienda siguió vendiendo, esa venta sigue contando).
+
+**DESCARTÉ:**
+- *Un segundo script para documentos.* Ganas: el de Top Aurora queda intacto. Pagas: dos maneras de borrar historia, con dos candados que
+  envejecen distinto; la próxima tabla que cite ventas la conocería uno y el otro no.
+- *Inferir solos los documentos a borrar* (toda venta, separación o compra que toque el producto). Ganas: un parámetro en vez de cuatro. Pagas:
+  un producto que alguna vez se vendió de verdad se llevaría esa venta sin que nadie la nombre. Nombrarlos es el «dale» por escrito.
+- *Borrar también B004-2 y B004-3.* No se tocan: llegaron a SUNAT en producción. No son de estos productos, y aunque lo fueran el script aborta.
+- *Hacer retroceder B004 al 28 (o al 4).* Ganas: la serie sin hueco. Pagas: si alguno de esos números llegó al PSE, el próximo sería un duplicado.
+  B004 sigue en 33: la próxima boleta real será B004-33.
+- *Reescribir las cajas cerradas.* Su cierre guardado (lo contado ese día) se queda; la caja pierde la venta, no su arqueo. Igual que con Top Aurora.
+
+**SE ROMPE SI:**
+- **El envío automático toma una boleta pendiente en el mismo segundo de la purga.** No se rompe: la purga la bloquea `for update` al empezar
+  y la toma usa `skip locked`; una que ya estaba tomada (reserva en el futuro) frena el ensayo con «espera 5 minutos».
+- **Aparece una tabla nueva que menciona una venta en un jsonb, sin llave.** La búsqueda por id en todas las tablas la encuentra y frena. Así
+  frenó a Polo Básico: 2 proformas (cotizaciones) guardan sus prendas en su detalle, sin llave.
+- **Una purga borra una nota que era el final y después se emite otra con ese número.** Restaurar esa purga se niega con un mensaje claro; hay
+  que decidir a mano (la nota nueva ya es de otra venta).
+
+## Verificación (2026-09-28)
+
+- `pnpm pruebas:purgar-producto` **89/89** (antes 36) en Postgres 17 desechable (344 migraciones + seed). Un segundo escenario reproduce a los
+  cuatro productos en uno —carga inicial, bajada, movimiento interno con su marca, conteo, pedido no atendido, nota interna mezclada con otra
+  prenda, boleta *sandbox*, separación entregada (anticipo + entrega) y otra abierta, compra repartida entre dos tiendas, reasignada, recibida en
+  parte y con un faltante cerrado— y al lado una boleta de otra prenda **transmitida a producción**. El ensayo deja la base **entera** idéntica
+  tabla por tabla, y purgar + restaurar la devuelve idéntica salvo Actividad, el historial del producto y la versión del catálogo (solo avanzan).
+  Rechazos nuevos: la línea roja, un comprobante que intentó salir sin entorno, uno que se está enviando, separación o compra no nombrada,
+  venta nombrada sin el producto, separación con otra prenda o con efectivo, compra con pago o con otra prenda, lote con otra prenda, aviso a la
+  clienta, cambio de prenda, proforma sin llave. Restaurar tras una venta nueva (la serie de boletas y el stock siguen bien) y con el número de
+  la nota reutilizado (se niega).
+- `pnpm pruebas:eliminar-producto-con-historia` 52/52 y `pnpm pruebas:eliminar-producto` 35/35 con el restaurador nuevo.
+- **Mutación:** 21 mutaciones, **20 detectadas**. Sobrevive `set constraints all immediate`: ninguna purga correcta deja una revisión diferida en
+  falso, así que no hay escenario que la dispare; queda como cinturón. Apagando las dos primeras capas de la línea roja, la huella final (tercera
+  capa) frena sola y la base queda intacta.
+- **Lo que cazó la prueba:** (1) un `NULL`: sin entorno, `entorno = 'sandbox'` daba NULL y `not (… or NULL or …)` también, así que una boleta
+  que ya había intentado salir se colaba sin contarse; (2) la serie se identificaba por (tipo, serie) y en local Lima y Trujillo comparten B001:
+  el restaurador subía la serie de la otra sede.
+
+## Producción (2026-09-28, Lima)
+
+- **Sonda** (solo lectura, 12:47): 33 productos, 188 movimientos, 7 ventas, 11 comprobantes, 602 prendas, 87 filas de respaldo, libro 0
+  descuadres, candados en su modo, huellas de B004-2 y B004-3 anotadas.
+- **Ensayos** (con permiso de Felipe; cada lote termina en excepción): BLZ-0006, POL-0005 y CMS-0001 **OK**; POL-0002 **frenado** por 2 proformas
+  vigentes de TRU (#2 del 22-sep, S/ 12,373.20, Polo Básico ×47 y 6 líneas de prendas que ya no existen; #3 del 23-sep, S/ 39.90). Después:
+  la base idéntica a la sonda.
+- **Corrida real** con el «dale» de Felipe, un producto por lote, verificando cada uno por fuera antes del siguiente:
+
+| | Antes | Tras BLZ-0006 (14:11) | Tras POL-0005 (14:13) |
+|---|---|---|---|
+| Productos | 33 | 32 | 31 |
+| Movimientos | 188 | 181 | 150 |
+| Prendas en stock | 602 | 552 | 474 |
+| Ventas | 7 | 7 | 6 |
+| Separaciones · compras | 2 · 1 | 2 · 0 | 0 · 0 |
+| Libro de movimientos vs stock | 0 descuadres | 0 | 0 |
+| B004-2 y B004-3 (huella md5) | `0725b7f8…`, `680f21ae…` | iguales | iguales |
+| Series B004 · NV01 | 33 · 7 | 33 · 7 | 33 · 7 |
+| Respaldo | 87 filas | +36 («purga BLZ-0006 2026-09-28 14:11») | +111 («purga POL-0005 2026-09-28 14:13») |
+
+  El conteo #5 conserva su cabecera y las 4 líneas de Polo Básico; la bajada de Test de Produto 2 conserva su cabecera sin líneas; las 3 cajas,
+  su cierre guardado. La compra F001-000022 salió de Por pagar; la separación abierta APT-TRU-0005 (S/ 15 por Yape) ya no espera a nadie.
+
+**Pendiente:** Polo Básico, cuando Felipe decida qué hacer con las 2 proformas (ampliar el script con `cayla_purga.proformas` o anularlas), y
+justo después Blusa Carlita (si va antes, NV01-4 y 5 de Polo Básico impiden que la serie vuelva al 3 y queda un hueco).

@@ -265,3 +265,27 @@ conviene paginar dentro del grupo (hoy el máximo es 8).
 Diferencia con Traslados, a propósito: allí tocar la tarjeta activa quita el filtro; aquí no hace nada, porque siempre hay
 una vista abierta. En celular (dos columnas) la línea que viaja no se dibuja: la elegida se lee por su fondo.
 
+
+## Actualización 2026-09-28 (b) — la pestaña abre con la grilla, como las otras cinco (Felipe; ADR-0261)
+
+**El problema:** la pestaña era la única de Atributos que no se parecía a las demás: sin dibujos, cuatro tarjetas de cifra
+arriba y las nueve en tabla. Felipe pidió que todo el módulo se vea uniforme y eligió «Grilla primero» sabiendo lo que
+pagaba: lo pendiente deja de ser lo primero que se ve.
+
+**Qué cambió** (`components/TemporadasLista.tsx`, `components/MuestraTemporada.tsx`, `lib/temporadas-pantalla.ts`):
+
+- **Abre en «Las nueve»** (`vistaTemporadas` sin `?vista=` devuelve `lista`), en tarjetas con dibujo agrupadas en Una
+  estación · Dos estaciones · Clásicos, con sus píldoras. Cada tarjeta dice cuántas prendas la tienen hoy y cuándo termina.
+- **Las cuatro `TarjetaCifra` se van**; su información queda en una franja sobre la grilla, con un punto de color y un
+  enlace por parte: «10 prendas sin temporada · Completar ›» (punto rojo mientras falte alguna), «42 de 42 categorías sin
+  temporada · Por categoría ›», «Primavera en curso, termina el 21 dic. · Calendario ›». Sigue sin ir al servidor
+  (`history.pushState`).
+- **Cada vista de trabajo tiene «← Las nueve temporadas»** arriba; si se llegó desde Productos o Categorías, además su
+  vuelta («← Productos»). Los enlaces de esas dos pantallas no cambian: siguen abriendo directo su vista.
+
+DECIDÍ: la grilla como entrada y el trabajo a un clic con su cifra a la vista.
+DESCARTÉ: dejar las cuatro tarjetas y solo pasar «Las nueve» a grilla, porque la pestaña seguía viéndose distinta de las
+otras cinco, que era el pedido.
+SE ROMPE SI: con la cifra en una franja nadie entra a completar (en producción, el 28-09, eran 31 de 33 prendas sin
+temporada): si en unas semanas «Por completar» no baja, se vuelve a abrir en «Por completar» cambiando una línea
+(`vistaTemporadas`), sin tocar la grilla.

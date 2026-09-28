@@ -1,4 +1,4 @@
-# BACKLOG VIVO — CAYLA Retail
+# BACKLOG VIVO — CAYLA Retail (secciones hasta el 2026-09-28; las nuevas van en `docs/backlog/`, ADR-0259)
 
 > Lo mantiene Claude. Se actualiza al cierre de cada sesión/paso. Máx. 3 ítems por
 > cubo — un décimo ítem no es señal de ambición, es señal de que no se está cerrando.
@@ -35,6 +35,45 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] `components/ui/IsotipoCayla.tsx`: el `<path>` ya calcado en `EtiquetaPrecio.tsx`, en rojo de marca (`#b8412d`), reemplazando el PNG en las tres pantallas de arriba.
 - [ ] **Abierto, no bloquea:** los otros 7 usos de `/cayla-isotipo.png` (`ReciboTermico`, `ProformaA4`, `BoletaA4`, `CambioTicket`, `ComprobantesListaVacia`, `PrendaCelda`, `Espera.tsx`) siguen en PNG — son documentos ya calibrados contra una impresora o un tamaño de papel real; cambiarlos pide verificar contra la impresora física, no se hizo acá a propósito.
 - [ ] **Decisión de Felipe pendiente:** si un integrante debería ver a TODO el equipo de turno en el buscador o solo a quien puede tocar (`fn_alcanzo_a`, ADR-0178) — hoy ve a todos (detalle en ADR-0257).
+
+## 🎨 Color y talla de una variante se corrigen mientras no tenga historia (2026-09-28, ADR-0258) — web + migración `20260928235500` **EN PRODUCCIÓN** (pegada por Felipe y verificada el 2026-09-28); rama `claude/product-sizes-colors-edit-a83b77`
+
+- [x] Migración: `fn_variantes_con_historia` (por llave foránea, se adapta sola a tablas nuevas), candado `variantes_identidad_sin_historia` en la tabla (cierra el hueco 3), `fn_corregir_identidad_variante` (recalcula el código y renombra su código de barras) y parches por ancla de `catalogo_actualizar_producto` y `fn_registrar_cambio_producto`. Anclas verificadas contra la definición viva de producción el 2026-09-28.
+- [x] Ficha: la variante sin historia muestra combos de color y talla y el código que le dará la base; la que tiene historia sigue fija. Sin la migración, todo sigue fijo como antes.
+- [x] `pnpm pruebas:corregir-identidad-variante` (11 casos, en CI).
+- [x] Migración pegada en producción y verificada (2026-09-28): funciones, candado y los dos parches; una sola firma de `catalogo_actualizar_producto`. 86 de 192 variantes quedan corregibles.
+- [ ] **Sin probar con cuenta real:** corregir una variante recién creada en la ficha y ver el código nuevo; la pantalla solo se vio con datos de prueba y la base con transacciones que se deshacen.
+- [ ] **Rama `claude/product-variant-editing-9307ed`** (reservó otro «ADR-0254» con D-136 a D-138: corregir siempre, y solo líder si se vendió): choca con esta. Felipe eligió «solo sin historia» el 2026-09-28; esa rama tiene que volver a preguntarle antes de seguir.
+## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
+Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
+cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo
+entero y contaba lo físico.
+- [x] Desde Existencias y desde «Corregir con un ajuste» (Movimientos) el modal muestra solo ese color, con el color en
+      el título (`soloDeLaPrenda`, prop `prenda`). Productos sigue abriendo el modelo entero.
+- [x] Total del lugar arriba de las tallas, con lo apartado aparte («9 en el piso · 1 apartada · 8 libres»: el 8 es la
+      cifra de la fila); cada talla dice su apartada; el ajuste que deja menos que lo apartado se frena en pantalla.
+- [x] **«Conteo físico» pregunta cuántas hay (opción A, Felipe 2026-09-28).** Antes el modal pedía la diferencia también
+      al contar: quien contó 4 y escribía 4 dejaba 8. Ahora el motivo va ANTES de las tallas y decide qué se escribe:
+      con «Conteo físico», lo contado (el rótulo dice «Contaste en el piso / en el almacén», vacío = «no la conté», 0 =
+      «conté cero») y la talla muestra la diferencia que se registra («→ 3 (−2)»); con los demás motivos, «Suma o resta»
+      como antes. Cambiar de motivo con cantidades escritas cambia su forma, no el resultado (`pasarCantidades`). Al
+      contar, cada apartada dice «(cuéntala)» (ADR-0141: el conteo incluye lo apartado) y, si lo contado queda por
+      debajo de lo apartado, el aviso pide contarla antes de liberar nada. La base no cambia: sigue recibiendo la
+      diferencia, calculada contra el stock que muestra la pantalla, igual que Conteo (`contado − foto`, ADR-0189).
+- [ ] **Queda sin cubrir, a propósito:** si se vende una talla MIENTRAS se cuenta con el modal abierto, la venta se
+      descuenta dos veces (la foto es de cuando se abrió el modal). Con 8 ventas en 5 días en TRU (producción,
+      2026-09-28) la probabilidad por conteo es ~0,1 %; revisar si las ventas por prenda suben o si se cuenta con el modal
+      abierto por mucho rato. El arreglo firme es que la base reciba el stock que vio la pantalla y rechace si cambió:
+      `ajustar_inventario` ya ignora claves de más en cada línea, así que la web puede mandarlo antes que la base lo lea.
+- [ ] **Propuesta (lo decide Felipe): «Merma» pide un número con signo, y la base acepta una merma POSITIVA** (suma prendas
+      y las registra como pérdida). Hoy hay 0 mermas en producción, así que no ha pasado. Misma trampa que la de contar,
+      al revés: que cada motivo pregunte lo suyo sin signo («¿cuántas se perdieron?») y que `registrar_movimiento`
+      rechace `merma` con cantidad > 0.
+- Cómo verificas: abre Existencias en TRU, fila «Test de Produto 2» Celeste ▸ Ajustar: 3 tallas (S 4 · M 5 · L 3) y
+  «0 en el almacén» (arranca en el almacén). Elige «Piso de venta» y «Conteo físico»: el rótulo dice «Contaste en el
+  piso»; escribe 4 en S (nada cambia) y 3 en M («→ 3 (−2)»); Confirmar deja M en 3, no en 8. La fila Gris ▸ Ajustar
+  ▸ Piso ▸ «Conteo físico»: M dice «1 apartada (cuéntala)»; escribe 0 y Confirmar: la pantalla lo frena sin ir a la
+  base. `pnpm --filter web exec vitest run lib/ajuste-reglas.test.ts`.
 
 ## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
 
@@ -88,12 +127,24 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
 - [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
 - [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
-- [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
+- [x] Web fusionada (#554) y publicada: la ventana nueva está en producción.
+- [x] **«Eliminar el producto» también en Existencias** (Felipe lo buscó ahí, 2026-09-28): al final del detalle de cada prenda, solo para un Admin en su sede (ahí todo ya tiene historia de stock); abre la misma ventana. Rama `claude/eliminar-desde-existencias`, solo web.
 - [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
-- [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
+- [x] Los 4 con documentos: `scripts/purga/purgar-producto-de-prueba.sql` **ampliado** (ADR-0224, «Actualización 2026-09-28»): ventas con boleta
+  *sandbox* o nunca enviada, separaciones, compras con su recepción, carga inicial, bajadas, conteos y traslados dentro de la tienda. Una
+  boleta que llegó a SUNAT en producción aborta (tres capas). `pnpm pruebas:purgar-producto` 89/89, 20 de 21 mutaciones detectadas.
+- [x] **Purgados en producción el 2026-09-28** con ensayo y «dale» de Felipe, uno por lote y verificados por fuera: **Blusa Xd** (`BLZ-0006`,
+  con la factura F001-000022 de S/ 10,620 de Alicia Damian Flores, su lote, envío y 3 costos; respaldo «purga BLZ-0006 2026-09-28 14:11», 36
+  filas) y **Test de Produto 2** (`POL-0005`, 1 venta, separaciones APT-TRU-0004/0005, boletas B004-30/31/32 que nunca salieron; respaldo
+  «purga POL-0005 2026-09-28 14:13», 111 filas). Producción: 33 → 31 productos, 188 → 150 movimientos, libro 0 descuadres, B004-2/3 intactos.
+- [ ] **Polo Básico (`POL-0002`): Felipe lo deja para después.** El ensayo lo frenó por **2 proformas vigentes de TRU** que lo nombran en su
+  detalle (#2 del 22-sep, S/ 12,373.20, con 6 líneas de prendas que ya no existen; #3 del 23-sep, S/ 39.90). Para purgarlo hay que decidir qué
+  pasa con esas cotizaciones (ampliar el script con `cayla_purga.proformas`, o anularlas y aceptarlas como inertes).
+- [ ] **Blusa Carlita (`CMS-0001`): ensayo OK** (2 ventas con NV01-3 y NV01-6, 148 filas), **esperando a Polo Básico**: si se purga antes,
+  la serie de notas NV01 no puede volver al 3 (NV01-4 y 5, de Polo Básico, siguen ahí) y queda un hueco. Correrla justo después de POL-0002.
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
 - Cómo verificas:
-  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
+  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (89/89).
   - Con una cuenta Admin, en Catálogo ▸ Productos ▸ Tabla, la ficha de la prenda ▸ Eliminar (el menú «···» se fue con ADR-0254; en la Grilla, la vista rápida) sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
 
 ## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
@@ -121,17 +172,18 @@ reabrir un mes, quien tenga Cierre de mes.
   - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
   - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
 
-## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
+## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **YA en producción** (verificado por md5 el 2026-09-28; falta la llave); PR #547 fusionado
 
-- [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
-  funciones, sin políticas ni `drop trigger`). Después: `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
+- [x] **Felipe pegó `20260928210000_huellas_catalogo_con_llave.sql` el 2026-09-28** (verificado: las dos funciones idénticas
+  a las de `main`, byte a byte; `huellas_llave` sin filas).
+- [ ] **Falta la llave:** `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
   secreto `DERIVA_LLAVE`; `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables (Settings ▸ Secrets and variables ▸ Actions).
   Primera corrida: Actions ▸ «Deriva diaria» ▸ Run workflow.
 - [ ] **Cuando el PR esté en `main`: sumar «SQL pegado» a los checks exigidos de `main`** (hoy exige «Tipos, lint y
   pruebas» y «Pruebas de RPC contra Postgres»; protegida el 2026-09-28 con el sí de Felipe).
 - [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
   `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
-  main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+  main», ADR-0255). Después de fusionar los dos, la deriva debe quedar en 0.
 
 ## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificado por md5); rama `claude/clientas-por-modulo-y-anonimizar`
 Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
@@ -148,6 +200,52 @@ Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base ti
 - [ ] **Felipe (no bloquea pegar):** la actividad de Apartados deja de decir el nombre («abonó S/ 20 al apartado APT-TRU-0007 de la clienta»). Es lo que pide «anonimizar borra todo»; si prefiere el nombre ahí, la clienta que apartó no queda borrada del todo.
 - [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
 - Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
+
+## 🔁 Los arreglos que vivían solo en producción, llevados a `main` (2026-09-28, ADR-0255) — dos migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificadas por md5); rama `claude/arreglos-en-vivo-a-main`
+La primera corrida de la deriva (ADR-0251) encontró 14 diferencias reales entre producción y `main`. Este cambio las deja
+en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se decide en su PR.
+- [x] `20260928200000`: `emitir_comprobante`, `emitir_nota`, `fn_aplicar_movimiento` y `recalcular_stock` solo para su
+  dueña; `stock` y `movimientos` sin escritura directa para `authenticated` ni `service_role` (la lectura intacta);
+  `fn_rentabilidad` con el cuerpo exacto de producción; las tres `_json`, la versión de `main`. Guarda de md5 y
+  verificación final que aborta si algo no quedó EXACTAMENTE como en producción (ni un permiso de más, tampoco por
+  columna ni a `anon`).
+- [x] `20260928200100`: notas de crédito de compras con la regla combinada (un cierre deja de esperar si tiene una nota
+  atada o si su comprobante ya tiene la nota por faltante). Decisión técnica: junta las dos reglas escritas, cumple lo
+  que Felipe pidió el 22-sep, y producción no tiene cierres ni notas hoy.
+- [x] Antes de cerrar las puertas: la web de `main` no llama a ninguna de las cuatro ni escribe `stock`/`movimientos`;
+  las 31 funciones que lo hacen son `security definer` de `postgres`; producción ya opera así desde el 26-sep.
+- [x] `pnpm pruebas:arreglos-en-vivo` (47/47, los mismos casos con y sin superusuario: en el CI ya no se omite
+  ninguno), en `package.json` y en el job «Pruebas de RPC contra Postgres».
+- [x] Revisión (2026-09-28): las pruebas del PEGADO ya no congelan las funciones (pegan sobre la foto de producción
+  armada desde el texto de cada migración; una migración posterior que cambie una `_json`, `fn_rentabilidad` o las
+  notas no pone roja la suite ni pide editar una migración fusionada); los permisos se comparan contra la lista
+  explícita de producción, también por columna; las notas se prueban con montos, por motivo, por comprobante y por sede.
+- [x] **PEGADAS el 2026-09-28** y verificadas en solo lectura: las cinco huellas (`fn_stock_por_sede_json` `8ea080da…`,
+  `fn_resumen_comparacion_json` `29215793…`, `fn_resumen_variantes_json` `23e23e13…`, `compras_nota_pendiente` `a80fc315…`,
+  `notas_credito_tablero` `e9a4ec7b…`), `fn_rentabilidad` `1a61f192…`, las cuatro funciones cerradas solo para la dueña y
+  `stock`/`movimientos` con `authenticated=r` y `service_role=rxtm`.
+- [ ] Correr la deriva (ADR-0251) cuando esté la llave `DERIVA_LLAVE`: debe quedar en 0 (la política de
+  `clientas_fusiones` ya se quitó en producción con Clientas PARTE 2, #552).
+- [ ] **PR #168 (Rentabilidad):** quitar su creación de `fn_rentabilidad` o dejarla idéntica a la de producción. Si no,
+  la guarda de `20260928200000` aborta en el CI.
+- [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante», así que una
+  nota por devolución registrada desde la pantalla no apaga el pendiente de su cierre. **Antes de hacer que el modal
+  mande `cierre_id` con otro motivo:** la regla (a) NO mira el monto, y una nota chica atada apaga el cierre entero (una
+  devolución de S/ 59 atada a un cierre de S/ 590 borra el pendiente y los S/ 531 que faltan dejan de verse). El modal
+  solo puede atar una nota que no es por faltante cuando su monto cubre el esperado de ESE cierre (costo + IGV, con
+  `MARGEN_NOTA`); si eso no alcanza, el cambio va en la base (que la regla (a) sume las notas atadas y las compare con el
+  esperado), con su migración nueva. Ver ADR-0255, «Se rompe si».
+- Cómo verificas:
+  - `pnpm pruebas:arreglos-en-vivo` (47/47, con y sin superusuario) y el job completo de Postgres: 102 de 104 pasos
+    en verde. Los 2 rojos (`proveedores-produccion` y `dinero-compras`) salen igual en `main` sin este cambio: son del
+    Postgres desechable.
+  - Mutaciones, en los dos modos: 34 del estado vivo (32 la ponen roja; `R13`, la lista con comprobantes anulados, la
+    atrapa `compras-faltantes`; `R10`, la lista sin su candado de líder, es equivalente: el candado de sede ya exige lo
+    mismo) y 13 de los archivos (las 13 la ponen roja).
+  - Cambios futuros legítimos (una `_json` o `fn_rentabilidad` con otro cuerpo, `fn_rentabilidad` con otra columna,
+    `compras_nota_pendiente` con otra condición): la suite sigue en verde. Con otra firma de `emitir_nota`, las 11
+    pruebas del pegado de A se omiten con un aviso que lo dice.
+  - En producción, después de pegar, la consulta de huellas de cada encabezado da los md5 de ADR-0255.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
@@ -1186,7 +1284,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
         núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
-    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, EN PRODUCCIÓN desde el 2026-09-28** (rama
       `claude/frescura-3c-lectura`). `20260928120300_frescura_lectura.sql`: `fn_es_llegada` (el predicado de llegada de
       `fn_resumen_comparacion` con nombre propio), `fn_frescura_sede` (una lectura por sede, candado de líder + operar la
       sede, pista `frescura_sin_permiso`) y `fn_confianza_registro` (por sede y mes de Lima, sin persona, sin carga
@@ -1224,25 +1322,46 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       con «trasladar». `20260928120320` solo cambió comentarios (su `fn_frescura_sede` pasa a `7da85d7b…`). Más las dos
       pruebas que faltaban (lote + producción en T4i; la segunda talla apartada y el borde 100 en la web). Pruebas:
       `pnpm pruebas:frescura-lectura` 207, `frescura-reglas.test.ts` 141. ADR-0208, «Revisión 8 del paso 3». PR nuevo
-      (el #544 ya se fusionó).
-      - [ ] **Pegar en producción: `20260928120300`, `20260928120310` y `20260928120320`, en ese orden** (cada una
-        sola, en el SQL Editor, a cualquier hora: solo funciones; primero se fusiona el PR de las revisiones 7 y 8). Producción
-        el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos:
-        `20260928120300` `40bf970f…` y `20260928120310` `e121f11e…` (los dos idénticos a main), `20260928120320`
-        `81e3ddeb…` (revisión 8). md5 reverificados ese día en bases nuevas (cada archivo en una transacción, dos veces
-        cada uno).
-        **No detenerse en la segunda**: sin la tercera, lo apartado cuenta como colgado y la carga de AQP o LIM reinicia
-        temporadas. Tras `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`,
-        `fn_frescura_sede` `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro`
-        `9c714f98dd2776eebb505846eb24c33a`, `fn_temporada_efectiva` sin cambio. Tras `20260928120310`: `fn_es_llegada`
-        igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`, `fn_frescura_sede`
-        `51babffc09da4073691ee251882967c8`, `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`,
-        `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`, `fn_temporada_efectiva`
-        `e96b3c6c51fd12ca712e76d63efd6448`. Tras `20260928120320`: las mismas cinco y `fn_frescura_sede`
-        `7da85d7b7010659ba5a36a2478c89ad4` (revisión 8; antes `09e154ad…`, que nunca se pegó). Cada guarda acepta el
-        cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; la tercera sin la segunda aborta pidiéndola,
-        y volver a pegar una anterior aborta sin deshacer nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a
-        mano de `packages/database` con `supabase gen types`. ADR-0208, «Revisión 7 del paso 3».
+      (el #544 ya se fusionó). **Revisión 9 el 2026-09-28** (rama `claude/frescura-3c-revision9`; el #545 de las
+      revisiones 7 y 8 se fusionó con ella corriendo, así que va en un cuarto archivo, `20260928120330`, y en un PR en
+      BORRADOR hasta cerrar su verificación): las tardías de la lectura cuentan lo apartado en los 10 minutos de la bajada
+      contra el piso libre, y la web lee lo apartado ANTES de quitar las tardías (la separada, la entregada y el pedido de
+      otra sede dan lo mismo que la vendida; el indicador de registro no cambia); la orden del Taller revertida ya no es
+      llegada a CAYLA; lo que entra al piso y se aparta en el mismo instante no es exhibición; la separación liberada
+      vuelve con su edad; entradas antes que salidas en un mismo instante; la prueba del indicador sin tienda; y las dos
+      decisiones de Felipe (abajo). Pruebas: `pnpm pruebas:frescura-lectura` 231, `frescura-reglas.test.ts` 151,
+      `frescura-contrato.test.ts` 22, `inventario-exposicion.test.ts` 57. ADR-0208, «Revisión 9 del paso 3». **Su
+      corrector** (el mismo día, misma rama): lo liberado sin entregarse de una separación de ANTES de la bajada ya no
+      resta en las tardías de la lectura (la liberada después de la venta es tardía como su gemela retirada al almacén), y
+      el pedido que la clienta no recogió se exhibe desde que se libera (el lote de meses después ya no vuelve a ser
+      «Nueva»); T9e fija W y 2W en sus bordes, T9f vigila el saldo. `pruebas:frescura-lectura` 237,
+      `frescura-contrato.test.ts` 24. ADR-0208, «El corrector de la revisión 9».
+      - [x] **PEGADAS por Felipe el 2026-09-28 y verificadas en solo lectura**: los seis `md5(prosrc)` finales (`fn_es_llegada`
+        `5089ba50…`, `fn_es_llegada_a_cayla` `7e1ffb6d…`, `fn_temporada_efectiva_nucleo` `2bf80eb2…`, `fn_temporada_efectiva`
+        `e96b3c6c…`, `fn_confianza_registro` `8c6f5e6c…`, `fn_frescura_sede` `33970c94…`), los permisos (solo `authenticated`
+        en `fn_frescura_sede` y `fn_confianza_registro`; las otras tres, solo la dueña) y el candado: sin sesión,
+        `fn_frescura_sede` rechaza con «Solo el líder…». Lo que sigue es cómo se pegaron.
+      - [x] **Orden en que se pegaron: `20260928120300` → `20260928120310` → `20260928120320` →
+        `20260928120330`** (cada una sola, en el SQL Editor, a cualquier hora: solo funciones, un comentario, `revoke` y
+        `grant`; las tres primeras ya están en main; la cuarta, cuando se fusione el PR de la revisión 9). Producción el
+        2026-09-28: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos: `40bf970f…`, `e121f11e…`,
+        `81e3ddeb…` y `a3b2a086…`. **No detenerse antes de la cuarta**: sin ella, separar una prenda recién bajada entra a
+        la vara como una venta de 0 minutos y la orden revertida reinicia temporadas. `md5(prosrc)` después de cada una:
+        - `20260928120300`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
+          `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`,
+          `fn_temporada_efectiva` sin cambio.
+        - `20260928120310`: `fn_es_llegada` igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`,
+          `fn_frescura_sede` `51babffc09da4073691ee251882967c8`, `fn_confianza_registro`
+          `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`,
+          `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448`.
+        - `20260928120320`: las mismas cinco y `fn_frescura_sede` `7da85d7b7010659ba5a36a2478c89ad4`.
+        - `20260928120330`: las mismas cinco y `fn_frescura_sede` `33970c94c7dddf9530ee6b8175862661` (con las dos
+          correcciones de su corrector; el `affb0187…` del constructor nunca se pegó y la guarda lo rechaza).
+        Cada guarda acepta el cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; una fuera de orden
+        aborta pidiendo la que falta, y volver a pegar una anterior aborta sin deshacer nada (reproducido el 28-sep sobre
+        una copia de producción, cada archivo en una transacción). Luego `pnpm datos:generar:produccion` con el volcado
+        nuevo y `pnpm datos:comparar`; regenerar los tipos de `packages/database` con `supabase gen types`. ADR-0208,
+        «Revisión 9 del paso 3».
       - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «aún sin referencia» (categoría sin P50: la
         chompa de la salida real ya no sale «Nueva»; si está callada 30 días ya recibe «revisa sus ventas»); que cada
         prenda se mide contra su categoría SIN ella (`categoriaSinElla`), aunque la cabecera muestre la curva completa;
@@ -1252,16 +1371,18 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         La lista completa, con el texto propuesto («Cada prenda se compara con el resto de su categoría, sin contarse a
         sí misma»): ADR-0208, «Cierre del paso 3». Desde la revisión 7, además: cómo se ve una prenda con todo apartado
         (conserva el tramo de cuando se apartó, sin sugerencias: mostrarla como «apartada») y que «ventas recientes» son
-        las de sus últimos 30 días en el piso.
+        las de sus últimos 30 días en el piso. Desde la revisión 9: las tardías de la lectura NO son las del indicador de
+        registro (lo apartado en la ventana cuenta en la primera y no en la segunda: no mostrar esa lista como «el registro
+        del equipo»); el modelo cuyo único paso por el piso fue un pedido separado al instante sale «Nueva» con 0
+        segundos (si la clienta no lo recogió, se exhibe desde que se libera); y «sigue vendiendo» también para lo que no tiene dato de rapidez.
       - [x] **R7-1 DECIDIDA por Felipe el 2026-09-27: lo apartado para una clienta no está colgado.** En
         `20260928120320`: `piso_hoy` y `almacen_hoy` son lo libre, `apartadas_hoy` lo apartado y `apartados` los puntos
         de lo apartado del piso (con su saldo). En la web, el reloj no corre mientras todo está apartado, y la prenda sin
         nada libre no es quieta ni recibe sugerencias. ADR-0208, «Revisión 7 del paso 3». Completada en la revisión 8:
         lo apartado tampoco cuenta como colgado en la vara ni en la rapidez (venta desde que se apartó, o pausa si se
         liberó sin venderse). ADR-0208, «Revisión 8 del paso 3».
-      - [ ] **Pregunta para Felipe (no bloquea pegar):** una separación abierta cuenta como venta desde que se aparta
-        (revisión 8). Si prefiere que cuente solo al entregarse, lo abierto pasa a pausa en `eventosConApartados`; la
-        prenda con 5 de 6 separadas volvería a salir lenta mientras sigan abiertas. ADR-0208, «Revisión 8 del paso 3».
+      - [x] **DECIDIDA por Felipe el 2026-09-28: una separación abierta cuenta como venta desde que se aparta**
+        (confirma la revisión 8; no cambia código). ADR-0208, «Revisión 9 del paso 3».
       - [x] **R7-2 y R7-3 corregidas el 2026-09-27** (revisión 7): «dejó de vender» se mide con sus últimos 30 días EN
         EL PISO (el éxito repuesto ayer sigue pilar); con ventas que pudieron esconderse, la rapidez se mide contándolas y
         sin contarlas, y queda sin dato solo si cambian el veredicto (la devolución revendida ya no deja sin rapidez al
@@ -1286,11 +1407,23 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         CAYLA solo si el modelo+color no tiene lote ni producción, y entre cargas manda la primera (`20260928120320`,
         prueba T4i). En producción hoy no cambia nada: ningún modelo+color tiene lote y carga a la vez. ADR-0208,
         «Revisión 7 del paso 3»; ADR-0246, nota (d).
-      - [ ] **Pregunta 8 de la revisión 6 (Felipe), para la maqueta del paso 4, no para el SQL:** ¿lo que no tiene dato
-        de rapidez (vino en la carga) y vendió en sus últimos 30 días en el piso recibe «sigue vendiendo» con la
-        temporada pasada, como su gemelo del lote? Hoy recibe «cambiar de lugar» y «retirar»; recomendado: sí (pero la
-        chompa que vendió 1 de 4 en 42 días también lo recibiría). ADR-0208, «Revisión 6 del paso 3»; prueba «PENDIENTE
-        DE FELIPE» de los bikinis.
+      - [x] **Pregunta 8 de la revisión 6 DECIDIDA por Felipe el 2026-09-28:** lo que no tiene dato de rapidez (vino en
+        la carga) y vendió en sus últimos 30 días en el piso recibe «sigue vendiendo» con la temporada pasada, como su
+        gemelo del lote (nunca «trasladar»). Felipe aceptó que la chompa que vendió 1 de 4 en 42 días también lo reciba.
+        `sugerenciasDe`, revisión 9; la prueba de los bikinis ya no dice «PENDIENTE DE FELIPE». ADR-0208, «Revisión 9 del
+        paso 3».
+      - [ ] **Análisis (`fn_es_llegada`, las «entradas» de `fn_resumen_comparacion`) cuenta la producción revertida como
+        entrada** (hallazgo R9-SQL-2 de la revisión 9 de Frescura): una orden del Taller cerrada y revertida (o revertida
+        y anulada) deja su entrada «producción» en el libro. Frescura ya la saca de la llegada a CAYLA
+        (`20260928120330`: solo cuenta la entrada de una orden que sigue inventariada); Análisis no se tocó. Arreglo
+        probable: el mismo filtro por `producciones.inventariado_at`, con su prueba en `fn_resumen_comparacion.mjs` y en
+        T8 de `frescura_lectura.mjs` (que exige que `fn_es_llegada` sea el predicado de Análisis). Hoy en producción: 0
+        órdenes del Taller. ADR-0208, «Revisión 9 del paso 3».
+      - [ ] **Desempates por uuid que quedan (revisión 9, no urgentes):** los puntos de `apartados` de un mismo instante
+        (apartar y liberar la misma talla en una transacción son posibles en los dos órdenes) y el libro
+        (`fn_ledger_puntos`, paso 1): una bajada y una salida de la misma talla en la misma transacción con el piso en 0
+        podrían dejar al núcleo con un piso de antes negativo («dudosa»). Hoy ningún flujo lo hace. ADR-0208, «Revisión 9
+        del paso 3».
       - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
         `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
         0 filas así). ADR-0208, «Revisión 4».

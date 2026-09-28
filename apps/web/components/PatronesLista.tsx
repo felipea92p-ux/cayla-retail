@@ -8,9 +8,23 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import {
+  BarraAtributos,
+  BotonesPendiente,
+  BotonReactivar,
+  DesactivarTarjeta,
+  GRILLA_ATRIBUTOS,
+  PieTarjeta,
+  SinCoincidencias,
+  TarjetaAtributo,
+  TituloGrupo,
+  VocabularioVacio,
+} from "@/components/atributos/kit";
 import { MuestraPatron } from "@/components/MuestraPatron";
-import { BOTON_TARJETA_MUESTRA, DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
+import { DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
+import { filtrarPorNombre, GRUPOS_USO, ORDEN_USO, usoDe, type UsoAtributo } from "@/lib/atributos-buscar";
 
 /**
  * Vocabulario cerrado de patrones (ADR-0095/0096) — mismo mecanismo que
@@ -29,6 +43,8 @@ type Patron = {
   estado: "pendiente" | "aprobado" | "rechazado";
   /** La foto real (ADR-0256); `null` = el dibujo que sale del nombre. */
   imagenUrl: string | null;
+  /** La frase de «Generar dibujo» guardada la última vez; `null` = nunca se describió. */
+  descripcionDibujo: string | null;
 };
 
 function ordenar(lista: Patron[]) {
@@ -70,9 +86,24 @@ export function PatronesLista({
   // Al crear con una descripción, el detalle abre con el generador ya propuesto desde esa frase (opcional).
   const [descripcion, setDescripcion] = useState("");
   const [generarCon, setGenerarCon] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  // «En uso · Sin prendas» (ADR-0261): la píldora elegida. La grilla solo se re-asienta cuando la persona cambia un
+  // filtro, nunca al cargar la pantalla: el movimiento responde a una acción (ver globals.css).
+  const [uso, setUso] = useState<UsoAtributo | "todos">("todos");
+  const [animar, setAnimar] = useState(false);
 
   const activos = patrones.filter((p) => p.activo);
   const desactivados = patrones.filter((p) => !p.activo);
+  const pasaUso = (p: { id: string }) => uso === "todos" || usoDe(p.id, prendasPorId) === uso;
+  const activosVisibles = filtrarPorNombre(activos, busqueda).filter(pasaUso);
+  const desactivadosVisibles = filtrarPorNombre(desactivados, busqueda).filter(pasaUso);
+  const hayFiltros = uso !== "todos" || busqueda.trim() !== "";
+  const quitarFiltros = () => {
+    setUso("todos");
+    setBusqueda("");
+    setAnimar(true);
+  };
+  const usosConAlgo = ORDEN_USO.filter((u) => activos.some((p) => usoDe(p.id, prendasPorId) === u));
 
   async function guardar() {
     setGuardando(true);
@@ -80,7 +111,7 @@ export function PatronesLista({
       const res = await fetch("/api/productos/patrones", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, ...(puedeEditar && descripcion.trim() ? { descripcion: descripcion.trim() } : {}) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -88,7 +119,18 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) =>
-        ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado, imagenUrl: null }])
+        ordenar([
+          ...actual,
+          {
+            id: datos.patron.id,
+            nombre: datos.patron.nombre,
+            activo: true,
+            notas: datos.patron.notas,
+            estado: datos.patron.estado,
+            imagenUrl: null,
+            descripcionDibujo: datos.patron.descripcion_dibujo ?? null,
+          },
+        ])
       );
       responsable.despues(null);
       avisar.exito(
@@ -213,60 +255,82 @@ export function PatronesLista({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <span />
-        <button
-          type="button"
-          onClick={() => setAgregando(true)}
-          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-        >
-          + Agregar patrón
-        </button>
-      </div>
+      <BarraAtributos
+        etiqueta="Filtrar patrones"
+        filtros={
+          <>
+            <BotonFiltro activo={uso === "todos"} onClick={() => { setUso("todos"); setAnimar(true); }} cuenta={activos.length}>
+              Todos
+            </BotonFiltro>
+            {usosConAlgo.map((u) => (
+              <BotonFiltro
+                key={u}
+                activo={uso === u}
+                onClick={() => { setUso(uso === u ? "todos" : u); setAnimar(true); }}
+                cuenta={activos.filter((p) => usoDe(p.id, prendasPorId) === u).length}
+              >
+                {GRUPOS_USO[u].grupo}
+              </BotonFiltro>
+            ))}
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar patrón", placeholder: "Buscar patrón" }}
+        agregar={{ texto: "+ Agregar patrón", onClick: () => setAgregando(true) }}
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {activos.map((p) => (
-          <div
+      {activos.length + desactivados.length === 0 && (
+        <VocabularioVacio>Todavía no hay patrones en el vocabulario. Agrega el primero con «+ Agregar patrón».</VocabularioVacio>
+      )}
+
+      {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {busqueda.trim() ? <>Ningún patrón coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ningún patrón cumple estos filtros."}
+        </SinCoincidencias>
+      )}
+
+      <div key={uso} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+        {ORDEN_USO.map((clave) => {
+          const delGrupo = activosVisibles.filter((p) => usoDe(p.id, prendasPorId) === clave);
+          if (delGrupo.length === 0) return null;
+          return (
+            <section key={clave} className="space-y-3">
+              <TituloGrupo punto={GRUPOS_USO[clave].punto} cuenta={delGrupo.length}>
+                {GRUPOS_USO[clave].grupo}
+              </TituloGrupo>
+              <div className={GRILLA_ATRIBUTOS}>
+                {delGrupo.map((p) => (
+                  <TarjetaAtributo
             key={p.id}
-            className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+            muestra={<MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />}
+            nombre={p.nombre}
+            insignia={p.estado === "pendiente" ? "Pendiente" : null}
+            detalle={<PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />}
+            abrir={{ onClick: () => abrirDetalle(p.id), titulo: "Ver la foto y las prendas" }}
           >
-            <button type="button" onClick={() => abrirDetalle(p.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
-              <MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-tinta">{p.nombre}</span>
-                {p.estado === "pendiente" && (
-                  <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-                )}
-              </span>
-              <PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />
-            </button>
-            {puedeEditar && (
-              <div className="flex gap-2">
-                {p.estado === "pendiente" && (
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === p.id} onClick={() => setConfirmando(confirmacionCatalogo("aprobar", p.nombre, () => aprobar(p)))}>
-                    Aprobar
-                  </Boton>
-                )}
-                {p.estado === "pendiente" ? (
-                  <Boton
-                    peso="discreto"
-                    className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                    onClick={() => {
-                      setRechazandoAbierto(p.id);
-                      setMotivoRechazo("");
-                    }}
-                  >
-                    Rechazar
-                  </Boton>
-                ) : (
-                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => setConfirmando(confirmacionCatalogo("desactivar", p.nombre, () => desactivar(p)))}>
-                    Desactivar
-                  </Boton>
-                )}
+                    {puedeEditar &&
+                      (p.estado === "pendiente" ? (
+                        <BotonesPendiente
+                          aprobando={aprobandoId === p.id}
+                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", p.nombre, () => aprobar(p)))}
+                          onRechazar={() => {
+                            setRechazandoAbierto(p.id);
+                            setMotivoRechazo("");
+                          }}
+                        />
+                      ) : (
+                        <PieTarjeta>
+                          <DesactivarTarjeta
+                            cambiando={cambiandoId === p.id}
+                            onClick={() => setConfirmando(confirmacionCatalogo("desactivar", p.nombre, () => desactivar(p)))}
+                          />
+                        </PieTarjeta>
+                      ))}
+                  </TarjetaAtributo>
+                ))}
               </div>
-            )}
-          </div>
-        ))}
+            </section>
+          );
+        })}
       </div>
 
       {agregando && (
@@ -324,28 +388,27 @@ export function PatronesLista({
         </Modal>
       )}
 
-      {desactivados.length > 0 && (
-        <section className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no se pueden elegir en un producto nuevo</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {desactivados.map((p) => (
-              <div key={p.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
-                <button type="button" onClick={() => abrirDetalle(p.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
-                  <MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-tinta">{p.nombre}</span>
-                    {p.estado === "rechazado" && (
-                      <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                    )}
-                  </span>
-                  <PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />
-                </button>
+      {desactivadosVisibles.length > 0 && (
+        <section className="space-y-3">
+          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en un producto nuevo</TituloGrupo>
+          <div className={GRILLA_ATRIBUTOS}>
+            {desactivadosVisibles.map((p) => (
+              <TarjetaAtributo
+                key={p.id}
+                muestra={<MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />}
+                nombre={p.nombre}
+                insignia={p.estado === "rechazado" ? "Rechazado" : null}
+                detalle={<PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />}
+                abrir={{ onClick: () => abrirDetalle(p.id), titulo: "Ver la foto y las prendas" }}
+                apagada
+              >
                 {puedeEditar && (
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", p.nombre, () => reactivar(p)))}>
-                    Reactivar
-                  </Boton>
+                  <BotonReactivar
+                    cambiando={cambiandoId === p.id}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", p.nombre, () => reactivar(p)))}
+                  />
                 )}
-              </div>
+              </TarjetaAtributo>
             ))}
           </div>
         </section>
@@ -364,7 +427,9 @@ export function PatronesLista({
             setDetalleId(null);
             setGenerarCon(null);
           }}
-          onImagen={(id, url) => setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
+          onImagen={(id, url, descripcionDibujo) =>
+            setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) } : x)))
+          }
         />
       )}
 

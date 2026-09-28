@@ -38,6 +38,8 @@ export type MuestraEnDetalle = {
   activo: boolean;
   estado: "pendiente" | "aprobado" | "rechazado";
   imagenUrl: string | null;
+  /** La frase de «Generar dibujo» guardada la última vez (ADR-0256); `null` = nunca se describió. */
+  descripcionDibujo: string | null;
 };
 
 const PALABRA: Record<TipoMuestra, { el: string; foto: string; api: string; columna: "tejido_id" | "patron_id" }> = {
@@ -48,8 +50,12 @@ const PALABRA: Record<TipoMuestra, { el: string; foto: string; api: string; colu
 type Carga = { estado: "cargando" } | { estado: "error"; mensaje: string } | { estado: "listo"; prendas: PrendaDeMuestra[] };
 
 /** Lo que se va a guardar: una foto nueva (con su vista previa local) o quitar la que hay. */
-/** `origen` solo cambia los textos: una foto y un dibujo generado se guardan igual (JPG en el bucket). */
-type Pendiente = { tipo: "subir"; origen: "foto" | "dibujo"; archivo: File; vista: string } | { tipo: "quitar" };
+/** `origen` solo cambia los textos: una foto y un dibujo generado se guardan igual (JPG en el bucket). `descripcion`
+ *  solo existe para un dibujo: la frase que lo generó, para que se guarde junto con la imagen. */
+type Pendiente =
+  | { tipo: "subir"; origen: "foto"; archivo: File; vista: string }
+  | { tipo: "subir"; origen: "dibujo"; archivo: File; vista: string; descripcion: string }
+  | { tipo: "quitar" };
 
 export function DetalleMuestraModal({
   tipo,
@@ -74,7 +80,8 @@ export function DetalleMuestraModal({
   /** Recién creado con una descripción: el detalle abre con el generador ya propuesto desde esa frase. */
   generarCon?: string | null;
   onClose: () => void;
-  onImagen: (id: string, url: string | null) => void;
+  /** `descripcionDibujo` viaja solo cuando lo que se guardó fue un dibujo generado; `undefined` la deja como está. */
+  onImagen: (id: string, url: string | null, descripcionDibujo?: string | null) => void;
 }) {
   const palabra = PALABRA[tipo];
   const [carga, setCarga] = useState<Carga>({ estado: "cargando" });
@@ -151,10 +158,11 @@ export function DetalleMuestraModal({
         }
         url = subida.url;
       }
+      const descripcionDibujo = pendiente.tipo === "subir" && pendiente.origen === "dibujo" ? pendiente.descripcion.trim() || null : undefined;
       const res = await fetch(palabra.api, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ id: muestra.id, imagenMuestraUrl: url }),
+        body: JSON.stringify({ id: muestra.id, imagenMuestraUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -162,7 +170,7 @@ export function DetalleMuestraModal({
         return;
       }
       responsable.despues(null);
-      onImagen(muestra.id, url);
+      onImagen(muestra.id, url, descripcionDibujo);
       setPendiente(null);
       const que = pendiente.tipo === "subir" && pendiente.origen === "dibujo" ? "Dibujo" : "Foto";
       avisar.exito(url ? `${que} de ${muestra.nombre} guardado` : `${muestra.nombre} vuelve al dibujo automático`, {
@@ -211,9 +219,9 @@ export function DetalleMuestraModal({
               colores={colores}
               descripcionInicial={generador}
               onVista={setPropuesta}
-              onUsar={(archivo) => {
+              onUsar={(archivo, descripcion) => {
                 setGenerador(null);
-                setPendiente({ tipo: "subir", origen: "dibujo", archivo, vista: URL.createObjectURL(archivo) });
+                setPendiente({ tipo: "subir", origen: "dibujo", archivo, vista: URL.createObjectURL(archivo), descripcion });
               }}
               onCancelar={() => setGenerador(null)}
             />
@@ -227,7 +235,7 @@ export function DetalleMuestraModal({
                   Subir foto
                 </span>
               </Boton>
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={() => setGenerador("")}>
+              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={() => setGenerador(muestra.descripcionDibujo ?? "")}>
                 <span className="inline-flex items-center gap-1.5">
                   <Wand2 className="h-3.5 w-3.5" aria-hidden />
                   Generar dibujo
@@ -333,12 +341,8 @@ export function DetalleMuestraModal({
   );
 }
 
-/** La parte de arriba de cada tarjeta de Tejidos y Patrones: abre este detalle. Los botones de abajo (Aprobar,
- *  Desactivar…) quedan fuera del botón, así un clic en ellos nunca abre el modal. */
-export const BOTON_TARJETA_MUESTRA =
-  "group/muestra flex flex-col gap-2 rounded-md text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
-
-/** «12 prendas · Ver ›» al pie de la tarjeta: cuántas la usan, y la pista de que se puede abrir. */
+/** «12 prendas · Ver ›» bajo el nombre de la tarjeta: cuántas la usan, y la pista de que se puede abrir. La parte de
+ *  arriba de la tarjeta es el botón que abre este detalle (`TarjetaAtributo` con `abrir`, components/atributos/kit.tsx). */
 export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
