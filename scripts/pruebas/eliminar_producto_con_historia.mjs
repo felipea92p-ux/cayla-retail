@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de Productos ▸ Eliminar con su historia (`20260928220000_eliminar_producto_con_historia.sql`, ADR-0252).
+ * Prueba de Productos ▸ Eliminar con su historia (`20260928230000_eliminar_producto_con_historia.sql`, ADR-0252).
  *
  * QUÉ CUBRE
  *   · un Admin elimina un producto cuya historia es SOLO de stock —carga, ajuste, bajada al piso (con su marca de reintento),

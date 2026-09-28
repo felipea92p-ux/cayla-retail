@@ -25,6 +25,7 @@ import {
   conGuardadosLocales,
   controlDe,
   esMiRolSinSerLider,
+  MODULO_FIJO_DEL_LIDER,
   fueraDeLoMio,
   motivoPorLoMio,
   puedeAsignarRol,
@@ -52,9 +53,10 @@ import {
 // «Roles y accesos» (ADR-0161 B). Rediseño del spike `docs/maquetas/colaboradores-ux-spike-2026-09/` (Felipe, 2026-09-22):
 // lista de roles agrupada y con avisos, grupos de módulos plegables con buscador, borrador con barra de guardado, vista previa
 // del menú que marca lo que se suma y se quita, y «Comparar roles» (matriz). Cada rol decide SOLO qué módulos ve; quien ve un
-// módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder». Solo el Líder no se edita (sus módulos),
-// pero sí se asigna y se quita, entre líderes. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos,
-// 20260923131000), que anota `roles_historial`; subir a alguien a Líder o cambiarle el rol a un líder sigue siendo de un líder.
+// módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder». El Líder también se edita (ADR-0253):
+// sus módulos los mueve solo un Admin, se le puede quitar cualquiera menos Roles y accesos, y lo que nazca después le
+// aparece solo. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos, 20260923131000), que anota
+// `roles_historial`; subir a alguien a Líder o cambiarle el rol a un líder sigue siendo de un Admin.
 
 type Modal =
   | { tipo: "nuevo" }
@@ -80,7 +82,7 @@ function sinBorrador<T>(b: Record<string, T>, id: string): Record<string, T> {
 }
 
 function descripcionDe(rol: RolVista): string {
-  if (rol.fijo) return "Ve y hace todo, siempre. No se edita para que nunca falte alguien que pueda administrar los accesos.";
+  if (rol.fijo) return "Ve todo lo que no le quites, y cada módulo nuevo le aparece solo. Lo «siempre solo del líder» sigue siendo suyo.";
   if (rol.clave === "integrante") return "Rol que recibe una persona nueva al darle acceso. Lo que enciendas aquí lo verá desde su primer día.";
   if (rol.archivado) return "Archivado: no se ofrece al asignar roles. Restáuralo para volver a usarlo o editarlo.";
   return rol.descripcion ?? "Rol a medida. Se edita, se duplica y se archiva (nunca se borra).";
@@ -164,7 +166,7 @@ export function RolesPanel({
   const nCambios = cambios.suma.length + cambios.quita.length + (cambioPantallaPrincipal ? 1 : 0);
   const menu = rol ? menuConCambios(rol, borrador, ubicacionPrevia) : [];
   const cuentasDe = (id: string) => (cuentas ? cuentasDelRol(cuentas, id) : []);
-  const quien: QuienEdita = { misModulos, miRolId: cuentas?.find((c) => c.tipo === "persona" && c.id === yoId)?.rolId ?? null };
+  const quien: QuienEdita = { misModulos, miRolId: cuentas?.find((c) => c.tipo === "persona" && c.id === yoId)?.rolId ?? null, soyAdmin };
 
   async function ejecutar(verbo: string, llamada: (firma: Firma | null) => Promise<ResultadoRol>, exito: string): Promise<ResultadoRol | null> {
     if (!responsable.listo) {
@@ -212,7 +214,7 @@ export function RolesPanel({
     }
     const clave = `${r.id}:${m.clave}`;
     setMatrizOcupada(clave);
-    const nuevos = alternarModulo(r.modulos, m.clave);
+    const nuevos = alternarModulo(r.modulos, m.clave, r.fijo);
     // ADR-0161 P6: Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales (la base también lo
     // rechaza; aquí se avisa antes, con los nombres de las terminales).
     const motivo = motivoPorLoMio(r, r.modulos, nuevos, quien) ?? motivoParaNoGuardar(r.modulos, nuevos, cuentasDe(r.id));
@@ -261,9 +263,10 @@ export function RolesPanel({
   const cuentasDelElegido = cuentasDe(rol.id);
   const motivoArchivo = motivoParaNoArchivar(rol, cuentasDelElegido.length);
   const esMio = esMiRolSinSerLider(rol, quien);
-  const editable = !rol.fijo && !rol.archivado && !esMio;
+  // ADR-0253: el Líder lo edita solo un Admin (tocarlo es tocar a todos los líderes).
+  const editable = (!rol.fijo || soyAdmin) && !rol.archivado && !esMio;
   const grupos = modulosFiltrados(busqueda);
-  const veCuantos = rol.fijo ? MODULOS.length : borrador.length;
+  const veCuantos = borrador.length;
 
   const itemsMenu: ItemMenu[] = [
     ...(!rol.fijo && !rol.archivado ? [{ clave: "renombrar", etiqueta: "Renombrar", onSelect: () => setModal({ tipo: "renombrar", rol }) }] : []),
@@ -415,13 +418,12 @@ export function RolesPanel({
           </div>
 
           {rol.fijo && (
-            <p className="mx-5 mt-4 flex items-start gap-2 rounded-lg border border-tinta/10 bg-crema/60 px-3.5 py-2.5 text-[13px] text-tinta/70">
-              <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                Este rol <strong className="font-semibold text-tinta">no se edita</strong>: siempre tiene que haber alguien que pueda dar accesos. Subir a
-                alguien a Líder, o cambiarle el rol, la sede o el acceso a un líder, lo hace solo un <strong className="font-semibold text-tinta">Admin</strong>{" "}
-                (quien es admin en Dynamic).
-              </span>
+            <p className="mx-5 mt-4 rounded-lg border border-tinta/10 bg-crema/60 px-3.5 py-2.5 text-[13px] leading-relaxed text-tinta/70">
+              Sus módulos los cambia solo un <strong className="font-semibold text-tinta">Admin</strong> (quien es admin en Dynamic), porque tocarlo es
+              tocar a todos los líderes. Quitarle un módulo lo saca de su menú; lo de <strong className="font-semibold text-tinta">«Siempre solo del
+              líder»</strong> sigue siendo suyo. <strong className="font-semibold text-tinta">Roles y accesos</strong> no se le quita: sin él nadie
+              podría devolverle lo que le quites.
+              {!soyAdmin && " Tú lo ves, pero no lo cambias."}
             </p>
           )}
           {esMio && !rol.archivado && (
@@ -486,7 +488,7 @@ export function RolesPanel({
               />
             </label>
             <p className="whitespace-nowrap text-[13px] text-tinta/65">
-              Ve <strong className="font-semibold text-tinta">{veCuantos}</strong> de {rol.fijo ? MODULOS.length : `${DELEGABLES} módulos que se pueden dar`}
+              Ve <strong className="font-semibold text-tinta">{veCuantos}</strong> de {rol.fijo ? `${MODULOS.length} módulos` : `${DELEGABLES} módulos que se pueden dar`}
             </p>
           </div>
 
@@ -494,10 +496,11 @@ export function RolesPanel({
             {grupos.length === 0 && <p className="py-6 text-center text-sm text-tinta/60">Ningún módulo coincide con «{busqueda}».</p>}
             {grupos.map(({ grupo, modulos }) => {
               const abierto = !!busqueda || !plegados.has(grupo);
-              const delegables = modulos.filter(esDelegable);
-              const encendidos = delegables.filter((m) => veModulo({ fijo: rol.fijo, modulos: borrador }, m.clave)).length;
+              // El Líder (ADR-0253) cuenta y mueve todos los módulos del grupo, menos Roles y accesos, que no se le quita.
+              const delegables = rol.fijo ? modulos : modulos.filter(esDelegable);
+              const encendidos = delegables.filter((m) => veModulo({ modulos: borrador }, m.clave)).length;
               // ADR-0178: «Encender todo» solo mueve lo que quien mira puede dar; lo que no tiene queda como está.
-              const mios = delegables.filter((m) => fueraDeLoMio([m.clave], misModulos).length === 0);
+              const mios = delegables.filter((m) => (rol.fijo ? m.clave !== MODULO_FIJO_DEL_LIDER : fueraDeLoMio([m.clave], misModulos).length === 0));
               const todoEncendido = mios.length > 0 && mios.every((m) => borrador.includes(m.clave));
               return (
                 <div key={grupo} className="overflow-hidden rounded-xl border border-tinta/10">
@@ -514,13 +517,13 @@ export function RolesPanel({
                           <i
                             key={m.clave}
                             className={`block h-2 w-2 rounded-[2px] ${
-                              !rol.fijo && !esDelegable(m) ? "border border-dashed border-taupe" : veModulo({ fijo: rol.fijo, modulos: borrador }, m.clave) ? "bg-tinta" : "bg-tinta/15"
+                              !rol.fijo && !esDelegable(m) ? "border border-dashed border-taupe" : veModulo({ modulos: borrador }, m.clave) ? "bg-tinta" : "bg-tinta/15"
                             }`}
                           />
                         ))}
                       </span>
                       <span className="text-[12.5px] text-tinta/60">
-                        {rol.fijo ? `${modulos.length} de ${modulos.length}` : delegables.length === 0 ? "Solo líder" : `${encendidos} de ${delegables.length}`}
+                        {delegables.length === 0 ? "Solo líder" : `${encendidos} de ${delegables.length}`}
                       </span>
                       <ChevronDown aria-hidden className={`ml-auto h-4 w-4 text-tinta/50 transition-transform duration-200 ease-cayla ${abierto ? "" : "-rotate-90"}`} />
                     </button>
@@ -529,7 +532,7 @@ export function RolesPanel({
                         type="button"
                         onClick={() =>
                           ponerBorrador(
-                            alternarGrupo(borrador, grupo, !todoEncendido).filter((c) => borrador.includes(c) || fueraDeLoMio([c], misModulos).length === 0),
+                            alternarGrupo(borrador, grupo, !todoEncendido, rol.fijo).filter((c) => borrador.includes(c) || fueraDeLoMio([c], misModulos).length === 0),
                           )
                         }
                         className="shrink-0 rounded-full border border-tinta/15 bg-papel px-2.5 py-0.5 text-xs text-tinta/75 hover:border-tinta/40"
@@ -541,7 +544,7 @@ export function RolesPanel({
                   {abierto && (
                     <ul>
                       {modulos.map((m) => {
-                        const on = veModulo({ fijo: rol.fijo, modulos: borrador }, m.clave);
+                        const on = veModulo({ modulos: borrador }, m.clave);
                         const control = controlDe(rol, m, quien, on);
                         const marca = cambios.suma.includes(m.clave) ? "suma" : cambios.quita.includes(m.clave) ? "quita" : null;
                         return (
@@ -570,7 +573,7 @@ export function RolesPanel({
                               <Interruptor
                                 activo={on}
                                 disabled={!control.editable}
-                                onActivo={() => ponerBorrador(alternarModulo(borrador, m.clave))}
+                                onActivo={() => ponerBorrador(alternarModulo(borrador, m.clave, rol.fijo))}
                                 etiqueta={<span className="sr-only">Ve {m.nombre}</span>}
                               />
                             )}
@@ -590,7 +593,7 @@ export function RolesPanel({
           className="grid gap-4 self-start @[640px]:col-span-2 @[640px]:grid-cols-2 @[1060px]:sticky @[1060px]:top-20 @[1060px]:col-span-1 @[1060px]:max-h-[calc(100vh-6rem)] @[1060px]:grid-cols-1 @[1060px]:overflow-y-auto"
         >
           <VistaPreviaMenu
-            fijo={rol.fijo}
+            todo={borrador.length === MODULOS.length}
             menu={menu}
             conCambios={conCambios}
             ubicacion={ubicacionPrevia}
@@ -661,7 +664,7 @@ export function RolesPanel({
           titulo={`Duplicar «${modal.rol.nombre}»`}
           subtitulo={
             modal.rol.fijo
-              ? "Nace con todos los módulos que se pueden delegar. Lo que es siempre solo del líder no se copia."
+              ? "Nace con los módulos que hoy ve el Líder. Lo que es siempre solo del líder no se copia."
               : "Nace con los mismos módulos. Después lo ajustas sin tocar el original."
           }
           nombreInicial={nombreDeCopia(modal.rol.nombre, vigentes.map((r) => r.nombre))}
@@ -714,7 +717,9 @@ export function RolesPanel({
 
 /** Un rol en la lista: nombre, cuántos módulos ve (con su barra), cuántas cuentas lo tienen y su aviso si lo hay. */
 function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVista; elegido: boolean; cuentas: number | null; sinGuardar: boolean; onElegir: () => void }) {
-  const n = rol.fijo ? MODULOS.length : rol.modulos.length;
+  const n = rol.modulos.length;
+  // El Líder se mide contra TODOS los módulos (también los que no se delegan); los demás, contra los que se pueden dar.
+  const de = rol.fijo ? MODULOS.length : DELEGABLES;
   const aviso = cuentas === null ? null : avisoDelRol(rol, cuentas);
   return (
     <button
@@ -730,9 +735,7 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
           {rol.nombre}
           {sinGuardar && <span className="ml-1.5 text-rojo" title="Cambios sin guardar">•</span>}
         </span>
-        {rol.fijo ? (
-          <Lock aria-label="No se edita" className="h-3.5 w-3.5 shrink-0 text-tinta/50" />
-        ) : aviso === "sin_modulos" ? (
+        {aviso === "sin_modulos" ? (
           <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo" title="Sus cuentas no ven ningún módulo">
             Sin módulos
           </span>
@@ -741,13 +744,13 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
         ) : null}
       </span>
       <span className="mt-0.5 block text-xs text-tinta/60">
-        {rol.fijo ? "Todo" : `${n} de ${DELEGABLES} módulos`}
+        {rol.fijo && n === de ? "Todo" : `${n} de ${de} módulos`}
         {cuentas !== null && ` · ${cuentas} cuenta${cuentas === 1 ? "" : "s"}`}
       </span>
       <span aria-hidden className="mt-2 block h-1 overflow-hidden rounded-full bg-tinta/10">
         <span
           className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`}
-          style={{ width: `${rol.fijo ? 100 : Math.round((n / DELEGABLES) * 100)}%` }}
+          style={{ width: `${Math.round((n / de) * 100)}%` }}
         />
       </span>
     </button>
@@ -756,13 +759,14 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
 
 /** «Así queda su menú»: el lateral con el borrador, marcando en verde lo que se suma y tachado lo que se quita. */
 function VistaPreviaMenu({
-  fijo,
+  todo,
   menu,
   conCambios,
   ubicacion,
   onUbicacion,
 }: {
-  fijo: boolean;
+  /** Ve todos los módulos (el Líder al que no se le quitó nada). */
+  todo: boolean;
   menu: FilaMenuConCambios[];
   conCambios: boolean;
   ubicacion: "tienda" | "taller";
@@ -774,7 +778,7 @@ function VistaPreviaMenu({
     <section className="card-cayla px-5 py-4">
       <h3 className="font-display text-lg text-tinta">Así queda su menú</h3>
       <p className="mt-0.5 text-xs text-tinta/60">
-        {fijo ? "Ve todo el menú." : conCambios ? "Así quedará al guardar. Lo marcado es lo que cambia." : "Lo que verá en el lateral al entrar."}
+        {todo && !conCambios ? "Ve todo el menú." : conCambios ? "Así quedará al guardar. Lo marcado es lo que cambia." : "Lo que verá en el lateral al entrar."}
       </p>
       <ul className="mt-3 space-y-2 rounded-lg border border-tinta/10 bg-crema/60 px-3 py-3">
         {menu.map((f) => (
@@ -893,8 +897,9 @@ function MatrizGrupo({
             const control = controlDe(r, m, quien, on);
             return (
               <td key={r.id} className="border-t border-tinta/5 px-3 py-2 text-center">
-                {r.fijo ? (
-                  <span aria-label="Lo ve" className="inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-taupe text-[11px] text-white">✓</span>
+                {r.fijo && control.tipo === "candado" ? (
+                  // Roles y accesos en el Líder: lo ve siempre, no se le quita (ADR-0253).
+                  <span aria-label={control.texto} title={control.texto} className="inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-taupe text-[11px] text-white">✓</span>
                 ) : control.tipo === "candado" ? (
                   <span aria-label={control.texto} className="text-tinta/35">—</span>
                 ) : (

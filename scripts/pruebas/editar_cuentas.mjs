@@ -204,9 +204,9 @@ select pg_temp.intento(format('select count(*) from retail.fn_usos_cuenta_dinero
   esperar("un update directo del saldo inicial sigue prohibido", r.ok && saldo.includes("su tipo y su saldo inicial quedan"), r);
   esperar("un delete directo sigue prohibido", r.ok && borrar.includes("no se borra"), r);
   esperar("la puerta de las funciones no queda abierta después", r.ok && bandera === "", r);
-  esperar("ver el detalle es solo del líder", r.ok && detalle.includes("solo del líder"), r);
-  esperar("editar es solo del líder", r.ok && editar.includes("solo del líder"), r);
-  esperar("eliminar es solo del líder", r.ok && eliminar.includes("solo del líder"), r);
+  esperar("ver el detalle es solo del líder", r.ok && detalle.includes("del líder o de quien tiene el módulo «Configuración»"), r);
+  esperar("editar es solo del líder", r.ok && editar.includes("del líder o de quien tiene el módulo «Configuración»"), r);
+  esperar("eliminar es solo del líder", r.ok && eliminar.includes("del líder o de quien tiene el módulo «Configuración»"), r);
   esperar("los usos son de uso interno: nadie los llama", r.ok && usos.includes("permission denied"), r);
 }
 

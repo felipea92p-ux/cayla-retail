@@ -2,15 +2,17 @@
 
 **Fecha:** 2026-09-28
 **Estado:** Construido y verificado contra un Postgres 17 desechable (52/52, 9 mutaciones detectadas, dos carreras con `COMMIT`) y en
-navegador (seis casos, 375 px). **Migración `20260928220000` EN PRODUCCIÓN desde el 2026-09-28** (Felipe dio el «dale»; aplicada por MCP como
+navegador (seis casos, 375 px). **Migración `20260928230000` EN PRODUCCIÓN desde el 2026-09-28** (Felipe dio el «dale»; aplicada por MCP como
 `eliminar_producto_con_historia`, versión `20260928170424`, después de un ensayo revertido; ver «Producción»). La web va en el PR.
+**Número:** el archivo nació como `20260928220000` y chocó con `20260928220000_finanzas_modulos_delegables.sql` (ADR-0253, fusionado
+el mismo día); se renombró a `20260928230000` sin cambiar su contenido. Producción no se entera: guarda la versión de la hora en que se aplicó.
 **Decide:** Felipe, 2026-09-28: «me gustaría borrar todo mi inventario y productos que he creado porque eran de prueba pero también
 tener el permiso de eliminarlo directo» → «mejor dame la opción para yo eliminar directo, que las cuentas de Admin tengan este permiso».
 Alcance elegido entre tres opciones: **«Stock sí, ventas no»**. Sobre lo que cargó el equipo de TRU: **«Todo era práctica»**.
 **Sobre:** [ADR-0218](0218-eliminar-un-producto-solo-si-nunca-se-movio.md) (eliminar sin historia) y [ADR-0224](0224-purgar-un-producto-de-prueba-con-su-venta.md)
 (purga por script, que descartó un botón). Esta decisión **cambia parte de lo que ADR-0224 descartó**: ahora sí hay botón, pero solo
 para la historia que no tiene a nadie del otro lado.
-**Afecta:** `supabase/migrations/20260928220000_eliminar_producto_con_historia.sql`, `apps/web/components/EliminarProductoModal.tsx`,
+**Afecta:** `supabase/migrations/20260928230000_eliminar_producto_con_historia.sql`, `apps/web/components/EliminarProductoModal.tsx`,
 `apps/web/lib/eliminar-producto-reglas.ts` (+ prueba), `packages/database/src/types.ts`, `scripts/purga/restaurar-purga.sql`,
 `scripts/pruebas/eliminar_producto_con_historia.mjs` (nueva, sumada al CI), `scripts/pruebas/purgar_producto_de_prueba.mjs` (un caso ajustado).
 

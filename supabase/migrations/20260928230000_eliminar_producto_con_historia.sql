@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260928220000_eliminar_producto_con_historia.sql — CAYLA V2 (Productos ▸ Eliminar; ADR-0252, sobre ADR-0218)
+-- 20260928230000_eliminar_producto_con_historia.sql — CAYLA V2 (Productos ▸ Eliminar; ADR-0252, sobre ADR-0218)
 --
 -- EL PROBLEMA. «Eliminar producto» (ADR-0218) solo borra lo que nunca se movió. Pero un producto de prueba casi siempre se
 -- movió: el alta con stock (ADR-0212) ya escribe una entrada. El 2026-09-28 producción tenía 33 productos: 6 sin historia y

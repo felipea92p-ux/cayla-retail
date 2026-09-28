@@ -82,7 +82,7 @@
  *       una prueba de intención; si algún día se equivoca, se equivoca hacia el rojo.
  *
  * (d) AYUDANTES-CANDADO. Un ayudante-candado es una función `*exigir*` cuya guarda es «si no es líder, rechaza»
- *   (`fn_exigir_lider_dinero`, `fn_exigir_lider_balance`, `fn_flujo_exigir_lider`). Toda función que lo llama cuenta como
+ *   (`fn_exigir_lider_balance`, `fn_flujo_exigir_lider`; `fn_exigir_lider_dinero` dejó de serlo con el ADR-0253). Toda función que lo llama cuenta como
  *   «exige solo líder»: no se intenta adivinar si además tiene otro candado o lo pide solo en una rama, eso lo dice su razón.
  *   Cada una tiene que estar en SOLO_LIDER con el módulo delegable donde la pantalla la usa (o `null` si su pantalla es de un
  *   módulo no delegable) y qué hace esa pantalla con quien no es líder. Verificado a mano el 2026-09-26: la pantalla esconde
@@ -168,27 +168,11 @@ const SIN_GUARDIA = {
  * es de un módulo no delegable. Todo verificado a mano el 2026-09-26 contra `apps/web` (archivo citado en cada razón).
  */
 const SOLO_LIDER_GRUPOS = [
-  {
-    modulo: "cuentas_dinero",
-    funciones: [
-      "registrar_conciliacion", "anular_conciliacion", "marcar_revisados_dinero", "asignar_cuenta_pasada",
-      "fn_conciliacion", "fn_conciliacion_cuentas", "fn_medios_de_cobro", "fn_plata_del_dueno", "fn_dinero_sin_cuenta", "fn_pagos_sin_cuenta",
-    ],
-    razon:
-      "Las llama Cuentas y dinero (app/(app)/finanzas/dinero, components/finanzas/CuentasDinero.tsx y PagosSinCuenta.tsx) y solo se piden o " +
-      "se muestran si la cuenta es líder (`esLider`; la conciliación redirige a quien no lo es): la pantalla tapa lo que la base exige solo " +
-      "del líder. Falta decidir si el módulo lo incluye o pasa a «siempre solo del líder» (trabajo pendiente).",
-  },
-  {
-    modulo: null,
-    funciones: [
-      "crear_cuenta_dinero", "editar_cuenta_dinero", "eliminar_cuenta_dinero", "archivar_cuenta_dinero", "guardar_medio_de_cobro",
-      "fn_cuenta_dinero_detalle",
-    ],
-    razon:
-      "Solo las llaman ConfiguracionCuentas.tsx y EditarCuentaModal.tsx, que cuelgan de Configuración (app/(app)/configuracion), un módulo " +
-      "no delegable («solo líder por ahora»): no son deuda de ningún módulo delegable. Si Configuración se delega algún día, se revisan.",
-  },
+  // ADR-0253 (2026-09-28): `fn_exigir_lider_dinero` pasó a pedir «el líder o el módulo Configuración»
+  // (`fn_puede_configurar`). Las 16 funciones que lo llaman —crear, editar, archivar y eliminar cuentas, a qué cuenta
+  // entra cada cobro, conciliar, la plata del dueño, lo pasado sin cuenta— dejaron de ser «solo líder» y salieron de aquí.
+  // Deuda que queda (BACKLOG): Cuentas y dinero sigue mostrándolas solo si la cuenta es líder (`esLider`), aunque la
+  // base ya las deja a quien tiene Configuración.
   {
     modulo: "reportes_financieros",
     funciones: ["fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales", "fn_saldos_iniciales_propuesta", "registrar_saldo_inicial"],

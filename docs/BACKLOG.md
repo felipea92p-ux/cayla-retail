@@ -28,13 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928220000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
+## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
 - [x] `fn_producto_historia` (única definición, cada renglón `borrable` o no), `fn_producto_como_eliminar` (la ventana) y `eliminar_producto_con_historia` (solo Admin, respaldo en `respaldo_purgas.filas`, candados devueltos a su modo, rastro y Actividad).
 - [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
 - [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
-- [x] **`20260928220000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
+- [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
 - [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
 - [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
 - [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
@@ -42,6 +42,31 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - Cómo verificas:
   - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
   - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+
+## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
+Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
+estar limitado a solo el líder». Decidió: Líder editable como cualquier rol; los tres módulos, «todo, como el líder»;
+reabrir un mes, quien tenga Cierre de mes.
+- [x] Configuración, Impuestos y Cierre de mes se dan a un rol (`20260928220000`): 36 funciones cambian solo su candado
+  (reescritas desde su definición real; huellas del repo y de producción idénticas el 2026-09-28) y 4 preguntas nuevas
+  (`fn_puede_configurar`, `fn_puede_ver_impuestos`, `fn_puede_cerrar_mes`, `fn_ve_finanzas_de_todo`).
+- [x] El Líder se edita (`20260928220100`): `retail.lider_modulos_ocultos` guarda lo que se le quita; solo un Admin lo
+  edita; «Roles y accesos» no se le quita; un módulo nuevo le sigue apareciendo solo; duplicarlo copia lo que ve.
+- [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
+  permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
+- [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
+  módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
+- [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
+  base ya lo deja a quien tiene Configuración; lo mismo, la opción «De la empresa» en Gastos.
+- Cómo verificas:
+  - `pnpm pruebas:roles-lider-editable` (13/13; vigila que ninguna de las 36 funciones vuelva a preguntar `fn_es_lider()`).
+  - `pnpm pruebas:roles-cobertura` (31/31), `pnpm pruebas:impuestos`, `pnpm pruebas:cierre-mes` (104/104),
+    `pnpm pruebas:configuracion-caja`, `pnpm pruebas:presupuesto`, `pnpm pruebas:cuentas-dinero`, `pnpm pruebas:editar-cuentas`,
+    `pnpm pruebas:cuenta-sellada`, `pnpm pruebas:activos-y-fijos` — actualizadas: el mensaje dejó de decir «solo el líder».
+  - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
+  - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
 
 ## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
 
