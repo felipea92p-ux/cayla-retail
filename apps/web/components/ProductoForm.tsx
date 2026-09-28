@@ -114,7 +114,7 @@ const NUMERO =
    «activa»; el código entero; precio, costo y margen— con su rótulo encima, para que ningún número quede sin nombre.
    El código nunca se corta: si no entra, parte línea. Las clases van literales: Tailwind no ve las que se arman con `${}`. */
 const FILA_VARIANTE =
-  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
+  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
 /** Celda que en la ficha angosta ocupa el rincón de arriba a la derecha (interruptor «activa» o «Quitar»). */
 const ESQUINA = "col-span-2 col-start-11 row-start-1 flex flex-col items-end @[40rem]:col-span-1 @[40rem]:col-start-auto @[40rem]:row-start-auto";
 
@@ -704,7 +704,7 @@ export function ProductoForm({
         {/* ---------- variantes ---------- */}
         <section className="card-cayla @container space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
-          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3rem_3rem_3rem]">
+          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem]">
             {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
               <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : i === 6 ? "text-center" : ""}`}>
                 {t}
