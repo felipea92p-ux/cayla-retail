@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   armarFrescuraLider,
+  armarFrescuraSede,
   leerConfianzaRegistro,
   leerFrescuraSede,
   MARCA_EDAD_DESCONOCIDA,
@@ -387,6 +388,24 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const sede = r.sedes[0].lectura.datos as FrescuraSede;
     expect(r.referenciaCayla.fallo).toBeNull();
     expect(r.referenciaCayla.datos).toEqual(sede.categorias);
+  });
+});
+
+describe("paso 4: quien tiene el módulo sin ser líder lee SOLO su sede (armarFrescuraSede)", () => {
+  it("una lectura de su tienda, ninguna del registro al colgar ni de otra tienda; lo mismo que esa tienda en la vuelta del líder", async () => {
+    const { rpc, llamadas } = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), fn_confianza_registro: () => ok(CONF) });
+    const suya = await armarFrescuraSede(TIENDA, rpc, 120);
+    expect(llamadas).toEqual([{ fn: "fn_frescura_sede", args: { p_ubicacion_id: TIENDA.id, p_dias: 120 } }]);
+    expect(suya.lectura.fallo).toBeNull();
+    const delLider = await armarFrescuraLider([TIENDA], rpc, 120);
+    expect(suya).toEqual(delLider.sedes[0]);
+  });
+
+  it("sin el módulo (frescura_sin_permiso) o con la base caída, un aviso; nunca una tienda vacía", async () => {
+    const sinPermiso = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ({ data: null, error: { message: "sin permiso", hint: "frescura_sin_permiso" } }) });
+    expect((await armarFrescuraSede(TIENDA, sinPermiso.rpc, 120)).lectura).toEqual({ datos: null, fallo: "No tienes acceso a la frescura de ZZ Tienda Frescura." });
+    const caida = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => Promise.reject(new Error("timeout")) });
+    expect((await armarFrescuraSede(TIENDA, caida.rpc, 120)).lectura.fallo).toBe("No se pudo cargar la frescura de ZZ Tienda Frescura. Lo demás de esta pantalla sí está al día.");
   });
 });
 

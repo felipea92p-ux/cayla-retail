@@ -1053,9 +1053,10 @@ export function esPilar(r: Rapidez | null, recientes: Recientes): boolean {
 
 /**
  * `Recientes` a partir de las ventas del modelo+color en sus últimos `DIAS_CALLADA` días en el piso y sus segundos
- * colgada en la lectura: sin ventas, «dejó de vender» solo si la lectura la tiene colgada esos días (R7-2).
+ * colgada en la lectura: sin ventas, «dejó de vender» solo si la lectura la tiene colgada esos días (R7-2). Exportada
+ * para la pantalla (paso 4): «dejó de venderse» y «30 días sin vender» se dicen con ESTA definición, no con otra.
  */
-function recientesDe(ventasRecientes: number | null, segundosColgada: number): Recientes {
+export function recientesDe(ventasRecientes: number | null, segundosColgada: number): Recientes {
   if (ventasRecientes === null) return "no_se_sabe";
   if (ventasRecientes > 0) return "vendio";
   return segundosColgada >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS ? "dejo_de_vender" : "no_se_sabe";
@@ -1637,6 +1638,15 @@ async function leerConfianzaFrescura(rpc: LlamarRpcFrescura): Promise<Tolerado<F
     console.error(`No se pudo leer ${que}:`, e);
     return { datos: null, fallo: avisoFrescura(que, null) };
   }
+}
+
+/**
+ * Frescura del piso de UNA tienda, para quien tiene el módulo sin ser líder (paso 4, ADR-0253): lee solo su sede, sin el
+ * registro al colgar ni la referencia de CAYLA (las dos necesitan leer las otras tiendas, y quien no es líder no las
+ * opera). Mismo camino y mismos avisos que cada tienda de la vuelta del líder.
+ */
+export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number): Promise<FrescuraDeSede> {
+  return (await leerSedeFrescura(rpc, tienda, dias)).fila;
 }
 
 /**
