@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LayoutGrid, PackageX, Rows3, Shirt, TrendingDown, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -13,13 +13,13 @@ import {
   getReposicionPorProveedor,
   getSinTemporadaResumen,
   type ParamsProductosListado,
-  type ResumenProductos,
 } from "@/lib/catalogo-v2";
-import { ProductosAgrupados } from "@/components/ProductosAgrupados";
+import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
-import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ResumenSede } from "@/components/ui/ResumenSede";
 import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { mensajeSinResultados } from "@/lib/productos-stock";
 
@@ -35,6 +35,10 @@ import { mensajeSinResultados } from "@/lib/productos-stock";
 // patrón de `trix/catalogo-vocabulario` (V1) — un producto, expandible a sus
 // variantes — sin traer con él el stock que V1 mostraba ahí: en V2 eso es
 // `/inventario`, a propósito separado de "qué existe".
+//
+// 2026-09-28 (ADR-0254): `ProductosAgrupados` pasa a `ProductosTabla` (planilla con foto, colores, margen y
+// ficha de variantes, tarjetas en el celular), la cabecera es la de Ventas (`EncabezadoPagina`) y los filtros
+// son los plegables de la Grilla en las dos vistas.
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
 // cliente (`getCatalogo()`) a filtros en la URL + Postgres
@@ -58,8 +62,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   const supabase = await createClient();
 
-  // Grilla ⇄ tabla (ADR-0077) — mismo patrón que `hrefConStock` de `Resumen`
-  // más abajo: reconstruye la URL con todos los filtros vigentes, solo
+  // Grilla ⇄ tabla (ADR-0077) — mismo patrón que `hrefConStock` más abajo: reconstruye la URL con todos los filtros vigentes, solo
   // cambia `vista`. Grilla es el default, así que no ensucia la URL.
   function hrefConVista(v: "grilla" | "tabla") {
     const p = new URLSearchParams();
@@ -94,47 +97,74 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
 
+  // Las cuatro cifras de `fn_productos_resumen` (con los filtros vigentes, no solo esta página). Las tres de stock
+  // son atajos: tocarlas aplica ese filtro, igual que «Por aprobar» en Devoluciones.
+  function hrefConStock(stock: "sin_stock" | "bajo" | "reponer") {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v && k !== "pagina" && k !== "stock") p.set(k, v);
+    p.set("stock", stock);
+    return `/productos?${p.toString()}`;
+  }
+
+  const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
+    <Link
+      href={hrefConVista(v)}
+      aria-current={vista === v ? "page" : undefined}
+      className={`label-cayla inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[10.5px] transition-colors ${
+        vista === v ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:text-tinta"
+      }`}
+    >
+      <Icono aria-hidden className="h-3.5 w-3.5" />
+      {texto}
+    </Link>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
-          {vista === "grilla" && (
-            <>
-              <Resumen resumen={resumen} params={params} compacto />
-              <NotaStockTotal />
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-0.5 rounded-lg bg-sand p-0.5">
-            <Link
-              href={hrefConVista("grilla")}
-              aria-current={vista === "grilla" ? "page" : undefined}
-              className={`label-cayla rounded-md px-3 py-2 text-[10.5px] transition-colors ${
-                vista === "grilla" ? "bg-papel text-tinta" : "text-tinta/60 hover:text-tinta"
-              }`}
-            >
-              Grilla
+      {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo="Productos"
+        subtitulo={
+          <>
+            Cada prenda del catálogo con sus colores, tallas y precios. El stock es el total de todas las sedes y el Taller; para una sola sede,
+            mira{" "}
+            <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
+              Existencias
             </Link>
-            <Link
-              href={hrefConVista("tabla")}
-              aria-current={vista === "tabla" ? "page" : undefined}
-              className={`label-cayla rounded-md px-3 py-2 text-[10.5px] transition-colors ${
-                vista === "tabla" ? "bg-papel text-tinta" : "text-tinta/60 hover:text-tinta"
-              }`}
-            >
-              Tabla
-            </Link>
-          </div>
-          {puede(persona, "editarCatalogo") && (
-            <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-              + Nuevo producto
-            </Link>
-          )}
-        </div>
-      </div>
+            .
+          </>
+        }
+        acciones={
+          <>
+            <div className="flex gap-0.5 rounded-lg bg-sand p-0.5" role="group" aria-label="Cómo ver el catálogo">
+              {botonVista("grilla", LayoutGrid, "Grilla")}
+              {botonVista("tabla", Rows3, "Tabla")}
+            </div>
+            {editaCatalogo && (
+              <Link href="/productos/nuevo" className="btn-cayla btn-primario">
+                + Nuevo producto
+              </Link>
+            )}
+          </>
+        }
+      >
+        <ResumenSede
+          sede="el catálogo"
+          cifras={[
+            { valor: resumen.totalProductos, etiqueta: resumen.totalProductos === 1 ? "Producto" : "Productos", icono: Shirt },
+            {
+              valor: resumen.reponerDeProveedor,
+              etiqueta: "Para pedir",
+              icono: Truck,
+              href: hrefConStock("reponer"),
+              alerta: resumen.reponerDeProveedor > 0,
+            },
+            { valor: resumen.stockBajo, etiqueta: "Stock bajo", icono: TrendingDown, href: hrefConStock("bajo"), alerta: resumen.stockBajo > 0 },
+            { valor: resumen.sinStock, etiqueta: "Sin stock", icono: PackageX, href: hrefConStock("sin_stock") },
+          ]}
+        />
+      </EncabezadoPagina>
 
       {pendientesAlta.length > 0 && (
         // Plegado (2026-09-23): con 10 prendas la lista abierta ocupaba media pantalla; se abre al tocar.
@@ -181,8 +211,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
-
       {reposicion.length > 0 && (
         <AQuienPedirle
           reposicion={reposicion}
@@ -195,7 +223,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         colores={coloresOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
-        compacto={vista === "grilla"}
       />
 
       {vista === "grilla" ? (
@@ -209,14 +236,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
-        <ProductosAgrupados
+        <ProductosTabla
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          puedeEditar={puede(persona, "editarCatalogo")}
+          puedeEditar={editaCatalogo}
           puedeAjustar={puede(persona, "ajustarStock")}
           puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
           puedeEliminar={persona.rol === "lider"}
+          veDinero={puede(persona, "verDineroCompras")}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
@@ -229,92 +257,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         pathname="/productos"
         sustantivo={["producto", "productos"]}
       />
-    </div>
-  );
-}
-
-// Cuatro cifras de una consulta agregada (`fn_productos_resumen`), no del
-// catálogo cargado en el cliente — con paginado, la página nunca es "todo el
-// catálogo". "Stock bajo" y "sin stock" son también atajos: tocarlas aplica
-// ese filtro, mismo criterio que "Vence esta semana" en Compras.
-//
-// `compacto` (2026-09-17, pedido de Felipe): en la Grilla esto deja de ser
-// una tarjeta propia y pasa a una línea bajo "Productos" — y solo dice lo
-// que hace falta accionar (pedir/stock bajo/sin stock quedan mudos en 0, no
-// en gris): la ropa no debería competir con cinco cifras para hacerse ver.
-// La Tabla sigue con la tarjeta completa, sin tocar.
-function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProductos; params: ParamsProductosListado; compacto?: boolean }) {
-  function hrefConStock(stock: "sin_stock" | "bajo" | "reponer") {
-    const p = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v && k !== "pagina" && k !== "stock") p.set(k, v);
-    p.set("stock", stock);
-    return `/productos?${p.toString()}`;
-  }
-
-  if (compacto) {
-    return (
-      <p className="mt-1 text-xs text-tinta/55">
-        {resumen.totalProductos.toLocaleString("es-PE")} {resumen.totalProductos === 1 ? "producto" : "productos"} ·{" "}
-        {resumen.totalVariantes.toLocaleString("es-PE")} {resumen.totalVariantes === 1 ? "variante" : "variantes"}
-        {resumen.reponerDeProveedor > 0 && (
-          <>
-            {" · "}
-            <Link href={hrefConStock("reponer")} className="text-ambar-profundo hover:underline">
-              {resumen.reponerDeProveedor.toLocaleString("es-PE")} para pedir
-            </Link>
-          </>
-        )}
-        {resumen.stockBajo > 0 && (
-          <>
-            {" · "}
-            <Link href={hrefConStock("bajo")} className="text-ambar-profundo hover:underline">
-              {resumen.stockBajo.toLocaleString("es-PE")} con stock bajo
-            </Link>
-          </>
-        )}
-        {resumen.sinStock > 0 && (
-          <>
-            {" · "}
-            <Link href={hrefConStock("sin_stock")} className="text-rojo hover:underline">
-              {resumen.sinStock.toLocaleString("es-PE")} sin stock
-            </Link>
-          </>
-        )}
-      </p>
-    );
-  }
-
-  return (
-    <div className="card-cayla px-5 py-4">
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
-        <div>
-          <dt className="label-cayla text-[11px] text-tinta/65">Productos</dt>
-          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta">{resumen.totalProductos.toLocaleString("es-PE")}</dd>
-        </div>
-        <div>
-          <dt className="label-cayla text-[11px] text-tinta/65">Variantes</dt>
-          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta">{resumen.totalVariantes.toLocaleString("es-PE")}</dd>
-        </div>
-        <Link href={hrefConStock("reponer")} className="group">
-          <dt className="label-cayla text-[11px] text-tinta/65 group-hover:text-ambar">Pedir a proveedor</dt>
-          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta group-hover:text-ambar">
-            {resumen.reponerDeProveedor.toLocaleString("es-PE")}
-          </dd>
-        </Link>
-        <Link href={hrefConStock("bajo")} className="group">
-          <dt className="label-cayla text-[11px] text-tinta/65 group-hover:text-rojo">Stock bajo</dt>
-          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta group-hover:text-rojo">
-            {resumen.stockBajo.toLocaleString("es-PE")}
-          </dd>
-        </Link>
-        <Link href={hrefConStock("sin_stock")} className="group">
-          <dt className="label-cayla text-[11px] text-tinta/65 group-hover:text-rojo">Sin stock</dt>
-          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta group-hover:text-rojo">
-            {resumen.sinStock.toLocaleString("es-PE")}
-          </dd>
-        </Link>
-      </dl>
-      <NotaStockTotal />
     </div>
   );
 }

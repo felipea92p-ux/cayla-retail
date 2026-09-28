@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Productos: la Tabla rediseñada para todos, la cabecera de Ventas y descontinuar en bloque — ADR-0254)
+Qué hice: la Tabla pasó de lista sin fotos a planilla con foto, colores, tallas en curva, precio, costo, margen, stock y estado, con ficha de variantes y tarjetas en el celular; Productos usa la cabecera de Ventas y los filtros plegables de la Grilla en las dos vistas; descontinuar/reactivar en bloque pasa por `cambiar_estado_productos` (todo o nada, revisa marca y proveedor al reactivar).
+Por qué así: la Tabla hacía lo que la Grilla no (marcar varias, costo y margen de un vistazo), pero con otra piel y otro camino de escritura que se saltaba la regla de «Editar»; y un costo en cero daba «100 %» de margen. El responsive sigue al ancho de la tabla, no de la ventana: con el menú abierto, 1.440 px de ventana dejan 1.071 de tabla.
+Felipe se lleva: **el ERP tiene tres umbrales de margen (30, 40/60 y ahora 45 %)** y ninguno lo decidió él por categoría; y pegar `20260928235000` para que reactivar en bloque no devuelva a «Activo» una prenda de una marca dada de baja.
+
 ## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
 Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928230000` sin pegar.
 Por qué así: de 33 productos, 22 solo tenían la carga inicial y ajustes, y el botón de ADR-0218 no los alcanzaba; la línea «¿hay una clienta, un proveedor, otra sede o dinero del otro lado?» deja al Admin limpiar pruebas sin poder borrar una venta cobrada. El candado del historial no aprendió excepciones: solo el dueño de la tabla lo apaga, dentro de su transacción, como la purga.

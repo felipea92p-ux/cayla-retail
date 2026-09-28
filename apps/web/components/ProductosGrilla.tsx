@@ -15,7 +15,7 @@ import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESUL
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
- * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
+ * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
  * misma fuente de datos (`ProductoListado[]`, ya filtrada/paginada por
  * `fn_productos`), sin pedir nada nuevo al servidor.
  *

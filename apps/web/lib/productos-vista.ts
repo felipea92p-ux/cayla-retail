@@ -1,5 +1,6 @@
 import type { VarianteCatalogo } from "./catalogo-v2";
 import { margenPorcentaje } from "./alta-producto";
+import { compararTallas } from "./tallas";
 
 /* ====================================================================
    Productos · lo que la Grilla y la Tabla calculan igual (ADR-0077,
@@ -20,9 +21,18 @@ export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponib
   return [...vistos.values()];
 }
 
-/** Las tallas del modelo, sin repetir, en el orden en que llegan (`fn_productos` ya las ordena). */
+/** Las tallas del modelo, sin repetir, en su orden de curva (XS · S · M · L): las variantes llegan en el orden en
+ *  que se crearon, y «L, M, S» confunde a quien busca la M. */
 export function tallasDe(variantes: readonly VarianteCatalogo[]): string[] {
-  return [...new Set(variantes.flatMap((v) => (v.talla ? [v.talla] : [])))];
+  return [...new Set(variantes.flatMap((v) => (v.talla ? [v.talla] : [])))].sort(compararTallas);
+}
+
+/** Las variantes agrupadas por color (en el orden de `coloresDe`) y, dentro de cada color, por curva de talla. */
+export function ordenarVariantes<V extends Pick<VarianteCatalogo, "color" | "talla">>(variantes: readonly V[]): V[] {
+  const ordenColor = new Map<string, number>();
+  for (const v of variantes) if (v.color && !ordenColor.has(v.color)) ordenColor.set(v.color, ordenColor.size);
+  const posColor = (v: V) => (v.color ? ordenColor.get(v.color)! : ordenColor.size);
+  return [...variantes].sort((a, b) => posColor(a) - posColor(b) || compararTallas(a.talla ?? "", b.talla ?? ""));
 }
 
 /** «S/129.00» o «S/112.00–118.00»; `null` si no hay ningún valor (costo que esta cuenta no ve: se pinta «—», nunca S/0). */
@@ -55,18 +65,24 @@ export function mezclar(hex: string, pct: number): string {
  */
 export const UMBRAL_MARGEN_BAJO = 45;
 
+/** ¿Hay un costo de verdad? `null` (no se ve o no se cargó) y 0 (no se cargó) no lo son. */
+export function tieneCosto(costo: number | null): costo is number {
+  return costo !== null && Number.isFinite(costo) && costo > 0;
+}
+
 export type MargenProducto = { min: number; max: number; bajo: boolean };
 
 /**
  * El margen del modelo sobre el precio de venta, en %, con la MISMA fórmula que el alta (`margenPorcentaje`, sin
  * descontar IGV: es una alerta, no contabilidad). Rango entre variantes, porque un XL puede costar más que un S.
  * `null` si ninguna variante tiene costo: sin permiso de ver el dinero `fn_productos` manda el costo vacío, y una
- * prenda sin costo cargado no tiene margen (antes un costo vacío contaba como 0 y daba 100 %).
+ * prenda sin costo cargado no tiene margen. Un costo en CERO tampoco es un costo (es «no se cargó»): contarlo daba
+ * «100 %», el margen más lindo de la tabla sobre la prenda de la que menos se sabe.
  * `bajo` mira el PEOR margen del modelo: la talla que menos deja es la que avisa.
  */
 export function margenDe(variantes: readonly { precio: number; costo: number | null }[]): MargenProducto | null {
   const margenes = variantes.flatMap((v) => {
-    if (v.costo === null) return [];
+    if (!tieneCosto(v.costo)) return [];
     const m = margenPorcentaje(v.precio, v.costo);
     return m === null ? [] : [m];
   });

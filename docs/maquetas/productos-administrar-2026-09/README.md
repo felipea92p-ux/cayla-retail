@@ -46,3 +46,12 @@ color que la Grilla, y el mismo tinte con percha si no hay foto.
    marca y proveedor): necesita una migración que se pega en producción aparte.
 
 Al construir: ADR nuevo (número a reservar mirando los PR abiertos) que actualice ADR-0077.
+
+## Lo que eligió Felipe y cómo se construyó (2026-09-28, ADR-0254)
+
+- La Tabla es **para todos los que ven Productos** (el rol ya decide quién los ve, ADR-0161) y se sigue llamando **«Tabla»**, sin
+  candado. Lo que escribe se esconde a quien no puede; costo y margen, a quien no ve el dinero.
+- Margen bajo: **45 %**, provisional (el ERP ya tiene 30 % en el alta y 40/60 % en Producción; ver BACKLOG).
+- Cabecera: la de Ventas (`EncabezadoPagina` + `ResumenSede`), no la de la maqueta.
+- **Lo más responsive posible:** por el ancho de la tabla (`@container`), tarjetas debajo de 768 px; las columnas entran de a una.
+- Se construyó en `apps/web/components/ProductosTabla.tsx`.

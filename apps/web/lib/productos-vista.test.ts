@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { coloresDe, tallasDe, rangoSoles, margenDe, textoMargen, UMBRAL_MARGEN_BAJO } from "./productos-vista";
+import { coloresDe, tallasDe, ordenarVariantes, rangoSoles, margenDe, textoMargen, UMBRAL_MARGEN_BAJO } from "./productos-vista";
 
 function v(parcial: Partial<VarianteCatalogo>): VarianteCatalogo {
   return {
@@ -37,8 +37,20 @@ describe("coloresDe", () => {
 });
 
 describe("tallasDe", () => {
-  it("sin repetir y sin las variantes sin talla", () => {
-    expect(tallasDe([v({ talla: "S" }), v({ talla: "M" }), v({ talla: "S" }), v({ talla: null })])).toEqual(["S", "M"]);
+  it("sin repetir, sin las variantes sin talla y en orden de curva", () => {
+    expect(tallasDe([v({ talla: "L" }), v({ talla: "M" }), v({ talla: "S" }), v({ talla: "XS" }), v({ talla: "M" }), v({ talla: null })])).toEqual(["XS", "S", "M", "L"]);
+  });
+});
+
+describe("ordenarVariantes", () => {
+  it("por color (el orden en que aparecen) y dentro de cada color por curva de talla", () => {
+    const orden = ordenarVariantes([
+      { color: "Negro", talla: "L" },
+      { color: "Camel", talla: "M" },
+      { color: "Negro", talla: "S" },
+      { color: "Camel", talla: "XS" },
+    ]).map((x) => `${x.color}-${x.talla}`);
+    expect(orden).toEqual(["Negro-S", "Negro-L", "Camel-XS", "Camel-M"]);
   });
 });
 
@@ -65,6 +77,11 @@ describe("margenDe", () => {
   it("sin costo no hay margen: un costo vacío no cuenta como cero (daría 100 %)", () => {
     expect(margenDe([{ precio: 100, costo: null }])).toBeNull();
     expect(margenDe([{ precio: 100, costo: null }, { precio: 100, costo: 50 }])).toEqual({ min: 50, max: 50, bajo: false });
+  });
+
+  it("un costo en cero no es un costo: no da «100 %»", () => {
+    expect(margenDe([{ precio: 80, costo: 0 }])).toBeNull();
+    expect(margenDe([{ precio: 80, costo: 0 }, { precio: 80, costo: 32 }])).toEqual({ min: 60, max: 60, bajo: false });
   });
 
   it("un precio en cero no rompe la cuenta", () => {

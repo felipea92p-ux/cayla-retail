@@ -170,8 +170,12 @@ export function fechaEtiqueta(hoy: string): string {
 
 /** El enlace a la pantalla de impresión: desde el resultado de un ingreso (los lotes de Recibir / Ingreso sin
  *  comprobante, o la producción cerrada del Taller), desde una campaña o desde un producto. */
-export function urlEtiquetasDePrecio(origen: { lotes: string[] } | { produccion: string } | { campana: string } | { producto: string }): string {
+export function urlEtiquetasDePrecio(
+  origen: { lotes: string[] } | { produccion: string } | { campana: string } | { producto: string } | { variantes: string[] },
+): string {
   if ("lotes" in origen) return `/etiquetas-de-precio?lotes=${origen.lotes.join(",")}`;
+  // Varias prendas marcadas en la Tabla de Productos (ADR-0254): sus tallas, como las marcadas en Existencias (ADR-0237).
+  if ("variantes" in origen) return `/etiquetas-de-precio?variantes=${origen.variantes.join(",")}`;
   if ("produccion" in origen) return `/etiquetas-de-precio?produccion=${origen.produccion}`;
   if ("campana" in origen) return `/etiquetas-de-precio?campana=${origen.campana}`;
   return `/etiquetas-de-precio?producto=${origen.producto}`;

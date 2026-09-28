@@ -28,6 +28,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **SIN PEGAR en producción** (la web cae al camino viejo sin ella); rama `claude/table-view-decision-59a288`
+Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
+→ «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
+responsive posible».
+- [x] Tabla nueva (`ProductosTabla.tsx`): foto, colores, tallas en curva, precio, costo, margen con barra, stock con ritmo, estado; ficha de variantes; acciones al pasar el mouse y en la ficha; tarjetas debajo de 768 px de tabla.
+- [x] Cabecera `EncabezadoPagina` + `ResumenSede` (Productos, Para pedir, Stock bajo, Sin stock); `NotaStockTotal.tsx` borrada (su texto pasó a la frase).
+- [x] Filtros de una sola forma (la plegable de la Grilla) en las dos vistas.
+- [x] `cambiar_estado_productos`: todo o nada, al reactivar revisa marca y proveedor y nombra la prenda; prueba `pnpm pruebas:productos-estado-en-bloque` (16/16) en el CI.
+- [x] `ResumenSede` ya no desborda la página en tablet con cuatro cifras (también arregla Devoluciones).
+- [ ] **Pegar `20260928235000` en producción** (función nueva, sin tablas ni políticas: se pega sola) y refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`, `pnpm datos:comparar`).
+- [ ] **Decisión de Felipe: un solo umbral de margen.** Hoy hay tres: alta de producto 30 % (`nivelMargen`), Producción 40/60 % sobre costo directo (`semaforoMargen`) y la Tabla 45 % (`UMBRAL_MARGEN_BAJO`, provisional).
+- [ ] Mirar la Tabla con una cuenta de colaboradora que vea Productos sin `verDineroCompras`: no debe ver costo ni margen.
+- Cómo verificas:
+  - Catálogo ▸ Productos ▸ Tabla: las filas traen foto, colores y margen; un clic abre las variantes; marca dos, «Descontinuar», confirma → salen «Descontinuado»; márcalas y «Reactivar».
+  - En el celular (375 px): cada prenda es una tarjeta, sin scroll horizontal; la barra de marcadas ocupa el ancho.
+  - Reactivar una prenda cuya marca diste de baja: no reactiva ninguna y dice cuál.
+
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
@@ -41,7 +58,7 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
 - Cómo verificas:
   - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
-  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ Tabla, la ficha de la prenda ▸ Eliminar (el menú «···» se fue con ADR-0254; en la Grilla, la vista rápida) sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
 
 ## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
 Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
