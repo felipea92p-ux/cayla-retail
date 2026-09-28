@@ -648,6 +648,22 @@ export async function getSinTemporadaResumen(): Promise<{ prendas: number } | nu
 
 export type ValorVocabulario = { id: string; texto: string };
 
+/** id → la imagen que un Líder eligió en Atributos para un tejido o un patrón (foto o dibujo generado, ADR-0256). Sin
+ *  entrada = el dibujo automático por nombre. Aparte de `ValorVocabulario` para no ensanchar el tipo que también usan
+ *  las tallas. La leen el alta y la ficha del producto: UNA sola lectura para las dos. */
+export type ImagenesMuestra = { tejidos: Record<string, string>; patrones: Record<string, string> };
+
+export async function getImagenesMuestra(): Promise<ImagenesMuestra> {
+  const supabase = await createClient();
+  const [tejidos, patrones] = await Promise.all([
+    supabase.from("tejidos").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+    supabase.from("patrones").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+  ]);
+  const mapa = (filas: { id: string; imagen_muestra_url: string | null }[]) =>
+    Object.fromEntries(filas.flatMap((f) => (f.imagen_muestra_url ? [[f.id, f.imagen_muestra_url]] : [])));
+  return { tejidos: mapa(exigir(tejidos, "las imágenes de los tejidos")), patrones: mapa(exigir(patrones, "las imágenes de los patrones")) };
+}
+
 /** Qué tallas/tejidos/patrones ofrece el formulario según la categoría
  *  elegida (20260917100400) — reemplaza `categorias.tallas_sugeridas`.
  *  Cada tabla puente reemplaza, no hereda, entre categoría y subcategoría

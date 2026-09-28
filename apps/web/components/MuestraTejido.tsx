@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactElement } from "react";
 import { familiaDeTejido, type FamiliaTejido } from "@/lib/tejido-visual";
 
@@ -5,8 +6,8 @@ import { familiaDeTejido, type FamiliaTejido } from "@/lib/tejido-visual";
  * La "muestra" de un tejido en Atributos → Tejidos: la textura de la tela
  * dibujada de cerca (sarga del denim, canalé de la pana, panal del piqué…)
  * para reconocerla de un vistazo en vez de leer 17 nombres. Es el equivalente
- * de `MuestraPatron` para patrones; cuando exista foto real por tejido, esta
- * pieza pasa a ser el respaldo de "no hay foto".
+ * de `MuestraPatron` para patrones. Desde el ADR-0256 un Líder puede subir la
+ * foto real (`imagenUrl`); el dibujo queda de respaldo para lo que no la tiene.
  *
  * Los tonos son los de la tela real (el denim es azul índigo, la pana marrón),
  * no los de la marca: aquí el color ES la información. Lo que sí se respeta
@@ -353,12 +354,28 @@ const DIBUJOS: Record<FamiliaTejido, () => Dibujo> = {
   }),
 };
 
-export function MuestraTejido({ nombre, className = "aspect-[3/1] w-full" }: { nombre: string; className?: string }) {
+export function MuestraTejido({
+  nombre,
+  imagenUrl = null,
+  className = "aspect-[3/1] w-full",
+}: {
+  nombre: string;
+  /** La foto real que subió un Líder (`imagen_muestra_url`, ADR-0256). Si está, manda sobre el dibujo. */
+  imagenUrl?: string | null;
+  className?: string;
+}) {
+  if (imagenUrl) {
+    return (
+      <div className={`${className} relative overflow-hidden rounded-lg border border-tinta/10 bg-sand/40`}>
+        <Image src={imagenUrl} alt={`Muestra del tejido ${nombre}`} fill unoptimized sizes="(max-width: 640px) 100vw, 480px" className="object-cover" />
+      </div>
+    );
+  }
+
   const familia = familiaDeTejido(nombre);
 
   // Un nombre nuevo que no reconocemos: se dice claro en vez de dibujar una
-  // tela que no es. Cuando exista foto por tejido, el Líder lo resuelve
-  // subiéndola.
+  // tela que no es. El Líder lo resuelve subiendo la foto desde el detalle.
   if (!familia) {
     return (
       <div

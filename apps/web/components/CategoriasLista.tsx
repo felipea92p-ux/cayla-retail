@@ -73,9 +73,9 @@ import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, qu
  * vive en `lib/categorias-reglas.ts`, con su prueba.
  */
 
-/** Dónde se elige la temporada de una categoría: la sección «por categoría» de la pestaña Temporadas (ADR-0246). */
-// `desde=categorias`: la sección de destino muestra «← Categorías» (Atributos está en el menú y no la lleva siempre).
-const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas&desde=categorias#por-categoria";
+/** Dónde se elige la temporada de una categoría: la vista «Por categoría» de la pestaña Temporadas (ADR-0246). */
+// `desde=categorias`: la vista de destino muestra «← Categorías» (Atributos está en el menú y no la lleva siempre).
+const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas&vista=categorias&desde=categorias";
 
 type Categoria = {
   id: string;
