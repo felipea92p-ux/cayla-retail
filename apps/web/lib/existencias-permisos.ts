@@ -11,6 +11,9 @@
 //     retirar → «Bajada al piso», apartar y pedir a otra sede → «Apartados», trasladar → «Traslados», ajustar →
 //     «Ajustar stock». La base pide lo mismo.
 //   · Piso y almacén: reponer, retirar y apartar necesitan saber de dónde; solo donde la ubicación los separa.
+//   · Eliminar el producto (ADR-0252, actualización): el mismo permiso que en Catálogo ▸ Productos (Líder; un Admin es un
+//     Líder), y solo mirando la sede activa como todo lo que escribe. La ventana le pregunta a la base si se puede y
+//     con qué (sin historia: Líder o Admin; con historia de stock: solo Admin; con documentos: nadie).
 
 export type EntradaPermisos = {
   /** La ubicación separa piso y almacén y sus dos sububicaciones existen. */
@@ -27,6 +30,8 @@ export type EntradaPermisos = {
   veTraslados: boolean;
   /** Es una tienda (vende): solo entre tiendas se pide una prenda para una clienta (ADR-0233). */
   esTienda: boolean;
+  /** `colaboradores.rol = 'lider'` (un Admin también lo es): quien ve «Eliminar» en Catálogo ▸ Productos. */
+  esLider: boolean;
 };
 
 export type PermisosDelDetalle = {
@@ -40,6 +45,8 @@ export type PermisosDelDetalle = {
   pedirAOtraSede: boolean;
   /** En su sede, con piso y almacén, pero sin «Bajada al piso»: la talla por colgar lo explica en vez de callar. */
   explicarSinModuloBajada: boolean;
+  /** «Eliminar el producto» (ADR-0252): abre la ventana que pregunta a la base; borra el producto entero, en todas las sedes. */
+  eliminar: boolean;
 };
 
 export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
@@ -53,6 +60,7 @@ export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
     etiquetasEHistorial: aqui,
     pedirAOtraSede: aqui && e.esTienda && e.veApartados,
     explicarSinModuloBajada: conPiso && !e.puedeBajarAlPiso,
+    eliminar: aqui && e.esLider,
   };
 }
 

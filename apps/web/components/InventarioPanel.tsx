@@ -14,6 +14,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -357,6 +358,8 @@ export function InventarioPanel({
     setMoviendo({ varianteId, sentido });
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
+  const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
   // «Pedir para una clienta» desde «Dónde más hay» (tarea #9): la talla y la tienda que la tiene.
@@ -517,6 +520,7 @@ export function InventarioPanel({
     puedeAjustar,
     veTraslados,
     esTienda,
+    esLider,
   });
   const puedeApartar = permisos.apartar;
   const puedeReponer = permisos.reponerYRetirar;
@@ -1359,6 +1363,16 @@ export function InventarioPanel({
         />
       )}
 
+      {/* ADR-0252: la misma ventana de Catálogo ▸ Productos. No sabe cuántas variantes tiene el producto entero ni su
+          estado (Existencias mira un color en una sede): los textos lo dicen sin el número, y la base decide. Al borrar,
+          la ventana refresca la pantalla y la prenda desaparece de la lista. */}
+      {eliminando && (
+        <EliminarProductoModal
+          producto={{ productoId: eliminando.productoId, referencia: eliminando.referencia, estado: null, numVariantes: null }}
+          onClose={() => setEliminando(null)}
+        />
+      )}
+
       {viendoDanados && (
         <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} otraSede={!enSedeActiva} onClose={() => setViendoDanados(false)} />
       )}
@@ -1412,6 +1426,11 @@ export function InventarioPanel({
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
+          puedeEliminar={permisos.eliminar}
+          onEliminar={() => {
+            setAbierta(null);
+            setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia });
+          }}
           tiendasParaPedir={permisos.pedirAOtraSede ? tiendasParaPedir : []}
           onPedir={(f, tienda) => {
             setAbierta(null);

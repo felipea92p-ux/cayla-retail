@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, History, MapPin, ShoppingBag, SlidersHorizontal, Tag } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, History, MapPin, ShoppingBag, SlidersHorizontal, Tag, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -32,25 +32,28 @@ const TEXTO_TALLA: Record<EstadoTalla, string> = {
   normal: "en piso",
 };
 
-/** Un renglón de «Con esta prenda»: ícono, qué hace y a dónde lleva. Enlace si va a otra pantalla, botón si abre algo aquí. */
+/** Un renglón de «Con esta prenda»: ícono, qué hace y a dónde lleva. Enlace si va a otra pantalla, botón si abre algo aquí.
+ *  `peligro`: lo que no se deshace (Eliminar) se lee en rojo profundo, para que no se confunda con los de al lado. */
 function Accion({
   icono: Icono,
   titulo,
   detalle,
   href,
   onClick,
+  peligro = false,
 }: {
   icono: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   titulo: string;
   detalle: string;
   href?: string;
   onClick?: () => void;
+  peligro?: boolean;
 }) {
   const contenido = (
     <>
-      <Icono aria-hidden className="h-[18px] w-[18px] shrink-0 text-taupe" />
+      <Icono aria-hidden className={`h-[18px] w-[18px] shrink-0 ${peligro ? "text-rojo-profundo" : "text-taupe"}`} />
       <span className="min-w-0">
-        <span className="block text-sm font-medium text-tinta">{titulo}</span>
+        <span className={`block text-sm font-medium ${peligro ? "text-rojo-profundo" : "text-tinta"}`}>{titulo}</span>
         <span className="block text-xs text-taupe">{detalle}</span>
       </span>
     </>
@@ -80,10 +83,12 @@ export function DetallePrendaExistencias({
   puedeApartar,
   puedeAjustar,
   veTraslados,
+  puedeEliminar = false,
   onReponer,
   onRetirar,
   onApartar,
   onAjustar,
+  onEliminar,
   onClose,
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
@@ -105,10 +110,13 @@ export function DetallePrendaExistencias({
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
+  /** Líder o Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la base. */
+  puedeEliminar?: boolean;
   onReponer: (f: FilaExistencias) => void;
   onRetirar: (f: FilaExistencias) => void;
   onApartar: (f: FilaExistencias) => void;
   onAjustar: (f: FilaExistencias) => void;
+  onEliminar?: () => void;
   onClose: () => void;
 }) {
   const [varianteId, setVarianteId] = useState<string | null>(
@@ -232,6 +240,17 @@ export function DetallePrendaExistencias({
               <Accion icono={History} titulo="Ver historial" detalle="Cada entrada, venta, traslado y ajuste de esta prenda" href={`/productos/${prenda.productoId}/historial`} />
             ) : (
               <p className="text-xs text-taupe">Para imprimir sus etiquetas o ver su historial de esta sede, elígela arriba, en el selector de sede.</p>
+            )}
+            {/* ADR-0252: el mismo «Eliminar» de Catálogo ▸ Productos, al final y en rojo. Es del PRODUCTO, no de esta talla ni
+                de este color: la ventana lo dice y la base decide si se puede (con ventas, nadie; con historia de stock, solo Admin). */}
+            {puedeEliminar && onEliminar && (
+              <Accion
+                icono={Trash2}
+                titulo="Eliminar el producto"
+                detalle="Todas sus tallas y colores, en todas las sedes. Antes te dice si se puede"
+                onClick={onEliminar}
+                peligro
+              />
             )}
           </div>
         </section>
