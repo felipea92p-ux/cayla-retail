@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
-import { MovimientoDetalle } from "@/components/MovimientoDetalle";
+import { CajonMovimiento } from "@/components/CajonMovimiento";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
-import type { Sububicacion } from "@/lib/sububicaciones";
-import { atajosDeMovimiento, type AccesosAtajos, type ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
+import type { ContextoCajon } from "@/lib/movimientos-cajon";
+import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
 // La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0234): lo que se guardó de una sola
@@ -35,8 +34,6 @@ export function MovimientosLista({
   apartados,
   accesos,
   plegar,
-  ubicacionId,
-  sububicaciones,
   hoyLima,
   enlaceCompras,
   enlaceVentas,
@@ -47,13 +44,10 @@ export function MovimientosLista({
   saldos: Record<string, number> | null;
   /** El apartado de cada movimiento de apartar o liberar (ADR-0241). */
   apartados: Record<string, ApartadoDeMovimiento>;
-  /** Qué módulos ve quien mira y si puede ajustar: decide los atajos (ADR-0241). */
+  /** Qué módulos ve quien mira (ADR-0161): decide si un apartado enlaza a Apartados. */
   accesos: AccesosAtajos;
   /** ¿Se pliegan las bajadas al piso del día? Solo en «Todos» y sin búsqueda (lo decide la página). */
   plegar: boolean;
-  /** La sede y sus zonas, para «Corregir con un ajuste» (el `AjustarInventarioModal` de Existencias). */
-  ubicacionId: string;
-  sububicaciones: Sububicacion[];
   hoyLima: string;
   enlaceCompras: boolean;
   enlaceVentas: boolean;
@@ -63,10 +57,11 @@ export function MovimientosLista({
   const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
   const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(() => new Set());
   const [venta, setVenta] = useState<Movimiento | null>(null);
-  // «Corregir con un ajuste» (ADR-0241): cierra el detalle y abre el modal de siempre, nunca uno encima de otro (ADR-0237).
-  const [ajustando, setAjustando] = useState<string | null>(null);
-  const movimientos = operaciones.flatMap((op) => op.filas);
-  const abierto = abiertoId ? (movimientos.find((m) => m.id === abiertoId) ?? null) : null;
+  // La operación abierta se reconstruye a partir de UN id de sus filas (`abiertoId`, la misma URL `?mov=` de
+  // siempre): así una fila suelta y una operación de muchas prendas comparten el mismo estado, sin uno nuevo — abrir
+  // la operación es abrir cualquiera de sus filas (diseño aprobado 2026-09-28, ver CajonMovimiento.tsx).
+  const operacionAbierta = abiertoId ? (operaciones.find((op) => op.filas.some((f) => f.id === abiertoId)) ?? null) : null;
+  const abierto = operacionAbierta?.filas.find((f) => f.id === abiertoId) ?? operacionAbierta?.filas[0] ?? null;
 
   function sincronizarUrl(id: string | null) {
     const p = new URLSearchParams(window.location.search);
@@ -107,6 +102,16 @@ export function MovimientosLista({
     },
     apartados,
     accesos,
+    abiertoId,
+  };
+  const ctxCajon: ContextoCajon = {
+    prendas,
+    saldos,
+    apartados,
+    enlaceVentas,
+    enlaceCompras,
+    modulosVisibles: accesos.modulos,
+    volverA: ctx.volverA,
   };
 
   // Agrupar por día de Lima (`fecha` ya viene calculada en SQL): las operaciones llegan ordenadas por hora desc, así que
@@ -147,21 +152,11 @@ export function MovimientosLista({
             <ul className="divide-y divide-sand">
               {(plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op }))).map((item) =>
                 item.tipo === "bajadas" ? (
-                  <FilaBajadas
-                    key={item.clave}
-                    clave={item.clave}
-                    operaciones={item.operaciones}
-                    prendas={prendas}
-                    ctx={ctx}
-                    abierta={desplegadas.has(item.clave)}
-                    onAlternar={() => alternar(item.clave)}
-                    desplegadas={desplegadas}
-                    onAlternarOperacion={alternar}
-                  />
+                  <FilaBajadas key={item.clave} clave={item.clave} operaciones={item.operaciones} prendas={prendas} ctx={ctx} abierta={desplegadas.has(item.clave)} onAlternar={() => alternar(item.clave)} />
                 ) : item.op.filas.length === 1 ? (
                   <FilaMovimiento key={item.op.clave} m={item.op.filas[0]} prenda={prendas[item.op.filas[0].varianteId]} ctx={ctx} />
                 ) : (
-                  <FilaOperacion key={item.op.clave} op={item.op} prendas={prendas} ctx={ctx} abierta={desplegadas.has(item.op.clave)} onAlternar={() => alternar(item.op.clave)} />
+                  <FilaOperacion key={item.op.clave} op={item.op} prendas={prendas} ctx={ctx} />
                 )
               )}
             </ul>
@@ -169,36 +164,19 @@ export function MovimientosLista({
         ))}
       </div>
 
-      {abierto && (
-        <MovimientoDetalle
-          movimiento={abierto}
-          prenda={prendas[abierto.varianteId]}
-          quedan={saldos?.[abierto.id] ?? null}
-          apartado={apartados[abierto.id] ?? null}
-          atajos={atajosDeMovimiento(abierto, accesos, apartados[abierto.id] ?? null)}
-          onAjustar={() => {
-            const productoId = prendas[abierto.varianteId]?.productoId;
-            cerrar();
-            if (productoId) setAjustando(productoId);
-          }}
+      {operacionAbierta && (
+        <CajonMovimiento
+          operacion={operacionAbierta}
+          contexto={ctxCajon}
           onVerVenta={
-            enlaceVentas
+            enlaceVentas && abierto
               ? () => {
                   cerrar();
                   setVenta(abierto);
                 }
               : undefined
           }
-          onClose={cerrar}
-        />
-      )}
-      {ajustando && (
-        <AjustarInventarioModal
-          productoId={ajustando}
-          ubicacionId={ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeBajarAlPiso={accesos.modulos.includes("bajada_piso")}
-          onClose={() => setAjustando(null)}
+          onCerrar={cerrar}
         />
       )}
       {venta?.venta && (

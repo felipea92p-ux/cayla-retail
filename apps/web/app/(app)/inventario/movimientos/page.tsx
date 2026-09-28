@@ -155,8 +155,6 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
             // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
             // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
             plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
-            ubicacionId={ubicacionActivaId}
-            sububicaciones={sububicaciones}
             hoyLima={hoyEnLima()}
             enlaceCompras={esLider}
             enlaceVentas={veModulo(persona, "historial")}
