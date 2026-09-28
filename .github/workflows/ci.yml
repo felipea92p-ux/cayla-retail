@@ -1022,6 +1022,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
+      # Color y talla de una variante se corrigen solo sin historia (20260928235500): por la ficha, la variante recién
+      # creada cambia de color o de talla habilitada, su código se recalcula y su código de barras se renombra; la que
+      # tiene un movimiento no cambia ni por la ficha ni con un update directo (hint `variante_con_historia`); un
+      # guardado de solo precio no toca código ni SKU; sin el disparador el update directo sí pasa (el hueco 3 existía);
+      # el parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-identidad-variante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-identidad-variante
+
       # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
       # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja
       # nada (la base entera, tabla por tabla); corrida definitiva que devuelve a stock lo ajeno, deja el libro cuadrando y los
