@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 import { ALTO_CONTROL } from "@/components/ui/campos";
+import { SenalBuscando } from "@/components/ui/BusquedaEnUrl";
 
 /**
  * Campo de búsqueda con espera (350 ms) que escribe en la URL — el mismo patrón que ya usaban por
@@ -29,8 +30,15 @@ export function BuscadorDebounced({
   const [enUrl, setEnUrl] = useState(valorUrl);
   if (valorUrl !== enUrl) {
     setEnUrl(valorUrl);
-    if (valorUrl !== enviado) setQ(valorUrl);
+    // Si no es lo que el campo mandó, vino de afuera: el campo lo adopta como lo último enviado (sin eso, «Buscando…»
+    // se quedaría esperando una búsqueda que ya no va a llegar). Se compara sin espacios de borde: el servidor los recorta.
+    if (valorUrl.trim() !== enviado.trim()) {
+      setQ(valorUrl);
+      setEnviado(valorUrl);
+    }
   }
+  // «Buscando…» mientras lo que este campo mandó todavía no volvió en la URL (el servidor no respondió).
+  const buscando = enviado.trim() !== valorUrl.trim();
 
   useEffect(() => {
     if (q.trim() === valorUrl.trim()) return;
@@ -54,6 +62,7 @@ export function BuscadorDebounced({
         placeholder={placeholder}
         className={`${ALTO_CONTROL} w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60`}
       />
+      <SenalBuscando activo={buscando} className="absolute right-9 top-1/2 -translate-y-1/2 bg-papel pl-2" />
       {q && (
         <button type="button" aria-label="Borrar la búsqueda" onClick={() => setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
           <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />

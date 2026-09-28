@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Análisis: escribir en su buscador tampoco abre el loader — ADR-0149)
+Qué hice: el buscador de Inventario ▸ Análisis ahora navega «sin loader» (`useResumenUrl` con `tipeado`) y su campo dice «Buscando…» mientras el servidor recalcula; el panel ya se atenuaba solo. Revisé los demás buscadores: Cambios, Devoluciones y Buscar por comprobante buscan con Enter (acción decidida, siguen con loader) y Gastos solo cambia la URL por clics.
+Por qué así: Análisis guarda todo su estado en la URL con su propio hook, no con los `FiltrosX` de las otras pantallas, y el primer barrido buscaba `router.push` junto a un `setTimeout`: no lo vio. Se reusó la misma pieza (`navegacionSinEspera`) en vez de un segundo mecanismo.
+Felipe se lleva: **un barrido por patrón de código encuentra lo que se parece, no todo lo que hace lo mismo**; por eso ahora quedó escrita en el ADR la lista de buscadores revisados y por qué cada uno queda como queda.
+
 ## 2026-09-28 (Productos: la Tabla rediseñada para todos, la cabecera de Ventas y descontinuar en bloque — ADR-0254)
 Qué hice: la Tabla pasó de lista sin fotos a planilla con foto, colores, tallas en curva, precio, costo, margen, stock y estado, con ficha de variantes y tarjetas en el celular; Productos usa la cabecera de Ventas y los filtros plegables de la Grilla en las dos vistas; descontinuar/reactivar en bloque pasa por `cambiar_estado_productos` (todo o nada, revisa marca y proveedor al reactivar).
 Por qué así: la Tabla hacía lo que la Grilla no (marcar varias, costo y margen de un vistazo), pero con otra piel y otro camino de escritura que se saltaba la regla de «Editar»; y un costo en cero daba «100 %» de margen. El responsive sigue al ancho de la tabla, no de la ventana: con el menú abierto, 1.440 px de ventana dejan 1.071 de tabla.

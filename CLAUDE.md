@@ -221,6 +221,7 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
+Análisis tiene su propio estado en URL: allí es `actualizar(cambios, { tipeado: true })` de `useResumenUrl`.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
 ## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)

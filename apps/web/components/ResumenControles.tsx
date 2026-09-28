@@ -201,7 +201,7 @@ export function ResumenControles({
   periodo: PeriodoResuelto;
   alcance: AlcanceResumen;
   categorias: { id: string; nombre: string; variantes: number }[];
-  actualizar: (cambios: CambiosUrl) => void;
+  actualizar: (cambios: CambiosUrl, opciones?: { tipeado?: boolean }) => void;
   /** Solo Comparar: cómo se eligió A (período anterior, mismo período del año pasado, u otro escrito a mano).
    *  `ResumenComparacionPanel.tsx` lo sigue mandando — es lo que decide, en `resumen-periodo.ts`, cuál es el
    *  rango por defecto de A — pero este componente ya no lo usa para dibujar nada (2026-09-22: la píldora A ya
@@ -296,7 +296,7 @@ export function ResumenControles({
         </div>
         {/* `data-buscador-analisis`: «Escribir» desde el escáner del celular pone el foco aquí (AnalisisPrendas). */}
         <div data-buscador-analisis>
-          <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null })} />
+          <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null }, { tipeado: true })} />
         </div>
         {popoverPeriodo}
       </div>
