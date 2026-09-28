@@ -3,8 +3,8 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-28 (Productos ▸ «Completar» temporadas: la vuelta «← Productos»)
-Qué hice: el enlace «Completar» del aviso «N prendas sin temporada» ahora lleva `desde=productos`, y la sección «Prendas sin temporada» de Atributos ▸ Temporadas muestra «← Productos» sobre su título solo en ese caso.
+## 2026-09-28 (Atributos ▸ Temporadas: la vuelta «← Productos» y «← Categorías»)
+Qué hice: el enlace «Completar» del aviso «N prendas sin temporada» lleva `desde=productos`, y la sección «Prendas sin temporada» de Atributos ▸ Temporadas muestra «← Productos» sobre su título solo en ese caso. Lo mismo desde la ficha y el editor de una categoría: `desde=categorias` y «← Categorías» sobre «Por categoría», cuya ancla pasó del título a la sección (`#por-categoria`) para que la vuelta quede a la vista.
 Por qué así: «Completar» salta al ancla de la sección, lejos de la cabecera de Atributos, así que la vuelta va donde cae la vista; y como Atributos está en el menú, quien entra por el lateral no vino de Productos y no la ve (misma regla que `Volver`: dice adónde vuelve, enlace fijo y no `history.back()`).
 Felipe se lleva: una pantalla del menú no tiene «arriba»; la vuelta depende de por dónde se entró, y eso viaja en la URL, no en la memoria del navegador.
 

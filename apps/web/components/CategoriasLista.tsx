@@ -65,7 +65,8 @@ import { IconoFamilia } from "@/components/IconoFamilia";
  */
 
 /** Dónde se elige la temporada de una categoría: la sección «por categoría» de la pestaña Temporadas (ADR-0246). */
-const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas#temporadas-por-categoria";
+// `desde=categorias`: la sección de destino muestra «← Categorías» (Atributos está en el menú y no la lleva siempre).
+const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas&desde=categorias#por-categoria";
 
 type Categoria = {
   id: string;
