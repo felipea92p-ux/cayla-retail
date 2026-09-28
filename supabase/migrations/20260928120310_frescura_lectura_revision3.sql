@@ -12,7 +12,7 @@
 -- Por eso 20260928120300 vuelve a ser la de main, sin tocar, y las correcciones viven aquí, con número propio: se pega
 -- DESPUÉS de 20260928120300 y la base local la corre sola.
 --
--- QUÉ CORRIGE (el detalle de cada una, en ADR-0208, «Revisión 3 del paso 3»):
+-- QUÉ CORRIGE (el detalle de cada una, en ADR-0208, «Revisión 3 del paso 3» y «Revisión 5 del paso 3»):
 --   1. `fn_frescura_sede` · primera_exhibicion: la primera vez que el MODELO+COLOR (cualquiera de sus tallas, esté o no
 --      en la lista) entró al piso de ESTA tienda, en toda su historia. La unidad de la novedad es el modelo+color
 --      (ADR-0208, decisiones 4 y 9). Por talla dejaba fuera la talla agotada antes de la ventana, y la prenda repuesta en
@@ -23,42 +23,55 @@
 --      mira las activas, la perdía, y con ella el aviso «Temporada pasada».
 --   3. `fn_confianza_registro`: sin las bajadas de productos `es_prueba`, como `fn_frescura_sede` (una bajada de práctica
 --      no es el hábito del equipo; TRU tiene 12 variantes es_prueba con stock).
+--   4. `fn_frescura_sede` · fin_estacion (decisión de Felipe del 2026-09-27, revisión 5): la temporada de una prenda
+--      cuenta desde que LLEGÓ A CAYLA, no desde que llegó a esta tienda. `fin_estacion` sale de la última llegada a CAYLA
+--      de su MODELO+COLOR (cualquier talla, cualquier sede): lote o recepción de compra, producción del Taller o carga
+--      inicial. La recepción de un traslado NO: la chompa que llegó del proveedor en julio de 2025 y se trasladó en abril
+--      de 2026 quedaba con el fin del invierno 2026, y la tienda que la recibió para liquidarla no veía «Temporada
+--      pasada» hasta setiembre. Sale como campo nuevo, `ultima_llegada_cayla` (la pantalla lo dice junto al aviso);
+--      `ultima_llegada` sigue siendo la de esta tienda, con la recepción de un traslado. `en_estacion_ahora` no cambia:
+--      no depende de ninguna llegada.
 --   Para la 2 nace `retail.fn_temporada_efectiva_nucleo(p_producto_id, p_con_inactivas)`: la regla de ADR-0246 (color →
 --   producto → categoría), que vivía dentro de `fn_temporada_efectiva`, con la opción de incluir lo inactivo.
 --   `fn_temporada_efectiva(p)` pasa a envolverla con `false`: misma firma, mismas filas (la prueba lo compara en todo el
 --   catálogo), y la regla sigue en UNA función. Sin EXECUTE para nadie de afuera. Si alguien vuelve a pegar
 --   20260928100000, `fn_temporada_efectiva` vuelve a su cuerpo original (mismas filas) y Frescura no se entera.
---   `fn_es_llegada` no cambia: sigue siendo la de 20260928120300.
+--   Para la 4 nace `retail.fn_es_llegada_a_cayla(tipo, motivo, lote, producción, recepción)`, immutable, sin EXECUTE para
+--   nadie de afuera: `fn_es_llegada` sin la recepción de un traslado. `fn_es_llegada` no cambia (es el predicado de
+--   Análisis, donde «entradas» es lo que recibió la sede, también de otra tienda): sigue siendo la de 20260928120300.
 --
--- CUÁNTO CUESTA (la misma carga de 20260928120300: una tienda, 2.000 prendas, 20.000 bajadas, 10.000 ventas; mediana de
--- 7 corridas): fn_frescura_sede 754 ms (751-799) a 120 días y 233 ms a 30 (antes 733 y 205); fn_confianza_registro 128
--- ms de una tienda y 140 ms de todas (antes 126 y 127).
+-- CUÁNTO CUESTA (la misma carga de 20260928120300: una tienda, 2.000 prendas en 200 modelos con temporada, 20.000
+-- bajadas, 10.000 ventas; mediana de 7 corridas): fn_frescura_sede 754 ms (751-799) a 120 días y 233 ms a 30 con las
+-- correcciones 1 a 3 (antes 733 y 205); con la 4, medidas el 2026-09-27 en la misma base contra la versión anterior de
+-- este archivo, 763 ms (720-793) contra 759 (755-795) a 120 días y 221 (218-229) contra 229 (226-231) a 30: la llegada a
+-- CAYLA es una búsqueda por índice por modelo+color, como la primera exhibición. fn_confianza_registro 128 ms de una
+-- tienda y 140 ms de todas (antes 126 y 127; la 4 no la toca).
 --
 -- LA GUARDA. Pide 20260928120300 ya pegada (`fn_es_llegada` con su cuerpo) y, para cada función que reescribe, acepta
--- solo dos cuerpos: el de 20260928120300 (la versión anterior de esta misma lectura) o el de este archivo. Con otro,
--- aborta sin tocar nada: alguien la parchó en vivo y pegar esto borraría el parche (lo que rompió Análisis con el PR
--- 397). Se puede pegar dos veces. Al revés también es seguro: con esta ya pegada, volver a pegar 20260928120300 aborta
--- (su guarda no conoce estos cuerpos) y no deshace nada.
+-- solo el cuerpo de 20260928120300 (la versión anterior de esta misma lectura), el de este archivo o, para
+-- `fn_frescura_sede`, el de la primera versión de este archivo (`618e465d…`, antes de la decisión 4; vivió solo en la rama
+-- y en bases locales, nunca en producción). Con otro, aborta sin tocar nada: alguien la parchó en vivo y pegar esto
+-- borraría el parche (lo que rompió Análisis con el PR 397). Se puede pegar dos veces. Al revés también es seguro: con
+-- esta ya pegada, volver a pegar 20260928120300 aborta (su guarda no conoce estos cuerpos) y no deshace nada.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, en el SQL Editor, tal cual (ya trae `retail.`), a cualquier hora, DESPUÉS de
 -- 20260928120300. Solo `create or replace function`, comentarios, `revoke` y `grant`: sin políticas, sin
 -- `drop trigger`, sin `alter` de tablas (ADR-0195). Ninguna pantalla la llama todavía.
 -- Cómo se verifica después (solo lectura):
 --   select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace
---    and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro', 'fn_temporada_efectiva_nucleo',
---                    'fn_temporada_efectiva');
--- da los cinco md5 NUEVOS de la guarda de abajo (el de fn_es_llegada, el de 20260928120300).
+--    and proname in ('fn_es_llegada', 'fn_es_llegada_a_cayla', 'fn_frescura_sede', 'fn_confianza_registro',
+--                    'fn_temporada_efectiva_nucleo', 'fn_temporada_efectiva');
+-- da los seis md5 NUEVOS de la guarda de abajo (el de fn_es_llegada, el de 20260928120300).
 --
 -- SE ROMPE SI alguien vuelve a editar en su lugar una migración que ya está en main: la corrección va siempre en un
 -- archivo nuevo, cuya guarda acepta el cuerpo anterior. Y lo que ya decía 20260928120300 (la carga inicial sin su
 -- bajada en la misma transacción, otra forma de «llegada» en `fn_resumen_comparacion`, un traslado entre tiendas
--- escrito como `traslado` directo al piso, un cruce entre dos pasos calculados).
--- PENDIENTE DE FELIPE (revisión 3): `fin_estacion` sale de la última llegada a la TIENDA, y la recepción de un traslado
--- cuenta como llegada (`fn_es_llegada`, el mismo predicado de Análisis). La chompa de invierno que llegó del proveedor en
--- julio de 2025 y se trasladó en abril de 2026 queda con el fin del invierno 2026: la tienda que la recibe no ve
--- «Temporada pasada» hasta setiembre. Si Felipe decide que para la temporada manda la última llegada a CAYLA (lote,
--- producción o carga inicial, en cualquier tienda), va como un segundo predicado con nombre propio; `fn_es_llegada` no
--- se toca.
+-- escrito como `traslado` directo al piso, un cruce entre dos pasos calculados). De la decisión 4: si la mercadería que
+-- llega de afuera entra por una puerta que no deja lote, producción ni `carga_inicial` (hoy los ajustes «reposicion» y
+-- «conteo_fisico» de TRU), ese modelo+color no tiene llegada a CAYLA y nunca avisa «Temporada pasada», ni en la tienda
+-- que lo recibe trasladado; y si el Taller repite un modelo+color en su temporada, las unidades viejas de ese
+-- modelo+color en otra tienda dejan de avisar hasta el fin de la estación nueva (es la regla: el modelo está en su
+-- temporada en CAYLA).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -96,7 +109,8 @@ begin
   if v_md5 is null then
     raise exception 'Falta retail.fn_frescura_sede: pega antes 20260928120300_frescura_lectura.sql.';
   end if;
-  if v_md5 not in ('644e10126796adc1111702290c14f2bb', '618e465d586cf3193e7e8197059f4071') then
+  -- 618e465d…: la primera versión de este archivo (antes de la decisión 4), que corrió en bases locales de la rama.
+  if v_md5 not in ('644e10126796adc1111702290c14f2bb', '618e465d586cf3193e7e8197059f4071', '51babffc09da4073691ee251882967c8') then
     raise exception 'fn_frescura_sede tiene otro cuerpo (md5 %): no es la de 20260928120300 ni la de este archivo; alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
   end if;
   select md5(p.prosrc) into v_md5 from pg_proc p
@@ -111,6 +125,11 @@ begin
    where p.oid = to_regprocedure('retail.fn_temporada_efectiva_nucleo(uuid, boolean)');
   if v_md5 is not null and v_md5 <> '2bf80eb239248cce88cf8062238f4dfc' then
     raise exception 'fn_temporada_efectiva_nucleo ya existe con otro cuerpo (md5 %): alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
+  end if;
+  select md5(p.prosrc) into v_md5 from pg_proc p
+   where p.oid = to_regprocedure('retail.fn_es_llegada_a_cayla(text, text, uuid, uuid, uuid)');
+  if v_md5 is not null and v_md5 <> '7e1ffb6d9853027ec685fef46ec72a4c' then
+    raise exception 'fn_es_llegada_a_cayla ya existe con otro cuerpo (md5 %): alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
   end if;
   select md5(p.prosrc) into v_md5 from pg_proc p
    where p.oid = to_regprocedure('retail.fn_temporada_efectiva(uuid)');
@@ -169,8 +188,38 @@ as $$
 $$;
 
 -- ----------------------------------------------------------------------------
--- 2. La lectura de una tienda (primera exhibición del modelo+color, última llegada de esta tienda, temporada de lo
---    descontinuado)
+-- 2. La llegada A CAYLA, con nombre propio (decisión de Felipe del 2026-09-27)
+-- ----------------------------------------------------------------------------
+
+-- La temporada de una prenda cuenta desde que llegó a CAYLA: del proveedor (lote), del Taller (producción) o en la
+-- carga inicial, en cualquier sede. La recepción de un traslado es una llegada a la TIENDA (`fn_es_llegada`, lo que
+-- Análisis cuenta como «entradas» de la sede), no a CAYLA: la prenda ya estaba en la empresa y su estación no vuelve a
+-- empezar porque cambió de tienda. Se escribe como `fn_es_llegada` menos la recepción, no como otra lista: si algún día
+-- una llegada nueva entra a `fn_es_llegada` (con su prueba contra Análisis), la temporada la hereda sin que nadie se
+-- acuerde de copiarla. Sin `set search_path` (lo impediría expandirse dentro de la consulta) y con el esquema escrito.
+create or replace function retail.fn_es_llegada_a_cayla(
+  p_tipo text,
+  p_motivo text,
+  p_lote_id uuid,
+  p_produccion_id uuid,
+  p_transferencia_recepcion_id uuid
+)
+returns boolean
+language sql
+immutable
+as $$
+  select retail.fn_es_llegada(p_tipo, p_motivo, p_lote_id, p_produccion_id, p_transferencia_recepcion_id)
+     and p_transferencia_recepcion_id is null
+$$;
+
+comment on function retail.fn_es_llegada_a_cayla(text, text, uuid, uuid, uuid) is
+  'ADR-0208 (paso 3 de Frescura 3c, revisión 5; decisión de Felipe del 2026-09-27): ¿este movimiento es una LLEGADA A CAYLA? fn_es_llegada (lote, producción, recepción de un traslado o carga inicial) SIN la recepción de un traslado: la prenda que cambia de tienda ya estaba en CAYLA. De aquí sale fin_estacion en fn_frescura_sede (la temporada cuenta desde que llegó a CAYLA). Nunca devuelve nulo. Interna: la usan funciones security definer.';
+
+revoke all on function retail.fn_es_llegada_a_cayla(text, text, uuid, uuid, uuid) from public, anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 3. La lectura de una tienda (primera exhibición del modelo+color, última llegada de esta tienda, temporada de lo
+--    descontinuado, fin de estación desde la última llegada a CAYLA)
 -- ----------------------------------------------------------------------------
 
 create or replace function retail.fn_frescura_sede(p_ubicacion_id uuid, p_dias integer default 120)
@@ -271,8 +320,9 @@ begin
        group by p.variante_id
     ) e;
 
-  -- Las prendas: catálogo, stock de hoy e historia de la tienda por búsquedas por índice (una por prenda); la temporada,
-  -- si es clásica, el fin de su aparición y si hoy es su estación, de mapas de una fila.
+  -- Las prendas: catálogo, stock de hoy e historia de la tienda por búsquedas por índice (una por prenda); la historia de
+  -- cada modelo+color por búsquedas por índice (una por modelo+color); la temporada, si es clásica, el fin de su
+  -- aparición y si hoy es su estación, de mapas de una fila.
   with u as (
     select v.id as variante_id, v.producto_id, p.referencia, v.codigo, v.color_codigo, co.nombre as color_nombre,
            ta.valor as talla, p.categoria_id, c.nombre as categoria_nombre
@@ -299,14 +349,18 @@ begin
       from fn_temporadas() t
       cross join lateral fn_ocurrencia_temporada(t.clave, v_ahora) oc
   ),
+  modelos as (
+    -- Cada modelo+color de la lista, una vez, con su clave.
+    select distinct u.producto_id, u.color_codigo, u.producto_id::text || '|' || coalesce(u.color_codigo, '') as clave
+      from u
+  ),
   primera_de as (
     -- La primera exhibición es del MODELO+COLOR (ADR-0208, decisiones 4 y 9: la novedad es del modelo+color y es una
     -- sola vez por tienda): la primera vez que CUALQUIERA de sus tallas entró al piso de esta tienda, esté o no en la
     -- lista (una talla agotada antes de la ventana no está, y su exhibición sí cuenta). Una búsqueda por modelo+color
     -- distinto (variantes por producto, movimientos por variante), que después se lee por clave.
     select coalesce(jsonb_object_agg(x.clave, pe.primera), '{}'::jsonb) as m
-      from (select distinct u.producto_id, u.color_codigo, u.producto_id::text || '|' || coalesce(u.color_codigo, '') as clave
-              from u) x
+      from modelos x
       cross join lateral (
         select min(m.created_at) as primera
           from variantes v2
@@ -319,11 +373,30 @@ begin
       ) pe
      where pe.primera is not null
   ),
+  llegada_cayla_de as (
+    -- La última LLEGADA A CAYLA del modelo+color (decisión de Felipe del 2026-09-27): de cualquiera de sus tallas, esté o
+    -- no en la lista, activa o no, en CUALQUIER sede (`fn_es_llegada_a_cayla`: lote o recepción de compra, producción del
+    -- Taller, carga inicial). La recepción de un traslado no cuenta: su temporada no vuelve a empezar porque cambió de
+    -- tienda. La novedad («Nueva») sigue siendo de esta tienda (`primera_de`): son dos preguntas distintas.
+    select coalesce(jsonb_object_agg(x.clave, lc.ultima), '{}'::jsonb) as m
+      from modelos x
+      cross join lateral (
+        select max(m.created_at) as ultima
+          from variantes v2
+          join movimientos m on m.variante_id = v2.id
+         where v2.producto_id = x.producto_id
+           and v2.color_codigo is not distinct from x.color_codigo
+           and fn_es_llegada_a_cayla(m.tipo, m.motivo, m.lote_id, m.produccion_id, m.transferencia_recepcion_id)
+      ) lc
+     where lc.ultima is not null
+  ),
   base as materialized (
     select u.*, st.piso, st.total - st.piso as almacen,
            ((select pd.m from primera_de pd) ->> (u.producto_id::text || '|' || coalesce(u.color_codigo, '')))::timestamptz
              as primera_exhibicion,
            h.ultima_llegada,
+           ((select lc.m from llegada_cayla_de lc) ->> (u.producto_id::text || '|' || coalesce(u.color_codigo, '')))::timestamptz
+             as ultima_llegada_cayla,
            tp.par ->> 0 as temporada, tp.par ->> 1 as temporada_origen
       from u
       left join lateral (
@@ -346,12 +419,12 @@ begin
       ) tp
   ),
   fin_de as (
-    -- El fin de la aparición de su temporada que corresponde a su última llegada: una llamada por pareja distinta.
+    -- El fin de la aparición de su temporada que corresponde a su última llegada A CAYLA: una llamada por pareja distinta.
     select coalesce(jsonb_object_agg(x.clave, oc.hasta), '{}'::jsonb) as m
-      from (select distinct b.temporada || '|' || b.ultima_llegada::text as clave, b.temporada, b.ultima_llegada
+      from (select distinct b.temporada || '|' || b.ultima_llegada_cayla::text as clave, b.temporada, b.ultima_llegada_cayla
               from base b
-             where b.temporada is not null and b.ultima_llegada is not null) x
-      cross join lateral fn_ocurrencia_temporada(x.temporada, x.ultima_llegada) oc
+             where b.temporada is not null and b.ultima_llegada_cayla is not null) x
+      cross join lateral fn_ocurrencia_temporada(x.temporada, x.ultima_llegada_cayla) oc
   )
   select coalesce(jsonb_agg(jsonb_build_object(
            'variante_id', b.variante_id,
@@ -366,10 +439,11 @@ begin
            'temporada', b.temporada,
            'temporada_origen', b.temporada_origen,
            'es_clasico', coalesce(((select ca.clasico from catalogo ca) -> b.temporada)::boolean, false),
-           'fin_estacion', (select f.m from fin_de f) -> (b.temporada || '|' || b.ultima_llegada::text),
+           'fin_estacion', (select f.m from fin_de f) -> (b.temporada || '|' || b.ultima_llegada_cayla::text),
            'en_estacion_ahora', (select e.m from hoy_es_su_estacion e) -> b.temporada,
            'primera_exhibicion', b.primera_exhibicion,
            'ultima_llegada', b.ultima_llegada,
+           'ultima_llegada_cayla', b.ultima_llegada_cayla,
            'piso_hoy', coalesce(b.piso, 0),
            'almacen_hoy', coalesce(b.almacen, 0))
          order by b.categoria_nombre nulls last, b.referencia, b.color_nombre nulls first, b.talla nulls first, b.variante_id),
@@ -389,13 +463,13 @@ end
 $fn$;
 
 comment on function retail.fn_frescura_sede(uuid, integer) is
-  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de su última llegada, si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla) y su última llegada en esa tienda, y su piso y almacén de hoy; eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida) para el FIFO de historiaDeCohortes; tardias y dudosas del núcleo de bajadas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo. Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
+  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de la última llegada de su modelo+color A CAYLA (ultima_llegada_cayla: lote, producción o carga inicial en cualquier sede, fn_es_llegada_a_cayla; la recepción de un traslado no), si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla) y su última llegada en esa tienda (fn_es_llegada), y su piso y almacén de hoy; eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida) para el FIFO de historiaDeCohortes; tardias y dudosas del núcleo de bajadas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo. Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
 
 revoke all on function retail.fn_frescura_sede(uuid, integer) from public, anon;
 grant execute on function retail.fn_frescura_sede(uuid, integer) to authenticated;
 
 -- ----------------------------------------------------------------------------
--- 3. La confianza del registro, por tienda y mes de Lima (sin productos de prueba)
+-- 4. La confianza del registro, por tienda y mes de Lima (sin productos de prueba)
 -- ----------------------------------------------------------------------------
 
 create or replace function retail.fn_confianza_registro(p_ubicacion_id uuid default null, p_meses integer default 2)
