@@ -105,8 +105,13 @@ button{background:none;border:0;cursor:pointer}
 .chip.talla{min-width:48px;justify-content:center;font-variant-numeric:tabular-nums}
 .chip.agregar{border-style:dashed;color:var(--taupe)}
 .chip.agregar::before{content:none}
-.quitable{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:3px 5px 3px 10px;font-size:12.5px}
-.quitable button{width:20px;height:20px;border-radius:50%;font-size:13px;line-height:1;color:var(--t60)}
+.quitable{display:inline-flex;align-items:center;gap:7px;min-height:36px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:4px 6px 4px 12px;font-size:13.5px;color:var(--tinta)}
+.elegidos{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;align-items:center}
+.sugeridos{margin-top:10px;align-items:center}
+.sugeridos>span{font-size:12px;margin-right:2px}
+.chip.sumar{border-style:dashed;color:var(--t75)}
+.chip.sumar::before{content:"+";color:var(--taupe);font-weight:600}
+.quitable button{width:24px;height:24px;border-radius:50%;font-size:15px;line-height:1;color:var(--t60)}
 .quitable button:hover{background:var(--t07);color:var(--tinta)}
 .punto{width:12px;height:12px;border-radius:50%;border:1px solid var(--t25);flex:none;display:inline-block}
 .caja{width:100%;background:var(--hueso);border:1px solid transparent;border-radius:8px;padding:10px 12px;font-size:14.5px;outline:none;transition:border-color 150ms}
@@ -698,7 +703,9 @@ function resumenMas(){ const n = [s.desc.trim() && "descripción", s.temporada &
 function cuerpo3(){
   const c = conf(), q = s.busColor;
   const hallados = q.trim() ? Object.keys(COLORES).filter(x => coincide(x, q)) : [];
-  const frec = frecuentes(), otros = s.colores.filter(x => !frec.includes(x));
+  // Un color elegido se ve en UN solo lugar y de UNA sola forma: la fila «elegidos», con su ×. Los sugeridos que ya
+  // elegiste salen de la fila de sugerencias (antes el mismo estado se veía como chip con ✓ arriba y píldora con × abajo).
+  const sugeridos = frecuentes().filter(x => !s.colores.includes(x));
   const extra = s.tallas.filter(t => !c.tallas.includes(t));
   const curva = s.tallas.length !== c.habituales.length || !c.habituales.every(t => s.tallas.includes(t));
   const total = Object.keys(COLORES).length;
@@ -710,8 +717,10 @@ function cuerpo3(){
     </div>
     <div class="bloque">
       <div class="et"><b>Colores</b><small>${s.colores.length ? plural(s.colores.length, "elegido", "elegidos") : "Sin colores = una sola variante sin color"}</small></div>
-      <div class="chips">${frec.map(x => `<button class="chip" data-color="${x}" aria-pressed="${s.colores.includes(x)}">${punto(x)}${x}</button>`).join("")}</div>
-      ${otros.length ? `<div class="chips" style="margin-top:8px;align-items:center"><span class="taupe" style="font-size:12px;margin-right:2px">También elegiste:</span>${otros.map(x => `<span class="quitable">${punto(x)}${x}<button data-color="${x}" aria-label="Quitar ${x}">×</button></span>`).join("")}</div>` : ""}
+      <div class="elegidos">${s.colores.length
+        ? s.colores.map(x => `<span class="quitable">${punto(x)}${x}<button data-color="${x}" aria-label="Quitar ${x}">×</button></span>`).join("")
+        : `<p class="taupe" style="font-size:12.5px">Todavía ninguno. Toca uno de abajo, búscalo o ábrelo en la carta.</p>`}</div>
+      ${sugeridos.length ? `<div class="chips sugeridos"><span class="taupe">Los más usados en ${esc(s.cat)}:</span>${sugeridos.map(x => `<button class="chip sumar" data-color="${x}">${punto(x)}${x}</button>`).join("")}</div>` : ""}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
         <div class="buscar" style="flex:1;min-width:210px">${lupa}
           <input class="caja" data-campo="busColor" placeholder="Busca entre los ${total} colores: petróleo, coral…" value="${esc(q)}" autocomplete="off">
