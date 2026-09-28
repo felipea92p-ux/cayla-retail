@@ -29,6 +29,8 @@ type Tejido = {
   estado: "pendiente" | "aprobado" | "rechazado";
   /** La foto real (ADR-0256); `null` = el dibujo que sale del nombre. */
   imagenUrl: string | null;
+  /** La frase de «Generar dibujo» guardada la última vez; `null` = nunca se describió. */
+  descripcionDibujo: string | null;
 };
 
 function ordenar(lista: Tejido[]) {
@@ -80,7 +82,7 @@ export function TejidosLista({
       const res = await fetch("/api/productos/tejidos", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, ...(puedeEditar && descripcion.trim() ? { descripcion: descripcion.trim() } : {}) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -88,7 +90,18 @@ export function TejidosLista({
         return;
       }
       setTejidos((actual) =>
-        ordenar([...actual, { id: datos.tejido.id, nombre: datos.tejido.nombre, activo: true, notas: datos.tejido.notas, estado: datos.tejido.estado, imagenUrl: null }])
+        ordenar([
+          ...actual,
+          {
+            id: datos.tejido.id,
+            nombre: datos.tejido.nombre,
+            activo: true,
+            notas: datos.tejido.notas,
+            estado: datos.tejido.estado,
+            imagenUrl: null,
+            descripcionDibujo: datos.tejido.descripcion_dibujo ?? null,
+          },
+        ])
       );
       responsable.despues(null);
       avisar.exito(
@@ -364,7 +377,9 @@ export function TejidosLista({
             setDetalleId(null);
             setGenerarCon(null);
           }}
-          onImagen={(id, url) => setTejidos((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
+          onImagen={(id, url, descripcionDibujo) =>
+            setTejidos((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) } : x)))
+          }
         />
       )}
 

@@ -29,6 +29,8 @@ type Patron = {
   estado: "pendiente" | "aprobado" | "rechazado";
   /** La foto real (ADR-0256); `null` = el dibujo que sale del nombre. */
   imagenUrl: string | null;
+  /** La frase de «Generar dibujo» guardada la última vez; `null` = nunca se describió. */
+  descripcionDibujo: string | null;
 };
 
 function ordenar(lista: Patron[]) {
@@ -80,7 +82,7 @@ export function PatronesLista({
       const res = await fetch("/api/productos/patrones", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, ...(puedeEditar && descripcion.trim() ? { descripcion: descripcion.trim() } : {}) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -88,7 +90,18 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) =>
-        ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado, imagenUrl: null }])
+        ordenar([
+          ...actual,
+          {
+            id: datos.patron.id,
+            nombre: datos.patron.nombre,
+            activo: true,
+            notas: datos.patron.notas,
+            estado: datos.patron.estado,
+            imagenUrl: null,
+            descripcionDibujo: datos.patron.descripcion_dibujo ?? null,
+          },
+        ])
       );
       responsable.despues(null);
       avisar.exito(
@@ -364,7 +377,9 @@ export function PatronesLista({
             setDetalleId(null);
             setGenerarCon(null);
           }}
-          onImagen={(id, url) => setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
+          onImagen={(id, url, descripcionDibujo) =>
+            setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) } : x)))
+          }
         />
       )}
 
