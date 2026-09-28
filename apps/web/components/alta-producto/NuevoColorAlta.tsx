@@ -5,6 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorConEseNombre, colorDeRespuesta, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
@@ -146,8 +147,8 @@ export function NuevoColorAlta({
 
   return (
     <div className="anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,11rem)_auto] sm:items-start">
-        <div className="col-span-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto] sm:items-start">
+        <div className="col-span-2 sm:col-span-1">
           <label htmlFor={`${id}-nombre`} className="mb-1 block text-xs font-semibold text-tinta">
             Nombre del color
           </label>
@@ -165,27 +166,10 @@ export function NuevoColorAlta({
           />
         </div>
 
-        <div>
-          <span id={`${id}-muestra`} className="mb-1 block text-xs font-semibold text-tinta">
-            Muestra
-          </span>
-          {/* El selector del navegador va escondido detrás de la muestra y se abre al tocarla (como en Atributos): sin
-              tono elegido la caja es punteada, nunca un beige de relleno que se guarde sin que nadie lo note. */}
-          <label
-            className={`relative block h-10 w-12 cursor-pointer rounded-lg border bg-hueso p-[3px] focus-within:ring-2 focus-within:ring-tinta/30 ${
-              hex ? "border-sand" : "border-dashed border-tinta/40"
-            }`}
-          >
-            <span aria-hidden className="block h-full w-full rounded-[5px]" style={hex ? { background: hex } : undefined} />
-            <input
-              type="color"
-              aria-labelledby={`${id}-muestra`}
-              value={hex ?? "#c9b79c"}
-              onChange={(e) => setHex(e.target.value)}
-              disabled={guardando}
-              className="sr-only"
-            />
-          </label>
+        {/* El tono, igual que en Atributos (`SelectorColor`): la muestra abre el selector del navegador y al lado se escribe
+            el #hex o el R, G, B que trae la ficha del proveedor. Sin tono, la muestra es punteada: nunca un beige de relleno. */}
+        <div className="col-span-2 sm:col-span-1">
+          <SelectorColor hex={hex} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
         </div>
 
         <div>
