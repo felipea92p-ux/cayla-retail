@@ -32,7 +32,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
 - [x] **(c) Por módulo:** las 11 funciones de la ficha empiezan por `retail.fn_exigir_modulo('clientas')` (42501 + hint `clientas_sin_modulo`, antes de pedir «Responsable»), y la lectura directa de `clientas` pregunta lo mismo (`clientas_select`). `clientas_fusiones` queda sin políticas ni permisos para la API.
 - [x] **(a)** `registrar_clienta` con el DNI de una ficha archivada la reactiva (mismo id, historial, `version`+1, una línea de actividad sin nombre). Candado nuevo `clientas_fusionada_implica_anonimizada`.
-- [x] **(b)** Anonimizar vacía la foto de `clientas_fusiones` de esa persona (todas las fichas que se le unieron) y no guarda el motivo escrito; la actividad de Clientas dice «una clienta» y la de Apartados «la clienta» (sin `detalle.clienta`). Las líneas viejas se reescriben una vez al pegar (producción tiene 0).
+- [x] **(b)** Anonimizar vacía la foto de `clientas_fusiones` de esa persona (todas las fichas que se le unieron) y no guarda el motivo escrito; la actividad de Clientas dice «una clienta» y la de Apartados «la clienta» (sin `detalle.clienta`). Lo escrito antes se limpia una vez al pegar: las líneas viejas de la actividad y, de cada ficha que la función de antes ya anonimizó, el motivo escrito y la foto de sus fusiones (sin tocar la de una fusión viva). Producción tiene 0 de todo.
 - [x] Web: `error-escritura.ts` traduce todo `<módulo>_sin_modulo`; el Punto de venta y Apartar no ofrecen buscar la clienta a una cuenta sin el módulo (`filaDeClienta`, `veClientas`).
 - [ ] **POR PEGAR, en este orden y cada una SOLA en el SQL Editor** (se pueden repetir; probado dos veces y al revés desde una copia de producción):
       1. `20260928190000_clientas_por_modulo_y_anonimizar_todo.sql` (funciones; aborta sin tocar nada si alguna de las 13 cambió en vivo).
@@ -42,7 +42,7 @@ Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base ti
 - [ ] Con sesión real a 375 px (PL-105): una cuenta sin «Clientas» no ve la fila «Clienta» del ticket ni el buscador de Apartar, y vende igual.
 - [ ] **Felipe (no bloquea pegar):** la actividad de Apartados deja de decir el nombre («abonó S/ 20 al apartado APT-TRU-0007 de la clienta»). Es lo que pide «anonimizar borra todo»; si prefiere el nombre ahí, la clienta que apartó no queda borrada del todo.
 - [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
-- Cómo verificas: `pnpm pruebas:clientas-modulo` (39/39), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
+- Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o

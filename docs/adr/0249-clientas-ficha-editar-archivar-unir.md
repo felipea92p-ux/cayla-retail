@@ -237,7 +237,8 @@ ese WhatsApp con una función `security definer` que devuelva solo esos dos dato
 **DECIDÍ:** cuando el DNI de `registrar_clienta` cae en una ficha archivada, el mismo upsert la reactiva (vacía
 `archivada_en`, `archivada_por` y `motivo_archivo`; `version` sube sola), conserva su id y su historial, y completa lo que
 venga. La fila se toma con `for update`: si dos cajas la registran a la vez, la segunda espera y la encuentra activa (una
-sola línea de actividad, sin nombre). Una ficha anonimizada o unida a otra no tiene DNI, así que el DNI nunca cae en
+sola línea de actividad, sin nombre). Lo vigila una carrera con dos conexiones reales (caso 7 de la prueba): sin el
+`for update`, la segunda lee la ficha todavía archivada y anota una segunda «reactivó». Una ficha anonimizada o unida a otra no tiene DNI, así que el DNI nunca cae en
 ellas: la anonimizada que vuelve es una ficha nueva (pidió que la olvidaran), y la que se unió a otra encuentra la que se
 conservó. El candado nuevo `clientas_fusionada_implica_anonimizada` lo deja escrito en el esquema.
 **DESCARTÉ:** seguir el rastro `fusionada_en_id` dentro de `registrar_clienta`: un `if` para un estado que el esquema ya
@@ -250,9 +251,12 @@ hace imposible es código que nadie ejercita.
 escribe en ella datos de la clienta: Clientas dice «una clienta» (sin nombre, DNI, celular ni el motivo escrito a mano) y
 Apartados dice «la clienta» (`fn_actividad_separacion` y `trg_actividad_separacion_hijas` dejan de copiar el nombre del
 apartado y la llave `detalle.clienta`; el resto de cada frase queda igual). Quién es queda solo en la fila (`tabla`,
-`registro_id`: la ficha o el apartado). Las líneas viejas se reescriben una sola vez al pegar (en producción no hay:
-ahí ni se toca la tabla). Al anonimizar, `archivar_clienta` vacía en la misma transacción la foto de `clientas_fusiones`
-de esa persona (cada ficha que se le unió, en cualquier nivel), y el motivo que se escribe se pide pero no se guarda.
+`registro_id`: la ficha o el apartado). Al anonimizar, `archivar_clienta` vacía en la misma transacción la foto de
+`clientas_fusiones` de esa persona (cada ficha que se le unió, en cualquier nivel), y el motivo que se escribe se pide
+pero no se guarda. Lo escrito ANTES de pegar se limpia una sola vez al pegar: las líneas viejas de la actividad (sección
+13) y cada ficha que la función de antes ya anonimizó, que pierde el motivo escrito a mano y la foto de sus fusiones
+(sección 14). La raíz es la ficha anonimizada a pedido: la foto de una fusión cuya persona sigue viva en la ficha que se
+conservó no se toca, porque es la evidencia para deshacerla. En producción no hay nada que limpiar (0 clientas).
 **DESCARTÉ:** una excepción en `trg_actividad_inmutable` para que anonimizar edite la actividad: agujerea el registro de
 solo agregar de todos los módulos y, para Apartados, obligaría a encontrar a la clienta por el texto de su nombre (el
 apartado guarda nombres y apellidos escritos en caja; la ficha, otro texto).
@@ -262,8 +266,8 @@ la clienta»); el código del apartado lleva a él. Es una decisión que toca un
 cumple es «anonimizar borra todo» para la clienta que apartó.
 **SE ROMPE SI:** una función nueva vuelve a copiar a la clienta en la actividad. Lo vigilan
 `clientas_por_modulo_y_anonimizar` (busca el DNI, el nombre y el celular en todas las columnas de `clientas`,
-`clientas_fusiones` y `actividad` después de anonimizar a una clienta con fusiones y un apartado; y nombra toda función
-que anota actividad leyendo las columnas de la clienta de un apartado) y `separaciones.mjs` (un apartado entero sin que su
+`clientas_fusiones` y `actividad` después de anonimizar a una clienta con fusiones y un apartado; recorre las cinco ramas
+de la actividad de un apartado —apartó, entregó, liberó, devolvió, extendió—; y nombra toda función que anota actividad leyendo las columnas de la clienta de un apartado) y `separaciones.mjs` (un apartado entero sin que su
 nombre aparezca). **Fuera, a propósito:** lo que un apartado o un comprobante copiaron al hacerse (documentos de esa
 operación, §7 de `docs/datos/06-DATOS-PERSONALES.md`) y el texto libre de otros módulos (el motivo de un descuento).
 
@@ -294,10 +298,13 @@ Se pueden pegar dos veces y en el orden inverso (probado desde una copia de prod
 
 ### Verificación
 
-- `pnpm pruebas:clientas-modulo` (nueva, cableada en `ci.yml`): 39/39. Las 11 rechazan sin el módulo (terminal sin él,
-  con y sin responsable; persona a la que se le quitó) y dejan pasar a líder, integrante y terminal de ventas; la
-  política; reactivar; anonimizar sin rastro; vigilantes; control con el cambio deshecho (el ataque pasa); pegado sobre el
-  estado de producción, dos veces y al revés; candado de versión; limpieza de la actividad vieja.
+- `pnpm pruebas:clientas-modulo` (nueva, cableada en `ci.yml`): 43/43 (44/44 con `BASE_DESECHABLE=1`). Las 11 rechazan
+  sin el módulo (terminal sin él, con y sin responsable; persona a la que se le quitó) y dejan pasar a líder, integrante y
+  terminal de ventas; la política; reactivar; anonimizar sin rastro; las cinco ramas de la actividad de un apartado;
+  vigilantes; control con el cambio deshecho (el ataque pasa); pegado sobre el estado de producción, dos veces y al revés;
+  candado de versión; limpieza de la actividad vieja y de una ficha anonimizada antes de pegar; y dos cajas a la vez con
+  el mismo DNI (la segunda espera en la lectura de la ficha; con `BASE_DESECHABLE=1`, además la carrera con COMMIT: una
+  sola «reactivó»).
 - `separaciones` 78/78 (un caso nuevo), `clientas` 30/30, `roles_por_modulo` 70/70, `roles_cobertura_modulos` 32/32,
   `una_sola_firma` 2/2, `pedidos_no_atendidos` 20/20, `candado-ventas` 6/6, `actividad` en verde; `tsc` y `vitest` (207
   archivos) en verde. Las 103 pruebas del job `pruebas-postgres`, en una sola base como el CI: 101 en verde; las 2 rojas
@@ -309,6 +316,14 @@ Se pueden pegar dos veces y en el orden inverso (probado desde una copia de prod
   otro modo, sin candado de versión, sin el estado imposible, abrir `clientas_fusiones` o el ayudante a la API, política
   abierta, no borrar `clientas_fusiones_select`): las 24 ponen la suite en rojo (las de Apartados, también
   `separaciones`). Y 4 en la web (el hint, sus anclas, la fila del ticket): las 4 ponen `vitest` en rojo.
+- **Revisión (2026-09-28), tres huecos de prueba que dejaban en verde un error real, y su arreglo:** (1) una ficha
+  anonimizada ANTES de pegar conservaba su motivo escrito y la foto de sus fusiones (la limpieza solo cubría la
+  actividad): sección 14 nueva en la PARTE 1; (2) ninguna prueba pasaba por «entregó», «liberó», «devolvió» ni
+  «extendió» de la actividad de Apartados: un caso nuevo recorre las cinco ramas; (3) quitar el `for update` de
+  `registrar_clienta` dejaba todo en verde: la carrera de dos conexiones. 11 mutaciones nuevas, todas en rojo: sin la
+  sección 14, sin cada una de sus dos mitades, tomar como raíz a las fichas unidas (vaciaría la foto de una fusión viva),
+  pisar el motivo de las unidas, sin recursión, guardar el apartado entero en el detalle de «entregó», «devolvió»,
+  «extendió» o «liberó a mano», y sin el `for update` (caen 7a y 7b). Los 14 md5 de funciones no cambian.
 
 ### Lo que sigue abierto
 
