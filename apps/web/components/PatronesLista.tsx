@@ -19,6 +19,7 @@ import {
   SinCoincidencias,
   TarjetaAtributo,
   TituloGrupo,
+  VocabularioVacio,
 } from "@/components/atributos/kit";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
@@ -276,6 +277,10 @@ export function PatronesLista({
         busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar patrón", placeholder: "Buscar patrón" }}
         agregar={{ texto: "+ Agregar patrón", onClick: () => setAgregando(true) }}
       />
+
+      {activos.length + desactivados.length === 0 && (
+        <VocabularioVacio>Todavía no hay patrones en el vocabulario. Agrega el primero con «+ Agregar patrón».</VocabularioVacio>
+      )}
 
       {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
         <SinCoincidencias onQuitar={quitarFiltros}>

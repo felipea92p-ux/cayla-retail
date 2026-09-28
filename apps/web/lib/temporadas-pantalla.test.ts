@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { EventoCalendario, TemporadaEfectiva } from "./temporada-reglas";
+import type { Estacion, EventoCalendario, TemporadaEfectiva } from "./temporada-reglas";
 import {
   anioHoyLima,
   armarCategorias,
   armarSinTemporada,
+  estacionesDe,
   estacionesFaltantes,
   fechasPorAgregar,
   fechasSugeridas,
   filtrarSinTemporada,
+  grupoDeTemporada,
   gruposPorCategoria,
   motivoSinTemporadas,
   nombresDeCategorias,
@@ -18,6 +20,7 @@ import {
   textoAsignar,
   textoCambioCategoria,
   textoDiaLima,
+  tonoDeTemporada,
   vecinas,
   vistaTemporadas,
   type CategoriaTemporada,
@@ -261,12 +264,12 @@ describe("las confirmaciones dicen la consecuencia ANTES de guardar", () => {
 });
 
 describe("las cuatro vistas de la pestaña", () => {
-  it("abre «Por completar» salvo que la URL pida otra que exista", () => {
-    expect(vistaTemporadas(null)).toBe("completar");
-    expect(vistaTemporadas("categorias")).toBe("categorias");
+  it("abre «Las nueve» (la grilla, como las otras pestañas) salvo que la URL pida otra que exista", () => {
+    expect(vistaTemporadas(null)).toBe("lista");
+    expect(vistaTemporadas("completar")).toBe("completar"); // «Completar» de Productos
+    expect(vistaTemporadas("categorias")).toBe("categorias"); // el enlace de Categorías
     expect(vistaTemporadas("calendario")).toBe("calendario");
-    expect(vistaTemporadas("lista")).toBe("lista");
-    expect(vistaTemporadas("sin-temporada")).toBe("completar"); // el ancla vieja no rompe nada
+    expect(vistaTemporadas("sin-temporada")).toBe("lista"); // el ancla vieja no rompe nada
   });
 
   const prenda = (productoId: string, categoriaId: string | null, categoria: string | null): PrendaSinTemporada => ({
@@ -324,5 +327,51 @@ describe("las cuatro vistas de la pestaña", () => {
     expect(textoDiaLima("2026-12-21T20:50:00+00:00")).toBe("21 dic.");
     // 02:00 UTC del 1 de enero todavía es 31 de diciembre en Lima
     expect(textoDiaLima("2027-01-01T02:00:00+00:00")).toBe("31 dic.");
+  });
+});
+
+describe("las nueve en grilla (ADR-0261)", () => {
+  // Las nueve tal como las siembra 20260928100000.
+  const t = (clave: string, es_clasico: boolean, estacion_desde: Estacion | null, estacion_hasta: Estacion | null) => ({ clave, es_clasico, estacion_desde, estacion_hasta });
+  const NUEVE = [
+    t("primavera_verano", false, "primavera", "otono"),
+    t("primavera", false, "primavera", "verano"),
+    t("verano", false, "verano", "otono"),
+    t("otono_invierno", false, "otono", "primavera"),
+    t("otono", false, "otono", "invierno"),
+    t("invierno", false, "invierno", "primavera"),
+    t("clasico", true, null, null),
+    t("clasico_verano", true, "verano", "otono"),
+    t("clasico_invierno", true, "invierno", "primavera"),
+  ];
+  const por = (clave: string) => NUEVE.find((x) => x.clave === clave)!;
+
+  it("cada temporada cubre las estaciones desde la suya hasta la que la termina, dando la vuelta al año", () => {
+    expect(estacionesDe(por("primavera_verano"))).toEqual(["primavera", "verano"]);
+    expect(estacionesDe(por("otono_invierno"))).toEqual(["otono", "invierno"]); // cruza fin de año
+    expect(estacionesDe(por("verano"))).toEqual(["verano"]);
+    expect(estacionesDe(por("clasico_invierno"))).toEqual(["invierno"]);
+    expect(estacionesDe(por("clasico"))).toEqual([]); // todo el año: no termina
+  });
+
+  it("se agrupan en 4 de una estación, 2 de dos y 3 clásicos", () => {
+    const cuenta = (g: string) => NUEVE.filter((x) => grupoDeTemporada(x) === g).map((x) => x.clave);
+    expect(cuenta("una")).toEqual(["primavera", "verano", "otono", "invierno"]);
+    expect(cuenta("dos")).toEqual(["primavera_verano", "otono_invierno"]);
+    expect(cuenta("clasicos")).toEqual(["clasico", "clasico_verano", "clasico_invierno"]);
+  });
+
+  it("el tono sigue la mitad del año; los clásicos, neutros aunque tengan estación", () => {
+    expect(NUEVE.map((x) => [x.clave, tonoDeTemporada(x)])).toEqual([
+      ["primavera_verano", "calido"],
+      ["primavera", "calido"],
+      ["verano", "calido"],
+      ["otono_invierno", "frio"],
+      ["otono", "frio"],
+      ["invierno", "frio"],
+      ["clasico", "neutro"],
+      ["clasico_verano", "neutro"],
+      ["clasico_invierno", "neutro"],
+    ]);
   });
 });

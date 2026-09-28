@@ -19,6 +19,7 @@ import {
   SinCoincidencias,
   TarjetaAtributo,
   TituloGrupo,
+  VocabularioVacio,
 } from "@/components/atributos/kit";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
@@ -276,6 +277,10 @@ export function TejidosLista({
         busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar tejido", placeholder: "Buscar tejido" }}
         agregar={{ texto: "+ Agregar tejido", onClick: () => setAgregando(true) }}
       />
+
+      {activos.length + desactivados.length === 0 && (
+        <VocabularioVacio>Todavía no hay tejidos en el vocabulario. Agrega el primero con «+ Agregar tejido».</VocabularioVacio>
+      )}
 
       {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
         <SinCoincidencias onQuitar={quitarFiltros}>

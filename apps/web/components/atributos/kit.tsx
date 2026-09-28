@@ -123,6 +123,15 @@ export function SinCoincidencias({ children, onQuitar }: { children: ReactNode; 
   );
 }
 
+/** Un vocabulario que todavía no tiene ningún valor: lo dice, en vez de dejar la pantalla en blanco con «Todos 0». */
+export function VocabularioVacio({ children }: { children: ReactNode }) {
+  return (
+    <div className="card-cayla flex flex-col items-center gap-2 px-6 py-12 text-center">
+      <p className="text-sm text-tinta/75">{children}</p>
+    </div>
+  );
+}
+
 /** La insignia de estado junto al nombre: «Pendiente», «Rechazada». */
 function Insignia({ children }: { children: ReactNode }) {
   return <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">{children}</span>;
