@@ -17,7 +17,7 @@
 - [ ] **SQL pegado en producción.** Cada migración nueva de este PR se pegó en el SQL Editor de producción, en su orden y
   por partes como dice su encabezado, y la consulta de verificación dio lo esperado. Se pega ANTES de fusionar.
 - [ ] **El SQL se pega después de fusionar**, porque pegarlo antes rompería la web de hoy: el cuerpo dice por qué, y queda
-  en `docs/BACKLOG.md` como «POR PEGAR» con la fecha.
+  en el archivo de la rama en `docs/backlog/` como «POR PEGAR» con la fecha.
 
 <!-- El check «SQL pegado» sale rojo si el PR trae una migración nueva y no hay ninguna de las dos casillas marcadas, o si
      edita o borra una migración que ya está en `main` (la corrección va en un archivo nuevo). -->

@@ -1,4 +1,4 @@
-# BITÁCORA — CAYLA Retail
+# BITÁCORA — CAYLA Retail (historia hasta el 2026-09-28; las entradas nuevas van en `docs/bitacora/`, ADR-0259)
 
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
