@@ -215,6 +215,9 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // 2026-09-27 — antes tomaba prestados los cuadros de "Resumen", que es otra
   // pantalla con otro nombre.
   analisis: "M3 17l6-6 4 4 8-8M15 6h6v6",
+  // Un brote: lo nuevo del piso (Frescura del piso, ADR-0208 paso 4). No la percha de «Existencias» (lo que hay
+  // colgado) ni la línea de «Análisis» (cómo se vendió): cuánto lleva lo colgado y qué se está quedando.
+  frescura: "M12 20v-8M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.3-5-5.5-5 0 3 2.3 5 5.5 5z",
   // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
