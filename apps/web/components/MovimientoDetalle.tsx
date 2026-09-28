@@ -143,7 +143,7 @@ export function MovimientoDetalle({
                 )}
                 {(prenda.stockHoy.danado ?? 0) > 0 && <span className="text-tinta/65"> · {prenda.stockHoy.danado} dañadas en cuarentena</span>}
                 {prenda.productoId && (
-                  <Link href={`/productos/${prenda.productoId}/historial`} className="mt-1 block text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo" onClick={cerrar}>
+                  <Link href={`/productos/${prenda.productoId}/historial`} className="mt-1 block text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo">
                     Ver todo lo que le pasó a esta prenda →
                   </Link>
                 )}
@@ -168,7 +168,7 @@ export function MovimientoDetalle({
             )}
             {m.compra && (
               <Dato etiqueta="Comprobante de compra">
-                <Link href={`/compras/factura/${m.compra.id}`} className="text-rojo hover:underline" onClick={cerrar}>
+                <Link href={`/compras/factura/${m.compra.id}`} className="text-rojo hover:underline">
                   {m.compra.documento ?? "Ver comprobante"} →
                 </Link>
               </Dato>
@@ -183,7 +183,6 @@ export function MovimientoDetalle({
                   <Link
                     href={`/inventario/traslados/${m.transferencia.id}`}
                     className="text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
-                    onClick={cerrar}
                   >
                     {m.transferencia.numero !== null ? `Traslado ${m.transferencia.numero}` : "Ver traslado"} →
                   </Link>
@@ -210,7 +209,6 @@ export function MovimientoDetalle({
                 <Link
                   href={`/inventario/conteo/${m.conteo.id}`}
                   className="mr-2 text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
-                  onClick={cerrar}
                 >
                   {m.conteo.numero !== null ? `Conteo ${m.conteo.numero}` : "Ver conteo"} →
                 </Link>
@@ -274,8 +272,13 @@ export function MovimientoDetalle({
                       {a.detalle && <span className={`text-[11.5px] ${a.principal ? "text-crema/70" : "text-tinta/60"}`}>{a.detalle}</span>}
                     </>
                   );
+                  // Sin `onClick={cerrar}`: el cierre animado de `<Modal>` llama a `onClose` 220 ms después (la salida),
+                  // y `onClose` en Movimientos reescribe la URL a mano (`history.replaceState`, sin `mov`). Esa
+                  // reescritura llegaba DESPUÉS de que Next ya hubiera navegado al atajo y la pisaba: el clic
+                  // terminaba de vuelta en Movimientos en vez de en Contar/Existencias/etc. (probado en el navegador).
+                  // Al navegar a otra pantalla no hace falta cerrar el modal a mano: la ruta cambia sola.
                   return a.href ? (
-                    <Link key={a.clave} href={a.href} className={clase} onClick={cerrar}>
+                    <Link key={a.clave} href={a.href} className={clase}>
                       {cuerpo}
                     </Link>
                   ) : a.clave === "ajustar" && onAjustar ? (
