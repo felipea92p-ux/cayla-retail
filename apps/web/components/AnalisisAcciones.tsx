@@ -88,9 +88,9 @@ export const PUNTO_GRUPO: Record<GrupoQueHacer, string> = {
 /**
  * La curva de tallas de la prenda: arriba la talla, al medio lo que VENDIÓ en el período y abajo lo que hay HOY
  * (piso · almacén). Borde rojo = vendió y el piso quedó vacío; apagada = no vendió nada. Los tonos salen de las
- * cifras, no de un umbral propio.
+ * cifras, no de un umbral propio. Cada pastilla es un botón: abre el detalle de la prenda con esa talla resaltada.
  */
-export function CurvaTallas({ prenda, conHoy = true }: { prenda: PrendaAnalisis; conHoy?: boolean }) {
+export function CurvaTallas({ prenda, conHoy = true, onAbrirTalla }: { prenda: PrendaAnalisis; conHoy?: boolean; onAbrirTalla: (varianteId: string) => void }) {
   return (
     <div className="flex flex-wrap gap-1">
       {prenda.tallas.map((t) => {
@@ -99,10 +99,17 @@ export function CurvaTallas({ prenda, conHoy = true }: { prenda: PrendaAnalisis;
         const vendio = t.x.periodo.ventasNetas;
         const vacio = hoy !== null && hoy.piso === 0 && vendio > 0;
         return (
-          <span
+          <button
+            type="button"
             key={f.varianteId}
+            onClick={(e) => {
+              // La fila o tarjeta entera también abre el detalle (sin talla): este clic es más específico y no debe llegar a ella.
+              e.stopPropagation();
+              onAbrirTalla(f.varianteId);
+            }}
+            aria-label={`Ver la talla ${f.talla ?? "Única"} de ${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
             title={`${f.talla ?? "Única"}: vendió ${vendio}${hoy ? ` · hoy ${hoy.piso} en piso y ${hoy.almacen} en almacén` : ""}`}
-            className={`inline-flex min-w-[2.4rem] flex-col items-center rounded-md px-1 py-0.5 text-[11px] leading-tight ${
+            className={`inline-flex min-w-[2.4rem] cursor-pointer flex-col items-center rounded-md px-1 py-0.5 text-[11px] leading-tight transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
               vendio === 0 ? "text-tinta/40 ring-1 ring-inset ring-sand" : "bg-hueso text-tinta"
             } ${vacio ? "ring-[1.5px] ring-inset ring-rojo" : ""}`}
           >
@@ -113,7 +120,7 @@ export function CurvaTallas({ prenda, conHoy = true }: { prenda: PrendaAnalisis;
                 {hoy.piso} · {hoy.almacen}
               </span>
             )}
-          </span>
+          </button>
         );
       })}
     </div>

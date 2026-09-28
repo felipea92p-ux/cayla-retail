@@ -15,6 +15,7 @@ import { ETIQUETA_TENDENCIA } from "@/lib/resumen-desempeno";
 
 export function DetallePrendaAnalisis({
   prenda,
+  tallaResaltada = null,
   grupo,
   red,
   acceso,
@@ -23,6 +24,8 @@ export function DetallePrendaAnalisis({
   onClose,
 }: {
   prenda: PrendaAnalisis;
+  /** La talla que la persona tocó en la curva de la fila: su renglón de «Por talla» sale marcado. */
+  tallaResaltada?: string | null;
   grupo: GrupoQueHacer;
   red: Readonly<Record<string, RedVariante>>;
   acceso: AccesoAnalisis;
@@ -86,7 +89,7 @@ export function DetallePrendaAnalisis({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-sand text-[11px] text-taupe">
-                  <th className="py-1 text-left font-normal">Talla</th>
+                  <th className="py-1 pl-2 text-left font-normal">Talla</th>
                   <th className="py-1 text-center font-normal">Vendió</th>
                   <th className="py-1 text-center font-normal">Piso hoy</th>
                   <th className="py-1 text-center font-normal">Almacén</th>
@@ -98,8 +101,12 @@ export function DetallePrendaAnalisis({
                   const hoy = t.x.fila.stockActualPisoAlmacen;
                   const bajar = acceso.bajar && hoy && hoy.piso <= 1 ? urlBajar([t]) : null;
                   return (
-                    <tr key={t.x.fila.varianteId} className="border-b border-sand/70 last:border-0">
-                      <td className="py-1.5 font-semibold">{t.x.fila.talla ?? "Única"}</td>
+                    <tr
+                      key={t.x.fila.varianteId}
+                      aria-current={t.x.fila.varianteId === tallaResaltada ? "true" : undefined}
+                      className={`border-b border-sand/70 last:border-0 ${t.x.fila.varianteId === tallaResaltada ? "bg-hueso" : ""}`}
+                    >
+                      <td className="py-1.5 pl-2 font-semibold">{t.x.fila.talla ?? "Única"}</td>
                       <td className="py-1.5 text-center tabular-nums">{t.x.periodo.ventasNetas}</td>
                       <td className={`py-1.5 text-center tabular-nums ${hoy?.piso === 0 ? "font-semibold text-rojo-profundo" : ""}`}>{hoy ? hoy.piso : "—"}</td>
                       <td className="py-1.5 text-center tabular-nums">{hoy ? hoy.almacen : "—"}</td>
@@ -162,7 +169,7 @@ export function DetallePrendaAnalisis({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-taupe">
-                    <th className="py-1 text-left font-normal">Talla</th>
+                    <th className="py-1 pl-2 text-left font-normal">Talla</th>
                     <th className="py-1 text-center font-normal">Ritmo</th>
                     <th className="py-1 text-center font-normal">Rot. piso</th>
                     <th className="py-1 text-center font-normal">Rot. total</th>
