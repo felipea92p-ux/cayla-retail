@@ -11,8 +11,9 @@
 --     expresión que lee de izquierda a derecha (texto | comentario de línea | comentario de bloque) y deja solo el texto.
 --     El comentario de bloque no puede cruzar un `*/`: en Postgres una expresión con `|` busca siempre la coincidencia
 --     más LARGA, y `/\*.*?\*/` se comería el código entre dos comentarios. Límite conocido: una comilla suelta dentro de
---     un texto `$tag$…$tag$` anidado desalinearía la lectura de ese cuerpo; al 2026-09-28 ninguno la tiene (7 cuerpos
---     usan `$q$`, todos con comillas pareadas) y lo vigila la prueba de sensibilidad de pruebas:huellas-catalogo.
+--     un texto `$tag$…$tag$` anidado desalinearía la lectura de ese cuerpo; al 2026-09-28 ninguno la tiene (en main, 7
+--     cuerpos traen un `$tag$` anidado, todos con comillas pareadas). Lo que sí vigila pruebas:huellas-catalogo (caso 5): el código después
+--     de un `--` o de un `/*` dentro de un texto cuenta, y los comentarios no.
 --   · EXECUTE a PUBLIC en funciones de retail: solo cuenta si PUBLIC puede entrar al schema. Hoy no puede (ni en main ni en
 --     producción), y producción le quitó EXECUTE a PUBLIC en bloque: sin esta regla, 107 funciones salían distintas sin
 --     que nadie pudiera llamarlas de más.
