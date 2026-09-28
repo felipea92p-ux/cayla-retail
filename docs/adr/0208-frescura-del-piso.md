@@ -1487,8 +1487,10 @@ fila con destino suelto. T34 y T36 describen estados que hoy solo se arman a man
 
 ### Paso 3 construido (2026-09-27): la lectura de una sede y el indicador de registro
 
-**Estado:** construido en la rama `claude/frescura-3c-lectura`, **sin pegar en producción** (las tres funciones no existen
-allá; consulta de solo lectura del 2026-09-27). Se pega `20260928120300_frescura_lectura.sql` sola en el SQL Editor, a
+**Estado:** **en producción desde el 2026-09-28** (Felipe pegó `120300` → `120310` → `120320` → `120330` y los seis md5
+finales se verificaron en solo lectura; ver BACKLOG, «3c · paso 3»). Lo de abajo es cómo estaba al construirlo: construido
+en la rama `claude/frescura-3c-lectura`, sin pegar en producción (las tres funciones no existían allá; consulta de solo
+lectura del 2026-09-27). Se pega `20260928120300_frescura_lectura.sql` sola en el SQL Editor, a
 cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`), y
 DESPUÉS `20260928120310_frescura_lectura_revision3.sql`, también sola (las correcciones de la revisión 3; ver «Revisión 4
 del paso 3»).

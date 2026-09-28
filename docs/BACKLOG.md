@@ -68,10 +68,11 @@ reabrir un mes, quien tenga Cierre de mes.
   - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
   - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
 
-## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
+## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **YA en producción** (verificado por md5 el 2026-09-28; falta la llave); PR #547 fusionado
 
-- [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
-  funciones, sin políticas ni `drop trigger`). Después: `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
+- [x] **Felipe pegó `20260928210000_huellas_catalogo_con_llave.sql` el 2026-09-28** (verificado: las dos funciones idénticas
+  a las de `main`, byte a byte; `huellas_llave` sin filas).
+- [ ] **Falta la llave:** `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
   secreto `DERIVA_LLAVE`; `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables (Settings ▸ Secrets and variables ▸ Actions).
   Primera corrida: Actions ▸ «Deriva diaria» ▸ Run workflow.
 - [ ] **Cuando el PR esté en `main`: sumar «SQL pegado» a los checks exigidos de `main`** (hoy exige «Tipos, lint y
@@ -1127,7 +1128,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
         núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
-    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, EN PRODUCCIÓN desde el 2026-09-28** (rama
       `claude/frescura-3c-lectura`). `20260928120300_frescura_lectura.sql`: `fn_es_llegada` (el predicado de llegada de
       `fn_resumen_comparacion` con nombre propio), `fn_frescura_sede` (una lectura por sede, candado de líder + operar la
       sede, pista `frescura_sin_permiso`) y `fn_confianza_registro` (por sede y mes de Lima, sin persona, sin carga
@@ -1179,7 +1180,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       el pedido que la clienta no recogió se exhibe desde que se libera (el lote de meses después ya no vuelve a ser
       «Nueva»); T9e fija W y 2W en sus bordes, T9f vigila el saldo. `pruebas:frescura-lectura` 237,
       `frescura-contrato.test.ts` 24. ADR-0208, «El corrector de la revisión 9».
-      - [ ] **POR PEGAR en producción, en este orden: `20260928120300` → `20260928120310` → `20260928120320` →
+      - [x] **PEGADAS por Felipe el 2026-09-28 y verificadas en solo lectura**: los seis `md5(prosrc)` finales (`fn_es_llegada`
+        `5089ba50…`, `fn_es_llegada_a_cayla` `7e1ffb6d…`, `fn_temporada_efectiva_nucleo` `2bf80eb2…`, `fn_temporada_efectiva`
+        `e96b3c6c…`, `fn_confianza_registro` `8c6f5e6c…`, `fn_frescura_sede` `33970c94…`), los permisos (solo `authenticated`
+        en `fn_frescura_sede` y `fn_confianza_registro`; las otras tres, solo la dueña) y el candado: sin sesión,
+        `fn_frescura_sede` rechaza con «Solo el líder…». Lo que sigue es cómo se pegaron.
+      - [x] **Orden en que se pegaron: `20260928120300` → `20260928120310` → `20260928120320` →
         `20260928120330`** (cada una sola, en el SQL Editor, a cualquier hora: solo funciones, un comentario, `revoke` y
         `grant`; las tres primeras ya están en main; la cuarta, cuando se fusione el PR de la revisión 9). Producción el
         2026-09-28: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos: `40bf970f…`, `e121f11e…`,
