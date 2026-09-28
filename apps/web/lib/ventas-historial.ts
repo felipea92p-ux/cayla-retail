@@ -43,6 +43,9 @@ export * from "@/lib/ventas-historial-reglas";
 // El embed `cliente:clientas` (antes `clientes`) sigue la FK `ventas_clienta_fk`
 // desde 20260922140000_ficha_de_clienta_v1_backend.sql — la ficha de clienta (D-76/D-77)
 // retira la tabla vieja `clientes` (~0 filas, sin RLS de UPDATE) en favor de `clientas`.
+// Pasa por la política `clientas_select`: solo la ve la cuenta con el módulo «Clientas» (ADR-0249,
+// act. 2026-09-28). A una cuenta sin él el embed le llega en null y la venta sale sin el nombre, sin
+// error. Hoy todo rol con Historial tiene Clientas (verificado en producción el 2026-09-28).
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
