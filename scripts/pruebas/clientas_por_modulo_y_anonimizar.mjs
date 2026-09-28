@@ -122,7 +122,9 @@ function correr(sql) {
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
--- Intenta una sentencia y devuelve «SQLSTATE|hint» (o «SQLSTATE|mensaje» si no hay hint), o SIN_ERROR. No es security
+-- Intenta una sentencia y devuelve «SQLSTATE|hint» si el hint es uno de los nuestros (un identificador estable como
+-- 'clientas_sin_modulo'), o «SQLSTATE|mensaje» si no, o SIN_ERROR. El Postgres de Supabase (el del CI) le agrega a un
+-- «permission denied» la pista «Grant the required privileges…», que uno sin parches no pone: esa no cuenta. No es security
 -- definer: corre con los permisos de quien la llama, así se prueba a la cuenta y no a la dueña de la función.
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text; v_hint text;
@@ -131,7 +133,7 @@ begin
   return 'SIN_ERROR';
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
-  return v_estado || '|' || coalesce(nullif(v_hint, ''), v_msg);
+  return v_estado || '|' || case when v_hint ~ '^[a-z][a-z0-9_]*$' then v_hint else v_msg end;
 end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated, anon;
