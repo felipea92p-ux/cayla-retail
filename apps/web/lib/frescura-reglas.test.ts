@@ -9,7 +9,9 @@ import {
   elegirVentana,
   estadoFrescura,
   estaQuieta,
+  eventosConApartados,
   excluirTardias,
+  inicioDeSusUltimosDias,
   kaplanMeier,
   leerConfianzaRegistro,
   leerFrescuraSede,
@@ -502,9 +504,22 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
     expect(conCortes).toBeGreaterThan(100);
   });
 
-  it("sin dato si alguna de sus ventas salió de lo que tiene edad desconocida, aunque lo repuesto parezca sin vender", () => {
-    expect(rapidezContra(curva, [], [colgada(25, 4)])?.indice).toBe(0);
-    expect(rapidezContra(curva, [], [colgada(25, 4)], 1)).toBeNull();
+  it("con ventas de lo sin edad que pudieron esconder las suyas (R7-3): se mide sin contarlas y contándolas como suyas; vale si las dos dicen lo mismo, si no, sin dato", () => {
+    // 4 colgadas 25 días contra la categoría entera: esperadas 4 × H(4 días) = 4 × (2/7 + 1/5 + 1/4 + 1/3) = 4,28.
+    expect(rapidezContra(curva, [], [colgada(25, 4)])).toMatchObject({ indice: 0, esperadas: 4.28 });
+    // 1 escondida: aun contada como suya son 23 contra 100 (1 ÷ 4,28). Lenta de las dos maneras (antes: sin dato).
+    expect(rapidezContra(curva, [], [colgada(25, 4)], 1)).toMatchObject({ indice: 0, vendidas: 0 });
+    // 4 escondidas: 94, todavía lenta; 5: 117, sería pilar si eran suyas. No se sabe cuál: sin dato.
+    expect(rapidezContra(curva, [], [colgada(25, 4)], 4)).toMatchObject({ indice: 0 });
+    expect(rapidezContra(curva, [], [colgada(25, 4)], 5)).toBeNull();
+    // Un pilar sigue pilar: contar más ventas nunca le baja el índice (y vale lo que se sabe, sin las escondidas).
+    expect(rapidezContra(curva, a, a, 3)).toEqual({ indice: 500, vendidas: 2, esperadas: 0.4, referencia: 3 });
+    // Sin evidencia sigue sin dato, aunque contando las escondidas alcanzara.
+    expect(rapidez(0, 0.5, 20, 1)).toBeNull();
+    // El borde es el mismo 100 de `esPilar` en las DOS cuentas (verificación de la revisión 7): 100 exacto ya es pilar,
+    // así que 4 de 4 esperadas sigue pilar con una escondida, y 3 de 4 (75) que llega a 100 contándola cambia de veredicto.
+    expect(rapidez(4, 4, 30, 1)).toEqual({ indice: 100, vendidas: 4, esperadas: 4, referencia: 30 });
+    expect(rapidez(3, 4, 30, 1)).toBeNull();
   });
 
   it("la única prenda de su categoría no se compara contra sí misma: sin dato, nunca «pilar» (con ella adentro daba 100 exacto)", () => {
@@ -771,6 +786,7 @@ const talla = (varianteId: string, productoId: string, o: Partial<TallaFrescuraC
   ultimaLlegadaCayla: null,
   pisoHoy: 0,
   almacenHoy: 0,
+  apartadasHoy: 0,
   ...o,
 });
 
@@ -1196,8 +1212,10 @@ describe("analizarSede: casos de la revisión 6", () => {
 
   it("la carga inicial se agotó hace 100 días y lo repuesto por lote hace 20 no vendió ni una: lenta y «Por decidir» (antes, «sin dato» por las ventas de la carga)", () => {
     // Las ventas de la carga son de ANTES de que colgara lo repuesto: no pueden haberle quitado ventas. Si la carga
-    // todavía estaba colgada cuando llegó lo repuesto (la tercera venta, el día 101), el FIFO sí puede equivocarse:
-    // sin dato, como las gemelas K y U.
+    // todavía estaba colgada cuando llegó lo repuesto (la tercera venta, el día 101), el FIFO sí puede equivocarse: se
+    // mide de las dos maneras (R7-3). Aun si esa venta era de lo repuesto, 1 de 5 en 20 días contra blusas que se venden
+    // en 2 a 10 días es lenta: lenta las dos veces (antes, sin dato). Las gemelas K y U, donde contarlas cambia el
+    // veredicto, siguen sin dato.
     const repuesta = (terceraVenta: number) => {
       const { tallas, eventos } = fondoDeBlusas();
       tallas.push(talla("REP", "repuesta", { primeraExhibicion: ts(10), pisoHoy: 5, almacenHoy: 2, temporada: null, temporadaOrigen: null }));
@@ -1212,11 +1230,10 @@ describe("analizarSede: casos de la revisión 6", () => {
     expect(p.estado.sugerencias).toContain("trasladar");
     expect(sede.cifras.porDecidir).toBe(1);
     const ambigua = prendaDe(repuesta(101), "repuesta");
-    expect(ambigua.rapidez).toBeNull();
-    expect(ambigua.estado.quieta).toBe(false);
-    expect(ambigua.estado.sugerencias).not.toContain("trasladar");
-    // En el MISMO instante en que se cuelga lo repuesto tampoco se sabe cuál se vendió: sin dato.
-    expect(prendaDe(repuesta(100), "repuesta").rapidez).toBeNull();
+    expect(ambigua.rapidez).toMatchObject({ indice: 0, vendidas: 0 });
+    expect(ambigua.estado).toMatchObject({ tramo: "critica", quieta: true });
+    // En el MISMO instante en que se cuelga lo repuesto tampoco se sabe cuál se vendió: la misma cuenta doble.
+    expect(prendaDe(repuesta(100), "repuesta").rapidez).toMatchObject({ indice: 0 });
   });
 
   it("A1: de la curva se resta solo lo que la prenda aporta a la VARA; sus unidades viejas de la lectura se miden, no se restan (un pilar no se vuelve lento)", () => {
@@ -1267,6 +1284,420 @@ describe("analizarSede: casos de la revisión 6", () => {
     const conOtraTalla = analizarSede(lectura([s, m], { "V-S": [bajada(1, 5)], "V-M": [bajada(1, 5), venta(110, 1)] })).sede.prendas[0];
     expect(conOtraTalla.ventasRecientes).toBe(1);
     expect(conOtraTalla.estado.sugerencias).toEqual([]);
+  });
+});
+
+describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas corregidas)", () => {
+  const prendaDe = (sede: ReturnType<typeof analizarSede>["sede"], productoId: string) => sede.prendas.find((p) => p.productoId === productoId)!;
+
+  it("R7-1 · lo apartado para una clienta no está colgado: la separación de hace 50 días no envejece ni va a «Por decidir»; su gemela libre sí", () => {
+    // Las dos: 4 colgadas el día 60 y 1 vendida al día siguiente. A la apartada le apartan las 3 que quedan el día 70
+    // (Felipe, 2026-09-27). Antes las dos eran Crítica, quietas y con «cambiar de lugar»: «Por decidir» 2 en vez de 1.
+    const { tallas, eventos } = fondoDeBlusas();
+    const historia = [bajada(60, 4), venta(61, 1)];
+    tallas.push(talla("AP", "apartada", { primeraExhibicion: ts(60), pisoHoy: 0, apartadasHoy: 3 }));
+    tallas.push(talla("LIB", "libre", { primeraExhibicion: ts(60), pisoHoy: 3 }));
+    const { sede } = analizarSede(lectura(tallas, { ...eventos, AP: historia, LIB: historia }, { apartados: { AP: [{ ts: ts(70), delta: -3 }] } }));
+    const ap = prendaDe(sede, "apartada");
+    const libre = prendaDe(sede, "libre");
+    expect(ap).toMatchObject({ pisoHoy: 0, apartadasHoy: 3, reloj: { segundos: 10 * D, alMenos: false } });
+    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 }]);
+    expect(ap.estado).toMatchObject({ quieta: false, sugerencias: [] });
+    expect(libre.reloj.segundos).toBe(60 * D);
+    expect(libre.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
+    expect(sede.cifras.porDecidir).toBe(1);
+    // Lo apartado tampoco pesa en la edad del piso: solo cuenta la libre (60 días, 3 unidades) y el fondo.
+    const soloLibre = analizarSede(lectura(tallas.filter((t) => t.varianteId !== "AP"), { ...eventos, LIB: historia })).sede.cifras;
+    expect(sede.cifras).toMatchObject({ unidadesEnPiso: soloLibre.unidadesEnPiso, edadDelPisoDias: soloLibre.edadDelPisoDias });
+    // Lo apartado de la prenda es el de todas sus tallas.
+    const dos = [talla("AP2-S", "dos", { talla: "S", apartadasHoy: 1 }), talla("AP2-M", "dos", { apartadasHoy: 2 })];
+    expect(prendaDe(analizarSede(lectura(dos, {})).sede, "dos").apartadasHoy).toBe(3);
+  });
+
+  it("R7-1 · el reloj no corre mientras todo lo colgado está apartado, y sigue donde iba al liberarse; apartar una parte no lo detiene", () => {
+    const reloj = (apartados: { ts: string; delta: number }[][], tallas: EventoPiso[][] = [[bajada(0, 3)]]) =>
+      relojNovedad({ eventosPorTalla: tallas, apartadosPorTalla: apartados, primeraExhibicion: ts(0), desde: ts(0), ahora: ts(40) });
+    expect(reloj([[]]).segundos).toBe(40 * D);
+    // Apartada entera del día 10 al 30 (la clienta no vino): 10 + 10.
+    expect(reloj([[{ ts: ts(10), delta: -3 }, { ts: ts(30), delta: 3 }]]).segundos).toBe(20 * D);
+    // Apartadas 2 de 3: la que queda sigue colgada.
+    expect(reloj([[{ ts: ts(10), delta: -2 }]]).segundos).toBe(40 * D);
+    // La S apartada entera y la M libre: el modelo+color sigue colgado.
+    expect(reloj([[{ ts: ts(10), delta: -3 }], []], [[bajada(0, 3)], [bajada(0, 1)]]).segundos).toBe(40 * D);
+    // Apartada desde antes de la ventana (el saldo, a la hora de «desde»): no corre nada, y sigue «al menos».
+    const antes = relojNovedad({
+      eventosPorTalla: [[bajada(0, 2, { edadDesconocida: true })]],
+      apartadosPorTalla: [[{ ts: ts(0), delta: -2 }]],
+      primeraExhibicion: ts(-10),
+      desde: ts(0),
+      ahora: ts(40),
+    });
+    expect(antes).toEqual({ segundos: 0, alMenos: true });
+  });
+
+  it("R7-1 · lee `apartados` y `apartadas_hoy`, descarta lo que no tiene forma; sin la clave (una base de antes), nada apartado", () => {
+    const prenda = { variante_id: "v1", producto_id: "p1", piso_hoy: 1, almacen_hoy: 0, apartadas_hoy: "2" };
+    const l = leerFrescuraSede({ separa_piso: true, desde: ts(0), ahora: ts(10), prendas: [prenda], eventos: {}, apartados: { v1: [[ts(3), -2], ["no es fecha", 1], [ts(4), 0]] } });
+    if (!l?.separaPiso) throw new Error("sin lectura");
+    expect(l.tallas[0]).toMatchObject({ pisoHoy: 1, apartadasHoy: 2 });
+    expect(l.apartados).toEqual({ v1: [{ ts: ts(3), delta: -2 }] });
+    const vieja = leerFrescuraSede({ separa_piso: true, desde: ts(0), ahora: ts(10), prendas: [{ variante_id: "v1", producto_id: "p1" }] });
+    if (!vieja?.separaPiso) throw new Error("sin lectura");
+    expect(vieja.apartados).toEqual({});
+    expect(vieja.tallas[0].apartadasHoy).toBe(0);
+  });
+
+  it("R7-2 · el éxito que se agotó y se repuso ayer no «dejó de vender»: sus últimos 30 días en el piso son 1 desde ayer y 29 antes de agotarse. Sigue pilar, sin «trasladar»; con la temporada pasada, «sigue vendiendo»", () => {
+    // 3 colgadas desde el día 25; cada día se vende una y se baja otra, hasta que el almacén se vacía: el piso queda en 0
+    // el día 85 (hace 35). Ayer se colgaron 5 de la reposición y quedan 15 en el almacén. Antes: 0 ventas en los 30 días
+    // de calendario → «dejó de vender» → no pilar → Crítica, quieta, «cambiar de lugar» y «trasladar».
+    const agotado = (finEstacion: string | null) => {
+      const { tallas, eventos } = fondoDeBlusas();
+      tallas.push(talla("PA", "pilar", { primeraExhibicion: ts(25), pisoHoy: 5, almacenHoy: 15, finEstacion }));
+      const e: EventoPiso[] = [bajada(25, 3)];
+      for (let d = 26; d <= 82; d++) e.push(venta(d, 1), bajada(d, 1, {}, 60));
+      e.push(venta(83, 1), venta(84, 1), venta(85, 1), bajada(119, 5));
+      eventos.PA = e;
+      return prendaDe(analizarSede(lectura(tallas, eventos)).sede, "pilar");
+    };
+    const p = agotado(null);
+    expect(p.reloj.segundos).toBe(61 * D);
+    // Sus últimos 30 días en el piso: el de ayer y los días 56 a 85 (30 ventas).
+    expect(p.ventasRecientes).toBe(30);
+    expect(p.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: [] });
+    expect(agotado(ts(100)).estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["sigue_vendiendo"] });
+  });
+
+  it("R7-2 · días en el piso, no de calendario: guardada 50 días en el almacén no cuenta como «sin vender»; 30 días en el piso sin una venta sí, aunque tenga una pausa en medio", () => {
+    // Colgada del día 40 al 50 (vendió 1 el 45) y guardada hasta el día 100; ahora lleva 20 días colgada otra vez. Sus
+    // últimos 30 días en el piso son los 20 de ahora y los días 40 a 50: vendió. Sin esa venta, dejó de vender.
+    const pausa = (conVenta: boolean) => {
+      const v = talla("G", "guardada", { categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(40), pisoHoy: 2 });
+      const e = [bajada(40, 3), ...(conVenta ? [venta(45, 1)] : []), ev(50, conVenta ? -2 : -3, { esMovimientoInterno: true }), bajada(100, 2)];
+      return analizarSede(lectura([v], { G: e })).sede.prendas[0];
+    };
+    expect(pausa(true)).toMatchObject({ ventasRecientes: 1, estado: { sugerencias: [] } });
+    expect(pausa(false)).toMatchObject({ ventasRecientes: 0, estado: { tipo: "sin_ventas_sede", sugerencias: ["revisar_ventas"] } });
+    // Cuenta hacia atrás solo lo colgado: tramos [0, 10) y [20, 40) en días.
+    const M = 86_400_000;
+    const tramos = [0, 10 * M, 20 * M, 40 * M];
+    expect(inicioDeSusUltimosDias(tramos, 5)).toBe(35 * M);
+    expect(inicioDeSusUltimosDias(tramos, 20)).toBe(20 * M);
+    expect(inicioDeSusUltimosDias(tramos, 25)).toBe(5 * M);
+    expect(inicioDeSusUltimosDias(tramos, 30)).toBe(0);
+    expect(inicioDeSusUltimosDias(tramos, 31)).toBeNull();
+  });
+
+  it("R7-3 · una devolución revendida no le quita la rapidez al éxito del lote: el bikini de temporada pasada con una devuelta sigue pilar y recibe «sigue vendiendo», como su gemelo", () => {
+    // 10 colgados el día 110, 8 vendidos en 16 horas. Al devuelto le devuelven uno a las 20 horas (vuelve al piso sin
+    // lote: edad desconocida), se venden 2 más y la tercera, a las 40 horas, es la devuelta. A las 48 horas bajan 3. Antes
+    // el devuelto quedaba sin rapidez por toda la lectura: «revisa sus ventas», «cambiar de lugar» y «retirar».
+    const { tallas, eventos } = fondoDeBlusas();
+    const comun = (id: string) => talla(id, id, { primeraExhibicion: ts(110), pisoHoy: 3, finEstacion: ts(100) });
+    tallas.push(comun("DEV"), comun("GEM"));
+    const ocho = Array.from({ length: 8 }, (_, i) => venta(110, 1, (2 + 2 * i) * 60));
+    eventos.DEV = [bajada(110, 10), ...ocho, ev(110, 1, { edadDesconocida: true }, 20 * 60), venta(110, 1, 30 * 60), venta(110, 1, 34 * 60), venta(110, 1, 40 * 60), bajada(112, 3)];
+    eventos.GEM = [bajada(110, 10), ...ocho, venta(110, 1, 30 * 60), venta(110, 1, 34 * 60), bajada(112, 3)];
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    const dev = prendaDe(sede, "DEV");
+    const gem = prendaDe(sede, "GEM");
+    expect(gem.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    expect(dev.rapidez).toEqual(gem.rapidez);
+    expect(dev.estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["sigue_vendiendo"] });
+    expect(gem.estado.sugerencias).toEqual(["sigue_vendiendo"]);
+  });
+});
+
+// Revisión 8 (2026-09-27, noche): R7-1 completo. Hasta aquí lo apartado solo detenía el reloj; el FIFO de la vara lo veía
+// como colgado y sin vender. La prenda con 5 de 6 unidades apartadas salía rapidez 0, Envejecida, quieta y con
+// «trasladar», y su gemela que vendió esas 5 en los mismos instantes salía 136, Vigente y sin sugerencias.
+describe("revisión 8: lo apartado en la vara, la rapidez y las ventas recientes (R7-1 completo)", () => {
+  const ap = (dia: number, delta: number, minuto = 0) => ({ ts: ts(dia, minuto), delta });
+  /** Cada evento como texto: día (con minutos si los hay), delta y clase (v venta, i interno, - otro; ? edad desconocida). */
+  const forma = (evs: readonly EventoPiso[]) =>
+    evs.map((e) => {
+      const minutos = Math.round((Date.parse(e.ts) - BASE) / 60_000);
+      const dia = Math.floor(minutos / 1440);
+      const resto = minutos - dia * 1440;
+      return `${dia}${resto ? `+${resto}m` : ""}:${e.delta}${e.esVenta ? "v" : e.esMovimientoInterno ? "i" : "-"}${e.edadDesconocida ? "?" : ""}`;
+    });
+  const prendaDe = (sede: ReturnType<typeof analizarSede>["sede"], productoId: string) => sede.prendas.find((p) => p.productoId === productoId)!;
+
+  it("sin nada apartado, los mismos eventos", () => {
+    const evs = [bajada(0, 3), venta(5, 1)];
+    expect(eventosConApartados(evs, undefined)).toBe(evs);
+    expect(eventosConApartados(evs, [])).toBe(evs);
+  });
+
+  it("lo que sigue apartado es una venta desde que se apartó (después de una bajada del mismo instante)", () => {
+    expect(forma(eventosConApartados([bajada(0, 3)], [ap(5, -1)]))).toEqual(["0:3i", "5:-1v"]);
+    expect(forma(eventosConApartados([bajada(0, 1), bajada(5, 1)], [ap(5, -1)]))).toEqual(["0:1i", "5:1i", "5:-1v"]);
+    // Apartado antes de la lectura (el saldo, a la hora de «desde»): sale del saldo, que ya está colgado.
+    expect(forma(eventosConApartados([bajada(0, 3, { edadDesconocida: true })], [ap(0, -2)]))).toEqual(["0:3i?", "0:-2v"]);
+  });
+
+  it("la entrega (se libera y se vende enseguida) es la venta de cuando se apartó: la venta de la entrega no se cuenta dos veces", () => {
+    // Entregar una separación: la liberación y la venta en el mismo instante.
+    expect(forma(eventosConApartados([bajada(0, 3), venta(20, 1)], [ap(5, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1v"]);
+    // «Se la entrego a la clienta ahora» de Apartados y cobrada en Vender 5 minutos después.
+    expect(forma(eventosConApartados([bajada(0, 3), venta(20, 1, 5)], [ap(5, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1v"]);
+    // Una venta de 2 en la entrega de 1: la otra unidad es una venta más.
+    expect(forma(eventosConApartados([bajada(0, 3), venta(20, 2)], [ap(5, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1v", "20:-1v"]);
+    // Liberadas 2 y vendida 1 enseguida: 1 entregada (venta al apartarse) y 1 que vuelve (pausa).
+    expect(forma(eventosConApartados([bajada(0, 3), venta(20, 1)], [ap(5, -2), ap(20, 2)]))).toEqual(["0:3i", "5:-1v", "5:-1i", "20:1i?"]);
+  });
+
+  it("lo que se libera sin venderse enseguida es una pausa: no suma días colgada mientras estuvo apartado, y vuelve con su edad", () => {
+    // La clienta no vino: apartada del día 5 al 20.
+    const vuelta = eventosConApartados([bajada(0, 3)], [ap(5, -1), ap(20, 1)]);
+    expect(forma(vuelta)).toEqual(["0:3i", "5:-1i", "20:1i?"]);
+    // Las 2 libres llevan 40 días; la que estuvo apartada, 5 + 20 = 25 (antes, 40 como las otras).
+    expect(observacionesDe(vuelta, ts(40)).sort((a, b) => a.segundos - b.segundos)).toEqual([colgada(25), colgada(40, 2)]);
+    // Cobrada 11 minutos después de liberarla: ya no es la entrega. Pausa, y la venta es una venta más del FIFO.
+    expect(forma(eventosConApartados([bajada(0, 3), venta(20, 1, 11)], [ap(5, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1i", "20:1i?", "20+11m:-1v"]);
+    // Apartada y liberada en el mismo instante: no estuvo apartada, no hay nada que pausar.
+    expect(forma(eventosConApartados([bajada(0, 3)], [ap(5, -1), ap(5, 1)]))).toEqual(["0:3i"]);
+    // Una venta de OTRA unidad antes de liberarla no es su entrega.
+    expect(forma(eventosConApartados([bajada(0, 3), venta(15, 1)], [ap(5, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1i", "15:-1v", "20:1i?"]);
+  });
+
+  it("cada liberación cierra lo más viejo que seguía apartado; lo que se libera sin nada apartado no mueve el FIFO", () => {
+    // Apartadas el día 5 y el 10; una liberada el 20 (la del 5, que vuelve); la del 10 sigue apartada (venta).
+    expect(forma(eventosConApartados([bajada(0, 3)], [ap(5, -1), ap(10, -1), ap(20, 1)]))).toEqual(["0:3i", "5:-1i", "10:-1v", "20:1i?"]);
+    // El libro no cuadra: una liberación sin nada apartado antes.
+    expect(forma(eventosConApartados([bajada(0, 2), venta(8, 1)], [ap(5, 1)]))).toEqual(["0:2i", "8:-1v"]);
+  });
+
+  it("la apartada es su gemela vendida: P apartó 5 de 6 (4 al colgarse y 1 hace 10 días), Q vendió esas 5 en los mismos instantes y PE las entregó después. Misma rapidez, mismo estado, mismas sugerencias y las mismas ventas recientes", () => {
+    // Antes: P rapidez 0, Envejecida, quieta y «trasladar»; PE contaba sus 4 entregas a los 40 días de colgada.
+    const { tallas, eventos } = fondoDeBlusas();
+    const comun = { primeraExhibicion: ts(60), pisoHoy: 1, almacenHoy: 2 };
+    tallas.push(talla("P", "P", { ...comun, apartadasHoy: 5 }));
+    tallas.push(talla("Q", "Q", comun));
+    tallas.push(talla("PE", "PE", { ...comun, apartadasHoy: 1 }));
+    const apartadas = [ap(61, -1), ap(62, -1), ap(63, -1), ap(64, -1)];
+    const l = lectura(
+      tallas,
+      {
+        ...eventos,
+        P: [bajada(60, 6)],
+        Q: [bajada(60, 6), venta(61, 1), venta(62, 1), venta(63, 1), venta(64, 1), venta(110, 1)],
+        PE: [bajada(60, 6), venta(100, 4)],
+      },
+      { apartados: { P: [...apartadas, ap(110, -1)], PE: [...apartadas, ap(100, 4), ap(110, -1)] } },
+    );
+    const { sede } = analizarSede(l);
+    const [p, q, pe] = ["P", "Q", "PE"].map((id) => prendaDe(sede, id));
+    expect(q.rapidez).not.toBeNull();
+    expect(p.rapidez).toEqual(q.rapidez);
+    expect(pe.rapidez).toEqual(q.rapidez);
+    for (const x of [p, pe]) {
+      expect(x.estado).toEqual(q.estado);
+      expect(x.ventasRecientes).toBe(q.ventasRecientes);
+      expect(x.reloj).toEqual(q.reloj);
+    }
+    expect(q.ventasRecientes).toBe(1);
+    // La vara de la categoría tampoco cambia: las apartadas de P son las ventas de Q (antes eran «al menos 60 días» y
+    // corrían los cortes de las demás prendas).
+    const soloCon = (id: "P" | "Q") =>
+      analizarSede({ ...l, tallas: l.tallas.filter((t) => t.varianteId === id || t.varianteId.startsWith("fondo-")) }).sede.categorias;
+    expect(soloCon("P")).toEqual(soloCon("Q"));
+  });
+
+  it("lo que se liberó sin venderse no es una venta, ni reciente; lo apartado antes de la lectura tampoco es reciente", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    // PL: le apartaron 4 al colgarse y las liberaron el día 100 (la clienta no vino). Vendió 0.
+    tallas.push(talla("PL", "PL", { primeraExhibicion: ts(60), pisoHoy: 6 }));
+    // PA: 2 apartadas desde antes de la lectura (el saldo), nada libre.
+    tallas.push(talla("PA", "PA", { primeraExhibicion: ts(-20), apartadasHoy: 2 }));
+    const { sede } = analizarSede(
+      lectura(tallas, { ...eventos, PL: [bajada(60, 6)], PA: [bajada(0, 2, { edadDesconocida: true })] }, {
+        apartados: { PL: [ap(61, -1), ap(62, -1), ap(63, -1), ap(64, -1), ap(100, 4)], PA: [ap(0, -2)] },
+      }),
+    );
+    const pl = prendaDe(sede, "PL");
+    expect(pl.ventasRecientes).toBe(0);
+    expect(pl.rapidez?.vendidas).toBe(0);
+    expect(prendaDe(sede, "PA").ventasRecientes).toBe(0);
+  });
+
+  it("lo apartado de CUALQUIER talla detiene el reloj y es una venta reciente, no solo lo de la primera talla (verificación de la revisión 7)", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    // M y S colgadas el día 60; la M se vende el día 70 y la S se aparta el 71 y sigue apartada: nada libre desde el 71.
+    tallas.push(talla("DT-M", "dos-tallas", { talla: "M", primeraExhibicion: ts(60) }));
+    tallas.push(talla("DT-S", "dos-tallas", { talla: "S", primeraExhibicion: ts(60), apartadasHoy: 1 }));
+    const { sede } = analizarSede(
+      lectura(tallas, { ...eventos, "DT-M": [bajada(60, 1), venta(70, 1)], "DT-S": [bajada(60, 1)] }, { apartados: { "DT-S": [ap(71, -1)] } }),
+    );
+    const p = prendaDe(sede, "dos-tallas");
+    // Mirando solo lo apartado de la M: 60 días colgada y ninguna venta en sus últimos 30 (del 90 al 120).
+    expect(p).toMatchObject({ pisoHoy: 0, apartadasHoy: 1, reloj: { segundos: 11 * D }, ventasRecientes: 2 });
+  });
+});
+
+/** 10 vestidos × 3 colgados el día 20 y vendidos los días 30, 50 y 70: la vara de los vestidos (casos RZ). */
+function vestidos(): { tallas: TallaFrescuraCruda[]; eventos: Record<string, EventoPiso[]> } {
+  const tallas: TallaFrescuraCruda[] = [];
+  const eventos: Record<string, EventoPiso[]> = {};
+  for (let i = 1; i <= 10; i++) {
+    const v = `VARAV-${i}`;
+    tallas.push(talla(v, `vestido-${i}`, { categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(20, i) }));
+    eventos[v] = [bajada(20, 3, {}, i), venta(30, 1, i), venta(50, 1, i), venta(70, 1, i)];
+  }
+  return { tallas, eventos };
+}
+
+// R7-4 a R7-7 (revisión 7): los casos que el revisor escribió (RZ-n) para los cambios a propósito que sobrevivían las 127
+// pruebas de la web. Cada uno falla con el cambio que se nombra.
+describe("R7-4 a R7-7: las pruebas que faltaban", () => {
+  const prendaDe = (sede: ReturnType<typeof analizarSede>["sede"], productoId: string) => sede.prendas.find((p) => p.productoId === productoId)!;
+
+  it("RZ-1 (R7-6) dos colores del mismo modelo son dos prendas: el negro de 100 días sin vender va a «Por decidir», el rojo recién colgado es Nueva (mata: agrupar sin el color)", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    tallas.push(talla("X-NEG", "X", { colorCodigo: "NEG", colorNombre: "Negro", primeraExhibicion: ts(20), pisoHoy: 2 }));
+    tallas.push(talla("X-ROJ", "X", { colorCodigo: "ROJ", colorNombre: "Rojo", primeraExhibicion: ts(118), pisoHoy: 3 }));
+    const { sede } = analizarSede(lectura(tallas, { ...eventos, "X-NEG": [bajada(20, 2)], "X-ROJ": [bajada(118, 3)] }));
+    const x = sede.prendas.filter((p) => p.productoId === "X");
+    expect(x).toHaveLength(2);
+    expect(x.find((p) => p.colorCodigo === "NEG")!.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
+    expect(x.find((p) => p.colorCodigo === "ROJ")!.estado).toMatchObject({ tipo: "semaforo", tramo: "nueva", quieta: false });
+  });
+
+  it("RZ-2 (R7-6) el almacén de la prenda suma todas sus tallas: con la L en el piso y la S solo en el almacén, «Trasladar» sale (mata: el almacén de la primera talla)", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    tallas.push(talla("Y-L", "Y", { talla: "L", primeraExhibicion: ts(20), pisoHoy: 2, almacenHoy: 0 }));
+    tallas.push(talla("Y-S", "Y", { talla: "S", primeraExhibicion: ts(20), pisoHoy: 0, almacenHoy: 3 }));
+    const y = prendaDe(analizarSede(lectura(tallas, { ...eventos, "Y-L": [bajada(20, 2)] })).sede, "Y");
+    expect(y.almacenHoy).toBe(3);
+    expect(y.estado).toMatchObject({ tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar", "trasladar"] });
+  });
+
+  it("RZ-3 (R7-4) manda la PRIMERA talla con edad conocida: M colgada el día 40, la carga de S vende los días 70-85 y L llega el día 118 → sin dato, sin «Trasladar» (mata: la mayor primeraConEdad)", () => {
+    // Con las 4 ventas de la S contadas como de lo conocido, 4 contra 3,08 esperadas (M 80 días, L 2 días) = 130: pilar;
+    // sin contarlas, 0. Las dos cuentas no dicen lo mismo (R7-3): sin dato. Tomando la L (día 118) como la primera con
+    // edad, esas ventas «no esconden nada», la rapidez es 0 y la prenda de 80 días va a «Por decidir» con «Trasladar».
+    const { tallas, eventos } = fondoDeBlusas();
+    tallas.push(talla("T-S", "T", { talla: "S", primeraExhibicion: ts(40), pisoHoy: 6 }));
+    tallas.push(talla("T-M", "T", { talla: "M", primeraExhibicion: ts(40), pisoHoy: 1 }));
+    tallas.push(talla("T-L", "T", { talla: "L", primeraExhibicion: ts(40), pisoHoy: 4, almacenHoy: 1 }));
+    eventos["T-S"] = [bajada(60, 10, { edadDesconocida: true }), venta(70, 1), venta(75, 1), venta(80, 1), venta(85, 1)];
+    eventos["T-M"] = [bajada(40, 1)];
+    eventos["T-L"] = [bajada(118, 4)];
+    const t = prendaDe(analizarSede(lectura(tallas, eventos)).sede, "T");
+    expect(t.rapidez).toBeNull();
+    expect(t.estado.quieta).toBe(false);
+    expect(t.estado.sugerencias).not.toContain("trasladar");
+  });
+
+  it("RZ-4 (R7-4) E-Y08 con la talla de la carga PRIMERO en la lista (L de la carga, S repuesta): igual sin dato (mata: mirar solo la primera talla)", () => {
+    const { tallas, eventos } = vestidos();
+    tallas.push(talla("U-L", "U", { categoriaId: "vestidos", categoriaNombre: "Vestidos", talla: "L", primeraExhibicion: ts(60), pisoHoy: 0 }));
+    eventos["U-L"] = [bajada(60, 10, { edadDesconocida: true }), ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => venta(63 + 5 * k, 1))];
+    tallas.push(talla("U-S", "U", { categoriaId: "vestidos", categoriaNombre: "Vestidos", talla: "S", primeraExhibicion: ts(60), pisoHoy: 4, almacenHoy: 1 }));
+    eventos["U-S"] = [bajada(95, 4)];
+    const u = prendaDe(analizarSede(lectura(tallas, eventos)).sede, "U");
+    expect(u.tallas.map((x) => x.talla)).toEqual(["L", "S"]);
+    expect(u.rapidez).toBeNull();
+    expect(u.estado.quieta).toBe(false);
+    expect(u.estado.sugerencias).not.toContain("trasladar");
+  });
+
+  it("RZ-5 (R7-4) la reposición DENTRO de la ventana de la vara no inventa ventas sin edad: lo colgado el día 50 que se vende los días 110 y 112 tiene edad conocida (mata: medir sobre la ventana de la vara)", () => {
+    const vara = varaDeBlusas(92);
+    const x = talla("X1", "X", { primeraExhibicion: ts(50), pisoHoy: 4 });
+    const { sede } = analizarSede(lectura([...vara.tallas, x], { ...vara.eventos, X1: [bajada(50, 4), bajada(100, 2), venta(110, 1), venta(112, 1)] }));
+    expect(sede.categorias[0].ventanaDias).toBe(30);
+    expect(prendaDe(sede, "X").rapidez).toMatchObject({ vendidas: 2, referencia: 25 });
+  });
+
+  it("RZ-6 (R7-7) una salida con edad conocida que NO es venta (traslado a otra sede, merma) entra a la curva como «al menos», no como vendida (mata: toda salida es venta)", () => {
+    const u = unidadesParaVara([bajada(1, 2), ev(5, -1)], ts(10));
+    expect(vendidasDe(u.observaciones)).toBe(0);
+    expect(u.observaciones).toContainEqual({ segundos: 4 * D, vendida: false, peso: 1 });
+  });
+
+  it("RZ-7 (R7-7) 20 vendidas con P50 y P75 pero SIN P90 no alcanzan: se usa la de 60 (mata: `alcanza` sin el P90)", () => {
+    const v = elegirVentana([
+      construirVara([...todasVendidas(20), colgada(100, 4)], 30),
+      construirVara(todasVendidas(30), 60),
+      construirVara(todasVendidas(40), 90),
+      construirVara(todasVendidas(50), 120),
+    ]);
+    expect(v.ventanaDias).toBe(60);
+  });
+
+  it("RZ-8 (R7-7) contra el resto, 9 de 10 vendidas (queda 0,1 exacto) ya es el P90, como en kaplanMeier (mata: el umbral del P90 menos EPS)", () => {
+    const resto = [...Array.from({ length: 9 }, (_, i) => vendida(i + 1)), colgada(20)];
+    const mia = colgada(30);
+    expect(contraElResto(kaplanMeier([...resto, mia]), [mia], [mia]).cortes.p90).toBe(9 * D);
+    expect(cortes(kaplanMeier(resto)).p90).toBe(9 * D);
+  });
+
+  it("RZ-9 el retiro al almacén que sigue a la venta en los 10 minutos no es la venta que delató la bajada: se quita la venta", () => {
+    const out = excluirTardias([bajada(10, 2, { oid: "b" }), venta(10, 1, 2), ev(10, -1, { esMovimientoInterno: true }, 5)], new Map([["b", 1]]));
+    expect(out.filter((e) => e.esVenta)).toHaveLength(0);
+    expect(out.reduce((s, e) => s + e.delta, 0)).toBe(0);
+  });
+
+  it("RZ-10 la venta en el MISMO instante que su bajada (una transacción: el núcleo la cuenta tardía, T28) también se quita", () => {
+    expect(excluirTardias([bajada(10, 1, { oid: "b" }), venta(10, 1)], new Map([["b", 1]]))).toEqual([]);
+  });
+
+  it("RZ-11 la evidencia mínima es 1: 1 vendida contra 0,5 esperadas ya es un índice (200), y 0 contra 1,2 es lenta (0)", () => {
+    expect(rapidez(1, 0.5, 20)).toMatchObject({ indice: 200 });
+    expect(rapidez(0, 1.2, 20)).toMatchObject({ indice: 0 });
+  });
+
+  it("RZ-12 30 días colgada EXACTOS sin vender ya es «dejó de vender»: el pilar por índice deja de serlo", () => {
+    expect(estadoFrescura(entrada({ reloj: { segundos: 30 * D, alMenos: false }, rapidez: r(150), ventasRecientes: 0 }))).toMatchObject({ tramo: "critica", quieta: true });
+  });
+
+  it("RZ-13 índice 100 exacto es pilar («como su categoría»)", () => {
+    expect(estadoFrescura(entrada({ reloj: { segundos: 40 * D, alMenos: false }, rapidez: r(100), ventasRecientes: 1 }))).toMatchObject({ quieta: false });
+  });
+
+  it("RZ-14 el clásico fuera de su estación con todo en el almacén no pide «guardar» (ya está guardado)", () => {
+    expect(estadoFrescura(entrada({ esClasico: true, temporada: "clasico_verano", enEstacionAhora: false, pisoHoy: 0, almacenHoy: 3 })).sugerencias).toEqual([]);
+  });
+
+  it("RZ-15 la vieja sin dato de rapidez con todo en el almacén no pide «revisa sus ventas»", () => {
+    expect(estadoFrescura(entrada({ reloj: { segundos: 40 * D, alMenos: false }, pisoHoy: 0, almacenHoy: 3, ventasRecientes: 1 })).sugerencias).toEqual([]);
+  });
+
+  it("RZ-17 lo que la pantalla leerá: última llegada = la más reciente de sus tallas; prendas de la más vieja a la más nueva; categorías por nombre; unidades de la categoría = todas las de la curva", () => {
+    const tallas = [
+      talla("B-M", "B", { talla: "M", categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(110.5), ultimaLlegada: ts(50), pisoHoy: 1 }),
+      talla("B-S", "B", { talla: "S", categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(110.5), ultimaLlegada: ts(10), pisoHoy: 1 }),
+      talla("A-M", "A", { categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(20), pisoHoy: 1 }),
+      talla("C-M", "C", { categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(20), pisoHoy: 0 }),
+      talla("Z-M", "Z", { categoriaId: "abrigos", categoriaNombre: "Abrigos", primeraExhibicion: ts(20), pisoHoy: 1 }),
+    ];
+    const eventos = { "B-M": [bajada(110.5, 1)], "B-S": [bajada(110.5, 1)], "A-M": [bajada(20, 2), venta(25, 1)], "C-M": [bajada(20, 2), venta(22, 1), venta(24, 1)], "Z-M": [bajada(20, 1)] };
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    expect(prendaDe(sede, "B").ultimaLlegada).toBe(ts(50));
+    expect(sede.prendas.filter((p) => p.categoriaId === "vestidos").map((p) => p.productoId)).toEqual(["A", "B", "C"]);
+    expect(sede.categorias.map((c) => c.categoriaNombre)).toEqual(["Abrigos", "Vestidos"]);
+    expect(sede.categorias.find((c) => c.categoriaId === "vestidos")).toMatchObject({ vendidas: 3, unidades: 6 });
+  });
+
+  it("RZ-18 cifras: edad del piso y % Nuevas con un decimal", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    tallas.push(talla("N1", "N1", { primeraExhibicion: ts(119), pisoHoy: 1 }));
+    eventos.N1 = [bajada(119, 1)];
+    tallas.push(talla("N2", "N2", { primeraExhibicion: ts(110.5), pisoHoy: 2 }));
+    eventos.N2 = [bajada(110.5, 2)];
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    // N1: 1 día, Nueva; N2: 9,5 días, Envejecida. Edad = (1·1 + 2·9,5) ÷ 3 = 6,67 → 6,7; Nuevas 1 de 3 → 33,3 %.
+    expect(sede.cifras.edadDelPisoDias).toBe(6.7);
+    expect(sede.cifras.pctNuevas).toBe(33.3);
+  });
+
+  it("RZ-19 la dudosa (una talla sana y otra dudosa) no se mide: sin rapidez ni «categoría sin ella»", () => {
+    const { tallas, eventos } = fondoDeBlusas();
+    tallas.push(talla("Q-S", "Q", { talla: "S", primeraExhibicion: ts(20), pisoHoy: 2 }), talla("Q-M", "Q", { talla: "M", primeraExhibicion: ts(20), pisoHoy: 1 }));
+    const { sede } = analizarSede(lectura(tallas, { ...eventos, "Q-S": [bajada(20, 2)], "Q-M": [bajada(20, 1)] }, { dudosas: ["Q-M"] }));
+    expect(prendaDe(sede, "Q")).toMatchObject({ rapidez: null, categoriaSinElla: null, estado: { tipo: "dudosa" } });
   });
 });
 
