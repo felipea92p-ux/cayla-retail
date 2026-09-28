@@ -84,9 +84,12 @@ rojo (GitHub avisa por correo); si no, cierra el aviso.
   solo su sha256. Va a GitHub como el secreto `DERIVA_LLAVE`. Con la llave pública (anon), que ya está en la web, es la
   única función de `retail` que anon puede ejecutar, y sin la llave no devuelve nada.
 - **Lo público no nombra nada.** El registro de un job y los avisos de un repo público los ve cualquiera. El aviso dice
-  CUÁNTAS diferencias hay de cada tipo (`deriva.mjs --resumen`), nunca cuáles: «este revoke de main todavía no está en
-  producción» diría qué puerta sigue abierta. Los nombres se miran en privado (el conector de Supabase o el SQL Editor, y
-  `pnpm migraciones:deriva`).
+  solo SI hay diferencias (`deriva.mjs --resumen`), nunca cuáles ni cuántas: «este revoke de main todavía no está en
+  producción» diría qué puerta sigue abierta. Las cuentas también lo decían: el 2026-09-28, cinco funciones de las
+  migraciones públicas de #545, fusionado ese día (`fn_frescura_sede`, `fn_es_llegada`…), no estaban en producción
+  (revisión del PR, consulta de solo lectura), y una cuenta «sin pegar» publicada esa mañana las señalaba con el dedo.
+  El sí/no ya es público: la corrida sale roja o verde.
+  Los nombres y las cuentas se miran en privado (el conector de Supabase o el SQL Editor, y `pnpm migraciones:deriva`).
 - **Un search_path fijo.** Postgres escribe los nombres de tipos, valores por defecto y candados según el `search_path` de
   quien pregunta, y el SQL Editor, el conector y psql tienen uno distinto cada uno. `deriva.sql` y la función fijan el
   mismo (`pg_catalog, extensions`). Sin eso, la función y `deriva.sql` daban huellas distintas sobre la MISMA base (lo

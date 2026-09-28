@@ -18,9 +18,9 @@
  *   2. Huellas de producción: la MISMA consulta en producción, solo lectura (el SQL Editor o el conector de Supabase), o
  *      `select retail.huellas_catalogo('<llave>')`. Se guarda la celda, o la respuesta JSON del conector, en un archivo.
  *   3. node scripts/migraciones/deriva.mjs main.tsv produccion.tsv [--markdown]
- *      Con `--resumen`, solo las cuentas y sin nombres: es lo que publica la revisión diaria (`deriva-diaria.yml`), porque
- *      el repo es público. Cada mañana GitHub pide las huellas de producción a `retail.huellas_catalogo` con su llave
- *      (20260928210000, ADR-0251).
+ *      Con `--resumen`, solo «hay o no hay diferencias», sin nombres ni cuentas: es lo que publica la revisión diaria
+ *      (`deriva-diaria.yml`), porque el repo es público. Cada mañana GitHub pide las huellas de producción a
+ *      `retail.huellas_catalogo` con su llave (20260928210000, ADR-0251).
  *
  * QUÉ PROMETE. Lista, en palabras del negocio, lo que está en main y no en producción, lo que está en producción y no
  * en main, y lo que está en las dos con otra versión. Sale con código 1 si hay algo que no está en CONOCIDAS, y con 2 si
@@ -176,20 +176,17 @@ export function informe(r, { markdown = false } = {}) {
 }
 
 /**
- * Solo las cuentas, sin nombres: para lo que se publica (el registro de GitHub Actions y los avisos de un repo PÚBLICO).
- * Con nombres, un aviso de «este revoke de main todavía no está en producción» le diría a cualquiera qué puerta sigue
- * abierta. Los nombres se miran en privado: la consulta en el SQL Editor (o el conector de Supabase) y `deriva.mjs` sin
- * `--resumen`.
+ * Solo «hay o no hay diferencias», sin nombres ni cuentas: para lo que se publica (el registro de GitHub Actions y los
+ * avisos de un repo PÚBLICO). Con nombres, un aviso de «este revoke de main todavía no está en producción» le diría a
+ * cualquiera qué puerta sigue abierta. Y las cuentas también lo dicen: «5 de main sin pegar» el día que se fusiona un PR
+ * cuyas migraciones públicas crean 5 funciones (pasó el 2026-09-28 con Frescura) nombra el SQL que falta sin nombrarlo.
+ * El sí/no ya es público (la corrida sale roja o verde). Los nombres y las cuentas se miran en privado: la consulta en el
+ * SQL Editor (o el conector de Supabase) y `deriva.mjs` sin `--resumen`.
  */
 export function resumen(r) {
   const total = r.soloMain.length + r.soloProduccion.length + r.distintas.length;
   if (total === 0) return "✓ Producción corre lo mismo que main (fuera de las diferencias conocidas).";
-  const partes = [
-    r.soloMain.length && `${r.soloMain.length} de main sin pegar en producción`,
-    r.soloProduccion.length && `${r.soloProduccion.length} solo en producción`,
-    r.distintas.length && `${r.distintas.length} con otra versión`,
-  ].filter(Boolean);
-  return `✗ ${total} diferencia${total === 1 ? "" : "s"} entre producción y main: ${partes.join(", ")}.`;
+  return "✗ Producción y main no corren lo mismo.";
 }
 
 /**

@@ -89,15 +89,19 @@ test("el informe dice cada cosa en palabras del negocio, y dice verde cuando no 
   assert.match(informe(compararHuellas(new Map(), new Map())), /^✓ /);
 });
 
-test("el resumen para lo público da solo cuentas, nunca un nombre", () => {
+test("el resumen para lo público no da nombres ni cuentas: dos derivas distintas se publican igual", () => {
   const r = compararHuellas(
     leerHuellas(celda(["fn", "emitir_comprobante(x int)", "1"], ["politica", "clientas.secreta", "2"])),
     leerHuellas(celda(["fn", "emitir_comprobante(x int)", "9"], ["fn", "fn_en_vivo()", "3"])),
     [],
   );
   const texto = resumen(r);
-  assert.equal(texto, "✗ 3 diferencias entre producción y main: 1 de main sin pegar en producción, 1 solo en producción, 1 con otra versión.");
   for (const nombre of ["emitir_comprobante", "clientas", "fn_en_vivo"]) assert.ok(!texto.includes(nombre), nombre);
+  assert.doesNotMatch(texto, /\d/, "una cuenta, cruzada con los PR fusionados ese día, dice qué migración falta pegar");
+  // Cinco funciones de main sin pegar (lo de un PR) se publican con el mismo texto que una sola política en vivo.
+  const cinco = compararHuellas(leerHuellas(celda(...[1, 2, 3, 4, 5].map((i) => ["fn", `fn_${i}()`, "1"]))), leerHuellas(celda(["fn", "otra()", "1"])), []);
+  assert.equal(resumen(cinco), texto);
+  assert.match(texto, /^✗ /);
   assert.match(resumen(compararHuellas(new Map(), new Map())), /^✓ /);
 });
 

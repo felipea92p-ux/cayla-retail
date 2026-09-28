@@ -5,10 +5,10 @@ name: Deriva diaria
 # `scripts/migraciones/deriva.mjs`. Si hay diferencias, abre (o comenta) el aviso «Producción ≠ main» y el job sale en
 # rojo; si no, cierra el aviso abierto.
 #
-# El repo es PÚBLICO: el registro de este job y el aviso los ve cualquiera. Por eso publican solo CUÁNTAS diferencias
-# hay de cada tipo, nunca cuáles (`--resumen`): «este revoke de main no está en producción» diría qué puerta sigue
-# abierta. Los nombres se miran en privado: deriva.sql en el SQL Editor (o con el conector de Supabase) y
-# `pnpm migraciones:deriva <main> <produccion>`.
+# El repo es PÚBLICO: el registro de este job y el aviso los ve cualquiera. Por eso publican solo SI hay diferencias,
+# nunca cuáles ni cuántas (`--resumen`): «este revoke de main no está en producción» diría qué puerta sigue abierta, y
+# «5 de main sin pegar» el día que se fusiona un PR que crea 5 funciones también. Los nombres y las cuentas se miran en
+# privado: deriva.sql en el SQL Editor (o con el conector de Supabase) y `pnpm migraciones:deriva <main> <produccion>`.
 #
 # Lo que hay que configurar una vez (Settings ▸ Secrets and variables ▸ Actions): el secreto DERIVA_LLAVE (lo que
 # devuelve `select retail.fn_huellas_nueva_llave();` en el SQL Editor) y las variables SUPABASE_URL y SUPABASE_ANON_KEY
