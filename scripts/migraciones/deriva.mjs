@@ -15,9 +15,12 @@
  * CÓMO SE USA
  *   1. Huellas de main: una base con todas las migraciones de main (el CI, o el Postgres desechable) y
  *        psql -At -f scripts/migraciones/deriva.sql > main.tsv
- *   2. Huellas de producción: la MISMA consulta en producción, solo lectura (hoy: el SQL Editor o el MCP de Supabase;
- *      la revisión diaria automática está por decidir). Se guarda la celda, o la respuesta JSON del MCP, en un archivo.
+ *   2. Huellas de producción: la MISMA consulta en producción, solo lectura (el SQL Editor o el conector de Supabase), o
+ *      `select retail.huellas_catalogo('<llave>')`. Se guarda la celda, o la respuesta JSON del conector, en un archivo.
  *   3. node scripts/migraciones/deriva.mjs main.tsv produccion.tsv [--markdown]
+ *      Con `--resumen`, solo las cuentas y sin nombres: es lo que publica la revisión diaria (`deriva-diaria.yml`), porque
+ *      el repo es público. Cada mañana GitHub pide las huellas de producción a `retail.huellas_catalogo` con su llave
+ *      (20260928210000, ADR-0251).
  *
  * QUÉ PROMETE. Lista, en palabras del negocio, lo que está en main y no en producción, lo que está en producción y no
  * en main, y lo que está en las dos con otra versión. Sale con código 1 si hay algo que no está en CONOCIDAS.
@@ -150,14 +153,31 @@ export function informe(r, { markdown = false } = {}) {
   return partes.join("\n");
 }
 
+/**
+ * Solo las cuentas, sin nombres: para lo que se publica (el registro de GitHub Actions y los avisos de un repo PÚBLICO).
+ * Con nombres, un aviso de «este revoke de main todavía no está en producción» le diría a cualquiera qué puerta sigue
+ * abierta. Los nombres se miran en privado: la consulta en el SQL Editor (o el conector de Supabase) y `deriva.mjs` sin
+ * `--resumen`.
+ */
+export function resumen(r) {
+  const total = r.soloMain.length + r.soloProduccion.length + r.distintas.length;
+  if (total === 0) return "✓ Producción corre lo mismo que main (fuera de las diferencias conocidas).";
+  const partes = [
+    r.soloMain.length && `${r.soloMain.length} de main sin pegar en producción`,
+    r.soloProduccion.length && `${r.soloProduccion.length} solo en producción`,
+    r.distintas.length && `${r.distintas.length} con otra versión`,
+  ].filter(Boolean);
+  return `✗ ${total} diferencia${total === 1 ? "" : "s"} entre producción y main: ${partes.join(", ")}.`;
+}
+
 function main() {
   const [rutaMain, rutaProd, ...opciones] = process.argv.slice(2);
   if (!rutaMain || !rutaProd) {
-    console.error("Uso: node scripts/migraciones/deriva.mjs <huellas-main> <huellas-produccion> [--markdown]");
+    console.error("Uso: node scripts/migraciones/deriva.mjs <huellas-main> <huellas-produccion> [--markdown | --resumen]");
     process.exit(2);
   }
   const r = compararHuellas(leerHuellas(readFileSync(rutaMain, "utf8")), leerHuellas(readFileSync(rutaProd, "utf8")));
-  console.log(informe(r, { markdown: opciones.includes("--markdown") }));
+  console.log(opciones.includes("--resumen") ? resumen(r) : informe(r, { markdown: opciones.includes("--markdown") }));
   if (r.soloMain.length + r.soloProduccion.length + r.distintas.length > 0) process.exit(1);
 }
 

@@ -1,7 +1,12 @@
 // Pruebas del comparador de deriva. Sin dependencias: `node --test scripts/migraciones/deriva.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CONOCIDAS, compararHuellas, informe, leerHuellas } from "./deriva.mjs";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CONOCIDAS, compararHuellas, informe, leerHuellas, resumen } from "./deriva.mjs";
+
+const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const celda = (...lineas) => lineas.map((l) => l.join("\t")).join("\n");
 
@@ -55,4 +60,28 @@ test("el informe dice cada cosa en palabras del negocio, y dice verde cuando no 
   assert.match(texto, /política clientas\.x/);
   assert.match(informe(r, { markdown: true }), /^- función `fn_rentabilidad\(p date\)`$/m);
   assert.match(informe(compararHuellas(new Map(), new Map())), /^✓ /);
+});
+
+test("el resumen para lo público da solo cuentas, nunca un nombre", () => {
+  const r = compararHuellas(
+    leerHuellas(celda(["fn", "emitir_comprobante(x int)", "1"], ["politica", "clientas.secreta", "2"])),
+    leerHuellas(celda(["fn", "emitir_comprobante(x int)", "9"], ["fn", "fn_en_vivo()", "3"])),
+    [],
+  );
+  const texto = resumen(r);
+  assert.equal(texto, "✗ 3 diferencias entre producción y main: 1 de main sin pegar en producción, 1 solo en producción, 1 con otra versión.");
+  for (const nombre of ["emitir_comprobante", "clientas", "fn_en_vivo"]) assert.ok(!texto.includes(nombre), nombre);
+  assert.match(resumen(compararHuellas(new Map(), new Map())), /^✓ /);
+});
+
+test("la función de producción es la consulta de deriva.sql al pie de la letra, con el mismo search_path", () => {
+  const deriva = readFileSync(join(RAIZ, "scripts", "migraciones", "deriva.sql"), "utf8");
+  const migracion = readFileSync(join(RAIZ, "supabase", "migrations", "20260928210000_huellas_catalogo_con_llave.sql"), "utf8");
+  const sinEspacios = (t) => t.replace(/\s+/g, " ").trim();
+  const consulta = deriva.slice(deriva.indexOf("select string_agg(")).replace(/;\s*$/, "").replace(" as huellas\n", " into v_huellas\n");
+  assert.ok(sinEspacios(migracion).includes(sinEspacios(consulta)), "el cuerpo de huellas_catalogo no es la consulta de deriva.sql");
+  const ruta = deriva.match(/^set search_path = ([^;]+);$/m)?.[1];
+  assert.ok(ruta, "deriva.sql fija su search_path");
+  const funcion = migracion.slice(migracion.indexOf("create or replace function retail.huellas_catalogo"));
+  assert.match(funcion, new RegExp(`set search_path = ${ruta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\n`));
 });

@@ -10,6 +10,11 @@
 --     que nadie pudiera llamarlas de más.
 --   · Índices: el schema de la clase de operadores (`extensions.gin_trgm_ops` vs `gin_trgm_ops`) depende del search_path
 --     de quien pregunta, no del índice.
+--   · Y por lo mismo, todo lo que Postgres escribe con nombres (tipos, valores por defecto, candados, disparadores,
+--     vistas) se escribe con UN search_path fijo, el mismo que usa `retail.huellas_catalogo` en producción
+--     (20260928210000). Sin esta línea, la misma base da huellas distintas según quién pregunte (el SQL Editor, el MCP o
+--     psql tienen search_path distintos).
+set search_path = pg_catalog, extensions;
 select string_agg(g || E'\t' || k || E'\t' || left(md5(linea), 12), E'\n' order by g, k) as huellas
 from (
   select 'fn' g, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' k,

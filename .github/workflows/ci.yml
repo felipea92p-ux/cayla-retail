@@ -961,10 +961,18 @@ jobs:
       - name: Huellas de main (deriva)
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: |
-          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/huellas-main.tsv"
+          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/huellas-main.tsv"
           lineas=$(wc -l < "$RUNNER_TEMP/huellas-main.tsv")
           echo "huellas de main: $lineas objetos"
           test "$lineas" -gt 1000
+          # Cada línea es «grupo<TAB>clave<TAB>huella»: una línea suelta (un «SET» sin -q) rompería la comparación.
+          awk -F'\t' 'NF != 3 || length($3) != 12 || $3 !~ /^[0-9a-f]+$/ { print "línea rara: " $0; malo = 1 } END { exit malo }' "$RUNNER_TEMP/huellas-main.tsv"
+
+      # La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
+      # EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
+      - name: pruebas:huellas-catalogo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:huellas-catalogo
 
       - name: Guardar huellas de main
         if: ${{ github.event_name == 'push' && steps.supabase.outcome == 'success' }}

@@ -1,8 +1,10 @@
 # ADR-0251 · SQL pegado en producción: la casilla, el candado de `drop trigger` y la deriva
 
-- **Fecha:** 2026-09-28 · **Estado:** casilla, check y candado construidos; la revisión diaria, por decidir con Felipe.
+- **Fecha:** 2026-09-28 · **Estado:** construido; la revisión diaria espera que Felipe pegue `20260928210000` y guarde la
+  llave en GitHub.
 - **Pedido:** Felipe, 2026-09-27 (eligió «casilla + revisión diaria»): que no se vuelva a publicar un cambio sin su SQL.
-- **Sin migración.** Todo vive en `.github/` y `scripts/migraciones/`.
+- **Migración:** `20260928210000_huellas_catalogo_con_llave.sql` (la llave de la revisión diaria). Lo demás vive en
+  `.github/` y `scripts/migraciones/`.
 - **Complementa:** ADR-0195 («Políticas y deadlocks»: nunca `drop trigger`), `scripts/migraciones/verificar.mjs` (qué
   promete cada archivo) y la memoria de la auditoría del 2026-09-27.
 
@@ -70,8 +72,47 @@ datos; los candados de `gastos` con sufijo `1`; la vista `planilla_por_sede`, qu
 
 Cómo se repite: ver el encabezado de `scripts/migraciones/deriva.mjs`.
 
-## La revisión diaria (por decidir)
+## La revisión diaria (decidida por Felipe el 2026-09-28)
 
-Falta quién corre la deriva cada mañana y dónde avisa. El repo es público, así que importa dónde vive la llave de
-producción. Lo que se midió el 2026-09-28 en producción: PUBLIC no entra al schema `retail`, pero sí ejecuta 192 funciones
-de Dynamic en `public`. Una cuenta nueva de Postgres, aunque solo lea el catálogo, hereda ese acceso.
+**DECIDÍ (Felipe, entre tres opciones): huellas con llave propia.** Cada mañana a las 7:00 (Lima),
+`.github/workflows/deriva-diaria.yml` le pide a producción las huellas con `retail.huellas_catalogo(p_llave)`, arma `main`
+como el CI y las compara. Si hay diferencias, abre o comenta el aviso «Producción ≠ main (deriva diaria)» y el job sale en
+rojo (GitHub avisa por correo); si no, cierra el aviso.
+- **La función** es la consulta de `deriva.sql` al pie de la letra (lo vigila `deriva.test.mjs`) y devuelve lo mismo
+  (`pruebas:huellas-catalogo`, en el CI). Solo huellas: ningún dato de ninguna tabla.
+- **La llave** la crea `select retail.fn_huellas_nueva_llave();` en el SQL Editor, que la devuelve UNA vez. La base guarda
+  solo su sha256. Va a GitHub como el secreto `DERIVA_LLAVE`. Con la llave pública (anon), que ya está en la web, es la
+  única función de `retail` que anon puede ejecutar, y sin la llave no devuelve nada.
+- **Lo público no nombra nada.** El registro de un job y los avisos de un repo público los ve cualquiera. El aviso dice
+  CUÁNTAS diferencias hay de cada tipo (`deriva.mjs --resumen`), nunca cuáles: «este revoke de main todavía no está en
+  producción» diría qué puerta sigue abierta. Los nombres se miran en privado (el conector de Supabase o el SQL Editor, y
+  `pnpm migraciones:deriva`).
+- **Un search_path fijo.** Postgres escribe los nombres de tipos, valores por defecto y candados según el `search_path` de
+  quien pregunta, y el SQL Editor, el conector y psql tienen uno distinto cada uno. `deriva.sql` y la función fijan el
+  mismo (`pg_catalog, extensions`). Sin eso, la función y `deriva.sql` daban huellas distintas sobre la MISMA base (lo
+  atrapó la primera corrida de la prueba).
+
+**DESCARTÉ:**
+- **Una cuenta de Postgres de solo lectura con contraseña en GitHub.** Aunque solo lea el catálogo, lee el código SQL de
+  Dynamic (que puede no ser público) y hereda lo que PUBLIC puede en su schema.
+- **Una tarea programada en la Mac de Felipe.** Nada nuevo en producción ni en GitHub, pero solo corre con la Mac prendida
+  y el aviso lo ve solo él.
+
+**SE ROMPE SI:**
+- **La llave se filtra:** se leen huellas, nada más. Se cambia con `select retail.fn_huellas_nueva_llave();` y el secreto.
+- **Producción no responde, o falta la configuración:** el job sale en rojo diciendo «No se pudo leer producción» o qué
+  falta configurar. Nunca queda verde sin haber comparado.
+- **Alguien cambia `deriva.sql` sin cambiar la función** (o al revés): `deriva.test.mjs` y `pruebas:huellas-catalogo` se
+  ponen rojos en el PR. Para cambiar la consulta hace falta una migración nueva que recree la función.
+
+**Lo que Felipe hace una vez:** pegar `20260928210000` sola en el SQL Editor; correr `select retail.fn_huellas_nueva_llave();`;
+guardar lo que devuelve como el secreto `DERIVA_LLAVE` y, como variables, `SUPABASE_URL` y `SUPABASE_ANON_KEY` (las de la
+web), en Settings ▸ Secrets and variables ▸ Actions. Después, «Run workflow» en la pestaña Actions para la primera corrida.
+
+## `main` protegida (Felipe, 2026-09-28)
+
+Desde el 2026-09-28, `main` exige PR y los checks «Tipos, lint y pruebas» y «Pruebas de RPC contra Postgres», no acepta
+pushes forzados ni se puede borrar. Sin aprobaciones obligatorias (Felipe fusiona sus propios PR) y el dueño puede saltarse
+la regla en una urgencia. **«SQL pegado» se suma a los checks exigidos cuando este PR esté en `main`:** exigir un check que
+todavía no corre bloquearía todos los PR. Motivo: #542, #544 y #545 se fusionaron con su revisión corriendo; con la
+protección y el PR en borrador, eso ya no pasa.
