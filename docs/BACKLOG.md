@@ -36,7 +36,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
 - [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
 - [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
-- [ ] **Otras pantallas con formulario largo** siguen sin el aviso (Compras ▸ Nueva, Recibir, Gastos): el hook ya sirve, se suma por pantalla.
+- [x] Compras ▸ Nueva también pregunta (mismo hook). Probado: sin tocar no pregunta; con Boleta elegida preguntan el menú, Cancelar y atrás; volver a Factura a mano no pregunta. **Sin probar:** registrar un comprobante de verdad y salir (se suelta con `salida.soltar()` apenas la base responde bien).
+- [ ] **Siguen sin el aviso:** Recibir y Gastos. El hook ya sirve, se suma por pantalla.
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
