@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Escribir en un buscador ya no abre el loader — ADR-0149, actualización)
+Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas, Por pagar, Recibidas, Historial de ventas) navegan con `useBusquedaEnUrl`: anuncian la dirección al loader, que la deja pasar, y mientras la base responde el campo dice «Buscando…» y la lista se atenúa. Un filtro por clic sigue con el loader.
+Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
+Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
+
 ## 2026-09-28 (Ningún módulo «solo del líder», y el Líder de equipo se edita — ADR-0253)
 Qué hice: el «candado» del Líder no le quitaba nada (era un rol `fijo` que veía todo y no se editaba); los que sí eran «solo líder por ahora» eran Configuración, Impuestos y Cierre de mes. Abrí los tres (36 funciones cambian solo su candado, reescritas desde la definición real de producción) e hice editable al Líder guardando lo que se le QUITA, no lo que ve: así un módulo nuevo le sigue apareciendo solo. Lo edita un Admin; «Roles y accesos» no se le quita. Dos migraciones sin pegar, prueba nueva de 13 casos y 16 pruebas SQL de Finanzas en verde sobre un Postgres desechable.
 Por qué así: «ser líder» en la base sale de `colaboradores.rol`, no del rol de la pantalla; quitarle un módulo al Líder es «ve / no ve», como en cualquier rol, y no le saca los poderes de «siempre solo del líder». Qué se rompería sin esto: guardar la lista de lo que el Líder VE obligaría a cada migración de un módulo nuevo a escribirle una fila, o el líder no lo vería nunca.

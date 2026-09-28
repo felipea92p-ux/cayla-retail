@@ -189,17 +189,20 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}
         <div className="space-y-3.5">
           <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} resultado={resultadoDesdeParam(params.res)} />
-          <RecepcionesCompraLista
-            recepciones={recepciones}
-            detalles={detalles}
-            nombres={nombres}
-            envios={envios}
-            limite={LIMITE_RECIBIDAS}
-            destacarNueva={params.nueva === "1"}
-            resultado={resultadoDesdeParam(params.res)}
-            enlaceAlComprobante={verMontos}
-            vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
-          />
+          {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+          <div data-resultados>
+            <RecepcionesCompraLista
+              recepciones={recepciones}
+              detalles={detalles}
+              nombres={nombres}
+              envios={envios}
+              limite={LIMITE_RECIBIDAS}
+              destacarNueva={params.nueva === "1"}
+              resultado={resultadoDesdeParam(params.res)}
+              enlaceAlComprobante={verMontos}
+              vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
+            />
+          </div>
         </div>
       </div>
     );
