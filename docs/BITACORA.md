@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Categorías ▸ ejemplo según la familia, prefijo y nombre repetidos se avisan al tipear)
+Qué hice: el ejemplo de «Nueva categoría» cambia con la familia (Calzado → Botines/BOT, Bisutería → Aretes/ARE…) y salta los que ya existen; si el prefijo o el nombre ya los tiene otra categoría —también una desactivada— el campo dice cuál y «Guardar» se bloquea. `CampoTexto` nace con `autoComplete="off"`. Regla pura en `lib/categoria-alta-reglas.ts` con pruebas; sin SQL.
+Por qué así: la base ya rechazaba el duplicado (`categorias_prefijo_unico`, `categorias_nombre_clave_unica`) pero solo al guardar y sin decir quién lo tenía; ambos índices cuentan las desactivadas, así que la pantalla compara contra todas. El candado real sigue en la base (dos líderes a la vez).
+Felipe se lleva: el ícono azul de persona era Safari ofreciendo llenar «Nombre» con la ficha de contactos de quien está en la caja; lo dispara la palabra de la etiqueta, no nuestro código.
+Después (mismo día): el prefijo se propone desde el nombre (`prefijoDesdeNombre`: 3 primeras letras → iniciales si son 3+ palabras → consonantes → cualquier combinación que empiece igual), saltando los tomados; lo que la persona escribe no se pisa.
+
 ## 2026-09-28 (Categorías: buscador en la lista)
 Qué hice: Productos ▸ Categorías no tenía cómo buscar; ahora tiene el mismo campo que Marcas y Tallas (nombre o prefijo, sin tildes ni mayúsculas, con «N de M categorías» y «Quitar búsqueda» si no hay nada). Regla pura en `lib/categorias-reglas.ts` con su prueba.
 Por qué así: las subcategorías no tienen tarjeta propia (viven dentro de la de su padre), así que escribir «largos» muestra la tarjeta de Vestidos con la línea «Sub: Vestidos largos»; si no, la búsqueda no encontraría nada aunque la categoría exista. Buscando, se ocultan las familias sin resultados.
