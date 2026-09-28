@@ -41,8 +41,8 @@ import {
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
-// de la unidad elegida con «Cerrar {mes} de {unidad}» o «Reabrir…» | la rutina de fin de mes. Solo el líder llega aquí
-// (`exigirModulo("cierre_mes")`, no delegable). Todo lo decide la base: qué está cerrado, qué chequeos aplican y si pasan;
+// de la unidad elegida con «Cerrar {mes} de {unidad}» o «Reabrir…» | la rutina de fin de mes. Llega quien ve el módulo
+// (`exigirModulo("cierre_mes")`; delegable desde el ADR-0253, con todo lo del líder). Todo lo decide la base: qué está cerrado, qué chequeos aplican y si pasan;
 // `cerrar_periodo` los vuelve a medir. La pantalla solo lee, pone en palabras y firma con el responsable.
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
@@ -163,7 +163,7 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
             </div>
           </div>
           <p className="nota-cayla mt-3.5">
-            Solo el líder cierra y reabre (el módulo no se puede delegar). Reabrir pide motivo y queda en la historia; reabrir una tienda reabre también CAYLA
+            Cierra y reabre quien tiene el módulo Cierre de mes (el líder, siempre). Reabrir pide motivo y queda en la historia; reabrir una tienda reabre también CAYLA
             entera. Lo de hoy nunca se bloquea: una devolución o una anulación de hoy sobre una venta de un mes cerrado va al mes de hoy.
           </p>
         </Superficie>

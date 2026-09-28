@@ -1,14 +1,16 @@
 -- ============================================================================
 -- scripts/purga/restaurar-purga.sql — ADR-0224
--- Deshace una purga hecha con `purgar-producto-de-prueba.sql`: devuelve, fila por fila, lo que quedó en
--- `respaldo_purgas.filas`. Solo se corre si Felipe se arrepiente.
+-- Deshace una purga hecha con `purgar-producto-de-prueba.sql`, o un «Eliminar con su historia» hecho por un Admin desde
+-- Productos (ADR-0252, respaldo «eliminado CÓDIGO fecha»): devuelve, fila por fila, lo que quedó en `respaldo_purgas.filas`.
+-- Solo se corre si Felipe se arrepiente.
 --
 -- CÓMO SE USA (antes del script, en la misma sesión; el nombre sale del resumen de la corrida real, «purga «…»»):
 --     select set_config('cayla_purga.nombre', 'purga TOP-0011 2026-09-26 21:40', false);
 --
 -- QUÉ HACE, en una sola transacción:
---   · devuelve productos, variantes, códigos de barras, etiquetas, fotos, stock del producto, ventas, líneas, movimientos,
---     pagos y comprobantes, de padres a hijos, SIN sus columnas generadas (como `venta_items.subtotal`, que la base
+--   · devuelve productos, variantes, códigos de barras, etiquetas, fotos, temporadas por color, stock del producto, ventas,
+--     líneas, movimientos, pagos, comprobantes, líneas de conteo, bajadas al piso, apartados, pedidos no atendidos y marcas
+--     de reintento, de padres a hijos, SIN sus columnas generadas (como `venta_items.subtotal`, que la base
 --     recalcula sola: reinsertarla a mano falla);
 --   · deja el stock de las otras prendas como estaba ANTES de que la purga les devolviera lo vendido, y la serie de
 --     comprobantes con su número anterior;
@@ -63,7 +65,9 @@ declare
 begin
   -- Padres antes que hijos. Cada tabla se devuelve con TODAS sus columnas menos las generadas.
   for r in select t as tabla from unnest(array['productos', 'variantes', 'codigos_barras', 'variante_etiquetas', 'producto_fotos',
-                                                'stock', 'ventas', 'venta_items', 'movimientos', 'venta_pagos', 'comprobantes']) t
+                                                'producto_color_temporadas', 'stock', 'ventas', 'venta_items', 'movimientos',
+                                                'venta_pagos', 'comprobantes', 'conteo_items', 'bajada_piso_items', 'apartados',
+                                                'pedidos_no_atendidos', 'movimientos_internos_intentos']) t
   loop
     select string_agg(format('%I', c.column_name), ', ' order by c.ordinal_position) into v_cols
       from information_schema.columns c
@@ -88,7 +92,7 @@ begin
   -- Una línea en Actividad: la de la purga se queda (inmutable) y esta cuenta que se deshizo.
   select f.fila ->> 'codigo' into v_producto from respaldo_purgas.filas f where f.purga = v_nombre and f.tabla = 'productos' limit 1;
   insert into retail.actividad (ocurrio_at, modulo, accion, descripcion, ubicacion_id, tabla, registro_id, detalle, origen)
-    select now(), 'vender', 'purga_restaurada',
+    select now(), case x.tabla when 'ventas' then 'vender' else 'productos' end, 'purga_restaurada',
            'se restauró lo que se había purgado del producto ' || coalesce(v_producto, '?') || ' (' || v_nombre || ')',
            x.ubicacion_id, x.tabla, x.registro_id, jsonb_build_object('purga', v_nombre), 'vivo'
       from (select nullif(f.fila ->> 'ubicacion_id', '')::uuid as ubicacion_id, 'ventas' as tabla, f.fila ->> 'id' as registro_id

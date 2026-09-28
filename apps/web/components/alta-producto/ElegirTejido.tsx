@@ -24,6 +24,7 @@ import { useResponsable } from "@/lib/useResponsable";
 
 export function TarjetaTejido({
   tejido,
+  imagenUrl = null,
   elegido,
   onClick,
   deshabilitado = false,
@@ -31,6 +32,8 @@ export function TarjetaTejido({
   indice,
 }: {
   tejido: ValorVocabulario;
+  /** La imagen que eligió un Líder en Atributos (ADR-0256); sin ella, el dibujo automático por nombre. */
+  imagenUrl?: string | null;
   elegido: boolean;
   onClick: () => void;
   deshabilitado?: boolean;
@@ -50,7 +53,7 @@ export function TarjetaTejido({
       } ${guardando ? "opacity-100" : "disabled:opacity-50"} ${indice === undefined ? "" : "anim-entra"}`}
       style={indice === undefined ? undefined : { ["--i" as string]: indice }}
     >
-      <MuestraTejido nombre={tejido.texto} />
+      <MuestraTejido nombre={tejido.texto} imagenUrl={imagenUrl} />
       <span className="px-0.5">
         {elegido && <span aria-hidden>✓ </span>}
         {guardando ? "Agregando…" : tejido.texto}
@@ -64,6 +67,8 @@ type Props = {
   deLaCategoria: ValorVocabulario[];
   /** Todos los tejidos aprobados del catálogo: de aquí sale lo que muestra «Ver más». */
   universo: ValorVocabulario[];
+  /** id → imagen elegida en Atributos (ADR-0256). */
+  imagenes: Record<string, string>;
   tejidoId: string;
   onElegir: (id: string) => void;
   categoriaId: string;
@@ -74,7 +79,7 @@ type Props = {
   onOfrecido: (tejido: ValorVocabulario) => void;
 };
 
-export function ElegirTejido({ deLaCategoria, universo, tejidoId, onElegir, categoriaId, categoriaNombre, ejesActuales, onOfrecido }: Props) {
+export function ElegirTejido({ deLaCategoria, universo, imagenes, tejidoId, onElegir, categoriaId, categoriaNombre, ejesActuales, onOfrecido }: Props) {
   const [verMas, setVerMas] = useState(false);
   const otros = fueraDeLaCategoria(universo, deLaCategoria);
   const nombresOcultos = new Intl.ListFormat("es", { type: "conjunction" }).format(otros.map((t) => t.texto));
@@ -84,7 +89,7 @@ export function ElegirTejido({ deLaCategoria, universo, tejidoId, onElegir, cate
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5">
         {deLaCategoria.map((t) => (
-          <TarjetaTejido key={t.id} tejido={t} elegido={tejidoId === t.id} onClick={() => onElegir(tejidoId === t.id ? "" : t.id)} />
+          <TarjetaTejido key={t.id} tejido={t} imagenUrl={imagenes[t.id]} elegido={tejidoId === t.id} onClick={() => onElegir(tejidoId === t.id ? "" : t.id)} />
         ))}
         {otros.length > 0 && (
           <button
@@ -115,6 +120,7 @@ export function ElegirTejido({ deLaCategoria, universo, tejidoId, onElegir, cate
         <OtrosTejidos
           id={idBloque}
           otros={otros}
+          imagenes={imagenes}
           categoriaId={categoriaId}
           categoriaNombre={categoriaNombre}
           ejesActuales={ejesActuales}
@@ -131,6 +137,7 @@ export function ElegirTejido({ deLaCategoria, universo, tejidoId, onElegir, cate
 function OtrosTejidos({
   id,
   otros,
+  imagenes,
   categoriaId,
   categoriaNombre,
   ejesActuales,
@@ -138,6 +145,7 @@ function OtrosTejidos({
 }: {
   id: string;
   otros: ValorVocabulario[];
+  imagenes: Record<string, string>;
   categoriaId: string;
   categoriaNombre: string;
   ejesActuales: EjeIds;
@@ -175,6 +183,7 @@ function OtrosTejidos({
           <TarjetaTejido
             key={t.id}
             tejido={t}
+            imagenUrl={imagenes[t.id]}
             elegido={false}
             indice={i}
             guardando={guardandoId === t.id}

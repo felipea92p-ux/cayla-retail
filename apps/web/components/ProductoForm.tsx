@@ -6,12 +6,14 @@ import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal } from "@/components/ui/Modal";
 import { MuestraPatron } from "@/components/MuestraPatron";
+import { MuestraTejido } from "@/components/MuestraTejido";
 import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { BarraFija } from "@/components/ui/BarraFija";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { compararTallas } from "@/lib/tallas";
-import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
@@ -142,6 +144,7 @@ export function ProductoForm({
   colores,
   usoColores,
   ejes,
+  imagenes,
   etiquetas,
   avisoEtiquetas,
   marcas,
@@ -149,6 +152,7 @@ export function ProductoForm({
   esLider,
   puedeCorregir = true,
   producto,
+  volverA = "/productos",
 }: {
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
@@ -157,6 +161,8 @@ export function ProductoForm({
   usoColores: Record<string, number>;
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
+  /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
+  imagenes: ImagenesMuestra;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
   /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
@@ -173,6 +179,8 @@ export function ProductoForm({
   puedeCorregir?: boolean;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
+  /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
+  volverA?: string;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -250,9 +258,6 @@ export function ProductoForm({
   const logrado = useRef({ correcciones: false, nuevas: 0 });
   // Un monto escrito en «Cambiar en bloque» sin pulsar Aplicar: se perdería en silencio al guardar lo demás.
   const [bloquePendiente, setBloquePendiente] = useState<CampoBloque | null>(null);
-  const [confirmarSalida, setConfirmarSalida] = useState(false);
-  // Salir a propósito (recargar, «Salir sin guardar»): la guardia del navegador no vuelve a preguntar.
-  const saliendo = useRef(false);
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
@@ -278,11 +283,15 @@ export function ProductoForm({
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   // Las tallas que la categoría ofrece, en su orden (S, M, L… y no alfabético): para corregir y para agregar.
   const tallasCategoria = [...(ejes.tallas[categoriaId] ?? [])].sort((a, b) => compararTallas(a.texto, b.texto));
-  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({
+    valor: t.id,
+    texto: t.texto,
+    icono: <MuestraTejido nombre={t.texto} imagenUrl={imagenes.tejidos[t.id]} className="aspect-[3/1] w-[72px]" />,
+  }));
   const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({
     valor: t.id,
     texto: t.texto,
-    icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
+    icono: <MuestraPatron nombre={t.texto} imagenUrl={imagenes.patrones[t.id]} className="aspect-[3/1] w-[72px]" />,
   }));
 
   // ---------- temporada (ADR-0246) ----------
@@ -343,18 +352,6 @@ export function ProductoForm({
   const bloquean = [...(avisoBloque ? [{ texto: avisoBloque, bloquea: true }] : []), ...problemas.filter((p) => p.bloquea)];
   const avisosSinBloquear = problemas.filter((p) => !p.bloquea);
 
-  // Cerrar la pestaña o recargar con cambios sin guardar pregunta antes (el navegador pone su propio texto).
-  useEffect(() => {
-    if (!hayCambios) return;
-    const alSalir = (e: BeforeUnloadEvent) => {
-      if (saliendo.current) return;
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", alSalir);
-    return () => window.removeEventListener("beforeunload", alSalir);
-  }, [hayCambios]);
-
   const ctx: ContextoFicha = { nombres, colores, codigoProducto: producto?.codigo ?? null, estado: estadoVariantes, esLider, veCosto, puedeCorregir };
 
   function elegirCategoria(id: string) {
@@ -370,14 +367,38 @@ export function ProductoForm({
     setFotos((actuales) => anclarFotos(siguientes, actuales, filasRef.current));
   }
 
+  // Barra de guardado abajo (2026-09-28). Bajo 1280 px el panel «Guardar cambios» deja de ir al costado (el formulario
+  // necesita ese ancho: a 1024 px quedaba en 329 px) y pasa al final de la página, a ~3500 px de un precio cambiado arriba.
+  // Mientras sus botones no se vean, una barra pegada abajo ofrece los mismos; cuando se ven, se va: nunca dos «Guardar» a la
+  // vista. Desde 1280 px no aparece: el panel vuelve al costado y fijo.
+  const accionesRef = useRef<HTMLDivElement>(null);
+  const [accionesALaVista, setAccionesALaVista] = useState(true);
+  useEffect(() => {
+    const el = accionesRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(([e]) => setAccionesALaVista(e.isIntersecting));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const panelGuardarRef = useRef<HTMLElement>(null);
+
+  // «¿Salir sin guardar?» (2026-09-28): la guardia compartida del ERP (menú, «← Productos», atrás, cerrar la pestaña). Lo
+  // que decide si hay algo que perder es `hayCambios`, lo mismo que dice el lateral; y lo que se pierde se nombra.
+  const salida = useSalidaSinGuardar(
+    hayCambios,
+    resumen.length > 0
+      ? `Hiciste cambios que todavía no se guardaron (${resumen.slice(0, 3).join("; ")}${resumen.length > 3 ? "; y más" : ""}). Si sales ahora, se pierden.`
+      : undefined
+  );
+
   function recargar() {
-    saliendo.current = true;
+    // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
+    salida.soltar();
     window.location.reload();
   }
 
   function cancelar() {
-    if (hayCambios) setConfirmarSalida(true);
-    else router.push("/productos");
+    salida.pedirSalir(volverA);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -583,8 +604,8 @@ export function ProductoForm({
       // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se ofrece reimprimir.
       ...(huboCorrecciones ? { accion: { texto: "Imprimir etiquetas", onClick: () => router.push(`/etiquetas-de-precio?producto=${producto.id}`) } } : {}),
     });
-    saliendo.current = true;
-    router.replace("/productos");
+    salida.soltar();
+    router.replace(volverA);
     router.refresh();
   }
 
@@ -596,7 +617,7 @@ export function ProductoForm({
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
       }}
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
+      className="grid gap-6 pb-28 sm:pb-24 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start xl:pb-0"
     >
       <div className="min-w-0 space-y-6">
         {/* ---------- datos del producto ---------- */}
@@ -664,6 +685,13 @@ export function ProductoForm({
               {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
+              {tejidoId && (
+                <MuestraTejido
+                  nombre={opcionesTejido.find((o) => o.valor === tejidoId)?.texto ?? ""}
+                  imagenUrl={imagenes.tejidos[tejidoId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
@@ -681,7 +709,13 @@ export function ProductoForm({
               {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
-              {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
+              {patronId && (
+                <MuestraPatron
+                  nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""}
+                  imagenUrl={imagenes.patrones[patronId]}
+                  className="mt-2 aspect-[3/1] w-[120px]"
+                />
+              )}
             </Campo>
             {editando &&
               (producto?.estadoAlta === "rechazado" ? (
@@ -822,7 +856,7 @@ export function ProductoForm({
         />
       </div>
 
-      <aside className="card-cayla space-y-4 p-5 lg:sticky lg:top-24">
+      <aside ref={panelGuardarRef} className="card-cayla scroll-mt-24 space-y-4 p-5 xl:sticky xl:top-24">
         <p className="label-cayla text-[11px] text-tinta/65">Guardar cambios</p>
         {resumen.length > 0 ? (
           <div aria-live="polite">
@@ -874,7 +908,7 @@ export function ProductoForm({
             </Boton>
           </div>
         )}
-        <div className="flex flex-col gap-2">
+        <div ref={accionesRef} className="flex flex-col gap-2">
           <Boton
             type="submit"
             peso="primario"
@@ -891,36 +925,51 @@ export function ProductoForm({
         </div>
       </aside>
 
-      {confirmarSalida && (
-        <Modal titulo="¿Salir sin guardar?" onClose={() => setConfirmarSalida(false)}>
-          {(cerrar) => (
-            <div className="space-y-4">
-              <p className="text-sm text-tinta/80">Hay cambios en esta prenda que todavía no se guardaron. Si sales ahora, se pierden:</p>
-              <ul className="space-y-1 text-[13px] text-tinta">
-                {resumen.slice(0, 4).map((linea, i) => (
-                  <li key={i}>· {linea}</li>
-                ))}
-                {resumen.length > 4 && <li className="text-taupe">y {resumen.length - 4} más</li>}
-              </ul>
-              <div className="flex flex-wrap justify-end gap-2 border-t border-sand pt-4">
-                <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
-                  Seguir editando
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    saliendo.current = true;
-                    router.push("/productos");
-                  }}
-                  className="btn-cayla btn-peligro"
-                >
-                  Salir sin guardar
-                </button>
-              </div>
-            </div>
-          )}
-        </Modal>
-      )}
+      {/* Bajo 1280 px, mientras los botones del lateral no se ven: los mismos, pegados abajo (nunca dos «Guardar» a la vista). */}
+      <BarraFija
+        visible={!accionesALaVista}
+        className="xl:hidden"
+        resumen={
+          !responsable.listo ? (
+            <span>
+              {responsable.motivo ?? "Elige quién hace esta operación."}{" "}
+              <button
+                type="button"
+                onClick={() => panelGuardarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="font-medium text-rojo underline underline-offset-2"
+              >
+                Elegir responsable
+              </button>
+            </span>
+          ) : bloquean.length > 0 ? (
+            <span className="text-rojo-profundo">{bloquean[0].texto}</span>
+          ) : resumen.length > 0 ? (
+            <span>
+              Al guardar: {resumen[0]}
+              {resumen.length > 1 ? ` y ${resumen.length - 1} más` : ""}.
+            </span>
+          ) : (
+            <span>Sin cambios todavía.</span>
+          )
+        }
+        acciones={
+          <>
+            <Boton type="button" peso="discreto" onClick={cancelar} disabled={loading}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={loading}
+              disabled={!responsable.listo || !hayCambios || hayQueRecargar}
+              title={!hayCambios ? "Todavía no cambiaste nada" : (avisoBloque ?? responsable.motivo ?? undefined)}
+            >
+              Guardar cambios
+            </Boton>
+          </>
+        }
+      />
+      {salida.aviso}
     </form>
   );
 }

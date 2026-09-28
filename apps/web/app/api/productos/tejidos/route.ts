@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
+import { leerUrlMuestra } from "@/lib/muestra-atributo-reglas";
 
 // POST/PATCH /api/productos/tejidos → vocabulario cerrado de tejidos
 // (ADR-0095/0096), mismo mecanismo y misma forma que
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await supabase.from("tejidos").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
+  const { data, error } = await supabase.from("tejidos").insert({ nombre }).select("id, nombre, activo, notas, estado, imagen_muestra_url").single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar el tejido") }, { status: 400 });
@@ -48,7 +49,7 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
-  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};
+  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string; imagen_muestra_url?: string | null } = {};
 
   if ("estado" in cuerpoObj) {
     if (cuerpoObj.estado !== "aprobado" && cuerpoObj.estado !== "rechazado") {
@@ -67,6 +68,16 @@ export async function PATCH(request: Request) {
 
   if ("notas" in cuerpoObj) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
+  }
+
+  // La foto de muestra (ADR-0256): solo una URL del bucket de muestras, en la carpeta de este tipo; `null` la quita y
+  // vuelve el dibujo por nombre.
+  if ("imagenMuestraUrl" in cuerpoObj) {
+    const leida = leerUrlMuestra(cuerpoObj.imagenMuestraUrl, "tejido", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    if ("error" in leida) {
+      return Response.json({ error: leida.error }, { status: 400 });
+    }
+    patch.imagen_muestra_url = leida.valor;
   }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
@@ -97,7 +108,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("tejidos").update(patch).eq("id", id).select("id, nombre, activo, notas, estado").single();
+  const { data, error } = await supabase.from("tejidos").update(patch).eq("id", id).select("id, nombre, activo, notas, estado, imagen_muestra_url").single();
 
   if (error) {
     if (error.code === "PGRST116") {

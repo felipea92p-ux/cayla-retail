@@ -11,6 +11,8 @@ import { nuevaOperacion, porSubir, subidasEntre, type OperacionEncolada } from "
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
@@ -249,6 +251,17 @@ export function RecepcionEnvio({
   const [quitarPendiente, setQuitarPendiente] = useState<CompraResumen | null>(null);
   // Qué se hace con lo que faltó, por línea (solo líder): ausente = todavía sin decidir (bloquea el confirmar).
   const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>({});
+
+  // «¿Salir sin guardar?» (2026-09-28). El conteo de un envío (caja por caja, a veces de un cargamento grande) vive solo
+  // en esta pantalla: tocar el menú o «atrás» a mitad lo perdía entero. Cuenta lo que la persona contó o escribió; qué
+  // comprobantes marcó no (se vuelven a marcar en un toque). Con el envío ya recibido («Envío recibido») no hay nada que
+  // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola.
+  const fotoConteo = fotoFormulario({ reparto, extras, conteoTraslados, decisiones, numeroGuia, nota });
+  const [fotoConteoAlAbrir] = useState(fotoConteo);
+  const avisoSalida = useSalidaSinGuardar(
+    !ok && fotoConteo !== fotoConteoAlAbrir,
+    "Hay un conteo a medias en este envío y todavía no se recibió. Si sales ahora, se pierde lo contado."
+  );
   // La fila cuya decisión se está corrigiendo, y la fila cuyo campo tiene el foco (el editor no se abre mientras se teclea).
   const [editando, setEditando] = useState<string | null>(null);
   const [enfocada, setEnfocada] = useState<string | null>(null);
@@ -1731,6 +1744,7 @@ export function RecepcionEnvio({
           )}
         </Modal>
       )}
+      {avisoSalida.aviso}
     </>
   );
 }

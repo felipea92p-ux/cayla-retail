@@ -179,7 +179,8 @@ importa desde ambos lados.
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
 (crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
-`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas e Inventario,
+`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas, Inventario y Catálogo ▸
+Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sigue sin decidir),
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); bajo la frase, solo la vuelta «← Traslados» y
@@ -217,7 +218,11 @@ Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esper
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
 RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
 `fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
-o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
+o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
+(`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
+(`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
+Análisis tiene su propio estado en URL: allí es `actualizar(cambios, { tipeado: true })` de `useResumenUrl`.
+Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
 ## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
 

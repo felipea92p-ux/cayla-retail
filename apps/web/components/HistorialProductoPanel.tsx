@@ -40,6 +40,7 @@ export function HistorialProductoPanel({
   cursorSiguiente,
   hayCursor,
   pathname,
+  desde,
 }: {
   productoId: string;
   ubicaciones: { id: string; nombre: string }[];
@@ -51,6 +52,8 @@ export function HistorialProductoPanel({
   cursorSiguiente: string | null;
   hayCursor: boolean;
   pathname: string;
+  /** Pantalla de Productos de donde se salió: se conserva al paginar y al cambiar de ubicación. */
+  desde?: string | null;
 }) {
   return (
     <div className="space-y-6" data-producto-id={productoId}>
@@ -64,6 +67,7 @@ export function HistorialProductoPanel({
         cursorSiguiente={cursorSiguiente}
         hayCursor={hayCursor}
         pathname={pathname}
+        desde={desde}
       />
     </div>
   );
@@ -128,6 +132,7 @@ function SeccionMovimientos({
   cursorSiguiente,
   hayCursor,
   pathname,
+  desde,
 }: {
   ubicaciones: { id: string; nombre: string }[];
   ubicacionActivaId: string;
@@ -137,6 +142,8 @@ function SeccionMovimientos({
   cursorSiguiente: string | null;
   hayCursor: boolean;
   pathname: string;
+  /** Pantalla de Productos de donde se salió: se conserva al paginar y al cambiar de ubicación. */
+  desde?: string | null;
 }) {
   const [vista, setVista] = useState<Vista>("fecha");
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
@@ -183,7 +190,7 @@ function SeccionMovimientos({
             </button>
           ))}
         </div>
-        {puedeCambiarUbicacion && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+        {puedeCambiarUbicacion && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} conservar={{ desde: desde ?? undefined }} />}
       </div>
 
       {movimientos.length === 0 && !hayCursor ? (
@@ -265,7 +272,7 @@ function SeccionMovimientos({
           mostradas={movimientos.length}
           cursorSiguiente={cursorSiguiente}
           hayCursor={hayCursor}
-          params={{ ubicacion: ubicacionActivaId }}
+          params={{ ubicacion: ubicacionActivaId, desde: desde ?? undefined }}
           pathname={pathname}
           sustantivo={["movimiento", "movimientos"]}
         />

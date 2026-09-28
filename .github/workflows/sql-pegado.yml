@@ -1,0 +1,43 @@
+name: SQL pegado
+
+# Un PR con migración nueva dice si su SQL ya está en producción (casilla del formulario), y no edita migraciones que ya
+# están en main. Vercel publica main apenas se fusiona: el 2026-09-27 se publicaron 6 cambios sin su SQL. Detalle y
+# límites: encabezado de scripts/migraciones/sql-pegado.mjs.
+#
+# Workflow aparte del CI porque tiene que correr también al EDITAR el cuerpo del PR (marcar la casilla), y eso no debe
+# volver a correr las pruebas.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: sql-pegado-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sql-pegado:
+    name: SQL pegado
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/migraciones
+      # El cuerpo va por variable de entorno, nunca interpolado en el script: el repo es público y el cuerpo lo escribe
+      # quien abre el PR.
+      - name: Archivos y cuerpo del PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUERPO: ${{ github.event.pull_request.body }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/pulls/$PR/files" --paginate --slurp > "$RUNNER_TEMP/archivos.json"
+          printf '%s' "$CUERPO" > "$RUNNER_TEMP/cuerpo.md"
+      # Las pruebas del detector corren en el CI («Tipos, lint y pruebas»), que tiene el repo completo.
+      - name: Revisar
+        run: node scripts/migraciones/sql-pegado.mjs "$RUNNER_TEMP/archivos.json" "$RUNNER_TEMP/cuerpo.md"

@@ -34,8 +34,9 @@ export type Modulo = {
    *  los abrió a cualquier rol (20260923131000). Hoy ningún módulo lo usa; queda por si uno nuevo nace así. */
   soloLider?: true;
   /** «Solo líder por ahora»: la base aún exige `fn_es_lider()` en sus funciones; encenderlo abriría una pantalla que
-   *  falla al guardar. La base lo rechaza (`retail.modulos.delegable`). Desde 20260923130000 ningún módulo lo usa (los 5
-   *  que lo tenían se abrieron); queda para el próximo módulo que nazca así. */
+   *  falla al guardar. La base lo rechaza (`retail.modulos.delegable`). Desde 20260928220000 (ADR-0253, Felipe: «ningún
+   *  módulo debería estar limitado a solo el líder») ningún módulo lo usa: Configuración, Impuestos y Cierre de mes, los
+   *  últimos, se abrieron. Queda solo por si un módulo nuevo tiene que nacer así mientras se construye. */
   noDelegable?: true;
 };
 
@@ -82,17 +83,19 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },
   { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
-  // ADR-0195 F1 (20260924210000): nace sin rol y «solo líder por ahora»: sus funciones exigen fn_es_lider().
-  { clave: "configuracion", grupo: "Gestión", nombre: "Configuración", incluye: "Metas de venta y fondo de caja de cada tienda, y lo que cambia cada campaña en la caja", noDelegable: true },
+  // ADR-0195 F1 (20260924210000): nació sin rol y «solo líder por ahora». Delegable desde el ADR-0253 (20260928220000):
+  // con el módulo se hace todo lo del líder en sus pestañas, de todas las tiendas y de la empresa (`fn_puede_configurar`).
+  { clave: "configuracion", grupo: "Gestión", nombre: "Configuración", incluye: "Metas de venta y fondo de caja de cada tienda, lo que cambia cada campaña en la caja, cuentas y cobros, gastos fijos, presupuesto y parámetros tributarios, de todas las tiendas" },
   // ADR-0195 F2 (20260924235100): nace sin rol; delegable (sus funciones preguntan por el módulo, no por el líder).
   // Con el módulo, una cuenta ve y registra los gastos de SU tienda; el líder, los de todas y los «de la empresa».
   { clave: "gastos", grupo: "Finanzas", nombre: "Gastos", incluye: "Registrar y anular los gastos de su tienda (luz, alquiler, movilidad) con o sin factura, sus gastos fijos del mes y sus activos fijos, y decir qué fue cada salida de plata del cajón" },
   // ADR-0195 (20260925100000): los que faltan de Finanzas, dados de alta juntos antes de construir F3–F10. Nacen sin rol.
-  // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda); Impuestos y Cierre de mes, del líder.
+  // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda). Impuestos y Cierre de mes nacieron del líder y
+  // se abrieron con el ADR-0253 (20260928220000): son de CAYLA entera, así que quien los tiene los ve como el líder.
   { clave: "cuentas_dinero", grupo: "Finanzas", nombre: "Cuentas y dinero", incluye: "Ver las cuentas y el efectivo de su tienda; registrar depósitos del cajón al banco, abonos de tarjeta y movimientos entre cuentas; ver lo que se debe y cuándo vence" },
   { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
-  { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador", noDelegable: true },
-  { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo", noDelegable: true },
+  { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes de CAYLA entera (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador" },
+  { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo, viendo los números de todas las tiendas" },
   // ADR-0207 (20260926090000): el historial de cada módulo. No es una pantalla del lateral: se abre desde la cabecera
   // (botón «Actividad»). Nace sin rol; con el módulo, una cuenta ve la actividad de SU tienda; el líder, la de todas.
   // Solo para personas (`MODULOS_SOLO_PERSONAS`): una terminal compartida no revisa lo que hacen las demás.
@@ -190,12 +193,21 @@ export function modulosDeHoy(
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda
  *  - verReportesFinancieros ← ve Reportes financieros, completo (ADR-0195 F5): los reportes de SU tienda
- *  - verImpuestos / cerrarMes: del líder (módulos no delegables)
+ *  - verImpuestos           ← ve Impuestos, completo (`fn_puede_ver_impuestos`, ADR-0253)
+ *  - cerrarMes              ← ve Cierre de mes, completo (`fn_puede_cerrar_mes`, ADR-0253)
  * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
- * ningún módulo delegable.
+ * ningún módulo delegable (`PERMISOS_SIN_MODULO`).
+ *
+ * El LÍDER (ADR-0253): tiene todos si ve todos los módulos; si un Admin le quitó alguno en Roles y accesos, pierde los
+ * permisos que salen SOLO de lo quitado (como cualquier rol) y conserva los que no salen de ningún módulo. Lo que es
+ * «siempre solo del líder» vive en la base (`fn_es_lider()`) y no depende de esto.
  */
 export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): readonly Permiso[] {
-  if (rol === "lider") return PERMISOS;
+  if (rol === "lider") {
+    if (CLAVES_MODULO.every((c) => modulos.some((m) => m.clave === c))) return PERMISOS;
+    const deSusModulos = permisosDeModulos("integrante", modulos.map((m) => ({ clave: m.clave, completo: true })));
+    return PERMISOS.filter((p) => PERMISOS_SIN_MODULO.includes(p) || deSusModulos.includes(p));
+  }
   const ve = (c: ClaveModulo) => modulos.some((m) => m.clave === c);
   const completo = (...cs: ClaveModulo[]) => modulos.some((m) => m.completo && cs.includes(m.clave));
   const permisos: Permiso[] = [];
@@ -211,8 +223,13 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("gastos")) permisos.push("registrarGastos");
   if (completo("cuentas_dinero")) permisos.push("verCuentasDinero");
   if (completo("reportes_financieros")) permisos.push("verReportesFinancieros");
+  if (completo("impuestos")) permisos.push("verImpuestos");
+  if (completo("cierre_mes")) permisos.push("cerrarMes");
   return permisos;
 }
+
+/** Los permisos que no salen de ningún módulo: del líder, siempre (ADR-0253: quitarle módulos no se los quita). */
+export const PERMISOS_SIN_MODULO: readonly Permiso[] = ["administrar", "verDinero"];
 
 /**
  * ¿La cuenta USA este módulo? El líder, siempre; cualquier otra, si su rol lo ve COMPLETO (no `limitado_como_hoy`). Espeja

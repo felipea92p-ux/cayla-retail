@@ -9,6 +9,7 @@ import {
   serializarCursorMovimientos,
   type ParamsMovimientos,
 } from "@/lib/movimientos-v2";
+import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { HistorialProductoPanel } from "@/components/HistorialProductoPanel";
 import { Volver } from "@/components/ui/Volver";
 
@@ -22,7 +23,7 @@ export default async function HistorialProductoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<ParamsMovimientos>;
+  searchParams: Promise<ParamsMovimientos & { desde?: string | string[] }>;
 }) {
   const persona = await requirePersonaActualV2();
   const { id: productoId } = await params;
@@ -33,6 +34,8 @@ export default async function HistorialProductoPage({
   const ubicacionActivaId =
     esLider && sp.ubicacion && ubicaciones.some((u) => u.id === sp.ubicacion) ? sp.ubicacion : persona.ubicacionId;
   const cursor = cursorDesdeParams(sp);
+  // Tabla o Grilla de Productos de donde se salió (`lib/vuelta-productos.ts`); sobrevive a paginar y a cambiar de sede.
+  const desde = desdeDeParams(sp.desde);
 
   const producto = await getProductoResumen(productoId);
   if (!producto) notFound();
@@ -46,7 +49,7 @@ export default async function HistorialProductoPage({
   return (
     <div className="space-y-6">
       <div>
-        <Volver href="/productos" a="Productos" className="mb-2" />
+        <Volver href={vueltaAProductos(desde)} a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">{producto.referencia}</h1>
         <p className="mt-1 text-sm text-tinta/65">{producto.categoria ?? "Sin categoría"}</p>
       </div>
@@ -62,6 +65,7 @@ export default async function HistorialProductoPage({
         cursorSiguiente={siguiente ? serializarCursorMovimientos(siguiente) : null}
         hayCursor={!!cursor}
         pathname={`/productos/${productoId}/historial`}
+        desde={desde}
       />
     </div>
   );

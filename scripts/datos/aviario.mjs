@@ -36,7 +36,9 @@ export const AVIARIO = [
       "colaboradores_historial", "colaboradores_suspendidos",
       // ADR-0161/0162: roles «ve / no ve» por módulo y terminales sin persona. Qué ve cada cuenta es identidad y acceso,
       // no el módulo que se abre. Asignadas en el refresco del volcado del 2026-09-23.
-      "roles", "modulos", "rol_modulos", "roles_historial", "terminales"] },
+      "roles", "modulos", "rol_modulos", "roles_historial", "terminales",
+      // ADR-0253: lo que se le quitó al rol Líder de equipo (el resto lo ve). Refresco del 2026-09-28.
+      "lider_modulos_ocultos"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
@@ -80,6 +82,8 @@ export const AVIARIO = [
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
       // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
+      "clientas_fusiones",
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
       "apartados", "separaciones", "separacion_items", "separacion_pagos", "separacion_correlativos",
       "pedidos_no_atendidos",
@@ -160,7 +164,8 @@ export const AVIARIO = [
   // «quién hizo qué» de cada módulo, escrito por disparadores sobre ventas, caja, cambios y apartados, sin que ningún
   // módulo lo escriba a mano. Asignada en el refresco del volcado del 2026-09-26.
   { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: ["actividad"] },
-  { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: [] },
+  // ADR-0251: la llave de la revisión diaria de deriva (`huellas_catalogo`); no es dato del negocio. Refresco del 2026-09-28.
+  { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: ["huellas_llave"] },
 ];
 
 /**

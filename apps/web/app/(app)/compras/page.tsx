@@ -233,84 +233,87 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         />
       </div>
 
-      {compras.length === 0 && !cursor ? (
-        <ComprobantesListaVacia hayFiltros={hayFiltros} busqueda={busqueda} />
-      ) : (
-        <Tabla className="anim-entra" style={{ ["--i" as string]: 7 }}>
-          <Encabezado
-            plantilla={PLANTILLA}
-            columnas={[
-              { titulo: "Emisión" },
-              { titulo: "Proveedor" },
-              { titulo: "N.° documento" },
-              { titulo: "Recepción" },
-              { titulo: "Pago" },
-              { titulo: "Total", alinear: "der" },
-              { titulo: "" },
-            ]}
-          />
-          <ComprobantesListaFilas clave={compras.map((c) => c.id).join("|")}>
-            {compras.map((c, i) => {
-              const recepcion = celdaRecepcion(c, ahora);
-              const pago = celdaPago(c, ahora);
-              return (
-                <Link
-                  key={c.id}
-                  href={`/compras/factura/${c.id}`}
-                  data-flip={c.id}
-                  style={{ ["--k" as string]: Math.min(i, 8) }}
-                  className={fila(PLANTILLA, "cmp-fila")}
-                >
-                  <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
-                    <span className="block">{diaMes(c.fechaEmision)}</span>
-                    <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/55"}`}>{subEmision(c)}</span>
-                  </span>
-                  <span className={celda()}>
-                    <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
-                      <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
+      {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+      <div data-resultados>
+        {compras.length === 0 && !cursor ? (
+          <ComprobantesListaVacia hayFiltros={hayFiltros} busqueda={busqueda} />
+        ) : (
+          <Tabla className="anim-entra" style={{ ["--i" as string]: 7 }}>
+            <Encabezado
+              plantilla={PLANTILLA}
+              columnas={[
+                { titulo: "Emisión" },
+                { titulo: "Proveedor" },
+                { titulo: "N.° documento" },
+                { titulo: "Recepción" },
+                { titulo: "Pago" },
+                { titulo: "Total", alinear: "der" },
+                { titulo: "" },
+              ]}
+            />
+            <ComprobantesListaFilas clave={compras.map((c) => c.id).join("|")}>
+              {compras.map((c, i) => {
+                const recepcion = celdaRecepcion(c, ahora);
+                const pago = celdaPago(c, ahora);
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/compras/factura/${c.id}`}
+                    data-flip={c.id}
+                    style={{ ["--k" as string]: Math.min(i, 8) }}
+                    className={fila(PLANTILLA, "cmp-fila")}
+                  >
+                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                      <span className="block">{diaMes(c.fechaEmision)}</span>
+                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/55"}`}>{subEmision(c)}</span>
                     </span>
-                    {c.proveedorRuc && (
-                      <span className="block text-xs tabular-nums text-tinta/55">
-                        RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
+                    <span className={celda()}>
+                      <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
+                        <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                       </span>
-                    )}
-                  </span>
-                  <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
-                    <span className="block">
-                      <Resaltado texto={c.documento} busqueda={busqueda} />
+                      {c.proveedorRuc && (
+                        <span className="block text-xs tabular-nums text-tinta/55">
+                          RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
+                        </span>
+                      )}
                     </span>
-                    <span className="block text-xs text-tinta/55">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
-                  </span>
-                  <span className={celda("izq", "overflow-visible whitespace-normal")}>
-                    <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                    <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
-                    {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
-                    {c.ubicacionesDestino.length > 1 && (
-                      <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
-                    )}
-                    {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
-                    <AvanceFino pct={recepcion.pct} />
-                  </span>
-                  <span className={celda("izq", "overflow-visible whitespace-normal")}>
-                    {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
-                    <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
-                      {pago.texto}
-                    </Chip>
-                    <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
-                    <AvanceFino pct={pago.pct} />
-                    {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
-                    <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
-                  </span>
-                  <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>{c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span aria-hidden className="cmp-flecha-fila hidden text-right text-base leading-none sm:block">
-                    ›
-                  </span>
-                </Link>
-              );
-            })}
-          </ComprobantesListaFilas>
-        </Tabla>
-      )}
+                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                      <span className="block">
+                        <Resaltado texto={c.documento} busqueda={busqueda} />
+                      </span>
+                      <span className="block text-xs text-tinta/55">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                    </span>
+                    <span className={celda("izq", "overflow-visible whitespace-normal")}>
+                      <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
+                      <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
+                      {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
+                      {c.ubicacionesDestino.length > 1 && (
+                        <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                      )}
+                      {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
+                      <AvanceFino pct={recepcion.pct} />
+                    </span>
+                    <span className={celda("izq", "overflow-visible whitespace-normal")}>
+                      {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
+                      <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
+                        {pago.texto}
+                      </Chip>
+                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
+                      <AvanceFino pct={pago.pct} />
+                      {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
+                      <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
+                    </span>
+                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>{c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span aria-hidden className="cmp-flecha-fila hidden text-right text-base leading-none sm:block">
+                      ›
+                    </span>
+                  </Link>
+                );
+              })}
+            </ComprobantesListaFilas>
+          </Tabla>
+        )}
+      </div>
 
       <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={params} pathname="/compras" />
     </div>
