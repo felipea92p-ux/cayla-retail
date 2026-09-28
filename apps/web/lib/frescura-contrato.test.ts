@@ -295,6 +295,18 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     expect(sede.cifras.unidadesEnPiso).toBe(SEDE.prendas.reduce((s, x) => s + x.piso_hoy, 0));
   });
 
+  it("el clásico de todo el año llega con en_estacion_ahora nulo: nunca «guardar hasta su estación» (R7-5)", async () => {
+    // fn_ocurrencia_temporada no da fila para un clásico de todo el año: el valor llega nulo, y el lector no puede
+    // convertirlo en `false` (con eso, todo clásico recibiría «guardar hasta su estación»).
+    const l = leerFrescuraSede(SEDE);
+    if (!l?.separaPiso) throw new Error("sin lectura");
+    expect(SEDE.prendas.find((x) => x.codigo === "ZZ-FX-CLASICO-M")).toMatchObject({ en_estacion_ahora: null });
+    expect(l.tallas.find((t) => t.codigo === "ZZ-FX-CLASICO-M")!.enEstacionAhora).toBeNull();
+    const clasico = prendaCon(await laSede(), "ZZ-FX-CLASICO-M");
+    expect(clasico.pisoHoy).toBeGreaterThan(0);
+    expect(clasico.estado).toMatchObject({ tipo: "clasico", fueraDeSuEstacion: false, sugerencias: [] });
+  });
+
   it("lo que solo está en el almacén viaja sin eventos y no pesa en las cifras del piso", async () => {
     const sede = await laSede();
     const p = prendaCon(sede, "ZZ-FX-ALMACEN-M");
