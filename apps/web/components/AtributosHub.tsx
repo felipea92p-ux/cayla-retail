@@ -66,8 +66,8 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
 const AYUDA: Record<Tipo, string> = {
   colores: "Vocabulario cerrado de color. Cualquiera propone, un Líder aprueba o rechaza.",
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
-  tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda.",
-  patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto.",
+  tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda. Haz clic en uno para ver su foto y las prendas que lo usan.",
+  patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",
   etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Black Friday, Para liquidar). No es la etiqueta física de código de barras.",
   temporadas:
     "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Frescura la usa para comparar verano con verano y avisar cuando termina su estación.",
@@ -87,6 +87,8 @@ export function AtributosHub({
   tallas,
   tejidos,
   patrones,
+  prendasPorTejido = {},
+  prendasPorPatron = {},
   etiquetas,
   categorias,
   prendasConCosto,
@@ -104,6 +106,9 @@ export function AtributosHub({
   tallas: ComponentProps<typeof TallasLista>["tallasIniciales"];
   tejidos: ComponentProps<typeof TejidosLista>["tejidosIniciales"];
   patrones: ComponentProps<typeof PatronesLista>["patronesIniciales"];
+  /** Cuántas prendas usan cada tejido / patrón (ADR-0256). Solo se leen al abrir esas pestañas. */
+  prendasPorTejido?: Record<string, number>;
+  prendasPorPatron?: Record<string, number>;
   etiquetas: ComponentProps<typeof EtiquetasLista>["etiquetasIniciales"];
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
@@ -120,7 +125,8 @@ export function AtributosHub({
   temporadas?: ComponentProps<typeof TemporadasLista>["carga"];
   /** Corregir el calendario de estaciones: SOLO el líder (y los Admin, que lo son). Asignar temporadas usa `puedeEditar`. */
   esLider?: boolean;
-  /** La cuenta ve el módulo «Productos» (ADR-0161): solo entonces «Sin temporada» enlaza a la ficha de cada prenda. */
+  /** La cuenta ve el módulo «Productos» (ADR-0161): solo entonces «Sin temporada» y el detalle de un tejido o patrón
+   *  enlazan a la ficha de cada prenda. */
   veProductos?: boolean;
   /** Las pestañas que ve esta cuenta. Un rol con Etiquetas y sin Categorías/atributos entra solo a la suya. Ausente = todas. */
   tipos?: readonly Tipo[];
@@ -133,6 +139,9 @@ export function AtributosHub({
   // entre navegaciones del App Router y un `useState` solo lee su valor
   // inicial una vez, nunca de nuevo — bug real, no hipotético, encontrado
   // verificando el redirect en el navegador antes de darlo por bueno.
+  // El generador de dibujos de Tejidos y Patrones pinta con los colores activos del catálogo (ADR-0256).
+  const coloresDibujo = colores.filter((c) => c.activo && c.hex).map((c) => ({ nombre: c.nombre, hex: c.hex as string, sinonimos: c.sinonimos }));
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-0.5 rounded-lg bg-sand p-0.5">
@@ -155,8 +164,8 @@ export function AtributosHub({
 
       {tipo === "colores" && <ColoresLista coloresIniciales={colores} puedeEditar={puedeEditar} />}
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
-      {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} />}
-      {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} />}
+      {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} prendasPorId={prendasPorTejido} veProductos={veProductos} colores={coloresDibujo} />}
+      {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} prendasPorId={prendasPorPatron} veProductos={veProductos} colores={coloresDibujo} />}
       {tipo === "etiquetas" && <EtiquetasLista
           etiquetasIniciales={etiquetas}
           categorias={categorias}

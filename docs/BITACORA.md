@@ -23,6 +23,26 @@ Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas,
 Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
 Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
 
+## 2026-09-28 (Ficha de editar producto: la imagen del tejido y del patrón — ADR-0256)
+Qué hice: en Productos ▸ Editar, el combo de Tejido muestra ahora la muestra de cada tejido (antes solo el de Patrón la tenía) y los dos usan la foto o el dibujo elegido en Atributos; bajo cada combo se ve el elegido.
+Por qué así: el alta y la ficha leen las imágenes con la misma función (`getImagenesMuestra`); antes de este paso el alta las sacaba de su propia consulta, y dos lecturas de lo mismo terminan diciendo cosas distintas.
+Qué se rompería sin esto: quien corrige el tejido de una prenda ya creada elegía por nombre entre Denim y Drill, justo lo que la foto vino a resolver.
+
+## 2026-09-28 (Nuevo producto: la imagen del tejido y del patrón al elegirlos — ADR-0256)
+Qué hice: en el paso 3 de Nuevo producto, cada tarjeta de Tejido (también las de «Ver más») y de Patrón muestra la foto o el dibujo que un Líder eligió en Atributos; sin imagen, el dibujo automático de siempre.
+Por qué así: el alta recibe un mapa aparte «id → imagen» en vez de sumarle un campo al tipo que comparten tallas, tejidos y patrones: las tallas no tienen imagen, y ensanchar ese tipo habría tocado seis pantallas para nada.
+Qué se rompería sin esto: la foto se subía en Atributos pero quien crea el producto, que es quien más la necesita para no confundir Denim con Drill, seguía viendo el dibujo. Sin resolver: la ficha de un producto existente.
+
+## 2026-09-28 (Tejidos y Patrones: dibujo generado desde una frase — ADR-0256 act.)
+Qué hice: «rayas azul marino finas sobre crudo» y el sistema propone al instante tres dibujos con los colores reales del catálogo; dice qué entendió, ofrece otras variantes, y quien edita decide: usar el dibujo, cambiar la frase o subir una foto. También al crear un tejido o patrón, como campo opcional.
+Por qué así: Felipe eligió el generador propio sobre la IA: un patrón de tela es geometría que se repite, y así es gratis, instantáneo, no depende de una API y el azul es el Azul marino del catálogo, no el que imagine un modelo. El dibujo elegido se guarda como una foto (JPG, misma columna): nada nuevo en la base.
+Felipe se lleva: **cuando una herramienta tiene límites, la pantalla los muestra («Entendí: …») en vez de esconderlos**; quien la usa corrige la frase en lugar de desconfiar del resultado. Sin resolver: dos formas de dibujar lo mismo (automático por nombre y generador), por unificar.
+
+## 2026-09-28 (Atributos ▸ Tejidos y Patrones: clic → foto y prendas — ADR-0256)
+Qué hice: cada tarjeta de Tejidos y Patrones abre un detalle con la muestra en grande y las prendas que la usan (activas primero, con foto y enlace a su ficha). Un Líder sube, cambia o quita la foto real: primero la ve, elige el Responsable y recién «Guardar foto» la guarda. Sin migración: `imagen_muestra_url` y el bucket ya estaban en producción desde el 18-09, sin uso.
+Por qué así: una foto por tejido es 1:1 → columna, no tabla (como ADR-0061); y la ruta solo acepta URLs del bucket en la carpeta de su tipo, para que nadie pegue en el catálogo una imagen de otro sitio que después se pinta en todas las sedes. Las prendas se leen al abrir, no con la grilla.
+Qué se rompería sin esto: «No se puede desactivar: 3 productos usan este tejido» seguía sin decir cuáles, y un tejido nuevo que el dibujo no reconoce quedaba «Sin muestra» para siempre. Sin resolver: la foto aún no se ve al elegir tejido en Nuevo producto (espera a `ver-mas-tejidos`), y el Storage local no acepta subidas (versión vieja del contenedor).
+
 ## 2026-09-28 (Categorías ▸ ejemplo según la familia, prefijo y nombre repetidos se avisan al tipear)
 Qué hice: el ejemplo de «Nueva categoría» cambia con la familia (Calzado → Botines/BOT, Bisutería → Aretes/ARE…) y salta los que ya existen; si el prefijo o el nombre ya los tiene otra categoría —también una desactivada— el campo dice cuál y «Guardar» se bloquea. `CampoTexto` nace con `autoComplete="off"`. Regla pura en `lib/categoria-alta-reglas.ts` con pruebas; sin SQL.
 Por qué así: la base ya rechazaba el duplicado (`categorias_prefijo_unico`, `categorias_nombre_clave_unica`) pero solo al guardar y sin decir quién lo tenía; ambos índices cuentan las desactivadas, así que la pantalla compara contra todas. El candado real sigue en la base (dos líderes a la vez).
