@@ -52,6 +52,10 @@ Reglas que valen para cualquier lista larga del alta (volumen de producción al 
   desde la hoja, con su combo Responsable, igual que el «Ver más» de `main`. La base exige que la talla esté en la
   categoría (`crear_producto_con_variantes`).
 
+**Cabecera:** la de Ventas (`EncabezadoPagina`), igual que Productos desde ADR-0254 (Felipe, 2026-09-28): sede y hora
+con el hilo, «Nuevo producto» y su frase; la vuelta «← Productos» va bajo la frase (`pie`), como «← Existencias» en
+Bajar al piso.
+
 ## Efecto fuera de Nuevo producto (revisado)
 
 - `ComboBuscable` ganó `crearArriba?` y `crear.pista?`, opcionales: ningún otro uso los pasa, no cambia nada para ellos.

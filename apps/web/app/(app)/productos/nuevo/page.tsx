@@ -3,7 +3,7 @@ import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 
 // Nuevo producto como árbol de decisión (ADR-0109) en 4 preguntas (spike v2
@@ -29,14 +29,14 @@ export default async function NuevoProductoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Volver href="/productos" a="Productos" className="mb-4" />
-        <CabeceraPantalla
-          sobretitulo="Catálogo · Productos"
-          titulo="Nuevo producto"
-          bajada="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
-        />
-      </div>
+      {/* La cabecera de Ventas, como Productos (ADR-0254; Felipe 2026-09-28): sede y hora arriba con el hilo, el título
+          del menú y su frase; la vuelta «← Productos» va bajo la frase, como «← Existencias» en Bajar al piso. */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo="Nuevo producto"
+        subtitulo="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
+        pie={<Volver forma="boton" href="/productos" a="Productos" />}
+      />
 
       {contexto.categorias.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
