@@ -189,3 +189,14 @@ paginar) es una acción decidida y sigue con el loader.
 a propósito), con un observador de `[data-espera]` y `data-buscando`: en Productos, Movimientos, Facturas y el Historial (este a
 375 px) se escribió en el buscador → ninguna muestra con loader, «Buscando…» a la vista durante la espera, lista a opacidad 0,45,
 y el foco y el texto siguieron en el campo.
+
+**Añadido el mismo día — Análisis (Felipe: «te faltó la búsqueda de Análisis»).** Inventario ▸ Análisis no usa
+`FiltrosX` sino su propio estado en URL (`components/useResumenUrl.ts`, `router.replace` en una transición), y por eso el
+primer barrido —que buscaba `router.push` junto a una pausa de `setTimeout`— no lo vio. `actualizar(cambios, { tipeado })`
+anuncia la dirección con `navegacionSinEspera`, igual que `buscar(href)`; solo lo pide el buscador (`ResumenControles` →
+`BuscadorDebounced`). El atenuado ya lo tenía el panel (`pendiente`, opacidad 0,6), así que no lleva `data-resultados`.
+`BuscadorDebounced` dice «Buscando…» mientras lo que mandó no volvió en la URL, y adopta como enviado lo que llegue por
+otra vía para que la señal no quede pegada. Revisados y fuera a propósito: Cambios, Devoluciones y Buscar por comprobante
+buscan al pulsar Enter o un botón (acción decidida: loader), y Gastos cambia la URL solo por clics. Verificado en el
+navegador con la respuesta retrasada 1,5 s: sin loader, «Buscando…» durante la espera, foco intacto; un cambio de URL
+externo (`router.replace`) actualiza el campo y apaga la señal.
