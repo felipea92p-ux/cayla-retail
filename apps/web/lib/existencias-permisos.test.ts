@@ -9,7 +9,7 @@ const TODO: EntradaPermisos = {
   puedeAjustar: true,
   veTraslados: true,
   esTienda: true,
-  esLider: true,
+  esAdmin: true,
 };
 
 describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mismo que la base (ADR-0240)", () => {
@@ -63,11 +63,12 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     expect(p.pedirAOtraSede).toBe(false);
   });
 
-  it("Eliminar el producto (ADR-0252): solo un Líder (o Admin), en su sede, y sin importar los módulos ni el Taller", () => {
-    expect(permisosDelDetalle({ ...TODO, esLider: false }).eliminar).toBe(false);
-    expect(permisosDelDetalle({ ...TODO, esLider: false }).ajustar).toBe(true);
-    const lider = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
-    expect(permisosDelDetalle(lider).eliminar).toBe(true);
+  it("Eliminar el producto (ADR-0252): solo un Admin, en su sede, sin importar los módulos ni el Taller", () => {
+    // Un Líder que no es Admin no: todo lo de Existencias ya tiene historia de stock y la base se lo negaría siempre.
+    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).eliminar).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).ajustar).toBe(true);
+    const admin = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
+    expect(permisosDelDetalle(admin).eliminar).toBe(true);
     expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).eliminar).toBe(true);
   });
 

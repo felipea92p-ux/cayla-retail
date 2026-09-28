@@ -110,7 +110,7 @@ export function DetallePrendaExistencias({
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
-  /** Líder o Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la base. */
+  /** Solo un Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la base. */
   puedeEliminar?: boolean;
   onReponer: (f: FilaExistencias) => void;
   onRetirar: (f: FilaExistencias) => void;

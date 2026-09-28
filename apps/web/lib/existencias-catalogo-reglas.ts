@@ -32,6 +32,14 @@ export function conMarca<T extends { productoId: string }>(filas: readonly T[], 
   return filas.map((f) => ({ ...f, marca: marcaDe.get(f.productoId) ?? null }));
 }
 
+/** Pone a cada fila el estado de su producto («activo»/«descontinuado»). Lo usa la ventana «Eliminar» (ADR-0252): a uno ya
+ *  descontinuado no le sugiere descontinuarlo. Descontinuar no apaga las variantes, así que sigue saliendo en Existencias.
+ *  Una fila cuyo producto no llegó queda con `estadoProducto: null` y la ventana se comporta como con uno activo. */
+export function conEstadoProducto<T extends { productoId: string }>(filas: readonly T[], productos: readonly ProductoDeCatalogo[]): (T & { estadoProducto: string | null })[] {
+  const estadoDe = new Map(productos.map((p) => [p.id, p.estado]));
+  return filas.map((f) => ({ ...f, estadoProducto: estadoDe.get(f.productoId) ?? null }));
+}
+
 /**
  * Los productos activos y aprobados del catálogo, con alguna variante activa, que ESTA sede no tiene (ni una fila de
  * stock, ni siquiera en cero), sin los de prueba, por nombre. `filas` son las de la sede ANTES de ocultar los de prueba:

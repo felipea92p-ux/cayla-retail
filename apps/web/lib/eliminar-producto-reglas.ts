@@ -116,9 +116,9 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
 
 /**
  * La salida que se le ofrece cuando no se puede eliminar. Una pieza del sistema no se retira de ninguna manera. Si ya
- * está descontinuado, no hay nada más que hacer; si no (activo, o no se sabe: Existencias no lee el estado del
- * producto), la salida es descontinuarlo desde Editar, el mismo interruptor Activo/Descontinuado que ya existe.
- * `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
+ * está descontinuado, no hay nada más que hacer; si no (activo, o no se sabe: en Existencias la lectura del catálogo
+ * puede fallar y el estado llega en null), la salida es descontinuarlo desde Editar, el mismo interruptor
+ * Activo/Descontinuado que ya existe. `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
  */
 export function salidaSinEliminar(estado: string | null, nivel: NivelEliminar): { texto: string; irAEditar: boolean } | null {
   if (nivel === "sistema") return null;

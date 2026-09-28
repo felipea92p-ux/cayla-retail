@@ -11,9 +11,10 @@
 //     retirar → «Bajada al piso», apartar y pedir a otra sede → «Apartados», trasladar → «Traslados», ajustar →
 //     «Ajustar stock». La base pide lo mismo.
 //   · Piso y almacén: reponer, retirar y apartar necesitan saber de dónde; solo donde la ubicación los separa.
-//   · Eliminar el producto (ADR-0252, actualización): el mismo permiso que en Catálogo ▸ Productos (Líder; un Admin es un
-//     Líder), y solo mirando la sede activa como todo lo que escribe. La ventana le pregunta a la base si se puede y
-//     con qué (sin historia: Líder o Admin; con historia de stock: solo Admin; con documentos: nadie).
+//   · Eliminar el producto (ADR-0252, actualización): SOLO un Admin, y solo mirando la sede activa como todo lo que
+//     escribe. En Catálogo ▸ Productos lo ve también un Líder porque allí hay productos que nunca se movieron; aquí no:
+//     toda fila de Existencias sale de `stock`, que solo escribe un movimiento, así que todo lo que se ve ya tiene
+//     historia, y con historia la base solo deja borrar a un Admin. Un Líder vería un botón que nunca funciona.
 
 export type EntradaPermisos = {
   /** La ubicación separa piso y almacén y sus dos sububicaciones existen. */
@@ -30,8 +31,8 @@ export type EntradaPermisos = {
   veTraslados: boolean;
   /** Es una tienda (vende): solo entre tiendas se pide una prenda para una clienta (ADR-0233). */
   esTienda: boolean;
-  /** `colaboradores.rol = 'lider'` (un Admin también lo es): quien ve «Eliminar» en Catálogo ▸ Productos. */
-  esLider: boolean;
+  /** Es Admin (`fn_es_admin()`, ADR-0178): el único que puede eliminar un producto con historia de stock (ADR-0252). */
+  esAdmin: boolean;
 };
 
 export type PermisosDelDetalle = {
@@ -60,7 +61,7 @@ export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
     etiquetasEHistorial: aqui,
     pedirAOtraSede: aqui && e.esTienda && e.veApartados,
     explicarSinModuloBajada: conPiso && !e.puedeBajarAlPiso,
-    eliminar: aqui && e.esLider,
+    eliminar: aqui && e.esAdmin,
   };
 }
 
