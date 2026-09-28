@@ -28,6 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
+
+- [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
+  funciones, sin políticas ni `drop trigger`). Después: `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
+  secreto `DERIVA_LLAVE`; `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables (Settings ▸ Secrets and variables ▸ Actions).
+  Primera corrida: Actions ▸ «Deriva diaria» ▸ Run workflow.
+- [ ] **Cuando el PR esté en `main`: sumar «SQL pegado» a los checks exigidos de `main`** (hoy exige «Tipos, lint y
+  pruebas» y «Pruebas de RPC contra Postgres»; protegida el 2026-09-28 con el sí de Felipe).
+- [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
+  `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
+  main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
