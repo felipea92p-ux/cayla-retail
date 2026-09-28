@@ -1596,7 +1596,48 @@ ${k("SOLO_CARGAS", `(select format('cayla=%s,fin=%s,pasada=%s',
          else coalesce(x ->> 'ultima_llegada_cayla', 'null') end,
     case when (x ->> 'fin_estacion')::timestamptz = :'fin_lote'::timestamptz then 'el_del_verano_2025_26' else coalesce(x ->> 'fin_estacion', 'null') end,
     ((x ->> 'fin_estacion')::timestamptz <= now())::text)
-  from jsonb_array_elements(:'j3'::jsonb -> 'prendas') x where x ->> 'codigo' = 'ZZ-FL-T4I-C-S')`)}`,
+  from jsonb_array_elements(:'j3'::jsonb -> 'prendas') x where x ->> 'codigo' = 'ZZ-FL-T4I-C-S')`)}
+-- 4) Lote y producción (verificación de la revisión 7): una blusa de primavera llegó por lote a esta tienda el
+--    15-oct-2025 (primavera 2025) y el Taller la vuelve a producir el 25-sep-2026 (primavera 2026). Manda la ÚLTIMA de
+--    las dos: la producción es llegada a CAYLA, no una carga.
+select id as sa_taller from retail.sububicaciones where ubicacion_id = :'taller' order by tipo limit 1 \\gset
+create function pg_temp.produce(v uuid, p uuid, n int, cuando timestamptz) returns uuid language plpgsql as $f$
+declare m uuid;
+begin
+  insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, produccion_id, created_at)
+    values (v, current_setting('prueba.taller')::uuid, nullif(current_setting('prueba.sa_taller'), '')::uuid, 'entrada', n, 'produccion', p, cuando)
+    returning id into m;
+  perform retail.fn_aplicar_movimiento(m);
+  return m;
+end $f$;
+select set_config('prueba.taller', :'taller', true) as _cfg1 \\gset
+select set_config('prueba.sa_taller', coalesce(:'sa_taller', ''), true) as _cfg2 \\gset
+select pg_temp.producto('T4i Blusa lote y taller', 'primavera') as plt \\gset
+select pg_temp.variante('ZZ-FL-T4I-LT', :'plt', :'c1') as vlt \\gset
+select pg_temp.llega(:'vlt', 3, '2025-10-15 10:00-05') as _7 \\gset
+insert into retail.producciones (ubicacion_id, producto_id, cantidad_plan) values (:'taller', :'plt', 5) returning id as prod_lt \\gset
+select pg_temp.produce(:'vlt', :'prod_lt', 5, '2026-09-25 12:00-05') as _8 \\gset
+-- 5) Solo del Taller, producida dos veces (15-oct-2025 y 25-sep-2026) y cargada en esta tienda al día siguiente: manda
+--    la ÚLTIMA producción; la PRIMERA es la regla de las cargas, y la carga no cuenta porque tiene producción.
+select pg_temp.producto('T4i Blusa dos producciones', 'primavera') as pdp \\gset
+select pg_temp.variante('ZZ-FL-T4I-DP', :'pdp', :'c1') as vdp \\gset
+insert into retail.producciones (ubicacion_id, producto_id, cantidad_plan) values (:'taller', :'pdp', 10) returning id as prod_dp \\gset
+select pg_temp.produce(:'vdp', :'prod_dp', 5, '2025-10-15 12:00-05') as _9 \\gset
+select pg_temp.produce(:'vdp', :'prod_dp', 5, '2026-09-25 12:00-05') as _10 \\gset
+select pg_temp.mov(:'vdp', 'entrada', 2, current_setting('prueba.sp')::uuid, 'carga_inicial', '2026-09-26 10:00-05') as _11 \\gset
+select pg_temp.lectura() as j4 \\gset
+create function pg_temp.t4i_taller(j jsonb, p_codigo text) returns text language sql as $f$
+  select format('cayla=%s,fin=%s',
+    case when (x ->> 'ultima_llegada_cayla')::timestamptz = '2026-09-25 12:00-05'::timestamptz then 'produccion_2026'
+         when (x ->> 'ultima_llegada_cayla')::timestamptz in ('2025-10-15 10:00-05'::timestamptz, '2025-10-15 12:00-05'::timestamptz) then 'octubre_2025'
+         else coalesce(x ->> 'ultima_llegada_cayla', 'null') end,
+    case when (x ->> 'fin_estacion')::timestamptz = (select hasta from retail.fn_ocurrencia_temporada('primavera', '2026-09-25 12:00-05')) then 'primavera_2026'
+         when (x ->> 'fin_estacion')::timestamptz = (select hasta from retail.fn_ocurrencia_temporada('primavera', '2025-10-15 12:00-05')) then 'primavera_2025'
+         else coalesce(x ->> 'fin_estacion', 'null') end)
+    from jsonb_array_elements(j -> 'prendas') x where x ->> 'codigo' = p_codigo
+$f$;
+${k("LOTE_Y_TALLER", "pg_temp.t4i_taller(:'j4', 'ZZ-FL-T4I-LT')")}
+${k("DOS_PRODUCCIONES", "pg_temp.t4i_taller(:'j4', 'ZZ-FL-T4I-DP')")}`,
   (o) => {
     afirmar("antes: la llegada a CAYLA es el lote de enero y su fin, el del verano 2025-26: «Temporada pasada»", o.ANTES === "cayla=lote,fin=el_del_lote,tienda=lote,pasada=true", `ANTES=${o.ANTES}`);
     // Hasta la revisión 7 las dos daban «cayla=carga_de_hoy,fin=el_de_la_carga»: la carga de AQP o LIM al incorporarse le
@@ -1604,6 +1645,10 @@ ${k("SOLO_CARGAS", `(select format('cayla=%s,fin=%s,pasada=%s',
     afirmar("la carga de hoy en OTRA sede no es llegada a CAYLA: el modelo+color tiene lote (sigue el de enero y su fin)", o.OTRA_SEDE === "cayla=lote,fin=el_del_lote,tienda=lote", `OTRA_SEDE=${o.OTRA_SEDE}`);
     afirmar("…ni una talla nueva cargada en ESTA tienda", o.MISMA_SEDE === "cayla=lote,fin=el_del_lote,tienda=lote", `MISMA_SEDE=${o.MISMA_SEDE}`);
     afirmar("un modelo+color que solo vino en cargas: manda la PRIMERA (la de enero), no la de hoy en otra sede", o.SOLO_CARGAS === "cayla=primera_carga,fin=el_del_verano_2025_26,pasada=true", `SOLO_CARGAS=${o.SOLO_CARGAS}`);
+    // Verificación de la revisión 7: sin estas dos, tratar la producción como una carga (la PRIMERA en vez de la última)
+    // pasaba la suite y le ponía «Temporada pasada» a lo que el Taller acaba de producir.
+    afirmar("lote en 2025 y producción del Taller en 2026: manda la producción (la última llegada a CAYLA) y su estación", o.LOTE_Y_TALLER === "cayla=produccion_2026,fin=primavera_2026", `LOTE_Y_TALLER=${o.LOTE_Y_TALLER}`);
+    afirmar("dos producciones y una carga después: manda la ÚLTIMA producción, no la primera ni la carga", o.DOS_PRODUCCIONES === "cayla=produccion_2026,fin=primavera_2026", `DOS_PRODUCCIONES=${o.DOS_PRODUCCIONES}`);
   },
 );
 

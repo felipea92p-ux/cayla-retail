@@ -21,6 +21,8 @@ import type { Tolerado } from "./resultado";
 //      mismos días colgada, con las unidades de TODA la lectura. Separa «vieja y lenta» (quieta) de «vieja pero se sigue
 //      vendiendo» (un pilar, que nunca va al perchero salvo que su temporada ya pasó: D2). Lo que lleva sus últimos 30
 //      días en el piso sin vender no es pilar aunque su índice de 120 días lo diga (revisión 6; «en el piso», R7-2).
+//      Lo apartado para una clienta tampoco cuenta como colgado aquí: es una venta desde que se apartó, o una pausa si
+//      la clienta no se la llevó (revisión 8, `eventosConApartados`).
 //
 // Lo que NO vive aquí, a propósito: el FIFO de cohortes. Es UNO solo, `historiaDeCohortes` de `inventario-exposicion.ts`
 // (ADR-0208 (d), ADR-0248); aquí solo se preparan sus eventos (quitar las bajadas tardías, recortar la ventana) y se
@@ -36,6 +38,12 @@ export const VENTANAS_VARA_DIAS = [30, 60, 90, 120] as const;
 export const VARA_MIN_VENDIDAS = 20;
 /** La ventana de la bajada tardía: lo vendido en [t, t + 10 min] de una bajada la delata (ADR-0208, W del núcleo). */
 export const VENTANA_TARDIA_SEGUNDOS = 10 * 60;
+/**
+ * La ventana de la entrega de algo apartado (revisión 8): una liberación seguida de una venta de la misma talla dentro
+ * de estos segundos es la entrega a su clienta. Entregar una separación libera y vende en la misma operación (0
+ * segundos); «Se la entrego a la clienta ahora» de Apartados libera y se cobra enseguida en Vender.
+ */
+export const VENTANA_ENTREGA_SEGUNDOS = 10 * 60;
 /** Índice de rapidez de una prenda que se vende igual que su categoría a la misma edad. */
 export const RAPIDEZ_IGUAL = 100;
 /** Evidencia mínima para hablar de rapidez: vendidas + esperadas. Con menos, «sin dato» (nunca «lenta»). */
@@ -134,8 +142,9 @@ export type LecturaFrescuraConPiso = {
   tallas: TallaFrescuraCruda[];
   /** Por variante: los puntos del PISO del libro desde `desde`, en orden, ya como `EventoPiso`. */
   eventos: Record<string, EventoPiso[]>;
-  /** Por variante: lo apartado del piso desde `desde` (el saldo con que arranca, primero). Solo mueve el reloj: el FIFO
-   *  no lo ve (la unidad apartada es la misma unidad). Sin la clave, nada apartado (una lectura de antes de R7-1). */
+  /** Por variante: lo apartado del piso desde `desde` (el saldo con que arranca, primero). El reloj lo resta de lo libre;
+   *  la vara, la rapidez y las ventas recientes lo leen como venta o como pausa (`eventosConApartados`, revisión 8). Sin
+   *  la clave, nada apartado (una lectura de antes de R7-1). */
   apartados?: Record<string, PuntoApartado[]>;
   tardias: TardiaCruda[];
   dudosas: string[];
@@ -435,6 +444,94 @@ export function recortarEventos(eventos: readonly EventoPiso[], inicio: string):
   }
   if (saldo <= 0) return dentro;
   return [{ ts: inicio, delta: saldo, esVenta: false, esMovimientoInterno: false, edadDesconocida: true }, ...dentro];
+}
+
+/**
+ * Los eventos del piso de una talla con lo apartado para clientas adentro: lo que leen el FIFO de la vara, la rapidez y
+ * las ventas «recientes» (revisión 8; R7-1, Felipe 2026-09-27: lo apartado ya tiene dueña, no está colgado). La unidad
+ * que una clienta aparta es demanda: para «¿cuánto tarda en venderse?» se vendió cuando se apartó, no cuando se entrega.
+ * Cada liberación cierra lo más viejo que seguía apartado de la talla (el libro no dice qué apartado cierra cada una; con
+ * una sola separación a la vez, lo normal, es exacto):
+ *   · lo que sigue apartado hoy → una VENTA a la hora en que se apartó;
+ *   · lo que se liberó y se vendió en los `VENTANA_ENTREGA_SEGUNDOS` siguientes (la entrega: entregar una separación
+ *     libera y vende en una sola operación, y «Se la entrego a la clienta ahora» de Apartados se cobra enseguida en
+ *     Vender) → una venta a la hora en que se apartó, y a la venta de la entrega se le quita esa unidad (ya se contó);
+ *   · lo que se liberó sin venderse enseguida (la clienta no vino, un error) → una PAUSA, como guardarla en el almacén:
+ *     no suma días colgada mientras estuvo apartada y vuelve con la edad que tenía.
+ * Lo que se libera sin nada apartado que lo explique (el libro no cuadra) no mueve el FIFO. Sin nada apartado, devuelve
+ * los mismos eventos. El reloj de novedad no pasa por aquí: resta lo apartado de lo libre (`tramosColgada`).
+ */
+export function eventosConApartados(
+  eventos: readonly EventoPiso[],
+  apartados: readonly PuntoApartado[] | undefined,
+  ventanaEntregaSegundos: number = VENTANA_ENTREGA_SEGUNDOS,
+): readonly EventoPiso[] {
+  if (!apartados || apartados.length === 0) return eventos;
+  const puntos = apartados
+    .map((a) => ({ a, t: ms(a.ts) }))
+    .filter((x) => !Number.isNaN(x.t))
+    .sort((x, y) => x.t - y.t);
+  // Las ventas del libro, en orden: las que pueden ser la entrega de algo apartado. `yaContadas`: las unidades de cada
+  // una que ya se contaron al apartar.
+  const ventas = eventos
+    .map((e, i) => ({ i, t: ms(e.ts), unidades: e.esVenta && e.delta < 0 ? -e.delta : 0 }))
+    .filter((v) => v.unidades > 0 && !Number.isNaN(v.t))
+    .sort((x, y) => x.t - y.t || x.i - y.i);
+  const yaContadas = new Map<number, number>();
+  const abiertos: { ts: string; t: number; cantidad: number }[] = [];
+  // Lo que vuelve al piso va ANTES de los eventos de su mismo instante (una venta en ese instante puede llevársela); lo
+  // que sale al apartarse, DESPUÉS (una bajada en ese instante ya está colgada cuando se aparta).
+  const antes: EventoPiso[] = [];
+  const despues: EventoPiso[] = [];
+  const salida = (ts: string, cantidad: number, esVenta: boolean): EventoPiso => ({ ts, delta: -cantidad, esVenta, esMovimientoInterno: !esVenta });
+  for (const { a, t } of puntos) {
+    if (a.delta < 0) {
+      abiertos.push({ ts: a.ts, t, cantidad: -a.delta });
+      continue;
+    }
+    // Lo que cierra esta liberación, de lo más viejo a lo más nuevo.
+    const cerradas: { ts: string; t: number; cantidad: number }[] = [];
+    let porCerrar = a.delta;
+    while (porCerrar > 0 && abiertos.length > 0) {
+      const ab = abiertos[0];
+      const q = Math.min(ab.cantidad, porCerrar);
+      cerradas.push({ ts: ab.ts, t: ab.t, cantidad: q });
+      porCerrar -= q;
+      ab.cantidad -= q;
+      if (ab.cantidad <= 0) abiertos.shift();
+    }
+    // Cuántas se entregaron: las ventas de la talla en la ventana de la entrega que no se contaron todavía.
+    let porEntregar = cerradas.reduce((s, c) => s + c.cantidad, 0);
+    for (const v of ventas) {
+      if (porEntregar <= 0 || v.t > t + ventanaEntregaSegundos * 1000) break;
+      if (v.t < t) continue;
+      const libre = v.unidades - (yaContadas.get(v.i) ?? 0);
+      const q = Math.min(libre, porEntregar);
+      if (q <= 0) continue;
+      yaContadas.set(v.i, (yaContadas.get(v.i) ?? 0) + q);
+      porEntregar -= q;
+    }
+    let entregadas = cerradas.reduce((s, c) => s + c.cantidad, 0) - porEntregar;
+    for (const c of cerradas) {
+      const entregado = Math.min(c.cantidad, entregadas);
+      entregadas -= entregado;
+      if (entregado > 0) despues.push(salida(c.ts, entregado, true));
+      // Apartada y liberada en el mismo instante: no estuvo apartada ningún segundo, no hay pausa.
+      if (c.cantidad > entregado && c.t < t) {
+        despues.push(salida(c.ts, c.cantidad - entregado, false));
+        antes.push({ ts: a.ts, delta: c.cantidad - entregado, esVenta: false, esMovimientoInterno: true, edadDesconocida: true });
+      }
+    }
+  }
+  for (const ab of abiertos) despues.push(salida(ab.ts, ab.cantidad, true));
+  const propios: EventoPiso[] = [];
+  for (const [i, e] of eventos.entries()) {
+    const q = yaContadas.get(i) ?? 0;
+    if (q <= 0) propios.push(e);
+    else if (e.delta + q !== 0) propios.push({ ...e, delta: e.delta + q });
+  }
+  // `sort` es estable: en un mismo instante queda lo que vuelve, los eventos del libro en su orden y lo que se aparta.
+  return [...antes, ...propios, ...despues].sort((x, y) => compararInstantes(x.ts, y.ts));
 }
 
 /** Lo que una talla aporta a la vara en una ventana, y las ventas a las que no se les puede medir la edad. */
@@ -1041,8 +1138,9 @@ export type EntradaEstado = {
   rapidez: Rapidez | null;
   pisoHoy: number;
   almacenHoy: number;
-  /** Unidades de su modelo+color vendidas en la sede en sus últimos `DIAS_CALLADA` días en el piso (con menos días
-   *  colgada en la lectura, en todos los que tiene); null si quien llama no lo sabe. Dicen si se sigue vendiendo
+  /** Unidades de su modelo+color vendidas (o apartadas para una clienta: revisión 8) en la sede en sus últimos
+   *  `DIAS_CALLADA` días en el piso (con menos días colgada en la lectura, en todos los que tiene); null si quien llama
+   *  no lo sabe. Dicen si se sigue vendiendo
    *  (`Recientes`): el pilar y la callada. */
   ventasRecientes: number | null;
 };
@@ -1148,7 +1246,8 @@ export type FrescuraPrenda = {
   finEstacion: string | null;
   rapidez: Rapidez | null;
   /** Unidades vendidas en la sede en sus últimos `DIAS_CALLADA` días en el piso (R7-2; con menos en la lectura, en
-   *  todos). Sin ventas y con menos de esos días colgada, «no se sabe» todavía si dejó de venderse. */
+   *  todos), contando lo que una clienta apartó en esos días (revisión 8). Sin ventas y con menos de esos días colgada,
+   *  «no se sabe» todavía si dejó de venderse. */
   ventasRecientes: number;
   /**
    * Contra qué se ubicó su tramo y se midió su rapidez: su categoría SIN ella (cortes, observación más larga y ventas con
@@ -1244,7 +1343,9 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     tallasDeCategoria.set(cat, grupo);
     if (talla.esClasico || dudosas.has(talla.varianteId)) continue;
     grupo.ids.push(talla.varianteId);
-    const limpios = excluirTardias(l.eventos[talla.varianteId] ?? [], tardiasPorOid);
+    // Lo apartado entra aquí como venta o como pausa (revisión 8): la vara de la categoría y la rapidez de la prenda no
+    // cuentan como colgado lo que ya tiene dueña.
+    const limpios = eventosConApartados(excluirTardias(l.eventos[talla.varianteId] ?? [], tardiasPorOid), apartados[talla.varianteId]);
     const todas = unaVez(() => unidadesParaVara(limpios, l.ahora));
     unidadesDeTalla.set(talla.varianteId, {
       todas,
@@ -1307,8 +1408,16 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     const linea = tramosColgada(entradaReloj);
     const reloj = relojNovedad(entradaReloj, linea);
     const inicioRecientes = inicioDeSusUltimosDias(linea.tramos, DIAS_CALLADA) ?? desdeMs;
+    // Lo que una clienta apartó en esos días es una venta de esos días (revisión 8); lo que ya estaba apartado al
+    // empezar la lectura (su saldo, a la hora de `desde`, donde no cae ninguna venta del libro) no es reciente: no se sabe
+    // cuándo se apartó.
     let ventasRecientes = 0;
-    for (const eventos of eventosPorTalla) for (const e of eventos) if (e.esVenta && e.delta < 0 && ms(e.ts) >= inicioRecientes) ventasRecientes -= e.delta;
+    for (const [k, t] of tallas.entries()) {
+      for (const e of eventosConApartados(eventosPorTalla[k], apartados[t.varianteId])) {
+        const cuando = ms(e.ts);
+        if (e.esVenta && e.delta < 0 && cuando >= inicioRecientes && cuando > desdeMs) ventasRecientes -= e.delta;
+      }
+    }
     // Su tramo y su rapidez se miden contra su categoría SIN ella (`contraElResto`: se le restan las unidades con que ella
     // entra a la vara, las de la ventana de la vara). La rapidez, con sus unidades de TODA la lectura: sin dato solo si
     // alguna venta salió de lo que de verdad no tiene edad (saldo inicial de la lectura, carga inicial, ajustes) desde que

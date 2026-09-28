@@ -23,8 +23,10 @@
 --        · `apartados` (nuevo, al lado de `eventos`): por prenda, [ts, delta] de lo apartado EN EL PISO, con el signo de lo
 --          que cambia lo libre (apartar resta, liberar suma), y el saldo con que arranca la ventana primero, a la hora de
 --          `desde` (lo apartado hoy menos lo que la ventana apartó y liberó: la misma ancla en `stock` que usa el libro).
---          La web lo suma a los eventos del piso para el reloj de novedad (una prenda con todo lo colgado apartado no
---          envejece) y NO al FIFO de la vara: la unidad apartada es la misma unidad, con su misma edad.
+--          La web lo resta de lo libre para el reloj de novedad (una prenda con todo lo colgado apartado no envejece), y
+--          para la vara, la rapidez y las ventas recientes lo lee como una VENTA desde que se apartó (lo que sigue apartado
+--          o se entregó) o como una PAUSA (lo que se liberó sin venderse): `eventosConApartados` de
+--          `apps/web/lib/frescura-reglas.ts` (revisión 8). La base solo entrega los puntos; esa lectura es de la web.
 --      Es la misma regla que ya usa la herramienta de retiro de este ADR (el tope es el piso neto de lo apartado).
 --
 -- CUÁNTO CUESTA (la carga sintética de siempre: una tienda, 2.000 prendas en 200 modelos con temporada, 20.000 bajadas,
@@ -108,7 +110,7 @@ begin
   if v_md5 = '644e10126796adc1111702290c14f2bb' then
     raise exception 'fn_frescura_sede es la de 20260928120300: pega antes 20260928120310_frescura_lectura_revision3.sql.';
   end if;
-  if v_md5 not in ('51babffc09da4073691ee251882967c8', '09e154ad85152859ab312be580a4a788') then
+  if v_md5 not in ('51babffc09da4073691ee251882967c8', '7da85d7b7010659ba5a36a2478c89ad4') then
     raise exception 'fn_frescura_sede tiene otro cuerpo (md5 %): no es la de 20260928120310 ni la de este archivo; alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
   end if;
 end $$;
@@ -221,7 +223,8 @@ begin
   -- prenda, [ts, delta] con el signo de lo que cambia lo LIBRE del piso: apartar resta, liberar suma (también al
   -- entregar: la liberación y la venta van juntas). El saldo con que arranca la ventana va primero, a la hora de `desde`:
   -- lo apartado hoy en el piso menos lo que se apartó (y más lo que se liberó) dentro de la ventana, la misma ancla en
-  -- `stock` que usa el libro. La web lo suma a los eventos del piso solo para el reloj; el FIFO no lo ve.
+  -- `stock` que usa el libro. La web lo resta de lo libre para el reloj, y para la vara y la rapidez lo lee como venta
+  -- desde que se apartó o como pausa (`eventosConApartados`, revisión 8).
   -- La lista de prendas se mira con `= any(v_ids)` y no con `in (select unnest(v_ids))` (el cambio de 20260928120010 para
   -- el libro): aquí las filas que llegan al filtro son pocas (solo apartados del piso, solo stock con algo apartado) y la
   -- semiunión se rearmaba por fila: 44 ms contra 6 con 2.016 prendas y 250 movimientos de apartado (2026-09-27).
