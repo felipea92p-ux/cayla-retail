@@ -224,7 +224,10 @@ export type OrigenDeTexto =
   | { tipo: "produccion" }
   | { tipo: "campana"; campana: { nombre: string; pct: number; vigencia: Vigencia | null } | null }
   | { tipo: "producto"; nombre: string | null }
-  | { tipo: "variantes" }
+  /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
+   *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
+   *  «marcó» nada. */
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -264,9 +267,17 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         vacio: `En ${sede} no hay prendas de este modelo.`,
       };
     case "variantes":
+      if (o.desdeProductos && o.tallas === 1) {
+        return {
+          ...base,
+          sobretitulo: "Productos · Una talla",
+          bajada: `En ${sede} hay ${prendas} de esta talla y color. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
+          vacio: `En ${sede} no hay unidades de esta talla y color.`,
+        };
+      }
       return {
         ...base,
-        sobretitulo: "Existencias · Prendas marcadas",
+        sobretitulo: `${o.desdeProductos ? "Productos" : "Existencias"} · Prendas marcadas`,
         bajada: `En ${sede} hay ${prendas} de ${modelos} entre las que marcaste. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
         vacio: `En ${sede} no hay unidades de las prendas que marcaste.`,
       };

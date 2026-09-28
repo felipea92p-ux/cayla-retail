@@ -188,6 +188,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             productos={resultado.productos}
             existencias={existencias}
             veExistencias={veModulo(persona, "existencias")}
+            ubicacionId={persona.ubicacionId}
+            sede={persona.ubicacionEtiqueta}
             puedeEliminar={persona.rol === "lider"}
             mensajeVacio={mensajeSinResultados(filtros)}
           />
@@ -195,6 +197,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           <ProductosTabla
             productos={resultado.productos}
             existencias={existencias}
+            ubicacionId={persona.ubicacionId}
+            sede={persona.ubicacionEtiqueta}
             puedeEditar={editaCatalogo}
             veExistencias={veModulo(persona, "existencias")}
             puedeEliminar={persona.rol === "lider"}

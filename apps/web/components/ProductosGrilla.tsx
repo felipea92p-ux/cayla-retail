@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
@@ -22,6 +23,9 @@ import {
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
+import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
+import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
+import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -38,6 +42,8 @@ export function ProductosGrilla({
   productos,
   existencias,
   veExistencias,
+  ubicacionId,
+  sede,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
@@ -46,10 +52,21 @@ export function ProductosGrilla({
   existencias: Map<string, ExistenciasProducto> | null;
   /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
+  ubicacionId: string;
+  /** El nombre de la sede de `ubicacionId`: el stock por talla de la vista rápida y las etiquetas son de ella. */
+  sede: string;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
+  // El stock de la sede de TODA la página en una sola lectura (una por tarjeta serían 24), y otra vez cuando la página
+  // cambia o se refresca (un ajuste): `productos` es otro arreglo.
+  const stockSede = useStockEnSede(ubicacionId);
+  const { leer } = stockSede;
+  useEffect(() => {
+    if (productos.length > 0) void leer(productos.map((p) => p.productoId));
+  }, [productos, leer]);
+
   if (productos.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
@@ -57,7 +74,16 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)} veExistencias={veExistencias} puedeEliminar={puedeEliminar} />
+        <TarjetaProducto
+          key={p.productoId}
+          producto={p}
+          existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
+          veExistencias={veExistencias}
+          stock={stockSede.de(p.productoId)}
+          leer={leer}
+          sede={sede}
+          puedeEliminar={puedeEliminar}
+        />
       ))}
     </div>
   );
@@ -67,11 +93,18 @@ function TarjetaProducto({
   producto,
   existencias,
   veExistencias,
+  stock,
+  leer,
+  sede,
   puedeEliminar,
 }: {
   producto: ProductoListado;
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
+  /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
+  sede: string;
   puedeEliminar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
@@ -91,6 +124,7 @@ function TarjetaProducto({
   // ADR-0270: lo de la sede elegida en grande y el resto aparte. «Sin stock» (nada en ninguna sede) sigue siendo el chip.
   const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias) : null;
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
+  const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
@@ -153,6 +187,17 @@ function TarjetaProducto({
             ) : (
               textoDeStock(producto.stockTotal)
             )}
+            {/* Sin la cifra única (SQL sin pegar), el total de la red y debajo las unidades de la sede. Con ella, «N aquí» ya
+                lo dice arriba: dos cifras de «aquí» que no coinciden (una cuenta apartadas y dañadas) confunden (ADR-0270). */}
+            {!lineas && <span
+              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
+              title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
+            >
+              En tu sede:{" "}
+              <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
+                {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
+              </span>
+            </span>}
           </span>
         </div>
         {lineas && (lineas.detalle || lineas.avisos.length > 0 || alerta === "bajo") && (
@@ -176,6 +221,9 @@ function TarjetaProducto({
       {vistaRapida && (
         <VistaRapidaModal
           producto={producto}
+          stock={stock}
+          leer={leer}
+          sede={sede}
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
@@ -199,6 +247,9 @@ function TarjetaProducto({
 
 function VistaRapidaModal({
   producto,
+  stock,
+  leer,
+  sede,
   colores,
   colorInicial,
   onClose,
@@ -207,6 +258,9 @@ function VistaRapidaModal({
   puedeEliminar,
 }: {
   producto: ProductoListado;
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
+  sede: string;
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
@@ -222,6 +276,14 @@ function VistaRapidaModal({
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
   const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
+
+  // Stock por talla EN ESTA SEDE, como la ficha de la Tabla: es el mismo número con el que Etiquetas decide cuántas salen.
+  // Viene de la lectura de toda la página; al abrir se relee este modelo, por si cambió desde que se cargó la grilla.
+  useEffect(() => {
+    void leer([producto.productoId]);
+  }, [producto, leer]);
+  const ids = producto.variantes.map((v) => v.varianteId);
+  const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, ids) : null;
 
   return (
     <Modal titulo={producto.referencia} subtitulo={producto.codigo ?? undefined} onClose={onClose} ancho="max-w-3xl">
@@ -246,15 +308,25 @@ function VistaRapidaModal({
           </Chip>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="scroll-cayla overflow-x-auto">
+        {/* min-w-0: sin él, la tabla ensancha la columna (y la hoja) en vez de desplazarse dentro de su caja. */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <p className="text-[12px] text-tinta/60">
+            Stock en {sede || "tu sede"}
+            {totalSede !== null && <span className="tabular-nums text-tinta">: {totalSede.toLocaleString("es-PE")}</span>}
+          </p>
+          <div className="scroll-cayla -mt-2 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-sand text-left">
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Talla</th>
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Color</th>
                   <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Precio</th>
-                  <th className="label-cayla py-2 text-[10.5px] text-tinta/60">Código</th>
+                  <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60" title={`Unidades en ${sede || "tu sede"}`}>
+                    Stock
+                  </th>
+                  {/* En el celular no cabe junto a la impresora de cada talla: el código queda en la ficha y en la etiqueta. */}
+                  <th className="label-cayla hidden py-2 text-[10.5px] text-tinta/60 sm:table-cell">Código</th>
+                  <th className="w-10 py-2" aria-label="Etiqueta de la talla" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand">
@@ -263,20 +335,59 @@ function VistaRapidaModal({
                     <td className="py-2 pr-3 text-tinta/80">{v.talla ?? "—"}</td>
                     <td className="py-2 pr-3 text-tinta/80">{v.color ?? "—"}</td>
                     <td className="py-2 pr-3 text-right tabular-nums text-tinta">S/{v.precio.toFixed(2)}</td>
-                    <td className="py-2 font-mono text-xs text-tinta/65">{v.codigo ?? v.sku ?? "—"}</td>
+                    <td className="py-2 pr-3 text-right">
+                      <StockDeTalla stock={stock} varianteId={v.varianteId} />
+                    </td>
+                    <td className="hidden py-2 font-mono text-xs text-tinta/65 sm:table-cell">{v.codigo ?? v.sku ?? "—"}</td>
+                    {/* La etiqueta de ESTA talla y color, como el ícono que flota sobre la variante en la Tabla. Aquí va
+                        siempre a la vista (no al pasar el mouse): la vista rápida también se abre en el celular. */}
+                    <td className="py-1 pl-2 text-right">
+                      <EnlaceEtiquetas
+                        href={urlEtiquetasDePrecio({ variantes: [v.varianteId] }, pantalla)}
+                        unidades={async () => {
+                          const fresco = await leer([producto.productoId]);
+                          return fresco ? unidadesEnSede(fresco, [v.varianteId]) : null;
+                        }}
+                        que={[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "Esta talla")}
+                        sede={sede}
+                        className={(negado) =>
+                          `inline-grid h-8 w-8 place-items-center rounded-md transition-colors duration-200 ease-cayla ${
+                            negado ? "bg-rojo text-crema hover:bg-rojo-profundo" : "text-tinta/55 hover:bg-hueso hover:text-tinta"
+                          }`
+                        }
+                        aria-label={`Etiqueta de precio de ${[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta talla")}`}
+                        title="Imprimir la etiqueta de esta talla"
+                      >
+                        <Printer aria-hidden className="h-4 w-4" />
+                      </EnlaceEtiquetas>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-auto flex gap-2 pt-2">
+          {/* flex-wrap: con los cuatro botones (líder), a 375 px no caben en una fila y sacaban «Eliminar» de la hoja. */}
+          <div className="mt-auto flex flex-wrap gap-2 pt-2">
             <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId }, pantalla)} className={`${botonCancelar} text-center`}>
+            <EnlaceEtiquetas
+              href={urlEtiquetasDePrecio({ producto: producto.productoId }, pantalla)}
+              unidades={async () => {
+                const fresco = await leer([producto.productoId]);
+                return fresco ? unidadesEnSede(fresco, ids) : null;
+              }}
+              que={producto.referencia}
+              sede={sede}
+              className={(negado) =>
+                negado
+                  ? "label-cayla flex-1 rounded-md border border-rojo bg-rojo px-3 py-2.5 text-center text-[11px] text-crema transition-colors hover:bg-rojo-profundo"
+                  : `${botonCancelar} text-center`
+              }
+            >
               Etiquetas
-            </Link>
+            </EnlaceEtiquetas>
             {/* ADR-0270, decisión 9 (Felipe, 2026-09-28): el stock se ajusta solo en Inventario. Antes había aquí un «Ajustar
                 inventario» propio que validaba contra otro número que la base (aceptaba «2 → 0» con 1 apartada y la base lo
                 rechazaba). Existencias abre esta prenda en su talla, con su Ajustar y su candado (ADR-0250). */}
@@ -296,4 +407,18 @@ function VistaRapidaModal({
       </div>
     </Modal>
   );
+}
+
+/** Stock de una talla en la sede, en negrita: es lo que cambia de una talla a otra. Con 0 se apaga (no es rojo:
+ *  ADR-0151); mientras se lee, un guion, nunca un 0 que no es cierto. */
+function StockDeTalla({ stock, varianteId }: { stock: StockDeModelo; varianteId: string }) {
+  if (!stock || stock === "error") {
+    return (
+      <span className="text-tinta/30" title={stock === "error" ? "No se pudo leer el stock de la tienda" : undefined}>
+        —
+      </span>
+    );
+  }
+  const n = stock.get(varianteId) ?? 0;
+  return <span className={`font-semibold tabular-nums ${n === 0 ? "text-tinta/35" : "text-tinta"}`}>{n.toLocaleString("es-PE")}</span>;
 }

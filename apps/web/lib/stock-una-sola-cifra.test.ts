@@ -25,6 +25,8 @@ const LEGADO: Record<string, string> = {
     "Vender: relee cada 10 s, desde el navegador, lo cobrable de la sede (la misma regla que getDisponibleEnSede de inventario-v2); pasa a fn_existencias con ella.",
   "lib/conteos.ts": "Conteo: lo libre en el almacén por prenda, para ofrecer «Bajar al piso» después de contar el piso.",
   "lib/movimientos-v2.ts": "Movimientos: «Hoy en la sede» de una prenda en el detalle de un movimiento (físico, a propósito).",
+  "components/useStockEnSede.ts":
+    "Catálogo (main, 2026-09-28): stock por talla de la ficha y el candado de Etiquetas (físico, la misma lectura que Etiquetas). Pendiente: pasar a fn_existencias (tarea #4).",
   "lib/etiquetas-precio.ts": "Etiquetas de precio: cuántas imprimir = prendas físicas colgadas. Pendiente: sin Cuarentena.",
   "app/(app)/buscar/page.tsx": "Buscar: «en stock / agotada». Pendiente de pasar a fn_existencias (tarea #4): hoy suma Cuarentena.",
   "components/AjustarInventarioModal.tsx":
