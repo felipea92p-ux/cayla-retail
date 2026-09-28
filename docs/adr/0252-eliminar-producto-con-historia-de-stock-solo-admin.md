@@ -2,7 +2,8 @@
 
 **Fecha:** 2026-09-28
 **Estado:** Construido y verificado contra un Postgres 17 desechable (52/52, 9 mutaciones detectadas, dos carreras con `COMMIT`) y en
-navegador (seis casos, 375 px). **Migración `20260928220000` SIN pegar en producción**: espera el «dale» de Felipe (ensayo primero).
+navegador (seis casos, 375 px). **Migración `20260928220000` EN PRODUCCIÓN desde el 2026-09-28** (Felipe dio el «dale»; aplicada por MCP como
+`eliminar_producto_con_historia`, versión `20260928170424`, después de un ensayo revertido; ver «Producción»). La web va en el PR.
 **Decide:** Felipe, 2026-09-28: «me gustaría borrar todo mi inventario y productos que he creado porque eran de prueba pero también
 tener el permiso de eliminarlo directo» → «mejor dame la opción para yo eliminar directo, que las cuentas de Admin tengan este permiso».
 Alcance elegido entre tres opciones: **«Stock sí, ventas no»**. Sobre lo que cargó el equipo de TRU: **«Todo era práctica»**.
@@ -114,3 +115,15 @@ UNA parte: funciones y un esquema de respaldo que ninguna pantalla usa; sin `alt
 Plan: (1) ensayo en un solo lote que termina en excepción, con la sesión de un Admin: borrar un producto de práctica, comprobar que no
 quedó nada, que el respaldo tiene sus filas y que los candados siguen en su modo; (2) comprobar que el lote no dejó nada; (3)
 `apply_migration` con el «dale» de Felipe; (4) comprobar por efectos: funciones, `security definer`, permisos y md5 del cuerpo.
+
+**Hecho el 2026-09-28 (Lima, tarde).** Ensayo en la base real, un solo lote que termina en excepción a propósito, con la sesión de
+Felipe (Admin) y la de una líder que no es Admin: «Fdhh» (`CMS-0004`, 12 movimientos, 6 variantes) → `con_historia|true`, eliminado,
+sin resto, movimientos 188 → 176, respaldo con sus filas (productos 1, variantes 6, códigos 6, stock 6, movimientos 12), candados en su
+modo, libro 0 descuadres, 1 línea de Actividad; «Polo Básico» → `con_documentos`, rechazado por sus 4 líneas de venta; «Fhfh» con la
+líder → `con_historia|false` y 42501. Después del lote: «Fdhh» intacto, 188 movimientos, respaldo en 87, sin funciones nuevas.
+Recién entonces `apply_migration` (`20260928170424`). Verificado por efectos: las seis funciones con **md5 idéntico** a la copia local
+probada (`eliminar_producto_con_historia` `f24ff965…`, `fn_producto_como_eliminar` `f6b42ef9…`, `fn_producto_historia` `9c76ec08…`,
+`fn_producto_se_puede_eliminar` `3f9fbbe5…`, `fn_producto_es_pieza_del_sistema` `797465df…`, `eliminar_producto` sin tocar `331ad3b5…`),
+una sola versión de cada una, `authenticated` sí y `anon` no en las tres públicas, las dos internas sin permiso para la API;
+`respaldo_purgas.filas` con sus 87 filas, RLS encendido y sin lectura para `authenticated`. La ventana, sobre los 33 productos reales:
+**6 libres + 22 con historia (Admin puede) = 28**, 4 con documentos, 1 pieza del sistema.
