@@ -193,6 +193,12 @@ mark{background:none;color:inherit;font-weight:700;text-decoration:underline;tex
 .elegida b{font-weight:600}
 .elegida .btn-enlace{margin-left:auto}
 
+.panel-nuevo{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:14px 16px;background:var(--crema);display:grid;gap:12px}
+.panel-nuevo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.panel-nuevo .panel-tit{font-weight:600;font-size:14px}
+.panel-nuevo .acc{display:flex;justify-content:flex-end;gap:8px}
+.dos-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@container (max-width:820px){.dos-col{grid-template-columns:1fr}}
 .plegable{margin-top:4px;border-top:1px solid var(--sand);padding-top:12px}
 .plegable>button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:13px;font-weight:600}
 .plegable>button .flecha{transition:transform 200ms var(--ease);display:inline-block}
@@ -409,7 +415,7 @@ button.celda:hover{background:var(--t04)}
       <h3>Propuesta · 4 preguntas</h3>
       <ol>
         <li><i>1</i><div><b>¿A qué categoría pertenece?</b> <span>· buscador y familias</span></div></li>
-        <li><i>2</i><div><b>¿Cómo es?</b> <span>· nombre, marca, tejido, patrón. Descripción, temporada y etiquetas plegadas en «Más detalles»</span></div></li>
+        <li><i>2</i><div><b>¿Cómo es?</b> <span>· nombre, descripción, marca, tejido y patrón. Temporada y etiquetas plegadas (opcionales)</span></div></li>
         <li><i>3</i><div><b>¿En qué tallas y colores?</b> <span>· tallas, colores y <b>una tabla</b> con la foto de cada color en su fila</span></div></li>
         <li><i>4</i><div><b>¿Cuánto cuesta y cuántas hay?</b> <span>· precio, costo, margen y <b>la misma tabla</b> ya con cantidades</span></div></li>
       </ol>
@@ -500,7 +506,7 @@ const RESPONSABLES = ["Elige quién registra…","Rosa Quispe","Milagros Díaz",
    ESTADO
    ========================================================================= */
 let s;
-function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, tejido:null, patron:null,
+function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, nuevaMarca:false, nmMarca:"", nmProvQ:"", listaProv:false, nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:"", tejido:null, patron:null,
   mas:false, desc:"", temporada:0, etiquetas:[],
   tallas:[], colores:[], busColor:"", paleta:true, nuevoColor:false, ncNombre:"", ncHex:"#9c6b4f", fotos:{},
   fuera:[], precio:"", costo:"", modo:"cant", cant:{}, precios:{}, relleno:"", donde:"piso", sinStock:false, responsable:0,
@@ -521,6 +527,8 @@ const PRESETS = {
     colores:["Azul denim","Índigo","Celeste","Negro","Gris","Blanco","Caqui","Verde militar"], fotos:{"Azul denim":3,"Índigo":1,"Negro":2,"Caqui":1},
     fuera:["Blanco|40","Blanco|42","Caqui|42","Verde militar|42"], precio:"139.90", costo:"62.00"}),
   creado: () => ({...PRESETS.listo(), creado:true}),
+  /* Solo por enlace (#marca): el formulario de marca nueva abierto, con un proveedor nuevo. */
+  marca: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarca:"Killa Denim", nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
   hoja: () => ({...blusa(), abierto:2, nombre:"blusa lirio", pareja:0, hoja:{tipo:"tejido", q:""}}),
 };
 
@@ -670,12 +678,17 @@ function cuerpo2(){
       <div data-vivo="repetido">${rep ? avisoRepetido(rep) : ""}</div>
     </div>
     <div class="bloque">
+      <div class="et"><b>Descripción</b><small>Opcional · lo que no dice el nombre: corte, largo, detalles</small></div>
+      <input class="caja" id="desc" data-campo="desc" placeholder="Manga globo, botones forrados…" value="${esc(s.desc)}" autocomplete="off">
+    </div>
+    <div class="bloque">
       <div class="et"><b>Marca y proveedor</b><small>Quién la hace y quién te la trae</small></div>
       ${p ? `<div class="elegida"><div><b>${esc(p[0])}</b> <span class="taupe">· la trae ${esc(p[1])}</span></div><button class="btn-enlace" data-accion="quitar-pareja">Cambiar</button></div>`
-        : `<div class="buscar" data-combo="mp">${lupa}
+        : s.nuevaMarca ? nuevaMarcaHtml() : `<div class="buscar" data-combo="mp">${lupa}
              <input class="caja" data-campo="busMP" placeholder="Toca para ver las ${MARCAS.length} marcas, o escribe la marca o el proveedor…" value="${esc(q)}" autocomplete="off">
-             ${s.listaMP || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear">+ Registrar ${q.trim() ? `«${esc(titulo(q))}»` : "una marca"} nueva</button></div>` : ""}
-           </div>`}
+             ${s.listaMP || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear" data-accion="nm-abrir">+ Registrar ${q.trim() ? `«${esc(titulo(q))}»` : "una marca"} nueva</button></div>` : ""}
+           </div>
+           <p class="ayuda">¿No está? <button class="btn-enlace" data-accion="nm-abrir">+ Registrar una marca o un proveedor nuevo</button></p>`}
     </div>
     ${c.tejidos.length || exige ? `<div class="bloque">
       <div class="et"><b>Tejido</b><small>${exige ? "" : "Opcional · "}De qué tela es</small></div>
@@ -686,9 +699,8 @@ function cuerpo2(){
       ${tiles("patron", c.patrones, s.patron)}
     </div>` : ""}
     <div class="plegable ${s.mas ? "abierto" : ""}">
-      <button data-accion="mas"><span class="flecha">›</span> Más detalles <small>· opcional · descripción, temporada, etiquetas${resumenMas()}</small></button>
+      <button data-accion="mas"><span class="flecha">›</span> Temporada y etiquetas <small>· opcional${resumenMas()}</small></button>
       ${s.mas ? `<div class="dentro revela">
-        <div class="bloque"><div class="et"><b>Descripción</b></div><input class="caja" data-campo="desc" placeholder="Tela, corte, detalle…" value="${esc(s.desc)}"></div>
         <div class="bloque"><div class="et"><b>Temporada</b><small>Sin año: el sistema lo sabe por la fecha en que llega. Si eliges «Ninguna», usa la de su categoría</small></div>
           <div class="chips">${TEMPORADAS.map((t, i) => `<button class="chip" data-temporada="${i}" aria-pressed="${s.temporada === i}">${t}</button>`).join("")}</div></div>
         <div class="bloque"><div class="et"><b>Etiquetas</b><small>Para buscar y agrupar${s.etiquetas.length ? ` · ${plural(s.etiquetas.length, "elegida", "elegidas")}` : ""}</small></div>
@@ -699,9 +711,28 @@ function cuerpo2(){
       </div>` : ""}
     </div>`;
 }
+/* Marca nueva (el NuevaMarcaForm del ERP): nombre de la marca y quién la trae — un proveedor que ya existe o uno nuevo. */
+function nuevaMarcaHtml(){
+  const q = s.nmProvQ, lista = PROVEEDORES.map((p, i) => [p, i]).filter(([p]) => coincide(p, q)).sort((a, b) => a[0].localeCompare(b[0], "es"));
+  const prov = s.nmProv !== null
+    ? `<div class="elegida"><div><b>${esc(PROVEEDORES[s.nmProv])}</b></div><button class="btn-enlace" data-accion="nm-prov-cambiar">Cambiar</button></div>`
+    : s.nmProvNuevo
+      ? `<div class="dos-col"><div><label for="nm-razon">Razón social</label><input class="caja" id="nm-razon" data-campo="nmRazon" placeholder="Textil Andina SAC" value="${esc(s.nmRazon)}" autocomplete="off"></div>
+           <div><label for="nm-ruc">RUC <span class="taupe" style="font-weight:400">· opcional</span></label><input class="caja" id="nm-ruc" data-campo="nmRuc" inputmode="numeric" placeholder="11 dígitos" value="${esc(s.nmRuc)}" autocomplete="off"></div></div>
+         <p class="ayuda"><button class="btn-enlace" data-accion="nm-prov-existente">Mejor elijo uno que ya existe</button></p>`
+      : `<div class="buscar" data-combo="prov">${lupa}<input class="caja" id="nm-prov" data-campo="nmProvQ" placeholder="Toca para ver los ${PROVEEDORES.length} proveedores, o escribe…" value="${esc(q)}" autocomplete="off">
+           ${s.listaProv || q.trim() ? `<div class="lista"><p class="enc">${q.trim() ? plural(lista.length, "proveedor", "proveedores") : "Todos, de la A a la Z"}</p>${lista.map(([p, i]) => `<button class="opcion" data-nmprov="${i}">${marcar(p, q)}</button>`).join("")}<button class="opcion crear" data-accion="nm-prov-nuevo">+ Proveedor nuevo${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button></div>` : ""}</div>`;
+  return `<div class="panel-nuevo revela">
+    <p class="panel-tit">Marca nueva</p>
+    <div><label for="nm-marca">Nombre de la marca</label><input class="caja" id="nm-marca" data-campo="nmMarca" placeholder="Killa Denim" value="${esc(s.nmMarca)}" autocomplete="off"></div>
+    <div><label for="nm-prov">¿Quién te la trae?</label>${prov}</div>
+    <div class="acc"><button class="btn btn-secundario" data-accion="nm-cancelar">Cancelar</button><button class="btn btn-primario" data-accion="nm-crear" ${nmListo() ? "" : "disabled"}>Crear y elegir</button></div>
+  </div>`;
+}
+const nmListo = () => s.nmMarca.trim() && (s.nmProv !== null || (s.nmProvNuevo && s.nmRazon.trim()));
 function pieNombre(){ const f = nombreFinal(); return f && f !== s.nombre.trim() ? `Se guardará como <b>${esc(f)}</b>` : "Empieza por el tipo de prenda: Blusa, Jean, Vestido…"; }
 function avisoRepetido(r){ return `<div class="aviso ambar"><b>${esc(r)}</b> ya existe. Si es otro color de la misma prenda, <button class="btn-enlace">agrégale el color allá</button>; si es otra prenda, cámbiale el nombre.</div>`; }
-function resumenMas(){ const n = [s.desc.trim() && "descripción", s.temporada && TEMPORADAS[s.temporada], s.etiquetas.length && plural(s.etiquetas.length, "etiqueta", "etiquetas")].filter(Boolean); return n.length ? ` — <b style="color:var(--tinta);font-weight:600">${n.join(", ")}</b>` : ""; }
+function resumenMas(){ const n = [s.temporada && TEMPORADAS[s.temporada], s.etiquetas.length && plural(s.etiquetas.length, "etiqueta", "etiquetas")].filter(Boolean); return n.length ? ` — <b style="color:var(--tinta);font-weight:600">${n.join(", ")}</b>` : ""; }
 
 /* ---- 3 · tallas y colores ---- */
 function cuerpo3(){
@@ -960,6 +991,7 @@ document.addEventListener("click", e => {
   if (d.seguir) return abrir(+d.seguir);
   if (d.familia) { s.familia = s.familia === d.familia ? null : d.familia; return render(); }
   if (d.cat) { const cambia = s.cat !== d.cat; s.familia = famDe(d.cat); s.cat = d.cat; s.busCat = ""; if (cambia) { s.tallas = [...conf().habituales]; s.tejido = null; s.patron = null; s.fuera = []; } return abrir(2); }
+  if (d.nmprov !== undefined) { s.nmProv = +d.nmprov; s.nmProvQ = ""; s.listaProv = false; return render(); }
   if (d.pareja !== undefined) { s.pareja = +d.pareja; s.busMP = ""; s.listaMP = false; return render(); }
   if (d.hoja) { s.hoja = {tipo:d.hoja, q:""}; return render(); }
   if (d.tejido) { s.tejido = s.tejido === d.tejido && !d.cierra ? null : d.tejido; if (d.cierra) s.hoja = null; return render(); }
@@ -974,6 +1006,18 @@ document.addEventListener("click", e => {
   if (d.modo) { s.modo = d.modo; return render(); }
   if (d.donde) { s.donde = d.donde; return render(); }
   const a = d.accion;
+  if (a === "nm-abrir") { s.nuevaMarca = true; s.nmMarca = titulo(s.busMP); s.busMP = ""; s.listaMP = false; render(); $("#nm-marca")?.focus(); return; }
+  if (a === "nm-cancelar") { Object.assign(s, {nuevaMarca:false, nmMarca:"", nmProvQ:"", nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""}); return render(); }
+  if (a === "nm-prov-nuevo") { s.nmProvNuevo = true; s.nmRazon = titulo(s.nmProvQ); s.nmProvQ = ""; s.listaProv = false; render(); $("#nm-razon")?.focus(); return; }
+  if (a === "nm-prov-existente" || a === "nm-prov-cambiar") { s.nmProvNuevo = false; s.nmProv = null; return render(); }
+  if (a === "nm-crear") {
+    const marca = titulo(s.nmMarca), prov = s.nmProv !== null ? PROVEEDORES[s.nmProv] : titulo(s.nmRazon);
+    if (s.nmProv === null) PROVEEDORES.push(prov);
+    if (!MARCAS.some(m => m[0] === marca)) MARCAS.push([marca, [prov]]);
+    PAREJAS.push([marca, prov]); s.pareja = PAREJAS.length - 1;
+    Object.assign(s, {nuevaMarca:false, nmMarca:"", nmProvQ:"", nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""});
+    return render();
+  }
   if (a === "cerrar-hoja") { s.hoja = null; return render(); }
   if (a === "mas") { s.mas = !s.mas; return render(); }
   if (a === "quitar-pareja") { s.pareja = null; return render(); }
@@ -989,8 +1033,14 @@ document.addEventListener("click", e => {
   if (a === "sin-stock") { s.sinStock = !s.sinStock; return vivo(); }
 });
 /* La lista de marcas se abre al entrar al buscador y se cierra al salir de él (el clic de una opción llega antes). */
-document.addEventListener("focusin", e => { if (e.target.dataset?.campo === "busMP" && !s.listaMP) { s.listaMP = true; render(); } });
-document.addEventListener("pointerdown", e => { if (s.listaMP && !e.target.closest('[data-combo="mp"]')) { s.listaMP = false; render(); } });
+document.addEventListener("focusin", e => {
+  if (e.target.dataset?.campo === "busMP" && !s.listaMP) { s.listaMP = true; render(); }
+  if (e.target.dataset?.campo === "nmProvQ" && !s.listaProv) { s.listaProv = true; render(); }
+});
+document.addEventListener("pointerdown", e => {
+  if (s.listaMP && !e.target.closest('[data-combo="mp"]')) { s.listaMP = false; render(); }
+  if (s.listaProv && !e.target.closest('[data-combo="prov"]')) { s.listaProv = false; render(); }
+});
 /* El nombre del color bajo el mouse: la paleta no muestra nombres (círculos de 26 px). */
 document.addEventListener("pointerover", e => {
   const m = e.target.closest(".muestra"), el = $('[data-vivo="color-bajo"]'); if (!m || !el) return;
@@ -1001,7 +1051,8 @@ document.addEventListener("input", e => {
   if (d.campo === "hojaQ") { s.hoja.q = el.value; return render(); }
   if (d.campo) {
     s[d.campo] = el.value;
-    if (["busMP","busColor","busCat"].includes(d.campo)) return render(); // abren o cierran su lista
+    if (["busMP","busColor","busCat","nmProvQ"].includes(d.campo)) return render(); // abren o cierran su lista
+    if (["nmMarca","nmRazon","nmRuc"].includes(d.campo)) { const b = $('[data-accion="nm-crear"]'); if (b) b.disabled = !nmListo(); return; }
     if (d.campo === "ncNombre") { const btn = $('[data-accion="crear-color"]'); if (btn) btn.disabled = !el.value.trim(); return; }
     if (d.campo === "relleno" || d.campo === "ncHex") return;
     return vivo();

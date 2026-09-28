@@ -33,7 +33,7 @@ stock de hoy como paso 5 (ADR-0212). Todo eso cayó en el paso 3 o en un paso nu
 | 5 pasos: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes · Cuántas tienes hoy | **4 preguntas:** ¿A qué categoría pertenece? · ¿Cómo es? · ¿En qué tallas y colores? · ¿Cuánto cuesta y cuántas hay? |
 | Tejido y patrón en «Cómo se hace» | **En «¿Cómo es?»**, junto al nombre y la marca: es lo que describe a la prenda |
 | «Qué producto es» (se elige una categoría) | **«¿A qué categoría pertenece?»**: el título dice lo que se elige (Felipe, 2026-09-28) |
-| Descripción, temporada y etiquetas a la vista, cada una con su fila | **Plegadas en «Más detalles · opcional»**. La línea plegada dice qué se llenó («descripción, Verano, 1 etiqueta») |
+| Descripción, temporada y etiquetas a la vista, cada una con su fila | **Descripción a la vista** bajo el nombre (opcional; Felipe no la encontró plegada). **Temporada y etiquetas plegadas** en «Temporada y etiquetas · opcional»; la línea plegada dice qué se llenó («Verano, 1 etiqueta») |
 | Fotos en una grilla aparte de casillas por color | **La foto va en la fila de su color, dentro de la tabla de variantes.** Una sola tabla (color × talla) muestra fotos, variantes y quitar |
 | Tabla de variantes en el paso 4 y tabla de stock en el paso 5 | **La tabla aparece al elegir las tallas y los colores (paso 3). En el paso 4 es la misma tabla, con cantidades**, total por fila y por columna. «Precios distintos» es un segmento de esa tabla, no otra vista |
 | Barra de 5 segmentos arriba + «Siguiente paso» en la ficha | **Sin barra arriba.** Bajo la ficha va la lista «Avance»: las 4 preguntas con ✓, su resumen o lo que falta. Se toca para volver a una |
@@ -56,7 +56,7 @@ Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (je
 | Categorías (47) | Buscador arriba y 6 familias con su cuenta. Al abrir una familia, sus categorías en grilla (Indumentaria tiene 18). Sin fila de «las que más usas» (Felipe, 2026-09-28): una categoría se busca o se abre por su familia |
 | Tejidos (24) | 5 muestras de la categoría + tarjeta punteada **«Ver todos · 24 tejidos»**. La hoja muestra primero «Los de Camisas y Blusas · 10» y luego el resto en grupos (Naturales, De punto, Planos y de trabajo, Sintéticos). Elegir uno de fuera lo suma a la categoría, igual que el «Ver más» de `main` (b116c0cb) |
 | Patrones (9) | Igual que tejidos: 5 + «Ver todos · 9» |
-| Marcas y proveedores (84 / 78) | Solo el buscador: al tocarlo se abre la lista entera de la A a la Z («Blusa · la trae Taller Lima»); al escribir se filtra y marca lo que coincide. Sin «más usadas» (Felipe, 2026-09-28) |
+| Marcas y proveedores (84 / 78) | Solo el buscador: al tocarlo se abre la lista entera de la A a la Z («Blusa · la trae Taller Lima»); al escribir se filtra y marca lo que coincide. Sin «más usadas» (Felipe, 2026-09-28). Bajo el buscador, siempre a la vista: **«¿No está? + Registrar una marca o un proveedor nuevo»**, que abre un formulario corto: nombre de la marca y quién la trae (un proveedor que ya existe, con buscador, o uno nuevo con razón social y RUC opcional) |
 | Tallas (27) | Solo las de la categoría (máx. 9) como chips; atajos «Curva habitual» y «Todas»; **«+ Otra talla»** abre la hoja con las 26 restantes agrupadas (Letras, Números, Otras) |
 | Colores (76) | **Un elegido se ve en un solo lugar y de una sola forma:** la fila de elegidos, cada uno con su ×. **Se elige de una sola manera:** buscándolo por nombre o tocándolo en la carta de 71 círculos por familia, que se abre de entrada (el nombre sale al pasar el mouse). Sin fila de «más usados» (Felipe, 2026-09-28). Antes el mismo estado se veía como chip con ✓ y como píldora con × («confuso») |
 | Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
@@ -99,7 +99,7 @@ Se leyó cada paso como alguien de tienda que abre la pantalla por primera vez:
    o hace falta una fila «Todos los colores»?
 3. **Crear un color desde el alta.** Hoy crear colores es de Catálogo → Atributos. ¿Quién puede crearlo desde aquí?
    ¿Solo el líder, igual que marcas y proveedores?
-4. **Descripción, temporada y etiquetas plegadas.** Las etiquetas se pusieron a la vista a propósito el 2026-09-26
+4. **Temporada y etiquetas plegadas** (la descripción volvió a la vista el 2026-09-28). Las etiquetas se pusieron a la vista a propósito el 2026-09-26
    (ADR-0109). Si tienen que seguir a la vista, van como fila abierta al final de «¿Cómo es?».
 
 ## Cómo se portaría (estimado)
