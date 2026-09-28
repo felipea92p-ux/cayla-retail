@@ -138,6 +138,43 @@ describe("historiaDeCohortes — salidas con su exposición", () => {
   });
 });
 
+// Revisión 9 del paso 3 de Frescura (ADR-0208, 2026-09-28): tres cosas que el FIFO ya hacía bien y que ninguna prueba
+// vigilaba (un cambio a propósito en cada una pasaba las 206 pruebas de la web). Lo lee Frescura (la vara y la rapidez) y
+// también Análisis.
+describe("historiaDeCohortes — lo que ya hacía y nada vigilaba (revisión 9 de Frescura)", () => {
+  it("la parte que vuelve del almacén conserva sus días colgada: 10 días colgadas, 10 guardadas, vuelve 1 de 3 y se vende al día siguiente → 11 días, no 1", () => {
+    const { cohortes, salidas } = historiaDeCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 3 }),
+      evento({ ts: "2026-09-11T00:00:00Z", delta: -3, esMovimientoInterno: true }),
+      evento({ ts: "2026-09-21T00:00:00Z", delta: 1, esMovimientoInterno: true }),
+      evento({ ts: "2026-09-22T00:00:00Z", delta: -1, esVenta: true }),
+    ]);
+    expect(salidas).toEqual([{ tipo: "venta", cantidad: 1, segundosExpuesta: 11 * DIA, edadDesconocida: false, ts: "2026-09-22T00:00:00Z" }]);
+    // Las 2 que siguen guardadas conservan sus 10 días.
+    expect(cohortes.filter((c) => c.cantidadRestante > 0)).toEqual([expect.objectContaining({ cantidadRestante: 2, segundosAcumulados: 10 * DIA, abiertaDesde: null })]);
+  });
+
+  it("dos pausas seguidas suman: 10 días colgada, guardada, 10 más, guardada otra vez y 5 más → 25 días al venderse (la segunda no pisa la primera)", () => {
+    const { salidas } = historiaDeCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 1 }),
+      evento({ ts: "2026-09-11T00:00:00Z", delta: -1, esMovimientoInterno: true }),
+      evento({ ts: "2026-09-21T00:00:00Z", delta: 1, esMovimientoInterno: true }),
+      evento({ ts: "2026-10-01T00:00:00Z", delta: -1, esMovimientoInterno: true }),
+      evento({ ts: "2026-10-11T00:00:00Z", delta: 1, esMovimientoInterno: true }),
+      evento({ ts: "2026-10-16T00:00:00Z", delta: -1, esVenta: true }),
+    ]);
+    expect(salidas).toEqual([{ tipo: "venta", cantidad: 1, segundosExpuesta: 25 * DIA, edadDesconocida: false, ts: "2026-10-16T00:00:00Z" }]);
+  });
+
+  it("una pérdida (traslado a otra sede, merma) de lo que no tiene edad conserva la marca: la carga inicial que se va a otra tienda no entra a la curva como si se supiera su edad", () => {
+    const { salidas } = historiaDeCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 3, edadDesconocida: true }),
+      evento({ ts: "2026-09-05T00:00:00Z", delta: -2 }),
+    ]);
+    expect(salidas).toEqual([{ tipo: "perdida", cantidad: 2, segundosExpuesta: 4 * DIA, edadDesconocida: true, ts: "2026-09-05T00:00:00Z" }]);
+  });
+});
+
 describe("historiaDeCohortes — la edad desconocida viaja con la unidad (ADR-0248)", () => {
   it("se hereda al partir, al pausar y al reanudar, y pasa a la venta", () => {
     const { cohortes, salidas } = historiaDeCohortes([

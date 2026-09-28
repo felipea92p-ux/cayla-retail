@@ -156,10 +156,11 @@ reabrir un mes, quien tenga Cierre de mes.
   - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
   - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
 
-## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
+## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **YA en producción** (verificado por md5 el 2026-09-28; falta la llave); PR #547 fusionado
 
-- [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
-  funciones, sin políticas ni `drop trigger`). Después: `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
+- [x] **Felipe pegó `20260928210000_huellas_catalogo_con_llave.sql` el 2026-09-28** (verificado: las dos funciones idénticas
+  a las de `main`, byte a byte; `huellas_llave` sin filas).
+- [ ] **Falta la llave:** `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
   secreto `DERIVA_LLAVE`; `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables (Settings ▸ Secrets and variables ▸ Actions).
   Primera corrida: Actions ▸ «Deriva diaria» ▸ Run workflow.
 - [ ] **Cuando el PR esté en `main`: sumar «SQL pegado» a los checks exigidos de `main`** (hoy exige «Tipos, lint y
@@ -1267,7 +1268,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
         núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
-    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, EN PRODUCCIÓN desde el 2026-09-28** (rama
       `claude/frescura-3c-lectura`). `20260928120300_frescura_lectura.sql`: `fn_es_llegada` (el predicado de llegada de
       `fn_resumen_comparacion` con nombre propio), `fn_frescura_sede` (una lectura por sede, candado de líder + operar la
       sede, pista `frescura_sin_permiso`) y `fn_confianza_registro` (por sede y mes de Lima, sin persona, sin carga
@@ -1305,25 +1306,46 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       con «trasladar». `20260928120320` solo cambió comentarios (su `fn_frescura_sede` pasa a `7da85d7b…`). Más las dos
       pruebas que faltaban (lote + producción en T4i; la segunda talla apartada y el borde 100 en la web). Pruebas:
       `pnpm pruebas:frescura-lectura` 207, `frescura-reglas.test.ts` 141. ADR-0208, «Revisión 8 del paso 3». PR nuevo
-      (el #544 ya se fusionó).
-      - [ ] **Pegar en producción: `20260928120300`, `20260928120310` y `20260928120320`, en ese orden** (cada una
-        sola, en el SQL Editor, a cualquier hora: solo funciones; primero se fusiona el PR de las revisiones 7 y 8). Producción
-        el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos:
-        `20260928120300` `40bf970f…` y `20260928120310` `e121f11e…` (los dos idénticos a main), `20260928120320`
-        `81e3ddeb…` (revisión 8). md5 reverificados ese día en bases nuevas (cada archivo en una transacción, dos veces
-        cada uno).
-        **No detenerse en la segunda**: sin la tercera, lo apartado cuenta como colgado y la carga de AQP o LIM reinicia
-        temporadas. Tras `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`,
-        `fn_frescura_sede` `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro`
-        `9c714f98dd2776eebb505846eb24c33a`, `fn_temporada_efectiva` sin cambio. Tras `20260928120310`: `fn_es_llegada`
-        igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`, `fn_frescura_sede`
-        `51babffc09da4073691ee251882967c8`, `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`,
-        `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`, `fn_temporada_efectiva`
-        `e96b3c6c51fd12ca712e76d63efd6448`. Tras `20260928120320`: las mismas cinco y `fn_frescura_sede`
-        `7da85d7b7010659ba5a36a2478c89ad4` (revisión 8; antes `09e154ad…`, que nunca se pegó). Cada guarda acepta el
-        cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; la tercera sin la segunda aborta pidiéndola,
-        y volver a pegar una anterior aborta sin deshacer nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a
-        mano de `packages/database` con `supabase gen types`. ADR-0208, «Revisión 7 del paso 3».
+      (el #544 ya se fusionó). **Revisión 9 el 2026-09-28** (rama `claude/frescura-3c-revision9`; el #545 de las
+      revisiones 7 y 8 se fusionó con ella corriendo, así que va en un cuarto archivo, `20260928120330`, y en un PR en
+      BORRADOR hasta cerrar su verificación): las tardías de la lectura cuentan lo apartado en los 10 minutos de la bajada
+      contra el piso libre, y la web lee lo apartado ANTES de quitar las tardías (la separada, la entregada y el pedido de
+      otra sede dan lo mismo que la vendida; el indicador de registro no cambia); la orden del Taller revertida ya no es
+      llegada a CAYLA; lo que entra al piso y se aparta en el mismo instante no es exhibición; la separación liberada
+      vuelve con su edad; entradas antes que salidas en un mismo instante; la prueba del indicador sin tienda; y las dos
+      decisiones de Felipe (abajo). Pruebas: `pnpm pruebas:frescura-lectura` 231, `frescura-reglas.test.ts` 151,
+      `frescura-contrato.test.ts` 22, `inventario-exposicion.test.ts` 57. ADR-0208, «Revisión 9 del paso 3». **Su
+      corrector** (el mismo día, misma rama): lo liberado sin entregarse de una separación de ANTES de la bajada ya no
+      resta en las tardías de la lectura (la liberada después de la venta es tardía como su gemela retirada al almacén), y
+      el pedido que la clienta no recogió se exhibe desde que se libera (el lote de meses después ya no vuelve a ser
+      «Nueva»); T9e fija W y 2W en sus bordes, T9f vigila el saldo. `pruebas:frescura-lectura` 237,
+      `frescura-contrato.test.ts` 24. ADR-0208, «El corrector de la revisión 9».
+      - [x] **PEGADAS por Felipe el 2026-09-28 y verificadas en solo lectura**: los seis `md5(prosrc)` finales (`fn_es_llegada`
+        `5089ba50…`, `fn_es_llegada_a_cayla` `7e1ffb6d…`, `fn_temporada_efectiva_nucleo` `2bf80eb2…`, `fn_temporada_efectiva`
+        `e96b3c6c…`, `fn_confianza_registro` `8c6f5e6c…`, `fn_frescura_sede` `33970c94…`), los permisos (solo `authenticated`
+        en `fn_frescura_sede` y `fn_confianza_registro`; las otras tres, solo la dueña) y el candado: sin sesión,
+        `fn_frescura_sede` rechaza con «Solo el líder…». Lo que sigue es cómo se pegaron.
+      - [x] **Orden en que se pegaron: `20260928120300` → `20260928120310` → `20260928120320` →
+        `20260928120330`** (cada una sola, en el SQL Editor, a cualquier hora: solo funciones, un comentario, `revoke` y
+        `grant`; las tres primeras ya están en main; la cuarta, cuando se fusione el PR de la revisión 9). Producción el
+        2026-09-28: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos: `40bf970f…`, `e121f11e…`,
+        `81e3ddeb…` y `a3b2a086…`. **No detenerse antes de la cuarta**: sin ella, separar una prenda recién bajada entra a
+        la vara como una venta de 0 minutos y la orden revertida reinicia temporadas. `md5(prosrc)` después de cada una:
+        - `20260928120300`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
+          `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`,
+          `fn_temporada_efectiva` sin cambio.
+        - `20260928120310`: `fn_es_llegada` igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`,
+          `fn_frescura_sede` `51babffc09da4073691ee251882967c8`, `fn_confianza_registro`
+          `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`,
+          `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448`.
+        - `20260928120320`: las mismas cinco y `fn_frescura_sede` `7da85d7b7010659ba5a36a2478c89ad4`.
+        - `20260928120330`: las mismas cinco y `fn_frescura_sede` `33970c94c7dddf9530ee6b8175862661` (con las dos
+          correcciones de su corrector; el `affb0187…` del constructor nunca se pegó y la guarda lo rechaza).
+        Cada guarda acepta el cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; una fuera de orden
+        aborta pidiendo la que falta, y volver a pegar una anterior aborta sin deshacer nada (reproducido el 28-sep sobre
+        una copia de producción, cada archivo en una transacción). Luego `pnpm datos:generar:produccion` con el volcado
+        nuevo y `pnpm datos:comparar`; regenerar los tipos de `packages/database` con `supabase gen types`. ADR-0208,
+        «Revisión 9 del paso 3».
       - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «aún sin referencia» (categoría sin P50: la
         chompa de la salida real ya no sale «Nueva»; si está callada 30 días ya recibe «revisa sus ventas»); que cada
         prenda se mide contra su categoría SIN ella (`categoriaSinElla`), aunque la cabecera muestre la curva completa;
@@ -1333,16 +1355,18 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         La lista completa, con el texto propuesto («Cada prenda se compara con el resto de su categoría, sin contarse a
         sí misma»): ADR-0208, «Cierre del paso 3». Desde la revisión 7, además: cómo se ve una prenda con todo apartado
         (conserva el tramo de cuando se apartó, sin sugerencias: mostrarla como «apartada») y que «ventas recientes» son
-        las de sus últimos 30 días en el piso.
+        las de sus últimos 30 días en el piso. Desde la revisión 9: las tardías de la lectura NO son las del indicador de
+        registro (lo apartado en la ventana cuenta en la primera y no en la segunda: no mostrar esa lista como «el registro
+        del equipo»); el modelo cuyo único paso por el piso fue un pedido separado al instante sale «Nueva» con 0
+        segundos (si la clienta no lo recogió, se exhibe desde que se libera); y «sigue vendiendo» también para lo que no tiene dato de rapidez.
       - [x] **R7-1 DECIDIDA por Felipe el 2026-09-27: lo apartado para una clienta no está colgado.** En
         `20260928120320`: `piso_hoy` y `almacen_hoy` son lo libre, `apartadas_hoy` lo apartado y `apartados` los puntos
         de lo apartado del piso (con su saldo). En la web, el reloj no corre mientras todo está apartado, y la prenda sin
         nada libre no es quieta ni recibe sugerencias. ADR-0208, «Revisión 7 del paso 3». Completada en la revisión 8:
         lo apartado tampoco cuenta como colgado en la vara ni en la rapidez (venta desde que se apartó, o pausa si se
         liberó sin venderse). ADR-0208, «Revisión 8 del paso 3».
-      - [ ] **Pregunta para Felipe (no bloquea pegar):** una separación abierta cuenta como venta desde que se aparta
-        (revisión 8). Si prefiere que cuente solo al entregarse, lo abierto pasa a pausa en `eventosConApartados`; la
-        prenda con 5 de 6 separadas volvería a salir lenta mientras sigan abiertas. ADR-0208, «Revisión 8 del paso 3».
+      - [x] **DECIDIDA por Felipe el 2026-09-28: una separación abierta cuenta como venta desde que se aparta**
+        (confirma la revisión 8; no cambia código). ADR-0208, «Revisión 9 del paso 3».
       - [x] **R7-2 y R7-3 corregidas el 2026-09-27** (revisión 7): «dejó de vender» se mide con sus últimos 30 días EN
         EL PISO (el éxito repuesto ayer sigue pilar); con ventas que pudieron esconderse, la rapidez se mide contándolas y
         sin contarlas, y queda sin dato solo si cambian el veredicto (la devolución revendida ya no deja sin rapidez al
@@ -1367,11 +1391,23 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         CAYLA solo si el modelo+color no tiene lote ni producción, y entre cargas manda la primera (`20260928120320`,
         prueba T4i). En producción hoy no cambia nada: ningún modelo+color tiene lote y carga a la vez. ADR-0208,
         «Revisión 7 del paso 3»; ADR-0246, nota (d).
-      - [ ] **Pregunta 8 de la revisión 6 (Felipe), para la maqueta del paso 4, no para el SQL:** ¿lo que no tiene dato
-        de rapidez (vino en la carga) y vendió en sus últimos 30 días en el piso recibe «sigue vendiendo» con la
-        temporada pasada, como su gemelo del lote? Hoy recibe «cambiar de lugar» y «retirar»; recomendado: sí (pero la
-        chompa que vendió 1 de 4 en 42 días también lo recibiría). ADR-0208, «Revisión 6 del paso 3»; prueba «PENDIENTE
-        DE FELIPE» de los bikinis.
+      - [x] **Pregunta 8 de la revisión 6 DECIDIDA por Felipe el 2026-09-28:** lo que no tiene dato de rapidez (vino en
+        la carga) y vendió en sus últimos 30 días en el piso recibe «sigue vendiendo» con la temporada pasada, como su
+        gemelo del lote (nunca «trasladar»). Felipe aceptó que la chompa que vendió 1 de 4 en 42 días también lo reciba.
+        `sugerenciasDe`, revisión 9; la prueba de los bikinis ya no dice «PENDIENTE DE FELIPE». ADR-0208, «Revisión 9 del
+        paso 3».
+      - [ ] **Análisis (`fn_es_llegada`, las «entradas» de `fn_resumen_comparacion`) cuenta la producción revertida como
+        entrada** (hallazgo R9-SQL-2 de la revisión 9 de Frescura): una orden del Taller cerrada y revertida (o revertida
+        y anulada) deja su entrada «producción» en el libro. Frescura ya la saca de la llegada a CAYLA
+        (`20260928120330`: solo cuenta la entrada de una orden que sigue inventariada); Análisis no se tocó. Arreglo
+        probable: el mismo filtro por `producciones.inventariado_at`, con su prueba en `fn_resumen_comparacion.mjs` y en
+        T8 de `frescura_lectura.mjs` (que exige que `fn_es_llegada` sea el predicado de Análisis). Hoy en producción: 0
+        órdenes del Taller. ADR-0208, «Revisión 9 del paso 3».
+      - [ ] **Desempates por uuid que quedan (revisión 9, no urgentes):** los puntos de `apartados` de un mismo instante
+        (apartar y liberar la misma talla en una transacción son posibles en los dos órdenes) y el libro
+        (`fn_ledger_puntos`, paso 1): una bajada y una salida de la misma talla en la misma transacción con el piso en 0
+        podrían dejar al núcleo con un piso de antes negativo («dudosa»). Hoy ningún flujo lo hace. ADR-0208, «Revisión 9
+        del paso 3».
       - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
         `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
         0 filas así). ADR-0208, «Revisión 4».

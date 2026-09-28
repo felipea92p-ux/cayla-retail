@@ -80,7 +80,8 @@ export type Tramo = "nueva" | "vigente" | "envejecida" | "critica";
 /**
  * Lo que Frescura puede sugerir. «Rebajar» NO existe: la rebaja es del líder, por sede y en tramos (bloque 7).
  * `sigue_vendiendo`: «Sigue vendiendo: decide si la dejas hasta agotar o la retiras», solo para un pilar de venta (que no
- * dejó de venderse) cuya temporada ya pasó (D2, Felipe 2026-09-27); es una pregunta, no una orden, y nunca trae
+ * dejó de venderse) cuya temporada ya pasó (D2, Felipe 2026-09-27), o para lo que no tiene dato de rapidez y vendió en
+ * sus últimos 30 días en el piso (pregunta 8, Felipe 2026-09-28); es una pregunta, no una orden, y nunca trae
  * «trasladar».
  */
 export type Sugerencia = "revisar_ventas" | "cambiar_lugar" | "trasladar" | "retirar" | "sigue_vendiendo" | "guardar_hasta_su_estacion";
@@ -391,7 +392,8 @@ const ms = (ts: string) => Date.parse(ts);
  * Saca del cálculo de edad las unidades de una bajada tardía (ADR-0208, decisión 3 del bloque 3): una bajada registrada
  * 10 minutos o menos antes de venderse delata una prenda que ya estaba colgada sin registro. Se reconoce la bajada por
  * su movimiento (`oid`, ADR-0248), no por la hora. Por cada bajada tardía se restan sus unidades tardías de la bajada
- * Y de las ventas de esa talla en [t, t + 10 min], empezando por la ÚLTIMA: el FIFO le da las primeras ventas a lo que
+ * Y de las ventas de esa talla en [t, t + 10 min] (los dos bordes adentro, como el núcleo; también la venta que deja lo
+ * apartado a la hora en que se apartó: revisión 9), empezando por la ÚLTIMA: el FIFO le da las primeras ventas a lo que
  * ya estaba en el piso, así que las que delataron la bajada son las de después. Se resta lo mismo de los dos lados
  * (topado por lo vendido en la ventana): el nivel del piso después de la ventana no cambia.
  *
@@ -457,9 +459,12 @@ export function recortarEventos(eventos: readonly EventoPiso[], inicio: string):
  *     libera y vende en una sola operación, y «Se la entrego a la clienta ahora» de Apartados se cobra enseguida en
  *     Vender) → una venta a la hora en que se apartó, y a la venta de la entrega se le quita esa unidad (ya se contó);
  *   · lo que se liberó sin venderse enseguida (la clienta no vino, un error) → una PAUSA, como guardarla en el almacén:
- *     no suma días colgada mientras estuvo apartada y vuelve con la edad que tenía.
+ *     no suma días colgada mientras estuvo apartada y vuelve con la edad que tenía (la vuelta es la misma entrada interna
+ *     que volver a colgar desde el almacén, sin marca de edad desconocida: revisión 9, N2).
  * Lo que se libera sin nada apartado que lo explique (el libro no cuadra) no mueve el FIFO. Sin nada apartado, devuelve
  * los mismos eventos. El reloj de novedad no pasa por aquí: resta lo apartado de lo libre (`tramosColgada`).
+ * Va ANTES de `excluirTardias` (revisión 9, N1/F1/F2): la venta que deja un apartado (a la hora en que se apartó) tiene
+ * que estar en los eventos cuando se buscan las ventas que delataron una bajada tardía, igual que su gemela vendida.
  */
 export function eventosConApartados(
   eventos: readonly EventoPiso[],
@@ -519,7 +524,11 @@ export function eventosConApartados(
       // Apartada y liberada en el mismo instante: no estuvo apartada ningún segundo, no hay pausa.
       if (c.cantidad > entregado && c.t < t) {
         despues.push(salida(c.ts, c.cantidad - entregado, false));
-        antes.push({ ts: a.ts, delta: c.cantidad - entregado, esVenta: false, esMovimientoInterno: true, edadDesconocida: true });
+        // La vuelta es la MISMA entrada interna que volver a colgar desde el almacén (revisión 9, N2): reanuda la pausa
+        // más vieja de la talla, y si una bajada del almacén ya la reanudó mientras estaba apartada, abre una cohorte con
+        // edad conocida desde que se libera, igual que su gemela guardada. Con la marca de edad desconocida, en esa carrera
+        // la siguiente venta salía «sin edad» y el pilar de temporada pasada perdía «sigue vendiendo».
+        antes.push({ ts: a.ts, delta: c.cantidad - entregado, esVenta: false, esMovimientoInterno: true });
       }
     }
   }
@@ -846,6 +855,8 @@ export function inicioDeSusUltimosDias(tramos: readonly number[], dias: number):
  *
  * `alMenos` cuando no se sabe desde cuándo está: la primera exhibición del modelo+color es anterior a la ventana
  * (`desde`), o lo primero que entró al piso tiene edad desconocida (saldo, carga inicial, ajuste: ADR-0248, decisión 3).
+ * Sin primera exhibición (lo único que entró al piso se apartó en el mismo instante: el pedido de otra sede, revisión 9,
+ * N3), «al menos» solo si algo de lo que entró tiene edad desconocida: lo que nunca se colgó puede ser «Nueva».
  * Una bajada tardía NO cuenta como edad desconocida: sus unidades salen de la vara (`excluirTardias`), pero la prenda sigue
  * pudiendo ser «Nueva». Antes del 3b una tardía también es «la clienta pidió otra talla y se la trajeron» o el fardo
  * nuevo que se vende a los 3 minutos: marcarla «al menos» dejaba sin «Nueva» para siempre justo a lo que mejor se vende
@@ -856,7 +867,7 @@ export function inicioDeSusUltimosDias(tramos: readonly number[], dias: number):
 export function relojNovedad(p: EntradaReloj, linea: LineaDelPiso = tramosColgada(p)): RelojNovedad {
   const segundos = segundosDe(linea.tramos);
   const { entradas } = linea;
-  if (p.primeraExhibicion === null) return { segundos, alMenos: entradas.length > 0 };
+  if (p.primeraExhibicion === null) return { segundos, alMenos: entradas.some((x) => x.e.edadDesconocida === true) };
   if (ms(p.primeraExhibicion) < ms(p.desde)) return { segundos, alMenos: true };
   const primera = entradas[0];
   const deLaPrimera = primera ? entradas.filter((x) => x.t === primera.t).map((x) => x.e) : [];
@@ -1090,9 +1101,10 @@ export function puedeTrasladar(p: { nivel: NivelConfianza | null; almacenHoy: nu
  *   · Un pilar de venta de temporada pasada recibe SOLO «sigue vendiendo: decide si la dejas hasta agotar o la retiras»
  *     (D2, Felipe 2026-09-27): cambiarla de lugar o trasladarla no tiene sentido para lo que se vende, y «retirar» a
  *     secas era una orden donde hay una decisión. Un pilar que dejó de venderse ya no lo es (`esPilar`, revisión 6).
- *     PENDIENTE DE FELIPE (revisión 6, pregunta 8): lo que no tiene dato de rapidez (lo que vino en la carga inicial) y
- *     vendió en sus últimos 30 días en el piso no llega a «sigue vendiendo»: recibe la escalera y «retirar» (ADR-0208,
- *     «Revisión 6 del paso 3»).
+ *     Lo que no tiene dato de rapidez (lo que vino en la carga inicial) y vendió en sus últimos 30 días en el piso
+ *     (`recientes = vendio`) recibe lo mismo que su gemelo con dato (DECIDIDO por Felipe el 2026-09-28, pregunta 8 de la
+ *     revisión 6): sin índice no se sabe si vende «bien», y Felipe aceptó pagar eso (la chompa que vendió 1 de 4 en 42
+ *     días también dice «sigue vendiendo») antes que darle «cambiar de lugar» y «retirar» a un éxito de la carga.
  *   · `callada` (D4+D6): sin tramo firme y sus últimos 30 días en el piso sin ninguna venta. Recibe «revisa sus ventas»
  *     con o sin dato de rapidez: nunca queda una prenda quieta sin ninguna pista.
  */
@@ -1110,7 +1122,8 @@ export function sugerenciasDe(p: {
 }): Sugerencia[] {
   const s: Sugerencia[] = [];
   if (p.fueraDeSuEstacion && p.pisoHoy > 0) s.push("guardar_hasta_su_estacion");
-  if (p.temporadaPasada && p.pisoHoy > 0 && esPilar(p.rapidez, p.recientes)) {
+  const sigueVendiendo = esPilar(p.rapidez, p.recientes) || (p.rapidez === null && p.recientes === "vendio");
+  if (p.temporadaPasada && p.pisoHoy > 0 && sigueVendiendo) {
     s.push("sigue_vendiendo");
     return s;
   }
@@ -1344,8 +1357,12 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     if (talla.esClasico || dudosas.has(talla.varianteId)) continue;
     grupo.ids.push(talla.varianteId);
     // Lo apartado entra aquí como venta o como pausa (revisión 8): la vara de la categoría y la rapidez de la prenda no
-    // cuentan como colgado lo que ya tiene dueña.
-    const limpios = eventosConApartados(excluirTardias(l.eventos[talla.varianteId] ?? [], tardiasPorOid), apartados[talla.varianteId]);
+    // cuentan como colgado lo que ya tiene dueña. Y PRIMERO (revisión 9, N1/F1/F2): las bajadas tardías se quitan
+    // después, así la separación o la entrega de los 10 minutos siguientes a una bajada sale de la vara y de la rapidez
+    // igual que su gemela vendida. Al revés, la separación entraba como una venta de 0 a 3 minutos, y la entrega de una
+    // separación dentro de la ventana dejaba una unidad fantasma (se borraba su venta y la liberación quedaba como pausa).
+    // `fn_frescura_sede` cuenta lo apartado en la ventana para las tardías de la lectura (20260928120330).
+    const limpios = excluirTardias(eventosConApartados(l.eventos[talla.varianteId] ?? [], apartados[talla.varianteId]), tardiasPorOid);
     const todas = unaVez(() => unidadesParaVara(limpios, l.ahora));
     unidadesDeTalla.set(talla.varianteId, {
       todas,
