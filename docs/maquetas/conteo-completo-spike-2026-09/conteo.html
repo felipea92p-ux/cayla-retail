@@ -1,0 +1,1121 @@
+<title>Conteo — spike funcional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --ambar-profundo:#5c3f14; --hueso:#eae1d2; --pizarra:#4c5d6e;
+    --velo:rgba(26,26,24,.32);
+    --r-control:8px; --r-superficie:16px; --r-flotante:20px; --r-pildora:999px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --serif:"EB Garamond", ui-serif, Georgia, serif;
+    --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+      --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --ambar-profundo:#e0b06e; --hueso:#15110d; --pizarra:#9db0c2;
+      --velo:rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --ambar-profundo:#e0b06e; --hueso:#15110d; --pizarra:#9db0c2;
+    --velo:rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; line-height:1.5; font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;}
+  button, input, select{font:inherit; color:inherit;}
+  button{cursor:pointer;}
+  :focus-visible{outline:2px solid var(--rojo); outline-offset:2px;}
+  h1,h2,h3{font-family:var(--serif); font-weight:500; margin:0; text-wrap:balance;}
+  .eyebrow{font-size:11px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--taupe);}
+  .suave{color:var(--taupe);}
+  ul{list-style:none;margin:0;padding:0;}
+
+  /* ---------- Barra de la demo (no es parte de la pantalla) ---------- */
+  .demo{position:sticky; top:0; z-index:40; background:var(--tinta); color:var(--crema); padding:10px 18px;}
+  .demo-in{max-width:1320px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:9px 18px;}
+  .demo b{font-family:var(--serif); font-weight:500; font-size:16px; white-space:nowrap;}
+  .demo .grupo{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .demo .grupo > span{font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.6; white-space:nowrap;}
+  .seg-demo{display:inline-flex; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); overflow:hidden;}
+  .seg-demo button{background:transparent; border:0; padding:6px 11px; font-size:12px; color:inherit; opacity:.75; white-space:nowrap;}
+  .seg-demo button[aria-pressed="true"]{background:var(--crema); color:var(--tinta); opacity:1;}
+  .demo .tema{margin-left:auto; background:transparent; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); color:inherit; border-radius:var(--r-control); padding:6px 11px; font-size:12px;}
+  .demo p{margin:0; font-size:12px; opacity:.72; max-width:90ch; flex-basis:100%;}
+  .demo-btn{background:color-mix(in oklab, var(--crema) 14%, transparent); border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); color:inherit; border-radius:var(--r-control); padding:6px 11px; font-size:12px;}
+  .demo-btn:hover{background:color-mix(in oklab, var(--crema) 22%, transparent);}
+
+  /* ---------- Marco de la app ---------- */
+  .app{display:grid; grid-template-columns:236px minmax(0,1fr); min-height:calc(100vh - 40px); max-width:1320px; margin:0 auto; border-inline:1px solid var(--sand); background:var(--crema);}
+  .lateral{background:var(--crema); border-right:1px solid var(--sand); padding:18px 12px; display:flex; flex-direction:column; gap:16px;}
+  .colapsar{width:26px; height:26px; border:1px solid var(--sand); border-radius:7px; background:var(--papel); display:grid; place-items:center; align-self:flex-start;}
+  .marca{display:flex; align-items:center; gap:9px; padding:0 6px; font-size:13px; font-weight:600; letter-spacing:.28em;}
+  .marca svg{width:26px; height:26px; color:var(--rojo);}
+  .nav{display:flex; flex-direction:column; gap:1px;}
+  .nav a{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r-control); color:var(--tinta); text-decoration:none; font-size:13.5px; cursor:default;}
+  .nav a.sub{padding-left:30px; font-size:13px; color:color-mix(in oklab, var(--tinta) 78%, transparent);}
+  .nav a.activo{background:var(--sand); color:var(--tinta); font-weight:500;}
+  .nav a .ico{width:5px; height:5px; flex:none; background:currentColor; border-radius:50%; opacity:.45; margin-inline:4px;}
+  .persona{margin-top:auto; border-top:1px solid var(--sand); padding:12px 6px 0; display:flex; gap:9px; align-items:center;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:var(--sand); display:grid; place-items:center; font-family:var(--serif); font-size:12px; flex:none;}
+  .persona small{display:block; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--taupe);}
+  .persona .quien{font-size:12.5px; line-height:1.3;}
+  .persona .salir{margin-left:auto; font-size:10.5px; letter-spacing:.1em; color:var(--taupe); text-transform:uppercase;}
+
+  .principal{min-width:0; display:flex; flex-direction:column;}
+  .cabecera-app{display:flex; justify-content:flex-end; align-items:center; gap:14px; padding:11px 24px; border-bottom:1px solid var(--sand);}
+  .actividad{display:flex; align-items:center; gap:6px; font-size:11.5px; letter-spacing:.1em; color:var(--taupe); text-transform:uppercase;}
+  .sede-pill{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-control); padding:7px 12px; font-size:11px; font-weight:600; letter-spacing:.12em;}
+  .pagina{padding:26px 24px 48px; display:flex; flex-direction:column; gap:20px; width:100%;}
+
+  /* ---------- Piezas comunes ---------- */
+  .tarjeta{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie);}
+  .btn{border-radius:var(--r-control); font-size:13.5px; font-weight:500; padding:9px 16px; border:1px solid transparent; transition:background-color 150ms, border-color 150ms, color 150ms, opacity 150ms; white-space:nowrap;}
+  .btn:disabled{opacity:.42; cursor:not-allowed;}
+  .btn-primario{background:var(--tinta); color:var(--crema);}
+  .btn-primario:not(:disabled):hover{background:var(--rojo-profundo);}
+  .btn-secundario{background:transparent; border-color:var(--sand);}
+  .btn-secundario:not(:disabled):hover{background:color-mix(in oklab, var(--sand) 50%, transparent); border-color:color-mix(in oklab, var(--taupe) 40%, transparent);}
+  .btn-peligro{background:transparent; color:var(--rojo); border-color:color-mix(in oklab, var(--rojo) 30%, transparent);}
+  .btn-peligro:not(:disabled):hover{background:color-mix(in oklab, var(--rojo) 10%, transparent);}
+  .btn-sutil{background:transparent; color:var(--taupe); border-color:var(--sand);}
+  .btn-sutil:not(:disabled):hover{color:var(--tinta); background:color-mix(in oklab, var(--sand) 30%, transparent);}
+  .btn-enlace{background:none; border:0; padding:0; color:var(--tinta); text-decoration:underline; text-underline-offset:2px; font-size:12.5px;}
+  .btn-enlace:hover{color:var(--taupe);}
+  .btn-chico{padding:6px 11px; font-size:12px;}
+
+  .insignia{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:var(--r-pildora); font-size:11.5px; white-space:nowrap; font-weight:500;}
+  .insignia::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .insignia[data-tono="verde"]{background:color-mix(in oklab, var(--verde) 15%, transparent); color:var(--verde);}
+  .insignia[data-tono="ambar"]{background:color-mix(in oklab, var(--ambar) 15%, transparent); color:var(--ambar);}
+  .insignia[data-tono="rojo"]{background:color-mix(in oklab, var(--rojo) 10%, transparent); color:var(--rojo-profundo);}
+  .insignia[data-tono="taupe"]{background:var(--sand); color:var(--taupe);}
+
+  .seg{display:inline-flex; background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-control); padding:3px; gap:2px;}
+  .seg button{border:0; background:transparent; border-radius:6px; padding:7px 13px; font-size:13px; color:var(--taupe); transition:background-color 150ms, color 150ms; white-space:nowrap;}
+  .seg button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:0 0 0 1px var(--sand);}
+
+  .campo{border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); padding:9px 12px; font-size:15px; width:100%;}
+  .campo:focus{outline:none; border-color:var(--rojo);}
+
+  .tabla-caja{overflow-x:auto;}
+  table.tabla{width:100%; border-collapse:collapse; font-size:13px; min-width:600px;}
+  .tabla thead{background:color-mix(in oklab, var(--sand) 70%, transparent);}
+  .tabla th{text-align:left; font-weight:400; color:var(--taupe); padding:8px 14px; font-size:11.5px; white-space:nowrap;}
+  .tabla td{padding:10px 14px; border-top:1px solid var(--sand); vertical-align:middle;}
+  .tabla tbody tr:nth-child(even){background:color-mix(in oklab, var(--hueso) 50%, transparent);}
+  .tabla .der{text-align:right;} .tabla .cen{text-align:center;}
+  .tabla small{display:block; color:var(--taupe); font-size:11.5px;}
+
+  .prenda{display:flex; flex-direction:column; min-width:0;}
+  .prenda b{font-weight:400; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--tinta);}
+  .prenda span{display:block; font-size:11.5px; color:var(--taupe); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sku{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px;}
+
+  /* ---------- Encabezado de pantalla y cifras ---------- */
+  .hilo{display:flex; align-items:center; gap:8px; color:var(--taupe); font-size:11px; letter-spacing:.14em; text-transform:uppercase;}
+  .hilo::before{content:""; width:16px; height:1px; background:var(--taupe); opacity:.5;}
+  .titular h1{font-size:42px; margin-top:6px;}
+  .titular p.bajada{margin:8px 0 0; color:var(--taupe); max-width:70ch; font-size:14.5px;}
+  .cifras{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;}
+  .cifra{padding:17px 19px; display:flex; flex-direction:column; gap:4px; min-width:0;}
+  .cifra .valor{font-family:var(--serif); font-size:30px; line-height:1.15; font-weight:500;}
+  .cifra .valor.sin{color:var(--taupe);}
+  .cifra p{margin:0; font-size:12px; color:var(--taupe);}
+  .t-verde{color:var(--verde);} .t-ambar{color:var(--ambar-profundo);} .t-rojo{color:var(--rojo-profundo);}
+
+  .barra{height:6px; border-radius:var(--r-pildora); background:var(--sand); overflow:hidden;}
+  .barra i{display:block; height:100%; background:var(--tinta); border-radius:inherit; transition:width 320ms var(--ease);}
+
+  /* ---------- Abrir un conteo ---------- */
+  .abrir{padding:22px; display:grid; gap:20px;}
+  .abrir-cab{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline;}
+  .abrir-cab h2{font-size:20px;}
+  .pasos{display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:20px;}
+  @media (max-width:820px){ .pasos{grid-template-columns:1fr;} }
+  .paso{display:flex; flex-direction:column; gap:9px; min-width:0;}
+  .paso-tit{display:flex; align-items:center; gap:8px;}
+  .paso-tit em{font-style:normal; width:19px; height:19px; border-radius:50%; border:1px solid var(--sand); display:grid; place-items:center; font-size:10.5px; color:var(--taupe); flex:none;}
+  .paso-tit em.ok{background:var(--tinta); border-color:var(--tinta); color:var(--crema);}
+  .lugares{display:grid; gap:7px;}
+  .lugar{text-align:left; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:11px 13px; display:grid; gap:2px; transition:border-color 150ms, background-color 150ms;}
+  .lugar:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  .lugar[aria-pressed="true"]{border-color:var(--tinta); background:color-mix(in oklab, var(--sand) 35%, var(--papel)); box-shadow:inset 0 0 0 1px var(--tinta);}
+  .lugar b{font-weight:500; font-size:14px;}
+  .lugar span{font-size:11.5px; color:var(--taupe);}
+  .pildora{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-pildora); padding:6px 12px; font-size:12.5px; transition:border-color 150ms, background-color 150ms;}
+  .pildora[aria-pressed="true"]{border-color:var(--tinta); background:var(--sand);}
+  .abrir-pie{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--sand); padding-top:14px;}
+
+  /* ---------- Contando ---------- */
+  .grid-contar{display:grid; gap:16px; grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); align-items:start;}
+  @media (max-width:980px){ .grid-contar{grid-template-columns:1fr;} }
+  .panel-contar{padding:18px 22px; display:flex; flex-direction:column; gap:16px;}
+  .contar-cab{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px 24px;}
+  .contar-cab h2{font-size:24px; margin-top:3px;}
+  .avance{width:100%; max-width:19rem; display:flex; flex-direction:column; gap:5px;}
+  .avance .filas{display:flex; justify-content:space-between; font-size:12px; color:var(--taupe);}
+  .avance .pct{font-weight:600; color:var(--tinta);}
+  .modo-fila{display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;}
+  .modo-col{display:flex; flex-direction:column; gap:6px;}
+  .subtitulo-modo{margin:0; font-size:12px; color:var(--taupe); max-width:26rem;}
+  .responsable-combo{width:100%; max-width:19rem;}
+
+  .buscador{position:relative;}
+  .buscador svg.ico-scan{position:absolute; left:13px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--taupe); pointer-events:none;}
+  .buscador input{padding:0 116px 0 42px; height:46px; font-size:15px;}
+  .btn-camara{position:absolute; right:8px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; gap:6px;}
+  @media (max-width:640px){ .btn-camara{display:none;} .buscador input{padding-right:14px;} }
+  .coincidencias{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-control); overflow:hidden; margin-top:6px;}
+  .coincidencias button{width:100%; display:flex; justify-content:space-between; gap:10px; text-align:left; padding:8px 12px; border:0; background:none; border-top:1px solid var(--sand); font-size:13px;}
+  .coincidencias button:first-child{border-top:0;}
+  .coincidencias button:hover{background:color-mix(in oklab, var(--sand) 40%, transparent);}
+  .aviso-alta{margin-top:6px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; border-radius:var(--r-control); background:color-mix(in oklab, var(--ambar) 8%, transparent); border:1px solid color-mix(in oklab, var(--ambar) 35%, transparent); padding:9px 12px; font-size:13px;}
+
+  .estas-contando{display:flex; flex-wrap:wrap; align-items:center; gap:16px; border-radius:var(--r-superficie); border:1px solid var(--sand); background:var(--hueso); padding:15px;}
+  .estas-contando .prenda{flex:1; min-width:11rem;}
+  .stepper{display:flex; align-items:center; gap:8px;}
+  .stepper button{width:42px; height:42px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--papel); display:grid; place-items:center; font-size:17px;}
+  .stepper button:hover{background:color-mix(in oklab, var(--sand) 45%, transparent);}
+  .stepper input{width:74px; height:46px; text-align:center; font-family:var(--serif); font-size:26px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--papel);}
+  .estado-guardado{flex-basis:100%; font-size:12px; color:var(--taupe);} .estado-guardado.ok{color:var(--verde);} .estado-guardado.err{color:var(--rojo);}
+
+  .vacio-contar{border-radius:var(--r-superficie); border:1px dashed var(--sand); padding:26px 20px; text-align:center;}
+  .vacio-contar p:first-child{font-size:15px;}
+  .vacio-contar p:last-child{margin:5px auto 0; max-width:30rem; font-size:13px; color:var(--taupe);}
+
+  .pie-contar{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--sand); padding-top:14px;}
+
+  /* ---------- Panel derecho: Faltan / Contadas ---------- */
+  .panel-lado{overflow:hidden;}
+  .tabs{display:flex; gap:18px; border-bottom:1px solid var(--sand); padding:12px 20px 0;}
+  .tabs button{background:none; border:0; padding-bottom:10px; font-size:13.5px; color:var(--taupe); border-bottom:2px solid transparent; display:flex; align-items:center; gap:6px;}
+  .tabs button[aria-selected="true"]{color:var(--tinta); border-color:var(--tinta); font-weight:500;}
+  .tabs .n{background:var(--sand); border-radius:var(--r-pildora); font-size:10.5px; padding:1px 6px; color:var(--taupe);}
+  .tabs button[aria-selected="true"] .n{background:var(--tinta); color:var(--crema);}
+  .scroll-lista{max-height:30rem; overflow-y:auto;}
+  .nota-lista{padding:11px 20px 6px; font-size:12px; color:var(--taupe);}
+  .recontar-bloque{border-top:1px solid var(--sand); background:color-mix(in oklab, var(--ambar) 6%, transparent); padding:12px 20px;}
+  .recontar-bloque .eyebrow{color:var(--ambar-profundo);}
+  .percha{padding:11px 20px; border-top:1px solid var(--sand);}
+  .percha:first-child{border-top:0;}
+  .percha-tit{display:flex; align-items:baseline; gap:7px; margin:0 0 8px;}
+  .percha-tit b{font-weight:500; font-size:13px;}
+  .percha-tit .sku{margin-left:auto;}
+  .tallas{display:flex; flex-wrap:wrap; gap:7px;}
+  .talla{min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; gap:5px; padding:0 12px 0 10px;
+    border:1px solid color-mix(in oklab, var(--taupe) 38%, var(--sand)); background:var(--papel); border-radius:var(--r-control);
+    font-size:12.5px; font-weight:500; color:var(--tinta); box-shadow:0 1px 0 color-mix(in oklab, var(--taupe) 12%, transparent);
+    transition:border-color 150ms, background-color 150ms, transform 100ms;}
+  .talla:hover{border-color:var(--tinta); background:color-mix(in oklab, var(--sand) 45%, transparent);}
+  .talla:active{transform:translateY(1px);}
+  .talla .mas{display:grid; place-items:center; width:15px; height:15px; border-radius:50%; background:var(--sand); color:var(--taupe); font-size:11px; font-weight:600; line-height:1; flex:none;}
+  .talla:hover .mas{background:var(--tinta); color:var(--crema);}
+  .fila-contada{display:flex; align-items:center; gap:12px; padding:9px 20px; border-top:1px solid var(--sand);}
+  .fila-contada:first-child{border-top:0;}
+  .fila-contada .prenda{flex:1;}
+  .fila-contada .cant{font-family:var(--serif); font-size:19px;}
+
+  /* ---------- Cámara simulada ---------- */
+  .velo{position:fixed; inset:0; background:var(--velo); display:flex; align-items:flex-end; justify-content:center; z-index:60; backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 220ms var(--ease);}
+  .velo.abierto{opacity:1; pointer-events:auto;}
+  .hoja{background:var(--papel); border-radius:20px 20px 0 0; width:100%; max-width:640px; max-height:88vh; overflow-y:auto; padding:22px 24px 26px; transform:translateY(18px); opacity:0; transition:transform 260ms var(--ease), opacity 220ms var(--ease);}
+  .velo.abierto .hoja{transform:translateY(0); opacity:1;}
+  @media (min-width:640px){ .velo{align-items:center;} .hoja{border-radius:20px; margin:20px;} }
+  .hoja-cab{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:14px;}
+  .hoja-cerrar{width:30px; height:30px; border-radius:50%; border:1px solid var(--sand); background:var(--crema); display:grid; place-items:center; flex:none;}
+  .camara-vista{border:1px dashed var(--sand); border-radius:14px; padding:30px 16px; text-align:center; background:var(--hueso); margin:14px 0;}
+  .camara-bandeja{border-radius:var(--r-control); background:var(--hueso); border:1px solid var(--sand); padding:11px 13px; font-size:13px; min-height:3.2em;}
+
+  /* ---------- Barra móvil fija ---------- */
+  .movil-barra{position:fixed; inset-inline:0; bottom:0; z-index:30; display:none; gap:8px; background:linear-gradient(to top, var(--crema) 70%, transparent); padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));}
+  @media (max-width:640px){ body[data-momento="contando"] .movil-barra{display:flex;} }
+  .movil-barra .btn-primario{flex:1; height:46px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px;}
+  .movil-barra .btn-secundario{width:46px; height:46px; display:grid; place-items:center; padding:0;}
+
+  .nota-final{background:var(--hueso); border-radius:12px; padding:12px 16px; font-size:12.5px; color:var(--taupe);}
+  .nota-final b{color:var(--tinta); font-weight:600;}
+  details.vacios summary{cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; padding:10px 12px; font-size:13px; color:var(--taupe);}
+  details.vacios summary::-webkit-details-marker{display:none;}
+  details.vacios{border:1px solid var(--sand); border-radius:var(--r-control);}
+  details.vacios[open] summary{border-bottom:1px solid var(--sand);}
+
+  /* ---------- Mobile: el lateral se pliega (aquí, no hay hamburguesa real) ---------- */
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr;}
+    .lateral{display:none;}
+    .pagina{padding:20px 14px 90px;}
+    .cifras{grid-template-columns:1fr;}
+    .titular h1{font-size:32px;}
+    .pasos{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="demo">
+  <div class="demo-in">
+    <b>Conteo — spike funcional</b>
+    <div class="grupo">
+      <span>Momento</span>
+      <div class="seg-demo" id="seg-momento">
+        <button data-v="sin-abrir" aria-pressed="true">Sin abrir</button>
+        <button data-v="contando">Contando</button>
+        <button data-v="cerrado">Cerrado</button>
+      </div>
+    </div>
+    <button class="demo-btn" id="btn-reset">↺ Reiniciar demo</button>
+    <button class="tema" id="btn-tema">Oscuro</button>
+    <p>Interfaz completa de <code>/inventario/conteo</code> con datos de muestra: se puede abrir un conteo, escanear (escribe un código y Enter),
+      anotar tallas a mano, revisar y cerrar de verdad — todo corre en el navegador, sin backend. Incluye las dos correcciones del spike anterior
+      (subtítulo del modo, pastillas con affordance). Prueba escribiendo <code>CMS-0001-BLA-L</code> o tocando una talla de «Faltan por contar».</p>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="lateral">
+    <button class="colapsar" aria-label="Colapsar menú" type="button">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+    </button>
+    <div class="marca">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 14c3-7 8-10 16-10-1 7-5 11-11 12-2 3-5 4-8 4 1-2 2-4 3-6z"/></svg>
+      CAYLA
+    </div>
+    <nav class="nav">
+      <a href="#">Inicio</a>
+      <a href="#">Ventas</a>
+      <a href="#" class="activo" style="background:none;color:var(--tinta);">Inventario</a>
+      <a href="#" class="sub"><span class="ico"></span>Existencias</a>
+      <a href="#" class="sub"><span class="ico"></span>Movimientos</a>
+      <a href="#" class="sub"><span class="ico"></span>Traslados</a>
+      <a href="#" class="sub activo"><span class="ico"></span>Conteo</a>
+      <a href="#" class="sub"><span class="ico"></span>Análisis</a>
+      <a href="#">Catálogo</a>
+      <a href="#">Compras</a>
+      <a href="#">Finanzas</a>
+      <a href="#">Clientas</a>
+    </nav>
+    <div class="persona">
+      <div class="avatar">FE</div>
+      <div class="quien">
+        Fernanda Espin…
+        <small>Líder · Tienda TRU</small>
+      </div>
+      <span class="salir">Salir</span>
+    </div>
+  </aside>
+
+  <div class="principal">
+    <div class="cabecera-app">
+      <span class="actividad">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Actividad
+      </span>
+      <span class="sede-pill">Tienda TRU ▾</span>
+    </div>
+
+    <div class="pagina">
+      <header class="titular">
+        <p class="hilo" id="hilo-fecha">Tienda TRU · —</p>
+        <h1>Conteo</h1>
+        <p class="bajada">Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar.</p>
+      </header>
+
+      <div class="cifras" id="cifras"></div>
+
+      <div id="zona-conteo"></div>
+
+      <section class="tarjeta" style="padding:16px 18px;" id="historial-envoltorio">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;">
+          <h2 style="font-size:17px;">Conteos de esta ubicación</h2>
+          <p class="suave" style="font-size:11.5px;margin:0;">Un conteo está abierto o cerrado, nada más.</p>
+        </div>
+        <div id="historial-tabla"></div>
+      </section>
+
+      <p class="nota-final">
+        <b>Cómo se cuenta:</b> se escanea o se escribe el código de la etiqueta y se anota lo que hay físicamente, sin ver la cifra del sistema.
+        Al revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="movil-barra">
+  <button class="btn btn-primario" id="btn-camara-movil" type="button">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 0 1 2-2h2l1-2h8l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    Escanear con la cámara
+  </button>
+  <button class="btn btn-secundario" id="btn-teclado-movil" type="button" aria-label="Escribir el código">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg>
+  </button>
+</div>
+
+<div class="velo" id="velo-camara">
+  <div class="hoja">
+    <div class="hoja-cab">
+      <div>
+        <p class="eyebrow">Cámara</p>
+        <h2 style="font-size:19px;">Escaneo en ráfaga (simulado)</h2>
+      </div>
+      <button class="hoja-cerrar" id="cerrar-camara" aria-label="Cerrar" type="button">✕</button>
+    </div>
+    <div class="camara-vista">
+      <p class="suave" style="margin:0 0 4px;font-size:13px;">En la app real esto abre la cámara del dispositivo y lee códigos de barras en ráfaga.</p>
+      <p class="suave" style="margin:0;font-size:12px;">Aquí, cada click de «Simular una lectura» toma un código pendiente al azar.</p>
+    </div>
+    <p class="eyebrow" style="margin-bottom:6px;">Última lectura</p>
+    <div class="camara-bandeja" id="camara-bandeja">Todavía nada.</div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+      <button class="btn btn-secundario" id="cerrar-camara-2" type="button">Cerrar</button>
+      <button class="btn btn-primario" id="simular-lectura" type="button">Simular una lectura</button>
+    </div>
+  </div>
+</div>
+
+<div class="velo" id="velo-revisar">
+  <div class="hoja" style="max-width:760px;">
+    <div class="hoja-cab">
+      <div>
+        <p class="eyebrow">Revisar antes de cerrar</p>
+        <h2 style="font-size:20px;" id="revisar-titulo">Conteo</h2>
+      </div>
+      <button class="hoja-cerrar" id="cerrar-revisar" aria-label="Cerrar" type="button">✕</button>
+    </div>
+    <div id="revisar-cuerpo"></div>
+  </div>
+</div>
+
+<script>
+try {
+(function(){
+  const $ = (sel, ctx) => (ctx||document).querySelector(sel);
+  const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
+
+  function money(n){
+    const v = Math.abs(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+    return (n < 0 ? '−' : '') + 'S/ ' + v;
+  }
+  function soles(n){
+    const v = Math.abs(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+    return (n < 0 ? '−' : n > 0 ? '+' : '') + 'S/ ' + v;
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  const PRECIO_PROMEDIO = 42;
+
+  // ---------------------------------------------------------------- catálogo de muestra
+  const CATALOGO = [
+    {id:'v1', ref:'Blusa Carlita', color:'Blanco', talla:'L',  sku:'CMS-0001-BLA-L',  sistema:1},
+    {id:'v2', ref:'Blusa Carlita', color:'Gris',   talla:'XS', sku:'CMS-0001-GRI-XS', sistema:0},
+    {id:'v3', ref:'Blusa Carlita', color:'Gris',   talla:'XL', sku:'CMS-0001-GRI-XL', sistema:2},
+    {id:'v4', ref:'Blusa Carlita', color:'Negro',  talla:'XS', sku:'CMS-0001-NEG-XS', sistema:1},
+    {id:'v5', ref:'Blusa Carlita', color:'Negro',  talla:'S',  sku:'CMS-0001-NEG-S',  sistema:3},
+    {id:'v6', ref:'Blusa Carlita', color:'Negro',  talla:'L',  sku:'CMS-0001-NEG-L',  sistema:1},
+    {id:'v7', ref:'Blusa Manga Larga', color:'Blanco', talla:'S', sku:'CMS-0006-BLA-S', sistema:2},
+    {id:'v8', ref:'Blusa Manga Larga', color:'Blanco', talla:'M', sku:'CMS-0006-BLA-M', sistema:0},
+    {id:'v9', ref:'Blusa Manga Larga', color:'Blanco', talla:'L', sku:'CMS-0006-BLA-L', sistema:1},
+    {id:'v10', ref:'Body Leonor', color:null, talla:'S', sku:'BOD-0005-S', sistema:4},
+    {id:'v11', ref:'Body Leonor', color:null, talla:'M', sku:'BOD-0005-M', sistema:2},
+    {id:'v12', ref:'Body Leonor', color:null, talla:'L', sku:'BOD-0005-L', sistema:1},
+  ];
+  const porId = id => CATALOGO.find(v => v.id === id);
+
+  const RESPONSABLES = ['Fernanda Espinoza', 'Angie Chavez', 'Janis Revilla', 'Benjamin Cueva'];
+
+  const HISTORIAL_BASE = [
+    {numero:5, estado:'cerrado', resultado:'Sin diferencias', lugar:'Piso de venta', lineas:4, sistemaFisico:'11 → 11', abrio:'Angie Chavez', cerro:'Angie Chavez', fecha:'24/9'},
+    {numero:4, estado:'vacio', resultado:'Vacío', lugar:'Almacén de tienda', lineas:0, sistemaFisico:'No cuenta para la exactitud', abrio:'ESTACIÓN — Almacén Trujillo', cerro:'Janis Revilla', fecha:'22/9'},
+    {numero:3, estado:'vacio', resultado:'Vacío', lugar:'Piso de venta', lineas:0, sistemaFisico:'No cuenta para la exactitud', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', fecha:'17/9'},
+    {numero:2, estado:'vacio', resultado:'Vacío', lugar:'Almacén de tienda', lineas:0, sistemaFisico:'No cuenta para la exactitud', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', fecha:'17/9'},
+    {numero:1, estado:'vacio', resultado:'Vacío', lugar:'Almacén de tienda', lineas:0, sistemaFisico:'No cuenta para la exactitud', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', fecha:'17/9'},
+  ];
+
+  // ---------------------------------------------------------------- estado
+  const st = {
+    momento: 'sin-abrir', // sin-abrir | contando | cerrado
+    numero: 6,
+    lugar: null,           // 'Almacén de tienda' | 'Piso de venta'
+    alcance: 'todo',
+    responsable: null,
+    modo: 'suma',
+    pestana: 'faltan',
+    busqueda: '',
+    cantidades: {},         // id -> cantidad
+    orden: [],
+    recontar: new Set(),
+    ultimaId: null,
+    seleccionada: null,     // id en edición con Registrar
+    guardado: {tipo:'quieto'},
+    confirmarCancelar: false,
+    camaraAbierta: false,
+    revisando: false,
+    decisiones: {},         // id -> 'cero' | 'deja'
+    historial: HISTORIAL_BASE.slice(),
+    exactitudBase: {correctas: 11, lineas: 11},
+  };
+
+  function catalogoUniverso(){ return CATALOGO; }
+
+  function pendientesFaltan(){ return catalogoUniverso().filter(v => !(v.id in st.cantidades)); }
+  function aRecontar(){ return [...st.recontar].map(porId).filter(Boolean); }
+  function contadasSet(){ return new Set(Object.keys(st.cantidades)); }
+  function totalUniverso(){ return catalogoUniverso().length; }
+  function unidadesTotales(){ return Object.values(st.cantidades).reduce((a,n)=>a+n,0); }
+
+  function grupoClave(v){ return v.ref + '||' + (v.color||''); }
+  function agruparFaltan(){
+    const grupos = {};
+    pendientesFaltan().forEach(v => {
+      const k = grupoClave(v);
+      if(!grupos[k]) grupos[k] = {ref:v.ref, color:v.color, codigoBase: v.sku.split('-').slice(0,2).join('-'), tallas:[]};
+      grupos[k].tallas.push(v);
+    });
+    return Object.values(grupos);
+  }
+
+  function resolverExacto(texto){
+    const q = texto.trim().toLowerCase();
+    if(!q) return null;
+    return catalogoUniverso().find(v => v.sku.toLowerCase() === q) || null;
+  }
+  function coincidenciasDe(texto){
+    const q = texto.trim().toLowerCase();
+    if(q.length < 2) return [];
+    return catalogoUniverso().filter(v => v.sku.toLowerCase().includes(q) || v.ref.toLowerCase().includes(q)).slice(0, 6);
+  }
+
+  function tocarOrden(id){ st.orden = st.orden.filter(x => x !== id); st.orden.push(id); }
+
+  function guardarCantidad(id, n){
+    st.cantidades[id] = n;
+    tocarOrden(id);
+    st.guardado = {tipo:'guardando'};
+    render();
+    window.setTimeout(() => { st.guardado = {tipo:'guardado', id}; render(); }, 260);
+  }
+
+  function sumarUna(v){
+    const recontando = st.recontar.has(v.id);
+    const actual = st.cantidades[v.id];
+    const n = recontando ? 1 : (actual === undefined ? 1 : actual + 1);
+    if(recontando) st.recontar.delete(v.id);
+    st.ultimaId = v.id;
+    guardarCantidad(v.id, n);
+    return n;
+  }
+
+  function abrirCantidad(v){
+    st.seleccionada = v.id;
+    const previa = st.recontar.has(v.id) ? undefined : st.cantidades[v.id];
+    st._textoCantidad = previa === undefined ? '' : String(previa);
+  }
+
+  function leer(v){
+    st.busqueda = '';
+    if(!st.responsable){ avisarError('Elige quién cuenta antes de escanear.'); return; }
+    if(st.modo === 'suma'){ sumarUna(v); render(); foco('#campo-escaner'); }
+    else { abrirCantidad(v); render(); foco('#campo-cantidad-form'); }
+  }
+
+  function anotar(v){
+    if(!st.responsable){ avisarError('Elige quién cuenta antes de anotar.'); return; }
+    abrirCantidad(v);
+    render();
+    window.setTimeout(() => { const el = $('#form-cantidad'); if(el) el.scrollIntoView({block:'center', behavior:'smooth'}); }, 30);
+  }
+
+  let errorTexto = null;
+  function avisarError(msg){ errorTexto = msg; render(); window.setTimeout(() => { if(errorTexto===msg){ errorTexto=null; render(); } }, 3200); }
+
+  function darDeAltaSimulada(){
+    const codigo = st.busqueda.trim().toUpperCase();
+    if(!codigo) return;
+    const nueva = {id:'nuevo-'+Date.now(), ref:'Prenda nueva', color:null, talla:'Única', sku: codigo, sistema:0};
+    CATALOGO.push(nueva);
+    leer(nueva);
+  }
+
+  function foco(sel){ window.setTimeout(() => { const el = $(sel); if(el) el.focus(); }, 30); }
+
+  // ---------------------------------------------------------------- render: cifras
+  function ultimoConPrendas(){ return st.historial.find(c => c.lineas > 0) || null; }
+
+  function renderCifras(){
+    const el = $('#cifras');
+    if(st.momento === 'contando'){ el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = 'grid';
+    const ex = st.exactitudBase;
+    const pct = ex.lineas ? Math.round((ex.correctas/ex.lineas)*100) : null;
+    const pendientesValor = pendientesFaltanGlobal();
+    const ultimo = ultimoConPrendas();
+    el.innerHTML = `
+      <div class="tarjeta cifra">
+        <p class="eyebrow">Exactitud del inventario</p>
+        <p class="valor ${pct==null?'sin':''} ${pct!=null && pct>=95?'t-verde':pct!=null&&pct>=80?'t-ambar':pct!=null?'t-rojo':''}">${pct==null?'—':pct+' %'}</p>
+        <p>${pct==null?'Sin conteos cerrados todavía.':`${ex.correctas} de ${ex.lineas} prendas coincidieron · conteos con prendas`}</p>
+      </div>
+      <div class="tarjeta cifra">
+        <p class="eyebrow">Conviene contar primero</p>
+        <p class="valor ${pendientesValor.length? '':'sin'}">${pendientesValor.length ? money(pendientesValor.length*PRECIO_PROMEDIO) : '—'}</p>
+        <p>${pendientesValor.length ? `A precio de venta, en las ${pendientesValor.length} prendas sin contar.` : 'Nada pendiente de contar en esta tienda.'}</p>
+      </div>
+      <div class="tarjeta cifra">
+        <p class="eyebrow">Último conteo con prendas</p>
+        <p class="valor ${ultimo? (ultimo.diferenciaSoles<0?'t-rojo':'') : 'sin'}">${ultimo ? soles(ultimo.diferenciaSoles||0) : '—'}</p>
+        <p>${ultimo ? `Conteo ${ultimo.numero} · ${ultimo.lineasConDiferencia? ultimo.lineasConDiferencia+' con diferencia' : 'todo coincidió'} · ya ajustado` : 'Ningún conteo con prendas todavía.'}</p>
+      </div>
+    `;
+  }
+  function pendientesFaltanGlobal(){ return CATALOGO.filter(v => !(v.id in st.cantidades)); }
+
+  // ---------------------------------------------------------------- render: abrir
+  function renderAbrir(){
+    const lugares = [
+      {id:'piso', nombre:'Piso de venta', ultimo:'Último conteo: 5 · 24/09'},
+      {id:'almacen', nombre:'Almacén de tienda', ultimo:'Aún sin conteo con prendas'},
+    ];
+    const faltaLugar = !st.lugar;
+    const faltaResponsable = !st.responsable;
+    const faltan = [faltaLugar?'dónde se cuenta':null, faltaResponsable?'quién cuenta':null].filter(Boolean);
+    const listo = faltan.length === 0;
+    const donde = st.lugar ? lugares.find(l=>l.id===st.lugar).nombre.toLowerCase() : '';
+    return `
+    <div class="tarjeta abrir">
+      <div class="abrir-cab">
+        <h2>Abrir un conteo</h2>
+        <p class="suave" style="font-size:12px;margin:0;">No hay ningún conteo abierto en esta ubicación.</p>
+      </div>
+      <div class="pasos">
+        <div class="paso">
+          <p class="paso-tit"><em class="${st.lugar?'ok':''}">1</em><span class="eyebrow">Dónde</span></p>
+          <div class="lugares">
+            ${lugares.map(l => `<button type="button" class="lugar" data-lugar="${l.id}" aria-pressed="${st.lugar===l.id}"><b>${l.nombre}</b><span>${l.ultimo}</span></button>`).join('')}
+          </div>
+        </div>
+        <div class="paso">
+          <p class="paso-tit"><em class="ok">2</em><span class="eyebrow">Qué</span></p>
+          <div class="seg" role="group">
+            <button type="button" data-alcance="todo" aria-pressed="${st.alcance==='todo'}">Todo el catálogo</button>
+            <button type="button" data-alcance="categoria" aria-pressed="${st.alcance==='categoria'}">Una categoría</button>
+          </div>
+          <p class="suave" style="font-size:12px;margin:0;">${st.alcance==='categoria' ? 'Blusas · la lista de pendientes será más corta.' : 'Todo lo que tiene stock en el lugar elegido.'}</p>
+        </div>
+        <div class="paso">
+          <p class="paso-tit"><em class="${st.responsable?'ok':''}">3</em><span class="eyebrow">Quién cuenta</span></p>
+          ${comboResponsable('abrir')}
+        </div>
+      </div>
+      <div class="abrir-pie">
+        <p style="margin:0;font-size:13.5px;">
+          ${listo ? `Se abre un conteo de <b>${donde}</b>, <b>${st.alcance==='categoria'?'solo Blusas':'todo el catálogo'}</b>.` : `<span style="color:var(--rojo-profundo)">Falta elegir ${faltan.join(' y ')}.</span>`}
+        </p>
+        <button type="button" class="btn btn-primario" id="btn-abrir" ${listo?'':'disabled'}>Abrir y empezar a contar</button>
+      </div>
+    </div>
+    <section class="tarjeta" style="padding:16px 18px;margin-top:16px;">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px;">
+        <h2 style="font-size:16px;">Conviene contar primero</h2>
+        <p class="suave" style="font-size:11.5px;margin:0;">Nunca contadas primero; después, más plata en la percha</p>
+      </div>
+      <div class="tabla-caja"><table class="tabla">
+        <thead><tr><th>Producto / variante</th><th class="cen">Ubicación</th><th class="cen">Último conteo</th><th class="der">En riesgo</th></tr></thead>
+        <tbody>
+          ${CATALOGO.slice(0,6).map(v => `<tr>
+            <td><div class="prenda"><b>${esc(v.ref)}</b><span>${esc(v.sku)}${v.color? ' · '+esc(v.color):''} ${esc(v.talla)}</span></div></td>
+            <td class="cen">${Math.random()>0.5?'Piso de venta':'Almacén'}</td>
+            <td class="cen">${v.sistema===0? '<span style="color:var(--ambar-profundo)">Nunca contada</span>' : 'hace '+(10+v.sistema*3)+' d'}</td>
+            <td class="der" style="font-weight:600;">${money(PRECIO_PROMEDIO*(v.sistema+2))}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </section>`;
+  }
+
+  function comboResponsable(ctx){
+    return `<select class="campo" id="responsable-${ctx}" style="max-width:19rem;border-color:${st.responsable?'var(--sand)':'var(--rojo)'}">
+      <option value="" ${!st.responsable?'selected':''} disabled>¿Quién hace esta operación?</option>
+      ${RESPONSABLES.map(r => `<option value="${esc(r)}" ${st.responsable===r?'selected':''}>${esc(r)}</option>`).join('')}
+    </select>
+    ${!st.responsable ? '<p style="margin:2px 0 0;font-size:11px;color:var(--taupe);">Obligatorio para guardar.</p>' : ''}`;
+  }
+
+  // ---------------------------------------------------------------- render: contando
+  const TEXTOS_MODO = {
+    suma: 'Cada disparo de la pistola suma 1 a esa prenda y se guarda solo.',
+    escribir: 'Eliges la prenda, escribes cuántas hay y la registras. Sirve para pilas grandes o sin pistola.',
+  };
+
+  function renderContando(){
+    const faltanN = pendientesFaltan().length + aRecontar().length;
+    const contadas = contadasSet();
+    const total = totalUniverso();
+    const pct = total ? Math.round((contadas.size/total)*100) : 0;
+    const seleccionadaV = st.seleccionada ? porId(st.seleccionada) : null;
+    const ultimaV = st.ultimaId ? porId(st.ultimaId) : null;
+    const coincidencias = coincidenciasDe(st.busqueda);
+    const sinCoincidencias = st.busqueda.trim().length >= 4 && coincidencias.length === 0;
+
+    return `
+    <div class="grid-contar">
+      <section class="tarjeta panel-contar">
+        <div class="contar-cab">
+          <div>
+            <p class="eyebrow">En curso · abierto hoy</p>
+            <h2>Conteo ${st.numero} · ${esc(st.lugar==='piso'?'Piso de venta':'Almacén de tienda')}</h2>
+            <p class="suave" style="margin:3px 0 0;font-size:13px;">${st.alcance==='categoria'?'Solo Blusas':'Todo el catálogo'} · abrió ${esc(st.responsable||'—')}</p>
+          </div>
+          <div class="avance">
+            <div class="filas"><span>${contadas.size} de ${total} prendas contadas</span><span class="pct">${pct} %</span></div>
+            <div class="barra"><i style="width:${pct}%"></i></div>
+            <div class="filas"><span>${unidadesTotales()} unidades anotadas</span><span>${faltanN} pendientes</span></div>
+          </div>
+        </div>
+
+        <div class="modo-fila">
+          <div class="modo-col">
+            <div class="seg" role="group" aria-label="Cómo se anota la cantidad">
+              <button type="button" data-modo="suma" aria-pressed="${st.modo==='suma'}">Suma por escaneo</button>
+              <button type="button" data-modo="escribir" aria-pressed="${st.modo==='escribir'}">Escribir cantidad</button>
+            </div>
+            <p class="subtitulo-modo">${TEXTOS_MODO[st.modo]}</p>
+          </div>
+          <div class="responsable-combo">${comboResponsable('contar')}</div>
+        </div>
+
+        ${!seleccionadaV ? `
+        <div>
+          <div class="buscador">
+            <svg class="ico-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/><path d="M7 8v8M11 8v8M13.5 8v8M17 8v8"/></svg>
+            <input class="campo" id="campo-escaner" autocomplete="off" placeholder="${st.modo==='suma'?'Escanea o escribe el código y Enter':'Escanea o escribe el código…'}" value="${esc(st.busqueda)}" aria-label="Código de barras o de la etiqueta">
+            <button type="button" class="btn btn-secundario btn-chico btn-camara" id="btn-camara">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 0 1 2-2h2l1-2h8l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              Cámara
+            </button>
+          </div>
+          ${coincidencias.length ? `<div class="coincidencias">${coincidencias.map(v => `<button type="button" data-leer="${v.id}">
+              <span>${esc(v.ref)} <span class="suave">${esc([v.talla,v.color].filter(Boolean).join(' · '))}</span></span>
+              <span class="sku suave">${esc(v.sku)}${contadas.has(v.id)?' · ya contada':''}</span>
+            </button>`).join('')}</div>` : ''}
+          ${sinCoincidencias ? `<div class="aviso-alta">
+              <span>No se encontró «<b>${esc(st.busqueda.trim())}</b>» en el catálogo.</span>
+              <button type="button" class="btn btn-secundario btn-chico" id="btn-dar-alta">Dar de alta esta prenda</button>
+            </div>` : ''}
+        </div>` : ''}
+
+        ${seleccionadaV ? `
+        <form id="form-cantidad" class="tarjeta" style="padding:14px;background:var(--hueso);">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;">
+            <div class="prenda" style="flex:1;min-width:11rem;"><b>${esc(seleccionadaV.ref)}</b><span>${esc(seleccionadaV.sku)} ${esc([seleccionadaV.talla, seleccionadaV.color].filter(Boolean).join(' · '))}</span></div>
+            <div class="stepper">
+              <button type="button" data-paso="-1">−</button>
+              <input id="campo-cantidad-form" type="number" min="0" inputmode="numeric" value="${esc(st._textoCantidad||'')}">
+              <button type="button" data-paso="1">+</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="submit" class="btn btn-primario">Registrar</button>
+              <button type="button" class="btn btn-secundario" id="btn-cancelar-form">Cancelar</button>
+            </div>
+          </div>
+          <p class="suave" style="margin:8px 0 0;font-size:12px;">${st.recontar.has(seleccionadaV.id) ? 'Se recuenta: escribe lo que hay ahora, sin mirar la cifra anterior.' : (seleccionadaV.id in st.cantidades ? `Ya se anotaron ${st.cantidades[seleccionadaV.id]}. Lo que escribas reemplaza esa cifra.` : 'Escribe lo que hay físicamente y presiona Enter.')}</p>
+        </form>` : (st.modo === 'suma' && ultimaV) ? `
+        <div class="estas-contando">
+          <p class="eyebrow" style="flex-basis:100%;">Estás contando</p>
+          <div class="prenda"><b>${esc(ultimaV.ref)}</b><span>${esc(ultimaV.sku)} ${esc([ultimaV.talla, ultimaV.color].filter(Boolean).join(' · '))}</span></div>
+          <div class="stepper">
+            <button type="button" data-ajustar="-1">−</button>
+            <input id="campo-ultima" type="number" min="0" value="${st.cantidades[ultimaV.id]||0}">
+            <button type="button" data-ajustar="1">+</button>
+          </div>
+          <p class="estado-guardado ${st.guardado.tipo==='guardado'?'ok':st.guardado.tipo==='error'?'err':''}">${st.guardado.tipo==='guardando'?'Guardando…':'✓ Guardado · vuelve a escanear para sumar, o corrige con − / +'}</p>
+        </div>` : `
+        <div class="vacio-contar">
+          <p>${st.modo==='suma' ? 'Apunta la pistola o la cámara y dispara' : 'Escanea o busca una prenda'}</p>
+          <p>${st.modo==='suma' ? 'Cada lectura suma 1 a esa prenda, se guarda sola y suena. Si tienes una pila de 12 iguales, escanea una y corrige la cifra a 12.' : 'Elige la prenda, escribe cuántas hay y registra. Sirve para pilas grandes o si no hay pistola.'}</p>
+        </div>`}
+
+        ${errorTexto ? `<p style="color:var(--rojo);font-size:13px;margin:0;">${esc(errorTexto)}</p>` : ''}
+
+        <div class="pie-contar">
+          ${st.confirmarCancelar ? `
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;">
+              <span class="suave">¿Cancelar? Se pierde lo contado; el stock no se toca.</span>
+              <button type="button" class="btn btn-peligro btn-chico" id="btn-si-cancelar">Sí, cancelar</button>
+              <button type="button" class="btn btn-sutil btn-chico" id="btn-seguir-contando">Seguir contando</button>
+            </div>` : `<button type="button" class="btn btn-sutil" id="btn-cancelar-conteo">Cancelar este conteo</button>`}
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button type="button" class="btn btn-primario" id="btn-revisar" ${contadas.size===0?'disabled':''}>Revisar y cerrar →</button>
+          </div>
+        </div>
+        ${contadas.size===0 ? '<p class="suave" style="text-align:right;font-size:11.5px;margin:0;">Un conteo sin prendas no se cierra. Si no se va a contar, cancélalo.</p>' : ''}
+      </section>
+
+      <section class="tarjeta panel-lado">
+        <div class="tabs">
+          <button type="button" data-pestana="faltan" aria-selected="${st.pestana==='faltan'}">Faltan por contar <span class="n">${faltanN}</span></button>
+          <button type="button" data-pestana="contadas" aria-selected="${st.pestana==='contadas'}">Contadas <span class="n">${contadas.size}</span></button>
+        </div>
+        ${st.pestana==='faltan' ? renderFaltan() : renderContadas()}
+      </section>
+    </div>`;
+  }
+
+  function renderFaltan(){
+    const recon = aRecontar();
+    const grupos = agruparFaltan();
+    let html = '<p class="nota-lista">Qué buscar en el rack, por modelo y color, sin cuántas dice el sistema. Toca una talla para anotarla a mano.</p>';
+    if(recon.length){
+      html += `<div class="recontar-bloque">
+        <p class="eyebrow">A recontar · ${recon.length}</p>
+        <p class="suave" style="margin:3px 0 8px;font-size:12px;">Tuvieron diferencia: se vuelven a contar desde cero.</p>
+        <ul>${recon.map(p => `<li style="display:flex;align-items:center;gap:10px;padding:6px 0;"><span class="prenda" style="flex:1;"><b>${esc(p.ref)}</b><span>${esc(p.sku)}</span></span><button type="button" class="btn-enlace" data-anotar="${p.id}">Anotar</button></li>`).join('')}</ul>
+      </div>`;
+    }
+    html += '<div class="scroll-lista" style="max-height:22rem;">';
+    if(!grupos.length){
+      html += '<p style="padding:16px 20px;" class="suave">No falta nada: ya se contó todo el alcance.</p>';
+    } else {
+      html += grupos.map(g => `<div class="percha">
+        <p class="percha-tit"><b>${esc(g.ref)}</b>${g.color?`<span class="suave">· ${esc(g.color)}</span>`:''}<span class="sku suave">${esc(g.codigoBase)}</span></p>
+        <div class="tallas">${g.tallas.map(t => `<button type="button" class="talla" data-anotar="${t.id}" title="Anotar a mano ${esc(t.sku)}"><span>${esc(t.talla)}</span><span class="mas">+</span></button>`).join('')}</div>
+      </div>`).join('');
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderContadas(){
+    if(!st.orden.length) return '<p style="padding:16px 20px;" class="suave">Todavía nada. Lo que cuentes aparece aquí, lo último arriba.</p>';
+    const filas = [...st.orden].slice().reverse().map(id => {
+      const p = porId(id); if(!p) return '';
+      const porRecontar = st.recontar.has(id);
+      return `<div class="fila-contada">
+        <span class="prenda"><b>${esc(p.ref)}</b><span>${esc(p.sku)} ${esc([p.talla,p.color].filter(Boolean).join(' · '))}</span></span>
+        ${porRecontar ? '<span class="insignia" data-tono="ambar">a recontar</span>' : `<span class="cant">× ${st.cantidades[id]}</span>`}
+        <button type="button" class="btn-enlace" data-corregir="${id}">Corregir</button>
+      </div>`;
+    }).join('');
+    return `<div class="scroll-lista" style="max-height:26rem;">${filas}</div>`;
+  }
+
+  // ---------------------------------------------------------------- render: historial
+  function renderHistorial(){
+    const el = $('#historial-tabla');
+    const filas = st.historial;
+    const conPrendas = filas.filter(c => c.lineas > 0 || c.estado === 'en-curso');
+    const vacios = filas.filter(c => c.estado === 'vacio');
+    function filaHtml(c){
+      const tono = c.estado==='en-curso' ? 'taupe' : c.estado==='vacio' ? 'taupe' : (c.resultado==='Sin diferencias' ? 'verde' : 'ambar');
+      const texto = c.estado==='en-curso' ? 'En curso' : c.resultado;
+      return `<tr>
+        <td><div class="prenda"><b>Conteo ${c.numero}</b><span>${c.estado==='en-curso'?'Abierto hoy':'Cerrado '+c.fecha}</span></div></td>
+        <td><div class="prenda"><b>${esc(c.lugar)}</b><span>Todo el catálogo · ${c.lineas} ${c.lineas===1?'prenda':'prendas'}</span></div></td>
+        <td><span class="insignia" data-tono="${tono}">${esc(texto)}</span></td>
+        <td>${esc(c.sistemaFisico)}</td>
+        <td><div class="prenda"><span>Abrió ${esc(c.abrio)}</span>${c.cerro?`<span>Cerró ${esc(c.cerro)}</span>`:''}</div></td>
+      </tr>`;
+    }
+    let html = `<div class="tabla-caja"><table class="tabla">
+      <thead><tr><th>Conteo</th><th>Qué se contó</th><th>Resultado</th><th>Sistema → físico</th><th>Responsables</th></tr></thead>
+      <tbody>${conPrendas.map(filaHtml).join('')}</tbody>
+    </table></div>`;
+    if(vacios.length){
+      html += `<details class="vacios" style="margin-top:10px;"><summary><span>›</span><b>${vacios.length} conteos vacíos</b>&nbsp;· cerraron sin prendas y no cuentan para la exactitud</summary>
+        <div class="tabla-caja" style="padding:8px;"><table class="tabla"><tbody>${vacios.map(filaHtml).join('')}</tbody></table></div>
+      </details>`;
+    }
+    el.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------- render: revisar y cerrar
+  function diferenciaDe(v){ return (st.cantidades[v.id] ?? 0) - v.sistema; }
+
+  function renderRevisar(){
+    const contadosIds = st.orden.filter(id => id in st.cantidades);
+    const noEncontradas = CATALOGO.filter(v => v.sistema > 0 && !(v.id in st.cantidades));
+    const sinDecidir = noEncontradas.filter(v => !st.decisiones[v.id]);
+    const filasTabla = contadosIds.map(id => {
+      const v = porId(id); const dif = diferenciaDe(v);
+      const tono = dif === 0 ? 'var(--verde)' : dif < 0 ? 'var(--rojo-profundo)' : 'var(--ambar-profundo)';
+      return `<tr>
+        <td><div class="prenda"><b>${esc(v.ref)}</b><span>${esc(v.sku)}</span></div></td>
+        <td class="cen">${v.sistema}</td>
+        <td class="cen">${st.cantidades[id]}</td>
+        <td class="der" style="color:${tono};font-weight:600;">${dif>0?'+':''}${dif}</td>
+      </tr>`;
+    }).join('');
+    const totalDif = contadosIds.reduce((a,id) => a + diferenciaDe(porId(id)), 0);
+    const conDiferencia = contadosIds.filter(id => diferenciaDe(porId(id)) !== 0);
+
+    $('#revisar-titulo').textContent = 'Conteo ' + st.numero + ' · revisar antes de cerrar';
+    $('#revisar-cuerpo').innerHTML = `
+      <p class="suave" style="font-size:13px;margin:0 0 14px;">Recién ahora se ve lo que dice el sistema. La diferencia se ajusta al stock solo al cerrar.</p>
+      <div class="tabla-caja"><table class="tabla">
+        <thead><tr><th>Producto / variante</th><th class="cen">Sistema</th><th class="cen">Físico</th><th class="der">Diferencia</th></tr></thead>
+        <tbody>${filasTabla || '<tr><td colspan="4" class="suave" style="padding:14px;">Nada contado todavía.</td></tr>'}</tbody>
+        <tfoot><tr style="font-weight:600;"><td colspan="3">Diferencia total</td><td class="der" style="color:${totalDif<0?'var(--rojo-profundo)':totalDif>0?'var(--ambar-profundo)':'var(--verde)'}">${totalDif>0?'+':''}${totalDif} un. · ${soles(totalDif*PRECIO_PROMEDIO)}</td></tr></tfoot>
+      </table></div>
+
+      ${noEncontradas.length ? `
+      <div style="margin-top:16px;">
+        <p class="eyebrow" style="color:var(--ambar-profundo);">No se encontraron · ${noEncontradas.length}</p>
+        <p class="suave" style="font-size:12px;margin:3px 0 8px;">El sistema tiene stock aquí y nadie las contó. Decide una por una.</p>
+        <ul>${noEncontradas.map(v => `
+          <li style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--sand);">
+            <span class="prenda" style="flex:1;min-width:9rem;"><b>${esc(v.ref)}</b><span>${esc(v.sku)} · sistema dice ${v.sistema}</span></span>
+            ${st.decisiones[v.id] ? `<span class="insignia" data-tono="${st.decisiones[v.id]==='cero'?'rojo':'taupe'}">${st.decisiones[v.id]==='cero'?'No está → 0':'Se deja como está'}</span><button type="button" class="btn-enlace" data-cambiar-decision="${v.id}">cambiar</button>`
+              : `<button type="button" class="btn btn-secundario btn-chico" data-decidir="${v.id}|cero">No está → 0</button><button type="button" class="btn btn-sutil btn-chico" data-decidir="${v.id}|deja">Dejar como está</button>`}
+          </li>`).join('')}</ul>
+      </div>` : '<p class="suave" style="font-size:12px;margin-top:14px;">Nada sin decidir: el sistema no tiene otra prenda pendiente en este alcance.</p>'}
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:18px;border-top:1px solid var(--sand);padding-top:14px;">
+        <button type="button" class="btn btn-secundario" id="btn-recontar" ${conDiferencia.length===0?'disabled':''}>Recontar las ${conDiferencia.length} con diferencia</button>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn btn-sutil" id="btn-cancelar-revisar">Cancelar</button>
+          <button type="button" class="btn btn-primario" id="btn-cerrar-conteo" ${sinDecidir.length? 'disabled title="Decide todas las no encontradas primero"':''}>Cerrar conteo</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------------------------------------------------------------- render maestro
+  function render(){
+    document.body.dataset.momento = st.momento;
+    $('#hilo-fecha').textContent = 'Tienda TRU · ' + fechaLegible();
+    renderCifras();
+    const zona = $('#zona-conteo');
+    zona.innerHTML = st.momento === 'contando' ? renderContando() : renderAbrir();
+    renderHistorial();
+    $('#velo-camara').classList.toggle('abierto', st.camaraAbierta);
+    $('#velo-revisar').classList.toggle('abierto', st.revisando);
+    if(st.revisando) renderRevisar();
+    $$('#seg-momento button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === st.momento)));
+    const btnTemaEl = $('#btn-tema');
+    if(btnTemaEl) btnTemaEl.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Claro' : 'Oscuro';
+    bind();
+  }
+
+  function fechaLegible(){
+    try{
+      const d = new Date();
+      const txt = d.toLocaleDateString('es-PE', {weekday:'long', day:'2-digit', month:'long'});
+      const hora = d.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit', hour12:false});
+      return txt.charAt(0).toUpperCase() + txt.slice(1) + ' · ' + hora;
+    } catch(e){ return '—'; }
+  }
+
+  // ---------------------------------------------------------------- eventos (delegados una sola vez donde se pueda)
+  function bind(){
+    // Abrir conteo
+    $$('.lugar').forEach(b => b.onclick = () => { st.lugar = b.dataset.lugar; render(); });
+    $$('[data-alcance]').forEach(b => b.onclick = () => { st.alcance = b.dataset.alcance; render(); });
+    const respAbrir = $('#responsable-abrir'); if(respAbrir) respAbrir.onchange = e => { st.responsable = e.target.value || null; render(); };
+    const respContar = $('#responsable-contar'); if(respContar) respContar.onchange = e => { st.responsable = e.target.value || null; render(); };
+    const btnAbrir = $('#btn-abrir'); if(btnAbrir) btnAbrir.onclick = abrirConteo;
+
+    // Escáner / búsqueda
+    const campo = $('#campo-escaner');
+    if(campo){
+      campo.oninput = e => {
+        st.busqueda = e.target.value;
+        if(st.modo === 'escribir'){
+          const exacto = resolverExacto(st.busqueda);
+          if(exacto){ leer(exacto); return; }
+        }
+        render();
+        foco('#campo-escaner');
+        const el = $('#campo-escaner'); if(el) el.setSelectionRange(el.value.length, el.value.length);
+      };
+      campo.onkeydown = e => {
+        if(e.key !== 'Enter') return;
+        e.preventDefault();
+        const exacto = resolverExacto(st.busqueda);
+        const coincidencias = coincidenciasDe(st.busqueda);
+        if(exacto) return leer(exacto);
+        if(coincidencias.length === 1) return leer(coincidencias[0]);
+      };
+    }
+    $$('[data-leer]').forEach(b => b.onclick = () => leer(porId(b.dataset.leer)));
+    const btnAlta = $('#btn-dar-alta'); if(btnAlta) btnAlta.onclick = darDeAltaSimulada;
+    const btnCam = $('#btn-camara'); if(btnCam) btnCam.onclick = abrirCamara;
+
+    // Modo / pestañas
+    $$('[data-modo]').forEach(b => b.onclick = () => { st.modo = b.dataset.modo; st.seleccionada = null; render(); foco('#campo-escaner'); });
+    $$('[data-pestana]').forEach(b => b.onclick = () => { st.pestana = b.dataset.pestana; render(); });
+
+    // Faltan / anotar / corregir
+    $$('[data-anotar]').forEach(b => b.onclick = () => anotar(porId(b.dataset.anotar)));
+    $$('[data-corregir]').forEach(b => b.onclick = () => {
+      const id = b.dataset.corregir;
+      if(st.modo === 'suma' && !st.recontar.has(id)) st.ultimaId = id;
+      else anotar(porId(id));
+      render();
+    });
+
+    // Formulario "Escribir cantidad"
+    const form = $('#form-cantidad');
+    if(form){
+      form.onsubmit = e => {
+        e.preventDefault();
+        const val = $('#campo-cantidad-form').value;
+        const n = parseInt(val, 10);
+        if(isNaN(n) || n < 0 || String(n) !== val.trim()){ avisarError('La cantidad física tiene que ser un número entero, 0 o más.'); return; }
+        const id = st.seleccionada;
+        st.recontar.delete(id);
+        guardarCantidad(id, n);
+        st.seleccionada = null;
+        render();
+        foco('#campo-escaner');
+      };
+      $$('[data-paso]').forEach(b => b.onclick = () => {
+        const campoN = $('#campo-cantidad-form');
+        const actual = parseInt(campoN.value, 10) || 0;
+        campoN.value = Math.max(0, actual + parseInt(b.dataset.paso, 10));
+      });
+      const btnCancelarForm = $('#btn-cancelar-form'); if(btnCancelarForm) btnCancelarForm.onclick = () => { st.seleccionada = null; render(); foco('#campo-escaner'); };
+    }
+
+    // "Estás contando" (modo suma)
+    $$('[data-ajustar]').forEach(b => b.onclick = () => {
+      if(!st.ultimaId) return;
+      const n = (st.cantidades[st.ultimaId]||0) + parseInt(b.dataset.ajustar, 10);
+      if(n < 0) return;
+      guardarCantidad(st.ultimaId, n);
+    });
+    const campoUltima = $('#campo-ultima');
+    if(campoUltima) campoUltima.onchange = e => {
+      const n = parseInt(e.target.value, 10);
+      if(isNaN(n) || n < 0){ avisarError('La cantidad tiene que ser un número entero, 0 o más.'); render(); return; }
+      guardarCantidad(st.ultimaId, n);
+    };
+
+    // Cancelar conteo
+    const btnCancelarConteo = $('#btn-cancelar-conteo'); if(btnCancelarConteo) btnCancelarConteo.onclick = () => { st.confirmarCancelar = true; render(); };
+    const btnSeguir = $('#btn-seguir-contando'); if(btnSeguir) btnSeguir.onclick = () => { st.confirmarCancelar = false; render(); };
+    const btnSiCancelar = $('#btn-si-cancelar'); if(btnSiCancelar) btnSiCancelar.onclick = cancelarConteo;
+
+    // Revisar y cerrar
+    const btnRevisar = $('#btn-revisar'); if(btnRevisar) btnRevisar.onclick = () => { st.revisando = true; render(); };
+    const cerrarRevisar1 = $('#cerrar-revisar'); if(cerrarRevisar1) cerrarRevisar1.onclick = () => { st.revisando = false; render(); };
+    const cerrarRevisar2 = $('#btn-cancelar-revisar'); if(cerrarRevisar2) cerrarRevisar2.onclick = () => { st.revisando = false; render(); };
+    $$('[data-decidir]').forEach(b => b.onclick = () => { const [id, d] = b.dataset.decidir.split('|'); st.decisiones[id] = d; render(); });
+    $$('[data-cambiar-decision]').forEach(b => b.onclick = () => { delete st.decisiones[b.dataset.cambiarDecision]; render(); });
+    const btnRecontar = $('#btn-recontar'); if(btnRecontar) btnRecontar.onclick = recontarConDiferencia;
+    const btnCerrarConteo = $('#btn-cerrar-conteo'); if(btnCerrarConteo) btnCerrarConteo.onclick = cerrarConteo;
+
+    // Cámara
+    const btnCamMovil = $('#btn-camara-movil'); if(btnCamMovil) btnCamMovil.onclick = abrirCamara;
+    const btnTecMovil = $('#btn-teclado-movil'); if(btnTecMovil) btnTecMovil.onclick = () => foco('#campo-escaner');
+    const cerrarCam1 = $('#cerrar-camara'); if(cerrarCam1) cerrarCam1.onclick = () => { st.camaraAbierta = false; render(); };
+    const cerrarCam2 = $('#cerrar-camara-2'); if(cerrarCam2) cerrarCam2.onclick = () => { st.camaraAbierta = false; render(); };
+    const btnSimular = $('#simular-lectura'); if(btnSimular) btnSimular.onclick = simularLecturaCamara;
+  }
+
+  function abrirConteo(){
+    if(!st.lugar || !st.responsable) return;
+    st.momento = 'contando';
+    st.cantidades = {}; st.orden = []; st.recontar = new Set(); st.ultimaId = null; st.decisiones = {};
+    st.historial.unshift({numero: st.numero, estado:'en-curso', resultado:'En curso', lugar: st.lugar==='piso'?'Piso de venta':'Almacén de tienda', lineas:0, sistemaFisico:'A ciegas hasta revisar', abrio: st.responsable, cerro:null, fecha:'hoy'});
+    render();
+    foco('#campo-escaner');
+  }
+
+  function cancelarConteo(){
+    st.historial = st.historial.filter(c => c.numero !== st.numero || c.estado !== 'en-curso');
+    st.momento = 'sin-abrir';
+    st.lugar = null; st.confirmarCancelar = false; st.cantidades = {}; st.orden = []; st.recontar = new Set();
+    render();
+  }
+
+  function abrirCamara(){
+    if(!st.responsable){ avisarError('Elige quién cuenta antes de escanear.'); return; }
+    st.camaraAbierta = true;
+    render();
+  }
+
+  function simularLecturaCamara(){
+    const candidatos = pendientesFaltan();
+    const pool = candidatos.length ? candidatos : catalogoUniverso();
+    const v = pool[Math.floor(Math.random()*pool.length)];
+    const n = sumarUna(v);
+    $('#camara-bandeja').innerHTML = `<b>${esc(v.ref)}</b> ${esc([v.talla, v.color].filter(Boolean).join(' · '))} · ${esc(v.sku)} — ahora × ${n}`;
+    render();
+    st.camaraAbierta = true; // render() no resetea, pero por claridad
+    $('#velo-camara').classList.add('abierto');
+  }
+
+  function recontarConDiferencia(){
+    const ids = st.orden.filter(id => id in st.cantidades && diferenciaDe(porId(id)) !== 0);
+    ids.forEach(id => st.recontar.add(id));
+    st.revisando = false;
+    st.pestana = 'faltan';
+    render();
+  }
+
+  function cerrarConteo(){
+    const contadosIds = st.orden.filter(id => id in st.cantidades);
+    const totalDif = contadosIds.reduce((a,id) => a + diferenciaDe(porId(id)), 0);
+    const conDif = contadosIds.filter(id => diferenciaDe(porId(id)) !== 0).length;
+    // aplica las decisiones "no está → 0" como líneas contadas en cero
+    Object.entries(st.decisiones).forEach(([id, d]) => { if(d === 'cero') st.cantidades[id] = 0; });
+    const lineas = contadosIds.length;
+    st.exactitudBase.correctas += (lineas - conDif);
+    st.exactitudBase.lineas += lineas;
+    const idx = st.historial.findIndex(c => c.numero === st.numero && c.estado === 'en-curso');
+    const fila = {
+      numero: st.numero, estado:'cerrado', resultado: conDif===0 ? 'Sin diferencias' : `${conDif} con diferencia`,
+      lugar: st.lugar==='piso'?'Piso de venta':'Almacén de tienda', lineas, sistemaFisico: `${lineas} líneas revisadas`,
+      abrio: st.responsable, cerro: st.responsable, fecha:'hoy', diferenciaSoles: totalDif*PRECIO_PROMEDIO, lineasConDiferencia: conDif,
+    };
+    if(idx >= 0) st.historial[idx] = fila; else st.historial.unshift(fila);
+    st.revisando = false;
+    st.momento = 'cerrado';
+    st.numero += 1;
+    render();
+  }
+
+  // ---------------------------------------------------------------- demo: momento / tema / reset
+  function fijarMomentoDemo(v){
+    if(v === 'sin-abrir'){ st.momento = 'sin-abrir'; st.lugar = null; st.cantidades = {}; st.orden = []; st.recontar = new Set(); st.decisiones = {}; st.historial = st.historial.filter(c => c.estado !== 'en-curso' || c.numero !== st.numero); }
+    else if(v === 'contando'){
+      if(st.momento !== 'contando'){ st.lugar = st.lugar || 'almacen'; st.responsable = st.responsable || RESPONSABLES[0]; abrirConteo(); return; }
+    }
+    else if(v === 'cerrado'){
+      if(st.momento !== 'cerrado'){
+        st.lugar = st.lugar || 'almacen'; st.responsable = st.responsable || RESPONSABLES[0];
+        if(st.momento !== 'contando') abrirConteo();
+        if(!st.orden.length){ CATALOGO.slice(0,5).forEach(v2 => sumarUna(v2)); }
+        cerrarConteo();
+        return;
+      }
+    }
+    render();
+  }
+  $('#seg-momento').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; fijarMomentoDemo(b.dataset.v); });
+
+  $('#btn-tema').addEventListener('click', () => {
+    const root = document.documentElement;
+    const oscuro = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', oscuro ? 'light' : 'dark');
+    render();
+  });
+
+  $('#btn-reset').addEventListener('click', () => {
+    st.momento = 'sin-abrir'; st.lugar = null; st.responsable = null; st.modo = 'suma'; st.pestana = 'faltan';
+    st.cantidades = {}; st.orden = []; st.recontar = new Set(); st.decisiones = {}; st.ultimaId = null; st.seleccionada = null;
+    st.confirmarCancelar = false; st.camaraAbierta = false; st.revisando = false; st.numero = 6;
+    st.historial = HISTORIAL_BASE.slice(); st.exactitudBase = {correctas:11, lineas:11};
+    render();
+  });
+
+  render();
+})();
+} catch (e) {
+  document.body.insertAdjacentHTML('afterbegin', '<pre style="color:red;white-space:pre-wrap;padding:12px;background:#fff;">' + (e && e.stack || e) + '</pre>');
+}
+</script>
