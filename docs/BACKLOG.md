@@ -28,6 +28,46 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
+Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
+«historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
+- [x] `fn_producto_historia` (única definición, cada renglón `borrable` o no), `fn_producto_como_eliminar` (la ventana) y `eliminar_producto_con_historia` (solo Admin, respaldo en `respaldo_purgas.filas`, candados devueltos a su modo, rastro y Actividad).
+- [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
+- [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
+- [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
+- [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
+- [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
+- [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
+- [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
+- Cómo verificas:
+  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
+  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+
+## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
+Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
+estar limitado a solo el líder». Decidió: Líder editable como cualquier rol; los tres módulos, «todo, como el líder»;
+reabrir un mes, quien tenga Cierre de mes.
+- [x] Configuración, Impuestos y Cierre de mes se dan a un rol (`20260928220000`): 36 funciones cambian solo su candado
+  (reescritas desde su definición real; huellas del repo y de producción idénticas el 2026-09-28) y 4 preguntas nuevas
+  (`fn_puede_configurar`, `fn_puede_ver_impuestos`, `fn_puede_cerrar_mes`, `fn_ve_finanzas_de_todo`).
+- [x] El Líder se edita (`20260928220100`): `retail.lider_modulos_ocultos` guarda lo que se le quita; solo un Admin lo
+  edita; «Roles y accesos» no se le quita; un módulo nuevo le sigue apareciendo solo; duplicarlo copia lo que ve.
+- [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
+  permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
+- [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
+  módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
+- [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
+  base ya lo deja a quien tiene Configuración; lo mismo, la opción «De la empresa» en Gastos.
+- Cómo verificas:
+  - `pnpm pruebas:roles-lider-editable` (13/13; vigila que ninguna de las 36 funciones vuelva a preguntar `fn_es_lider()`).
+  - `pnpm pruebas:roles-cobertura` (31/31), `pnpm pruebas:impuestos`, `pnpm pruebas:cierre-mes` (104/104),
+    `pnpm pruebas:configuracion-caja`, `pnpm pruebas:presupuesto`, `pnpm pruebas:cuentas-dinero`, `pnpm pruebas:editar-cuentas`,
+    `pnpm pruebas:cuenta-sellada`, `pnpm pruebas:activos-y-fijos` — actualizadas: el mensaje dejó de decir «solo el líder».
+  - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
+  - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
+
 ## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
 
 - [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
@@ -39,6 +79,22 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
   `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
   main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+
+## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificado por md5); rama `claude/clientas-por-modulo-y-anonimizar`
+Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
+- [x] **(c) Por módulo:** las 11 funciones de la ficha empiezan por `retail.fn_exigir_modulo('clientas')` (42501 + hint `clientas_sin_modulo`, antes de pedir «Responsable»), y la lectura directa de `clientas` pregunta lo mismo (`clientas_select`). `clientas_fusiones` queda sin políticas ni permisos para la API.
+- [x] **(a)** `registrar_clienta` con el DNI de una ficha archivada la reactiva (mismo id, historial, `version`+1, una línea de actividad sin nombre). Candado nuevo `clientas_fusionada_implica_anonimizada`.
+- [x] **(b)** Anonimizar vacía la foto de `clientas_fusiones` de esa persona (todas las fichas que se le unieron) y no guarda el motivo escrito; la actividad de Clientas dice «una clienta» y la de Apartados «la clienta» (sin `detalle.clienta`). Lo escrito antes se limpia una vez al pegar: las líneas viejas de la actividad y, de cada ficha que la función de antes ya anonimizó, el motivo escrito y la foto de sus fusiones (sin tocar la de una fusión viva). Producción tiene 0 de todo.
+- [x] Web: `error-escritura.ts` traduce todo `<módulo>_sin_modulo`; el Punto de venta y Apartar no ofrecen buscar la clienta a una cuenta sin el módulo (`filaDeClienta`, `veClientas`).
+- [x] **PEGADAS por Felipe el 2026-09-28** y verificadas en solo lectura: las 14 funciones con el md5 «despues» de la sección 0, `clientas_select` con `fn_ve_modulo('clientas')` y sin `clientas_fusiones_select`. Orden en que se pegaron, cada una SOLA en el SQL Editor:
+      1. `20260928190000_clientas_por_modulo_y_anonimizar_todo.sql` (funciones; aborta sin tocar nada si alguna de las 13 cambió en vivo).
+      2. `20260928190100_clientas_politicas_por_modulo.sql` (solo políticas).
+      Después: los 14 md5 normalizados de la cabecera de la PARTE 1 dan su «después» (lista en el ADR) y `pg_policies` de `clientas`/`clientas_fusiones` devuelve una sola fila, `clientas_select` con `fn_ve_modulo('clientas')`.
+- [ ] Refrescar el volcado (`pnpm datos:generar:produccion`) y correr `pnpm datos:comparar` después de pegar.
+- [ ] Con sesión real a 375 px (PL-105): una cuenta sin «Clientas» no ve la fila «Clienta» del ticket ni el buscador de Apartar, y vende igual.
+- [ ] **Felipe (no bloquea pegar):** la actividad de Apartados deja de decir el nombre («abonó S/ 20 al apartado APT-TRU-0007 de la clienta»). Es lo que pide «anonimizar borra todo»; si prefiere el nombre ahí, la clienta que apartó no queda borrada del todo.
+- [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
+- Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
@@ -642,8 +698,8 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [x] **Protege la pieza «Monto manual»** del punto de venta (`11111111-…`, hoy «Prenda sin Registrar»): en producción no tiene movimientos, así que «sin historia» la habría dejado borrar y roto el cobro manual de todas las tiendas.
 - [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido con sesión de Admin Líder y de colaboradora, luego `apply_migration`. md5 del cuerpo = el del archivo. **Falta fusionar el PR de la web** para que aparezca el botón.
 - [ ] **Top Aurora (`TOP-0011`): Felipe prefiere ELIMINARLO DEL TODO (2026-09-26), no archivarlo. Sin ejecutar: falta que confirme el impacto.** El botón no puede (65 u., historia inmutable) y no debe cambiar: la regla «solo lo que nunca se movió» se queda. Es una **limpieza única**, no una función. Impacto medido en solo lectura: 1 producto, 8 variantes, 8 filas de stock, 15 movimientos (8 reposiciones + 7 salidas por venta) y **UNA venta** —`269a926c…`, 2026-09-25, `completada`, no marcada como prueba— con 19 líneas de 5 productos (Top Aurora 7 líneas / S/ 975; Blusa Carlita 7; Jean Baggy 3; Blusa Xd 1; Polo Básico 1), pagada **en efectivo S/ 2 007,10** (nota de venta interna `NV01-7`, sin SUNAT), en una **caja que sigue ABIERTA** desde el 25-sep con 3 ventas. Borrarla arrastra la venta entera, su pago y su nota, devuelve stock a otros 4 productos y baja lo esperado de esa caja. Nada en compras, traslados, conteos ni fotos. Requiere desactivar el candado de `movimientos` dentro de la transacción (como `scripts/demo/deshacer-90-dias.sql`), con respaldo previo de las filas fuera del repo (es público).
-- [x] **«Sin stock» en la tarjeta y «tiene movimientos de stock (12)» en la ventana se leían como una contradicción** (Felipe, 2026-09-28, con «Fdhh» `CMS-0004`: 6 entradas de 20 del 26-sep y 6 ajustes de −20 del 28-sep, 0 unidades). El 12 cuenta registros de historia, no prendas. Ahora, si la base no trae el renglón «unidades en stock», la ventana dice primero «no tiene unidades en stock, pero ya tiene historia: …» (`textoNoSePuede`, solo web, sin migración). Una prueba lee la última migración de `fn_producto_se_puede_eliminar` y falla si ese renglón cambia de nombre. **No había desincronización:** la reconciliación completa en producción (solo lectura, 2026-09-28) dio 188 movimientos, 160 filas de stock y **0 descuadres**.
-- [ ] El «Archivar» del menú «···» de la vista tabla sigue siendo un adorno («todavía no está conectado»); convive con «Eliminar». **Es la salida que le falta a una prenda de prueba** como «Fdhh»: la base ya tiene `es_prueba` y `archivar_producto_prueba()` (solo líder, D-54), pero ningún botón las llama; descontinuarla la deja en el catálogo y su historia de prueba en Movimientos de TRU.
+- [x] **«Sin stock» en la tarjeta y «tiene movimientos de stock (12)» en la ventana se leían como una contradicción** (Felipe, 2026-09-28, con «Fdhh» `CMS-0004`: 6 entradas de 20 del 26-sep y 6 ajustes de −20 del 28-sep, 0 unidades). El 12 cuenta registros de historia, no prendas. Ahora, con historia y 0 unidades (`prendas` de `fn_producto_como_eliminar`, ADR-0252), la ventana dice primero «no tiene unidades en stock, pero ya tiene historia: …» (`textoNoSePuede`, solo web, sin migración). **No había desincronización:** la reconciliación completa en producción (solo lectura, 2026-09-28) dio 188 movimientos, 160 filas de stock y **0 descuadres**.
+- [ ] El «Archivar» del menú «···» de la vista tabla sigue siendo un adorno («todavía no está conectado»); convive con «Eliminar». Para una prenda de prueba sin ventas, la salida ya existe: un Admin la elimina con su historia (ADR-0252). Lo que falta está en ADR-0256 (tarea #9 de `docs/pantallas/catalogo-inventario.md`).
 - [ ] Los archivos de las fotos de un producto eliminado quedan en Storage (quitar una foto desde la ficha tampoco los borra hoy). Decidir una sola regla para ambos casos.
 
 ## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926213000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web fusionada (#464) y **cerrado el caso «Cayla 2»**
@@ -1728,6 +1784,9 @@ Punto de partida en producción (2026-09-26, solo lectura): 0 clientas, 0 de 7 v
       375 px contra un stack de Supabase aislado (nunca el Docker compartido). **Cómo lo verifica Felipe:**
       busca por DNI y por celular, une dos fichas de prueba, y con una segunda sesión edita la misma ficha a
       la vez para ver el aviso de «alguien más editó esto».
+- [x] **Paso 2 en producción (PR #543)**, sin la política `clientas_fusiones_select`. Encima: la ficha por módulo, la
+      clienta que vuelve se reactiva y anonimizar borra todo — sección «🔒 Clientas por módulo…» al inicio de este
+      archivo (ADR-0249, actualización 2026-09-28), **POR PEGAR**.
 - [ ] **Paso 3 · Permiso y avisos** (bienvenida «responde SÍ», bandeja «Avisar», grupo testigo) — sin empezar.
 - [ ] **Paso 4 · Medir** (% identificadas, vuelven en 90 días contra el testigo) — sin empezar.
 

@@ -346,10 +346,10 @@ select pg_temp.intento('select count(*) from retail.fn_dinero_libro(retail.fn_ho
   esperar("no deposita el cajón de otra tienda", r.ok && otraTienda.includes("lo de tu tienda"), r);
   esperar("entre cuentas es del líder", r.ok && entre.includes("solo registra depósitos"), r);
   esperar("la plata del dueño es del líder", r.ok && aporte.includes("solo registra depósitos"), r);
-  esperar("conciliar es del líder", r.ok && conciliar.includes("solo del líder"), r);
-  esperar("ver la plata del dueño es del líder", r.ok && dueno.includes("solo del líder"), r);
-  esperar("agregar cuentas es del líder", r.ok && crear.includes("solo del líder"), r);
-  esperar("decir a qué cuenta entra cada cobro es del líder", r.ok && medio.includes("solo del líder"), r);
+  esperar("conciliar es del líder", r.ok && conciliar.includes("del líder o de quien tiene el módulo «Configuración»"), r);
+  esperar("ver la plata del dueño es del líder", r.ok && dueno.includes("del líder o de quien tiene el módulo «Configuración»"), r);
+  esperar("agregar cuentas es del líder", r.ok && crear.includes("del líder o de quien tiene el módulo «Configuración»"), r);
+  esperar("decir a qué cuenta entra cada cobro es del líder", r.ok && medio.includes("del líder o de quien tiene el módulo «Configuración»"), r);
   esperar("anula su propio depósito", r.ok && anular === "SIN_ERROR", r);
   esperar("nadie lee las tablas directo (cuentas, movimientos, medios, conciliaciones) ni el libro", r.ok && directo.length === 5 && directo.every((d) => d.includes("permission denied")), r);
 }
