@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Catálogo ↔ Inventario, construido: la tarjeta por sede, «Ver en Existencias» y la talla que no se retira con prendas)
+Qué hice: el Catálogo, su cabecera y «Dónde más hay» leen la cifra única; la tarjeta dice «7 aquí · +60 en LIM · 40 en taller», igual que Existencias; «Ajustar» sale del Catálogo; «En camino» dejó de contar dos veces; y la base ya no deja retirar una talla con prendas adentro. Tres migraciones por pegar, 40 casos nuevos con control y mutaciones, y la batería completa del CI en verde salvo una que ya fallaba.
+Por qué así: una fórmula en la base y pantallas que solo la leen, más una prueba que falla si alguien vuelve a sumar `stock` por su cuenta; el estado imposible (talla retirada con prendas) se cierra en la tabla, no en cada pantalla. Qué se rompería sin esto: la próxima pantalla volvería a inventar su número y las prendas volverían a «desaparecer» al apagar una talla.
+Felipe se lleva: **el Catálogo ahora habla de la sede que eliges arriba**, y lo que está en otra sede o en el Taller se ve aparte; las alertas de compra siguen mirando toda la empresa, porque al proveedor se le compra para todas. Y medir antes de opinar: con 3 000 productos, la cifra nueva cuesta +40 % al abrir Vender, pero el problema de fondo era de antes (Vender baja 11 MB con todo el stock de la red).
+
 ## 2026-09-28 (Catálogo ↔ Inventario: seis «stock» distintos y una sola cifra — ADR-0256)
 Qué hice: con producción en solo lectura y tres revisores, encontré que no hay desincronización (0 descuadres) sino seis formas de sumar `stock` y ninguna escritura que mire el estado del catálogo. Felipe decidió en 32 preguntas (ADR-0256); escribí el análisis del flujo con 12 tareas (`docs/pantallas/catalogo-inventario.md`) y la raíz, `fn_existencias`, que reproduce al número su captura de Existencias (381), con 14/14 casos y 6/6 mutaciones detectadas.
 Por qué así: arreglar pantalla por pantalla ya produjo seis fórmulas; una función de la base que todas lean es lo único que no se vuelve a separar. Qué se rompería sin esto: cada pantalla nueva volvería a sumar a su manera, y la colaboradora le seguiría prometiendo a la clienta un número que otra pantalla contradice.

@@ -275,3 +275,4 @@ Se comparó con **una sola pantalla** (Catálogo e Inventario fusionados en una 
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-28 | completo (flujo) | 4/10 | 9,0 Núcleo | — (primer análisis de la costura) |
+| 2026-09-28 (tarde) | ejecución, no re-análisis | — | — | #2, #3, #5 y #7 hechas en la rama (sin pegar); #4 solo la parte de la base. Ver BACKLOG «🧮 Catálogo ↔ Inventario» |
