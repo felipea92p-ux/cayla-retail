@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { alertaDeStock, textoDeStock, mensajeSinResultados, ROTULO_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "./productos-stock";
+import { alertaDeStock, sinStockEnSede, textoDeStock, mensajeSinResultados, ROTULO_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "./productos-stock";
 
 const activo = (stockTotal: number, stockMinimo: number | null = null) => ({ estado: "activo", stockTotal, stockMinimo });
 const descontinuado = (stockTotal: number, stockMinimo: number | null = null) => ({ estado: "descontinuado", stockTotal, stockMinimo });
@@ -46,6 +46,23 @@ describe("alertaDeStock — solo las prendas activas piden atención", () => {
   it("stock negativo (la base lo impide con un CHECK): con mínimo se lee como «bajo», sin él no avisa", () => {
     expect(alertaDeStock(activo(-1, 5))).toBe("bajo");
     expect(alertaDeStock(activo(-1, null))).toBeNull();
+  });
+});
+
+describe("sinStockEnSede — hay en la red, pero no aquí", () => {
+  const activa = { estado: "activo", stockTotal: 117, stockMinimo: null };
+  it("avisa con 0 en la sede y unidades en otra", () => {
+    expect(sinStockEnSede(activa, 0)).toBe(true);
+  });
+  it("no avisa si la sede tiene, ni si aún no se sabe", () => {
+    expect(sinStockEnSede(activa, 3)).toBe(false);
+    expect(sinStockEnSede(activa, null)).toBe(false);
+  });
+  it("con 0 en toda la red no repite: ya lo dice «Sin stock»", () => {
+    expect(sinStockEnSede({ ...activa, stockTotal: 0 }, 0)).toBe(false);
+  });
+  it("una descontinuada no pide atención", () => {
+    expect(sinStockEnSede({ ...activa, estado: "descontinuado" }, 0)).toBe(false);
   });
 });
 
