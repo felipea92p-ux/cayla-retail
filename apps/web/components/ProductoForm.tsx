@@ -10,6 +10,8 @@ import { MuestraPatron } from "@/components/MuestraPatron";
 import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { BarraFija } from "@/components/ui/BarraFija";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
@@ -354,7 +356,20 @@ export function ProductoForm({
   }, []);
   const panelGuardarRef = useRef<HTMLElement>(null);
 
+  // «¿Salir sin guardar?» (2026-09-28). La foto junta TODO lo que «Guardar cambios» manda; la de apertura se toma una
+  // vez. Una fila agregada y quitada, o un precio cambiado y devuelto, vuelve a la misma foto: no hay nada que perder.
+  const fotoActual = fotoFormulario({
+    categoriaId, referencia, descripcion, estado, stockMinimo, temporada, temporadaColor, permitirVentaSinStock,
+    tejidoId, patronId, marcaId, proveedorId,
+    fotos: fotos.map((f) => [f.id, f.url, f.esPrincipal, f.colorCodigo]),
+    variantes: variantes.map((v) => [v.id, v.colorCodigo, v.tallaId, v.precio, v.costo, v.activo, v.etiquetaIds]),
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir);
+
   function recargar() {
+    // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
+    salida.soltar();
     window.location.reload();
   }
 
@@ -499,6 +514,7 @@ export function ProductoForm({
     setLoading(false);
     responsable.despues(null);
 
+    salida.soltar();
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
     });
@@ -923,7 +939,7 @@ export function ProductoForm({
           <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
-          <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading} className="w-full">
+          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading} className="w-full">
             Cancelar
           </Boton>
         </div>
@@ -950,7 +966,7 @@ export function ProductoForm({
         }
         acciones={
           <>
-            <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading}>
+            <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
@@ -959,6 +975,7 @@ export function ProductoForm({
           </>
         }
       />
+      {salida.aviso}
     </form>
   );
 }
