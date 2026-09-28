@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
+Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928220000` sin pegar.
+Por qué así: de 33 productos, 22 solo tenían la carga inicial y ajustes, y el botón de ADR-0218 no los alcanzaba; la línea «¿hay una clienta, un proveedor, otra sede o dinero del otro lado?» deja al Admin limpiar pruebas sin poder borrar una venta cobrada. El candado del historial no aprendió excepciones: solo el dueño de la tabla lo apaga, dentro de su transacción, como la purga.
+Felipe se lleva: **21 de esos productos los había cargado el equipo de TRU, no él**; esta vez era práctica, pero dentro de un mes será inventario real, y por eso la ventana muestra el nombre en rojo antes de confirmar.
+
 ## 2026-09-28 (Nuevo producto, paso 3: «Ver más» en Tejido)
 Qué hice: al final de los tejidos de la categoría aparece una tarjeta punteada «Ver más · N en el catálogo» (la misma del paso 1 con las familias); abre los tejidos aprobados que la categoría todavía no ofrece, y tocar uno lo ofrece en la categoría (con su combo «Responsable») y lo deja elegido. Sin cambio de base: usa la misma escritura que «+ Nuevo tejido» cuando el tejido ya existe. Primero un refactor sin cambio visible (`ElegirTejido`, `sumarAlEje`), después la función; 7 pruebas nuevas en `alta-producto.test.ts`.
 Por qué así: en producción hay 22 tejidos aprobados y cada categoría de Indumentaria ofrece entre 3 (Jeans) y 10; los otros solo se alcanzaban escribiendo su nombre exacto. Marcarlo sin ofrecerlo no sirve: `crear_producto_con_variantes` rechaza un tejido que la categoría no ofrece. Qué se rompería sin esto: quien no sabe que «Lino» existe lo crea de nuevo o elige uno parecido que no es, y el tejido del producto miente.

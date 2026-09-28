@@ -28,6 +28,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — web + migración `20260928220000` **SIN PEGAR en producción (pide el «dale» de Felipe)**; rama `claude/delete-test-inventory-products-7ed0ff`
+Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
+«historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
+- [x] `fn_producto_historia` (única definición, cada renglón `borrable` o no), `fn_producto_como_eliminar` (la ventana) y `eliminar_producto_con_historia` (solo Admin, respaldo en `respaldo_purgas.filas`, candados devueltos a su modo, rastro y Actividad).
+- [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
+- [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
+- [ ] **Pegar `20260928220000`** (una parte; sin políticas ni `alter` de tablas en uso) con ensayo previo, y DESPUÉS publicar la web.
+- [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
+- [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
+- [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
+- Cómo verificas:
+  - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
+  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
