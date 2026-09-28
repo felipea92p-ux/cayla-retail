@@ -180,11 +180,25 @@ caso(
 );
 
 caso(
-  "anon no la puede llamar; authenticated sí",
+  "anon no la puede llamar; authenticated sí; la fórmula sin candado (`fn_existencias_base`) nadie desde fuera",
   igual(
-    `select concat_ws('|', has_function_privilege('anon', 'retail.fn_existencias(uuid)', 'execute'),
-                           has_function_privilege('authenticated', 'retail.fn_existencias(uuid)', 'execute'));`,
-    "f|t"
+    `select concat_ws('|', has_function_privilege('anon', 'retail.fn_existencias(uuid, uuid[])', 'execute'),
+                           has_function_privilege('authenticated', 'retail.fn_existencias(uuid, uuid[])', 'execute'),
+                           has_function_privilege('authenticated', 'retail.fn_existencias_base(uuid, uuid[])', 'execute'),
+                           has_function_privilege('anon', 'retail.fn_existencias_base(uuid, uuid[])', 'execute'));`,
+    "f|t|f|f"
+  )
+);
+
+caso(
+  "con `p_producto_ids` solo vienen esos productos, con los mismos números que sin filtro",
+  igual(
+    `select count(*) from retail.fn_existencias(null, array[:'prod']::uuid[]) f
+     where f.producto_id <> :'prod'
+        or not exists (select 1 from retail.fn_existencias() g
+                       where g.variante_id = f.variante_id and g.ubicacion_id = f.ubicacion_id
+                         and g.disponible = f.disponible and g.en_camino = f.en_camino);`,
+    "0"
   )
 );
 

@@ -36,9 +36,13 @@
 --   · Productos que nunca tuvieron stock (no hay fila): el universo de productos es del Catálogo; esta función
 --     solo responde «cuánto hay».
 --
--- QUIÉN LA PUEDE LEER
---   Cualquier colaborador activo, igual que `fn_stock_por_sede` (el mismo candado): la cifra de la red la ven
---   todas las sedes («Dónde más hay», «Pedir a otra sede»). Sin cuenta activa devuelve 0 filas, no un error.
+-- DOS FUNCIONES: LA FÓRMULA Y LA PUERTA
+--   `fn_existencias_base` es la fórmula, sin candado, y NO la puede llamar nadie desde fuera (sin `grant`): la usan las
+--   funciones `security definer` que ya deciden quién entra (`fn_productos`, `fn_productos_resumen`,
+--   `fn_stock_por_sede`…), que así no dependen de que haya una sesión (las pruebas y el SQL Editor no la tienen).
+--   `fn_existencias` es la puerta para la web: la misma fórmula para cualquier colaborador activo
+--   (`fn_tiene_acceso_retail`, el candado de todas las lecturas de retail): la cifra de la red la ven todas las sedes («Dónde más hay», «Pedir a otra
+--   sede»). Sin cuenta activa devuelve 0 filas, no un error.
 --
 -- NÚMEROS (antes que opiniones)
 --   Hoy: 160 filas de `stock`. En 3 años, como techo, ~400 productos × ~20 tallas × 4 sedes ≈ 32 000 filas.
@@ -60,7 +64,7 @@
 
 set lock_timeout = '3s';
 
-create or replace function retail.fn_existencias(p_ubicacion_id uuid default null)
+create or replace function retail.fn_existencias_base(p_ubicacion_id uuid default null, p_producto_ids uuid[] default null)
 returns table (
   variante_id    uuid,
   producto_id    uuid,
@@ -96,7 +100,9 @@ as $$
                                                                                          as sin_lugar
     from retail.stock s
     left join retail.sububicaciones sb on sb.id = s.sububicacion_id
-    where p_ubicacion_id is null or s.ubicacion_id = p_ubicacion_id
+    where (p_ubicacion_id is null or s.ubicacion_id = p_ubicacion_id)
+      and (p_producto_ids is null
+           or s.variante_id in (select vf.id from retail.variantes vf join unnest(p_producto_ids) as pid(id) on pid.id = vf.producto_id))
     group by s.variante_id, s.ubicacion_id
   ),
   -- Solo `en_transito`: la mercadería ya salió del origen (fase 1, 20260916150000) y todavía no entra al
@@ -109,6 +115,8 @@ as $$
     join retail.transferencia_items ti on ti.transferencia_id = t.id
     where t.estado = 'en_transito'
       and (p_ubicacion_id is null or t.ubicacion_destino_id = p_ubicacion_id)
+      and (p_producto_ids is null
+           or ti.variante_id in (select vf.id from retail.variantes vf join unnest(p_producto_ids) as pid(id) on pid.id = vf.producto_id))
     group by ti.variante_id, t.ubicacion_destino_id
   ),
   juntos as (
@@ -139,21 +147,48 @@ as $$
   from juntos j
   join retail.variantes va on va.id = j.variante_id
   join retail.productos pr on pr.id = va.producto_id
-  where exists (
-          select 1
-          from retail.colaboradores c
-          join public.personas p on p.id = c.persona_id
-          where p.auth_user_id = auth.uid() and p.estado = 'activo' and c.estado = 'activo'
-        )
-    and not pr.es_prueba
+  where not pr.es_prueba
     and pr.id <> '11111111-1111-4111-8111-111111111111'
     and (va.activo or j.fisico <> 0 or j.en_camino <> 0);
 $$;
 
-comment on function retail.fn_existencias(uuid) is
-  'ADR-0256: LA cifra de stock por talla y sede (físico, dañado, apartado, disponible = físico − dañado − apartado, '
-  'piso/almacén libres, en camino). Sin productos de prueba ni la pieza «Monto manual». Toda pantalla que muestre '
-  'cuánto hay lee esta función; ninguna vuelve a sumar `stock` por su cuenta. Sin argumento: toda la red.';
+comment on function retail.fn_existencias_base(uuid, uuid[]) is
+  'ADR-0256: LA fórmula de stock por talla y sede (físico, dañado, apartado, disponible = físico − dañado − apartado, '
+  'piso/almacén libres, en camino). Sin productos de prueba ni la pieza «Monto manual». Sin candado y sin grant: solo '
+  'la llaman funciones security definer que ya decidieron quién entra. La web lee fn_existencias.';
 
-revoke all on function retail.fn_existencias(uuid) from public, anon;
-grant execute on function retail.fn_existencias(uuid) to authenticated, service_role;
+revoke all on function retail.fn_existencias_base(uuid, uuid[]) from public, anon, authenticated;
+
+create or replace function retail.fn_existencias(p_ubicacion_id uuid default null, p_producto_ids uuid[] default null)
+returns table (
+  variante_id    uuid,
+  producto_id    uuid,
+  ubicacion_id   uuid,
+  fisico         integer,
+  danado         integer,
+  apartado       integer,
+  disponible     integer,
+  piso_libre     integer,
+  almacen_libre  integer,
+  sin_lugar      integer,
+  en_camino      integer,
+  talla_retirada boolean
+)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select e.*
+  from retail.fn_existencias_base(p_ubicacion_id, p_producto_ids) e
+  -- El mismo candado que el resto de las lecturas de retail (`fn_tiene_acceso_retail`): colaborador activo.
+  where retail.fn_tiene_acceso_retail();
+$$;
+
+comment on function retail.fn_existencias(uuid, uuid[]) is
+  'ADR-0256: LA cifra de stock por talla y sede para la web (la fórmula de fn_existencias_base), para cualquier '
+  'colaborador activo. Toda pantalla que muestre cuánto hay lee esta función; ninguna vuelve a sumar `stock` por su '
+  'cuenta. Sin argumentos: toda la red; `p_producto_ids` limita a esos productos (una página del Catálogo).';
+
+revoke all on function retail.fn_existencias(uuid, uuid[]) from public, anon;
+grant execute on function retail.fn_existencias(uuid, uuid[]) to authenticated, service_role;

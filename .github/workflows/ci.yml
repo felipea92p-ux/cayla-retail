@@ -995,6 +995,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-existencias
 
+      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0256): «Stock total» es lo disponible de la
+      # red (no la suma cruda con dañadas y apartadas), la cabecera cuenta con la misma cifra que la lista, un producto de
+      # prueba no enciende alertas, fn_stock_por_sede ofrece lo disponible, y la tarjeta por sede (fn_existencias_productos)
+      # separa aquí / otras tiendas / Taller / en camino / tallas retiradas. Con control: las versiones viejas fallan.
+      - name: pruebas:catalogo-cifra-unica
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:catalogo-cifra-unica
+
       # Huellas del catálogo de main (`scripts/migraciones/deriva.sql`): prueba que la consulta corre sobre la base del CI
       # y, en un push a main, las guarda como artefacto para compararlas con las de producción (`deriva.mjs`): qué SQL de
       # main falta pegar y qué arreglo vive solo en producción (el 2026-09-27 se publicaron 6 cambios sin su SQL).
