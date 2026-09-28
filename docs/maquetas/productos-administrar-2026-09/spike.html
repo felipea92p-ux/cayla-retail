@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administrar catálogo · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Productos ▸ «Administrar» (2026-09-28)
+   Opción C elegida por Felipe: la Tabla deja de ser una segunda piel para
+   todos y pasa a ser la planilla del líder. La colaboradora solo ve la Grilla.
+   Filtros: IDÉNTICOS al modo compacto de la Grilla (FiltrosProductos
+   compacto → BotonFiltros + PanelPildoras + DesplegablePildora + chips).
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados; solo se
+   dibujan campos que `fn_productos` ya trae (ProductoListado). El margen se
+   calcula en pantalla con precio y costo. La barra oscura no existe en el ERP.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t40:rgba(26,26,24,.4);--t30:rgba(26,26,24,.3);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:'DM Mono',ui-monospace,monospace}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.serif{font-family:'EB Garamond',serif}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:4px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+
+.escena{padding:24px}
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08);max-width:1440px;margin:0 auto}
+.app{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:960px}
+.lat{border-right:1px solid var(--sand);padding:20px 12px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.lat .grp{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--t55);padding:14px 10px 4px}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 24px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.top .yo{width:30px;height:30px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:12px;font-weight:600}
+.main{padding:26px 32px 120px;position:relative}
+
+/* ── cabecera (la de Productos hoy: page.tsx) ── */
+.cab{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px}
+.cab .kick{font-size:11px;color:var(--t65)}
+.cab h1{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;line-height:1.2;margin-top:4px}
+.cab .res{margin-top:4px;font-size:12px;color:var(--t55)}
+.cab .res b{font-weight:600;color:var(--tinta)}
+.cab .der{display:flex;align-items:center;gap:12px}
+.vistas{display:flex;gap:2px;border-radius:8px;background:var(--sand);padding:2px}
+.vistas button{font-size:10.5px;padding:8px 12px;border-radius:6px;color:var(--t55);display:inline-flex;align-items:center;gap:6px;transition:color .2s}
+.vistas button[aria-current=page]{background:var(--papel);color:var(--tinta)}
+.vistas button:hover{color:var(--tinta)}
+.vistas .candado{width:11px;height:11px}
+.btn-nuevo{font-size:11px;padding:12px 16px;border-radius:6px;background:var(--tinta);color:var(--crema);transition:background .2s}
+.btn-nuevo:hover{background:var(--rojo)}
+
+/* ── filtros: IDÉNTICOS al modo compacto de la Grilla ── */
+.filtros{margin-top:24px;display:flex;flex-direction:column;gap:8px}
+.fila-buscar{display:flex;align-items:flex-start;gap:8px}
+.campo{flex:1}
+.campo label{display:block;font-size:11px;color:var(--t65)}
+.campo .ctl{position:relative;margin-top:6px}
+.campo input{width:100%;height:36px;background:transparent;border:0;outline:0;padding:8px 2px;font-size:14px}
+.campo input::placeholder{color:var(--t55)}
+.hilo{position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--taupe);opacity:.55}
+.hilo::after{content:"";position:absolute;inset:0;background:var(--tinta);transform:scaleX(0);transform-origin:left;transition:transform .3s var(--ease)}
+.campo input:focus~.hilo::after{transform:scaleX(1)}
+.campo .pie{min-height:.9rem;margin-top:4px}
+.bf-wrap .fant{display:block;font-size:11px;color:transparent}
+.btn-filtros{margin-top:6px;height:36px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:6px;border:1px solid var(--t15);padding:0 14px;font-size:11px;color:var(--t65);transition:border-color .2s,color .2s}
+.btn-filtros:hover{border-color:rgba(26,26,24,.25);color:var(--tinta)}
+.btn-filtros.on{border-color:var(--t30);background:var(--t04);color:var(--tinta)}
+.btn-filtros svg{width:14px;height:14px}
+.panel{display:flex;flex-wrap:wrap;align-items:center;border-radius:12px;background:rgba(232,224,208,.5);padding:4px;box-shadow:0 1px 2px rgba(0,0,0,.05);animation:revelar .24s var(--ease)}
+.panel>*+*{border-left:1px solid var(--t10)}
+@keyframes revelar{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.pild{position:relative;height:36px;display:flex;align-items:center;gap:6px;padding:0 12px;font-size:11px;white-space:nowrap;color:var(--t55)}
+.pild.act{color:var(--tinta)}
+.pild svg.i{width:14px;height:14px;color:var(--t40)}
+.pild.act svg.i{color:rgba(26,26,24,.7)}
+.pild svg.ch{width:12px;height:12px;color:rgba(26,26,24,.35)}
+.pild:hover{color:var(--tinta)}
+.orden{display:flex;align-items:center;padding:0 6px}
+.orden button{width:28px;height:36px;display:grid;place-items:center;color:var(--t40)}
+.orden button.on{color:var(--rojo)}
+.slider{display:flex;align-items:center;gap:10px;padding:0 12px;height:36px;color:var(--t55);font-size:11px}
+.slider .tr{position:relative;width:128px;height:3px;border-radius:3px;background:var(--t15)}
+.slider .tr i{position:absolute;inset:0;background:var(--rojo);border-radius:3px}
+.slider .tr b{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--rojo);background:var(--papel)}
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.chip-f{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--t15);background:var(--t04);padding:4px 10px;font-size:10px;color:rgba(26,26,24,.75);transition:border-color .2s,color .2s}
+.chip-f:hover{border-color:var(--rojo);color:var(--rojo)}
+.chip-f span{font-size:14px;line-height:1}
+.limpiar{font-size:10px;color:var(--t55);padding:0 4px}
+.limpiar:hover{color:var(--rojo)}
+
+/* ── la planilla ── */
+.hoja{margin-top:18px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.hoja-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--sand)}
+.hoja-cab .cuenta{font-size:12px;color:var(--t55)}
+.hoja-cab .cuenta b{font-family:'EB Garamond',serif;font-weight:500;font-size:20px;color:var(--tinta);margin-right:4px}
+.hoja-cab .ley{display:flex;gap:16px;font-size:11px;color:var(--t55)}
+.hoja-cab .ley i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+table{width:100%;border-collapse:separate;border-spacing:0}
+thead th{position:sticky;top:0;background:var(--papel);z-index:2;text-align:left;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);padding:10px 10px;border-bottom:1px solid var(--sand);white-space:nowrap}
+thead th.r{text-align:right}
+thead th.ord{cursor:pointer}
+thead th.ord:hover{color:var(--tinta)}
+thead th .fl{display:inline-block;margin-left:4px;color:var(--rojo)}
+tbody td{padding:10px 10px;border-bottom:1px solid rgba(232,224,208,.8);vertical-align:middle}
+tbody tr.p{transition:background .18s}
+tbody tr.p:hover{background:rgba(234,225,210,.45)}
+tbody tr.p.sel{background:rgba(234,225,210,.75)}
+tbody tr.p.sel td:first-child{box-shadow:inset 3px 0 0 var(--tinta)}
+tbody tr.p.desc .prenda,tbody tr.p.desc .mini{opacity:.55}
+td.r{text-align:right}
+.chk{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(128,92,76,.6);display:grid;place-items:center;background:var(--papel);transition:background .15s,border-color .15s}
+.chk.on{background:var(--tinta);border-color:var(--tinta)}
+.chk.on svg{display:block}
+.chk svg{display:none;width:11px;height:11px;stroke:var(--crema);stroke-width:2.4;fill:none}
+.chk.mitad{background:var(--tinta);border-color:var(--tinta)}
+.chk.mitad::after{content:"";width:8px;height:2px;background:var(--crema);border-radius:2px}
+.mini{width:40px;height:50px;border-radius:7px;overflow:hidden;display:grid;place-items:center;position:relative}
+.mini svg{width:18px;height:18px;stroke:rgba(26,26,24,.35);fill:none;stroke-width:1.4}
+.prenda{display:flex;align-items:center;gap:14px;min-width:0}
+.prenda .nom{font-family:'EB Garamond',serif;font-size:17px;line-height:1.15;color:var(--tinta);white-space:nowrap}
+.prenda .cod{font-family:'DM Mono',monospace;font-size:11px;color:var(--t55);margin-top:2px;letter-spacing:.02em;white-space:nowrap}
+.prenda .cat{font-family:'DM Sans',sans-serif}
+.prenda .cat{font-size:11px;color:var(--t55)}
+.abre{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--t40);transition:transform .25s var(--ease),color .2s,background .2s}
+.abre:hover{background:var(--hueso);color:var(--tinta)}
+.abre.on{transform:rotate(90deg);color:var(--tinta)}
+.sw{display:flex;align-items:center}
+.sw i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--papel);box-shadow:0 0 0 1px var(--t15);margin-left:-4px}
+.sw i:first-child{margin-left:0}
+.sw em{font-style:normal;font-size:11px;color:var(--t55);margin-left:6px}
+.tallas{display:flex;gap:3px}
+.tallas span{font-family:'DM Mono',monospace;font-size:10.5px;min-width:22px;height:20px;padding:0 4px;display:grid;place-items:center;border-radius:4px;background:var(--hueso);color:rgba(26,26,24,.75)}
+.mb{font-size:11px;color:var(--t55);line-height:1.35;white-space:nowrap}
+.mb b{display:block;font-weight:500;color:var(--t80);font-size:12.5px}
+.din{font-size:14px;color:var(--tinta);white-space:nowrap}
+.din small{font-size:11px;color:var(--t55)}
+.margen{white-space:nowrap;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.margen .bar{width:44px;height:4px;border-radius:4px;background:var(--hueso);overflow:hidden}
+.margen .bar i{display:block;height:100%;background:var(--verde);border-radius:4px}
+.margen.bajo .bar i{background:var(--ambar)}
+.margen.bajo .v{color:var(--ambar)}
+.stock{text-align:right}
+.stock .n{font-size:14px}
+.stock .n.cero{color:var(--t40)}
+.stock .d{font-size:11px;color:var(--t55)}
+.estado{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px 3px 8px;border-radius:999px;white-space:nowrap}
+.estado i{width:6px;height:6px;border-radius:50%}
+.estado.activo{background:rgba(72,96,63,.1);color:var(--verde)}
+.estado.activo i{background:var(--verde)}
+.estado.desc{background:rgba(76,93,110,.1);color:var(--pizarra)}
+.estado.desc i{background:var(--pizarra)}
+.estado.pedir{background:rgba(116,80,26,.1);color:var(--ambar)}
+.estado.pedir i{background:var(--ambar)}
+td.ult{position:relative;padding-right:20px}
+.acc{position:absolute;right:14px;top:50%;transform:translate(6px,-50%);display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--papel);border:1px solid var(--sand);box-shadow:0 8px 20px -10px rgba(26,26,24,.3);opacity:0;pointer-events:none;transition:opacity .18s,transform .24s var(--ease)}
+tr.p:hover .acc,tr.p:focus-within .acc{opacity:1;pointer-events:auto;transform:translate(0,-50%)}
+.acc button{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--t55)}
+.acc button:hover{background:var(--hueso);color:var(--tinta)}
+
+/* fila abierta: la ficha de variantes */
+tr.fic td{padding:0;background:rgba(234,225,210,.4);border-bottom:1px solid var(--sand)}
+.ficha{width:0;min-width:100%;padding:14px 20px 18px 96px;animation:revelar .26s var(--ease)}
+.ficha .tit{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.ficha .tit span{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.ficha .tit a{font-size:12px;color:var(--tinta);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.vars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.var{background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center}
+.var .dot{width:22px;height:22px;border-radius:6px;grid-row:span 2;box-shadow:inset 0 0 0 1px var(--t10)}
+.var .a{font-size:13px}
+.var .a b{font-family:'DM Mono',monospace;font-weight:500;margin-right:6px}
+.var .p{text-align:right;font-size:13px}
+.var .b{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--t55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.var .m{white-space:nowrap}
+.var .m{text-align:right;font-size:11px;color:var(--t55)}
+
+.pie{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;font-size:12px;color:var(--t55)}
+.pag{display:flex;gap:4px}
+.pag button{min-width:30px;height:30px;border-radius:7px;font-size:12px;color:var(--t65)}
+.pag button.on{background:var(--tinta);color:var(--crema)}
+
+/* barra de lo marcado: sube desde abajo */
+.barra{position:fixed;left:calc(50% + 104px);bottom:28px;transform:translate(-50%,24px);opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;background:var(--tinta);color:var(--crema);border-radius:14px;padding:8px 8px 8px 18px;box-shadow:0 24px 48px -16px rgba(26,26,24,.45);transition:transform .32s var(--ease),opacity .24s var(--ease);z-index:20;white-space:nowrap}
+.barra.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.barra .n{font-family:'EB Garamond',serif;font-size:20px;margin-right:2px}
+.barra .t{font-size:12px;color:rgba(245,240,232,.7);margin-right:10px}
+.barra button{height:36px;padding:0 14px;border-radius:9px;font-size:12.5px;display:inline-flex;align-items:center;gap:7px;color:var(--crema);transition:background .18s}
+.barra button:hover{background:rgba(245,240,232,.12)}
+.barra button.x{width:36px;padding:0;justify-content:center;color:rgba(245,240,232,.6)}
+.barra .sep{width:1px;height:20px;background:rgba(245,240,232,.18);margin:0 4px}
+
+/* hoja de confirmación (efecto <Modal variante="hoja">) */
+.velo{position:fixed;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding-top:110px;z-index:40}
+.velo.on{display:flex;animation:fade .2s ease}
+@keyframes fade{from{opacity:0}}
+.modal{width:520px;background:var(--papel);border-radius:18px;padding:26px 28px 22px;box-shadow:0 40px 80px -30px rgba(26,26,24,.5);animation:sube .34s var(--ease)}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.98)}}
+.modal h3{font-family:'EB Garamond',serif;font-weight:400;font-size:26px}
+.modal .baj{font-size:13.5px;color:var(--t65);margin-top:4px}
+.modal ul{list-style:none;margin:16px 0;border-top:1px solid var(--sand)}
+.modal li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.modal li span{color:var(--t55);font-size:12px}
+.modal .resp label{display:block;font-size:11px;color:var(--t65)}
+.modal .resp .v{margin-top:6px;height:36px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(128,92,76,.55);font-size:14px}
+.modal .nota{margin-top:16px;background:rgba(234,225,210,.85);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--t80)}
+.modal .bot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.bt{height:40px;padding:0 18px;border-radius:9px;font-size:13px;font-weight:500}
+.bt.sec{border:1px solid var(--sand)}
+.bt.pri{background:var(--tinta);color:var(--crema)}
+.bt.pri:hover{background:var(--rojo-p)}
+
+/* colaboradora: solo la Grilla */
+.grilla{margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.card .foto{aspect-ratio:4/5;display:grid;place-items:center}
+.card .foto svg{width:40px;height:40px;stroke:rgba(26,26,24,.3);fill:none;stroke-width:1.2}
+.card .tx{padding:12px 14px 14px}
+.card .tx .n{font-family:'EB Garamond',serif;font-size:18px}
+.card .tx .c{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);margin-top:2px}
+.card .tx .ps{display:flex;justify-content:space-between;margin-top:8px;font-size:13px}
+
+.aviso{position:fixed;top:64px;right:24px;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(-6px);transition:all .25s var(--ease);z-index:100;pointer-events:none;max-width:360px}
+.aviso.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="tit">Administrar catálogo · spike</span>
+  <div class="g"><span>Quién mira</span><div class="seg" id="s-rol">
+    <button data-v="lider" aria-pressed="true">Líder</button><button data-v="colab">Colaboradora</button></div></div>
+  <div class="g"><span>Filtros</span><div class="seg" id="s-fil">
+    <button data-v="0" aria-pressed="true">Plegados</button><button data-v="1">Abiertos</button></div></div>
+  <div class="g"><span>Estado de la planilla</span><div class="seg" id="s-est">
+    <button data-v="reposo" aria-pressed="true">En reposo</button><button data-v="abierta">Una prenda abierta</button><button data-v="marcadas">3 marcadas</button></div></div>
+</div>
+
+<div class="escena"><div class="marco" id="marco"></div></div>
+<div class="aviso" id="aviso"></div>
+
+<script>
+const IC={
+  percha:'<svg viewBox="0 0 24 24"><path d="M12 7a2 2 0 1 1 2-2c0 1-1 1.5-2 2.3V9l8.5 6.2a1.5 1.5 0 0 1-.9 2.8H4.4a1.5 1.5 0 0 1-.9-2.8L12 9"/></svg>',
+  filtros:'<svg class="ic" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>',
+  ch:'<svg class="ic ch" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+  flecha:'<svg class="ic" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
+  arr:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  aba:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+  shirt:'<svg class="ic i" viewBox="0 0 24 24"><path d="M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l1.4 4a1 1 0 0 0 1.2.6L7 12v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8l1.3.4a1 1 0 0 0 1.2-.6l1.4-4a1 1 0 0 0-.5-1.2z"/></svg>',
+  tag:'<svg class="ic i" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5"/></svg>',
+  truck:'<svg class="ic i" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.6a1 1 0 0 0-.2-.6l-3.5-4.4A1 1 0 0 0 17.5 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+  palette:'<svg class="ic i" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2a10 10 0 0 0 0 20 1.7 1.7 0 0 0 1.7-1.7c0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.7 1.7 0 0 1 1.6-1.7h2A5.6 5.6 0 0 0 22 10.8C22 6 17.5 2 12 2z"/></svg>',
+  check:'<svg class="ic i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+  pkg:'<svg class="ic i" viewBox="0 0 24 24"><path d="M21 10V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l2-1.1M16.5 9.4 7.5 4.2M3.3 7 12 12l8.7-5M12 22V12"/><circle cx="18.5" cy="15.5" r="2.5"/><path d="M20.3 17.3 22 19"/></svg>',
+  bill:'<svg class="ic i" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>',
+  editar:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  ajustar:'<svg class="ic" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M12 22V12M3.3 7 12 12l8.7-5"/></svg>',
+  etiqueta:'<svg class="ic" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
+  pausa:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M10 15V9M14 15V9"/></svg>',
+  play:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></svg>',
+  x:'<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  candado:'<svg class="ic candado" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  tick:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+
+// Datos inventados. Solo campos que ProductoListado ya trae: referencia, código, categoría, marca, proveedor, estado,
+// stockTotal, demandaDiaria, reponerDeProveedor y variantes (talla, color, colorHex, precio, costo, código, barras).
+const C={negro:['Negro','#262522'],crudo:['Crudo','#ece3cf'],camel:['Camel','#b98b5c'],vino:['Vino','#6e2530'],azm:['Azul marino','#26324a'],oliva:['Oliva','#6b6b3e'],rosa:['Rosa palo','#e2bdb4'],gris:['Gris perla','#c9c6bf'],terra:['Terracota','#b0573a']};
+const P=[
+ {id:1,ref:'Blazer Aurora',cod:'BLZ-0001',cat:'Blazers',marca:'CAYLA',prov:'Taller CAYLA',est:'activo',stock:42,dem:1.4,pedir:false,col:['negro','camel','crudo'],tal:['S','M','L','XL'],pre:[289,289],cos:[112,118]},
+ {id:2,ref:'Blusa Lirio',cod:'BLU-0014',cat:'Blusas',marca:'CAYLA',prov:'Taller CAYLA',est:'activo',stock:67,dem:2.8,pedir:false,col:['crudo','rosa','azm','negro'],tal:['XS','S','M','L'],pre:[139,139],cos:[48,52]},
+ {id:3,ref:'Palazzo Duna',cod:'PAN-0007',cat:'Pantalones',marca:'CAYLA',prov:'Textil Andina SAC',est:'activo',stock:9,dem:1.9,pedir:true,col:['camel','negro'],tal:['S','M','L'],pre:[199,199],cos:[96,96]},
+ {id:4,ref:'Vestido Sierra',cod:'VES-0021',cat:'Vestidos',marca:'CAYLA',prov:'Taller CAYLA',est:'activo',stock:23,dem:.9,pedir:false,col:['vino','oliva','negro'],tal:['S','M','L'],pre:[249,269],cos:[88,94]},
+ {id:5,ref:'Chompa Alpaca Nube',cod:'CHO-0003',cat:'Chompas',marca:'Alpaka Studio',prov:'Alpaka Studio EIRL',est:'activo',stock:14,dem:.6,pedir:false,col:['gris','crudo','camel','terra','azm'],tal:['S/M','L/XL'],pre:[359,359],cos:[228,236]},
+ {id:6,ref:'Falda Plisada Mar',cod:'FAL-0009',cat:'Faldas',marca:'CAYLA',prov:'Taller CAYLA',est:'activo',stock:31,dem:1.1,pedir:false,col:['azm','negro'],tal:['XS','S','M','L','XL'],pre:[169,169],cos:[61,61]},
+ {id:7,ref:'Top Lino Brisa',cod:'TOP-0011',cat:'Tops',marca:'CAYLA',prov:'Textil Andina SAC',est:'descontinuado',stock:6,dem:.2,pedir:false,col:['crudo','terra'],tal:['S','M'],pre:[89,89],cos:[41,41]},
+ {id:8,ref:'Casaca Denim Río',cod:'CAS-0004',cat:'Casacas',marca:'Norte Denim',prov:'Norte Denim SAC',est:'activo',stock:0,dem:.7,pedir:true,col:['azm'],tal:['S','M','L'],pre:[259,259],cos:[172,172]},
+ {id:9,ref:'Pantalón Sastre Olmo',cod:'PAN-0012',cat:'Pantalones',marca:'CAYLA',prov:'Taller CAYLA',est:'activo',stock:38,dem:1.3,pedir:false,col:['negro','gris','camel'],tal:['S','M','L','XL'],pre:[219,219],cos:[79,84]},
+ {id:10,ref:'Kimono Seda Aire',cod:'KIM-0002',cat:'Kimonos',marca:'CAYLA',prov:'Taller CAYLA',est:'descontinuado',stock:0,dem:0,pedir:false,col:['rosa','vino'],tal:['Única'],pre:[179,179],cos:[70,70]},
+];
+
+const E={rol:'lider',fil:false,est:'reposo',abiertas:new Set(),marcadas:new Set(),orden:null,modal:false};
+function setEst(v){E.est=v;E.abiertas=new Set(v==='abierta'?[1]:[]);E.marcadas=new Set(v==='marcadas'?[3,7,10]:[]);}
+
+const tinte=h=>`color-mix(in oklab, ${h} 30%, #f5f0e8)`;
+const soles=n=>'S/'+n.toLocaleString('es-PE');
+const rango=([a,b])=>a===b?soles(a):`${soles(a)}–${b}`;
+const margen=p=>Math.round((1-((p.cos[0]+p.cos[1])/2)/((p.pre[0]+p.pre[1])/2))*100);
+function marca(p){const n=p.id;let b='';for(let i=0;i<13;i++)b+=((n*7919+i*104729)%10);return '77'+b.slice(0,11);}
+
+function aviso(t){const a=document.getElementById('aviso');a.textContent=t;a.classList.add('on');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('on'),2600);}
+
+function lateral(){
+  return `<nav class="lat"><div class="logo"><i></i>CAYLA</div>
+  <a>Inicio</a><div class="grp">Ventas</div><a>Vender</a><a>Caja</a>
+  <div class="grp">Inventario</div><a>Existencias</a><a>Movimientos</a><a>Traslados</a>
+  <div class="grp">Catálogo</div><a class="on">Productos</a><a class="sub">Categorías</a><a class="sub">Atributos</a>
+  <div class="grp">Compras</div><a>Facturas de compra</a><a>Por pagar</a></nav>`;
+}
+
+function cabecera(){
+  const lider=E.rol==='lider';
+  return `<div class="cab"><div>
+    <p class="lbl kick">Catálogo</p><h1>Productos</h1>
+    <p class="res">44 productos · 212 variantes · <b>2 para pedir</b> · <b>17 sin stock</b></p></div>
+    <div class="der">
+      ${lider?`<div class="vistas" role="tablist">
+        <button class="lbl" data-vista="grilla">Grilla</button>
+        <button class="lbl" data-vista="admin" aria-current="page">${IC.candado}Administrar</button></div>`:''}
+      ${lider?`<button class="lbl btn-nuevo">+ Nuevo producto</button>`:''}
+    </div></div>`;
+}
+
+function filtros(){
+  const activos=2;
+  return `<div class="filtros">
+    <div class="fila-buscar">
+      <div class="campo"><label class="lbl">Buscar</label><div class="ctl"><input type="search" placeholder="Prenda, código o código de barras…" autocomplete="off"><span class="hilo"></span></div><div class="pie"></div></div>
+      <div class="bf-wrap"><span class="lbl fant">&nbsp;</span><button class="lbl btn-filtros ${E.fil||activos?'on':''}" id="bf" aria-expanded="${E.fil}">${IC.filtros}Filtros · ${activos}</button></div>
+    </div>
+    ${E.fil?`<div class="panel">
+      <div class="orden"><button class="${E.orden==='asc'?'on':''}" data-ord="asc" title="Precio: menor a mayor">${IC.arr}</button><button class="${E.orden==='desc'?'on':''}" data-ord="desc" title="Precio: mayor a menor">${IC.aba}</button></div>
+      <button class="lbl pild">${IC.shirt}Todas${IC.ch}</button>
+      <button class="lbl pild act">${IC.tag}CAYLA${IC.ch}</button>
+      <button class="lbl pild">${IC.truck}Todos${IC.ch}</button>
+      <button class="lbl pild">${IC.palette}Todos${IC.ch}</button>
+      <button class="lbl pild act">${IC.check}Activo${IC.ch}</button>
+      <button class="lbl pild">${IC.pkg}Todos${IC.ch}</button>
+      <div class="slider">${IC.bill.replace('ic i','ic i').replace('<svg','<svg style="width:14px;height:14px;color:rgba(26,26,24,.4)"')}<div class="tr"><i></i><b style="left:0"></b><b style="left:100%"></b></div><span class="lbl num" style="color:var(--t65)">S/0–999</span></div>
+    </div>`:''}
+    <div class="chips"><button class="lbl chip-f">Marca: CAYLA <span>×</span></button><button class="lbl chip-f">Activo <span>×</span></button><button class="lbl limpiar">Limpiar todo</button></div>
+  </div>`;
+}
+
+function filas(){
+  let lista=[...P];
+  if(E.orden) lista.sort((a,b)=>E.orden==='asc'?a.pre[0]-b.pre[0]:b.pre[0]-a.pre[0]);
+  return lista.map(p=>{
+    const sel=E.marcadas.has(p.id), ab=E.abiertas.has(p.id), m=margen(p), desc=p.est!=='activo';
+    const hex=C[p.col[0]][1];
+    const sw=p.col.slice(0,4).map(c=>`<i style="background:${C[c][1]}" title="${C[c][0]}"></i>`).join('')+(p.col.length>4?`<em>+${p.col.length-4}</em>`:'');
+    const est=desc?`<span class="estado desc"><i></i>Descontinuado</span>`:p.pedir?`<span class="estado pedir"><i></i>Pedir</span>`:`<span class="estado activo"><i></i>Activo</span>`;
+    let h=`<tr class="p ${sel?'sel':''} ${desc?'desc':''}" data-id="${p.id}">
+      <td style="width:44px;padding-left:20px"><button class="chk ${sel?'on':''}" data-chk="${p.id}" aria-label="Marcar ${p.ref}">${IC.tick}</button></td>
+      <td style="width:34px;padding:0 0 0 4px"><button class="abre ${ab?'on':''}" data-abre="${p.id}" aria-expanded="${ab}" aria-label="Ver variantes">${IC.flecha}</button></td>
+      <td><div class="prenda"><div class="mini" style="background:${tinte(hex)}">${IC.percha}</div>
+        <div style="min-width:0"><div class="nom">${p.ref}</div><div class="cod">${p.cod} <span class="cat">· ${p.cat}</span></div></div></div></td>
+      <td><div class="mb"><b>${p.marca}</b>${p.prov}</div></td>
+      <td><div class="sw">${sw}</div></td>
+      <td><div class="tallas">${p.tal.map(t=>`<span>${t}</span>`).join('')}</div></td>
+      <td class="r din num">${rango(p.pre)}</td>
+      <td class="r din num" style="color:var(--t65)">${rango(p.cos)}</td>
+      <td class="r"><div class="margen ${m<45?'bajo':''}"><span class="v num">${m} %</span><span class="bar"><i style="width:${m}%"></i></span></div></td>
+      <td class="stock"><div class="n num ${p.stock===0?'cero':''}">${p.stock}</div><div class="d num">${p.dem?p.dem.toLocaleString('es-PE')+'/día':'sin ventas'}</div></td>
+      <td class="ult">${est}<div class="acc">
+        <button title="Editar" data-av="Iría a /productos/${p.id}/editar">${IC.editar}</button>
+        <button title="Ajustar inventario" data-av="Abre «Ajustar inventario» (el mismo modal de hoy)">${IC.ajustar}</button>
+        <button title="Etiquetas de precio" data-av="Iría a Etiquetas de precio con este producto cargado">${IC.etiqueta}</button></div></td>
+    </tr>`;
+    if(ab){
+      const vars=[];p.col.forEach((c,i)=>p.tal.forEach((t,j)=>{{const pr=p.pre[i%2?1:0],co=p.cos[j%2];vars.push({c,t,pr,co});}}));
+      h+=`<tr class="fic"><td colspan="11"><div class="ficha">
+        <div class="tit"><span>${p.col.length*p.tal.length} variantes · ${p.col.length} colores × ${p.tal.length} tallas</span><a data-av="Iría a /productos/${p.id}/editar">Editar precios y costos</a></div>
+        <div class="vars">${vars.map(v=>`<div class="var"><span class="dot" style="background:${C[v.c][1]}"></span>
+          <span class="a"><b>${v.t}</b>${C[v.c][0]}</span><span class="p num">${soles(v.pr)}</span>
+          <span class="b">${p.cod}-${v.c.slice(0,3).toUpperCase()}-${v.t.replace('/','')} · ${marca(p)}</span><span class="m num">costo ${soles(v.co)} · ${Math.round((1-v.co/v.pr)*100)} %</span></div>`).join('')}</div>
+      </div></td></tr>`;
+    }
+    return h;
+  }).join('');
+}
+
+function planilla(){
+  const n=P.length, todos=E.marcadas.size===n, alguno=E.marcadas.size>0;
+  const th=(t,cls='',ord)=>`<th class="${cls} ${ord?'ord':''}" ${ord?'data-th="1"':''}>${t}${ord&&E.orden?`<span class="fl">${E.orden==='asc'?'↑':'↓'}</span>`:''}</th>`;
+  return `<div class="hoja">
+    <div class="hoja-cab"><div class="cuenta"><b class="num">44</b>productos con estos filtros</div>
+      <div class="ley"><span><i style="background:var(--verde)"></i>margen sano</span><span><i style="background:var(--ambar)"></i>margen bajo 45 %</span></div></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th style="padding-left:20px"><button class="chk ${todos?'on':alguno?'mitad':''}" id="chk-todos" aria-label="Marcar toda la página">${todos?IC.tick:''}</button></th><th></th>
+        ${th('Prenda')}${th('Marca · proveedor')}${th('Colores')}${th('Tallas')}${th('Precio','r',true)}${th('Costo','r')}${th('Margen','r')}${th('Stock','r')}${th('Estado')}
+      </tr></thead>
+      <tbody>${filas()}</tbody></table></div>
+    <div class="pie"><span>1–10 de 44 productos</span><div class="pag"><button class="on">1</button><button>2</button><button>3</button><button>4</button><button>5</button></div></div>
+  </div>
+  <div class="barra ${alguno?'on':''}" role="toolbar" aria-label="Acciones sobre lo marcado">
+    <span class="n num">${E.marcadas.size}</span><span class="t">${E.marcadas.size===1?'marcada':'marcadas'}</span>
+    <button id="b-desc">${IC.pausa}Descontinuar</button>
+    <button id="b-act">${IC.play}Reactivar</button>
+    <button data-av="Iría a Etiquetas de precio con las ${E.marcadas.size} prendas cargadas">${IC.etiqueta}Etiquetas</button>
+    <span class="sep"></span><button class="x" id="b-limpiar" aria-label="Quitar la marca">${IC.x}</button>
+  </div>
+  <div class="velo ${E.modal?'on':''}" id="velo"><div class="modal" role="dialog" aria-modal="true">
+    <h3>¿Descontinuar ${E.marcadas.size} ${E.marcadas.size===1?'prenda':'prendas'}?</h3>
+    <p class="baj">Dejan de contar para «Para pedir» y salen marcadas en la Grilla. Se pueden reactivar cuando quieras.</p>
+    <ul>${[...E.marcadas].map(id=>{const p=P.find(x=>x.id===id);return `<li>${p.ref}<span>${p.est==='activo'?'Activa':'Ya descontinuada: queda igual'} · ${p.stock} en stock</span></li>`}).join('')}</ul>
+    <div class="resp"><label class="lbl">Responsable</label><div class="v">Felipe Alvarez ${IC.ch}</div></div>
+    <div class="nota">Para volver atrás, márcalas y usa «Reactivar». Ahí pasan por la misma revisión que «Editar»: si su marca o su proveedor está dado de baja, esa prenda no se reactiva y te dice cuál.</div>
+    <div class="bot"><button class="bt sec" id="m-no">Volver</button><button class="bt pri" id="m-si">Descontinuar</button></div>
+  </div></div>`;
+}
+
+function grillaColab(){
+  return `<div class="grilla">${P.slice(0,8).map(p=>`<div class="card"><div class="foto" style="background:${tinte(C[p.col[0]][1])}">${IC.percha}</div>
+    <div class="tx"><div class="n">${p.ref}</div><div class="c">${p.cod} · ${p.cat}</div><div class="ps"><span class="num">${rango(p.pre)}</span><span class="num" style="color:var(--t55)">Stock total ${p.stock}</span></div></div></div>`).join('')}</div>`;
+}
+
+function pintar(){
+  const lider=E.rol==='lider';
+  document.getElementById('marco').innerHTML=`<div class="app">${lateral()}<div>
+    <div class="top"><span class="sede">TRU</span><span class="yo">${lider?'FA':'MQ'}</span></div>
+    <div class="main">${cabecera()}${filtros()}${lider?planilla():grillaColab()}</div></div></div>`;
+  enlazar();
+}
+
+function enlazar(){
+  const $=s=>document.querySelector(s);
+  $('#bf')?.addEventListener('click',()=>{E.fil=!E.fil;marcarSeg('s-fil',E.fil?'1':'0');pintar();});
+  document.querySelectorAll('[data-ord]').forEach(b=>b.onclick=()=>{E.orden=E.orden===b.dataset.ord?null:b.dataset.ord;pintar();});
+  document.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{E.orden=E.orden==='asc'?'desc':E.orden==='desc'?null:'asc';pintar();});
+  document.querySelectorAll('[data-chk]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=+b.dataset.chk;E.marcadas.has(id)?E.marcadas.delete(id):E.marcadas.add(id);pintar();});
+  document.querySelectorAll('[data-abre]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=+b.dataset.abre;E.abiertas.has(id)?E.abiertas.delete(id):E.abiertas.add(id);pintar();});
+  document.querySelectorAll('tr.p').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button'))return;const id=+tr.dataset.id;E.abiertas.has(id)?E.abiertas.delete(id):E.abiertas.add(id);pintar();});
+  $('#chk-todos')?.addEventListener('click',()=>{E.marcadas=E.marcadas.size===P.length?new Set():new Set(P.map(p=>p.id));pintar();});
+  $('#b-limpiar')?.addEventListener('click',()=>{E.marcadas.clear();pintar();});
+  $('#b-desc')?.addEventListener('click',()=>{E.modal=true;pintar();});
+  $('#b-act')?.addEventListener('click',()=>aviso('Reactivar abre la misma hoja, con «Reactivar» y la revisión de marca y proveedor.'));
+  $('#m-no')?.addEventListener('click',()=>{E.modal=false;pintar();});
+  $('#m-si')?.addEventListener('click',()=>{const n=E.marcadas.size;E.marcadas.forEach(id=>P.find(p=>p.id===id).est='descontinuado');E.marcadas.clear();E.modal=false;pintar();aviso(`${n} ${n===1?'prenda descontinuada':'prendas descontinuadas'}`);});
+  $('#velo')?.addEventListener('click',e=>{if(e.target.id==='velo'){E.modal=false;pintar();}});
+  document.querySelectorAll('[data-vista]').forEach(b=>b.onclick=()=>{if(b.dataset.vista==='grilla')aviso('Iría a la Grilla de hoy (/productos), con los mismos filtros.');});
+  document.querySelectorAll('[data-av]').forEach(b=>b.onclick=e=>{e.stopPropagation();aviso(b.dataset.av);});
+}
+
+function marcarSeg(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));}
+function seg(id,fn){document.querySelectorAll(`#${id} button`).forEach(b=>b.onclick=()=>{marcarSeg(id,b.dataset.v);fn(b.dataset.v);pintar();});}
+seg('s-rol',v=>E.rol=v);
+seg('s-fil',v=>E.fil=v==='1');
+seg('s-est',v=>setEst(v));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&E.modal){E.modal=false;pintar();}});
+pintar();
+</script>
+</body>
+</html>

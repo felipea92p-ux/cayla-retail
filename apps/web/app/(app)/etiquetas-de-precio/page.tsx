@@ -1,6 +1,7 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getEtiquetasDePrecio, type OrigenEtiquetas } from "@/lib/etiquetas-precio";
 import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, volverDeEtiquetas, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
+import { desdeDeParams } from "@/lib/vuelta-productos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 
@@ -15,7 +16,7 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
 // `exigirModulo`. Lo que cuida los datos es la base: `movimientos_select` y `stock_select` solo dejan ver lo de las
 // sedes que uno opera, y un id escrito a mano de otra tienda devuelve una lista vacía.
-type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[] };
+type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[]; desde?: string | string[] };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
   const persona = await requirePersonaActualV2();
@@ -59,7 +60,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen)}
+      volver={volverDeEtiquetas(origen, desdeDeParams(params.desde))}
     />
   );
 }

@@ -64,15 +64,20 @@ export function rpcParaEliminar(como: ComoEliminar): "eliminar_producto" | "elim
   return como.nivel === "libre" ? "eliminar_producto" : "eliminar_producto_con_historia";
 }
 
-/** El número en palabras del negocio: «su única variante» / «sus 3 variantes». */
-function variantesEn(n: number): string {
-  return n === 1 ? "su única variante" : `sus ${n} variantes`;
+/**
+ * Las variantes en palabras del negocio: «su única variante» / «sus 3 variantes (todas sus tallas y colores)». Sin el
+ * número (`null`), solo «todas sus tallas y colores»: Existencias abre la ventana desde UN color en UNA sede y no sabe
+ * cuántas tiene el producto entero, pero sí tiene que decir que se borran todas, no solo las que se ven ahí (ADR-0252).
+ */
+function variantesEn(n: number | null): string {
+  if (n === null) return "todas sus tallas y colores";
+  return n === 1 ? "su única variante" : `sus ${n} variantes (todas sus tallas y colores)`;
 }
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-/** Qué se borra si se confirma un producto que nunca se movió. */
-export function textoSeBorra(numVariantes: number): string {
+/** Qué se borra si se confirma un producto que nunca se movió. `null`: no se sabe cuántas variantes tiene. */
+export function textoSeBorra(numVariantes: number | null): string {
   return `Nunca se vendió ni se movió, así que se borra por completo: su ficha, ${variantesEn(numVariantes)}, sus códigos de barras y sus fotos. No se puede deshacer.`;
 }
 
@@ -82,8 +87,8 @@ export function textoQuienLoCargo(cargadoPor: string | null, cargadoEl: string |
   return `Lo cargó ${cargadoPor ?? "alguien sin nombre registrado"} el ${fechaLima(cargadoEl)}.`;
 }
 
-/** Qué se borra si un Admin confirma un producto con historia de stock. */
-export function textoSeBorraConHistoria(numVariantes: number, prendas: number, movimientos: number): string {
+/** Qué se borra si un Admin confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
+export function textoSeBorraConHistoria(numVariantes: number | null, prendas: number, movimientos: number): string {
   const cuanto = [prendas > 0 ? plural(prendas, "prenda en stock", "prendas en stock") : null, plural(movimientos, "movimiento", "movimientos")]
     .filter(Boolean)
     .join(" y ");
@@ -110,14 +115,13 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
 }
 
 /**
- * La salida que se le ofrece cuando no se puede eliminar. Una pieza del sistema no se retira de ninguna manera. Con el
- * producto todavía activo, la salida es descontinuarlo desde Editar (el mismo interruptor Activo/Descontinuado que ya
- * existe); si ya está descontinuado, no hay nada más que hacer.
+ * La salida que se le ofrece cuando no se puede eliminar. Una pieza del sistema no se retira de ninguna manera. Si ya
+ * está descontinuado, no hay nada más que hacer; si no (activo, o no se sabe: en Existencias la lectura del catálogo
+ * puede fallar y el estado llega en null), la salida es descontinuarlo desde Editar, el mismo interruptor
+ * Activo/Descontinuado que ya existe. `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
  */
-export function salidaSinEliminar(estado: string, nivel: NivelEliminar): { texto: string; irAEditar: boolean } | null {
+export function salidaSinEliminar(estado: string | null, nivel: NivelEliminar): { texto: string; irAEditar: boolean } | null {
   if (nivel === "sistema") return null;
-  if (estado === "activo") {
-    return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true };
-  }
-  return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false };
+  if (estado === "descontinuado") return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false };
+  return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true };
 }

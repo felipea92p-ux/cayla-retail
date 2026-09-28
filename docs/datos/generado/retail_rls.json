@@ -94,6 +94,11 @@
   "relkind": "r",
   "rls": true
  },
+ "clientas_fusiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "codigos_barras": {
   "forzado": false,
   "relkind": "r",
@@ -359,12 +364,22 @@
   "relkind": "r",
   "rls": true
  },
+ "huellas_llave": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "insumo_lotes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "insumos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "lider_modulos_ocultos": {
   "forzado": false,
   "relkind": "r",
   "rls": true

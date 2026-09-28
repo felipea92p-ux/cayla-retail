@@ -16,7 +16,7 @@ Revisión maestra del repo. Alcance pedido: $ARGUMENTS
 1. `git fetch origin` y `git rev-list --left-right --count HEAD...origin/main`. Si la rama va detrás, dilo en la primera línea del informe y pásale a cada revisor el SHA de `origin/main` para que lea con `git show origin/main:<ruta>`: leer código viejo produce hallazgos fantasma. Anota `git rev-parse --short origin/main`: sin ese SHA nadie sabe contra qué versión vale el informe.
 2. Mira qué está en vuelo: `docs/SESIONES-ACTIVAS.md` (solo la tabla «Activas ahora») y `gh pr list --state open --limit 60`. Se lo pasas a los revisores para que no reporten como hallazgo lo que un PR abierto ya arregla.
 3. Crea el directorio de trabajo `<scratchpad>/revision-AAAA-MM-DD/` (el scratchpad de tu prompt de sistema; si no hay, `/tmp/revision-AAAA-MM-DD/`). Ahí van los JSON de los revisores; el repo solo recibe el informe final.
-4. `BACKLOG.md` y `BITACORA.md` juntos pasan de 15.000 líneas: **no se leen enteros, se buscan** por módulo o término. El triaje del 2026-09-25 (sección «Estado verificado el 2026-09-25» del BACKLOG) ya clasificó las casillas abiertas de ese día; esta revisión no lo repite, mira lo que cambió después.
+4. `BACKLOG.md` y `BITACORA.md` juntos pasan de 15.000 líneas, y desde el 2026-09-29 lo nuevo vive en `docs/backlog/` y `docs/bitacora/` (un archivo por entrada, ADR-0259): **no se leen enteros, se buscan** por módulo o término en los cuatro sitios. El triaje del 2026-09-25 (sección «Estado verificado el 2026-09-25» del BACKLOG) ya clasificó las casillas abiertas de ese día; esta revisión no lo repite, mira lo que cambió después.
 
 ## Paso 1 — Lanza los cinco revisores
 
@@ -31,7 +31,7 @@ Revisión maestra del repo. Alcance pedido: $ARGUMENTS
 - Producción, **solo `SELECT`**: por el conector Supabase (`execute_sql`; si está diferido, cárgalo con ToolSearch). Elige el proyecto «cayla-dynamic» por nombre (`list_projects`) y comprueba que ve el schema con `select count(*) from retail.modulos`. Una sentencia por llamada, empezando con `select` o `with`. Verifica **por efectos** (`pg_proc`, `pg_constraint`, `pg_trigger`, `information_schema`, `pg_class.relrowsecurity`), nunca por `supabase_migrations.schema_migrations` (los nombres no son fiables). Las cifras de producción envejecen en horas: consúltalas en vivo, no las cites de memoria ni del volcado `docs/datos/generado/`. Si el conector no responde, di «sin producción», degrada al volcado con su fecha y baja la confianza de esos hallazgos a Media.
 - Datos personales: en el JSON van conteos y nombres de columnas, nunca filas con DNI, teléfono o nombre de una clienta.
 - Sin evidencia no hay hallazgo: cada uno lleva `archivo:línea` o una consulta con su resultado.
-- Antes de reportar, busca el término en `docs/BACKLOG.md` (`grep -n`). Si ya está registrado y el registro sigue vigente, no lo reportes; si está desfasado o subestima la severidad, repórtalo citando la línea. Si un PR abierto ya lo arregla, dilo y baja la severidad.
+- Antes de reportar, busca el término en el backlog (`grep -rn <término> docs/backlog docs/BACKLOG.md`). Si ya está registrado y el registro sigue vigente, no lo reportes; si está desfasado o subestima la severidad, repórtalo citando la línea. Si un PR abierto ya lo arregla, dilo y baja la severidad.
 - Si dos entradas de un documento se contradicen, manda la más reciente por la fecha de su encabezado; si un documento contradice a producción, manda producción y esa contradicción es hallazgo.
 - Producción y `main` se mueven mientras corre la revisión (en la primera corrida, dos PR nuevos y dos funciones nuevas en producción a media pasada): anota la hora de cada consulta y, si algo cambió entre tu primera lectura y tu JSON, dilo en `resumen`.
 
@@ -93,7 +93,7 @@ Cada uno lleva su pregunta madre y dónde mirar. Los ejemplos son **patrones a b
 2. *PR abiertos:* edad, `CONFLICTING`, checks, los zombis; `gh pr list --state merged --json number,mergedAt,createdAt,reviews` para medir horas hasta fusionar, PR fusionados en rojo y revisiones registradas.
 3. *Pendientes reales:* busca `- [ ]` **por módulo**, no entero; clasifica en: ya hecho · espera acción concreta de Felipe (di cuál) · decisión de dinero · trabajo que Claude hace solo. Reporta lo que cambió desde el triaje del 2026-09-25 y lo que el triaje dejó de lado.
 4. *Celular y verificación:* pantallas de Vender, Cambios y Devoluciones con captura a 375 px (`docs/pr/`, casillero de `.github/pull_request_template.md`); rutas de `apps/web/app/(app)/` sin entrada en el menú, sin `loading.tsx`/`error.tsx`, o con `TODO`/`FIXME`.
-5. *Documentos de estado:* `docs/BACKLOG.md`, `docs/ARQUITECTURA.md` y `docs/datos/generado/` contra la realidad; cifras escritas a mano que ya envejecieron.
+5. *Documentos de estado:* `docs/backlog/`, `docs/BACKLOG.md`, `docs/ARQUITECTURA.md` y `docs/datos/generado/` contra la realidad; cifras escritas a mano que ya envejecieron.
 6. *Puertas:* qué obliga el CI y `main` (checks, revisión) y qué queda a la disciplina de cada quien.
 
 **D · Cómo instruimos a Claude Code** — *«¿qué reglas se cumplen solas y cuáles dependen de que alguien se acuerde?»*

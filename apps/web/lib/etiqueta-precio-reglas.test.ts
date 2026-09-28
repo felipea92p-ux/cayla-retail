@@ -160,6 +160,14 @@ describe("urlEtiquetasDePrecio", () => {
     expect(idsDeParam(new URL(url, "http://x").searchParams.get("lotes") ?? "")).toEqual([A, B]);
     expect(urlEtiquetasDePrecio({ produccion: A })).toBe(`/etiquetas-de-precio?produccion=${A}`);
   });
+
+  it("las tallas de varias prendas marcadas en la Tabla de Productos (ADR-0254) van como `variantes`", () => {
+    const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+    const B = "0a1b2c3d-4e5f-4a6b-9c7d-8e9f0a1b2c3d";
+    const url = urlEtiquetasDePrecio({ variantes: [A, B] });
+    expect(url).toBe(`/etiquetas-de-precio?variantes=${A},${B}`);
+    expect(idsDeParam(new URL(url, "http://x").searchParams.get("variantes") ?? "")).toEqual([A, B]);
+  });
 });
 
 describe("mejorCampanaPorVariante — la misma que elige la caja", () => {
@@ -267,5 +275,23 @@ describe("volverDeEtiquetas — la vuelta a la pantalla que abrió las etiquetas
   });
   it("con la URL a secas (sin origen) vuelve a Inicio", () => {
     expect(volverDeEtiquetas(null)).toEqual({ href: "/", a: "Inicio" });
+  });
+});
+
+describe("Volver a la misma vista de Productos (Tabla o Grilla)", () => {
+  const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+  it("la URL de etiquetas lleva la pantalla de origen y «Volver» regresa a ella, con su vista y filtros", () => {
+    const desde = "/productos?vista=tabla&q=polo&pagina=2";
+    const url = urlEtiquetasDePrecio({ producto: A }, desde);
+    const leido = new URL(url, "http://x").searchParams.get("desde");
+    expect(leido).toBe(desde);
+    expect(volverDeEtiquetas({ tipo: "producto" }, leido)).toEqual({ href: desde, a: "Productos" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, leido)).toEqual({ href: desde, a: "Productos" });
+  });
+  it("sin origen, o con uno que no es de Productos, vuelve como siempre", () => {
+    expect(urlEtiquetasDePrecio({ producto: A })).toBe(`/etiquetas-de-precio?producto=${A}`);
+    expect(urlEtiquetasDePrecio({ producto: A }, "https://malo.com")).toBe(`/etiquetas-de-precio?producto=${A}`);
+    expect(volverDeEtiquetas({ tipo: "producto" }, null)).toEqual({ href: "/productos", a: "Productos" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, "/inventario")).toEqual({ href: "/inventario", a: "Existencias" });
   });
 });

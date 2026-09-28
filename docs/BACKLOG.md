@@ -1,4 +1,4 @@
-# BACKLOG VIVO — CAYLA Retail
+# BACKLOG VIVO — CAYLA Retail (secciones hasta el 2026-09-28; las nuevas van en `docs/backlog/`, ADR-0259)
 
 > Lo mantiene Claude. Se actualiza al cierre de cada sesión/paso. Máx. 3 ítems por
 > cubo — un décimo ítem no es señal de ambición, es señal de que no se está cerrando.
@@ -28,6 +28,82 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
+Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
+cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo
+entero y contaba lo físico.
+- [x] Desde Existencias y desde «Corregir con un ajuste» (Movimientos) el modal muestra solo ese color, con el color en
+      el título (`soloDeLaPrenda`, prop `prenda`). Productos sigue abriendo el modelo entero.
+- [x] Total del lugar arriba de las tallas, con lo apartado aparte («9 en el piso · 1 apartada · 8 libres»: el 8 es la
+      cifra de la fila); cada talla dice su apartada; el ajuste que deja menos que lo apartado se frena en pantalla.
+- [x] **«Conteo físico» pregunta cuántas hay (opción A, Felipe 2026-09-28).** Antes el modal pedía la diferencia también
+      al contar: quien contó 4 y escribía 4 dejaba 8. Ahora el motivo va ANTES de las tallas y decide qué se escribe:
+      con «Conteo físico», lo contado (el rótulo dice «Contaste en el piso / en el almacén», vacío = «no la conté», 0 =
+      «conté cero») y la talla muestra la diferencia que se registra («→ 3 (−2)»); con los demás motivos, «Suma o resta»
+      como antes. Cambiar de motivo con cantidades escritas cambia su forma, no el resultado (`pasarCantidades`). Al
+      contar, cada apartada dice «(cuéntala)» (ADR-0141: el conteo incluye lo apartado) y, si lo contado queda por
+      debajo de lo apartado, el aviso pide contarla antes de liberar nada. La base no cambia: sigue recibiendo la
+      diferencia, calculada contra el stock que muestra la pantalla, igual que Conteo (`contado − foto`, ADR-0189).
+- [ ] **Queda sin cubrir, a propósito:** si se vende una talla MIENTRAS se cuenta con el modal abierto, la venta se
+      descuenta dos veces (la foto es de cuando se abrió el modal). Con 8 ventas en 5 días en TRU (producción,
+      2026-09-28) la probabilidad por conteo es ~0,1 %; revisar si las ventas por prenda suben o si se cuenta con el modal
+      abierto por mucho rato. El arreglo firme es que la base reciba el stock que vio la pantalla y rechace si cambió:
+      `ajustar_inventario` ya ignora claves de más en cada línea, así que la web puede mandarlo antes que la base lo lea.
+- [ ] **Propuesta (lo decide Felipe): «Merma» pide un número con signo, y la base acepta una merma POSITIVA** (suma prendas
+      y las registra como pérdida). Hoy hay 0 mermas en producción, así que no ha pasado. Misma trampa que la de contar,
+      al revés: que cada motivo pregunte lo suyo sin signo («¿cuántas se perdieron?») y que `registrar_movimiento`
+      rechace `merma` con cantidad > 0.
+- Cómo verificas: abre Existencias en TRU, fila «Test de Produto 2» Celeste ▸ Ajustar: 3 tallas (S 4 · M 5 · L 3) y
+  «0 en el almacén» (arranca en el almacén). Elige «Piso de venta» y «Conteo físico»: el rótulo dice «Contaste en el
+  piso»; escribe 4 en S (nada cambia) y 3 en M («→ 3 (−2)»); Confirmar deja M en 3, no en 8. La fila Gris ▸ Ajustar
+  ▸ Piso ▸ «Conteo físico»: M dice «1 apartada (cuéntala)»; escribe 0 y Confirmar: la pantalla lo frena sin ir a la
+  base. `pnpm --filter web exec vitest run lib/ajuste-reglas.test.ts`.
+
+## 🏷️ Ficha de producto: código coherente, se adapta a cualquier ancho y pregunta antes de salir (2026-09-28) — solo web, sin migración; rama `claude/product-variant-code-consistency-676528`
+
+- [x] La variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`, `codigoVariantePrevisto`), cambia al elegir color o talla y marca en rojo la que repite color y talla. Ya no pide el SKU legado (Nuevo producto tampoco lo pedía). Guardado real: la base asignó el mismo código.
+- [x] Variantes con *container query* sobre su tarjeta: una línea desde 40rem, ficha de tres líneas con rótulos por debajo. Medido de 375 a 1920 px: nada cortado ni fuera de la tarjeta.
+- [x] «Guardar cambios» al costado recién desde 1280 px (a 1024 px el formulario pasa de 329 a 657 px); por debajo, `BarraFija` abajo mientras el panel no se ve.
+- [x] «¿Salir sin guardar?» (`useSalidaSinGuardar` + `lib/salida-sin-guardar.ts`) en la ficha y en Nuevo producto: menú, Cancelar, atrás y cerrar la pestaña.
+- [ ] **Sin probar en pantalla:** crear un producto de verdad en Nuevo producto y confirmar que la pantalla «Producto creado» no pregunta al salir (la regla es `!creado`, sencilla, pero no se ejercitó).
+- [ ] **Molestia conocida:** tras cambiar algo y deshacerlo a mano, «atrás» pide dos toques (la entrada de guardia del historial no se puede quitar).
+- [x] Compras ▸ Nueva también pregunta (mismo hook). Probado: sin tocar no pregunta; con Boleta elegida preguntan el menú, Cancelar y atrás; volver a Factura a mano no pregunta. **Sin probar:** registrar un comprobante de verdad y salir (se suelta con `salida.soltar()` apenas la base responde bien).
+- [x] Recibir (`RecepcionEnvio`) y Gastos (`RegistrarGastoModal`) también preguntan. En Gastos lo que se protege es cerrar la hoja (Escape, velo, ✕, Cancelar), con `pedirAccion`. Probado en ambas: sin tocar no pregunta; con cambios, sí; «Seguir editando» conserva lo hecho; «Salir sin guardar» no escribe nada en la base. En Recibir, +1 y −1 hasta volver a cero **sí** pregunta a propósito: 0 es «contado, no llegó», distinto de vacío («sin contar», D1).
+- [x] La guardia del historial se retira sola cuando ya no hay nada que perder: se acabó el «atrás» de dos toques.
+- [x] `<Modal>` no se cerraba si la pantalla de abajo se redibujaba más seguido que cada 220 ms (el temporizador de salida se reiniciaba con cada `onClose` nuevo). Arreglado en el componente, para todos los modales.
+- [ ] **Por mirar:** la hoja de Registrar gasto cambia ~100 veces por segundo sin que nadie la toque (medido con un MutationObserver). No rompe nada tras el arreglo de `<Modal>`, pero es trabajo inútil del navegador y en un celular gasta batería: buscar qué la redibuja.
+- [ ] **Sin probar:** recibir un envío de verdad y salir desde «Envío recibido»; registrar un gasto de verdad y confirmar que la hoja se cierra sin preguntar.
+
+## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928175107`, md5 del cuerpo igual al local); rama `claude/table-view-decision-59a288`
+Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
+→ «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
+responsive posible».
+- [x] Tabla nueva (`ProductosTabla.tsx`): foto, colores, tallas en curva, precio, costo, margen con barra, stock con ritmo, estado; ficha de variantes; acciones al pasar el mouse y en la ficha; tarjetas debajo de 768 px de tabla.
+- [x] Cabecera `EncabezadoPagina` con Grilla/Tabla y «+ Nuevo producto» a la derecha, sin cifras (Felipe quitó las cuatro el mismo día); `NotaStockTotal.tsx` borrada (su texto pasó a la frase). Sin el aviso de altas del conteo (`getProductosPendientesAlta` borrada).
+- [x] Filtros de una sola forma (la plegable de la Grilla) en las dos vistas.
+- [x] `cambiar_estado_productos`: todo o nada, al reactivar revisa marca y proveedor y nombra la prenda; prueba `pnpm pruebas:productos-estado-en-bloque` (16/16) en el CI.
+- [x] `ResumenSede` ya no desborda la página en tablet con cuatro cifras (también arregla Devoluciones).
+- [x] **`20260928235000` aplicada en producción** (2026-09-28, permiso de Felipe; verificada: una firma, invoker, `anon` sin permiso, md5 igual al local).
+- [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`, `pnpm datos:comparar`).
+- [ ] Decidir si las altas al vuelo pendientes de revisar necesitan una lista en otra pantalla (el aviso de Productos se quitó; Existencias las marca fila por fila).
+- [ ] **Decisión de Felipe: un solo umbral de margen.** Hoy hay tres: alta de producto 30 % (`nivelMargen`), Producción 40/60 % sobre costo directo (`semaforoMargen`) y la Tabla 45 % (`UMBRAL_MARGEN_BAJO`, provisional).
+- [ ] Mirar la Tabla con una cuenta de colaboradora que vea Productos sin `verDineroCompras`: no debe ver costo ni margen.
+- Cómo verificas:
+  - Catálogo ▸ Productos ▸ Tabla: las filas traen foto, colores y margen; un clic abre las variantes; marca dos, «Descontinuar», confirma → salen «Descontinuado»; márcalas y «Reactivar».
+  - En el celular (375 px): cada prenda es una tarjeta, sin scroll horizontal; la barra de marcadas ocupa el ancho.
+  - Reactivar una prenda cuya marca diste de baja: no reactiva ninguna y dice cuál.
+
+## 🧶 Tejidos y Patrones: clic → foto de muestra y prendas que lo usan (2026-09-28, ADR-0256) — solo web, sin migración; rama `claude/tejidos-edit-images-garments-a6a649`
+Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas asociadas». La columna `imagen_muestra_url` y el bucket `retail-colores-muestras` ya estaban en producción sin uso (0 fotos).
+- [x] Clic en la tarjeta → `DetalleMuestraModal`: muestra en grande (foto o dibujo), subir / cambiar / quitar foto con vista previa y combo «Responsable», y la lista de prendas (activas primero, foto, código, categoría, «Descontinuada»; enlace a la ficha si ve Productos). Cada tarjeta dice «N prendas».
+- [x] La ruta PATCH de tejidos y patrones acepta `imagenMuestraUrl` solo del bucket y la carpeta de su tipo (`leerUrlMuestra`, 17 pruebas).
+- [x] **Generar dibujo desde una frase (sin IA, decisión de Felipe):** «rayas azul marino finas sobre crudo» → 3 propuestas con los colores del catálogo, «Entendí: …», «Otras variantes», «Usar este dibujo» → se guarda como una foto. También como campo opcional «Cómo se ve» al crear un tejido/patrón (`lib/dibujo-generado.ts`, 23 pruebas; ADR-0256 «Actualización»).
+- [ ] Unificar el dibujo automático por nombre (`MuestraTejido`/`MuestraPatron`) con el generador (frase vacía = el automático): hoy son dos formas de dibujar lo mismo.
+- [x] **La imagen se ve al elegir tejido y patrón en Nuevo producto** (paso 3, también en «Ver más»; `getContextoAlta` → `imagenes`).
+- [x] La misma imagen en la ficha de editar producto: Tejido y Patrón, en la lista del combo y bajo él (`getImagenesMuestra`, una lectura para alta y ficha).
+- [ ] Subir una foto real en producción con sesión de Líder (en local el Storage 1.72.1 rechaza toda subida, `42P10`; ver ADR-0256).
+- Cómo verificas: Catálogo ▸ Atributos ▸ Tejidos ▸ clic en «Denim» ▸ se ven las prendas de denim ▸ «Subir foto» ▸ elegir una foto ▸ «Así se verá» ▸ «Guardar foto» ▸ la tarjeta de Denim muestra la foto. «Quitar foto» vuelve al dibujo.
+
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.
@@ -35,13 +111,14 @@ Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso
 - [x] `respaldo_purgas` entra a las migraciones; `restaurar-purga.sql` devuelve también conteos, bajadas, apartados, pedidos no atendidos, reintentos y temporadas por color.
 - [x] Ventana «Eliminar» con los cuatro casos; muestra quién cargó el producto y cuándo.
 - [x] **`20260928230000` aplicada en producción** (2026-09-28, «dale» de Felipe), con ensayo revertido antes y md5 de las seis funciones verificado después.
-- [ ] Fusionar el PR de la web (la ventana nueva) y comprobarla con una cuenta Admin real.
+- [x] Web fusionada (#554) y publicada: la ventana nueva está en producción.
+- [x] **«Eliminar el producto» también en Existencias** (Felipe lo buscó ahí, 2026-09-28): al final del detalle de cada prenda, solo para un Admin en su sede (ahí todo ya tiene historia de stock); abre la misma ventana. Rama `claude/eliminar-desde-existencias`, solo web.
 - [ ] Felipe elimina desde Catálogo ▸ Productos los 28 que el botón alcanza (6 sin historia + 22 con historia de stock).
 - [ ] Los 4 con documentos (Polo Básico, Blusa Carlita, Test de Produto 2, Blusa Xd): ampliar `scripts/purga/purgar-producto-de-prueba.sql` (hoy rechaza movimientos que no son ajustes, boletas de *sandbox*, compras y separaciones) y purgarlos uno a uno con ensayo y «dale».
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y `pnpm datos:comparar` después de pegar.
 - Cómo verificas:
   - `pnpm pruebas:eliminar-producto-con-historia` (52/52), `pnpm pruebas:eliminar-producto` (35/35), `pnpm pruebas:purgar-producto` (36/36).
-  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ «···» ▸ Eliminar sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
+  - Con una cuenta Admin, en Catálogo ▸ Productos ▸ Tabla, la ficha de la prenda ▸ Eliminar (el menú «···» se fue con ADR-0254; en la Grilla, la vista rápida) sobre un producto que solo tiene carga inicial: «¿Eliminar … con su historia?», cuántas prendas y movimientos, quién lo cargó; al confirmar desaparece y queda una línea en Actividad. Con un Líder que no es Admin: «Solo una cuenta Admin puede…», sin botón. Sobre Polo Básico: «tiene líneas de venta (4)…», sin botón.
 
 ## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
 Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
@@ -55,7 +132,7 @@ reabrir un mes, quien tenga Cierre de mes.
 - [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
   permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
 - [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
-- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [x] Diccionario refrescado desde producción (foto del 2026-09-28 17:11 UTC: 141 relaciones, 655 funciones); `datos:comparar` sin pantallas rotas.
 - [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
   módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
 - [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
@@ -79,7 +156,7 @@ reabrir un mes, quien tenga Cierre de mes.
   pruebas» y «Pruebas de RPC contra Postgres»; protegida el 2026-09-28 con el sí de Felipe).
 - [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
   `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
-  main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+  main», ADR-0255). Después de fusionar los dos, la deriva debe quedar en 0.
 
 ## 🔒 Clientas por módulo, la clienta que vuelve se reactiva y anonimizar borra todo (2026-09-28, ADR-0249 «Actualización 2026-09-28») — 2 migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificado por md5); rama `claude/clientas-por-modulo-y-anonimizar`
 Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base tiene que hacer cumplir, no la pantalla.
@@ -96,6 +173,52 @@ Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base ti
 - [ ] **Felipe (no bloquea pegar):** la actividad de Apartados deja de decir el nombre («abonó S/ 20 al apartado APT-TRU-0007 de la clienta»). Es lo que pide «anonimizar borra todo»; si prefiere el nombre ahí, la clienta que apartó no queda borrada del todo.
 - [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
 - Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
+
+## 🔁 Los arreglos que vivían solo en producción, llevados a `main` (2026-09-28, ADR-0255) — dos migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificadas por md5); rama `claude/arreglos-en-vivo-a-main`
+La primera corrida de la deriva (ADR-0251) encontró 14 diferencias reales entre producción y `main`. Este cambio las deja
+en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se decide en su PR.
+- [x] `20260928200000`: `emitir_comprobante`, `emitir_nota`, `fn_aplicar_movimiento` y `recalcular_stock` solo para su
+  dueña; `stock` y `movimientos` sin escritura directa para `authenticated` ni `service_role` (la lectura intacta);
+  `fn_rentabilidad` con el cuerpo exacto de producción; las tres `_json`, la versión de `main`. Guarda de md5 y
+  verificación final que aborta si algo no quedó EXACTAMENTE como en producción (ni un permiso de más, tampoco por
+  columna ni a `anon`).
+- [x] `20260928200100`: notas de crédito de compras con la regla combinada (un cierre deja de esperar si tiene una nota
+  atada o si su comprobante ya tiene la nota por faltante). Decisión técnica: junta las dos reglas escritas, cumple lo
+  que Felipe pidió el 22-sep, y producción no tiene cierres ni notas hoy.
+- [x] Antes de cerrar las puertas: la web de `main` no llama a ninguna de las cuatro ni escribe `stock`/`movimientos`;
+  las 31 funciones que lo hacen son `security definer` de `postgres`; producción ya opera así desde el 26-sep.
+- [x] `pnpm pruebas:arreglos-en-vivo` (47/47, los mismos casos con y sin superusuario: en el CI ya no se omite
+  ninguno), en `package.json` y en el job «Pruebas de RPC contra Postgres».
+- [x] Revisión (2026-09-28): las pruebas del PEGADO ya no congelan las funciones (pegan sobre la foto de producción
+  armada desde el texto de cada migración; una migración posterior que cambie una `_json`, `fn_rentabilidad` o las
+  notas no pone roja la suite ni pide editar una migración fusionada); los permisos se comparan contra la lista
+  explícita de producción, también por columna; las notas se prueban con montos, por motivo, por comprobante y por sede.
+- [x] **PEGADAS el 2026-09-28** y verificadas en solo lectura: las cinco huellas (`fn_stock_por_sede_json` `8ea080da…`,
+  `fn_resumen_comparacion_json` `29215793…`, `fn_resumen_variantes_json` `23e23e13…`, `compras_nota_pendiente` `a80fc315…`,
+  `notas_credito_tablero` `e9a4ec7b…`), `fn_rentabilidad` `1a61f192…`, las cuatro funciones cerradas solo para la dueña y
+  `stock`/`movimientos` con `authenticated=r` y `service_role=rxtm`.
+- [ ] Correr la deriva (ADR-0251) cuando esté la llave `DERIVA_LLAVE`: debe quedar en 0 (la política de
+  `clientas_fusiones` ya se quitó en producción con Clientas PARTE 2, #552).
+- [ ] **PR #168 (Rentabilidad):** quitar su creación de `fn_rentabilidad` o dejarla idéntica a la de producción. Si no,
+  la guarda de `20260928200000` aborta en el CI.
+- [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante», así que una
+  nota por devolución registrada desde la pantalla no apaga el pendiente de su cierre. **Antes de hacer que el modal
+  mande `cierre_id` con otro motivo:** la regla (a) NO mira el monto, y una nota chica atada apaga el cierre entero (una
+  devolución de S/ 59 atada a un cierre de S/ 590 borra el pendiente y los S/ 531 que faltan dejan de verse). El modal
+  solo puede atar una nota que no es por faltante cuando su monto cubre el esperado de ESE cierre (costo + IGV, con
+  `MARGEN_NOTA`); si eso no alcanza, el cambio va en la base (que la regla (a) sume las notas atadas y las compare con el
+  esperado), con su migración nueva. Ver ADR-0255, «Se rompe si».
+- Cómo verificas:
+  - `pnpm pruebas:arreglos-en-vivo` (47/47, con y sin superusuario) y el job completo de Postgres: 102 de 104 pasos
+    en verde. Los 2 rojos (`proveedores-produccion` y `dinero-compras`) salen igual en `main` sin este cambio: son del
+    Postgres desechable.
+  - Mutaciones, en los dos modos: 34 del estado vivo (32 la ponen roja; `R13`, la lista con comprobantes anulados, la
+    atrapa `compras-faltantes`; `R10`, la lista sin su candado de líder, es equivalente: el candado de sede ya exige lo
+    mismo) y 13 de los archivos (las 13 la ponen roja).
+  - Cambios futuros legítimos (una `_json` o `fn_rentabilidad` con otro cuerpo, `fn_rentabilidad` con otra columna,
+    `compras_nota_pendiente` con otra condición): la suite sigue en verde. Con otra firma de `emitir_nota`, las 11
+    pruebas del pegado de A se omiten con un aviso que lo dice.
+  - En producción, después de pegar, la consulta de huellas de cada encabezado da los md5 de ADR-0255.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
@@ -1082,6 +1205,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
     (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
     temporada». Retira el texto libre `productos.temporada` (vacío en producción).
+    - [x] **Pestaña en cuatro vistas (2026-09-28, sin migración):** «Por completar» (agrupada por categoría, con
+      «Ponérsela a la categoría»), «Por categoría» (abre en «Con prendas»), «Calendario» y «Las nueve», elegidas por
+      tarjetas de cifra; la vista va en `?vista=`. Detalle: ADR-0246, «Actualización 2026-09-28».
+    - [ ] **Limpiar las categorías y prendas de prueba de producción** («dsa», «Colores», «prueba Lapicero»; «Fhfh»,
+      «Y.j.j», «Test de Produto 2», «Producto de Prueba»): mientras estén activas, «Por completar» no llega a 0 con
+      prendas reales. Desactivar, nunca borrar. Decide Felipe cuáles son de prueba.
   - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
     y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
@@ -1326,6 +1455,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece todo menos un círculo sobre lo que hay que presionar, se puede terminar antes y retomar. Spike y propuesta: `docs/maquetas/ayuda-guiada-spike-2026-09/`.
 - [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
 - [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
+
+## 📐 Crear un color sin salir del producto, con gotero (2026-09-28) — SPIKE visual v2, sin código del ERP
+Una sola hoja de tres pasos (nombre → gotero → revisar y guardar) que se abre igual desde «Nuevo producto» y desde Catálogo ▸ Atributos ▸ Colores, con un gotero dentro de la hoja (foto del producto, carta de tonos o foto propia) en vez del selector nativo del navegador; el color nace en el mismo vocabulario y aparece en Atributos con «Pendiente» hasta que un líder lo aprueba. Spike y propuesta: `docs/maquetas/crear-color-spike-2026-09/`
+- [ ] Felipe revisa el spike y decide las 5 preguntas del README (¿el gotero dentro de la hoja es lo que pidió?, ¿la colaboradora crea colores o los pide?, ¿la hoja hereda el «Responsable»?, ¿la guía se ofrece sola?, ¿«Letra cómoda» va aparte?).
+- [ ] Si se aprueba: ADR (revierte `ProponerValor.tsx:29-31`), `components/catalogo/CrearColorHoja.tsx` (una pieza para `ColoresLista` y `ElegirColores`), `lib/gotero.ts` (con pruebas) y el «Siguiente paso» clicable de `FichaPrevia.tsx`. Sin migración; comprobar que el RPC de alta acepte un color pendiente.
 
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
