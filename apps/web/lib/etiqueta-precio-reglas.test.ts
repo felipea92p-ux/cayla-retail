@@ -256,6 +256,23 @@ describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", (
     expect(e.bajada).toContain("5 prendas de 2 modelos");
     expect(e.vacio).toContain("Tienda Trujillo");
   });
+  it("una sola talla impresa desde Productos no habla de «marcadas»", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: true, tallas: 1 }, { unidades: 6, modelos: 1 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Una talla");
+    expect(e.bajada).toContain("En Tienda Lima hay 6 prendas de esta talla y color");
+    expect(e.bajada).not.toContain("marcaste");
+    expect(e.vacio).toBe("En Tienda Lima no hay unidades de esta talla y color.");
+  });
+  it("varias prendas marcadas en la Tabla de Productos: marcadas, pero en Productos", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: true, tallas: 8 }, { unidades: 5, modelos: 2 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Prendas marcadas");
+    expect(e.bajada).toContain("entre las que marcaste");
+  });
+  it("una sola talla marcada en Existencias sigue siendo «marcada»", () => {
+    expect(encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: false, tallas: 1 }, n, "Tienda Lima").sobretitulo).toBe(
+      "Existencias · Prendas marcadas",
+    );
+  });
   it("un producto habla de lo que hay en la tienda", () => {
     const e = encabezadoDeEtiquetas({ tipo: "producto", nombre: "Blusa Emma" }, { unidades: 1, modelos: 1 }, "Tienda Trujillo");
     expect(e.sobretitulo).toBe("Productos · Blusa Emma");

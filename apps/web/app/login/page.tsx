@@ -1,7 +1,7 @@
 "use client";
 
 import { avisar } from "@/components/ui/Avisos";
-import Image from "next/image";
+import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -58,10 +58,14 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-crema px-6">
       <form onSubmit={onSubmit} className="w-full max-w-sm">
         <div className="mb-10 flex flex-col items-center text-center">
-          <Image src="/cayla-isotipo.png" alt="CAYLA" width={56} height={56} priority className="h-14 w-auto" />
+          <IsotipoCayla className="h-14 w-auto" />
           <h1 className="font-display mt-5 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
             CAYLA
           </h1>
+          {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
+          <p className="label-cayla text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
+            Retail
+          </p>
           <p className="font-display mt-1 text-base italic text-taupe-profundo">Donde el estilo transforma.</p>
         </div>
 
