@@ -38,6 +38,8 @@ import { useColaProductos } from "@/lib/useColaProductos";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { guardarFotos } from "@/lib/fotos-pendientes";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import {
   PASOS_ALTA,
   codigoBasePrevisto,
@@ -176,6 +178,21 @@ export function NuevoProductoForm({
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
+
+  // «¿Salir sin guardar?» (2026-09-28). Nuevo producto no guarda borrador: salir a medias pierde TODO lo llenado. La foto
+  // junta lo que la persona eligió (no el paso abierto ni lo que se creó a mitad del alta —una marca, una talla—, que ya
+  // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
+  // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
+  const fotoActual = fotoFormulario({
+    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
+    overridePrecio, etiquetasElegidas, cantidades, sinStock, alPiso,
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(
+    !creado && fotoActual !== fotoAlAbrir,
+    "Llenaste parte de este producto nuevo y todavía no se creó. Si sales ahora, se pierde lo que llenaste."
+  );
 
   const categoria = contexto.categorias.find((c) => c.id === categoriaId) ?? null;
   const familia = categoria ? (contexto.familias.find((f) => f.codigo === categoria.familia) ?? null) : null;
@@ -1021,9 +1038,10 @@ export function NuevoProductoForm({
           responsable={responsable}
           cargando={cargando}
           puedeGuardar={puedeGuardar}
-          onCancelar={() => router.push("/productos")}
+          onCancelar={() => salida.pedirSalir("/productos")}
         />
       </div>
+      {salida.aviso}
     </form>
   );
 }

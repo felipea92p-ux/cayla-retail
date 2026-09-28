@@ -22,7 +22,10 @@ import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
 
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" };
 
-export function useSalidaSinGuardar(conCambios: boolean) {
+/** Lo que se pierde, dicho como lo diría la pantalla. Por defecto, la ficha que se está editando. */
+const QUE_SE_PIERDE = "Hiciste cambios en esta ficha que todavía no se guardaron. Si sales ahora, se pierden.";
+
+export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE) {
   const router = useRouter();
   const [pendiente, setPendiente] = useState<Destino | null>(null);
   // Refs y no estado: los escuchadores se registran una vez y leen siempre el valor del momento.
@@ -116,7 +119,7 @@ export function useSalidaSinGuardar(conCambios: boolean) {
     <Modal titulo="¿Salir sin guardar?" onClose={() => setPendiente(null)}>
       {(cerrar) => (
         <div className="mt-3 space-y-5">
-          <p className="text-sm text-tinta/75">Hiciste cambios en esta ficha que todavía no se guardaron. Si sales ahora, se pierden.</p>
+          <p className="text-sm text-tinta/75">{mensaje}</p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={confirmarSalida}>
               Salir sin guardar
