@@ -55,7 +55,7 @@ reabrir un mes, quien tenga Cierre de mes.
 - [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
   permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
 - [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
-- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [x] Diccionario refrescado desde producción (foto del 2026-09-28 17:11 UTC: 141 relaciones, 655 funciones); `datos:comparar` sin pantallas rotas.
 - [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
   módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
 - [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
