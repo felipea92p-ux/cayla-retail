@@ -107,6 +107,14 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
     const chompa = l.tallas.find((t) => t.codigo === "ZZ-FX-CHOMPA-M")!;
     expect(chompa).toMatchObject({ temporada: "invierno", temporadaOrigen: "producto", esClasico: false, enEstacionAhora: expect.any(Boolean) });
     expect(chompa.finEstacion).not.toBeNull();
+    // La última llegada a ESTA tienda (15-ago) y la última llegada A CAYLA (el lote del 20-ago en Trujillo) son campos
+    // distintos: si la web leyera uno por el otro, la tienda que recibe una prenda trasladada no vería su temporada pasada.
+    const crudaChompa = SEDE.prendas.find((p) => p.codigo === "ZZ-FX-CHOMPA-M") as unknown as Record<string, unknown>;
+    expect(chompa.ultimaLlegada).toBe(crudaChompa.ultima_llegada);
+    expect(chompa.ultimaLlegadaCayla).toBe(crudaChompa.ultima_llegada_cayla);
+    expect(Date.parse(chompa.ultimaLlegadaCayla!)).toBeGreaterThan(Date.parse(chompa.ultimaLlegada!));
+    // Las dos tallas del modelo+color traen la misma llegada a CAYLA (la S nunca llegó a Trujillo).
+    expect(l.tallas.find((t) => t.codigo === "ZZ-FX-CHOMPA-S")!.ultimaLlegadaCayla).toBe(chompa.ultimaLlegadaCayla);
     expect(l.tallas.find((t) => t.codigo === "ZZ-FX-CLASICO-M")).toMatchObject({ temporada: "clasico", esClasico: true, finEstacion: null });
     expect(l.tallas.find((t) => t.codigo === "ZZ-FX-SINTEMP-M")).toMatchObject({ temporada: null, temporadaOrigen: null, finEstacion: null });
   });
@@ -215,10 +223,15 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
   });
 
   it("la blusa vieja (40 días, nada vendido) es Crítica y está «por decidir»: cambiar de lugar y trasladar, nunca rebajar", async () => {
-    const p = prendaCon(await laSede(), "ZZ-FX-VIEJA-M");
+    const sede = await laSede();
+    const p = prendaCon(sede, "ZZ-FX-VIEJA-M");
     expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
     expect(p.estado.sugerencias).toEqual(["cambiar_lugar", "trasladar"]);
     expect(p.rapidez?.vendidas).toBe(0);
+    // Se midió contra su categoría SIN ella (D5): no vendió nada, así que el resto tiene las mismas ventas que la vara.
+    const blusas = sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!;
+    expect(p.categoriaSinElla?.vendidas).toBe(blusas.vendidas);
+    expect(p.categoriaSinElla?.cortes.p50).not.toBeNull();
   });
 
   it("la carga inicial (marca 6) nunca es Nueva: «al menos», sin edad conocida", async () => {
@@ -242,6 +255,10 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const chompa = prendaCon(sede, "ZZ-FX-CHOMPA-S");
     expect(chompa.tallas).toHaveLength(2);
     expect(chompa.temporada).toBe("invierno");
+    // La pantalla dice por qué pasó: su última llegada a CAYLA (el lote de Trujillo), no la de esta tienda (D1).
+    const crudaM = SEDE.prendas.find((x) => x.codigo === "ZZ-FX-CHOMPA-M") as unknown as Record<string, unknown>;
+    expect(chompa.ultimaLlegadaCayla).toBe(crudaM.ultima_llegada_cayla);
+    expect(chompa.ultimaLlegada).toBe(crudaM.ultima_llegada);
     // Su categoría vendió 1 de 6 (sin P50): «aún sin referencia», no «Nueva»; y como su temporada pasó, se sugiere retirarla.
     expect(chompa.estado).toMatchObject({ tipo: "sin_vara", temporadaPasada: true, quieta: true });
     expect(chompa.estado.sugerencias).toContain("retirar");

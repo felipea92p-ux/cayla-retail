@@ -173,7 +173,7 @@
 - `nivelPorVentas`: cuenta unidades vendidas **con edad conocida**.
 - `rapidez`: solo con edad conocida.
 - `estadoFrescura`, un tipo cerrado: `semaforo | sin_ventas_sede | sin_vara | sin_edad_conocida | clasico | dudosa`. Lleva `temporadaPasada` y sus sugerencias. «Trasladar» existe solo con «Sólido» y almacén > 0. «Rebajar» no existe.
-- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada.
+- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada. *Precisado el 2026-09-27 (Felipe, ADR-0208, «Revisión 5 del paso 3»): un pilar de venta de temporada pasada también entra, con su propia sugerencia («sigue vendiendo: decide si la dejas hasta agotar o la retiras»); un pilar nunca entra por viejo.*
 - `clavePrenda` en un solo lugar compartido con Análisis.
 
 **Web: `lib/frescura.ts` (servidor)**
@@ -277,7 +277,7 @@
 - **SE ROMPE SI:** la puerta de carga inicial se usa para mercadería que llega de verdad (ADR-0212:47-50). Esas prendas nunca tendrían edad.
 
 **Temporada pasada**
-- **DECIDÍ:** la estación de la **última llegada** a la sede (A).
+- **DECIDÍ:** la estación de la **última llegada** a la sede (A). *Precisado por Felipe el 2026-09-27 (ADR-0208, «Revisión 5 del paso 3»): la última llegada del modelo+color **a CAYLA** (lote, producción o carga inicial, en cualquier sede), no a la sede; la recepción de un traslado no cuenta. Así el «SE ROMPE SI» de abajo ya no pasa.*
 - **DESCARTÉ:** la cohorte más vieja con saldo (B). Un modelo que el Taller repite en temporada saldría «pasado» por 2 unidades viejas, y sugeriría retirar lo recién llegado.
 - **SE ROMPE SI:** llega un traslado de una prenda vieja a mitad de camino entre dos estaciones. Oculta el aviso de toda la prenda.
 
