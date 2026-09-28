@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { BarraFija } from "@/components/ui/BarraFija";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
@@ -338,6 +339,21 @@ export function ProductoForm({
     setVariantes((a) => a.filter((_, n) => n !== i));
   }
 
+  // Barra de guardado abajo (2026-09-28). Bajo 1280 px el panel «Guardar cambios» deja de ir al costado (el formulario
+  // necesita ese ancho: a 1024 px quedaba en 329 px) y pasa al final de la página, a ~3500 px de un precio cambiado arriba.
+  // Mientras sus botones no se vean, una barra pegada abajo ofrece los mismos; cuando se ven, se va: nunca dos «Guardar» a la
+  // vista. Desde 1280 px no aparece: el panel vuelve al costado y fijo.
+  const accionesRef = useRef<HTMLDivElement>(null);
+  const [accionesALaVista, setAccionesALaVista] = useState(true);
+  useEffect(() => {
+    const el = accionesRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(([e]) => setAccionesALaVista(e.isIntersecting));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const panelGuardarRef = useRef<HTMLElement>(null);
+
   function recargar() {
     window.location.reload();
   }
@@ -491,7 +507,7 @@ export function ProductoForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+    <form onSubmit={onSubmit} className="grid gap-6 pb-28 sm:pb-24 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start xl:pb-0">
       <div className="min-w-0 space-y-6">
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
@@ -886,7 +902,7 @@ export function ProductoForm({
         </section>
       </div>
 
-      <aside className="card-cayla space-y-4 p-5 lg:sticky lg:top-24">
+      <aside ref={panelGuardarRef} className="card-cayla scroll-mt-24 space-y-4 p-5 xl:sticky xl:top-24">
         <p className="label-cayla text-[11px] text-tinta/65">{editando ? "Guardar cambios" : "Crear producto"}</p>
         <p className="text-sm text-tinta/65">
           El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
@@ -903,7 +919,7 @@ export function ProductoForm({
             </Boton>
           </div>
         )}
-        <div className="flex flex-col gap-2">
+        <div ref={accionesRef} className="flex flex-col gap-2">
           <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
@@ -912,6 +928,37 @@ export function ProductoForm({
           </Boton>
         </div>
       </aside>
+
+      <BarraFija
+        visible={!accionesALaVista}
+        className="xl:hidden"
+        resumen={
+          responsable.listo ? (
+            <span>Los cambios se guardan recién al pulsar «{editando ? "Guardar cambios" : "Crear producto"}».</span>
+          ) : (
+            <span>
+              {responsable.motivo ?? "Elige quién hace esta operación."}{" "}
+              <button
+                type="button"
+                onClick={() => panelGuardarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="font-medium text-rojo underline underline-offset-2"
+              >
+                Elegir responsable
+              </button>
+            </span>
+          )
+        }
+        acciones={
+          <>
+            <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading}>
+              Cancelar
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+              {editando ? "Guardar cambios" : "Crear producto"}
+            </Boton>
+          </>
+        }
+      />
     </form>
   );
 }
