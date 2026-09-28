@@ -1,13 +1,13 @@
 {
-  "leido_en": "2026-09-27T13:09:00.181841+00:00",
-  "funciones_en_produccion": 624,
+  "leido_en": "2026-09-28T17:11:24.159544+00:00",
+  "funciones_en_produccion": 655,
   "tablas": [
     {
       "esquema": "retail",
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 46,
+      "filas_estimadas": 47,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -567,7 +567,7 @@
       "tabla": "ajustes_inventario_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 2,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1549,7 +1549,7 @@
       "tabla": "cajas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 17,
+      "filas_estimadas": 18,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2201,7 +2201,7 @@
       "tabla": "categoria_patrones",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 134,
+      "filas_estimadas": 135,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2277,7 +2277,7 @@
       "tabla": "categoria_tallas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 216,
+      "filas_estimadas": 217,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2362,7 +2362,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 142,
+      "filas_estimadas": 147,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2438,7 +2438,7 @@
       "tabla": "categorias",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 45,
+      "filas_estimadas": 47,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2765,9 +2765,83 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "version",
+          "orden": 11,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": "1",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "archivada_en",
+          "orden": 12,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "archivada_por",
+          "orden": 13,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "motivo_archivo",
+          "orden": 14,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "anonimizada",
+          "orden": 15,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "false",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fusionada_en_id",
+          "orden": 16,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "clientas_anonimizada_implica_archivada",
+          "clase": "regla",
+          "definicion": "CHECK (((NOT anonimizada) OR (archivada_en IS NOT NULL)))"
+        },
+        {
+          "nombre": "clientas_anonimizada_sin_datos_personales",
+          "clase": "regla",
+          "definicion": "CHECK (((NOT anonimizada) OR ((dni IS NULL) AND (telefono_whatsapp IS NULL) AND (whatsapp_consentimiento_en IS NULL) AND (cumple_dia IS NULL) AND (cumple_mes IS NULL) AND (tallas IS NULL) AND (COALESCE(nombre, ''::text) = 'Clienta anonimizada'::text))))"
+        },
+        {
+          "nombre": "clientas_archivada_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (archivada_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "clientas_archivada_tiene_motivo",
+          "clase": "regla",
+          "definicion": "CHECK (((archivada_en IS NULL) OR (NULLIF(btrim(motivo_archivo), ''::text) IS NOT NULL)))"
+        },
         {
           "nombre": "clientas_created_por_fkey",
           "clase": "llave foránea",
@@ -2789,6 +2863,21 @@
           "definicion": "CHECK (((dni IS NULL) OR (btrim(dni) <> ''::text)))"
         },
         {
+          "nombre": "clientas_fusionada_en_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (fusionada_en_id) REFERENCES retail.clientas(id)"
+        },
+        {
+          "nombre": "clientas_fusionada_implica_anonimizada",
+          "clase": "regla",
+          "definicion": "CHECK (((fusionada_en_id IS NULL) OR anonimizada))"
+        },
+        {
+          "nombre": "clientas_fusionada_no_a_si_misma",
+          "clase": "regla",
+          "definicion": "CHECK (((fusionada_en_id IS NULL) OR (fusionada_en_id <> id)))"
+        },
+        {
           "nombre": "clientas_pkey",
           "clase": "llave primaria",
           "definicion": "PRIMARY KEY (id)"
@@ -2808,7 +2897,7 @@
         {
           "nombre": "clientas_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+          "condicion": "( SELECT retail.fn_ve_modulo('clientas'::text) AS fn_ve_modulo)",
           "condicion_escritura": null
         }
       ],
@@ -2816,10 +2905,137 @@
     },
     {
       "esquema": "retail",
+      "tabla": "clientas_fusiones",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "clienta_mantiene_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "clienta_fusionada_id",
+          "orden": 3,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ficha_fusionada",
+          "orden": 4,
+          "tipo": "jsonb",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ventas_movidas",
+          "orden": 5,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": "0",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "separaciones_movidas",
+          "orden": 6,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": "0",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "pedidos_movidos",
+          "orden": 7,
+          "tipo": "integer",
+          "acepta_vacio": false,
+          "por_defecto": "0",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fusionada_por",
+          "orden": 8,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fusionada_en",
+          "orden": 9,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "clientas_fusiones_clienta_fusionada_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (clienta_fusionada_id) REFERENCES retail.clientas(id)"
+        },
+        {
+          "nombre": "clientas_fusiones_clienta_mantiene_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (clienta_mantiene_id) REFERENCES retail.clientas(id)"
+        },
+        {
+          "nombre": "clientas_fusiones_fusionada_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (fusionada_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "clientas_fusiones_no_a_si_misma",
+          "clase": "regla",
+          "definicion": "CHECK ((clienta_mantiene_id <> clienta_fusionada_id))"
+        },
+        {
+          "nombre": "clientas_fusiones_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "clientas_fusiones_pkey",
+          "definicion": "CREATE UNIQUE INDEX clientas_fusiones_pkey ON retail.clientas_fusiones USING btree (id)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 155,
+      "filas_estimadas": 207,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2922,7 +3138,7 @@
       "tabla": "codigos_correlativos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 14,
+      "filas_estimadas": 17,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -3584,7 +3800,7 @@
       "tabla": "colores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 75,
+      "filas_estimadas": 76,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -11155,7 +11371,7 @@
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 9,
+      "filas_estimadas": 10,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -11253,6 +11469,69 @@
         {
           "nombre": "historial_producto_cambios_pkey",
           "definicion": "CREATE UNIQUE INDEX historial_producto_cambios_pkey ON retail.historial_producto_cambios USING btree (id)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "huellas_llave",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "smallint",
+          "acepta_vacio": false,
+          "por_defecto": "1",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "llave_sha256",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "creada_at",
+          "orden": 3,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "huellas_llave_id_check",
+          "clase": "regla",
+          "definicion": "CHECK ((id = 1))"
+        },
+        {
+          "nombre": "huellas_llave_llave_sha256_check",
+          "clase": "regla",
+          "definicion": "CHECK ((llave_sha256 ~ '^[0-9a-f]{64}$'::text))"
+        },
+        {
+          "nombre": "huellas_llave_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "huellas_llave_pkey",
+          "definicion": "CREATE UNIQUE INDEX huellas_llave_pkey ON retail.huellas_llave USING btree (id)"
         }
       ],
       "politicas": [],
@@ -11677,6 +11956,60 @@
     },
     {
       "esquema": "retail",
+      "tabla": "lider_modulos_ocultos",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "modulo",
+          "orden": 1,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ocultado_en",
+          "orden": 2,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "lider_modulos_ocultos_modulo_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (modulo) REFERENCES retail.modulos(clave)"
+        },
+        {
+          "nombre": "lider_modulos_ocultos_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (modulo)"
+        },
+        {
+          "nombre": "lider_modulos_ocultos_roles_no",
+          "clase": "regla",
+          "definicion": "CHECK ((modulo <> 'roles'::text))"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "lider_modulos_ocultos_pkey",
+          "definicion": "CREATE UNIQUE INDEX lider_modulos_ocultos_pkey ON retail.lider_modulos_ocultos USING btree (modulo)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "lotes",
       "tipo": "tabla",
       "comentario": null,
@@ -11824,7 +12157,7 @@
       "tabla": "marca_proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 80,
+      "filas_estimadas": 84,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -11900,7 +12233,7 @@
       "tabla": "marcas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 80,
+      "filas_estimadas": 84,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -12093,7 +12426,7 @@
       "tabla": "modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 32,
+      "filas_estimadas": 34,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -12199,7 +12532,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 138,
+      "filas_estimadas": 188,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13311,7 +13644,7 @@
       "tabla": "patrones",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8,
+      "filas_estimadas": 9,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13470,7 +13803,7 @@
       "tabla": "pedidos_no_atendidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 1,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13570,6 +13903,11 @@
           "nombre": "pedidos_no_atendidos_atendido_por_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (atendido_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "pedidos_no_atendidos_clienta_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)"
         },
         {
           "nombre": "pedidos_no_atendidos_pkey",
@@ -15271,7 +15609,7 @@
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 11,
+      "filas_estimadas": 20,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15387,7 +15725,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 17,
+      "filas_estimadas": 33,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16136,7 +16474,7 @@
       "tabla": "proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 76,
+      "filas_estimadas": 78,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16644,7 +16982,7 @@
       "tabla": "rol_modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 46,
+      "filas_estimadas": 52,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16816,6 +17154,15 @@
           "por_defecto": "1",
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "pantalla_principal",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -16853,6 +17200,11 @@
           "nombre": "roles_nombre_check",
           "clase": "regla",
           "definicion": "CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 60)))"
+        },
+        {
+          "nombre": "roles_pantalla_principal_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (pantalla_principal) REFERENCES retail.modulos(clave)"
         },
         {
           "nombre": "roles_pkey",
@@ -16894,7 +17246,7 @@
       "tabla": "roles_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 22,
+      "filas_estimadas": 23,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -18102,7 +18454,7 @@
           "nombre": "clienta_nombres",
           "orden": 6,
           "tipo": "text",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -18111,7 +18463,7 @@
           "nombre": "clienta_apellidos",
           "orden": 7,
           "tipo": "text",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -18120,7 +18472,7 @@
           "nombre": "clienta_celular",
           "orden": 8,
           "tipo": "text",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -18232,6 +18584,15 @@
           "por_defecto": "now()",
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "grupo_id",
+          "orden": 21,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -18261,6 +18622,11 @@
           "definicion": "CHECK ((clienta_celular ~ '^9[0-9]{8}$'::text))"
         },
         {
+          "nombre": "separacion_pedidos_clienta_completa",
+          "clase": "regla",
+          "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_nombres IS NULL) = (clienta_celular IS NULL))))"
+        },
+        {
           "nombre": "separacion_pedidos_clienta_nombres_check",
           "clase": "regla",
           "definicion": "CHECK ((btrim(clienta_nombres) <> ''::text))"
@@ -18278,7 +18644,12 @@
         {
           "nombre": "separacion_pedidos_estado_check",
           "clase": "regla",
-          "definicion": "CHECK ((estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'llego'::text, 'apartado'::text, 'cancelado'::text])))"
+          "definicion": "CHECK ((estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'llego'::text, 'apartado'::text, 'cancelado'::text, 'recibido'::text])))"
+        },
+        {
+          "nombre": "separacion_pedidos_estado_segun_clienta",
+          "clase": "regla",
+          "definicion": "CHECK (\nCASE\n    WHEN (clienta_nombres IS NULL) THEN (estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'recibido'::text, 'cancelado'::text]))\n    ELSE (estado <> 'recibido'::text)\nEND)"
         },
         {
           "nombre": "separacion_pedidos_nota_check",
@@ -18294,6 +18665,11 @@
           "nombre": "separacion_pedidos_pkey",
           "clase": "llave primaria",
           "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "separacion_pedidos_reposicion_con_grupo",
+          "clase": "regla",
+          "definicion": "CHECK (((clienta_nombres IS NOT NULL) OR (grupo_id IS NOT NULL)))"
         },
         {
           "nombre": "separacion_pedidos_separacion_id_fkey",
@@ -19054,7 +19430,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 117,
+      "filas_estimadas": 160,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19282,7 +19658,7 @@
       "tabla": "tallas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 25,
+      "filas_estimadas": 27,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19432,7 +19808,7 @@
       "tabla": "tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 19,
+      "filas_estimadas": 24,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21184,7 +21560,7 @@
       "tabla": "variante_etiquetas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 23,
+      "filas_estimadas": 75,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21260,7 +21636,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 155,
+      "filas_estimadas": 207,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21817,6 +22193,15 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "referencia",
+          "orden": 7,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -21844,6 +22229,11 @@
           "nombre": "venta_pagos_recibido_coherente",
           "clase": "regla",
           "definicion": "CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))"
+        },
+        {
+          "nombre": "venta_pagos_referencia_valida",
+          "clase": "regla",
+          "definicion": "CHECK (((referencia IS NULL) OR ((referencia ~ '^[0-9A-Za-z]{1,40}$'::text) AND (metodo = ANY (ARRAY['yape'::text, 'plin'::text, 'transferencia'::text])))))"
         },
         {
           "nombre": "venta_pagos_venta_id_fkey",

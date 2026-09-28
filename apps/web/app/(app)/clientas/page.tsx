@@ -6,9 +6,10 @@ import { ClientasPanel } from "@/components/ClientasPanel";
 // H): la ficha de verdad — buscar, ver su actividad, editar, archivar/anonimizar y unir fichas.
 // Reemplaza la pantalla mínima de verificación de D-76/D-77.
 //
-// Cualquier colaborador con sesión, sin gate de líder: retail no tiene noción de "mi clienta"
-// (es de la marca, D-109 — cualquier cuenta con el módulo ve a todas), y la RLS de `clientas`
-// ya lo exige del lado de la base.
+// Toda cuenta con el módulo «Clientas», sin gate de líder: retail no tiene noción de "mi clienta"
+// (es de la marca, D-109 — cualquier cuenta con el módulo ve a todas). La puerta es `layout.tsx`
+// (`exigirModulo`), y la base lo vuelve a exigir: la política de `clientas` y sus 11 funciones
+// preguntan por el módulo (ADR-0249, actualización 2026-09-28).
 export default async function ClientasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requirePersonaActualV2();
   // `?q=`: «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con su nombre ya buscado.

@@ -5613,6 +5613,10 @@ export type Database = {
         Args: { p_producto_id: string }
         Returns: string
       }
+      eliminar_producto_con_historia: {
+        Args: { p_producto_id: string }
+        Returns: string
+      }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string
@@ -6174,6 +6178,18 @@ export type Database = {
           talla: string
           valor_en_riesgo: number
           variante_id: string
+        }[]
+      }
+      fn_producto_como_eliminar: {
+        Args: { p_producto_id: string }
+        Returns: {
+          cargado_el: string
+          cargado_por: string
+          movimientos: number
+          nivel: string
+          prendas: number
+          puedes: boolean
+          razon: string
         }[]
       }
       fn_producto_se_puede_eliminar: {

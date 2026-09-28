@@ -111,7 +111,7 @@ viejo del repo, le devuelve el candado de líder sin avisar. Lo vigila la prueba
 
 ## Pendiente
 
-- Refrescar el diccionario (`pnpm datos:generar:produccion`, `pnpm datos:comparar`): las migraciones ya están en producción.
+- ~~Refrescar el diccionario~~: hecho el 2026-09-28 (foto de las 17:11 UTC; `lider_modulos_ocultos` con el Ganso).
 - Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
   base ya se los deja a quien tiene Configuración. Lo mismo, la opción «De la empresa» en Gastos.
 - Quedan ~39 funciones con `if not fn_es_lider() then raise` escrito directo (acciones «siempre del líder» y otras sin

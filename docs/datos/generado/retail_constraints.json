@@ -595,6 +595,26 @@
   "tabla": "retail.categorias_gasto"
  },
  {
+  "conname": "clientas_anonimizada_implica_archivada",
+  "definicion": "CHECK (((NOT anonimizada) OR (archivada_en IS NOT NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_anonimizada_sin_datos_personales",
+  "definicion": "CHECK (((NOT anonimizada) OR ((dni IS NULL) AND (telefono_whatsapp IS NULL) AND (whatsapp_consentimiento_en IS NULL) AND (cumple_dia IS NULL) AND (cumple_mes IS NULL) AND (tallas IS NULL) AND (COALESCE(nombre, ''::text) = 'Clienta anonimizada'::text))))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_archivada_por_fkey",
+  "definicion": "FOREIGN KEY (archivada_por) REFERENCES personas(id)",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_archivada_tiene_motivo",
+  "definicion": "CHECK (((archivada_en IS NULL) OR (NULLIF(btrim(motivo_archivo), ''::text) IS NOT NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
   "conname": "clientas_created_por_fkey",
   "definicion": "FOREIGN KEY (created_por) REFERENCES personas(id)",
   "tabla": "retail.clientas"
@@ -615,9 +635,49 @@
   "tabla": "retail.clientas"
  },
  {
+  "conname": "clientas_fusionada_en_id_fkey",
+  "definicion": "FOREIGN KEY (fusionada_en_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_fusionada_implica_anonimizada",
+  "definicion": "CHECK (((fusionada_en_id IS NULL) OR anonimizada))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_fusionada_no_a_si_misma",
+  "definicion": "CHECK (((fusionada_en_id IS NULL) OR (fusionada_en_id <> id)))",
+  "tabla": "retail.clientas"
+ },
+ {
   "conname": "clientas_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_fusiones_clienta_fusionada_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_fusionada_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.clientas_fusiones"
+ },
+ {
+  "conname": "clientas_fusiones_clienta_mantiene_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_mantiene_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.clientas_fusiones"
+ },
+ {
+  "conname": "clientas_fusiones_fusionada_por_fkey",
+  "definicion": "FOREIGN KEY (fusionada_por) REFERENCES personas(id)",
+  "tabla": "retail.clientas_fusiones"
+ },
+ {
+  "conname": "clientas_fusiones_no_a_si_misma",
+  "definicion": "CHECK ((clienta_mantiene_id <> clienta_fusionada_id))",
+  "tabla": "retail.clientas_fusiones"
+ },
+ {
+  "conname": "clientas_fusiones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.clientas_fusiones"
  },
  {
   "conname": "codigos_barras_codigo_key",
@@ -2510,6 +2570,21 @@
   "tabla": "retail.historial_producto_cambios"
  },
  {
+  "conname": "huellas_llave_id_check",
+  "definicion": "CHECK ((id = 1))",
+  "tabla": "retail.huellas_llave"
+ },
+ {
+  "conname": "huellas_llave_llave_sha256_check",
+  "definicion": "CHECK ((llave_sha256 ~ '^[0-9a-f]{64}$'::text))",
+  "tabla": "retail.huellas_llave"
+ },
+ {
+  "conname": "huellas_llave_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.huellas_llave"
+ },
+ {
   "conname": "insumo_lotes_cantidad_ingresada_check",
   "definicion": "CHECK ((cantidad_ingresada > (0)::numeric))",
   "tabla": "retail.insumo_lotes"
@@ -2593,6 +2668,21 @@
   "conname": "insumos_unidad_medida_check",
   "definicion": "CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))",
   "tabla": "retail.insumos"
+ },
+ {
+  "conname": "lider_modulos_ocultos_modulo_fkey",
+  "definicion": "FOREIGN KEY (modulo) REFERENCES retail.modulos(clave)",
+  "tabla": "retail.lider_modulos_ocultos"
+ },
+ {
+  "conname": "lider_modulos_ocultos_pkey",
+  "definicion": "PRIMARY KEY (modulo)",
+  "tabla": "retail.lider_modulos_ocultos"
+ },
+ {
+  "conname": "lider_modulos_ocultos_roles_no",
+  "definicion": "CHECK ((modulo <> 'roles'::text))",
+  "tabla": "retail.lider_modulos_ocultos"
  },
  {
   "conname": "lotes_envio_id_fkey",
@@ -3027,6 +3117,11 @@
  {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "definicion": "FOREIGN KEY (atendido_por) REFERENCES personas(id)",
+  "tabla": "retail.pedidos_no_atendidos"
+ },
+ {
+  "conname": "pedidos_no_atendidos_clienta_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)",
   "tabla": "retail.pedidos_no_atendidos"
  },
  {
@@ -3820,6 +3915,11 @@
   "tabla": "retail.roles"
  },
  {
+  "conname": "roles_pantalla_principal_fkey",
+  "definicion": "FOREIGN KEY (pantalla_principal) REFERENCES retail.modulos(clave)",
+  "tabla": "retail.roles"
+ },
+ {
   "conname": "roles_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.roles"
@@ -4145,6 +4245,11 @@
   "tabla": "retail.separacion_pedidos"
  },
  {
+  "conname": "separacion_pedidos_clienta_completa",
+  "definicion": "CHECK ((((clienta_nombres IS NULL) = (clienta_apellidos IS NULL)) AND ((clienta_nombres IS NULL) = (clienta_celular IS NULL))))",
+  "tabla": "retail.separacion_pedidos"
+ },
+ {
   "conname": "separacion_pedidos_clienta_nombres_check",
   "definicion": "CHECK ((btrim(clienta_nombres) <> ''::text))",
   "tabla": "retail.separacion_pedidos"
@@ -4161,7 +4266,12 @@
  },
  {
   "conname": "separacion_pedidos_estado_check",
-  "definicion": "CHECK ((estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'llego'::text, 'apartado'::text, 'cancelado'::text])))",
+  "definicion": "CHECK ((estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'llego'::text, 'apartado'::text, 'cancelado'::text, 'recibido'::text])))",
+  "tabla": "retail.separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_estado_segun_clienta",
+  "definicion": "CHECK (\nCASE\n    WHEN (clienta_nombres IS NULL) THEN (estado = ANY (ARRAY['pedido'::text, 'en_camino'::text, 'recibido'::text, 'cancelado'::text]))\n    ELSE (estado <> 'recibido'::text)\nEND)",
   "tabla": "retail.separacion_pedidos"
  },
  {
@@ -4177,6 +4287,11 @@
  {
   "conname": "separacion_pedidos_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_reposicion_con_grupo",
+  "definicion": "CHECK (((clienta_nombres IS NOT NULL) OR (grupo_id IS NOT NULL)))",
   "tabla": "retail.separacion_pedidos"
  },
  {
@@ -5072,6 +5187,11 @@
  {
   "conname": "venta_pagos_recibido_coherente",
   "definicion": "CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))",
+  "tabla": "retail.venta_pagos"
+ },
+ {
+  "conname": "venta_pagos_referencia_valida",
+  "definicion": "CHECK (((referencia IS NULL) OR ((referencia ~ '^[0-9A-Za-z]{1,40}$'::text) AND (metodo = ANY (ARRAY['yape'::text, 'plin'::text, 'transferencia'::text])))))",
   "tabla": "retail.venta_pagos"
  },
  {
