@@ -868,6 +868,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-cobertura
 
+      # ADR-0253: ningún módulo es «solo del líder» (Configuración, Impuestos y Cierre de mes se dan como cualquiera, con
+      # todo lo del líder dentro) y el Líder de equipo se edita (lo que se le quita, sin Roles y accesos, lo mueve un
+      # Admin). Vigila además que ninguna de las 36 funciones reescritas vuelva a preguntar fn_es_lider(): una migración
+      # que las recree desde un archivo viejo del repo les devolvería el candado sin que nada más avise. ROLLBACK siempre.
+      - name: pruebas:roles-lider-editable
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles-lider-editable
+
       # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
       # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
       # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra

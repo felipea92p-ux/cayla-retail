@@ -12,7 +12,8 @@ export type RolVista = {
   descripcion: string | null;
   /** No se archiva (Líder, Integrante). */
   esSistema: boolean;
-  /** No se edita (solo Líder). */
+  /** El Líder de equipo (ADR-0253): ve todo MENOS lo que un Admin le quitó (`modulos` ya trae lo que ve, y un módulo
+   *  nuevo le aparece solo). Lo edita solo un Admin, nunca pierde «Roles y accesos», y no se archiva ni se renombra. */
   fijo: boolean;
   /** ADR-0161 B2d pendiente: ve sus módulos sin las capacidades de escritura (Integrante, como hoy). */
   limitadoComoHoy: boolean;
@@ -53,17 +54,22 @@ export type CuentaConRol = {
   estado: string;
 };
 
-/** ¿El rol ve este módulo? El fijo (Líder) ve todos, también los que nunca se delegan. */
-export function veModulo(rol: Pick<RolVista, "fijo" | "modulos">, clave: ClaveModulo): boolean {
-  return rol.fijo || rol.modulos.includes(clave);
+/** ¿El rol ve este módulo? Para el Líder también es su lista: desde el ADR-0253 se le pueden quitar módulos. */
+export function veModulo(rol: Pick<RolVista, "modulos">, clave: ClaveModulo): boolean {
+  return rol.modulos.includes(clave);
 }
+
+/** El módulo que el Líder nunca pierde: sin él nadie podría devolverle lo que se le quite (ADR-0253; la base lo rechaza
+ *  en `guardar_modulos_rol` y en el check de `lider_modulos_ocultos`). */
+export const MODULO_FIJO_DEL_LIDER: ClaveModulo = "roles";
 
 /**
  * Quién edita (ADR-0178, «solo das lo que tienes»). `misModulos` = los módulos que ve la sesión, o `null` si es líder (ve
- * todos y da todos). `miRolId` = el rol de la sesión: quien no es líder no edita el suyo.
+ * todos y da todos). `miRolId` = el rol de la sesión: quien no es líder no edita el suyo. `soyAdmin` (ADR-0253): solo un
+ * Admin edita los módulos del Líder de equipo; sin decirlo, se asume que sí (la base es la que decide).
  */
-export type QuienEdita = { misModulos: readonly ClaveModulo[] | null; miRolId: string | null };
-const LIDER_EDITA: QuienEdita = { misModulos: null, miRolId: null };
+export type QuienEdita = { misModulos: readonly ClaveModulo[] | null; miRolId: string | null; soyAdmin?: boolean };
+const LIDER_EDITA: QuienEdita = { misModulos: null, miRolId: null, soyAdmin: true };
 
 /** Los módulos de la lista que quien mira NO ve (vacío para un líder). Misma regla que `fn_modulos_que_no_tengo`. */
 export function fueraDeLoMio(modulos: readonly ClaveModulo[], misModulos: readonly ClaveModulo[] | null): ClaveModulo[] {
@@ -76,11 +82,17 @@ export function esMiRolSinSerLider(rol: Pick<RolVista, "id">, quien: QuienEdita)
 }
 
 /** Cómo se muestra el control de un módulo para un rol: interruptor, o candado con su motivo. */
-export type ControlModulo = { tipo: "interruptor"; editable: boolean } | { tipo: "candado"; texto: "Solo líder" | "Solo líder por ahora" | "No lo tienes" };
+export type ControlModulo =
+  | { tipo: "interruptor"; editable: boolean }
+  | { tipo: "candado"; texto: "Solo líder" | "Solo líder por ahora" | "No lo tienes" | "No se le quita" };
 
-/** `encendido`: si el módulo ya está en el rol. Lo que uno no tiene se puede APAGAR, pero no encender (ADR-0178). */
+/** `encendido`: si el módulo ya está en el rol. Lo que uno no tiene se puede APAGAR, pero no encender (ADR-0178). El Líder
+ *  (ADR-0253): cualquier módulo, también uno «solo del líder», lo mueve un Admin; «Roles y accesos», nadie. */
 export function controlDe(rol: Pick<RolVista, "id" | "fijo" | "archivado">, m: Modulo, quien: QuienEdita = LIDER_EDITA, encendido = false): ControlModulo {
-  if (rol.fijo) return { tipo: "interruptor", editable: false };
+  if (rol.fijo) {
+    if (m.clave === MODULO_FIJO_DEL_LIDER) return { tipo: "candado", texto: "No se le quita" };
+    return { tipo: "interruptor", editable: quien.soyAdmin !== false };
+  }
   if (m.soloLider) return { tipo: "candado", texto: "Solo líder" };
   if (m.noDelegable) return { tipo: "candado", texto: "Solo líder por ahora" };
   if (esMiRolSinSerLider(rol, quien)) return { tipo: "interruptor", editable: false };
@@ -109,10 +121,11 @@ export function modulosPorGrupo(): { grupo: Modulo["grupo"]; modulos: Modulo[] }
   return grupos;
 }
 
-/** Enciende o apaga un módulo en el borrador de un rol. Nunca deja entrar uno que no se delega. */
-export function alternarModulo(modulos: readonly ClaveModulo[], clave: ClaveModulo): ClaveModulo[] {
+/** Enciende o apaga un módulo en el borrador de un rol. Nunca deja entrar uno que no se delega; en el Líder (`fijo`), todo
+ *  se mueve menos «Roles y accesos» (ADR-0253). */
+export function alternarModulo(modulos: readonly ClaveModulo[], clave: ClaveModulo, fijo = false): ClaveModulo[] {
   const m = MODULOS.find((x) => x.clave === clave);
-  if (!m || !esDelegable(m)) return [...modulos];
+  if (!m || (fijo ? clave === MODULO_FIJO_DEL_LIDER : !esDelegable(m))) return [...modulos];
   return modulos.includes(clave) ? modulos.filter((c) => c !== clave) : MODULOS.filter((x) => x.clave === clave || modulos.includes(x.clave)).map((x) => x.clave);
 }
 
@@ -126,9 +139,8 @@ export function hayCambios(guardados: readonly ClaveModulo[], borrador: readonly
  * Producción). Sale de `menuPara`, el mismo que arma el menú real, así la vista previa no puede mentir.
  */
 export function menuDelRol(rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">, ubicacionTipo: TipoUbicacion = "tienda"): FilaMenu[] {
-  const modulos = rol.fijo ? MODULOS.map((m) => m.clave) : rol.modulos;
-  const permisos = permisosDeModulos(rol.fijo ? "lider" : "integrante", modulos.map((clave) => ({ clave, completo: !rol.limitadoComoHoy })));
-  return menuPara({ permisos, ubicacionTipo, modulos }).riel;
+  const permisos = permisosDeModulos(rol.fijo ? "lider" : "integrante", rol.modulos.map((clave) => ({ clave, completo: !rol.limitadoComoHoy })));
+  return menuPara({ permisos, ubicacionTipo, modulos: rol.modulos }).riel;
 }
 
 /** El menú como texto corto: «Inicio · Ventas (Punto de Venta, Caja) · Inventario (…)». */
@@ -253,7 +265,7 @@ export function debeAvisarPerdidaAdmin(cuentaEsAdmin: boolean, destino: Pick<Rol
 }
 
 /** Los módulos entre los que se puede elegir «pantalla principal» para un rol: los del borrador, en el orden del
- *  catálogo (Inicio primero si lo tiene). El Líder no elige: siempre ve todo, aterriza en Inicio. */
+ *  catálogo (Inicio primero si lo tiene). */
 export function pantallasElegibles(borrador: readonly ClaveModulo[]): Modulo[] {
   return MODULOS.filter((m) => borrador.includes(m.clave));
 }
@@ -294,9 +306,11 @@ export function cambiosDelBorrador(guardados: readonly ClaveModulo[], borrador: 
   };
 }
 
-/** «Encender todo» / «Quitar todo» de un grupo: solo toca los módulos que se pueden delegar. */
-export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["grupo"], encender: boolean): ClaveModulo[] {
-  const delGrupo = new Set(MODULOS.filter((m) => m.grupo === grupo && esDelegable(m)).map((m) => m.clave));
+/** «Encender todo» / «Quitar todo» de un grupo: solo toca los módulos que se pueden delegar. En el Líder, todos menos
+ *  «Roles y accesos» (ADR-0253). */
+export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["grupo"], encender: boolean, fijo = false): ClaveModulo[] {
+  const seMueve = (m: Modulo) => (fijo ? m.clave !== MODULO_FIJO_DEL_LIDER : esDelegable(m));
+  const delGrupo = new Set(MODULOS.filter((m) => m.grupo === grupo && seMueve(m)).map((m) => m.clave));
   return MODULOS.filter((m) => (delGrupo.has(m.clave) ? encender : modulos.includes(m.clave))).map((m) => m.clave);
 }
 
