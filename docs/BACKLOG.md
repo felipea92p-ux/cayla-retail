@@ -1095,12 +1095,17 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       llegada a CAYLA; lo que entra al piso y se aparta en el mismo instante no es exhibición; la separación liberada
       vuelve con su edad; entradas antes que salidas en un mismo instante; la prueba del indicador sin tienda; y las dos
       decisiones de Felipe (abajo). Pruebas: `pnpm pruebas:frescura-lectura` 231, `frescura-reglas.test.ts` 151,
-      `frescura-contrato.test.ts` 22, `inventario-exposicion.test.ts` 57. ADR-0208, «Revisión 9 del paso 3».
+      `frescura-contrato.test.ts` 22, `inventario-exposicion.test.ts` 57. ADR-0208, «Revisión 9 del paso 3». **Su
+      corrector** (el mismo día, misma rama): lo liberado sin entregarse de una separación de ANTES de la bajada ya no
+      resta en las tardías de la lectura (la liberada después de la venta es tardía como su gemela retirada al almacén), y
+      el pedido que la clienta no recogió se exhibe desde que se libera (el lote de meses después ya no vuelve a ser
+      «Nueva»); T9e fija W y 2W en sus bordes, T9f vigila el saldo. `pruebas:frescura-lectura` 237,
+      `frescura-contrato.test.ts` 24. ADR-0208, «El corrector de la revisión 9».
       - [ ] **POR PEGAR en producción, en este orden: `20260928120300` → `20260928120310` → `20260928120320` →
         `20260928120330`** (cada una sola, en el SQL Editor, a cualquier hora: solo funciones, un comentario, `revoke` y
         `grant`; las tres primeras ya están en main; la cuarta, cuando se fusione el PR de la revisión 9). Producción el
         2026-09-28: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos: `40bf970f…`, `e121f11e…`,
-        `81e3ddeb…` y `93a6f028…`. **No detenerse antes de la cuarta**: sin ella, separar una prenda recién bajada entra a
+        `81e3ddeb…` y `a3b2a086…`. **No detenerse antes de la cuarta**: sin ella, separar una prenda recién bajada entra a
         la vara como una venta de 0 minutos y la orden revertida reinicia temporadas. `md5(prosrc)` después de cada una:
         - `20260928120300`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
           `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`,
@@ -1110,7 +1115,8 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
           `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`,
           `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448`.
         - `20260928120320`: las mismas cinco y `fn_frescura_sede` `7da85d7b7010659ba5a36a2478c89ad4`.
-        - `20260928120330`: las mismas cinco y `fn_frescura_sede` `affb0187f217b2da43c452007c1b2eed`.
+        - `20260928120330`: las mismas cinco y `fn_frescura_sede` `33970c94c7dddf9530ee6b8175862661` (con las dos
+          correcciones de su corrector; el `affb0187…` del constructor nunca se pegó y la guarda lo rechaza).
         Cada guarda acepta el cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; una fuera de orden
         aborta pidiendo la que falta, y volver a pegar una anterior aborta sin deshacer nada (reproducido el 28-sep sobre
         una copia de producción, cada archivo en una transacción). Luego `pnpm datos:generar:produccion` con el volcado
@@ -1128,7 +1134,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         las de sus últimos 30 días en el piso. Desde la revisión 9: las tardías de la lectura NO son las del indicador de
         registro (lo apartado en la ventana cuenta en la primera y no en la segunda: no mostrar esa lista como «el registro
         del equipo»); el modelo cuyo único paso por el piso fue un pedido separado al instante sale «Nueva» con 0
-        segundos; y «sigue vendiendo» también para lo que no tiene dato de rapidez.
+        segundos (si la clienta no lo recogió, se exhibe desde que se libera); y «sigue vendiendo» también para lo que no tiene dato de rapidez.
       - [x] **R7-1 DECIDIDA por Felipe el 2026-09-27: lo apartado para una clienta no está colgado.** En
         `20260928120320`: `piso_hoy` y `almacen_hoy` son lo libre, `apartadas_hoy` lo apartado y `apartados` los puntos
         de lo apartado del piso (con su saldo). En la web, el reloj no corre mientras todo está apartado, y la prenda sin

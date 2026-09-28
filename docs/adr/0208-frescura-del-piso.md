@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final.
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final. Su corrector corrigió dos cosas más en el mismo `20260928120330` (la separación de antes liberada sin entregar ya no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera): su `fn_frescura_sede` es `33970c94…`.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -2584,6 +2584,9 @@ tres (`120310`, `120320`, `120330`) para una misma lectura que ninguna pantalla 
   - La pantalla del paso 4 muestra las tardías de la lectura como si fueran las del indicador.
 - **En producción hoy no cambia nada:** 3 apartados, ninguno a 10 minutos de una bajada; 0 pedidos de otra sede (`select`
   del 2026-09-28).
+- **Corregido después por el corrector de la revisión 9** (abajo, «El corrector de la revisión 9»): lo que se libera en la
+  ventana sin entregarse, de una separación de ANTES de la bajada, restaba siempre, y la clienta de antes que no vino
+  «explicaba» la venta de la ventana.
 
 #### R9-SQL-2: la orden del Taller revertida no es una llegada a CAYLA
 
@@ -2623,6 +2626,8 @@ tres (`120310`, `120320`, `120330`) para una misma lectura que ninguna pantalla 
     se vendió desde ahí: es exhibición.
 - **SE ROMPE SI** alguien baja una prenda y la aparta en la misma transacción sin que sea un pedido (hoy solo
   `separar_pedido_para_apartar` lo hace): tampoco cuenta como exhibición.
+- **Corregido después por el corrector de la revisión 9** (abajo): así escrito, el pedido que la clienta no recogió y
+  quedó colgado tampoco contaba como exhibición. Ahora su liberación sin entrega sí cuenta.
 
 #### N2: la separación liberada vuelve con su edad
 
@@ -2680,7 +2685,8 @@ Ninguno cambia conducta. Cada prueba cae con su cambio a propósito:
 
 - **La W de 10 minutos en las dos lecturas y el corte 2W del indicador (T9e).** Una venta a los 7 minutos es tardía en
   `fn_frescura_sede` y en `fn_confianza_registro`. En el indicador, la bajada de hace 17,5 minutos todavía no cuenta y la de
-  hace 21 sí. Mueren W = 5 en cualquiera de las dos y 2W = 16 o 22.
+  hace 21 sí. Mueren W = 5 en cualquiera de las dos y 2W = 16 o 22. (Su corrector la ajustó a los bordes: W = 9, 11 y
+  15 y 2W = 18 o 21 vivían. Abajo.)
 - **Los bordes de las dos ventanas de la web.** A los 10 minutos justos, la venta es la entrega y delata la bajada; un
   milisegundo después, no. Mueren 9 minutos, 10,9 minutos y el borde sin incluir, en cada una.
 - **El FIFO** (`inventario-exposicion.test.ts`):
@@ -2701,6 +2707,90 @@ Ninguno cambia conducta. Cada prueba cae con su cambio a propósito:
   que solo está en el almacén.
 - **Las prendas sin categoría** (F4). Ningún camino vigente crea una: los tres caminos de alta exigen una categoría activa.
 
+#### El corrector de la revisión 9 (2026-09-28): los cinco hallazgos de su verificación
+
+La verificación de lo construido encontró cinco cosas y las cinco eran reales. Dos cambian la lectura, dos son huecos de
+prueba y una es documentación. Todo va en el mismo `20260928120330`: no está en main, así que se corrige en el archivo, y
+su `fn_frescura_sede` pasa de `affb0187…` (que nunca se pegó) a `33970c94c7dddf9530ee6b8175862661`. La web no cambia.
+
+**1. La separación de antes, liberada después de la venta de la ventana.**
+- **El problema.** En la resta de las tardías, lo liberado en la ventana restaba siempre. Una clienta separa la única
+  unidad colgada de la talla. Una hora después otra la pide: se baja 1 y la compra a los 3 minutos. A los 5 se libera la
+  separación (la clienta no vino). Lo libre de antes era 0, así que la venta delata la bajada. Pero lo apartado al cerrar
+  la ventana era 0 y la tardía salía 0: la venta de 3 minutos entraba a la vara y a la rapidez. En la salida real, la
+  liberada tenía rapidez 34 con 1 vendida y su gemela retirada al almacén (R8: la pausa es como guardarla) rapidez 0; la
+  vara de su categoría, una venta de más. No lo trajo esta revisión: 20260928120320 daba lo mismo.
+- **DECIDÍ:** lo liberado sin entregarse de una separación hecha ANTES de la bajada no resta. Es la pausa de R8, como
+  volver a colgar desde el almacén, y el núcleo tampoco mira esas entradas. A lo apartado al cerrar se le suma
+  `máximo(0, mínimo(apartado antes de la bajada, liberado en la ventana) − entregado en la ventana)`. Así se sigue el
+  orden de la web, que cierra primero lo más viejo. «Entregado» es la regla de la web: una venta de la talla en el piso
+  en los 10 minutos siguientes a la liberación. Además, esa venta tiene que caer dentro de la ventana de la bajada: solo
+  entonces está en lo vendido del núcleo, y la web se la quita. Una entrega cobrada después de la ventana no quita nada de
+  ella.
+- **DESCARTÉ:**
+  - **La fórmula que propuso el verificador**: `máximo(apartado al cerrar, apartado antes − entregas del mismo instante)`.
+    Arregla su caso, pero armé otras cuatro gemelas y las pasé por la web con la salida real, y falla en dos:
+    - **Una clienta nueva separa en la ventana mientras se libera la de antes.** La tardía sale 0 y la web ve una venta
+      de 3 minutos.
+    - **La entrega que se cobra 2 minutos después de liberar** («Se la entrego a la clienta ahora» en Apartados y el
+      cobro en Vender). Con «mismo instante» no era entrega, y la tardía sacaba de la vara una venta que lo libre de antes
+      explicaba.
+  - **Recalcular las tardías en la web.** La web tendría que recibir el piso de antes y la efectiva de cada bajada: es
+    cambiar el contrato por un caso que hoy no ocurre en producción.
+- **SE ROMPE SI** hay dos o más liberaciones de la misma talla en los 10 minutos de una bajada, que cierran una
+  separación de antes Y una de la ventana, con la entrega y el abandono en el orden contrario al que supone la suma (lo
+  entregado va primero a lo más viejo). También si una misma venta sirve de entrega para dos liberaciones: la web se la da
+  a una sola. En los dos casos sale una unidad de más o de menos. Hacen falta dos clientas con separaciones de la misma
+  talla liberadas en los mismos 10 minutos de una bajada.
+- **Pruebas.**
+  - **T9f** tiene siete prendas: la liberada; su gemela retirada al almacén; la nueva con la vieja; la liberada y dada
+    de baja por conteo (una salida que no es venta no es la entrega); la entrega cobrada a los 2 minutos; la cobrada a
+    los 10 minutos justos de la bajada; y la cobrada después.
+  - **El archivo de la web** suma dos blusas: LIBERADA y GUARDADA. `frescura-contrato.test.ts` exige que digan lo mismo y
+    que las blusas sigan con 25 ventas.
+  - **Fuera del repo**, cuatro pares de gemelas más pasaron por la web con la salida real: la nueva con la vieja, la
+    entrega cobrada luego, la del borde y la de después. Con el arreglo, los cuatro pares salen iguales. Con el cuerpo
+    anterior fallan dos, y con la fórmula del verificador, otros dos.
+
+**2. El pedido que la clienta no recogió (N3 se pasaba de largo).**
+- **El problema.** N3 sacó de la primera exhibición la entrada que se aparta entera en el mismo instante. Pero si la
+  clienta no recoge el pedido, la separación se libera y la prenda queda colgada: desde ahí sí se exhibe. Un pedido de
+  hace 130 días, liberado hace 125 y vendido desde el piso hace 124, dejaba «Nueva» al lote colgado hace 2 días. Eso va
+  contra la decisión 9: una sola vez por sede. Su control, colgado de verdad hace 125, salía «sin edad conocida». Esta
+  vez sí era una regresión de esta revisión.
+- **DECIDÍ:** en `primera_de`, una liberación en el piso de la tienda es exhibición si libera más de lo que se vende de
+  su talla en el piso en los 10 minutos siguientes (la entrega de la web). Solo pesa cuando todo lo de antes fue un pedido
+  separado al instante: si el modelo+color ya se había colgado, esa entrada es anterior.
+- **DESCARTÉ** la otra propuesta: no descartar la entrada del pedido cuando su separación se liberó sin entregarse. La
+  primera exhibición sería la hora del pedido (hace 130 días), no la de la liberación (hace 125), y habría que emparejar
+  cada separación con su liberación.
+- **SE ROMPE SI** el pedido se libera y, en los 10 minutos siguientes, otra clienta compra esa talla desde el piso. Se lee
+  como la entrega (la misma confusión que tiene la web) y la liberación no cuenta.
+- **Pruebas.**
+  - **T2j:** el pedido liberado da 125 días. La entrega cobrada a los 3 minutos y a los 10 justos de liberar da nula; a
+    los 10 minutos y 1 segundo, 55 días.
+  - **El archivo de la web** suma dos vestidos, PEDIDO-LIBERADO y COLGADO. Los dos salen «sin edad conocida», con el
+    mismo reloj.
+
+**3. El saldo de lo apartado en las tardías (hueco de prueba).** Quitar el punto del saldo (lo apartado antes de
+«desde») no hacía caer ninguna prueba. Ahora lo vigila **T9f SALDO**: una prenda separada hace 40 días y todavía separada,
+y hace 5 días otra clienta compra una bajada a los 3 minutos. A 30 días, la separación es el saldo y la venta sigue
+siendo tardía.
+
+**4. La W y el corte 2W, fijados en sus bordes (hueco de prueba).** T9e solo decía que W estaba entre 7 y 17,5 minutos y
+el corte entre 17,5 y 21. Ahora:
+- **En las dos lecturas**, una venta a los 10 minutos justos es tardía y una a los 10 minutos y 1 segundo no.
+- **En el indicador**, la bajada de hace 19 min 54 s todavía no cuenta y la de hace 20 min 6 s sí.
+
+Mueren W = 9, 11 y 15, el núcleo de la lectura con W = 11, y 2W = 18 o 21.
+
+**5. `docs/ARQUITECTURA.md`.** La fila de `fn_frescura_sede` ahora nombra 20260928120330 y dice que sus tardías no son las
+del indicador. También cuenta la orden que sigue inventariada, el desempate del mismo instante y la primera exhibición
+con el pedido.
+
+**En producción hoy no cambia nada** (`select` del 2026-09-28): ninguna función del paso 3; 3 apartados y 2
+liberaciones, ninguna a 10 minutos de una bajada, y ningún apartado en el mismo instante que una entrada.
+
 #### Cómo se pega (reemplaza el de «Revisión 8»)
 
 Cada archivo va solo en el SQL Editor, en este orden, a cualquier hora. Solo traen funciones, un comentario, `revoke` y
@@ -2715,7 +2805,7 @@ md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and proname
 | `20260928120300` | `40bf970f…` | `5089ba50874f611d96d5df751b63ed57` | — | `644e10126796adc1111702290c14f2bb` | `9c714f98dd2776eebb505846eb24c33a` | — | `1cc652ba0bef3e9783a014b840cb870f` |
 | `20260928120310` | `e121f11e…` | igual | `7e1ffb6d9853027ec685fef46ec72a4c` | `51babffc09da4073691ee251882967c8` | `8c6f5e6c27916b99be10020b772bd6e0` | `2bf80eb239248cce88cf8062238f4dfc` | `e96b3c6c51fd12ca712e76d63efd6448` |
 | `20260928120320` | `81e3ddeb…` | igual | igual | `7da85d7b7010659ba5a36a2478c89ad4` | igual | igual | igual |
-| `20260928120330` | `93a6f028…` | igual | igual | **`affb0187f217b2da43c452007c1b2eed`** | igual | igual | igual |
+| `20260928120330` | `a3b2a086…` | igual | igual | **`33970c94c7dddf9530ee6b8175862661`** | igual | igual | igual |
 
 Lo reproduje el 2026-09-28 sobre una copia de `aud_main` (producción antes del paso 3), cada archivo con `psql -1` (UNA
 transacción, como el SQL Editor):
@@ -2726,6 +2816,9 @@ transacción, como el SQL Editor):
   120320 y 120330 entran.
 - 120330 sola sobre producción de hoy aborta pidiendo 120300, 120310 y 120320.
 - T12b recorre el mismo orden dentro de la suite (las cuatro, cada una dos veces, y la de revisión 9 fuera de orden).
+- Su corrector lo repitió con el archivo corregido (el mismo día, desde `aud_main`): las mismas filas, con
+  `fn_frescura_sede` `33970c94…` en la cuarta. El cuerpo `affb0187…` del constructor nunca se pegó; si apareciera en
+  producción, la guarda aborta («otro cuerpo»).
 
 Después se corre `pnpm datos:generar:produccion` con un volcado nuevo y `pnpm datos:comparar`, y se regeneran los tipos de
 `packages/database`.
@@ -2739,6 +2832,11 @@ apartados y 50 liberaciones. El cuerpo de 120320 y el de 120330, en la misma bas
   las dos dan la misma lectura: no hay nada apartado junto a una bajada.
 - **`analizarSede`:** 144-146 ms contra 143-145 (3 series de 9): no cambia. Las lecturas no son iguales porque las 50
   liberaciones de la carga ahora vuelven con su edad (N2).
+- **Con las correcciones de su corrector** (la misma carga, los tres cuerpos en la misma base, 11 corridas alternadas):
+  849 ms (819-881) contra 807 (793-831) de la revisión 8 y 837 (820-844) del cuerpo anterior a 120 días; 322 (316-397)
+  contra 303 (298-345) y 318 (312-416) a 30 días. Son +5 % y +6 % contra la revisión 8. Los tres cuerpos dan la misma
+  lectura con esa carga (ninguna liberación cae en la ventana de una bajada). `analizarSede` sobre esa salida: 148-151 ms
+  (3 series de 9); la web no cambió.
 
 #### Cifras (2026-09-28; cada suite SQL en una base nueva con todas las migraciones)
 
@@ -2764,6 +2862,24 @@ apartados y 50 liberaciones. El cuerpo de 120320 y el de 120330, en la misma bas
     - y cuatro sobre el indicador: W = 8, W = 11, el núcleo con W = 5 y el cruce sin la sede.
 - `scripts/migraciones/versiones.mjs`: 353 archivos, ninguna versión repetida. `scripts/adr/numeros.mjs`: 236 ADR, ningún
   número repetido.
+- **Con su corrector** (el mismo día, cada suite en una base nueva):
+  - **SQL:** `frescura_lectura` **237** (T9e ajustada, T9f nueva, T2j con 3 verificaciones más y T13 con las dos
+    parejas nuevas); las otras ocho con las mismas cifras de arriba.
+  - **Web:** vitest completo, 206 archivos y 152.213 pruebas; `frescura-contrato.test.ts` **24**. `tsc` y lint limpios.
+  - **Con el cuerpo del constructor** caen 3 verificaciones de conducta del SQL (T9f y dos de T2j) y 5 pruebas del
+    contrato de la web.
+  - **Cambios a propósito del SQL:** mueren los 20 nuevos y los 16 del constructor, rehechos sobre el cuerpo corregido,
+    cada uno por una verificación de conducta. Los nuevos son:
+    - sin sumar lo liberado de antes;
+    - la fórmula del verificador;
+    - la entrega de un solo instante, sin recortar a la ventana o con el borde afuera;
+    - sin el saldo;
+    - todo lo liberado como de antes;
+    - cualquier salida como entrega;
+    - cinco sobre la liberación en la primera exhibición;
+    - W = 9 y el núcleo con 11 en la lectura;
+    - el núcleo con W = 9 o 15 y el corte con 9 o 10,5 minutos en el indicador.
+  - **Cambios a propósito de la web:** los 18 del constructor siguen muriendo.
 
 #### Lo que queda abierto
 
@@ -2774,8 +2890,13 @@ apartados y 50 liberaciones. El cuerpo de 120320 y el de 120330, en la misma bas
 - **El libro (`fn_ledger_puntos`, paso 1, en producción) también desempata por uuid.** F3 corrige solo la lista que lee la
   web. Si alguna vez una bajada y una salida de la misma talla caen en la misma transacción con el piso en 0, el núcleo
   podría ver un piso de antes negativo («dudosa»). No hay caso real; se mira si aparece.
+- **Lo que las dos correcciones de su corrector no cubren** (los SE ROMPE SI de arriba). Dos clientas con separaciones de
+  la misma talla liberadas en los mismos 10 minutos de una bajada pueden dar una tardía de más o de menos. Y un pedido
+  liberado cuya talla otra clienta compra desde el piso en los 10 minutos siguientes se lee como entregado. Las dos
+  cosas las lee igual la web. Hoy no hay ningún caso: 2 liberaciones en producción, ninguna junto a una bajada.
 - **Para el paso 4:**
   - Las tardías de la lectura no son las del indicador (lo apartado cuenta en la primera, no en la segunda).
-  - Un modelo cuyo único paso por el piso fue un pedido separado al instante no tiene primera exhibición: se muestra
-    «Nueva» con 0 segundos, como lo que solo está en el almacén.
+  - Un modelo cuyo único paso por el piso fue un pedido separado al instante (y entregado, o todavía separado) no tiene
+    primera exhibición: se muestra «Nueva» con 0 segundos, como lo que solo está en el almacén. Si la clienta no lo
+    recogió, su primera exhibición es la liberación.
   - «Sigue vendiendo» también para lo que no tiene dato de rapidez.

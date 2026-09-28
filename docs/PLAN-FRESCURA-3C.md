@@ -7,7 +7,9 @@
 > `20260928120310_frescura_lectura_revision3.sql`, `20260928120320_frescura_lectura_revision7.sql` y
 > `20260928120330_frescura_lectura_revision9.sql`. Las tres primeras ya están en main (#542, #544 y #545: revisiones 3 a
 > 8); la cuarta lleva la revisión 9 (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca
-> se colgó y el desempate del mismo instante) y va en un PR en borrador hasta que su verificación termine (ADR-0251).
+> se colgó y el desempate del mismo instante, más las dos correcciones de su corrector: la separación de antes liberada
+> sin entregar no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera; su
+> `fn_frescura_sede` es `33970c94…`) y va en un PR en borrador hasta que su verificación termine (ADR-0251).
 > Felipe decidió el 28-sep la pregunta 8 («sigue vendiendo» también para lo que no tiene dato de rapidez y vendió en sus
 > últimos 30 días en el piso) y que una separación abierta es venta desde que se aparta. El orden de pegado con la tabla
 > de md5 y lo que queda para la pantalla: ADR-0208, «Revisión 9 del paso 3». **Sigue el paso 4.** Este archivo es el plan
