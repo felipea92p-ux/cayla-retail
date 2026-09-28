@@ -8,6 +8,7 @@ import {
   desbloqueos,
   estadoSubidaSinConexion,
   faltaDelPaso,
+  fueraDeLaCategoria,
   fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
@@ -28,6 +29,7 @@ import {
   tokenTalla,
   type EstadoAlta,
 } from "./alta-producto";
+import { sumarAlEje, type EjeIds } from "./alta-producto-ejes";
 import { FAMILIAS_COLOR } from "./colores-familias";
 
 const base: EstadoAlta = {
@@ -327,6 +329,45 @@ describe("repartirFamilias — qué familias se ven de entrada y cuáles van tra
       const r = repartirFamilias(entrada);
       expect(codigos([...r.aLaVista, ...r.masFamilias]).sort()).toEqual(codigos(entrada).sort());
     }
+  });
+});
+
+describe("fueraDeLaCategoria — qué tejidos muestra «Ver más» en el paso 3", () => {
+  const catalogo = ["Algodón", "Denim", "Drill", "Licra", "Lino", "Seda"].map((texto) => ({ id: texto.toLowerCase(), texto }));
+  const jeans = [{ id: "denim" }, { id: "drill" }, { id: "licra" }];
+
+  it("muestra los del catálogo que la categoría todavía no ofrece, en el orden del catálogo", () => {
+    expect(fueraDeLaCategoria(catalogo, jeans).map((t) => t.texto)).toEqual(["Algodón", "Lino", "Seda"]);
+  });
+
+  it("si la categoría ya ofrece todo, no hay nada tras «Ver más» (no se pinta el botón)", () => {
+    expect(fueraDeLaCategoria(catalogo, catalogo)).toEqual([]);
+  });
+
+  it("una categoría que todavía no ofrece ninguno los muestra todos", () => {
+    expect(fueraDeLaCategoria(catalogo, [])).toEqual(catalogo);
+  });
+
+  it("INVARIANTE: nunca repite uno de la categoría, así que el tejido elegido jamás queda escondido tras «Ver menos»", () => {
+    const fuera = new Set(fueraDeLaCategoria(catalogo, jeans).map((t) => t.id));
+    for (const t of jeans) expect(fuera.has(t.id)).toBe(false);
+  });
+});
+
+describe("sumarAlEje — ofrecer un valor más sin quitarle nada a la categoría", () => {
+  const hoy: EjeIds = { tallaIds: ["s", "m"], tejidoIds: ["denim"], patronIds: ["liso"] };
+
+  it("suma el tejido y devuelve los otros dos ejes intactos (la RPC reemplaza: lo que no se manda, se borra)", () => {
+    expect(sumarAlEje(hoy, "tejidos", "lino")).toEqual({ tallaIds: ["s", "m"], tejidoIds: ["denim", "lino"], patronIds: ["liso"] });
+  });
+
+  it("cada tipo cae en su eje", () => {
+    expect(sumarAlEje(hoy, "tallas", "l").tallaIds).toEqual(["s", "m", "l"]);
+    expect(sumarAlEje(hoy, "patrones", "rayas").patronIds).toEqual(["liso", "rayas"]);
+  });
+
+  it("ofrecer uno que ya estaba no lo repite: reintentar tras un fallo es seguro", () => {
+    expect(sumarAlEje(hoy, "tejidos", "denim")).toEqual(hoy);
   });
 });
 

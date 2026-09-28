@@ -9,10 +9,10 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
-import { MuestraTejido } from "@/components/MuestraTejido";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
+import { ElegirTejido } from "@/components/alta-producto/ElegirTejido";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
@@ -700,25 +700,17 @@ export function NuevoProductoForm({
                 />
               ) : (
                 <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    {tejidosCategoria.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}
-                        aria-pressed={tejidoId === t.id}
-                        className={`flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors ${
-                          tejidoId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
-                        }`}
-                      >
-                        <MuestraTejido nombre={t.texto} />
-                        <span className="px-0.5">
-                          {tejidoId === t.id && <span aria-hidden>✓ </span>}
-                          {t.texto}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <ElegirTejido
+                    key={categoriaId}
+                    deLaCategoria={tejidosCategoria}
+                    universo={universo.tejidos}
+                    tejidoId={tejidoId}
+                    onElegir={setTejidoId}
+                    categoriaId={categoriaId}
+                    categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                    ejesActuales={ejesActuales()}
+                    onOfrecido={(v) => agregarValor("tejidos", v)}
+                  />
                   <ProponerValor tipo="tejidos" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tejidos} onCreado={(v) => agregarValor("tejidos", v)} />
                 </div>
               )}
