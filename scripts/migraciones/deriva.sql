@@ -4,7 +4,15 @@
 --
 -- Lo que se normaliza, y por qué (si no, todo sale distinto sin serlo):
 --   · Cuerpo de función: sin comentarios (`--` y `/* */`) y sin espacios. En producción muchos cuerpos llegaron sin los
---     comentarios del repo (auditoría del 2026-09-27: 61 funciones distintas solo por eso).
+--     comentarios del repo (auditoría del 2026-09-27: 61 funciones distintas solo por eso). Los textos entre comillas
+--     simples se CONSERVAN enteros: un `--` dentro de un texto no es un comentario, y lo que sigue en la línea es código
+--     (fn_aplicar_candado_de_dinero arma su candado con format(E'…\n  -- CANDADO…\n  select retail.fn_exige_…(%L);'):
+--     borrar «hasta el fin de la línea» se llevaba la llamada al candado, y un cambio ahí salía «igual»). Es UNA sola
+--     expresión que lee de izquierda a derecha (texto | comentario de línea | comentario de bloque) y deja solo el texto.
+--     El comentario de bloque no puede cruzar un `*/`: en Postgres una expresión con `|` busca siempre la coincidencia
+--     más LARGA, y `/\*.*?\*/` se comería el código entre dos comentarios. Límite conocido: una comilla suelta dentro de
+--     un texto `$tag$…$tag$` anidado desalinearía la lectura de ese cuerpo; al 2026-09-28 ninguno la tiene (7 cuerpos
+--     usan `$q$`, todos con comillas pareadas) y lo vigila la prueba de sensibilidad de pruebas:huellas-catalogo.
 --   · EXECUTE a PUBLIC en funciones de retail: solo cuenta si PUBLIC puede entrar al schema. Hoy no puede (ni en main ni en
 --     producción), y producción le quitó EXECUTE a PUBLIC en bloque: sin esta regla, 107 funciones salían distintas sin
 --     que nadie pudiera llamarlas de más.
@@ -20,7 +28,7 @@ from (
   select 'fn' g, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' k,
     p.prokind::text || '/' || lg.lanname || '/' || case when p.prosecdef then 'SD' else 'inv' end || '/' || p.provolatile::text
       || '|' || coalesce(array_to_string(p.proconfig, ';'), '-') || '|' || pg_get_function_result(p.oid)
-      || '|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\s+', '', 'g'))
+      || '|' || md5(regexp_replace(regexp_replace(p.prosrc, $re$('(?:[^']|'')*')|--[^$re$ || chr(10) || $re$]*|/\*(?:[^*]|\*+[^*/])*\*+/$re$, '\1', 'g'), '\s+', '', 'g'))
       || '|' || coalesce((select string_agg(x, '' order by x) from (
            select case when a.grantee = 0 and has_schema_privilege('public', 'retail', 'USAGE') then 'P'
                        when r.rolname = 'anon' then 'a' when r.rolname = 'authenticated' then 'u' when r.rolname = 'service_role' then 's' end x

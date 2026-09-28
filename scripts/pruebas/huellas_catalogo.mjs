@@ -153,9 +153,21 @@ rollback;`);
       grant select on retail.zz_huella to anon;
       grant update (t) on retail.zz_huella to authenticated;`, null],
     ["cuerpo de una función", `create or replace function ${F} as $f$ select p + 2 $f$;`, ["fn:zz_huella_f(p integer)"]],
-    ["solo comentarios y espacios del cuerpo", `create or replace function ${F} as $f$ -- suma dos
-        select   p /* dos */ +
+    ["solo comentarios y espacios del cuerpo", `create or replace function ${F} as $f$ -- suma dos (it's)
+        select   p /* uno */ + /* dos */
         2 $f$;`, []],
+    // Un -- dentro de un texto no es un comentario: lo que sigue en la línea es código. fn_aplicar_candado_de_dinero arma
+    // su candado con format(E'…\n  -- CANDADO…\n  select retail.fn_exige_dinero_de_compras(%L);', …): el \n es texto,
+    // así que borrar «hasta el fin de la línea» se llevaba la llamada al candado y un cambio ahí salía «igual».
+    ["un texto con -- adentro", `create or replace function ${F} as $f$ select p + 2 + length(format(E'begin\\n  -- CANDADO\\n  perform retail.fn_a(%L);', 'x')) $f$;`, ["fn:zz_huella_f(p integer)"]],
+    ["código después de un -- dentro de un texto", `create or replace function ${F} as $f$ select p + 2 + length(format(E'begin\\n  -- CANDADO\\n  perform retail.fn_b(%L);', 'x')) $f$;`, ["fn:zz_huella_f(p integer)"]],
+    ["lo que va entre /* */ dentro de un texto", `create or replace function ${F} as $f$ select p + 2 + length(format(E'begin\\n  -- CANDADO\\n  perform retail.fn_b(%L);', 'x'))
+        + length('a /* b */ c') $f$;`, ["fn:zz_huella_f(p integer)"]],
+    ["…y cambia", `create or replace function ${F} as $f$ select p + 2 + length(format(E'begin\\n  -- CANDADO\\n  perform retail.fn_b(%L);', 'x'))
+        + length('a /* zz */ c') $f$;`, ["fn:zz_huella_f(p integer)"]],
+    ["comentarios alrededor de esos textos", `create or replace function ${F} as $f$ select p + 2 -- ya no es texto: it's
+        + length(format(E'begin\\n  -- CANDADO\\n  perform retail.fn_b(%L);', 'x')) /* otro */
+        + length('a /* zz */ c') /* y otro */ $f$;`, []],
     ["EXECUTE de una función", "grant execute on function retail.zz_huella_f(int) to anon;", ["fn:zz_huella_f(p integer)"]],
     ["configuración de una función", "alter function retail.zz_huella_f(int) set search_path = pg_catalog;", ["fn:zz_huella_f(p integer)"]],
     ["política", "alter policy zz_huella_p on retail.zz_huella using (n > 1);", ["politica:zz_huella.zz_huella_p"]],

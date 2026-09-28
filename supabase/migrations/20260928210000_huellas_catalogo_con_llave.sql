@@ -94,7 +94,7 @@ begin
     select 'fn' g, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' k,
       p.prokind::text || '/' || lg.lanname || '/' || case when p.prosecdef then 'SD' else 'inv' end || '/' || p.provolatile::text
         || '|' || coalesce(array_to_string(p.proconfig, ';'), '-') || '|' || pg_get_function_result(p.oid)
-        || '|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\s+', '', 'g'))
+        || '|' || md5(regexp_replace(regexp_replace(p.prosrc, $re$('(?:[^']|'')*')|--[^$re$ || chr(10) || $re$]*|/\*(?:[^*]|\*+[^*/])*\*+/$re$, '\1', 'g'), '\s+', '', 'g'))
         || '|' || coalesce((select string_agg(x, '' order by x) from (
              select case when a.grantee = 0 and has_schema_privilege('public', 'retail', 'USAGE') then 'P'
                          when r.rolname = 'anon' then 'a' when r.rolname = 'authenticated' then 'u' when r.rolname = 'service_role' then 's' end x
