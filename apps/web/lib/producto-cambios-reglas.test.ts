@@ -26,6 +26,9 @@ const nombres: NombresFicha = {
   etiqueta: (id) => `Etiqueta ${id}`,
 };
 
+/** Color y talla de una variante: en las pruebas, la clave y el texto son el mismo. */
+const id = (texto: string) => ({ clave: texto, texto });
+
 const ficha = (): FichaEditable => ({
   referencia: "Camisa Lino",
   categoriaId: "c1",
@@ -44,9 +47,9 @@ const ficha = (): FichaEditable => ({
     { id: "f2", url: "u2", esPrincipal: false, colorCodigo: "BEI" },
   ],
   variantes: [
-    { id: "v1", nombre: "Beige XS", activo: false, precio: "90", costo: "60", etiquetaIds: ["e1", "e2"] },
-    { id: "v2", nombre: "Gris XS", activo: true, precio: "90", costo: "60", etiquetaIds: [] },
-    { id: "v3", nombre: "Beige S", activo: true, precio: "90.5", costo: "", etiquetaIds: [] },
+    { id: "v1", nombre: "Beige XS", activo: false, precio: "90", costo: "60", etiquetaIds: ["e1", "e2"], identidad: id("Beige XS") },
+    { id: "v2", nombre: "Gris XS", activo: true, precio: "90", costo: "60", etiquetaIds: [], identidad: id("Gris XS") },
+    { id: "v3", nombre: "Beige S", activo: true, precio: "90.5", costo: "", etiquetaIds: [], identidad: id("Beige S") },
   ],
 });
 
@@ -117,8 +120,23 @@ describe("resumenDeCambios — variantes", () => {
     expect(r.frases).toEqual(["1 variante cambia sus etiquetas"]);
   });
 
+  it("corregir el color o la talla de una variante sin historia (ADR-0258) es un cambio: sin él, la barra no aparecería y no habría cómo guardarlo", () => {
+    const r = resumen((f) => (f.variantes[1].identidad = id("Gris S")));
+    expect(r.cambios).toEqual([{ tipo: "identidad", indice: 1, nombre: "Gris XS", antes: "Gris XS", despues: "Gris S" }]);
+    expect(r.frases).toEqual(["1 variante cambia de color o talla"]);
+    expect(r.frasesPasado).toEqual(["1 variante corregida de color o talla"]);
+    expect(textoPendienteDeVariante(cambiosDeVariante(r, 1))).toBe("Color y talla: antes Gris XS");
+    expect(agruparCambios(r.cambios)).toEqual([
+      { clave: "identidad", titulo: "Color o talla corregidos", lineas: [{ texto: "Gris XS", antes: "Gris XS", despues: "Gris S" }] },
+    ]);
+  });
+
+  it("volver al color y la talla de al abrir deja la variante sin cambios", () => {
+    expect(resumen((f) => (f.variantes[1].identidad = id("Gris XS"))).total).toBe(0);
+  });
+
   it("una fila nueva es UN cambio, con lo que trae escrito; quitarla lo deja en cero", () => {
-    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "50", etiquetaIds: [] }));
+    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "50", etiquetaIds: [], identidad: id("Rojo M") }));
     const r = resumenDeCambios(ficha(), conFila, nombres);
     expect(r.cambios).toEqual([{ tipo: "nueva", indice: 3, nombre: "Rojo M", precio: "80" }]);
     expect(r.frases).toEqual(["1 variante se agrega"]);
@@ -246,7 +264,7 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
       f.variantes[1].precio = "95";
       f.variantes[2].etiquetaIds = ["e1"];
       f.fotos = [];
-      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80.5", costo: "", etiquetaIds: [] });
+      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80.5", costo: "", etiquetaIds: [], identidad: id("Rojo M") });
     });
     const grupos = agruparCambios(r.cambios);
     expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "precios", "etiquetas", "fotos", "datos"]);
@@ -276,7 +294,7 @@ describe("las filas de la tabla", () => {
   });
 
   it("una fila nueva dice que se agrega", () => {
-    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [] }));
+    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [], identidad: id("Rojo M") }));
     const r = resumenDeCambios(ficha(), conFila, nombres);
     expect(textoPendienteDeVariante(cambiosDeVariante(r, 3))).toBe("Se agrega al guardar");
   });

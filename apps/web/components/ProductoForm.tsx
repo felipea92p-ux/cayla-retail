@@ -94,6 +94,11 @@ import {
    los combos de color/talla y el SKU en esas filas: se podían cambiar, la
    RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
    muestran de solo lectura (`fija`), con el código que lee la pistola.
+   Excepción (20260928235500, Felipe 2026-09-28): una variante SIN HISTORIA
+   (ningún movimiento, venta, compra ni traslado) es `corregible`: muestra los
+   combos de color y talla, y la RPC los cambia y recalcula su código. La base
+   repite la regla con un candado en la tabla, así que una ficha vieja o una
+   llamada directa no la saltan.
 
    GUARDAR EN DOS TIEMPOS (2026-09-28, ADR-0257). Antes el panel «Guardar
    cambios» estaba a la derecha (al final de la página en una tablet), el botón
@@ -110,7 +115,8 @@ import {
        Compras y Recibir): enlaces, Atrás y cerrar la pestaña.
    Qué cambió lo decide UNA función pura (`lib/producto-cambios-reglas.ts`) que
    compara TODO lo editable: sin barra no hay dónde guardar, así que un campo que
-   se escapara de esa comparación sería un campo que no se puede guardar.
+   se escapara de esa comparación sería un campo que no se puede guardar (por eso
+   el color y la talla de una variante corregible también cuentan: `identidad`).
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -135,6 +141,8 @@ type FilaVariante = {
   /** Solo variantes existentes: lo que se muestra en lugar de los campos que ya no se pueden cambiar (color, talla y
    *  código). `codigo` es el que lee la pistola (BLU-0042-AZM-M); el SKU queda como respaldo si todavía no lo tiene. */
   fija: { color: string; talla: string; codigo: string } | null;
+  /** Variante existente sin historia (20260928235500): color y talla se pueden corregir. */
+  corregible: boolean;
 };
 
 /** Todo lo que la pantalla deja editar, tal como está en sus `useState`. Es lo que se captura al abrir (para comparar y para
@@ -215,7 +223,7 @@ function costoEfectivo(v: FilaVariante): string {
 }
 
 function filaVacia(): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
+  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null, corregible: false };
 }
 
 export function ProductoForm({
@@ -296,6 +304,8 @@ export function ProductoForm({
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
           fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
+          // Sin saber (null: la migración aún no está) se trata como con historia: fija, como antes.
+          corregible: v.conHistoria === false,
         };
       });
   });
@@ -320,6 +330,15 @@ export function ProductoForm({
   // en cada guardado del producto (evitaría escribir sobre variantes cuyas
   // etiquetas nadie tocó, pisando su `created_at` sin motivo).
   const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
+  // Color y talla con que se abrió cada variante: a una corregible a la que se le cambió alguno se le muestra el código
+  // que le dará la base, no el que tenía.
+  const [identidadOriginal] = useState(
+    () => new Map((producto?.variantes ?? []).map((v) => [v.id, { colorCodigo: v.colorCodigo ?? "", tallaId: v.tallaId ?? "" }]))
+  );
+  const identidadCambiada = (v: FilaVariante) => {
+    const original = v.id ? identidadOriginal.get(v.id) : undefined;
+    return !!original && (original.colorCodigo !== v.colorCodigo || original.tallaId !== v.tallaId);
+  };
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
   // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
@@ -353,7 +372,7 @@ export function ProductoForm({
   // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
   // producto todavía —prenda que nunca tuvo variantes— no hay cómo saberlo: lo asigna el correlativo al guardar).
   const codigosFilas = variantes.map((v) =>
-    v.fija ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
+    v.fija && !identidadCambiada(v) ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
   );
   const repetidos = new Set(codigosRepetidos(codigosFilas));
 
@@ -457,7 +476,23 @@ export function ProductoForm({
       temporadaColor: e.temporadaColor,
       fotos: e.fotos.map((f) => ({ id: f.id, url: f.url, esPrincipal: f.esPrincipal, colorCodigo: f.colorCodigo })),
       // El costo que se GUARDARÍA (no el escrito): una variante existente con el campo vacío conserva el suyo.
-      variantes: e.variantes.map((v) => ({ id: v.id, nombre: nombreDeVariante(v), activo: v.activo, precio: v.precio, costo: costoEfectivo(v), etiquetaIds: v.etiquetaIds })),
+      // `identidad`: el color y la talla ELEGIDOS (no los de `fija`, que son los de al abrir): así cuenta corregirlos.
+      variantes: e.variantes.map((v) => ({
+        id: v.id,
+        nombre: nombreDeVariante(v),
+        activo: v.activo,
+        precio: v.precio,
+        costo: costoEfectivo(v),
+        etiquetaIds: v.etiquetaIds,
+        identidad: {
+          clave: `${v.colorCodigo}|${v.tallaId}`,
+          // Sin tocar, el texto guardado (su talla puede no estar en la lista si cambió la categoría); corregida, la elegida.
+          texto:
+            v.fija && !identidadCambiada(v)
+              ? `${v.fija.color} ${v.fija.talla}`
+              : [v.colorCodigo ? nombreColor(v.colorCodigo) : "Sin color", tallaTexto(v.tallaId) || "Sin talla"].join(" "),
+        },
+      })),
     };
   }
 
@@ -699,7 +734,14 @@ export function ProductoForm({
   function deshacerFila(i: number) {
     const original = inicial.variantes.find((v) => v.id !== null && v.id === variantes[i]?.id);
     if (!original) return;
-    actualizarFila(i, { precio: original.precio, costo: original.costo, activo: original.activo, etiquetaIds: original.etiquetaIds });
+    actualizarFila(i, {
+      colorCodigo: original.colorCodigo,
+      tallaId: original.tallaId,
+      precio: original.precio,
+      costo: original.costo,
+      activo: original.activo,
+      etiquetaIds: original.etiquetaIds,
+    });
   }
 
   /** Un dato de la prenda vuelve a lo de al abrir. */
@@ -1013,7 +1055,7 @@ export function ProductoForm({
               }`}
             >
             <div className={FILA_VARIANTE}>
-              {v.fija ? (
+              {v.fija && !v.corregible ? (
                 <>
                   <div className={`col-span-6 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
                     <RotuloAngosto>Color</RotuloAngosto>
@@ -1191,10 +1233,16 @@ export function ProductoForm({
             </div>
             );
           })}
-          {variantes.some((v) => v.fija) && (
+          {variantes.some((v) => v.fija && !v.corregible) && (
             <p className="text-xs text-tinta/55">
-              Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
-              Si está mal, desactívala y agrega la correcta.
+              Color, talla y código de una variante que ya tiene movimientos no se cambian: puede tener stock, ventas y etiquetas
+              impresas. Si está mal, desactívala y agrega la correcta.
+            </p>
+          )}
+          {variantes.some((v) => v.corregible) && (
+            <p className="text-xs text-tinta/55">
+              Las variantes que todavía no tienen movimientos (sin stock, ventas ni traslados) se corrigen aquí: al cambiarles
+              color o talla, su código cambia al guardar. Si ya imprimiste su etiqueta, vuelve a imprimirla.
             </p>
           )}
           {veCosto && variantes.some((v) => v.costoFijo) && (

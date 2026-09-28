@@ -38,6 +38,10 @@ SE ROMPE SI: alguien necesita de verdad corregir la talla de una variante sin mo
         desactivar y agregar.
 ```
 
+> **Actualización 2026-09-28 (ADR-0258):** ese «SE ROMPE SI» pasó. Una variante SIN historia ya muestra sus combos de
+> color y talla y se corrige al guardar (código recalculado). La que tiene historia sigue como dice D-133, y ahora lo
+> exige también un candado en la tabla.
+
 ### D-134 · El costo se corrige a mano solo hasta la primera compra
 
 ```

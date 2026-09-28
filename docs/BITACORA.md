@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Color y talla de una variante se corrigen mientras no tenga historia — ADR-0258)
+Qué hice: la ficha deja cambiar el color y la talla de una variante que nunca tuvo movimientos, ventas, compras ni traslados; al guardar, la base recalcula su código y renombra su código de barras. La que tiene historia sigue fija, y ahora lo exige un candado en la tabla (antes solo la pantalla: el hueco 3). Migración `20260928235500` sin pegar; 11 pruebas en CI.
+Por qué así: «historia» se lee de las llaves foráneas que apuntan a `variantes`, no de una lista escrita a mano: una tabla nueva que cite variantes cuenta sola. El SKU no se toca porque 205 de 207 variantes no lo tienen y la ficha manda uno sugerido para todas.
+Felipe se lleva: **una regla que vive solo en la pantalla no es una regla**: la base la repite con un disparador, y la prueba CONTROL demuestra que sin él un update directo sí cambiaba la talla de una variante vendida. Y que otra sesión reservó lo mismo con otra regla: dos sesiones en paralelo sobre la misma ficha chocan.
+
 ## 2026-09-28 (La purga por script alcanza los productos con documentos; 2 de 4 purgados en producción — ADR-0224)
 Qué hice: el script de purga ahora deshace ventas con boleta de pruebas de SUNAT o nunca enviada, separaciones, compras con su recepción y la carga, bajadas y conteos; una sola lista de «qué se borra» alimenta el candado, el respaldo y la demostración. Con ensayo y tu «dale» se fueron Blusa Xd (con su factura de S/ 10,620) y Test de Produto 2 (con sus 2 separaciones).
 Por qué así: nada con alguien del otro lado se borra sin que tú lo nombres, y un comprobante que llegó a SUNAT en producción no se toca jamás (tres capas: aborta, no calza en ninguna clase permitida y su huella se compara al final). La prueba encontró un NULL que dejaba pasar una boleta que ya había intentado salir.
