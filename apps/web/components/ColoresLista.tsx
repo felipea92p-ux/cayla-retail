@@ -13,7 +13,7 @@ import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Hilo } from "@/components/ui/campos";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
-import { parsearColor, rgbDeHex } from "@/lib/color-entrada";
+import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 
 /**
@@ -125,72 +125,6 @@ function AvisoParecido({
   );
 }
 
-// El color se elige de tres maneras que dan lo mismo: el selector del
-// navegador, el código HTML (`#c9b79c`) o el RGB (`201, 183, 156`) — este
-// último lo que da una ficha de proveedor o un programa de diseño. En la base
-// solo se guarda el hex. Mientras se escribe, un texto a medias no pisa el
-// color vigente; al salir del campo, si no era válido, vuelve al último bueno.
-// La muestra es UN rectángulo relleno con el color. El <input type="color">
-// nativo va escondido detrás y se abre al tocar la muestra: pintado tal cual
-// dejaba un recuadro con otro más chico adentro, y un Crudo o un Blanco casi
-// no se distinguían del fondo crema.
-function MuestraColor({ hex, onHex, className = "" }: { hex: string | null; onHex?: (hex: string) => void; className?: string }) {
-  // Sin elegir: caja punteada, no un color de relleno. Un beige por defecto se
-  // guardaba sin que nadie lo notara (5 colores en producción llevan #c9b79c).
-  const caja = `relative block h-9 w-14 shrink-0 rounded-md shadow-inner ${
-    hex ? "border border-tinta/35" : "border border-dashed border-tinta/40"
-  } ${className}`;
-  if (!onHex) return <span className={caja} style={hex ? { backgroundColor: hex } : undefined} aria-hidden />;
-  return (
-    <label className={`${caja} cursor-pointer focus-within:ring-2 focus-within:ring-rojo/40`} style={hex ? { backgroundColor: hex } : undefined}>
-      <input type="color" aria-label="Elegir color con el selector" value={hex ?? "#c9b79c"} onChange={(e) => onHex(e.target.value)} className="sr-only" />
-    </label>
-  );
-}
-
-function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string) => void }) {
-  const [texto, setTexto] = useState(hex ?? "");
-  const [ultimoHex, setUltimoHex] = useState(hex);
-  // El selector nativo también mueve el color: el campo de texto lo sigue.
-  if (hex !== ultimoHex) {
-    setUltimoHex(hex);
-    setTexto(hex ?? "");
-  }
-  const invalido = texto.trim() !== "" && parsearColor(texto) === null;
-
-  return (
-    <div className="flex items-start gap-3">
-      <MuestraColor hex={hex} onHex={onHex} className="mt-6" />
-      <div className="min-w-0 flex-1">
-        <CampoTexto
-          etiqueta="Color"
-          mono
-          value={texto}
-          onChange={(e) => {
-            setTexto(e.target.value);
-            const valido = parsearColor(e.target.value);
-            if (valido) {
-              setUltimoHex(valido);
-              onHex(valido);
-            }
-          }}
-          onBlur={() => setTexto(hex ?? "")}
-          tono={invalido ? "error" : undefined}
-          pie={
-            invalido
-              ? "No se entiende. Prueba #c9b79c o 201, 183, 156."
-              : hex
-                ? `RGB ${rgbDeHex(hex)} · acepta #hex o R, G, B`
-                : "Toca el cuadro o escribe #hex o R, G, B"
-          }
-          placeholder="#c9b79c"
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
@@ -803,7 +737,7 @@ function ColorEditarModal({
               <div>
                 <p className="label-cayla text-[11px] text-tinta/65">Color</p>
                 <div className="mt-1.5 flex items-center gap-3">
-                  <MuestraColor hex={hex} />
+                  <MuestraEditable hex={hex} />
                   <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
                   <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
                     Cambiar color
