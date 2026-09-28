@@ -700,7 +700,17 @@ export function NuevoProductoForm({
                 />
               ) : (
                 <div className="space-y-2">
-                  <ElegirTejido deLaCategoria={tejidosCategoria} tejidoId={tejidoId} onElegir={setTejidoId} />
+                  <ElegirTejido
+                    key={categoriaId}
+                    deLaCategoria={tejidosCategoria}
+                    universo={universo.tejidos}
+                    tejidoId={tejidoId}
+                    onElegir={setTejidoId}
+                    categoriaId={categoriaId}
+                    categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                    ejesActuales={ejesActuales()}
+                    onOfrecido={(v) => agregarValor("tejidos", v)}
+                  />
                   <ProponerValor tipo="tejidos" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tejidos} onCreado={(v) => agregarValor("tejidos", v)} />
                 </div>
               )}
