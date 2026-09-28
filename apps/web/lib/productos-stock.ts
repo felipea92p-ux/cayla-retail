@@ -10,7 +10,7 @@
  *     la misma regla a los contadores del subtítulo, al filtro y a «A quién pedirle» (migración
  *     20260922120000); esta función es la copia para lo que se pinta en cada fila. «Sin stock» y «Stock
  *     bajo» son EXCLUYENTES, igual que en la base: 0 unidades es «sin stock», no las dos cosas.
- *  2. (Reemplazada el 2026-09-28, ADR-0261.) Antes el número era el TOTAL de todas las sedes y el Taller,
+ *  2. (Reemplazada el 2026-09-28, ADR-0262.) Antes el número era el TOTAL de todas las sedes y el Taller,
  *     rotulado «Stock total». Ahora la tarjeta dice lo de la sede elegida arriba («7 aquí») y aparte el resto
  *     (`lineasDeStock`); las ALERTAS siguen mirando la red, porque de ellas sale qué pedirle al proveedor.
  *     «Stock total N» queda solo para cuando no se pudo leer lo de la sede.
@@ -50,7 +50,7 @@ export function textoDeStock(stockTotal: number): string {
 }
 
 // ============================================================================
-// La tarjeta por sede (ADR-0261, decisiones 1 a 5 de Felipe, 2026-09-28): lo de la sede elegida arriba, en grande; las
+// La tarjeta por sede (ADR-0262, decisiones 1 a 5 de Felipe, 2026-09-28): lo de la sede elegida arriba, en grande; las
 // otras sedes, el Taller y lo que viene en camino, aparte; apartadas, dañadas y tallas retiradas como avisos. Los números
 // salen de `fn_existencias_productos`, la misma cifra que Existencias: esta parte solo los redacta.
 // ============================================================================
@@ -157,7 +157,7 @@ export function lineasDeStock(e: ExistenciasProducto): LineasStock {
 }
 
 /**
- * «Ver en Existencias» (ADR-0261, decisión 9: el stock se ajusta solo en Inventario): abre la prenda en una talla del color
+ * «Ver en Existencias» (ADR-0262, decisión 9: el stock se ajusta solo en Inventario): abre la prenda en una talla del color
  * que se está mirando —la primera activa—, como el mismo enlace de Movimientos (`/inventario?variante=`, ADR-0241).
  */
 export function hrefEnExistencias(

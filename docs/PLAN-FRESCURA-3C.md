@@ -1,15 +1,20 @@
 # PLAN — Frescura del piso, paso 3c (ADR-0208, ADR-0246, ADR-0248)
 
-> **Estado al 2026-09-27 (tarde).** Pasos 1 y 2 fusionados (#534, #537) y **pegados en producción** (verificado:
+> **Estado al 2026-09-28.** Pasos 1 y 2 fusionados (#534, #537) y **pegados en producción** (verificado:
 > `fn_ledger_puntos` = `a3d9fb69…`, `fn_bajadas_del_piso` = `34a7e0cc…`, `fn_bajadas_del_piso_nucleo` = `fcfd2c4b…`).
-> **El paso 3 está construido y sin pegar** (las migraciones son `20260928120300_frescura_lectura.sql`,
-> `20260928120310_frescura_lectura_revision3.sql` y `20260928120320_frescura_lectura_revision7.sql`, en ese orden y sin
-> el módulo: decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». Las revisiones 3 a 6 entraron a main con el PR
-> #544; la revisión 7 (las preguntas 7 y R7-1, decididas por Felipe el 27-sep, y los otros cinco hallazgos corregidos)
-> y la revisión 8 (R7-1 también en la vara y la rapidez: lo apartado es venta desde que se apartó, o pausa) van en la
-> misma rama, en un PR nuevo. El orden de pegado con sus md5 y lo que queda para la pantalla: ADR-0208, «Revisión 7 del
-> paso 3» y «Revisión 8 del paso 3» (que cambia el md5 de la tercera). **Sigue el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
-> las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización 2026-09-27 — diseño 3c»).
+> **El paso 3 está construido y sin pegar** (`select` del 28-sep: ninguna función del paso 3 en producción). Se pega en
+> CUATRO archivos, en este orden y sin el módulo (decisión 4): `20260928120300_frescura_lectura.sql`,
+> `20260928120310_frescura_lectura_revision3.sql`, `20260928120320_frescura_lectura_revision7.sql` y
+> `20260928120330_frescura_lectura_revision9.sql`. Las tres primeras ya están en main (#542, #544 y #545: revisiones 3 a
+> 8); la cuarta lleva la revisión 9 (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca
+> se colgó y el desempate del mismo instante, más las dos correcciones de su corrector: la separación de antes liberada
+> sin entregar no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera; su
+> `fn_frescura_sede` es `33970c94…`) y va en un PR en borrador hasta que su verificación termine (ADR-0251).
+> Felipe decidió el 28-sep la pregunta 8 («sigue vendiendo» también para lo que no tiene dato de rapidez y vendió en sus
+> últimos 30 días en el piso) y que una separación abierta es venta desde que se aparta. El orden de pegado con la tabla
+> de md5 y lo que queda para la pantalla: ADR-0208, «Revisión 9 del paso 3». **Sigue el paso 4.** Este archivo es el plan
+> escrito el 27-sep; donde choque con las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización
+> 2026-09-27 — diseño 3c»).
 
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)
 

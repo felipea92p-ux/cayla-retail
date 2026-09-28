@@ -229,6 +229,9 @@ export type FilaExistencias = FilaStock & {
    *  página con `conMarca` (`existencias-catalogo-reglas.ts`) desde una lectura aparte y tolerante. Ausente o null = no se
    *  pudo leer. */
   marca?: string | null;
+  /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
+   *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
+  estadoProducto?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -270,7 +273,7 @@ export async function getExistencias(
            )`
         )
         .eq("transferencia.ubicacion_destino_id", ubicacionId)
-        // Solo `en_transito` (ADR-0261, tarea #5): desde ADR-0239 lo que coincidió en un traslado recibido con diferencia
+        // Solo `en_transito` (ADR-0262, tarea #5): desde ADR-0239 lo que coincidió en un traslado recibido con diferencia
         // YA entró al stock del destino, y lo que no coincidió espera al líder en el destino, no en el camino. Contarlo acá
         // lo sumaba dos veces: en «Disponible» y en «En camino». Es la misma regla que `fn_existencias` y que Traslados.
         .eq("transferencia.estado", "en_transito")

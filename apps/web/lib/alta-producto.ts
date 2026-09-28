@@ -96,6 +96,12 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
+/** Posiciones cuyo código ya apareció antes en la lista (la primera aparición no cuenta: es la que se queda). `null` =
+ *  código todavía desconocido, nunca repetido. Dos variantes con el mismo código no caben (`variantes_codigo_unico`). */
+export function codigosRepetidos(codigos: readonly (string | null)[]): number[] {
+  return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
+}
+
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
 export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
 
@@ -179,7 +185,7 @@ export type EstadoAlta = {
   celdasIncluidas: number;
   precioBase: string;
   costoBase: string;
-  /** Paso 5 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
+  /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
   /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
   stockInvalidas: number;
@@ -187,26 +193,30 @@ export type EstadoAlta = {
   sinStock: boolean;
 };
 
-export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "variantes" | "precio" | "stock"; texto: string };
+/** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
+ *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
+export type Problema = { bloque: "categoria" | "nombre" | "marca" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
+/** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
+ *  ver (nombre → marca → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
-  if (!e.marcaId || !e.proveedorId) p.push({ bloque: "marca", texto: "Elige la marca y el proveedor." });
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
   else if (e.nombreBloqueado) p.push({ bloque: "nombre", texto: "Ya existe un producto con ese nombre." });
   else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro producto, o abre el que ya existe." });
   else if (e.comprobandoNombre) p.push({ bloque: "nombre", texto: "Comprobando que el nombre no exista todavía…" });
-  if (e.categoriaSinTallas) p.push({ bloque: "atributos", texto: "Esta categoría no tiene tallas: elígelas para continuar." });
-  else if (e.tallasElegidas === 0) p.push({ bloque: "atributos", texto: "Elige al menos una talla." });
+  if (!e.marcaId || !e.proveedorId) p.push({ bloque: "marca", texto: "Elige la marca y el proveedor." });
   if (e.exigeTejidoPatron) {
     if (!e.hayTejidosEnCategoria || !e.hayPatronesEnCategoria) {
-      p.push({ bloque: "atributos", texto: "Esta categoría no tiene tejidos o patrones habilitados: configúralos para continuar." });
+      p.push({ bloque: "tela", texto: "Esta categoría no tiene tejidos o patrones habilitados: configúralos para continuar." });
     } else {
-      if (!e.tejidoId) p.push({ bloque: "atributos", texto: "Elige el tejido." });
-      if (!e.patronId) p.push({ bloque: "atributos", texto: "Elige el patrón (si no tiene diseño, elige Liso)." });
+      if (!e.tejidoId) p.push({ bloque: "tela", texto: "Elige el tejido." });
+      if (!e.patronId) p.push({ bloque: "tela", texto: "Elige el patrón (si no tiene diseño, elige Liso)." });
     }
   }
+  if (e.categoriaSinTallas) p.push({ bloque: "tallas", texto: "Esta categoría no tiene tallas: elígelas para continuar." });
+  else if (e.tallasElegidas === 0) p.push({ bloque: "tallas", texto: "Elige al menos una talla." });
   if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
@@ -220,7 +230,7 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
 }
 
 // ---------------------------------------------------------------------------
-// Paso 5 — cuántas hay hoy (la carga inicial, ADR-0212).
+// Paso 4 — cuántas hay hoy (la carga inicial, ADR-0212).
 // ---------------------------------------------------------------------------
 
 /** Lo escrito en una celda de «Cuántas tienes hoy»: vacío = 0; solo enteros de 0 a 9999. null = no es una cantidad. Espejo de la
@@ -283,28 +293,38 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
 }
 
 // ---------------------------------------------------------------------------
-// Los 5 pasos del alta (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; el 5 desde ADR-0212).
+// Las 4 preguntas del alta (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike 2026-09-24).
 // ---------------------------------------------------------------------------
 //
-// Los 7 bloques de antes se agrupan en pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
-//   1 Qué es · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor, etiquetas: a la vista desde el
-//   2026-09-26, antes tras un enlace en el paso 4, ADR-0109 act.) · 3 Cómo se hace (tallas, tejido, patrón, colores,
-//   fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color) · 5 Cuántas tienes hoy (la carga inicial: lo
-//   que ya está en tienda, ADR-0212).
+// Solo una pregunta está abierta a la vez, y la contestada se pliega en una línea:
+//   1 ¿A qué categoría pertenece? · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido, patrón; temporada y
+//   etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color con la foto en la fila de
+//   su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades —la carga inicial,
+//   ADR-0212— y quién lo registra).
 // Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
 //
-// El 5 va aparte del 4 a propósito: el 4 dice qué ES el producto (catálogo) y el 5 cuánto HAY (inventario). En la misma
-// tabla, «toca una celda para quitarla» y «escribe cuántas hay» pelearían por el mismo toque.
+// Por qué así (README del spike v2): tejido y patrón DESCRIBEN la prenda, así que van con el nombre y la marca, no con
+// sus variantes. Y la tabla talla × color se dibujaba dos veces en dos pasos (variantes en el 4, stock en el 5): ahora se
+// arma en el 3 y en el 4 es la misma tabla, con números. Precio y stock juntos cierran el alta en un solo paso.
 
-export type PasoAlta = 1 | 2 | 3 | 4 | 5;
-export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4, 5];
+export type PasoAlta = 1 | 2 | 3 | 4;
+export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
 
 export function pasoDeProblema(p: Problema): PasoAlta {
-  if (p.bloque === "categoria") return 1;
-  if (p.bloque === "marca" || p.bloque === "nombre") return 2;
-  if (p.bloque === "atributos") return 3;
-  if (p.bloque === "stock") return 5;
-  return 4;
+  switch (p.bloque) {
+    case "categoria":
+      return 1;
+    case "nombre":
+    case "marca":
+    case "tela":
+      return 2;
+    case "tallas":
+    case "variantes":
+      return 3;
+    case "precio":
+    case "stock":
+      return 4;
+  }
 }
 
 /** Lo primero que le falta a un paso, o null si el paso está completo. */
@@ -312,7 +332,7 @@ export function faltaDelPaso(problemas: Problema[], paso: PasoAlta): string | nu
   return problemas.find((p) => pasoDeProblema(p) === paso)?.texto ?? null;
 }
 
-/** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «Cómo se hace» no puede estar listo. */
+/** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «¿En qué tallas y colores?» no puede estar listo. */
 export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
   return !problemas.some((p) => pasoDeProblema(p) <= paso);
 }
@@ -320,7 +340,45 @@ export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
 /** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
 export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
   const primero = problemas[0];
-  return primero ? pasoDeProblema(primero) : 5;
+  return primero ? pasoDeProblema(primero) : 4;
+}
+
+/** Se puede abrir un paso (desde la lista «Avance» de la ficha) cuando los anteriores están contestados. El 1 siempre. */
+export function pasoAbrible(problemas: Problema[], paso: PasoAlta): boolean {
+  return paso === 1 || pasoHecho(problemas, (paso - 1) as PasoAlta);
+}
+
+/** Lo que el alta sabe de quién la firma (el combo «Responsable», ADR-0161), reducido a lo que la pantalla tiene que decir. */
+export type ResponsableAlta = { listo: boolean; /** Todavía nadie elegido (no «nadie de turno» ni «cargando»). */ faltaElegir: boolean; motivo: string | null };
+
+/**
+ * El pie de un paso abierto: lo que falta, o que ya se puede seguir. El paso 4 cierra el alta: ahí «listo» incluye
+ * haber elegido quién lo registra —el combo vive en ese paso—, y si es lo ÚNICO que falta, lo dice así (spike v2,
+ * «Revisión de claridad»). Un problema de un paso anterior (se volvió a abrir el 4 con algo pendiente atrás) también
+ * se dice: «Todo listo» con «Crear» apagado sería mentir.
+ */
+export function piePaso(problemas: Problema[], paso: PasoAlta, responsable: ResponsableAlta): { texto: string; listo: boolean } {
+  const falta = faltaDelPaso(problemas, paso);
+  if (falta) return { texto: falta, listo: false };
+  if (paso < 4) return { texto: "Listo. Sigue cuando quieras.", listo: true };
+  if (problemas.length > 0) return { texto: problemas[0].texto, listo: false };
+  if (!responsable.listo) {
+    return { texto: responsable.faltaElegir ? "Solo falta elegir quién lo registra." : (responsable.motivo ?? "Solo falta elegir quién lo registra."), listo: false };
+  }
+  return { texto: "Todo listo. Revisa la ficha y crea el producto.", listo: true };
+}
+
+/** Lo siguiente que falta para poder crear (la ficha y la barra de celular lo muestran), o null si ya se puede. */
+export function siguienteDelAlta(problemas: Problema[], responsable: ResponsableAlta): string | null {
+  if (problemas.length > 0) return problemas[0].texto;
+  if (responsable.listo) return null;
+  return responsable.faltaElegir ? "Elige quién lo registra." : (responsable.motivo ?? "Elige quién lo registra.");
+}
+
+/** Las tallas en una línea corta (resumen del paso 3): hasta 5 se leen todas («S M L»); con más, «26–42 (9)». */
+export function textoTallas(textos: readonly string[]): string {
+  if (textos.length <= 5) return textos.join(" ");
+  return `${textos[0]}–${textos[textos.length - 1]} (${textos.length})`;
 }
 
 // ---------------------------------------------------------------------------

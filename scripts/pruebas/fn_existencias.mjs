@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0261, tarea #2: `retail.fn_existencias` es LA cifra de stock
+ * Prueba de ADR-0262, tarea #2: `retail.fn_existencias` es LA cifra de stock
  * (migración `20260929010000_fn_existencias_una_sola_cifra.sql`).
  *
  * La escena: en Tienda Trujillo, BLU-EMMA-NEG-M recibe 5 en el piso, 3 en el almacén y 2 en Cuarentena; una clienta

@@ -2650,6 +2650,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -2662,6 +2663,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -2674,6 +2676,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3784,6 +3787,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -3796,6 +3800,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3808,6 +3813,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -4988,6 +4994,7 @@ export type Database = {
       fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
+      fn_variantes_con_historia: { Args: { p_ids: string[] }; Returns: string[] }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
         Returns: number
@@ -5560,6 +5567,10 @@ export type Database = {
           p_vence_at?: string
         }
         Returns: string
+      }
+      cambiar_estado_productos: {
+        Args: { p_estado: string; p_producto_ids: string[] }
+        Returns: number
       }
       cambiar_estado_proveedor_produccion: {
         Args: { p_activo: boolean; p_proveedor_id: string }

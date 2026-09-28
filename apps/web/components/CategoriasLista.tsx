@@ -15,6 +15,7 @@ import { buscarCategorias } from "@/lib/categorias-reglas";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
 import { IconoFamilia } from "@/components/IconoFamilia";
+import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -72,8 +73,9 @@ import { IconoFamilia } from "@/components/IconoFamilia";
  * vive en `lib/categorias-reglas.ts`, con su prueba.
  */
 
-/** Dónde se elige la temporada de una categoría: la sección «por categoría» de la pestaña Temporadas (ADR-0246). */
-const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas#temporadas-por-categoria";
+/** Dónde se elige la temporada de una categoría: la vista «Por categoría» de la pestaña Temporadas (ADR-0246). */
+// `desde=categorias`: la vista de destino muestra «← Categorías» (Atributos está en el menú y no la lleva siempre).
+const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas&vista=categorias&desde=categorias";
 
 type Categoria = {
   id: string;
@@ -144,6 +146,11 @@ export function CategoriasLista({
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [subDraft, setSubDraft] = useState({ nombre: "", prefijo: "" });
   const [subGuardando, setSubGuardando] = useState(false);
+  // ¿El prefijo lo escribió la persona? Mientras no, sigue al nombre (`prefijoDesdeNombre`); apenas lo toca, se respeta
+  // lo suyo. Si lo vacía, queda vacío (para que pueda escribir otro) y la propuesta vuelve al cambiar el nombre. Al
+  // editar una categoría existente arranca en «propio»: su prefijo ya existe y cambiarle el nombre no debe moverlo.
+  const [prefijoPropio, setPrefijoPropio] = useState(false);
+  const [subPrefijoPropio, setSubPrefijoPropio] = useState(false);
   // Qué categoría está en "Vista rápida" (solo lectura, cualquier rol) —
   // separado de `borrador`: un clic en la tarjeta abre esto, nunca el
   // formulario directamente. `abrirBorrador` sigue siendo el único camino
@@ -172,7 +179,9 @@ export function CategoriasLista({
   function abrirBorrador(b: Borrador | null) {
     setViendoId(null);
     setBorrador(b);
+    setPrefijoPropio(Boolean(b?.id));
     setSubDraft({ nombre: "", prefijo: "" });
+    setSubPrefijoPropio(false);
     setEjesDraft(
       b?.id
         ? {
@@ -309,6 +318,7 @@ export function CategoriasLista({
       responsable.despues(null);
       avisar.exito(`Subcategoría ${nueva.nombre} agregada`);
       setSubDraft({ nombre: "", prefijo: "" });
+      setSubPrefijoPropio(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -348,6 +358,14 @@ export function CategoriasLista({
   // (`fn_categorias_vigencia_candados`), en vez de dejar tipearlo y rechazarlo al guardar.
   const productosConEstePrefijo = editando && borrador ? productosTotalesPorCategoria[borrador.id!] ?? 0 : 0;
   const prefijoFijo = productosConEstePrefijo > 0;
+  // Choques contra TODAS las categorías (también las desactivadas: los candados de la base no las excluyen). Se avisa
+  // al tipear y se bloquea «Guardar»; el candado real sigue en la base (dos líderes guardando a la vez).
+  const excluirId = borrador?.id ?? null;
+  const ejemplo = borrador ? ejemploParaFamilia(borrador.familia, categorias) : null;
+  const choquePrefijo = borrador && !prefijoFijo ? quienUsaPrefijo(borrador.prefijo, categorias, excluirId) : null;
+  const choqueNombre = borrador ? quienUsaNombre(borrador.nombre, categorias, excluirId) : null;
+  const subChoquePrefijo = quienUsaPrefijo(subDraft.prefijo, categorias, null);
+  const subChoqueNombre = quienUsaNombre(subDraft.nombre, categorias, null);
 
   return (
     <div className="space-y-3">
@@ -520,20 +538,38 @@ export function CategoriasLista({
               <CampoTexto
                 etiqueta="Nombre"
                 value={borrador.nombre}
-                onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                placeholder="Ej. Kimonos"
+                onChange={(e) => {
+                  const nombre = e.target.value;
+                  setBorrador({ ...borrador, nombre, prefijo: prefijoPropio ? borrador.prefijo : prefijoDesdeNombre(nombre, categorias, excluirId) ?? "" });
+                }}
+                placeholder={`Ej. ${ejemplo?.nombre ?? ""}`}
+                tono={choqueNombre ? "error" : undefined}
+                pie={choqueNombre ? avisoChoque("nombre", choqueNombre) : undefined}
               />
               <CampoTexto
                 etiqueta="Prefijo (3 letras)"
                 mono
                 value={borrador.prefijo}
                 maxLength={3}
-                onChange={(e) => setBorrador({ ...borrador, prefijo: e.target.value.toUpperCase() })}
-                placeholder="KIM"
+                onChange={(e) => {
+                  const prefijo = e.target.value.toUpperCase();
+                  setPrefijoPropio(prefijo !== "");
+                  setBorrador({ ...borrador, prefijo });
+                }}
+                placeholder={ejemplo?.prefijo}
                 disabled={prefijoFijo}
                 title={prefijoFijo ? "Es la letra del código de cada prenda: ya está impreso en sus etiquetas." : undefined}
                 className={prefijoFijo ? "cursor-not-allowed text-tinta/65" : ""}
-                pie={prefijoFijo ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}` : undefined}
+                tono={choquePrefijo ? "error" : undefined}
+                pie={
+                  prefijoFijo
+                    ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}`
+                    : choquePrefijo
+                      ? avisoChoque("prefijo", choquePrefijo)
+                      : !prefijoPropio && borrador.prefijo
+                        ? "Sale del nombre; puedes cambiarlo"
+                        : undefined
+                }
               />
             </div>
 
@@ -595,8 +631,13 @@ export function CategoriasLista({
                     <CampoTexto
                       etiqueta="Nueva subcategoría"
                       value={subDraft.nombre}
-                      onChange={(e) => setSubDraft({ ...subDraft, nombre: e.target.value })}
-                      placeholder="Ej. Vestidos largos"
+                      onChange={(e) => {
+                        const nombre = e.target.value;
+                        setSubDraft({ nombre, prefijo: subPrefijoPropio ? subDraft.prefijo : prefijoDesdeNombre(nombre, categorias, null) ?? "" });
+                      }}
+                      placeholder="Nombre de la subcategoría"
+                      tono={subChoqueNombre ? "error" : undefined}
+                      pie={subChoqueNombre ? avisoChoque("nombre", subChoqueNombre) : undefined}
                     />
                   </div>
                   <div className="w-24">
@@ -605,14 +646,20 @@ export function CategoriasLista({
                       mono
                       value={subDraft.prefijo}
                       maxLength={3}
-                      onChange={(e) => setSubDraft({ ...subDraft, prefijo: e.target.value.toUpperCase() })}
-                      placeholder="VLA"
+                      onChange={(e) => {
+                        const prefijo = e.target.value.toUpperCase();
+                        setSubPrefijoPropio(prefijo !== "");
+                        setSubDraft({ ...subDraft, prefijo });
+                      }}
+                      placeholder="ABC"
+                      tono={subChoquePrefijo ? "error" : undefined}
+                      pie={subChoquePrefijo ? avisoChoque("prefijo", subChoquePrefijo) : undefined}
                     />
                   </div>
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id || !responsable.listo}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || !borrador.id || !responsable.listo}
                     title={responsable.motivo ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
@@ -717,7 +764,7 @@ export function CategoriasLista({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !responsable.listo} title={responsable.motivo ?? undefined}>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || !responsable.listo} title={responsable.motivo ?? undefined}>
                 {editando ? "Guardar cambios" : "Guardar categoría"}
               </Boton>
             </div>

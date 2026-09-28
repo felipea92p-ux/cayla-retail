@@ -1,11 +1,11 @@
 -- ============================================================================
--- 20260929010000 — fn_existencias: UNA sola cifra de stock (ADR-0261, tarea #2)
+-- 20260929010000 — fn_existencias: UNA sola cifra de stock (ADR-0262, tarea #2)
 --
 -- EL PROBLEMA
 --   El 2026-09-28 Felipe vio la misma prenda con números distintos en el Catálogo («Stock total 58») y en
 --   Existencias. El stock NO estaba desincronizado (0 descuadres entre `movimientos` y `stock`): había SEIS
 --   sumas distintas de `stock`, cada pantalla con la suya (toda la red o la sede; con o sin cuarentena, con o
---   sin apartadas, con o sin tallas retiradas, con o sin pruebas). Tabla completa en ADR-0261.
+--   sin apartadas, con o sin tallas retiradas, con o sin pruebas). Tabla completa en ADR-0262.
 --
 -- QUÉ PROMETE (el contrato; ninguna pantalla vuelve a calcular estos números)
 --   Por cada talla (variante) y sede:
@@ -31,7 +31,7 @@
 --   · La pieza «Monto manual» / «Prenda sin registrar» (producto 1111…, variante 2222…): no es mercadería.
 --   · Una talla retirada SIN unidades ni nada en camino. Si una retirada TIENE unidades, sale con
 --     `talla_retirada = true`: Existencias la escondía y las unidades «desaparecían» aunque seguían en la
---     tienda (visto en producción el 2026-09-28: 6 u. de «Prueba Pantalon»). Después de ADR-0261 decisión 13
+--     tienda (visto en producción el 2026-09-28: 6 u. de «Prueba Pantalon»). Después de ADR-0262 decisión 13
 --     ese caso será imposible; mientras tanto, se muestra en vez de esconderse.
 --   · Productos que nunca tuvieron stock (no hay fila): el universo de productos es del Catálogo; esta función
 --     solo responde «cuánto hay».
@@ -153,7 +153,7 @@ as $$
 $$;
 
 comment on function retail.fn_existencias_base(uuid, uuid[]) is
-  'ADR-0261: LA fórmula de stock por talla y sede (físico, dañado, apartado, disponible = físico − dañado − apartado, '
+  'ADR-0262: LA fórmula de stock por talla y sede (físico, dañado, apartado, disponible = físico − dañado − apartado, '
   'piso/almacén libres, en camino). Sin productos de prueba ni la pieza «Monto manual». Sin candado y sin grant: solo '
   'la llaman funciones security definer que ya decidieron quién entra. La web lee fn_existencias.';
 
@@ -186,7 +186,7 @@ as $$
 $$;
 
 comment on function retail.fn_existencias(uuid, uuid[]) is
-  'ADR-0261: LA cifra de stock por talla y sede para la web (la fórmula de fn_existencias_base), para cualquier '
+  'ADR-0262: LA cifra de stock por talla y sede para la web (la fórmula de fn_existencias_base), para cualquier '
   'colaborador activo. Toda pantalla que muestre cuánto hay lee esta función; ninguna vuelve a sumar `stock` por su '
   'cuenta. Sin argumentos: toda la red; `p_producto_ids` limita a esos productos (una página del Catálogo).';
 

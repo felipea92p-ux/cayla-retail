@@ -46,11 +46,28 @@ permissions:
   contents: read
 
 jobs:
+  # Cuánto del job de Postgres hace falta (ADR-0259): `nada` si el PR solo cambia documentos, `web` si además solo toca
+  # apps/web, `completo` en cualquier otro caso y en todo push a main. Dos commits: en un PR, HEAD^1 es el main de hoy.
+  alcance:
+    name: Qué toca el PR
+    runs-on: ubuntu-latest
+    outputs:
+      alcance: ${{ steps.medir.outputs.alcance }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: medir
+        run: node scripts/ci/alcance.mjs
+
   verificar:
     name: Tipos, lint y pruebas
     runs-on: ubuntu-latest
     steps:
+      # Dos commits: el candado de la bitácora compara el PR contra el main de hoy (HEAD^1 del merge del PR).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # La versión de pnpm sale de `packageManager` en package.json — no se repite acá.
       # Dos números que hay que acordarse de mover juntos terminan distintos.
@@ -131,6 +148,15 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+      # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
+      # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
+      # PR», que decide cuánto corre el job de Postgres. Solo leen archivos; no necesitan node_modules.
+      - name: Bitácora y backlog, una entrada por archivo
+        if: ${{ always() }}
+        run: |
+          node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs
+          node scripts/docs/entradas-por-archivo.mjs
+
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
       # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
@@ -142,6 +168,11 @@ jobs:
 
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres
+    needs: alcance
+    # Un PR que solo cambia documentos deja la base y la web iguales a las de main: el job se salta (GitHub cuenta un job
+    # saltado como aprobado). Con `!cancelled()` y no `success()`: si `alcance` falla, su salida llega vacía y el job
+    # corre COMPLETO; nunca se salta por no saber (ADR-0259).
+    if: ${{ !cancelled() && needs.alcance.outputs.alcance != 'nada' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -163,9 +194,19 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
 
+      # En un PR «solo web» este paso no corre, y con él se saltan todas las pruebas de abajo (todas piden
+      # `steps.supabase`): la base es la de main, que ya las pasó. Corre en su lugar el paso siguiente.
       - id: supabase
-        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        if: ${{ always() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
         run: npx supabase start
+
+      # PR «solo web» (ADR-0259): el mismo Postgres, pero solo las pruebas que leen apps/web (~2 min en vez de ~6). Cuáles
+      # son lo deduce el script leyendo cada prueba y lo que importa: una prueba nueva que lea la web entra sola.
+      - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
+        if: ${{ always() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
+        run: |
+          npx supabase start
+          node scripts/ci/pruebas-web.mjs
 
       # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
@@ -502,6 +543,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # Descontinuar/reactivar en bloque desde la Tabla de Productos (ADR-0254): todo o nada, al reactivar revisa marca y
+      # proveedor como «Editar» y nombra la prenda que falla; sin permiso lo dice en palabras. Cada caso en ROLLBACK.
+      - name: pruebas:productos-estado-en-bloque
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-estado-en-bloque
+
       # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
       # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
       # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.
@@ -625,6 +672,21 @@ jobs:
       - name: pruebas:notas-credito
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:notas-credito
+
+      # Arreglos que vivían SOLO en producción, traídos a main (ADR-0255, 20260928200000 y 20260928200100): mira el
+      # ESTADO VIVO de la base, así que se pone roja el día que una migración vuelva a abrir una puerta (un `drop function` +
+      # `create function` no conserva los `revoke`). emitir_comprobante / emitir_nota / fn_aplicar_movimiento /
+      # recalcular_stock solo para su dueña (42501 para authenticated, anon y service_role); stock y movimientos sin
+      # escritura directa para nadie de la app, con la lectura intacta (y los permisos, contra la lista EXPLÍCITA de
+      # producción, también por columna); notas de crédito: un cierre deja de esperar su nota si tiene una atada o si el
+      # comprobante ya tiene la de faltante; fn_rentabilidad solo para el líder; las dos migraciones pegadas sobre la foto
+      # de producción (armada desde su propio texto, así que un cambio posterior legítimo no la pone roja) cambian solo lo
+      # que dicen; y cerrar las puertas no rompe la tienda
+      # (como authenticated, la venta con boleta y la devolución aprobada siguen emitiendo, con su control: sin el EXECUTE
+      # de la dueña se caen). Cada caso termina en ROLLBACK.
+      - name: pruebas:arreglos-en-vivo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:arreglos-en-vivo
 
       # ── Pruebas que ya existían y pasaban pero no corrían en ningún sitio (cableadas el 2026-09-25) ────────────────────
       # Un script en `scripts/pruebas/` que nadie corre es una intención, no un candado (mismo problema que `deriva-produccion`,
@@ -960,10 +1022,21 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
-      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
-      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
-      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
-      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      # Color y talla de una variante se corrigen solo sin historia (20260928235500): por la ficha, la variante recién
+      # creada cambia de color o de talla habilitada, su código se recalcula y su código de barras se renombra; la que
+      # tiene un movimiento no cambia ni por la ficha ni con un update directo (hint `variante_con_historia`); un
+      # guardado de solo precio no toca código ni SKU; sin el disparador el update directo sí pasa (el hueco 3 existía);
+      # el parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-identidad-variante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-identidad-variante
+
+      # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
+      # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja
+      # nada (la base entera, tabla por tabla); corrida definitiva que devuelve a stock lo ajeno, deja el libro cuadrando y los
+      # candados en su modo, y nunca toca un comprobante que llegó a SUNAT en producción; purgar + restaurar devuelve la base
+      # idéntica; rechaza lo que no se nombró o no entiende (otra venta, separación o compra, venta anulada, cambio, proforma,
+      # efectivo en caja, pago de compra, libro descuadrado). Cada caso termina en ROLLBACK.
       - name: pruebas:purgar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:purgar-producto
@@ -987,7 +1060,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-producto-con-historia
 
-      # Una sola cifra de stock (20260929010000, ADR-0261): fn_existencias devuelve por talla y sede físico, dañado, apartado y
+      # Una sola cifra de stock (20260929010000, ADR-0262): fn_existencias devuelve por talla y sede físico, dañado, apartado y
       # disponible = físico − dañado − apartado = piso + almacén + sin lugar, en TODA fila del seed; el físico cuadra con `stock`;
       # la Cuarentena y lo apartado no se ofrecen; pruebas y «Monto manual» no cuentan; una talla retirada con unidades se ve;
       # «en camino» es solo lo en_transito (no lo recibido con diferencia); sin cuenta activa, nada. Cada caso termina en ROLLBACK.
@@ -995,7 +1068,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-existencias
 
-      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0261): «Stock total» es lo disponible de la
+      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0262): «Stock total» es lo disponible de la
       # red (no la suma cruda con dañadas y apartadas), la cabecera cuenta con la misma cifra que la lista, un producto de
       # prueba no enciende alertas, fn_stock_por_sede ofrece lo disponible, y la tarjeta por sede (fn_existencias_productos)
       # separa aquí / otras tiendas / Taller / en camino / tallas retiradas. Con control: las versiones viejas fallan.
@@ -1003,7 +1076,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:catalogo-cifra-unica
 
-      # Una talla con prendas no se retira (20260929030000, ADR-0261 decisión 13): con prendas en cualquier sede (Cuarentena
+      # Una talla con prendas no se retira (20260929030000, ADR-0262 decisión 13): con prendas en cualquier sede (Cuarentena
       # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
       # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
       - name: pruebas:talla-con-prendas

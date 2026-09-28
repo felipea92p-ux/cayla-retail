@@ -5,11 +5,13 @@ description: Audita el repo real de cayla-retail y reconstruye o actualiza /docs
 
 1. Audita el repo de verdad: `supabase/migrations/*.sql`, `apps/web/app`, `apps/web/lib`,
    `apps/web/components`, `packages/*`. No asumas nada del backlog anterior sin
-   confirmarlo contra el código.
+   confirmarlo contra el código. Lee también las secciones de trabajo de `/docs/backlog/`
+   (una por archivo desde el 2026-09-29, ADR-0259): es ahí donde está lo pendiente reciente.
 2. Compara contra lo que ya está commiteado (`git log`) y lo que sigue pendiente según
    `CLAUDE.md` (principios, gap de Fase 2 financiera, etc.).
 3. Reescribe `/docs/BACKLOG.md` respetando el máximo de 3 ítems por cubo (🔨 Construir,
-   🩹 Arreglar, ✨ Mejorar). Si hay un décimo ítem real, no lo agregues — es señal de
+   🩹 Arreglar, ✨ Mejorar). Solo los cubos: no copies ni muevas ahí las secciones de
+   `/docs/backlog/`, que siguen siendo una por archivo. Si hay un décimo ítem real, no lo agregues — es señal de
    que no se está cerrando lo anterior.
 4. Para cada ítem: qué desbloquea, de qué depende, si es reversible en menos de 30
    minutos (afecta si `/decide` pregunta o ejecuta directo), y por qué importa en

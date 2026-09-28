@@ -64,13 +64,22 @@ describe("ofreceEliminar y rpcParaEliminar", () => {
 describe("textos", () => {
   it("sin historia: qué se borra, en singular y plural, y que no se deshace", () => {
     expect(textoSeBorra(1)).toContain("su única variante");
-    expect(textoSeBorra(12)).toContain("sus 12 variantes");
+    expect(textoSeBorra(12)).toContain("sus 12 variantes (todas sus tallas y colores)");
     expect(textoSeBorra(2)).toMatch(/No se puede deshacer\.$/);
+  });
+
+  it("sin el número (Existencias abre desde un color en una sede): dice que se van TODAS sus tallas y colores", () => {
+    expect(textoSeBorra(null)).toBe(
+      "Nunca se vendió ni se movió, así que se borra por completo: su ficha, todas sus tallas y colores, sus códigos de barras y sus fotos. No se puede deshacer."
+    );
+    expect(textoSeBorraConHistoria(null, 17, 3)).toBe(
+      "Ya se movió (17 prendas en stock y 3 movimientos), pero nunca se vendió ni se compró. Se borra todo: su ficha, todas sus tallas y colores, su stock en todas las sedes y ese historial."
+    );
   });
 
   it("con historia: cuenta prendas y movimientos en palabras, sin «0 prendas»", () => {
     expect(textoSeBorraConHistoria(3, 13, 7)).toBe(
-      "Ya se movió (13 prendas en stock y 7 movimientos), pero nunca se vendió ni se compró. Se borra todo: su ficha, sus 3 variantes, su stock en todas las sedes y ese historial."
+      "Ya se movió (13 prendas en stock y 7 movimientos), pero nunca se vendió ni se compró. Se borra todo: su ficha, sus 3 variantes (todas sus tallas y colores), su stock en todas las sedes y ese historial."
     );
     expect(textoSeBorraConHistoria(1, 1, 1)).toContain("(1 prenda en stock y 1 movimiento)");
     expect(textoSeBorraConHistoria(1, 0, 2)).toContain("(2 movimientos)");
@@ -121,5 +130,10 @@ describe("salidaSinEliminar", () => {
 
   it("una pieza del sistema no tiene salida: no se retira de ninguna manera", () => {
     expect(salidaSinEliminar("activo", "sistema")).toBeNull();
+    expect(salidaSinEliminar(null, "sistema")).toBeNull();
+  });
+
+  it("sin saber el estado (Existencias no lo lee): se ofrece descontinuar desde Editar, como a uno activo", () => {
+    expect(salidaSinEliminar(null, "con_documentos")).toEqual(salidaSinEliminar("activo", "con_documentos"));
   });
 });

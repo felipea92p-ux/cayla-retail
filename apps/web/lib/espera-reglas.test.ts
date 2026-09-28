@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clasificarPeticion, esRpcDeLectura, MENSAJE_ESPERA, type PeticionEspera } from "./espera-reglas";
+import { clasificarPeticion, claveNavegacion, esRpcDeLectura, MENSAJE_ESPERA, type PeticionEspera } from "./espera-reglas";
 
 const ORIGEN = "https://retail.cayla.pe";
 const SUPA = "abc.supabase.co";
@@ -19,6 +19,24 @@ describe("clasificarPeticion — carga", () => {
   });
   it("un GET normal (buscador, padrón) no es una espera", () => {
     expect(clasificarPeticion(pet(`${ORIGEN}/api/padron?tipo=ruc&numero=1`))).toBeNull();
+  });
+});
+
+describe("clasificarPeticion — buscador por URL", () => {
+  const anunciadas = new Set([claveNavegacion(new URL(`${ORIGEN}/productos?q=blusa manga&cat=7`))]);
+  function nav(url: string) {
+    return { ...pet(url, "GET", { RSC: "1" }), sinEspera: anunciadas };
+  }
+  it("la navegación que el buscador anunció no muestra el loader, aunque Next le sume `_rsc` y cambie el orden", () => {
+    expect(clasificarPeticion(nav(`${ORIGEN}/productos?cat=7&q=blusa+manga&_rsc=1a2b`))).toBeNull();
+  });
+  it("otra dirección (un filtro por clic, otra pantalla) sigue siendo carga", () => {
+    expect(clasificarPeticion(nav(`${ORIGEN}/productos?q=blusa+manga&cat=8&_rsc=x`))).toEqual({ tipo: "carga" });
+    expect(clasificarPeticion(nav(`${ORIGEN}/compras?q=blusa+manga&cat=7&_rsc=x`))).toEqual({ tipo: "carga" });
+  });
+  it("la clave ignora `_rsc` y el orden de los parámetros", () => {
+    expect(claveNavegacion(new URL(`${ORIGEN}/productos?b=2&a=1&_rsc=z`))).toBe("/productos?a=1&b=2");
+    expect(claveNavegacion(new URL(`${ORIGEN}/productos?_rsc=z`))).toBe("/productos");
   });
 });
 

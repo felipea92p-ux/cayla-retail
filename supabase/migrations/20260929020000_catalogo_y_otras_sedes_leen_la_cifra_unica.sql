@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260929020000 — Catálogo y «Dónde más hay» leen la cifra única (ADR-0261, tareas #3 y #4, parte de la base)
+-- 20260929020000 — Catálogo y «Dónde más hay» leen la cifra única (ADR-0262, tareas #3 y #4, parte de la base)
 --
 -- EL PROBLEMA
 --   Tres funciones sumaban `stock` crudo, cada una a su manera, y por eso no coincidían con Existencias:
@@ -15,7 +15,7 @@
 --   · Catálogo: la cifra sigue siendo la de la RED (de ella sale «Pedir a proveedor»: se le compra a la empresa). Las
 --     alertas (sin stock, bajo, pedir) ya no se encienden para un producto de prueba, que no tiene cifra.
 --   · Nueva `fn_existencias_productos(ids, sede)`: lo de la sede elegida, las otras tiendas, el Taller y lo que viene
---     en camino, por producto, para la tarjeta del Catálogo («3 aquí · +60 en Lima»). Decisiones 1-5 de ADR-0261.
+--     en camino, por producto, para la tarjeta del Catálogo («3 aquí · +60 en Lima»). Decisiones 1-5 de ADR-0262.
 --
 -- ANTES DE REEMPLAZAR (parches vivos)
 --   Se compararon los cuerpos de producción con los de este repo el 2026-09-28 (md5 de `prosrc`): `fn_productos`
@@ -130,7 +130,7 @@ begin
     union all
     select pp.id from pagina_previa pp
   ),
-  -- ADR-0261: la cifra única (`fn_existencias_base`). Lo DISPONIBLE de toda la red (todas las sedes y el Taller): sin
+  -- ADR-0262: la cifra única (`fn_existencias_base`). Lo DISPONIBLE de toda la red (todas las sedes y el Taller): sin
   -- Cuarentena, sin apartadas y sin tallas retiradas; un producto de prueba no tiene cifra. Antes era `sum(stock.cantidad)`
   -- crudo, con todo eso adentro: «Stock total 58» no coincidía con ninguna otra pantalla. Es la cifra de la RED porque de
   -- ella salen «Pedir a proveedor» y los filtros (se le compra a la empresa, no a una tienda); lo de la sede elegida lo
@@ -302,7 +302,7 @@ begin
       coalesce(max(lt.lead_time_dias), 14) as lead_time_dias
     from productos p
     join variantes v on v.producto_id = p.id
-    -- ADR-0261: la misma cifra que la lista (`fn_productos`): lo disponible de la red, sin tallas retiradas ni pruebas.
+    -- ADR-0262: la misma cifra que la lista (`fn_productos`): lo disponible de la red, sin tallas retiradas ni pruebas.
     left join (
       select e.producto_id, sum(e.disponible) as cantidad
       from fn_existencias_base(null, null) e
@@ -359,7 +359,7 @@ returns table (variante_id uuid, ubicacion_id uuid, cantidad integer)
 language sql stable security definer
 set search_path = retail, public, extensions
 as $$
-  -- ADR-0261: lo que otra sede puede ofrecer de verdad. Sin Cuarentena, sin apartadas, sin tallas retiradas, sin
+  -- ADR-0262: lo que otra sede puede ofrecer de verdad. Sin Cuarentena, sin apartadas, sin tallas retiradas, sin
   -- pruebas ni «Monto manual». Antes: `sum(stock.cantidad)` físico. Solo sedes activas, como antes.
   -- Solo lo que es > 0: la web ya ignoraba los ceros (`agruparStockPorSede`: «una sede que suma cero no se nombra») y
   -- `fn_stock_por_sede_json` los empaquetaba todos en un solo JSON que Vender descarga al abrir.
@@ -396,7 +396,7 @@ language sql stable security definer
 set search_path = retail, public, extensions
 as $$
   -- Una fila por producto con algo que contar (sin filas: nunca tuvo stock → la pantalla muestra 0).
-  --   aqui / apartado_aqui / danado_aqui / en_camino_aqui   la sede elegida arriba (ADR-0261, decisiones 1, 2, 3 y 5)
+  --   aqui / apartado_aqui / danado_aqui / en_camino_aqui   la sede elegida arriba (ADR-0262, decisiones 1, 2, 3 y 5)
   --   en_otras_tiendas + otras                             el resto de tiendas activas, sede por sede («+60 en Lima»)
   --   en_taller                                            aparte, nunca sumado a lo que se vende (decisión 4)
   --   en_tallas_retiradas                                  unidades físicas en tallas desactivadas, en toda la red:
@@ -432,7 +432,7 @@ as $$
 $$;
 
 comment on function retail.fn_existencias_productos(uuid[], uuid) is
-  'ADR-0261: por producto, lo disponible en la sede elegida (con apartado, dañado y en camino), en las otras tiendas '
+  'ADR-0262: por producto, lo disponible en la sede elegida (con apartado, dañado y en camino), en las otras tiendas '
   '(sede por sede) y en el Taller, más las unidades en tallas retiradas. Sale de fn_existencias_base: es la misma '
   'cifra que Existencias. Para la tarjeta del Catálogo.';
 

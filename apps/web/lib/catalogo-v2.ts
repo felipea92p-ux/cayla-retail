@@ -89,6 +89,15 @@ export async function getCostosVariantes(ids?: string[]): Promise<Map<string, nu
 
 /** De estas variantes, las que ya tienen costo de Compras o del Taller (20260927190000): su costo ya no se corrige a mano.
  *  `null` si no se pudo preguntar (la migración aún no está en esta base). */
+/** Cuáles de estas variantes ya tienen historia (20260928235500). `null` = la función todavía no existe en la base. */
+async function getVariantesConHistoria(ids: string[]): Promise<Set<string> | null> {
+  if (ids.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_variantes_con_historia", { p_ids: ids });
+  if (error || !Array.isArray(data)) return null;
+  return new Set(data as string[]);
+}
+
 async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> | null> {
   if (ids.length === 0) return new Set();
   const supabase = await createClient();
@@ -411,7 +420,7 @@ export async function getReposicionPorProveedor(
 }
 
 /**
- * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0261):
+ * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0262):
  * la tarjeta del Catálogo dice lo mismo que Existencias. `null` si no se pudo leer (p. ej. la función todavía no está
  * pegada en producción): la tarjeta vuelve a «Stock total N» en vez de romperse o inventar un cero.
  */
@@ -464,6 +473,10 @@ export type VarianteDetalle = {
    *  costo declarado (alta o carga inicial), se puede corregir. null = no se pudo saber (la migración 20260927190000
    *  aún no está): la ficha lo trata como oficial, que es lo seguro. */
   costoOficial: boolean | null;
+  /** true = ya tiene movimientos, ventas, compras o traslados: su color y su talla no se cambian. false = sin historia,
+   *  se corrigen desde la ficha (20260928235500). null = no se pudo saber (la migración aún no está): se trata como con
+   *  historia, que es lo seguro. */
+  conHistoria: boolean | null;
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
@@ -545,9 +558,10 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
   const ids = (data.variantes ?? []).map((v) => v.id);
-  const [costos, conCostoOficial, temporadas] = await Promise.all([
+  const [costos, conCostoOficial, conHistoria, temporadas] = await Promise.all([
     getCostosVariantes(ids),
     getVariantesConCostoOficial(ids),
+    getVariantesConHistoria(ids),
     getFichaTemporadas(id),
   ]);
 
@@ -584,6 +598,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       precio: Number(v.precio),
       costo: costos ? (costos.get(v.id) ?? 0) : null,
       costoOficial: conCostoOficial ? conCostoOficial.has(v.id) : null,
+      conHistoria: conHistoria ? conHistoria.has(v.id) : null,
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
@@ -665,6 +680,22 @@ export async function getSinTemporadaResumen(): Promise<{ prendas: number } | nu
 
 export type ValorVocabulario = { id: string; texto: string };
 
+/** id → la imagen que un Líder eligió en Atributos para un tejido o un patrón (foto o dibujo generado, ADR-0256). Sin
+ *  entrada = el dibujo automático por nombre. Aparte de `ValorVocabulario` para no ensanchar el tipo que también usan
+ *  las tallas. La leen el alta y la ficha del producto: UNA sola lectura para las dos. */
+export type ImagenesMuestra = { tejidos: Record<string, string>; patrones: Record<string, string> };
+
+export async function getImagenesMuestra(): Promise<ImagenesMuestra> {
+  const supabase = await createClient();
+  const [tejidos, patrones] = await Promise.all([
+    supabase.from("tejidos").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+    supabase.from("patrones").select("id, imagen_muestra_url").not("imagen_muestra_url", "is", null),
+  ]);
+  const mapa = (filas: { id: string; imagen_muestra_url: string | null }[]) =>
+    Object.fromEntries(filas.flatMap((f) => (f.imagen_muestra_url ? [[f.id, f.imagen_muestra_url]] : [])));
+  return { tejidos: mapa(exigir(tejidos, "las imágenes de los tejidos")), patrones: mapa(exigir(patrones, "las imágenes de los patrones")) };
+}
+
 /** Qué tallas/tejidos/patrones ofrece el formulario según la categoría
  *  elegida (20260917100400) — reemplaza `categorias.tallas_sugeridas`.
  *  Cada tabla puente reemplaza, no hereda, entre categoría y subcategoría
@@ -715,31 +746,4 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
     tejidos: agrupar(tejidos.map((f) => ({ categoria_id: f.categoria_id, id: f.tejido.id, texto: f.tejido.nombre }))),
     patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
-}
-
-// ============================================================================
-// Alta al vuelo durante el censo (20260918): prendas creadas por alguien
-// que no es Líder mientras contaba, todavía sin revisar. `estado_alta` es
-// independiente de `estado` — un pendiente sigue activo y contable, este
-// listado es solo la cola de revisión del Líder.
-// ============================================================================
-
-export type ProductoPendienteAlta = {
-  id: string;
-  referencia: string;
-  categoria: string | null;
-  creadoEn: string;
-};
-
-export async function getProductosPendientesAlta(): Promise<ProductoPendienteAlta[]> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("productos")
-      .select("id, referencia, created_at, categoria:categorias ( nombre )")
-      .eq("estado_alta", "pendiente")
-      .order("created_at", { ascending: true }),
-    "las prendas pendientes de revisar"
-  );
-  return filas.map((f) => ({ id: f.id, referencia: f.referencia, categoria: f.categoria?.nombre ?? null, creadoEn: f.created_at }));
 }

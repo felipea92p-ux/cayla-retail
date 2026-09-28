@@ -27,11 +27,14 @@ export type CifraResumen = {
   alerta?: boolean;
 };
 
+// Ancho: hasta `lg` el recuadro ocupa la fila y las cifras se reparten el ancho (`flex-1`); desde `lg` cada una pide su
+// mínimo. Antes el mínimo corría desde `sm` (640 px) y en una tablet con el menú lateral abierto cuatro cifras pedían
+// 480 px donde había ~450: la página se desbordaba en horizontal (visto en Productos y Devoluciones, 2026-09-28).
 export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly CifraResumen[] }) {
   return (
     <section
       aria-label={`Resumen de ${sede}`}
-      className="anim-sube w-full rounded-[20px] bg-papel/70 shadow-[0_22px_44px_-30px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] backdrop-blur-sm sm:w-auto"
+      className="anim-sube w-full rounded-[20px] bg-papel/70 shadow-[0_22px_44px_-30px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] backdrop-blur-sm lg:w-auto"
       style={{ "--i": 1 } as CSSProperties}
     >
       <ul className="flex">
@@ -53,7 +56,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
           return (
             <li
               key={etiqueta}
-              className={`relative flex min-w-0 flex-1 before:absolute before:inset-y-5 before:left-0 before:w-px before:bg-gradient-to-b before:from-transparent before:via-tinta/20 before:to-transparent first:before:hidden sm:flex-none ${cifras.length > 3 ? "sm:min-w-[7.5rem]" : "sm:min-w-[9.5rem]"}`}
+              className={`relative flex min-w-0 flex-1 before:absolute before:inset-y-5 before:left-0 before:w-px before:bg-gradient-to-b before:from-transparent before:via-tinta/20 before:to-transparent first:before:hidden lg:flex-none ${cifras.length > 3 ? "lg:min-w-[7.5rem]" : "lg:min-w-[9.5rem]"}`}
             >
               {href ? (
                 <a

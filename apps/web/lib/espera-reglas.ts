@@ -11,9 +11,11 @@
  *                un filtro por URL, `router.refresh()`.
  *  · «guardado» — una escritura: server action (`Next-Action`), POST/PUT/PATCH/DELETE a `/api/*`, y
  *                cualquier escritura al host de Supabase (tabla, RPC o storage).
- * Lo que NO cuenta: prefetch, lecturas (GET), buscadores que llaman a una RPC de solo lectura, y el
- * refresco de token de sesión. Un buscador que bloqueara la pantalla en cada tecla sería peor que el
- * problema que se resuelve.
+ * Lo que NO cuenta: prefetch, lecturas (GET), buscadores que llaman a una RPC de solo lectura, el
+ * refresco de token de sesión, y la navegación de un buscador que filtra por URL (`?q=` de Productos,
+ * Movimientos, Compras…): esa se anuncia antes con `navegacionSinEspera` (`useBusquedaEnUrl`) y aquí
+ * se reconoce por su dirección. Un buscador que bloqueara la pantalla en cada tecla sería peor que el
+ * problema que se resuelve: mientras llega, la pantalla atenúa los resultados y dice «Buscando…».
  */
 
 export type TipoEspera = "carga" | "guardado";
@@ -29,7 +31,22 @@ export type PeticionEspera = {
   origen: string;
   /** Host de Supabase (`xxxx.supabase.co`), o `null` si no está configurado. */
   hostSupabase: string | null;
+  /** Navegaciones anunciadas como «sin loader» (claves de `claveNavegacion`): las de un buscador por URL.
+   *  Solo se consulta para una navegación de Next, así que quien lo implementa puede consumir el anuncio al responder. */
+  sinEspera?: { has: (clave: string) => boolean };
 };
+
+/**
+ * La misma dirección, escrita como la escribe el buscador (`/productos?q=fd`) o como la pide Next
+ * (`/productos?q=fd&_rsc=1a2b`): ruta y parámetros ordenados, sin `_rsc` (el sello de caché de Next).
+ */
+export function claveNavegacion(url: URL): string {
+  const p = new URLSearchParams(url.search);
+  p.delete("_rsc");
+  p.sort();
+  const qs = p.toString();
+  return qs ? `${url.pathname}?${qs}` : url.pathname;
+}
 
 /**
  * RPC que solo LEEN. Llamarlas desde el navegador es un POST igual que una escritura, así que hay que
@@ -75,8 +92,9 @@ export function clasificarPeticion(p: PeticionEspera): Clasificacion | null {
     if (p.cabecera("next-action")) return { tipo: "guardado" };
     if (metodo === "GET") {
       const esPrefetch = p.cabecera("next-router-prefetch") !== null || p.cabecera("next-router-segment-prefetch") !== null;
-      if (p.cabecera("rsc") === "1" && !esPrefetch) return { tipo: "carga" };
-      return null;
+      if (p.cabecera("rsc") !== "1" || esPrefetch) return null;
+      if (p.sinEspera?.has(claveNavegacion(p.url))) return null; // un buscador por URL: tiene su propia señal
+      return { tipo: "carga" };
     }
     if (metodo !== "HEAD" && metodo !== "OPTIONS" && p.url.pathname.startsWith("/api/")) return { tipo: "guardado" };
     return null;

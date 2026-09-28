@@ -50,6 +50,8 @@ export type CategoriaTemporada = {
   /** Prendas activas que hoy toman la temporada de esta categoría (o que se quedarían sin ninguna): las que se
    *  reclasifican al instante si se cambia. */
   heredan: number;
+  /** Prendas activas de la categoría, tengan o no su propia temporada: el filtro «Con prendas» de la vista. */
+  prendas: number;
 };
 
 /** Una prenda de la lista «Sin temporada». */
@@ -57,6 +59,9 @@ export type PrendaSinTemporada = {
   productoId: string;
   nombre: string;
   codigo: string | null;
+  /** La categoría de la prenda (id y nombre visible), o `null` si no tiene. El id es el del atajo «Ponérsela a la
+   *  categoría» de la vista «Por completar». */
+  categoriaId: string | null;
   categoria: string | null;
   /** Los colores que quedaron sin temporada (nombre del vocabulario; «Sin color» si la variante no tiene). */
   colores: string[];
@@ -98,6 +103,7 @@ export function armarCategorias(
       nombre: nombres.get(c.id) ?? c.nombre,
       temporada: c.temporada,
       heredan: cuantasHeredan(filas, porCategoria.get(c.id) ?? new Set<string>()),
+      prendas: porCategoria.get(c.id)?.size ?? 0,
     }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
@@ -120,6 +126,7 @@ export function armarSinTemporada(
         productoId: producto_id,
         nombre: p?.nombre ?? "Prenda",
         codigo: p?.codigo ?? null,
+        categoriaId: p?.categoriaId ?? null,
         categoria: p?.categoriaId ? (nombreCategoria.get(p.categoriaId) ?? null) : null,
         colores: colores.map((c) => (c ? (nombreColor.get(c) ?? c) : "Sin color")).sort((a, b) => a.localeCompare(b, "es")),
         todosSusColores: colores.length >= (coloresActivos.get(producto_id) ?? 0),
@@ -293,8 +300,140 @@ export type DatosPestanaTemporadas = {
   categorias: CategoriaTemporada[];
   sinTemporada: PrendaSinTemporada[];
   porTemporada: Record<string, number>;
+  /** Prendas activas del catálogo: el total contra el que se lee cuántas faltan en la tarjeta «Por completar». */
+  prendasActivas: number;
   anioHoy: number;
 };
+
+// ---- Las cuatro vistas de la pestaña (ADR-0246, «Actualización 2026-09-28»; ADR-0261) --------------------------------
+
+/**
+ * La pestaña se ve UNA vista a la vez. Desde el ADR-0261 (Felipe, 2026-09-28: «Grilla primero») abre con «Las nueve» en
+ * grilla, igual que las otras cinco pestañas de Atributos; el trabajo —«Por completar», «Por categoría», «Calendario»—
+ * queda a un clic, en la franja de arriba de la grilla, con lo que falta en cada uno. La vista vive en la URL (`?vista=`):
+ * «Completar» de Productos y el enlace de Categorías siguen abriendo directo la suya.
+ */
+export const VISTAS_TEMPORADAS = ["completar", "categorias", "calendario", "lista"] as const;
+export type VistaTemporadas = (typeof VISTAS_TEMPORADAS)[number];
+
+/** La vista pedida en la URL; cualquier otra cosa (o nada) abre «Las nueve», como abre cualquier pestaña de Atributos. */
+export function vistaTemporadas(param: string | null | undefined): VistaTemporadas {
+  return VISTAS_TEMPORADAS.find((v) => v === param) ?? "lista";
+}
+
+// ---- Las nueve en grilla (ADR-0261) -------------------------------------------------------------------------------------
+
+/**
+ * Las estaciones que cubre una temporada, en el orden del año: desde `estacion_desde` hasta la anterior a
+ * `estacion_hasta` (que es cuándo termina). Primavera-Verano cubre dos; Verano, una; el clásico de todo el año, ninguna en
+ * particular (no termina). Sale de los datos de `fn_temporadas`, no de la clave: una temporada nueva se dibuja sola.
+ */
+export function estacionesDe(t: Pick<Temporada, "estacion_desde" | "estacion_hasta">): Estacion[] {
+  if (!t.estacion_desde || !t.estacion_hasta) return [];
+  const desde = ORDEN_ESTACIONES.indexOf(t.estacion_desde);
+  const cubre: Estacion[] = [];
+  for (let k = 0; k < ORDEN_ESTACIONES.length; k++) {
+    const e = ORDEN_ESTACIONES[(desde + k) % ORDEN_ESTACIONES.length];
+    if (e === t.estacion_hasta) break;
+    cubre.push(e);
+  }
+  return cubre;
+}
+
+/** Los grupos de la grilla y de sus píldoras: una estación, las dos mitades del año y los clásicos. */
+export type GrupoTemporada = "una" | "dos" | "clasicos";
+export const ORDEN_GRUPOS_TEMPORADA: readonly GrupoTemporada[] = ["una", "dos", "clasicos"];
+export const GRUPOS_TEMPORADA: Record<GrupoTemporada, { grupo: string; punto: string }> = {
+  una: { grupo: "Una estación", punto: "bg-verde" },
+  dos: { grupo: "Dos estaciones", punto: "bg-taupe-profundo" },
+  clasicos: { grupo: "Clásicos", punto: "bg-tinta/25" },
+};
+
+export function grupoDeTemporada(t: Pick<Temporada, "es_clasico" | "estacion_desde" | "estacion_hasta">): GrupoTemporada {
+  if (t.es_clasico) return "clasicos";
+  return estacionesDe(t).length > 1 ? "dos" : "una";
+}
+
+/**
+ * El tono del dibujo: la mitad del año en que se vende. Primavera y verano, cálido (ámbar); otoño e invierno, frío
+ * (pizarra); los clásicos, neutro (tinta), porque no pertenecen a una mitad.
+ */
+export type TonoTemporada = "calido" | "frio" | "neutro";
+export function tonoDeTemporada(t: Pick<Temporada, "es_clasico" | "estacion_desde" | "estacion_hasta">): TonoTemporada {
+  if (t.es_clasico) return "neutro";
+  const [primera] = estacionesDe(t);
+  return primera === "primavera" || primera === "verano" ? "calido" : "frio";
+}
+
+/** Un grupo de «Por completar»: las prendas sin temporada de UNA categoría. */
+export type GrupoSinTemporada = {
+  /** `null` = «Sin categoría»: sin atajo, cada prenda se completa sola. */
+  categoriaId: string | null;
+  categoria: string;
+  /** La categoría activa del grupo (para su atajo y la confirmación), o `null` si no tiene o está desactivada. */
+  activa: CategoriaTemporada | null;
+  prendas: PrendaSinTemporada[];
+};
+
+/**
+ * Las prendas sin temporada agrupadas por su categoría, de la que más tiene a la que menos: ponerle la temporada a la
+ * categoría completa el grupo entero de una vez, así que lo que más rinde va primero. «Sin categoría» va al final: no
+ * tiene atajo.
+ */
+export function gruposPorCategoria(prendas: readonly PrendaSinTemporada[], categorias: readonly CategoriaTemporada[]): GrupoSinTemporada[] {
+  const activas = new Map(categorias.map((c) => [c.id, c]));
+  const grupos = new Map<string, GrupoSinTemporada>();
+  for (const p of prendas) {
+    const k = p.categoriaId ?? "";
+    const g = grupos.get(k) ?? {
+      categoriaId: p.categoriaId,
+      categoria: p.categoria ?? "Sin categoría",
+      activa: p.categoriaId ? (activas.get(p.categoriaId) ?? null) : null,
+      prendas: [],
+    };
+    g.prendas.push(p);
+    grupos.set(k, g);
+  }
+  return [...grupos.values()].sort(
+    (a, b) =>
+      Number(a.categoriaId === null) - Number(b.categoriaId === null) ||
+      b.prendas.length - a.prendas.length ||
+      a.categoria.localeCompare(b.categoria, "es"),
+  );
+}
+
+/** Las cifras de las cuatro tarjetas que eligen la vista. */
+export type ResumenVistas = {
+  sinTemporada: number;
+  /** Categorías (activas o no) en las que caen las prendas sin temporada. */
+  categoriasConPendientes: number;
+  categoriasSinTemporada: number;
+  categorias: number;
+  prendasActivas: number;
+  /** La estación en curso y cuándo termina (`null` si el calendario no la tiene). */
+  enCurso: { estacion: Estacion; hasta: string | null; siguiente: Estacion } | null;
+};
+
+export function resumenVistas(datos: Pick<DatosPestanaTemporadas, "sinTemporada" | "categorias" | "calendario" | "prendasActivas">): ResumenVistas {
+  const enCurso = datos.calendario.find((e) => e.en_curso) ?? null;
+  return {
+    sinTemporada: datos.sinTemporada.length,
+    categoriasConPendientes: new Set(datos.sinTemporada.map((p) => p.categoriaId ?? "")).size,
+    categoriasSinTemporada: datos.categorias.filter((c) => !c.temporada).length,
+    categorias: datos.categorias.length,
+    prendasActivas: datos.prendasActivas,
+    enCurso: enCurso
+      ? { estacion: enCurso.estacion, hasta: enCurso.hasta, siguiente: ORDEN_ESTACIONES[(ORDEN_ESTACIONES.indexOf(enCurso.estacion) + 1) % ORDEN_ESTACIONES.length] }
+      : null,
+  };
+}
+
+/** «21 dic.» en hora de Perú: la fecha corta de la tarjeta «Calendario» (la hora exacta está en su tabla). */
+export function textoDiaLima(instante: string): string {
+  const [, m, d] = partesLima(instante).fecha.split("-").map(Number);
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+  return `${d} ${MESES[m - 1]}.`;
+}
 
 // ---- Las confirmaciones (textos) --------------------------------------------------------------------------------------
 

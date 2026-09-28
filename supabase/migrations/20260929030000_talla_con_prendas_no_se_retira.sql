@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260929030000 — Una talla con prendas no se retira (ADR-0261, decisión 13, tarea #7)
+-- 20260929030000 — Una talla con prendas no se retira (ADR-0262, decisión 13, tarea #7)
 --
 -- EL PROBLEMA (visto en producción el 2026-09-28)
 --   A las 11:08 entraron 20 u. de «Prueba Pantalon» en 4 tallas. Después alguien desactivó 2 de esas tallas desde
@@ -72,7 +72,7 @@ end;
 $$;
 
 comment on function retail.fn_talla_con_prendas_no_se_retira() is
-  'ADR-0261 decisión 13: una talla (variante) con prendas en alguna sede o en camino no pasa a retirada; el mensaje '
+  'ADR-0262 decisión 13: una talla (variante) con prendas en alguna sede o en camino no pasa a retirada; el mensaje '
   'dice dónde están. Reactivar siempre se puede.';
 
 revoke all on function retail.fn_talla_con_prendas_no_se_retira() from public, anon, authenticated;

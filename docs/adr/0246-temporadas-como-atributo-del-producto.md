@@ -224,3 +224,68 @@ temporada sale de la última llegada del modelo+color a la empresa por lote o pr
 primera carga inicial. En producción no cambia nada hoy: ningún modelo+color tiene lote y carga a la vez (`select` del
 27-sep). Detalle, con DECIDÍ / DESCARTÉ / SE ROMPE SI: ADR-0208, «Revisión 7 del paso 3»; prueba T4i de
 `frescura_lectura.mjs`.
+
+## Actualización 2026-09-28 — la pestaña en cuatro vistas (Felipe, pedido de navegación)
+
+**El problema:** la pestaña eran cuatro secciones seguidas, cada una con una bajada larga: «Las temporadas» (9 filas), el
+calendario (12 filas de 2026–2028), «Por categoría» (44 filas en producción) y, al final, «Prendas sin temporada» (31). Lo
+que se trabaja quedaba al fondo, detrás de unas 65 filas de consulta y configuración, y nada decía en qué parte se estaba
+ni para qué era cada una. En producción, el 28-09: 31 de 33 prendas activas sin temporada, repartidas en solo 11
+categorías, y 6 de 44 categorías con temporada.
+
+**Qué cambió** (`components/TemporadasLista.tsx`, `lib/temporadas-pantalla.ts`; sin migración):
+
+- **Cuatro vistas, una a la vez, en el orden de uso:** «Por completar» (abre por defecto), «Por categoría», «Calendario» y
+  «Las nueve». Las eligen cuatro `TarjetaCifra compacta viva` que dicen sin entrar cuánto falta (31 prendas en 11
+  categorías; 38 de 44 categorías sin temporada; la estación en curso y cuándo termina). La vista vive en la URL
+  (`?vista=completar|categorias|calendario|lista`, `vistaTemporadas`), y el cambio se hace con `history.pushState`: Next
+  sincroniza `useSearchParams` sin pedir la página, así elegir una vista no abre el loader (ADR-0149) por datos que ya están.
+- **«Por completar» agrupa por categoría** (`gruposPorCategoria`, de la que más prendas tiene a la que menos, «Sin categoría»
+  al final) con el atajo «Ponérsela a la categoría» en cada grupo: la misma acción `categoria` de
+  `PATCH /api/productos/temporadas` que ya usaba «Por categoría», con su confirmación (`textoCambioCategoria`). Marcar prendas
+  sueltas sigue para las excepciones, con una barra flotante al pie en vez de la barra dentro de la tabla.
+- **«Por categoría» abre en «Con prendas»**: las categorías sin prendas activas (33 de 44 hoy) no cambian nada al elegirles
+  temporada. `CategoriaTemporada` suma `prendas`; `PrendaSinTemporada` suma `categoriaId`; la pestaña recibe `prendasActivas`.
+- **Movimiento, solo con piezas del sistema** (ADR-0136, ADR-0128): tarjeta `viva` (se levanta y la cruza el barrido de luz),
+  la línea que viaja bajo la elegida (`IndicadorDeslizante`, que suma `selector` y la variante `linea-tinta`: esas tarjetas
+  ya llevan el rojo de «pide algo»), salida de 160 ms y entrada escalonada al cambiar de vista, cifra que se re-asienta,
+  barra de reparto, el grupo completado que se pliega y la fila tocable con su barrita. Filtrar no re-anima lo que ya estaba.
+- Los enlaces de Productos («Completar») y de Categorías abren su vista (`vista=completar` / `vista=categorias`) en vez de
+  saltar a un ancla; la vuelta «← Productos» / «← Categorías» queda arriba de las tarjetas.
+
+DECIDÍ: cuatro vistas elegidas por tarjetas de cifra, con la vista en la URL y «Por completar» agrupado por categoría.
+DESCARTÉ: un índice fijo al costado que marque la sección (`useEnVista`), porque ubica pero deja las ~100 filas y el trabajo
+al fondo, y en celular el índice se come la pantalla; y secciones plegables, porque cada pliegue encoge la página bajo el
+mouse (ADR-0185) y esconden estado que hay que abrir para ver.
+SE ROMPE SI: alguien necesita ver dos vistas a la vez (cambiar la temporada de una categoría y comprobar en el mismo
+instante cuántas prendas salen de «Por completar»): la cifra de la tarjeta, que se actualiza al guardar, es lo que lo
+reemplaza. Y si llega a haber cientos de prendas sin temporada en una sola categoría, el grupo se vuelve largo: ahí
+conviene paginar dentro del grupo (hoy el máximo es 8).
+
+Diferencia con Traslados, a propósito: allí tocar la tarjeta activa quita el filtro; aquí no hace nada, porque siempre hay
+una vista abierta. En celular (dos columnas) la línea que viaja no se dibuja: la elegida se lee por su fondo.
+
+
+## Actualización 2026-09-28 (b) — la pestaña abre con la grilla, como las otras cinco (Felipe; ADR-0261)
+
+**El problema:** la pestaña era la única de Atributos que no se parecía a las demás: sin dibujos, cuatro tarjetas de cifra
+arriba y las nueve en tabla. Felipe pidió que todo el módulo se vea uniforme y eligió «Grilla primero» sabiendo lo que
+pagaba: lo pendiente deja de ser lo primero que se ve.
+
+**Qué cambió** (`components/TemporadasLista.tsx`, `components/MuestraTemporada.tsx`, `lib/temporadas-pantalla.ts`):
+
+- **Abre en «Las nueve»** (`vistaTemporadas` sin `?vista=` devuelve `lista`), en tarjetas con dibujo agrupadas en Una
+  estación · Dos estaciones · Clásicos, con sus píldoras. Cada tarjeta dice cuántas prendas la tienen hoy y cuándo termina.
+- **Las cuatro `TarjetaCifra` se van**; su información queda en una franja sobre la grilla, con un punto de color y un
+  enlace por parte: «10 prendas sin temporada · Completar ›» (punto rojo mientras falte alguna), «42 de 42 categorías sin
+  temporada · Por categoría ›», «Primavera en curso, termina el 21 dic. · Calendario ›». Sigue sin ir al servidor
+  (`history.pushState`).
+- **Cada vista de trabajo tiene «← Las nueve temporadas»** arriba; si se llegó desde Productos o Categorías, además su
+  vuelta («← Productos»). Los enlaces de esas dos pantallas no cambian: siguen abriendo directo su vista.
+
+DECIDÍ: la grilla como entrada y el trabajo a un clic con su cifra a la vista.
+DESCARTÉ: dejar las cuatro tarjetas y solo pasar «Las nueve» a grilla, porque la pestaña seguía viéndose distinta de las
+otras cinco, que era el pedido.
+SE ROMPE SI: con la cifra en una franja nadie entra a completar (en producción, el 28-09, eran 31 de 33 prendas sin
+temporada): si en unas semanas «Por completar» no baja, se vuelve a abrir en «Por completar» cambiando una línea
+(`vistaTemporadas`), sin tocar la grilla.

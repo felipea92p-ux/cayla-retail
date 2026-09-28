@@ -23,6 +23,10 @@ import { useEffect, useLayoutEffect, useRef } from "react";
    Sin JavaScript (o antes de hidratar) el servidor ya pinta la opción activa marcada con su propia
    clase (`cmp-tab-activa` / `cmp-seg-activa`); en cuanto el indicador se coloca pone `data-indicador` en el
    contenedor y esa marca estática se apaga. Los estilos viven en app/estilos/comprobantes-lista.css.
+
+   `selector` + `linea-tinta` (2026-09-28, Temporadas): la misma línea bajo un grupo de tarjetas que eligen una vista
+   (`TarjetaCifra` con `onClick`, que marca la elegida con `aria-pressed`, no con `aria-current`). En tinta y no en rojo:
+   esas tarjetas ya llevan el rojo de «pide algo» en su filete y su cifra (máximo dos rojos por pantalla).
    ==================================================================== */
 
 type Posicion = { x: number; w: number };
@@ -30,7 +34,23 @@ type Posicion = { x: number; w: number };
 const memoria = new Map<string, Posicion & { t: number }>();
 const VIGENCIA_MS = 1500;
 
-export function IndicadorDeslizante({ activa, id, variante }: { activa: string; id: string; variante: "linea" | "pastilla" }) {
+const SELECTOR_MARCADA = '[aria-current]:not([aria-current="false"])';
+const VARIANTE = { linea: "cmp-ind-linea", "linea-tinta": "cmp-ind-linea cmp-ind-tinta", pastilla: "cmp-ind-pastilla" } as const;
+
+export function IndicadorDeslizante({
+  activa,
+  id,
+  variante,
+  selector = SELECTOR_MARCADA,
+  className = "",
+}: {
+  activa: string;
+  id: string;
+  variante: keyof typeof VARIANTE;
+  /** Cómo se reconoce la opción marcada dentro del contenedor. */
+  selector?: string;
+  className?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const ultima = useRef<Posicion | null>(null);
 
@@ -39,7 +59,7 @@ export function IndicadorDeslizante({ activa, id, variante }: { activa: string; 
     const cont = el?.parentElement;
     if (!el || !cont) return;
 
-    const marcada = () => cont.querySelector<HTMLElement>('[aria-current]:not([aria-current="false"])');
+    const marcada = () => cont.querySelector<HTMLElement>(selector);
     const poner = (p: Posicion) => {
       el.style.width = `${p.w}px`;
       el.style.transform = `translateX(${p.x}px)`;
@@ -88,7 +108,7 @@ export function IndicadorDeslizante({ activa, id, variante }: { activa: string; 
     ro.observe(cont);
     ro.observe(activo);
     return () => ro.disconnect();
-  }, [activa, id]);
+  }, [activa, id, selector]);
 
   // Al desmontarse guarda dónde estaba, por si la pantalla se vuelve a montar enseguida.
   useEffect(
@@ -98,5 +118,5 @@ export function IndicadorDeslizante({ activa, id, variante }: { activa: string; 
     [id],
   );
 
-  return <span ref={ref} aria-hidden className={`cmp-ind ${variante === "linea" ? "cmp-ind-linea" : "cmp-ind-pastilla"}`} />;
+  return <span ref={ref} aria-hidden className={`cmp-ind ${VARIANTE[variante]} ${className}`} />;
 }

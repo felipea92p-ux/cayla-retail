@@ -105,6 +105,7 @@
       width 500ms var(--ease-cayla);
   }
   .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-rojo); }
+  .cmp-ind-tinta { background: var(--color-tinta); }
   .cmp-ind-pastilla { top: 0; bottom: 0; background: var(--color-tinta); transition-duration: 450ms; }
   .cmp-tab-activa { border-bottom-color: var(--color-rojo); }
   .cmp-seg-activa { background: var(--color-tinta); }

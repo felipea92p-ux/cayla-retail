@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, type MensajeEspera } from "@/lib/espera-reglas";
+import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 
 /* ====================================================================
@@ -111,6 +111,26 @@ export function EsperaPantalla() {
   return null;
 }
 
+// ---- Las navegaciones de un buscador por URL: no muestran el loader (tienen su «Buscando…» propio) ----
+/** Cuánto vale un anuncio: de sobra para que Next pida la pantalla; después, esa dirección vuelve a ser una carga más. */
+const MS_ANUNCIO = 15_000;
+const sinEspera = new Map<string, number>();
+
+/**
+ * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
+ * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta.
+ */
+export function navegacionSinEspera(href: string) {
+  sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);
+}
+
+/** Cada anuncio sirve UNA vez: si después se vuelve a esa dirección por un clic (menú, «Limpiar todo»), es una carga más. */
+function anunciosVigentes() {
+  const ahora = Date.now();
+  for (const [clave, vence] of sinEspera) if (vence < ahora) sinEspera.delete(clave);
+  return { has: (clave: string) => sinEspera.delete(clave) };
+}
+
 // ---- El interceptor de `fetch`: se instala una sola vez, al cargar el módulo en el navegador ----
 declare global {
   interface Window {
@@ -152,6 +172,7 @@ function instalarInterceptor() {
         cabecera: (n) => cabeceras.get(n),
         origen: window.location.origin,
         hostSupabase,
+        sinEspera: anunciosVigentes(),
       });
     } catch {
       /* si algo raro llega, la petición sigue su camino sin loader */

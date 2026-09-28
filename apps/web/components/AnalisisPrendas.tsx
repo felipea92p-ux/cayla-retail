@@ -134,7 +134,13 @@ export function AnalisisPrendas({
 }) {
   const { prendas, red, grupo, periodo } = datos;
   const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set());
-  const [abierta, setAbierta] = useState<string | null>(null);
+  const [abierta, setAbiertaClave] = useState<string | null>(null);
+  // La talla que tocó en la curva: el detalle la resalta. Clic en el resto de la fila = null (sin talla).
+  const [tallaAbierta, setTallaAbierta] = useState<string | null>(null);
+  const abrir = (clave: string, varianteId: string | null = null) => {
+    setTallaAbierta(varianteId);
+    setAbiertaClave(clave);
+  };
   const [camara, setCamara] = useState(false);
 
   // Solo cuenta lo marcado que se ve en esta página: una prenda marcada que otro filtro u otra página escondió no se lleva
@@ -227,11 +233,11 @@ export function AnalisisPrendas({
                       key={p.clave}
                       role="row"
                       tabIndex={0}
-                      onClick={() => setAbierta(p.clave)}
+                      onClick={() => abrir(p.clave)}
                       onKeyDown={(e) => {
                         if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                           e.preventDefault();
-                          setAbierta(p.clave);
+                          abrir(p.clave);
                         }
                       }}
                       className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")} ${marcadas.has(p.clave) ? "bg-hueso" : ""}`}
@@ -247,7 +253,7 @@ export function AnalisisPrendas({
                         </span>
                       </span>
                       <span role="cell" className="min-w-0">
-                        <CurvaTallas prenda={p} />
+                        <CurvaTallas prenda={p} onAbrirTalla={(varianteId) => abrir(p.clave, varianteId)} />
                       </span>
                       <span role="cell" className="text-center tabular-nums">
                         <span className={`block text-sm font-semibold ${p.vendidas === 0 ? "text-tinta/40" : "text-tinta"}`}>{p.vendidas}</span>
@@ -284,11 +290,11 @@ export function AnalisisPrendas({
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setAbierta(p.clave)}
+                    onClick={() => abrir(p.clave)}
                     onKeyDown={(e) => {
                       if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                         e.preventDefault();
-                        setAbierta(p.clave);
+                        abrir(p.clave);
                       }
                     }}
                     className={`rounded-xl border bg-papel p-3 ${marcadas.has(p.clave) ? "border-tinta ring-1 ring-inset ring-tinta" : "border-sand"}`}
@@ -318,7 +324,7 @@ export function AnalisisPrendas({
                       <Tendencia prenda={p} />
                     </p>
                     <div className="mt-2">
-                      <CurvaTallas prenda={p} />
+                      <CurvaTallas prenda={p} onAbrirTalla={(varianteId) => abrir(p.clave, varianteId)} />
                     </div>
                     {lectura && g !== "otras" && <p className="mt-2 text-xs leading-snug text-tinta/70">{lectura.texto}</p>}
                     <div className="mt-2.5 flex items-center gap-2">
@@ -367,13 +373,15 @@ export function AnalisisPrendas({
       {detalle && (
         <DetallePrendaAnalisis
           prenda={detalle}
+          tallaResaltada={tallaAbierta}
           grupo={grupoMostrado(detalle, grupo)}
           red={red}
           acceso={acceso}
           dias={periodo.dias}
           onPedir={onPedir}
           onClose={() => {
-            setAbierta(null);
+            setAbiertaClave(null);
+            setTallaAbierta(null);
             setEscaneado(null);
           }}
         />

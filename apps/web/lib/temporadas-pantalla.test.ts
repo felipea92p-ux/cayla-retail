@@ -1,21 +1,30 @@
 import { describe, expect, it } from "vitest";
-import type { EventoCalendario, TemporadaEfectiva } from "./temporada-reglas";
+import type { Estacion, EventoCalendario, TemporadaEfectiva } from "./temporada-reglas";
 import {
   anioHoyLima,
   armarCategorias,
   armarSinTemporada,
+  estacionesDe,
   estacionesFaltantes,
   fechasPorAgregar,
   fechasSugeridas,
   filtrarSinTemporada,
+  grupoDeTemporada,
+  gruposPorCategoria,
   motivoSinTemporadas,
   nombresDeCategorias,
   prendasPorTemporada,
   primerAnioVisible,
+  resumenVistas,
   revisarFechas,
   textoAsignar,
   textoCambioCategoria,
+  textoDiaLima,
+  tonoDeTemporada,
   vecinas,
+  vistaTemporadas,
+  type CategoriaTemporada,
+  type PrendaSinTemporada,
   type ProductoParaTemporadas,
 } from "./temporadas-pantalla";
 
@@ -65,9 +74,9 @@ describe("armarCategorias — la cifra que se muestra ANTES de cambiarle la temp
   ];
   it("cuenta las que heredan, ordena por nombre y nombra la subcategoría con su padre", () => {
     expect(armarCategorias(categorias, productos, filas)).toEqual([
-      { id: "c-blusa", nombre: "Blusas", temporada: null, heredan: 1 },
-      { id: "c-banio", nombre: "Ropa de baño", temporada: "verano", heredan: 1 },
-      { id: "c-bikini", nombre: "Ropa de baño › Bikinis", temporada: null, heredan: 0 },
+      { id: "c-blusa", nombre: "Blusas", temporada: null, heredan: 1, prendas: 1 },
+      { id: "c-banio", nombre: "Ropa de baño", temporada: "verano", heredan: 1, prendas: 2 },
+      { id: "c-bikini", nombre: "Ropa de baño › Bikinis", temporada: null, heredan: 0, prendas: 0 },
     ]);
   });
   it("nombresDeCategorias deja igual una categoría sin padre", () => {
@@ -94,8 +103,8 @@ describe("armarSinTemporada — la lista para completar", () => {
       fila("p3", "NEG", null, null, "descontinuado"), // ya no se vende: no se pide
     ];
     expect(armarSinTemporada(filas, productos, colores, categorias)).toEqual([
-      { productoId: "p1", nombre: "Blusa Lino", codigo: "BLU-001", categoria: "Blusas", colores: ["Negro", "Rojo"], todosSusColores: true },
-      { productoId: "p2", nombre: "Abrigo Paño", codigo: null, categoria: null, colores: ["Sin color"], todosSusColores: false },
+      { productoId: "p1", nombre: "Blusa Lino", codigo: "BLU-001", categoriaId: "c-blusa", categoria: "Blusas", colores: ["Negro", "Rojo"], todosSusColores: true },
+      { productoId: "p2", nombre: "Abrigo Paño", codigo: null, categoriaId: null, categoria: null, colores: ["Sin color"], todosSusColores: false },
     ]);
   });
   it("vacía cuando todas tienen temporada", () => {
@@ -251,5 +260,118 @@ describe("las confirmaciones dicen la consecuencia ANTES de guardar", () => {
     expect(t.bajada).toMatch(/si una falla, no cambia ninguna/);
     expect(t.bajada).toMatch(/le pusieron temporada mientras tanto, esa se salta/);
     expect(textoAsignar("Invierno", 3).titulo).toBe("¿Poner «Invierno» a 3 prendas?");
+  });
+});
+
+describe("las cuatro vistas de la pestaña", () => {
+  it("abre «Las nueve» (la grilla, como las otras pestañas) salvo que la URL pida otra que exista", () => {
+    expect(vistaTemporadas(null)).toBe("lista");
+    expect(vistaTemporadas("completar")).toBe("completar"); // «Completar» de Productos
+    expect(vistaTemporadas("categorias")).toBe("categorias"); // el enlace de Categorías
+    expect(vistaTemporadas("calendario")).toBe("calendario");
+    expect(vistaTemporadas("sin-temporada")).toBe("lista"); // el ancla vieja no rompe nada
+  });
+
+  const prenda = (productoId: string, categoriaId: string | null, categoria: string | null): PrendaSinTemporada => ({
+    productoId,
+    nombre: productoId,
+    codigo: null,
+    categoriaId,
+    categoria,
+    colores: ["Negro"],
+    todosSusColores: true,
+  });
+  const categoria = (id: string, nombre: string, temporada: string | null = null): CategoriaTemporada => ({ id, nombre, temporada, heredan: 0, prendas: 0 });
+
+  it("agrupa por categoría, de la que más rinde a la que menos, con «Sin categoría» al final", () => {
+    const prendas = [prenda("a", "c-pol", "Polos"), prenda("b", null, null), prenda("c", "c-bod", "Bodys"), prenda("d", "c-bod", "Bodys"), prenda("e", "c-cam", "Camisas")];
+    const grupos = gruposPorCategoria(prendas, [categoria("c-bod", "Bodys"), categoria("c-cam", "Camisas"), categoria("c-pol", "Polos")]);
+    expect(grupos.map((g) => [g.categoria, g.prendas.length])).toEqual([
+      ["Bodys", 2],
+      ["Camisas", 1],
+      ["Polos", 1],
+      ["Sin categoría", 1],
+    ]);
+    expect(grupos[3].activa).toBeNull();
+  });
+
+  it("una categoría desactivada agrupa igual, pero sin atajo", () => {
+    const [g] = gruposPorCategoria([prenda("a", "c-vieja", "Vieja")], [categoria("c-pol", "Polos")]);
+    expect(g.categoriaId).toBe("c-vieja");
+    expect(g.activa).toBeNull();
+  });
+
+  it("las cifras de las tarjetas: cuántas faltan, en cuántas categorías y la estación en curso", () => {
+    const r = resumenVistas({
+      sinTemporada: [prenda("a", "c-pol", "Polos"), prenda("b", "c-pol", "Polos"), prenda("c", null, null)],
+      categorias: [categoria("c-pol", "Polos"), categoria("c-ban", "Ropa de baño", "verano")],
+      calendario: [ev(2026, "invierno", "2026-06-21T08:24:00+00:00"), { ...ev(2026, "primavera", "2026-09-23T00:05:00+00:00"), en_curso: true, hasta: "2026-12-21T20:50:00+00:00" }],
+      prendasActivas: 33,
+    });
+    expect(r).toEqual({
+      sinTemporada: 3,
+      categoriasConPendientes: 2,
+      categoriasSinTemporada: 1,
+      categorias: 2,
+      prendasActivas: 33,
+      enCurso: { estacion: "primavera", hasta: "2026-12-21T20:50:00+00:00", siguiente: "verano" },
+    });
+  });
+
+  it("después del verano viene el otoño (el ciclo da la vuelta)", () => {
+    const r = resumenVistas({ sinTemporada: [], categorias: [], calendario: [{ ...ev(2026, "verano", "2026-12-21T20:50:00+00:00"), en_curso: true }], prendasActivas: 0 });
+    expect(r.enCurso?.siguiente).toBe("otono");
+  });
+
+  it("la fecha corta de la tarjeta va en hora de Perú", () => {
+    expect(textoDiaLima("2026-12-21T20:50:00+00:00")).toBe("21 dic.");
+    // 02:00 UTC del 1 de enero todavía es 31 de diciembre en Lima
+    expect(textoDiaLima("2027-01-01T02:00:00+00:00")).toBe("31 dic.");
+  });
+});
+
+describe("las nueve en grilla (ADR-0261)", () => {
+  // Las nueve tal como las siembra 20260928100000.
+  const t = (clave: string, es_clasico: boolean, estacion_desde: Estacion | null, estacion_hasta: Estacion | null) => ({ clave, es_clasico, estacion_desde, estacion_hasta });
+  const NUEVE = [
+    t("primavera_verano", false, "primavera", "otono"),
+    t("primavera", false, "primavera", "verano"),
+    t("verano", false, "verano", "otono"),
+    t("otono_invierno", false, "otono", "primavera"),
+    t("otono", false, "otono", "invierno"),
+    t("invierno", false, "invierno", "primavera"),
+    t("clasico", true, null, null),
+    t("clasico_verano", true, "verano", "otono"),
+    t("clasico_invierno", true, "invierno", "primavera"),
+  ];
+  const por = (clave: string) => NUEVE.find((x) => x.clave === clave)!;
+
+  it("cada temporada cubre las estaciones desde la suya hasta la que la termina, dando la vuelta al año", () => {
+    expect(estacionesDe(por("primavera_verano"))).toEqual(["primavera", "verano"]);
+    expect(estacionesDe(por("otono_invierno"))).toEqual(["otono", "invierno"]); // cruza fin de año
+    expect(estacionesDe(por("verano"))).toEqual(["verano"]);
+    expect(estacionesDe(por("clasico_invierno"))).toEqual(["invierno"]);
+    expect(estacionesDe(por("clasico"))).toEqual([]); // todo el año: no termina
+  });
+
+  it("se agrupan en 4 de una estación, 2 de dos y 3 clásicos", () => {
+    const cuenta = (g: string) => NUEVE.filter((x) => grupoDeTemporada(x) === g).map((x) => x.clave);
+    expect(cuenta("una")).toEqual(["primavera", "verano", "otono", "invierno"]);
+    expect(cuenta("dos")).toEqual(["primavera_verano", "otono_invierno"]);
+    expect(cuenta("clasicos")).toEqual(["clasico", "clasico_verano", "clasico_invierno"]);
+  });
+
+  it("el tono sigue la mitad del año; los clásicos, neutros aunque tengan estación", () => {
+    expect(NUEVE.map((x) => [x.clave, tonoDeTemporada(x)])).toEqual([
+      ["primavera_verano", "calido"],
+      ["primavera", "calido"],
+      ["verano", "calido"],
+      ["otono_invierno", "frio"],
+      ["otono", "frio"],
+      ["invierno", "frio"],
+      ["clasico", "neutro"],
+      ["clasico_verano", "neutro"],
+      ["clasico_invierno", "neutro"],
+    ]);
   });
 });

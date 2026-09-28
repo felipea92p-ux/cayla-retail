@@ -203,7 +203,7 @@ ${intento("vacio", pedirSql("'[]'::jsonb"))}
 ${intento("cantidad_cero", pedirSql(LINEAS(["v1", 0])))}
 ${intento("sin_variante", pedirSql(`jsonb_build_array(jsonb_build_object('cantidad', 1))`))}
 ${intento("mas_de_100", pedirSql(`(select jsonb_agg(jsonb_build_object('variante_id', gen_random_uuid(), 'cantidad', 1)) from generate_series(1, 101))`))}
--- Talla retirada CON prendas: desde 20260929030000 (ADR-0261) eso ya no se puede producir, pero existe en datos
+-- Talla retirada CON prendas: desde 20260929030000 (ADR-0262) eso ya no se puede producir, pero existe en datos
 -- viejos y esta prueba cubre justo ese caso: se arma sin disparadores, solo dentro de esta transacción.
 set local session_replication_role = replica;
 update retail.variantes set activo = false where id = :'v2';

@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
@@ -217,6 +219,16 @@ export function RegistrarGastoModal({
     router.refresh();
   }
 
+  // «¿Salir sin guardar?» (2026-09-28). Escape, el velo, la ✕ o «Cancelar» cerraban la hoja y lo tipeado (monto, serie,
+  // proveedor) se perdía sin aviso. Todos pasan por `pedirAccion`; guardar bien cierra directo. La foto de apertura ya
+  // trae lo que llega precargado (un egreso por clasificar, un gasto fijo): solo cuenta lo que la persona cambió.
+  const fotoActual = fotoFormulario({ b, documento, activo, nuevoProveedor });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const avisoSalida = useSalidaSinGuardar(
+    fotoActual !== fotoAlAbrir,
+    `Llenaste parte de este ${esActivo ? "activo" : "gasto"} y todavía no se registró. Si cierras ahora, se pierde lo que llenaste.`
+  );
+
   const titulo = egreso ? (esActivo ? "Es un activo fijo" : "Es un gasto") : esActivo ? "Registrar activo fijo" : fijo ? `Registrar ${fijo.descripcion.toLowerCase()}` : "Registrar gasto";
   const bajada = egreso
     ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} que salieron del cajón · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
@@ -328,7 +340,7 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} ancho="max-w-[620px]">
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={() => avisoSalida.pedirAccion(onCerrar)} ancho="max-w-[620px]">
       {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
       {!esActivo && bloqueComprobante}
       <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]">
@@ -490,13 +502,14 @@ export function RegistrarGastoModal({
       <ComboResponsable control={responsable} deshabilitado={guardando} />
 
       <div className="fin-botones mt-4">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+        <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando}>
           Cancelar
         </button>
         <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
           {guardando ? "Guardando…" : egreso ? (esActivo ? "Guardar como activo" : "Guardar como gasto") : esActivo ? "Registrar activo" : "Registrar gasto"}
         </button>
       </div>
+      {avisoSalida.aviso}
     </Modal>
   );
 }
