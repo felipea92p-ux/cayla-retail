@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtrarColores, filtrarPorNombre } from "./atributos-buscar";
+import { filtrarColores, filtrarPorNombre, GRUPOS_USO, ORDEN_USO, usoDe } from "./atributos-buscar";
 
 describe("filtrarColores", () => {
   const colores = [
@@ -44,5 +44,19 @@ describe("filtrarPorNombre", () => {
 
   it("por contenido, no solo prefijo", () => {
     expect(filtrarPorNombre(tejidos, "nim").map((t) => t.nombre)).toEqual(["Denim"]);
+  });
+});
+
+describe("usoDe", () => {
+  it("con al menos una prenda está en uso; sin fila en el conteo, sin prendas", () => {
+    const prendas = { a: 3, b: 0 };
+    expect(usoDe("a", prendas)).toBe("en-uso");
+    expect(usoDe("b", prendas)).toBe("sin-prendas");
+    expect(usoDe("c", prendas)).toBe("sin-prendas");
+  });
+
+  it("los grupos salen en el orden de las píldoras: primero lo que se usa", () => {
+    expect(ORDEN_USO).toEqual(["en-uso", "sin-prendas"]);
+    expect(ORDEN_USO.map((u) => GRUPOS_USO[u].grupo)).toEqual(["En uso", "Sin prendas"]);
   });
 });

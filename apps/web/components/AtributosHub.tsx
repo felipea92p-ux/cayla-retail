@@ -70,7 +70,7 @@ const AYUDA: Record<Tipo, string> = {
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",
   etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Black Friday, Para liquidar). No es la etiqueta física de código de barras.",
   temporadas:
-    "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Frescura la usa para comparar verano con verano y avisar cuando termina su estación.",
+    "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Al empezar la estación que la termina, Frescura avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola).",
 };
 
 function IconoTab({ d, className = "h-4 w-4" }: { d: string; className?: string }) {

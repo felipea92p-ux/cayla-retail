@@ -1,17 +1,28 @@
 "use client";
 
-import { FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
-import { Search, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoSelect, CampoTexto, Hilo } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import {
+  AccionTarjeta,
+  BarraAtributos,
+  BotonesPendiente,
+  BotonReactivar,
+  GRILLA_ATRIBUTOS,
+  PieTarjeta,
+  SinCoincidencias,
+  TarjetaAtributo,
+  TituloGrupo,
+} from "@/components/atributos/kit";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
@@ -94,8 +105,22 @@ function gruposPorFamilia(lista: Color[]) {
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
 // así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, familia, className = "h-12 w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
+function Muestra({ hex, familia, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
   return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+}
+
+/** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
+function DetalleColor({ c }: { c: Color }) {
+  return (
+    <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+      <span className="font-mono">{c.codigo}</span>
+      {c.pantoneTcx && (
+        <span className="font-mono" title="Código Pantone para pedir la tela">
+          {c.pantoneTcx}
+        </span>
+      )}
+    </p>
+  );
 }
 
 // Aviso, no candado: el color que se está creando o editando se ve casi igual que otro del vocabulario
@@ -144,7 +169,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoCodigo, setRechazandoCodigo] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
+  // La familia de la píldora elegida (ADR-0261). La grilla solo se re-asienta cuando la persona cambia un filtro, nunca
+  // al cargar la pantalla: el movimiento responde a una acción (ver globals.css).
+  const [familia, setFamilia] = useState<string>("todas");
+  const [animar, setAnimar] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -160,9 +188,18 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const activos = colores.filter((c) => c.activo);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
-  const activosVisibles = filtrarColores(activos, busqueda);
-  const desactivadosVisibles = filtrarColores(desactivados, busqueda);
-  const buscandoAlgo = busqueda.trim() !== "";
+  const familiaDe = (c: Color) => (FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor) ? c.familiaColor : "sin-familia");
+  const pasaFamilia = (c: Color) => familia === "todas" || familiaDe(c) === familia;
+  const activosVisibles = filtrarColores(activos, busqueda).filter(pasaFamilia);
+  const desactivadosVisibles = filtrarColores(desactivados, busqueda).filter(pasaFamilia);
+  const hayFiltros = familia !== "todas" || busqueda.trim() !== "";
+  const quitarFiltros = () => {
+    setFamilia("todas");
+    setBusqueda("");
+    setAnimar(true);
+  };
+  // Las píldoras: solo las familias que tienen algún color activo, en el orden de siempre (Neutro, Azul, Rojo…).
+  const familiasConColores = gruposPorFamilia(activos);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
   const codigosUsados = new Set(colores.map((c) => c.codigo));
@@ -311,108 +348,75 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <p className="text-sm text-tinta/70" aria-live="polite">
-          {buscandoAlgo ? `${activosVisibles.length} de ` : ""}
-          {activos.length} color{activos.length === 1 ? "" : "es"}
-        </p>
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              onFocus={() => setBuscando(true)}
-              onBlur={() => setBuscando(false)}
-              placeholder="Nombre, código o sinónimo"
-              aria-label="Buscar color"
-              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => setBusqueda("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
+      <BarraAtributos
+        etiqueta="Filtrar colores"
+        filtros={
+          <>
+            <BotonFiltro activo={familia === "todas"} onClick={() => { setFamilia("todas"); setAnimar(true); }} cuenta={activos.length}>
+              Todos
+            </BotonFiltro>
+            {familiasConColores.map((g) => (
+              <BotonFiltro
+                key={g.familia}
+                activo={familia === g.familia}
+                onClick={() => { setFamilia(familia === g.familia ? "todas" : g.familia); setAnimar(true); }}
+                cuenta={g.colores.length}
               >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <Hilo activo={buscando} />
-          </div>
-          <button
-            type="button"
-            onClick={abrir}
-            className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar color
-          </button>
-        </div>
-      </div>
+                {g.texto}
+              </BotonFiltro>
+            ))}
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar color", placeholder: "Buscar color o código" }}
+        agregar={{ texto: "+ Agregar color", onClick: abrir }}
+      />
 
-      {buscandoAlgo && activosVisibles.length + desactivadosVisibles.length === 0 && (
-        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-tinta/75">Ningún color coincide con «{busqueda.trim()}».</p>
-          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setBusqueda("")}>
-            Quitar búsqueda
-          </Boton>
-        </div>
+      {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {busqueda.trim() ? <>Ningún color coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ningún color cumple estos filtros."}
+        </SinCoincidencias>
       )}
 
-      {gruposPorFamilia(activosVisibles).map(({ familia, texto, colores: coloresDeLaFamilia }) => (
-        <section key={familia} className="space-y-3">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            {texto} <span className="text-tinta/40">· {coloresDeLaFamilia.length}</span>
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {coloresDeLaFamilia.map((c) => (
-              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-                <Muestra hex={c.hex} familia={c.familiaColor} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
-                  {c.estado === "pendiente" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+      <div key={familia} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+        {gruposPorFamilia(activosVisibles).map(({ familia: clave, texto, colores: coloresDeLaFamilia }) => (
+          <section key={clave} className="space-y-3">
+            <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
+              {texto}
+            </TituloGrupo>
+            <div className={GRILLA_ATRIBUTOS}>
+              {coloresDeLaFamilia.map((c) => (
+                <TarjetaAtributo
+                  key={c.codigo}
+                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                  nombre={c.nombre}
+                  notas={c.notas}
+                  insignia={c.estado === "pendiente" ? "Pendiente" : null}
+                  detalle={<DetalleColor c={c} />}
+                >
+                  {puedeEditar && (
+                    <>
+                      {c.estado === "pendiente" && (
+                        <BotonesPendiente
+                          aprobando={aprobandoCodigo === c.codigo}
+                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
+                          onRechazar={() => {
+                            setRechazandoAbierto(c.codigo);
+                            setMotivoRechazo("");
+                          }}
+                        />
+                      )}
+                      {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
+                      <PieTarjeta>
+                        <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
+                      </PieTarjeta>
+                    </>
                   )}
-                </div>
-                <div className="flex justify-between gap-2 text-[11px] text-tinta/65">
-                  <span className="font-mono">{c.codigo}</span>
-                  {c.pantoneTcx && <span className="font-mono" title="Código Pantone para pedir la tela">{c.pantoneTcx}</span>}
-                </div>
-                {puedeEditar && (
-                  <div className="flex gap-2">
-                    {c.estado === "pendiente" && (
-                      <Boton
-                        peso="primario"
-                        className="flex-1 px-2.5 py-1.5 text-[11px]"
-                        cargando={aprobandoCodigo === c.codigo}
-                        onClick={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
-                      >
-                        Aprobar
-                      </Boton>
-                    )}
-                    {c.estado === "pendiente" && (
-                      <Boton
-                        peso="discreto"
-                        className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                        onClick={() => {
-                          setRechazandoAbierto(c.codigo);
-                          setMotivoRechazo("");
-                        }}
-                      >
-                        Rechazar
-                      </Boton>
-                    )}
-                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
-                      Editar
-                    </Boton>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+                </TarjetaAtributo>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
 
       {agregando && (
         <Modal
@@ -496,33 +500,30 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       )}
 
       {desactivadosVisibles.length > 0 && (
-        <section className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no se pueden elegir en una prenda nueva</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <section className="space-y-3">
+          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en una prenda nueva</TituloGrupo>
+          <div className={GRILLA_ATRIBUTOS}>
             {desactivadosVisibles.map((c) => (
-              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
-                <Muestra hex={c.hex} familia={c.familiaColor} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
-                  {c.estado === "rechazado" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                  )}
-                </div>
-                <div className="flex justify-between text-[11px] text-tinta/65">
-                  <span className="font-mono">{c.codigo}</span>
-                  <span>{c.familiaColor ?? "—"}</span>
-                </div>
+              <TarjetaAtributo
+                key={c.codigo}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                nombre={c.nombre}
+                insignia={c.estado === "rechazado" ? "Rechazado" : null}
+                detalle={
+                  <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+                    <span className="font-mono">{c.codigo}</span>
+                    <span>{textoDeFamilia(c.familiaColor)}</span>
+                  </p>
+                }
+                apagada
+              >
                 {puedeEditar && (
-                  <Boton
-                    peso="discreto"
-                    className="px-2.5 py-1.5 text-[11px]"
-                    cargando={cambiandoCodigo === c.codigo}
+                  <BotonReactivar
+                    cambiando={cambiandoCodigo === c.codigo}
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => reactivar(c)))}
-                  >
-                    {cambiandoCodigo === c.codigo ? "…" : "Reactivar"}
-                  </Boton>
+                  />
                 )}
-              </div>
+              </TarjetaAtributo>
             ))}
           </div>
         </section>
