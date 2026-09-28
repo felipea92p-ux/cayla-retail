@@ -1,12 +1,27 @@
 // Pruebas del comparador de deriva. Sin dependencias: `node --test scripts/migraciones/deriva.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONOCIDAS, compararHuellas, informe, leerHuellas, resumen } from "./deriva.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const SCRIPT = join(RAIZ, "scripts", "migraciones", "deriva.mjs");
+
+/** Corre el script como lo corre `deriva-diaria.yml`: el código de salida es lo que decide el aviso. */
+function correr(main, produccion, ...opciones) {
+  const dir = mkdtempSync(join(tmpdir(), "deriva-"));
+  const rutas = [main, produccion].map((contenido, i) => {
+    if (contenido === null) return join(dir, `no-existe-${i}.tsv`);
+    writeFileSync(join(dir, `${i}.tsv`), contenido);
+    return join(dir, `${i}.tsv`);
+  });
+  const r = spawnSync(process.execPath, [SCRIPT, ...rutas, ...opciones], { encoding: "utf8" });
+  return { codigo: r.status, salida: r.stdout, error: r.stderr };
+}
 
 const celda = (...lineas) => lineas.map((l) => l.join("\t")).join("\n");
 
@@ -84,4 +99,27 @@ test("la función de producción es la consulta de deriva.sql al pie de la letra
   assert.ok(ruta, "deriva.sql fija su search_path");
   const funcion = migracion.slice(migracion.indexOf("create or replace function retail.huellas_catalogo"));
   assert.match(funcion, new RegExp(`set search_path = ${ruta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\n`));
+});
+
+test("el script sale con 1 ante UNA sola diferencia y con 0 si son iguales (el aviso diario depende de ese código)", () => {
+  const main = celda(["fn", "f()", "aaaaaaaaaaaa"], ["fn", "g()", "bbbbbbbbbbbb"]);
+  const iguales = correr(main, main, "--resumen");
+  assert.equal(iguales.codigo, 0, iguales.error);
+  assert.match(iguales.salida, /^✓ /);
+  const una = correr(main, celda(["fn", "f()", "aaaaaaaaaaaa"], ["fn", "g()", "cccccccccccc"]), "--resumen");
+  assert.equal(una.codigo, 1, una.error);
+  assert.match(una.salida, /^✗ /);
+});
+
+test("si no puede leer una celda sale con 2 (no con el 1 de «hay diferencias») y en público no la repite", () => {
+  const main = celda(["fn", "f()", "aaaaaaaaaaaa"]);
+  // Lo que escribe `jq -r .` si producción responde null, una página de error, un archivo que no está y una celda vacía.
+  for (const [nombre, produccion] of [["null", "null\n"], ["html", "<html>502 fn_secreta(x int)\n"], ["sin archivo", null], ["vacía", ""]]) {
+    const r = correr(main, produccion, "--resumen");
+    assert.equal(r.codigo, 2, `${nombre}: ${r.error}`);
+    assert.equal(r.salida, "", `${nombre}: no publica una línea de resumen`);
+    assert.ok(!r.error.includes("fn_secreta"), `${nombre}: el registro público no repite la respuesta`);
+  }
+  // En privado (sin --resumen) sí dice qué línea rompió.
+  assert.match(correr(main, "<html>502\n").error, /mal formada: <html>502/);
 });

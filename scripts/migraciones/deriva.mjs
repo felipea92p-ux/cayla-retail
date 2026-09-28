@@ -23,7 +23,9 @@
  *      (20260928210000, ADR-0251).
  *
  * QUÉ PROMETE. Lista, en palabras del negocio, lo que está en main y no en producción, lo que está en producción y no
- * en main, y lo que está en las dos con otra versión. Sale con código 1 si hay algo que no está en CONOCIDAS.
+ * en main, y lo que está en las dos con otra versión. Sale con código 1 si hay algo que no está en CONOCIDAS, y con 2 si
+ * no pudo comparar (un archivo que falta, una celda vacía o mal formada): «no pude mirar» nunca se dice como «hay
+ * diferencias» ni como «iguales».
  *
  * QUÉ NO PUEDE DECIR. De lo «distinto» no sabe cuál de las dos versiones es la nueva: eso se mira con
  * `pg_get_functiondef` en producción y `git log -S` en el repo. Tampoco mira datos (filas sembradas por una migración):
@@ -83,6 +85,8 @@ export function leerHuellas(texto) {
     if (!g || !k || !h) throw new Error(`Línea de huellas mal formada: ${linea.slice(0, 120)}`);
     huellas.set(`${g}\t${k}`, h);
   }
+  // Una base con retail tiene miles de objetos: una celda vacía es una respuesta rota, no «producción no tiene nada».
+  if (huellas.size === 0) throw new Error("La celda de huellas está vacía.");
   return huellas;
 }
 
@@ -170,14 +174,27 @@ export function resumen(r) {
   return `✗ ${total} diferencia${total === 1 ? "" : "s"} entre producción y main: ${partes.join(", ")}.`;
 }
 
+/**
+ * Sale con 0 si son iguales, 1 si hay diferencias y 2 si no pudo comparar (uso incorrecto, un archivo que no está, una
+ * celda vacía o mal formada). `deriva-diaria.yml` toma el 2 como «hoy no se pudo comparar», nunca como diferencias: sin
+ * el `catch`, Node sale con 1 ante cualquier error y el aviso diría «hay diferencias» con la línea vacía.
+ */
 function main() {
   const [rutaMain, rutaProd, ...opciones] = process.argv.slice(2);
   if (!rutaMain || !rutaProd) {
     console.error("Uso: node scripts/migraciones/deriva.mjs <huellas-main> <huellas-produccion> [--markdown | --resumen]");
     process.exit(2);
   }
-  const r = compararHuellas(leerHuellas(readFileSync(rutaMain, "utf8")), leerHuellas(readFileSync(rutaProd, "utf8")));
-  console.log(opciones.includes("--resumen") ? resumen(r) : informe(r, { markdown: opciones.includes("--markdown") }));
+  const publico = opciones.includes("--resumen");
+  let r;
+  try {
+    r = compararHuellas(leerHuellas(readFileSync(rutaMain, "utf8")), leerHuellas(readFileSync(rutaProd, "utf8")));
+  } catch (e) {
+    // Con --resumen el registro es público, y el motivo puede traer un pedazo de la respuesta de producción.
+    console.error(publico ? "✗ No se pudo comparar: una de las celdas de huellas no se pudo leer." : `✗ No se pudo comparar: ${e.message}`);
+    process.exit(2);
+  }
+  console.log(publico ? resumen(r) : informe(r, { markdown: opciones.includes("--markdown") }));
   if (r.soloMain.length + r.soloProduccion.length + r.distintas.length > 0) process.exit(1);
 }
 
