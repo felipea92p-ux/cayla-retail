@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de ADR-0257 «corregir el color y la talla de una variante que ya existe» (D-136, D-137, D-138) contra el
- * Postgres LOCAL: migración `20260928235500_corregir_color_y_talla_de_variantes.sql`.
+ * Postgres LOCAL: migración `20260928235900_corregir_color_y_talla_de_variantes.sql`.
  *
  * QUÉ CUBRE (los números son los del contrato de la base)
  *   1. BOD-0003 tal cual: una prenda «Sin color» S/M/L con su carga inicial (8/5/4 en Trujillo) se corrige a Negro desde
@@ -54,7 +54,7 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20260928235500_corregir_color_y_talla_de_variantes.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante con Productos (seed): edita el catálogo, no es líder
 const NADIE = "22222222-2222-4222-8222-0000000000ff"; // una sesión sin persona: no edita el catálogo
@@ -812,7 +812,7 @@ rollback;`);
     return "la migración pasó con duplicados";
   } catch (e) {
     const msg = String(e.stderr ?? e.message);
-    if (!msg.includes("20260928235500: hay variantes repetidas") || !msg.includes("GEN-")) return msg.split("\n").slice(0, 4).join("\n");
+    if (!msg.includes("20260928235900: hay variantes repetidas") || !msg.includes("GEN-")) return msg.split("\n").slice(0, 4).join("\n");
   }
 });
 
@@ -821,7 +821,7 @@ caso("+ la migración se puede pegar dos veces: un candado, un índice, cada fun
 select 'x', (select count(*) from pg_trigger where tgname = 'variantes_identidad_solo_por_funcion')
   || ',' || (select count(*) from pg_indexes where indexname = 'variantes_identidad_unica')
   || ',' || (select count(*) from pg_constraint where conname = 'variantes_producto_talla_color_unico')
-  || ',' || (select string_agg(((length(prosrc) - length(replace(prosrc, '20260928235500', ''))) / 14)::text, ',' order by proname)
+  || ',' || (select string_agg(((length(prosrc) - length(replace(prosrc, '20260928235900', ''))) / 14)::text, ',' order by proname)
                from pg_proc where pronamespace = 'retail'::regnamespace
                 and proname in ('catalogo_actualizar_producto', 'fn_asignar_codigo_variante', 'fn_productos', 'fn_registrar_cambio_producto'));
 rollback;`);

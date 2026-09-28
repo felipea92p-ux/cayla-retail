@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260928235500_corregir_color_y_talla_de_variantes.sql — CAYLA V2 · ADR-0257 (D-136, D-137, D-138)
+-- 20260928235900_corregir_color_y_talla_de_variantes.sql — CAYLA V2 · ADR-0257 (D-136, D-137, D-138)
 -- Corregir el color y la talla de una variante que ya existe, desde su ficha (Felipe, 2026-09-28)
 --
 -- EL PROBLEMA PRIMERO. BOD-0003 «Body Amir» nació «Sin color» y sus tres variantes ya tienen su carga inicial (8/5/4 en
@@ -95,7 +95,7 @@
 --
 -- CÓMO (parches). Mismo patrón que 20260924160000 y 20260927190000: se parte de la definición VIVA (`pg_get_functiondef`)
 -- y se reemplazan anclas que tienen que aparecer EXACTAMENTE una vez, o la migración aborta sin tocar nada. Re-pegable: si
--- la función ya lleva la marca 20260928235500, no se vuelve a parchar. Huellas md5(prosrc) antes del parche en la base
+-- la función ya lleva la marca 20260928235900, no se vuelve a parchar. Huellas md5(prosrc) antes del parche en la base
 -- local (2026-09-28; las tres primeras son las que se midieron en producción ese día): catalogo_actualizar_producto
 -- a66ff20a82f0e022b454cce0d04a1dad, fn_registrar_cambio_producto c4f2676e8f9dc11153b1c36e9c95b728, fn_productos
 -- 8af6c222ec07356ed4912af92409c3de, fn_asignar_codigo_variante aea116da6a51f1e4fdf8abcab37856e7. Si producción tuviera
@@ -117,7 +117,7 @@
 --   drop function if exists retail.fn_corregir_identidad_variante(uuid, uuid, jsonb);
 --   drop function if exists retail.fn_variantes_estado(uuid);
 --   y quitar de catalogo_actualizar_producto, fn_registrar_cambio_producto, fn_asignar_codigo_variante y fn_productos
---   los bloques marcados «20260928235500» (fn_codigo_variante_libre se borra al final, cuando nadie la llame). El índice
+--   los bloques marcados «20260928235900» (fn_codigo_variante_libre se borra al final, cuando nadie la llame). El índice
 --   `variantes_identidad_unica` conviene dejarlo: es el candado que faltaba.
 -- ============================================================================
 
@@ -157,7 +157,7 @@ begin
           having count(*) > 1) d
     join retail.productos p on p.id = d.producto_id;
   if v_repetidas is not null then
-    raise exception '20260928235500: hay variantes repetidas (misma prenda, talla y color) y el candado de identidad no se puede crear: %. Desactiva y ajusta una de cada par, bórrala si no tiene historia, y vuelve a pegar.', v_repetidas;
+    raise exception '20260928235900: hay variantes repetidas (misma prenda, talla y color) y el candado de identidad no se puede crear: %. Desactiva y ajusta una de cada par, bórrala si no tiene historia, y vuelve a pegar.', v_repetidas;
   end if;
 end;
 $$;
@@ -171,7 +171,7 @@ do $$
 begin
   if (select pg_get_indexdef('retail.variantes_identidad_unica'::regclass))
        <> 'CREATE UNIQUE INDEX variantes_identidad_unica ON retail.variantes USING btree (producto_id, talla_id, color_codigo) NULLS NOT DISTINCT' then
-    raise exception '20260928235500: retail.variantes_identidad_unica existe con otra forma: %. Revisar antes de pegar.',
+    raise exception '20260928235900: retail.variantes_identidad_unica existe con otra forma: %. Revisar antes de pegar.',
       pg_get_indexdef('retail.variantes_identidad_unica'::regclass);
   end if;
 end;
@@ -255,7 +255,7 @@ comment on function retail.fn_codigo_variante_libre(text, uuid) is
 -- Ayudante de esta migración (nombre propio: los pg_temp de otras migraciones viven en la misma sesión al migrar en
 -- local). Parte de la definición VIVA, exige cada ancla EXACTAMENTE una vez y no hace nada si ya lleva la marca.
 -- ----------------------------------------------------------------------------
-create or replace function pg_temp.parchar_235500(p_firma text, p_anclas text[], p_nuevos text[], p_marca text)
+create or replace function pg_temp.parchar_235900(p_firma text, p_anclas text[], p_nuevos text[], p_marca text)
 returns void
 language plpgsql
 as $$
@@ -265,19 +265,19 @@ declare
 begin
   v_def := pg_get_functiondef(p_firma::regprocedure);
   if position(p_marca in v_def) > 0 then
-    raise notice '20260928235500: % ya tenía el parche (se volvió a pegar)', p_firma;
+    raise notice '20260928235900: % ya tenía el parche (se volvió a pegar)', p_firma;
     return;
   end if;
   for i in 1 .. array_length(p_anclas, 1) loop
     v_veces := (length(v_def) - length(replace(v_def, p_anclas[i], ''))) / length(p_anclas[i]);
     if v_veces <> 1 then
-      raise exception '20260928235500: % no tiene el ancla % esperada (aparece % veces). Revisar su definición viva antes de pegar.',
+      raise exception '20260928235900: % no tiene el ancla % esperada (aparece % veces). Revisar su definición viva antes de pegar.',
         p_firma, i, v_veces;
     end if;
     v_def := replace(v_def, p_anclas[i], p_nuevos[i]);
   end loop;
   execute v_def;
-  raise notice '20260928235500: % parchada', p_firma;
+  raise notice '20260928235900: % parchada', p_firma;
 end;
 $$;
 
@@ -288,15 +288,15 @@ do $$
 declare
   v_ancla constant text := E'  update variantes set codigo = v_codigo where id = p_variante_id;\n';
 begin
-  perform pg_temp.parchar_235500(
+  perform pg_temp.parchar_235900(
     'retail.fn_asignar_codigo_variante(uuid)',
     array[v_ancla],
     array[
-      E'  -- 20260928235500 (D-137): si otra variante ya usa este código (p. ej. el viejo de una Negro S corregida a Azul,\n'
+      E'  -- 20260928235900 (D-137): si otra variante ya usa este código (p. ej. el viejo de una Negro S corregida a Azul,\n'
       '  -- que sigue pegado en su percha), la nueva nace con -2, -3… en vez de chocar.\n'
       '  v_codigo := retail.fn_codigo_variante_libre(v_codigo, p_variante_id);\n'
       || v_ancla],
-    '20260928235500');
+    '20260928235900');
 end;
 $$;
 
@@ -507,12 +507,12 @@ declare
   v_ancla_b constant text := E'      insert into variantes (producto_id, color_codigo, talla_id, sku, precio, costo)\n';
   v_ancla_c constant text := E'  -- ADR-0193: la versión nueva (el update de arriba la subió), para un segundo guardado sin recargar.\n';
 begin
-  perform pg_temp.parchar_235500(
+  perform pg_temp.parchar_235900(
     'retail.catalogo_actualizar_producto(uuid,text,text,jsonb,uuid,text,integer,text,boolean,jsonb,uuid,uuid,uuid,uuid,boolean,integer)',
     array[v_ancla_d, v_ancla_a, v_ancla_b, v_ancla_c],
     array[
       -- (d) Antes del update de la prenda: los candados de las correcciones, en el orden de T8.
-      E'  -- 20260928235500 (ADR-0257, T8): los candados de una corrección van ANTES de este update, que toma la fila única\n'
+      E'  -- 20260928235900 (ADR-0257, T8): los candados de una corrección van ANTES de este update, que toma la fila única\n'
       '  -- de catalogo_version (disparador por sentencia) hasta el final. Si la variante se bloqueara después, un cierre de\n'
       '  -- producción o una recepción que ya insertó su movimiento (FOR KEY SHARE de la variante) y después recalcula su\n'
       '  -- costo (catalogo_version) cerraría un círculo con esta ficha: 40P01. Orden: la prenda → las variantes que DE\n'
@@ -534,14 +534,14 @@ begin
       || v_ancla_d,
       -- (a) Antes del update de una variante existente.
       E'    if v_id is not null then\n'
-      '      -- 20260928235500 (ADR-0257, D-136): si la ficha manda color o talla, pasa por la corrección (todo o nada con\n'
+      '      -- 20260928235900 (ADR-0257, D-136): si la ficha manda color o talla, pasa por la corrección (todo o nada con\n'
       '      -- este guardado). Una ficha vieja manda los que ya tiene: no cambia nada ni pide permisos de más.\n'
       '      if v_variante ? ''color_codigo'' or v_variante ? ''talla_id'' then\n'
       '        perform retail.fn_corregir_identidad_variante(p_producto_id, v_id, v_variante);\n'
       '      end if;\n'
       '      if v_ve_costo then\n',
       -- (b) Antes de insertar una variante nueva.
-      E'      -- 20260928235500 (ADR-0257): el color de una variante nueva tiene que estar activo, como en el alta.\n'
+      E'      -- 20260928235900 (ADR-0257): el color de una variante nueva tiene que estar activo, como en el alta.\n'
       '      if nullif(v_variante->>''color_codigo'', '''') is not null and not exists (\n'
       '        select 1 from colores where codigo = nullif(v_variante->>''color_codigo'', '''') and activo\n'
       '      ) then\n'
@@ -550,7 +550,7 @@ begin
       '      end if;\n'
       || v_ancla_b,
       -- (c) Antes del return final.
-      E'  -- 20260928235500 (ADR-0257): una prenda es «Sin color» o tiene colores, no las dos cosas a la vez (una «Sin color S»\n'
+      E'  -- 20260928235900 (ADR-0257): una prenda es «Sin color» o tiene colores, no las dos cosas a la vez (una «Sin color S»\n'
       '  -- junto a una «Negro S» son la misma talla vendida en dos filas). Las desactivadas no cuentan.\n'
       '  if exists (select 1 from variantes where producto_id = p_producto_id and activo and color_codigo is null)\n'
       '     and exists (select 1 from variantes where producto_id = p_producto_id and activo and color_codigo is not null) then\n'
@@ -558,7 +558,7 @@ begin
       '      using hint = ''mezcla_sin_color'';\n'
       '  end if;\n\n'
       || v_ancla_c],
-    '20260928235500');
+    '20260928235900');
 end;
 $$;
 
@@ -569,12 +569,12 @@ do $$
 declare
   v_ancla constant text := E'        old.costo::text, new.costo::text, v_usuario_id);\n    end if;\n';
 begin
-  perform pg_temp.parchar_235500(
+  perform pg_temp.parchar_235900(
     'retail.fn_registrar_cambio_producto()',
     array[v_ancla],
     array[
       v_ancla ||
-      E'    -- 20260928235500 (ADR-0257, D-136): la identidad corregida y el activar/desactivar también dejan rastro, con quien\n'
+      E'    -- 20260928235900 (ADR-0257, D-136): la identidad corregida y el activar/desactivar también dejan rastro, con quien\n'
       '    -- firma. La talla, con su valor legible (no el uuid); el código, solo si ya tenía (la asignación inicial no es un cambio).\n'
       '    if new.color_codigo is distinct from old.color_codigo then\n'
       '      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)\n'
@@ -594,7 +594,7 @@ begin
       '      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)\n'
       '      values (''variante'', new.id, ''activo'', old.activo::text, new.activo::text, v_usuario_id);\n'
       '    end if;\n'],
-    '20260928235500');
+    '20260928235900');
 end;
 $$;
 
@@ -654,18 +654,18 @@ comment on function retail.fn_variantes_estado(uuid) is
 -- ----------------------------------------------------------------------------
 do $$
 begin
-  perform pg_temp.parchar_235500(
+  perform pg_temp.parchar_235900(
     'retail.fn_productos(text,uuid,text,text,numeric,numeric,text,integer,integer,text,uuid,uuid)',
     array[E'and pf.color_codigo is not distinct from v.color_codigo\n    order by pf.orden'],
     array[
       E'and (pf.color_codigo is not distinct from v.color_codigo or pf.color_codigo is null)\n'
-      '    -- 20260928235500 (ADR-0228/0257): la de su color primero; si su color no tiene, la general.\n'
+      '    -- 20260928235900 (ADR-0228/0257): la de su color primero; si su color no tiene, la general.\n'
       '    order by (pf.color_codigo is null), pf.orden'],
-    '20260928235500');
+    '20260928235900');
 end;
 $$;
 
-drop function pg_temp.parchar_235500(text, text[], text[], text);
+drop function pg_temp.parchar_235900(text, text[], text[], text);
 
 -- PostgREST: que vea las funciones nuevas sin reiniciar.
 notify pgrst, 'reload schema';
@@ -682,5 +682,5 @@ notify pgrst, 'reload schema';
 --     has_function_privilege('authenticated', 'retail.fn_codigo_variante_libre(text, uuid)', 'execute') as libre_api, -- false
 --     (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
 --        and p.proname in ('catalogo_actualizar_producto', 'fn_registrar_cambio_producto', 'fn_asignar_codigo_variante', 'fn_productos')
---        and p.prosrc like '%20260928235500%') as parchadas;                                                          -- 4
+--        and p.prosrc like '%20260928235900%') as parchadas;                                                          -- 4
 -- ----------------------------------------------------------------------------

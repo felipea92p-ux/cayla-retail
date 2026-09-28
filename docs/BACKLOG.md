@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0257; D-136 a D-138) — web + migración `20260928235500` **SIN PEGAR (va ANTES de fusionar)**; rama `claude/product-variant-editing-9307ed`
+## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0257; D-136 a D-138) — web + migración `20260928235900` **SIN PEGAR (va ANTES de fusionar, tras retirar el ADR-0258 de producción)**; rama `claude/product-variant-editing-9307ed`
 Pedido de Felipe (2026-09-28, captura de BOD-0003 «Body Amir», 3 variantes «Sin color» con 17 u. de carga inicial): «una vez
 creado el producto la edición es muy limitada… mejor de lo que haría Shopify». Reemplaza ADR-0243 D-133 (color, talla y código
 de solo lectura).
@@ -42,9 +42,16 @@ de solo lectura).
 - [x] Pruebas: `pnpm pruebas:corregir-variantes` 44/44 (carreras reales con COMMIT y mutación) en el CI; 16 suites de catálogo en
   verde sobre una base rehecha desde cero con `main` fusionado; web 215 archivos / 152.384 pruebas; revisión adversarial de 5
   lentes: 17 hallazgos confirmados, todos resueltos.
-- [ ] **Pegar `20260928235500` en producción ANTES de fusionar** (una sola parte; toma `access exclusive` sobre `variantes` con
-  `lock_timeout` de 3 s: si la tienda la tiene tomada, falla limpio y se vuelve a pegar). Con la web nueva y la base vieja, la
-  ficha no ofrece corregir (lo dice); con la web vieja y la base nueva, todo sigue igual. Después: refrescar el diccionario.
+- [ ] **Pegar en producción ANTES de fusionar, en dos partes y en este orden** (Felipe eligió ADR-0257 sobre ADR-0258, que
+  ya estaba pegado: ver la «Actualización» del ADR):
+  1. `scripts/migraciones/retirar-adr-0258-de-produccion.sql` — sola (trae `drop trigger`). Deshace lo del ADR-0258 y aborta si
+     las dos funciones no vuelven a su huella de la mañana.
+  2. `supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql` — sola; toma `access exclusive` sobre
+     `variantes` con `lock_timeout` de 3 s (si la tienda la tiene tomada, falla limpio y se vuelve a pegar).
+  Con la web nueva y la base vieja, la ficha no ofrece corregir (lo dice); con la web vieja y la base nueva, todo sigue igual.
+  Después: refrescar el diccionario. **El pegado automático desde Claude Code lo bloqueó el clasificador de seguridad
+  (2026-09-28):** lo pega Felipe en el SQL Editor, o da el permiso para que se pegue por el conector.
+- [ ] **Cerrar el PR #572 (ADR-0258)** sin fusionar su SQL, para que nadie lo vuelva a pegar.
 - [ ] **Abierto (T8):** una venta de dos tallas en orden inverso al id contra la corrección de esas dos tallas todavía puede dar
   40P01; la ficha reintenta una vez y, si vuelve, lo dice con palabras. Cerrarlo del todo es que `fn_bloquear_en_orden` tome
   `for key share` en Ventas, Traslados, Compras y Producción (decisión de varios módulos).

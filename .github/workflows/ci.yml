@@ -966,7 +966,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
-      # Corregir el color y la talla de una variante que ya existe (20260928235500, ADR-0257 D-136/137/138): una prenda
+      # Corregir el color y la talla de una variante que ya existe (20260928235900, ADR-0257 D-136/137/138): una prenda
       # «Sin color» con carga inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y
       # los viejos sonando en la misma variante, historial firmado y versión nueva; el choque con una variante existente
       # (activa o no) se rechaza todo o nada; vendida o separada, solo líder; el candado de la tabla frena el update directo;

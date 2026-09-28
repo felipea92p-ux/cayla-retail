@@ -16,7 +16,7 @@
  *   PROMETE: dado el estado local de las filas, decir qué se ve en cada grupo de color, qué corrección choca con otra
  *            variante (D-138, «Sin color» cuenta como un color), qué viaja en `p_variantes` y en qué orden (las claves
  *            de identidad SOLO en las corregidas), qué falta para guardar y qué va a pasar al guardar, en palabras.
- *   ASUME:   la base es la que manda (`fn_corregir_identidad_variante`, 20260928235500): lo de aquí es para avisar
+ *   ASUME:   la base es la que manda (`fn_corregir_identidad_variante`, 20260928235900): lo de aquí es para avisar
  *            ANTES y mostrar lo mismo que va a quedar (código previsto, fotos y temporada que siguen al color). Si
  *            algo de aquí se equivoca, la base rechaza y la ficha muestra su frase.
  *   NO HACE: no lee ni escribe en la base; no decide permisos (el «solo líder» lo exige la base con la cuenta);

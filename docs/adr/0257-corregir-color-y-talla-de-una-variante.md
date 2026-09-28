@@ -7,8 +7,12 @@
 - **Número:** nació como ADR-0254 y migración `20260928233000` (reservados el 2026-09-28 y subidos a la rama); el 0254 lo
   tomó en `main` la Tabla de Productos (#561) antes de fusionar esta rama, y la migración tiene que correr después de
   `20260928235000`, que ya estaba en `main` y en producción. Cede quien llega después a `main`: pasó a 0257 y `235500`.
-- **Migración:** `20260928235500_corregir_color_y_talla_de_variantes.sql` (sin pegar en producción).
-- **Reemplaza:** ADR-0243 D-133 («color, talla y código de una variante existente son de solo lectura»).
+  Después pasó a `235900`: la migración rival de ADR-0258 usaba `235500` y dejó esa misma marca en dos funciones de
+  producción, y el parche de esta migración la habría leído como «ya estaba» (ver «Actualización: ADR-0258»).
+- **Migración:** `20260928235900_corregir_color_y_talla_de_variantes.sql` (sin pegar en producción). Antes, en su propia
+  parte: `scripts/migraciones/retirar-adr-0258-de-produccion.sql`.
+- **Reemplaza:** ADR-0243 D-133 («color, talla y código de una variante existente son de solo lectura») y ADR-0258
+  (PR #572, «solo sin historia»), que llegó a pegarse en producción.
 - **Actualiza:** ADR-0025, invariante 1 (el código «nunca se recalcula, ni al corregir el color»).
 - **Complementa:** ADR-0069 (identidad de la variante), ADR-0193 (edición simultánea), ADR-0212 (alta con stock),
   ADR-0218 (qué es «historia»), ADR-0246 (temporada por color), ADR-0228 (fotos).
@@ -73,7 +77,7 @@ SE ROMPE SI: aparece un duplicado real con stock en las dos: hasta la fase «Uni
 
 ## Decisiones técnicas
 
-Base: `supabase/migrations/20260928235500_corregir_color_y_talla_de_variantes.sql` (su cabecera tiene el detalle y cómo
+Base: `supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql` (su cabecera tiene el detalle y cómo
 se deshace). Web: `apps/web/lib/variantes-ficha-reglas.ts` (reglas puras, con su contrato en la cabecera) y
 `apps/web/components/ficha-producto/`. Prueba de la base: `pnpm pruebas:corregir-variantes` (en el CI).
 
@@ -226,3 +230,35 @@ SE ROMPE SI: una operación cita VARIAS de las variantes que se corrigen en el m
   si cae la ficha, repite el guardado UNA vez (`conUnReintentoSiChoca`: la base deshizo todo, repetir es seguro; medido
   en psql: el segundo intento pasa en ~20 ms) y, si vuelve a caer, lo dice con palabras (`FRASE_CHOQUE_DE_CANDADOS`) en
   vez de «deadlock detected».
+
+## Actualización 2026-09-28 (noche): ADR-0258 llegó primero a producción y se retira
+
+**Qué pasó.** Otra sesión construyó en paralelo lo mismo (ADR-0258, rama `claude/product-sizes-colors-edit-a83b77`,
+PR #572) con la regla «solo sin historia» (D-139) y «el código viejo deja de leerse» (D-140). Su migración usaba el
+número `20260928235500` —el mismo que esta tenía entonces— y se pegó en producción por el SQL Editor (sin fila en
+`schema_migrations`) poco antes de pegar esta. La sonda previa lo detectó: `catalogo_actualizar_producto` y
+`fn_registrar_cambio_producto` ya no tenían la huella medida esa mañana.
+
+```
+DECIDÍ (Felipe, 2026-09-28: «Opción 1 y permíteme limpiar todo porque solo hemos estado en fase prueba»): se queda
+        ADR-0257 (D-136/D-137/D-138). Lo de ADR-0258 se retira de producción con un script propio
+        (scripts/migraciones/retirar-adr-0258-de-produccion.sql), que se pega SOLO y ANTES de 20260928235900: deshace sus
+        dos parches por texto exacto, borra su disparador (drop trigger: por eso va aparte, regla de ADR-0195) y sus tres
+        funciones, y comprueba que las dos funciones volvieron a su huella de la mañana (a66ff20a…, c4f2676e…) o aborta.
+        No toca datos (la web del 0258 nunca se publicó). La migración pasó a 20260928235900 para que su marca sea única.
+DESCARTÉ: (a) quedarse con ADR-0258: no arregla BOD-0003 (su propio SE ROMPE SI lo dice) y deja de leer las etiquetas
+        pegadas; (b) pegar esta migración encima tal cual: su parche con ancla ve la marca «20260928235500» del 0258 y
+        habría dicho «ya estaba» sin aplicar nada, en silencio; (c) meter la limpieza en la migración: el drop trigger
+        junto al `lock table variantes` es justo la mezcla que ADR-0195 prohíbe.
+SE ROMPE SI: alguien vuelve a pegar el SQL del 0258 después (su rama sigue existiendo): la limpieza se puede re-pegar,
+        pero la migración de esta ADR ya no la deshace. Por eso el PR #572 se cierra y su SQL no entra a `main`.
+```
+
+**Cómo se probó.** Una réplica privada con `main` + la migración del 0258 dio las MISMAS cuatro huellas que producción
+(`8d5e64ea`, `8727cba4`, `da6b205a`, `102076a4`); sobre ella, la limpieza devolvió las dos funciones a su huella de la
+mañana y es re-pegable; la migración parchó las cuatro, y las ocho huellas finales son idénticas a las de una base
+limpia; `corregir_variantes` 44/44 y las suites de catálogo en verde sobre esa réplica.
+
+**Lo que había de más en el 0258 en producción mientras tanto:** su corrección bloqueaba cada variante (`for update`)
+antes de mirar si cambiaba algo, y la ficha actual manda color y talla de todas: cada guardado de una ficha bloqueaba
+todas sus variantes y podía chocar con una venta (40P01). La limpieza lo quita.

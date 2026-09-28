@@ -250,7 +250,7 @@ const HUELLAS: Huella[] = [
     frase: 'Ya existe una variante con ese SKU — revisa el catálogo en vez de crear uno nuevo.',
   },
   {
-    // 20260928235500_corregir_color_y_talla_de_variantes.sql (ADR-0257) — vuelve el candado de identidad con
+    // 20260928235900_corregir_color_y_talla_de_variantes.sql (ADR-0257) — vuelve el candado de identidad con
     // `nulls not distinct`: una talla y un color van una sola vez por prenda, y «Sin color» cuenta como un color. La talla
     // ya no se compara por texto (es de la lista cerrada, `talla_id`). Las funciones avisan antes con su frase y el código
     // de la que ya existe (D-138); esto es la red si algún camino se salta el aviso.
@@ -420,7 +420,7 @@ const HUELLAS: Huella[] = [
 const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
 
 /**
- * `hint` de la corrección de color y talla de una variante (ADR-0257, 20260928235500). Su mensaje ya viene en castellano
+ * `hint` de la corrección de color y talla de una variante (ADR-0257, 20260928235900). Su mensaje ya viene en castellano
  * de CAYLA y dice qué hacer («Ya existe Negro S en esta prenda (BOD-0003-NEG-S), pero está desactivada: reactívala…»).
  * Tres llegan con `42501` (el candado de la tabla, el permiso de catálogo y el «solo un líder»), que sin esto caerían al
  * genérico con «Código:».

@@ -458,7 +458,7 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
   });
 });
 
-// ADR-0257 (20260928235500): corregir el color y la talla de una variante que ya existe. Las funciones dicen qué pasó y
+// ADR-0257 (20260928235900): corregir el color y la talla de una variante que ya existe. Las funciones dicen qué pasó y
 // qué hacer, con el código de la variante que ya está; dos de sus rechazos llegan con 42501 (permiso) y no deben caer al
 // genérico con «Código:».
 describe("corregir color y talla de una variante (ADR-0257)", () => {

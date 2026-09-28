@@ -155,7 +155,7 @@ describe("corregir (D-136) y choques (D-138)", () => {
   it("una talla corregida sobre otra que ya está activa: otra combinación, o PRIMERO pasar sus unidades y DESPUÉS desactivar", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m")], N);
     const choque = choqueDeCorreccion(filas, ["a"], { tallaId: "t-m" });
-    // Sin saber el stock: la misma frase que la base (hint variante_ya_existe, 20260928235500).
+    // Sin saber el stock: la misma frase que la base (hint variante_ya_existe, 20260928235900).
     expect(textoChoque(choque!, { tallaId: "t-m" }, filas, CTX)).toBe(
       "Ya existe Negro M en esta prenda (BOD-0003-NEG-M). Elige otra combinación; si de verdad son la misma prenda, pasa su stock a esa con un ajuste y después desactiva esta.",
     );
