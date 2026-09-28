@@ -28,16 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **SIN PEGAR en producción** (la web cae al camino viejo sin ella); rama `claude/table-view-decision-59a288`
+## 🧮 Productos: la Tabla rediseñada, la cabecera de Ventas y descontinuar en bloque con la regla de Editar (2026-09-28, ADR-0254) — web + migración `20260928235000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928175107`, md5 del cuerpo igual al local); rama `claude/table-view-decision-59a288`
 Pedido de Felipe (2026-09-28): ¿hace falta la Tabla si la Grilla muestra todo con fotos? → maqueta (`docs/maquetas/productos-administrar-2026-09/`)
 → «para todo el que vea catálogo, que se siga llamando Tabla, margen bajo 45 %, la cabecera de Ventas, los filtros de la Grilla y lo más
 responsive posible».
 - [x] Tabla nueva (`ProductosTabla.tsx`): foto, colores, tallas en curva, precio, costo, margen con barra, stock con ritmo, estado; ficha de variantes; acciones al pasar el mouse y en la ficha; tarjetas debajo de 768 px de tabla.
-- [x] Cabecera `EncabezadoPagina` + `ResumenSede` (Productos, Para pedir, Stock bajo, Sin stock); `NotaStockTotal.tsx` borrada (su texto pasó a la frase).
+- [x] Cabecera `EncabezadoPagina` con Grilla/Tabla y «+ Nuevo producto» a la derecha, sin cifras (Felipe quitó las cuatro el mismo día); `NotaStockTotal.tsx` borrada (su texto pasó a la frase). Sin el aviso de altas del conteo (`getProductosPendientesAlta` borrada).
 - [x] Filtros de una sola forma (la plegable de la Grilla) en las dos vistas.
 - [x] `cambiar_estado_productos`: todo o nada, al reactivar revisa marca y proveedor y nombra la prenda; prueba `pnpm pruebas:productos-estado-en-bloque` (16/16) en el CI.
 - [x] `ResumenSede` ya no desborda la página en tablet con cuatro cifras (también arregla Devoluciones).
-- [ ] **Pegar `20260928235000` en producción** (función nueva, sin tablas ni políticas: se pega sola) y refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`, `pnpm datos:comparar`).
+- [x] **`20260928235000` aplicada en producción** (2026-09-28, permiso de Felipe; verificada: una firma, invoker, `anon` sin permiso, md5 igual al local).
+- [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`, `pnpm datos:comparar`).
+- [ ] Decidir si las altas al vuelo pendientes de revisar necesitan una lista en otra pantalla (el aviso de Productos se quitó; Existencias las marca fila por fila).
 - [ ] **Decisión de Felipe: un solo umbral de margen.** Hoy hay tres: alta de producto 30 % (`nivelMargen`), Producción 40/60 % sobre costo directo (`semaforoMargen`) y la Tabla 45 % (`UMBRAL_MARGEN_BAJO`, provisional).
 - [ ] Mirar la Tabla con una cuenta de colaboradora que vea Productos sin `verDineroCompras`: no debe ver costo ni margen.
 - Cómo verificas:

@@ -2,8 +2,9 @@
 
 **Fecha:** 2026-09-28
 **Estado:** Construido y verificado en local: navegador a 1.440, 768 y 375 px; descontinuar y reactivar dos prendas de punta a punta
-contra la RPC nueva; prueba SQL 16/16. **Migración `20260928235000` SIN pegar en producción** (la web funciona sin ella: cae al `update`
-directo de antes).
+contra la RPC nueva; prueba SQL 16/16. **Migración `20260928235000` EN PRODUCCIÓN desde el 2026-09-28** (Felipe: «te doy permiso que la
+pegues tú»; aplicada por MCP, registrada como versión `20260928175107`; verificada: una firma, security invoker, `anon` sin permiso,
+`authenticated` con permiso y md5 del cuerpo sin comentarios igual al local, `d65db5d0…`).
 **Decide:** Felipe, 2026-09-28. Primero preguntó si la Tabla hacía falta, con la Grilla mostrando todo con fotos. Le propuse tres caminos
 (quitarla, solo cambiarle el look, o dejarla solo para el líder). Eligió el tercero y pidió la maqueta
 (`docs/maquetas/productos-administrar-2026-09/`). Al construir lo ajustó: **«para todo el mundo que pueda visualizar catálogo, ya que
@@ -60,9 +61,12 @@ Además, sin permiso, la RLS dejaba el `update` en cero filas y la pantalla dec�
   ficha dice «sin costo» en la que falta.
 
 **4. La cabecera de Ventas en Productos.**
-- DECIDÍ: `EncabezadoPagina` (sede y fecha con el hilo, «Productos» en 46 px, frase) con `ResumenSede` a la derecha: Productos, Para
-  pedir, Stock bajo y Sin stock. Las tres de stock filtran al tocarlas, y Para pedir y Stock bajo se pintan en ámbar si hay alguna. Las
-  acciones (Grilla/Tabla y «+ Nuevo producto») bajan solas bajo la frase. La nota «Stock total» (`NotaStockTotal.tsx`, borrada) pasó a
+- DECIDÍ: `EncabezadoPagina` (sede y fecha con el hilo, «Productos» en 46 px, frase) con las acciones a la derecha (Grilla/Tabla y
+  «+ Nuevo producto»). **Actualización (Felipe, mismo día, sobre la captura):** se construyó primero con `ResumenSede` a la derecha
+  (Productos, Para pedir, Stock bajo, Sin stock) y Felipe pidió quitar las cuatro cifras y subir las acciones a su lugar; también quitar
+  el aviso «N prendas dadas de alta durante un conteo, pendientes de revisar» (se borró `getProductosPendientesAlta`, sin otro uso).
+  Consecuencia aceptada: las altas al vuelo siguen marcadas fila por fila en Existencias, pero ya no hay una lista que las junte; y
+  «Para pedir / Stock bajo / Sin stock» quedan en el filtro Stock y en «A quién pedirle». La nota «Stock total» (`NotaStockTotal.tsx`, borrada) pasó a
   la frase: «el stock es el total de todas las sedes y el Taller; para una sola sede, mira Existencias».
 - Arreglo de paso en la pieza compartida: `ResumenSede` pedía desde 640 px un mínimo por cifra, y con cuatro cifras en una tablet con el
   menú abierto desbordaba la página 29 px en horizontal (también en Devoluciones). Ahora el mínimo corre desde 1.024 px; debajo, las
@@ -106,5 +110,6 @@ rangos, margen), con sus pruebas.
 
 ## Pendiente
 
-- Pegar `20260928235000` en producción (se pega sola, no toca tablas ni políticas) y refrescar el diccionario.
+- Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) con `cambiar_estado_productos`.
+- Si hace falta, una lista de las altas al vuelo pendientes de revisar en otra pantalla (Conteo o Inicio).
 - Decidir el umbral de margen único (30 / 40–60 / 45 %).
