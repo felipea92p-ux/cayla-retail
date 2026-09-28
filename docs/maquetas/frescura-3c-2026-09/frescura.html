@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Frescura del piso · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ======================================================================================================
+   MAQUETA · Frescura del piso, paso 4 de ADR-0208 (2026-09-28)
+   Para que Felipe ELIJA colores y frases antes de construir la pantalla real. El panel «Elige» (tinta,
+   abajo a la derecha) NO existe en el ERP: cambia la maqueta en vivo y arma la respuesta
+   («colores B, frases A»).
+   · Tokens: copia literal de apps/web/app/globals.css (ADR-0169). Ningún color fuera de ellos: los tintes
+     son `color-mix(token N %, transparent)`, igual que `bg-verde/15` de Tailwind.
+   · Orden de pantalla (Inventario, ADR-0220): EncabezadoPagina → filtros y tabla en UNA tarjeta → nota.
+   · Hoja de detalle: efecto de <Modal variante="hoja"> (ADR-0136): velo con desenfoque, hoja que sube
+     18 px y crece, contenido en cascada de 55 ms, salida corta; todo se apaga con movimiento reducido.
+   · Combos: sin <select> del navegador (ADR-0209); con más de 8 opciones, buscador.
+   · Modelo: lib/frescura-reglas.ts de la rama claude/frescura-3c-lectura (revisión 8).
+   TODAS LAS CIFRAS Y PRENDAS SON SIMULADAS.
+   ====================================================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--taupe-profundo:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-profundo:#44583a;--ambar:#74501a;
+  --ambar-profundo:#734f15;--tinta-60:#5b544c;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --shadow-lg:0 18px 44px -14px rgb(26 26 24 / .16);
+  --r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  /* tintes (bg-x/N de Tailwind) */
+  --verde-15:color-mix(in oklab,var(--verde) 15%,transparent);
+  --ambar-15:color-mix(in oklab,var(--ambar) 15%,transparent);
+  --rojo-10:color-mix(in oklab,var(--rojo) 10%,transparent);
+  --pizarra-15:color-mix(in oklab,var(--pizarra) 15%,transparent);
+  --taupe-15:color-mix(in oklab,var(--taupe) 15%,transparent);
+  --tinta-10:color-mix(in oklab,var(--tinta) 10%,transparent);
+  --tinta-35:color-mix(in oklab,var(--tinta) 35%,transparent);
+  --tinta-70:color-mix(in oklab,var(--tinta) 70%,transparent);
+  --hueso-50:color-mix(in oklab,var(--hueso) 50%,transparent);
+  --hueso-85:color-mix(in oklab,var(--hueso) 85%,transparent);
+  --sand-40:color-mix(in oklab,var(--sand) 40%,transparent);
+  --sand-70:color-mix(in oklab,var(--sand) 70%,transparent);
+  --crema-60:color-mix(in oklab,var(--crema) 60%,transparent);
+  --lateral:17rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif;color:var(--tinta);background:var(--crema);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+input{font:inherit;color:inherit}
+a{color:inherit}
+.display{font-family:'EB Garamond',ui-serif,Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.label{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--taupe)}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid color-mix(in oklab,var(--rojo) 60%,transparent);outline-offset:2px;border-radius:6px}
+
+/* ───────── armazón del ERP (lateral + barra) ───────── */
+.app{display:grid;grid-template-columns:var(--lateral) minmax(0,1fr);min-height:100vh}
+.lateral{position:sticky;top:0;height:100vh;border-right:1px solid var(--sand);padding:22px 14px;overflow:auto;background:var(--crema)}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px 22px;font-weight:600;letter-spacing:.34em;font-size:13px}
+.logo i{width:20px;height:16px;border:1.5px solid var(--tinta);border-radius:60% 10% 60% 10%;display:block}
+.lateral nav{display:grid;gap:2px}
+.lateral a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:10px;color:var(--tinta-60);font-size:14px;text-decoration:none;cursor:default}
+.lateral a.sub{padding-left:38px;font-size:13.5px}
+.lateral a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.lateral a.grupo{color:var(--tinta);font-weight:500}
+.barra{height:60px;border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:14px;padding:0 32px;justify-content:flex-end}
+.barra .menu{display:none}
+.sede-sel{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);border-radius:var(--r-md);padding:5px 11px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--taupe)}
+.main{padding:34px 32px 140px;max-width:1240px}
+
+/* ───────── EncabezadoPagina ───────── */
+.enc{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px}
+.enc-izq{min-width:0;flex:1 1 340px}
+.hilo{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe-profundo)}
+.hilo:before{content:"";display:block;width:32px;height:1px;background:var(--taupe);flex:none;transform-origin:left;animation:dibuja 1.1s var(--ease-cayla) .25s backwards}
+h1.titulo{font-family:'EB Garamond',ui-serif,Georgia,serif;font-weight:600;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.frase{margin-top:10px;max-width:30rem;font-size:15px;color:var(--tinta-60)}
+.pie-enc{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--taupe)}
+.pie-enc b{color:var(--tinta);font-weight:600}
+.sube{animation:sube .85s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+@keyframes sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes dibuja{from{transform:scaleX(0)}}
+
+/* ResumenSede (sin sombra: va pegado al fondo) */
+.resumen{flex:none;border-radius:var(--r-2xl);background:color-mix(in oklab,var(--papel) 70%,transparent);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--tinta) 7%,transparent);display:flex}
+.resumen>*{position:relative;flex:1 1 0;min-width:6.4rem;display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 10px}
+.resumen>*+*:before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(to bottom,transparent,color-mix(in oklab,var(--tinta) 20%,transparent),transparent)}
+.resumen button{margin:4px;border-radius:16px;transition:background-color .2s}
+.resumen button:hover,.resumen button[aria-pressed=true]{background:color-mix(in oklab,var(--hueso) 70%,transparent)}
+.cifra-v{font-family:'EB Garamond',serif;font-weight:600;font-size:42px;line-height:1;white-space:nowrap}
+.cifra-v small{font-size:22px;margin-left:1px}
+.cifra-pre{font-size:11px;color:var(--taupe);height:15px;line-height:15px;margin-bottom:2px}
+.cifra-l{margin-top:8px;font-size:12px;line-height:1.25;color:var(--tinta-60);display:flex;align-items:center;justify-content:center;gap:5px;max-width:7.5rem}
+.cifra-v .suf{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--taupe);margin-left:4px}
+.cifra-l svg{width:14px;height:14px;color:var(--taupe)}
+.cifra-v.alerta{color:var(--ambar-profundo)}.cifra-l.alerta{color:var(--ambar-profundo);font-weight:600}.cifra-l.alerta svg{color:currentColor}
+.cifra-v.roja{color:var(--rojo)}.cifra-l.roja{color:var(--rojo-profundo);font-weight:600}.cifra-l.roja svg{color:currentColor}
+
+/* ───────── Chip (insignia con punto) ───────── */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:1px 10px;font-size:12.5px;line-height:20px;white-space:nowrap;background:var(--sand);color:var(--taupe)}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.sin-punto:before{display:none}
+.chip.verde{background:var(--verde-15);color:var(--verde-profundo)}
+.chip.ambar{background:var(--ambar-15);color:var(--ambar-profundo)}
+.chip.rojo{background:var(--rojo-10);color:var(--rojo-profundo)}
+.chip.pizarra{background:var(--pizarra-15);color:var(--pizarra)}
+.chip.neutro{background:var(--sand);color:var(--taupe)}
+.chip.hueso{background:var(--hueso);color:var(--tinta)}
+.chip.contorno{background:transparent;box-shadow:inset 0 0 0 1px var(--sand);color:var(--taupe)}
+.chip.contorno-punteado{background:transparent;border:1px dashed color-mix(in oklab,var(--taupe) 55%,transparent);color:var(--taupe);padding:0 9px}
+.chip.chico{font-size:11.5px;padding:0 8px;line-height:18px}
+
+/* ───────── botones y controles ───────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-md);border:1px solid transparent;padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.btn-chico{padding:5px 12px;font-size:12.5px}
+.btn-primario{background:var(--tinta);color:var(--crema)}.btn-primario:hover{background:var(--rojo-profundo)}
+.btn-secundario{color:var(--tinta);border-color:var(--sand)}.btn-secundario:hover{border-color:color-mix(in oklab,var(--taupe) 40%,transparent);background:color-mix(in oklab,var(--sand) 50%,transparent)}
+.btn-sutil{color:var(--taupe);border-color:var(--sand)}.btn-sutil:hover{color:var(--tinta);background:color-mix(in oklab,var(--sand) 30%,transparent)}
+.btn-enlace{padding:0;color:var(--tinta);text-decoration:underline;text-underline-offset:2px}.btn-enlace:hover{color:var(--taupe)}
+.pildora{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.pildora:hover{color:var(--tinta);background:var(--sand-40)}
+.pildora[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pildora .n{font-weight:500;opacity:.8}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:var(--r-md);transition:border-color .15s}
+.caja:focus-within{border-color:color-mix(in oklab,var(--taupe) 55%,transparent)}
+.buscar{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;flex:1 1 220px;min-width:0;max-width:340px}
+.buscar input{border:0;background:transparent;outline:none;flex:1;min-width:0;font-size:14px}
+.buscar input::placeholder{color:var(--taupe)}
+.buscar svg{color:var(--taupe)}
+
+/* Desplegable (sin <select>) */
+.combo{position:relative}
+.combo>button{height:38px;padding:0 10px 0 12px;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;min-width:170px;justify-content:space-between}
+.combo>button .que{color:var(--taupe);font-size:12px}
+.combo>button svg{color:var(--taupe);width:14px;height:14px}
+.lista{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:240px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:6px;animation:revelar 240ms var(--ease-cayla) both}
+@keyframes revelar{from{opacity:0;transform:translate3d(0,-3px,0)}}
+.lista .busca{display:flex;align-items:center;gap:6px;margin:2px 2px 6px;padding:0 10px;height:34px}
+.lista .busca input{border:0;background:transparent;outline:none;flex:1;min-width:0;font-size:13px}
+.lista [role=option]{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:7px 10px;border-radius:8px;font-size:13.5px;cursor:pointer}
+.lista [role=option]:hover,.lista [role=option].act{background:color-mix(in oklab,var(--tinta) 4%,transparent)}
+.lista [role=option][aria-selected=true]{font-weight:600}
+.lista [role=option] .n{color:var(--taupe);font-size:12px;font-weight:400}
+.lista .grupo-op{padding:8px 10px 3px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.lista .vacio{padding:8px 10px;color:var(--taupe);font-size:13px}
+
+/* ───────── tarjeta con filtros y tabla ───────── */
+.tarjeta{margin-top:30px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);overflow:hidden}
+.herr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px 20px}
+.herr .der{margin-left:auto;display:flex;gap:10px;align-items:center}
+.d5{display:flex;align-items:flex-start;gap:8px;padding:0 20px 14px;font-size:13px;color:var(--taupe)}
+.d5 svg{margin-top:2px;color:var(--taupe)}
+.d5 b{color:var(--tinta);font-weight:600}
+
+.grupo-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:16px 20px 12px;border-top:1px solid var(--sand);background:var(--papel)}
+.grupo-cab h2{font-family:'EB Garamond',serif;font-weight:600;font-size:22px;line-height:1.1}
+.grupo-cab h2 .n{font-family:'DM Sans';font-size:12.5px;font-weight:500;color:var(--taupe);margin-left:6px}
+.grupo-cab .comp{flex:1 1 420px;font-size:13.5px;color:var(--tinta)}
+.grupo-cab .cayla{flex-basis:100%;font-size:12.5px;color:var(--taupe);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.escala{flex-basis:100%;display:flex;gap:4px;margin-top:2px;flex-wrap:wrap}
+.escala span{font-size:11.5px;color:var(--taupe)}
+.escala span b{font-weight:600;color:var(--tinta)}
+
+.cols{grid-template-columns:minmax(170px,1.4fr) 124px 70px minmax(118px,.9fr) minmax(110px,.9fr) 50px minmax(140px,1.2fr);column-gap:14px}
+.desliza{overflow-x:auto;scrollbar-width:thin}
+.desliza .cols{min-width:868px}
+.enc-tabla{display:grid;padding:8px 20px;background:var(--sand-70);font-size:12.5px;color:var(--taupe)}
+.enc-tabla span small{display:block;font-size:10.5px;line-height:1.2}
+.enc-tabla .der,.fila .der{text-align:right}
+.fila{display:grid;align-items:start;padding:12px 20px;border-top:1px solid var(--sand);cursor:pointer;transition:background-color .15s;position:relative}
+.filas>.fila:nth-child(even){background:var(--hueso-50)}
+.fila:hover{background:var(--crema-60)!important}
+.fila:focus-visible{outline-offset:-2px;border-radius:0}
+.fila.quieta:after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--tinta-35)}
+.prenda{display:flex;gap:10px;min-width:0}
+.foto{width:34px;height:42px;border-radius:7px;background:var(--hueso);flex:none;display:grid;place-items:center;color:var(--taupe)}
+.foto svg{width:18px;height:18px;stroke-width:1.3}
+.prenda .n{font-weight:600;font-size:14px;line-height:1.3}
+.prenda .m{font-size:12.5px;color:var(--taupe);line-height:1.35}
+.prenda .chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px;align-items:center}
+.prenda .chips .aux{font-size:11.5px;color:var(--taupe)}
+.tallas{display:flex;flex-wrap:wrap;gap:4px}
+.tl{display:inline-flex;flex-direction:column;align-items:center;min-width:38px;padding:3px 4px;border-radius:7px;background:var(--hueso);font-size:11.5px;line-height:1.25}
+.filas>.fila:nth-child(even) .tl{background:var(--sand)}
+.tl b{font-weight:600;font-size:10.5px;color:var(--taupe)}
+.tl .q{font-variant-numeric:tabular-nums}
+.tl .ap{font-size:10px;color:var(--taupe);font-weight:600}
+.tl.mal{box-shadow:inset 0 0 0 1px var(--tinta-35)}
+.tl.mal .q{font-weight:700}
+.dias{font-size:14px;white-space:nowrap}
+.dias b{font-family:'EB Garamond',serif;font-size:20px;font-weight:600;line-height:1}
+.dias .pre,.dias .suf{display:block;font-size:11px;color:var(--taupe);line-height:1.3;white-space:normal}
+.dias.apagado b{color:var(--taupe)}
+.rap .w{font-size:13.5px;line-height:1.35}
+.rap .d{font-size:12px;color:var(--taupe)}
+.rap .chip{margin-top:4px}
+.vend{font-size:14px;text-align:right}
+.vend small{display:block;font-size:11px;color:var(--taupe);line-height:1.2}
+.sug{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.sug .s{font-size:13px;line-height:1.35;display:flex;gap:6px;align-items:flex-start}
+.sug .s svg{width:14px;height:14px;margin-top:2px;color:var(--taupe);flex:none}
+.sug .nada{font-size:12.5px;color:var(--taupe)}
+.mob{display:none}
+.rap .mob{display:none}
+.pie{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:11px 20px;border-top:1px solid var(--sand);font-size:12.5px;color:var(--taupe)}
+.pie .ley{display:flex;flex-wrap:wrap;gap:4px 14px}
+.pie b{color:var(--tinta);font-weight:600}
+.vacio-tabla{padding:28px 20px;border-top:1px solid var(--sand);color:var(--tinta-60);font-size:14px}
+
+.nota{margin-top:18px;background:var(--hueso-85);border-radius:var(--r-xl);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--taupe)}
+.nota b{color:var(--tinta);font-weight:600}
+.nota p+p{margin-top:6px}
+
+/* ───────── ESTADOS por opción de color ───────── */
+/* A · semáforo cálido: verde → neutro → ámbar → rojo profundo SOLO en texto */
+[data-colores=A] .t-nueva{background:var(--verde-15);color:var(--verde-profundo)}
+[data-colores=A] .t-vigente{background:var(--sand);color:var(--taupe)}
+[data-colores=A] .t-envejecida{background:var(--ambar-15);color:var(--ambar-profundo)}
+[data-colores=A] .t-critica{background:transparent;color:var(--rojo-profundo);font-weight:600;padding-left:2px}
+/* B · sobrio: tinta / pizarra / taupe; el rojo solo en Crítica (su tinte) y una vez en la cifra */
+[data-colores=B] .t-nueva{background:transparent;box-shadow:inset 0 0 0 1px var(--tinta-35);color:var(--tinta)}
+[data-colores=B] .t-vigente{background:var(--sand);color:var(--taupe)}
+[data-colores=B] .t-envejecida{background:var(--pizarra-15);color:var(--pizarra);font-weight:600}
+[data-colores=B] .t-critica{background:var(--rojo-10);color:var(--rojo-profundo);font-weight:600}
+.al-menos{border:1px dashed currentColor;padding:0 9px}
+.calif{display:block;font-size:11px;line-height:1.35;color:var(--taupe)}
+.calif.arriba{margin-bottom:2px}.calif.abajo{margin-top:2px}
+[data-colores=A] .t-critica.al-menos{padding-left:9px}
+/* especiales: comunes a A y B */
+.e-info{background:var(--pizarra-15);color:var(--pizarra)}
+.e-clasico{background:var(--hueso);color:var(--tinta)}
+.e-dudosa{background:transparent;box-shadow:inset 0 0 0 1px var(--tinta-35);color:var(--tinta);font-weight:600}
+/* texto en tinta: el taupe sobre su propio tinte baja a 4,16:1 en las filas con cebra; el punto sigue en taupe */
+.e-apartada{background:var(--taupe-15);color:var(--tinta);font-weight:600}
+.e-apartada:before{background:var(--taupe)}
+.previo{display:block;font-size:11.5px;color:var(--taupe);margin-top:3px}
+/* en la celda de estado el chip puede partirse en dos líneas: la columna es angosta y el nombre no se corta */
+.c-estado .chip{white-space:normal;align-items:flex-start;line-height:1.35;padding-top:2px;padding-bottom:2px;border-radius:11px}
+.c-estado .chip:before{margin-top:6px}
+.c-estado .chip svg{margin-top:2px}
+
+/* C · barra de edad: 4 tramos que se llenan, sin chips de color */
+.barra-edad{display:flex;flex-direction:column;gap:5px}
+.barra-edad .seg4{display:grid;grid-template-columns:repeat(4,16px);gap:3px}
+.barra-edad .seg4 i{height:7px;border-radius:2px;background:var(--hueso)}
+.filas>.fila:nth-child(even) .barra-edad .seg4 i{background:var(--sand)}
+.barra-edad .seg4 i.lleno,.filas>.fila:nth-child(even) .barra-edad .seg4 i.lleno{background:var(--tinta-70)}
+.barra-edad.critica .seg4 i.lleno,.filas>.fila:nth-child(even) .barra-edad.critica .seg4 i.lleno{background:var(--rojo-profundo)}
+.barra-edad .seg4 i.quiza{background:repeating-linear-gradient(135deg,var(--tinta-35) 0 2px,transparent 2px 4px)!important}
+.barra-edad .seg4.vacia i{background:transparent!important;box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--taupe) 45%,transparent)}
+.barra-edad .seg4.pausa{opacity:.45}
+.barra-edad .et{font-size:13px;line-height:1.3}
+.barra-edad .et .pre{color:var(--taupe)}
+.barra-edad.critica .et{color:var(--rojo-profundo);font-weight:600}
+.barra-edad .et.esp{color:var(--taupe)}
+.barra-edad .et.fuerte{color:var(--tinta);font-weight:600}
+[data-colores=C] .tp{background:transparent;padding-left:0;color:var(--ambar-profundo)}
+[data-colores=C] .conf.ambar{background:transparent;padding-left:0}
+[data-colores=C] .conf.neutro{background:transparent;padding-left:0}
+
+/* ───────── hoja de detalle (efecto de <Modal variante="hoja">) ───────── */
+.velo{position:fixed;inset:0;z-index:50;background:color-mix(in oklab,var(--tinta) 35%,transparent);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:velo 220ms var(--ease-cayla) both}
+.velo.sale{animation:velo-sale 220ms var(--ease-salida) both}
+@keyframes velo{from{opacity:0}}
+@keyframes velo-sale{to{opacity:0}}
+.capa{position:fixed;inset:0;z-index:51;display:flex;align-items:flex-start;justify-content:center;padding:8vh 24px 24px;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:100%;min-width:0;max-width:40rem;max-height:calc(100dvh - 8vh - 1.5rem);overflow-y:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);padding:24px;animation:modal-entra 420ms var(--ease-cayla) backwards;scrollbar-width:thin}
+.hoja.sale{animation:modal-sale 220ms var(--ease-salida) both}
+@keyframes modal-entra{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes modal-sale{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+.cascada>*{animation:cascada 500ms var(--ease-cayla) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(7){--k:6}.cascada>:nth-child(n+8){--k:7}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:600;font-size:26px;line-height:1.15;padding-right:8px}
+.hoja .bajada{margin:4px 0 18px;font-size:13.5px;color:var(--taupe)}
+.bloque{padding:16px 0;border-top:1px solid var(--sand)}
+.bloque:first-of-type{border-top:0;padding-top:0}
+.bloque>.label{display:block;margin-bottom:8px}
+.veredicto{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.veredicto .dias-g{font-family:'EB Garamond',serif;font-weight:600;font-size:30px;line-height:1}
+.veredicto .dias-g small{font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--taupe);margin-left:4px}
+.parrafo{font-size:14px;line-height:1.6;margin-top:10px}
+.parrafo+.parrafo{margin-top:6px}
+.parrafo.taupe{color:var(--taupe);font-size:13px}
+.parrafo b{font-weight:600}
+.d5-hoja{margin-top:10px;display:flex;gap:8px;align-items:flex-start;background:var(--hueso-85);border-radius:var(--r-lg);padding:10px 12px;font-size:13px;color:var(--taupe);line-height:1.5}
+.d5-hoja b{color:var(--tinta);font-weight:600}
+.d5-hoja svg{margin-top:2px}
+/* la regla de la categoría: dónde cae la prenda */
+.regla{margin-top:14px;padding-top:26px;position:relative}
+.regla .pista{position:relative;height:10px;border-radius:5px;overflow:hidden;display:flex;background:var(--hueso)}
+.regla .pista i{height:100%;display:block}
+.regla .marcas{position:relative;height:30px}
+.regla .marcas span{position:absolute;top:5px;transform:translateX(-50%);font-size:11px;color:var(--taupe);white-space:nowrap;text-align:center;line-height:1.2}
+.regla .marcas span:before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:6px;background:var(--taupe)}
+.regla .marcas span.ini{transform:none}.regla .marcas span.ini:before{left:0}
+.regla .ella{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:11.5px;font-weight:600;white-space:nowrap}
+.regla .ella:after{content:"";width:2px;height:22px;background:var(--tinta);border-radius:2px;margin-top:2px}
+.regla .ley{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--taupe);margin-top:4px}
+.regla .ley i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+.z-nueva,.z-vigente,.z-envejecida,.z-critica,.z-nada{display:block}
+[data-colores=A] .z-nueva{background:var(--verde-15)}
+[data-colores=A] .z-vigente{background:var(--sand)}
+[data-colores=A] .z-envejecida{background:var(--ambar-15)}
+[data-colores=A] .z-critica{background:var(--rojo-10)}
+[data-colores=B] .z-nueva{background:var(--hueso)}
+[data-colores=B] .z-vigente{background:var(--sand)}
+[data-colores=B] .z-envejecida{background:var(--pizarra-15)}
+[data-colores=B] .z-critica{background:var(--rojo-10)}
+[data-colores=C] .z-nueva{background:color-mix(in oklab,var(--tinta) 8%,transparent)}
+[data-colores=C] .z-vigente{background:color-mix(in oklab,var(--tinta) 16%,transparent)}
+[data-colores=C] .z-envejecida{background:color-mix(in oklab,var(--tinta) 28%,transparent)}
+[data-colores=C] .z-critica{background:color-mix(in oklab,var(--rojo-profundo) 30%,transparent)}
+.z-nada{background:repeating-linear-gradient(135deg,var(--sand) 0 3px,transparent 3px 6px)}
+.tallas-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.tallas-g div{background:var(--hueso);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.45}
+.tallas-g div b{display:block;font-size:13px}
+.tallas-g div span{color:var(--taupe)}
+.tallas-g div.mal{box-shadow:inset 0 0 0 1.5px var(--tinta-35)}
+.acciones-h{display:grid;gap:8px}
+.acc{border:1px solid var(--sand);border-radius:var(--r-lg);padding:12px 14px;background:var(--papel)}
+.acc .t{font-weight:600;font-size:14px;display:flex;gap:8px;align-items:flex-start}
+.acc .t svg{margin-top:2px;color:var(--taupe)}
+.acc p{font-size:13px;color:var(--tinta-60);margin-top:4px;line-height:1.55}
+.acc .ir{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.apoyo{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.apoyo dt{color:var(--taupe)}
+.apoyo dd{color:var(--tinta)}
+.pie-hoja{display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--sand)}
+
+/* aviso de a dónde iría (solo maqueta) */
+.aviso-ir{position:fixed;right:20px;top:20px;z-index:80;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:11px 14px;font-size:13px;max-width:360px;opacity:0;transform:translateY(-6px);transition:opacity .25s var(--ease-cayla),transform .25s var(--ease-cayla);pointer-events:none}
+.aviso-ir.on{opacity:1;transform:none}
+.aviso-ir code{display:block;margin-top:3px;font-size:12px;color:var(--taupe);font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+
+/* ───────── panel «Elige» (NO existe en el ERP) ───────── */
+.elige{position:fixed;left:14px;bottom:14px;z-index:70;width:340px;max-width:calc(100vw - 24px);background:var(--tinta);color:var(--crema);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);font-size:12.5px}
+.elige .cab{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px}
+.elige .cab .t{font-family:'EB Garamond',serif;font-size:18px;font-weight:600}
+.elige .cab .r{color:color-mix(in oklab,var(--crema) 70%,transparent);font-size:12px}
+.elige .cab svg{margin-left:auto;transition:transform .25s var(--ease-cayla)}
+.elige[data-abierto=false] .cuerpo{display:none}
+.elige[data-abierto=true] .cab svg{transform:rotate(180deg)}
+.elige .cuerpo{padding:0 14px 14px;display:grid;gap:12px;max-height:min(70vh,640px);overflow:auto}
+.elige h3{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:color-mix(in oklab,var(--crema) 60%,transparent);margin-bottom:6px}
+.elige .ops{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;border:1px solid color-mix(in oklab,var(--crema) 22%,transparent);border-radius:10px;padding:3px}
+.elige .ops button{padding:6px 6px;border-radius:7px;text-align:center;color:color-mix(in oklab,var(--crema) 78%,transparent);line-height:1.25}
+.elige .ops button b{display:block;font-size:14px}
+.elige .ops button span{font-size:11px}
+.elige .ops button[aria-pressed=true]{background:var(--crema);color:var(--tinta)}
+.elige .gp{margin-top:7px;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;line-height:1.45;color:color-mix(in oklab,var(--crema) 85%,transparent)}
+.elige .gp b{font-weight:600;color:var(--crema)}
+.elige .resp{display:flex;align-items:center;gap:8px;border-top:1px solid color-mix(in oklab,var(--crema) 18%,transparent);padding-top:12px}
+.elige .resp output{flex:1;font-size:14px}
+.elige .resp output q{font-weight:600}
+.elige .resp button{background:var(--crema);color:var(--tinta);border-radius:8px;padding:6px 12px;font-weight:600}
+.elige .rojos{font-size:11.5px;color:color-mix(in oklab,var(--crema) 70%,transparent)}
+.elige .rojos b{color:var(--crema)}
+.elige .sim{font-size:11px;color:color-mix(in oklab,var(--crema) 55%,transparent)}
+
+/* ───────── celular (375 px) ───────── */
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .lateral{display:none}
+  .barra{padding:0 16px;justify-content:space-between}
+  .barra .menu{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.3em;font-size:12px}
+  .main{padding:22px 16px 150px}
+}
+@media (max-width:820px){
+  .desliza{overflow:visible}
+  .desliza .cols{min-width:0}
+  .enc-tabla{display:none}
+  .fila{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"prenda dias" "estado estado" "rap rap" "tallas tallas" "sug sug";gap:8px 12px;padding:14px 16px}
+  .fila>.c-prenda{grid-area:prenda}.fila>.c-dias{grid-area:dias;text-align:right}.fila>.c-estado{grid-area:estado}
+  .fila>.c-rap{grid-area:rap}.fila>.c-tallas{grid-area:tallas}.fila>.c-vend{display:none}.fila>.c-sug{grid-area:sug}
+  .fila>.c-rap .rap{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px}
+  .fila>.c-rap .rap .chip{margin-top:0}
+  .fila>.c-estado .previo{display:inline;margin-left:6px}
+  .fila>.c-estado .calif{display:inline;margin:0 6px 0 0}
+  .mob{display:inline}
+  .rap .mob{display:block}
+  .fila.quieta:after{top:14px;bottom:14px}
+  .grupo-cab,.herr,.pie{padding-left:16px;padding-right:16px}
+  .d5{padding:0 16px 14px}
+}
+@media (max-width:640px){
+  h1.titulo{font-size:36px;margin-top:10px}
+  .frase{font-size:14px}
+  .enc{gap:18px}
+  .resumen{width:100%}
+  .resumen>*{min-width:0;padding:12px 4px}
+  .resumen button{margin:3px}
+  .cifra-v{font-size:26px}.cifra-v small{font-size:15px}
+  .cifra-v .suf{display:block;font-size:11px;margin:2px 0 0}
+  .cifra-l{font-size:11px;margin-top:6px}.cifra-l svg{display:none}
+  .herr .buscar{max-width:none;flex-basis:100%}
+  .herr .der{margin-left:0}
+  .combo>button{min-width:0}
+  .grupo-cab h2{font-size:20px}
+  .grupo-cab .comp{font-size:13px;flex-basis:100%}
+  .capa{align-items:flex-end;padding:0}
+  .hoja{max-width:none;max-height:90vh;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:20px 16px;animation-name:hoja-sube;animation-duration:380ms}
+  .hoja.sale{animation-name:hoja-baja}
+  @keyframes hoja-sube{from{opacity:0;transform:translate3d(0,24px,0)}}
+  @keyframes hoja-baja{to{opacity:0;transform:translate3d(0,24px,0)}}
+  .elige{bottom:8px;left:8px;right:8px;width:auto}
+  .aviso-ir{left:12px;right:12px;max-width:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body data-colores="A" data-frases="A">
+
+<div class="app">
+  <aside class="lateral" aria-label="Menú (maqueta, no navega)">
+    <div class="logo"><i></i>CAYLA</div>
+    <nav>
+      <a>Inicio</a>
+      <a>Ventas</a>
+      <a class="grupo">Inventario</a>
+      <a class="sub">Existencias</a>
+      <a class="sub">Movimientos</a>
+      <a class="sub">Traslados</a>
+      <a class="sub">Conteo</a>
+      <a class="sub">Análisis</a>
+      <a class="sub on" aria-current="page">Frescura del piso</a>
+      <a>Catálogo</a>
+      <a>Compras</a>
+      <a>Finanzas</a>
+      <a>Clientas</a>
+    </nav>
+  </aside>
+  <div>
+    <div class="barra">
+      <span class="menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>CAYLA</span>
+      <span style="display:flex;gap:12px;align-items:center"><button class="sede-sel" data-ir="#sede" data-que="Cambiar de sede: el líder ve Trujillo, Arequipa y Lima (en la maqueta, solo Trujillo)">TIENDA TRU<svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m6 9 6 6 6-6"/></svg></button><span class="avatar" aria-hidden="true">FA</span></span>
+    </div>
+    <main class="main" id="pantalla"></main>
+  </div>
+</div>
+
+<div class="aviso-ir" id="aviso" role="status" aria-live="polite"></div>
+<div id="modal-raiz"></div>
+
+<section class="elige" id="elige" data-abierto="true" aria-label="Elige colores y frases (solo en la maqueta)"></section>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   DATOS SIMULADOS · Tienda TRU (Trujillo), lunes 28 de setiembre de 2026.
+   Cada prenda es un modelo+color en la sede (tallas aparte). Los estados, sugerencias y cifras siguen las
+   reglas de lib/frescura-reglas.ts (revisión 8): estaQuieta, sugerenciasDe, estadoFrescura, cifrasSede.
+   Días = reloj de novedad (solo cuenta con alguna talla LIBRE colgada). `sinElla` = los cortes de su
+   categoría SIN ella (D5). Tallas: [talla, piso libre, almacén libre, apartadas].
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const SEDE={corta:'TRU',nombre:'Trujillo',fecha:'lunes, 28 de setiembre · 10:40'};
+const CATS={
+  blusas:{nombre:'Blusas',plural:'blusas',uno:'una blusa',art:'las',demas:'las demás blusas',f:true,ventana:60,vendidas:38,unidades:71,nivel:'solido',p50:18,p75:34,p90:52,tMax:88,alFinal:.96,
+    cayla:{p50:16,p75:30,p90:47,vendidas:84,nivel:'solido'}},
+  enterizos:{nombre:'Enterizos',plural:'enterizos',uno:'un enterizo',art:'los',demas:'los demás enterizos',f:false,ventana:120,vendidas:0,unidades:6,nivel:null,
+    cayla:{p50:26,p75:40,p90:58,vendidas:23,nivel:'solido'}},
+  pantalones:{nombre:'Pantalones',plural:'pantalones',uno:'un pantalón',art:'los',demas:'los demás pantalones',f:false,ventana:120,vendidas:14,unidades:38,nivel:'aceptable',p50:22,p75:41,p90:null,tMax:57,alFinal:.81,
+    cayla:{p50:20,p75:37,p90:55,vendidas:41,nivel:'solido'}},
+  vestidos:{nombre:'Vestidos',plural:'vestidos',uno:'un vestido',art:'los',demas:'los demás vestidos',f:false,ventana:120,vendidas:7,unidades:17,nivel:'pocos_datos',p50:25,p75:null,p90:null,tMax:47,alFinal:.58,
+    cayla:{p50:23,p75:44,p90:null,tMax:66,vendidas:16,nivel:'aceptable'}},
+};
+const P=[
+ {id:'killa',n:'Blusa Killa',cod:'BLU-0112',color:'Marfil',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',2,1,0],['M',2,2,0],['L',1,1,0]],
+  dias:6,relojAlMenos:false,estado:{tipo:'semaforo',tramo:'nueva',alMenos:false},rapidez:{indice:158,vendidas:3,esperadas:1.9,referencia:37},recientes:3,
+  sinElla:{p50:18,p75:34,p90:52,tMax:88,vendidas:35},primera:'22 set',llegadaCayla:'19 set · producción del Taller',sug:[]},
+ {id:'paracas',n:'Blusa Paracas',cod:'BLU-0098',color:'Terracota',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',2,1,0],['L',1,0,0]],
+  dias:24,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:104,vendidas:5,esperadas:4.8,referencia:33},recientes:5,
+  sinElla:{p50:18,p75:35,p90:52,tMax:88,vendidas:33},primera:'4 set',llegadaCayla:'2 set · lote de Gamarra',sug:[]},
+ {id:'wayra',n:'Blusa Wayra manga globo',cod:'BLU-0087',color:'Negro',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,2,0],['M',1,2,0],['L',2,2,0]],
+  dias:61,estado:{tipo:'semaforo',tramo:'critica',alMenos:false},rapidez:{indice:23,vendidas:1,esperadas:4.3,referencia:37},recientes:0,
+  sinElla:{p50:18,p75:33,p90:51,tMax:88,vendidas:37},primera:'29 jul',llegadaCayla:'24 jul · lote de Gamarra',sug:['cambiar_lugar','trasladar']},
+ {id:'nazca',n:'Blusa Nazca de lanilla',cod:'BLU-0071',color:'Vino',cat:'blusas',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+  dias:44,estado:{tipo:'semaforo',tramo:'envejecida',alMenos:false},rapidez:{indice:148,vendidas:11,esperadas:7.4,referencia:27},recientes:4,
+  sinElla:{p50:17,p75:33,p90:51,tMax:88,vendidas:27},primera:'16 may',llegadaCayla:'14 may · producción del Taller',sug:['sigue_vendiendo']},
+ {id:'chaska',n:'Blusa Chaska',cod:'BLU-0120',color:'Celeste',cat:'blusas',temporada:'Primavera-Verano',carga:true,tallas:[['S',1,0,0],['M',2,0,0],['L',1,1,0]],
+  dias:11,relojAlMenos:true,estado:{tipo:'sin_edad_conocida'},rapidez:null,recientes:2,
+  sinElla:{p50:18,p75:34,p90:52,tMax:88,vendidas:38},primera:'17 set · carga inicial',llegadaCayla:'17 set · carga inicial',sug:[]},
+ {id:'sumaq',n:'Blusa Sumaq cuello bebé',cod:'BLU-0105',color:'Rosa palo',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',-1,2,0],['L',2,0,0]],
+  dias:null,estado:{tipo:'dudosa'},tallaMal:'M',rapidez:null,recientes:null,sinElla:null,primera:'8 set',llegadaCayla:'5 set · lote de Gamarra',sug:[]},
+
+ {id:'tikay',n:'Enterizo Tikay',cod:'ENT-0006',color:'Negro',cat:'enterizos',temporada:null,tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+  dias:27,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'1 set',llegadaCayla:'29 ago · lote de Gamarra',sug:[]},
+
+ {id:'inti',n:'Pantalón palazzo Inti',cod:'PAN-0044',color:'Arena',cat:'pantalones',temporada:'Primavera-Verano',tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+  dias:63,estado:{tipo:'semaforo',tramo:'envejecida',alMenos:true},rapidez:{indice:71,vendidas:2,esperadas:2.8,referencia:12},recientes:1,
+  sinElla:{p50:22,p75:41,p90:null,tMax:57,vendidas:12},primera:'27 jul',llegadaCayla:'22 jul · lote de Gamarra',sug:['cambiar_lugar']},
+ {id:'qori',n:'Pantalón recto Qori',cod:'PAN-0051',color:'Negro',cat:'pantalones',temporada:null,tallas:[['28',1,1,0],['30',2,1,0],['32',1,0,0]],
+  dias:29,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:118,vendidas:3,esperadas:2.5,referencia:11},recientes:3,
+  sinElla:{p50:22,p75:42,p90:null,tMax:57,vendidas:11},primera:'30 ago',llegadaCayla:'27 ago · producción del Taller',sug:[]},
+ {id:'ayni',n:'Jean mom Ayni',cod:'PAN-0039',color:'Azul medio',cat:'pantalones',temporada:'Primavera-Verano',carga:true,tallas:[['28',1,0,0],['30',1,0,0],['32',1,0,0]],
+  dias:34,relojAlMenos:true,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:0,
+  sinElla:{p50:22,p75:41,p90:null,tMax:57,vendidas:14},primera:'carga inicial',llegadaCayla:'carga inicial',sug:['revisar_ventas']},
+ {id:'mayu',n:'Pantalón culotte Mayu',cod:'PAN-0047',color:'Verde oliva',cat:'pantalones',temporada:'Primavera-Verano',tallas:[['S',0,0,1],['M',0,0,2]],
+  dias:26,apartada:true,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:176,vendidas:3,esperadas:1.7,referencia:11},recientes:3,recientesApartadas:3,
+  sinElla:{p50:22,p75:41,p90:null,tMax:57,vendidas:11},primera:'20 ago',llegadaCayla:'18 ago · producción del Taller',sug:[]},
+
+ {id:'pachamama',n:'Vestido camisero Pachamama',cod:'VES-0019',color:'Mostaza',cat:'vestidos',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',1,1,0],['L',0,1,0]],
+  dias:31,estado:{tipo:'sin_vara'},rapidez:{indice:312,vendidas:5,esperadas:1.6,referencia:2},recientes:3,
+  sinElla:{p50:null,p75:null,p90:null,tMax:47,vendidas:2,unidades:12},suyas:5,primera:'28 ago',llegadaCayla:'26 ago · producción del Taller',sug:[]},
+ {id:'qocha',n:'Vestido de lino Qocha',cod:'VES-0008',color:'Blanco',cat:'vestidos',temporada:'Clásico · verano',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+  dias:40,estado:{tipo:'clasico',fueraDeSuEstacion:true},rapidez:null,recientes:1,sinElla:null,vuelve:'21 de diciembre',primera:'19 ago',llegadaCayla:'15 ago · lote de Gamarra',sug:['guardar_hasta_su_estacion']},
+ {id:'illari',n:'Vestido de punto Illari',cod:'VES-0023',color:'Gris jaspeado',cat:'vestidos',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+  dias:58,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:{indice:40,vendidas:1,esperadas:2.5,referencia:6},recientes:0,
+  sinElla:{p50:25,p75:null,p90:null,tMax:47,vendidas:6},primera:'4 jun',llegadaCayla:'2 jun · lote de Gamarra',sug:['revisar_ventas','cambiar_lugar','retirar']},
+];
+const SOLO_ALMACEN=[{n:'Enterizo palazzo Rumi',color:'Terracota',uds:4},{n:'Blusa Killa',color:'Negro',uds:6}];
+const REGISTRO={mes:'setiembre',bajadas:25,unidades:104,tardias:1,nivel:'solido',mesAntes:'agosto',unidadesAntes:61,tardiasAntes:3};
+
+/* ─── derivados (mismas reglas que cifrasSede) ─── */
+const piso=p=>p.tallas.reduce((s,t)=>s+t[1],0);
+const alm=p=>p.tallas.reduce((s,t)=>s+t[2],0);
+const apart=p=>p.tallas.reduce((s,t)=>s+t[3],0);
+const quieta=p=>['wayra','nazca','inti','illari'].includes(p.id); // estaQuieta(): vieja y lenta, o temporada pasada con piso
+P.forEach(p=>{p.quieta=quieta(p)});
+function cifras(){
+  let uds=0,peso=0,suma=0,alMenos=false,nuevas=0,conTramo=0,porDecidir=0;
+  for(const p of P){
+    if(p.quieta)porDecidir++;
+    const n=piso(p); if(n<=0)continue; uds+=n;
+    if(p.estado.tipo==='clasico'||p.estado.tipo==='dudosa')continue;
+    peso+=n; suma+=n*p.dias; if(p.relojAlMenos)alMenos=true;
+    if(p.estado.tipo==='semaforo'){conTramo+=n; if(p.estado.tramo==='nueva')nuevas+=n}
+  }
+  return {uds,edad:Math.round(suma/peso),alMenos,pctNuevas:Math.round(nuevas/conTramo*100),porDecidir};
+}
+const nivelPor=v=>v<=0?null:v<10?'pocos_datos':v<20?'aceptable':'solido';
+const fmt=x=>String(x).replace('.',',');
+const TRAMO={nueva:'Nueva',vigente:'Vigente',envejecida:'Envejecida',critica:'Crítica'};
+const ORDEN_T={nueva:1,vigente:2,envejecida:3,critica:4};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   LAS TRES OPCIONES DE COLOR
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const COLORES={
+  A:{nombre:'Semáforo cálido',corto:'verde → ámbar → rojo profundo',
+     gana:'Se lee de lejos y habla el mismo idioma que los chips de Compras: verde va bien, ámbar a medias.',
+     paga:'El ámbar dice tres cosas: Envejecida, «Pocos datos» y «Temporada pasada». Hay que leer la palabra para saber cuál.',
+     rojoCifra:false},
+  B:{nombre:'Sobrio',corto:'tinta, pizarra y taupe; rojo solo en Crítica',
+     gana:'Lo único con color de alarma es lo Crítico: la pantalla se ve tranquila y el ojo va directo a lo que pide decisión.',
+     paga:'Nueva y Vigente casi no se distinguen de lejos; hay que leer la palabra. Gasta 1 de los 2 rojos en «Por decidir».',
+     rojoCifra:true},
+  C:{nombre:'Barra de edad',corto:'cuatro tramos que se llenan',
+     gana:'Se entiende sin aprender colores (cuánto de su vida en el piso ya gastó), sirve impresa y con daltonismo.',
+     paga:'Con muchas filas cuesta más encontrar las críticas de un vistazo, y los estados especiales quedan como texto gris.',
+     rojoCifra:false},
+};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   LOS TRES JUEGOS DE FRASES
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const palabraRapidez=(i)=>i>=150?0:i>=100?1:i>=50?2:3;
+const FRASES={
+ A:{nombre:'Pregunta corta',
+   gana:'Todo cabe en una línea y cada sugerencia suena a pregunta, no a orden.',
+   paga:'El porqué vive en el detalle: quien no abre la prenda no sabe por qué se le pregunta.',
+   encabezado:'Lo que se está quedando en tu piso y qué puedes hacer con cada prenda.',
+   d5:'Cada prenda se compara con el resto de su categoría, sin contarse a sí misma.',
+   grupo:(c)=>c.p50==null?null:`La mitad se vende antes de ${c.p50} días`+(c.p75!=null?` · 3 de cada 4, antes de ${c.p75}`:'')+(c.p90!=null?` · 9 de cada 10, antes de ${c.p90}`:` · lo más largo que se vio: ${c.tMax} días, con ${Math.round(c.alFinal*10)} de cada 10 vendidos`)+'.',
+   grupoSinVentas:(c)=>`Ningún ${c.plural.replace(/s$/,'')} vendido todavía en ${SEDE.nombre}.`,
+   esp:{sin_ventas_sede:'Sin ventas aquí',sin_vara:'Aún sin referencia',sin_edad_conocida:'Edad desconocida',clasico:'Clásico',clasicoFuera:'Clásico fuera de estación',dudosa:'No cuadra',apartada:'Apartada'},
+   alMenos:{pre:'al menos',suf:''},
+   rapidez:(p,c)=>{const r=p.rapidez; if(!r)return ['Sin dato',''];return [['Rápida','A su ritmo','Lenta','Muy lenta'][palabraRapidez(r.indice)],`${r.vendidas} de ${fmt(r.esperadas)} esperadas`]},
+   tp:(p)=>`llegó a CAYLA el ${p.llegadaCayla.split(' · ')[0]}`,
+   sinTemp:'Sin temporada · complétala',
+   pausa:'en pausa',
+   sug:{revisar_ventas:()=>'¿Revisas sus ventas?',cambiar_lugar:()=>'¿La cambias de lugar 7 días?',trasladar:()=>'¿La trasladas a otra sede?',retirar:()=>'¿La retiras del piso?',
+        sigue_vendiendo:()=>'Sigue vendiendo: ¿la dejas hasta agotar o la retiras?',guardar_hasta_su_estacion:()=>'¿La guardas hasta su estación?'}},
+ B:{nombre:'Lista de opciones',
+   gana:'Las sugerencias se leen como un menú parejo (el mismo verbo en todas las filas); es el tono más neutro.',
+   paga:'Suena más a sistema que a tienda, y un infinitivo suelto puede leerse como tarea asignada.',
+   encabezado:'Cuánto lleva colgada cada prenda, comparado con lo que tardan en venderse las de su categoría en esta tienda.',
+   d5:'Cada prenda se mide contra las demás de su categoría en esta tienda, sin contar sus propias ventas.',
+   grupo:(c)=>c.p50==null?null:`En ${SEDE.nombre}, la mitad de ${c.art} ${c.plural} se vende antes de los ${c.p50} días`+(c.p75!=null?` y 3 de cada 4 antes de los ${c.p75}`:'')+(c.p90!=null?`; a los ${c.p90} ya se vendieron 9 de cada 10.`:`; lo más largo que se vio son ${c.tMax} días, con ${Math.round(c.alFinal*10)} de cada 10 vendidos.`),
+   grupoSinVentas:(c)=>`En ${SEDE.nombre} todavía no se vendió ningún ${c.plural.replace(/s$/,'')} con fecha de llegada conocida.`,
+   esp:{sin_ventas_sede:'Su categoría no vende aquí',sin_vara:'Sin con qué compararla',sin_edad_conocida:'Vino en la carga inicial',clasico:'Clásico',clasicoFuera:'Clásico, no es su estación',dudosa:'Stock por revisar',apartada:'Toda apartada'},
+   alMenos:{pre:'',suf:'o más'},
+   rapidez:(p,c)=>{const r=p.rapidez; if(!r)return ['Sin dato',''];return [`Vendió ${r.vendidas} de ${fmt(r.esperadas)}`,'esperadas a su edad']},
+   tp:(p)=>`vino a CAYLA el ${p.llegadaCayla.split(' · ')[0]}, para el ${p.estacion}`,
+   sinTemp:'Sin temporada · falta en Catálogo',
+   pausa:'en pausa',
+   sug:{revisar_ventas:()=>'Revisar sus ventas',cambiar_lugar:()=>'Cambiar de lugar 7 días',trasladar:()=>'Trasladar a otra sede',retirar:()=>'Retirar del piso',
+        sigue_vendiendo:()=>'Sigue vendiendo: decide si la dejas hasta agotar o la retiras',guardar_hasta_su_estacion:()=>'Guardar hasta su estación'}},
+ C:{nombre:'Con el porqué',
+   gana:'Cada sugerencia trae su razón, y la rapidez se dice «como las demás», que ya explica que la prenda no se cuenta a sí misma.',
+   paga:'Frases más largas: la columna se ensancha y en el celular cada sugerencia ocupa dos líneas.',
+   encabezado:'Lo que ya debería haberse vendido y sigue colgado. Para mirarlo cada lunes.',
+   d5:'Cada prenda se compara con las demás de su categoría, nunca consigo misma: la blusa que vende mucho no se tapa a sí misma.',
+   grupo:(c)=>c.p50==null?null:`A los ${c.p50} días ya se vendió la mitad de ${c.art} ${c.plural} de ${SEDE.nombre}`+(c.p75!=null?`; a los ${c.p75}, 3 de cada 4`:'')+(c.p90!=null?`; a los ${c.p90}, casi todas.`.replace('todas',c.f?'todas':'todos'):`; más allá de ${c.tMax} días todavía no se sabe.`),
+   grupoSinVentas:(c)=>`Todavía no se vendió ningún ${c.plural.replace(/s$/,'')} en ${SEDE.nombre}: no hay con qué comparar.`,
+   esp:{sin_ventas_sede:null,sin_vara:'Todavía no hay con qué medirla',sin_edad_conocida:'No se sabe cuándo llegó',clasico:'Clásico: no envejece',clasicoFuera:'Clásico, espera su estación',dudosa:'Sus números no cuadran',apartada:'Apartada para clientas'},
+   alMenos:{pre:'',suf:'quizá más'},
+   rapidez:(p,c)=>{const r=p.rapidez; if(!r)return ['Sin dato',''];const d=`${c.art} demás`;return [[`Más rápida que ${d}`,`Como ${d}`,`Más lenta que ${d}`,`Mucho más lenta que ${d}`][palabraRapidez(r.indice)],`${r.vendidas} de ${fmt(r.esperadas)} esperadas`]},
+   tp:(p)=>`su ${p.estacion} terminó el ${p.finEstacion} · llegó el ${p.llegadaCayla.split(' · ')[0]}`,
+   sinTemp:'¿De qué temporada es? Complétala',
+   pausa:'parado: está apartada',
+   sug:{revisar_ventas:()=>'30 días sin vender: mira qué le pasa',cambiar_lugar:()=>'No se mueve: pruébala 7 días en otro lugar',trasladar:(p)=>`Hay ${alm(p)} en el almacén: ¿otra sede la vende antes?`,retirar:()=>'Ya pasó su temporada: ¿la sacas del piso?',
+        sigue_vendiendo:()=>'Pasó su temporada y se sigue vendiendo: ¿hasta agotar o la sacas?',guardar_hasta_su_estacion:(p)=>`Es de verano: ¿la guardas hasta el ${p.vuelve.replace(' de ',' ')}?`}},
+};
+const nombreEspecial=(k,p,c)=>{const f=FRASES[S.frases];if(k==='sin_ventas_sede'&&S.frases==='C')return `Ningún ${c.plural.replace(/s$/,'')} vendido aquí`;return f.esp[k]};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   ESTADO DE LA MAQUETA
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const S={colores:'A',frases:'A',cat:'todas',estado:'todos',porDecidir:false,q:'',abierta:null,elige:true};
+try{const g=JSON.parse(localStorage.getItem('maqueta-frescura')||'{}');if(g.colores in COLORES)S.colores=g.colores;if(g.frases in FRASES)S.frases=g.frases;if(typeof g.elige==='boolean')S.elige=g.elige}catch(e){}
+(()=>{const u=new URLSearchParams(location.search);
+  if(u.get('colores') in COLORES)S.colores=u.get('colores');
+  if(u.get('frases') in FRASES)S.frases=u.get('frases');
+  if(u.get('elige')==='0')S.elige=false;
+  else if(u.get('elige')==='1')S.elige=true;
+  else if(window.matchMedia&&matchMedia('(max-width:640px)').matches)S.elige=false; // en celular arranca plegado: tapa la pantalla
+  if(u.get('abrir'))S.abrirAlCargar=u.get('abrir');
+  if(u.get('pordecidir')==='1')S.porDecidir=true;})();
+const guardar=()=>{try{localStorage.setItem('maqueta-frescura',JSON.stringify({colores:S.colores,frases:S.frases,elige:S.elige}))}catch(e){}};
+
+/* ─── íconos (trazo, como lucide) ─── */
+const I={
+ percha:'<path d="M12 7a2 2 0 1 1 2-2c0 1.2-2 1.6-2 3v1"/><path d="M12 9 3 16.5a1 1 0 0 0 .6 1.8h16.8a1 1 0 0 0 .6-1.8z"/>',
+ buscar:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/>',
+ abajo:'<path d="m6 9 6 6 6-6"/>',
+ reloj:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+ brote:'<path d="M12 20v-8"/><path d="M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.3-5-5.5-5 0 3 2.3 5 5.5 5z"/>',
+ pregunta:'<circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.9c0 1.6-2.2 2-2.2 3.3M12 16.8h.01"/>',
+ capas:'<path d="m12 4 8.5 4.5L12 13 3.5 8.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/>',
+ info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+ lupa:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/>',
+ mover:'<path d="M4 12h12m-4-5 5 5-5 5M20 5v14"/>',
+ camion:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ retirar:'<path d="M12 4v11m-4-4 4 4 4-4M5 20h14"/>',
+ caja:'<path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4z"/><path d="m3.5 8 8.5 4 8.5-4M12 12v8"/>',
+ contar:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12l2 2 4-4"/>',
+ copiar:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+};
+const ic=(k,st='')=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ${st?`style="${st}"`:''}>${I[k]}</svg>`;
+const ICONO_SUG={revisar_ventas:'lupa',cambiar_lugar:'mover',trasladar:'camion',retirar:'retirar',sigue_vendiendo:'pregunta',guardar_hasta_su_estacion:'caja'};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PIEZAS
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const F=()=>FRASES[S.frases];
+const cat=p=>CATS[p.cat];
+
+/** El estado de la fila: chip (A y B) o barra de edad (C). */
+function estadoHTML(p){
+  const c=cat(p),f=F(),e=p.estado;
+  if(S.colores==='C')return barraEdad(p);
+  if(p.apartada){
+    return `<span class="chip e-apartada">${f.esp.apartada}</span><span class="previo">iba en ${TRAMO[e.tramo]} · ${apart(p)} apartadas</span>`;
+  }
+  if(e.tipo==='semaforo'){
+    const t=TRAMO[e.tramo];
+    if(!e.alMenos)return `<span class="chip t-${e.tramo}">${t}</span>`;
+    return `${f.alMenos.pre?`<span class="calif arriba">${f.alMenos.pre}</span>`:''}<span class="chip t-${e.tramo} al-menos">${t}</span>${f.alMenos.suf?`<span class="calif abajo">${f.alMenos.suf}</span>`:''}`;
+  }
+  if(e.tipo==='clasico')return `<span class="chip e-clasico">${e.fueraDeSuEstacion?f.esp.clasicoFuera:f.esp.clasico}</span>`;
+  if(e.tipo==='dudosa')return `<span class="chip e-dudosa sin-punto">${ic('info','width:13px;height:13px')}${f.esp.dudosa}</span>`;
+  return `<span class="chip e-info">${nombreEspecial(e.tipo,p,c)}</span>`;
+}
+function barraEdad(p){
+  const c=cat(p),f=F(),e=p.estado;
+  const seg=(n,quiza,extra='')=>`<span class="seg4 ${extra}" aria-hidden="true">${[1,2,3,4].map(i=>`<i class="${i<=n?'lleno':''} ${quiza&&i===n+1?'quiza':''}"></i>`).join('')}</span>`;
+  if(p.apartada){const n=ORDEN_T[e.tramo];return `<span class="barra-edad">${seg(n,false,'pausa')}<span class="et fuerte">${f.esp.apartada}</span><span class="previo" style="margin-top:0">iba en ${TRAMO[e.tramo]} · ${apart(p)} apartadas</span></span>`}
+  if(e.tipo==='semaforo'){
+    const n=ORDEN_T[e.tramo],t=TRAMO[e.tramo];
+    const et=e.alMenos?(f.alMenos.pre?`<span class="pre">${f.alMenos.pre}</span> ${t}`:`${t} <span class="pre">${f.alMenos.suf}</span>`):t;
+    return `<span class="barra-edad ${e.tramo==='critica'?'critica':''}">${seg(n,e.alMenos&&n<4)}<span class="et">${et}</span></span>`;
+  }
+  if(e.tipo==='clasico')return `<span class="barra-edad"><span class="et">${e.fueraDeSuEstacion?f.esp.clasicoFuera:f.esp.clasico}</span></span>`;
+  if(e.tipo==='dudosa')return `<span class="barra-edad"><span class="et fuerte">${ic('info','width:13px;height:13px;vertical-align:-2px')} ${f.esp.dudosa}</span></span>`;
+  return `<span class="barra-edad">${seg(0,false,'vacia')}<span class="et esp">${nombreEspecial(e.tipo,p,c)}</span></span>`;
+}
+function diasHTML(p){
+  const f=F();
+  if(p.dias==null)return `<span class="dias apagado"><b>—</b></span>`;
+  const apagado=p.estado.tipo==='clasico'?'apagado':'';
+  const suf=p.apartada?`<span class="suf">${f.pausa}</span>`:'';
+  if(p.relojAlMenos){
+    return f.alMenos.pre?`<span class="dias"><span class="pre">${f.alMenos.pre}</span><b class="num">${p.dias}</b> días</span>`:`<span class="dias"><b class="num">${p.dias}</b> días<span class="suf">${f.alMenos.suf}</span></span>`;
+  }
+  return `<span class="dias ${apagado}"><b class="num">${p.dias}</b> días${suf}</span>`;
+}
+function confianzaChip(nivel){
+  if(nivel==='pocos_datos')return `<span class="chip ambar chico conf">Pocos datos</span>`;
+  if(nivel==='aceptable')return `<span class="chip neutro chico conf">Aceptable</span>`;
+  return '';
+}
+function rapidezHTML(p){
+  const c=cat(p),[w,d]=F().rapidez(p,c);
+  const conf=p.rapidez?confianzaChip(nivelPor(p.rapidez.referencia)):'';
+  const porque=!p.rapidez?(p.estado.tipo==='clasico'?'los clásicos no se miden':p.estado.tipo==='dudosa'?'no se mide hasta contarla':p.carga?'vino en la carga inicial':'su categoría no vende aquí'):'';
+  const vend=p.recientes==null?'':`<div class="d mob">vendió ${p.recientes} en sus últimos 30 d en el piso${p.recientesApartadas?' (apartadas)':''}</div>`;
+  return `<div class="rap"><div class="w">${w}</div>${d?`<div class="d num">${d}</div>`:''}${porque?`<div class="d">${porque}</div>`:''}${vend}${conf}</div>`;
+}
+function vendHTML(p){
+  if(p.recientes==null)return `<span class="vend">—</span>`;
+  return `<span class="vend num">${p.recientes}${p.recientesApartadas?`<small>${p.recientesApartadas===p.recientes?'todas':p.recientesApartadas} apartadas</small>`:''}</span>`;
+}
+function tallasHTML(p){
+  return `<span class="tallas">${p.tallas.map(([t,pi,al,ap])=>`<span class="tl ${pi<0?'mal':''}" title="Talla ${t}: ${pi} en el piso, ${al} en el almacén${ap?`, ${ap} apartadas`:''}"><b>${t}</b><span class="q">${pi<0?'−'+Math.abs(pi):pi}·${al}</span>${ap?`<span class="ap">${ap} ap.</span>`:''}</span>`).join('')}</span>`;
+}
+function chipsTemporada(p){
+  const f=F(),out=[];
+  if(p.temporadaPasada)out.push(`<span class="chip ambar chico tp">Temporada pasada</span><span class="aux">${f.tp(p)}</span>`);
+  if(p.temporada===null)out.push(`<span class="chip contorno-punteado chico sin-punto">${f.sinTemp}</span>`);
+  return out.join('');
+}
+function sugHTML(p){
+  if(!p.sug.length){
+    const txt=p.apartada?'Nada: tiene dueña':p.estado.tipo==='dudosa'?'Cuéntala primero':'Nada por ahora';
+    return `<div class="sug"><span class="nada">${txt}</span></div>`;
+  }
+  return `<div class="sug">${p.sug.map(s=>`<span class="s">${ic(ICONO_SUG[s])}<span>${F().sug[s](p)}</span></span>`).join('')}</div>`;
+}
+function filaHTML(p){
+  const c=cat(p);
+  return `<div class="fila cols ${p.quieta?'quieta':''}" role="row" tabindex="0" data-abrir="${p.id}" aria-label="${p.n} ${p.color}: abrir el detalle">
+    <div class="c-prenda" role="cell"><div class="prenda"><span class="foto">${ic('percha')}</span><div style="min-width:0"><div class="n">${p.n}</div><div class="m">${p.color} · ${p.cod}${p.temporada&&!p.temporadaPasada?` · ${p.temporada}`:''}</div>${chipsTemporada(p)?`<div class="chips">${chipsTemporada(p)}</div>`:''}</div></div></div>
+    <div class="c-tallas" role="cell">${tallasHTML(p)}</div>
+    <div class="c-dias der" role="cell">${diasHTML(p)}</div>
+    <div class="c-estado" role="cell">${estadoHTML(p)}</div>
+    <div class="c-rap" role="cell">${rapidezHTML(p)}</div>
+    <div class="c-vend der" role="cell">${vendHTML(p)}</div>
+    <div class="c-sug" role="cell">${sugHTML(p)}</div>
+  </div>`;
+}
+function cabeceraGrupo(k,prendas){
+  const c=CATS[k],f=F();
+  const comp=c.vendidas>0?f.grupo(c):f.grupoSinVentas(c);
+  const conf=c.nivel?confianzaChip(c.nivel):'';
+  const base=c.vendidas>0?`con ${c.vendidas} ventas de los últimos ${c.ventana} días`:`${c.unidades} unidades colgadas, ninguna vendida`;
+  const tramos=c.p50!=null?[['Nueva',`antes de ${c.p50} d`],['Vigente',c.p75!=null?`${c.p50}–${c.p75} d`:`desde ${c.p50} d`],['Envejecida',c.p75!=null?(c.p90!=null?`${c.p75}–${c.p90} d`:`desde ${c.p75} d`):'sin datos aún'],['Crítica',c.p90!=null?`más de ${c.p90} d`:'sin datos aún']].map(([t,r])=>`<span><b>${t}</b> ${r}</span>`):[];
+  const esc=`<div class="escala">${tramos.join('<span aria-hidden="true">·</span>')}${tramos.length?'<span aria-hidden="true">·</span>':''}<span>${base}</span></div>`;
+  const cy=c.cayla;
+  const caylaTxt=`Las 3 tiendas juntas: la mitad de ${c.art} ${c.plural} se vende antes de ${cy.p50} días${cy.p75!=null?`, 3 de cada 4 antes de ${cy.p75}`:''}.`;
+  return `<div class="grupo-cab" role="rowgroup">
+     <h2>${c.nombre}<span class="n">${prendas.length} ${prendas.length===1?'prenda':'prendas'}</span></h2>
+     <p class="comp">${comp} ${conf}</p>
+     ${esc}
+     <p class="cayla"><span class="chip pizarra chico">Solo líder</span><span><b style="color:var(--tinta);font-weight:600">Referencia de CAYLA.</b> ${caylaTxt}</span></p>
+   </div>`;
+}
+
+/* ─── filtros ─── */
+const OP_CAT=[['todas','Todas'],...Object.entries(CATS).map(([k,c])=>[k,c.nombre])];
+const OP_EST=[['todos','Todos',''],['nueva','Nueva','Tramo'],['vigente','Vigente','Tramo'],['envejecida','Envejecida','Tramo'],['critica','Crítica','Tramo'],
+  ['sin_tramo','Sin tramo firme','Otros'],['clasico','Clásicos','Otros'],['dudosa','No cuadra','Otros'],['apartada','Apartadas','Otros'],['temporada_pasada','Temporada pasada','Temporada']];
+function pasaEstado(p,e){
+  if(e==='todos')return true;
+  if(e==='apartada')return !!p.apartada;
+  if(e==='temporada_pasada')return !!p.temporadaPasada;
+  if(e==='clasico')return p.estado.tipo==='clasico';
+  if(e==='dudosa')return p.estado.tipo==='dudosa';
+  if(e==='sin_tramo')return ['sin_ventas_sede','sin_vara','sin_edad_conocida'].includes(p.estado.tipo)||(p.estado.tipo==='semaforo'&&p.estado.alMenos);
+  return p.estado.tipo==='semaforo'&&!p.apartada&&p.estado.tramo===e;
+}
+const sinTildes=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const visibles=()=>P.filter(p=>(S.cat==='todas'||p.cat===S.cat)&&pasaEstado(p,S.estado)&&(!S.porDecidir||p.quieta)&&(!S.q||sinTildes(`${p.n} ${p.color} ${p.cod}`).includes(sinTildes(S.q))));
+
+function combo(id,etiqueta,ops,valor){
+  const v=ops.find(o=>o[0]===valor);
+  return `<div class="combo" data-combo="${id}"><button type="button" class="caja" aria-haspopup="listbox" aria-expanded="false" data-abre-combo="${id}"><span><span class="que">${etiqueta}:</span> ${v[1]}</span>${ic('abajo')}</button></div>`;
+}
+function listaCombo(id){
+  const ops=id==='cat'?OP_CAT:OP_EST,val=id==='cat'?S.cat:S.estado;
+  const buscar=ops.length>8; // ADR-0209: más de 8 opciones → buscador
+  const q=S['q_'+id]||'';
+  const filtradas=ops.filter(o=>!q||sinTildes(o[1]).includes(sinTildes(q)));
+  let html='',grupo=null;
+  for(const o of filtradas){
+    if(o[2]&&o[2]!==grupo){grupo=o[2];html+=`<div class="grupo-op">${grupo}</div>`}
+    const n=id==='cat'?(o[0]==='todas'?P.length:P.filter(p=>p.cat===o[0]).length):P.filter(p=>pasaEstado(p,o[0])).length;
+    html+=`<div role="option" tabindex="-1" aria-selected="${o[0]===val}" data-op="${o[0]}">${o[1]}<span class="n">${n}</span></div>`;
+  }
+  if(!filtradas.length)html=`<div class="vacio">Nada con «${q}»</div>`;
+  return `<div class="lista" role="listbox" aria-label="${id==='cat'?'Categoría':'Estado'}">${buscar?`<label class="busca caja">${ic('buscar','width:14px;height:14px;color:var(--taupe)')}<input data-busca-combo="${id}" placeholder="Buscar estado" value="${q}" aria-label="Buscar estado"></label>`:''}<div data-ops>${html}</div></div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PANTALLA
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function pantalla(){
+  const f=F(),k=cifras(),col=COLORES[S.colores];
+  const edadPre=k.alMenos?(f.alMenos.pre||''):'';
+  const edadSuf=k.alMenos&&!f.alMenos.pre?` ${f.alMenos.suf}`:'';
+  const nDecidir=`<span class="cifra-v num ${col.rojoCifra?'roja':'alerta'}" ${col.rojoCifra?'data-rojo':''}>${k.porDecidir}</span>`;
+  const enc=`<header class="enc">
+    <div class="enc-izq sube">
+      <p class="hilo"><span>Tienda ${SEDE.corta} · ${SEDE.fecha}</span></p>
+      <h1 class="titulo">Frescura del piso</h1>
+      <p class="frase">${f.encabezado}</p>
+      <div class="pie-enc"><span class="chip pizarra chico">Solo líder</span><span>Registro al colgar en ${REGISTRO.mes}: <b>${REGISTRO.unidades-REGISTRO.tardias} de ${REGISTRO.unidades}</b> a tiempo · A pedido: <b>sin datos todavía</b></span><button class="btn-enlace" data-ir="#registro" data-que="El registro al colgar de las 3 tiendas, este mes y el anterior (fn_confianza_registro): bajadas tardías y, cuando exista el bloque 3b, ventas «a pedido»">Ver las 3 tiendas</button></div>
+    </div>
+    <div class="resumen sube" style="--i:1" aria-label="Resumen de Trujillo">
+      <div><span class="cifra-pre">${edadPre}</span><span class="cifra-v num">${k.edad}${edadSuf?`<span class="suf">${edadSuf.trim()}</span>`:''}</span><span class="cifra-l">${ic('reloj')}días de edad del piso</span></div>
+      <div><span class="cifra-pre"></span><span class="cifra-v num">${k.pctNuevas}<small>%</small></span><span class="cifra-l">${ic('brote')}del piso es Nueva</span></div>
+      <button type="button" aria-pressed="${S.porDecidir}" data-act="porDecidir" title="Filtrar las que están por decidir"><span class="cifra-pre"></span>${nDecidir}<span class="cifra-l ${col.rojoCifra?'roja':'alerta'}">${ic('pregunta')}por decidir</span></button>
+      <div><span class="cifra-pre"></span><span class="cifra-v num">${k.uds}</span><span class="cifra-l">${ic('capas')}unidades en el piso</span></div>
+    </div>
+  </header>`;
+
+  const vs=visibles();
+  const grupos=Object.keys(CATS).map(kc=>[kc,vs.filter(p=>p.cat===kc)]).filter(([,l])=>l.length);
+  const nDec=P.filter(p=>p.quieta).length;
+  const herr=`<div class="herr">
+     <label class="buscar caja">${ic('buscar')}<input data-q placeholder="Prenda, color o código" value="${S.q}" aria-label="Buscar prenda"></label>
+     ${combo('cat','Categoría',OP_CAT,S.cat)}
+     ${combo('est','Estado',OP_EST,S.estado)}
+     <button type="button" class="pildora" aria-pressed="${S.porDecidir}" data-act="porDecidir">Por decidir <span class="n">${nDec}</span></button>
+     ${S.cat!=='todas'||S.estado!=='todos'||S.porDecidir||S.q?`<button type="button" class="btn-enlace" style="font-size:13px" data-act="limpiar">Quitar filtros</button>`:''}
+   </div>
+   <p class="d5">${ic('info')}<span><b>${f.d5}</b> Los días cuentan solo el tiempo con alguna talla libre colgada.</span></p>`;
+  const cuerpo=grupos.length?grupos.map(([kc,l])=>`${cabeceraGrupo(kc,l)}
+     <div class="desliza"><div class="enc-tabla cols" role="row"><span>Prenda</span><span>Tallas<small>piso · almacén</small></span><span class="der">En el piso</span><span>Estado</span><span>Rapidez<small>contra su categoría</small></span><span class="der">Vendió<small>30 d en piso</small></span><span>Qué hacer</span></div>
+     <div class="filas" role="rowgroup">${l.map(filaHTML).join('')}</div></div>`).join('')
+    :`<div class="vacio-tabla">Ninguna prenda con estos filtros. <button class="btn-enlace" data-act="limpiar">Quitar filtros</button></div>`;
+  const pie=`<div class="pie"><span>Mostrando <b>${vs.length}</b> de ${P.length} prendas · ${vs.reduce((s,p)=>s+piso(p),0)} unidades en el piso</span>
+     <span class="ley"><span><span aria-hidden="true" style="display:inline-block;width:2px;height:12px;border-radius:2px;background:var(--tinta-35);vertical-align:-1px;margin-right:6px"></span>Por decidir</span><span>Tallas: piso · almacén · <b>ap.</b> apartadas</span></span>
+     <span>Solo en el almacén, nunca colgadas: ${SOLO_ALMACEN.map(x=>`${x.n} ${x.color} (${x.uds})`).join(', ')}. No se miden hasta que se cuelguen.</span></div>`;
+
+  const nota=`<div class="nota"><p><b>Cómo se lee.</b> ${f.d5} La comparación es con lo vendido en esta tienda; la de CAYLA (las 3 tiendas juntas) es solo de apoyo. «Pocos datos» y «Aceptable» dicen cuánto creerle; sin etiqueta, es sólida. «Trasladar» solo aparece con una comparación sólida y algo en el almacén.</p>
+   <p><b>Lo apartado para una clienta no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que vino en la carga inicial nunca es «Nueva»: no se sabe cuándo llegó. Aquí nada se rebaja: la rebaja es del líder, por sede y en tramos.</p></div>`;
+
+  document.getElementById('pantalla').innerHTML=enc+`<section class="tarjeta" role="table" aria-label="Prendas por categoría">${herr}${cuerpo}${pie}</section>`+nota;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   HOJA DE DETALLE
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function regla(p){
+  const c=cat(p),s=p.sinElla;
+  if(!s||s.p50==null)return '';
+  const tope=Math.max((s.p90??s.tMax)*1.2,p.dias*1.12,30);
+  const pct=d=>Math.min(100,d/tope*100);
+  const cortes=[['nueva',0,s.p50],['vigente',s.p50,s.p75??s.tMax],['envejecida',s.p75,s.p90??(s.p75!=null?s.tMax:null)],['critica',s.p90,tope]];
+  let zonas='',x=0;
+  const add=(cls,hasta)=>{if(hasta==null||hasta<=x)return;zonas+=`<i class="${cls}" style="width:${pct(hasta)-pct(x)}%"></i>`;x=hasta};
+  add('z-nueva',s.p50);
+  add('z-vigente',s.p75??s.tMax);
+  if(s.p75!=null)add('z-envejecida',s.p90??s.tMax);
+  if(s.p90!=null)add('z-critica',tope); else add('z-nada',tope);
+  const marcas=[`<span class="ini" style="left:0">0</span>`,`<span style="left:${pct(s.p50)}%">${s.p50} d<br>la mitad</span>`]
+    .concat(s.p75!=null?[`<span style="left:${pct(s.p75)}%">${s.p75} d<br>3 de 4</span>`]:[])
+    .concat(s.p90!=null?[`<span style="left:${pct(s.p90)}%">${s.p90} d<br>9 de 10</span>`]:[`<span style="left:${pct(s.tMax)}%">${s.tMax} d<br>lo más largo visto</span>`]);
+  const ley=[['z-nueva','Nueva'],['z-vigente','Vigente']].concat(s.p75!=null?[['z-envejecida','Envejecida']]:[]).concat(s.p90!=null?[['z-critica','Crítica']]:[['z-nada','todavía sin datos']]);
+  return `<div class="regla" aria-label="Dónde cae entre ${c.demas}">
+     <span class="ella" style="left:${pct(p.dias)}%">${p.relojAlMenos?'≥ ':''}${p.dias} d</span>
+     <div class="pista">${zonas}</div>
+     <div class="marcas">${marcas.join('')}</div>
+     <div class="ley">${ley.map(([z,t])=>`<span><i class="${z}"></i>${t}</span>`).join('')}</div>
+   </div>`;
+}
+function porqueEstado(p){
+  const c=cat(p),s=p.sinElla,e=p.estado,f=F(),T=TRAMO;
+  const d=p.dias;
+  if(p.apartada)return `Todo lo que tenía colgado (${apart(p)}) está apartado para clientas. Mientras siga apartado no envejece: su reloj se detuvo en <b>${d} días</b>, cuando iba en ${T[e.tramo]}, y sigue desde ahí si alguna se libera. Esas ${apart(p)} cuentan como vendidas.`;
+  if(e.tipo==='dudosa')return `El stock de la talla <b>${p.tallaMal}</b> no cuadra: el sistema la tiene en <b>−1</b> en el piso (se vendió una que no figuraba colgada). Con los números así, cualquier juicio sería inventado: no se mide hasta que se cuente.`;
+  if(e.tipo==='clasico')return `Es un clásico de verano: no pasa de moda, así que no entra al semáforo de novedad ni se compara con ${c.demas}. Lleva ${d} días colgado. Hoy no es su estación: vuelve el <b>${p.vuelve}</b>.`;
+  if(e.tipo==='sin_ventas_sede')return `Ningún ${c.plural.replace(/s$/,'')} con fecha de llegada conocida se vendió todavía en ${SEDE.nombre}: no hay con qué compararlo. Lleva <b>${d} días</b> colgado. Como apoyo, en CAYLA (las 3 tiendas) la mitad de los ${c.plural} se vende antes de ${c.cayla.p50} días.`;
+  if(e.tipo==='sin_vara')return `La cabecera dice que la mitad de ${c.art} ${c.plural} se vende antes de ${c.p50} días, pero eso lo hace ella: <b>${p.suyas} de las ${c.vendidas} ventas son suyas</b>. Sin ella, ${c.demas} vendieron ${s.vendidas} de ${s.unidades} en ${s.tMax} días: todavía no hay con qué medirla. Lleva ${d} días colgada.`;
+  if(e.tipo==='sin_edad_conocida')return `Vino en la carga inicial, así que no se sabe cuándo llegó de verdad: lleva <b>al menos ${d} días</b>. Todavía no pasa los ${s.p50} días en que ya se vendió la mitad de ${c.demas}, pero no se puede decir que sea nueva.`;
+  // semáforo
+  let base;
+  if(e.tramo==='nueva')base=`Lleva <b>${d} días</b>: todavía no llega a los ${s.p50} en que ya se vendió la mitad de ${c.demas}.`;
+  if(e.tramo==='vigente')base=`Lleva <b>${d} días</b>: pasó los ${s.p50} en que se vende la mitad de ${c.demas}`+(s.p75!=null?`, pero no los ${s.p75} en que ya se vendieron 3 de cada 4.`:'.');
+  if(e.tramo==='envejecida')base=`Lleva <b>${d} días</b>: pasó los ${s.p75} en que ya se vendieron 3 de cada 4 de ${c.demas}`+(s.p90!=null?`; a los ${s.p90} se vendieron 9 de cada 10.`:'.');
+  if(e.tramo==='critica')base=`Lleva <b>${d} días</b>: pasó los ${s.p90} en que ya se vendieron 9 de cada 10 de ${c.demas} de ${SEDE.nombre}.`;
+  if(e.alMenos&&p.relojAlMenos)base+=` Vino en la carga inicial: esos ${d} días son lo que se sabe, puede llevar más. Por eso es «${f.alMenos.pre?f.alMenos.pre+' '+T[e.tramo]:T[e.tramo]+' '+f.alMenos.suf}» y nunca «Nueva».`;
+  else if(e.alMenos){const sig=e.tramo==='vigente'?'Envejecida':'Crítica';base+=` Lo más largo que se vio de ${c.demas} en ${SEDE.nombre} son ${s.tMax} días, y ella ya los pasó: todavía no hay ventas para saber dónde empieza ${sig}. Por eso es «${f.alMenos.pre?f.alMenos.pre+' '+T[e.tramo]:T[e.tramo]+' '+f.alMenos.suf}».`}
+  return base;
+}
+function porqueRapidez(p){
+  const c=cat(p),r=p.rapidez;
+  if(!r){
+    if(p.estado.tipo==='clasico'||p.estado.tipo==='dudosa')return '';
+    if(p.carga)return `Sin dato de rapidez: vino en la carga inicial y no se sabe qué edad tenía lo que vendió.`;
+    return `Sin dato de rapidez: su categoría no vendió nada aquí con qué compararla.`;
+  }
+  const v=r.vendidas,e=fmt(r.esperadas);
+  const cuanto=r.indice>=250?'más del doble de':r.indice>=180?'casi el doble de':r.indice>=115?'más de':r.indice>=90?'lo mismo que':r.indice>=45?'menos de':'mucho menos de';
+  const conf=nivelPor(r.referencia);
+  const confTxt=conf==='solido'?'':` Se midió contra solo ${r.referencia} ${r.referencia===1?'venta':'ventas'} de ${c.demas}: <span class="chip ${conf==='pocos_datos'?'ambar':'neutro'} chico">${conf==='pocos_datos'?'Pocos datos':'Aceptable'}</span>`;
+  return `Vendió <b>${v} de las ${e}</b> que se esperaban para ${c.uno} con sus mismos días colgada: ${cuanto} lo que ${c.f?'venden':'venden'} ${c.demas}.${p.recientesApartadas?` Las ${p.recientesApartadas} son apartados: puede estar entre las que mejor se venden sin una sola boleta.`:''}${confTxt}`;
+}
+function porqueRecientes(p){
+  if(p.recientes==null)return '';
+  const dias=Math.min(p.dias??30,30);
+  const txt=p.dias!=null&&p.dias<30?`En sus ${p.dias} días en el piso vendió <b>${p.recientes}</b>`:`En sus últimos 30 días en el piso vendió <b>${p.recientes}</b>`;
+  return `${txt}${p.recientesApartadas?`, contando ${p.recientesApartadas} apartadas`:''}.${p.recientes===0&&p.dias>=30?' Son días con algo colgado: lo que estuvo agotado o guardado no cuenta.':''}`;
+}
+const EXPLICA={
+  revisar_ventas:p=>({p:`En sus últimos 30 días en el piso no se vendió ninguna. Antes de moverla, mira si está a la vista, si tiene sus tallas y su etiqueta de precio.`,ir:[['Ver sus ventas',`/vender/historial?prenda=${p.cod}`]]}),
+  cambiar_lugar:p=>({p:`Lleva más tiempo colgada del que tardan ${cat(p).demas} y se vende menos que ${cat(p).f?'ellas':'ellos'}. Pruébala 7 días en la entrada, en un maniquí o en una mesa; cambiarla de lugar no cuesta nada.`,ir:[['Verla en Existencias',`/inventario?q=${p.cod}`]]}),
+  trasladar:p=>({p:`Tienes ${alm(p)} en el almacén de ${SEDE.nombre}. La comparación es sólida (${p.rapidez.referencia} ventas de ${cat(p).demas} aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,ir:[['Armar un traslado',`/inventario/mover?variante=${p.cod}`]]}),
+  retirar:p=>({p:`Su estación terminó el ${p.finEstacion}. Retirarla con motivo «fin de temporada» deja de pedir que la repongas y le hace lugar a lo nuevo.`,ir:[['Retirar del piso',`/inventario (Retirar del piso · fin de temporada)`]]}),
+  sigue_vendiendo:p=>({p:`Su temporada pasó (su ${p.estacion} terminó el ${p.finEstacion}), pero sigue vendiendo: ${p.recientes} en sus últimos 30 días en el piso. Tú decides si la dejas hasta que se agote o la retiras. Mientras siga colgada, sigue en «Por decidir».`,ir:[['Retirar del piso',`/inventario (Retirar del piso · fin de temporada)`]]}),
+  guardar_hasta_su_estacion:p=>({p:`Es un clásico de verano: no envejece, pero fuera de su estación ocupa percha. Vuelve a lucir desde el ${p.vuelve}.`,ir:[['Retirar del piso',`/inventario (Retirar del piso · cambio de exhibición)`]]}),
+};
+function detalleHTML(p){
+  const c=cat(p),f=F();
+  const temp=p.temporadaPasada?`<span class="chip ambar chico tp">Temporada pasada</span> <span style="color:var(--taupe);font-size:12.5px">${f.tp(p)}</span>`:p.temporada===null?`<span class="chip contorno-punteado chico sin-punto">${f.sinTemp}</span>`:`<span style="color:var(--taupe);font-size:12.5px">${p.temporada}</span>`;
+  const conf=c.nivel?confianzaChip(c.nivel):'';
+  const sug=p.sug.length?`<div class="bloque"><span class="label">Qué puedes hacer</span><div class="acciones-h">${p.sug.map(s=>{const x=EXPLICA[s](p);return `<div class="acc"><div class="t">${ic(ICONO_SUG[s])}<span>${F().sug[s](p)}</span></div><p>${x.p}</p><div class="ir">${x.ir.map(([t,h])=>`<button class="btn btn-secundario btn-chico" data-ir="${h}" data-que="${t}">${t}</button>`).join('')}</div></div>`}).join('')}</div><p class="parrafo taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada.</p></div>`
+    :p.estado.tipo==='dudosa'?`<div class="bloque"><span class="label">Qué puedes hacer</span><div class="acc"><div class="t">${ic('contar')}<span>Contar sus tallas</span></div><p>Un conteo de esta prenda corrige el piso y vuelve a medirla desde el día siguiente.</p><div class="ir"><button class="btn btn-secundario btn-chico" data-ir="/inventario/conteo?nuevo=1&producto=${p.cod}" data-que="Contar esta prenda">Contar esta prenda</button></div></div></div>`
+    :`<div class="bloque"><span class="label">Qué puedes hacer</span><p class="parrafo" style="margin-top:0">${p.apartada?'Nada: tiene dueña. Vuelve a medirse si alguna se libera.':'Nada por ahora.'}</p></div>`;
+  const estadoGrande=S.colores==='C'?barraEdad(p):estadoHTML(p);
+  return `<div class="velo" data-cerrar></div>
+  <div class="capa"><div class="hoja cascada" role="dialog" aria-modal="true" aria-labelledby="hoja-t" aria-describedby="hoja-b" tabindex="-1">
+    <h2 id="hoja-t">${p.n} · ${p.color}</h2>
+    <p class="bajada" id="hoja-b">${p.cod} · ${c.nombre} en ${SEDE.nombre} · ${temp}</p>
+    <div class="bloque">
+      <div class="veredicto">${p.dias!=null?`<span class="dias-g num">${p.relojAlMenos?'≥ ':''}${p.dias}<small>días en el piso${p.apartada?' · '+f.pausa:''}</small></span>`:''}${estadoGrande}</div>
+      <p class="parrafo">${porqueEstado(p)}</p>
+      ${regla(p)}
+      ${p.sinElla?`<div class="d5-hoja">${ic('info')}<span><b>${f.d5}</b> ${p.sinElla.p50!=null?`Sin contarla, ${c.demas}: la mitad se vende antes de ${p.sinElla.p50} días${p.sinElla.p75!=null?`, 3 de cada 4 antes de ${p.sinElla.p75}`:''}${p.sinElla.p90!=null?`, 9 de cada 10 antes de ${p.sinElla.p90}`:''} (la cabecera de ${c.nombre}, con todas: ${c.p50}${c.p75!=null?`, ${c.p75}`:''}${c.p90!=null?` y ${c.p90}`:''}).`:''} ${conf?`Con ${c.vendidas} ventas en ${SEDE.nombre}: ${conf}`:''}</span></div>`:''}
+    </div>
+    <div class="bloque"><span class="label">Cómo se vende</span>
+      ${porqueRapidez(p)?`<p class="parrafo" style="margin-top:0">${porqueRapidez(p)}</p>`:''}
+      ${porqueRecientes(p)?`<p class="parrafo">${porqueRecientes(p)}</p>`:''}
+      ${!porqueRapidez(p)&&!porqueRecientes(p)?`<p class="parrafo taupe" style="margin-top:0">No se mide.</p>`:''}
+    </div>
+    <div class="bloque"><span class="label">Tallas en ${SEDE.nombre}</span>
+      <div class="tallas-g">${p.tallas.map(([t,pi,al,ap])=>`<div class="${pi<0?'mal':''}"><b>${t}</b><span>Piso</span> ${pi<0?'−'+Math.abs(pi):pi}<br><span>Almacén</span> ${al}${ap?`<br><span>Apartadas</span> ${ap}`:''}</div>`).join('')}</div>
+    </div>
+    ${sug}
+    <div class="bloque"><span class="label">Datos de apoyo</span>
+      <dl class="apoyo">
+        <dt>Colgada por primera vez en ${SEDE.nombre}</dt><dd>${p.primera}</dd>
+        <dt>Llegó a CAYLA</dt><dd>${p.llegadaCayla}</dd>
+        <dt>Referencia de CAYLA <span class="chip pizarra chico" style="margin-left:4px">Solo líder</span></dt><dd>La mitad de ${c.art} ${c.plural} se vende antes de ${c.cayla.p50} días en las 3 tiendas juntas${c.cayla.p75!=null?`; 3 de cada 4, antes de ${c.cayla.p75}`:''}.</dd>
+      </dl>
+    </div>
+    <div class="pie-hoja"><button class="btn btn-secundario" data-cerrar>Cerrar</button></div>
+  </div></div>`;
+}
+let ultimoFoco=null;
+function abrir(id){
+  const p=P.find(x=>x.id===id); if(!p)return;
+  S.abierta=id; ultimoFoco=document.activeElement;
+  const raiz=document.getElementById('modal-raiz');
+  raiz.innerHTML=detalleHTML(p);
+  document.body.style.overflow='hidden';
+  const hoja=raiz.querySelector('.hoja'); hoja.focus({preventScroll:true});
+  pintarElige();
+}
+function cerrar(){
+  if(!S.abierta)return;
+  const raiz=document.getElementById('modal-raiz');
+  const hoja=raiz.querySelector('.hoja'),velo=raiz.querySelector('.velo');
+  const sinMov=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  hoja&&hoja.classList.add('sale'); velo&&velo.classList.add('sale');
+  S.abierta=null;
+  setTimeout(()=>{raiz.innerHTML='';document.body.style.overflow='';ultimoFoco&&ultimoFoco.focus&&ultimoFoco.focus({preventScroll:true});pintarElige()},sinMov?0:220);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PANEL «ELIGE»
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function pintarElige(){
+  const el=document.getElementById('elige'),c=COLORES[S.colores],fr=FRASES[S.frases];
+  const rojos=[...document.querySelectorAll('[data-rojo]')].filter(x=>x.offsetParent!==null&&!x.closest('#elige')).length;
+  el.dataset.abierto=String(S.elige);
+  el.innerHTML=`<button class="cab" data-act="elige" aria-expanded="${S.elige}"><span class="t">Elige</span><span class="r">colores ${S.colores} · frases ${S.frases}</span>${ic('abajo')}</button>
+   <div class="cuerpo">
+     <div><h3>Colores de los estados</h3>
+       <div class="ops" role="group" aria-label="Colores">${Object.entries(COLORES).map(([k,o])=>`<button aria-pressed="${S.colores===k}" data-colores="${k}"><b>${k}</b><span>${o.nombre}</span></button>`).join('')}</div>
+       <div class="gp"><b>Gana</b><span>${c.gana}</span><b>Paga</b><span>${c.paga}</span></div></div>
+     <div><h3>Frases</h3>
+       <div class="ops" role="group" aria-label="Frases">${Object.entries(FRASES).map(([k,o])=>`<button aria-pressed="${S.frases===k}" data-frases="${k}"><b>${k}</b><span>${o.nombre}</span></button>`).join('')}</div>
+       <div class="gp"><b>Gana</b><span>${fr.gana}</span><b>Paga</b><span>${fr.paga}</span></div></div>
+     <div class="resp"><output>Tu respuesta: <q>colores ${S.colores}, frases ${S.frases}</q></output><button data-act="copiar">${ic('copiar','width:14px;height:14px;vertical-align:-2px')} Copiar</button></div>
+     <p class="rojos">Rojo pleno en pantalla: <b>${rojos} de 2</b> permitidos (los tintes al 10 % y el rojo profundo no cuentan, como en el Chip del ERP).</p>
+     <p class="sim">Maqueta: todas las cifras y prendas son simuladas. Este panel no existe en el ERP.</p>
+   </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   RENDER Y EVENTOS
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function render(){
+  document.body.dataset.colores=S.colores; document.body.dataset.frases=S.frases;
+  pantalla();
+  if(S.abierta){const p=P.find(x=>x.id===S.abierta);const raiz=document.getElementById('modal-raiz');const sc=raiz.querySelector('.hoja')?.scrollTop||0;raiz.innerHTML=detalleHTML(p).replace('hoja cascada','hoja');raiz.querySelector('.velo').style.animation='none';raiz.querySelector('.hoja').style.animation='none';raiz.querySelector('.hoja').scrollTop=sc}
+  pintarElige();
+}
+let tAviso;
+function aviso(que,ir){
+  const a=document.getElementById('aviso');
+  a.innerHTML=`<b>${que}</b><code>${ir.startsWith('#')?'en la pantalla real se abre aquí mismo':'iría a '+ir}</code>`;
+  a.classList.add('on'); clearTimeout(tAviso); tAviso=setTimeout(()=>a.classList.remove('on'),2800);
+}
+let comboAbierto=null;
+function abrirCombo(id){
+  cerrarCombo();
+  const cont=document.querySelector(`[data-combo="${id}"]`); if(!cont)return;
+  comboAbierto=id; cont.insertAdjacentHTML('beforeend',listaCombo(id));
+  cont.querySelector('[aria-expanded]').setAttribute('aria-expanded','true');
+  const inp=cont.querySelector('[data-busca-combo]'); (inp||cont.querySelector('[aria-selected=true]')||cont.querySelector('[role=option]'))?.focus();
+}
+function cerrarCombo(){
+  if(!comboAbierto)return;
+  const cont=document.querySelector(`[data-combo="${comboAbierto}"]`);
+  cont?.querySelector('.lista')?.remove(); cont?.querySelector('[aria-expanded]')?.setAttribute('aria-expanded','false');
+  S['q_'+comboAbierto]=''; comboAbierto=null;
+}
+document.addEventListener('click',e=>{
+  const g=k=>e.target.closest(`[data-${k}]`);
+  if(g('colores')&&g('colores').tagName==='BUTTON'){S.colores=g('colores').dataset.colores;guardar();render();return}
+  if(g('frases')&&g('frases').tagName==='BUTTON'){S.frases=g('frases').dataset.frases;guardar();render();return}
+  if(g('abre-combo')){const id=g('abre-combo').dataset.abreCombo;comboAbierto===id?cerrarCombo():abrirCombo(id);return}
+  if(g('op')&&comboAbierto){const v=g('op').dataset.op;if(comboAbierto==='cat')S.cat=v;else S.estado=v;const id=comboAbierto;cerrarCombo();pantalla();pintarElige();document.querySelector(`[data-abre-combo="${id}"]`)?.focus();return}
+  if(comboAbierto&&!e.target.closest('.combo'))cerrarCombo();
+  if(g('cerrar')&&(e.target===g('cerrar')||g('cerrar').tagName==='BUTTON')){cerrar();return}
+  if(g('ir')){const b=g('ir');aviso(b.dataset.que,b.dataset.ir);return}
+  const a=g('act')?.dataset.act;
+  if(a==='porDecidir'){S.porDecidir=!S.porDecidir;pantalla();pintarElige();return}
+  if(a==='limpiar'){S.cat='todas';S.estado='todos';S.porDecidir=false;S.q='';pantalla();pintarElige();return}
+  if(a==='elige'){S.elige=!S.elige;guardar();pintarElige();return}
+  if(a==='copiar'){const t=`colores ${S.colores}, frases ${S.frases}`;try{navigator.clipboard.writeText(t).then(()=>aviso('Copiado',`#«${t}»`),()=>aviso('Cópialo a mano',`#«${t}»`))}catch(err){aviso('Cópialo a mano',`#«${t}»`)}return}
+  if(g('abrir')&&!e.target.closest('#modal-raiz')){abrir(g('abrir').dataset.abrir);return}
+});
+document.addEventListener('input',e=>{
+  if(e.target.matches('[data-q]')){S.q=e.target.value;const pos=e.target.selectionStart;pantalla();pintarElige();const i=document.querySelector('[data-q]');i.focus();i.setSelectionRange(pos,pos)}
+  if(e.target.matches('[data-busca-combo]')){const id=e.target.dataset.buscaCombo;S['q_'+id]=e.target.value;const cont=document.querySelector(`[data-combo="${id}"] [data-ops]`);const tmp=document.createElement('div');tmp.innerHTML=listaCombo(id);cont.innerHTML=tmp.querySelector('[data-ops]').innerHTML}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(comboAbierto){e.stopPropagation();const id=comboAbierto;cerrarCombo();document.querySelector(`[data-abre-combo="${id}"]`)?.focus();return} // el combo usó el Escape (useEscapeLibre)
+    if(S.abierta){cerrar();return}
+  }
+  if(comboAbierto&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+    const ops=[...document.querySelectorAll(`[data-combo="${comboAbierto}"] [role=option]`)];if(!ops.length)return;
+    e.preventDefault();const i=ops.indexOf(document.activeElement);const n=e.key==='ArrowDown'?Math.min(ops.length-1,i+1):Math.max(0,i-1);ops[n].focus();return;
+  }
+  if(comboAbierto&&e.key==='Enter'&&document.activeElement?.matches('[role=option]')){document.activeElement.click();return}
+  if((e.key==='Enter'||e.key===' ')&&document.activeElement?.matches('.fila[data-abrir]')){e.preventDefault();abrir(document.activeElement.dataset.abrir);return}
+  if(e.key==='Tab'&&S.abierta){ // foco atrapado en la hoja, como Radix
+    const hoja=document.querySelector('.hoja');const fs=[...hoja.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])')];if(!fs.length)return;
+    const pri=fs[0],ult=fs[fs.length-1];
+    if(e.shiftKey&&(document.activeElement===pri||document.activeElement===hoja)){e.preventDefault();ult.focus()}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus()}
+  }
+});
+render();
+if(S.abrirAlCargar)abrir(S.abrirAlCargar);
+</script>
+</body>
+</html>
