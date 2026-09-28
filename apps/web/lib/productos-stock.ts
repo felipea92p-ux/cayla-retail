@@ -40,6 +40,16 @@ export function alertaDeStock(p: ProductoConStock): AlertaStock {
   return null;
 }
 
+/**
+ * ¿Hay que avisar que AQUÍ no hay, aunque la red sí tenga? Es lo que decide si la colaboradora le promete la prenda a la
+ * clienta: «Stock total 117» con 0 en su tienda se lee como «sí hay». Solo activas (como `alertaDeStock`) y solo cuando
+ * la red tiene: con 0 en toda la red ya lo dice «Sin stock», y dos insignias diciendo lo mismo sobran.
+ * `enSede` null = todavía no se sabe (o no se pudo leer): no se avisa nada que no se sabe.
+ */
+export function sinStockEnSede(p: ProductoConStock, enSede: number | null): boolean {
+  return p.estado === "activo" && p.stockTotal > 0 && enSede === 0;
+}
+
 /** «Stock total 12». En cero también: «Stock total 0» (la alerta «Sin stock» la pinta el chip, no este texto). */
 export function textoDeStock(stockTotal: number): string {
   return `${ROTULO_STOCK_TOTAL} ${stockTotal}`;
