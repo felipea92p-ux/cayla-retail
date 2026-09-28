@@ -18,7 +18,8 @@ import type { Tolerado } from "./resultado";
 //      colgó en la sede. Nunca se reinicia (una prenda repuesta no vuelve a ser Nueva) y no corre agotada ni guardada.
 //   3. LA RAPIDEZ: cuántas vendió contra cuántas habría vendido una prenda típica de su categoría (sin ella) con los
 //      mismos días colgada, con las unidades de TODA la lectura. Separa «vieja y lenta» (quieta) de «vieja pero se sigue
-//      vendiendo» (un pilar, que nunca va al perchero salvo que su temporada ya pasó: D2).
+//      vendiendo» (un pilar, que nunca va al perchero salvo que su temporada ya pasó: D2). Lo que dejó de venderse hace
+//      30 días no es pilar aunque su índice de 120 días lo diga (revisión 6).
 //
 // Lo que NO vive aquí, a propósito: el FIFO de cohortes. Es UNO solo, `historiaDeCohortes` de `inventario-exposicion.ts`
 // (ADR-0208 (d), ADR-0248); aquí solo se preparan sus eventos (quitar las bajadas tardías, recortar la ventana) y se
@@ -69,10 +70,18 @@ export type NivelConfianza = "pocos_datos" | "aceptable" | "solido";
 export type Tramo = "nueva" | "vigente" | "envejecida" | "critica";
 /**
  * Lo que Frescura puede sugerir. «Rebajar» NO existe: la rebaja es del líder, por sede y en tramos (bloque 7).
- * `sigue_vendiendo`: «Sigue vendiendo: decide si la dejas hasta agotar o la retiras», solo para un pilar de venta cuya
- * temporada ya pasó (D2, Felipe 2026-09-27); es una pregunta, no una orden, y nunca trae «trasladar».
+ * `sigue_vendiendo`: «Sigue vendiendo: decide si la dejas hasta agotar o la retiras», solo para un pilar de venta (que no
+ * dejó de venderse) cuya temporada ya pasó (D2, Felipe 2026-09-27); es una pregunta, no una orden, y nunca trae
+ * «trasladar».
  */
 export type Sugerencia = "revisar_ventas" | "cambiar_lugar" | "trasladar" | "retirar" | "sigue_vendiendo" | "guardar_hasta_su_estacion";
+/**
+ * Lo que dicen sus ventas de los últimos `DIAS_CALLADA` días (revisión 6): `vendio` (vendió algo), `dejo_de_vender`
+ * (lleva colgada al menos esos días y no vendió nada) o `no_se_sabe` (la lectura no cubre esos días, o no vendió pero
+ * lleva menos tiempo colgada: todavía no dice nada). Es la ÚNICA medida de «¿se sigue vendiendo?» de la pantalla: la
+ * usan el pilar (y con él «sigue vendiendo») y la prenda callada.
+ */
+export type Recientes = "vendio" | "dejo_de_vender" | "no_se_sabe";
 
 /** Una talla de la lectura de la sede (una fila de `prendas` de `fn_frescura_sede`). */
 export type TallaFrescuraCruda = {
@@ -398,39 +407,64 @@ export function recortarEventos(eventos: readonly EventoPiso[], inicio: string):
   return [{ ts: inicio, delta: saldo, esVenta: false, esMovimientoInterno: false, edadDesconocida: true }, ...dentro];
 }
 
-/** Lo que una talla aporta a la vara en una ventana, y cuántas de sus ventas no tienen edad que medirles. */
+/** Lo que una talla aporta a la vara en una ventana, y las ventas a las que no se les puede medir la edad. */
 export type UnidadesTalla = {
   /** Sus unidades con edad conocida (las de la curva). */
   observaciones: Observacion[];
-  /** Unidades vendidas que el FIFO sacó de una cohorte con edad desconocida (carga inicial, ajuste, saldo de la ventana). */
-  ventasSinEdad: number;
+  /** Las ventas que el FIFO sacó de una cohorte con edad desconocida (carga inicial, ajuste, saldo de la ventana): cuándo
+   *  y cuántas unidades. La hora queda como texto: solo se lee si la prenda colgó algo con edad conocida. */
+  ventasSinEdad: { ts: string; cantidad: number }[];
+  /** Cuándo (milisegundos) se colgó su primera unidad con edad conocida; null si no tiene ninguna. */
+  primeraConEdad: number | null;
 };
 
 /**
  * Las unidades con EDAD CONOCIDA de una variante, para la curva: cada venta con los segundos que llevaba colgada; cada
  * salida sin venta (traslado a otra sede, merma) y cada unidad que sigue en la sede como «al menos» esos segundos. Lo que
- * tiene edad desconocida no entra (ADR-0248): su reloj no es su edad. Y aparte, cuántas ventas salieron de lo que tiene
- * edad desconocida: el FIFO le da las ventas a lo más viejo, así que una talla de la carga inicial que se repone vende
- * primero lo de la carga y lo repuesto parece sin vender (la rapidez lo necesita: `rapidez`). `observaciones` NO viene
- * ordenado (primero las salidas, después lo colgado): quien lo necesite en orden lo ordena (`contraElResto`, `kaplanMeier`).
+ * tiene edad desconocida no entra (ADR-0248): su reloj no es su edad. Y aparte, las ventas que salieron de lo que tiene
+ * edad desconocida y cuándo se colgó lo primero con edad conocida: el FIFO le da las ventas a lo más viejo, así que una
+ * talla de la carga inicial que se repone vende primero lo de la carga y lo repuesto parece sin vender (la rapidez lo
+ * necesita: `ventasQueEsconden`). `observaciones` NO viene ordenado (primero las salidas, después lo colgado): quien lo
+ * necesite en orden lo ordena (`contraElResto`, `kaplanMeier`).
  */
 export function unidadesParaVara(eventos: readonly EventoPiso[], ahora: string): UnidadesTalla {
   const { cohortes, salidas } = historiaDeCohortes(eventos);
   const ahoraMs = ms(ahora);
   const obs: Observacion[] = [];
-  let ventasSinEdad = 0;
+  const ventasSinEdad: UnidadesTalla["ventasSinEdad"] = [];
+  let primeraConEdad: number | null = null;
   for (const s of salidas) {
     if (s.cantidad <= 0) continue;
     if (s.edadDesconocida) {
-      if (s.tipo === "venta") ventasSinEdad += s.cantidad;
+      if (s.tipo === "venta") ventasSinEdad.push({ ts: s.ts, cantidad: s.cantidad });
     } else obs.push({ segundos: s.segundosExpuesta, vendida: s.tipo === "venta", peso: s.cantidad });
   }
   for (const c of cohortes) {
-    if (c.edadDesconocida || c.cantidadRestante <= 0) continue;
+    if (c.edadDesconocida) continue;
+    // «Cuándo se colgó lo primero con edad conocida», aunque ya se haya vendido entero: la primera cohorte conocida. El
+    // FIFO las deja en el orden en que entraron (agrega al final y parte cada una en su lugar): no hace falta buscar.
+    primeraConEdad ??= ms(c.ts);
+    if (c.cantidadRestante <= 0) continue;
     const abierto = c.abiertaDesde !== null ? Math.max(0, ahoraMs - ms(c.abiertaDesde)) / 1000 : 0;
     obs.push({ segundos: c.segundosAcumulados + abierto, vendida: false, peso: c.cantidadRestante });
   }
-  return { observaciones: obs, ventasSinEdad };
+  return { observaciones: obs, ventasSinEdad, primeraConEdad };
+}
+
+/**
+ * Las ventas sin edad que pueden esconderle ventas a lo que sí tiene edad (revisión 6): las de cualquier talla de la
+ * prenda hechas DESDE que colgó su primera unidad con edad conocida. Ahí el FIFO puede darle a la carga inicial una venta
+ * que era de lo repuesto (las gemelas K y U), o la talla de la carga vende mientras la repuesta cuelga (E-Y08): la rapidez
+ * medida solo con lo conocido diría «lenta» de algo que se vende. Las de ANTES no: la carga que se agotó antes de que
+ * llegara lo repuesto no le quitó ninguna venta, y con A1 (toda la lectura) la vetaba 120 días.
+ */
+function ventasQueEsconden(tallas: readonly UnidadesTalla[]): number {
+  let primera = Infinity;
+  for (const u of tallas) if (u.primeraConEdad !== null && u.primeraConEdad < primera) primera = u.primeraConEdad;
+  if (primera === Infinity) return 0;
+  let n = 0;
+  for (const u of tallas) for (const v of u.ventasSinEdad) if (ms(v.ts) >= primera) n += v.cantidad;
+  return n;
 }
 
 
@@ -781,11 +815,13 @@ function tMaxSin(curva: Curva, mias: readonly Observacion[]): number {
  * Null («sin dato») con menos de `RAPIDEZ_MIN_EVIDENCIA` entre vendidas y esperadas, o si el resto de su categoría no
  * vendió nada a esas edades (no hay contra qué medirla): una prenda recién colgada que no vendió todavía no es «lenta»,
  * es «sin dato» (plan 3c, corrección 4), y la única de su categoría tampoco es «pilar».
- * También null si alguna de sus ventas de la ventana salió de lo que tiene edad desconocida (`ventasSinEdad`, de
- * `unidadesParaVara`): el FIFO le da las ventas a la cohorte más vieja, así que la talla de la carga inicial que se repone
- * vende lo de la carga y lo repuesto (con edad conocida) parece sin vender. Medida solo con lo repuesto salía 0,
- * «lenta», y el éxito de venta que vino en la carga iba a «Por decidir» con «Trasladar», justo lo que prohíbe la
- * corrección 4 (revisión 4, las gemelas K y U: misma historia física, 125 contra 0).
+ * También null si alguna venta de lo que tiene edad desconocida pudo esconderle ventas a lo que sí la tiene
+ * (`ventasSinEdad`, de `ventasQueEsconden`: las hechas desde que la prenda colgó lo primero con edad conocida): el FIFO le
+ * da las ventas a la cohorte más vieja, así que la talla de la carga inicial que se repone vende lo de la carga y lo
+ * repuesto (con edad conocida) parece sin vender. Medida solo con lo repuesto salía 0, «lenta», y el éxito de venta que
+ * vino en la carga iba a «Por decidir» con «Trasladar», justo lo que prohíbe la corrección 4 (revisión 4, las gemelas K y
+ * U: misma historia física, 125 contra 0). Las ventas de una carga que se agotó ANTES de que llegara lo repuesto no
+ * cuentan (revisión 6): con toda la lectura, vetaban 120 días la rapidez de toda reposición.
  */
 export function rapidez(vendidas: number, esperadas: number, referencia: number, ventasSinEdad = 0): Rapidez | null {
   if (ventasSinEdad > 0) return null;
@@ -801,9 +837,21 @@ export function vendidasDe(observaciones: readonly Observacion[]): number {
   return n;
 }
 
-/** Un pilar de venta: se vende como su categoría o más rápido, a la misma edad. Nunca va al perchero. */
-export function esPilar(r: Rapidez | null): boolean {
-  return r !== null && r.indice >= RAPIDEZ_IGUAL;
+/**
+ * Un pilar de venta: se vende como su categoría o más rápido, a la misma edad, Y se sigue vendiendo. Nunca va al
+ * perchero por vieja. El índice cuenta toda la lectura (120 días): el éxito que vendió 14 de 20 en sus 3 primeros días y
+ * después nada (le quedaron tallas sueltas) seguía «más rápido que su categoría» los 120 días. Por eso deja de ser pilar
+ * si lleva 30 días colgada sin vender (`dejo_de_vender`, revisión 6; era el «SE ROMPE SI» de D2): entonces es lenta.
+ */
+export function esPilar(r: Rapidez | null, recientes: Recientes): boolean {
+  return r !== null && r.indice >= RAPIDEZ_IGUAL && recientes !== "dejo_de_vender";
+}
+
+/** `Recientes` a partir de las ventas del modelo+color en los últimos `DIAS_CALLADA` días y los segundos colgada. */
+function recientesDe(ventasRecientes: number | null, segundosColgada: number): Recientes {
+  if (ventasRecientes === null) return "no_se_sabe";
+  if (ventasRecientes > 0) return "vendio";
+  return segundosColgada >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS ? "dejo_de_vender" : "no_se_sabe";
 }
 
 // ---------------------------------------------------------------------------
@@ -817,13 +865,15 @@ export function esPilar(r: Rapidez | null): boolean {
  * Un pilar de venta no entra por vieja, pero SÍ por su temporada pasada (D2, Felipe 2026-09-27): el bikini que se sigue
  * vendiendo después del 20 de marzo es una decisión del líder (dejarlo hasta agotar o retirarlo), y lo que no se decide
  * no aparece. Su sugerencia es otra (`sigue_vendiendo`, ver `sugerenciasDe`), nunca «trasladar» ni «rebajar».
+ * Con dato de rapidez, una prenda es pilar o lenta: la que dejó de venderse (`esPilar`) es lenta aunque su índice de
+ * toda la lectura pase de 100.
  */
-export function estaQuieta(p: { tramo: Tramo | null; temporadaPasada: boolean; rapidez: Rapidez | null; pisoHoy: number }): boolean {
+export function estaQuieta(p: { tramo: Tramo | null; temporadaPasada: boolean; rapidez: Rapidez | null; recientes: Recientes; pisoHoy: number }): boolean {
   if (p.pisoHoy <= 0) return false;
   if (p.temporadaPasada) return true;
-  if (esPilar(p.rapidez)) return false;
+  if (esPilar(p.rapidez, p.recientes)) return false;
   const vieja = p.tramo === "envejecida" || p.tramo === "critica";
-  const lenta = p.rapidez !== null && p.rapidez.indice < RAPIDEZ_IGUAL;
+  const lenta = p.rapidez !== null;
   return vieja && lenta;
 }
 
@@ -843,7 +893,9 @@ export function puedeTrasladar(p: { nivel: NivelConfianza | null; almacenHoy: nu
  * decisión 10: «al terminar su estación, Frescura avisa y sugiere»). La rebaja no se sugiere nunca aquí.
  *   · Un pilar de venta de temporada pasada recibe SOLO «sigue vendiendo: decide si la dejas hasta agotar o la retiras»
  *     (D2, Felipe 2026-09-27): cambiarla de lugar o trasladarla no tiene sentido para lo que se vende, y «retirar» a
- *     secas era una orden donde hay una decisión.
+ *     secas era una orden donde hay una decisión. Un pilar que dejó de venderse ya no lo es (`esPilar`, revisión 6).
+ *     PENDIENTE DE FELIPE (revisión 6): lo que no tiene dato de rapidez (lo que vino en la carga inicial) y vendió en los
+ *     últimos 30 días no llega a «sigue vendiendo»: recibe la escalera y «retirar» (ADR-0208, «Revisión 6 del paso 3»).
  *   · `callada` (D4+D6): sin tramo firme, colgada 30 días o más y sin ninguna venta en los últimos 30. Recibe «revisa sus
  *     ventas» con o sin dato de rapidez: nunca queda una prenda quieta sin ninguna pista.
  */
@@ -853,6 +905,7 @@ export function sugerenciasDe(p: {
   temporadaPasada: boolean;
   fueraDeSuEstacion: boolean;
   rapidez: Rapidez | null;
+  recientes: Recientes;
   nivel: NivelConfianza | null;
   pisoHoy: number;
   almacenHoy: number;
@@ -860,7 +913,7 @@ export function sugerenciasDe(p: {
 }): Sugerencia[] {
   const s: Sugerencia[] = [];
   if (p.fueraDeSuEstacion && p.pisoHoy > 0) s.push("guardar_hasta_su_estacion");
-  if (p.temporadaPasada && p.pisoHoy > 0 && esPilar(p.rapidez)) {
+  if (p.temporadaPasada && p.pisoHoy > 0 && esPilar(p.rapidez, p.recientes)) {
     s.push("sigue_vendiendo");
     return s;
   }
@@ -889,7 +942,7 @@ export type EntradaEstado = {
   pisoHoy: number;
   almacenHoy: number;
   /** Unidades de su modelo+color vendidas en la sede en los últimos `DIAS_CALLADA` días; null si la lectura no cubre
-   *  esos días (entonces no se sabe, y no se sugiere nada por eso). */
+   *  esos días (entonces no se sabe). Dicen si se sigue vendiendo (`Recientes`): el pilar y la callada. */
   ventasRecientes: number | null;
 };
 
@@ -923,18 +976,20 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
       tramo = t.tramo;
     }
   }
-  const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rapidezUsable, pisoHoy: e.pisoHoy });
+  const recientes = recientesDe(e.ventasRecientes, e.reloj.segundos);
+  const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rapidezUsable, recientes, pisoHoy: e.pisoHoy });
   // D4+D6: sin tramo firme (sin referencia, sin ventas en la sede, sin edad conocida o un tramo que es solo un piso),
   // colgada al menos 30 días y sin ninguna venta en los últimos 30. Ni el clásico ni la dudosa: tienen su propio estado.
   const sinTramoFirme =
     base.tipo === "sin_ventas_sede" || base.tipo === "sin_vara" || base.tipo === "sin_edad_conocida" || (base.tipo === "semaforo" && base.alMenos);
-  const callada = sinTramoFirme && e.pisoHoy > 0 && e.reloj.segundos >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS && e.ventasRecientes === 0;
+  const callada = sinTramoFirme && e.pisoHoy > 0 && recientes === "dejo_de_vender";
   const sugerencias = sugerenciasDe({
     quieta,
     tramo,
     temporadaPasada,
     fueraDeSuEstacion: base.tipo === "clasico" && base.fueraDeSuEstacion,
     rapidez: rapidezUsable,
+    recientes,
     nivel: e.vara.nivel,
     pisoHoy: e.pisoHoy,
     almacenHoy: e.almacenHoy,
@@ -1142,7 +1197,8 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     }
     // Su tramo y su rapidez se miden contra su categoría SIN ella (`contraElResto`: se le restan las unidades con que ella
     // entra a la vara, las de la ventana de la vara). La rapidez, con sus unidades de TODA la lectura: sin dato solo si
-    // alguna venta salió de lo que de verdad no tiene edad (saldo inicial de la lectura, carga inicial, ajustes).
+    // alguna venta salió de lo que de verdad no tiene edad (saldo inicial de la lectura, carga inicial, ajustes) desde que
+    // colgó lo primero con edad conocida (`ventasQueEsconden`).
     const medibles = esClasico || dudosa ? [] : tallas.map((t) => unidadesDeTalla.get(t.varianteId)).filter((u): u is UnidadesDeTalla => u !== undefined);
     const suyas = medibles.map((u) => u.todas());
     const suyasObs = suyas.flatMap((u) => u.observaciones);
@@ -1157,7 +1213,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
             vendidasDe(suyasObs),
             resto.esperadas,
             resto.vendidas,
-            suyas.reduce((s, u) => s + u.ventasSinEdad, 0),
+            ventasQueEsconden(suyas),
           );
     const estado = estadoFrescura({
       dudosa,

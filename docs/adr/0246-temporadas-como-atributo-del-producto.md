@@ -202,3 +202,12 @@ ADR-0208, «Revisión 5 del paso 3»):
   venta de temporada pasada entra a «Por decidir» con una sola sugerencia, «Sigue vendiendo: decide si la dejas hasta
   agotar o la retiras». No se le sugiere moverla ni trasladarla, y tampoco rebajarla (la rebaja sigue siendo del líder).
   Lo que no se vende sigue con «moverla, trasladarla o retirarla».
+
+## Nota 2026-09-27 (c) — una pregunta abierta sobre la carga inicial (ADR-0208, revisión 6 del paso 3)
+
+«La última llegada a CAYLA» cuenta hoy la carga inicial como una llegada más. Por eso una carga posterior del mismo
+modelo+color (la de AQP o LIM al incorporarse, o una talla nueva que una tienda carga por Existencias ▸ Ajustar stock)
+mueve el año de la temporada de lo que llegó de verdad por lote, en todas las sedes. La recomendación es que la carga
+inicial cuente solo si el modelo+color no tiene lote ni producción, y que entre cargas mande la primera. Está pendiente de
+Felipe (ADR-0208, «Revisión 6 del paso 3», pregunta 7; prueba T4i de `frescura_lectura.mjs`). Hasta que decida, rige lo
+de la nota (b).

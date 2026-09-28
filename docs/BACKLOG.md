@@ -1071,7 +1071,10 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       con «sigue vendiendo» (Felipe); la rapidez con toda la lectura; el tramo contra la categoría SIN la prenda; «revisa
       sus ventas» para la prenda callada sin tramo firme; pruebas de piso/almacén de esta tienda, tardías en unidades y
       `fn_temporada_efectiva` security definer. Pruebas: `pnpm pruebas:frescura-lectura` 177. ADR-0208, «Revisión 5 del
-      paso 3».
+      paso 3». **Revisión 6 corregida el 2026-09-27** (10 hallazgos: 8 corregidos, 2 para Felipe; la base no cambia, mismos
+      md5): un pilar que lleva 30 días colgado sin vender ya no es pilar (el éxito con tallas rotas va a «Por decidir»);
+      las ventas de una carga que se agotó antes de la reposición ya no dejan su rapidez sin dato; seis pruebas que
+      faltaban (web y SQL). Pruebas: `pnpm pruebas:frescura-lectura` 184. ADR-0208, «Revisión 6 del paso 3».
       - [ ] **Pegar `20260928120300` y DESPUÉS `20260928120310` en producción** (cada una sola, en el SQL Editor, a
         cualquier hora: solo funciones). **No pegar solo la primera**: deja los errores de la revisión 3. Tras
         `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
@@ -1103,6 +1106,14 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         SIN ella, como la rapidez? (hoy el pantalón de 70 días con 0 de 3 vendidas sale «Vigente» porque sus propias
         unidades sostienen la curva; recomendado: sí, lo construye el paso 4 si no hay respuesta); (6) ¿«al menos Vigente»
         sin dato de rapidez recibe «revisa sus ventas»? (recomendado: sí). ADR-0208, «Revisión 4 del paso 3».
+      - [ ] **Decisiones de negocio de la revisión 6 (Felipe), ANTES de pegar `20260928120310`:** (7) ¿una carga inicial
+        posterior del mismo modelo+color (AQP o LIM al incorporarse, o una talla nueva cargada en Ajustar stock)
+        reinicia la temporada de lo que llegó por lote, en todas las sedes? Hoy sí (la ÚLTIMA llegada a CAYLA);
+        recomendado: la carga cuenta solo sin lote ni producción, y la primera (una línea de `llegada_cayla_de`; si no
+        responde, se pega como está y va después en una migración nueva). (8) ¿lo que no tiene dato de rapidez (vino en
+        la carga) y vendió en los últimos 30 días recibe «sigue vendiendo» con la temporada pasada, como su gemelo del
+        lote? Hoy recibe «cambiar de lugar» y «retirar»; recomendado: sí (pero la chompa que vendió 1 de 4 en 42 días
+        también lo recibiría). ADR-0208, «Revisión 6 del paso 3»; pruebas «PENDIENTE DE FELIPE» (T4i y los bikinis).
       - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
         `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
         0 filas así). ADR-0208, «Revisión 4».

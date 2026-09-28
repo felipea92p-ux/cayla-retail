@@ -277,12 +277,18 @@ describe("unidadesParaVara y recortarEventos (sobre el único FIFO)", () => {
     expect(observacionesDe([bajada(0, 1), venta(30, 1), bajada(110, 1)], ts(120)).map((o) => o.segundos / D)).toEqual([30, 10]);
   });
 
-  it("cuenta aparte las ventas que salieron de lo que tiene edad desconocida (el FIFO vende primero lo de la carga)", () => {
+  it("cuenta aparte las ventas que salieron de lo que tiene edad desconocida (el FIFO vende primero lo de la carga), con su hora, y cuándo se colgó lo primero con edad conocida", () => {
     // 3 de la carga inicial, 2 bajadas después con edad conocida; se venden 3: las 3 salen de la carga.
     const u = unidadesParaVara([bajada(0, 3, { edadDesconocida: true }), bajada(10, 2), venta(12, 1), venta(14, 1), venta(16, 1)], ts(20));
-    expect(u).toEqual({ observaciones: [{ segundos: 10 * D, vendida: false, peso: 2 }], ventasSinEdad: 3 });
-    // Una pérdida de lo desconocido no es una venta.
-    expect(unidadesParaVara([bajada(0, 2, { edadDesconocida: true }), ev(3, -1)], ts(5)).ventasSinEdad).toBe(0);
+    expect(u).toEqual({
+      observaciones: [{ segundos: 10 * D, vendida: false, peso: 2 }],
+      ventasSinEdad: [12, 14, 16].map((d) => ({ ts: ts(d), cantidad: 1 })),
+      primeraConEdad: Date.parse(ts(10)),
+    });
+    // Una pérdida de lo desconocido no es una venta; sin nada con edad conocida, no hay «primera».
+    expect(unidadesParaVara([bajada(0, 2, { edadDesconocida: true }), ev(3, -1)], ts(5))).toMatchObject({ ventasSinEdad: [], primeraConEdad: null });
+    // Lo primero con edad conocida cuenta aunque ya se haya vendido entero (el día 1, no el 8).
+    expect(unidadesParaVara([bajada(1, 1), venta(2, 1), bajada(8, 1)], ts(10)).primeraConEdad).toBe(Date.parse(ts(1)));
   });
 
   it("recortar la ventana convierte lo que había antes en un saldo de edad desconocida", () => {
@@ -519,27 +525,34 @@ const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, 
 
 describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca por vieja", () => {
   it("un pilar de venta no está quieto por viejo, aunque sea Crítica; por su temporada pasada SÍ (D2, Felipe 2026-09-27)", () => {
-    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: r(150), pisoHoy: 4 })).toBe(false);
-    expect(estaQuieta({ tramo: "envejecida", temporadaPasada: false, rapidez: r(100), pisoHoy: 4 })).toBe(false);
+    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: r(150), recientes: "vendio", pisoHoy: 4 })).toBe(false);
+    expect(estaQuieta({ tramo: "envejecida", temporadaPasada: false, rapidez: r(100), recientes: "no_se_sabe", pisoHoy: 4 })).toBe(false);
     // Antes: false (un pilar nunca iba a «Por decidir»), y el bikini que se sigue vendiendo después del 20 de marzo no
     // aparecía para que el líder decida.
-    expect(estaQuieta({ tramo: "critica", temporadaPasada: true, rapidez: r(150), pisoHoy: 4 })).toBe(true);
-    expect(estaQuieta({ tramo: "nueva", temporadaPasada: true, rapidez: r(100), pisoHoy: 4 })).toBe(true);
+    expect(estaQuieta({ tramo: "critica", temporadaPasada: true, rapidez: r(150), recientes: "vendio", pisoHoy: 4 })).toBe(true);
+    expect(estaQuieta({ tramo: "nueva", temporadaPasada: true, rapidez: r(100), recientes: "vendio", pisoHoy: 4 })).toBe(true);
+  });
+
+  it("el que dejó de venderse (30 días colgado sin vender) no es pilar aunque su índice pase de 100: vieja, es quieta (revisión 6)", () => {
+    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: r(150), recientes: "dejo_de_vender", pisoHoy: 4 })).toBe(true);
+    expect(estaQuieta({ tramo: "vigente", temporadaPasada: false, rapidez: r(150), recientes: "dejo_de_vender", pisoHoy: 4 })).toBe(false);
   });
 
   it("Envejecida o Crítica y más lenta que su categoría: quieta; Vigente o Nueva, no", () => {
-    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: r(60), pisoHoy: 4 })).toBe(true);
-    expect(estaQuieta({ tramo: "envejecida", temporadaPasada: false, rapidez: r(99), pisoHoy: 4 })).toBe(true);
-    expect(estaQuieta({ tramo: "vigente", temporadaPasada: false, rapidez: r(20), pisoHoy: 4 })).toBe(false);
+    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: r(60), recientes: "vendio", pisoHoy: 4 })).toBe(true);
+    expect(estaQuieta({ tramo: "envejecida", temporadaPasada: false, rapidez: r(99), recientes: "no_se_sabe", pisoHoy: 4 })).toBe(true);
+    expect(estaQuieta({ tramo: "vigente", temporadaPasada: false, rapidez: r(20), recientes: "dejo_de_vender", pisoHoy: 4 })).toBe(false);
   });
 
   it("sin dato de rapidez no es «lenta» (el éxito de la carga inicial no va al perchero); la temporada pasada sí cuenta", () => {
-    expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: null, pisoHoy: 4 })).toBe(false);
-    expect(estaQuieta({ tramo: null, temporadaPasada: true, rapidez: null, pisoHoy: 4 })).toBe(true);
+    for (const recientes of ["vendio", "dejo_de_vender", "no_se_sabe"] as const) {
+      expect(estaQuieta({ tramo: "critica", temporadaPasada: false, rapidez: null, recientes, pisoHoy: 4 })).toBe(false);
+      expect(estaQuieta({ tramo: null, temporadaPasada: true, rapidez: null, recientes, pisoHoy: 4 })).toBe(true);
+    }
   });
 
   it("sin nada en el piso no hay nada quieto en el piso", () => {
-    expect(estaQuieta({ tramo: "critica", temporadaPasada: true, rapidez: r(10), pisoHoy: 0 })).toBe(false);
+    expect(estaQuieta({ tramo: "critica", temporadaPasada: true, rapidez: r(10), recientes: "dejo_de_vender", pisoHoy: 0 })).toBe(false);
   });
 
   it("sin dato de rapidez, una prenda vieja sugiere «revisa sus ventas», nunca «Trasladar»", () => {
@@ -560,26 +573,33 @@ describe("«Trasladar» solo con «Sólido» (en la vara Y en la referencia que 
           for (const tramo of [null, "nueva", "vigente", "envejecida", "critica"] as const)
             for (const temporadaPasada of [false, true])
               for (const pisoHoy of [0, 2])
-                for (const callada of [false, true]) {
-                  const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rap, pisoHoy });
-                  const s = sugerenciasDe({ quieta, tramo, temporadaPasada, fueraDeSuEstacion: false, rapidez: rap, nivel, pisoHoy, almacenHoy, callada });
-                  for (const x of s) expect(PERMITIDAS).toContain(x);
-                  if (s.includes("trasladar")) {
-                    vistas++;
-                    expect(nivel).toBe("solido");
-                    expect(almacenHoy).toBeGreaterThan(0);
-                    expect(rap).not.toBeNull();
-                    expect(rap!.referencia).toBeGreaterThanOrEqual(20);
+                for (const recientes of ["vendio", "dejo_de_vender", "no_se_sabe"] as const)
+                  for (const callada of [false, true]) {
+                    // «Callada» es, entre otras cosas, 30 días colgada sin vender.
+                    if (callada && recientes !== "dejo_de_vender") continue;
+                    const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rap, recientes, pisoHoy });
+                    const s = sugerenciasDe({ quieta, tramo, temporadaPasada, fueraDeSuEstacion: false, rapidez: rap, recientes, nivel, pisoHoy, almacenHoy, callada });
+                    for (const x of s) expect(PERMITIDAS).toContain(x);
+                    if (s.includes("trasladar")) {
+                      vistas++;
+                      expect(nivel).toBe("solido");
+                      expect(almacenHoy).toBeGreaterThan(0);
+                      expect(rap).not.toBeNull();
+                      expect(rap!.referencia).toBeGreaterThanOrEqual(20);
+                    }
+                    // Un pilar: índice 100 o más y no dejó de venderse (revisión 6).
+                    const seVende = rap !== null && rap.indice >= 100 && recientes !== "dejo_de_vender";
+                    // D2: el pilar de temporada pasada con algo en el piso está «por decidir» y recibe SOLO su pregunta.
+                    if (temporadaPasada && pisoHoy > 0 && seVende) {
+                      pilaresPasados++;
+                      expect(quieta).toBe(true);
+                      expect(s).toEqual(["sigue_vendiendo"]);
+                    } else expect(s).not.toContain("sigue_vendiendo");
+                    // Con dato de rapidez, vieja y en el piso: pilar o quieta, nunca las dos ni ninguna (revisión 6).
+                    if (rap !== null && pisoHoy > 0 && (tramo === "envejecida" || tramo === "critica")) expect(quieta).toBe(!seVende || temporadaPasada);
+                    // D4+D6: callada siempre trae una pista.
+                    if (callada && !(temporadaPasada && pisoHoy > 0 && seVende)) expect(s).toContain("revisar_ventas");
                   }
-                  // D2: el pilar de temporada pasada con algo en el piso está «por decidir» y recibe SOLO su pregunta.
-                  if (temporadaPasada && pisoHoy > 0 && rap !== null && rap.indice >= 100) {
-                    pilaresPasados++;
-                    expect(quieta).toBe(true);
-                    expect(s).toEqual(["sigue_vendiendo"]);
-                  } else expect(s).not.toContain("sigue_vendiendo");
-                  // D4+D6: callada siempre trae una pista.
-                  if (callada && !(temporadaPasada && pisoHoy > 0 && rap !== null && rap.indice >= 100)) expect(s).toContain("revisar_ventas");
-                }
     expect(vistas).toBeGreaterThan(0);
     expect(pilaresPasados).toBeGreaterThan(0);
   });
@@ -1093,6 +1113,160 @@ describe("analizarSede: casos de la revisión 5", () => {
     expect(u.estado.quieta).toBe(false);
     expect(u.estado.sugerencias).not.toContain("trasladar");
     expect(u.estado.sugerencias).not.toContain("cambiar_lugar");
+  });
+});
+
+/**
+ * El fondo de «Blusas» de los escenarios de tienda de la revisión 6: 25 modelos × 4 colgados entre los días 92 y 109 y
+ * vendidos a los 2, 4, 6 y 10 días. P50 4 días, P75 6 y P90 10; 100 ventas con edad conocida en los últimos 30 días:
+ * vara de 30 días, «Sólido», y 100 ventas del resto contra las que se mide cualquier otra prenda (referencia «Sólido»).
+ */
+function fondoDeBlusas(): { tallas: TallaFrescuraCruda[]; eventos: Record<string, EventoPiso[]> } {
+  const tallas: TallaFrescuraCruda[] = [];
+  const eventos: Record<string, EventoPiso[]> = {};
+  for (let i = 0; i < 25; i++) {
+    const d0 = 92 + (i % 18);
+    tallas.push(talla(`fondo-${i}`, `fondo-${i}`, { primeraExhibicion: ts(d0), temporada: null, temporadaOrigen: null }));
+    eventos[`fondo-${i}`] = [bajada(d0, 4, { oid: `fondo-${i}-b` }), venta(d0 + 2, 1), venta(d0 + 4, 1), venta(d0 + 6, 1), venta(d0 + 10, 1)];
+  }
+  return { tallas, eventos };
+}
+
+describe("analizarSede: casos de la revisión 6", () => {
+  const prendaDe = (sede: ReturnType<typeof analizarSede>["sede"], productoId: string) => sede.prendas.find((p) => p.productoId === productoId)!;
+
+  it("el éxito con tallas rotas: vendió 14 de 20 en sus 3 primeros días y lleva 112 sin vender. Ya no es pilar: «Por decidir» con su escalera (antes, Crítica sin ninguna sugerencia; con la temporada pasada, «sigue vendiendo»)", () => {
+    // S 5, M 10 y L 5 colgadas el día 5 (hace 115 días). En 3 días se venden las 10 M y 4 S; quedan 1 S y 5 L. Su índice
+    // de toda la lectura dice «más rápido que su categoría» (14 vendidas contra ~12,5 esperadas), pero no vende desde el
+    // día 8: no es un pilar, es lo que sobró de un éxito.
+    const rotas = (finEstacion: string | null) => {
+      const { tallas, eventos } = fondoDeBlusas();
+      const o = { primeraExhibicion: ts(5), finEstacion };
+      tallas.push(talla("ROT-S", "rotas", { ...o, talla: "S", pisoHoy: 1 }), talla("ROT-M", "rotas", { ...o, talla: "M" }), talla("ROT-L", "rotas", { ...o, talla: "L", pisoHoy: 5 }));
+      eventos["ROT-S"] = [bajada(5, 5), ...[6, 20, 40, 60].map((h) => venta(5, 1, h * 60))];
+      eventos["ROT-M"] = [bajada(5, 10), ...[2, 5, 9, 14, 18, 26, 33, 45, 55, 70].map((h) => venta(5, 1, h * 60))];
+      eventos["ROT-L"] = [bajada(5, 5)];
+      return analizarSede(lectura(tallas, eventos)).sede;
+    };
+    const sede = rotas(null);
+    const p = prendaDe(sede, "rotas");
+    expect(p.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    expect(p.ventasRecientes).toBe(0);
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", alMenos: false, temporadaPasada: false, quieta: true, sugerencias: ["cambiar_lugar"] });
+    expect(sede.cifras.porDecidir).toBe(1);
+    // Con la temporada pasada: la escalera normal y «retirar», no «sigue vendiendo» (no se vende hace 112 días).
+    expect(prendaDe(rotas(ts(100)), "rotas").estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["cambiar_lugar", "retirar"] });
+  });
+
+  it("…por el estado: un pilar por su índice que lleva 30 días colgado sin vender deja de ser pilar; si vendió en 30 días, o no se sabe, sigue siéndolo", () => {
+    const apagado = { reloj: { segundos: 40 * D, alMenos: false }, rapidez: r(150), ventasRecientes: 0 };
+    expect(estadoFrescura(entrada(apagado))).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar"] });
+    // Con «Sólido» y almacén, es la escalera entera: lo que no se vende sí se puede mover.
+    expect(estadoFrescura(entrada({ ...apagado, almacenHoy: 3 })).sugerencias).toEqual(["cambiar_lugar", "trasladar"]);
+    expect(estadoFrescura(entrada({ ...apagado, finEstacion: ts(90) })).sugerencias).toEqual(["cambiar_lugar", "retirar"]);
+    // Vendió 1 en los últimos 30 días, la lectura no cubre 30 días, o lleva menos de 30 colgado: pilar.
+    expect(estadoFrescura(entrada({ ...apagado, ventasRecientes: 1 }))).toMatchObject({ quieta: false, sugerencias: [] });
+    expect(estadoFrescura(entrada({ ...apagado, ventasRecientes: null }))).toMatchObject({ quieta: false, sugerencias: [] });
+    expect(estadoFrescura(entrada({ ...apagado, reloj: { segundos: 29 * D, alMenos: false } }))).toMatchObject({ tramo: "critica", quieta: false, sugerencias: [] });
+    expect(estadoFrescura(entrada({ ...apagado, ventasRecientes: 1, finEstacion: ts(90) })).sugerencias).toEqual(["sigue_vendiendo"]);
+  });
+
+  it("PENDIENTE DE FELIPE (revisión 6, hallazgo 3): los bikinis gemelos de temporada pasada, uno por lote y otro en la carga inicial, con la misma historia física. Hoy solo el del lote recibe «sigue vendiendo»", () => {
+    // 10 colgados hace 10 días, 8 vendidos en 16 horas, 3 en el almacén; su estación terminó el día 100. El de la carga no
+    // tiene dato de rapidez (sus ventas salieron de lo que no tiene edad): no es «pilar» y D2 no lo alcanza. La
+    // recomendación es que lo sin dato que vendió en los últimos 30 días también reciba «sigue vendiendo»; si Felipe dice
+    // que sí, esta prueba pasa a exigir ["sigue_vendiendo"] para los dos (ADR-0208, «Revisión 6 del paso 3»).
+    const { tallas, eventos } = fondoDeBlusas();
+    for (const [id, primera] of [
+      ["BIK-LOTE", {}],
+      ["BIK-CARGA", { edadDesconocida: true }],
+    ] as const) {
+      tallas.push(talla(id, id, { primeraExhibicion: ts(110), pisoHoy: 2, almacenHoy: 3, finEstacion: ts(100) }));
+      eventos[id] = [bajada(110, 10, primera), ...Array.from({ length: 8 }, (_, i) => venta(110, 1, (2 + 2 * i) * 60))];
+    }
+    const { sede } = analizarSede(lectura(tallas, eventos));
+    const lote = prendaDe(sede, "BIK-LOTE");
+    const carga = prendaDe(sede, "BIK-CARGA");
+    expect(lote.rapidez?.indice).toBeGreaterThanOrEqual(100);
+    expect(lote.estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["sigue_vendiendo"] });
+    expect(carga.rapidez).toBeNull();
+    expect(carga.ventasRecientes).toBe(8);
+    expect(carga.estado).toMatchObject({ temporadaPasada: true, quieta: true, sugerencias: ["revisar_ventas", "cambiar_lugar", "retirar"] });
+  });
+
+  it("la carga inicial se agotó hace 100 días y lo repuesto por lote hace 20 no vendió ni una: lenta y «Por decidir» (antes, «sin dato» por las ventas de la carga)", () => {
+    // Las ventas de la carga son de ANTES de que colgara lo repuesto: no pueden haberle quitado ventas. Si la carga
+    // todavía estaba colgada cuando llegó lo repuesto (la tercera venta, el día 101), el FIFO sí puede equivocarse:
+    // sin dato, como las gemelas K y U.
+    const repuesta = (terceraVenta: number) => {
+      const { tallas, eventos } = fondoDeBlusas();
+      tallas.push(talla("REP", "repuesta", { primeraExhibicion: ts(10), pisoHoy: 5, almacenHoy: 2, temporada: null, temporadaOrigen: null }));
+      eventos.REP = [bajada(10, 3, { edadDesconocida: true }), venta(12, 1), venta(15, 1), venta(terceraVenta, 1), bajada(100, 5)].sort((a, b) => a.ts.localeCompare(b.ts));
+      return analizarSede(lectura(tallas, eventos)).sede;
+    };
+    const sede = repuesta(20);
+    const p = prendaDe(sede, "repuesta");
+    expect(p.rapidez).toMatchObject({ indice: 0, vendidas: 0, referencia: 100 });
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
+    expect(p.estado.sugerencias).toContain("cambiar_lugar");
+    expect(p.estado.sugerencias).toContain("trasladar");
+    expect(sede.cifras.porDecidir).toBe(1);
+    const ambigua = prendaDe(repuesta(101), "repuesta");
+    expect(ambigua.rapidez).toBeNull();
+    expect(ambigua.estado.quieta).toBe(false);
+    expect(ambigua.estado.sugerencias).not.toContain("trasladar");
+    // En el MISMO instante en que se cuelga lo repuesto tampoco se sabe cuál se vendió: sin dato.
+    expect(prendaDe(repuesta(100), "repuesta").rapidez).toBeNull();
+  });
+
+  it("A1: de la curva se resta solo lo que la prenda aporta a la VARA; sus unidades viejas de la lectura se miden, no se restan (un pilar no se vuelve lento)", () => {
+    // Vara de 30 días (blusas que venden en 1 a 5 días). X colgó 4 el día 50 (antes de la ventana de la vara) y los vendió
+    // a los 1, 2, 3 y 4 días; hoy tiene 2 recién colgadas (día 119,5). Sus 4 viejas NO están en la curva de 30 días.
+    // Esperadas a mano: la curva del resto = las 25 blusas (H = 0,2 | 0,45 | 0,7833 | 1,2833 | 2,2833 a 1-5 días).
+    // Sus 4 vendidas esperan H(1) + H(2) + H(3) + H(4) = 2,7167; las 2 colgadas medio día, 0 → índice 4 ÷ 2,7167 = 147.
+    const vara = varaDeBlusas(92);
+    const conVentas = (n: number, ventas: EventoPiso[]) => {
+      const x = talla("X1", "X", { primeraExhibicion: ts(50), pisoHoy: 2 });
+      const { sede } = analizarSede(lectura([...vara.tallas, x], { ...vara.eventos, X1: [bajada(50, n), ...ventas, bajada(119.5, 2)] }));
+      expect(sede.categorias[0].ventanaDias).toBe(30);
+      return prendaDe(sede, "X");
+    };
+    const cuatro = conVentas(4, [venta(51, 1), venta(52, 1), venta(53, 1), venta(54, 1)]);
+    expect(cuatro.rapidez).toMatchObject({ vendidas: 4, esperadas: 2.72, indice: 147, referencia: 25 });
+    // Con 12 (3 por día): restando también sus 12 viejas, el índice bajaba a 85 y el pilar iba a «Por decidir».
+    const doce = conVentas(12, [51.5, 52.5, 53.5, 54.5].map((d) => venta(d, 3)));
+    expect(doce.rapidez?.indice).toBe(147);
+    expect(doce.estado).toMatchObject({ quieta: false, sugerencias: [] });
+  });
+
+  it("las bajadas tardías salen también de la rapidez (toda la lectura) y de la vara de 120 días", () => {
+    // Una categoría lenta (vara de 120 días) y una prenda con una bajada tardía de 2, vendida a los 3 minutos.
+    const tallas: TallaFrescuraCruda[] = [];
+    const eventos: Record<string, EventoPiso[]> = {};
+    for (let i = 0; i < 10; i++) {
+      tallas.push(talla(`vend-${i}`, `vendedora-${i}`, { primeraExhibicion: ts(20) }));
+      eventos[`vend-${i}`] = [bajada(20, 5, { oid: `b-${i}` }), venta(21, 1), venta(22, 1), venta(23, 1), venta(24, 1), venta(25, 1)];
+    }
+    tallas.push(talla("tarde", "tarde", { primeraExhibicion: ts(100), pisoHoy: 3 }));
+    eventos.tarde = [bajada(100, 3), bajada(110, 2, { oid: "b-tarde" }), venta(110, 2, 3)];
+    const { sede } = analizarSede(lectura(tallas, eventos, { tardias: [{ oid: "b-tarde", varianteId: "tarde", bajadaEn: ts(110), unidadesTardias: 2 }] }));
+    expect(sede.categorias[0]).toMatchObject({ ventanaDias: 120, vendidas: 50 });
+    expect(prendaDe(sede, "tarde").rapidez?.vendidas).toBe(0);
+  });
+
+  it("ventas recientes (D4+D6): un retiro al almacén no es una venta, y la venta de OTRA talla del mismo modelo+color sí cuenta", () => {
+    // Vestidos con un solo modelo (sin él no queda contra qué medirlo: sin tramo). Colgados el día 1, 1 vendido el día 5 y
+    // 1 retirado al almacén el día 110: nada vendido en 30 días → «revisa sus ventas».
+    const v = talla("V", "vestido", { categoriaId: "vestidos", categoriaNombre: "Vestidos", primeraExhibicion: ts(1), pisoHoy: 8, almacenHoy: 1 });
+    const retirado = analizarSede(lectura([v], { V: [bajada(1, 10), venta(5, 1), ev(110, -1, { esMovimientoInterno: true })] })).sede.prendas[0];
+    expect(retirado.ventasRecientes).toBe(0);
+    expect(retirado.estado).toMatchObject({ tipo: "sin_vara", sugerencias: ["revisar_ventas"] });
+    // S sin ventas y M con una venta el día 110 (hace 10 días): el modelo+color vendió, no está callado.
+    const s = talla("V-S", "vestido", { categoriaId: "vestidos", categoriaNombre: "Vestidos", talla: "S", primeraExhibicion: ts(1), pisoHoy: 5 });
+    const m = talla("V-M", "vestido", { categoriaId: "vestidos", categoriaNombre: "Vestidos", talla: "M", primeraExhibicion: ts(1), pisoHoy: 4 });
+    const conOtraTalla = analizarSede(lectura([s, m], { "V-S": [bajada(1, 5)], "V-M": [bajada(1, 5), venta(110, 1)] })).sede.prendas[0];
+    expect(conOtraTalla.ventasRecientes).toBe(1);
+    expect(conOtraTalla.estado.sugerencias).toEqual([]);
   });
 });
 

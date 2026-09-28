@@ -35,8 +35,9 @@
  *       se acortaba); T2f lo mismo con un ajuste negativo; T2g pasar del almacén a la cuarentena NO es exhibir.
  *   T3  las marcas de cada evento: bajada 2, venta 1, retiro 2; carga inicial por la puerta real y a mano 6 (2 + 4);
  *       carga de otra hora 2; ajuste al piso 4 y su ajuste negativo 0; devolución 4; llegada directo al piso 0; carga
- *       directo al piso 4; cuarentena → piso 2; lo que llega de otra tienda como traslado directo 4; saldo inicial 4 con
- *       oid nulo. El orden de los eventos: hora, saldo inicial primero.
+ *       directo al piso 4; cuarentena → piso 2; lo que llega de otra tienda como traslado directo 4; la recepción de un
+ *       traslado directo al piso 0 (la marca usa fn_es_llegada, no fn_es_llegada_a_cayla); saldo inicial 4 con oid
+ *       nulo. El orden de los eventos: hora, saldo inicial primero.
  *   T4  temporada (ADR-0246): la chompa de invierno cargada el 26-set-2026 sale con fin_estacion = inicio de la
  *       primavera 2026 (ya pasó: «Temporada pasada») y el clásico de verano cargado el mismo día NO (es clásico); el
  *       clásico de todo el año sin fin ni estación; la temporada por categoría y por color (origen); sin temporada, todo
@@ -49,11 +50,18 @@
  *       abril de 2026 conserva el fin de la primavera 2025, en sus dos tallas (la M nunca llegó por su cuenta); la
  *       producción del Taller y la carga inicial de otra tienda son llegada a CAYLA; lo solo trasladado, sin llegada a
  *       CAYLA registrada, no tiene fin.
+ *   T4h la llegada a CAYLA es del MODELO+COLOR: el color que llegó en 2025 conserva su fin aunque otro color del mismo
+ *       modelo llegara en 2026.
+ *   T4i PENDIENTE DE FELIPE (revisión 6): una carga inicial posterior del mismo modelo+color, en otra sede o de una talla
+ *       nueva en esta, pasa a ser su última llegada a CAYLA y mueve el fin de lo que llegó por lote. Documenta la regla
+ *       de hoy (la ÚLTIMA llegada, D1); si Felipe elige la recomendación, sus dos verificaciones se invierten.
  *   T4g fn_temporada_efectiva sigue security definer y authenticated (líder e integrante) la llama sin 42501 en las dos
  *       llamadas de la web (la ficha con p_producto_id y la lista paginada de /productos); el control sin security
  *       definer da 42501.
  *   T4d una variante inactiva que sigue colgada conserva su temporada (del producto y del color); fn_temporada_efectiva
- *       ≡ fn_temporada_efectiva_nucleo(…, false) en todo el catálogo y la pantalla de Temporadas no cambia.
+ *       ≡ fn_temporada_efectiva_nucleo(…, false) en todo el catálogo y ≡ su cuerpo de 20260928100000 (creado como
+ *       pg_temp: contra el núcleo solo, la comparación es circular), con modelos activos «Sin temporada»; la pantalla de
+ *       Temporadas no cambia.
  *   T5  color nulo: la prenda sale con color nulo y su temporada del producto.
  *   T6  productos es_prueba y la «Prenda sin registrar» fuera; una tienda donde solo se movió un producto de prueba da
  *       prendas [], eventos {} y tardías [] — con la lista nula el libro SÍ los habría devuelto (se muestra).
@@ -624,7 +632,26 @@ select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute' where variante_id = :'vcp';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
+-- La recepción de un traslado de Trujillo DIRECTO al piso: la fila que escribe confirmar_traslado(p, 'piso_venta')
+-- (20260927160000, «Confirmar»: entrada 'traslado_entrada' con su recepción, a la sububicación elegida). Tiene fecha: la
+-- prenda se colgó al recibirla. Es una llegada A LA TIENDA (fn_es_llegada), aunque no A CAYLA (fn_es_llegada_a_cayla):
+-- con el predicado de la temporada, esta unidad saldría con edad desconocida (revisión 6, caso RX-D).
+create function pg_temp.recibe_piso(v uuid, n int, cuando timestamptz) returns uuid language plpgsql as $f$
+declare t uuid; r uuid; m uuid; u uuid := current_setting('prueba.ubic')::uuid;
+begin
+  insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, estado, created_at)
+    select id, u, 'cerrada', cuando from retail.ubicaciones where nombre = 'Tienda Trujillo' returning id into t;
+  insert into retail.transferencia_recepciones (transferencia_id, variante_id, cantidad_recibida, created_at)
+    values (t, v, n, cuando) returning id into r;
+  insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id, created_at)
+    values (v, u, current_setting('prueba.sp')::uuid, 'entrada', n, 'traslado_entrada', r, cuando) returning id into m;
+  perform retail.fn_aplicar_movimiento(m);
+  return m;
+end $f$;
+select pg_temp.variante('ZZ-FL-T3-RECEPCION-PISO') as vrp \\gset
+select pg_temp.recibe_piso(:'vrp', 2, :'t0'::timestamptz) as _21 \\gset
 select pg_temp.lectura() as j \\gset
+${k("RECEPCION_PISO", "pg_temp.ev(:'j', :'vrp', :'t0') || ' ' || pg_temp.resumen(:'j', 'ZZ-FL-T3-RECEPCION-PISO')")}
 ${k("SALDO", "pg_temp.ev(:'j', :'vsa', :'t0')")}
 ${k("BAJADA", "pg_temp.ev(:'j', :'vbaj', :'t0')")}
 ${k("BAJADA_OID", "(select (e ->> 3)::uuid = :'_4'::uuid from jsonb_array_elements(:'j'::jsonb -> 'eventos' -> (:'vbaj')) with ordinality x(e, o) where o = 1)")}
@@ -652,6 +679,11 @@ ${k("PRIMERAS", "pg_temp.resumen(:'j', 'ZZ-FL-T3-LLEGA-PISO') || ' ' || pg_temp.
     afirmar("cuarentena → piso: marca 2 (interno, con fecha)", o.CUARENTENA_PISO === "0:1:2", `CUARENTENA_PISO=${o.CUARENTENA_PISO}`);
     afirmar("traslado directo desde otra tienda: marca 4, y cuenta como primera exhibición", o.OTRA_TIENDA === "0:1:4 piso=1,alm=0,primera=0.125,llegada=null", `OTRA_TIENDA=${o.OTRA_TIENDA}`);
     afirmar("la llegada directo al piso y el ajuste positivo son la primera exhibición", o.PRIMERAS === "piso=2,alm=0,primera=0.125,llegada=0.125 piso=1,alm=0,primera=0.125,llegada=null", `PRIMERAS=${o.PRIMERAS}`);
+    afirmar(
+      "recepción de un traslado directo al piso: marca 0 (tiene fecha), primera exhibición y última llegada = la recepción (revisión 6, RX-D)",
+      o.RECEPCION_PISO === "0:2:0 piso=2,alm=0,primera=0.125,llegada=0.125",
+      `RECEPCION_PISO=${o.RECEPCION_PISO}`,
+    );
   },
 );
 
@@ -796,7 +828,12 @@ ${k("COLOR_INACTIVO", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-COLOR-INACTIVO') || '|
 ${k("PANTALLA", "(select coalesce(string_agg(coalesce(color_codigo, 'null'), ',' order by color_codigo), '-') from retail.fn_temporada_efectiva(:'pa')) = :'c2' and not exists (select 1 from retail.fn_temporada_efectiva(:'pb'))")}
 ${k("NUCLEO_CON", "(select string_agg(color_codigo || '=' || temporada || ':' || origen, ',' order by color_codigo) from retail.fn_temporada_efectiva_nucleo(:'pa', true))")}
 -- El envoltorio da EXACTAMENTE lo que el núcleo sin inactivas, en todo el catálogo (en los dos sentidos).
-${k("IGUALES", "(select count(*) from ((select * from retail.fn_temporada_efectiva(null) except all select * from retail.fn_temporada_efectiva_nucleo(null, false)) union all (select * from retail.fn_temporada_efectiva_nucleo(null, false) except all select * from retail.fn_temporada_efectiva(null))) x) || ',' || (select count(*) > 0 from retail.fn_temporada_efectiva(null))")}`,
+${k("IGUALES", "(select count(*) from ((select * from retail.fn_temporada_efectiva(null) except all select * from retail.fn_temporada_efectiva_nucleo(null, false)) union all (select * from retail.fn_temporada_efectiva_nucleo(null, false) except all select * from retail.fn_temporada_efectiva(null))) x) || ',' || (select count(*) > 0 from retail.fn_temporada_efectiva(null))")}
+-- …y lo mismo que su cuerpo de 20260928100000 (el que tiene producción), creado aquí como pg_temp. Contra el núcleo solo
+-- es circular: el envoltorio lo llama, y un cambio del núcleo (el estado del producto nulo) cambia los dos lados igual
+-- y vacía «Sin temporada» (revisión 6, RX-A).
+${TEMPORADA_EFECTIVA_0100.replace("create or replace function retail.fn_temporada_efectiva(", "create function pg_temp.te_0100(")}
+${k("COMO_0100", "(select count(*) from ((select * from retail.fn_temporada_efectiva(null) except all select * from pg_temp.te_0100(null)) union all (select * from pg_temp.te_0100(null) except all select * from retail.fn_temporada_efectiva(null))) x) || ',' || (select count(*) from pg_temp.te_0100(null) where temporada is null and estado = 'activo')")}`,
   (o) => {
     afirmar("inactiva: invierno del producto, con el mismo fin de estación que la talla activa", o.INACTIVA === "invierno|producto|false|true", `INACTIVA=${o.INACTIVA}`);
     afirmar("…la activa, igual que siempre", o.ACTIVA === "invierno|producto|false", `ACTIVA=${o.ACTIVA}`);
@@ -804,6 +841,11 @@ ${k("IGUALES", "(select count(*) from ((select * from retail.fn_temporada_efecti
     afirmar("la pantalla de Temporadas (fn_temporada_efectiva) sigue sin mostrar lo inactivo", o.PANTALLA === "true", `PANTALLA=${o.PANTALLA}`);
     afirmar("el núcleo con inactivas sí las ve", o.NUCLEO_CON?.split(",").length === 2 && o.NUCLEO_CON.includes("=invierno:producto"), `NUCLEO_CON=${o.NUCLEO_CON}`);
     afirmar("fn_temporada_efectiva(null) ≡ fn_temporada_efectiva_nucleo(null, false): 0 filas distintas, con filas", o.IGUALES === "0,true", `IGUALES=${o.IGUALES}`);
+    afirmar(
+      "fn_temporada_efectiva(null) ≡ su cuerpo de 20260928100000: 0 filas distintas, con modelos activos «Sin temporada» (los que lista /productos)",
+      /^0,[1-9]\d*$/.test(o.COMO_0100 ?? ""),
+      `COMO_0100=${o.COMO_0100}`,
+    );
   },
 );
 
@@ -1427,6 +1469,97 @@ ${k("SI_FUERA_LA_RECEPCION", "((select hasta from retail.fn_ocurrencia_temporada
       `SOLO-TRASLADO=${o["SOLO-TRASLADO"]}`,
     );
     afirmar("(con la recepción del traslado, el fin habría sido la primavera 2026: el caso distingue)", o.SI_FUERA_LA_RECEPCION === "true", `SI_FUERA_LA_RECEPCION=${o.SI_FUERA_LA_RECEPCION}`);
+  },
+);
+
+correr(
+  "T4h · la llegada a CAYLA es del MODELO+COLOR, no del modelo: el color que llegó en 2025 conserva su fin aunque otro color del mismo modelo llegara en 2026 (revisión 6, RX-B)",
+  `alter table retail.temporada_fechas disable trigger user;
+insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
+  (2025, 'otono', '2025-03-20 04:01-05', 'usno'), (2025, 'invierno', '2025-06-20 21:42-05', 'usno'),
+  (2025, 'primavera', '2025-09-22 13:19-05', 'usno'), (2025, 'verano', '2025-12-21 10:03-05', 'usno')
+on conflict do nothing;
+alter table retail.temporada_fechas enable trigger user;
+select pg_temp.producto('T4h Chompa', 'invierno') as pch \\gset
+select pg_temp.variante('ZZ-FL-T4H-C1', :'pch', :'c1') as v1 \\gset
+select pg_temp.variante('ZZ-FL-T4H-C2', :'pch', :'c2') as v2 \\gset
+select pg_temp.llega(:'v1', 3, '2025-07-15 12:00-05') as _1 \\gset
+select pg_temp.bajada(:'v1', 2, '2025-07-16 12:00-05') as _2 \\gset
+select pg_temp.llega(:'v2', 3, '2026-07-15 12:00-05') as _3 \\gset
+select pg_temp.bajada(:'v2', 2, '2026-07-16 12:00-05') as _4 \\gset
+select pg_temp.lectura() as j \\gset
+select (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'primavera') as fin25 \\gset
+select (select inicio from retail.temporada_fechas where anio = 2026 and estacion = 'primavera') as fin26 \\gset
+create function pg_temp.t4h(j jsonb, p_codigo text, fin25 timestamptz, fin26 timestamptz) returns text language sql as $f$
+  select format('cayla=%s,fin=%s',
+                coalesce(to_char((x ->> 'ultima_llegada_cayla')::timestamptz at time zone 'America/Lima', 'YYYY-MM-DD'), 'null'),
+                case when x ->> 'fin_estacion' is null then 'null'
+                     when (x ->> 'fin_estacion')::timestamptz = fin25 then 'primavera2025'
+                     when (x ->> 'fin_estacion')::timestamptz = fin26 then 'primavera2026'
+                     else x ->> 'fin_estacion' end)
+    from jsonb_array_elements(j -> 'prendas') x where x ->> 'codigo' = p_codigo
+$f$;
+${k("C1", "pg_temp.t4h(:'j', 'ZZ-FL-T4H-C1', :'fin25', :'fin26')")}
+${k("C2", "pg_temp.t4h(:'j', 'ZZ-FL-T4H-C2', :'fin25', :'fin26')")}`,
+  (o) => {
+    afirmar("color 1 (llegó en julio de 2025): su llegada a CAYLA es la suya y su fin, la primavera 2025 → «Temporada pasada»", o.C1 === "cayla=2025-07-15,fin=primavera2025", `C1=${o.C1}`);
+    afirmar("color 2 (llegó en julio de 2026): fin = primavera 2026", o.C2 === "cayla=2026-07-15,fin=primavera2026", `C2=${o.C2}`);
+  },
+);
+
+correr(
+  "T4i · PENDIENTE DE FELIPE (revisión 6, hallazgo 1): una carga inicial posterior del mismo modelo+color (en otra sede, o una talla nueva en esta) reinicia su temporada en TODAS las sedes. Hoy es la regla (la ÚLTIMA llegada a CAYLA, D1)",
+  `alter table retail.temporada_fechas disable trigger user;
+insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
+  (2025, 'otono', '2025-03-20 04:01-05', 'usno'), (2025, 'invierno', '2025-06-20 21:42-05', 'usno'),
+  (2025, 'primavera', '2025-09-22 13:19-05', 'usno'), (2025, 'verano', '2025-12-21 10:03-05', 'usno')
+on conflict do nothing;
+alter table retail.temporada_fechas enable trigger user;
+-- Un bikini de verano en tres tallas: la S llegó del proveedor a ESTA tienda el 15-ene-2026 (el verano 2025-26) y sigue
+-- colgada. Su estación terminó el 20-mar-2026: «Temporada pasada».
+select pg_temp.producto('T4i Bikini', 'verano') as pb \\gset
+select id as t_s from retail.tallas where valor = 'S' \\gset
+select id as t_m from retail.tallas where valor = 'M' \\gset
+select id as t_l from retail.tallas where valor = 'L' \\gset
+select pg_temp.variante('ZZ-FL-T4I-S', :'pb', :'c1') as vs \\gset
+select pg_temp.variante('ZZ-FL-T4I-M', :'pb', :'c1') as vm \\gset
+select pg_temp.variante('ZZ-FL-T4I-L', :'pb', :'c1') as vl \\gset
+update retail.variantes set talla_id = case id when :'vs'::uuid then :'t_s'::uuid when :'vm'::uuid then :'t_m'::uuid else :'t_l'::uuid end
+ where id in (:'vs', :'vm', :'vl');
+select pg_temp.llega(:'vs', 5, '2026-01-15 10:00-05') as _1 \\gset
+select pg_temp.bajada(:'vs', 5, '2026-01-15 11:00-05') as _2 \\gset
+select pg_temp.lectura() as antes \\gset
+select (select hasta from retail.fn_ocurrencia_temporada('verano', '2026-01-15 10:00-05')) as fin_lote \\gset
+create function pg_temp.t4i(j jsonb, fin_lote timestamptz) returns text language sql as $f$
+  select format('cayla=%s,fin=%s,tienda=%s',
+                case when (x ->> 'ultima_llegada_cayla')::timestamptz = '2026-01-15 10:00-05'::timestamptz then 'lote'
+                     when (x ->> 'ultima_llegada_cayla')::timestamptz > now() - interval '1 minute' then 'carga_de_hoy'
+                     else coalesce(x ->> 'ultima_llegada_cayla', 'null') end,
+                case when (x ->> 'fin_estacion')::timestamptz = fin_lote then 'el_del_lote'
+                     when (x ->> 'fin_estacion')::timestamptz
+                          = (select hasta from retail.fn_ocurrencia_temporada('verano', (x ->> 'ultima_llegada_cayla')::timestamptz)) then 'el_de_la_carga'
+                     else coalesce(x ->> 'fin_estacion', 'null') end,
+                case when (x ->> 'ultima_llegada')::timestamptz = '2026-01-15 10:00-05'::timestamptz then 'lote' else coalesce(x ->> 'ultima_llegada', 'null') end)
+    from jsonb_array_elements(j -> 'prendas') x where x ->> 'codigo' = 'ZZ-FL-T4I-S'
+$f$;
+${k("ANTES", "pg_temp.t4i(:'antes', :'fin_lote') || ',pasada=' || ((pg_temp.prenda(:'antes', 'ZZ-FL-T4I-S') ->> 'fin_estacion')::timestamptz <= now())")}
+-- 1) Otra sede (la que se incorpora) carga HOY la M por la puerta pública (Existencias ▸ Ajustar stock).
+savepoint otra_sede;
+select pg_temp.tienda('ZZ T4i Sede B') as ub \\gset
+select retail.cargar_stock_inicial(:'ub', jsonb_build_array(jsonb_build_object('variante_id', :'vm', 'cantidad', 2)), null, false, gen_random_uuid()) as _3 \\gset
+select pg_temp.lectura() as j1 \\gset
+${k("OTRA_SEDE", "pg_temp.t4i(:'j1', :'fin_lote')")}
+rollback to savepoint otra_sede;
+-- 2) ESTA tienda encuentra hoy la L, que nunca registró, y la carga por la misma puerta.
+select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vl', 'cantidad', 1)), null, false, gen_random_uuid()) as _4 \\gset
+select pg_temp.lectura() as j2 \\gset
+${k("MISMA_SEDE", "pg_temp.t4i(:'j2', :'fin_lote')")}`,
+  (o) => {
+    afirmar("antes: la llegada a CAYLA es el lote de enero y su fin, el del verano 2025-26: «Temporada pasada»", o.ANTES === "cayla=lote,fin=el_del_lote,tienda=lote,pasada=true", `ANTES=${o.ANTES}`);
+    // Si Felipe elige la recomendación (la carga inicial cuenta solo si el modelo+color no tiene lote ni producción, y
+    // entre cargas la PRIMERA), estas dos pasan a exigir «cayla=lote,fin=el_del_lote,tienda=lote» (ADR-0208, revisión 6).
+    afirmar("PENDIENTE DE FELIPE: la carga de hoy en OTRA sede pasa a ser su llegada a CAYLA y mueve el fin de la S de esta tienda", o.OTRA_SEDE === "cayla=carga_de_hoy,fin=el_de_la_carga,tienda=lote", `OTRA_SEDE=${o.OTRA_SEDE}`);
+    afirmar("PENDIENTE DE FELIPE: lo mismo con una talla nueva cargada en ESTA tienda (la S sigue con su llegada de enero a la tienda)", o.MISMA_SEDE === "cayla=carga_de_hoy,fin=el_de_la_carga,tienda=lote", `MISMA_SEDE=${o.MISMA_SEDE}`);
   },
 );
 

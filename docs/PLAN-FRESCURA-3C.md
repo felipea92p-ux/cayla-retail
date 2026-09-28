@@ -173,7 +173,7 @@
 - `nivelPorVentas`: cuenta unidades vendidas **con edad conocida**.
 - `rapidez`: solo con edad conocida.
 - `estadoFrescura`, un tipo cerrado: `semaforo | sin_ventas_sede | sin_vara | sin_edad_conocida | clasico | dudosa`. Lleva `temporadaPasada` y sus sugerencias. «Trasladar» existe solo con «Sólido» y almacén > 0. «Rebajar» no existe.
-- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada. *Precisado el 2026-09-27 (Felipe, ADR-0208, «Revisión 5 del paso 3»): un pilar de venta de temporada pasada también entra, con su propia sugerencia («sigue vendiendo: decide si la dejas hasta agotar o la retiras»); un pilar nunca entra por viejo.*
+- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada. *Precisado el 2026-09-27 (Felipe, ADR-0208, «Revisión 5 del paso 3»): un pilar de venta de temporada pasada también entra, con su propia sugerencia («sigue vendiendo: decide si la dejas hasta agotar o la retiras»); un pilar nunca entra por viejo. Revisión 6: un pilar tiene que seguir vendiéndose (el que lleva 30 días colgado sin vender es lento).*
 - `clavePrenda` en un solo lugar compartido con Análisis.
 
 **Web: `lib/frescura.ts` (servidor)**
