@@ -68,6 +68,7 @@ export function GastosPanel({
   proveedores,
   cajasAbiertas,
   esLider,
+  puedeConfigurar = esLider,
   ver,
   mes,
   hoy,
@@ -88,6 +89,8 @@ export function GastosPanel({
   proveedores: ProveedorGasto[];
   cajasAbiertas: { id: string; ubicacionId: string }[];
   esLider: boolean;
+  /** ¿Ve el módulo Configuración? Ahí se editan los gastos fijos (ADR-0253: ya no es solo del líder). */
+  puedeConfigurar?: boolean;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -211,7 +214,7 @@ export function GastosPanel({
           fijos={fijos}
           sugeridos={sugeridos}
           verTodas={verTodas}
-          esLider={esLider}
+          puedeConfigurar={puedeConfigurar}
           onRegistrar={(f) => setRegistrar({ fijo: f })}
           onMarcarFijo={setNuevoFijo}
           onNoEsFijo={setNoEsFijo}

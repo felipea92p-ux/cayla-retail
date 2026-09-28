@@ -15,7 +15,8 @@
  *   · los chequeos: cajas abiertas, egresos sin clasificar, prendas por regularizar y diario descuadrado BLOQUEAN; gastos
  *     fijos que faltan, bancos sin conciliar y prendas sin costo AVISAN y quedan guardados en el cierre;
  *   · `fn_diario` trae lo congelado aunque el diario vivo cambie, y el chequeo de la huella lo delata;
- *   · solo el líder (el módulo no se delega); nadie lee las tablas directo; lo congelado no se edita ni se borra.
+ *   · el líder o quien tiene el módulo «Cierre de mes» (se delega desde el ADR-0253); nadie lee las tablas directo; lo
+ *     congelado no se edita ni se borra.
  *
  * CÓMO. Igual que `estado_resultados.mjs`: cada bloque en su transacción con ROLLBACK (otros agentes prueban a la vez), sesión
  * simulada con `request.jwt.claim.sub`, y cada verificación es una línea `select 'caso', <verdadero>`. El mes de prueba es
@@ -317,16 +318,17 @@ select 'E2 y el chequeo de la huella lo delata (avisa, no bloquea)', (select not
 select 'E3 fn_periodos_mes: el líder ve TRU cerrada con su huella', (select count(*) = 1 from retail.fn_periodos_mes('2025-03-01') where ubicacion_id = :'tru' and estado = 'cerrado' and huella = :'r'::jsonb ->> 'huella');
 `;
 
-// ---- F · Solo el líder; nadie lee las tablas directo -----------------------------------------------------------------------------
+// ---- F · El líder o quien tiene el módulo (ADR-0253); nadie lee las tablas directo -----------------------------------------------------------------------------
 const conModulo = (m) => `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), '${m}') on conflict do nothing;\n`;
 const CASOS_PERMISOS = `
 select retail.cerrar_periodo('2025-03-01', 'ubicacion', :'tru') as r \\gset
-select 'F0 «Cierre de mes» no se le puede dar a un rol (no es delegable)', (select pg_temp.intento($$insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'cierre_mes')$$) like '«Cierre de mes» es solo del líder%');
+select 'F0 «Cierre de mes» ya se puede dar a un rol (ADR-0253); la integrante de esta escena no lo tiene', (select delegable from retail.modulos where clave = 'cierre_mes')
+  and not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'cierre_mes');
 ${conModulo("reportes_financieros")}
 ${cambiaA(MICAELA)}
-select 'F1 una colaboradora no ve el panel', (select pg_temp.intento('select retail.fn_cierre_panel()') = 'El cierre de mes es solo del líder.');
-select 'F1 ni cierra', (select pg_temp.intento(format('select retail.cerrar_periodo(''2025-03-01'', ''ubicacion'', %L)', :'lim')) = 'Cerrar el mes es solo del líder.');
-select 'F1 ni reabre', (select pg_temp.intento(format('select retail.reabrir_periodo(''2025-03-01'', ''ubicacion'', %L, ''porque sí, prueba'')', :'tru')) = 'Reabrir el mes es solo del líder.');
+select 'F1 una colaboradora sin el módulo no ve el panel', (select pg_temp.intento('select retail.fn_cierre_panel()') = 'El cierre de mes necesita el módulo «Cierre de mes» en tu rol.');
+select 'F1 ni cierra', (select pg_temp.intento(format('select retail.cerrar_periodo(''2025-03-01'', ''ubicacion'', %L)', :'lim')) = 'Cerrar el mes necesita el módulo «Cierre de mes» en tu rol.');
+select 'F1 ni reabre', (select pg_temp.intento(format('select retail.reabrir_periodo(''2025-03-01'', ''ubicacion'', %L, ''porque sí, prueba'')', :'tru')) = 'Reabrir el mes necesita el módulo «Cierre de mes» en tu rol.');
 select 'F2 con «Reportes financieros» ve que SU tienda está cerrada (y nada más)', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_periodos_mes('2025-03-01'));
 select 'F2 y fn_diario le da lo congelado de su tienda', (select count(*) = (:'r'::jsonb ->> 'lineas')::int and bool_and(congelado) from retail.fn_diario('2025-03-01', '2025-03-31', :'tru'));
 select 'F2 pero no el de otra tienda', (select pg_temp.intento(format('select count(*) from retail.fn_diario(''2025-03-01'', ''2025-03-31'', %L)', :'lim')) = 'No puedes ver los números de esa ubicación.');
@@ -347,7 +349,7 @@ const BLOQUES = [
   ["C · chequeos que bloquean y que avisan", CASOS_CHEQUEOS],
   ["D · de la empresa y las dos puntas del dinero", CASOS_EMPRESA],
   ["E · fn_diario y la huella", CASOS_DIARIO],
-  ["F · solo el líder", CASOS_PERMISOS],
+  ["F · el líder o quien tiene el módulo", CASOS_PERMISOS],
 ];
 for (const [titulo, casosSql] of BLOQUES) {
   verificar(titulo, correr(`${ESCENA}\n${casosSql}`), casosDe(casosSql));

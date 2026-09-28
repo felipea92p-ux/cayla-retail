@@ -28,6 +28,32 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **sin pegar en producción (piden OK de Felipe)**; rama `claude/team-leader-role-blocked-f9f513`
+Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
+estar limitado a solo el líder». Decidió: Líder editable como cualquier rol; los tres módulos, «todo, como el líder»;
+reabrir un mes, quien tenga Cierre de mes.
+- [x] Configuración, Impuestos y Cierre de mes se dan a un rol (`20260928220000`): 36 funciones cambian solo su candado
+  (reescritas desde su definición real; huellas del repo y de producción idénticas el 2026-09-28) y 4 preguntas nuevas
+  (`fn_puede_configurar`, `fn_puede_ver_impuestos`, `fn_puede_cerrar_mes`, `fn_ve_finanzas_de_todo`).
+- [x] El Líder se edita (`20260928220100`): `retail.lider_modulos_ocultos` guarda lo que se le quita; solo un Admin lo
+  edita; «Roles y accesos» no se le quita; un módulo nuevo le sigue apareciendo solo; duplicarlo copia lo que ve.
+- [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
+  permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
+- [ ] **Pegar en producción, en orden y cada una entera:** `20260928220000` (md5 en el ADR) y después `20260928220100`.
+  Sin políticas ni `alter` de tablas en uso. Antes de pegar, confirmar que las huellas del ADR siguen iguales.
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
+  módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)
+- [ ] Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
+  base ya lo deja a quien tiene Configuración; lo mismo, la opción «De la empresa» en Gastos.
+- Cómo verificas:
+  - `pnpm pruebas:roles-lider-editable` (13/13; vigila que ninguna de las 36 funciones vuelva a preguntar `fn_es_lider()`).
+  - `pnpm pruebas:roles-cobertura` (31/31), `pnpm pruebas:impuestos`, `pnpm pruebas:cierre-mes` (104/104),
+    `pnpm pruebas:configuracion-caja`, `pnpm pruebas:presupuesto`, `pnpm pruebas:cuentas-dinero`, `pnpm pruebas:editar-cuentas`,
+    `pnpm pruebas:cuenta-sellada`, `pnpm pruebas:activos-y-fijos` — actualizadas: el mensaje dejó de decir «solo el líder».
+  - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
+  - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
+
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
