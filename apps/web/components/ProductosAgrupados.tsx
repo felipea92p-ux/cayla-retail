@@ -6,13 +6,20 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { Chip } from "@/components/ui/Chip";
 import { describirRotacion } from "@/lib/reorden-reglas";
-import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteListado } from "@/lib/catalogo-v2";
-import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import {
+  alertaDeStock,
+  textoDeStock,
+  lineasDeStock,
+  hrefEnExistencias,
+  EXPLICACION_STOCK_TOTAL,
+  MENSAJE_SIN_RESULTADOS,
+  SIN_EXISTENCIAS,
+  type ExistenciasProducto,
+} from "@/lib/productos-stock";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -60,21 +67,18 @@ const PLANTILLA_FILA = "sm:grid-cols-[1.25rem_1fr_7rem_4.5rem_4.5rem_6.5rem_6.5r
 
 export function ProductosAgrupados({
   productos,
-  ubicacionId,
-  sububicaciones,
+  existencias,
   puedeEditar,
-  puedeAjustar,
-  puedeBajarAlPiso,
+  veExistencias,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
-  ubicacionId: string;
-  sububicaciones: Sububicacion[];
+  /** Lo de la sede elegida por producto (ADR-0256). `null`: no se pudo leer, y las filas dicen el total como antes. */
+  existencias: Map<string, ExistenciasProducto> | null;
   puedeEditar: boolean;
-  puedeAjustar: boolean;
-  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
-  puedeBajarAlPiso: boolean;
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0256, decisión 9): el Catálogo solo enlaza. */
+  veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
@@ -160,9 +164,9 @@ export function ProductosAgrupados({
         <span>Producto</span>
         <span>Categoría</span>
         <span className="text-right">Variantes</span>
-        {/* «STOCK TOTAL» no cabe en 4.5rem en una línea: baja a dos, en vez de robarle ancho a la columna Producto. */}
+        {/* ADR-0256: lo de la sede elegida arriba; sin esa lectura, el total de la red como antes. En dos líneas si no cabe. */}
         <span className="text-right leading-tight" title={EXPLICACION_STOCK_TOTAL}>
-          Stock total
+          {existencias ? "Stock aquí" : "Stock total"}
         </span>
         <span className="text-right">Costo</span>
         <span>Estado</span>
@@ -176,6 +180,8 @@ export function ProductosAgrupados({
         const alerta = alertaDeStock(p);
         const tonoStock = alerta === "sin_stock" ? "text-tinta" : alerta === "bajo" ? "text-ambar" : p.estado !== "activo" ? "text-tinta/70" : "text-tinta/75";
         const rotacion = describirRotacion(p.demandaDiaria);
+        const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null;
+        const resto = lineas ? [lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ") : "";
         return (
           <div key={p.productoId} className="card-cayla overflow-hidden">
             <div className={`flex items-center gap-3 px-5 py-3.5 hover:bg-sand/30 sm:grid sm:gap-x-3 sm:gap-y-2 ${PLANTILLA_FILA}`}>
@@ -213,8 +219,15 @@ export function ProductosAgrupados({
                 <span className="block truncate text-[10.5px] text-tinta/45">{p.marca}</span>
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
-              <span title={EXPLICACION_STOCK_TOTAL} className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>
-                {alerta === "sin_stock" ? "Sin stock" : alerta === "bajo" ? `${p.stockTotal} · bajo` : p.stockTotal}
+              <span title={resto || EXPLICACION_STOCK_TOTAL} className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>
+                {alerta === "sin_stock"
+                  ? "Sin stock"
+                  : lineas
+                    ? `${lineas.principal.replace(" aquí", "")}${alerta === "bajo" ? " · bajo" : ""}`
+                    : alerta === "bajo"
+                      ? `${p.stockTotal} · bajo`
+                      : p.stockTotal}
+                {resto && <span className="block truncate text-[10.5px] font-normal text-tinta/50">{resto}</span>}
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{rangoCosto(p.variantes)}</span>
               <span className="hidden sm:block">
@@ -225,10 +238,7 @@ export function ProductosAgrupados({
               <span className="justify-self-end">
                 <MenuFila
                   productoId={p.productoId}
-                  ubicacionId={ubicacionId}
-                  sububicaciones={sububicaciones}
-                  puedeAjustar={puedeAjustar}
-                  puedeBajarAlPiso={puedeBajarAlPiso}
+                  hrefExistencias={veExistencias ? hrefEnExistencias(p.variantes) : null}
                   eliminable={puedeEliminar ? { referencia: p.referencia, estado: p.estado, numVariantes: p.variantes.length } : null}
                 />
               </span>
@@ -241,8 +251,9 @@ export function ProductosAgrupados({
                 {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
               </span>
               <span title={EXPLICACION_STOCK_TOTAL} className={`text-xs font-semibold tabular-nums ${tonoStock}`}>
-                {textoDeStock(p.stockTotal)}
+                {lineas ? lineas.principal : alerta === "sin_stock" ? null : textoDeStock(p.stockTotal)}
               </span>
+              {resto && <span className="text-xs text-tinta/55">{resto}</span>}
               <span className="text-xs tabular-nums text-tinta/65">{rangoCosto(p.variantes)}</span>
               <Chip tono={p.estado === "activo" ? "verde" : "apagado"} tachado={false}>
                 {p.estado === "activo" ? "Activo" : "Descontinuado"}
@@ -308,22 +319,16 @@ export function ProductosAgrupados({
  *  teclado tipo combobox, solo Escape/click-afuera). */
 function MenuFila({
   productoId,
-  ubicacionId,
-  sububicaciones,
-  puedeAjustar,
-  puedeBajarAlPiso,
+  hrefExistencias,
   eliminable,
 }: {
   productoId: string;
-  ubicacionId: string;
-  sububicaciones: Sububicacion[];
-  puedeAjustar: boolean;
-  puedeBajarAlPiso: boolean;
+  /** «Ver en Existencias» (null si no ve ese módulo): ahí se ajusta el stock (ADR-0256, decisión 9). */
+  hrefExistencias: string | null;
   /** Los datos que la ventana de «Eliminar» necesita, o `null` si quien mira no es Admin ni Líder (entonces no hay opción). */
   eliminable: { referencia: string; estado: string; numVariantes: number } | null;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [ajustando, setAjustando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
@@ -384,19 +389,17 @@ function MenuFila({
               Editar
             </Link>
           </li>
-          {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
-          {puedeAjustar && (
+          {/* ADR-0256, decisión 9: el stock se ajusta solo en Inventario; el Catálogo lleva a esa prenda en Existencias. */}
+          {hrefExistencias && (
             <li role="none">
-              <button
+              <Link
                 role="menuitem"
-                onClick={() => {
-                  setAbierto(false);
-                  setAjustando(true);
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-tinta/75 hover:bg-rojo/10"
+                href={hrefExistencias}
+                className="block px-3 py-2 text-sm text-tinta/75 hover:bg-rojo/10"
+                onClick={() => setAbierto(false)}
               >
-                Ajustar inventario
-              </button>
+                Ver en Existencias
+              </Link>
             </li>
           )}
           <li role="none">
@@ -453,15 +456,6 @@ function MenuFila({
             </li>
           )}
         </ul>
-      )}
-      {ajustando && (
-        <AjustarInventarioModal
-          productoId={productoId}
-          ubicacionId={ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeBajarAlPiso={puedeBajarAlPiso}
-          onClose={() => setAjustando(false)}
-        />
       )}
       {eliminando && eliminable && <EliminarProductoModal producto={{ productoId, ...eliminable }} onClose={() => setEliminando(false)} />}
     </div>

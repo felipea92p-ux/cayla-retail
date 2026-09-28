@@ -5,11 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
-import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
-import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import {
+  alertaDeStock,
+  textoDeStock,
+  lineasDeStock,
+  hrefEnExistencias,
+  EXPLICACION_STOCK_TOTAL,
+  MENSAJE_SIN_RESULTADOS,
+  SIN_EXISTENCIAS,
+  type ExistenciasProducto,
+} from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
@@ -136,19 +143,16 @@ function SwatchesColor({
 
 export function ProductosGrilla({
   productos,
-  ubicacionId,
-  sububicaciones,
-  puedeAjustar,
-  puedeBajarAlPiso,
+  existencias,
+  veExistencias,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
-  ubicacionId: string;
-  sububicaciones: Sububicacion[];
-  puedeAjustar: boolean;
-  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
-  puedeBajarAlPiso: boolean;
+  /** Lo de la sede elegida por producto (ADR-0256). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
+  existencias: Map<string, ExistenciasProducto> | null;
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0256, decisión 9): el Catálogo solo enlaza. */
+  veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
@@ -160,7 +164,7 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
+        <TarjetaProducto key={p.productoId} producto={p} existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)} veExistencias={veExistencias} puedeEliminar={puedeEliminar} />
       ))}
     </div>
   );
@@ -168,24 +172,19 @@ export function ProductosGrilla({
 
 function TarjetaProducto({
   producto,
-  ubicacionId,
-  sububicaciones,
-  puedeAjustar,
-  puedeBajarAlPiso,
+  existencias,
+  veExistencias,
   puedeEliminar,
 }: {
   producto: ProductoListado;
-  ubicacionId: string;
-  sububicaciones: Sububicacion[];
-  puedeAjustar: boolean;
-  puedeBajarAlPiso: boolean;
+  existencias: ExistenciasProducto | null;
+  veExistencias: boolean;
   puedeEliminar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
   const [colorHover, setColorHover] = useState<string | null>(null);
   const [vistaRapida, setVistaRapida] = useState(false);
-  const [ajustando, setAjustando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
 
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
@@ -197,6 +196,8 @@ function TarjetaProducto({
   const descontinuado = producto.estado !== "activo";
   const alerta = alertaDeStock(producto);
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
+  // ADR-0256: lo de la sede elegida en grande y el resto aparte. «Sin stock» (nada en ninguna sede) sigue siendo el chip.
+  const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias) : null;
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
@@ -250,6 +251,8 @@ function TarjetaProducto({
               <Chip tono="neutro" versalitas={false}>
                 Sin stock
               </Chip>
+            ) : lineas ? (
+              lineas.principal
             ) : alerta === "bajo" ? (
               <Chip tono="ambar" versalitas={false}>
                 Stock bajo: {producto.stockTotal}
@@ -259,6 +262,18 @@ function TarjetaProducto({
             )}
           </span>
         </div>
+        {lineas && (lineas.detalle || lineas.avisos.length > 0 || alerta === "bajo") && (
+          <p className="-mt-1.5 text-right text-[11px] leading-snug text-tinta/60">
+            {alerta === "bajo" && (
+              <span className="mr-1 inline-block align-middle">
+                <Chip tono="ambar" versalitas={false}>
+                  Stock bajo
+                </Chip>
+              </span>
+            )}
+            {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
+          </p>
+        )}
         <div className="flex items-center justify-between">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} />
           <span className="text-[11px] text-tinta/55">{activo?.nombre ?? ""}</span>
@@ -271,25 +286,12 @@ function TarjetaProducto({
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
-          puedeAjustar={puedeAjustar}
-          onAjustarInventario={() => {
-            setVistaRapida(false);
-            setAjustando(true);
-          }}
+          hrefExistencias={veExistencias ? hrefEnExistencias(producto.variantes, nombreActivo) : null}
           puedeEliminar={puedeEliminar}
           onEliminar={() => {
             setVistaRapida(false);
             setEliminando(true);
           }}
-        />
-      )}
-      {ajustando && (
-        <AjustarInventarioModal
-          productoId={producto.productoId}
-          ubicacionId={ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeBajarAlPiso={puedeBajarAlPiso}
-          onClose={() => setAjustando(false)}
         />
       )}
       {eliminando && (
@@ -307,8 +309,7 @@ function VistaRapidaModal({
   colores,
   colorInicial,
   onClose,
-  onAjustarInventario,
-  puedeAjustar,
+  hrefExistencias,
   onEliminar,
   puedeEliminar,
 }: {
@@ -316,8 +317,8 @@ function VistaRapidaModal({
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
-  onAjustarInventario: () => void;
-  puedeAjustar: boolean;
+  /** «Ver en Existencias» (null si no ve ese módulo). */
+  hrefExistencias: string | null;
   onEliminar: () => void;
   puedeEliminar: boolean;
 }) {
@@ -382,11 +383,13 @@ function VistaRapidaModal({
             <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
               Etiquetas
             </Link>
-            {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
-            {puedeAjustar && (
-              <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
-                Ajustar inventario
-              </button>
+            {/* ADR-0256, decisión 9 (Felipe, 2026-09-28): el stock se ajusta solo en Inventario. Antes había aquí un «Ajustar
+                inventario» propio que validaba contra otro número que la base (aceptaba «2 → 0» con 1 apartada y la base lo
+                rechazaba). Existencias abre esta prenda en su talla, con su Ajustar y su candado (ADR-0250). */}
+            {hrefExistencias && (
+              <Link href={hrefExistencias} className={`${botonPrimario} text-center`}>
+                Ver en Existencias
+              </Link>
             )}
             {/* Solo Admin y Líder. Abre una ventana que pregunta a la base si nunca se movió; con historia explica por qué no. */}
             {puedeEliminar && (

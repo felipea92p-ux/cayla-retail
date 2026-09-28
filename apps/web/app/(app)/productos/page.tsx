@@ -3,7 +3,6 @@ import { ChevronDown } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getSububicaciones } from "@/lib/sububicaciones";
 import {
   filtrosProductosDesdeParams,
   paginaProductosDesdeParams,
@@ -11,6 +10,7 @@ import {
   getResumenProductos,
   getProductosPendientesAlta,
   getReposicionPorProveedor,
+  getExistenciasProductos,
   getSinTemporadaResumen,
   type ParamsProductosListado,
   type ResumenProductos,
@@ -74,7 +74,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta, sinTemporada] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, pendientesAlta, sinTemporada] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -82,14 +82,20 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-    getSububicaciones(persona.ubicacionId),
     editaCatalogo ? getProductosPendientesAlta() : Promise.resolve([]),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
   ]);
 
-  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
-  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor(filtros) : [];
+  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
+  // arriba para cada tarjeta de esta página (ADR-0256): la misma cifra que Existencias. Las dos después de la lista, a la vez.
+  const [reposicion, existencias] = await Promise.all([
+    resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
+    getExistenciasProductos(
+      resultado.productos.map((p) => p.productoId),
+      persona.ubicacionId
+    ),
+  ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
@@ -201,21 +207,17 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {vista === "grilla" ? (
         <ProductosGrilla
           productos={resultado.productos}
-          ubicacionId={persona.ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeAjustar={puede(persona, "ajustarStock")}
-          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+          existencias={existencias}
+          veExistencias={veModulo(persona, "existencias")}
           puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
         <ProductosAgrupados
           productos={resultado.productos}
-          ubicacionId={persona.ubicacionId}
-          sububicaciones={sububicaciones}
+          existencias={existencias}
           puedeEditar={puede(persona, "editarCatalogo")}
-          puedeAjustar={puede(persona, "ajustarStock")}
-          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+          veExistencias={veModulo(persona, "existencias")}
           puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
