@@ -48,14 +48,31 @@ export const CONOCIDAS = [
     motivo: "La función vieja de gastos, renombrada junto con su tabla por 20260924235100 solo en una base con datos.",
   },
   {
-    patron: /^candado\tgastos\.gastos_(igv_check|ubicacion_id_fkey)1?$/,
-    motivo: "Mismo candado de `gastos`; en producción conserva el sufijo 1 de cuando la tabla vieja tomó el nombre original (20260924235100).",
-  },
-  {
     patron: /^(columna|permiso|rls|vista)\tplanilla_por_sede\b/,
     motivo: "20260921160000 crea la vista solo si Dynamic tiene sus tablas de planilla; la base de main usa el stub de Dynamic, que no las tiene.",
   },
 ];
+
+/**
+ * El mismo objeto con otro NOMBRE en producción: se compara su contenido con el de main bajo el nombre de main. Va aquí y
+ * no en CONOCIDAS porque una conocida no se compara nunca: si el candado de IGV de `gastos` cambiara en main y no se
+ * pegara, no aparecería. `[nombre en producción, nombre en main]`.
+ */
+export const ALIAS_PRODUCCION = new Map([
+  // Cuando 20260924235100 renombró la tabla vieja de gastos, la nueva tomó los nombres de candado con sufijo 1.
+  ["candado\tgastos.gastos_igv_check1", "candado\tgastos.gastos_igv_check"],
+  ["candado\tgastos.gastos_ubicacion_id_fkey1", "candado\tgastos.gastos_ubicacion_id_fkey"],
+]);
+
+/** Producción con los nombres de main (solo si main no tiene ya un objeto con el nombre de producción). */
+function conNombresDeMain(produccion, main, alias) {
+  const r = new Map();
+  for (const [clave, huella] of produccion) {
+    const enMain = alias.get(clave);
+    r.set(enMain && !main.has(clave) && !produccion.has(enMain) ? enMain : clave, huella);
+  }
+  return r;
+}
 
 /** Lee una celda de huellas: la salida de psql, o la respuesta JSON del MCP de Supabase guardada tal cual. */
 export function leerHuellas(texto) {
@@ -91,8 +108,9 @@ export function leerHuellas(texto) {
 }
 
 /** Compara las huellas. Devuelve `{ soloMain, soloProduccion, distintas, conocidas }`, cada una con `{ g, k, motivo? }`. */
-export function compararHuellas(main, produccion, conocidas = CONOCIDAS) {
+export function compararHuellas(main, deProduccion, conocidas = CONOCIDAS, alias = ALIAS_PRODUCCION) {
   const r = { soloMain: [], soloProduccion: [], distintas: [], conocidas: [] };
+  const produccion = conNombresDeMain(deProduccion, main, alias);
   const claves = [...new Set([...main.keys(), ...produccion.keys()])].sort();
   for (const clave of claves) {
     const enMain = main.get(clave);

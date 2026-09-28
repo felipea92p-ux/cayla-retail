@@ -53,7 +53,19 @@ test("lo conocido se aparta con su motivo y no cuenta como diferencia", () => {
   const prod = leerHuellas(celda(["candado", "gastos.gastos_igv_check1", "1"], ["indice", "gastos_legado_2026_09_pkey", "2"], ["vista", "planilla_por_sede", "3"]));
   const r = compararHuellas(main, prod);
   assert.equal(r.soloMain.length + r.soloProduccion.length + r.distintas.length, 0);
-  assert.equal(r.conocidas.length, 4);
+  assert.equal(r.conocidas.length, 2);
+});
+
+test("los candados de gastos con sufijo 1 en producción SE COMPARAN con los de main: un cambio sin pegar se ve", () => {
+  const main = leerHuellas(celda(["candado", "gastos.gastos_igv_check", "781f84d2b138"], ["candado", "gastos.gastos_ubicacion_id_fkey", "d6f226a73d55"]));
+  const iguales = leerHuellas(celda(["candado", "gastos.gastos_igv_check1", "781f84d2b138"], ["candado", "gastos.gastos_ubicacion_id_fkey1", "d6f226a73d55"]));
+  const r = compararHuellas(main, iguales);
+  assert.equal(r.soloMain.length + r.soloProduccion.length + r.distintas.length + r.conocidas.length, 0);
+  // El check de IGV cambió en main y no se pegó: sale como «otra versión», con el nombre de main.
+  const otroIgv = leerHuellas(celda(["candado", "gastos.gastos_igv_check1", "ffffffffffff"], ["candado", "gastos.gastos_ubicacion_id_fkey1", "d6f226a73d55"]));
+  assert.deepEqual(compararHuellas(main, otroIgv).distintas, [{ g: "candado", k: "gastos.gastos_igv_check" }]);
+  // Y si producción algún día los renombra, se comparan por su nombre sin tocar nada.
+  assert.equal(compararHuellas(main, main).distintas.length, 0);
 });
 
 test("una conocida no tapa lo que se le parece: otro candado de gastos o una función nueva con «legado» en el nombre", () => {
