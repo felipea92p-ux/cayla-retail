@@ -28,13 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🔎 Cabecera: buscador global (Ctrl/Cmd+K), lockup «CAYLA / Retail» y el colibrí en vector (2026-09-28, ADR-0257) — solo web, sin migración; rama `claude/dynamic-visual-spike-857d01`
+## 🔎 Cabecera: buscador global (Ctrl/Cmd+K), lockup «CAYLA / Retail» y el colibrí en vector (2026-09-28, ADR-0262) — solo web, sin migración; rama `claude/dynamic-visual-spike-857d01`
 
 - [x] `components/BuscadorGlobal.tsx`: botón junto a plegar el lateral (o `Ctrl`/`Cmd`+`K`) abre un `<Modal variante="papel">` que busca pantallas (`menu.riel.flatMap(hojasDe)`, mismo filtro por rol del lateral) y quién está de turno en la sede (`fn_asesoras_de_turno`, llamada directo del navegador para que el loader general la trate como lectura). Verificado de punta a punta en local: filtro sin tildes, flechas, Enter navega y cierra, estado vacío.
 - [x] «Retail» apilado bajo «CAYLA», sin tocar la palabra «CAYLA»: lateral, cabecera móvil y login (`AppShell.tsx` × 2, `login/page.tsx`).
 - [x] `components/ui/IsotipoCayla.tsx`: el `<path>` ya calcado en `EtiquetaPrecio.tsx`, en rojo de marca (`#b8412d`), reemplazando el PNG en las tres pantallas de arriba.
 - [ ] **Abierto, no bloquea:** los otros 7 usos de `/cayla-isotipo.png` (`ReciboTermico`, `ProformaA4`, `BoletaA4`, `CambioTicket`, `ComprobantesListaVacia`, `PrendaCelda`, `Espera.tsx`) siguen en PNG — son documentos ya calibrados contra una impresora o un tamaño de papel real; cambiarlos pide verificar contra la impresora física, no se hizo acá a propósito.
-- [ ] **Decisión de Felipe pendiente:** si un integrante debería ver a TODO el equipo de turno en el buscador o solo a quien puede tocar (`fn_alcanzo_a`, ADR-0178) — hoy ve a todos (detalle en ADR-0257).
+- [ ] **Decisión de Felipe pendiente:** si un integrante debería ver a TODO el equipo de turno en el buscador o solo a quien puede tocar (`fn_alcanzo_a`, ADR-0178) — hoy ve a todos (detalle en ADR-0262).
 
 ## 🎨 Color y talla de una variante se corrigen mientras no tenga historia (2026-09-28, ADR-0258) — web + migración `20260928235500` **EN PRODUCCIÓN** (pegada por Felipe y verificada el 2026-09-28); rama `claude/product-sizes-colors-edit-a83b77`
 

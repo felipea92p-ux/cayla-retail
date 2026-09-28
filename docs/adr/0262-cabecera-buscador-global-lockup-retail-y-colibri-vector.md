@@ -1,4 +1,4 @@
-# ADR-0257 — Cabecera: buscador global (Ctrl/Cmd+K), lockup «CAYLA / Retail» y el colibrí en vector
+# ADR-0262 — Cabecera: buscador global (Ctrl/Cmd+K), lockup «CAYLA / Retail» y el colibrí en vector
 
 **Fecha:** 2026-09-28
 **Estado:** Construido y verificado en local — navegador a 1280 px y 375 px (móvil), el buscador probado de punta a punta
