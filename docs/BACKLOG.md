@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧮 Catálogo ↔ Inventario: una sola cifra de stock (2026-09-28, ADR-0256) — migración `20260929010000` **POR PEGAR en producción**; rama `claude/stock-status-inconsistency-411bab`
+- [x] **Diagnóstico con producción (solo lectura):** 0 descuadres entre `movimientos` y `stock`, pero **seis definiciones de «stock»** (Catálogo, Existencias, «% vs. semana», «Dónde más hay», Buscar/Etiquetas, Ajustar) y **ninguna escritura de stock revisa el estado del catálogo**. Análisis del flujo y 12 tareas: `docs/pantallas/catalogo-inventario.md`. Las 32 decisiones de Felipe: ADR-0256.
+- [x] **#2 `retail.fn_existencias(p_ubicacion_id)`**: por talla y sede, físico, dañado, apartado, disponible (= físico − dañado − apartado = piso + almacén + sin lugar), en camino y talla retirada; sin pruebas ni «Monto manual». Probada antes de escribirla con el mismo cuerpo en producción: TRU disponible 381 = la captura de Felipe. `pnpm pruebas:fn-existencias` **14/14** (sumada al CI) y **6/6 mutaciones detectadas**, contra un Postgres 17 desechable con las 359 migraciones. **Falta pegarla** (una sola parte, sin políticas: pedir el «dale»). Nadie la lee todavía: las pantallas pasan a leerla en #3 y #4.
+- [ ] **#1 Sacar las pruebas (Felipe):** «Y.j.j», «Fdhh», «Fhfh», «Prueba Pantalon» y «Producto de Prueba» se eliminan con el botón del ADR-0252 (sin ventas). «Test de Produto 2» tiene una venta completada del 26-sep **no marcada como prueba** en una caja cerrada: decidir marcarla o purgarla con la receta del ADR-0224.
+- [ ] **Unidades fantasma en vivo (2026-09-28):** después de las 11:08, alguien desactivó 2 tallas de «Prueba Pantalon» con 6 u.; Existencias pasó de 381 a 375 aunque las prendas siguen en TRU. Lo cierra la tarea #7 (no retirar una talla con unidades).
+- [ ] **Traslado #4 (Taller → AQP) «en tránsito» desde el 17-sep sin ninguna prenda:** residuo de la demo retirada. No mueve cifras; decidir anularlo.
+- [ ] Las 12 tareas como líneas del BACKLOG esperan la aprobación de Felipe (`docs/pantallas/catalogo-inventario.md` §11).
+
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.

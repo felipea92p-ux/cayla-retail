@@ -74,7 +74,7 @@ Trade-off: arreglar pantalla por pantalla es más rápido, pero las fórmulas se
 - **Aguas arriba:** Recibir, Producción, Traslados, Conteo y el alta con stock (ADR-0212).
 - **Aguas abajo:** Vender, Buscar, Etiquetas, Análisis, «A quién pedirle», Finanzas (`fn_bal_stock`).
 - **Pájaro dueño:** Inventario (`docs/datos/generado/AVIARIO.md`).
-- **Externos:** ninguno en esta costura. Si un día se vende online (Shopify está investigado y no integrado), la cifra vendible de la #2 es la que se publicaría.
+- **Externos:** ninguno en esta costura. Si un día se vende online (Shopify está investigado y no integrado), la cifra disponible de la #2 es la que se publicaría.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
@@ -115,9 +115,9 @@ Relevancia = (2·9 + 10 + 9 + 8) / 5 = **9,0** — Núcleo.
 
   Contrato completo en ADR-0256.
 - **Por qué en este puesto:** es la raíz. Las tareas #3, #4, #8 y #11 son pantallas que la leen; sin ella, cada arreglo vuelve a ser una suma propia.
-- **Cómo lo verificas tú:** una consulta de solo lectura en producción compara `fn_existencias` con `recalcular_stock` y da 0 diferencias. «Test de Produto 2» en TRU (si sigue) dice físico 78, apartado 1 y vendible 77, igual en el Catálogo y en Existencias.
+- **Cómo lo verificas tú:** una consulta de solo lectura en producción compara `fn_existencias` con `recalcular_stock` y da 0 diferencias. «Test de Produto 2» en TRU (si sigue) dice físico 78, apartado 1 y disponible 77, igual en el Catálogo y en Existencias.
 - **Esfuerzo / dependencias:** L · ninguna (conviene después de la #1).
-- **DECIDÍ:** una función de solo lectura por talla × sede que devuelve físico, dañado, apartado, vendible, piso y almacén libres, y en camino entrante. Deja afuera las pruebas y la pieza «Monto manual». Ninguna pantalla vuelve a sumar `stock` por su cuenta.
+- **DECIDÍ:** una función de solo lectura por talla × sede que devuelve físico, dañado, apartado, disponible, piso y almacén libres, y en camino entrante. Deja afuera las pruebas y la pieza «Monto manual». Ninguna pantalla vuelve a sumar `stock` por su cuenta.
 - **DESCARTÉ:**
   - una vista materializada o una columna calculada en `stock`: con ~32 000 filas como techo en 3 años, la suma directa tarda milisegundos, y una copia más es otra cosa que se puede desincronizar;
   - arreglar cada pantalla por separado: ya hay seis, y la séptima volvería a divergir.
@@ -235,7 +235,7 @@ Se comparó con **una sola pantalla** (Catálogo e Inventario fusionados en una 
   - el «compare-at price» (precio anterior tachado) no se usa para promociones porque no tiene programación y hay que revertirlo a mano.
   - En CAYLA equivale a la campaña con fechas que ya existe.
 - **Odoo** (verificado 2026-09-28, odoo.com/documentation): las listas de precios tienen reglas por producto, categoría o variante con «válido desde/hasta», y aplican también en el punto de venta. Es el mismo modelo de las etiquetas de campaña.
-- **Futuro (no pasa el filtro de hoy):** publicar la cifra vendible a una tienda online. La #2 la deja lista para eso, sin construir nada ahora.
+- **Futuro (no pasa el filtro de hoy):** publicar la cifra disponible a una tienda online. La #2 la deja lista para eso, sin construir nada ahora.
 
 ## 10 · Fuera de esta pantalla
 **El equipo prueba y aprende en la caja real.** «Test de Produto 2» tiene una venta completada, no marcada como prueba, dentro de una caja cerrada del 26-sep. Mientras no exista un lugar de práctica, cada capacitación vuelve a ensuciar cifras, cajas y Finanzas, y cada limpieza cuesta una decisión de Felipe.

@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Catálogo ↔ Inventario: seis «stock» distintos y una sola cifra — ADR-0256)
+Qué hice: con producción en solo lectura y tres revisores, encontré que no hay desincronización (0 descuadres) sino seis formas de sumar `stock` y ninguna escritura que mire el estado del catálogo. Felipe decidió en 32 preguntas (ADR-0256); escribí el análisis del flujo con 12 tareas (`docs/pantallas/catalogo-inventario.md`) y la raíz, `fn_existencias`, que reproduce al número su captura de Existencias (381), con 14/14 casos y 6/6 mutaciones detectadas.
+Por qué así: arreglar pantalla por pantalla ya produjo seis fórmulas; una función de la base que todas lean es lo único que no se vuelve a separar. Qué se rompería sin esto: cada pantalla nueva volvería a sumar a su manera, y la colaboradora le seguiría prometiendo a la clienta un número que otra pantalla contradice.
+Felipe se lleva: **«stock» son cuatro números, no uno: lo que hay, lo dañado, lo apartado y lo disponible.** Casi todo el desorden venía de mostrar uno llamándolo como otro. Y una talla que se desactiva con prendas adentro las hace «desaparecer» de Existencias aunque sigan colgadas: pasó hoy con 6 unidades.
+
 ## 2026-09-28 («Sin stock» contra «movimientos de stock (12)»: no era el inventario, era la frase)
 Qué hice: reconcilié todo el inventario de producción en solo lectura. Rehice el stock desde los 188 movimientos y lo comparé con las 160 filas de `stock`: 0 descuadres. «Fdhh» tenía de verdad 0 unidades (+120 el 26-sep, −120 hoy). Cambié la ventana «No se puede eliminar»: si la prenda está en 0, lo dice primero y recién después nombra su historia (al fusionar el ADR-0252 se apoya en el número `prendas` que trae la base, no en el nombre de un renglón).
 Por qué así: el «(12)» cuenta registros, pero pegado a «stock» se leía como unidades. El arreglo vive en la web y no en la base, porque la base ya cuenta las unidades aparte; lo que faltaba era decir el 0. Qué se rompería sin esto: cada prenda de prueba que alguien quiera borrar parecería tener stock escondido, y se buscaría una falla de sincronización que no existe.

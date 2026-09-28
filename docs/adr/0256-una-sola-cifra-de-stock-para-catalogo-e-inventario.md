@@ -1,8 +1,12 @@
 # ADR-0256 — Una sola cifra de stock para Catálogo e Inventario, y un solo candado de estado
 
 **Fecha:** 2026-09-28
-**Estado:** Aceptado (decisiones de Felipe). **Nada construido todavía.** El plan y el orden están en
+**Estado:** Aceptado (decisiones de Felipe). El plan y el orden están en
 [`docs/pantallas/catalogo-inventario.md`](../pantallas/catalogo-inventario.md) (12 tareas).
+**Construido:** tarea #2, `retail.fn_existencias` (migración `20260929010000`), probada contra un Postgres 17 desechable con las
+359 migraciones: `pnpm pruebas:fn-existencias` 14/14 y 6/6 mutaciones detectadas. Antes de escribirla, el mismo cuerpo corrido
+como consulta de solo lectura en producción dio, para Tienda TRU, disponible 381: la captura de Felipe al número. **POR PEGAR en
+producción** (una sola parte, sin políticas). Ninguna pantalla la lee todavía (tareas #3 y #4).
 **Decide:** Felipe, 2026-09-28, en 32 preguntas con opciones («hay un montón de problemas relacionados a catálogo y cómo
 converge con inventario», «sospecho que algo anda mal y bastante mal»).
 **Sobre:** ADR-0151 (Productos, tareas #1-#4), ADR-0179 (prendas por regularizar), ADR-0212 (alta con stock, puerta
@@ -90,7 +94,7 @@ Casos reales del día:
   - `fisico`: lo que hay;
   - `danado`: lo que está en cuarentena;
   - `apartado`;
-  - `vendible` = físico − dañado − apartado, nunca negativo;
+  - `disponible` = físico − dañado − apartado, nunca negativo;
   - `piso_libre` y `almacen_libre`;
   - `en_camino`: lo enviado hacia esa sede y todavía no recibido. No incluye lo ya recibido de un traslado con diferencia.
 - **ASUME:** `stock` es el reflejo exacto de `movimientos`. Lo garantiza `fn_aplicar_movimiento`, y el 2026-09-28 se verificó con 0
