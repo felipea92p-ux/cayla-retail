@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Productos: Editar, Historial y Etiquetas vuelven a la misma vista — Tabla o Grilla — y la etiqueta de UNA variante)
+Qué hice: quien salía de la Tabla a Editar, Historial o Etiquetas y volvía con «← Productos» caía en la Grilla sin filtros. Ahora el enlace de salida lleva la pantalla exacta (`?desde=/productos?vista=tabla&q=…`, `lib/vuelta-productos.ts`) y el «Volver» (y Cancelar / Guardar de Editar) regresa a ella; el `desde` sobrevive a paginar el Historial y a cambiar de sede (`SelectorUbicacion` acepta `conservar`). Además, cada tarjeta de variante de la ficha de la Tabla muestra al pasar el mouse una impresora que abre las etiquetas de ESA talla y color.
+Por qué así: «← Productos» era un enlace fijo a `/productos`, y esa ruta abre en Grilla; un `history.back()` no sirve en una pestaña recién abierta ni tras paginar. `desdeSeguro` solo deja pasar rutas `/productos…`: un `?desde=` escrito a mano no puede mandar a otro sitio.
+Felipe se lleva: **una pantalla a la que se sale de una lista debe recordar de qué lista salió**; «Nuevo producto» sigue volviendo a `/productos` a secas (pendiente decidir). La etiqueta de una variante propone tantas unidades como haya en TU sede: con 0, la pantalla sale vacía.
+
 ## 2026-09-28 (Ficha de producto: el código de la variante nueva, la ficha que se adapta y «¿Salir sin guardar?»)
 Qué hice: la variante nueva muestra el código que le dará la base (`CMS-0001-BEI-XS`) en vez de un SKU armado con el nombre (`BLUSACARLITA-U`), y cambia al elegir color o talla. Las variantes se acomodan al ancho de su tarjeta (no de la pantalla); «Guardar cambios» va al costado recién desde 1280 px y por debajo tiene una barra abajo. La ficha y Nuevo producto preguntan antes de salir con cambios sin guardar.
 Por qué así: bajo la misma columna «Código» convivían dos datos distintos: el que lee la pistola y un SKU legado que nadie usa. Con el menú y el panel al costado, una pantalla de 944 px dejaba la tarjeta en 577 px y cortaba los códigos. Qué se rompería sin esto: una etiqueta anotada con un código que la pistola no reconoce, y ocho precios perdidos por tocar el menú lateral.
