@@ -164,11 +164,24 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
   it("tardías y dudosas: todas, con el oid de su bajada (así las reconoce excluirTardias)", () => {
     if (!l?.separaPiso) throw new Error("sin lectura");
     expect(l.tardias).toHaveLength(SEDE.tardias.length);
-    expect(l.tardias).toEqual([
-      expect.objectContaining({ varianteId: idDe("ZZ-FX-TARDIA-M"), unidadesTardias: 1, bajadaEn: SEDE.tardias[0].bajada_en }),
-    ]);
-    const bajada = l.eventos[idDe("ZZ-FX-TARDIA-M")].find((e) => e.oid === l.tardias[0].oid);
-    expect(bajada?.delta, "la tardía apunta a un evento de su prenda").toBe(1);
+    // La tardía de la siembra y las tres bajadas de cada gemela de la revisión 9: la vendida y la entregada (el núcleo ve
+    // su venta), y la separada y el pedido (lo apartado en la ventana cuenta como vendido en la LECTURA, 20260928120330).
+    const porCodigo = (codigo: string) => l.tardias.filter((t) => t.varianteId === idDe(codigo));
+    expect(porCodigo("ZZ-FX-TARDIA-M")).toEqual([expect.objectContaining({ unidadesTardias: 1 })]);
+    for (const modo of ["VENDIDA", "SEPARADA", "ENTREGADA", "PEDIDO"]) {
+      expect(porCodigo(`ZZ-FX-GEM-${modo}-M`).map((t) => t.unidadesTardias), modo).toEqual([1, 1, 1]);
+    }
+    // Y la separación de antes liberada después de la venta, como su gemela guardada en el almacén (corrector de la
+    // revisión 9): lo liberado sin entregar no explica la venta de la ventana.
+    for (const modo of ["LIBERADA", "GUARDADA"]) {
+      expect(porCodigo(`ZZ-FX-${modo}-M`).map((t) => t.unidadesTardias), modo).toEqual([1]);
+    }
+    expect(l.tardias).toHaveLength(15);
+    for (const t of l.tardias) {
+      const bajada = l.eventos[t.varianteId].find((e) => e.oid === t.oid);
+      expect(bajada?.delta, "la tardía apunta a una bajada de su prenda").toBe(1);
+      expect(bajada?.ts).toBe(t.bajadaEn);
+    }
     expect(l.dudosas).toEqual([idDe("ZZ-FX-DUDOSA-M")]);
   });
 });
@@ -193,8 +206,11 @@ describe("contrato fn_confianza_registro → leerConfianzaRegistro", () => {
     }
   });
 
-  it("la tardía de la siembra está; la carga inicial y la dudosa no suman", () => {
-    expect(filas.reduce((s, f) => s + f.tardias, 0)).toBe(1);
+  it("la tardía de la siembra está; la carga inicial y la dudosa no suman; lo separado para una clienta no castiga al equipo", () => {
+    // La tardía de la siembra, las de la vendida y la entregada (3 cada una) y la de la blusa guardada. Las de la separada,
+    // el pedido y la blusa liberada son tardías de la LECTURA (salen de la vara), no del indicador de registro: para él lo
+    // apartado está colgado (ADR-0208, revisión 9; plan 3c, riesgo 3).
+    expect(filas.reduce((s, f) => s + f.tardias, 0)).toBe(8);
     // Las bajadas de hace 1 a 10 días de la siembra son 7 filas y 10 unidades efectivas (3 nueva, 1 + 2 tardía, 3 − 1
     // retiro, 2 sin temporada... ver T13); la carga inicial (2) y la dudosa (2) quedan fuera, así que ninguna fila puede
     // tener más unidades que el total sembrado sin ellas.
@@ -275,14 +291,62 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const crudaM = SEDE.prendas.find((x) => x.codigo === "ZZ-FX-CHOMPA-M") as unknown as Record<string, unknown>;
     expect(chompa.ultimaLlegadaCayla).toBe(crudaM.ultima_llegada_cayla);
     expect(chompa.ultimaLlegada).toBe(crudaM.ultima_llegada);
-    // Su categoría vendió 1 de 6 (sin P50): «aún sin referencia», no «Nueva»; y como su temporada pasó, se sugiere retirarla.
+    // Su categoría vendió 1 de 6 (sin P50): «aún sin referencia», no «Nueva»; su temporada pasó y está «por decidir».
     expect(chompa.estado).toMatchObject({ tipo: "sin_vara", temporadaPasada: true, quieta: true });
-    expect(chompa.estado.sugerencias).toContain("retirar");
     // La única otra prenda de Chompas que entra a la vara no vendió: no hay contra qué medir su rapidez.
     expect(chompa.rapidez).toBeNull();
+    // Sin dato de rapidez y con una venta en sus últimos 30 días en el piso (hace 10 días): «sigue vendiendo», no la
+    // escalera con «retirar». Es lo que Felipe aceptó pagar (pregunta 8, 2026-09-28): 1 de 4 en 42 días también lo dice.
+    expect(chompa.ventasRecientes).toBe(1);
+    expect(chompa.estado.sugerencias).toEqual(["sigue_vendiendo"]);
     const clasico = prendaCon(sede, "ZZ-FX-CLASICO-M");
     expect(clasico.estado).toMatchObject({ tipo: "clasico", temporadaPasada: false, sinTemporada: false });
     expect(prendaCon(sede, "ZZ-FX-SINTEMP-M").estado).toMatchObject({ sinTemporada: true, temporadaPasada: false });
+  });
+
+  it("las gemelas de la revisión 9 (salida real): la vendida, la separada, la entregada dentro de los 10 minutos y el pedido de otra sede dicen lo mismo, y ninguna le suma ventas de 0 a 3 minutos a la vara de las blusas", async () => {
+    const sede = await laSede();
+    const [vendida, separada, entregada, pedido] = ["VENDIDA", "SEPARADA", "ENTREGADA", "PEDIDO"].map((m) => prendaCon(sede, `ZZ-FX-GEM-${m}-M`));
+    // Las tres M de cada una son tardías y salen: queda la S, colgada hace 2 días sin vender (sin dato de rapidez).
+    expect(vendida.estado).toMatchObject({ tipo: "semaforo", tramo: "nueva", quieta: false, sugerencias: [] });
+    expect(vendida.rapidez).toBeNull();
+    expect(vendida.ventasRecientes).toBe(3);
+    for (const p of [separada, entregada, pedido]) {
+      expect(p.rapidez, p.productoNombre).toEqual(vendida.rapidez);
+      expect(p.estado, p.productoNombre).toEqual(vendida.estado);
+      expect(p.ventasRecientes, p.productoNombre).toBe(vendida.ventasRecientes);
+      // El reloj cuenta lo que el piso registró (R7): los minutos que la M estuvo libre antes de venderse (3), separarse
+      // (3 o 2) o nunca (el pedido); nada más.
+      expect(Math.abs(p.reloj.segundos - vendida.reloj.segundos), p.productoNombre).toBeLessThanOrEqual(3 * 60);
+    }
+    // Las blusas siguen con 25 ventas (las de la vara y el retiro): con las separaciones adentro eran 31.
+    expect(sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!.vendidas).toBe(25);
+  });
+
+  it("la separación de antes liberada DESPUÉS de la venta (salida real) dice lo mismo que su gemela guardada en el almacén, y su venta de los 3 minutos no entra a la vara (corrector de la revisión 9)", async () => {
+    const sede = await laSede();
+    const liberada = prendaCon(sede, "ZZ-FX-LIBERADA-M");
+    const guardada = prendaCon(sede, "ZZ-FX-GUARDADA-M");
+    // R8: lo liberado sin entregarse es una pausa, como guardarla. Antes la liberación le restaba a las tardías y la venta
+    // de los 3 minutos entraba a la vara y a la rapidez de la liberada (rapidez con 1 vendida contra 0 de la guardada).
+    expect(liberada.rapidez).toEqual(guardada.rapidez);
+    expect(liberada.estado).toEqual(guardada.estado);
+    expect(liberada.ventasRecientes).toBe(guardada.ventasRecientes);
+    expect(liberada.reloj).toEqual(guardada.reloj);
+    expect(liberada.rapidez?.vendidas ?? 0).toBe(0);
+    // Las blusas siguen con 25 ventas: ninguna de las dos le suma la de los 3 minutos.
+    expect(sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!.vendidas).toBe(25);
+  });
+
+  it("el pedido que la clienta no recogió (salida real) se exhibió desde que se liberó hace 125 días: el lote de hace 2 no es «Nueva», como su control colgado (corrector de la revisión 9)", async () => {
+    const sede = await laSede();
+    const pedido = prendaCon(sede, "ZZ-FX-PEDIDO-LIBERADO-M");
+    const colgado = prendaCon(sede, "ZZ-FX-COLGADO-M");
+    expect(Date.parse(pedido.primeraExhibicion!)).toBeLessThan(Date.parse(SEDE.desde));
+    expect(pedido.reloj.alMenos).toBe(true);
+    expect(pedido.estado.tipo).toBe("sin_edad_conocida");
+    expect(pedido.estado).toEqual(colgado.estado);
+    expect(pedido.reloj).toEqual(colgado.reloj);
   });
 
   it("el vestido apartado para una clienta (R7-1) no envejece desde que se apartó ni recibe sugerencias: colgado 10 días, no 40", async () => {

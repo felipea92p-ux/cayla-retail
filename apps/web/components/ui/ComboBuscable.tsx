@@ -31,6 +31,13 @@ import { coincidenciaCombo } from "@/lib/combo-reglas";
    al llegar el scroll al fondo (`useComboLista`, compartido con
    `Desplegable`). Antes cortaba siempre en 40 con "sigue tipeando para
    acortar" — el mismo parche que `Desplegable` no tenía.
+
+   Crear arriba (2026-09-28, spike Nuevo producto v2): con `crearArriba`, la
+   opción de crear es la PRIMERA fila y queda fija arriba mientras se baja
+   (`sticky`): con 84 marcas nadie tiene que llegar al final para registrar
+   una. Las flechas la cuentan como el índice 0; lo resaltado al abrir o al
+   tipear sigue siendo la primera opción real, para que «cayla» + Enter elija
+   CAYLA y no abra «crear». Sin la prop, todo queda como estaba (al final).
    ==================================================================== */
 
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
@@ -49,6 +56,7 @@ export function ComboBuscable<T extends string>({
   id: idPropio,
   limite,
   crear,
+  crearArriba = false,
   caja = false,
 }: {
   valor: T | "";
@@ -66,7 +74,15 @@ export function ComboBuscable<T extends string>({
    *  a propósito, para cuando "sigue tipeando" es el comportamiento que se quiere forzar. */
   limite?: number;
   /** Última opción de la lista para crear lo que no está («+ Registrar «Tex» como proveedor nuevo»). Recibe lo tipeado. */
-  crear?: { etiqueta: (texto: string) => string; onCrear: (texto: string) => void };
+  crear?: {
+    etiqueta: (texto: string) => string;
+    onCrear: (texto: string) => void;
+    /** Con el campo vacío, en lugar de la opción de crear se muestra esta pista, que no se elige («¿Es nueva? Escribe
+     *  su nombre arriba»): para cuando crear sin texto no tiene sentido. Sin esto, la opción sale también vacía. */
+    pista?: string;
+  };
+  /** La opción de crear va PRIMERA y fija arriba al desplazar la lista, no al final (spike Nuevo producto v2). */
+  crearArriba?: boolean;
   /** Campo en caja hundida (`caja-cayla`) en vez de línea: el de los formularios con caja. */
   caja?: boolean;
 }) {
@@ -104,9 +120,22 @@ export function ComboBuscable<T extends string>({
   const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, clave(texto), clave) || null;
   // `limite` explícito manda y NO pagina (spike Nuevo producto): es un techo fijo, no el de la regla global.
   const mostradas = filtradas.slice(0, limite ?? visibles);
-  // La opción «crear» va al final y se alcanza con las flechas como cualquier otra (índice = mostradas.length).
-  const hayCrear = Boolean(crear) && !opciones.some((o) => clave(o.texto) === clave(texto) && clave(texto) !== "");
+  // La opción «crear» va al final (índice = mostradas.length) o, con `crearArriba`, primera (índice 0, y las opciones
+  // corren uno: la opción `i` es la fila `i + base`). Se alcanza con las flechas como cualquier otra. Con `pista` y el
+  // campo vacío no hay opción de crear: hay un texto que no se elige.
+  const hayCrearPara = (t: string) =>
+    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => clave(o.texto) === clave(t) && clave(t) !== "");
+  const hayCrear = hayCrearPara(texto);
+  const pistaVisible = Boolean(crear?.pista) && texto.trim() === "";
+  const base = hayCrear && crearArriba ? 1 : 0;
+  const indiceCrear = hayCrear ? (crearArriba ? 0 : mostradas.length) : -1;
+  const opcionEn = (fila: number) => mostradas[fila - base];
   const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
+  // Lo resaltado al abrir o al tipear: la primera opción real, aunque crear vaya arriba (Enter elige, no crea); si no
+  // hay ninguna, la de crear.
+  // (Lo que se acaba de tipear todavía no está en `filtradas`: se pregunta si ALGUNA opción responde a ese texto.)
+  const algunaPara = (t: string) => (clave(t) ? opciones.some((o) => coincidenciaCombo(o, clave(t), clave) !== null) : opciones.length > 0);
+  const primeraFila = (t: string) => (hayCrearPara(t) && crearArriba && algunaPara(t) ? 1 : 0);
 
   useEffect(() => {
     if (!abierto) return;
@@ -114,9 +143,9 @@ export function ComboBuscable<T extends string>({
   }, [activo, abierto]);
 
   function abrir() {
-    const i = Math.max(0, filtradas.findIndex((o) => o.valor === valor));
-    setActivo(i);
-    mostrarDesde(i);
+    const i = filtradas.findIndex((o) => o.valor === valor);
+    setActivo(i >= 0 ? i + base : primeraFila(texto));
+    mostrarDesde(Math.max(0, i));
     setAbierto(true);
   }
 
@@ -151,8 +180,8 @@ export function ComboBuscable<T extends string>({
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (mostradas[activo]) elegir(mostradas[activo]);
-      else if (hayCrear && activo === mostradas.length) crearDesdeTexto();
+      if (hayCrear && activo === indiceCrear) crearDesdeTexto();
+      else if (opcionEn(activo)) elegir(opcionEn(activo));
     } else if (e.key === "Escape") {
       e.preventDefault();
       // Este Escape cerró la lista: que no siga y cierre también el modal (useEscapeLibre.ts). Con la lista cerrada,
@@ -167,6 +196,34 @@ export function ComboBuscable<T extends string>({
     }
   }
 
+  // La fila de crear (o su pista, que no se elige). Abajo, separada por una línea arriba; arriba, fija al desplazar
+  // (`sticky`) con fondo opaco —papel, el de la tarjeta; hueso resaltada— para que las filas no se lean a través.
+  const filaCrear = !crear ? null : hayCrear ? (
+    <li
+      id={`${id}-op-${indiceCrear}`}
+      data-i={indiceCrear}
+      role="option"
+      aria-selected={false}
+      onMouseEnter={() => setActivo(indiceCrear)}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        crearDesdeTexto();
+      }}
+      className={`cursor-pointer px-3 py-2.5 text-sm font-semibold ${
+        crearArriba ? `sticky top-0 z-[1] border-b border-sand ${activo === indiceCrear ? "bg-hueso text-tinta" : "bg-papel text-tinta/85"}` : `border-t border-sand ${activo === indiceCrear ? "bg-sand/60 text-tinta" : "text-tinta/85"}`
+      }`}
+    >
+      {crear.etiqueta(texto.trim())}
+    </li>
+  ) : pistaVisible ? (
+    <li
+      aria-hidden
+      className={`px-3 py-2.5 text-sm text-taupe ${crearArriba ? "sticky top-0 z-[1] border-b border-sand bg-papel" : "border-t border-sand"}`}
+    >
+      {crear.pista}
+    </li>
+  ) : null;
+
   return (
     <div className={`relative ${className}`}>
       <input
@@ -176,7 +233,7 @@ export function ComboBuscable<T extends string>({
         aria-label={etiquetaAccesible}
         aria-expanded={abierto}
         aria-controls={`${id}-lista`}
-        aria-activedescendant={abierto && mostradas[activo] ? `${id}-op-${activo}` : undefined}
+        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear) ? `${id}-op-${activo}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus={autoFocus}
@@ -190,7 +247,7 @@ export function ComboBuscable<T extends string>({
         onClick={() => !abierto && abrir()}
         onChange={(e) => {
           setTexto(e.target.value);
-          setActivo(0);
+          setActivo(primeraFila(e.target.value));
           reiniciar();
           if (!abierto) setAbierto(true);
         }}
@@ -220,10 +277,13 @@ export function ComboBuscable<T extends string>({
             // Era el único que aparecía de golpe; la lista se monta una vez por apertura, así que tipear no la repite.
             className="anim-revelar card-cayla z-50 overflow-y-auto shadow-lg"
           >
-          {mostradas.length === 0 && hayCrear && texto.trim() === "" ? null : mostradas.length === 0 ? (
+          {crearArriba && filaCrear}
+          {mostradas.length === 0 && (hayCrear || pistaVisible) && texto.trim() === "" ? null : mostradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
           ) : (
-            mostradas.map((o, i) => (
+            mostradas.map((o, j) => {
+              const i = j + base;
+              return (
               <li
                 key={o.valor}
                 id={`${id}-op-${i}`}
@@ -237,34 +297,21 @@ export function ComboBuscable<T extends string>({
                   e.preventDefault();
                   elegir(o);
                 }}
-                className={`cursor-pointer px-3 py-2 text-sm ${i === activo ? "bg-sand/60 text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
+                // Con la fila de crear fija arriba, `scroll-mt` deja que la opción resaltada con flechas no quede tapada por ella.
+                className={`cursor-pointer px-3 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "bg-sand/60 text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
               >
                 {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
                 <span className="align-middle">{o.texto}</span>
                 {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
                 {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
               </li>
-            ))
+              );
+            })
           )}
           {limite != null && filtradas.length > mostradas.length && (
             <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
           )}
-          {hayCrear && crear && (
-            <li
-              id={`${id}-op-${mostradas.length}`}
-              data-i={mostradas.length}
-              role="option"
-              aria-selected={false}
-              onMouseEnter={() => setActivo(mostradas.length)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                crearDesdeTexto();
-              }}
-              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === mostradas.length ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
-            >
-              {crear.etiqueta(texto.trim())}
-            </li>
-          )}
+          {!crearArriba && filaCrear}
         </ul>,
           destino
         )}
