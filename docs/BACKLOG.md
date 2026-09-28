@@ -1089,24 +1089,35 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       faltaban (web y SQL). Pruebas: `pnpm pruebas:frescura-lectura` 184. ADR-0208, «Revisión 6 del paso 3».
       **Cierre del ciclo de revisiones el 2026-09-27:** las revisiones 3 a 6 van en el **PR #544** (listo para revisar;
       #542 llevó a main la versión de la integración). La revisión 7 dejó 7 hallazgos abiertos (abajo). ADR-0208,
-      «Cierre del paso 3».
-      - [ ] **Pegar en producción: `20260928120300` y después `20260928120310`** (cada una sola, en el SQL Editor, a
-        cualquier hora: solo funciones; primero se fusiona el #544 y se responden la 7 y R7-1, o se pega como está si
-        no hay respuesta). Producción el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva`
-        `1cc652ba…`. Archivos: `20260928120300` `40bf970f…` (idéntico a main), `20260928120310` `e121f11e…`. md5
-        reverificados ese día en una base nueva (sin la segunda, con ella encima en una transacción y pegada dos
-        veces). **No pegar solo la primera**: deja los errores de la revisión 3. Tras
-        `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
-        `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`. Tras
-        `20260928120310` (que también reescribe `fn_temporada_efectiva` como envoltorio, con las mismas filas, y crea
-        `fn_es_llegada_a_cayla`): `fn_es_llegada` igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`,
-        `fn_frescura_sede` `51babffc09da4073691ee251882967c8`, `fn_confianza_registro`
-        `8c6f5e6c27916b99be10020b772bd6e0`, `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`,
-        `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448` (antes `1cc652ba…`). La guarda de la segunda acepta
-        la versión de la primera o la suya (y, para `fn_frescura_sede`, la primera versión de la segunda, `618e465d…`,
-        que solo corrió en bases locales); con cualquier otro cuerpo aborta sin tocar nada. Luego
-        `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a mano de
-        `packages/database` con `supabase gen types`.
+      «Cierre del paso 3». **Revisión 7 el 2026-09-27 (noche):** el #544 se fusionó (Felipe, 28-sep 03:31 UTC) y las dos
+      decisiones de Felipe van en un tercer archivo, `20260928120320` (la 7: la carga inicial no le reinicia la temporada
+      a lo que llegó por lote; R7-1: lo apartado para una clienta no está colgado); R7-2 y R7-3 corregidas en la web y
+      las pruebas de R7-4 a R7-7 escritas. Pruebas: `pnpm pruebas:frescura-lectura` 205, `frescura-reglas.test.ts` 133,
+      `frescura-contrato.test.ts` 21. ADR-0208, «Revisión 7 del paso 3». **Revisión 8 el 2026-09-27 (noche):** R7-1
+      completo. Lo apartado también sale de la vara y la rapidez: es una venta desde que se apartó (abierto o entregado)
+      o una pausa (liberado sin venderse), con `eventosConApartados`; la gemela con 5 de 6 apartadas ya no sale lenta y
+      con «trasladar». `20260928120320` solo cambió comentarios (su `fn_frescura_sede` pasa a `7da85d7b…`). Más las dos
+      pruebas que faltaban (lote + producción en T4i; la segunda talla apartada y el borde 100 en la web). Pruebas:
+      `pnpm pruebas:frescura-lectura` 207, `frescura-reglas.test.ts` 141. ADR-0208, «Revisión 8 del paso 3». PR nuevo
+      (el #544 ya se fusionó).
+      - [ ] **Pegar en producción: `20260928120300`, `20260928120310` y `20260928120320`, en ese orden** (cada una
+        sola, en el SQL Editor, a cualquier hora: solo funciones; primero se fusiona el PR de las revisiones 7 y 8). Producción
+        el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos:
+        `20260928120300` `40bf970f…` y `20260928120310` `e121f11e…` (los dos idénticos a main), `20260928120320`
+        `81e3ddeb…` (revisión 8). md5 reverificados ese día en bases nuevas (cada archivo en una transacción, dos veces
+        cada uno).
+        **No detenerse en la segunda**: sin la tercera, lo apartado cuenta como colgado y la carga de AQP o LIM reinicia
+        temporadas. Tras `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`,
+        `fn_frescura_sede` `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro`
+        `9c714f98dd2776eebb505846eb24c33a`, `fn_temporada_efectiva` sin cambio. Tras `20260928120310`: `fn_es_llegada`
+        igual, `fn_es_llegada_a_cayla` `7e1ffb6d9853027ec685fef46ec72a4c`, `fn_frescura_sede`
+        `51babffc09da4073691ee251882967c8`, `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`,
+        `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`, `fn_temporada_efectiva`
+        `e96b3c6c51fd12ca712e76d63efd6448`. Tras `20260928120320`: las mismas cinco y `fn_frescura_sede`
+        `7da85d7b7010659ba5a36a2478c89ad4` (revisión 8; antes `09e154ad…`, que nunca se pegó). Cada guarda acepta el
+        cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; la tercera sin la segunda aborta pidiéndola,
+        y volver a pegar una anterior aborta sin deshacer nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a
+        mano de `packages/database` con `supabase gen types`. ADR-0208, «Revisión 7 del paso 3».
       - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «aún sin referencia» (categoría sin P50: la
         chompa de la salida real ya no sale «Nueva»; si está callada 30 días ya recibe «revisa sus ventas»); que cada
         prenda se mide contra su categoría SIN ella (`categoriaSinElla`), aunque la cabecera muestre la curva completa;
@@ -1114,27 +1125,26 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         que solo está en el almacén (hoy «Nueva» con 0 segundos); y si se agrega `llegada_estimada` para las 34 prendas
         de TRU que no tienen ninguna llegada (sin eso nunca serán «Temporada pasada»). ADR-0208, «Límites» del paso 3.
         La lista completa, con el texto propuesto («Cada prenda se compara con el resto de su categoría, sin contarse a
-        sí misma»): ADR-0208, «Cierre del paso 3».
-      - [ ] **Decisión de Felipe ANTES de pegar `20260928120310` (R7-1): ¿lo apartado para una clienta está «colgado»
-        para Frescura?** Hoy sí: `piso_hoy` suma `stock.cantidad` y `apartar` no la baja, así que una separación de 50
-        días sale Crítica, quieta y con «cambiar de lugar», igual que una prenda libre. El retiro del mismo ADR mide el
-        piso neto de lo apartado. TRU tiene 1 unidad apartada en el piso (select del 27-sep). Recomendado: no. En SQL,
-        `apartadas_hoy` en `fn_frescura_sede` (cambia su md5: editar `20260928120310` mientras #544 no se fusione, o un
-        archivo nuevo si ya se fusionó). En la web, `quieta` y las sugerencias sobre lo libre. ADR-0208, «Cierre del
+        sí misma»): ADR-0208, «Cierre del paso 3». Desde la revisión 7, además: cómo se ve una prenda con todo apartado
+        (conserva el tramo de cuando se apartó, sin sugerencias: mostrarla como «apartada») y que «ventas recientes» son
+        las de sus últimos 30 días en el piso.
+      - [x] **R7-1 DECIDIDA por Felipe el 2026-09-27: lo apartado para una clienta no está colgado.** En
+        `20260928120320`: `piso_hoy` y `almacen_hoy` son lo libre, `apartadas_hoy` lo apartado y `apartados` los puntos
+        de lo apartado del piso (con su saldo). En la web, el reloj no corre mientras todo está apartado, y la prenda sin
+        nada libre no es quieta ni recibe sugerencias. ADR-0208, «Revisión 7 del paso 3». Completada en la revisión 8:
+        lo apartado tampoco cuenta como colgado en la vara ni en la rapidez (venta desde que se apartó, o pausa si se
+        liberó sin venderse). ADR-0208, «Revisión 8 del paso 3».
+      - [ ] **Pregunta para Felipe (no bloquea pegar):** una separación abierta cuenta como venta desde que se aparta
+        (revisión 8). Si prefiere que cuente solo al entregarse, lo abierto pasa a pausa en `eventosConApartados`; la
+        prenda con 5 de 6 separadas volvería a salir lenta mientras sigan abiertas. ADR-0208, «Revisión 8 del paso 3».
+      - [x] **R7-2 y R7-3 corregidas el 2026-09-27** (revisión 7): «dejó de vender» se mide con sus últimos 30 días EN
+        EL PISO (el éxito repuesto ayer sigue pilar); con ventas que pudieron esconderse, la rapidez se mide contándolas y
+        sin contarlas, y queda sin dato solo si cambian el veredicto (la devolución revendida ya no deja sin rapidez al
+        éxito). ADR-0208, «Revisión 7 del paso 3».
+      - [x] **Pruebas que faltaban (R7-4 a R7-7), escritas el 2026-09-27:** RZ-1 a RZ-19 del revisor en
+        `frescura-reglas.test.ts` (salvo RZ-16, que va con el clásico de la salida real en `frescura-contrato.test.ts`).
+        Mueren los 10 cambios a propósito que sobrevivían; ninguna reveló un error del código. ADR-0208, «Revisión 7 del
         paso 3».
-      - [ ] **Dos reglas de la web mal, ANTES de publicar la pantalla del paso 4 (no bloquean pegar el SQL; cada una con
-        su caso escrito en ADR-0208, «Cierre del paso 3»):**
-        - **R7-2:** el éxito que se agotó y se repuso ayer «dejó de vender»: `recientesDe` usa el reloj total y no lo
-          colgado en esos 30 días. Sale con «trasladar», y con la temporada pasada pierde «sigue vendiendo». Arreglo:
-          los segundos colgada desde la última venta.
-        - **R7-3:** una devolución, un cambio o un ajuste «reposicion» que se revende deja sin rapidez al éxito del
-          lote por toda la lectura. Con la temporada pasada recibe «cambiar de lugar» y «retirar». Arreglo: la rapidez
-          con y sin esas ventas, y sin dato solo si cambian el veredicto.
-      - [ ] **Pruebas que faltan (R7-4 a R7-7; no cambian código):** `ventasQueEsconden` con varias tallas (RZ-3, RZ-4,
-        RZ-5), el `en_estacion_ahora` nulo del clásico en `frescura-contrato.test.ts` (RZ-16), dos colores del mismo
-        modelo y el almacén en la segunda talla (RZ-1, RZ-2), y la vara: salida que no es venta, ventana sin P90 y P90
-        exacto en `restar` (RZ-6, RZ-7, RZ-8). Cada caso mata un cambio a propósito que hoy sobrevive las 127 pruebas.
-        ADR-0208, «Cierre del paso 3».
       - [x] **Decisiones de negocio de la revisión 3 (Felipe): DECIDIDAS el 2026-09-27** (revisión 5): (1) no, la
         temporada cuenta desde que llegó a CAYLA; (2) sí, con «sigue vendiendo»; (3) va a «Por decidir». Lo que se
         preguntaba: (1) ¿la recepción de un traslado es «llegada» para la
@@ -1147,14 +1157,15 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         SIN ella, como la rapidez? (hoy el pantalón de 70 días con 0 de 3 vendidas sale «Vigente» porque sus propias
         unidades sostienen la curva; recomendado: sí, lo construye el paso 4 si no hay respuesta); (6) ¿«al menos Vigente»
         sin dato de rapidez recibe «revisa sus ventas»? (recomendado: sí). ADR-0208, «Revisión 4 del paso 3».
-      - [ ] **Decisiones de negocio de la revisión 6 (Felipe), ANTES de pegar `20260928120310`:** (7) ¿una carga inicial
-        posterior del mismo modelo+color (AQP o LIM al incorporarse, o una talla nueva cargada en Ajustar stock)
-        reinicia la temporada de lo que llegó por lote, en todas las sedes? Hoy sí (la ÚLTIMA llegada a CAYLA);
-        recomendado: la carga cuenta solo sin lote ni producción, y la primera (una línea de `llegada_cayla_de`; si no
-        responde, se pega como está y va después en una migración nueva). (8) ¿lo que no tiene dato de rapidez (vino en
-        la carga) y vendió en los últimos 30 días recibe «sigue vendiendo» con la temporada pasada, como su gemelo del
-        lote? Hoy recibe «cambiar de lugar» y «retirar»; recomendado: sí (pero la chompa que vendió 1 de 4 en 42 días
-        también lo recibiría). ADR-0208, «Revisión 6 del paso 3»; pruebas «PENDIENTE DE FELIPE» (T4i y los bikinis).
+      - [x] **Pregunta 7 de la revisión 6 DECIDIDA por Felipe el 2026-09-27:** la carga inicial cuenta como llegada a
+        CAYLA solo si el modelo+color no tiene lote ni producción, y entre cargas manda la primera (`20260928120320`,
+        prueba T4i). En producción hoy no cambia nada: ningún modelo+color tiene lote y carga a la vez. ADR-0208,
+        «Revisión 7 del paso 3»; ADR-0246, nota (d).
+      - [ ] **Pregunta 8 de la revisión 6 (Felipe), para la maqueta del paso 4, no para el SQL:** ¿lo que no tiene dato
+        de rapidez (vino en la carga) y vendió en sus últimos 30 días en el piso recibe «sigue vendiendo» con la
+        temporada pasada, como su gemelo del lote? Hoy recibe «cambiar de lugar» y «retirar»; recomendado: sí (pero la
+        chompa que vendió 1 de 4 en 42 días también lo recibiría). ADR-0208, «Revisión 6 del paso 3»; prueba «PENDIENTE
+        DE FELIPE» de los bikinis.
       - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
         `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
         0 filas así). ADR-0208, «Revisión 4».
@@ -1209,6 +1220,10 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - Cómo verificas la `20260926170000`, ya pegada: `select incluye from retail.modulos where clave = 'existencias';` dice
   «Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas» (Roles y accesos muestra ese texto
   desde que sale la web de la revisión, porque lo lee de `lib/modulos.ts`).
+## 📐 Ayuda guiada por módulo: «¿Qué quieres hacer?» + círculo paso a paso (2026-09-25) — SPIKE visual, sin código del ERP
+Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece todo menos un círculo sobre lo que hay que presionar, se puede terminar antes y retomar. Spike y propuesta: `docs/maquetas/ayuda-guiada-spike-2026-09/`.
+- [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
+- [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
 
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.

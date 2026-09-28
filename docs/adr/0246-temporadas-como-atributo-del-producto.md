@@ -210,4 +210,17 @@ modelo+color (la de AQP o LIM al incorporarse, o una talla nueva que una tienda 
 mueve el año de la temporada de lo que llegó de verdad por lote, en todas las sedes. La recomendación es que la carga
 inicial cuente solo si el modelo+color no tiene lote ni producción, y que entre cargas mande la primera. Está pendiente de
 Felipe (ADR-0208, «Revisión 6 del paso 3», pregunta 7; prueba T4i de `frescura_lectura.mjs`). Hasta que decida, rige lo
-de la nota (b).
+de la nota (b). *Decidida el 2026-09-27: ver la nota (d).*
+
+## Nota 2026-09-27 (d) — la pregunta de la nota (c), decidida (Felipe; ADR-0208, revisión 7 del paso 3)
+
+Felipe eligió la recomendación. La carga inicial cuenta como llegada a CAYLA solo si el modelo+color no tiene lote ni
+producción, y entre varias cargas manda la PRIMERA. Una carga posterior (la de AQP o LIM al incorporarse, o una talla nueva
+cargada por Existencias ▸ Ajustar stock) ya no mueve el año de la temporada de lo que llegó por lote. Un modelo+color que
+solo vino en cargas conserva la estación de la primera. Vive en `20260928120320_frescura_lectura_revision7.sql`
+(`llegada_cayla_de` en `fn_frescura_sede`, sin pegar). `fn_es_llegada_a_cayla` no cambia: sigue diciendo qué movimientos son
+llegadas a CAYLA, y la regla nueva solo elige cuál de ellas manda. Con esto, lo de la nota (b) se lee: el año de la
+temporada sale de la última llegada del modelo+color a la empresa por lote o producción y, si no tiene ninguna, de su
+primera carga inicial. En producción no cambia nada hoy: ningún modelo+color tiene lote y carga a la vez (`select` del
+27-sep). Detalle, con DECIDÍ / DESCARTÉ / SE ROMPE SI: ADR-0208, «Revisión 7 del paso 3»; prueba T4i de
+`frescura_lectura.mjs`.
