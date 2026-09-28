@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **sin pegar en producción (piden OK de Felipe)**; rama `claude/team-leader-role-blocked-f9f513`
+## 🔓 Ningún módulo «solo del líder», y el Líder de equipo se edita (2026-09-28, ADR-0253) — web + 2 migraciones **EN PRODUCCIÓN (pegadas por Felipe y verificadas el 2026-09-28)**; [PR #551](https://github.com/felipea92p-ux/cayla-retail/pull/551)
 Pedido de Felipe (2026-09-28): «el rol Líder de equipo está bloqueado, ¿por qué? No debería, y ningún módulo debería
 estar limitado a solo el líder». Decidió: Líder editable como cualquier rol; los tres módulos, «todo, como el líder»;
 reabrir un mes, quien tenga Cierre de mes.
@@ -39,8 +39,7 @@ reabrir un mes, quien tenga Cierre de mes.
   edita; «Roles y accesos» no se le quita; un módulo nuevo le sigue apareciendo solo; duplicarlo copia lo que ve.
 - [x] Web: Roles y accesos sin candado en el Líder (interruptores para el Admin, «No se le quita» en Roles y accesos),
   permisos del líder según lo que ve, enlaces a Configuración para quien ve el módulo.
-- [ ] **Pegar en producción, en orden y cada una entera:** `20260928220000` (md5 en el ADR) y después `20260928220100`.
-  Sin políticas ni `alter` de tablas en uso. Antes de pegar, confirmar que las huellas del ADR siguen iguales.
+- [x] Pegadas en producción por Felipe (2026-09-28) y verificadas contra la base.
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
 - [ ] Verlo con cuentas reales: un rol a medida con Configuración/Impuestos/Cierre, y Felipe (Admin) quitándole un
   módulo al Líder y devolviéndoselo. (Verificado con Postgres desechable propio y el panel real con datos de ejemplo.)

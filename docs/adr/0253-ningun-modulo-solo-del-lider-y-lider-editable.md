@@ -1,6 +1,8 @@
 # ADR-0253 · Ningún módulo «solo del líder», y el Líder de equipo se edita
 
-- **Fecha:** 2026-09-28 · **Estado:** propuesto, **sin pegar en producción** (pide el OK de Felipe).
+- **Fecha:** 2026-09-28 · **Estado:** aceptado. **En producción** desde el 2026-09-28: Felipe pegó las dos migraciones
+  y se verificó contra la base (ningún módulo «solo del líder», tabla y 5 funciones nuevas, 36 funciones sin
+  `fn_es_lider()`, sin sobrecargas, `anon` no las ejecuta).
 - **Pedido:** Felipe, 2026-09-28, mirando Roles y accesos: «el rol de líder de equipo está bloqueado, ¿por qué? No
   debería, y ningún módulo debería estar limitado a solo el líder».
 - **Migraciones (se pegan en este orden, cada una entera):**
@@ -109,8 +111,7 @@ viejo del repo, le devuelve el candado de líder sin avisar. Lo vigila la prueba
 
 ## Pendiente
 
-- **Pegar en producción** (A y luego B) con el OK de Felipe, y después refrescar el diccionario
-  (`pnpm datos:generar:produccion`, `pnpm datos:comparar`).
+- Refrescar el diccionario (`pnpm datos:generar:produccion`, `pnpm datos:comparar`): las migraciones ya están en producción.
 - Cuentas y dinero sigue mostrando conciliar y la plata del dueño solo si la cuenta es líder (`esLider`), aunque la
   base ya se los deja a quien tiene Configuración. Lo mismo, la opción «De la empresa» en Gastos.
 - Quedan ~39 funciones con `if not fn_es_lider() then raise` escrito directo (acciones «siempre del líder» y otras sin
