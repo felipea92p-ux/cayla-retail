@@ -53,10 +53,12 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-export function PerfilModal({ onClose, veAdministracion = false }: {
+export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false }: {
   onClose: () => void;
   /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
+  /** ¿Ve el módulo Configuración? (ADR-0253: ya se da a un rol; al líder se le puede quitar). */
+  veConfiguracion?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
@@ -218,9 +220,10 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
 
             {/* Quién puede entrar a retail: el líder, o quien ve Colaboradores o Roles y accesos. La pantalla y cada RPC lo
                 vuelven a exigir; esto solo decide si se ofrece la puerta. */}
-            {(perfil.rol === "lider" || veAdministracion) && (
+            {(perfil.rol === "lider" || veAdministracion || veConfiguracion) && (
               <div>
                 <p className="label-cayla mb-3 text-[11px] text-tinta/65">Administración</p>
+                {(perfil.rol === "lider" || veAdministracion) && (
                 <Link
                   href="/colaboradores"
                   onClick={onClose}
@@ -232,8 +235,9 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
                   </span>
                   <span aria-hidden className="text-tinta/45">→</span>
                 </Link>
-                {/* Configuración (ADR-0195 F1): «solo líder por ahora», así que solo se ofrece al líder. */}
-                {perfil.rol === "lider" && (
+                )}
+                {/* Configuración (ADR-0195 F1): se ofrece a quien ve el módulo (ADR-0253: ya no es solo del líder). */}
+                {veConfiguracion && (
                   <Link
                     href="/configuracion"
                     onClick={onClose}

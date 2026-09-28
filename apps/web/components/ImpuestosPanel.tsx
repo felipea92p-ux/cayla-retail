@@ -33,7 +33,7 @@ import {
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
-// últimos 6 meses. Es de CAYLA entera («Ver» fijo) y solo del líder. La pantalla solo lee: el IGV, el saldo a favor y el
+// últimos 6 meses. Es de CAYLA entera («Ver» fijo): la ve quien tiene el módulo (ADR-0253). La pantalla solo lee: el IGV, el saldo a favor y el
 // límite los calcula la base; los registros se arman aquí, en el navegador, con lo que devuelve la base.
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });

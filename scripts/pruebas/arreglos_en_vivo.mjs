@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de los arreglos que vivían SOLO en producción y ahora están en `main` (ADR-0252) — CAYLA V2.
+ * Pruebas de los arreglos que vivían SOLO en producción y ahora están en `main` (ADR-0255) — CAYLA V2.
  * Migraciones: `20260928200000_arreglos_en_vivo_a_main.sql` y `20260928200100_nota_pendiente_por_cierre_o_faltante.sql`.
  *
  * EL PROBLEMA. La auditoría de huellas del 2026-09-28 (ADR-0251) encontró permisos y funciones que producción tenía y
@@ -273,7 +273,7 @@ rollback;`,
 );
 
 /**
- * Los permisos de los roles de la app (PUBLIC, anon, authenticated, service_role) sobre todo lo que toca ADR-0252, en una
+ * Los permisos de los roles de la app (PUBLIC, anon, authenticated, service_role) sobre todo lo que toca ADR-0255, en una
  * línea «objeto:rol=privilegios». Por tabla Y por columna (un `grant update (cantidad)` no sale en has_table_privilege y
  * deja escribir igual), y por función (todas las sobrecargas del nombre). Se compara contra la lista EXPLÍCITA de
  * producción, nunca contra una foto de la misma base: esa comparación sería circular y no vería un permiso de más que
@@ -444,7 +444,7 @@ ${PENDIENTES()}`),
 );
 
 // La regla (a) es «de cualquier motivo» y NO mira el monto: una nota chica atada a un cierre lo apaga entero. Es lo que se
-// decidió (ADR-0252, «Se rompe si»), y por eso la pantalla solo ata la nota por faltante: si algún día ata otras, tiene que
+// decidió (ADR-0255, «Se rompe si»), y por eso la pantalla solo ata la nota por faltante: si algún día ata otras, tiene que
 // ser cuando la nota cubre el esperado de ese cierre. Esta prueba lo deja a la vista (y que el motivo no importa).
 exito(
   "C · una nota por DESCUENTO de S/ 50 atada a un cierre de S/ 590 lo apaga ENTERO: la regla (a) es de cualquier motivo y no mira el monto",

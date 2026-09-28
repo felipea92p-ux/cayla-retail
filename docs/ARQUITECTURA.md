@@ -142,6 +142,10 @@ flowchart TB
   `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
   `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
+  **Roles y accesos** (`RolesPanel.tsx`, `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,
+  para el Líder de equipo, `fn_lider_modulos_ocultos()` (ADR-0253: el Líder ve todo menos lo que un Admin le quitó);
+  escribe por `lib/roles-acciones.ts` → `crear_rol`, `guardar_modulos_rol` (también los del Líder), `renombrar_rol`,
+  `archivar_rol`, `restaurar_rol`, `asignar_rol`.
   **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
   **Terminales sin persona (ADR-0162, reemplaza la terminal-persona de ADR-0152/0160):** un aparato por fila en
@@ -430,6 +434,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   entonces ofrece borrar (`eliminar_producto`, con el combo «Responsable»). La regla de qué es «historia» vive UNA vez, en la
   base; `lib/eliminar-producto-reglas.ts` solo redacta los textos. Se puede si el producto nunca se movió; con historia se
   rechaza y la salida es descontinuarlo desde Editar. La pieza «Monto manual» del POS no se elimina nunca.
+  **Desde ADR-0252 (`20260928230000`)** la ventana pregunta a `fn_producto_como_eliminar` (nivel libre / con_historia /
+  con_documentos / sistema, si esta cuenta puede, prendas, movimientos y quién lo cargó), que lee `fn_producto_historia` (la
+  única definición, cada renglón `borrable` o no; `fn_producto_se_puede_eliminar` también la lee). Con historia SOLO de stock
+  y cuenta Admin llama a `eliminar_producto_con_historia` (respaldo en `respaldo_purgas.filas`, que devuelve
+  `scripts/purga/restaurar-purga.sql`).
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de

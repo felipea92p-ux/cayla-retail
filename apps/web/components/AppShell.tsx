@@ -1048,6 +1048,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         <PerfilModal
           onClose={() => setPerfilAbierto(false)}
           veAdministracion={esLider || !!persona.modulos?.some((m) => m === "colaboradores" || m === "roles")}
+          veConfiguracion={!!persona.modulos?.some((m) => m === "configuracion")}
         />
       )}
 

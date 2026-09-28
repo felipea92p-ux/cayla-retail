@@ -1,4 +1,4 @@
-# ADR-0252 · Los arreglos que vivían solo en producción, llevados a `main`
+# ADR-0255 · Los arreglos que vivían solo en producción, llevados a `main`
 
 - **Fecha:** 2026-09-28 · **Estado:** construido; **sin pegar en producción** (pegarlo cambia solo cinco funciones de
   lectura, ver «Cómo se pega»).

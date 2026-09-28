@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Search, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
-import { lineaDeClienta, terminoBuscable, type ClientaDelTicket } from "@/lib/clienta-ticket-reglas";
+import { filaDeClienta, lineaDeClienta, terminoBuscable, type ClientaDelTicket } from "@/lib/clienta-ticket-reglas";
+import { esSinModulo } from "@/lib/error-escritura";
 
 const ESPERA_MS = 300;
 
@@ -12,19 +13,26 @@ const ESPERA_MS = 300;
  * La fila «Clienta» arriba del ticket (spike 2026-09-26, hallazgo 4; referentes: Shopify POS, Square y Odoo ponen al
  * cliente arriba del carrito). Opcional: vender sin clienta sigue siendo un toque. Elegida, el padre llena el DNI y el
  * nombre del comprobante (`onElegir`), y la proforma o el apartado ya saben a nombre de quién van.
+ *
+ * `puedeBuscar` (ADR-0249, actualización 2026-09-28): la libreta es del módulo «Clientas». Qué se muestra sin él lo decide
+ * `filaDeClienta` (lib/clienta-ticket-reglas.ts, con pruebas): sin clienta, la fila no aparece y se vende igual.
  */
 export function ClientaDelTicket({
   clienta,
   onElegir,
   onQuitar,
   bloqueado,
+  puedeBuscar,
 }: {
   clienta: ClientaDelTicket | null;
   onElegir: (c: ClientaDelTicket) => void;
   onQuitar: () => void;
   bloqueado: boolean;
+  puedeBuscar: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const fila = filaDeClienta(clienta, puedeBuscar);
+  if (fila === "nada") return null;
 
   return (
     <div className="px-5 pt-3">
@@ -33,7 +41,7 @@ export function ClientaDelTicket({
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand font-display text-sm text-tinta" aria-hidden>
             {iniciales(lineaDeClienta(clienta).titulo)}
           </span>
-          <button type="button" onClick={() => setAbierto(true)} disabled={bloqueado} className="min-w-0 flex-1 text-left">
+          <button type="button" onClick={() => setAbierto(true)} disabled={bloqueado || fila === "elegida_fija"} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-[13.5px] font-semibold text-tinta">{lineaDeClienta(clienta).titulo}</span>
             {lineaDeClienta(clienta).detalle && <span className="block truncate text-[11.5px] text-tinta/60">{lineaDeClienta(clienta).detalle}</span>}
           </button>
@@ -60,7 +68,7 @@ export function ClientaDelTicket({
         </button>
       )}
 
-      {abierto && (
+      {abierto && fila !== "elegida_fija" && (
         <BuscarClientaModal
           onElegir={(c) => {
             onElegir(c);
@@ -82,7 +90,12 @@ function iniciales(texto: string) {
     .join("");
 }
 
-type Estado = { tipo: "inicio" } | { tipo: "buscando" } | { tipo: "listo"; clientas: ClientaDelTicket[] } | { tipo: "error" };
+type Estado =
+  | { tipo: "inicio" }
+  | { tipo: "buscando" }
+  | { tipo: "listo"; clientas: ClientaDelTicket[] }
+  /** `mensaje`: el de la base cuando lo que falta es el módulo (le quitaron «Clientas» con la caja abierta). */
+  | { tipo: "error"; mensaje: string | null };
 
 function BuscarClientaModal({ onElegir, onClose }: { onElegir: (c: ClientaDelTicket) => void; onClose: () => void }) {
   const [texto, setTexto] = useState("");
@@ -98,7 +111,7 @@ function BuscarClientaModal({ onElegir, onClose }: { onElegir: (c: ClientaDelTic
       setEstado({ tipo: "buscando" });
       const { data, error } = await createClient().rpc("buscar_clienta", { p_termino: termino });
       if (!vigente) return;
-      if (error) return setEstado({ tipo: "error" });
+      if (error) return setEstado({ tipo: "error", mensaje: esSinModulo(error) ? error.message : null });
       setEstado({
         tipo: "listo",
         clientas: (data ?? []).map((c) => ({ id: c.id, nombre: c.nombre, dni: c.dni, celular: c.telefono_whatsapp })),
@@ -133,7 +146,9 @@ function BuscarClientaModal({ onElegir, onClose }: { onElegir: (c: ClientaDelTic
           {visible.tipo === "inicio" && <p className="py-4 text-center text-xs text-tinta/55">Escribe al menos 3 caracteres.</p>}
           {visible.tipo === "buscando" && <p className="py-4 text-center text-xs text-tinta/55">Buscando…</p>}
           {visible.tipo === "error" && (
-            <p className="py-4 text-center text-xs text-rojo-profundo">No se pudo buscar en la libreta. La venta sigue: el DNI se puede poner al cobrar.</p>
+            <p className="py-4 text-center text-xs text-rojo-profundo">
+              {visible.mensaje ?? "No se pudo buscar en la libreta."} La venta sigue: el DNI se puede poner al cobrar.
+            </p>
           )}
           {visible.tipo === "listo" && visible.clientas.length === 0 && (
             <p className="rounded-lg bg-hueso px-3 py-3 text-xs text-tinta/75">

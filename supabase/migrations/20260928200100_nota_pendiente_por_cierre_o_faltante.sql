@@ -1,8 +1,8 @@
 -- ============================================================================
--- 20260928200100_nota_pendiente_por_cierre_o_faltante.sql — CAYLA V2 · Compras, notas de crédito (ADR-0111, ADR-0252)
+-- 20260928200100_nota_pendiente_por_cierre_o_faltante.sql — CAYLA V2 · Compras, notas de crédito (ADR-0111, ADR-0255)
 -- «¿Este cierre sigue esperando su nota de crédito?» con UNA sola regla en `main` y en producción, que junta las dos
 -- versiones que hoy conviven. Cambia lo que el líder ve en Notas de crédito y en las listas de Comprobantes y Por pagar,
--- y va sin esperar otro visto bueno (decisión técnica del 2026-09-28, ADR-0252) porque:
+-- y va sin esperar otro visto bueno (decisión técnica del 2026-09-28, ADR-0255) porque:
 --   1. no inventa una regla: junta las dos que ya estaban escritas y cumple lo que Felipe pidió el 2026-09-22;
 --   2. producción no tiene hoy ni un cierre ni una nota: ninguna cifra que el líder ya vio cambia al pegarla;
 --   3. sin ella, `main` (doble conteo) o producción (cierre fantasma) muestran un saldo por reclamar que no existe.
@@ -125,7 +125,7 @@ as $function$
 $function$;
 
 comment on function retail.compras_nota_pendiente(uuid[]) is
-  'Comprobantes vigentes con faltante cerrado que todavía espera su nota de crédito (ADR-0111, ADR-0252): un cierre deja de esperar si tiene una nota atada o si el comprobante ya tiene su nota por faltante. Unidades cerradas, monto esperado (cierres a su costo + IGV) y si ya está resuelto al 100 % (ya se puede registrar la nota). Para las listas de Comprobantes y Por pagar; solo líder, un integrante recibe vacío.';
+  'Comprobantes vigentes con faltante cerrado que todavía espera su nota de crédito (ADR-0111, ADR-0255): un cierre deja de esperar si tiene una nota atada o si el comprobante ya tiene su nota por faltante. Unidades cerradas, monto esperado (cierres a su costo + IGV) y si ya está resuelto al 100 % (ya se puede registrar la nota). Para las listas de Comprobantes y Por pagar; solo líder, un integrante recibe vacío.';
 
 -- ── notas_credito_tablero (/compras/notas-credito) ───────────────────────────
 -- El cuerpo de producción, con la regla (b) sumada en la parte (b). Conserva sus permisos (solo `authenticated`).
@@ -247,7 +247,7 @@ as $function$
 $function$;
 
 comment on function retail.notas_credito_tablero() is
-  'Tablero de /compras/notas-credito: una fila por nota registrada (clase=nota) y una por comprobante con cierres que todavía esperan su nota (clase=pendiente: sin nota atada al cierre y sin la nota por faltante del comprobante, ADR-0252). Solo líder (ADR-0126).';
+  'Tablero de /compras/notas-credito: una fila por nota registrada (clase=nota) y una por comprobante con cierres que todavía esperan su nota (clase=pendiente: sin nota atada al cierre y sin la nota por faltante del comprobante, ADR-0255). Solo líder (ADR-0126).';
 
 -- ── VERIFICACIÓN FINAL ──────────────────────────────────────────────────────
 do $verifica$

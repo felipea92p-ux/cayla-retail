@@ -12,7 +12,7 @@
  *     umbral en UIT;
  *   · parámetros con vigencia: se agregan, se corrigen con una fila nueva (gana la más reciente), se validan, quedan en la
  *     historia de Configuración y nunca se editan ni se borran;
- *   · permisos: solo el líder (el módulo no es delegable: la base ni deja dárselo a un rol); nadie lee la tabla directo;
+ *   · permisos: el líder o quien tiene el módulo (Impuestos; los parámetros, Configuración — ADR-0253); nadie lee la tabla directo;
  *   · los registros de ventas y de compras para el contador, con sus columnas.
  *
  * CÓMO. Igual que `activos_y_gastos_fijos.mjs`: cada escenario en su transacción con ROLLBACK (la base local es
@@ -266,7 +266,7 @@ select pg_temp.intento($q$delete from retail.parametros_tributarios where nombre
   esperar("ni se borra", r.ok && borrar.includes("no se edita ni se borra"), r);
 }
 
-// 7. Permisos: solo el líder, aunque el rol tenga el módulo; nadie lee la tabla directo.
+// 7. Permisos: sin el módulo no se entra (ADR-0253: el módulo ya se da a un rol); nadie lee la tabla directo.
 {
   const r = correr(`${ESCENA}
 ${cambiaA(MICAELA)}
@@ -276,22 +276,22 @@ select pg_temp.intento($q$select * from retail.fn_impuestos_registro_ventas('202
 select pg_temp.intento($q$select * from retail.fn_impuestos_registro_compras('2024-01-01')$q$);
 select pg_temp.intento($q$select * from retail.fn_parametros_tributarios_lista()$q$);
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('uit', '2027-01-01', 5600)$q$);
-select pg_temp.intento($q$insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'impuestos')$q$);
-select pg_temp.intento($q$insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'configuracion')$q$);
+select (select delegable from retail.modulos where clave = 'impuestos')::text;
+select (select delegable from retail.modulos where clave = 'configuracion')::text;
 ${cambiaA(FELIPE)}
 set local role authenticated;
 select pg_temp.intento($q$select count(*) from retail.parametros_tributarios$q$);
 select pg_temp.intento($q$select * from retail.fn_impuestos_ventas('2024-01-01', '2024-01-31')$q$);
 select pg_temp.intento($q$select * from retail.fn_impuestos_panel('2024-01-01')$q$) <> 'SIN_ERROR';`);
   const [panel, meses, rv, rc, lista, guardar, darImpuestos, darConfig, tabla, regla, liderLee] = lineas(r);
-  esperar("la colaboradora no ve el panel de Impuestos", r.ok && panel.includes("Solo el líder"), r);
-  esperar("ni los meses", r.ok && meses.includes("Solo el líder"), r);
-  esperar("ni baja el registro de ventas", r.ok && rv.includes("Solo el líder"), r);
-  esperar("ni el de compras", r.ok && rc.includes("Solo el líder"), r);
-  esperar("ni ve los parámetros", r.ok && lista.includes("Solo el líder"), r);
-  esperar("ni los cambia", r.ok && guardar.includes("Solo el líder"), r);
-  esperar("Impuestos no se le puede dar a un rol: es «solo líder por ahora»", r.ok && darImpuestos.includes("solo del líder"), r);
-  esperar("Configuración tampoco", r.ok && darConfig.includes("solo del líder"), r);
+  esperar("la colaboradora sin el módulo no ve el panel de Impuestos", r.ok && panel.includes("necesita el módulo «Impuestos»"), r);
+  esperar("ni los meses", r.ok && meses.includes("necesita el módulo «Impuestos»"), r);
+  esperar("ni baja el registro de ventas", r.ok && rv.includes("necesita el módulo «Impuestos»"), r);
+  esperar("ni el de compras", r.ok && rc.includes("necesita el módulo «Impuestos»"), r);
+  esperar("ni ve los parámetros (son de Configuración)", r.ok && lista.includes("necesita el módulo «Configuración»"), r);
+  esperar("ni los cambia", r.ok && guardar.includes("necesita el módulo «Configuración»"), r);
+  esperar("Impuestos ya se puede dar a un rol (ADR-0253)", r.ok && darImpuestos === "true", r);
+  esperar("Configuración también", r.ok && darConfig === "true", r);
   esperar("nadie lee la tabla directo, ni el líder", r.ok && tabla.includes("permission denied"), r);
   esperar("ni la regla interna de ventas", r.ok && regla.includes("permission denied"), r);
   esperar("el líder, por la función, sí", r.ok && liderLee === "f", r);

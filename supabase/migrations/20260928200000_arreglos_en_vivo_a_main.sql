@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260928200000_arreglos_en_vivo_a_main.sql — CAYLA V2 · Deriva producción ↔ main (ADR-0251, ADR-0252)
+-- 20260928200000_arreglos_en_vivo_a_main.sql — CAYLA V2 · Deriva producción ↔ main (ADR-0251, ADR-0255)
 -- Trae a `main` lo que se arregló directo en producción y nunca volvió al repo. Pegada en producción cambia SOLO las
 -- tres envolturas `_json` (punto 5): todo lo demás ya está así allá, y esta migración solo lo escribe en el repo.
 --
