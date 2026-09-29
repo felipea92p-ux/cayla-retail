@@ -1,7 +1,15 @@
 import type { createClient as crearCliente } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
-import { armarEtiquetas, fechaDeAlcance, mejorCampanaPorVariante, sumarEntradas, type EtiquetaPrecio } from "@/lib/etiqueta-precio-reglas";
+import {
+  armarEtiquetas,
+  fechaDeAlcance,
+  iconosPorVariante,
+  mejorCampanaPorVariante,
+  sumarEntradas,
+  type EtiquetaDeLaPrenda,
+  type EtiquetaPrecio,
+} from "@/lib/etiqueta-precio-reglas";
 import { vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 
 type Cliente = Awaited<ReturnType<typeof crearCliente>>;
@@ -88,7 +96,9 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   const variantes = exigir(
     await supabase
       .from("variantes")
-      .select("id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia, marca:marcas ( nombre ) )")
+      .select(
+        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+      )
       .in("id", [...entradas.keys()]),
     "las prendas a etiquetar",
   );
@@ -112,6 +122,11 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
       : exigir(await supabase.from("etiquetas").select("id, vigente_hasta").in("id", etiquetaIds), "hasta cuándo rigen las campañas").map((e) => [e.id, e.vigente_hasta] as const),
   );
 
+  // Los íconos de las etiquetas comerciales de cada prenda (Felipe, 2026-09-29): las elegidas a mano y las que la alcanzan
+  // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `deHoy`, la misma de la caja.
+  const campanas = mejorCampanaPorVariante(deHoy, hastas);
+  const iconos = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
+
   return {
     ...armarEtiquetas(
       entradas,
@@ -128,10 +143,48 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         marca: v.producto?.marca?.nombre ?? null,
       })),
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
-      mejorCampanaPorVariante(deHoy, hastas),
+      campanas,
+      iconos,
     ),
     ...extra,
   };
+}
+
+/** Qué íconos lleva el papel de cada prenda. Son tres lecturas chicas y ninguna crece con el envío: las etiquetas a mano
+ *  vienen embebidas en la propia variante, y las de categoría y el catálogo se piden por unas pocas ids (hay ~20). Solo
+ *  cuentan las aprobadas y activas, como en `fn_campanas_por_variante`. */
+async function iconosDeLasPrendas(
+  supabase: Cliente,
+  variantes: { id: string; producto: { categoria_id: string | null } | null; variante_etiquetas: { etiqueta_id: string }[] | null }[],
+  campanas: ReturnType<typeof mejorCampanaPorVariante>,
+  hoy: string,
+) {
+  const categoriaIds = [...new Set(variantes.flatMap((v) => (v.producto?.categoria_id ? [v.producto.categoria_id] : [])))];
+  const deCategoria =
+    categoriaIds.length === 0
+      ? []
+      : exigir(await supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id").in("categoria_id", categoriaIds), "las etiquetas por categoría");
+  const directas = new Map(variantes.map((v) => [v.id, (v.variante_etiquetas ?? []).map((e) => e.etiqueta_id)] as const));
+  const porCategoria = new Map<string, string[]>();
+  for (const f of deCategoria) porCategoria.set(f.categoria_id, [...(porCategoria.get(f.categoria_id) ?? []), f.etiqueta_id]);
+
+  const ids = [...new Set([...directas.values(), ...porCategoria.values()].flat())];
+  const catalogo = new Map<string, Omit<EtiquetaDeLaPrenda, "etiquetaId">>(
+    ids.length === 0
+      ? []
+      : exigir(
+          await supabase.from("etiquetas").select("id, nombre, descuento_pct, vigente_desde, vigente_hasta").in("id", ids).eq("estado", "aprobado").eq("activo", true),
+          "las etiquetas de las prendas",
+        ).map((e) => [e.id, { nombre: e.nombre, pct: e.descuento_pct === null ? null : Number(e.descuento_pct), desde: e.vigente_desde, hasta: e.vigente_hasta }] as const),
+  );
+  return iconosPorVariante(
+    variantes.map((v) => ({ id: v.id, categoriaId: v.producto?.categoria_id ?? null })),
+    directas,
+    porCategoria,
+    catalogo,
+    campanas,
+    hoy,
+  );
 }
 
 /** Unidades en la tienda por prenda (todas sus sububicaciones: piso y almacén). `cantidad` es lo físico: lo apartado

@@ -3072,11 +3072,11 @@ export type Database = {
           estado: string
           estado_alta: string
           id: string
-          marca_id: string
+          marca_id: string | null
           patron_id: string | null
           permitir_venta_sin_stock: boolean
           propuesto_por: string | null
-          proveedor_id: string
+          proveedor_id: string | null
           referencia: string
           stock_minimo: number | null
           tejido_id: string | null
@@ -3095,11 +3095,11 @@ export type Database = {
           estado?: string
           estado_alta?: string
           id?: string
-          marca_id: string
+          marca_id?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
-          proveedor_id: string
+          proveedor_id?: string | null
           referencia: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -3118,11 +3118,11 @@ export type Database = {
           estado?: string
           estado_alta?: string
           id?: string
-          marca_id?: string
+          marca_id?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
-          proveedor_id?: string
+          proveedor_id?: string | null
           referencia?: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -4909,6 +4909,7 @@ export type Database = {
         Returns: undefined
       }
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
+      reabrir_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -6330,12 +6331,12 @@ export type Database = {
           estado: string
           foto_url: string
           lead_time_dias: number
-          marca_id: string
-          marca_nombre: string
+          marca_id: string | null
+          marca_nombre: string | null
           precio: number
           producto_id: string
-          proveedor_id: string
-          proveedor_nombre: string
+          proveedor_id: string | null
+          proveedor_nombre: string | null
           punto_reorden: number
           referencia: string
           reponer_de_proveedor: boolean

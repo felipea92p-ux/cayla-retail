@@ -7,8 +7,7 @@ import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -104,8 +103,7 @@ export function DesplegablePildora({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((o) => clave(o.texto).includes(k));
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
@@ -223,7 +221,7 @@ export function DesplegablePildora({
           <div
             ref={capa}
             style={{ position: "fixed", ...posLista }}
-            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
+            className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg"
           >
           {mostrarBuscador && (
             <input
@@ -264,7 +262,7 @@ export function DesplegablePildora({
                   onMouseEnter={() => setActivo(i)}
                   onClick={() => elegir(o)}
                   className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
-                    i === activo ? "bg-rojo/8 text-tinta" : "text-tinta"
+                    i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
                   } ${o.valor === valor ? "font-semibold" : ""}`}
                 >
                   {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}

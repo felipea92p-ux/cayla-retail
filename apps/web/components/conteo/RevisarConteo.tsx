@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
@@ -53,6 +54,9 @@ const TEXTO_ACCION: Record<Accion, string> = {
 };
 
 /** El mismo diccionario sin una clave (quitar el error o el «ocupada» de una variante sin tocar las demás). */
+/** Cuántas pendientes caben en la dirección de «Contar» (cada una son 37 caracteres). */
+const MAX_PENDIENTES_EN_URL = 40;
+
 function sinClave<V>(o: Record<string, V>, clave: string): Record<string, V> {
   const copia = { ...o };
   delete copia[clave];
@@ -70,7 +74,27 @@ function ColorYTalla({ color, colorHex, talla, conTalla = false }: { color: stri
   );
 }
 
-export function RevisarConteo({ conteoId, filas: filasIniciales }: { conteoId: string; filas: FilaConteoVista[] }) {
+export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: { conteoId: string; filas: FilaConteoVista[]; generadoEn: string }) {
+  const router = useRouter();
+
+  // Frescura: «Volver a contar» lleva a Contar y de allí se regresa a Revisar; el enrutador puede devolver esta pantalla desde su
+  // memoria (30 s, `staleTimes`) con las líneas de antes de contar de nuevo. Cada carga real trae un identificador nuevo; si este ya
+  // se mostró en esta pestaña, es una copia vieja y se relee. Es el mismo mecanismo de Contar.
+  const frescuraRevisada = useRef(false);
+  useEffect(() => {
+    if (frescuraRevisada.current) return;
+    frescuraRevisada.current = true;
+    try {
+      const clave = `cayla:conteo:revisar:${conteoId}`;
+      const vistas: unknown = JSON.parse(window.sessionStorage.getItem(clave) ?? "[]");
+      const lista = Array.isArray(vistas) ? vistas.filter((v): v is string => typeof v === "string") : [];
+      if (lista.includes(generadoEn)) router.refresh();
+      else window.sessionStorage.setItem(clave, JSON.stringify([...lista.slice(-19), generadoEn]));
+    } catch {
+      // Sin almacenamiento (ventana privada, bloqueado): se pierde solo esta comprobación.
+    }
+  }, [conteoId, generadoEn, router]);
+
   const responsable = useResponsable();
   const [filas, setFilas] = useState(filasIniciales);
   const [ocupadas, setOcupadas] = useState<Record<string, Accion>>({});
@@ -100,6 +124,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales }: { conteoId: s
     if (ocupadas[varianteId]) return;
     setOcupadas((o) => ({ ...o, [varianteId]: cual }));
     setErrores((e) => sinClave(e, varianteId));
+    let navegando = false;
     try {
       const supabase = createClient();
       const args = { p_conteo_id: conteoId, p_variante_id: varianteId };
@@ -110,6 +135,13 @@ export function RevisarConteo({ conteoId, filas: filasIniciales }: { conteoId: s
       if (error) {
         responsable.despues(error);
         setErrores((e) => ({ ...e, [varianteId]: traducirError(error, TEXTO_ACCION[cual]) }));
+        return;
+      }
+      // «Volver a contar» no deja la variante «en reconteo» aquí para que se pulse otro botón: lleva directo a Contar, acotado a esa
+      // variante, con su cifra de antes escrita y seleccionada. El botón se queda en «Un momento…» hasta que la pantalla cambie.
+      if (cual === "recontar") {
+        navegando = true;
+        router.push(`/inventario/conteo/${conteoId}?variantes=${varianteId}`);
         return;
       }
       // La base devuelve la línea ya actualizada; `null` = la línea se retiró (una variante que nadie esperaba y a la
@@ -128,7 +160,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales }: { conteoId: s
       console.error("Revisar conteo:", e);
       setErrores((prev) => ({ ...prev, [varianteId]: `No se pudo ${TEXTO_ACCION[cual]}. Vuelve a intentar.` }));
     } finally {
-      setOcupadas((o) => sinClave(o, varianteId));
+      if (!navegando) setOcupadas((o) => sinClave(o, varianteId));
     }
   }
 
@@ -153,8 +185,12 @@ export function RevisarConteo({ conteoId, filas: filasIniciales }: { conteoId: s
     textoPie = "Todo listo para confirmar.";
   }
 
+  // Desde el pie, «Volver a contar» lleva directo a las pendientes (acotado). Con muchas la lista completa es mejor que una
+  // dirección de kilómetros: pasado el tope, va a Contar sin acotar.
+  const idsPendientes = filas.filter((f) => f.estado === "pendiente" || f.estado === "en_reconteo").map((f) => f.varianteId);
+  const hrefContar = idsPendientes.length > 0 && idsPendientes.length <= MAX_PENDIENTES_EN_URL ? `${urlContar}?variantes=${idsPendientes.join(",")}` : urlContar;
   const volverAContar = (
-    <Link href={urlContar} className="btn-cayla btn-primario h-11 w-full sm:w-auto">
+    <Link href={hrefContar} className="btn-cayla btn-primario h-11 w-full sm:w-auto">
       Volver a contar
     </Link>
   );

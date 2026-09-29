@@ -9,6 +9,7 @@ import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/compon
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { ORDENES_DESPLEGABLE, ROTULO_ORDEN_PRODUCTOS, leerOrdenProductos } from "@/lib/productos-orden";
+import { SIN_EN_URL } from "@/lib/marcas";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -100,8 +101,9 @@ export function FiltrosProductos({
   if (ordenLeido) chips.push({ texto: ROTULO_ORDEN_PRODUCTOS[ordenLeido], quitar: { orden: "" } });
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
   // Con prefijo: una marca y su proveedor pueden llamarse igual («Adidas» / «Adidas»), y dos botones que dicen lo mismo no se distinguen.
-  if (marca) chips.push({ texto: `Marca: ${marcas.find((m) => m.id === marca)?.nombre ?? "—"}`, quitar: { marca: "" } });
-  if (proveedor) chips.push({ texto: `Proveedor: ${proveedores.find((p) => p.id === proveedor)?.nombre ?? "—"}`, quitar: { proveedor: "" } });
+  // `sin` = los productos que todavía no tienen marca / proveedor (ADR-0283).
+  if (marca) chips.push({ texto: `Marca: ${marca === SIN_EN_URL ? "sin marca" : (marcas.find((m) => m.id === marca)?.nombre ?? "—")}`, quitar: { marca: "" } });
+  if (proveedor) chips.push({ texto: `Proveedor: ${proveedor === SIN_EN_URL ? "sin proveedor" : (proveedores.find((p) => p.id === proveedor)?.nombre ?? "—")}`, quitar: { proveedor: "" } });
   if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
   if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
   if (stock) {
@@ -213,7 +215,7 @@ export function FiltrosProductos({
             etiqueta="Marca"
             valor={marca ?? TODOS}
             onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
-            opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+            opciones={[{ valor: TODOS, texto: "Todas" }, { valor: SIN_EN_URL, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
           />
 
           <DesplegablePildora
@@ -221,7 +223,7 @@ export function FiltrosProductos({
             etiqueta="Proveedor"
             valor={proveedor ?? TODOS}
             onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
-            opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+            opciones={[{ valor: TODOS, texto: "Todos" }, { valor: SIN_EN_URL, texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
           />
 
           <DesplegablePildora

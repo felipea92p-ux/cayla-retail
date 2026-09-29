@@ -7,6 +7,7 @@ import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { ChevronDown, Plus, Printer } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { coincide } from "@/lib/facturacion-busqueda";
@@ -66,6 +67,8 @@ export function ProformasPanel({
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [viendo, setViendo] = useState<Proforma | null>(null);
   const [imprimiendo, setImprimiendo] = useState(false);
+  // Al guardar como PDF, el archivo se llama como la proforma («PRO-000012.pdf»), no «Retail - CAYLA.pdf».
+  useTituloDeImpresion(imprimiendo && viendo ? numeroDeProforma(viendo.numero) : null);
 
   const { texto: busqueda } = useFacturacionBusqueda();
   const proformasOrdenadas = ordenarProformas(proformas).filter((p) => coincide(camposDeBusquedaDeLaProforma(p), busqueda));

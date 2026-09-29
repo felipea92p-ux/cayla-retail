@@ -138,13 +138,14 @@ export function sugerenciasDeCategoria(
     .slice(0, max);
 }
 
-/** Cuenta parejas (marca, proveedor) por categoría a partir de productos recientes. */
+/** Cuenta parejas (marca, proveedor) por categoría a partir de productos recientes. Un producto sin marca o sin proveedor
+ *  (ADR-0283) no forma pareja: no cuenta. */
 export function contarParejasPorCategoria(
-  productos: { categoria_id: string | null; marca_id: string; proveedor_id: string }[]
+  productos: { categoria_id: string | null; marca_id: string | null; proveedor_id: string | null }[]
 ): Record<string, ParejaUso[]> {
   const conteo = new Map<string, Map<string, ParejaUso>>();
   for (const p of productos) {
-    if (!p.categoria_id) continue;
+    if (!p.categoria_id || !p.marca_id || !p.proveedor_id) continue;
     const porCat = conteo.get(p.categoria_id) ?? new Map<string, ParejaUso>();
     const clave = `${p.marca_id}|${p.proveedor_id}`;
     const actual = porCat.get(clave);
@@ -156,22 +157,41 @@ export function contarParejasPorCategoria(
   return out;
 }
 
-export type FilaReposicion = { producto_id: string; proveedor_id: string; proveedor_nombre: string };
+export type FilaReposicion = { producto_id: string; proveedor_id: string | null; proveedor_nombre: string | null };
 export type ReposicionProveedor = { proveedorId: string; proveedor: string; productos: number };
 
-/** «A quién pedirle»: cuenta PRODUCTOS (no variantes) por proveedor, de más a menos. `fn_productos` devuelve una fila por variante, así que un producto con 6 tallas llega 6 veces y cuenta una. */
+/** «Sin marca» / «sin proveedor» (ADR-0283, migración 20260930020000): en la URL viaja como `sin` (`/productos?marca=sin`,
+ *  `/productos?stock=reponer&proveedor=sin`) y a la base llega como el uuid nulo, que el filtro de `fn_productos` entiende como
+ *  «los que no tienen». Nunca es una marca ni un proveedor de verdad. */
+export const SIN_EN_URL = "sin";
+export const SIN_ID = "00000000-0000-0000-0000-000000000000";
+
+/** De lo que trae la URL en `?marca=` / `?proveedor=` al id que se le manda a `fn_productos`: `sin` → el uuid nulo («los que no
+ *  tienen»), un uuid → él mismo, cualquier otra cosa → nada (el filtro se ignora, como siempre). */
+export function filtroDeMarcaOProveedor(valorUrl?: string): string | undefined {
+  if (valorUrl === SIN_EN_URL) return SIN_ID;
+  return valorUrl && /^[0-9a-f-]{36}$/i.test(valorUrl) ? valorUrl : undefined;
+}
+
+/** «A quién pedirle»: cuenta PRODUCTOS (no variantes) por proveedor, de más a menos. `fn_productos` devuelve una fila por variante, así que un producto con 6 tallas llega 6 veces y cuenta una.
+ *  Los que no tienen proveedor NO se pierden (un producto por reponer sin proveedor desaparecería del radar): van al final como «Sin proveedor», para asignarles uno. */
 export function contarProductosPorProveedor(filas: FilaReposicion[]): ReposicionProveedor[] {
   const vistos = new Set<string>();
   const porProveedor = new Map<string, ReposicionProveedor>();
+  let sinProveedor = 0;
   for (const f of filas) {
-    // Una fila sin proveedor (la base todavía sin el SQL de proveedores) no tiene a quién pedirle: se salta.
-    if (!f.proveedor_id || vistos.has(f.producto_id)) continue;
+    if (vistos.has(f.producto_id)) continue;
     vistos.add(f.producto_id);
-    const actual = porProveedor.get(f.proveedor_id) ?? { proveedorId: f.proveedor_id, proveedor: f.proveedor_nombre, productos: 0 };
+    if (!f.proveedor_id) {
+      sinProveedor += 1;
+      continue;
+    }
+    const actual = porProveedor.get(f.proveedor_id) ?? { proveedorId: f.proveedor_id, proveedor: f.proveedor_nombre ?? "—", productos: 0 };
     actual.productos += 1;
     porProveedor.set(f.proveedor_id, actual);
   }
-  return [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
+  const conProveedor = [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
+  return sinProveedor > 0 ? [...conProveedor, { proveedorId: SIN_EN_URL, proveedor: "Sin proveedor", productos: sinProveedor }] : conProveedor;
 }
 
 // ---------- Catálogo ▸ Marcas: buscar y editar ----------

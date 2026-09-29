@@ -13,9 +13,10 @@ import { advertenciasDe, consultarPadron, type DatosPadron, type RespuestaPadron
 //   NO HACE: no guarda nada, no decide si se puede emitir el comprobante.
 //
 // POR QUÉ ESTA RUTA EXISTE Y EL NAVEGADOR NO LLAMA AL PADRÓN DIRECTO:
-// el token del padrón se paga por consulta. Si viajara al navegador, cualquiera
-// con la consola abierta lo copia y consume la cuota de CAYLA. Aquí el token
-// nunca sale del servidor.
+// la primera fuente (SUNAT público) es gratis, pero la segunda se paga por consulta
+// con un token. Si viajara al navegador, cualquiera con la consola abierta lo copia
+// y consume la cuota de CAYLA. Aquí el token nunca sale del servidor. El orden de
+// fuentes vive en `consultarPadron` (lib/padron.ts), no aquí.
 
 // Freno de mano contra un bucle desbocado (un `useEffect` mal escrito puede
 // gastar la cuota del mes en un minuto). Es por instancia del servidor, así que
@@ -87,9 +88,9 @@ export async function GET(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  // 2) Padrón oficial. Refina o confirma lo anterior; para RUC además trae
-  //    estado y condición, que cambian con el tiempo y no se pueden cachear
-  //    en el historial.
+  // 2) Padrón oficial. Refina o confirma lo anterior; con el proveedor de pago, para
+  //    RUC además trae estado y condición, que cambian con el tiempo y no se
+  //    pueden cachear en el historial (SUNAT público no los informa).
   const consulta = await consultarPadron(tipo, numero);
 
   if (consulta.ok) {
@@ -102,6 +103,7 @@ export async function GET(request: Request) {
       condicion: datos.condicion,
       direccion: datos.direccion,
       fuente: "padron",
+      via: consulta.origen,
       advertencias: advertenciasDe(datos),
       motivo: null,
     };
@@ -117,6 +119,7 @@ export async function GET(request: Request) {
       condicion: null,
       direccion: null,
       fuente: "historial",
+      via: null,
       advertencias: [],
       motivo: null,
     };
@@ -131,6 +134,7 @@ export async function GET(request: Request) {
     condicion: null,
     direccion: null,
     fuente: "ninguna",
+    via: null,
     advertencias: [],
     motivo: consulta.detalle,
   };

@@ -459,6 +459,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:anular-venta-mismo-dia
 
+      # El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
+      # fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
+      # Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
+      - name: pruebas:actividad-oculta-ventas-de-prueba
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad-oculta-ventas-de-prueba
+
       # Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
       # desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
       - name: pruebas:cuarentena-no-se-vende
@@ -1053,6 +1060,15 @@ jobs:
       - name: pruebas:eliminar-marca
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
+
+      # Un producto puede crearse sin marca y/o sin proveedor (20260930020000, ADR-0283, Felipe 2026-09-29): el alta acepta
+      # cualquier combinación de vacíos; sigue prohibida una pareja que nadie registró (función y llave compuesta, aun con un
+      # INSERT directo) y lo desactivado; editar completa lo que falta pero no borra lo guardado y deja rastro con «antes»
+      # vacío; el filtro de Productos entiende el uuid nulo como «sin marca»/«sin proveedor»; la migración se pega dos veces.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:producto-sin-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:producto-sin-marca
 
       # El costo se corrige a mano solo hasta la primera compra (20260927190000, Felipe 2026-09-26): sin compras
       # (costo declarado) un líder lo corrige y el historial lo anota como 'costo_declarado', no 'costo' (Resumen no

@@ -8,10 +8,13 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
   LARGO_DETALLE_META,
+  leerSoles,
   MOTIVOS_META,
   validarCambioMeta,
   type MotivoMeta,
@@ -64,6 +67,28 @@ export function EditarMetaModal({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const enVuelo = useRef(false);
+
+  // Guía de foco (CLAUDE.md «Guía de foco»): el camino sale de las reglas que ya validan abajo (`validarCambioMeta`), no de reglas
+  // nuevas. Volver a la automática no pide cifra ni motivo: solo quién lo hace.
+  const metaLeida = leerSoles(metaTexto);
+  const guia = useGuiaCampos([
+    ...(volver
+      ? []
+      : [
+          {
+            id: "meta",
+            nombre: "La meta del mes",
+            requerido: true,
+            hecho: Number.isFinite(metaLeida) && metaLeida > 0 && (metaSedeMes === null || metaLeida <= metaSedeMes),
+            pendiente: "Escribe la meta del mes.",
+          },
+          { id: "motivo", nombre: "El motivo", requerido: true, hecho: motivo !== "", pendiente: "Elige el motivo del cambio." },
+          ...(motivo === "otro"
+            ? [{ id: "detalle", nombre: "El motivo en una línea", requerido: true, hecho: detalle.trim() !== "", pendiente: "Cuenta el motivo en una línea." }]
+            : []),
+        ]),
+    { id: "responsable", nombre: "Quién hace el cambio", requerido: true, hecho: responsable.listo, pendiente: "Elige quién hace esta operación." },
+  ]);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -136,41 +161,47 @@ export function EditarMetaModal({
             </p>
           ) : (
             <>
-              <CampoMonto
-                etiqueta={`Meta de ${mesEtiqueta}`}
-                inputMode="decimal"
-                autoComplete="off"
-                value={metaTexto}
-                onChange={(e) => {
-                  setMetaTexto(e.target.value);
-                  setError(null);
-                }}
-                disabled={enviando}
-                pie="La meta de cada día se recalcula sola, en la misma proporción."
-              />
-              <CampoSelect<MotivoMeta>
-                etiqueta="Motivo del cambio"
-                marcador="Elige un motivo…"
-                valor={(motivo || "") as MotivoMeta}
-                onValor={(v) => {
-                  setMotivo(v);
-                  setError(null);
-                }}
-                opciones={MOTIVOS_META.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
-                deshabilitado={enviando}
-              />
-              {motivo === "otro" && (
-                <CampoTexto
-                  etiqueta="¿Cuál?"
-                  value={detalle}
+              <CampoGuiado id="meta" guia={guia}>
+                <CampoMonto
+                  etiqueta={guia.etiqueta("meta", `Meta de ${mesEtiqueta}`)}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={metaTexto}
                   onChange={(e) => {
-                    setDetalle(e.target.value);
+                    setMetaTexto(e.target.value);
                     setError(null);
                   }}
-                  maxLength={LARGO_DETALLE_META}
-                  placeholder="En una línea"
                   disabled={enviando}
+                  pie="La meta de cada día se recalcula sola, en la misma proporción."
                 />
+              </CampoGuiado>
+              <CampoGuiado id="motivo" guia={guia}>
+                <CampoSelect<MotivoMeta>
+                  etiqueta={guia.etiqueta("motivo", "Motivo del cambio")}
+                  marcador="Elige un motivo…"
+                  valor={(motivo || "") as MotivoMeta}
+                  onValor={(v) => {
+                    setMotivo(v);
+                    setError(null);
+                  }}
+                  opciones={MOTIVOS_META.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                  deshabilitado={enviando}
+                />
+              </CampoGuiado>
+              {motivo === "otro" && (
+                <CampoGuiado id="detalle" guia={guia}>
+                  <CampoTexto
+                    etiqueta={guia.etiqueta("detalle", "¿Cuál?")}
+                    value={detalle}
+                    onChange={(e) => {
+                      setDetalle(e.target.value);
+                      setError(null);
+                    }}
+                    maxLength={LARGO_DETALLE_META}
+                    placeholder="En una línea"
+                    disabled={enviando}
+                  />
+                </CampoGuiado>
               )}
             </>
           )}
@@ -193,13 +224,16 @@ export function EditarMetaModal({
             {error}
           </div>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
 
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1" disabled={enviando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={enviando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+            <Boton type="submit" peso="primario" cargando={enviando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={`flex-1 ${guia.claseConfirmar}`}>
               Guardar
             </Boton>
           </div>

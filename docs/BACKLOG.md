@@ -1295,6 +1295,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     - [ ] **Limpiar las categorías y prendas de prueba de producción** («dsa», «Colores», «prueba Lapicero»; «Fhfh»,
       «Y.j.j», «Test de Produto 2», «Producto de Prueba»): mientras estén activas, «Por completar» no llega a 0 con
       prendas reales. Desactivar, nunca borrar. Decide Felipe cuáles son de prueba.
+      **Hecho en parte el 2026-09-29:** «dsa» y «prueba Lapicero» (más tres marcas, dos proveedores y dos colores de prueba)
+      ya no existen en producción; «Fhfh», «Test de Produto 2» y «Producto de Prueba» tampoco aparecen. **Sigue pendiente:**
+      «Colores» y «y.j.j»/«Y.J.J» (decide Felipe). Detalle: `docs/backlog/2026-09-29-borrar-bodys-dsa-d6124b.md`.
   - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
     y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
@@ -3270,10 +3273,12 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
       El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
       `db reset`, que no se pudo correr en local (Docker caído).
-- [ ] **Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
+- [x] ~~**Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
       que en local Nuevo producto de Indumentaria —que exige patrón— pide un «Liso» que no existe. El mapa de categorías
       se salta ese eje con un aviso (`230200`). Sembrar los 7 patrones en `seed.sql` (o en una migración, como se hizo con
-      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.
+      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.~~ **Hecho el
+      2026-09-29:** `seed.sql` siembra los 7 patrones y su mapa (133 vínculos); esa rama nunca llegó a `main` y no se usó.
+      Ver `docs/backlog/2026-09-29-eloquent-wilson-e9472e.md`.
 - [ ] **Inventario → Existencias no filtra por proveedor todavía.** «A quién pedirle» vive en Productos (donde está la
       señal «Pedir a proveedor»). Filtrar Existencias por proveedor pide cambiar `fn_stock_por_sede` y su pantalla.
 - [ ] **Compras no valida que el proveedor de una compra traiga la marca de lo que se compra.** Hoy `compras.proveedor_id`
