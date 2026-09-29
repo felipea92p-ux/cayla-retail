@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
-import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, type HoyDeLaSede } from "@/lib/inicio";
+import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
 import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
   accesosRapidos,
   avisosInicio,
@@ -26,6 +27,8 @@ import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { AjustarInicio } from "@/components/inicio/AjustarInicio";
+import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
+import { SeccionMiGrafico, SeccionMiMeta } from "@/components/inicio/MiMeta";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -52,8 +55,10 @@ export default async function InicioPage() {
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
   const vende = persona.ubicacionTipo === "tienda" && ve("vender") && !persona.terminal;
 
-  const [hoy, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo] = await Promise.all([
+  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
+    // Su meta (ADR-0286): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
+    !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
     // Total (nunca lanza): la misma cifra del número del menú.
     ve("traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
     // Las tres colas del líder (ADR-0179, ADR-0186, PL-114): no son de quien no lo es.
@@ -117,7 +122,8 @@ export default async function InicioPage() {
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-6">
-          {hoy && <SeccionHoy hoy={hoy} esLider={esLider} />}
+          {hoy && <SeccionHoy hoy={hoy} esLider={esLider} miMeta={miMeta} />}
+          {miMeta && !esLider && <SeccionMiGrafico miMeta={miMeta} />}
           <TeToca
             visibles={visibles}
             ajustar={
@@ -151,12 +157,10 @@ export default async function InicioPage() {
 
 // ── Cifras del día ───────────────────────────────────────────────────────────────────────────────
 
-function Etiqueta({ children }: { children: React.ReactNode }) {
-  return <p className="label-cayla mb-2.5 text-[11px] text-tinta/65">{children}</p>;
-}
-
-function SeccionHoy({ hoy, esLider }: { hoy: HoyDeLaSede; esLider: boolean }) {
+function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boolean; miMeta: MiMeta | null }) {
   const titulo = esLider ? "Hoy" : "Tu día";
+  // Una integrante con meta (ADR-0286) ve SU meta de hoy y de su mes en vez de las cifras sueltas: lo que necesita saber es cómo va.
+  if (!esLider && miMeta) return <SeccionMiMeta miMeta={miMeta} cajaAbierta={hoy.cajaAbierta} titulo={titulo} />;
   if (hoy.totales === null) {
     return (
       <section>
@@ -223,16 +227,6 @@ function SeccionHoy({ hoy, esLider }: { hoy: HoyDeLaSede; esLider: boolean }) {
         )}
       </div>
     </section>
-  );
-}
-
-function Tarjeta({ etiqueta, valor, className = "", children }: { etiqueta: string; valor: string; className?: string; children?: React.ReactNode }) {
-  return (
-    <div className={`card-cayla p-4 sm:p-5 ${className}`}>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:mt-2 sm:text-3xl">{valor}</p>
-      {children && <div className="mt-1 text-xs text-tinta/65">{children}</div>}
-    </div>
   );
 }
 

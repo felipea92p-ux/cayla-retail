@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -53,23 +54,6 @@ const TEXTO_VISTA: Record<Vista, { periodo: string; enPeriodo: string; meta: str
 };
 
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
-
-function BarraAvance({ pct, marca }: { pct: number; marca?: number | null }) {
-  return (
-    <div
-      role="progressbar"
-      aria-valuenow={Math.min(pct, 100)}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      className="relative mt-2 h-1.5 rounded-full bg-sand"
-    >
-      <div className="h-full rounded-full bg-tinta" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
-      {marca !== null && marca !== undefined && (
-        <span aria-hidden className="absolute -top-[3px] h-3 w-0.5 rounded bg-taupe" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
-      )}
-    </div>
-  );
-}
 
 export function PanelRendimiento({
   ubicacionId,
