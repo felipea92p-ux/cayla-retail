@@ -84,6 +84,7 @@ export function NuevaMarcaForm({
   textoGuardar = "Registrar",
   onGuardado,
   onCancelar,
+  dentroDeModal = false,
 }: {
   proveedores: ProveedorOpcion[];
   /** Las marcas activas que ya existen, con quién las trae: entre ellas se busca la marca, contra ellas se pregunta
@@ -96,6 +97,9 @@ export function NuevaMarcaForm({
   textoGuardar?: string;
   onGuardado: (r: MarcaGuardada) => void;
   onCancelar: () => void;
+  /** Catálogo ▸ Marcas lo abre dentro de un `<Modal>` (ADR-0261 extendido): sin caja ni título propios —
+   *  el título y la bajada ya los da el Modal. El selector de Nuevo producto lo sigue usando inline (default). */
+  dentroDeModal?: boolean;
 }) {
   const [marcaSel, setMarcaSel] = useState<MarcaSel>(() => marcaDesdeNombre(nombreInicial, marcas));
   // Las parecidas a las que ya se respondió «No, es otra marca»: no se vuelve a preguntar por ellas.
@@ -271,11 +275,13 @@ export function NuevaMarcaForm({
   const elegida = "flex items-center gap-2.5 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta";
 
   return (
-    <div className="space-y-3.5 rounded-xl border border-sand bg-crema px-4 py-3.5">
-      <div>
-        <p className="text-sm font-semibold text-tinta">Registrar marca o proveedor</p>
-        <p className="mt-0.5 text-[12.5px] text-taupe">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
-      </div>
+    <div className={dentroDeModal ? "space-y-3.5" : "space-y-3.5 rounded-xl border border-sand bg-crema px-4 py-3.5"}>
+      {!dentroDeModal && (
+        <div>
+          <p className="text-sm font-semibold text-tinta">Registrar marca o proveedor</p>
+          <p className="mt-0.5 text-[12.5px] text-taupe">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
+        </div>
+      )}
 
       {/* ---------- la marca: una que existe o una nueva, en el mismo campo ---------- */}
       <div>

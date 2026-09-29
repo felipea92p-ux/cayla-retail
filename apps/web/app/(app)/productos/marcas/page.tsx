@@ -2,6 +2,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MarcasLista, type MarcaFila } from "@/components/MarcasLista";
 
 // Marcas del catálogo y qué proveedores las traen (ADR-0109, 20260918231000).
@@ -24,6 +25,8 @@ export default async function MarcasPage() {
   const vinculos = exigir(resVinculos, "los proveedores de cada marca");
   const productos = exigir(resProductos, "los productos");
 
+  const marcasActivas = marcas.filter((m) => m.activo).length;
+  const proveedoresVinculados = new Set(vinculos.map((v) => v.proveedor_id)).size;
   const nombreProveedor = new Map(proveedores.map((p) => [p.id, p.nombre]));
   // Cuántos productos ACTIVOS hay por pareja: es lo que dice si una marca se puede desactivar sin fricción. Y cuántos en
   // TOTAL (también descontinuados): mientras haya uno, la llave de `productos` no deja quitar esa pareja en «Editar».
@@ -55,19 +58,28 @@ export default async function MarcasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Marcas
-          <Ayuda titulo="Marcas">
-            De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
-            la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
-            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
-            solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
-            en Productos.
-          </Ayuda>
-        </h1>
-      </div>
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo={
+          <>
+            Marcas
+            <Ayuda titulo="Marcas">
+              De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
+              la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
+              proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
+              solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
+              en Productos.
+            </Ayuda>
+          </>
+        }
+        subtitulo="De quién es cada prenda y qué proveedores la traen."
+        pie={
+          <p className="text-[13px] text-taupe">
+            {marcasActivas.toLocaleString("es-PE")} {marcasActivas === 1 ? "marca activa" : "marcas activas"} ·{" "}
+            {proveedoresVinculados.toLocaleString("es-PE")} {proveedoresVinculados === 1 ? "proveedor vinculado" : "proveedores vinculados"}
+          </p>
+        }
+      />
 
       <MarcasLista marcasIniciales={filas} proveedores={proveedores} puedeEditar={puede(persona, "editarCatalogo")} />
     </div>

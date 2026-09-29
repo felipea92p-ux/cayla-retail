@@ -19,6 +19,7 @@ import {
   SinCoincidencias,
   TarjetaAtributo,
   TituloGrupo,
+  VistaRapidaAtributo,
 } from "@/components/atributos/kit";
 import type { Estilo } from "@/components/MuestraEtiqueta";
 import { MuestraTalla } from "@/components/MuestraTalla";
@@ -65,14 +66,15 @@ function ordenar(lista: Talla[]) {
 }
 
 /** La tarjeta de una talla: la de las seis pestañas de Atributos (`components/atributos/kit.tsx`). */
-function TarjetaTalla({ t, apagada = false, children }: { t: Talla; apagada?: boolean; children?: ReactNode }) {
+function TarjetaTalla({ t, apagada = false, abrir, children }: { t: Talla; apagada?: boolean; abrir?: { onClick: () => void; titulo: string }; children?: ReactNode }) {
   return (
     <TarjetaAtributo
       muestra={<MuestraTalla valor={t.valor} estilo={TIPOS[tipoDeTalla(t.valor)].estilo} />}
       nombre={t.valor}
-      notas={t.estado !== "rechazado" ? t.notas : null}
+      notas={t.estado !== "rechazado" && !abrir ? t.notas : null}
       insignia={t.estado === "pendiente" ? "Pendiente" : t.estado === "rechazado" ? "Rechazada" : null}
       apagada={apagada}
+      abrir={abrir}
     >
       {children}
     </TarjetaAtributo>
@@ -99,6 +101,12 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
 
+  // Vista rápida antes de Editar (ADR-0261 extendido), y el nuevo «Editar nombre» — antes esta pestaña solo
+  // tenía Desactivar/Reactivar, sin forma de corregir un valor mal tipeado.
+  const [viendo, setViendo] = useState<Talla | null>(null);
+  const [editando, setEditando] = useState<Talla | null>(null);
+  const [nuevoValor, setNuevoValor] = useState("");
+  const [editandoGuardando, setEditandoGuardando] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [tipo, setTipo] = useState<TipoTalla | "todas">("todas");
   // La grilla solo se re-asienta cuando la persona cambia un filtro, nunca al
@@ -233,6 +241,34 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     }
   }
 
+  // Editar nombre (ADR-0261 extendido): corrige un typo sin desactivar y crear de nuevo, algo que hoy Tallas
+  // no ofrecía (solo Desactivar/Reactivar). El endpoint ya lo soporta (`patch.valor`).
+  async function editarValor(t: Talla) {
+    const valor = nuevoValor.trim();
+    if (!valor) return;
+    setEditandoGuardando(true);
+    try {
+      const res = await fetch("/api/productos/tallas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        body: JSON.stringify({ id: t.id, valor }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo guardar la talla.");
+        return;
+      }
+      setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, valor: datos.talla.valor } : x))));
+      responsable.despues(null);
+      avisar.exito(`${datos.talla.valor} guardada`);
+      setEditando(null);
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setEditandoGuardando(false);
+    }
+  }
+
   const aprobandoTalla = tallas.find((t) => t.id === aprobandoAbierto) ?? null;
   const rechazandoTalla = tallas.find((t) => t.id === rechazandoAbierto) ?? null;
 
@@ -279,7 +315,11 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
               </TituloGrupo>
               <div className={GRILLA_ATRIBUTOS}>
                 {delTipo.map((t) => (
-                  <TarjetaTalla key={t.id} t={t}>
+                  <TarjetaTalla
+                    key={t.id}
+                    t={t}
+                    abrir={t.estado === "aprobado" ? { onClick: () => setViendo(t), titulo: `Ver ${t.valor}` } : undefined}
+                  >
                     {puedeEditar &&
                       (t.estado === "pendiente" ? (
                         <BotonesPendiente
@@ -319,6 +359,50 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
             ))}
           </div>
         </section>
+      )}
+
+      {viendo && (
+        <VistaRapidaAtributo
+          titulo={viendo.valor}
+          muestra={<MuestraTalla valor={viendo.valor} estilo={TIPOS[tipoDeTalla(viendo.valor)].estilo} className="aspect-[3/1] w-full" />}
+          accion={{
+            texto: "Editar",
+            onClick: () => {
+              setEditando(viendo);
+              setNuevoValor(viendo.valor);
+              setViendo(null);
+            },
+          }}
+          onClose={() => setViendo(null)}
+        >
+          {viendo.notas && <p className="text-xs text-tinta/65">{viendo.notas}</p>}
+        </VistaRapidaAtributo>
+      )}
+
+      {editando && (
+        <Modal titulo={`Editar «${editando.valor}»`} ancho="max-w-sm" onClose={() => setEditando(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Valor de la talla" value={nuevoValor} onChange={(e) => setNuevoValor(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={editandoGuardando} />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={editandoGuardando}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={editandoGuardando}
+                  disabled={!nuevoValor.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                  onClick={() => editarValor(editando)}
+                >
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
 
       {agregando && (

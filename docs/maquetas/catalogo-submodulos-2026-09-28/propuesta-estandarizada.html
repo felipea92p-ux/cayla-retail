@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spike · Catálogo estandarizado — versión final para aprobar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-rojo:#b8412d; --color-crema:#f5f0e8; --color-tinta:#1a1a18; --color-rojo-profundo:#8b2a1f;
+    --color-sand:#e8e0d0; --color-taupe:#805c4c; --color-papel:#fbf8f2; --color-hueso:#eae1d2;
+    --color-verde:#48603f; --color-tinta-60:#5b544c;
+    --font-sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --font-serif:"EB Garamond",ui-serif,Georgia,serif;
+    --radius-md:8px; --radius-xl:16px;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--color-crema); color:var(--color-tinta); font-family:var(--font-sans); padding:32px 24px 96px; }
+  .envoltorio { max-width:1320px; margin:0 auto; }
+  .intro { max-width:860px; margin-bottom:36px; }
+  .intro h1 { font-family:var(--font-serif); font-weight:600; font-size:26px; margin:0 0 10px; }
+  .intro p { font-size:13.5px; line-height:1.65; color:var(--color-tinta-60); margin:0 0 8px; }
+  .intro code { background:var(--color-hueso); padding:1px 5px; border-radius:4px; font-size:12px; }
+  .leyenda { display:flex; gap:18px; margin-top:14px; font-size:12px; color:var(--color-tinta-60); flex-wrap:wrap; }
+  .leyenda span { display:inline-flex; align-items:center; gap:6px; }
+  .punto { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .punto.nuevo { background:var(--color-rojo); }
+  .punto.mueve { background:#a8741f; }
+  .punto.igual { background:var(--color-verde); }
+
+  .modulo { margin-bottom: 50px; }
+  .modulo-titulo { display:flex; align-items:baseline; gap:10px; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--color-sand); }
+  .modulo-titulo h2 { font-family:var(--font-serif); font-weight:600; font-size:21px; margin:0; }
+  .modulo-titulo .sub { font-size:12px; color:var(--color-tinta-60); }
+
+  .flujo { display:flex; align-items:stretch; gap:10px; overflow-x:auto; padding-bottom:6px; }
+  .paso { flex:0 0 260px; border:1px solid var(--color-sand); border-radius:var(--radius-xl); background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+  .paso-cabecera { font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; padding:7px 12px; color:var(--color-tinta-60); background:var(--color-hueso); display:flex; justify-content:space-between; align-items:center; }
+  .badge { font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:999px; color:#fff; }
+  .badge.nuevo { background:var(--color-rojo); }
+  .badge.mueve { background:#a8741f; }
+  .paso-cuerpo { padding:14px; background:var(--color-crema); flex:1; }
+  .flecha { display:flex; align-items:center; justify-content:center; color:var(--color-taupe); font-size:18px; flex:0 0 20px; }
+
+  .tarjeta-item { background:var(--color-papel); border:1px solid var(--color-sand); border-radius:12px; padding:11px 12px; }
+  .tarjeta-item .nombre { font-family:var(--font-serif); font-weight:600; font-size:14px; }
+  .tarjeta-item .meta { font-size:11px; color:var(--color-taupe); margin-top:2px; }
+  .acciones-fila { display:flex; gap:8px; margin-top:7px; font-size:10.5px; flex-wrap:wrap; }
+  .acciones-fila .a { color:var(--color-tinta); text-decoration:underline; text-underline-offset:2px; }
+  .acciones-fila .a.tenue { color:var(--color-tinta-60); }
+
+  .mini-modal { border:1px solid var(--color-sand); border-radius:12px; background:var(--color-papel); overflow:hidden; }
+  .mini-modal-cabecera { display:flex; align-items:flex-start; justify-content:space-between; padding:11px 12px 6px; }
+  .mini-modal-cabecera h3 { font-family:var(--font-serif); font-weight:600; font-size:13.5px; margin:0; }
+  .mini-modal-cabecera .x { color:var(--color-taupe); font-size:12px; }
+  .mini-modal-campos { padding:0 12px 8px; display:grid; gap:5px; }
+  .campo-fantasma { height:20px; border-radius:5px; background:var(--color-hueso); }
+  .campo-fantasma.chico { width:55%; }
+  .mini-modal-pie { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-top:1px solid var(--color-sand); font-size:10.5px; }
+  .mini-modal-pie .der { display:flex; gap:6px; }
+  .chip-btn { padding:3px 8px; border-radius:6px; font-size:10px; font-weight:500; }
+  .chip-primario { background:var(--color-tinta); color:var(--color-crema); }
+  .chip-secundario { background:transparent; color:var(--color-tinta); border:1px solid var(--color-sand); }
+  .chip-peligro { background:transparent; color:var(--color-rojo); }
+
+  .nota-mini { margin-top:8px; font-size:10.5px; line-height:1.5; color:var(--color-taupe); }
+  .nota-mini b { color:var(--color-tinta); }
+  .fuera-alcance { border:1px dashed var(--color-sand); border-radius:var(--radius-xl); padding:14px 18px; font-size:12.5px; color:var(--color-tinta-60); background:var(--color-papel); }
+
+  .cierre { border:1px dashed var(--color-rojo); border-radius:var(--radius-xl); padding:18px 22px; background:color-mix(in oklab, var(--color-rojo) 5%, var(--color-crema)); margin-top:10px; }
+  .cierre h3 { font-family:var(--font-serif); font-size:16px; margin:0 0 8px; }
+  .cierre ul { margin:0; padding-left:18px; font-size:12.5px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="envoltorio">
+
+  <div class="intro">
+    <h1>Spike · versión final de Catálogo (para dar el visto bueno)</h1>
+    <p>Con las 4 decisiones ya tomadas, así quedaría el flujo <b>Listado → Vista rápida → Editar</b> (y Agregar) de Categorías, Marcas y Atributos. Nada de esto está en código todavía — es la maqueta a aprobar antes de tocar <code>CategoriasLista.tsx</code>, <code>MarcasLista.tsx</code>, <code>ColoresLista.tsx</code>, <code>TallasLista.tsx</code>, <code>TejidosLista.tsx</code>, <code>PatronesLista.tsx</code> y <code>EtiquetasLista.tsx</code>.</p>
+    <div class="leyenda">
+      <span><i class="punto nuevo"></i> pieza nueva (no existe hoy)</span>
+      <span><i class="punto mueve"></i> se mueve de lugar</span>
+      <span><i class="punto igual"></i> igual que hoy</span>
+    </div>
+  </div>
+
+  <!-- CATEGORÍAS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Categorías</h2><span class="sub">Vista rápida ya existía · cambia dónde vive «Desactivar»</span></div>
+    <div class="flujo">
+      <div class="paso">
+        <div class="paso-cabecera">Listado <span class="badge mueve">Desactivar se mueve aquí</span></div>
+        <div class="paso-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">Blusas</div>
+            <div class="meta">BLU · Indumentaria · 214 productos</div>
+            <div class="acciones-fila"><span class="a tenue">Desactivar (al pasar el mouse)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Vista rápida</div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Blusas</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Editar</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Editar <span class="badge mueve">sin Desactivar</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar categoría</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma"></div><div class="campo-fantasma"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar cambios</span></span></div>
+          </div>
+          <div class="nota-mini">El pie ya no tiene «Desactivar categoría» — pasó a la tarjeta.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARCAS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Marcas</h2><span class="sub">Alta pasa a Modal · Editar suma Vista rápida</span></div>
+    <div class="flujo">
+      <div class="paso">
+        <div class="paso-cabecera">Listado</div>
+        <div class="paso-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">Vermont</div>
+            <div class="meta">Ganesha SAC, Textiles Lima · 340 productos</div>
+            <div class="acciones-fila"><span class="a">Editar</span><span class="a tenue">Desactivar</span></div>
+          </div>
+          <div class="nota-mini">Sin cambio: ya vive en la tarjeta.</div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Vista rápida <span class="badge nuevo">nuevo</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Vermont</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Editar</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Editar</div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar marca</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div><div class="campo-fantasma"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Igual que hoy — ya usaba Modal.</div>
+        </div>
+      </div>
+    </div>
+    <div class="flujo" style="margin-top:12px">
+      <div class="paso" style="flex-basis:340px">
+        <div class="paso-cabecera">Agregar <span class="badge mueve">ahora en Modal</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Nueva marca</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma"></div><div class="campo-fantasma"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Antes: panel inline bajo el buscador. Ahora: hoja con velo, como el resto del sistema (ADR-0136). <code>NuevaMarcaForm</code> no cambia, solo el envoltorio.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATRIBUTOS: COLORES -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Atributos ▸ Colores</h2><span class="sub">Suma Vista rápida · «Desactivar» se muda a la tarjeta</span></div>
+    <div class="flujo">
+      <div class="paso">
+        <div class="paso-cabecera">Listado <span class="badge mueve">Desactivar aquí</span></div>
+        <div class="paso-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">■ Cobalto</div>
+            <div class="meta">Familia: Azules · 56 prendas</div>
+            <div class="acciones-fila"><span class="a">Editar</span><span class="a tenue">Desactivar (al pasar el mouse)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Vista rápida <span class="badge nuevo">nuevo</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Cobalto</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Editar</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Editar <span class="badge mueve">sin Desactivar</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar «Cobalto»</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma"></div><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Antes tenía «Desactivar» en este pie — ya no.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATRIBUTOS: TALLAS / TEJIDOS / PATRONES -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Atributos ▸ Tallas, Tejidos y Patrones</h2><span class="sub">Las tres suman Vista rápida + Editar nombre (hoy solo Desactivar/Reactivar)</span></div>
+    <div class="flujo">
+      <div class="paso">
+        <div class="paso-cabecera">Listado <span class="badge nuevo">+Editar</span></div>
+        <div class="paso-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">M</div>
+            <div class="meta">Tallas de letra · 812 prendas</div>
+            <div class="acciones-fila"><span class="a">Editar</span><span class="a tenue">Desactivar (al pasar el mouse)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Vista rápida <span class="badge nuevo">nuevo</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>M</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Editar</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Editar nombre <span class="badge nuevo">nuevo</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar «M»</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Mismo molde en Tejidos («Denim») y Patrones («Rayas») — solo el nombre, sin hex ni Pantone (eso es propio de Colores).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATRIBUTOS: ETIQUETAS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Atributos ▸ Etiquetas</h2><span class="sub">Suma Vista rápida antes de «Configurar campaña» (que no cambia)</span></div>
+    <div class="flujo">
+      <div class="paso">
+        <div class="paso-cabecera">Listado</div>
+        <div class="paso-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">Para liquidar</div>
+            <div class="meta">Urgencia · 34 prendas</div>
+            <div class="acciones-fila"><span class="a">Configurar campaña</span><span class="a tenue">Desactivar</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Vista rápida <span class="badge nuevo">nuevo</span></div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Para liquidar</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-primario">Configurar campaña</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flecha">→</div>
+      <div class="paso">
+        <div class="paso-cabecera">Configurar campaña</div>
+        <div class="paso-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Campaña «Para liquidar»</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma"></div><div class="campo-fantasma chico"></div></div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Sin cambios — ya existía tal cual.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPORADAS: fuera de alcance -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Atributos ▸ Temporadas</h2><span class="sub">Propuesta: dejarla fuera</span></div>
+    <div class="fuera-alcance">
+      No es una tarjeta que se «edita» — es un calendario fijo de 9 temporadas con su propio flujo (<code>ModalFecha</code>, <code>ModalAnio</code>, ADR-0246). No hay un «Agregar» ni un «Editar nombre» que unificar. Propongo dejarla como está y no forzarle una Vista rápida que no tiene qué mostrar. Si no estás de acuerdo, decímelo y la reviso.
+    </div>
+  </div>
+
+  <div class="cierre">
+    <h3>Si das el visto bueno, esto es lo que implemento</h3>
+    <ul>
+      <li>Un componente compartido <code>VistaRapidaAtributo</code> en <code>components/atributos/kit.tsx</code> (nombre + detalle + botón de acción), reusado por Colores, Tallas, Tejidos, Patrones y Etiquetas.</li>
+      <li>Un <code>VistaRapidaMarca</code> propio en <code>MarcasLista.tsx</code> (mismo molde, sin depender del kit de Atributos).</li>
+      <li><code>MarcasLista.tsx</code>: el alta pasa de panel inline a <code>&lt;Modal&gt;</code>.</li>
+      <li>3 modales nuevos «Editar nombre» (Tallas, Tejidos, Patrones) — un solo campo, sin hex/Pantone.</li>
+      <li><code>CategoriasLista.tsx</code> y <code>ColoresLista.tsx</code>: «Desactivar» sale del modal de Editar y entra a la tarjeta (con <code>DesactivarTarjeta</code> del kit donde aplica).</li>
+      <li>Temporadas queda sin tocar.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

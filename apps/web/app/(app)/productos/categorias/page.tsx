@@ -3,6 +3,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { getEjesPorCategoria, getTemporadasCatalogo } from "@/lib/catalogo-v2";
 import { compararTallas } from "@/lib/tallas";
@@ -118,28 +119,34 @@ export default async function CategoriasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Categorías
-          <Ayuda titulo="Categorías">
-            Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
-            <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
-            <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
-            categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
-            código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
-            tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
-            no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
-            se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
-            no hereda la del padre.
-          </Ayuda>
-        </h1>
-        <p className="mt-1 text-xs text-tinta/55">
-          {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
-          {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
-          {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}
-        </p>
-      </div>
+      {/* Cabecera de Ventas/Inventario/Productos (ADR-0220, ADR-0254), extendida al resto de Catálogo. */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo={
+          <>
+            Categorías
+            <Ayuda titulo="Categorías">
+              Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
+              <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
+              <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
+              categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
+              código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
+              tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
+              no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
+              se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
+              no hereda la del padre.
+            </Ayuda>
+          </>
+        }
+        subtitulo="Las categorías del catálogo, agrupadas por familia, con el prefijo que arma el código de cada prenda."
+        pie={
+          <p className="text-[13px] text-taupe">
+            {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
+            {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
+            {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}
+          </p>
+        }
+      />
 
       <CategoriasLista
         categoriasIniciales={categorias}

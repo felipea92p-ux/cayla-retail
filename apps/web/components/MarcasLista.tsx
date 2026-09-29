@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, Hilo } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
 import { filtrarMarcas, sePuedeEliminarMarca, textoProductosMarca, type ProveedorOpcion } from "@/lib/marcas";
@@ -50,7 +51,7 @@ export type MarcaFila = {
   proveedores: { id: string; nombre: string; productos: number; productosTotal: number }[];
 };
 
-type Modo = { tipo: "nueva" } | { tipo: "editar"; marca: MarcaFila };
+type Modo = { tipo: "nueva" } | { tipo: "vista"; marca: MarcaFila } | { tipo: "editar"; marca: MarcaFila };
 
 const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, "es");
 
@@ -184,7 +185,18 @@ export function MarcasLista({
       </div>
 
       {modo?.tipo === "nueva" && (
-        <NuevaMarcaForm proveedores={proveedores} marcas={existentes} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
+        <Modal
+          titulo="Registrar marca o proveedor"
+          subtitulo="Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes."
+          ancho="max-w-lg"
+          onClose={() => setModo(null)}
+        >
+          {(cerrar) => (
+            <div className="mt-5">
+              <NuevaMarcaForm proveedores={proveedores} marcas={existentes} onGuardado={alGuardar} onCancelar={cerrar} dentroDeModal />
+            </div>
+          )}
+        </Modal>
       )}
 
       {activas.length === 0 && <p className="card-cayla p-5 text-sm text-tinta/70">Todavía no hay marcas activas.</p>}
@@ -210,7 +222,7 @@ export function MarcasLista({
                 <div className="flex shrink-0 gap-3">
                   <button
                     type="button"
-                    onClick={() => setModo({ tipo: "editar", marca: m })}
+                    onClick={() => setModo({ tipo: "vista", marca: m })}
                     className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo"
                   >
                     Editar
@@ -286,11 +298,48 @@ export function MarcasLista({
         </div>
       )}
 
+      {modo?.tipo === "vista" && (
+        <VistaRapidaMarca marca={modo.marca} onClose={() => setModo(null)} onEditar={() => setModo({ tipo: "editar", marca: modo.marca })} />
+      )}
+
       {modo?.tipo === "editar" && (
         <EditarMarcaModal marca={modo.marca} proveedores={proveedores} onGuardado={(r) => alEditar(modo.marca, r)} onClose={() => setModo(null)} />
       )}
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
+  );
+}
+
+/** La "vuelta de tuerca" antes de Editar — mismo molde que `VistaRapidaCategoria`: un clic en la marca no cae
+ *  directo al formulario, se ve primero quién la trae y "Editar" recién ahí entra al formulario real. */
+function VistaRapidaMarca({ marca, onClose, onEditar }: { marca: MarcaFila; onClose: () => void; onEditar: () => void }) {
+  return (
+    <Modal titulo={marca.nombre} onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-4">
+          <div>
+            <p className="label-cayla text-[10.5px] text-tinta/55">La trae</p>
+            <ul className="mt-1.5 flex flex-wrap gap-1.5">
+              {marca.proveedores.map((p) => (
+                <li key={p.id} className="rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
+                  {p.nombre}
+                  <span className="ml-1.5 text-tinta/45">· {p.productos} prod.</span>
+                </li>
+              ))}
+              {marca.proveedores.length === 0 && <li className="text-xs text-rojo-profundo">Sin proveedor: no se puede usar en un producto.</li>}
+            </ul>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Boton peso="fantasma" onClick={cerrar}>
+              Cerrar
+            </Boton>
+            <Boton peso="primario" onClick={onEditar}>
+              Editar
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

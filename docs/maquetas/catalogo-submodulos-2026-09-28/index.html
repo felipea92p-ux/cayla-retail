@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spike · Catálogo: estandarizar Categorías, Marcas y Atributos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-rojo: #b8412d;
+    --color-crema: #f5f0e8;
+    --color-tinta: #1a1a18;
+    --color-rojo-profundo: #8b2a1f;
+    --color-sand: #e8e0d0;
+    --color-taupe: #805c4c;
+    --color-taupe-profundo: #805c4c;
+    --color-papel: #fbf8f2;
+    --color-hueso: #eae1d2;
+    --color-pizarra: #4c5d6e;
+    --color-tinta-60: #5b544c;
+    --color-verde: #48603f;
+    --color-ambar: #74501a;
+    --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+    --radius-md: 8px;
+    --radius-xl: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--color-crema);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    padding: 32px 24px 96px;
+  }
+  .envoltorio { max-width: 1180px; margin: 0 auto; }
+  .intro { max-width: 760px; margin-bottom: 40px; }
+  .intro h1 { font-family: var(--font-serif); font-weight: 600; font-size: 28px; margin: 0 0 10px; }
+  .intro p { font-size: 14px; line-height: 1.6; color: var(--color-tinta-60); margin: 0 0 8px; }
+  .intro code { background: var(--color-hueso); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+
+  .bloque { margin-bottom: 56px; }
+  .bloque-titulo {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--color-sand);
+  }
+  .bloque-titulo h2 { font-family: var(--font-serif); font-weight: 600; font-size: 20px; margin: 0; }
+  .bloque-titulo .tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .tag-listo { background: color-mix(in oklab, var(--color-verde) 15%, transparent); color: var(--color-verde); }
+  .tag-decidir { background: color-mix(in oklab, var(--color-rojo) 12%, transparent); color: var(--color-rojo-profundo); }
+
+  .comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .comparar { grid-template-columns: 1fr; } }
+  .panel { border: 1px solid var(--color-sand); border-radius: var(--radius-xl); background: #fff; overflow: hidden; }
+  .panel-cabecera {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 8px 16px; color: var(--color-tinta-60); background: var(--color-hueso);
+  }
+  .panel-cabecera.propuesta { color: var(--color-rojo-profundo); background: color-mix(in oklab, var(--color-rojo) 8%, var(--color-hueso)); }
+  .panel-cuerpo { padding: 22px 20px; background: var(--color-crema); }
+
+  /* ---- patrón viejo (Categorías / Marcas / Atributos hoy) ---- */
+  .eyebrow-viejo { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); margin: 0; }
+  .h1-viejo { font-family: var(--font-serif); font-weight: 600; letter-spacing: -.005em; font-size: 24px; margin: 4px 0 0; display: flex; align-items: center; gap: 8px; }
+  .ayuda-punto { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--color-sand); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; color: var(--color-taupe); }
+  .resumen-viejo { margin: 6px 0 0; font-size: 12px; color: color-mix(in oklab, var(--color-tinta) 55%, transparent); }
+
+  /* ---- EncabezadoPagina (propuesta) ---- */
+  .encabezado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px 32px; }
+  .encabezado-izq { min-width: 0; }
+  .sobre { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--color-taupe-profundo); margin: 0; }
+  .hilo { width: 26px; height: 1px; background: var(--color-taupe); flex-shrink: 0; }
+  .titulo-grande { font-family: var(--font-serif); font-weight: 600; letter-spacing: -.005em; font-size: 34px; line-height: 1; margin: 10px 0 0; }
+  .subtitulo { margin: 8px 0 0; font-size: 14px; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); max-width: 400px; }
+  .pie-linea { margin-top: 14px; font-size: 12px; color: var(--color-taupe); }
+  .acciones-der { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .btn-cayla { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: var(--radius-md); border: 1px solid transparent; padding: 8px 16px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+  .btn-primario { background: var(--color-tinta); color: var(--color-crema); }
+  .btn-secundario { background: transparent; color: var(--color-tinta); border-color: var(--color-sand); }
+
+  .cifras-fila { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+  .cifra { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl); padding: 14px 16px; }
+  .cifra .etiqueta { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--color-taupe); margin: 0; }
+  .cifra .valor { font-family: var(--font-serif); font-weight: 600; font-size: 26px; margin: 4px 0 0; }
+
+  .nota-opcion { margin-top: 14px; background: color-mix(in oklab, var(--color-hueso) 85%, transparent); border-radius: var(--radius-xl); padding: 10px 14px; font-size: 12.5px; line-height: 1.55; color: var(--color-taupe); }
+  .nota-opcion b { color: var(--color-tinta); }
+
+  .decision-box { border: 1px dashed var(--color-rojo); border-radius: var(--radius-xl); padding: 18px 22px; background: color-mix(in oklab, var(--color-rojo) 5%, var(--color-crema)); margin-top: 8px; }
+  .decision-box h3 { font-family: var(--font-serif); font-size: 16px; margin: 0 0 8px; }
+  table.opciones { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+  table.opciones th, table.opciones td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--color-sand); vertical-align: top; }
+  table.opciones th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--color-taupe); }
+  table.opciones tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="envoltorio">
+
+  <div class="intro">
+    <h1>Spike · estandarizar los submódulos de Catálogo</h1>
+    <p><b>Qué había:</b> Catálogo tiene 4 pantallas — <code>Productos</code>, <code>Categorías</code>, <code>Marcas</code>, <code>Atributos</code> (esta última con 6 pestañas). El 28-09, ADR-0254 le dio a Productos la cabecera de Ventas/Inventario (<code>EncabezadoPagina</code>), y ADR-0261 unificó las tarjetas/barras <b>dentro</b> de las 6 pestañas de Atributos. Nadie tocó todavía la cabecera de página de Categorías, Marcas ni Atributos: las tres siguen con el patrón viejo (<code>label-cayla</code> + <code>&lt;h1&gt;</code> de 24px + <code>&lt;Ayuda&gt;</code>), más chico y sin la sede/hora ni acciones a la derecha que ya tiene Productos.</p>
+    <p><b>Sesiones en curso revisadas (git worktree, SESIONES-ACTIVAS.md, PRs abiertos):</b> ninguna está tocando la cabecera de página de estas tres pantallas. Lo más cercano es <code>claude/product-variant-editing-9307ed</code> (PR #576, matriz de variantes) y <code>claude/stock-status-inconsistency-411bab</code> (PR #580) — ninguna de las dos toca <code>categorias/page.tsx</code>, <code>marcas/page.tsx</code> ni <code>atributos/page.tsx</code> a nivel de cabecera. Vía libre para este spike.</p>
+  </div>
+
+  <!-- PRODUCTOS: referencia ya resuelta -->
+  <div class="bloque">
+    <div class="bloque-titulo">
+      <h2>Productos</h2>
+      <span class="tag tag-listo">ya estandarizado — ADR-0254</span>
+    </div>
+    <div class="panel">
+      <div class="panel-cabecera propuesta">Referencia — así se ve hoy en producción</div>
+      <div class="panel-cuerpo">
+        <div class="encabezado">
+          <div class="encabezado-izq">
+            <p class="sobre"><span class="hilo"></span> Trujillo · miércoles 28 de septiembre · 3:42 p.m.</p>
+            <h1 class="titulo-grande" style="font-size:40px">Productos</h1>
+            <p class="subtitulo">Cada prenda del catálogo con sus colores, tallas y precios.</p>
+          </div>
+          <div class="acciones-der">
+            <span class="btn-cayla btn-secundario" style="padding:6px 10px">Grilla · Tabla</span>
+            <span class="btn-cayla btn-primario">+ Nuevo producto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORÍAS -->
+  <div class="bloque">
+    <div class="bloque-titulo">
+      <h2>Categorías</h2>
+      <span class="tag tag-decidir">sin decidir</span>
+    </div>
+    <div class="comparar">
+      <div class="panel">
+        <div class="panel-cabecera">Ahora</div>
+        <div class="panel-cuerpo">
+          <p class="eyebrow-viejo">Productos · Catálogo</p>
+          <h1 class="h1-viejo">Categorías <span class="ayuda-punto">?</span></h1>
+          <p class="resumen-viejo">37 categorías activas (6 subcategorías) · 1,842 productos activos clasificados</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-cabecera propuesta">Propuesta — Opción A</div>
+        <div class="panel-cuerpo">
+          <div class="encabezado-izq">
+            <p class="sobre"><span class="hilo"></span> Trujillo · miércoles 28 de septiembre · 3:42 p.m.</p>
+            <h1 class="titulo-grande">Categorías</h1>
+            <p class="subtitulo">Las familias del negocio y sus categorías, con el prefijo que arma el código de cada prenda.</p>
+            <p class="pie-linea">37 categorías activas (6 subcategorías) · 1,842 productos clasificados</p>
+          </div>
+          <div class="acciones-der" style="margin-top:16px">
+            <span class="btn-cayla btn-secundario">+ Nueva familia</span>
+            <span class="btn-cayla btn-primario">+ Nueva categoría</span>
+          </div>
+          <div class="nota-opcion"><b>Opción B</b> (más pesada): la misma cabecera, pero las 3 cifras del pie pasan a tarjetas — ver abajo.</div>
+          <div class="cifras-fila">
+            <div class="cifra"><p class="etiqueta">Categorías</p><p class="valor">37</p></div>
+            <div class="cifra"><p class="etiqueta">Subcategorías</p><p class="valor">6</p></div>
+            <div class="cifra"><p class="etiqueta">Clasificados</p><p class="valor">1,842</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARCAS -->
+  <div class="bloque">
+    <div class="bloque-titulo">
+      <h2>Marcas</h2>
+      <span class="tag tag-decidir">sin decidir</span>
+    </div>
+    <div class="comparar">
+      <div class="panel">
+        <div class="panel-cabecera">Ahora</div>
+        <div class="panel-cuerpo">
+          <p class="eyebrow-viejo">Productos · Catálogo</p>
+          <h1 class="h1-viejo">Marcas <span class="ayuda-punto">?</span></h1>
+          <p class="resumen-viejo" style="opacity:.4">— sin resumen; recién se ve al abrir la lista —</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-cabecera propuesta">Propuesta — Opción A</div>
+        <div class="panel-cuerpo">
+          <div class="encabezado-izq">
+            <p class="sobre"><span class="hilo"></span> Trujillo · miércoles 28 de septiembre · 3:42 p.m.</p>
+            <h1 class="titulo-grande">Marcas</h1>
+            <p class="subtitulo">De quién es cada prenda y qué proveedores la traen.</p>
+            <p class="pie-linea">22 marcas activas · 14 proveedores vinculados</p>
+          </div>
+          <div class="acciones-der" style="margin-top:16px">
+            <span class="btn-cayla btn-primario">+ Nueva marca</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATRIBUTOS -->
+  <div class="bloque">
+    <div class="bloque-titulo">
+      <h2>Atributos</h2>
+      <span class="tag tag-decidir">sin decidir (interior ya listo, ADR-0261)</span>
+    </div>
+    <div class="comparar">
+      <div class="panel">
+        <div class="panel-cabecera">Ahora</div>
+        <div class="panel-cuerpo">
+          <p class="eyebrow-viejo">Productos · Catálogo</p>
+          <h1 class="h1-viejo">Atributos <span class="ayuda-punto">?</span></h1>
+          <p class="resumen-viejo" style="opacity:.4">— sin resumen; pestañas: Etiquetas · Colores · Tallas · Tejidos · Patrones · Temporadas —</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-cabecera propuesta">Propuesta — Opción A</div>
+        <div class="panel-cuerpo">
+          <div class="encabezado-izq">
+            <p class="sobre"><span class="hilo"></span> Trujillo · miércoles 28 de septiembre · 3:42 p.m.</p>
+            <h1 class="titulo-grande">Atributos</h1>
+            <p class="subtitulo">Los vocabularios cerrados que describen una prenda además de su categoría.</p>
+          </div>
+          <!-- sin acciones a la derecha a propósito: cada pestaña ya trae su «+ Agregar» propio (ADR-0261, BarraAtributos) -->
+          <div class="nota-opcion">Sin botón a la derecha: cada pestaña ya trae su propio <b>+ Agregar</b> (kit de ADR-0261). Debajo va el mismo <code>AtributosHub</code> de siempre, sin tocar.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="decision-box">
+    <h3>Lo que falta decidir (protocolo de pregunta)</h3>
+    <table class="opciones">
+      <tr><th>Opción</th><th>Ganas</th><th>Pagas</th></tr>
+      <tr>
+        <td><b>A — EncabezadoPagina, cifras como texto</b> (recomendada)</td>
+        <td>Mismo peso visual que Productos/Ventas/Inventario en las 3 pantallas; cambio chico (solo el bloque de cabecera, la lista de abajo no se toca).</td>
+        <td>Las cifras que ya se calculan (categorías, marcas) bajan de rango — quedan en una línea de texto, no en tarjeta.</td>
+      </tr>
+      <tr>
+        <td>B — EncabezadoPagina + fila de <code>TarjetaCifra</code></td>
+        <td>Sigue al pie de la letra «cabecera → cifras → tabla» del resto del ERP; las cifras se notan más.</td>
+        <td>Más piezas nuevas por pantalla (3 tarjetas cada una); en Marcas y Atributos hay que decidir qué 3 cifras mostrar, hoy no se calculan.</td>
+      </tr>
+      <tr>
+        <td>C — Dejar el patrón viejo, solo emparejar tamaños entre las tres</td>
+        <td>Cambio mínimo, cero riesgo de romper algo.</td>
+        <td>Categorías/Marcas/Atributos siguen viéndose «de configuración», un escalón por debajo de Productos — la brecha que Felipe señaló en ADR-0261 para el interior de Atributos queda intacta a nivel de cabecera.</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

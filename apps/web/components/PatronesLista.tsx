@@ -430,6 +430,7 @@ export function PatronesLista({
           onImagen={(id, url, descripcionDibujo) =>
             setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) } : x)))
           }
+          onRenombrado={(id, nombre) => setPatrones((actual) => ordenar(actual.map((x) => (x.id === id ? { ...x, nombre } : x))))}
         />
       )}
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -67,6 +67,7 @@ export function DetalleMuestraModal({
   generarCon = null,
   onClose,
   onImagen,
+  onRenombrado,
 }: {
   tipo: TipoMuestra;
   muestra: MuestraEnDetalle;
@@ -82,6 +83,8 @@ export function DetalleMuestraModal({
   onClose: () => void;
   /** `descripcionDibujo` viaja solo cuando lo que se guardó fue un dibujo generado; `undefined` la deja como está. */
   onImagen: (id: string, url: string | null, descripcionDibujo?: string | null) => void;
+  /** «Editar nombre» (ADR-0261 extendido): corrige un typo sin desactivar y crear de nuevo. */
+  onRenombrado: (id: string, nombre: string) => void;
 }) {
   const palabra = PALABRA[tipo];
   const [carga, setCarga] = useState<Carga>({ estado: "cargando" });
@@ -93,6 +96,36 @@ export function DetalleMuestraModal({
   const [generador, setGenerador] = useState<string | null>(puedeEditar ? generarCon : null);
   const [propuesta, setPropuesta] = useState<string | null>(null);
   const selector = useRef<HTMLInputElement>(null);
+  const [renombrando, setRenombrando] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState(muestra.nombre);
+  const [renombrandoGuardando, setRenombrandoGuardando] = useState(false);
+
+  async function guardarNombre() {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) return;
+    setRenombrandoGuardando(true);
+    try {
+      const res = await fetch(palabra.api, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        body: JSON.stringify({ id: muestra.id, nombre }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? `No se pudo guardar ${tipo === "tejido" ? "el tejido" : "el patrón"}.`);
+        return;
+      }
+      const guardado = tipo === "tejido" ? datos.tejido : datos.patron;
+      responsable.despues(null);
+      avisar.exito(`${guardado.nombre} guardado`);
+      onRenombrado(muestra.id, guardado.nombre);
+      setRenombrando(false);
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setRenombrandoGuardando(false);
+    }
+  }
 
   useEffect(() => {
     let vigente = true;
@@ -227,8 +260,41 @@ export function DetalleMuestraModal({
             />
           )}
 
-          {puedeEditar && !pendiente && generador === null && (
+          {puedeEditar && !pendiente && generador === null && renombrando && (
+            <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
+              <CampoTexto etiqueta="Nombre" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={renombrandoGuardando} />
+              <div className="flex gap-2">
+                <Boton
+                  peso="fantasma"
+                  className="flex-1"
+                  onClick={() => {
+                    setRenombrando(false);
+                    setNuevoNombre(muestra.nombre);
+                  }}
+                  disabled={renombrandoGuardando}
+                >
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={renombrandoGuardando}
+                  disabled={!nuevoNombre.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                  onClick={guardarNombre}
+                >
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+          )}
+
+          {puedeEditar && !pendiente && generador === null && !renombrando && (
             <div className="flex flex-wrap gap-2">
+              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={() => setRenombrando(true)}>
+                Editar nombre
+              </Boton>
               <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />

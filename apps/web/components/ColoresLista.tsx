@@ -3,7 +3,7 @@
 import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -13,15 +13,16 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
-  AccionTarjeta,
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
+  DesactivarTarjeta,
   GRILLA_ATRIBUTOS,
   PieTarjeta,
   SinCoincidencias,
   TarjetaAtributo,
   TituloGrupo,
+  VistaRapidaAtributo,
 } from "@/components/atributos/kit";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
@@ -161,6 +162,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState<Color | null>(null);
+  // Vista rápida antes de Editar (ADR-0261 extendido): separado de `editando`, igual que `viendoId` en Categorías.
+  const [viendo, setViendo] = useState<Color | null>(null);
   const [cambiandoCodigo, setCambiandoCodigo] = useState<string | null>(null);
   const [aprobandoCodigo, setAprobandoCodigo] = useState<string | null>(null);
   // Rechazar abre un campo de motivo inline, no un modal — mismo peso visual
@@ -316,6 +319,32 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     }
   }
 
+  // Desactivar vive en la tarjeta, como el resto de Catálogo (ADR-0261 extendido) — antes vivía dentro de
+  // «Editar», con un segundo clic de confirmación propio; ahora usa la misma `ConfirmarConResponsable` que
+  // aprobar/reactivar.
+  async function desactivar(c: Color) {
+    setCambiandoCodigo(c.codigo);
+    try {
+      const res = await fetch("/api/productos/colores", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        body: JSON.stringify({ codigo: c.codigo, activo: false }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo desactivar el color.");
+        return;
+      }
+      setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: false } : x))));
+      responsable.despues(null);
+      avisar.exito(`${c.nombre} desactivado`, { detalle: "Deja de aparecer al elegir color en una prenda nueva; el historial se conserva." });
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setCambiandoCodigo(null);
+    }
+  }
+
   // Rechazar solo es válido desde 'pendiente' (lo hace cumplir el trigger).
   // El motivo es opcional (ADR-0095 de referencia: "aprobar es de un clic
   // sin fricción, el mismo criterio aplica al espejo").
@@ -389,9 +418,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   key={c.codigo}
                   muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
                   nombre={c.nombre}
-                  notas={c.notas}
+                  notas={c.estado === "pendiente" ? c.notas : null}
                   insignia={c.estado === "pendiente" ? "Pendiente" : null}
                   detalle={<DetalleColor c={c} />}
+                  abrir={c.estado !== "pendiente" ? { onClick: () => setViendo(c), titulo: `Ver ${c.nombre}` } : undefined}
                 >
                   {puedeEditar && (
                     <>
@@ -405,10 +435,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                           }}
                         />
                       )}
-                      {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
-                      <PieTarjeta>
-                        <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
-                      </PieTarjeta>
+                      {c.estado !== "pendiente" && (
+                        <PieTarjeta>
+                          <DesactivarTarjeta
+                            cambiando={cambiandoCodigo === c.codigo}
+                            onClick={() => setConfirmando(confirmacionCatalogo("desactivar", c.nombre, () => desactivar(c)))}
+                          />
+                        </PieTarjeta>
+                      )}
                     </>
                   )}
                 </TarjetaAtributo>
@@ -555,6 +589,18 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         </Modal>
       )}
 
+      {viendo && (
+        <VistaRapidaAtributo
+          titulo={viendo.nombre}
+          muestra={<Muestra hex={viendo.hex} familia={viendo.familiaColor} className="aspect-[3/1] w-full" />}
+          accion={{ texto: "Editar", onClick: () => { setEditando(viendo); setViendo(null); } }}
+          onClose={() => setViendo(null)}
+        >
+          <DetalleColor c={viendo} />
+          {viendo.notas && <p className="text-xs text-tinta/65">{viendo.notas}</p>}
+        </VistaRapidaAtributo>
+      )}
+
       {editando && (
         <ColorEditarModal
           color={editando}
@@ -563,10 +609,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
             setColores((actual) => ordenar(actual.map((x) => (x.codigo === actualizado.codigo ? actualizado : x))));
-            setEditando(null);
-          }}
-          onDesactivado={(codigoDesactivado) => {
-            setColores((actual) => ordenar(actual.map((x) => (x.codigo === codigoDesactivado ? { ...x, activo: false } : x))));
             setEditando(null);
           }}
         />
@@ -582,8 +624,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 // "Cambiar color" a propósito — no es un candado técnico (nada en
 // `movimientos`/`ventas` guarda una copia del hex; catálogo, inventario y
 // producción lo resuelven en vivo desde `colores.hex`), es solo para que no
-// se mueva sin querer al pasar por el formulario. Desactivar vive acá abajo,
-// igual que en Proveedores: es una acción rara y semi-destructiva.
+// se mueva sin querer al pasar por el formulario. Desactivar ya no vive acá:
+// pasó a la tarjeta del listado, como el resto de Catálogo (ADR-0261 extendido).
 // ---------------------------------------------------------------------------
 function ColorEditarModal({
   color,
@@ -591,7 +633,6 @@ function ColorEditarModal({
   responsable,
   onClose,
   onGuardado,
-  onDesactivado,
 }: {
   color: Color;
   /** Los colores activos, para avisar si el tono se ve casi igual que otro. */
@@ -600,7 +641,6 @@ function ColorEditarModal({
   responsable: ControlResponsable;
   onClose: () => void;
   onGuardado: (actualizado: Color) => void;
-  onDesactivado: (codigo: string) => void;
 }) {
   const [nombre, setNombre] = useState(color.nombre);
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>(
@@ -615,15 +655,6 @@ function ColorEditarModal({
   // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
   const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
-  const [desactivando, setDesactivando] = useState(false);
-  // Desactivar pide un segundo clic: el primero arma el botón, y si nadie
-  // confirma en 4 s vuelve a su estado normal.
-  const [confirmandoDesactivar, setConfirmandoDesactivar] = useState(false);
-  useEffect(() => {
-    if (!confirmandoDesactivar) return;
-    const t = setTimeout(() => setConfirmandoDesactivar(false), 4000);
-    return () => clearTimeout(t);
-  }, [confirmandoDesactivar]);
 
   const ordenNumero = Number(orden);
   const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
@@ -662,34 +693,6 @@ function ColorEditarModal({
       setGuardando(false);
     }
   }
-
-  async function desactivar() {
-    setConfirmandoDesactivar(false);
-    setDesactivando(true);
-    try {
-      const res = await fetch("/api/productos/colores", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, activo: false }),
-      });
-      const datos = await res.json();
-      if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo desactivar el color.");
-        return;
-      }
-      responsable.despues(null);
-      avisar.exito(`${color.nombre} desactivado`, {
-        detalle: "Deja de aparecer al elegir color en una prenda nueva; el historial se conserva.",
-      });
-      onDesactivado(color.codigo);
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setDesactivando(false);
-    }
-  }
-
-  const ocupado = guardando || desactivando;
 
   return (
     <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
@@ -750,9 +753,9 @@ function ColorEditarModal({
           </div>
           <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
 
-          <ComboResponsable control={responsable} deshabilitado={ocupado} />
+          <ComboResponsable control={responsable} deshabilitado={guardando} />
           <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
+            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -761,26 +764,12 @@ function ColorEditarModal({
               className="flex-1"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
+              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || guardando || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
               Guardar
             </Boton>
           </div>
-
-          <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-            ¿Ya no se usa este color?{" "}
-            <button
-              type="button"
-              onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
-              disabled={ocupado || !responsable.listo}
-              title={responsable.motivo ?? undefined}
-              className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
-            >
-              {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
-            </button>
-            . Se bloquea si todavía hay una prenda activa con este color.
-          </p>
         </div>
       )}
     </Modal>
