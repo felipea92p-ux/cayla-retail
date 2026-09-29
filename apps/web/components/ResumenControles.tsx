@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays } from "lucide-react";
 import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
@@ -189,6 +189,49 @@ function PildoraPeriodo({
   );
 }
 
+/** «PERÍODO ANALIZADO» y, debajo, la fila de píldoras del período (los atajos y «Personalizado» en Desempeño).
+ *  Se extrajo de `ResumenControles` (2026-09-29) para que otra pantalla del mismo análisis dibuje la MISMA etiqueta,
+ *  separación y envoltorio en vez de reescribirlos. */
+function BloquePeriodo({ rol, etiqueta, children }: { rol: "radiogroup" | "group"; etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="max-w-full">
+      <span className={ETIQUETA}>Período analizado</span>
+      <div className="mt-1.5 max-w-full">
+        {/* Guía oficial (ADR-0169): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
+        <div role={rol} aria-label={etiqueta} className="flex flex-wrap gap-1.5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** La tarjeta de «PERÍODO ANALIZADO»: papel, borde sand, esquina redondeada y 16 px de aire (`card-cayla`), la fila de
+ *  arriba y la búsqueda a todo el ancho. Se extrajo de `ResumenControles` (2026-09-29) sin cambiar ni un elemento del
+ *  HTML de Desempeño. `selectores` son los paneles de fechas (portales: no ocupan lugar en la tarjeta). */
+function MarcoPeriodoAnalizado({
+  arriba,
+  q,
+  actualizar,
+  selectores,
+}: {
+  arriba: ReactNode;
+  q: string;
+  actualizar: (cambios: CambiosUrl, opciones?: { tipeado?: boolean }) => void;
+  selectores?: ReactNode;
+}) {
+  return (
+    <div className="card-cayla min-w-0 space-y-4 p-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">{arriba}</div>
+      {/* `data-buscador-analisis`: «Escribir» desde el escáner del celular pone el foco aquí (AnalisisPrendas). */}
+      <div data-buscador-analisis>
+        <BuscadorDebounced valorUrl={q} onBuscar={(v) => actualizar({ q: v || null }, { tipeado: true })} />
+      </div>
+      {selectores}
+    </div>
+  );
+}
+
 export function ResumenControles({
   modo = "desempeno",
   periodo,
@@ -228,34 +271,28 @@ export function ResumenControles({
 
   // Las piezas se arman una vez y las usan las dos composiciones.
   const chipsPeriodo = (
-    <div className="max-w-full">
-      <span className={ETIQUETA}>Período analizado</span>
-      <div className="mt-1.5 max-w-full">
-        {/* Guía oficial (ADR-0169): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
-        <div role="radiogroup" aria-label="Período analizado" className="flex flex-wrap gap-1.5">
-          {PRESETS_PERIODO.map((p) => {
-            const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");
-            return (
-              <button
-                key={p.valor}
-                // Solo «Personalizado» abre un selector: es el único control que `usePosicionAnclada`
-                // necesita medir. Los demás presets se aplican solos, sin panel que anclar.
-                ref={p.valor === "personalizado" ? refPeriodo : undefined}
-                type="button"
-                role="radio"
-                aria-checked={periodo.preset === p.valor}
-                onClick={() => elegirPreset(p.valor)}
-                data-activa={activo}
-                className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
-              >
-                {p.valor === "personalizado" && <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />}
-                {p.texto}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <BloquePeriodo rol="radiogroup" etiqueta="Período analizado">
+      {PRESETS_PERIODO.map((p) => {
+        const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");
+        return (
+          <button
+            key={p.valor}
+            // Solo «Personalizado» abre un selector: es el único control que `usePosicionAnclada`
+            // necesita medir. Los demás presets se aplican solos, sin panel que anclar.
+            ref={p.valor === "personalizado" ? refPeriodo : undefined}
+            type="button"
+            role="radio"
+            aria-checked={periodo.preset === p.valor}
+            onClick={() => elegirPreset(p.valor)}
+            data-activa={activo}
+            className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+          >
+            {p.valor === "personalizado" && <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />}
+            {p.texto}
+          </button>
+        );
+      })}
+    </BloquePeriodo>
   );
 
   const selectorCategoria = (
@@ -289,17 +326,17 @@ export function ResumenControles({
   // acomodan solos debajo del período si no caben); abajo, la búsqueda a todo el ancho.
   if (!comparando) {
     return (
-      <div className="card-cayla min-w-0 space-y-4 p-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-          {chipsPeriodo}
-          <div className="w-full min-w-0 sm:w-52">{selectorCategoria}</div>
-        </div>
-        {/* `data-buscador-analisis`: «Escribir» desde el escáner del celular pone el foco aquí (AnalisisPrendas). */}
-        <div data-buscador-analisis>
-          <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null }, { tipeado: true })} />
-        </div>
-        {popoverPeriodo}
-      </div>
+      <MarcoPeriodoAnalizado
+        arriba={
+          <>
+            {chipsPeriodo}
+            <div className="w-full min-w-0 sm:w-52">{selectorCategoria}</div>
+          </>
+        }
+        q={alcance.q}
+        actualizar={actualizar}
+        selectores={popoverPeriodo}
+      />
     );
   }
 
