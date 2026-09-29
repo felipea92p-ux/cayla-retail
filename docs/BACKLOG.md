@@ -1295,6 +1295,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     - [ ] **Limpiar las categorías y prendas de prueba de producción** («dsa», «Colores», «prueba Lapicero»; «Fhfh»,
       «Y.j.j», «Test de Produto 2», «Producto de Prueba»): mientras estén activas, «Por completar» no llega a 0 con
       prendas reales. Desactivar, nunca borrar. Decide Felipe cuáles son de prueba.
+      **Hecho en parte el 2026-09-29:** «dsa» y «prueba Lapicero» (más tres marcas, dos proveedores y dos colores de prueba)
+      ya no existen en producción; «Fhfh», «Test de Produto 2» y «Producto de Prueba» tampoco aparecen. **Sigue pendiente:**
+      «Colores» y «y.j.j»/«Y.J.J» (decide Felipe). Detalle: `docs/backlog/2026-09-29-borrar-bodys-dsa-d6124b.md`.
   - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
     y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
