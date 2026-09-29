@@ -5,6 +5,9 @@ import {
   TAMANO_PAGINA_COMBO,
   UMBRAL_BUSCAR_COMBO,
   coincidenciaCombo,
+  filtrarCombo,
+  mismoNombreCombo,
+  normalizarBusqueda,
   primeraElegible,
   siguienteElegible,
   tramosPorGrupo,
@@ -55,24 +58,149 @@ describe("umbrales", () => {
 });
 
 describe("coincidenciaCombo", () => {
-  const clave = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
   const gris = { texto: "Gris", claves: ["plomo"] };
   const vino = { texto: "Vino", detalle: "Rojo", claves: ["guinda", "borgoña"] };
 
   it("por el texto o el detalle: responde sin clave que mostrar", () => {
-    expect(coincidenciaCombo(gris, "gri", clave)).toBe("");
-    expect(coincidenciaCombo(vino, "rojo", clave)).toBe("");
+    expect(coincidenciaCombo(gris, "gri")).toBe("");
+    expect(coincidenciaCombo(vino, "rojo")).toBe("");
   });
 
   it("por un sinónimo: devuelve cuál, para que la lista lo muestre", () => {
-    expect(coincidenciaCombo(gris, "plom", clave)).toBe("plomo");
-    expect(coincidenciaCombo(vino, "borgona", clave)).toBe("borgoña");
+    expect(coincidenciaCombo(gris, "plom")).toBe("plomo");
+    expect(coincidenciaCombo(vino, "borgona")).toBe("borgoña");
   });
 
   it("si no responde por nada, null; sin texto escrito, todas responden", () => {
-    expect(coincidenciaCombo(gris, "azul", clave)).toBeNull();
-    expect(coincidenciaCombo({ texto: "Azul" }, "plomo", clave)).toBeNull();
-    expect(coincidenciaCombo(gris, "", clave)).toBe("");
+    expect(coincidenciaCombo(gris, "azul")).toBeNull();
+    expect(coincidenciaCombo({ texto: "Azul" }, "plomo")).toBeNull();
+    expect(coincidenciaCombo(gris, "")).toBe("");
+    expect(coincidenciaCombo(gris, "  ..  ")).toBe("");
+  });
+
+  it("un sinónimo mal tipeado también responde, y dice cuál", () => {
+    expect(coincidenciaCombo(gris, "plmo")).toBe("plomo");
+  });
+});
+
+describe("normalizarBusqueda", () => {
+  it("junta espacios, baja mayúsculas y quita tildes y la ñ", () => {
+    expect(normalizarBusqueda("  La   Femme ")).toBe("la femme");
+    expect(normalizarBusqueda("Crepé AÑIL")).toBe("crepe anil");
+  });
+
+  it("separa la letra pegada al número, en los dos sentidos", () => {
+    expect(normalizarBusqueda("Femme21")).toBe("femme 21");
+    expect(normalizarBusqueda("3XL")).toBe("3 xl");
+  });
+
+  it("los signos valen por un espacio", () => {
+    expect(normalizarBusqueda("CORPORACION LA FEMME21 S.A.C.")).toBe("corporacion la femme 21 s a c");
+    expect(normalizarBusqueda("T-shirt")).toBe("t shirt");
+  });
+
+  it("nada o puro signo queda vacío", () => {
+    expect(normalizarBusqueda(null)).toBe("");
+    expect(normalizarBusqueda(" .. / ")).toBe("");
+  });
+});
+
+// El caso que motivó la regla (2026-09-29): la marca y su proveedor, tal como están en producción.
+describe("filtrarCombo · el buscador de marca y proveedor de Nuevo producto", () => {
+  const pareja = (texto: string, proveedor: string) => ({ texto, detalle: `la trae ${proveedor}` });
+  const lista = [
+    pareja("CAYLA", "Taller Lima"),
+    pareja("Divas Now", "Divas SAC"),
+    pareja("Kristell", "Importaciones Kristell EIRL"),
+    pareja("La Femme 21", "Liz Vanesa Soto Quispe"),
+    pareja("La Femme 21", "CORPORACION LA FEMME21 S.A.C."),
+    pareja("Lino Sur", "Textiles del Sur"),
+    pareja("Moda Viva", "Inversiones Viva"),
+  ];
+  const buscar = (q: string) => filtrarCombo(lista, q, (o) => o).map((o) => `${o.texto} · ${o.detalle}`);
+  const femme = ["La Femme 21 · la trae Liz Vanesa Soto Quispe", "La Femme 21 · la trae CORPORACION LA FEMME21 S.A.C."];
+
+  it("«La   Femme21» —tres espacios y el número pegado— encuentra las dos parejas", () => {
+    expect(buscar("La   Femme21")).toEqual(femme);
+  });
+
+  it("cualquier forma de escribirlo: mayúsculas, sin espacios, pegado o con el número primero", () => {
+    for (const q of ["la femme 21", "LA FEMME21", "femme 21", "femme21", "21 femme", "lafemme21", "lafemme 21", "  La  Femme  21  "]) {
+      expect(buscar(q), q).toEqual(femme);
+    }
+  });
+
+  it("por proveedor: sin tildes, sin S.A.C. y con el nombre a medias", () => {
+    expect(buscar("corporacion")).toEqual([femme[1]]);
+    expect(buscar("liz vanesa")).toEqual([femme[0]]);
+    expect(buscar("taller lima")).toEqual(["CAYLA · la trae Taller Lima"]);
+  });
+
+  it("con un error de tipeo (letra de más, de menos, cambiada o dos vecinas cambiadas)", () => {
+    for (const q of ["La Feme 21", "La Femmee 21", "La Fenme 21", "la fmeme 21", "femm21"]) {
+      expect(buscar(q), q).toEqual(femme);
+    }
+  });
+
+  it("con un error de tipeo mientras todavía se escribe", () => {
+    expect(buscar("femn")).toEqual(femme);
+    expect(buscar("kristel")).toEqual(["Kristell · la trae Importaciones Kristell EIRL"]);
+  });
+
+  it("si algo coincide tal cual, lo aproximado no se cuela", () => {
+    // «cayla» es exacto: no aparece nada que solo se le parezca. Y «lino» no arrastra a «Kristell» ni a «Viva».
+    expect(buscar("cayla")).toEqual(["CAYLA · la trae Taller Lima"]);
+    expect(buscar("lino")).toEqual(["Lino Sur · la trae Textiles del Sur"]);
+  });
+
+  it("los números no se corrigen: otra numeración es otra marca", () => {
+    expect(buscar("La Femme 22")).toEqual([]);
+    expect(buscar("La Femme 2")).toEqual(femme);
+  });
+
+  it("con palabras cortas no hay corrección: una letra ya es otra palabra", () => {
+    expect(buscar("cyl")).toEqual([]);
+    expect(buscar("zzzz")).toEqual([]);
+  });
+
+  it("sin texto (o solo signos), la lista entera y en su orden", () => {
+    expect(buscar("")).toHaveLength(lista.length);
+    expect(buscar("  ")).toHaveLength(lista.length);
+    expect(buscar(" . ")).toHaveLength(lista.length);
+  });
+
+  it("primero lo que aparece tal cual, luego las palabras sueltas, luego sin espacios", () => {
+    const items = [{ texto: "Sur Lino" }, { texto: "Linosur" }, { texto: "Lino Sur" }];
+    // «lino sur»: tal cual → «Lino Sur»; sus palabras sueltas → «Sur Lino»; sin espacios → «Linosur».
+    expect(filtrarCombo(items, "lino sur", (o) => o).map((o) => o.texto)).toEqual(["Lino Sur", "Sur Lino", "Linosur"]);
+  });
+
+  it("los aproximados van del más al menos parecido, aunque la lista los traiga al revés", () => {
+    const items = [{ texto: "Camisa Rosa" }, { texto: "Camisa Rossa" }];
+    // «camissa rossa» no está tal cual en ninguno: «Camisa Rossa» tiene 1 error (camisa), «Camisa Rosa» tiene 2.
+    expect(filtrarCombo(items, "camissa rossa", (o) => o).map((o) => o.texto)).toEqual(["Camisa Rossa", "Camisa Rosa"]);
+  });
+
+  it("encuentra por sinónimo y por sinónimo mal tipeado", () => {
+    const colores = [{ texto: "Gris", claves: ["plomo"] }, { texto: "Vino", claves: ["guinda"] }];
+    expect(filtrarCombo(colores, "plomo", (o) => o)).toEqual([colores[0]]);
+    expect(filtrarCombo(colores, "guinba", (o) => o)).toEqual([colores[1]]);
+  });
+});
+
+describe("mismoNombreCombo", () => {
+  it("es el nombre que la base considera igual: espacios juntados, sin mayúsculas ni tildes", () => {
+    expect(mismoNombreCombo("La   Femme 21", "la femme 21")).toBe(true);
+    expect(mismoNombreCombo("Crepé", "CREPE")).toBe(true);
+  });
+
+  it("«Femme21» no es «Femme 21» para la base: no se esconde el registrar por eso", () => {
+    expect(mismoNombreCombo("Femme21", "Femme 21")).toBe(false);
+  });
+
+  it("vacío nunca es igual a nada", () => {
+    expect(mismoNombreCombo("", "")).toBe(false);
+    expect(mismoNombreCombo("  ", "")).toBe(false);
   });
 });
 

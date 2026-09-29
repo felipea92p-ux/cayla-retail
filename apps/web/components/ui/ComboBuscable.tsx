@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { coincidenciaCombo } from "@/lib/combo-reglas";
+import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    ComboBuscable · elegir una opción entre muchas, tipeando (2026-09-14)
@@ -113,18 +113,18 @@ export function ComboBuscable<T extends string>({
     const k = clave(texto);
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
-    return !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => coincidenciaCombo(o, k, clave) !== null);
+    return !k || (elegida && k === clave(elegida.texto)) ? opciones : filtrarCombo(opciones, texto, (o) => o);
   }, [texto, opciones, elegida]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   // La clave (sinónimo) por la que una opción respondió a lo escrito, si fue solo por ella: la lista la muestra.
-  const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, clave(texto), clave) || null;
+  const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, texto) || null;
   // `limite` explícito manda y NO pagina (spike Nuevo producto): es un techo fijo, no el de la regla global.
   const mostradas = filtradas.slice(0, limite ?? visibles);
   // La opción «crear» va al final (índice = mostradas.length) o, con `crearArriba`, primera (índice 0, y las opciones
   // corren uno: la opción `i` es la fila `i + base`). Se alcanza con las flechas como cualquier otra. Con `pista` y el
   // campo vacío no hay opción de crear: hay un texto que no se elige.
   const hayCrearPara = (t: string) =>
-    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => clave(o.texto) === clave(t) && clave(t) !== "");
+    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => mismoNombreCombo(o.texto, t));
   const hayCrear = hayCrearPara(texto);
   const pistaVisible = Boolean(crear?.pista) && texto.trim() === "";
   const base = hayCrear && crearArriba ? 1 : 0;
@@ -134,7 +134,7 @@ export function ComboBuscable<T extends string>({
   // Lo resaltado al abrir o al tipear: la primera opción real, aunque crear vaya arriba (Enter elige, no crea); si no
   // hay ninguna, la de crear.
   // (Lo que se acaba de tipear todavía no está en `filtradas`: se pregunta si ALGUNA opción responde a ese texto.)
-  const algunaPara = (t: string) => (clave(t) ? opciones.some((o) => coincidenciaCombo(o, clave(t), clave) !== null) : opciones.length > 0);
+  const algunaPara = (t: string) => (clave(t) ? filtrarCombo(opciones, t, (o) => o).length > 0 : opciones.length > 0);
   const primeraFila = (t: string) => (hayCrearPara(t) && crearArriba && algunaPara(t) ? 1 : 0);
 
   useEffect(() => {
