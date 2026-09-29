@@ -74,6 +74,7 @@ import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useSto
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
+import { conCambio, lecturaDePistola, PAUSA_FIN_LECTURA_MS, type Rafaga } from "@/lib/lectura-pistola";
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
@@ -279,6 +280,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const subidaEnCursoRef = useRef<Promise<void> | null>(null);
 
   const [q, setQ] = useState("");
+  /** La ráfaga de teclas más reciente del campo: decide si lo último que entró lo escribió la pistola (`lectura-pistola`). */
+  const rafaga = useRef<Rafaga | null>(null);
   const [activo, setActivo] = useState(0);
   const [categoria, setCategoria] = useState("Todo");
   /** Filtro «Solo con stock» de la grilla. Prendido cada vez que se entra a Vender (Felipe,
@@ -464,6 +467,35 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     window.addEventListener("keydown", alTeclaSuelta);
     return () => window.removeEventListener("keydown", alTeclaSuelta);
   }, [bloqueado, hayModal]);
+
+  // Una pistola que NO remata con Enter (depende de cómo venga programada): el código se quedaba escrito esperando que
+  // alguien lo confirmara. Si lo último que entró al campo fue una ráfaga a ritmo de pistola y el campo lleva
+  // `PAUSA_FIN_LECTURA_MS` quieto, esa ráfaga es una lectura y se resuelve como su Enter (`lib/lectura-pistola.ts`):
+  // entra al ticket solo si hay en el piso, y si no es de ninguna prenda lo dice; en los dos casos el campo queda vacío.
+  // Una pistola que sí manda Enter lo resuelve antes (`alTeclado`), vacía el campo y este temporizador se cancela.
+  // El temporizador lee `finDeLectura` por ref: se crea de nuevo en cada render (usa el ticket de ahora) y no debe
+  // reiniciar la espera cada vez que la pantalla se repinta.
+  const finDeLectura = useRef<(codigo: string) => void>(() => {});
+  useEffect(() => {
+    finDeLectura.current = (codigo) => {
+      rafaga.current = null;
+      setQ("");
+      setActivo(0);
+      const v = resolverCodigoV2(codigo, variantesVisibles);
+      if (!v) {
+        setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
+        return;
+      }
+      agregar(v);
+    };
+  });
+  useEffect(() => {
+    if (bloqueado || hayModal) return;
+    const codigo = lecturaDePistola(q, rafaga.current);
+    if (!codigo) return;
+    const espera = setTimeout(() => finDeLectura.current(codigo), PAUSA_FIN_LECTURA_MS);
+    return () => clearTimeout(espera);
+  }, [q, bloqueado, hayModal]);
 
   useEffect(() => {
     // Hidratar desde localStorage al montar es el patrón correcto en Next (no existe en
@@ -919,7 +951,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
-      const accion = accionDelEnter(q, variantesVisibles, resultados, activo);
+      // Lo que entró a ritmo de pistola es un CÓDIGO: exacto o nada. Sin esto, un código que no es de ninguna prenda
+      // pero se parece a otra se resolvía con la fila resaltada de la lista y entraba la prenda equivocada; y lo que la
+      // persona hubiera dejado escrito antes se pegaba delante. Lo tecleado a mano sigue eligiendo la fila resaltada.
+      const leido = lecturaDePistola(q, rafaga.current);
+      rafaga.current = null;
+      const accion = leido !== null ? accionDelEnter(leido, variantesVisibles, [], 0) : accionDelEnter(q, variantesVisibles, resultados, activo);
       if (!accion) return;
       // Cada lectura cierra el campo, la haya encontrado o no: una que fallaba se quedaba escrita y la pistola escribía la
       // siguiente ENCIMA (ninguna volvía a coincidir). Lo que no se encontró se dice en el aviso, con el código.
@@ -1447,7 +1484,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           resultados={resultados}
           activo={activo}
           aviso={aviso}
-          onEscribir={(valor) => {
+          onEscribir={(valor, cuando) => {
+            rafaga.current = conCambio(rafaga.current, q, valor, cuando);
             setQ(valor);
             setActivo(0);
             setAviso(null);
