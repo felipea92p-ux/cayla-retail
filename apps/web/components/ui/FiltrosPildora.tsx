@@ -221,7 +221,7 @@ export function DesplegablePildora({
           <div
             ref={capa}
             style={{ position: "fixed", ...posLista }}
-            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
+            className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg"
           >
           {mostrarBuscador && (
             <input
@@ -262,7 +262,7 @@ export function DesplegablePildora({
                   onMouseEnter={() => setActivo(i)}
                   onClick={() => elegir(o)}
                   className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
-                    i === activo ? "bg-rojo/8 text-tinta" : "text-tinta"
+                    i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
                   } ${o.valor === valor ? "font-semibold" : ""}`}
                 >
                   {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}

@@ -244,6 +244,8 @@ Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR
    (`useResponsable` + `<ComboResponsable>`), con el mismo candado de asistencia en todas partes. Los permisos se preguntan
    a la cuenta (`fn_ve_modulo`, `fn_es_lider`), no al responsable; `fn_actor_persona_id(false)` queda SOLO para comparar con
    la cuenta en un permiso («no te quites a ti mismo», `fn_alcanzo_a`). Detalle: ADR-0161, «Actualización 2026-09-23 (c)».
+4. **Guía de foco:** cada pantalla del módulo con campos o pasos trae su guía y se declara en `lib/guia-de-foco-pantallas.ts`
+   (regla «Guía de foco», más abajo): `lib/guia-de-foco.test.ts` falla si una `page.tsx` nueva no está declarada.
 
 **Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
 lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o
@@ -292,6 +294,41 @@ forma `caja` es hueso, igual que `CampoTexto caja`. Detalle: ADR-0209, actualiza
 `anim-revelar` (240 ms, sin espera). Dentro de un `<Modal>`, el hook la cuelga de la capa de la hoja
 (`[data-capa-flotante]`, fuera de la cascada). **Nunca la cuelgues suelta en la hoja:** la cascada la toma por contenido y
 la retrasa hasta 1 s (ADR-0211, «Actualización 2026-09-26 (b)»; lo vigila `lib/combos-fuera-de-la-cascada.test.ts`).
+
+## Guía de foco: cada pantalla dice qué falta y qué sigue (regla — ADR-0284, Felipe 2026-09-29)
+
+**Toda pantalla o modal donde alguien llena campos o avanza por pasos le dice, en el propio lugar, qué está hecho, qué sigue y qué
+falta. Es OBLIGATORIO en toda interfaz nueva o rediseñada, sin esperar a que Felipe lo pida módulo por módulo.** Nació de probar
+Nuevo producto con una trabajadora real que «no sabía por dónde ir, qué seguía ni qué le faltaba»: el sistema ya decía «qué falta»,
+pero en letra chica al fondo, y los campos mismos no decían nada. Una pantalla que la persona no puede recorrer sola no está terminada.
+
+Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y es el modelo):
+1. **Cada campo dice su estado**, en su título: ✓ hecho · «Sigue aquí» (uno solo a la vez, con un tinte suave) · falta · opcional.
+   Piezas: `MarcaCampo`, `EtiquetaAhora`, `ConMarca` (`components/alta-producto/guia.tsx`, `components/ficha-producto/TiraFicha.tsx`);
+   en un formulario por pasos, `<FilaAlta campo= estado=>` (`alta-producto/piezas.tsx`) y `<PasoAlta pie={{ faltan }}>`.
+2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Para completar esta ficha» (`TiraFicha`) en una ficha que se edita:
+   cada cosa **lleva al campo** (lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor). Los campos se
+   encuentran por `data-campo` con `irAlIdCampo` / `useGuiaAlta` (`alta-producto/useGuiaAlta.ts`), **nunca por clases de estilo**.
+3. **«Siguiente: …» tocable** en el resumen o la barra fija (`FichaPrevia`); en celular, la barra de abajo.
+4. **Un paso o una sección solo lleva ✓ si la persona la visitó** (`pasoConfirmado`); uno que viene armado dice «Por revisar».
+   Una ficha que ya venía completa no se llena de marcas: solo llevan marca los campos que llegaron pendientes.
+5. **La lógica es pura, en `lib/<pantalla>-guia.ts`, con su prueba, y NO agrega reglas de negocio**: sale de lo que la validación real
+   ya bloquea, y una prueba exige que coincidan (modelo: `lib/alta-producto-guia.test.ts`, que recorre 19 escenarios contra
+   `problemasAlta`). Lo opcional de verdad no se lista como «falta»; lo recomendado que no bloquea es «sugerido» y **nunca un candado**.
+6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; solo se mueve lo que no se ve; sin animación con
+   `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); **sin rojo** (aquí nada es un error, es un camino) y solo
+   tokens (`app/estilos/alta-guia.css`, clases `hilo-*`). Verificado en escritorio y a 375 px (el pie del paso no se pega bajo `lg`).
+
+**Cómo se hace cumplir** (ya no depende de acordarse):
+- **`lib/guia-de-foco.test.ts` + `lib/guia-de-foco-pantallas.ts`:** cada `page.tsx` de `app/(app)` se declara `aplicada` (con los archivos
+  que usan las piezas: la prueba los abre y lo comprueba), `no-aplica` (con su motivo) o `pendiente` (la deuda de las pantallas
+  hechas ANTES de la regla; la cuenta `PENDIENTES_HOY` es exacta y solo baja). **Una pantalla nueva no puede nacer `pendiente`:** o
+  trae su guía o dice por qué no aplica. Ese archivo es también el tablero del despliegue módulo por módulo.
+- **Un modal o un componente con campos no es una `page.tsx`**: la prueba no lo ve, la regla vale igual. Lo pide la casilla de
+  `.github/pull_request_template.md`.
+- Al terminar una pantalla pendiente: pásala a `aplicada`, baja `PENDIENTES_HOY`, y escribe qué campos cuentan como «falta»
+  (una decisión de negocio de Felipe, no tuya: en Editar producto solo cuentan fotos, tejido y patrón). Detalle y decisiones:
+  `docs/adr/0284-nuevo-producto-que-guia-a-quien-lo-llena.md`.
 
 ## Vocabulario obligatorio
 
