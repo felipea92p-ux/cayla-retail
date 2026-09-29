@@ -10,7 +10,7 @@
  * si la clave está en su lista. Con la cuenta de una persona firma ella; con una terminal, la acción queda sin persona.
  * Una acción que NO está aquí sigue con su combo y su candado.
  *
- * EXCEPCIÓN — el alta de producto (ADR-0283, Felipe 2026-09-29). Las ocho claves `alta_producto_*` ya no se mandan DENTRO de «Nueva
+ * EXCEPCIÓN — el alta de producto (ADR-0285, Felipe 2026-09-29). Las ocho claves `alta_producto_*` ya no se mandan DENTRO de «Nueva
  * prenda»: ahí quien la inició se identifica una vez (`QuienRegistra`) y firma la prenda y todo lo que crea a mitad de camino
  * (`useFirmaDeMitad`, `lib/identidad-alta-reglas.ts`). Solo se usan como respaldo cuando esos componentes se montan FUERA del
  * alta (la marca nueva desde Marcas, la ficha o el conteo; el color desde «Agregar colores» de la ficha).

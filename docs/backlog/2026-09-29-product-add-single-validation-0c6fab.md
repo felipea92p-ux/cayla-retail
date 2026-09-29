@@ -1,4 +1,4 @@
-## 🧾 Una identidad para todo el alta de producto (2026-09-29, ADR-0283) — solo web, sin migración; rama `claude/product-add-single-validation-0c6fab`
+## 🧾 Una identidad para todo el alta de producto (2026-09-29, ADR-0285) — solo web, sin migración; rama `claude/product-add-single-validation-0c6fab`
 
 **Estado:** hecho en la rama; pruebas (153 027), `tsc` y `eslint` en verde; el recuadro se vio en el navegador con una sesión de Admin
 (escritorio y 375 px, sin errores de consola ni de servidor). **El camino de una terminal no se pudo ejercer en local** (falta la asistencia de Dynamic).
