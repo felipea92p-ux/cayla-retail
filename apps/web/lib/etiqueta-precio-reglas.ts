@@ -23,6 +23,9 @@ export type VarianteEtiqueta = {
   colorCodigo: string | null;
   color: string | null;
   talla: string | null;
+  /** De quién es la prenda (`productos.marca_id`, siempre tiene una). Opcional en el tipo: quien arma variantes sin ella
+   *  (pruebas, datos viejos) simplemente no la imprime. */
+  marca?: string | null;
 };
 
 /** Otra talla del mismo modelo: de aquí sale la fila «Tallas del modelo». */
@@ -42,6 +45,9 @@ export type EtiquetaPrecio = {
   prenda: string;
   color: string | null;
   talla: string | null;
+  /** La marca de la prenda (Felipe, 2026-09-29): va en el pie, a la izquierda del QR y sobre el código, que es el único
+   *  hueco que la etiqueta tiene con y sin campaña; sobre el nombre no cabe (con campaña sobra 1,4 mm de alto). */
+  marca?: string | null;
   /** Las tallas en que se hace el modelo EN ESTE COLOR —no el stock del día: la etiqueta impresa no cambia sola—,
    *  ordenadas como se leen en tienda. Siempre incluye la propia. */
   tallasDelModelo: string[];
@@ -132,6 +138,7 @@ export function armarEtiquetas(
       prenda: v.prenda,
       color: v.color,
       talla: v.talla?.trim() || null,
+      marca: v.marca?.trim() || null,
       tallasDelModelo: tallasDelModelo(v, hermanas),
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,

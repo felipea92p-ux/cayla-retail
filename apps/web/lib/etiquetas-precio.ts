@@ -88,7 +88,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   const variantes = exigir(
     await supabase
       .from("variantes")
-      .select("id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia )")
+      .select("id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia, marca:marcas ( nombre ) )")
       .in("id", [...entradas.keys()]),
     "las prendas a etiquetar",
   );
@@ -125,6 +125,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         colorCodigo: v.color_codigo,
         color: v.color?.nombre ?? null,
         talla: v.talla?.valor ?? null,
+        marca: v.producto?.marca?.nombre ?? null,
       })),
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
       mejorCampanaPorVariante(deHoy, hastas),

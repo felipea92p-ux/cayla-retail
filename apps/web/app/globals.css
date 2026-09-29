@@ -653,6 +653,22 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* La marca de la prenda (Felipe, 2026-09-29). Vive en el hueco del pie: a la izquierda del QR (16,6 mm de ancho) y sobre el
+     código, donde el QR de 17 mm de alto deja ~7 mm libres con y sin campaña. NO suma alto: la fila del pie la manda el QR.
+     Dos líneas y corta con puntos suspensivos (una marca larga no empuja el código ni entra en la zona muda del QR).
+     Texto chico = peso 800 (mínimo 700 desde 1,9 mm: trazo de 0,2 mm en la Brother, ver el encabezado de este bloque). */
+  .etq-marca {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.6mm;
+    font-size: 2mm;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
   /* «Impreso dd.mm.aa» no cabe en una línea al lado del QR y baja la fecha a la siguiente: así se diseñó. */
   .etq-datos small {
     font-size: 1.9mm;
