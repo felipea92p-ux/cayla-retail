@@ -276,9 +276,10 @@ export function FilaAlta({
 }
 
 /**
- * Un grupo opcional que arranca plegado («Temporada y etiquetas · opcional»). Plegado, la línea dice qué se eligió
- * («— Verano, 2 etiquetas»): nadie tiene que abrirlo para saber si ya lo llenó. Lo de adentro se desmonta al plegar,
- * así que su estado tiene que vivir en el formulario (las etiquetas propuestas ya viven ahí por eso).
+ * Un grupo opcional y plegable («Temporada y etiquetas · opcional»); quien lo usa decide si arranca abierto. Plegado,
+ * la línea dice qué se eligió («— Verano, 2 etiquetas»): nadie tiene que abrirlo para saber si ya lo llenó. Lo de
+ * adentro se desmonta al plegar, así que su estado tiene que vivir en el formulario (las etiquetas propuestas ya viven
+ * ahí por eso).
  */
 export function PlegableAlta({
   titulo,

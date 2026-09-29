@@ -242,6 +242,51 @@ insert into retail.tallas (valor, estado) values
   ('28', 'aprobado'), ('30', 'aprobado'), ('32', 'aprobado'), ('34', 'aprobado')
 on conflict do nothing;
 
+-- ---------- patrones (vocabulario cerrado desde 20260917100100) ----------
+-- Sin esto, una base nueva no tiene NI UN patrón: los tejidos sí llegan por migración
+-- (20260918140000_tejidos_seed.sql) pero los patrones no —en producción se cargaron a
+-- mano desde Catálogo ▸ Atributos—, y el mapa de categorías (20260918230200) salta ese eje
+-- con un aviso cuando no hay vocabulario. Consecuencia: en local, «Nuevo producto» de
+-- Indumentaria (que exige tejido Y patrón, `familias.exige_tejido_patron`) muestra en el
+-- paso 2 «no tiene patrones habilitados» y no deja avanzar (verificado 2026-09-29).
+--
+-- Son los 7 que Felipe acordó el 2026-09-18 (Liso incluido: es la respuesta a «sin diseño»;
+-- «Multicolor» queda fuera a propósito, no es un patrón) y se vinculan con el mismo mapa que
+-- 20260918230200 aplica en producción: toda Indumentaria activa, más Pañuelos y Pañoletas.
+--
+-- `fn_patrones_estado_trigger` deja `estado = 'pendiente'` en cualquier INSERT que no venga
+-- de un Líder con sesión (acá `auth.uid()` es null), así que se apaga solo mientras se
+-- siembra — mismo recurso que 20260918140000 (tejidos) y que las etiquetas más abajo — y se
+-- vuelve a encender. `aprobado_en` se pone a mano: es lo que el disparador habría escrito.
+-- Idempotente: `on conflict` apunta al índice normalizado `patrones_clave_unica`, así que no
+-- pisa un «Liso» que alguien ya cargó a mano en su base local, y el vínculo tampoco se duplica.
+alter table retail.patrones disable trigger patrones_estado_biut;
+
+insert into retail.patrones (nombre, estado, activo, aprobado_en, notas) values
+  ('Liso', 'aprobado', true, now(), 'Sin estampado — la mayoría del catálogo. Vive acá y no como ausencia de patrón, para poder filtrar «todo lo liso» como cualquier otro valor.'),
+  ('Rayas', 'aprobado', true, now(), 'Camisas y Blusas, Vestidos, Polos.'),
+  ('Cuadros', 'aprobado', true, now(), 'Camisas y Blusas, Faldas.'),
+  ('Lunares', 'aprobado', true, now(), 'Vestidos, Blusas.'),
+  ('Floral', 'aprobado', true, now(), 'Vestidos, Blusas, Faldas.'),
+  ('Animal print', 'aprobado', true, now(), 'Vestidos, Blusas, Tops.'),
+  ('Estampado', 'aprobado', true, now(), 'Genérico — cuando el diseño no encaja en ninguno de los anteriores (logos, gráficos, ilustraciones).')
+on conflict (retail.fn_clave_texto(nombre)) do nothing;
+
+alter table retail.patrones enable trigger patrones_estado_biut;
+
+-- Qué patrones ofrece cada categoría (retail.categoria_patrones). Se une por nombre y por
+-- familia, no por id, porque los ids de categoría se generan en cada base. Solo mapea los 7 de
+-- arriba: un patrón extra que alguien agregue a mano en su base no se cuela solo en el mapa.
+insert into retail.categoria_patrones (categoria_id, patron_id)
+select c.id, p.id
+from retail.categorias c
+  cross join retail.patrones p
+where c.activo
+  and (c.familia = 'indumentaria' or c.nombre = 'Pañuelos y Pañoletas')
+  and p.activo and p.estado = 'aprobado'
+  and p.nombre in ('Liso', 'Rayas', 'Cuadros', 'Lunares', 'Floral', 'Animal print', 'Estampado')
+on conflict do nothing;
+
 -- ---------- productos + variantes (10 productos, ~48 variantes) ----------
 insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
 select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Camisas y Blusas';

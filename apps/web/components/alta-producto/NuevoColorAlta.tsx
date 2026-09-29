@@ -13,7 +13,7 @@ import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
 import { useEnLinea } from "@/lib/useEnLinea";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // «+ Nuevo color» sin salir de Nuevo producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -34,7 +34,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 // loader). Si esa lectura falla, se sugiere con los activos y, si choca, la API responde «Ese código de 3 letras ya lo
 // usa otro color» y se muestra tal cual.
 //
-// Crear un color es un guardado aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_color`).
+// Crear un color es un guardado aparte del producto; en el alta lo firma quien la inició (`useFirmaDeMitad`), sin combo propio desde
+// 2026-09-29. Fuera del alta (la ficha de un producto) sigue soltado del combo, con su clave.
 
 export function NuevoColorAlta({
   colores,
@@ -64,6 +65,7 @@ export function NuevoColorAlta({
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(false);
   const enLinea = useEnLinea();
+  const firma = useFirmaDeMitad("alta_producto_color");
   const id = useId();
 
   // Todos los códigos ocupados, también los de colores desactivados (ver arriba).
@@ -101,13 +103,13 @@ export function NuevoColorAlta({
 
   async function crear() {
     setIntento(true);
-    if (guardando || bloqueo) return;
+    if (guardando || bloqueo || !firma.listo) return;
     setGuardando(true);
     setError(null);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("alta_producto_color") },
+        headers: { "Content-Type": "application/json", ...firma.encabezados() },
         body: JSON.stringify({ nombre: nombreDeColor(nombre), codigo, familiaColor: familia, hex }),
       });
       const datos = await res.json().catch(() => null);
@@ -227,12 +229,13 @@ export function NuevoColorAlta({
         </div>
       )}
 
+      <AvisoSinIdentidad firma={firma} />
       <div className="flex flex-wrap items-center gap-2.5">
         <button
           type="button"
           onClick={() => void crear()}
-          disabled={guardando || !enLinea || mismoNombre}
-          title={(!enLinea || mismoNombre ? bloqueo : null) ?? undefined}
+          disabled={guardando || !enLinea || mismoNombre || !firma.listo}
+          title={(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}
           className="btn-cayla btn-primario"
         >
           {guardando ? "Creando…" : "Crear y elegir"}

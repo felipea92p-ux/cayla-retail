@@ -7,8 +7,7 @@ import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -104,8 +103,7 @@ export function DesplegablePildora({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((o) => clave(o.texto).includes(k));
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;

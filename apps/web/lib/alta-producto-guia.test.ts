@@ -5,8 +5,6 @@ import { camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoC
 // Una prenda completa: nada falta. Cada prueba parte de ella y le quita lo que quiere probar.
 const completo: EstadoAlta = {
   categoriaId: "cat",
-  marcaId: "m",
-  proveedorId: "p",
   referencia: "Blusa Camila",
   comprobandoNombre: false,
   nombreBloqueado: false,
@@ -25,7 +23,7 @@ const completo: EstadoAlta = {
   stockInvalidas: 0,
   sinStock: false,
 };
-const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, responsableListo: true };
+const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, marcaElegida: true, responsableListo: true };
 
 const guia = (e: Partial<EstadoAlta> = {}, x: Partial<ExtraGuia> = {}) => camposDelAlta({ ...completo, ...e }, { ...extraCompleto, ...x });
 const idsPorHacer = (campos: ReturnType<typeof guia>, paso: PasoAlta) => faltanDelPaso(campos, paso).map((c) => c.id);
@@ -39,21 +37,30 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(Object.values(est).filter((s) => s === "ahora")).toHaveLength(1);
   });
 
-  it("paso 2 recién abierto: el nombre sigue, marca y tejido y patrón faltan, y la descripción es opcional", () => {
-    const est = estadosDeCampos(guia({ referencia: "", marcaId: "", proveedorId: "", tejidoId: "", patronId: "" }), 2);
+  it("paso 2 recién abierto: el nombre sigue, tejido y patrón faltan, y la descripción y la marca son opcionales", () => {
+    const est = estadosDeCampos(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false }), 2);
     expect(est.nombre).toBe("ahora");
     expect(est.descripcion).toBe("opcional");
-    expect(est.marca).toBe("falta");
+    expect(est.marca).toBe("opcional");
     expect(est.tejido).toBe("falta");
     expect(est.patron).toBe("falta");
   });
 
-  it("al hacer el nombre, «ahora» pasa a la marca (la descripción opcional se salta)", () => {
-    const est = estadosDeCampos(guia({ marcaId: "", proveedorId: "", tejidoId: "", patronId: "" }), 2);
+  it("al hacer el nombre, «ahora» salta lo opcional (descripción, marca) y pasa al tejido", () => {
+    const est = estadosDeCampos(guia({ tejidoId: "", patronId: "" }, { marcaElegida: false }), 2);
     expect(est.nombre).toBe("hecho");
     expect(est.descripcion).toBe("opcional");
-    expect(est.marca).toBe("ahora");
-    expect(est.tejido).toBe("falta");
+    expect(est.marca).toBe("opcional");
+    expect(est.tejido).toBe("ahora");
+    expect(est.patron).toBe("falta");
+  });
+
+  it("la marca y el proveedor son opcionales (ADR-0283): sin ellos no falta nada, y elegidos llevan ✓", () => {
+    const sin = guia({}, { marcaElegida: false });
+    expect(estadosDeCampos(sin, 2).marca).toBe("opcional");
+    expect(sin.some((c) => c.id === "marca" && (c.requerido || c.sugerido))).toBe(false);
+    expect(idsPorHacer(sin, 2)).toEqual([]);
+    expect(estadosDeCampos(guia({}, { marcaElegida: true }), 2).marca).toBe("hecho");
   });
 
   it("mientras se comprueba el nombre (o es un duplicado) el nombre sigue siendo «ahora», no «hecho»", () => {
@@ -124,8 +131,7 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["nombre repetido", { nombreBloqueado: true }, {}],
     ["nombre casi igual sin confirmar", { nombreSinConfirmar: true }, {}],
     ["comprobando el nombre", { comprobandoNombre: true }, {}],
-    ["sin marca", { marcaId: "" }, {}],
-    ["sin proveedor", { proveedorId: "" }, {}],
+    ["sin marca ni proveedor (opcionales desde ADR-0283)", {}, { marcaElegida: false }],
     ["sin tejido", { tejidoId: "" }, {}],
     ["sin patrón", { patronId: "" }, {}],
     ["tejidos sin habilitar", { hayTejidosEnCategoria: false, tejidoId: "" }, {}],
@@ -157,8 +163,8 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
 
 describe("faltanDelPaso y resumenFaltan — lo que falta por llenar, en palabras de la persona", () => {
   it("lista lo que falta del paso, en el orden de pantalla, y no lo opcional", () => {
-    const campos = guia({ marcaId: "", tejidoId: "", patronId: "" });
-    expect(idsPorHacer(campos, 2)).toEqual(["marca", "tejido", "patron"]);
+    const campos = guia({ tejidoId: "", patronId: "" }, { marcaElegida: false });
+    expect(idsPorHacer(campos, 2)).toEqual(["tejido", "patron"]);
   });
 
   it("los colores sin elegir se listan (son sugeridos) pero no bloquean", () => {
@@ -168,8 +174,8 @@ describe("faltanDelPaso y resumenFaltan — lo que falta por llenar, en palabras
   });
 
   it("resumenFaltan: singular, plural, vacío, y «por revisar» cuando solo quedan sugerencias", () => {
-    const campos = guia({ marcaId: "", tejidoId: "", patronId: "" });
-    expect(resumenFaltan(faltanDelPaso(campos, 2))).toBe("Faltan: marca y proveedor, tejido y patrón");
+    const campos = guia({ tejidoId: "", patronId: "" }, { marcaElegida: false });
+    expect(resumenFaltan(faltanDelPaso(campos, 2))).toBe("Faltan: tejido y patrón");
     expect(resumenFaltan(faltanDelPaso(guia({ tejidoId: "" }), 2))).toBe("Falta: tejido");
     expect(resumenFaltan(faltanDelPaso(guia(), 2))).toBeNull();
     // Los colores no bloquean: no se dice «falta» de algo que no impide crear.

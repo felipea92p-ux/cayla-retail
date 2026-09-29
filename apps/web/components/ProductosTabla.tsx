@@ -459,15 +459,16 @@ function FilaAncha({
               </p>
               {/* Sin columnas de marca ni tallas (tabla < @6xl), bajan aquí. */}
               <p className="truncate text-[11px] text-tinta/55 @6xl:hidden">
-                {p.marca}
+                {p.marca ?? "sin marca"}
                 {tallas.length > 0 && <span className="text-tinta/45"> · {tallas.join(" ")}</span>}
               </p>
             </div>
           </div>
         </td>
         <td className="hidden px-3 py-3 align-middle @6xl:table-cell">
-          <span className="block max-w-[11rem] truncate text-[12.5px] text-tinta/80">{p.marca}</span>
-          <span className="block max-w-[11rem] truncate text-[11px] text-tinta/55">{p.proveedor}</span>
+          {/* Lo que falta sale como chip ámbar (ADR-0283): un producto puede crearse sin marca y/o sin proveedor. */}
+          <span className="block max-w-[11rem] truncate text-[12.5px] text-tinta/80">{p.marca ?? <Chip tono="ambar" versalitas={false}>Sin marca</Chip>}</span>
+          <span className="block max-w-[11rem] truncate text-[11px] text-tinta/55">{p.proveedor ?? <Chip tono="ambar" versalitas={false}>Sin proveedor</Chip>}</span>
         </td>
         <td className="hidden px-3 py-3 align-middle @4xl:table-cell">
           <SwatchesColor colores={colores} activo={activo.nombre} onHover={activo.setHover} onFijar={activo.setFijo} tamano="h-3.5 w-3.5" max={4} />
@@ -617,7 +618,7 @@ function TarjetaFila({
             <p className="shrink-0 text-[14px] tabular-nums text-tinta">{fila.precio}</p>
           </div>
           <p className="mt-0.5 truncate text-[11px] text-tinta/55">
-            <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca}
+            <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca ?? "sin marca"}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <SwatchesColor colores={colores} activo={activo.nombre} onHover={activo.setHover} onFijar={activo.setFijo} tamano="h-4 w-4" max={5} />
@@ -682,7 +683,7 @@ function FichaVariantes({
         </p>
         <p className="text-[12px] text-tinta/60">
           <span className="@6xl:hidden">
-            {p.marca} · {p.proveedor} ·{" "}
+            {p.marca ?? "sin marca"} · {p.proveedor ?? "sin proveedor"} ·{" "}
           </span>
           {/* El total de la fila es de toda la red; el de cada variante, de esta sede: se dice cuál es cuál. */}
           Stock en {acciones.sede || "tu sede"}

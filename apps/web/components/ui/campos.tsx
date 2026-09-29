@@ -4,8 +4,7 @@ import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useSt
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -536,8 +535,7 @@ export function Desplegable<T extends string>({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((o) => clave(`${o.texto} ${o.grupo ?? ""}`).includes(k));
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto, detalle: o.grupo }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;

@@ -33,6 +33,8 @@ export type ResumenCreado = {
   colores: { codigo: string; nombre: string; hex: string | null }[];
   /** Resultado de subir las fotos elegidas en el alta. */
   fotos: { subidas: number; fallidas: string[]; coloresConFoto: string[] };
+  /** Lo que el producto todavía no tiene («Sin marca ni proveedor», «Sin marca», «Sin proveedor»), o null si está completo (ADR-0283). */
+  sinMarcaProveedor?: string | null;
   /** La carga inicial que entró con el producto (ADR-0212), o null si se creó sin stock. Sin conexión, entra al subir. */
   stock: { unidades: number; donde: string } | null;
   /** Sin conexión: cuántas fotos quedaron guardadas en este navegador para subir después del producto. */
@@ -121,6 +123,24 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
               "Sin stock todavía: cuando llegue, regístralo al recibirlo."
             )}
           </p>
+          {/* Nació sin marca y/o sin proveedor (ADR-0283): se dice aquí, en el momento en que la persona termina, y a dónde ir a completarlos. */}
+          {creado.sinMarcaProveedor && subida !== "descartada" && (
+            <p className="mt-1 text-sm text-ambar-profundo">
+              {creado.sinMarcaProveedor}: cuando los tengas, complétalos
+              {creado.id ? (
+                <>
+                  {" "}
+                  en{" "}
+                  <Link href={`/productos/${creado.id}/editar#producto-marca`} className="underline underline-offset-2">
+                    Editar el producto
+                  </Link>
+                </>
+              ) : (
+                " en Editar, cuando el producto suba"
+              )}
+              .
+            </p>
+          )}
         </div>
       </div>
 

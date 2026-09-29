@@ -40,6 +40,8 @@ export type CampoGuia = {
 export type ExtraGuia = {
   coloresElegidos: number;
   descripcionEscrita: boolean;
+  /** Marca y proveedor elegidos. Desde ADR-0283 (2026-09-29) un producto se crea sin ellos: es un campo OPCIONAL y ya no vive en `EstadoAlta`. */
+  marcaElegida: boolean;
   responsableListo: boolean;
 };
 
@@ -70,7 +72,8 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
             : "Comprobando que el nombre no exista todavía…",
     },
     { id: "descripcion", paso: 2, nombre: "Descripción", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo, los detalles." },
-    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: true, sugerido: false, hecho: Boolean(e.marcaId && e.proveedorId), pendiente: "Elige la marca y el proveedor." },
+    // Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió.
+    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "tejido",
       paso: 2,
