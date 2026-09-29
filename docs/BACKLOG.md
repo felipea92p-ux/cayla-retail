@@ -3270,10 +3270,12 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
       El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
       `db reset`, que no se pudo correr en local (Docker caído).
-- [ ] **Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
+- [x] ~~**Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
       que en local Nuevo producto de Indumentaria —que exige patrón— pide un «Liso» que no existe. El mapa de categorías
       se salta ese eje con un aviso (`230200`). Sembrar los 7 patrones en `seed.sql` (o en una migración, como se hizo con
-      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.
+      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.~~ **Hecho el
+      2026-09-29:** `seed.sql` siembra los 7 patrones y su mapa (133 vínculos); esa rama nunca llegó a `main` y no se usó.
+      Ver `docs/backlog/2026-09-29-eloquent-wilson-e9472e.md`.
 - [ ] **Inventario → Existencias no filtra por proveedor todavía.** «A quién pedirle» vive en Productos (donde está la
       señal «Pedir a proveedor»). Filtrar Existencias por proveedor pide cambiar `fn_stock_por_sede` y su pantalla.
 - [ ] **Compras no valida que el proveedor de una compra traiga la marca de lo que se compra.** Hoy `compras.proveedor_id`
