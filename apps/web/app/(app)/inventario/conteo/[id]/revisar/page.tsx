@@ -27,6 +27,10 @@ export default async function RevisarConteoPage({ params }: { params: Promise<{ 
   // Al navegador solo viajan las prendas de ESTE conteo, no el catálogo entero.
   const filas = unirLineasConPrendas(detalle.lineas, prendas);
 
+  // Un identificador de ESTA carga: si el enrutador devuelve una copia vieja de la página (vuelta desde Contar en menos de 30 s), la
+  // pantalla lo nota y se relee (mismo mecanismo que Contar).
+  const generadoEn = idDeCarga();
+
   return (
     <div className="space-y-6 pb-56 sm:pb-28">
       <EncabezadoPagina
@@ -36,7 +40,12 @@ export default async function RevisarConteoPage({ params }: { params: Promise<{ 
         pie={<Volver forma="boton" href={`/inventario/conteo/${c.id}`} a={`Conteo ${c.numero}`} />}
       />
       <PasosConteo actual="revisar" />
-      <RevisarConteo conteoId={c.id} filas={filas} />
+      <RevisarConteo key={`${c.id}-${generadoEn}`} conteoId={c.id} filas={filas} generadoEn={generadoEn} />
     </div>
   );
+}
+
+/** Un texto distinto por cada vez que el servidor arma esta página. Solo se compara por igualdad: no es una hora ni se lee. */
+function idDeCarga(): string {
+  return Date.now().toString(36);
 }

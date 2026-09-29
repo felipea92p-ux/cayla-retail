@@ -57,7 +57,7 @@ export default async function ConteoPage({
   const soloVariantes = idsDeParam(variantes);
   const soloPrendas = soloVariantes.flatMap((vid) => {
     const p = catalogo.find((x) => x.varianteId === vid);
-    return p ? [[p.referencia, p.talla, p.color].filter(Boolean).join(" · ")] : [];
+    return p ? [[p.referencia, p.color, p.talla].filter(Boolean).join(" · ")] : [];
   });
   const hrefTodo = `/inventario/conteo/${conteo.id}${volverA ? `?volver=${encodeURIComponent(volverA)}` : ""}`;
   const generadoEn = idDeCarga();
