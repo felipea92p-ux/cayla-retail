@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
+import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/productos-vista";
@@ -183,15 +184,8 @@ function TarjetaProducto({
             {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
           </p>
           {/* De quién es y quién lo trae (ADR-0109). En «Pequeño» solo la marca: el proveedor no cabe y se ve en la Tabla. */}
-          <p className="mt-0.5 truncate text-[11px] text-tinta/60" title={`${producto.marca} · ${producto.proveedor}`}>
-            {compacta ? (
-              producto.marca
-            ) : (
-              <>
-                {producto.marca} <span className="text-tinta/35">·</span> {producto.proveedor}
-              </>
-            )}
-          </p>
+          {/* Lo que falta sale como chip ámbar (ADR-0283): un producto puede crearse sin marca y/o sin proveedor. */}
+          <MarcaProveedorLinea marca={producto.marca} proveedor={producto.proveedor} compacta={compacta} className="mt-0.5 truncate text-[11px] text-tinta/60" />
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}

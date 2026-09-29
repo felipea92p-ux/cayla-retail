@@ -21,6 +21,7 @@ import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
+import { problemaAlEditar } from "@/lib/marca-proveedor-reglas";
 import { useParecidos } from "@/lib/use-parecidos";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
@@ -522,7 +523,9 @@ export function ProductoForm({
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
-    if (!marcaId || !proveedorId) return void avisar.error("Elige la marca y el proveedor del producto.", { enfocar: "producto-marca" });
+    // Marca y proveedor pueden faltar (ADR-0283), pero lo que el producto ya tenía se cambia, no se deja en blanco.
+    const sinDejarEnBlanco = problemaAlEditar({ marcaId: producto?.marcaId ?? "", proveedorId: producto?.proveedorId ?? "" }, { marcaId, proveedorId });
+    if (sinDejarEnBlanco) return void avisar.error(sinDejarEnBlanco, { enfocar: "producto-marca" });
     if (nombreCambio && parecidos.comprobando) return void avisar.error("Espera un momento: se está comprobando que el nombre no exista todavía.", { enfocar: "producto-referencia" });
     if (nombreCambio && parecidos.hayIdentico) return void avisar.error("Ya existe un producto con ese nombre.", { enfocar: "producto-referencia" });
     if (nombreCambio && parecidos.hayUnaLetra && !parecidos.confirmo) {
@@ -583,7 +586,8 @@ export function ProductoForm({
         ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
         ...(patronId ? { p_patron_id: patronId } : {}),
         // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
-        ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
+        // Solo se manda el que tiene valor: un campo vacío = «no tocar» (la base no deja borrar lo guardado).
+        ...(parejaCambio ? { ...(marcaId ? { p_marca_id: marcaId } : {}), ...(proveedorId ? { p_proveedor_id: proveedorId } : {}) } : {}),
         ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
         ...(versionRef.current !== null ? { p_version_esperada: versionRef.current } : {}),
       }),
@@ -845,6 +849,8 @@ export function ProductoForm({
             <div className="sm:col-span-2" id="producto-marca">
               <Campo etiqueta="Marca y proveedor" pie={antesDe("marcaProveedor")} tono={tonoDe("marcaProveedor")}>
                 <ElegirMarcaProveedor
+                  opcional
+                  guardado={{ marcaId: producto?.marcaId ?? "", proveedorId: producto?.proveedorId ?? "" }}
                   marcas={marcas.marcas}
                   proveedores={marcas.proveedores}
                   vinculos={marcas.vinculos}
@@ -856,10 +862,6 @@ export function ProductoForm({
                   onElegir={(m, p) => {
                     setMarcaId(m);
                     setProveedorId(p);
-                  }}
-                  onLimpiar={() => {
-                    setMarcaId("");
-                    setProveedorId("");
                   }}
                   puedeCrear
                 />
