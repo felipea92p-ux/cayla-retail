@@ -9,6 +9,7 @@ import { money, type VentaOk } from "@/components/PuntoDeVenta";
 import { EMISOR, emisorCompleto, type Emisor } from "@/lib/emisor";
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
 import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 
 type Props = {
   ok: VentaOk;
@@ -36,6 +37,8 @@ type Props = {
  */
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
   const r = ok.recibo;
+  // El PDF sale con el número del comprobante como nombre («B004-000004.pdf»), no «Retail - CAYLA.pdf».
+  useTituloDeImpresion(r ? textoNumeroRecibo(r) : null);
   const fh = r ? fechaHoraLima(r.emitidoEn) : null;
   const sinDatosFiscales = r !== null && !emisorCompleto(emisor);
 

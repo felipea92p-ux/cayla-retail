@@ -11,8 +11,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { TODOS } from "@/components/ui/FiltrosPildora";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import {
   PERIODOS_RECIBIDAS,
   ajustarRango,
@@ -193,8 +192,7 @@ function PastillaProveedor({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((o) => clave(o.nombre).includes(k));
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.nombre }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;

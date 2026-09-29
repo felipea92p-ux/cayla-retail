@@ -7,6 +7,7 @@
 import { ordenTalla } from "./catalogo-grupos";
 import { conDesde, desdeSeguro } from "./vuelta-productos";
 import { vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
+import { iconoDeEtiqueta, rotuloDeEtiqueta, type IconoEtiqueta } from "./etiqueta-visual";
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana } from "./vender-reglas";
 
@@ -37,6 +38,19 @@ export type CampanaDeVariante = { etiquetaId: string; nombre: string; pct: numbe
 /** Lo que la etiqueta dice de la campaña: el motivo, el %, hasta cuándo y el descuento que cobra la caja. */
 export type CampanaEtiqueta = { nombre: string; pct: number; hasta: string | null; descuento: number };
 
+/** Cuántos íconos de etiqueta comercial caben en el papel (Felipe, 2026-09-29): dos, uno al lado del otro. */
+export const MAX_ICONOS_EN_PAPEL = 2;
+
+/** Una etiqueta comercial de la prenda tal como la guarda la base, con o sin descuento: la elegida a mano
+ *  (`variante_etiquetas`) o la que la alcanza por su categoría (`etiqueta_categorias`). `pct` es `null` si no rebaja
+ *  el precio (Nuevo, Top ventas, Hecho a mano…). */
+export type EtiquetaDeLaPrenda = { etiquetaId: string; nombre: string; pct: number | null; desde: string | null; hasta: string | null };
+
+/** Una etiqueta comercial en el papel (Felipe, 2026-09-29): la familia de su ícono (`iconoDeEtiqueta`; `generico` si el
+ *  nombre no se reconoce), la palabra corta que lo acompaña (`rotuloDeEtiqueta`: un ícono solo no dice qué es) y el nombre
+ *  completo, que lee el lector de pantalla y sale en el `title` de la vista previa. */
+export type IconoDePapel = { icono: IconoEtiqueta | "generico"; rotulo: string; nombre: string };
+
 /** Una etiqueta lista para dibujar, con cuántas unidades entraron de esa prenda. */
 export type EtiquetaPrecio = {
   varianteId: string;
@@ -55,6 +69,10 @@ export type EtiquetaPrecio = {
   precio: number;
   /** La campaña de hoy, o `null`: la etiqueta siempre dice lo que la caja cobra HOY (Felipe, 2026-09-23). */
   campana: CampanaEtiqueta | null;
+  /** Los íconos de las etiquetas comerciales de la prenda (`iconosDelPapel`), de la más importante a la menos: a lo
+   *  sumo `MAX_ICONOS_EN_PAPEL`. Van al lado del nombre y no cambian el precio: el descuento es siempre uno solo,
+   *  el de `campana`. */
+  iconos: IconoDePapel[];
   /** Unidades que entraron (o que hay en la tienda): cuántas etiquetas se proponen. */
   cantidad: number;
 };
@@ -72,6 +90,86 @@ export function mejorCampanaPorVariante(
     if (!actual || c.pct > actual.pct || (c.pct === actual.pct && c.nombre.localeCompare(actual.nombre, "es") < 0)) mejor.set(f.variante_id, c);
   }
   return mejor;
+}
+
+/**
+ * Qué íconos de etiqueta comercial salen en el papel de UNA prenda (Felipe, 2026-09-29).
+ *
+ * PROMETE: a lo sumo `max` íconos distintos, en este orden de importancia:
+ *   1. el de la etiqueta cuyo descuento cobra la caja (`ganadoraId`, la de mayor %);
+ *   2. las demás que rigen hoy y llevan descuento, de mayor a menor %;
+ *   3. las que rigen hoy sin descuento (Nuevo, Hecho a mano…), por nombre;
+ *   4. las que todavía no empiezan, la más cercana primero: la colaboradora reconoce la prenda por su campaña desde que
+ *      la etiqueta, aunque aún no rija (Felipe).
+ *   Una etiqueta que ya terminó no sale. Dos de la misma familia («Para liquidar — Taller» y «Para liquidar — AQP»)
+ *   comparten dibujo y ocupan un solo lugar: dos íconos iguales no dicen nada más.
+ * NO HACE: no toca el precio. Que una prenda tenga dos etiquetas con descuento nunca los suma: la caja cobra el mayor
+ *   (`mejorCampanaPorVariante`, ADR-0107) y el papel dice ese mismo (`EtiquetaPrecio.campana`); acá solo se decide qué
+ *   íconos acompañan a ese precio.
+ */
+export function iconosDelPapel(
+  etiquetas: readonly EtiquetaDeLaPrenda[],
+  hoy: string,
+  ganadoraId: string | null,
+  max: number = MAX_ICONOS_EN_PAPEL,
+): IconoDePapel[] {
+  const candidatas: { e: EtiquetaDeLaPrenda; grupo: 0 | 1 | 2 | 3 }[] = [];
+  for (const e of etiquetas) {
+    // Sin fechas la etiqueta es permanente (`vigenciaDe` → null): rige siempre.
+    const v = vigenciaDe(e.desde, e.hasta, hoy);
+    if (v?.estado === "terminada") continue;
+    const proxima = v?.estado === "proxima";
+    candidatas.push({ e, grupo: proxima ? 3 : e.etiquetaId === ganadoraId ? 0 : e.pct !== null ? 1 : 2 });
+  }
+  candidatas.sort(
+    (a, b) =>
+      a.grupo - b.grupo ||
+      (a.grupo === 3 ? (a.e.desde ?? "").localeCompare(b.e.desde ?? "") : (b.e.pct ?? 0) - (a.e.pct ?? 0)) ||
+      a.e.nombre.localeCompare(b.e.nombre, "es"),
+  );
+  const iconos: IconoDePapel[] = [];
+  const vistos = new Set<string>();
+  for (const { e } of candidatas) {
+    const icono = iconoDeEtiqueta(e.nombre) ?? "generico";
+    if (vistos.has(icono)) continue;
+    vistos.add(icono);
+    iconos.push({ icono, rotulo: rotuloDeEtiqueta(e.nombre), nombre: e.nombre });
+    if (iconos.length >= max) break;
+  }
+  return iconos;
+}
+
+/** Los íconos de cada prenda: une las etiquetas que tiene a mano (`directas`) con las que la alcanzan por su categoría
+ *  (`porCategoria`) —los dos caminos que reconoce `fn_campanas_por_variante`, y nunca chocan: es la misma etiqueta— y
+ *  deja a `iconosDelPapel` elegir. `catalogo` trae solo las etiquetas aprobadas y activas. */
+export function iconosPorVariante(
+  variantes: readonly { id: string; categoriaId: string | null }[],
+  directas: ReadonlyMap<string, readonly string[]>,
+  porCategoria: ReadonlyMap<string, readonly string[]>,
+  catalogo: ReadonlyMap<string, Omit<EtiquetaDeLaPrenda, "etiquetaId">>,
+  campanas: ReadonlyMap<string, CampanaDeVariante>,
+  hoy: string,
+): Map<string, IconoDePapel[]> {
+  const iconos = new Map<string, IconoDePapel[]>();
+  for (const v of variantes) {
+    const ids = new Set([...(directas.get(v.id) ?? []), ...(v.categoriaId ? (porCategoria.get(v.categoriaId) ?? []) : [])]);
+    const suyas: EtiquetaDeLaPrenda[] = [];
+    for (const etiquetaId of ids) {
+      const e = catalogo.get(etiquetaId);
+      if (e) suyas.push({ etiquetaId, ...e });
+    }
+    iconos.set(v.id, iconosDelPapel(suyas, hoy, campanas.get(v.id)?.etiquetaId ?? null));
+  }
+  return iconos;
+}
+
+/** ¿La campaña que rebaja el precio ya sale en la fila de etiquetas del papel (con su ícono y su palabra)? Entonces el bloque
+ *  de precio no repite su nombre. Si no salió —una etiqueta armada sin íconos, o una que la fila no dejó entrar—, el bloque la
+ *  nombra como antes: una campaña nunca queda sin decir cuál es. Se compara por nombre completo (el de `campana` y el de
+ *  `IconoDePapel` salen de la misma etiqueta). */
+export function campanaSaleEnLaFila(e: Pick<EtiquetaPrecio, "campana" | "iconos">): boolean {
+  const campana = e.campana;
+  return campana !== null && e.iconos.some((i) => i.nombre === campana.nombre);
 }
 
 /** Qué día mirar para saber qué prendas alcanza una campaña: hoy si rige (o no tiene fechas), su último día si ya
@@ -117,6 +215,7 @@ export function armarEtiquetas(
   variantes: VarianteEtiqueta[],
   hermanas: HermanaEtiqueta[],
   campanas: ReadonlyMap<string, CampanaDeVariante> = new Map(),
+  iconos: ReadonlyMap<string, IconoDePapel[]> = new Map(),
 ): { etiquetas: EtiquetaPrecio[]; sinCodigo: string[] } {
   const etiquetas: EtiquetaPrecio[] = [];
   const sinCodigo: string[] = [];
@@ -142,6 +241,7 @@ export function armarEtiquetas(
       tallasDelModelo: tallasDelModelo(v, hermanas),
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,
+      iconos: iconos.get(v.id) ?? [],
       cantidad,
     });
   }

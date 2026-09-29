@@ -66,3 +66,37 @@ export function iconoDeEtiqueta(nombre: string): IconoEtiqueta | null {
   }
   return null;
 }
+
+// La palabra que acompaña al ícono en el papel de la etiqueta de precio (ADR-0180, «Actualización 2026-09-29 (c)»): un
+// ícono solo no dice qué es (¿una aguja?, ¿un reloj de arena?). Es una palabra CORTA por familia de concepto —no el nombre
+// de la etiqueta— porque en 34 mm útiles tienen que caber dos y «Día Internacional del Gato» no cabe. Se escribe como se lee:
+// el CSS la pone en mayúsculas. Las que llevan «Día» lo conservan (MADRE sola no dice de qué es).
+const ROTULOS: Record<IconoEtiqueta, string> = {
+  nuevo: "Nuevo",
+  ultimas: "Últimas",
+  top: "Top ventas",
+  liquidar: "Liquidar",
+  manual: "A mano",
+  unica: "Pieza única",
+  reedicion: "Reedición",
+  valentin: "Valentín",
+  galentine: "Galentine",
+  madre: "Día madre",
+  mujer: "Día mujer",
+  halloween: "Halloween",
+  navidad: "Navidad",
+  patrias: "Patrias",
+  blackfriday: "Black Friday",
+  cyberwow: "CyberWow",
+  aniversario: "Aniversario",
+  gato: "Día gato",
+  perro: "Día perro",
+  tierra: "Día tierra",
+};
+
+/** La palabra del papel para una etiqueta: la de su familia de concepto, o —si el nombre no se reconoce— su propio nombre
+ *  (el CSS lo corta con «…» si no cabe). */
+export function rotuloDeEtiqueta(nombre: string): string {
+  const icono = iconoDeEtiqueta(nombre);
+  return icono ? ROTULOS[icono] : nombre.trim();
+}

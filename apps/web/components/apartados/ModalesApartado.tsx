@@ -38,6 +38,7 @@ import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
@@ -88,6 +89,7 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
  *  hacer con la prenda en la mano. */
 export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { apartado: Apartado; vuelto: number; sede: string; onClose: () => void }) {
   const a = apartado;
+  useTituloDeImpresion(a.codigo); // el PDF sale como «APT-TRU-0004.pdf», no «Retail - CAYLA.pdf»
   const [hechos, setHechos] = useState<boolean[]>([false, false, false]);
   const pasos = [
     `Pega la etiqueta «APARTADO · ${a.codigo}» en la prenda.`,
@@ -174,6 +176,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; sede: string; onClose: () => void }) {
   const a = apartado;
+  useTituloDeImpresion(a.codigo);
   return (
     <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
       {(cerrar) => (

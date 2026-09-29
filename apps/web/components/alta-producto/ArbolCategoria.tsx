@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IconoFamilia } from "@/components/IconoFamilia";
 import type { Familia } from "@cayla-retail/shared";
 import type { CategoriaAlta, FamiliaAlta } from "@/lib/alta-producto-datos";
 import { repartirFamilias } from "@/lib/alta-producto";
+import { EtiquetaAhora } from "@/components/alta-producto/guia";
 
 // El primer paso: ¿QUÉ producto es? Dos toques (familia → categoría) o una
 // búsqueda que salta directo. Decidido con Felipe (2026-09-18): tarjetas por
@@ -54,6 +55,15 @@ export function ArbolCategoria({
   // Una familia abierta nunca puede quedar sin su tarjeta a la vista: si la abierta es de las de «Ver más», el bloque se muestra
   // completo aunque `expandido` diga otra cosa. Así ese estado no se puede dar, en vez de solo evitarlo en el clic.
   const secundariaAbierta = masFamilias.some((f) => f.codigo === familiaAbierta);
+
+  // Al tocar una familia, sus categorías aparecen ABAJO de las tarjetas, a veces medio cortadas: la persona no sabía que había que
+  // seguir (prueba con una trabajadora, 2026-09-29). Se traen a la vista con el menor movimiento posible.
+  useEffect(() => {
+    if (!familiaAbierta) return;
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = window.setTimeout(() => document.getElementById("categorias-de-la-familia")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" }), 60);
+    return () => window.clearTimeout(t);
+  }, [familiaAbierta]);
   const verTodas = expandido || secundariaAbierta;
 
   function alternarVerMas() {
@@ -162,7 +172,10 @@ export function ArbolCategoria({
       </div>
 
       <div>
-        <p className="label-cayla mb-2 text-[11px] text-tinta/60">Familia</p>
+        <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
+          Familia
+          {!familiaAbierta && <EtiquetaAhora />}
+        </p>
         <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-4">
           {aLaVista.map((f) => tarjeta(f))}
           {verTodas && masFamilias.map((f, i) => tarjeta(f, i))}
@@ -190,8 +203,11 @@ export function ArbolCategoria({
       </div>
 
       {familiaAbierta && (
-        <div>
-          <p className="label-cayla mb-2 text-[11px] text-tinta/60">Categoría</p>
+        <div id="categorias-de-la-familia" className="scroll-mb-28">
+          <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
+            Categoría
+            <EtiquetaAhora />
+          </p>
           <div className="grid grid-cols-2 gap-2 @xl:grid-cols-3 @4xl:grid-cols-4">
             {categoriasDeLaFamilia.map((c) => (
               <button

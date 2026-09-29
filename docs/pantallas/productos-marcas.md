@@ -96,6 +96,8 @@ Relevancia = (2·5 + 2 + 3 + 7) / 5 = **4,4** — Comodidad.
 ## 7 · Las 12 tareas, por importancia
 
 ### #1 · Corregir — Una marca «Por identificar» antes de la carga por censo
+
+> **Superada el 2026-09-29 por ADR-0283:** Felipe eligió vacío real (`marca_id` / `proveedor_id` admiten `NULL`) en vez de una marca comodín; el producto se crea sin marca y se completa al editar. Queda pendiente el censo de Conteo (`AltaAlVuelo.tsx`).
 - **Dónde:** dato en `marcas` (y su pareja en `proveedores`/`marca_proveedores`); `ElegirMarcaProveedor.tsx:196-203`; el cargador (`crear_producto_con_stock_inicial`, sin cambiar su firma).
 - **Por qué en este puesto:** mañana abre TRU y el catálogo entra por lotes. Sin comodín, la prenda de marca desconocida se detiene (sin permiso) o cae en «CAYLA» y ensucia la marca propia y sus cifras. Es lo único de esta lista con fecha.
 - **Cómo lo verificas tú:** `select nombre from retail.marcas where nombre ilike '%identificar%'` devuelve 1 fila, y `/productos?marca=<id>` lista las prendas que faltan por regularizar.

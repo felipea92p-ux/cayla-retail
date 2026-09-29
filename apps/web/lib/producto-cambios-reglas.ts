@@ -186,7 +186,11 @@ const DATOS: readonly DatoDeFicha[] = [
     campo: "marcaProveedor",
     etiqueta: "Marca y proveedor",
     valor: (f) => `${f.marcaId}|${f.proveedorId}`,
-    texto: (f, n) => (f.marcaId && f.proveedorId ? `${n.marca(f.marcaId)} · ${n.proveedor(f.proveedorId)}` : "(sin elegir)"),
+    // Cada uno puede faltar (ADR-0283): se dice cuál, no un «(sin elegir)» que no aclara qué falta.
+    texto: (f, n) =>
+      f.marcaId || f.proveedorId
+        ? `${f.marcaId ? n.marca(f.marcaId) : "sin marca"} · ${f.proveedorId ? n.proveedor(f.proveedorId) : "sin proveedor"}`
+        : "(sin marca ni proveedor)",
   },
   {
     campo: "descripcion",

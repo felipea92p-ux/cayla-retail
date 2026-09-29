@@ -22,6 +22,11 @@ import { cantidadEscrita } from "@/lib/conteo-reglas";
      · «+» suma 1 (desde vacío, deja 1). «−» resta 1 y se detiene en 0: desde vacío no hace nada (restar a algo que
        nadie contó no lo vuelve un cero verificado) y desde 0 tampoco baja. Parten del número que hay escrito en el campo.
 
+   LA CIFRA DE ANTES (`sugerida`). Una variante mandada a recontar (`conteo_recontar`) vuelve sin número, pero el campo muestra lo que
+   se había contado, ya escrito y seleccionado, para corregirlo en vez de teclearlo de cero. Es un borrador, no una cifra
+   guardada: la variante sigue «en reconteo» hasta que se acepta con Enter o con − / +, o se escribe otra. Salir del campo sin
+   tocarlo no guarda nada. Si sale igual que la vez anterior, la base confirma la diferencia sola (`conteo_contar`).
+
    Guardar al SALIR del campo (blur) y no solo con Enter: el teclado numérico del iPhone no trae Enter. Enter avanza al
    siguiente campo «Contaste» (lo decide quien arma la lista: `alEnter`); ↑ y ↓ del teclado suman y restan. Los botones
    − y + son de ratón y de dedo: no son parada de Tab, así quien cuenta con teclado no atraviesa tres controles por fila.
@@ -38,6 +43,7 @@ const BOTON =
 export const CampoContaste = memo(function CampoContaste({
   varianteId,
   contada,
+  sugerida = null,
   etiqueta,
   alConfirmar,
   alInvalido,
@@ -46,6 +52,8 @@ export const CampoContaste = memo(function CampoContaste({
   varianteId: string;
   /** Lo que la pantalla tiene contado de esta variante ahora (`null` = pendiente). */
   contada: number | null;
+  /** Lo que se había contado antes de mandar la variante a recontar: se muestra escrito mientras `contada` es `null`. */
+  sugerida?: number | null;
   /** Para el lector de pantalla: «Contaste de Blusa Emma Beige talla M». */
   etiqueta: string;
   /** Sube la cantidad al conteo. Devuelve `false` si no se aplicó (no hay responsable, por ejemplo): el campo vuelve a la cifra viva. */
@@ -55,7 +63,7 @@ export const CampoContaste = memo(function CampoContaste({
   /** Enter: pasar al siguiente campo. */
   alEnter: (campo: HTMLInputElement) => void;
 }) {
-  const [texto, setTexto] = useState(formato(contada));
+  const [texto, setTexto] = useState(formato(contada ?? sugerida));
   const [previa, setPrevia] = useState(contada);
   // «Sucio» = la persona tocó este campo y todavía no lo confirmó.
   const [sucio, setSucio] = useState(false);
@@ -63,13 +71,13 @@ export const CampoContaste = memo(function CampoContaste({
   // La cifra viva cambió (una lectura, la respuesta de la base): el campo la sigue, salvo que se esté escribiendo aquí.
   if (previa !== contada) {
     setPrevia(contada);
-    if (!sucio) setTexto(formato(contada));
+    if (!sucio) setTexto(formato(contada ?? sugerida));
   }
 
   const invalido = sucio && cantidadEscrita(texto) === undefined;
 
-  function confirmar() {
-    if (!sucio) return;
+  function confirmar(forzar = false) {
+    if (!sucio && !forzar) return;
     setSucio(false);
     const cantidad = cantidadEscrita(texto);
     if (cantidad === undefined) {
@@ -118,11 +126,13 @@ export const CampoContaste = memo(function CampoContaste({
           setSucio(true);
         }}
         onFocus={(e) => e.currentTarget.select()}
-        onBlur={confirmar}
+        onBlur={() => confirmar()}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter") {
             e.preventDefault();
+            // Aceptar con Enter la cifra de antes es una decisión, no una omisión: se guarda.
+            if (contada === null && sugerida !== null && !sucio) confirmar(true);
             alEnter(e.currentTarget);
           } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
             e.preventDefault();

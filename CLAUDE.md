@@ -48,8 +48,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    son el lugar.
 9. **Todo puede fallar** — diseña asumiendo que una dependencia externa no responde ahora
    mismo: hoy la integración real es SUNAT, vía el PSE Lucode para transmitir comprobantes
-   (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC a apis.net.pe (ADR-0008) y la
-   fila de `public.personas` que trae Dynamic
+   (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC (ADR-0008: primero el servicio
+   público y gratis de SUNAT, sin contrato; si no responde o no lo encuentra, apis.net.pe
+   de pago) y la fila de `public.personas` que trae Dynamic
    (`retail.fn_es_admin()` devuelve `false` sin error si falta); el sistema se degrada con
    gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
@@ -244,6 +245,8 @@ Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR
    (`useResponsable` + `<ComboResponsable>`), con el mismo candado de asistencia en todas partes. Los permisos se preguntan
    a la cuenta (`fn_ve_modulo`, `fn_es_lider`), no al responsable; `fn_actor_persona_id(false)` queda SOLO para comparar con
    la cuenta en un permiso («no te quites a ti mismo», `fn_alcanzo_a`). Detalle: ADR-0161, «Actualización 2026-09-23 (c)».
+4. **Guía de foco:** cada pantalla y cada modal del módulo con campos o pasos trae su guía y se declara en `lib/guia-de-foco-pantallas.ts`
+   (regla «Guía de foco», más abajo): `lib/guia-de-foco.test.ts` falla si una `page.tsx` o un modal nuevo no está declarado.
 
 **Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
 lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o
@@ -292,6 +295,52 @@ forma `caja` es hueso, igual que `CampoTexto caja`. Detalle: ADR-0209, actualiza
 `anim-revelar` (240 ms, sin espera). Dentro de un `<Modal>`, el hook la cuelga de la capa de la hoja
 (`[data-capa-flotante]`, fuera de la cascada). **Nunca la cuelgues suelta en la hoja:** la cascada la toma por contenido y
 la retrasa hasta 1 s (ADR-0211, «Actualización 2026-09-26 (b)»; lo vigila `lib/combos-fuera-de-la-cascada.test.ts`).
+
+## Guía de foco: cada pantalla dice qué falta y qué sigue (regla — ADR-0284, Felipe 2026-09-29)
+
+**Toda pantalla o modal donde alguien llena campos o avanza por pasos le dice, en el propio lugar, qué está hecho, qué sigue y qué
+falta. Es OBLIGATORIO en toda interfaz nueva o rediseñada, sin esperar a que Felipe lo pida módulo por módulo.** Nació de probar
+Nuevo producto con una trabajadora real que «no sabía por dónde ir, qué seguía ni qué le faltaba»: el sistema ya decía «qué falta»,
+pero en letra chica al fondo, y los campos mismos no decían nada. Una pantalla que la persona no puede recorrer sola no está terminada.
+
+Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y es el modelo):
+1. **Cada campo dice su estado**, en su título: ✓ hecho · «Sigue aquí» (uno solo a la vez, con un tinte suave) · falta · opcional.
+   Piezas: `MarcaCampo`, `EtiquetaAhora`, `ConMarca` (`components/alta-producto/guia.tsx`, `components/ficha-producto/TiraFicha.tsx`);
+   en un formulario por pasos, `<FilaAlta campo= estado=>` (`alta-producto/piezas.tsx`) y `<PasoAlta pie={{ faltan }}>`.
+   **En un modal (u hoja) el control que sigue se ENCIENDE**: un halo suave alrededor del bloque y la caja de texto, el combo o el
+   desplegable de adentro con el fondo más claro (`papel`); sirve a cualquier control —caja, combo, chips, interruptor, un grupo— y
+   al completarlo la luz pasa al siguiente. Se hace con `useGuiaCampos` + `<CampoGuiado>` alrededor de cada bloque + `<PieGuia>` sobre
+   el botón principal (`components/guia-de-foco/`; lógica en `lib/guia-campos.ts`; piloto: `components/NuevaClientaModal.tsx`). Una regla
+   de grupo («basta uno de tres datos») es UN campo virtual que envuelve a los tres. **La guía no cambia qué se puede confirmar.**
+2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Para completar esta ficha» (`TiraFicha`) en una ficha que se edita:
+   cada cosa **lleva al campo** (lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor). Los campos se
+   encuentran por `data-campo` con `irAlIdCampo` / `useGuiaAlta` (`alta-producto/useGuiaAlta.ts`), **nunca por clases de estilo**.
+3. **«Siguiente: …» tocable** en el resumen o la barra fija (`FichaPrevia`); en celular, la barra de abajo.
+4. **Un paso o una sección solo lleva ✓ si la persona la visitó** (`pasoConfirmado`); uno que viene armado dice «Por revisar».
+   Una ficha que ya venía completa no se llena de marcas: solo llevan marca los campos que llegaron pendientes.
+5. **La lógica es pura, en `lib/<pantalla>-guia.ts`, con su prueba, y NO agrega reglas de negocio**: sale de lo que la validación real
+   ya bloquea, y una prueba exige que coincidan (modelo: `lib/alta-producto-guia.test.ts`, que recorre 19 escenarios contra
+   `problemasAlta`). Lo opcional de verdad no se lista como «falta»; lo recomendado que no bloquea es «sugerido» y **nunca un candado**.
+6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; solo se mueve lo que no se ve; sin animación con
+   `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); **sin rojo** (aquí nada es un error, es un camino) y solo
+   tokens (`app/estilos/alta-guia.css`, clases `hilo-*`). Verificado en escritorio y a 375 px (el pie del paso no se pega bajo `lg`).
+
+**Cómo se hace cumplir** (ya no depende de acordarse):
+- **`lib/guia-de-foco.test.ts` + `lib/guia-de-foco-pantallas.ts`:** cada `page.tsx` de `app/(app)` (`PANTALLAS`) **y cada modal** (`MODALES`:
+  todo archivo de `components/` o `app/(app)/` que dibuja un `<Modal>`, `<ModalRuta>` o `Dialog.Content` con campos; la clave es su archivo)
+  se declara `aplicada` (con los archivos que usan las piezas: la prueba los abre y lo comprueba), `no-aplica` (con su motivo; un modal
+  de UN solo control suele serlo) o `pendiente` (la deuda de lo hecho ANTES de la regla; las cuentas `PENDIENTES_HOY` y
+  `MODALES_PENDIENTES_HOY` son exactas y solo bajan). **Una pantalla o un modal nuevo no puede nacer `pendiente`:** o trae su guía o dice
+  por qué no aplica. Ese archivo es también el tablero del despliegue módulo por módulo.
+- **`/focus` (skill) + `pnpm focus`:** recorre las pantallas **y los modales** que estás construyendo o editando (`scripts/focus/escanear.mjs`:
+  archivos cambiados → pantallas y modales → ¿campos? ¿usa las piezas de la guía? ¿qué dice el registro?), **avisa a Felipe cuáles no la
+  tienen y después la implementa** con el estándar. Correla antes de dar por terminada cualquier pantalla o modal con campos o pasos; con `todo` solo
+  informa el tablero completo. No decide reglas de negocio: «falta» sale de la validación que ya existe.
+- **Lo que la prueba no ve:** un componente con campos que no es página ni modal (un panel embebido, una fila que se edita en la lista).
+  La regla vale igual; lo pide la casilla de `.github/pull_request_template.md`.
+- Al terminar una pantalla o un modal pendiente: pásalo a `aplicada`, baja el contador que toque (`PENDIENTES_HOY` o `MODALES_PENDIENTES_HOY`), y escribe qué campos cuentan como «falta»
+  (una decisión de negocio de Felipe, no tuya: en Editar producto solo cuentan fotos, tejido y patrón). Detalle y decisiones:
+  `docs/adr/0284-nuevo-producto-que-guia-a-quien-lo-llena.md`.
 
 ## Vocabulario obligatorio
 
@@ -393,7 +442,7 @@ sin que nada avisara.
 **Antes de empezar algo grande en este repo**, mirar si alguien más ya lo está
 haciendo: `git status --short` y los archivos tocados en las últimas horas. El
 2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
-Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
+Skills de este repo: `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco y la implementa; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el

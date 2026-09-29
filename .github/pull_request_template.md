@@ -6,6 +6,10 @@
 
 - [ ] Si toca Vender, Cambios o Devoluciones (`/vender`, `/vender/apartados`, `/cambios`, `/devoluciones`, o los componentes `PuntoDeVenta*`, `Cambio*`/`Cambios*`, `Devoluciones*`): **probado a 375 px de ancho, con captura** adjunta aquí. Caja y Almacén siguen siendo de escritorio (PL-105).
 
+- [ ] Si agrega o cambia una pantalla o un modal donde se llenan campos o se avanza por pasos: **lleva su guía de foco** (qué está
+  hecho, qué sigue y qué falta; CLAUDE.md «Guía de foco», ADR-0284) y, si es una pantalla nueva, está declarada en
+  `lib/guia-de-foco-pantallas.ts`; o el cuerpo dice por qué no aplica. Una pantalla nueva no nace «pendiente».
+
 ## SQL para producción
 
 <!-- Si el PR agrega archivos en `supabase/migrations/`: cada uno en orden, en cuántas partes se pega y la consulta que

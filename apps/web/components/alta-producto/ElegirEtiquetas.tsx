@@ -23,7 +23,7 @@ import {
   significadoDelTexto,
   textoDeDescuento,
 } from "@/lib/etiquetas-alta-reglas";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -41,7 +41,7 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
      ASUME:   `etiquetas` = aprobadas y activas (lo que trae `getContextoAlta`, más las creadas aquí). Quien no es líder
               no ve las que llevan descuento (`repartirEtiquetas`): la base las rechazaría, así que ni se ofrecen.
      NO HACE: no guarda la prenda ni sus etiquetas (eso es del envío del formulario, `p_etiqueta_ids`); solo crea una
-              etiqueta NUEVA en el vocabulario, y solo con conexión (sin combo «Responsable» desde 2026-09-29).
+              etiqueta NUEVA en el vocabulario, y solo con conexión (la firma quien inició el alta, sin combo propio desde 2026-09-29).
 
    A diferencia de Tejido/Patrón/Temporada: acá se elige de a VARIAS (no una), así que tocar una tarjeta en la hoja NO
    la cierra, y el «Ver todos» cuenta el universo entero (elegibles + cubiertas), no solo lo que ofrece una categoría.
@@ -406,7 +406,7 @@ function HojaEtiquetas({
   );
 }
 
-// «Crear» es UNA escritura aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_etiqueta`).
+// «Crear» es UNA escritura aparte del producto; la firma quien inició el alta (`useFirmaDeMitad`), sin combo propio desde 2026-09-29.
 // NO va dentro de la transacción del alta: si crear la etiqueta fallara a mitad, la persona perdería la prenda que llenaba.
 // Si la red cae, la respuesta es «No se pudo hablar con el servidor» y NO se crea nada: la prenda y lo llenado siguen ahí.
 // Lo que pasa después lo decide la RESPUESTA (¿quedó aprobada?), no lo que este panel anunció: `puedeAprobar` solo cambia el texto.
@@ -426,12 +426,13 @@ function CrearEtiquetaAbierta({
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const firma = useFirmaDeMitad("alta_producto_etiqueta");
 
   async function crear() {
-    if (trabajando) return;
+    if (trabajando || !firma.listo) return;
     setTrabajando(true);
     setError(null);
-    const { valor, error: errCrear } = await proponerEtiqueta(nombre, encabezadosOmitidos("alta_producto_etiqueta"));
+    const { valor, error: errCrear } = await proponerEtiqueta(nombre, firma.encabezados());
     setTrabajando(false);
     if (errCrear || !valor) {
       setError(errCrear ?? "No se pudo crear la etiqueta. Reintenta.");
@@ -464,8 +465,9 @@ function CrearEtiquetaAbierta({
           ? "Queda en el catálogo para usarla en otras prendas, y se marca en esta."
           : "Queda pendiente: un líder tiene que aprobarla en Catálogo → Atributos antes de poder marcarla en una prenda."}
       </p>
+      <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void crear()} disabled={trabajando} className="btn-cayla btn-primario">
+        <button type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined} className="btn-cayla btn-primario">
           {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
         </button>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">

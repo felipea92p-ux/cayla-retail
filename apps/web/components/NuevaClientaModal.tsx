@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { traducirError } from "@/lib/error-escritura";
@@ -18,6 +20,23 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
   const [guardando, setGuardando] = useState(false);
   const responsable = useResponsable();
+
+  // Guía de foco (CLAUDE.md «Guía de foco»): el camino sale de las dos reglas que ya validan abajo, no de reglas nuevas.
+  //   · basta UN dato de identificación (DNI, nombre o WhatsApp): un solo campo virtual que enciende a las tres cajas juntas;
+  //   · y alguien de turno que registre. El permiso de WhatsApp y el cumpleaños son opcionales.
+  const conDato = (v: string) => v.trim() !== "";
+  const guia = useGuiaCampos([
+    {
+      id: "identificacion",
+      nombre: "Un dato de la clienta",
+      requerido: true,
+      hecho: conDato(alta.dni) || conDato(alta.nombre) || conDato(alta.telefonoWhatsapp),
+      pendiente: "Escribe al menos un dato: DNI, nombre o WhatsApp.",
+    },
+    { id: "permiso", nombre: "Permiso de WhatsApp", requerido: false, hecho: alta.aceptaWhatsapp, pendiente: "" },
+    { id: "cumple", nombre: "Cumpleaños", requerido: false, hecho: conDato(alta.cumpleDia) || conDato(alta.cumpleMes), pendiente: "" },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
 
   async function onRegistrar(e: React.FormEvent) {
     e.preventDefault();
@@ -59,23 +78,27 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
   return (
     <Modal titulo="Registrar clienta" subtitulo="Identificación mínima y no invasiva: DNI o celular alcanzan." onClose={onClose} variante="hoja">
       {(cerrar) => (
-        <form onSubmit={onRegistrar} className="space-y-4">
-          <CampoTexto etiqueta="DNI (opcional)" value={alta.dni} onChange={(e) => setAlta((a) => ({ ...a, dni: e.target.value }))} mono inputMode="numeric" />
-          <CampoTexto etiqueta="Nombre" value={alta.nombre} onChange={(e) => setAlta((a) => ({ ...a, nombre: e.target.value }))} />
-          <CampoTexto
-            etiqueta="WhatsApp"
-            value={alta.telefonoWhatsapp}
-            onChange={(e) => setAlta((a) => ({ ...a, telefonoWhatsapp: e.target.value }))}
-            mono
-            inputMode="tel"
-          />
-          <Interruptor
-            activo={alta.aceptaWhatsapp}
-            onActivo={(v) => setAlta((a) => ({ ...a, aceptaWhatsapp: v }))}
-            etiqueta="Acepta que la contactemos por WhatsApp"
-            pie="Permiso APARTE de dejar el número — nunca se asume (Ley 29733)."
-          />
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={onRegistrar} className="space-y-6">
+          <CampoGuiado id="identificacion" guia={guia} titulo="Identificación" ayuda="Basta con uno: DNI, nombre o WhatsApp" className="space-y-3">
+            <CampoTexto etiqueta="DNI (opcional)" value={alta.dni} onChange={(e) => setAlta((a) => ({ ...a, dni: e.target.value }))} mono inputMode="numeric" />
+            <CampoTexto etiqueta="Nombre" value={alta.nombre} onChange={(e) => setAlta((a) => ({ ...a, nombre: e.target.value }))} />
+            <CampoTexto
+              etiqueta="WhatsApp"
+              value={alta.telefonoWhatsapp}
+              onChange={(e) => setAlta((a) => ({ ...a, telefonoWhatsapp: e.target.value }))}
+              mono
+              inputMode="tel"
+            />
+          </CampoGuiado>
+          <CampoGuiado id="permiso" guia={guia}>
+            <Interruptor
+              activo={alta.aceptaWhatsapp}
+              onActivo={(v) => setAlta((a) => ({ ...a, aceptaWhatsapp: v }))}
+              etiqueta={guia.etiqueta("permiso", "Acepta que la contactemos por WhatsApp")}
+              pie="Permiso APARTE de dejar el número — nunca se asume (Ley 29733)."
+            />
+          </CampoGuiado>
+          <CampoGuiado id="cumple" guia={guia} className="grid grid-cols-2 gap-3">
             <CampoTexto
               etiqueta="Día de cumpleaños"
               value={alta.cumpleDia}
@@ -92,13 +115,23 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
               inputMode="numeric"
               placeholder="1-12"
             />
-          </div>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para registrar." />
           <div className="flex justify-end gap-3 pt-2">
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={guardando}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={guia.claseConfirmar}
+            >
               Registrar
             </Boton>
           </div>
