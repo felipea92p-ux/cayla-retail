@@ -35,10 +35,22 @@ function fila(id: IdCampo): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-campo="${id}"]`);
 }
 
-/** Deja el campo a la vista con el menor movimiento posible. */
-export function asegurarVisible(id: IdCampo): void {
+/** ¿La persona está escribiendo ahora (foco en una caja de texto)? Entonces la guía mueve su luz pero NUNCA la página: al teclear el
+ *  precio no puede saltar. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil. */
+export function estaEscribiendo(): boolean {
+  const activo = document.activeElement;
+  return activo instanceof HTMLTextAreaElement || (activo instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(activo.type));
+}
+
+/** Deja el campo a la vista con el menor movimiento posible. Dentro de un modal el que se desplaza es el modal, no la ventana:
+ *  ahí basta con «lo justo» (`nearest`), que no hace nada si ya se ve. */
+export function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): void {
   const el = fila(id);
   if (!el) return;
+  if (opciones.enModal) {
+    el.scrollIntoView({ block: "nearest", behavior: reducido() ? "auto" : "smooth" });
+    return;
+  }
   const r = el.getBoundingClientRect();
   const alto = window.innerHeight;
   const abajo = abajoTapado();
@@ -48,12 +60,13 @@ export function asegurarVisible(id: IdCampo): void {
 }
 
 /** Lleva a la persona al campo: lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor. */
-export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?: boolean } = {}): void {
-  const { destello = true, cursor = CON_CURSOR.has(id) } = opciones;
+export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?: boolean; enModal?: boolean } = {}): void {
+  const { destello = true, cursor = CON_CURSOR.has(id), enModal = false } = opciones;
   const el = fila(id);
   if (!el) return;
-  asegurarVisible(id);
-  if (cursor) el.querySelector<HTMLElement>("input:not([disabled]), textarea")?.focus({ preventScroll: true });
+  asegurarVisible(id, { enModal });
+  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige.
+  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea:not([disabled])')?.focus({ preventScroll: true });
   if (!destello) return;
   el.removeAttribute("data-llamado");
   // Reinicia la animación aunque se pida dos veces seguidas.

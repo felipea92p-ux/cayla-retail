@@ -1,6 +1,6 @@
 "use client";
 
-import type { CampoGuia, EstadoCampo } from "@/lib/alta-producto-guia";
+import type { CampoDeGuia, EstadoCampo } from "@/lib/guia-campos";
 
 // Las piezas visuales de «el hilo» (ADR-0284): la marca del título de un campo, la etiqueta «Sigue aquí» y la lista «Falta:» del
 // pie de cada paso. Sus estilos viven en `app/estilos/alta-guia.css`; aquí solo se decide qué se dice y cómo se lee con lector
@@ -42,7 +42,7 @@ export function EtiquetaAhora() {
  * formulario: `onIr`). Con solo sugerencias (los colores) no dice «Falta» —crear ya se puede— sino «Sin elegir» y avisa que se
  * puede seguir así.
  */
-export function FaltanDelPaso({ faltan, ahora, onIr }: { faltan: readonly CampoGuia[]; ahora: string | null; onIr: (c: CampoGuia) => void }) {
+export function FaltanDelPaso<T extends CampoDeGuia>({ faltan, ahora, onIr }: { faltan: readonly T[]; ahora: string | null; onIr: (c: T) => void }) {
   const soloSugeridas = faltan.every((c) => !c.requerido);
   const cabeza = soloSugeridas ? "Sin elegir" : faltan.length === 1 ? "Falta" : "Faltan";
   return (
