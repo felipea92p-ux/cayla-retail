@@ -1,297 +1,215 @@
-# Pantalla — Productos, vista Grilla (`/productos`)
+# Pantalla — Productos, listado (`/productos`, vistas Grilla y Tabla)
 
-> Modo: completo · Fecha: 2026-09-21 (reescrito el mismo día con los cuerpos reales de producción y una verificación adversarial) · Rol/sede: líder, sede TRU · Datos: **casi completo** (A1–A3, C1, D2, D3, E3, E4c de Felipe; agregados de solo lectura que consultó un agente; pendientes al final)
-> SHA analizado: `518132fb` (origin/main). Comprobado contra `3966c1d0` (origin/main al cierre de esta reescritura): los archivos de esta pantalla (`page.tsx`, `ProductosGrilla.tsx`, `ProductosAgrupados.tsx`, `catalogo-v2.ts`, `fn_productos*`) no cambiaron; solo cambiaron `/productos/categorias` y la migración `20260921170000_productos_por_categoria.sql` (otra pantalla). Si cambian después, este análisis está vencido.
-> Archivos: `apps/web/app/(app)/productos/page.tsx` · `components/ProductosGrilla.tsx` · `components/FiltrosProductos.tsx` · `components/ProductosAgrupados.tsx` · `lib/catalogo-v2.ts` · RPC `fn_productos`, `fn_productos_resumen`, `fn_productos_buscar` (`20260918231300_productos_por_marca_y_proveedor.sql`) · tablas `productos`, `variantes`, `stock`, `producto_fotos`, `marcas`, `proveedores`, `categorias`, `codigos_barras`
-> **Ejecución (2026-09-22):** Felipe eligió la **opción A** y ordenó las tareas #1 a #4: hechas en la rama `claude/pantalla-ebc078` (ADR-0151), y pasaron una revisión adversarial de tres revisores cuyos hallazgos están corregidos. La migración (una sola, `20260922120000`) **no está en producción**. El resto del análisis (#5 a #12) sigue vigente y sin ejecutar.
-> Otra sesión tocándola: sí — `product-creation-decision-tree-0afe63` (ADR-0109: marca, proveedor y «A quién pedirle»); `AppShell.tsx` tiene 6 PRs abiertos.
-> Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` cuerpo o consulta que pegó Felipe · `[producción-agente]` lectura de solo lectura hecha por un agente de verificación (Felipe debe confirmarla con las consultas del apéndice) · `[inferido]` · `[no verificable]`.
+> Modo: completo (re-análisis) · Fecha: 2026-09-29 · Rol/sede: líder y admin, Tienda Lima (local; la pantalla sí depende de la sede: «En tu sede») · Datos: **real** — consultas de solo lectura a producción hechas por el agente en la sesión (no las corrió Felipe; el apéndice de `catalogo-plan-de-ataque.md` las lista para que las confirme) y recorrido visual en local (10 productos de siembra; **producción tiene 2 productos, y uno es el centinela que esta pantalla esconde**)
+> SHA analizado: `38f9d7ce` (origin/main; el código se leyó en `123bb733` y entre los dos solo cambió `alta-producto/ProductoCreado.tsx`). Si cambian `productos/page.tsx`, `ProductosGrilla.tsx`, `ProductosTabla.tsx`, `FiltrosProductos.tsx`, `lib/catalogo-v2.ts`, `lib/productos-stock.ts`, `lib/productos-vista.ts` o `fn_productos*` (`20260929020000`), este análisis está vencido.
+> Archivos: `apps/web/app/(app)/productos/{page,layout}.tsx` · `@modal/` · `components/ProductosGrilla.tsx` · `components/ProductosTabla.tsx` · `components/FiltrosProductos.tsx` · `components/AQuienPedirle.tsx` · `components/Paginacion.tsx` · `components/EliminarProductoModal.tsx` · `lib/catalogo-v2.ts` · `lib/productos-stock.ts` · `lib/productos-vista.ts` · `lib/useStockEnSede.ts` · RPC `fn_productos`, `fn_productos_resumen`, `fn_productos_buscar`, `fn_existencias_productos`, `cambiar_estado_productos` · tablas `productos`, `variantes`, `stock`, `producto_fotos`, `marcas`, `proveedores`, `categorias`
+> Otra sesión tocándola: **no directamente.** Las filas 20, 21 y 25 de `docs/SESIONES-ACTIVAS.md` nombran `ProductosAgrupados.tsx` y `productos-margen.ts`, que **ya no existen** (ramas fusionadas): filas viejas.
+> **Re-análisis.** El anterior (`518132fb`, 2026-09-21) estaba **vencido** (68 commits desde entonces; `ProductosAgrupados.tsx` se reemplazó por `ProductosTabla.tsx`; ADR-0254 quitó las cifras de la cabecera; ADR-0270 cambió la cifra de stock) y no se tomó como base. Las tareas abiertas de `catalogo-inventario.md` (2026-09-28) siguen vigentes y **no se repiten aquí**: #1, #6, #8–#12.
+> Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción-agente]` consulta de solo lectura del 2026-09-29 · `[inferido]` · `[no verificable]`.
 
 ## 0 · Veredicto
-Es un catálogo sano por dentro (la base impide los estados peligrosos) pero **tres números de su cabecera dicen algo distinto de lo que el ojo lee**: «Stock» suma toda la red incluido el Taller, «sin stock» y «para pedir» cuentan prendas descontinuadas, y «190 variantes» está inflado por un `count` sobre un `join`. Además está pensada para administrar, no para el mostrador.
-**Cumple su finalidad:** 5/10 (promedio 5.6, con tope 5: un modelo descontinuado puede salir en «A quién pedirle») · **Relevancia:** 6.8/10 — Soporte
+La pantalla ya dejó de mentir en lo grande: la cifra de stock es una sola en la base (ADR-0270, en producción desde el 28-sep) y la cabecera ya no muestra cifras que se contradigan. Lo que queda son **tres números que aún salen de caminos distintos** (Grilla «En tu sede», Tabla «Stock» sin rotular y la vista rápida leyendo la tabla cruda), un panel de reposición («A quién pedirle») que **se calcula caro, subcuenta sin avisar y puede tumbar la pantalla entera**, y un catálogo que mañana se llena con cientos de prendas **sin foto** y se verá como una pared de perchas.
+**Cumple su finalidad:** 6,9/10 · **Relevancia:** 6,8/10 — Soporte (es la pantalla del catálogo que más gente abre)
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para que CAYLA sepa qué prendas tiene (modelo → talla → color), a qué precio, de qué marca y proveedor, y a quién pedirle lo que se agota." Fuente: `docs/datos/modulos/02-catalogo-y-vocabulario.md` (pájaro LORO), ADR-0077 y ADR-0109. El módulo 02 avisa que describe V1: sobre el modelo mandan el código y producción. ¿Docs y pantalla coinciden? En lo esencial sí; en el stock, no (ver objeción 2).
+"Esta pantalla existe para que CAYLA sepa qué prendas tiene (modelo → talla → color), a qué precio, de qué marca y proveedor, cuánto hay en su sede y a quién pedirle lo que se agota." Fuente: ADR-0077 (grilla), ADR-0109 (marca y proveedor), ADR-0254 (tabla para todos y cabecera de Ventas) y ADR-0270 (una sola cifra); `docs/datos/modulos/02-catalogo-y-vocabulario.md` avisa que describe V1 y no se cita como vigente. **No la captura.** ¿Docs y pantalla coinciden? **Casi:** la frase de la cabecera (`productos-stock.ts:31`) dice «Aquí es lo que se puede vender en la sede elegida» y solo la Grilla lo cumple; la Tabla y la vista rápida no lo rotulan igual. `SESIONES-ACTIVAS.md` está desactualizado en tres filas. Ninguna D-nn cubre el umbral de margen «sano».
 
 ## 2 · Objeción
-1. **Los descontinuados se mezclan con los activos y ensucian los contadores que deciden qué pedir.** `fn_productos` y `fn_productos_resumen` no filtran `estado` (`filtrosProductosDesdeParams` deja `estado` en `undefined`); `reponer_de_proveedor` tampoco lo mira. La tarjeta de la Grilla no muestra el estado (solo el chip dentro de la vista rápida, `ProductosGrilla.tsx:293`; la Tabla sí lo muestra). `[código]` `[producción]` Hay 45 productos, 39 activos; la pantalla muestra 44 (= 45 menos el producto especial de cargos), o sea unos 38 activos y 6 descontinuados. Por eso «23 sin stock» no coincide con los 18 activos sin stock que midió E4c. `[inferido]` `[producción-agente]` Con los descontinuados fuera, «sin stock» sería 17 y «para pedir» 0: los «3 para pedir» y el bloque «A quién pedirle · CAYLA SAC · 3 productos» son prendas de prueba descontinuadas con ventas de los últimos 30 días, y se apagan solas hacia el 14–16 de octubre. El defecto es estructural: una prenda real que se descontinúa en liquidación saldría como «pídele al proveedor». Es una decisión de negocio tuya: ¿un descontinuado cuenta como «sin stock»?
-2. **«Stock N» no es lo que se puede vender en mi sede.** `stock_total = sum(stock.cantidad)` sobre todas las ubicaciones, sububicaciones y variantes inactivas, sin filtro `[producción D3]` `[código migración :101,:115]`. Incluye el Taller y la cuarentena: hoy el Taller aporta unas 1 079 de ~1 470 unidades de productos reales, TRU 315 y AQP 76 `[producción-agente]`. «Stock 26» puede ser mercadería del Taller que ninguna tienda vende. No es un descuido: es decisión de Felipe del 2026-09-15 (`20260915160000_productos_listado_filtros.sql:38-49`, `security definer` a propósito para que una colaboradora no vea «sin stock» en una prenda que existe en otra sede). Pero choca con **R-48** («Cada líder ve solo su sede. Decidido», `docs/datos/15-COMO-OPERA-CAYLA.md`), con el modal de ajuste que sí opera sobre la sede activa (`AjustarInventarioModal.tsx:75,161`) y con el selector «TIENDA TRU», que no cambia nada de esta pantalla. El defecto, hasta que decidas, es que **nada en la pantalla dice «toda la red»**.
-3. **El «190 variantes» del subtítulo es falso.** `fn_productos_resumen` hace `count(v.id)` después de `left join stock s` (`:251`, `:262`): cuenta cada variante una vez por fila de stock. Producción tiene 163 variantes (127 activas, 36 inactivas de 6 productos de prueba) y 138 filas de stock `[producción-agente]`. La prueba de regresión de la migración comparó contra la versión anterior, que ya tenía el mismo error `[código migración :16-19]`. Se arregla con `count(distinct v.id)`.
-4. **El rojo se rompe con datos reales.** «23 sin stock» + un «Stock 0» rojo en cada tarjeta agotada: con 23 de 44 productos, más de la mitad de la grilla en rojo (`ProductosGrilla.tsx:179-181`, `page.tsx:247`; `MAX_ROJO_POR_PANTALLA = 2`, `design-tokens.ts:73`). `[visto]` ya hay tres en la captura.
-
-Lo que descarté tras verificar: el candado de «Editar» **no es un hueco de seguridad** (ver «Lo que está bien»). Mi primera versión decía lo contrario y estaba mal.
+1. **Todavía hay tres caminos para «cuánto hay».** La Grilla dice «Stock total 118 / En tu sede: 32» (de `fn_existencias_productos`, la cifra única); la Tabla dice solo «Stock 118» sin decir de qué universo `[visto]`; y la vista rápida y la ficha de la Tabla leen la tabla `stock` cruda con `useStockEnSede.ts`, que sigue en la lista LEGADO de la guardia (`lib/stock-una-sola-cifra.test.ts:22-23`) y cuenta apartadas, dañadas, tallas retiradas y pruebas (`ProductosTabla.tsx:673,688`, `ProductosGrilla.tsx:286`). La misma prenda puede decir 32 en la tarjeta y otro número al abrirla.
+2. **«A quién pedirle» se calcula mal y sale caro.** `getResumenProductos` (`page.tsx:80`) corre `fn_productos_resumen` en cada carga **solo para un `> 0`** (`page.tsx:93`); es la función más cara (340 ms con 3 000 productos, medido en la migración `20260929020000:26-31`) y si cae, `exigir` tumba toda la pantalla. Además, `getReposicionPorProveedor` lee como máximo 3 páginas de 100 filas (`catalogo-v2.ts:392-411`): con más de 300 variantes por reponer **subcuenta sin avisar**, justo cuando el catálogo real sea grande. Y el clic en el panel hace `router.push` y **pierde la vista, la búsqueda y los demás filtros** (`AQuienPedirle.tsx:22`).
+3. **El catálogo de mañana se va a ver mal en la Grilla.** El censo carga cientos de prendas sin foto. La tarjeta sin foto muestra un perchero y la etiqueta «MUESTRA — BEIGE» `[visto]`, que se lee como si el producto fuera una muestra. No hay filtro «Sin foto» ni contador de las que faltan.
+4. **«Editar» se ofrece a quien no puede.** La vista rápida (`ProductosGrilla.tsx:372`) lo muestra a todos y `editar/page.tsx:29` rebota en silencio a `/productos`. La Tabla sí lo condiciona; la Grilla no. Es un error del diseño, no de la persona.
+5. **Un mismo margen tiene tres umbrales:** 30 % en el alta (`alta-producto.ts:81-86`), 45 % «provisional» en esta pantalla (`productos-vista.ts:66`, la leyenda «bajo 45 %» `[visto]`) y 40/60 % en Producción. Ninguna decisión escrita dice cuál es el margen sano.
+6. Trade-off: no rehagas la cifra de stock (ya está en la base y protegida por 3 pruebas); cierra los tres caminos restantes con el mismo mecanismo. Antes del censo, lo urgente es #1 y #5 (fotos); el panel de reposición (#2) puede esperar a que haya ventas.
 
 ## 3 · Lo que está bien y no se toca
-- **Candados de datos reales:** `stock_cantidad_check` (≥ 0), `productos_referencia_clave_unica` (sin nombres duplicados), la llave compuesta `productos_marca_proveedor_fk` (no hay producto con un par marca-proveedor inválido), `productos_estado_check`. `[producción A2]` Matiz: `variantes_producto_talla_color_unico` es `UNIQUE (producto_id, talla_id, color_codigo)` **sin** `NULLS NOT DISTINCT`; dos variantes sin color o sin talla (accesorios) no chocan (`stock` sí lo usa). Ver Q9.
-- **Editar un producto no lo puede hacer un integrante.** `catalogo_actualizar_producto` es `SECURITY INVOKER` `[producción D3]`: corre con los derechos de quien llama, la RLS de `productos`, `variantes` y `producto_fotos` es `*_write_lider` (`fn_es_lider()`) `[código retail_policies.json]` y un `if not found then raise` corta la transacción justo después del `UPDATE` de `productos`. Tercera capa: `editar/page.tsx:17` redirige al que no es líder. El error real es `P0001` («No se pudo guardar el producto… no tienes permiso para editarlo»), no `42501`. Falta comprobar en producción la lista de políticas vigentes (Q10b).
-- **Crear y ajustar exigen líder en la base:** `crear_producto_con_variantes` llama a `fn_es_lider()` `[producción D3]`; `registrar_movimiento` también `[producción D3]`. Reintento idempotente con `token_cliente` antes del chequeo de nombre duplicado.
-- **Los conteos y la paginación vienen del servidor** (`count(*) over ()`), no de contar tarjetas: la página 2 no distorsiona el total. `[código migración :162]`
-- **Filtros y búsqueda en la URL**, con 350 ms de espera (`FiltrosProductos.tsx:66-80`); búsqueda por código de barras exacto. `[código]`
-- **Costo visible a cualquier sesión es decisión consciente (D-27, «transparencia»).** No se toca.
-- **Swatches accesibles:** `role=radiogroup`, `aria-checked`, `aria-label`. `[código ProductosGrilla.tsx:82]`
-- **RLS activo en las 8 tablas** `[producción D2]`. Mérito acotado: `fn_productos*` son `security definer` y saltan la RLS; vale para las lecturas directas de `page.tsx`, no para las cifras de stock ni el costo.
+- **Una sola cifra de stock en la base:** `fn_existencias_base` y `fn_existencias`; «N aquí» de la tarjeta sale de `fn_existencias_productos` (`20260929020000:388`), con guardia `lib/stock-una-sola-cifra.test.ts` y pruebas `fn-existencias` 15/15, `catalogo-cifra-unica` 14/14. ADR-0270, en producción.
+- **Cabecera honesta:** ADR-0254 quitó las cifras que se contradecían; la frase dice qué mira cada número.
+- **El servidor pagina y cuenta** (24 por página, `catalogo-v2.ts:210`; tope de 100 en SQL): no hay N+1; con 3 000 productos y 90 000 filas de stock, lista sin filtro 44 ms y con filtro de stock 270 ms (medido en la migración). Hoy son 2 productos.
+- **El producto centinela no aparece:** `fn_productos` lo excluye por uuid (`c_cargo_especial`, `20260929020000:69,98`).
+- **Costo y margen protegidos en la base:** `revoke select` de `variantes.costo` para `authenticated` `[producción-agente]` y `case` en `fn_productos` (`:234`); la Tabla solo los muestra a quien ve el dinero de compras.
+- **Candados de tabla que ya existen:** `productos_estado_check`, `productos_rechazado_descontinuado_check`, marca y proveedor NOT NULL con llave compuesta, `productos_referencia_clave_unica`, `variantes_identidad_unica` (NULLS NOT DISTINCT), `variantes_talla_con_prendas_no_se_retira`, `variantes_sin_mezcla_de_color` `[producción-agente]`.
+- **Eliminar es de lo mejor construido:** `EliminarProductoModal.tsx:58-69` pregunta primero a `fn_producto_como_eliminar` y **nunca ofrece un botón que la base va a rechazar**; el Admin puede borrar con historia y queda respaldo en `respaldo_purgas.filas`.
+- **Filtros y búsqueda en la URL** con espera de 350 ms; búsqueda por código de barras exacto; paginación con «página X de Y».
+- **Acciones en bloque con RPC** (`cambiar_estado_productos`, `:905`) y confirmación con lista de lo que cambia.
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 6 | Coherente con CAYLA, pero más de la mitad de las tarjetas en rojo, ~87 % de las tarjetas con el rótulo «MUESTRA» y texto chico de contraste bajo | `[visto]` `[producción E3]` `[código ProductosGrilla.tsx:179-181,199]` |
-| Lógica de negocio | 4 | «Stock» de toda la red bajo un selector de sede; descontinuados en «sin stock» y «para pedir»; «190 variantes» inflado | `[producción D3]` `[código migración :101,:251,:298-299]` |
-| Arquitectura | 6 | Buena base; pero fan-out que infla un conteo, dos caminos para cambiar el mismo estado y RPC de lectura sin verificar que quien llama sea colaborador | `[producción D3]` `[código]` |
-| Funciones | 6 | Ninguna fantasma para el líder; «Editar» es un botón muerto para el integrante; «stock bajo» casi no puede encenderse | `[código ProductosGrilla.tsx:323]` `[producción E3]` |
-| Utilidad | 5 | Tres números que engañan a una colaboradora sin contexto | `[visto]` `[inferido]` |
-| Conexión con el ERP | 6.5 | Bien conectada aguas arriba; sin puente a existencias por sede ni a «dónde más hay» | `[código]` |
+| Estética | 7 | Grilla y Tabla coherentes; cabecera con un párrafo de cinco líneas; perchero con «MUESTRA» | `[visto]` |
+| Lógica de negocio | 7 | Cifra única lista, tres caminos por cerrar; tres umbrales de margen | `[código]` `[visto]` |
+| Arquitectura | 6,5 | Un `> 0` cuesta 340 ms y puede tumbar la pantalla; reposición subcuenta | `[código page.tsx:80,93]` `[código catalogo-v2.ts:397]` |
+| Funciones | 6,5 | «Editar» a quien no puede; Grilla sin historial ni estado en bloque; sin filtro «Sin foto» | `[código ProductosGrilla.tsx:372]` |
+| Utilidad | 6,5 | El caso «encontrar una prenda en mostrador» funciona; el caso «catálogo nuevo sin fotos» no | `[visto]` `[inferido]` |
+| Conexión con el ERP | 8 | Catálogo → Existencias, Vender, Compras, Etiquetas, Análisis | `[código]` |
 
-### Estética — 6
-- `[visto]` Alineada con las hermanas: papel crema, títulos serif, etiquetas en mayúsculas espaciadas.
-- `[código ProductosGrilla.tsx:179-181,220]` Rojo en cada `Stock 0` más el del subtítulo y el del foco.
-- `[producción E3]` 34 de 39 activos no tienen **ninguna** foto, así que la grilla es casi toda tinte más percha, cada uno con «MUESTRA — COLOR».
-- `[código]` Swatches de 16 px; textos de 9–11 px con `text-tinta/55` y `/60` (marca y proveedor en `:213`, código en `:209`, color en `:224`). `[inferido]` Por cálculo con los tokens de `ProductosGrilla.tsx:50,64` salen ~3.7:1 y ~4.3:1, bajo 4.5. Hay que medirlo en el navegador.
+### Estética (7)
+- `[visto]` Encabezado de módulo (`<EncabezadoPagina>`: sede y fecha, título de 46 px, frase), toggle Grilla/Tabla, «+ Nuevo producto», franja «10 prendas sin temporada · Completar», buscador y «Filtros». La Grilla usa tarjetas con foto, marca·proveedor, precio, «Stock total N / En tu sede: N», colores.
+- `[visto]` **La frase de cabecera es un párrafo de cinco líneas** con vocabulario interno («Sin stock y Stock bajo miran toda la empresa: de ahí sale qué pedirle al proveedor»). Una colaboradora nueva no lo lee.
+- `[visto]` La tarjeta sin foto: perchero y «MUESTRA — <color>». Con datos reales sería la mayoría de la grilla.
+- `[visto]` La vista rápida es limpia: tabla talla/color/precio/stock/código, cuatro botones (Editar, Etiquetas, Ver en Existencias, Eliminar). **Precio por talla sin alerta:** la misma blusa tiene tallas a S/79.90, una XL a S/10.00 y una XS a S/81.00 (dato de siembra); la pantalla no marca el atípico.
+- Rojo dentro de norma `[visto]`.
 
-### Lógica de negocio — 4
-- `[código]` «Para pedir» es global y coherente consigo mismo: la demanda del punto de reorden también es de toda la red (`migración :116-123`). Filtrar solo el stock por sede sin filtrar la demanda rompería esa coherencia.
-- Reglas que la tocan: **R-48** (cada líder ve solo su sede, decidido), **D-27** (costo visible), **D-39** (las alertas cuentan piso y almacén y avisan cuántas hay guardadas: precedente para «qué stock es vendible»). Hay además una decisión de Felipe del 2026-09-15 escrita en una migración (no en un ADR) que pide el total. Dos decisiones que no se hablan entre sí: eso es la objeción 2.
-- `[código persona-actual.ts:87]` El selector de sede del líder ya rompe R-48 de hecho («control total temporal»), y `fn_stock_por_sede` entrega stock de todas las ubicaciones activas a cualquier colaborador.
-- `[código]` La cifra incluye cuarentena, almacén, taller y variantes inactivas (hoy sin efecto: 0 variantes inactivas en productos activos, 0 stock en inactivas `[producción-agente]`).
+### Lógica de negocio (7)
+- Regla violada #1: ADR-0270 (una sola cifra) — tres caminos aún (objeción 1).
+- Regla violada #2: principio 4 de CLAUDE.md (una sola fuente de verdad) — el umbral de margen vive en tres sitios; ninguna D-nn cubre el margen sano.
+- Las alertas ignoran `es_prueba` en la tarjeta (`productos-stock.ts:40`) aunque el SQL la excluye del contador y del filtro: una prueba pinta «Sin stock» sin estar contada.
+- **Reactivar en bloque salta la revalidación de marca y proveedor** en el camino de respaldo (`ProductosTabla.tsx:907`, `update` directo si falta la RPC); `fn_validar_marca_proveedor` no es un disparador, solo lo llaman las RPC.
+- Un producto descontinuado con stock 0 no sale de las listas de alertas (ADR-0270, #11 de `catalogo-inventario.md`).
 
-### Arquitectura — 6
-- **Estados imposibles:** el stock no baja de 0, no hay nombres duplicados, marca+proveedor van juntos. Hueco: `productos.codigo` acepta NULL, pero el trigger `variantes_asignar_codigo` (AFTER INSERT en `variantes`, `20260912235500_vocabulario_cerrado.sql:233-242`) lo acuña con la primera variante (`PREFIJO-NNNN`; sin categoría → `GEN-NNNN`); 0 activos sin código `[producción E3]`. **Un `CHECK codigo NOT NULL` habría roto todas las altas** (el `INSERT` a `productos` precede al de `variantes`); se propone una consulta invariante, no un candado.
-- **Transacción:** esta pantalla lee; escribe en dos sitios: el modal de ajuste (`registrar_movimiento`, todo-o-nada, con candado) y el **Activar/Desactivar en bloque de la Tabla**, que hace `update productos set estado` directo por RLS (`ProductosAgrupados.tsx:97-115`) y se salta la revalidación de marca y proveedor que sí hace `catalogo_actualizar_producto` al reactivar. Dos caminos, una regla.
-- **Concurrencia:** dos lectores no chocan; un ajuste mientras alguien pagina puede dar totales distintos entre página 1 y 2 (offset). Aceptable a 44 productos. `[inferido]`
-- **Caída externa:** no toca API externa. Si `fn_productos` no responde, cae a `error.tsx`; no se pierde ningún dato. «A quién pedirle» se omite si falla su consulta, con el comentario declarado en `catalogo-v2.ts:293-296`; el «N para pedir» del subtítulo sigue visible porque sale del resumen.
-- **Volumen:** volcado 477 movimientos, 138 filas de stock, 164 variantes, 20 fotos; hoy 0 lotes y 0 compras `[producción-agente]`. `fn_productos` y `fn_productos_resumen` recorren **todo el catálogo** antes de paginar y el `lead_time` (`:124-133`) recorre todas las recepciones del libro en cada evaluación: costo ≈ productos × recepciones × 3–5 llamadas por carga. Hoy es 0; **crece con Compras**. Un agente lo midió en una base sintética propia, no en producción. Medir con `EXPLAIN (ANALYZE)` antes de decidir (Q11).
-- **Seguridad:** `fn_productos`, `fn_productos_resumen` y `fn_productos_buscar` (esta última invoker) con `execute` a `authenticated` (`migración :306-309`) y **sin comprobar que quien llama sea colaborador**. Ver «Fuera de esta pantalla».
+### Arquitectura (6,5)
+- **Transacción:** las acciones en bloque son una RPC (`cambiar_estado_productos`), una transacción. El toast de éxito cuenta `ids.length`, no lo devuelto por la RPC (`ProductosTabla.tsx:916`).
+- **Concurrencia:** dos personas descontinúan/reactivan en bloque el mismo producto: la RPC manda el último; sin control de versión aquí (el editor sí lo tiene, ADR-0193). Baja probabilidad.
+- **Volumen (números):** hoy 2 productos (1 visible); tras el censo del orden de cientos de modelos y miles de variantes `[no verificable]`; en 3 años 3 000 productos / 90 000 filas de stock es el escenario medido: 44 / 270 / 340 ms. Cada carga hace 8–12 consultas en 3 rondas (`page.tsx`), sin N+1; la Grilla hace además un GET a `stock` de los 24 modelos al montar que ya no pinta nada (`ProductosGrilla.tsx:66`); la Tabla, uno por ficha abierta y otro tras cada refresh.
+- **Caída externa:** ninguna dependencia externa. Se degrada así: si falla la lista o el resumen sale «No se pudo cargar… Reintentar» (`app/(app)/error.tsx`) y no se pierde ningún dato; si falla «A quién pedirle» desaparece sin aviso; si fallan las existencias la tarjeta pasa a «Stock total N» y la frase de la cabecera sigue diciendo «Aquí».
+- **Buscar:** `fn_productos_buscar` usa `ILIKE` y no escapa `%` ni `_`: buscar «50%» trae casi todo; corre 2–4 veces por búsqueda. `router.push` (no `replace`) por cada pausa de tecleo: llena el historial del navegador.
+- **URL:** «Etiquetas en bloque» mete todos los uuid en la URL: unos 3 KB hoy, más de 8 KB con curvas de 10 tallas.
+- **Permisos:** el candado real de escritura es `fn_puede_editar_catalogo()`; la lectura de `productos` está abierta a cualquier sesión autenticada (`0004_rls.sql:29`); `fn_productos` y `fn_productos_resumen` no llaman a `fn_tiene_acceso_retail()` a diferencia de las `fn_existencias*`.
 
-### Funciones — 6
-- **Existen y funcionan:** búsqueda, filtros, chips para quitar, grilla/tabla, paginación, vista rápida, nuevo producto, ajustar inventario (líder), «A quién pedirle».
-- **Fantasma:** «Editar» para el integrante: sale en `ProductosGrilla.tsx:323` y `ProductosAgrupados.tsx:353` y al pulsarlo rebota a `/productos` sin mensaje y sin conservar filtros. `productos/layout.tsx` declara la pantalla de solo lectura para integrantes. No lo vi antes porque analicé con rol líder.
-- **A medias:** «con stock bajo» y el ámbar de la tarjeta: 38 de 39 activos no tienen `stock_minimo`. Causa raíz: el alta viva (`crear_producto_con_variantes`, `censo_crear_variante`) no tiene el parámetro; solo lo escribe el modal de edición; `catalogo_crear_producto`, que sí lo aceptaba, se retiró el 2026-09-18 sin trasladarlo. `[código]` `[producción E3]`
-- **Faltan:** foto general o principal como respaldo (`fn_productos` une la foto por color con `is not distinct from`, sin caída a `es_principal`; `ProductosGrilla.tsx:28` descarta variantes sin color), un contador «sin foto», stock por sede.
-- **Sobran:** nada que borrar.
+### Funciones (6,5)
+- **Existen y funcionan:** Grilla y Tabla, búsqueda, once filtros, orden por precio, paginación, vista rápida, ficha de variantes en la Tabla, Editar/Existencias/Etiquetas/Historial, Descontinuar/Reactivar en bloque, Etiquetas en bloque, Eliminar. No hay botones fantasma (el «Archivar» falso ya no existe).
+- **Engañosas:** «Editar» de la Grilla (rebote mudo); el texto de la hoja de estado habla de «Para pedir», que ya no existe como etiqueta, y lista «N en stock» con el total de la red, no «aquí» (`ProductosTabla.tsx:929-943`); el desplegable de proveedor dice «Todos · 1 proveedores» tras elegir uno.
+- **Faltan:** filtro «Sin foto» y contador; aviso de precio atípico entre tallas; historial y estado en bloque en la Grilla (solo la Tabla los tiene).
+- **Sobran:** `ResumenProductos` salvo `reponerDeProveedor`; `puntoReorden`, `leadTimeDias` y `categoriaId` de `ProductoListado`; el comentario de `catalogo-v2.ts:43`.
 
-### Utilidad (persona sin contexto) — 5
-Escenario: una colaboradora nueva, un sábado en hora pico; una clienta pide una blusa blanca talla S.
-1. Escribe «blusa» y la encuentra. Bien.
-2. Ve «MUESTRA — BLANCO». ¿Es una prenda de muestra? ¿Se puede vender? Duda. Significa «falta la foto».
-3. Ve «Stock 26». ¿En mi tienda o en todas? Ni ella ni el líder lo saben: incluye el Taller.
-4. Ve «23 sin stock» arriba y se preocupa; unos 5 son descontinuados que no importan. `[inferido]`
-5. Para saber la talla S, abre la vista rápida: solo trae talla, color, precio y código (`ProductosGrilla.tsx:303-306`), no el stock por talla. `[código]`
-6. Si es integrante y pulsa «Editar», no pasa nada. El error es del diseño, no de la capacitación.
+### Utilidad — persona sin contexto (6,5)
+Escenario real 1: *la clienta pregunta si hay la blusa en talla M y la colaboradora busca en el celular.* Escribe «blusa» → aparece la Grilla → abre la vista rápida → ve «Stock en Tienda Lima: 32» y la talla M. Funciona. Duda: la tarjeta dice «Stock total 118 / En tu sede: 32» y la Tabla «Stock 118»; quien cambia de vista ve dos números para la misma prenda.
+Escenario real 2: *primera mañana con el catálogo nuevo del censo.* La Grilla es una pared de perchas con «MUESTRA — BEIGE»; para encontrar una blusa hay que leer el nombre bajo cada perchero; no hay «Sin foto» para pedir que las suban. La Tabla lo resuelve mejor, pero no es la vista por defecto.
+Escenario real 3: *un integrante abre «Editar».* Lo rebotan en silencio a la lista sin decir por qué.
 
-### Conexión con el ERP — 6.5
-Ver sección 6.
+### Conexión con el ERP (8) — ver §6.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 8 | Raíz de precios, marca, proveedor y reposición; casi toda la analítica cuelga de estos datos |
-| Dinero y stock que toca | ×1 | 6 | Lectura casi toda, pero alimenta la reposición: una sugerencia mala se vuelve una compra |
-| Frecuencia y personas que la usan | ×1 | 7 | Consulta diaria de todas las sedes; la venta corre por el punto de venta |
-| Qué se detiene si falla | ×1 | 5 | No se da de alta ni se repone; vender sigue por Vender |
+| Gestión (directo + indirecto) | ×2 | 7 | Base de casi toda decisión de compra y exhibición; «A quién pedirle» lleva a Compras |
+| Dinero y stock que toca | ×1 | 5 | No mueve stock, pero muestra precio y costo, y acciones en bloque cambian el estado de venta |
+| Frecuencia y personas que la usan | ×1 | 8 | La abre casi toda la tienda todos los días |
+| Qué se detiene si falla | ×1 | 7 | Sin ella no se encuentra una prenda ni se llega a Editar/Eliminar; Vender tiene su propio buscador |
 
-Relevancia = (2·8 + 6 + 7 + 5) / 5 = **6.8** → **Soporte**.
-Tope de 5 en «cumple su finalidad»: **aplicado**. Motivo: `reponer_de_proveedor` no mira `estado` y «A quién pedirle» puede sugerir pedir un modelo descontinuado (hoy son prendas de prueba; mañana pueden ser reales). La sugerencia no compra sola, pero es el camino más corto entre un dato equivocado y dinero.
+Relevancia = (2·7 + 5 + 8 + 7) / 5 = **6,8** — Soporte.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** altas desde `/productos/nuevo` y el censo (`crear_producto_con_variantes`, `censo_crear_variante`); marcas y proveedores (`marca_proveedores`, ADR-0109); movimientos de compras y ventas que alimentan `stock` y `demanda_diaria`.
-- **Aguas abajo:** Vender (variantes y precios), Inventario (existencias, conteo, traslados; **Inventario sí filtra variante activa**, `inventario-v2.ts:108-114`, y Productos no: dos definiciones del mismo universo), Compras (reposición por proveedor), etiquetas y códigos de barras.
-- **Pájaro dueño y vecinos:** LORO (catálogo y vocabulario), con Inventario, Compras y Vender de vecinos (`AVIARIO.md`).
-- **Externos, y qué pasa si caen:** ninguno directo. Se degrada así: si Supabase no responde, la pantalla cae a `error.tsx` y no se pierde ningún dato porque no escribe (salvo el ajuste, que es todo-o-nada).
+- **Aguas arriba:** Categorías, Marcas y Atributos (los filtros y las tarjetas leen esos vocabularios); Nuevo producto y Censo (crean lo que aquí se lista); Existencias (la cifra única, `fn_existencias_base`).
+- **Aguas abajo:** Editar producto (`/productos/[id]/editar`); Existencias (`/inventario?variante=`); Etiquetas de precio; historial de producto; Vender (busca por marca, `catalogo-v2.ts:127-156`); Compras vía «A quién pedirle».
+- **Pájaro dueño y vecinos:** 02 Loro (catálogo). Vecinos: Existencias (stock), Compras (proveedor), Ventas (precio).
+- **Externos, y qué pasa si caen:** ninguno. Se degrada así: nada externo de qué depender; si Supabase no responde la pantalla no carga y no se pierde ningún dato. Las fotos viven en storage: si falla, la tarjeta muestra el perchero.
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — Los descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla ✅ hecha en local (ADR-0151, migración `20260922120000`)
-- **Dónde:** `fn_productos` (`:150`) y `fn_productos_resumen` (`:298-299`): agregar `estado = 'activo'` a los tres contadores; `ProductosGrilla.tsx:207-218` (chip «Descontinuado» o tarjeta atenuada); `catalogo-v2.ts:297-316` (reposición sin `estado`).
-- **Por qué en este puesto:** es el único camino de esta pantalla hacia dinero (compra de un modelo que ya no se vende) y hace mentir a «23 sin stock». Sin esto, cada liquidación futura dispara una sugerencia falsa.
-- **Cómo lo verificas tú:** con la Q2 (apéndice), `sin_stock` para activos = 17 o 18 y `para_pedir` = 0 para descontinuados; en la Grilla, las 6 tarjetas descontinuadas se ven distintas; «A quién pedirle» desaparece hoy.
-- **Esfuerzo / dependencias:** M. Decisión tuya primero: ¿un descontinuado en liquidación con stock cuenta como «para pedir»? Recomendación: no. No ocultarlos por defecto: la Tabla tiene «Activar» en bloque y hay que poder alcanzarlos.
+### #1 · Corregir — El mismo «cuánto hay» en Grilla, Tabla, vista rápida y ficha
+- **Dónde:** `lib/useStockEnSede.ts` (sacarlo de la lista LEGADO de `stock-una-sola-cifra.test.ts:22-23`); `ProductosTabla.tsx:673,688` y `ProductosGrilla.tsx:286` (leer `fn_existencias` por producto); la columna «Stock» de la Tabla (rotular «Aquí» y «Red»).
+- **Por qué en este puesto:** es lo que ADR-0270 vino a cerrar y dejó a medias; una colaboradora que cambia de vista o abre una prenda ve otro número, y decide una venta por él.
+- **Cómo lo verificas tú:** para «Blusa Emma», la tarjeta, la fila de la Tabla, la vista rápida y la ficha dicen 32 «en tu sede»; la guardia `stock-una-sola-cifra.test.ts` ya no lista ningún archivo LEGADO de Productos.
+- **Esfuerzo / dependencias:** M · ninguna.
 
-### #2 · Corregir — Decir qué significa «Stock N» (y decidir cuál número debe ver una tienda) ✅ opción A hecha; B/C sin decidir
-- **Dónde:** `ProductosGrilla.tsx:220` (rótulo), `page.tsx` (contadores), `fn_productos`/`fn_productos_resumen`; `docs/datos/15-COMO-OPERA-CAYLA.md` (R-48).
-- **Por qué en este puesto:** es el número que más se lee y hoy induce a error en la venta. La decisión de fondo es tuya y está en la sección 8.
-- **Cómo lo verificas tú:** el rótulo dice «en toda la red» y, si eliges la opción B, cambiar de sede en la cabecera cambia la cifra y coincide con Inventario → Existencias de esa sede.
-- **Esfuerzo / dependencias:** S (solo rótulo) o M (cifra por sede). Si `fn_productos` gana `p_ubicacion_id` y sigue siendo `security definer`, debe validarlo con `fn_puede_operar_ubicacion`; si no, cualquiera lee la sede ajena pasándole el id.
-- **DECIDÍ:** proponer A ahora y B después (sección 8).
-- **DESCARTÉ:** quitar el total, porque el líder pierde la vista de reposición global de la que sale «para pedir».
-- **SE ROMPE SI:** una colaboradora de TRU ve «0 en mi sede» de una prenda que hay en Lima y le dice a la clienta que no hay, con la venta perdida por decisión de una regla que nadie eligió mirando esta pantalla.
+### #2 · Reconstruir — «A quién pedirle»: correcto, barato y sin tumbar la pantalla
+- **Dónde:** `page.tsx:80,93` (`getResumenProductos` solo para un `> 0`); `catalogo-v2.ts:392-411` (tope de 3 páginas × 100); `AQuienPedirle.tsx:22-33`; `fn_productos_resumen`.
+- **Por qué en este puesto:** es el único bloque de esta pantalla que lleva a una decisión de dinero (qué comprar), hoy se calcula caro, subcuenta y su caída tumba todo.
+- **Cómo lo verificas tú:** con más de 300 variantes por reponer el panel dice el total real y el número de pedidos por proveedor; si `fn_productos_resumen` falla, la lista carga igual y el panel dice «no se pudo calcular ahora».
+- **Esfuerzo / dependencias:** M · después de la #11 (decidir dónde vive el panel).
+- **DECIDÍ:** una RPC propia que devuelve reposición agrupada por proveedor, con conteo total, y desacoplar el `> 0`. **DESCARTÉ:** subir el tope de 3 a 10 páginas, porque solo pospone el problema y cada página es una consulta más; **y** dejar el `> 0` con `fn_productos_resumen`, porque recalcula la red entera en cada página que la persona pase. **SE ROMPE SI:** dos sedes tienen el mismo modelo en «reponer» por motivos distintos (una vendió, la otra lo tiene apartado): la función debe agrupar por proveedor, no por sede.
 
-### #3 · Corregir — «190 variantes» → `count(distinct v.id)` ✅ hecha en local (misma migración `20260922120000`)
-- **Dónde:** `fn_productos_resumen` (`migración :251`), mostrado en `page.tsx:227` y `:262-265`.
-- **Por qué en este puesto:** es un número falso en el encabezado, arreglable en una línea. Va en su propia migración (cambia un número visible), separada de la #7 (Beck: un cambio de resultado y un cambio de forma no se mezclan).
-- **Cómo lo verificas tú:** Q4a: `variantes_que_dice_la_pantalla` debe igualar `variantes_reales` (hoy 163 en producción, sin contar el producto especial).
-- **Esfuerzo / dependencias:** S. Agregar una prueba de regresión contra datos con más de una fila de stock por variante.
+### #3 · Corregir — Que el panel y los filtros no pierdan lo que la persona tenía puesto
+- **Dónde:** `AQuienPedirle.tsx:22` (`router.push` → conservar `vista`, `q` y filtros); `FiltrosProductos.tsx:41` (búsqueda en `useState` sin resincronizar con la URL); `getReposicionPorProveedor(filtros)` («Todos · 1 proveedores»).
+- **Por qué en este puesto:** un clic que borra la búsqueda y la vista es un error del diseño; tras Atrás/Adelante el campo puede mostrar un texto que ya no filtra.
+- **Cómo lo verificas tú:** con la Tabla y la búsqueda «blusa», pulsar un proveedor conserva ambas; Atrás restaura el campo con lo que filtra.
+- **Esfuerzo / dependencias:** S · ninguna. `[no verificable]`: estos tres puntos salen de leer el código y no se probaron en el navegador.
 
-### #4 · Corregir — Quitar el rojo de «Stock 0» en cada tarjeta ✅ hecha en local (Grilla y Tabla)
-- **Dónde:** `ProductosGrilla.tsx:179-181` (`tonoStock`); `page.tsx:247`.
-- **Por qué en este puesto:** rompe la regla de ≤ 2 rojos y le quita fuerza al rojo cuando importa. Con 23 agotados, más de la mitad de la grilla en rojo.
-- **Cómo lo verificas tú:** abre `/productos`, cuenta los elementos en rojo con el inspector: máximo 2. «Sin stock» sale en un chip neutro (Grilla) o en tinta (Tabla).
-- **Esfuerzo / dependencias:** S. Misma línea que #2.
+### #4 · Corregir — «Editar» solo a quien puede
+- **Dónde:** `ProductosGrilla.tsx:372` (vista rápida), `editar/page.tsx:29` (redirect mudo); la Tabla ya lo condiciona.
+- **Por qué en este puesto:** ofrecer un botón que la base va a rechazar es culpa del diseño (Norman); y estaba en el análisis del 21-sep (#6) sin cerrar.
+- **Cómo lo verificas tú:** con un rol sin edición, la vista rápida no muestra «Editar»; y si entra por URL directa ve «No tienes permiso» en vez de un rebote sin mensaje.
+- **Esfuerzo / dependencias:** S · ninguna.
 
-### #5 · Mejorar — Fotos: ocultar «MUESTRA» cuando el producto no tiene ninguna, dar respaldo y contar las faltantes
-- **Dónde:** `ProductosGrilla.tsx:28-29,175-203` (descarta variantes sin color al buscar foto); `fn_productos` (`migración :204-211`, sin caída a foto general ni a `es_principal`); `FotosProducto.tsx:102` (el color de la foto es opcional y nace `NULL`).
-- **Por qué en este puesto:** 34 de 39 activos no tienen ninguna foto; el rótulo sale en ~87 % de las tarjetas y deja de significar algo. Además hay caminos por los que un producto **con** foto también dice «MUESTRA» (foto sin color y variantes con color; foto solo en algunos colores).
-- **Cómo lo verificas tú:** Q7a/Q7b; un producto sin fotos no lleva rótulo y el líder ve «34 sin foto»; uno con foto general la muestra en todos sus colores.
-- **Esfuerzo / dependencias:** M. La causa raíz es de contenido (quién fotografía y etiqueta por color), no solo de pantalla. Tabla aparte: el respaldo ya existe en `apps/web/lib/producto-fotos-reglas.ts:12-16` y en `fn_resumen_variantes`.
+### #5 · Mejorar — Sin foto: no aparentar «muestra» y poder pedir las que faltan
+- **Dónde:** `ProductosGrilla.tsx` (etiqueta «MUESTRA — <color>» y perchero); filtro nuevo «Sin foto» en `FiltrosProductos.tsx` y contador en la franja de avisos; `catalogo-v2.ts:354-369` (consulta de fotos redundante).
+- **Por qué en este puesto:** mañana entra el catálogo del censo sin fotos; la Grilla se vuelve una pared de perchas, y no hay forma de listar lo que falta subir.
+- **Cómo lo verificas tú:** en un producto sin foto la tarjeta dice «Sin foto» (no «MUESTRA»); el filtro «Sin foto» lista solo esos; el aviso «N prendas sin foto · Completar» lleva a `/editar#fotos`.
+- **Esfuerzo / dependencias:** S–M · ninguna.
 
-### #6 · Corregir — Esconder «Editar» al integrante en la Grilla y en la Tabla
-- **Dónde:** `ProductosGrilla.tsx:323` y `ProductosAgrupados.tsx:353` (mismo patrón que «+ Nuevo producto», `page.tsx:114`).
-- **Por qué en este puesto:** no hay riesgo de datos (la base lo impide) pero es un botón muerto: rebota sin mensaje y sin conservar los filtros.
-- **Cómo lo verificas tú:** entra como integrante: no aparece «Editar»; como líder, sigue apareciendo.
-- **Esfuerzo / dependencias:** S. Añadir una prueba que ejecute el rechazo de un integrante contra la RPC (hoy no existe, la garantía descansa en que la RLS siga activa).
+### #6 · Corregir — Descontinuar/Reactivar en bloque coherente con el resto
+- **Dónde:** `ProductosTabla.tsx:905-916` (el `update` de respaldo, el toast que cuenta `ids.length`), `:929-943` (texto «Para pedir» y «N en stock» de la red); `cambiar_estado_productos:69-74`.
+- **Por qué en este puesto:** reactivar sin revalidar marca y proveedor puede dejar un producto activo con marca desactivada; el toast dice «reactivé 10» cuando la RPC devolvió 8.
+- **Cómo lo verificas tú:** reactivar un producto cuya marca está desactivada falla con mensaje; el toast cuenta lo que devolvió la RPC; el texto dice «en tu sede».
+- **Esfuerzo / dependencias:** S–M · ninguna.
 
-### #7 · Corregir — Calcular demanda y plazo de entrega una vez por producto *(medir primero)*
-- **Dónde:** `fn_productos` (`:88`, laterals `:116-133`) y `fn_productos_resumen` (`:247`, laterals `:263-280`).
-- **Por qué en este puesto:** hoy cuesta 0 (0 lotes y 0 compras), pero el `lead_time` recorre todas las recepciones en cada evaluación y se ejecuta 3–5 veces por carga: crece con Compras. Antes de tocarlo, medir con `EXPLAIN (ANALYZE, TIMING OFF)` sobre el cuerpo del CTE `agregado` (Q11).
-- **Cómo lo verificas tú:** misma respuesta que antes (prueba con `EXCEPT` entre versión vieja y nueva) y menos evaluaciones en el plan.
-- **Esfuerzo / dependencias:** M. Forma mínima, sin cambiar firma ni columnas: dos CTEs `demanda` y `entrega` con `group by producto_id` y `left join ... on vd.producto_id = p.id`; el resto (`max()`, `coalesce`) queda igual. Segundo paso, aparte: una sola función de lectura para las dos RPC (hoy la misma fórmula está copiada en dos cuerpos). No antes de la #3.
-- **DECIDÍ:** CTE por producto con el mismo resultado.
-- **DESCARTÉ:** cachear en una tabla o vista materializada, porque es una segunda fuente de verdad que hay que mantener al día para un catálogo de 300 productos.
-- **SE ROMPE SI:** un producto sin ventas ni recepciones queda con `NULL` y el `coalesce` no lo lleva a 0 y 14 como antes.
+### #7 · Corregir — Un solo umbral de margen (y avisar el precio atípico)
+- **Dónde:** `alta-producto.ts:81-86` (30 %), `productos-vista.ts:66` (45 %, «provisional»), Producción (40/60 %); aviso nuevo en la vista rápida y en Editar cuando una talla se aparta más de X % de las demás del mismo color.
+- **Por qué en este puesto:** tres números para lo mismo hacen que «margen sano» signifique cosas distintas según la pantalla; y un precio de S/10.00 en una blusa de S/79.90 pasa sin una palabra.
+- **Cómo lo verificas tú:** «Blusa Emma» marca las tallas XL y XS como atípicas; la leyenda de la Tabla y la alerta del alta dicen el mismo porcentaje.
+- **Esfuerzo / dependencias:** S · **primero una decisión de Felipe**: ¿cuál es el margen sano?
 
-### #8 · Mejorar — Que el alta pida `stock_minimo` (o que «stock bajo» se esconda hasta tenerlo)
-- **Dónde:** `crear_producto_con_variantes` (agregar `p_stock_minimo` con default `NULL`), `NuevoProductoForm`, `censo_crear_variante`; `ProductosGrilla.tsx:180`.
-- **Por qué en este puesto:** 38 de 39 activos no lo tienen: el atajo «con stock bajo» y el ámbar casi no pueden encenderse (como mucho 1 producto). Es una regresión de diseño (el retiro de `catalogo_crear_producto`), no un olvido de captura. Nota: el mínimo se **suma** al punto de reorden, no lo sustituye.
-- **Cómo lo verificas tú:** un producto nuevo con mínimo 3 y stock 2 sale ámbar y aparece en el atajo.
-- **Esfuerzo / dependencias:** M. Considerar un valor por categoría antes que exigirlo por producto (con 44 productos exigirlo es fricción sin valor).
+### #8 · Mejorar — Estados vacío y «página fuera de rango» que expliquen y salgan solos
+- **Dónde:** `productos-stock.ts:173` (un solo texto para dos situaciones); `Paginacion.tsx:98` (oculta los controles cuando `totalProductos` es 0); `catalogo-v2.ts:310`.
+- **Por qué en este puesto:** tras descontinuar la última fila de una página con filtro, o con `?pagina=5`, la persona queda en un callejón: sin filas, sin controles y sin explicación; y «Ningún producto calza» no distingue «catálogo vacío» de «tu filtro no encuentra».
+- **Cómo lo verificas tú:** `?pagina=99` vuelve a la última página; un catálogo vacío dice «Aún no hay productos: crea el primero o carga el censo».
+- **Esfuerzo / dependencias:** S · ninguna.
 
-### #9 · Corregir — Un solo universo de «variantes vigentes» para Productos e Inventario
-- **Dónde:** `fn_productos` (`:101,:114`), `fn_productos_resumen` (`:252`), `catalogo-v2.ts:235-268`, `ProductosGrilla.tsx:25-41` (`coloresDe`, `rangoPrecio`).
-- **Por qué en este puesto:** riesgo latente, hoy sin daño (0 variantes inactivas en productos activos): en cuanto un líder desactive una variante con stock, o cambie un color por desactivar+agregar (flujo documentado en `ProductoForm.tsx:49-53`), sus swatches, su precio y su stock siguen apareciendo en la tarjeta. Inventario sí las filtra.
-- **Cómo lo verificas tú:** Q4b; desactiva una variante con stock: desaparece de los swatches y del rango de precio, pero se ve atenuada en la tabla de detalle.
-- **Esfuerzo / dependencias:** M. No antes de la #3 (misma función).
+### #9 · Eliminar/fusionar — Una sola ficha de variantes para Tabla y Grilla
+- **Dónde:** `ProductosTabla.tsx:649-770` (`FichaVariantes`) contra `ProductosGrilla.tsx:248-410` (`VistaRapidaModal`); `useColorActivo` (`ProductosTabla.tsx:336`) contra dos copias en la Grilla (`:110`, `:273`); `StockDeVariante` contra `StockDeTalla`.
+- **Por qué en este puesto:** dos componentes que resuelven lo mismo con contenido desigual (uno tiene Historial y el otro no): una de las dos está mal aunque ambas «funcionen» (Brooks); también es la raíz de la #1.
+- **Cómo lo verificas tú:** Tabla y Grilla abren la misma ficha con los mismos botones y el mismo stock por talla.
+- **Esfuerzo / dependencias:** M · **junto con la #1** (mismo cambio de fondo).
 
-### #10 · Corregir — El «Activar» en bloque de la Tabla salta la revalidación de marca y proveedor
-- **Dónde:** `ProductosAgrupados.tsx:97-115` (`update productos set estado`) frente a `catalogo_actualizar_producto` (`20260918231100_alta_y_edicion_exigen_marca_y_proveedor.sql:475-480`, llama a `fn_validar_marca_proveedor` al reactivar).
-- **Por qué en este puesto:** dos caminos para el mismo cambio con reglas distintas: se puede reactivar un producto cuya marca o proveedor ya se desactivó. Hoy no hay caso (Q13); es un candado que se vuelve decorativo.
-- **Cómo lo verificas tú:** Q13 = 0; desactiva una marca y reactiva en bloque un producto suyo: debe fallar con el mismo mensaje que la edición.
-- **Esfuerzo / dependencias:** S (una RPC de estado o un trigger `BEFORE UPDATE`). Ningún trigger de `productos` lo valida hoy.
+### #10 · Mejorar — Búsqueda y URL sin efectos raros
+- **Dónde:** `fn_productos_buscar` (escapar `%` y `_`); `FiltrosProductos.tsx:71-85` (`router.replace` en vez de `push`); `ProductosGrilla.tsx:66` (el GET a `stock` que ya no pinta); Etiquetas en bloque (`ProductosTabla.tsx:846-862`, uuid en la URL).
+- **Por qué en este puesto:** buscar «50%» devuelve todo, cada pausa de tecleo ensucia el historial y una URL de 8 KB puede cortarse con curvas grandes; ninguno daña datos.
+- **Cómo lo verificas tú:** buscar «50%» no trae todo; Atrás vuelve a la pantalla anterior, no a una búsqueda a medias.
+- **Esfuerzo / dependencias:** S–M.
 
-### #11 · Mejorar — Objetivos táctiles, contraste y estado vacío *(bajo valor / opcional: el catálogo lo usa poca gente a la vez)*
-- **Dónde:** `ProductosGrilla.tsx:82` (swatches 16 px), `:209,:213,:224` (texto `/55`, `/60`, 9–11 px); toggle y chips de filtro; `ProductosGrilla.tsx:146` («Ningún producto calza con esos filtros.» sin botón para limpiar).
-- **Por qué en este puesto:** en la tablet del mostrador un swatch de 16 px es más chico que un dedo (`ADR-0012`); `[inferido]` el contraste de `/55` y `/60` está bajo 4.5:1, a medir en el navegador.
-- **Cómo lo verificas tú:** tocar un swatch sin fallar; el inspector muestra área táctil ≥ 40 px; el estado vacío ofrece «Quitar todos los filtros».
-- **Esfuerzo / dependencias:** S. Mismo defecto en otra pantalla: `docs/pantallas/productos-categorias.md` señala `text-[9px] text-tinta/50` en `CategoriasLista.tsx:670`. Con una tercera pantalla, pasa a ser **una** tarea raíz (piso de tamaño y contraste en `globals.css`), no tres.
+### #11 · Replantear — ¿«A quién pedirle» vive en Productos o en Compras?
+- **Dónde:** `AQuienPedirle.tsx`, `catalogo-v2.ts:392-411`, y el módulo de Compras (`/compras/*`).
+- **Por qué en este puesto:** el panel decide qué comprar y a quién, que es una decisión de Compras, pero está pegado a la lista de catálogo y con ella se recalcula en cada página; no es un defecto, es una decisión de rumbo.
+- **Cómo lo verificas tú:** — (pide una decisión).
+- **Esfuerzo / dependencias:** M–L según la respuesta · antes de la #2.
+- **DECIDÍ:** proponerle a Felipe **moverlo a Compras** como «Qué pedir» (mismo cálculo, su propia pantalla, con la lista de proveedores y la cantidad sugerida), y dejar en Productos solo un aviso con enlace. **DESCARTÉ:** mantenerlo en Productos, porque acopla dos pantallas con públicos distintos (quien cataloga y quien compra) y la carga de una tumba la otra. **SE ROMPE SI:** Compras no tiene aún datos de plazo por proveedor y el punto de reorden usa un plazo por defecto de 14 días: la sugerencia sería igual de imprecisa en una pantalla nueva.
 
-### #12 · Replantear — ¿Un solo «Productos» para administrar y para consultar en el mostrador?
-- **Dónde:** toda la ruta `/productos` y el menú (`AppShell.tsx`, hoy con 6 PRs abiertos).
-- **Por qué en este puesto:** es la pregunta de fondo y no cambia el orden de las anteriores. Es decisión tuya.
-- **Cómo lo verificas tú:** ver sección 8.
-- **Esfuerzo / dependencias:** L. No antes de la #2.
-- **DECIDÍ:** proponerte separar «Catálogo» (gestión: costo, marca, proveedor, reposición; líder) de «Consultar» (mostrador: talla, color, vendible en mi sede, dónde más hay).
-- **DESCARTÉ:** dejar todo en una pantalla con más filtros, porque cada filtro nuevo agrega un rol más a una pantalla que ya sirve a dos oficios distintos.
-- **SE ROMPE SI:** los integrantes siguen usando el punto de venta para consultar (ya lo hacen) y «Consultar» es una tercera pantalla que nadie abre; o si R-48 se mantiene estricta y «dónde más hay» no puede existir.
+### #12 · Eliminar/fusionar — Cabecera en dos líneas y deuda muerta · *bajo valor / opcional*
+- **Dónde:** `productos-stock.ts:31` (la frase de cabecera); `ResumenProductos`, `puntoReorden`, `leadTimeDias`, `categoriaId`; el `update` de respaldo una vez pegada la migración; el comentario de `catalogo-v2.ts:43`; las filas viejas de `SESIONES-ACTIVAS.md`.
+- **Por qué en este puesto:** no dañan datos; ordenan la lectura para la próxima persona.
+- **Cómo lo verificas tú:** la cabecera cabe en dos líneas y el detalle queda en el «?»; `grep ProductosAgrupados docs/SESIONES-ACTIVAS.md` da 0.
+- **Esfuerzo / dependencias:** S.
 
-## 8 · Estrategia alternativa y decisión que necesita Felipe
-**Decisión 1 — qué número debe mostrar Productos como «Stock» (bloquea la #2).** Hay dos decisiones tuyas que no se hablan: R-48 («cada líder ve solo su sede») y la del 2026-09-15 («Productos muestra el total de todas las sedes»).
-| Opción | Ganas | Pagas |
-|---|---|---|
-| **A · Solo rótulo:** «Stock en toda la red (incluye Taller)» | Cero riesgo, respeta la decisión del 2026-09-15, S | Sigue sin decir qué puedo vender en mi tienda |
-| **B · «Vendible en mi sede»** (piso de venta de la sede activa) como cifra principal; el total, solo para el líder | Cumple R-48 para el integrante; responde lo que la clienta pregunta | Cambia el contrato de dos RPC; hay que validar la sede con `fn_puede_operar_ubicacion`; el «para pedir» sigue global |
-| **C · Mi sede + «hay en otra sede»** sin cantidad ni nombre | Es lo que R-48 sugiere para los traslados | Más lógica y más pantallas |
-**Decidido por Felipe el 2026-09-22: A.** B y C siguen abiertas (recomendación original: B después; C solo si se quiere R-48 estricta).
-
-**Estrategia alternativa (#12):**
-| | Ganas | Pagas |
-|---|---|---|
-| **Actual: una pantalla** | Un solo lugar; menos código; ya funciona | Sirve a dos oficios con una sola vista; los números confunden |
-| **Catálogo (gestión) + Consultar (mostrador)** | La colaboradora ve solo lo que necesita; el líder conserva costo y reposición | Dos pantallas que mantener; hay que resolver R-48 antes |
-Recomendación: primero #1–#4 en la pantalla actual; reevalúa el Replantear cuando veas cómo se usa en TRU.
+## 8 · Estrategia alternativa
+Solo se justifica la de la #11. **Ganas:** Productos se queda en lo suyo (qué tenemos, a qué precio, en qué sede) y carga rápido; la reposición tiene su lugar con la lista de proveedores. **Pagas:** una pantalla nueva en Compras y un módulo que ya existe con la puerta abierta a `verDineroCompras`. **No cambia** la cifra de stock ni los filtros. Decide Felipe.
 
 ## 9 · Referentes de ERP y futuro
-Lo que sigue viene de memoria, **no verificado**:
-- Shopify POS y Lightspeed muestran el stock por ubicación en la ficha del producto (equivale a la opción B; pasa el filtro «¿le sirve a 3 tiendas y 1 taller hoy?»).
-- Odoo separa la vista de gestión de la de consulta por permisos (equivale a #12; pasa con reservas: R-48).
-- Punto de reorden por proveedor con aprobación de compras: futuro, cuando el volumen pase de 3 tiendas.
+- *(De memoria, no verificado)* Odoo y NetSuite separan «Productos» (catálogo) de «Reposición» (reglas de reorden y pedidos sugeridos); Shopify POS lista el catálogo con el inventario por ubicación en la misma vista. Con 3 tiendas y un taller, lo segundo alcanza, lo primero se justifica si crecen las compras.
+- **Futuro (no cuenta entre las 12):** vista por marca con margen y rotación; comparador de precios entre sedes; carga de fotos en lote.
 
 ## 10 · Fuera de esta pantalla
-**`fn_productos`, `fn_productos_resumen` y las lecturas directas de `productos` y `variantes` sirven costo y stock a cualquier sesión autenticada del proyecto, y ese proyecto es el de Dynamic.** Las tres funciones son `security definer` con `execute` a `authenticated` (`migración :306-309`) y no comprueban que quien llama sea colaborador de retail; `variantes_select` y `productos_select` dicen `auth.role() = 'authenticated'` `[código retail_policies.json]`. D-27 («costo visible, transparencia») se decidió pensando en cuentas de retail; desde la unificación con Dynamic, `auth.users` incluye cuentas que no lo son. `fn_stock_por_sede` sí lo comprueba (`20260914231015:233-238`): son dos criterios para el mismo dato. Cuántas cuentas hay hoy fuera de retail: **Q12** (solo conteos). Hasta tenerla, `[no verificable]`.
+**El censo de mañana crea productos por una RPC que acepta precio 0**, y la única defensa está en la pantalla del alta (`alta-producto.ts:222`); la base (`variantes_precio_check`: `precio >= 0`) y las RPC del alta lo permiten, y no hay ninguna comprobación de precio 0 en `registrar_venta` ni en Vender `[no verificable]`. Ver el flujo `productos-ciclo-de-vida.md` (#1).
 
-## 11 · Líneas propuestas para BACKLOG.md
-- [x] `[pantalla:productos]` #1 Descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla — M (decisión de Felipe) — hecha en local, ver ADR-0151
-- [x] `[pantalla:productos]` #2 Rótulo «Stock en toda la red» y decisión R-48 vs 2026-09-15 (opciones A/B/C) — S/M — opción A hecha; B/C abiertas, ver ADR-0151
-- [x] `[pantalla:productos]` #3 `count(distinct v.id)` en `fn_productos_resumen` («190 variantes») — S — hecha en local, ver ADR-0151
-- [x] `[pantalla:productos]` #4 Quitar el rojo de «Stock 0» por tarjeta (≤ 2 rojos) — S — hecha en local, ver ADR-0151
-- [ ] `[pantalla:productos]` #5 Fotos: sin rótulo si no tiene ninguna, respaldo a foto general/principal, contador «sin foto» — M
-- [ ] `[pantalla:productos]` #6 Esconder «Editar» al integrante en Grilla y Tabla + prueba del rechazo — S
-- [ ] `[pantalla:productos]` #7 Demanda y plazo de entrega por producto en `fn_productos*` (medir primero) — M
-- [ ] `[pantalla:productos]` #8 `p_stock_minimo` en el alta (o esconder «stock bajo») — M
-- [ ] `[pantalla:productos]` #9 Un solo universo de variantes vigentes en Productos e Inventario — M
-- [ ] `[pantalla:productos]` #10 «Activar» en bloque debe revalidar marca y proveedor — S
-- [ ] `[pantalla:productos]` #11 Táctil, contraste y estado vacío (bajo valor) — S
-- [ ] `[pantalla:productos]` #12 Decidir: Catálogo (gestión) + Consultar (mostrador) — L
-- [ ] `[pantalla:productos]` Fuera: cuentas fuera de retail que pueden llamar `fn_productos*` (Q12) y una sola regla de acceso con `fn_stock_por_sede` — S
+## 11 · Líneas propuestas para el backlog
+- [ ] `[pantalla:productos]` #1 El mismo «cuánto hay» en Grilla, Tabla, vista rápida y ficha — M
+- [ ] `[pantalla:productos]` #2 «A quién pedirle» correcto, barato y sin tumbar la pantalla — M
+- [ ] `[pantalla:productos]` #3 Panel y filtros no pierden estado — S
+- [ ] `[pantalla:productos]` #4 «Editar» solo a quien puede — S
+- [ ] `[pantalla:productos]` #5 Sin foto: no aparentar «muestra» + filtro y contador — S–M
+- [ ] `[pantalla:productos]` #6 Descontinuar/Reactivar en bloque coherente — S–M
+- [ ] `[pantalla:productos]` #7 Un solo umbral de margen + precio atípico — S (decide Felipe)
+- [ ] `[pantalla:productos]` #8 Vacío y fuera de rango que expliquen — S
+- [ ] `[pantalla:productos]` #9 Una sola ficha de variantes (Tabla y Grilla) — M
+- [ ] `[pantalla:productos]` #10 Búsqueda y URL sin efectos raros — S–M
+- [ ] `[pantalla:productos]` #11 Decidir: ¿«A quién pedirle» en Productos o en Compras? — M–L
+- [ ] `[pantalla:productos]` #12 Cabecera en dos líneas y deuda muerta — S (bajo valor)
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Selector «TIENDA TRU» | Cambia la sede activa (solo líder) | Ajustar: no cambia el stock de esta pantalla | `[código AppShell.tsx:1209]` |
-| Título | Subtítulo con conteos | Enlaces que aplican filtros de stock | **Ajustar:** variantes inflado; sin stock y para pedir cuentan descontinuados; rojo | `[código page.tsx:227,247]` `[producción D3]` |
-| Título | Toggle GRILLA / TABLA | Cambia la vista, conserva filtros | Bien; ajustar tamaño | `[código page.tsx]` |
-| Título | «+ Nuevo producto» | Lleva a `/productos/nuevo` (solo líder) | Bien | `[código page.tsx:114]` |
-| Bloque | «A quién pedirle» | Filtra por proveedor con reposición | Ajustar: sin filtro de estado | `[código catalogo-v2.ts:297-316]` |
-| Búsqueda | Buscador | Texto, código y barras, en el servidor | Bien; `ilike` sin escapar `%` y `_` (menor) | `[producción D3]` |
-| Búsqueda | Filtros | Categoría, marca, proveedor, color, estado, precio, stock, orden | Bien; falta orden por nombre y por stock (bajo valor) | `[código]` |
-| Tarjeta | Foto o tinte | Abre la vista rápida | Ajustar: sin respaldo a foto general | `[código :28-29]` |
-| Tarjeta | Badge «MUESTRA — COLOR» | Marca que falta la foto | **Ajustar:** sale en ~87 % de las tarjetas | `[código :199]` `[producción E3]` |
-| Tarjeta | Nombre, código, categoría, marca · proveedor | Identidad | Bien; sin distintivo de estado | `[código :207-218]` |
-| Tarjeta | Precio | Rango de precio de las variantes | Ajustar: incluye variantes inactivas | `[código :35-41]` |
-| Tarjeta | «Stock N» | Total de toda la red | **Ajustar (#2, #4)** | `[código :220]` `[producción D3]` |
-| Tarjeta | Swatches | Cambian el color mostrado | Ajustar: 16 px; incluye variantes inactivas | `[código :25-32,:82]` |
-| Vista rápida | Variantes, «Editar», «Ajustar inventario» | Detalle y acciones | Ajustar: sin stock por sede; «Editar» muerto para el integrante | `[código :303-306,:323]` |
-| Pie | Paginación | 24 por página | Bien | `[código catalogo-v2.ts:136]` |
-
-## Apéndice — Consultas que aún faltan (solo lectura, sin datos personales, prefijo `retail.`)
-Las consultas Q1–Q13 que propuso el verificador están en la conversación; estas son las que cambian una conclusión de este archivo.
-
-```sql
--- Q2. Reproduce «sin stock» y «para pedir» con la función real, partidos por estado (confirma la objeción 1).
-with p as (select distinct producto_id, estado, stock_total, demanda_diaria, reponer_de_proveedor
-           from retail.fn_productos(p_por_pagina => 100))
-select estado, count(*) as productos,
-       count(*) filter (where stock_total = 0) as sin_stock,
-       count(*) filter (where reponer_de_proveedor) as para_pedir,
-       count(*) filter (where stock_total = 0 and demanda_diaria = 0) as sin_stock_y_sin_ventas_30d
-from p group by estado order by estado;
-
--- Q4a. ¿Está inflado el conteo de variantes? (confirma la #3)
-select (select total_variantes from retail.fn_productos_resumen()) as variantes_que_dice_la_pantalla,
-       (select count(*) from retail.variantes where producto_id <> '11111111-1111-4111-8111-111111111111'::uuid) as variantes_reales,
-       (select count(*) from retail.variantes where producto_id <> '11111111-1111-4111-8111-111111111111'::uuid and not activo) as variantes_inactivas,
-       (select count(*) from retail.stock) as filas_de_stock;
-
--- Q5. De dónde sale el «Stock N»: por ubicación, tipo y sububicación (confirma la #2).
-select u.nombre as ubicacion, u.tipo as tipo_ubicacion, u.activo as ubicacion_activa,
-       coalesce(su.tipo, '(sin sububicación)') as sububicacion,
-       count(*) as filas, coalesce(sum(s.cantidad), 0) as unidades
-from retail.stock s join retail.ubicaciones u on u.id = s.ubicacion_id
-left join retail.sububicaciones su on su.id = s.sububicacion_id
-group by 1, 2, 3, 4 order by 1, 2, 4;
-
--- Q7a. Fotos sin color (confirma la #5).
-select count(*) as fotos, count(distinct producto_id) as productos_con_foto,
-       count(*) filter (where color_codigo is null) as fotos_sin_color
-from retail.producto_fotos;
-
--- Q10a. Quién ejecuta cada función de la pantalla (cierra E2 y la nota «Fuera de esta pantalla»).
-select p.proname, case when p.prosecdef then 'definer' else 'invoker' end as corre_como, p.proconfig,
-       has_function_privilege('anon', p.oid, 'execute') as anon_ejecuta,
-       has_function_privilege('authenticated', p.oid, 'execute') as authenticated_ejecuta
-from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'retail'
-  and p.proname in ('fn_productos','fn_productos_resumen','fn_productos_buscar','fn_stock_por_sede',
-                    'catalogo_actualizar_producto','crear_producto_con_variantes','registrar_movimiento');
-
--- Q12. Solo conteos: cuentas del proyecto vs. cuentas con acceso a retail.
-select count(*) as cuentas_auth,
-       count(*) filter (where exists (select 1 from public.personas pe join retail.colaboradores c on c.persona_id = pe.id
-                                      where pe.auth_user_id = u.id)) as con_acceso_a_retail
-from auth.users u;
-
--- Q13. Activos con marca o proveedor desactivado (confirma la #10).
-select count(*) as activos_con_marca_o_proveedor_inactivo
-from retail.productos p join retail.marcas m on m.id = p.marca_id join retail.proveedores pv on pv.id = p.proveedor_id
-where p.estado = 'activo' and (not m.activo or not pv.activo);
-```
+| Cabecera | Frase de cinco líneas | Explica cada número | **ajustar** (larga, vocabulario interno) | `[visto]` `[código productos-stock.ts:31]` |
+| Cabecera | Toggle Grilla/Tabla | `?vista=` | bien | `[visto]` |
+| Cabecera | «+ Nuevo producto» | Lleva al alta | bien | `[código page.tsx:137]` |
+| Franja | «N prendas sin temporada · Completar» | Aviso para quien edita | bien | `[visto]` |
+| Panel | «A quién pedirle» | Reposición por proveedor | **ajustar** (cálculo caro, subcuenta, pierde estado) | `[código AQuienPedirle.tsx:22]` |
+| Barra | Buscador + Filtros + chips | URL, 350 ms | bien / ajustar (ILIKE sin escapar) | `[código FiltrosProductos.tsx:71-85]` |
+| Grilla | Tarjeta | Foto, marca, precio, «N aquí» | ajustar («MUESTRA») | `[visto]` |
+| Grilla | Vista rápida | Stock por talla y 4 botones | ajustar («Editar» a todos) | `[código ProductosGrilla.tsx:372]` |
+| Tabla | 9 columnas | Precio, costo, margen, stock, estado | ajustar («Stock» sin rotular) | `[visto]` |
+| Tabla | Casillas y barra en bloque | Descontinuar, Reactivar, Etiquetas | bien / ajustar | `[código :836-862]` |
+| Tabla | Eliminar | Pregunta a la base primero | bien | `[código EliminarProductoModal.tsx:58-69]` |
+| Pie | Paginación | 24 por página | ajustar (fuera de rango) | `[código Paginacion.tsx:98]` |
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
@@ -299,3 +217,4 @@ where p.estado = 'activo' and (not m.activo or not pv.activo);
 | 2026-09-21 | completo, primera versión (sin D3 ni E3) | 6.5 | 6.6 (Soporte) | primer análisis; reemplazada el mismo día |
 | 2026-09-21 | completo, con D3, E3, E4c y verificación adversarial (8 agentes) | 5.0 (tope) | 6.8 (Soporte) | no aplica: reescritura antes de ejecutar ninguna tarea. Caen: «candado de Editar» (era falso), `CHECK` de código (rompería las altas), «A quién pedirle falla en silencio» (omisión declarada) |
 | 2026-09-22 | ejecución (sin re-análisis) | 5.0 → se recalcula al re-analizar | 6.8 | #1, #2 (opción A), #3 y #4 hechas en local (ADR-0151); pendientes de producción las 2 migraciones |
+| 2026-09-29 | completo, re-análisis (código + producción por agente + recorrido visual) | 6,9 | 6,8 (Soporte) | Del análisis del 21-sep, **cerradas 4 de 12**: #1 descontinuados fuera de alertas, #2 «Stock N» (ADR-0270), #3 `count(distinct)`, #4 sin rojo en «Stock 0»; **#10 parcial** (la RPC revalida, pero queda el `update` de respaldo); **siguen abiertas** #5 fotos (`MUESTRA`), #6 «Editar» en la Grilla, #7 demanda por producto, #8 `stock_minimo`, #9 un universo de variantes (ahora `catalogo-inventario.md` #8), #11 táctil/contraste. **#12 Replantear** quedó decidido en ADR-0254 («tabla para todos»). El análisis del 21-sep estaba vencido: sube de 5.0 a 6.9 sobre todo porque desaparece el tope (ya no hay cifra que dañe stock) |

@@ -46,6 +46,7 @@
     "pruebas:eliminar-producto-con-historia": "node scripts/pruebas/eliminar_producto_con_historia.mjs",
     "pruebas:fn-existencias": "node scripts/pruebas/fn_existencias.mjs",
     "pruebas:catalogo-cifra-unica": "node scripts/pruebas/catalogo_lee_la_cifra_unica.mjs",
+    "pruebas:productos-orden": "node scripts/pruebas/productos_orden.mjs",
     "pruebas:talla-con-prendas": "node scripts/pruebas/talla_con_prendas_no_se_retira.mjs",
     "pruebas:bajada-al-piso-concurrencia": "node scripts/pruebas/bajada_al_piso_concurrencia.mjs",
     "pruebas:alta-con-stock-inicial": "node scripts/pruebas/alta_con_stock_inicial.mjs",

@@ -1,234 +1,215 @@
-# Pantalla — Categorías (`/productos/categorias`)
+# Pantalla — Categorías (`/productos/categorias`) y Familias (`/productos/familias`)
 
-> Modo: **completo** · Fecha: 2026-09-21 · Rol/sede: líder, Tienda TRU (la pantalla no depende de sede) · Datos: real (producción, SQL A–E pegado por Felipe; E3/E4/E6 sin resultado visible)
-> SHA analizado: `b6b85206` (= origin/main, rama al día `0 0`) — si `page.tsx` o `CategoriasLista.tsx` cambian después, este análisis está vencido
-> Archivos: `apps/web/app/(app)/productos/categorias/page.tsx` · `apps/web/components/CategoriasLista.tsx` · `apps/web/components/IconoFamilia.tsx` · `apps/web/lib/catalogo-v2.ts` (`getEjesPorCategoria`) · `app/api/productos/categorias/route.ts` (+ `/ejes`) · RPC `actualizar_categoria`, `desactivar_categoria`, `reactivar_categoria`, `actualizar_categoria_ejes`, `fn_productos_por_categoria` · tablas `categorias`, `familias`, `categoria_tallas`, `categoria_tejidos`, `categoria_patrones`, `productos`
-> Otra sesión tocándola: **sí** — `SESIONES-ACTIVAS.md:24` (rama `product-creation-decision-tree-0afe63`, ADR-0109, «Categorías (curva)»). La fila de `:48` (PR #119, rediseño de tarjetas) está **desactualizada**: el commit `3a9cc2d8 … (#119)` ya está en `main`.
-> Reemplaza al análisis rápido de `17bdb269` (vencido: `page.tsx` y `CategoriasLista.tsx` cambiaron desde entonces). Algunas de sus afirmaciones eran incorrectas; se corrigen abajo.
+> Modo: completo (re-análisis) · Fecha: 2026-09-29 · Rol/sede: líder y admin, Tienda Lima (la pantalla no depende de sede) · Datos: **real** — consultas de solo lectura a producción hechas por el agente en la sesión (no las corrió Felipe; el apéndice de `catalogo-plan-de-ataque.md` las lista para que las confirme) y recorrido visual en local (42 categorías activas de siembra; producción tiene 44)
+> SHA analizado: `38f9d7ce` (origin/main; el código se leyó en `123bb733` y entre los dos solo cambió `alta-producto/ProductoCreado.tsx`). Si cambian `categorias/page.tsx`, `CategoriasLista.tsx`, `FamiliasLista.tsx`, `api/productos/categorias/*` o las migraciones `20260927200000`, este análisis está vencido.
+> Archivos: `apps/web/app/(app)/productos/categorias/{page,layout}.tsx` · `components/CategoriasLista.tsx` · `components/IconoFamilia.tsx` · `app/(app)/productos/familias/page.tsx` + `components/FamiliasLista.tsx` · `lib/categorias-reglas.ts` · `lib/catalogo-v2.ts` (`getEjesPorCategoria`) · `app/api/productos/categorias/route.ts` y `/ejes/route.ts` · RPC `actualizar_categoria`, `desactivar_categoria`, `reactivar_categoria`, `actualizar_categoria_ejes`, `fn_productos_por_categoria` · disparadores `categorias_valida_subcategoria`, `categorias_vigencia_candados` · tablas `categorias`, `familias`, `categoria_tallas`, `categoria_tejidos`, `categoria_patrones`, `productos`
+> Otra sesión tocándola: **no directamente** (`docs/SESIONES-ACTIVAS.md` no lista Categorías). Rozan: la del alta con stock inicial (`crear_producto_con_variantes` exige tejidos y patrones de la categoría) y la auditoría de TRU (D4 «tejido vacío en lo sin dato»).
+> **Re-análisis.** El anterior (`b6b85206`, 2026-09-21) estaba **vencido** (11 commits sobre `categorias/` y `CategoriasLista.tsx`, +270 líneas) y no se tomó como base; se leyó solo para marcar qué tareas se cerraron (Historial). Familias se analiza aquí porque es la mitad escondida del mismo vocabulario.
+> Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción-agente]` consulta de solo lectura del 2026-09-29 · `[inferido]` · `[no verificable]`.
 
 ## 0 · Veredicto
-Pantalla sana en lo visible, pero con **un estado imposible ya vivo en producción**: hay 1 producto activo colgando de la categoría desactivada «Blusas», y por eso la cabecera dice 38 productos mientras las tarjetas suman 37. La causa es de fondo: los candados de desactivar y de fijar el prefijo viven solo dentro de las RPC, no en la tabla.
-**Cumple su finalidad:** 6.5/10 · **Relevancia:** 5.8/10 — Comodidad (pero es raíz del código de cada prenda y de todo reporte por categoría)
+La pantalla mejoró de verdad desde el 21-sep: los candados que vivían solo en la pantalla ya están **en la tabla** (disparador `categorias_vigencia_candados`) y en producción hoy no hay ningún estado imposible. Lo que queda es (1) una decisión pendiente que **puede frenar la carga de mañana** —la familia Indumentaria exige tejido y patrón en cada prenda y cambiar eso solo se puede con SQL—, (2) que **guardar una categoría son dos llamadas** y quitar un tejido o un patrón puede dejar productos que ya no se pueden guardar sin avisar, y (3) un vocabulario de 44 categorías de las que solo 1 se usa, con dos de prueba («dsa», «prueba Lapicero») vivas en producción.
+**Cumple su finalidad:** 7,1/10 · **Relevancia:** 5,8/10 — Comodidad (pero es raíz del código de cada prenda, de la curva de tallas y de qué campañas llegan a qué categorías)
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para mantener el vocabulario cerrado de categorías (familia + prefijo de 3 letras + qué tallas, tejidos y patrones ofrece cada una), del que depende el código de cada prenda y la curva habitual de tallas al crear un producto." Fuente: ADR-0095, ADR-0096, ADR-0109 y el comentario de `page.tsx`, **no la captura**. ¿Docs y pantalla coinciden? Sí. `docs/datos/DECISIONES-2026-09-12.md` no tiene ninguna D-nn sobre categorías: mandan los ADR.
+"Esta pantalla existe para mantener el vocabulario cerrado de categorías (familia + prefijo de 3 letras + qué tallas, tejidos y patrones ofrece cada una), del que dependen el código de cada prenda, la curva habitual de tallas al crear un producto y el alcance de las campañas de descuento." Fuente: ADR-0062 (un solo nivel), ADR-0095 y ADR-0096 (taxonomía y familias), ADR-0103 (familias como tabla), ADR-0109 (curva habitual) y `page.tsx`; **no la captura**. ¿Docs y pantalla coinciden? **Sí**, con dos comentarios viejos: `api/productos/categorias/route.ts:9` dice «6 familias fijas» (ya es una tabla) y `page.tsx:37-39` promete un «candado visual» de desactivar que no existe en la pantalla. Ninguna decisión D-nn cubre categorías: mandan los ADR.
 
 ## 2 · Objeción
-1. **Un candado que la pantalla promete no existe en la tabla.** `desactivar_categoria` bloquea si hay productos activos, pero ese bloqueo solo vive en la RPC. En producción, «Blusas» está desactivada y tiene 1 producto activo `[producción C1, E5]`. Fue una migración (ADR-0096, `20260917110000`) quien la desactivó sin mover el producto. El único trigger de `categorias` en producción es el de subcategorías `[producción D4]`; ninguno protege `activo` ni `prefijo`. Un líder con un `UPDATE` directo, o la próxima migración, repite el problema.
-2. **La cabecera vuelve a no cuadrar, por 1.** Dice «38 productos activos clasificados» `[visto]`; las tarjetas suman 37 (Blazers 1, Camisas 4, Casacas 2, Chompas 8, Faldas 3, Jeans 1, Pantalones 2, Polos 1, Shorts 2, Tops 10, Vestidos 3) `[visto]`. El dato faltante es el producto de «Blusas», que sí cuenta en `fn_productos_por_categoria` pero no tiene tarjeta `[código page.tsx:90-95]` `[inferido]`. La tarea #1 del análisis anterior quedó a medias.
-3. **Reactivar sin validar.** `reactivar_categoria` solo hace `set activo = true` `[código 20260915160001:95-107]`. En «Desactivadas» hay una fila con `familia` y `prefijo` en NULL que dice «Polos (huérfana sin familia — fusionada…)» `[visto]` `[producción C1]`. Un clic en REACTIVAR la deja activa, sin familia y sin prefijo, invisible en las secciones (`familias.map`, `CategoriasLista.tsx:313`) pero contada en la cabecera. `[código]` `[inferido]`: no ejecuté el clic.
-4. Trade-off: arreglar el candado en la tabla obliga a que toda migración futura que fusione categorías mueva primero los productos. Es lo correcto (principio 2: se corrige el esquema, no se parcha).
+1. **Cambiar una regla de la familia solo se puede con SQL, y mañana puede hacer falta.** `familias.exige_tejido_patron` es `true` para Indumentaria (19 categorías activas) `[producción-agente]`, y `crear_producto_con_variantes` exige tejido y patrón dentro de los habilitados de la categoría (`20260918231100:171-175`). El censo de TRU entra por esa RPC. La decisión D4 de la auditoría («tejido vacío en lo sin dato») sigue abierta: si Felipe decide permitir vacío, la pantalla **no tiene dónde** cambiarlo. `/productos/familias` existe pero está escondida (solo la enlaza la Ayuda de Categorías, `page.tsx:127`), y no edita `exige_tejido_patron`, ni el orden, ni el ícono (`FamiliasLista.tsx`). En producción hoy las 19 categorías de Indumentaria sí tienen tejidos y patrones habilitados, así que el alta no se atasca por eso; el riesgo es la decisión, no el dato.
+2. **Guardar una categoría son dos escrituras sin transacción, y quitar un eje puede romper productos existentes sin avisar.** `CategoriasLista.tsx:216-268` llama a `PUT /api/productos/categorias` (datos) y después a `PUT …/ejes` (tallas, tejidos, patrones). Si la segunda falla, la categoría queda con datos nuevos y ejes viejos. Y **desmarcar un tejido o un patrón que productos ya usan no avisa**: `catalogo_actualizar_producto` después rechaza guardar esos productos (`20260918231100:508-517`). Además, los valores luego desactivados o pendientes no se ven en el editor (`catalogo-v2.ts:712-720`) y el guardado los borra en silencio.
+3. **Todavía hay cuatro estados imposibles posibles en la tabla.** El disparador nuevo solo corre en `UPDATE`: un `INSERT` directo puede crear una categoría activa sin familia ni prefijo (las columnas son nullable); cambiar la familia de un padre no baja a sus hijas; desactivar un padre con hijas activas no se bloquea; y un `UPDATE` directo en `productos` puede apuntar a una categoría inactiva (`BACKLOG.md:372`). Hoy: 0 casos `[producción-agente]`. Es prevención, no incendio.
+4. **La cabecera y las tarjetas cuentan universos distintos.** `page.tsx:109-113` suma todo lo que devuelve `fn_productos_por_categoria`, incluidas categorías inactivas y subcategorías; la tarjeta de un padre no suma las de sus hijas (`CategoriasLista.tsx:445`). «Cuadra» solo porque hoy hay 2 subcategorías y 0 productos en inactivas.
+5. **Producción tiene 44 categorías activas y 43 no tienen un solo producto**, y dos son restos de prueba activos: «dsa» (`DSA`, Indumentaria) y «prueba Lapicero» (`PLP`, Papelería), sin tallas `[producción-agente]`. Mañana aparecen en el selector de Nuevo producto.
+6. Trade-off: no reordenes el modelo (familia → categoría → subcategoría, un nivel) ni el diseño de las tarjetas: funcionan y son el mejor punto de la pantalla. Arregla lo que **duele mañana** (#1 y #7) y lo que puede corromper (#2 y #3) antes de pulir.
 
 ## 3 · Lo que está bien y no se toca
-- RLS activo en las 5 tablas `[producción D2]`, y ninguna RPC `security definer` sin `search_path` fijo `[producción E2, 0 filas]`.
-- Prefijo protegido por formato y unicidad **en la tabla**: `categorias_prefijo_formato` y `categorias_prefijo_unico`; nombre único sin importar mayúsculas ni tildes `[producción A2, A3]`.
-- La jerarquía (un solo nivel, sin ciclos, familia heredada) sí la impone un trigger de tabla `[producción D4]`. Es el modelo a copiar para los otros dos candados.
-- Familia validada por FK a `familias(codigo)` `[producción A2]`.
-- Nunca se borra: desactivar/reactivar con sección aparte `[visto]`.
-- Los tres ejes (tallas, tejidos, patrones) son tablas puente con PK compuesta y FK; borrar la categoría arrastra su puente `[producción A2]`.
-- Vista rápida de solo lectura para cualquier rol, con la curva habitual marcada con ✓ `[visto]`.
-- Usa `<Modal>` (ADR-0136) y el mismo lenguaje que Productos `[visto]`.
-- El conteo de tarjetas ya lo hace la base (`fn_productos_por_categoria` existe en producción, invoker, `search_path` fijo) `[producción D3]`. Cierra la tarea #2 anterior; el comentario «solo local hasta que Felipe la pegue» está viejo.
-- Ninguna de las 42 categorías activas visibles está sin tallas `[producción C1]`.
+- **Los candados de tabla ya existen:** `categorias_vigencia_candados` (prefijo fijo con productos de cualquier estado; no desactivar con productos activos; una activa exige familia, prefijo y familia activa) `[producción-agente A—triggers]`; `categorias_valida_subcategoria` (un nivel, familia heredada); `categorias_prefijo_formato` (`^[A-Z]{3}$`), `categorias_prefijo_unico` y `categorias_nombre_clave_unica`; la FK de `productos.categoria_id` (sin cascade) impide borrar una categoría con productos `[producción-agente]`. Migración `20260927200000_categorias_candados_en_la_tabla.sql:120`.
+- **Cero productos activos colgando de una categoría desactivada** y cero categorías activas sin familia o prefijo `[producción-agente]`: el estado imposible que el 21-sep estaba vivo («Blusas») ya no existe.
+- **Reactivar ya no puede dejar una categoría huérfana:** regla (c) del disparador y `CategoriasLista.tsx:788-794` (oculta «Reactivar» si falta familia o prefijo); la «Polos» huérfana quedó renombrada «Polos (V1, retirada)» y desactivada `[producción-agente]`.
+- **Nada se borra:** desactivar/reactivar con sección aparte `[visto]`.
+- **RLS activo en las cinco tablas del vocabulario** `[producción-agente D2]`; escritura por `fn_puede_editar_catalogo()`; y la pantalla usa `puede(persona,"editarCatalogo")` en vez de comparar el rol (`page.tsx:146`, ADR-0161).
+- **Curva habitual:** la marca ✓ de talla habitual la consume `NuevoProductoForm.tsx:267` y ya no depende de que una colaboradora recuerde la curva.
+- **Cerrado desde el 21-sep, no reabrir:** orden humano de tallas (`compararTallas`), prefijo bloqueado con motivo (`prefijoFijo`), ícono de Accesorios, ejemplo por familia, buscador (`categorias-reglas.ts:14`).
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 7 | Coherente con CAYLA y con Productos. Fallas: orden de tallas alfabético, ícono de Accesorios que parece candado, texto chico y pálido, placeholder que ejemplifica algo que ya existe | `[visto]` `[código]` |
-| Lógica de negocio | 5 | Estado imposible en producción (producto activo en categoría inactiva); reactivar sin validar; el prefijo se bloquea por productos de cualquier estado pero la tarjeta cuenta solo los activos | `[producción]` `[código]` |
-| Arquitectura | 6 | Cadena correcta y RLS sana, pero los candados están en las RPC y no en la tabla; guardar una categoría son dos llamadas sin transacción; sin tests ni Zod | `[producción D4]` `[código]` |
-| Funciones | 7 | Todo lo que se ve funciona. Faltan buscador y forma de mover productos al fusionar. No hay fantasmas | `[visto]` `[código]` |
-| Utilidad | 6 | Vista rápida clara; el modal Editar es una pared de 40+ chips con el Guardar fuera de la vista | `[visto]` |
-| Conexión con el ERP | 8 | Aguas abajo fuerte: prefijo → código de producto, curva → Nuevo producto, filtros de Productos. Sin integración externa | `[código]` |
+| Estética | 7,5 | Tarjetas por familia limpias y coherentes; 43 de 44 dicen «Sin productos» | `[visto]` |
+| Lógica de negocio | 7,5 | Candados bien y ya en la tabla; el prefijo se congela sin avisar al crear | `[código CategoriasLista.tsx:497]` |
+| Arquitectura | 7 | Trigger de tabla correcto; guardar en dos llamadas; cuatro estados posibles restantes | `[código CategoriasLista.tsx:216-268]` |
+| Funciones | 6,5 | Falta crear con ejes, ver el efecto de quitar un eje y editar la familia | `[código CategoriasLista.tsx:683]` |
+| Utilidad | 6,5 | «CAYLA vende pijamas» = 3 pantallas y 4 gestos; el paso que se olvida rompe el alta | `[código]` `[inferido]` |
+| Conexión con el ERP | 7,5 | Alimenta código, curva, campañas y reportes; la temporada se ve aquí pero se cambia en Atributos | `[código]` |
 
-### Estética (7)
-- **(a) Coherencia CAYLA.** Crema y tinta, esquinas suaves, tipografía display en los títulos `[visto]`.
-  - En Editar categoría hay ~20 chips seleccionados con tinte rojo a la vez (tallas, curva, tejidos, patrones) `[visto captura 3]`, frente al máximo de 2 de `MAX_ROJO_POR_PANTALLA` (`packages/shared/src/design-tokens.ts:73`). No leí `SelectorMultiple`, así que no sé si esa regla cuenta chips seleccionados. `[no verificable]` — decisión de Felipe.
-  - Texto en `tinta/55` y `/60`: la cabecera (`page.tsx:~118`), las ayudas del modal (`CategoriasLista.tsx:540,578`) y «Ver en Productos» a 10 px (`:733`). ADR-0012 midió 2.57:1 para `/45`, con mínimo AA de 4.5:1; `/55` queda por debajo `[inferido, no medí]`.
-  - «SIN PRODUCTOS» ya está a 11 px y `/65` (`:670`): la tarea #3 anterior está cerrada.
-- **(b) Marca y tono.** Vocabulario correcto. El nombre de la huérfana con una nota interna incrustada («…fusionada con Polos/Camisetas el 2026-09-17») en el chip de Desactivadas rompe el tono `[visto captura 5]`.
-- **(c) Heurísticas.**
-  - El orden de tallas en Editar es `Estándar, L, M, S, XL, XS, XXL` y `26 … 42, 6, 7, 8, 9`, alfabético `[visto captura 3]`; la Vista rápida sí las muestra bien (`Estándar XS S M L XL XXL`) `[visto captura 2]`. Causa: `.order("valor")` sobre texto (`page.tsx:31`).
-  - El ícono de Accesorios es una bolsa con asa (`IconoFamilia.tsx:38`) y a 16 px se lee como candado `[visto captura 5]`.
-  - El placeholder «Ej. Chalecos» ejemplifica una categoría que ya existe (CHA) `[visto captura 4]`.
+### Estética (7,5)
+- `[visto]` Cabecera corta «PRODUCTOS · CATÁLOGO», título, «!» y cifra «42 categorías activas · 10 productos activos clasificados»; buscador y «+ AGREGAR CATEGORÍA»; secciones por familia con ícono; tarjeta con prefijo en placa, nombre y «SIN PRODUCTOS». Mismo lenguaje que Marcas y Atributos.
+- `[visto]` Con datos de producción (44 categorías, 43 vacías) casi todas las tarjetas repiten «SIN PRODUCTOS»: ruido que esconde la única con dato.
+- `[código IconoFamilia.tsx:21-78]` seis códigos de familia fijos: una familia nueva sale como círculo.
+- Sin rojo fuera de norma `[visto]`. La cabecera es la simple de Catálogo: en Catálogo solo Productos tiene `<EncabezadoPagina>` y el resto está **sin decidir** (pregunta a Felipe, no defecto).
 
-### Lógica de negocio (5)
-- Viola la promesa de `desactivar_categoria` (no desactivar con productos activos): Blusas `[producción E5]`. Ninguna D-nn escrita cubre esto.
-- El prefijo se congela con productos de **cualquier** estado (`actualizar_categoria`, `20260915224501:123-126`), pero la tarjeta cuenta solo activos `[código]`. En producción hay 5 categorías donde el total supera a los activos (Camisas y Blusas 5/4, Chompas 9/8, Pantalones 3/2, Polos 2/1, Vestidos 4/3) `[producción C1]`: muestran «N productos» y el prefijo ya no cambia.
-- El input del prefijo no se deshabilita aunque el subtítulo diga que no se puede cambiar (`:426-433`); el rechazo llega recién al guardar `[código]`.
-- Vocabulario: prefijos poco mnemónicos («Colores» = `UTC`, «Pañuelos» = `BUF`, «Poleras» = `SUD`) `[visto]`. Se decidieron a mano (ADR-0096); anotado, no es defecto.
-- Referente de ERP (de memoria, **no verificado**): Odoo y Shopify guardan la categoría con historial y piden mover los productos antes de archivarla. Aplica hoy: es exactamente el hueco de Blusas.
+### Lógica de negocio (7,5)
+- Regla violada #1: CLAUDE.md, principio 2 (cero estados inconsistentes) — cuatro estados aún posibles en la tabla (objeción 3).
+- Regla violada #2: D4 de la auditoría del 29-sep (tejido vacío en lo sin dato) está abierta y la familia lo fuerza: ninguna decisión escrita cubre esto.
+- El **prefijo es permanente**: se asigna una vez (`fn_asignar_codigo_producto`, `20260912235500:176-190`) y el subtítulo del formulario (`CategoriasLista.tsx:497`) no avisa de que se congela con el primer producto.
+- Desactivar con productos solo descontinuados **se permite**, y esos productos siguen apuntando a la categoría inactiva; el prefijo queda reservado para siempre `[código]`.
 
-### Arquitectura (6)
-- **Estados imposibles.** Lo que la tabla sí impide: prefijo duplicado o mal formado, nombre duplicado, ciclos y profundidad >1, familia inexistente `[producción A2, A3, D4]`. Lo que **no** impide: desactivar con productos activos y cambiar el prefijo con productos; ambos solo dentro de la RPC `[producción D4]`, con RLS `for all` para el líder `[código]`.
-- **Transacción.** Guardar = `PUT /categorias` (RPC) y después `PUT /categorias/ejes` (otra RPC) `[código CategoriasLista.tsx:165, 204-209]`. Si la segunda falla, la categoría queda guardada y los ejes no; la UI avisa (`:212-214`), pero el estado a medias existe.
-- **Concurrencia.** Dos líderes editando la misma categoría: gana el último y no hay versión ni aviso. Con 1 líder real y escritura esporádica el riesgo es bajo `[inferido]`.
-- **Caída externa.** No hay API externa. Si la base no responde, `exigir()` corta la página con error; no se pierde ningún dato.
-- **Volumen.** 45 categorías, 45 productos, 216 + 139 + 133 filas de puente `[producción B1]`. En 3 años no pasará de unos cientos; el rendimiento no es un tema.
-- **Lentes.** RLS sana `[producción D2, E2]`. `PUT /ejes` no verifica el rol en la ruta y depende de `fn_es_lider` dentro de la RPC (`ejes/route.ts:14`): es defensa en una sola capa. No hay Zod: validación manual con regex, contra el principio 11. Sin tests de pantalla, API ni RPC `[código]`.
+### Arquitectura (7)
+- **Dos escrituras sin transacción** (datos y ejes): si falla la segunda, categoría a medias. Se degrada así: la base no queda inválida (los candados de tabla lo impiden) pero la categoría queda con ejes viejos y la persona ve «guardado».
+- **Concurrencia:** dos líderes editan los ejes de la misma categoría; gana el último (sin control de versión); `[no verificable]` que lo noten. Baja probabilidad: pocas personas editan categorías.
+- **Volumen:** 47 categorías, 6 familias, ~100 filas en las tres tablas puente; en 3 años cientos, no miles: no hay problema de rendimiento; la pantalla carga todo en servidor.
+- **Caída externa:** ninguna dependencia externa; si falla una lectura, `exigir` lanza la pantalla de error general; no se pierde ningún dato.
+- **Permisos:** `PUT …/ejes` no llama a `puede()` (`ejes/route.ts:17`); la RPC lo cubre, así que no es un hueco, pero es asimetría con las otras rutas. Los mensajes dicen «Solo un Líder» aunque el permiso ya lo tiene un rol con Productos o Atributos completo.
+- **Prueba:** `scripts/pruebas/categorias_candados.mjs` existe pero **no corre en CI** (`ci-paridad.test.ts:33`).
 
-### Funciones (7)
-- **Existen y funcionan:** agregar categoría, editar, subcategorías, tallas/curva/tejidos/patrones, vista rápida, ver en Productos, desactivar y reactivar.
-- **Fantasma:** ninguna. La ayuda «!» es un globo real (`Ayuda.tsx`); el análisis rápido anterior la marcó mal.
-- **Faltan:** buscador; ver o mover los productos de una categoría antes de desactivarla o fusionarla; orden de tallas humano.
-- **Sobran:** nada que borrar. El campo de notas no tiene uso visible todavía `[no verificable]`.
+### Funciones (6,5)
+- **Existen y funcionan:** crear (INSERT vía API), editar (nombre, familia, prefijo mientras sea libre), desactivar/reactivar, subcategoría, editor de tallas/tejidos/patrones, curva habitual, vista rápida, buscador.
+- **Engañosas:** «Desactivar» siempre activo (rechaza la base, no la pantalla) y sin confirmación, a diferencia de «Reactivar»; «Ver en Productos» de la vista rápida abre `/productos?cat=` y sin módulo Productos cae en «Sin acceso» (`CategoriasLista.tsx:913`).
+- **Faltan:** elegir ejes al crear (`:683` exige estar editando), avisar cuántos productos dejan de poder guardarse al quitar un eje, editar `exige_tejido_patron` (solo por SQL), ver qué categorías nunca se usaron.
+- **Sobran:** nada.
 
-### Utilidad (6)
-Escenario: una colaboradora nueva de Tienda TRU abre Categorías para saber dónde poner un blazer.
-- Ve la tarjeta «Blazers · BLZ · 1 producto» y abre la Vista rápida. Entiende la curva porque el ✓ está explicado en el título `[visto]`.
-- Es de solo lectura para ella: no se puede equivocar.
-- Para el líder, «Editar» abre una hoja de ~40 chips con el «Guardar cambios» fuera de la vista `[visto captura 3]`. Es fácil tocar un chip por error al hacer scroll.
-- Una categoría nueva se crea con el prefijo mal (`Ej. Chalecos` ya existe) hasta que el índice único lo rechaza. La equivocación es del diseño, no de la capacitación.
+### Utilidad — persona sin contexto (6,5)
+Escenario real: *CAYLA empieza a vender pijamas.*
+1. Atributos: revisar o crear tallas, tejidos (satén, algodón) y patrones que falten (Categorías no tiene «+ nuevo valor»).
+2. Categorías ▸ «+ Agregar categoría» (Pijamas, `PIJ`, Indumentaria) ▸ Guardar.
+3. Tarjeta ▸ Editar ▸ marcar tallas, curva, tejidos y patrones ▸ Guardar.
+4. Nuevo producto.
+- **Dónde se equivoca:** saltarse el 3. Con Indumentaria, Nuevo producto falla con `categoria_sin_tejidos` (`20260918230100:203-210`); el alta tiene un panel de rescate (`ConfigurarCategoria.tsx`), así que la persona no se queda sin salida, pero ese panel y la pantalla de Categorías **editan los mismos ejes y se pisan** (`BACKLOG.md:330`).
+- Acepta el prefijo sugerido sin saber que es permanente.
+- El formulario solo detecta nombre o prefijo idénticos, no que «Conjuntos» o «Lencería» ya cubren parte del rubro.
 
-### Conexión con el ERP (8)
-Ver sección 6.
+### Conexión con el ERP (7,5) — ver §6.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 8 | Directa baja; indirecta alta: toda analítica por categoría, el prefijo del código y la curva nacen aquí |
-| Dinero y stock que toca | ×1 | 3 | No mueve stock ni dinero; sí el código de prenda y, indirectamente, dónde se busca el stock |
-| Frecuencia y personas | ×1 | 3 | Solo líder, esporádica; lectura para el resto |
-| Qué se detiene si falla | ×1 | 7 | Sin categoría activa válida no se puede crear producto |
+| Gestión (directo + indirecto) | ×2 | 7 | Raíz de todo reporte por categoría, del código de prenda y de la curva; pocas decisiones se toman aquí |
+| Dinero y stock que toca | ×1 | 4 | No mueve stock; pero `etiqueta_categorias` decide a qué categorías llega un descuento en caja |
+| Frecuencia y personas que la usan | ×1 | 3 | Se edita pocas veces; muchas lecturas indirectas desde el alta |
+| Qué se detiene si falla | ×1 | 8 | Sin categoría activa y con ejes no se crea ningún producto: frena el censo y el alta |
 
-Relevancia = (2·8 + 3 + 3 + 7) / 5 = **5.8** → Comodidad.
-Cumple su finalidad = (7+5+6+7+6+8)/6 = **6.5**. Sin tope: el estado imposible de Blusas no mueve dinero ni stock; sí deja un producto fuera de los filtros por categoría.
+Relevancia = (2·7 + 4 + 3 + 8) / 5 = **5,8** — Comodidad.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `familias` (ADR-0103) y los vocabularios aprobados `tallas`, `tejidos`, `patrones`.
-- **Aguas abajo:**
-  - `fn_asignar_codigo_producto` toma `prefijo` y arma `PREFIJO-NNNN`.
-  - Nuevo/Editar producto exige categoría activa y marca las tallas de la curva habitual.
-  - Filtros de Productos (`?cat=`) solo listan categorías activas: **el producto de Blusas no se puede filtrar por categoría**.
-  - Reportes por categoría.
-- **Pájaro dueño y vecinos:** Loro (catálogo y vocabulario, `AVIARIO.md:41`); vecinos Atributos, Familias y Marcas.
-- **Externos, y qué pasa si caen:** ninguno. Se degrada así: si la base cae, la página falla entera sin escribir nada.
+- **Aguas arriba:** Familias (`familias`, y las 6 iniciales de ADR-0096); Atributos (los valores de tallas, tejidos y patrones que Categorías habilita).
+- **Aguas abajo:** Nuevo producto (`alta-producto-datos.ts:74-87`: familias, categorías activas y ejes; `NuevoProductoForm.tsx:223-228, 267`: ejes y curva); `crear_producto_con_variantes` (exige categoría activa y valores dentro de los ejes); Editar producto, Productos, Vender y Conteo (solo ofrecen categorías activas); Etiquetas de campaña (`etiqueta_categorias`, categoría exacta: no sube al padre); Análisis, Inventario y Existencias (`left join categorias`, agrupan por la categoría exacta, incluidas las inactivas); `categorias.temporada`; `cotizaciones-maquila.ts:55` (`familia = 'indumentaria'` fija).
+- **Pájaro dueño y vecinos:** 02 Loro (catálogo). Vecinos: Producción (cotizaciones de maquila), Frescura (temporadas) y Ventas (campañas).
+- **Externos, y qué pasa si caen:** ninguno. Se degrada así: nada externo de qué depender; si Supabase no responde la pantalla no carga y no se pierde ningún dato.
+- **¿Cambiar una categoría rompe algo?** Renombrar solo cambia el texto; cambiar el prefijo está bloqueado con productos; **cambiar la familia altera las exigencias de tejido y patrón y las cotizaciones de maquila** (sin aviso); quitar un tejido o patrón deja sin poder guardar los productos que lo usan (#2).
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — Mover el producto activo de «Blusas» a «Camisas y Blusas»
-- **Dónde:** `retail.productos` (1 fila con `categoria_id` = «Blusas») · RPC `catalogo_actualizar_producto`, que se usa desde Editar producto (no toques la tabla a mano).
-- **Por qué en este puesto:** es el estado imposible ya vivo; deja un producto fuera de los filtros por categoría y de la cabecera correcta. Se arregla en un minuto.
-- **Cómo lo verificas tú:** recargas Categorías: la cabecera y las tarjetas suman lo mismo (38). Sale «Blusas» del E5.
-- **Esfuerzo / dependencias:** S · antes de la #2 y la #3.
+### #1 · Corregir — Poder cambiar «exige tejido y patrón» sin SQL, y decidir D4 antes del censo
+- **Dónde:** `familias.exige_tejido_patron`; `FamiliasLista.tsx` (226 líneas, sin ese campo); `api/productos/familias/route.ts` (POST/PUT/PATCH); `crear_producto_con_variantes` (`20260918231100:171-175`).
+- **Por qué en este puesto:** mañana abre TRU con el catálogo entrando por lotes. La familia Indumentaria (19 categorías) exige tejido y patrón; si Felipe decide D4 = «permitir vacío», hoy solo se logra con un `UPDATE` a mano en producción. Es lo único de esta lista con fecha.
+- **Cómo lo verificas tú:** en `/productos/familias`, Indumentaria muestra un interruptor «Exige tejido y patrón»; apagarlo permite crear una prenda de Indumentaria sin tejido ni patrón desde Nuevo producto.
+- **Esfuerzo / dependencias:** S · **antes** del censo · depende de que Felipe responda D4.
 
-### #2 · Reconstruir — Candado de tabla para desactivar y para el prefijo
-- **Dónde:** migración nueva con trigger `BEFORE UPDATE OF activo, prefijo ON categorias`, junto a `categorias_valida_subcategoria`. Se prueba local; nada en producción sin la confirmación de Felipe (esquema).
-- **Por qué en este puesto:** es la raíz de la objeción 1; sin él cada migración o `UPDATE` directo puede repetir Blusas.
-- **Cómo lo verificas tú:** `update retail.categorias set activo=false where id=<Blazers>` falla con el mensaje del conteo; lo mismo al cambiar el prefijo de una con productos.
-- **Esfuerzo / dependencias:** M · no antes de la #1 (si no, el dato malo sigue ahí).
-- **DECIDÍ:** trigger de tabla que reproduce la regla de las RPC, contando productos de cualquier estado para el prefijo y solo activos para desactivar.
-- **DESCARTÉ:** mantenerlo solo en las RPC, porque la RLS `for all` del líder y las migraciones ya lo saltaron una vez.
-- **SE ROMPE SI:** una migración futura que fusiona categorías (como la de ADR-0096) no mueve los productos antes de desactivar la origen: el trigger la aborta.
+### #2 · Reconstruir — Guardar categoría y ejes de una vez, y avisar qué productos se rompen al quitar un eje
+- **Dónde:** `CategoriasLista.tsx:216-268` (dos `PUT`), `ejes/route.ts`, RPC nueva `actualizar_categoria_completa`; conteo previo sobre `productos` (tejido/patrón no habilitado tras el cambio) y sobre `categoria_tallas`.
+- **Por qué en este puesto:** es el único camino que deja productos ya creados **sin poder guardarse** (`catalogo_actualizar_producto` rechaza) y sin decírselo a nadie; además guardar en dos pasos puede dejar la categoría a medias.
+- **Cómo lo verificas tú:** desmarcar «Algodón» en una categoría cuyo producto lo usa muestra «2 prendas usan Algodón: no podrás guardarlas hasta cambiarlas» antes de confirmar; forzar un error en los ejes no cambia el nombre de la categoría.
+- **Esfuerzo / dependencias:** M · ninguna.
+- **DECIDÍ:** una sola RPC transaccional (datos + ejes) con conteo de productos afectados devuelto antes de aplicar. **DESCARTÉ:** dejar el aviso solo en pantalla, porque otra ruta (el panel del alta) edita los mismos ejes y no pasaría por él; el candado tiene que estar donde se escribe. **SE ROMPE SI:** dos líderes guardan a la vez los ejes de la misma categoría: sin control de versión gana el último en silencio (aceptable con este volumen, a vigilar).
 
-### #3 · Corregir — La cabecera cuenta solo productos de categorías activas
-- **Dónde:** `page.tsx:~95` (`totalProductos`) o `fn_productos_por_categoria` (agregar `join` con `categorias.activo`).
-- **Por qué en este puesto:** un número que no cuadra con lo que se ve destruye la confianza en el resto.
-- **Cómo lo verificas tú:** suma las tarjetas y coincide con la cabecera aun con una categoría desactivada que tenga productos.
-- **Esfuerzo / dependencias:** S · se prueba con la #1 sin aplicar.
+### #3 · Reconstruir — Cerrar en la tabla los cuatro estados imposibles que quedan
+- **Dónde:** `fn_categorias_vigencia_candados` (extender a `INSERT`); nuevo disparador en `productos` (`categoria_id` a una categoría inactiva); disparador de padre/hijas en `categorias`.
+- **Por qué en este puesto:** el 21-sep ya vimos un estado imposible en producción («Blusas»); hoy está limpio y conviene que siga así cuando entren cientos de prendas por lotes.
+- **Cómo lo verificas tú:** con la prueba SQL: `insert into retail.categorias(...) activo=true` sin familia falla; desactivar un padre con hijas activas falla; `update retail.productos set categoria_id = <inactiva>` falla.
+- **Esfuerzo / dependencias:** M · migración de producción en partes (los disparadores, sin políticas) y **con la confirmación de Felipe antes de pegarla**.
+- **DECIDÍ:** ampliar el disparador existente y agregar uno en `productos`. **DESCARTÉ:** validar solo en la RPC, porque es exactamente lo que falló el 21-sep (candado en la RPC, no en la tabla). **SE ROMPE SI:** una migración futura mueve productos de categoría con `UPDATE` masivo dentro de una transacción larga y el nuevo disparador la aborta a medias: la migración debe mover primero y desactivar después.
 
-### #4 · Corregir — `reactivar_categoria` valida familia, prefijo y padre; limpiar la huérfana
-- **Dónde:** `20260915160001:95-107` (RPC nueva en migración) · `retail.categorias` fila «Polos (huérfana…)»: pasar la nota a `notas` y dejar un nombre corto.
-- **Por qué en este puesto:** un clic hoy crea una categoría activa que nadie ve y sin código.
-- **Cómo lo verificas tú:** REACTIVAR sobre la huérfana muestra un mensaje claro y no la activa. El chip ya no lleva la fecha dentro del nombre.
-- **Esfuerzo / dependencias:** S–M · no requiere la #2.
+### #4 · Corregir — La cabecera y las tarjetas cuentan el mismo universo
+- **Dónde:** `page.tsx:109-113` (excluir inactivas y contar subcategorías aparte); `CategoriasLista.tsx:445` (la tarjeta del padre suma o rotula «+N en subcategorías»); prefijo fijo usa `n_total` mientras la tarjeta usa `n`.
+- **Por qué en este puesto:** mismo defecto que ADR-0270 corrigió para el stock: dos cifras para lo mismo. Hoy no se ve; se verá con la primera subcategoría con productos.
+- **Cómo lo verificas tú:** crear una subcategoría con un producto: la cabecera y la suma de tarjetas coinciden y el padre muestra «1 en subcategorías».
+- **Esfuerzo / dependencias:** S · ninguna.
 
-### #5 · Corregir — Orden humano de tallas (XS S M L XL XXL, y números como números)
-- **Dónde:** `page.tsx:31` (`.order("valor")`) y `catalogo-v2.ts` (`agrupar`), con una función pura en `lib/` compartida. Verificar antes si `tallas` ya tiene una columna de orden `[no verificable]`.
-- **Por qué en este puesto:** es la pantalla donde el líder arma la curva; hoy elige entre «Estándar, L, M, S, XL, XS, XXL».
-- **Cómo lo verificas tú:** abre Editar → las tallas salen en el mismo orden que en la Vista rápida.
+### #5 · Corregir — «Desactivar» con motivo, confirmación y efecto sobre las hijas
+- **Dónde:** `CategoriasLista.tsx:747-759` (botón siempre activo), `cambiarEstado :329`; promesa rota de `page.tsx:37-39`.
+- **Por qué en este puesto:** ofrecer un botón que la base va a rechazar es culpa del diseño (Norman); y desactivar un padre con hijas activas hoy nada lo frena.
+- **Cómo lo verificas tú:** en una categoría con productos, «Desactivar» aparece apagado y dice cuántos productos lo impiden; al desactivar una sin productos pide confirmar, igual que «Reactivar».
+- **Esfuerzo / dependencias:** S · junto con la #3 (el padre con hijas).
+
+### #6 · Corregir — La prueba de candados corre en CI
+- **Dónde:** `scripts/pruebas/categorias_candados.mjs`, `ci-paridad.test.ts:33`, `.github/workflows/ci.yml`.
+- **Por qué en este puesto:** el candado que arregló «Blusas» es exactamente el que una migración futura podría romper; hoy nada lo vigila.
+- **Cómo lo verificas tú:** un PR que quite el disparador falla el CI.
+- **Esfuerzo / dependencias:** S · antes de la #3 (para probar también los nuevos).
+
+### #7 · Mejorar — Restos de prueba fuera del vocabulario, y avisar del prefijo permanente
+- **Dónde:** categorías «dsa» y «prueba Lapicero» (y, en el mismo criterio, las marcas «Prueba» y «prueba marca1»); `CategoriasLista.tsx:497` (aviso en el formulario).
+- **Por qué en este puesto:** mañana la colaboradora de TRU ve «dsa» al elegir la categoría de una prenda real; y el prefijo `DSA` queda reservado para siempre aunque se desactive.
+- **Cómo lo verificas tú:** en Nuevo producto ya no aparecen «dsa» ni «prueba Lapicero»; el formulario dice «El prefijo no se podrá cambiar cuando la primera prenda lo use».
+- **Esfuerzo / dependencias:** S · **antes** del censo · desactivar (no borrar), por CLAUDE.md.
+
+### #8 · Eliminar/fusionar — Un solo editor de ejes (Categorías y el alta se pisan)
+- **Dónde:** `CategoriasLista.tsx:683-743` y `alta-producto/ConfigurarCategoria.tsx` + `alta-producto-ejes.ts` (`BACKLOG.md:330`).
+- **Por qué en este puesto:** dos pantallas que resuelven lo mismo de dos formas: una está mal aunque las dos «funcionen» (Brooks). Hoy pueden reemplazarse una a la otra.
+- **Cómo lo verificas tú:** habilitar un tejido desde el alta y verlo marcado en Categorías, y al revés, sin que uno borre al otro.
+- **Esfuerzo / dependencias:** M · **no antes de la #2** (la RPC única).
+
+### #9 · Corregir — «Ver en Productos» de la vista rápida no cae en «Sin acceso»
+- **Dónde:** `CategoriasLista.tsx:913`, `productos/page.tsx` (módulo `productos`).
+- **Por qué en este puesto:** un enlace que termina en un muro es un error de diseño; y no filtra por estado.
+- **Cómo lo verificas tú:** con un rol sin Productos, el enlace se oculta o lleva a una vista con motivo.
+- **Esfuerzo / dependencias:** S · ninguna.
+
+### #10 · Replantear — ¿44 categorías cargadas de golpe o solo las que se usan?
+- **Dónde:** el sembrado de `categorias` (44 activas, 43 sin productos) y la sección por familia.
+- **Por qué en este puesto:** el vocabulario cerrado se pensó para no permitir categorías inventadas (ADR-0096), pero hoy es una pared de tarjetas vacías; no es un defecto, es una decisión de negocio.
+- **Cómo lo verificas tú:** — (pide una decisión).
+- **Esfuerzo / dependencias:** M según la respuesta · antes de la #11.
+- **DECIDÍ:** proponerle a Felipe mantener las 44 y **mostrar primero las que se usan** (sin cambiar el modelo). **DESCARTÉ:** sembrar solo las usadas y crear el resto a demanda con aprobación, porque cada categoría nueva reserva un prefijo para siempre y la aprobación sería un paso más para la colaboradora en hora pico. **SE ROMPE SI:** la tienda vende un rubro que las 44 no cubren y nadie quiere pedir la categoría a un líder: se vuelve «GEN» (el código de sin categoría, `20260912235500:176-190`) y el rubro no se puede analizar.
+
+### #11 · Mejorar — Categorías en uso primero, las vacías colapsadas
+- **Dónde:** `CategoriasLista.tsx:424-458` (secciones por familia).
+- **Por qué en este puesto:** 43 de 44 tarjetas dicen «SIN PRODUCTOS»; con la #10 resuelta deja de ser ruido.
+- **Cómo lo verificas tú:** en producción, «En uso» muestra 1 tarjeta y las 43 restantes empiezan cerradas bajo «Sin productos todavía».
+- **Esfuerzo / dependencias:** S · **no antes de la #10**.
+
+### #12 · Eliminar/fusionar — Familias visible, ícono genérico y comentarios viejos · *bajo valor / opcional*
+- **Dónde:** `lib/menu.ts:329` (sin fila de Familias); `IconoFamilia.tsx:21-78` (6 códigos fijos); `route.ts:9` («6 familias fijas»); `page.tsx:37-39` (candado visual que no existe); residual: reactivar una hija con padre inactivo no se valida.
+- **Por qué en este puesto:** cosmético o de documentación; solo importa si Felipe crea una familia nueva. **Si la #1 se hace, Familias necesita una entrada visible**: entonces sube.
+- **Cómo lo verificas tú:** una familia nueva muestra su ícono por defecto, no un círculo; la Ayuda dice lo que hace la pantalla.
 - **Esfuerzo / dependencias:** S.
-
-### #6 · Mejorar — Mostrar por qué el prefijo está bloqueado
-- **Dónde:** `CategoriasLista.tsx:426-433` (`disabled` + leyenda «usado por N productos»); `fn_productos_por_categoria` debería devolver también el total.
-- **Por qué en este puesto:** hoy hay 5 categorías donde la tarjeta cuenta menos que la base, y el rechazo llega recién al guardar.
-- **Cómo lo verificas tú:** Editar «Camisas y Blusas» → el prefijo sale bloqueado con la leyenda «5 productos».
-- **Esfuerzo / dependencias:** S–M.
-
-### #7 · Mejorar — Editar categoría en tres pasos (Datos · Subcategorías · Tallas y ejes) con el pie fijo
-- **Dónde:** `CategoriasLista.tsx:373-610`.
-- **Por qué en este puesto:** es donde la líder se equivoca sin darse cuenta; 40+ chips y el «Guardar» fuera de la vista.
-- **Cómo lo verificas tú:** Editar en una pantalla de 768 px de alto: «Guardar cambios» siempre visible.
-- **Esfuerzo / dependencias:** M · **choca con la sesión ADR-0109** (`SESIONES-ACTIVAS.md:24`, toca «Categorías (curva)»): coordinar antes.
-
-### #8 · Mejorar — Guardar datos y ejes en una sola RPC
-- **Dónde:** `CategoriasLista.tsx:165, 204-209` · `route.ts` y `ejes/route.ts` · una RPC que envuelva `actualizar_categoria` + `actualizar_categoria_ejes`.
-- **Por qué en este puesto:** hoy un fallo de red en medio deja el nombre nuevo y los ejes viejos.
-- **Cómo lo verificas tú:** cortas la red al guardar → o cambia todo o no cambia nada.
-- **Esfuerzo / dependencias:** M · no antes de la #7.
-
-### #9 · Mejorar — Pruebas de las RPC y la API de categorías
-- **Dónde:** no existe `supabase/tests`; lo lateral es `alta-producto.test.ts`. Cubrir: prefijo bloqueado, desactivar con productos, reactivar huérfana, jerarquía.
-- **Por qué en este puesto:** cada regla de esta pantalla vive en una RPC sin una sola prueba.
-- **Cómo lo verificas tú:** `pnpm test` incluye los casos y fallan si quitas el `if` de la RPC.
-- **Esfuerzo / dependencias:** M · después de la #2.
-
-### #10 · Mejorar — Pulido visual (contraste, ícono, placeholder, rojo)
-- **Dónde:** `page.tsx:~118` y `CategoriasLista.tsx:540,578,733` (subir a `/65`, ≥11 px) · `IconoFamilia.tsx:38` (una bolsa que no parezca candado) · placeholder de nombre «Ej. Chalecos» por un ejemplo que no exista · decidir si los chips seleccionados cuentan para `MAX_ROJO_POR_PANTALLA`.
-- **Por qué en este puesto:** bajo riesgo, se ve en toda la pantalla.
-- **Cómo lo verificas tú:** zoom a la cabecera y a la tarjeta de Accesorios; nadie confunde la bolsa con un candado.
-- **Esfuerzo / dependencias:** S.
-
-### #11 · Replantear — ¿Categorías, Familias, Marcas y Atributos como un solo «Vocabulario del catálogo»?
-- **Dónde:** rutas `/productos/categorias`, `/familias`, `/marcas`, `/atributos`.
-- **Por qué en este puesto:** su único trabajo es pedirle a Felipe que decida; no cambia las otras 11.
-- **Cómo lo verificas tú:** no aplica: es una decisión.
-- **Esfuerzo / dependencias:** L si se hace · nada depende de esto.
-- **DECIDÍ:** dejarlas separadas hasta que el líder real las use; cada una tiene su ritmo (Categorías cambia rara vez, Atributos a diario).
-- **DESCARTÉ:** unirlas ahora en un hub con pestañas, porque ya se hizo con Colores/Tallas/Tejidos y costó 5 redirects y un conflicto de merge con dos sesiones.
-- **SE ROMPE SI:** una colaboradora nueva no encuentra dónde crear una talla nueva desde Categorías y termina en un callejón.
-- **Decide Felipe.**
-
-### #12 · Mejorar *(bajo valor / opcional)* — Buscador y familias vacías colapsadas
-- **Dónde:** `CategoriasLista.tsx` sobre las secciones.
-- **Por qué al final:** hoy hay 42 tarjetas y 31 están vacías `[producción C1]`; se lee sin buscar. Sirve cuando pase de ~80.
-- **Cómo lo verificas tú:** escribes «BLZ» y queda solo Blazers.
-- **Esfuerzo / dependencias:** S · sin dependencias.
 
 ## 8 · Estrategia alternativa
-Es la de la #11. **Ganas:** un solo lugar y un solo patrón para todo el vocabulario. **Pagas:** un hub grande que mezcla frecuencias distintas, migración de rutas y coordinar con la sesión de ADR-0109. Decide Felipe.
+Solo se justifica la de la #10. **Ganas:** una pantalla que abre en lo que se usa, en vez de 44 tarjetas idénticas. **Pagas:** una decisión sobre quién puede crear categorías nuevas y en qué momento. **No cambia** el modelo ni los candados. Decide Felipe.
 
 ## 9 · Referentes de ERP y futuro
-Todo de memoria, **no verificado**:
-- Odoo: categorías con ruta jerárquica y reglas contables por categoría; Shopify: colecciones manuales vs automáticas.
-- Futuro: reglas por categoría (margen mínimo, reorder point por categoría) cuando existan ventas reales. Con 38 productos serían cifras inventadas.
-- Futuro: fusionar categorías desde la pantalla con un asistente «mover productos». Para 3 tiendas hoy basta la #1.
+- *(De memoria, no verificado)* Odoo y Shopify manejan jerarquías de categorías de varios niveles; el árbol de un solo nivel de CAYLA (ADR-0062) es a propósito más simple, y con 3 tiendas y 1 taller es lo correcto.
+- **Futuro (no cuenta entre las 12):** herencia de ejes de padre a hija; fusionar dos categorías moviendo productos; margen objetivo por categoría.
 
 ## 10 · Fuera de esta pantalla
-`page.tsx:123` habilita «Agregar» y «Editar» con `persona.rol === "lider"`, pero en producción `fn_es_lider()` es `admin` (`docs/datos/01-INVARIANTES.md:175`) y `supervisor_sede` no pasa ningún candado de `retail` `[inferido: no probé con una cuenta de líder de sede que no sea admin]`. Un líder de sede vería los botones y recibiría «Solo un Líder puede…» al guardar. Es el mismo patrón en todo el catálogo (productos, colores, marcas): es una tarea raíz de permisos, no una por pantalla. Además, 2 de los 45 productos no aparecen en ninguna tarjeta ni en Blusas (43 vistos; Faldas tenía una fila que no quedó en la captura), y no sé si tienen `categoria_id` nulo `[no verificable]`.
+**El alta y el censo rechazan valores que Atributos dice que «puede usar de inmediato»**: un tejido, talla o patrón nuevo, aun aprobado, no sirve en una categoría hasta habilitarlo aquí (`20260918231100:171-175`). Es el mismo defecto de copy que el análisis de Atributos (#5): la persona sigue el texto, y la base la contradice.
 
-## 11 · Líneas propuestas para BACKLOG.md
-*(pendientes de aprobación de Felipe; no anexadas)*
-- [ ] `[pantalla:productos-categorias]` #1 Mover el producto activo de «Blusas» a «Camisas y Blusas» — S
-- [ ] `[pantalla:productos-categorias]` #2 Trigger de tabla: no desactivar con productos activos ni cambiar prefijo con productos — M
-- [ ] `[pantalla:productos-categorias]` #3 Cabecera cuenta solo productos de categorías activas — S
-- [ ] `[pantalla:productos-categorias]` #4 `reactivar_categoria` valida familia/prefijo/padre + limpiar la huérfana — S–M
-- [ ] `[pantalla:productos-categorias]` #5 Orden humano de tallas — S
-- [ ] `[pantalla:productos-categorias]` #6 Mostrar por qué el prefijo está bloqueado — S–M
-- [ ] `[pantalla:productos-categorias]` #7 Editar categoría en pasos con pie fijo — M (coordinar ADR-0109)
-- [ ] `[pantalla:productos-categorias]` #8 Guardar categoría + ejes en una sola RPC — M
-- [ ] `[pantalla:productos-categorias]` #9 Pruebas de RPC/API de categorías — M
-- [ ] `[pantalla:productos-categorias]` #10 Pulido visual (contraste, ícono, placeholder, rojo) — S
-- [ ] `[pantalla:productos-categorias]` #11 Decidir: ¿un solo «Vocabulario del catálogo»? — Felipe
-- [ ] `[pantalla:productos-categorias]` #12 Buscador y familias vacías colapsadas — S (opcional)
-- [ ] `[pantalla:catalogo]` Permisos: `persona.rol === "lider"` (UI) vs `fn_es_lider()` = admin (BD) — tarea raíz, todo el catálogo
+## 11 · Líneas propuestas para el backlog
+- [ ] `[pantalla:productos-categorias]` #1 `exige_tejido_patron` editable en Familias + decidir D4 — S (antes del censo)
+- [ ] `[pantalla:productos-categorias]` #2 Guardar categoría + ejes en una transacción y avisar qué productos se rompen — M
+- [ ] `[pantalla:productos-categorias]` #3 Cerrar en la tabla los 4 estados imposibles que quedan — M
+- [ ] `[pantalla:productos-categorias]` #4 Cabecera y tarjetas cuentan el mismo universo — S
+- [ ] `[pantalla:productos-categorias]` #5 «Desactivar» con motivo, confirmación y efecto sobre hijas — S
+- [ ] `[pantalla:productos-categorias]` #6 `categorias_candados.mjs` en CI — S
+- [ ] `[pantalla:productos-categorias]` #7 Desactivar categorías de prueba y avisar del prefijo permanente — S (antes del censo)
+- [ ] `[pantalla:productos-categorias]` #8 Un solo editor de ejes (Categorías + alta) — M
+- [ ] `[pantalla:productos-categorias]` #9 «Ver en Productos» sin caer en «Sin acceso» — S
+- [ ] `[pantalla:productos-categorias]` #10 Decidir: ¿44 categorías de golpe o solo las que se usan? — M
+- [ ] `[pantalla:productos-categorias]` #11 Categorías en uso primero, vacías colapsadas — S
+- [ ] `[pantalla:productos-categorias]` #12 Familias visible, ícono genérico, comentarios viejos — S (bajo valor)
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Título + globo «!» | Ayuda con enlaces a Familias y Marcas | bien | `[código Ayuda.tsx]` |
-| Cabecera | «42 categorías activas · 38 productos…» | Resumen | ajustar (no cuadra con 37) | `[visto]` `[producción]` |
-| Cabecera | «+ Agregar categoría» | Abre Nueva categoría (solo líder) | bien | `[visto]` `[código :301]` |
-| Sección familia | Encabezado + «N categorías» | Agrupa por familia activa | bien | `[visto]` |
-| Sección familia | Ícono de Accesorios | Bolsa que parece candado | ajustar | `[visto captura 5]` |
-| Tarjeta | Prefijo, nombre, conteo | Abre Vista rápida | bien | `[visto]` |
-| Vista rápida | Tallas con ✓, tejidos, patrones | Solo lectura | bien | `[visto captura 2]` |
-| Vista rápida | «Ver en Productos →» | Filtra por categoría | bien; texto a 10 px | `[código :733]` |
-| Nueva categoría | Padre, familia, nombre, prefijo, notas | POST directo a `categorias` | ajustar (placeholder) | `[visto captura 4]` |
-| Editar | Tallas/curva/tejidos/patrones | Reemplaza los ejes | ajustar (orden, largo, rojo) | `[visto captura 3]` |
-| Editar | Subcategorías con prefijo | Crea hijas de un nivel | bien | `[código :448-508]` |
-| Editar | «Desactivar categoría» | RPC con candado | ajustar (candado solo en RPC) | `[código :583-594]` |
-| Desactivadas | Chips + REACTIVAR | RPC sin validar | ajustar | `[visto captura 5]` |
+| Cabecera | Título + «!» + cifras | Ayuda y dos números | ajustar (cifra mezcla universos) | `[visto]` `[código page.tsx:109-113]` |
+| Barra | Buscador | Filtra en el cliente | bien | `[código categorias-reglas.ts:14]` |
+| Barra | «+ Agregar categoría» | INSERT vía API | ajustar (sin ejes al crear; sin aviso del prefijo) | `[código CategoriasLista.tsx:683, :497]` |
+| Sección | Familias con ícono | Agrupa categorías | bien | `[visto]` |
+| Tarjeta | Prefijo + nombre + «SIN PRODUCTOS» | Vista rápida al pulsar | bien / ajustar (43 vacías) | `[visto]` |
+| Vista rápida | «Ver en Productos» | Abre `/productos?cat=` | **ajustar** (puede caer en «Sin acceso») | `[código :913]` |
+| Editor | Datos + subcategorías + ejes + curva | Dos `PUT` | **ajustar** (sin transacción) | `[código :216-268]` |
+| Editor | Desactivar | Botón siempre activo | **ajustar** | `[código :747-759]` |
+| Pie | Desactivadas + Reactivar | Sección aparte | bien | `[visto]` `[código :788-794]` |
+| Familias | `/productos/familias` | Alta y edición de nombre | ajustar (escondida; sin `exige_tejido_patron`) | `[código FamiliasLista.tsx]` |
 
 ## Historial
 | Fecha | Modo | SHA | Puntajes | Nota |
@@ -236,3 +217,4 @@ Todo de memoria, **no verificado**:
 | 2026-09-21 | rápido | `17bdb269` | 7.5 / 5.8 | Primer análisis, sin SQL. **Vencido.** Tareas: #1 cabecera **cerrada a medias** (separa subcategorías, aún 38≠37); #2 conteo en la base **cerrada** (RPC en producción); #3 contraste de «SIN PRODUCTOS» **cerrada**; #4 buscador → pasó a #12; #5 «sin ejes» abierta sin evidencia (0 de 42 sin tallas); #6 «!» **retirada**: es un globo real; #7 estado vacío accionable, descartada por ADR-0109; #8/#9 coordinar sesiones: obsoletas (ADR-0109 aplicado: curva habitual funciona en producción); #10 → #11; #11/#12 sin tocar |
 | 2026-09-21 | completo | `b6b85206` | 6.5 / 5.8 | Con SQL de producción. Baja de 7.5 a 6.5 no por regresión sino por lo que la base reveló (Blusas). No comparable con la fila rápida |
 | 2026-09-26 | cambios (no es análisis) | rama `claude/categorias-mejoras` | — | Hechas **#2** (disparador `categorias_vigencia_candados`, migración `20260927200000`), **#4** (lo cubre el disparador; huérfana renombrada «Polos (V1, retirada)», sin botón «Reactivar»), **#5** (tallas con `compararTallas`), **#6** (prefijo deshabilitado con `n_total`) y parte de **#10** (ícono de Accesorios, ejemplo «Kimonos / KIM»). **#1** ya no se ve: la captura del 26-09 cuadra 16 = 16. Siguen abiertas #3, #7–#9, resto de #10, #11 y #12. Este análisis queda vencido para `page.tsx` y `CategoriasLista.tsx` |
+| 2026-09-29 | completo, re-análisis (código + producción por agente + recorrido visual) | `38f9d7ce` | 7.1 / 5.8 (Comodidad) | Sube de 6.5 a 7.1 porque los candados de tabla ya existen y producción no tiene estados imposibles. **Del análisis del 21-sep se cerraron 7 de 12** (#1 «Blusas» —0 colgando—, #2 candado de tabla, #4 reactivar valida, #5 orden de tallas, #6 prefijo fijo visible, #10 pulido, #12 buscador); **#9** parcial (la prueba existe pero no corre en CI); **#3** (cabecera) y **#7/#8** (editar en tres pasos / una sola RPC) siguen abiertas; **#11** Replantear decidió dejar Categorías, Marcas y Atributos separadas. Este re-análisis trae 12 tareas nuevas |

@@ -11,7 +11,8 @@ const LADO_QR_MM = 19;
  * La etiqueta de precio impresa: 40,1 × 62 mm, para el cartón de 5 × 8 cm (ADR-0180). Diseño «D · Editorial», arreglo
  * «QR abajo». Las medidas viven en `globals.css` (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
  *
- * Para la clienta: marca, en qué tallas viene el modelo con la suya marcada, prenda, color y precio. Con una campaña
+ * Para la clienta: CAYLA arriba y la marca de la prenda al pie, en qué tallas viene el modelo con la suya marcada, prenda,
+ * color y precio. Con una campaña
  * vigente (paso 2), el precio de lista tachado, el que cobra la caja con su «−20 %» en negro, y el porqué: el nombre de
  * la campaña y hasta cuándo vale. Para la colaboradora: el código escrito (si la pistola falla se teclea), la fecha de
  * impresión (si conviven dos etiquetas de la misma prenda, la más nueva manda) y el QR que lee la caja.
@@ -83,6 +84,9 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
 
       <footer className="etq-pie">
         <div className="etq-datos">
+          {/* La marca de la prenda (Felipe, 2026-09-29), arriba del código: en el pie, a la izquierda del QR, sobra ~7 mm de alto
+              con y sin campaña. Sobre el nombre no cabe: con campaña quedan 1,4 mm y el QR se saldría de la etiqueta. */}
+          {e.marca && <span className="etq-marca">{e.marca}</span>}
           <span className="etq-cod">{e.codigo}</span>
           <small>Impreso {impreso}</small>
           <small>cayla.pe</small>

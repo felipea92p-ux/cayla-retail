@@ -65,6 +65,22 @@ describe("tallasDelModelo", () => {
   });
 });
 
+describe("armarEtiquetas · la marca de la prenda (Felipe, 2026-09-29)", () => {
+  it("lleva la marca de la variante a la etiqueta, sin espacios de más", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["m", 1]]), [blusa("m", "M", { marca: "  La Femme 21 " })], [hermana("M")]);
+    expect(etiquetas[0].marca).toBe("La Femme 21");
+  });
+  it("sin marca (dato viejo, prueba) la etiqueta sale como antes: marca en null, sin romper nada", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["m", 1], ["s", 1]]), [blusa("m", "M"), blusa("s", "S", { marca: "   " })], [hermana("M"), hermana("S")]);
+    expect(etiquetas.map((e) => e.marca)).toEqual([null, null]);
+  });
+  it("la marca no cambia lo demás: el mismo código, el mismo precio y las mismas tallas con y sin ella", () => {
+    const con = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M", { marca: "CAYLA" })], [hermana("M"), hermana("L")]).etiquetas[0];
+    const sin = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M")], [hermana("M"), hermana("L")]).etiquetas[0];
+    expect({ ...con, marca: undefined }).toEqual({ ...sin, marca: undefined });
+  });
+});
+
 describe("armarEtiquetas", () => {
   it("una fila por prenda con lo que entró, ordenada por modelo, color y talla", () => {
     const entradas = new Map([

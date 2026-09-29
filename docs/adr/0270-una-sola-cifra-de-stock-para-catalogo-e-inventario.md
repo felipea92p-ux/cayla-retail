@@ -160,3 +160,11 @@ Las pruebas pasan todo porque sirven para practicar. Se excluyen de las **cifras
   desde/hasta» y aplican en el punto de venta.
 - **En CAYLA** las dos ideas ya existen como etiqueta de campaña con % y fechas. Lo que falta es mostrarlo («antes S/90 · ahora
   S/70») en la tarjeta, la etiqueta y Vender (tarea #12).
+
+## Actualización 2026-09-29 — la decisión 9 se revisa (Felipe)
+
+Felipe pidió poder modificar el stock desde **Editar producto**. La decisión 9 («ajustar stock se hace solo en Inventario; se
+quita del Catálogo») se mantiene en lo esencial —la dueña de responder «cuánto hay» sigue siendo Existencias y el Catálogo no
+tiene un campo de stock editable—, pero la ficha de la prenda ahora ofrece **«Ajustar stock»** que abre la misma ventana de
+Existencias (mismo módulo «Ajustar stock», mismo motivo y responsable, un movimiento con `ajustar_inventario`, solo la sede
+activa). No hay una segunda vía de escritura. Detalle y razones: ADR-0281, decisión 5.

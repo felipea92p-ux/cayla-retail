@@ -5,10 +5,24 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
+import type { Sububicacion } from "@/lib/sububicaciones";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
 // cómo se nombra y se pinta un color, cómo se elige UNO (corregir), cómo se muestra el código que va a tener cada
 // variante y los dos montos con que nacen las nuevas. Las reglas viven en `lib/variantes-ficha-reglas.ts`.
+
+/** Lo que hace falta para ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es de
+ *  la SEDE ACTIVA: el ajuste escribe un movimiento allí, con su motivo y su responsable, como en Existencias. Solo llega si la
+ *  cuenta tiene el módulo «Ajustar stock» (`puede(persona, "ajustarStock")`), que es lo mismo que exige la base. */
+export type AjusteStockFicha = {
+  productoId: string;
+  ubicacionId: string;
+  /** El nombre de la sede activa: la ficha muestra el stock de TODAS, y el ajuste es solo de esta. */
+  sede: string;
+  sububicaciones: Sububicacion[];
+  /** El rol ve «Bajada al piso» y la sede separa piso y almacén: lo nuevo puede entrar al piso (ADR-0212). */
+  puedeBajarAlPiso: boolean;
+};
 
 /** Lo que toda la sección necesita saber de la prenda y de quien la edita. */
 export type ContextoFicha = {
@@ -28,6 +42,8 @@ export type ContextoFicha = {
   /** La base sabe corregir el color y la talla (tiene `fn_variantes_estado` y el resto del SQL de ADR-0263). Sin eso no
    *  se ofrece corregir: una base vieja ignoraba la corrección pero guardaba las fotos que se movieron con ella. */
   puedeCorregir: boolean;
+  /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no tiene el módulo «Ajustar stock»: no se ofrece. */
+  ajusteStock?: AjusteStockFicha | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */
