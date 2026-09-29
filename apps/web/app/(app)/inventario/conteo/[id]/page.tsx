@@ -40,7 +40,7 @@ export default async function ConteoPage({
     return <CanceladoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} />;
   }
   if (conteo.estado === "cerrado") {
-    return <ResultadoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} />;
+    return <ResultadoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} puedeEditar={puede(persona, "ajustarInventario")} />;
   }
 
   // Abierto: lo que necesita la pantalla de contar. Son las mismas fuentes que usaba el conteo de antes para el alta al vuelo.
