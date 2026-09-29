@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -9,6 +9,15 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/**
+ * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
+ * vista (auditoría 2026-09-29: con TRU cargada, 1.500+ tarjetas de golpe tardaban 1,2 s por escaneo porque
+ * cada tecla o sondeo de stock volvía a montar la grilla entera). Mismo espíritu que un combo largo
+ * (`TAMANO_PAGINA_COMBO`, ADR-0209) — revelar de a tandas en vez de cortar de golpe —, con su propio número
+ * porque acá cada tarjeta ocupa mucho más que una fila de combo.
+ */
+const TANDA_GRILLA = 60;
 
 type Props = {
   ubicacionEtiqueta: string;
@@ -148,6 +157,39 @@ export function PuntoDeVentaCatalogo({
   // es el plan B). Desde `sm:` (640px) el bloque de abajo ignora este estado — siempre visible,
   // como hoy — así que arrancar en `false` es seguro también en escritorio.
   const [catalogoAbierto, setCatalogoAbierto] = useState(false);
+  // Ventana de la grilla (auditoría 2026-09-29): solo se pintan las primeras `cuantas`, y el
+  // centinela del fondo suma otra tanda cuando entra a la vista. Vuelve al tamaño inicial cada
+  // vez que cambia lo que arma `grupos` (categoría o «Solo con stock»): sin esto, pasar de una
+  // categoría larga (donde ya se habían revelado cientos) a una corta mostraría de entrada más
+  // de lo que esa categoría necesita, y volver a la larga arrancaría "recordando" el número
+  // viejo en vez de la primera tanda. Ajuste EN EL RENDER (no un efecto, mismo idioma que
+  // `variantesPrevias` en `PuntoDeVenta.tsx`): React lo detecta y vuelve a renderizar antes de
+  // pintar nada en pantalla, sin el repintado de más de un efecto separado.
+  const [cuantas, setCuantas] = useState(TANDA_GRILLA);
+  const [filtroPrevio, setFiltroPrevio] = useState({ categoria, soloConStock });
+  if (filtroPrevio.categoria !== categoria || filtroPrevio.soloConStock !== soloConStock) {
+    setFiltroPrevio({ categoria, soloConStock });
+    setCuantas(TANDA_GRILLA);
+  }
+  const gruposVisibles = grupos.slice(0, cuantas);
+  const faltanMas = cuantas < grupos.length;
+  // Centinela propio (no `useEnVista`, pensado para animación de CSS): acá cruzar el umbral debe
+  // SUMAR una tanda, y eso es un efecto secundario real sobre un sistema externo (el scroll),
+  // no un valor derivado para pintar — por eso `setCuantas` vive en el callback del propio
+  // `IntersectionObserver`, nunca en el cuerpo del efecto que lo arma.
+  const centinelaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = centinelaRef.current;
+    if (!el || !faltanMas) return;
+    const io = new IntersectionObserver(
+      (entradas) => {
+        if (entradas[0]?.isIntersecting) setCuantas((n) => Math.min(n + TANDA_GRILLA, grupos.length));
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [faltanMas, grupos.length]);
   return (
     // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
     // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
@@ -406,7 +448,7 @@ export function PuntoDeVentaCatalogo({
                 {categoria === "Todo" ? "." : ` en ${categoria}.`}
               </p>
             )}
-            {grupos.map((g, i) => {
+            {gruposVisibles.map((g, i) => {
               const sinStock = g.stockTotal === 0;
               // Sin nada en el piso pero con prendas en el almacén de esta sede: no se cobra todavía, pero no está agotada.
               const soloEnAlmacen = sinStock && g.almacenTotal > 0;
@@ -582,6 +624,9 @@ export function PuntoDeVentaCatalogo({
               );
             })}
           </div>
+          {/* Centinela mudo: cuando entra a la vista, revela la próxima tanda (auditoría 2026-09-29).
+              Sin tamaño propio — solo dispara el efecto de arriba — y no existe si ya se ve todo. */}
+          {faltanMas && <div ref={centinelaRef} aria-hidden className="h-px" />}
         </TooltipProvider>
         </div>
 
