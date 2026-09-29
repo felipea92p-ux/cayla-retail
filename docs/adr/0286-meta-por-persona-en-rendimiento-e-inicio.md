@@ -1,15 +1,15 @@
 # ADR-0286 — Meta por persona: se reparte sola desde la de la sede, la ajusta la líder de sede y la integrante ve la suya
 
 **Fecha:** 2026-09-29
-**Estado:** **Diseño aprobado por Felipe con un spike interactivo; construidos en local el paso 1 (`fn_mis_ventas_del_dia`, migración
-`20260930040000`) y el paso 2 (las metas en la base, migración `20260930050000`).** Ninguno está pegado en producción y pegarlos pide el ok puntual
-de Felipe. Los pasos 3 a 5 no se han empezado. Las decisiones que estaban abiertas se cerraron el mismo día (D-157 a D-160); lo que sigue abierto está
-en el acta.
+**Estado:** **Diseño aprobado por Felipe con un spike interactivo; construidos y probados los pasos 1 a 4 (la base, el panel de Rendimiento y el Inicio de la integrante), en la rama
+`claude/accesos-rol-terminal-3e62ba`.** **En producción está solo la tabla `metas_persona_ajustes` (la PARTE 1 de `20260930050000`, aplicada el 2026-09-29): las 11 funciones NO están** (`20260930040000` y las partes 2 a 4
+de `20260930050000`; ver «Lo que se descubrió al aplicar en producción»). Pegarlas lo hace Felipe, y la web no debe fusionarse a `main` antes. Las decisiones que estaban abiertas se cerraron el mismo día (D-157 a D-160);
+lo que sigue abierto está en el acta.
 **Decide:** Felipe, 2026-09-29.
 **Afecta (cuando se construya):** una migración nueva en partes (`retail.metas_persona_ajustes`, `fn_horas_programadas`,
-`fn_asistencia_por_dia`, `fn_reparto_meta`, `fn_metas_por_dia`, `fn_metas_equipo`, `fn_mi_meta`, `fn_mis_ventas_por_dia`, `fn_rendimiento_serie`, `fijar_meta_persona`),
-`apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento.ts`, `apps/web/lib/rendimiento-reglas.ts`, un `lib/metas-reglas.ts`
-nuevo, `apps/web/components/rendimiento/*` nuevos, `apps/web/app/(app)/page.tsx` (Inicio), `apps/web/lib/inicio.ts`,
+`fn_asistencia_por_dia`, `fn_reparto_meta`, `fn_metas_por_dia`, `fn_metas_equipo`, `fn_mi_meta`, `fn_mis_ventas_por_dia`, `fn_rendimiento_serie`, `fn_metas_historial`, `fijar_meta_persona`),
+`apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento.ts`, `apps/web/lib/rendimiento-reglas.ts`, `lib/rendimiento-meta-reglas.ts` y `lib/mi-meta-reglas.ts`
+nuevos, `apps/web/components/rendimiento/*` y `components/inicio/MiMeta.tsx` nuevos, `apps/web/app/(app)/page.tsx` (Inicio), `apps/web/lib/inicio.ts`,
 `packages/database/src/types.ts` y `docs/ARQUITECTURA.md`. **No toca** `movimientos`, `stock`, `ventas` ni `venta_items`.
 **Acta:** [`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`](../datos/DECISIONES-2026-09-29-meta-por-persona.md) (D-142 a D-160,
 con las 8 preguntas, lo que se midió antes y lo que sigue abierto). **Referencia visual:**
@@ -176,11 +176,11 @@ de resultados. Los ajustes son pocos por persona por mes: **menos de 1.000 filas
 | # | Paso | Cómo se verifica | Estado |
 |---|---|---|---|
 | 0 | Estos papeles (ADR + acta + notas en D-64, D-68, D-113, D-125, ADR-0219 y ADR-0225) | Están escritos antes que el código | **Hecho** |
-| 1 | `fn_mis_ventas_del_dia` + `lib/inicio.ts` | `pnpm pruebas:mis-ventas` (7 casos, en el CI); con dos cuentas de la misma tienda cada una ve solo lo suyo | **Hecho en local**; producción pide el ok de Felipe |
-| 2 | La migración de metas (`20260930050000`, 4 partes, con `retail.` y `set lock_timeout`) | `pnpm pruebas:metas-persona` (~55 comprobaciones, en el CI): las partes suman exacto la meta de la sede (con una meta de 1.800 y con una de 1.845); un descanso, un turno y el «sin horarios» se comportan como dicen; cada estado imposible se rechaza; la segunda edición con la meta vieja se rechaza; nadie cambia la suya; la integrante no lee la de otra; una terminal no lee nada; la migración se aplica dos veces sin error | **Hecho en local**; producción pide el ok de Felipe |
-| 3 | Rendimiento web | Comparar captura y spike al mismo ancho, y a 375 px | Sin empezar |
-| 4 | Inicio de la integrante | Con una cuenta de prueba de TRU | Sin empezar |
-| 5 | Producción y datos | Cargar las metas de TRU; ensayo revertible y `md5` del cuerpo; luego `pnpm datos:generar:produccion` y `pnpm datos:comparar` | Sin empezar |
+| 1 | `fn_mis_ventas_del_dia` + `lib/inicio.ts` | `pnpm pruebas:mis-ventas` (7 casos, en el CI); con dos cuentas de la misma tienda cada una ve solo lo suyo | **Hecho y probado en local; la función NO está en producción** |
+| 2 | La migración de metas (`20260930050000`, 4 partes, con `retail.` y `set lock_timeout`) | `pnpm pruebas:metas-persona` (70 comprobaciones, en el CI): las partes suman exacto la meta de la sede (con una meta de 1.800 y con una de 1.845); un descanso, un turno y el «sin horarios» se comportan como dicen; cada estado imposible se rechaza; la segunda edición con la meta vieja se rechaza; nadie cambia la suya; la integrante no lee la de otra; una terminal no lee nada; la migración se aplica dos veces sin error | **Hecho y probado en local; en producción está la tabla (parte 1), NO las funciones (partes 2 a 4)** |
+| 3 | Rendimiento web | Comparar captura y spike al mismo ancho, y a 375 px | **Hecho** (commit `0d866e93` y el ritmo esperado): probado en el navegador local, con la sesión de Felipe (guardar, volver a la automática, tope) y con datos de ejemplo a 1280 y a 375 px |
+| 4 | Inicio de la integrante | Con una cuenta de prueba de TRU | **Hecho** (commit `65fbd364`): visto con datos de ejemplo; falta una sesión de una integrante real |
+| 5 | Producción y datos | Cargar las metas de TRU; ensayo revertible y `md5` del cuerpo; luego `pnpm datos:generar:produccion` y `pnpm datos:comparar` | **A medias:** diccionario refrescado (foto del 2026-09-29); **falta pegar las funciones** y cargar las metas de TRU |
 
 **Reglas de producción** (CLAUDE.md): ensayo con rollback y el ok puntual de Felipe antes de pegar; las migraciones **antes** que la web; la
 migración del paso 2 crea tablas y funciones nuevas y **no altera tablas en uso**; si lleva políticas, van solas y al final (deadlocks del SQL
@@ -190,8 +190,9 @@ Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU
 
 - **`fn_rendimiento_equipo` (ya en producción) no reconoce como «encargada» a una encargada que es Líder de equipo.** Marca `es_encargada` solo si el rol
   trae el módulo `rendimiento` en `rol_modulos`, y el rol Líder no tiene filas ahí (ve todo por ser líder). Como las 4 encargadas de TRU son Líder (D-160),
-  el chip «Encargada» no les saldría en los rankings. `fn_metas_equipo` ya usa la regla correcta (líder con esa tienda, o rol con el módulo); **la corrección de
-  `fn_rendimiento_equipo` va en el paso 3** y, al tocar una función en producción, pide el ok de Felipe.
+  el chip «Encargada» no les saldría en los rankings. `fn_metas_equipo` ya usa la regla correcta (líder con esa tienda, o rol con el módulo). **Se resolvió en la web y
+  no en la función de producción** (paso 3): `armarRankings` (`lib/rendimiento.ts`) pone la insignia de `fn_metas_equipo` sobre la de los rankings. Así no se toca en producción
+  una función que funciona, y la de la base queda con su límite documentado aquí.
 - **El Postgres local compartido no tenía la migración de Rendimiento del 2026-09-29** (`20260929160000`, ya en `main` y en producción), y sin ella
   `fn_rendimiento_ubicaciones` no existe. Se aplicó al local para probar; el CI reconstruye la base desde cero, así que no le afecta.
 - **La carrera real de dos conexiones no se probó.** Se probó de forma secuencial que la segunda edición con la meta vieja se rechaza. Que el candado ponga en
@@ -199,6 +200,18 @@ Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU
   una base desechable (`BASE_DESECHABLE=1`, como `bajada_al_piso_concurrencia.mjs`). Queda pendiente.
 - **Solo en el local:** dos Admin cuya sede base de Dynamic es Lima cuentan como personas de Lima (`fn_ubicacion_de_partida`), por eso el Admin ve 6 filas y no 4.
   En producción los Admin están en Central y no son de ninguna tienda.
+
+## Lo que se descubrió al aplicar en producción (paso 5, 2026-09-29)
+
+- **Solo llegó la parte 1.** Una lectura de producción (`pg_proc`, `pg_trigger`) mostró la tabla y su disparador con 0 filas, y **ninguna** de las 11 funciones. El paquete de pegado que se
+  entregó tenía, numerado junto a los que aplican, un archivo «deshacer» (`drop function …`): se pegó en la misma tanda y quitó las funciones (dejó la tabla, como estaba pensado: el historial no
+  se borra). No se perdió nada, porque ninguna pantalla las usaba. **Diseño corregido:** el «cómo se revierte» vive en el encabezado de la migración y en este ADR; **nunca hay un archivo que
+  deshace en la misma carpeta ni con la misma numeración que el que aplica.**
+- **Esta sesión no puede escribir en producción** (el clasificador bloqueó aplicar el SQL por la herramienta de Supabase): lo pega Felipe. Se dejó todo listo: el SQL exacto está en los dos archivos de
+  migración (`20260930040000` completo y `20260930050000` desde «PARTE 2 de 4»), y la verificación de solo lectura en `scripts/migraciones/verificar-meta-por-persona-produccion.sql` (compara el `md5`
+  del cuerpo de cada función contra el probado en local, y los permisos: la última fila debe decir 0).
+- **Orden:** las funciones **antes** de fusionar la web (Vercel publica al fusionar). Si la web saliera primero, no se rompe nada: el Inicio de una integrante dice «No se pudieron cargar las ventas de hoy»
+  y Rendimiento muestra solo los rankings y avisa que las metas no se pudieron leer.
 
 ## Fuera de alcance
 
@@ -217,7 +230,7 @@ Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU
   juicio; **Felipe decidió que se queda** (D-159).
 - **Las encargadas son «Líder de equipo»** y heredan todo lo del líder. Un rol propio les daría solo lo que necesitan; **Felipe decidió no crearlo y no tocar roles** (D-160).
 
-## Cómo se verifica (cuando se construya)
+## Cómo se verifica
 
 1. **Base:** una prueba SQL por función en `scripts/pruebas/` (con rollback, sesión simulada, y en el CI): reparto exacto, cada estado imposible
    de la tabla de arriba, concurrencia sobre la misma meta, alcance por rol (Admin, líder de sede, integrante, terminal) y `pnpm pruebas:roles`.

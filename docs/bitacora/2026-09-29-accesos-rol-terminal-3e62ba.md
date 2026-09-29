@@ -64,3 +64,23 @@ lecturas para la líder de sede y para la integrante, y `fijar_meta_persona`. Re
 «ritmo esperado» se queda y no se toca ningún rol.
 Por qué así: el reparto vive en una sola función de la base para que la líder y la integrante no vean metas distintas de la misma persona, y la integrante solo recibe su parte sin ver las horas de las demás.
 Felipe se lleva: sin pegar en producción; antes hay que corregir en el paso 3 que `fn_rendimiento_equipo` no marca «Encargada» a las Líder de TRU; y la carrera real de dos conexiones no se probó (exige una base desechable).
+
+## 2026-09-29 (Paso 3 de la meta por persona: el panel de Rendimiento)
+Qué hice: Rendimiento ahora abre con el panel de la tienda: cuatro cifras contra la meta, una fila por persona con lo que lleva contra su parte (y el ritmo del turno), las ventas contra la meta en barras o
+acumuladas, el historial de cambios y, al final, los rankings de siempre. La líder de la sede o el Admin cambian la meta del mes de una persona con motivo. Hoy · Semana · Mes salen de una sola lectura, así que
+cambiar de una a otra no recarga ni mueve la pantalla; el Admin ve «Todas» como una tarjeta por tienda.
+Por qué así: la meta solo sirve si se ve al lado de lo vendido y si quien la ajusta deja dicho por qué (queda en un historial que no se borra). La insignia «Encargada» se corrigió en la web y no en la función de producción,
+para no tocar en producción una función que ya funciona.
+Felipe se lleva: probado de punta a punta en el navegador local (guardar, volver a la automática, el error de pasarse del tope); sin datos reales de TRU todavía, porque la meta de la tienda no está cargada.
+
+## 2026-09-29 (Paso 4 de la meta por persona: el Inicio de la integrante)
+Qué hice: una integrante con meta ve «Tu meta de hoy», «Tu mes» y «Tus ventas contra tu meta» (semana y mes) con solo lo suyo; sin meta el Inicio queda como estaba.
+Por qué así: se lee con funciones de «solo lo mío» y la pantalla no tiene forma de pedir lo de otra persona; una meta sin horas o sin la meta de la tienda no se dibuja, en vez de mostrar un «0 %» que la desanime.
+Felipe se lleva: antes de que las integrantes lo vean hay que cargar la meta de TRU y revisarla con las encargadas, y avisarles que «Tus ventas» baja al total de lo suyo.
+
+## 2026-09-29 (Paso 5 de la meta por persona: producción; lo que se encontró)
+Qué hice: consulté producción (solo lectura) y encontré que solo está la tabla del historial; las 11 funciones no existen. El paquete de pegado tenía un archivo «deshacer» al lado de los demás y se pegó junto con ellos.
+Dejé un paquete nuevo (aplicar + verificar, sin archivo de deshacer), refresqué el diccionario de datos (foto del 2026-09-29) y traje `main` a la rama.
+Por qué así: aplicar SQL a producción desde esta sesión fue bloqueado por el clasificador y se respeta: lo pega Felipe, y `main` no debe fusionarse antes porque Vercel publica al fusionar.
+Felipe se lleva: falta pegar `20260930040000` y la parte 2 en adelante de `20260930050000` (instrucciones en el backlog), y pegar la verificación (debe decir 0).
+
