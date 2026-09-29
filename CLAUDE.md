@@ -48,8 +48,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    son el lugar.
 9. **Todo puede fallar** — diseña asumiendo que una dependencia externa no responde ahora
    mismo: hoy la integración real es SUNAT, vía el PSE Lucode para transmitir comprobantes
-   (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC a apis.net.pe (ADR-0008) y la
-   fila de `public.personas` que trae Dynamic
+   (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC (ADR-0008: primero el servicio
+   público y gratis de SUNAT, sin contrato; si no responde o no lo encuentra, apis.net.pe
+   de pago) y la fila de `public.personas` que trae Dynamic
    (`retail.fn_es_admin()` devuelve `false` sin error si falta); el sistema se degrada con
    gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).

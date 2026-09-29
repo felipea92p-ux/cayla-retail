@@ -259,7 +259,8 @@ Un inventario sirve de poco si no dice dónde se escapa. Hay tres salidas reales
 ```mermaid
 flowchart LR
     CAJA[Pantalla de caja] -->|DNI o RUC| PADRON["/api/padron"]
-    PADRON -->|consulta pagada| EXT["Proveedor de padrón<br/>decolecta · apis.net.pe · factiliza"]
+    PADRON -->|1.ª opción, gratis| PUB["SUNAT público<br/>ww1.sunat.gob.pe"]
+    PADRON -->|si falla o no lo halla| EXT["Proveedor de padrón<br/>decolecta · apis.net.pe · factiliza"]
     EXT -.->|RENIEC / SUNAT| FUENTE[(Padrón oficial)]
     COMP[(retail.comprobantes)] -->|nombre + documento| LUCODE["/api/lucode/emitir"]
     LUCODE -->|apisunat.pe| SUNAT[(SUNAT)]
@@ -271,12 +272,16 @@ flowchart LR
 ```
 
 **1 · La consulta de padrón (ADR-0008).** Cuando se tipea un DNI en caja, ese número
-viaja a un proveedor externo (`api.decolecta.com`, `api.apis.net.pe` o
-`api.factiliza.com`, según `PADRON_PROVEEDOR`) para traer el nombre. **CAYLA le está
-contando a una empresa tercera que esa persona está comprando.** La ruta no guarda nada
-propio y busca primero en los comprobantes ya emitidos antes de salir a internet — eso
-reduce las consultas, no las elimina. Es una **transferencia de datos a un tercero** y
-como tal debe estar nombrada en la política de privacidad que CAYLA todavía no tiene.
+viaja **primero a SUNAT** (`ww1.sunat.gob.pe`, el servicio público del formulario de
+denuncias; gratis y sin contrato) y **solo si SUNAT no responde o no lo encuentra** a un
+proveedor externo (`api.decolecta.com`, `api.apis.net.pe` o `api.factiliza.com`, según
+`PADRON_PROVEEDOR`) para traer el nombre. En ese segundo caso **CAYLA le está contando a
+una empresa tercera que esa persona está comprando**; en el primero, el destinatario es
+la propia autoridad tributaria. La ruta no guarda nada propio y consulta una caché en
+memoria (24 h para DNI, 1 h para RUC) antes de salir a internet — eso reduce las
+consultas, no las elimina. El proveedor de pago sigue siendo una **transferencia de datos
+a un tercero** y como tal debe estar nombrado en la política de privacidad que CAYLA
+todavía no tiene.
 
 **2 · La emisión a SUNAT.** `/api/lucode/emitir` manda `clienteTipoDoc`,
 `clienteNumDoc` y `clienteNombre` a `apisunat.pe` (sandbox o producción) y de ahí a
