@@ -242,7 +242,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           <div
             ref={capa}
             style={{ position: "fixed", ...posLista }}
-            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
+            className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-xl"
           >
           {mostrarBuscador && (
             <input
@@ -272,7 +272,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   aria-selected={p.personaId === elegidoId}
                   disabled={p.enPausa}
                   onClick={() => elegir(p)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-sand/55 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-rojo/10 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
                   <span className="min-w-0 flex-1">

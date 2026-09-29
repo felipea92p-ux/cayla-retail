@@ -73,6 +73,11 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
+import { ConMarca, TiraFicha } from "@/components/ficha-producto/TiraFicha";
+import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
+import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
+import type { EstadoCampo } from "@/lib/alta-producto-guia";
+import { pendientesDeFicha, type IdPendiente, type PendienteFicha } from "@/lib/producto-ficha-guia";
 import type { AjusteStockFicha, ContextoFicha } from "@/components/ficha-producto/piezas";
 
 /* ====================================================================
@@ -373,6 +378,25 @@ export function ProductoForm({
     puedeCorregir,
     ajusteStock,
   };
+
+  // «Para completar esta ficha» (ADR-0284 c): lo que le falta a la prenda para estar completa. Solo guía; guardar no depende de esto.
+  // `pendientesAlAbrir` fija cuáles llegaron pendientes: solo esos llevan marca (✓ al completarse), para no llenar de marcas una ficha
+  // que ya venía bien.
+  const pendientes = pendientesDeFicha({
+    activa: estado === "activo",
+    pideTejidoPatron: !!categoriaActual?.exigeTejidoPatron,
+    hayTejidos: opcionesTejido.length > 0,
+    hayPatrones: opcionesPatron.length > 0,
+    tejidoId,
+    patronId,
+    colores: coloresFicha,
+    fotos: fotosVista,
+    nombreColor: nombres.color,
+  });
+  const [pendientesAlAbrir] = useState<ReadonlySet<IdPendiente>>(() => new Set(pendientes.map((p) => p.id)));
+  const marcaDe = (id: IdPendiente): EstadoCampo | null =>
+    !pendientesAlAbrir.has(id) ? null : pendientes.some((p) => p.id === id) ? (pendientes[0].id === id ? "ahora" : "falta") : "hecho";
+  const irAPendiente = (p: PendienteFicha) => irAlIdCampo(p.id);
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
@@ -815,6 +839,8 @@ export function ProductoForm({
       className="max-w-[1080px] pb-28 sm:pb-24"
     >
       <div className="min-w-0 space-y-6">
+        <TiraFicha pendientes={pendientes} completadaAqui={pendientesAlAbrir.size > 0} onIr={irAPendiente} />
+
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Producto</p>
@@ -874,7 +900,12 @@ export function ProductoForm({
               pie={antesDe("descripcion")}
               tono={tonoDe("descripcion")}
             />
-            <Campo etiqueta={exigeTejido ? "Tejido" : "Tejido (opcional)"} pie={antesDe("tejido")} tono={tonoDe("tejido")}>
+            <div data-campo="tejido" className="hilo-caja">
+            <Campo
+              etiqueta={<ConMarca estado={marcaDe("tejido")}>{exigeTejido || familiaExigente ? "Tejido" : "Tejido (opcional)"}</ConMarca>}
+              pie={antesDe("tejido")}
+              tono={tonoDe("tejido")}
+            >
               <ComboBuscable
                 etiquetaAccesible="Tejido"
                 valor={tejidoId}
@@ -898,7 +929,13 @@ export function ProductoForm({
                 />
               )}
             </Campo>
-            <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"} pie={antesDe("patron")} tono={tonoDe("patron")}>
+            </div>
+            <div data-campo="patron" className="hilo-caja">
+            <Campo
+              etiqueta={<ConMarca estado={marcaDe("patron")}>{exigePatron || familiaExigente ? "Patrón" : "Patrón (opcional)"}</ConMarca>}
+              pie={antesDe("patron")}
+              tono={tonoDe("patron")}
+            >
               <ComboBuscable
                 etiquetaAccesible="Patrón"
                 valor={patronId}
@@ -922,6 +959,7 @@ export function ProductoForm({
                 />
               )}
             </Campo>
+            </div>
             {editando &&
               (producto?.estadoAlta === "rechazado" ? (
                 // Una prenda rechazada en el censo es terminal (productos_rechazado_descontinuado_check): ofrecerle «Activo»
@@ -1045,7 +1083,13 @@ export function ProductoForm({
 
         {/* ---------- fotos ---------- */}
         {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
-        <section id="fotos" className="card-cayla scroll-mt-6 p-5">
+        <section id="fotos" data-campo="fotos" data-estado={marcaDe("fotos") ?? undefined} className="card-cayla hilo-tarjeta scroll-mt-24 p-5">
+          {marcaDe("fotos") && (
+            <p className="mb-3 flex items-center gap-2 text-[12px] text-taupe">
+              <MarcaCampo estado={marcaDe("fotos")!} />
+              {marcaDe("fotos") === "ahora" ? <EtiquetaAhora /> : marcaDe("fotos") === "hecho" ? "Listo" : "Falta"}
+            </p>
+          )}
           <FotosPorColor
             fotos={fotosVista}
             onFotos={cambiarFotos}

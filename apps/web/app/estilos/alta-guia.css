@@ -1,0 +1,208 @@
+/* «EL HILO» DEL ALTA DE PRODUCTO (ADR-0284)
+   Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue aquí, falta, opcional), un tinte
+   suave en el campo que sigue y una etiqueta «Sigue aquí». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
+   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle, sin
+   rebote, con `--ease-cayla`, y todo se apaga con `prefers-reduced-motion`. Los colores salen solo de los tokens de
+   globals.css (ADR-0169); el rojo no se usa: aquí nada es un error, es un camino. */
+
+/* ---- La marca de un campo: 18 px, a la izquierda de su título ---- */
+.hilo-marca {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  transition: background-color 240ms var(--ease-cayla), border-color 240ms var(--ease-cayla);
+}
+.hilo-marca[data-estado="hecho"] {
+  background: var(--color-verde);
+  color: var(--color-crema);
+}
+.hilo-marca[data-estado="ahora"] {
+  background: var(--color-tinta);
+}
+/* El punto de adentro de «sigue aquí» y el único pulso hacia afuera con que llega. */
+.hilo-marca[data-estado="ahora"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-crema);
+}
+.hilo-marca[data-estado="ahora"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-tinta);
+  animation: hilo-pulso 900ms var(--ease-cayla) 120ms 1 both;
+  pointer-events: none;
+}
+.hilo-marca[data-estado="falta"] {
+  border: 1.5px solid color-mix(in srgb, var(--color-tinta) 30%, transparent);
+}
+.hilo-marca[data-estado="opcional"] {
+  border: 1.5px dashed color-mix(in srgb, var(--color-tinta) 26%, transparent);
+}
+/* El ✓ se dibuja una vez, al pasar a «hecho» (la marca se vuelve a montar con su estado). */
+.hilo-tilde {
+  stroke-dasharray: 14;
+  animation: hilo-trazo 320ms var(--ease-cayla) 60ms backwards;
+}
+
+@keyframes hilo-pulso {
+  from { transform: scale(1); opacity: 0.6; }
+  to { transform: scale(2.2); opacity: 0; }
+}
+@keyframes hilo-trazo {
+  from { stroke-dashoffset: 14; }
+}
+
+/* ---- La fila de un campo ----
+   Sale 12 px a cada lado y se los devuelve de relleno: el contenido no se corre, pero el tinte del campo que sigue le
+   queda holgado. El divisor vive en la capa de adentro para que no se salga con el tinte. */
+.hilo-fila {
+  margin-inline: -0.75rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.75rem;
+  transition: background-color 260ms var(--ease-cayla);
+}
+.hilo-fila > .hilo-fila-in {
+  border-top: 1px solid var(--color-sand);
+  padding-block: 0.875rem;
+}
+.hilo-fila:first-child > .hilo-fila-in {
+  border-top-width: 0;
+  padding-top: 0.5rem;
+}
+.hilo-fila[data-estado="ahora"] {
+  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
+}
+.hilo-fila[data-estado="ahora"] > .hilo-fila-in {
+  border-top-color: transparent;
+}
+/* La fila que sigue a una con tinte no repite el divisor pegado al borde del tinte. */
+.hilo-fila[data-estado="ahora"] + .hilo-fila > .hilo-fila-in {
+  border-top-color: transparent;
+}
+
+/* «Sigue aquí»: la etiqueta del título del campo que sigue. */
+.hilo-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+  animation: cayla-revelar 240ms var(--ease-cayla) both;
+}
+
+/* Un destello cuando la persona es llevada a un campo (un toque en «Falta: Tejido»): la fila se tiñe y vuelve. */
+[data-campo][data-llamado] {
+  animation: hilo-llamado 1100ms var(--ease-cayla) 1;
+}
+.hilo-fila[data-llamado][data-estado="ahora"],
+.hilo-tarjeta[data-llamado][data-estado="ahora"] {
+  animation-name: hilo-llamado-ahora;
+}
+@keyframes hilo-llamado {
+  0%, 100% { background-color: transparent; }
+  30% { background-color: var(--color-hueso); }
+}
+@keyframes hilo-llamado-ahora {
+  0%, 100% { background-color: color-mix(in srgb, var(--color-hueso) 55%, transparent); }
+  30% { background-color: var(--color-hueso); }
+}
+
+/* ---- «Falta:» al pie del paso: cada cosa es un toque que lleva a su campo ---- */
+.hilo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-papel);
+  padding: 0.25rem 0.625rem 0.25rem 0.4rem;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-tinta);
+  transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+}
+.hilo-chip:hover {
+  border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+  background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+}
+.hilo-chip .hilo-marca {
+  width: 14px;
+  height: 14px;
+}
+.hilo-chip .hilo-marca[data-estado="ahora"]::before {
+  width: 4px;
+  height: 4px;
+}
+
+/* «Seguir →» cuando el paso queda listo: un solo aro que se abre, para que el ojo sepa dónde está lo que sigue. */
+.hilo-seguir {
+  position: relative;
+}
+.hilo-seguir::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1.5px solid var(--color-tinta);
+  opacity: 0;
+  pointer-events: none;
+  animation: hilo-aro 1000ms var(--ease-cayla) 200ms 1 both;
+}
+@keyframes hilo-aro {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hilo-marca,
+  .hilo-fila,
+  .hilo-chip {
+    transition: none;
+  }
+  .hilo-marca[data-estado="ahora"]::after,
+  .hilo-tilde,
+  .hilo-etiqueta,
+  [data-campo][data-llamado],
+  .hilo-seguir::after {
+    animation: none;
+  }
+  .hilo-marca[data-estado="ahora"]::after,
+  .hilo-seguir::after {
+    opacity: 0;
+  }
+}
+
+/* ---- Editar producto (ADR-0284, actualización c) ----
+   Un campo de la ficha que va en una cuadrícula y no tiene su propia fila: la caja sale 8 px a cada lado y se los devuelve de
+   relleno, así el destello de «llevarte al campo» le queda holgado sin correr nada. */
+.hilo-caja {
+  margin: -0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+}
+/* Una tarjeta entera (las fotos) que es lo que sigue: mismo tinte que un campo. */
+.hilo-tarjeta {
+  transition: background-color 260ms var(--ease-cayla);
+}
+.hilo-tarjeta[data-estado="ahora"] {
+  background: color-mix(in srgb, var(--color-hueso) 40%, var(--color-papel));
+}
+@media (prefers-reduced-motion: reduce) {
+  .hilo-tarjeta {
+    transition: none;
+  }
+}

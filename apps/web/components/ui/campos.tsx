@@ -771,7 +771,7 @@ export function Desplegable<T extends string>({
                   }
                 : undefined
             }
-            className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
+            className={`anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg ${
               flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
             }`}
           >

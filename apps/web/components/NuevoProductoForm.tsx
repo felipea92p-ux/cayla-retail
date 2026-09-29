@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -21,10 +21,23 @@ import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
+import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { asegurarVisible, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
+import {
+  camposDelAlta,
+  campoAhora,
+  estadosDeCampos,
+  faltanDelPaso,
+  faltanHastaElPaso,
+  pasoConfirmado,
+  resumenFaltan,
+  siguienteDelHilo,
+  type CampoGuia,
+} from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
 import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
@@ -45,7 +58,7 @@ import {
   codigoBasePrevisto,
   construirCeldas,
   estadoSubidaSinConexion,
-  faltaDelPaso,
+  faltaDelPaso as faltaDelPasoProblema,
   leerCantidad,
   leerErrorAlta,
   margenPorcentaje,
@@ -53,7 +66,6 @@ import {
   ordenarColores,
   ordenarFotosAlta,
   pasoAbrible,
-  pasoHecho,
   piePaso,
   problemasAlta,
   resumenStock,
@@ -149,6 +161,10 @@ export function NuevoProductoForm({
   );
 
   const [paso, setPaso] = useState<NumeroPaso>(1);
+  // Los pasos que la persona ya abrió (ADR-0284): un paso lleva el ✓ solo si lo visitó. Antes bastaba con que no tuviera
+  // problemas, y el 3 salía «Listo» sin abrirlo, con las tallas marcadas de antemano y cero colores.
+  const [vistos, setVistos] = useState<Set<NumeroPaso>>(() => new Set([1]));
+  const guia = useGuiaAlta();
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [proveedorId, setProveedorId] = useState("");
@@ -241,6 +257,7 @@ export function NuevoProductoForm({
 
   function irAPaso(n: NumeroPaso) {
     setPaso(n);
+    setVistos((prev) => (prev.has(n) ? prev : new Set(prev).add(n)));
   }
 
   // El paso que se abre queda a la vista: el anterior se acaba de plegar y la página se acortó.
@@ -256,8 +273,10 @@ export function NuevoProductoForm({
     pasoPrevio.current = paso;
     soltarPaginaEstable();
     const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Al título del paso (la sección lleva `scroll-mt-24`, así que queda bajo la cabecera). Con «nearest», elegir la categoría dejaba
+    // el paso 2 con su título cortado arriba y el campo «Nombre» pegado al borde (prueba con una trabajadora, 2026-09-29).
     requestAnimationFrame(() =>
-      document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" }),
+      document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" }),
     );
   }, [paso]);
 
@@ -369,11 +388,49 @@ export function NuevoProductoForm({
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
 
+  // «El hilo» (ADR-0284): cada campo, hecho / sigue aquí / falta / opcional. Sale de los mismos datos que `problemasAlta`.
+  const campos = camposDelAlta(estado, {
+    coloresElegidos: coloresElegidos.length,
+    descripcionEscrita: descripcion.trim() !== "",
+    responsableListo: responsable.listo,
+  });
+  const est = estadosDeCampos(campos, paso);
+  const ahoraCampo = campoAhora(campos, paso);
+  const hilo = siguienteDelHilo(campos);
+
+  // Lleva a la persona a un campo, sea de este paso o de otro (abre el paso y, cuando lo pinta, la lleva).
+  function irACampo(c: CampoGuia) {
+    if (c.paso !== paso) {
+      guia.irCuandoAbra(c.id);
+      irAPaso(c.paso);
+      return;
+    }
+    guia.ir(c.id);
+  }
+
+  // Al abrir un paso: si lo primero que pide es una caja de texto vacía (el nombre, el precio), el cursor queda ahí. Y al
+  // completar un campo, si el que sigue quedó fuera de la vista, se le trae con suavidad. Un paso que se abre para revisarlo
+  // (todo hecho) no mueve el foco.
+  const guiaPrevia = useRef({ paso, ahora: ahoraCampo });
+  useEffect(() => {
+    const previa = guiaPrevia.current;
+    guiaPrevia.current = { paso, ahora: ahoraCampo };
+    if (previa.paso !== paso) {
+      if (ahoraCampo === "nombre" || ahoraCampo === "precio") guia.irCuandoAbra(ahoraCampo, { destello: false, sinPisar: true });
+      guia.alAbrirPaso();
+      return;
+    }
+    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa a la marca (el tinte se
+    // mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil.
+    const activo = document.activeElement;
+    const escribiendo = activo instanceof HTMLTextAreaElement || (activo instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(activo.type));
+    if (ahoraCampo && previa.ahora !== ahoraCampo && !escribiendo) asegurarVisible(ahoraCampo);
+  }, [paso, ahoraCampo, guia]);
+
   function estadoPaso(n: NumeroPaso): "abierto" | "hecho" | "pendiente" {
     if (n === paso) return "abierto";
-    // Hecho = él y los anteriores sin nada pendiente. Un paso anterior al abierto con lo suyo resuelto también se ve
-    // hecho aunque falte algo más atrás (se volvió a abrir un paso previo con «Cambiar»).
-    return pasoHecho(problemas, n) || (n < paso && !faltaDelPaso(problemas, n)) ? "hecho" : "pendiente";
+    // ✓ solo si la persona ya abrió el paso y no le falta nada (ADR-0284); ver `pasoConfirmado`.
+    return pasoConfirmado({ paso: n, abierto: paso, vistos, problemas }) ? "hecho" : "pendiente";
   }
 
   const precioNum = Number(precioBase);
@@ -575,6 +632,8 @@ export function NuevoProductoForm({
     // El correlativo del código previsto ya cambió (y un color creado aquí ya viene en la lista). Sin red NO se relee: la relectura
     // fallaría y Next caería a una navegación completa, que sin internet deja la pestaña en blanco.
     if (creado.id) router.refresh();
+    // Los colores y las cantidades son de la prenda nueva: los pasos 3 y 4 vuelven a estar por visitar.
+    setVistos(new Set([1, 2]));
     setPaso(2);
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
@@ -639,19 +698,32 @@ export function NuevoProductoForm({
   const textoCrear = cargando ? (fotos.length > 0 ? "Creando y subiendo fotos…" : "Creando…") : "Crear producto";
   function pie(n: NumeroPaso) {
     if (n === 1) return undefined; // elegir la categoría ya pasa al paso 2
-    const { texto, listo } = piePaso(problemas, n, responsableAlta);
+    const { texto, listo: listoBase } = piePaso(problemas, n, responsableAlta);
+    // Con algo por hacer (aunque solo sea una sugerencia, los colores) el pie no dice «Listo»: lo dice «Falta: …», tocable.
+    const faltan = faltanHastaElPaso(campos, n);
+    const listo = listoBase && faltan.length === 0;
     const accion =
       n < 4 ? (
-        <button type="button" onClick={() => irAPaso((n + 1) as NumeroPaso)} disabled={Boolean(faltaDelPaso(problemas, n))} className="btn-cayla btn-primario">
+        <button
+          type="button"
+          onClick={() => irAPaso((n + 1) as NumeroPaso)}
+          disabled={Boolean(faltaDelPasoProblema(problemas, n))}
+          className={`btn-cayla btn-primario ${listo ? "hilo-seguir" : ""}`}
+        >
           Seguir →
         </button>
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
-        <button type="submit" disabled={!puedeGuardar || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
+        <button
+          type="submit"
+          disabled={!puedeGuardar || !responsable.listo}
+          title={responsable.motivo ?? undefined}
+          className={`btn-cayla btn-primario ${listo && !cargando ? "hilo-seguir" : ""}`}
+        >
           {textoCrear}
         </button>
       );
-    return { texto, listo, accion };
+    return { texto, listo, accion, faltan: faltan.length > 0 ? <FaltanDelPaso faltan={faltan} ahora={ahoraCampo} onIr={irACampo} /> : undefined };
   }
 
   function cuerpo(n: NumeroPaso) {
@@ -669,7 +741,7 @@ export function NuevoProductoForm({
       const ayudaOpcional = (texto: string) => (exige ? texto : `Opcional · ${texto}`);
       return (
         <div>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta">
+          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta" campo="nombre" estado={est.nombre}>
             <div className="space-y-2">
               <CampoTexto
                 id="nombre-producto"
@@ -691,10 +763,10 @@ export function NuevoProductoForm({
               <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
             </div>
           </FilaAlta>
-          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles">
+          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
             <CampoTexto etiqueta="Descripción" caja placeholder="Manga globo, botones forrados…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
-          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae">
+          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae" campo="marca" estado={est.marca}>
             <ElegirMarcaProveedor
               sugerencias={false}
               marcas={listasMarca.marcas}
@@ -724,7 +796,7 @@ export function NuevoProductoForm({
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
           {(exige || tejidosCategoria.length > 0) && (
-            <FilaAlta etiqueta="Tejido" ayuda={ayudaOpcional("De qué tela es")}>
+            <FilaAlta etiqueta="Tejido" ayuda={ayudaOpcional("De qué tela es")} campo="tejido" estado={est.tejido}>
               {tejidosCategoria.length === 0 && categoria ? (
                 <ConfigurarCategoria
                   tipo="tejidos"
@@ -754,7 +826,7 @@ export function NuevoProductoForm({
           )}
 
           {(exige || patronesCategoria.length > 0) && (
-            <FilaAlta etiqueta="Patrón" ayuda={ayudaOpcional("El dibujo de la tela. Si no tiene, elige Liso")}>
+            <FilaAlta etiqueta="Patrón" ayuda={ayudaOpcional("El dibujo de la tela. Si no tiene, elige Liso")} campo="patron" estado={est.patron}>
               {patronesCategoria.length === 0 && categoria ? (
                 <ConfigurarCategoria
                   tipo="patrones"
@@ -823,6 +895,8 @@ export function NuevoProductoForm({
         <div>
           <FilaAlta
             etiqueta="Tallas"
+            campo="tallas"
+            estado={est.tallas}
             ayuda={categoria && tallasCategoria.length > 0 ? `${categoria.nombre} ofrece ${plural(tallasCategoria.length, "talla", "tallas")}` : undefined}
             accion={
               tallasCategoria.length > 0 ? (
@@ -858,6 +932,8 @@ export function NuevoProductoForm({
 
           <FilaAlta
             etiqueta="Colores"
+            campo="colores"
+            estado={est.colores}
             ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
           >
             <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
@@ -883,90 +959,99 @@ export function NuevoProductoForm({
         </div>
       );
     }
+    // Paso 4: tres filas guiadas (ADR-0284) —precio y costo, las unidades de hoy, quién lo registra—. Antes eran tres bloques
+    // sueltos y nada decía que «cuántas hay hoy» (o «todavía no tengo») era una decisión obligatoria.
     return (
-      <div className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
-          <CampoMonto
-            etiqueta="Costo"
-            pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
-            inputMode="decimal"
-            placeholder="0.00"
-            value={costoBase}
-            onChange={(e) => {
-              setCostoTocado(true);
-              setCostoBase(e.target.value);
-            }}
-          />
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
-            <p
-              className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
-                margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
-              }`}
-            >
-              {margen === null ? "—" : `${margen.toFixed(0)} %`}
-            </p>
-            <p className="mt-1 text-xs text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+      <div>
+        <FilaAlta etiqueta="Precio y costo" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
+            <CampoMonto
+              etiqueta="Costo"
+              pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={costoBase}
+              onChange={(e) => {
+                setCostoTocado(true);
+                setCostoBase(e.target.value);
+              }}
+            />
+            <div>
+              <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
+              <p
+                className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
+                  margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
+                }`}
+              >
+                {margen === null ? "—" : `${margen.toFixed(0)} %`}
+              </p>
+              <p className="mt-1 text-xs text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+            </div>
           </div>
-        </div>
-
-        {nivel === "negativo" && (
-          <AvisoInline tono="rojo" alerta>
-            Con este precio pierdes dinero en cada venta.
-          </AvisoInline>
-        )}
+          {nivel === "negativo" && (
+            <div className="mt-3">
+              <AvisoInline tono="rojo" alerta>
+                Con este precio pierdes dinero en cada venta.
+              </AvisoInline>
+            </div>
+          )}
+        </FilaAlta>
 
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
-        <MatrizCantidades
-          celdas={celdas}
-          tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
-          colores={coloresDatos}
-          excluidas={excluidas}
-          cantidades={cantidades}
-          onCantidad={(clave, valor) => {
-            setCantidades((prev) => ({ ...prev, [clave]: valor }));
-            if (valor !== "" && valor !== "0") setSinStock(false); // escribir una cantidad responde la pregunta
-          }}
-          precioBase={precioBase}
-          precios={overridePrecio}
-          onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
-          destinoEtiqueta={destino.etiqueta}
-        />
+        <FilaAlta etiqueta="Unidades de hoy" ayuda={`Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`} campo="stock" estado={est.stock}>
+          <div className="space-y-5">
+            <MatrizCantidades
+              celdas={celdas}
+              tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
+              colores={coloresDatos}
+              excluidas={excluidas}
+              cantidades={cantidades}
+              onCantidad={(clave, valor) => {
+                setCantidades((prev) => ({ ...prev, [clave]: valor }));
+                if (valor !== "" && valor !== "0") setSinStock(false); // escribir una cantidad responde la pregunta
+              }}
+              precioBase={precioBase}
+              precios={overridePrecio}
+              onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
+              destinoEtiqueta={destino.etiqueta}
+            />
 
-        {stock.total > 0 ? (
-          destino.separaPiso && (
-            <div className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
-              <div className="flex flex-wrap gap-1.5">
-                <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
-                  Guardadas en el almacén
-                </ChipOpcion>
-                <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
-                  En piso de venta
-                </ChipOpcion>
-              </div>
-              {!puedePiso && (
-                <p className="text-xs text-taupe">
-                  Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
-                </p>
-              )}
-            </div>
-          )
-        ) : (
-          <ChipOpcion elegido={sinStock} onClick={() => setSinStock((v) => !v)}>
-            Todavía no tengo unidades de este producto
-          </ChipOpcion>
-        )}
+            {stock.total > 0 ? (
+              destino.separaPiso && (
+                <div className="space-y-2">
+                  <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
+                      Guardadas en el almacén
+                    </ChipOpcion>
+                    <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                      En piso de venta
+                    </ChipOpcion>
+                  </div>
+                  {!puedePiso && (
+                    <p className="text-xs text-taupe">
+                      Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
+                    </p>
+                  )}
+                </div>
+              )
+            ) : (
+              <ChipOpcion elegido={sinStock} onClick={() => setSinStock((v) => !v)}>
+                Todavía no tengo unidades de este producto
+              </ChipOpcion>
+            )}
 
-        <p className="nota-cayla text-[12.5px]">
-          Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
-          inicial». Lo que llegue después se registra al recibirlo.
-        </p>
+            <p className="nota-cayla text-[12.5px]">
+              Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
+              inicial». Lo que llegue después se registra al recibirlo.
+            </p>
+          </div>
+        </FilaAlta>
 
         {/* Quién firma el alta (ADR-0161): una sola vez en la pantalla, aquí, donde la persona termina. La tienda es la misma
             donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ. */}
-        <FilaAlta etiqueta="Quién lo registra" ayuda="Queda a su nombre en el historial">
+        <FilaAlta etiqueta="Quién lo registra" ayuda="Queda a su nombre en el historial" campo="responsable" estado={est.responsable}>
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
         </FilaAlta>
       </div>
@@ -979,13 +1064,19 @@ export function NuevoProductoForm({
     const e = estadoPaso(n);
     const abrible = e !== "pendiente" || pasoAbrible(problemas, n);
     const pieN = n === 1 ? null : piePaso(problemas, n, responsableAlta);
+    // Lo que falta, con los nombres de los campos («Faltan: marca y proveedor, tejido»); un paso que aún no se abrió y ya viene
+    // armado dice «Por revisar» en vez de un ✓ que nadie se ganó.
+    // Con UNA cosa por hacer, la frase de siempre («Elige el tejido.», «Comprobando que el nombre no exista todavía…»): dice qué hacer.
+    // Con varias, la lista de lo que falta. Una sugerencia sola (colores) se dice como «Por revisar».
+    const faltasN = faltanDelPaso(campos, n);
+    const faltanN = faltasN.length > 1 || (faltasN.length === 1 && !faltasN[0].requerido) ? resumenFaltan(faltasN) : null;
     const texto =
       e === "hecho"
         ? resumen[n] || "Listo"
         : e === "abierto"
-          ? (pieN && !pieN.listo ? pieN.texto : (faltaDelPaso(problemas, n) ?? "Listo"))
+          ? (faltanN ?? (pieN && !pieN.listo ? pieN.texto : (faltaDelPasoProblema(problemas, n) ?? "Listo")))
           : abrible
-            ? (faltaDelPaso(problemas, n) ?? "—")
+            ? (faltanN ?? (faltaDelPasoProblema(problemas, n) ?? "Por revisar"))
             : "—";
     return { numero: n, titulo: TITULOS[n], estado: e, texto, abrible };
   });
@@ -1042,6 +1133,7 @@ export function NuevoProductoForm({
             fotos: fotos.length,
             avance,
             siguiente: siguienteDelAlta(problemas, responsableAlta),
+            guia: hilo ? { texto: hilo.campo.pendiente, nombre: hilo.campo.nombre, bloquea: hilo.bloquea, onIr: () => irACampo(hilo.campo) } : null,
           }}
           cargando={cargando}
           onCancelar={() => salida.pedirSalir("/productos")}
