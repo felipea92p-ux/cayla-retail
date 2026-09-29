@@ -7,6 +7,6 @@ Por qué así: el orden se decide en la base antes de cortar la página (ordenar
 las columnas salen del ancho disponible, no de la ventana (a 1024 px con el menú abierto las tarjetas quedaban de 100 px); el
 stock se ajusta con el movimiento de siempre y no como un campo, para no abrir una segunda vía de escritura (revisa la decisión 9
 de ADR-0270); y la marca va donde sobra espacio con y sin campaña (con campaña solo quedan 1,4 mm sobre el pie).
-Felipe se lleva: pegar en producción `20260929180000_productos_orden_recientes_y_vendidos.sql` ANTES de fusionar (sin ella, «Más
-vendidos» da error; precio y nombre siguen igual), decidir si «Más comprados» era «más vendidos», y ver una etiqueta impresa en la
+Felipe se lleva: `20260929180000_productos_orden_recientes_y_vendidos.sql` ya pegada en producción (verificada, md5 `3534a61a…`),
+decidir si «Más comprados» era «más vendidos», y ver una etiqueta impresa en la
 Brother con la marca (medida en pantalla, no en papel).

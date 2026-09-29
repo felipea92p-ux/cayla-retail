@@ -1,7 +1,8 @@
 # ADR-0281 · Productos: cabecera con «!», 20 por página, orden nuevo, tamaño de la grilla, stock desde la ficha y marca en la etiqueta
 
 - **Fecha:** 2026-09-29 · **Estado:** aceptado. Web + **una migración** (`20260929180000_productos_orden_recientes_y_vendidos.sql`,
-  solo `create or replace function`; **sin pegar en producción**, va ANTES de fusionar la web).
+  solo `create or replace function`; **pegada en producción por Felipe el 2026-09-29**, antes de fusionar la web, y verificada:
+  `md5(prosrc)` = `3534a61a8aea1327c30b3c8bd1adeefa`).
 - **Pedido:** Felipe, 2026-09-29, con dos capturas de producción (TRU): «el texto descriptivo está un poco compacto…
   un signo ! donde despliegue más información», «paginación… mostrar 20 productos y en los filtros… recientes, viejos, más
   comprados», «poder cambiar de tamaño las imágenes… grande, mediano o pequeño», «en editar un producto que también se pueda
