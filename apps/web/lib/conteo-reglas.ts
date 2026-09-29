@@ -20,6 +20,7 @@ import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
 import type { Apariencia } from "@/lib/apariencia-variantes";
 import type { PrioridadConteo } from "@/lib/conteos";
 import { codigoDeEtiqueta } from "./prenda-reglas";
+import { guionDeLaPistola } from "./escaner-guion";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. El resultado de un conteo, leído de un vistazo
@@ -262,9 +263,10 @@ export function pendientesConCodigo(pendientes: readonly PrendaPendiente[], codi
  * «Dar de alta esta prenda» para una que sí existía.
  */
 export function coincidenciasPorCodigo<T extends { sku: string | null; codigosBarras: readonly string[] }>(texto: string, catalogo: readonly T[], max = 8): T[] {
-  const q = texto.trim().toLowerCase();
+  const q = guionDeLaPistola(texto).trim().toLowerCase();
   if (!q) return [];
-  return catalogo.filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q)).slice(0, max);
+  const clave = (c: string) => guionDeLaPistola(c).toLowerCase();
+  return catalogo.filter((v) => clave(v.sku ?? "").includes(q) || v.codigosBarras.some((c) => clave(c) === q)).slice(0, max);
 }
 
 /**

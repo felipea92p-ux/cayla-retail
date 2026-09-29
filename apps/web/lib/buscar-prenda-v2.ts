@@ -8,6 +8,10 @@
 //   `sku` o cualquiera de los `codigosBarras` de cada variante, sin mayúsculas.
 // - Texto a medias: se busca en sku, referencia, talla y color, sin acentos ni
 //   mayúsculas — misma regla que el conteo/buscador global.
+// - Ambos leen el apóstrofo como guion (`guionDeLaPistola`): la pistola en una
+//   Mac en español escribe «CMS'0011'ROS'STD» por «CMS-0011-ROS-STD».
+
+import { guionDeLaPistola } from "./escaner-guion";
 
 export type PrendaBuscableV2 = {
   varianteId: string;
@@ -30,20 +34,25 @@ export function clave(texto: string | null | undefined): string {
     .trim();
 }
 
+/** `clave` para comparar CÓDIGOS: además, el apóstrofo que escribe la pistola vale por el guion. */
+function claveCodigo(texto: string | null | undefined): string {
+  return clave(guionDeLaPistola(texto ?? ""));
+}
+
 export function resolverCodigoV2<T extends PrendaBuscableV2>(texto: string, variantes: T[]): T | null {
-  const t = clave(texto);
+  const t = claveCodigo(texto);
   if (!t) return null;
   return (
-    variantes.find((v) => clave(v.sku) === t) ??
-    variantes.find((v) => v.codigosBarras.some((c) => clave(c) === t)) ??
+    variantes.find((v) => claveCodigo(v.sku) === t) ??
+    variantes.find((v) => v.codigosBarras.some((c) => claveCodigo(c) === t)) ??
     null
   );
 }
 
 export function filtrarPrendasV2<T extends PrendaBuscableV2>(texto: string, variantes: T[], max: number): T[] {
-  const k = clave(texto);
+  const k = claveCodigo(texto);
   if (!k) return [];
   return variantes
-    .filter((v) => clave(`${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""} ${v.codigosBarras.join(" ")}`).includes(k))
+    .filter((v) => claveCodigo(`${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""} ${v.codigosBarras.join(" ")}`).includes(k))
     .slice(0, max);
 }
