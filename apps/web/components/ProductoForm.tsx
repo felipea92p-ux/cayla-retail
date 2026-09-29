@@ -73,7 +73,7 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
-import type { ContextoFicha } from "@/components/ficha-producto/piezas";
+import type { AjusteStockFicha, ContextoFicha } from "@/components/ficha-producto/piezas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -187,6 +187,7 @@ export function ProductoForm({
   estadoVariantes,
   esLider,
   puedeCorregir = true,
+  ajusteStock = null,
   producto,
   volverA = "/productos",
 }: {
@@ -211,6 +212,8 @@ export function ProductoForm({
    *  corregir: una base vieja ignora la corrección pero SÍ guarda las fotos que se movieron con ella. La página la
    *  calcula siempre (`esFuncionAusente` sobre `fn_variantes_estado`); sin pasarla, se asume que sí. */
   puedeCorregir?: boolean;
+  /** Ajustar el stock de la sede activa desde la ficha (2026-09-29). `null` = la cuenta no tiene «Ajustar stock». */
+  ajusteStock?: AjusteStockFicha | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
@@ -368,6 +371,7 @@ export function ProductoForm({
     veCosto,
     costoSinComprobar: costosSinComprobar(producto?.variantes ?? []),
     puedeCorregir,
+    ajusteStock,
   };
 
   function elegirCategoria(id: string) {

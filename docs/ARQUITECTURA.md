@@ -416,6 +416,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   solo ofrece «Confirmar de nuevo», o «Comprobar» si el borrador ya se había enviado; mientras se guarda o el loader
   está a la vista, lo que manda la pistola va a un búfer, `esperaOcupada()` de `lib/espera-estado.ts`) → RPC
   `bajar_al_piso`. La base se toca una sola vez, al confirmar.
+- `/productos/[id]/editar` también (ADR-0281, decisión 5): `ficha-producto/AjusteDeStock.tsx` ofrece «Ajustar stock» por color y
+  un lápiz por talla y abre `AjustarInventarioModal` → RPC `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
+  almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
+  (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
 - `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?producto=` también desde el éxito de Nuevo producto; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
   pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
   `produccion_id`, o el `stock` de la tienda de la sesión para una campaña o un producto; el alcance de una campaña y la
@@ -468,6 +472,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   única definición, cada renglón `borrable` o no; `fn_producto_se_puede_eliminar` también la lee). Con historia SOLO de stock
   y cuenta Admin llama a `eliminar_producto_con_historia` (respaldo en `respaldo_purgas.filas`, que devuelve
   `scripts/purga/restaurar-purga.sql`).
+- `/productos` (ADR-0281, 2026-09-29): 20 por página (`PRODUCTOS_POR_PAGINA`); `?orden=` acepta `recientes | antiguos |
+  vendidos_desc | vendidos_asc | precio_asc | precio_desc` (`lib/productos-orden.ts`; las cuatro nuevas viven en `fn_productos`,
+  `20260929180000`, parche por ancla; «vendidos» = unidades de `movimientos` salida/venta de 30 días, como `demanda`); el tamaño
+  de las tarjetas (`grande | mediano | pequeno`) va en la cookie `cayla_grilla_tam` (`lib/tamano-grilla.ts`, la lee la página
+  y la escribe `SelectorTamanoGrilla.tsx`; columnas `auto-fill` por ancho disponible); la cabecera lleva una frase y `<Ayuda>`.
 - `/productos/[id]/editar` → `ProductoForm.tsx` guarda en dos tiempos (ADR-0257): un `useState(capturar)` guarda la foto de «al
   abrir» y `lib/producto-cambios-reglas.ts:resumenDeCambios` la compara contra el estado actual en cada render (función pura,
   `CAMPOS_CUBIERTOS` obliga a decidir cómo se compara cada campo nuevo de la ficha). Mientras `resumen.total > 0`, sube
