@@ -147,12 +147,24 @@ export function etiquetaRangoLarga({ desde, hasta }: Rango, conAnio = false): st
   return `desde ${textoDia(a, conAnios)} hasta ${textoDia(b, conAnios)}`;
 }
 
-/** El texto de la píldora de un período en «Comparar períodos»: «Período B: desde 23 ago. hasta 21 sep.».
+/** El rango como lo lee la píldora de «Comparar períodos»: «1 ago. → 30 ago.», «28 dic. 2025 → 3 ene. 2026», «18 sep.»
+ *  (un solo día). Las dos fechas siempre a la vista —no abrevia el mes compartido como `etiquetaRango`— y con la flecha
+ *  de «desde → hasta» (2026-09-29, Felipe). Si el rango cruza de año, ambas fechas llevan año; con `conAnio`, siempre. */
+export function etiquetaRangoFlecha({ desde, hasta }: Rango, conAnio = false): string {
+  const a = parseIso(desde);
+  const b = parseIso(hasta);
+  if (!a || !b) return "";
+  if (aMs(a) === aMs(b)) return textoDia(a, conAnio);
+  const conAnios = conAnio || a.a !== b.a;
+  return `${textoDia(a, conAnios)} → ${textoDia(b, conAnios)}`;
+}
+
+/** El texto de la píldora de un período en «Comparar períodos»: «Período B: 31 ago. → 29 sep.».
  *  Cada letra recibe SU rango — el diseño de Figma (2026-09-21) tenía escrito el rango de A en las dos
  *  píldoras, y con dos períodos distintos eso miente: los gráficos de abajo dicen otra cosa. Sin rango
  *  (A sin definir) no se inventa una fecha: «Período A: —». */
 export function textoPildoraPeriodo(letra: "A" | "B", rango: Rango | null, conAnio = false): string {
-  const cuerpo = rango ? etiquetaRangoLarga(rango, conAnio) : "";
+  const cuerpo = rango ? etiquetaRangoFlecha(rango, conAnio) : "";
   return `Período ${letra}: ${cuerpo || "—"}`;
 }
 

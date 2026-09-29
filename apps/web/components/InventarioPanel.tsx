@@ -635,11 +635,28 @@ export function InventarioPanel({
   }
 
   // Columnas de «Por talla» (diseño aprobado, 2026-09-28): casilla | prenda | color y talla | Stock actual | Cobertura | Ritmo | En
-  // camino | Acción hoy | En la red | ›. Las cuatro cifras miden lo mismo (6.75 rem) y el resto se reparte entre la prenda y «En la
-  // red»; `minmax(10rem, …)` en las dos flexibles, porque con `1fr` a secas (más `truncate`) una ventana angosta las dejaba en 0.
-  // Donde no se separa piso y almacén (Taller): sin Cobertura, Ritmo ni Acción hoy.
+  // camino | Acción hoy | En la red | ›. Las cuatro cifras miden 6.75 rem, «Acción hoy» 10.5 rem y el resto se reparte entre la prenda
+  // y «En la red»; `minmax(10rem, …)` en la prenda, porque con `1fr` a secas (más `truncate`) una ventana angosta la dejaba en 0.
+  //
+  // Ese diseño exige ~1200 px de tarjeta, y en una laptop (MacBook Air 1440 px con el lateral abierto: 1086 px) «En la red» quedaba
+  // cortada y solo se alcanzaba desplazando una barra que vive al pie de la lista. Lo que cada columna de cifras necesita de verdad
+  // (medido en la app) es menos que lo que se le reserva, así que pasan a `minmax(mínimo del contenido, ancho aprobado)`: con espacio
+  // de sobra miden lo aprobado; si falta, se comprimen parejo hasta su mínimo (el subtítulo «(Piso / Almacén)» de Stock actual pide
+  // 6.25 rem; el título de las otras tres cabe en 5.5 rem; el chip «Por colgar · N uds», en 9.25 rem; color y talla, en 3 rem) sin
+  // cortar ni partir nada. La prenda y «En la red» conservan su mínimo aprobado de 10 rem: «Disponible en 2 sedes: 11» mide 154 px y con
+  // menos se corta la cifra, que es lo que la persona vino a leer. Además el espacio entre columnas baja de 16 a 12 px por debajo de
+  // 1536 px (`2xl`): desde ahí queda exactamente el diseño aprobado. Va en la plantilla, y no en el encabezado y en las filas por
+  // separado, para que los dos compartan siempre el mismo valor.
+  //
+  // Por debajo de ~1070 px de TARJETA (no de ventana: con el lateral abierto una laptop de 1366 px deja 1012 px) esas 10 columnas ya no
+  // caben ni comprimidas, y no se puede esconder ninguna sin quitarle un dato a la asesora. Se hace lo que ya hacen `Recepciones` y
+  // `Proveedores` con `@container` en la `Tabla`: lo menos decisivo se apila. «En la red» baja al renglón de «Acción hoy» (las dos
+  // dicen qué hacer con la prenda: bajarla del almacén o pedirla a otra sede; en el celular ya van juntas) y se quita la flecha `›`.
+  // Ahí la tabla cabe entera hasta ~870 px de tarjeta (~1230 px de ventana con el lateral abierto). Cada pieza «solo ancha» lleva la
+  // misma condición (`@min-[1070px]`) en el encabezado, la plantilla y las filas: si cambia el umbral, cambia en los tres.
+  // Donde no se separa piso y almacén (Taller): sin Cobertura, Ritmo ni Acción hoy, y cabe siempre.
   const plantilla = separa
-    ? `${conSeleccion ? "sm:grid-cols-[1.125rem_minmax(10rem,1fr)_3.5rem_repeat(4,6.75rem)_10.5rem_minmax(10rem,1fr)_1.25rem]" : "sm:grid-cols-[minmax(10rem,1fr)_3.5rem_repeat(4,6.75rem)_10.5rem_minmax(10rem,1fr)_1.25rem]"}`
+    ? `${conSeleccion ? "sm:gap-x-3 2xl:gap-x-4 sm:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[1.125rem_minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]" : "sm:gap-x-3 2xl:gap-x-4 sm:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(10rem,1fr)] @min-[1070px]:grid-cols-[minmax(10rem,1fr)_3rem_minmax(6.25rem,6.75rem)_repeat(3,minmax(5.5rem,6.75rem))_minmax(9.25rem,10.5rem)_minmax(10rem,1fr)_1.25rem]"}`
     : `${conSeleccion ? "sm:grid-cols-[1.125rem_minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]" : "sm:grid-cols-[minmax(10rem,1fr)_3.5rem_7rem_7rem_minmax(9rem,1fr)_1.25rem]"}`;
 
   // Lo que la persona ve en los filtros, para nombrarlo si dejan la tabla en blanco (y para que el estado vacío los quite de a uno).
@@ -1052,7 +1069,7 @@ export function InventarioPanel({
           </div>
         </Tabla>
       ) : (
-        <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
+        <Tabla className="@container rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que va a la izquierda como en su diseño, y «Acción hoy» y
               «En la red», que se leen de corrido (diseño aprobado, 2026-09-28). La tabla COMUNICA el estado y no ofrece acciones:
               tocar una fila abre el cajón de la prenda, donde viven Reponer, Trasladar, Ajustar, Etiquetas e Historial. */}
@@ -1082,9 +1099,10 @@ export function InventarioPanel({
                     { titulo: "Cobertura piso", alinear: "centro" as const, ayuda: "Cuánto dura el piso de hoy al Ritmo reciente" },
                     { titulo: "Ritmo reciente", alinear: "centro" as const, ayuda: "Ventas comerciales ÷ días de exposición en piso, últimos 7 días — toca para ver el detalle" },
                     { titulo: "En camino", alinear: "centro" as const },
-                    { titulo: "Acción hoy" },
-                    { titulo: "En la red" },
-                    { titulo: "" },
+                    // Tarjeta angosta: «En la red» vive debajo del chip de esta misma columna (ver la fila), y el título lo dice.
+                    { titulo: <>Acción hoy<span className="@min-[1070px]:hidden"> · En la red</span></> },
+                    { titulo: "En la red", clase: "hidden @min-[1070px]:block" },
+                    { titulo: "", clase: "hidden @min-[1070px]:block" },
                   ]
                 : [
                     { titulo: "Stock actual", alinear: "centro" as const },
@@ -1253,15 +1271,28 @@ export function InventarioPanel({
                             <span title="Apartadas para clientas: siguen aquí, pero no se pueden vender ni mover">Apartado · {f.apartado}</span>
                           </Chip>
                         )}
+                        {/* Solo en escritorio con la tarjeta angosta (< 1070 px): «En la red» no tiene columna propia y va aquí, debajo.
+                            En el celular ya tiene su celda, y con la tarjeta ancha también. */}
+                        {red && (
+                          <span className="basis-full truncate text-[11px] leading-tight text-taupe max-sm:hidden @min-[1070px]:hidden" title={red.detalle}>
+                            {red.linea}
+                          </span>
+                        )}
                       </span>
                     </span>
                   )}
-                  <span className={celda("izq", "col-start-1 row-start-1 text-[13px] text-tinta/75 sm:[grid-area:auto]")} title={red?.detalle}>
+                  <span
+                    className={celda(
+                      "izq",
+                      `col-start-1 row-start-1 text-[13px] text-tinta/75 sm:[grid-area:auto]${separa ? " hidden max-sm:block @min-[1070px]:block" : ""}`
+                    )}
+                    title={red?.detalle}
+                  >
                     <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En la red</span>
                     {red ? red.linea : <span className="text-tinta/35">—</span>}
                   </span>
                 </div>
-                <span aria-hidden className="hidden justify-center text-taupe/60 sm:flex">
+                <span aria-hidden className={`hidden justify-center text-taupe/60 ${separa ? "@min-[1070px]:flex" : "sm:flex"}`}>
                   <ChevronRight className="h-4 w-4" />
                 </span>
               </div>

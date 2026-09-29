@@ -7,9 +7,8 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
 import { proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 import { AvisoInline } from "@/components/alta-producto/piezas";
 import {
   ordenarPorNombre,
@@ -42,12 +41,10 @@ import {
 // pasa solo a «un proveedor que ya tengo» con ese elegido, así reintentar NO lo
 // registra otra vez (registrar_proveedor no es idempotente: crearía un duplicado).
 //
-// Responsable (ADR-0161): crear una marca es Catálogo (operación de tienda), así
-// que el formulario lleva su propio combo — es un guardado aparte del producto
-// que se está dando de alta. `registrar_proveedor` es de Compras, que firma con la
-// sesión; aquí se firma igual porque es parte del MISMO gesto de Catálogo, y el
-// encabezado solo lo lee la función que lo pide (a las demás no les cambia nada).
-// Si la 2 falla, el combo NO se vacía: el reintento es el mismo gesto.
+// Crear una marca es un guardado aparte del producto que se está dando de alta; desde
+// 2026-09-29 va sin combo «Responsable» (clave `alta_producto_marca`). `registrar_proveedor`
+// es de Compras, pero aquí es parte del MISMO gesto de Catálogo, así que se firma con la
+// misma clave (el encabezado solo lo lee la función que lo pide).
 //
 // «¿No será una marca que ya existe?» (2026-09-25): el 24-sep se creó «Cayla 2» para un top que confecciona Jacard,
 // cuando lo que hacía falta era sumarle Jacard a CAYLA. Con una marca NUEVA elegida, el formulario dice dos cosas:
@@ -111,7 +108,6 @@ export function NuevaMarcaForm({
   const [provDescartados, setProvDescartados] = useState<ReadonlySet<string>>(() => new Set());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const responsable = useResponsable();
 
   const opcionesMarca = useMemo(() => ordenarPorNombre(marcas).map((m) => ({ valor: m.id, texto: m.nombre })), [marcas]);
   const opcionesProv = useMemo(() => ordenarPorNombre(lista).map((p) => ({ valor: p.id, texto: p.nombre })), [lista]);
@@ -188,7 +184,6 @@ export function NuevaMarcaForm({
 
   async function guardar() {
     if (guardando) return;
-    if (!responsable.listo) return setError(responsable.motivo);
     const nombre = marcaNombre.trim();
     if (!nombre) return setError("Elige la marca o escribe una nueva.");
     if (porResponder.length > 0) {
@@ -222,11 +217,10 @@ export function NuevaMarcaForm({
           p_nombre: provNombre.trim(),
           p_ruc: provRuc.trim() || undefined,
         }),
-        responsable.firma(),
+        firmaOmitida("alta_producto_marca"),
       );
       if (errProv || !data) {
         setGuardando(false);
-        responsable.despues(errProv);
         return setError(traducirError(errProv, "registrar el proveedor"));
       }
       provId = data;
@@ -238,10 +232,9 @@ export function NuevaMarcaForm({
     // Marca que existe: se manda su nombre de verdad y `crear_marca` solo le suma el proveedor.
     const { data: marcaId, error: errMarca } = await firmar(
       supabase.rpc("crear_marca", { p_nombre: nombre, p_proveedor_id: provId }),
-      responsable.firma(),
+      firmaOmitida("alta_producto_marca"),
     );
     setGuardando(false);
-    responsable.despues(errMarca);
     if (errMarca || !marcaId) {
       return setError(
         eraNuevo
@@ -442,7 +435,6 @@ export function NuevaMarcaForm({
           {error}
         </p>
       )}
-      <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
@@ -450,8 +442,7 @@ export function NuevaMarcaForm({
         <button
           type="button"
           onClick={() => void guardar()}
-          disabled={guardando || !responsable.listo || !listo}
-          title={responsable.motivo ?? undefined}
+          disabled={guardando || !listo}
           className="btn-cayla btn-primario"
         >
           {guardando ? "Guardando…" : textoGuardar}

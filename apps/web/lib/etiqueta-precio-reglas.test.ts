@@ -3,6 +3,7 @@ import {
   armarEtiquetas,
   cantidadDeTexto,
   encabezadoDeEtiquetas,
+  etiquetasDelAlta,
   expandir,
   fechaDeAlcance,
   fechaEtiqueta,
@@ -326,5 +327,28 @@ describe("Volver a la misma vista de Productos (Tabla o Grilla)", () => {
     expect(urlEtiquetasDePrecio({ producto: A }, "https://malo.com")).toBe(`/etiquetas-de-precio?producto=${A}`);
     expect(volverDeEtiquetas({ tipo: "producto" }, null)).toEqual({ href: "/productos", a: "Productos" });
     expect(volverDeEtiquetas({ tipo: "variantes" }, "/inventario")).toEqual({ href: "/inventario", a: "Existencias" });
+  });
+});
+
+describe("etiquetasDelAlta — «Imprimir etiquetas» en la pantalla de éxito de Nuevo producto", () => {
+  const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+  it("un producto creado con stock ofrece imprimir una etiqueta por unidad, del propio producto", () => {
+    expect(etiquetasDelAlta({ id: A, stock: { unidades: 5 } })).toEqual({ href: `/etiquetas-de-precio?producto=${A}`, unidades: 5 });
+    // El enlace es el mismo que arma Productos: la pantalla de etiquetas lo lee con `?producto=`, no con otro camino.
+    expect(etiquetasDelAlta({ id: A, stock: { unidades: 1 } })?.href).toBe(urlEtiquetasDePrecio({ producto: A }));
+  });
+  it("vale igual si el stock quedó en el piso o en el almacén: la etiqueta cuelga de la prenda, esté donde esté la tienda", () => {
+    const enPiso = { unidades: 5, donde: "piso de venta de Tienda TRU" };
+    const enAlmacen = { unidades: 5, donde: "almacén de Tienda TRU" };
+    expect(etiquetasDelAlta({ id: A, stock: enPiso })).toEqual(etiquetasDelAlta({ id: A, stock: enAlmacen }));
+    expect(etiquetasDelAlta({ id: A, stock: enPiso })?.unidades).toBe(5);
+  });
+  it("sin stock no ofrece nada: no hay prenda que etiquetar todavía", () => {
+    expect(etiquetasDelAlta({ id: A, stock: null })).toBeNull();
+    expect(etiquetasDelAlta({ id: A, stock: { unidades: 0 } })).toBeNull();
+    expect(etiquetasDelAlta({ id: A, stock: { unidades: Number.NaN } })).toBeNull();
+  });
+  it("guardado sin conexión (todavía sin id ni código) no ofrece nada, aunque traiga unidades", () => {
+    expect(etiquetasDelAlta({ id: null, stock: { unidades: 5 } })).toBeNull();
   });
 });

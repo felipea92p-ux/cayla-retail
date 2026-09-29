@@ -1,24 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { agruparCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
-import type { ControlResponsable } from "@/lib/useResponsable";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
  *
  * EL PROBLEMA. Guardar una ficha pedía elegir «Responsable» en un panel lejano y dejaba el botón gris sin decir por qué. Ahora
- * «Revisar y guardar» abre esta hoja: lista lo que va a cambiar, pide quién hace la operación justo aquí y confirma. El orden
- * es el natural (cambio → guardo → digo quién soy → confirmo) y es el mismo patrón que Catálogo (`ConfirmarConResponsable`,
- * 2026-09-23). Con la cuenta de una persona presente el combo ya trae su nombre y son dos toques; con la tablet de la tienda,
- * elegir quién es, que ya era obligatorio.
+ * «Revisar y guardar» abre esta hoja: lista lo que va a cambiar y confirma. Desde 2026-09-29 la hoja ya no pide «Responsable»
+ * (Felipe; clave `producto_confirmar_cambios`, que firma `ProductoForm`): son dos toques, sin elegir a nadie.
  *
  * `onConfirmar` guarda y dice si la hoja debe cerrarse: sí cuando salió bien (la pantalla se va sola) o cuando lo que falló
- * se arregla en la ficha (un nombre repetido, una versión vieja); NO cuando falló por el responsable (dejó de estar de turno,
- * por ejemplo): ahí se queda abierta para elegir a otra persona sin perder el lugar.
+ * se arregla en la ficha (un nombre repetido, una versión vieja); `false` deja la hoja abierta.
  *
  * Con la sección de variantes de ADR-0263, un grupo puede juntar varios cambios en una línea («3 variantes pasan de Sin color
  * a Negro»): la insignia dice cuántos cambios son (`cantidad`), no cuántas líneas, y la `nota` del grupo dice lo que conviene
@@ -28,14 +23,12 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 export function ConfirmarCambios({
   nombre,
   resumen,
-  control,
   onConfirmar,
   onClose,
   avisos = [],
 }: {
   nombre: string;
   resumen: ResumenCambios;
-  control: ControlResponsable;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
   /** Lo que no impide guardar pero conviene leer justo antes de confirmar. */
@@ -91,8 +84,6 @@ export function ConfirmarCambios({
             </div>
           )}
 
-          <ComboResponsable control={control} deshabilitado={enCurso} />
-
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={enCurso}>
               Volver a editar
@@ -102,8 +93,6 @@ export function ConfirmarCambios({
               peso="primario"
               className="flex-1"
               cargando={enCurso}
-              disabled={!control.listo}
-              title={control.motivo ?? undefined}
               onClick={async () => {
                 setEnCurso(true);
                 const cerrarHoja = await onConfirmar();

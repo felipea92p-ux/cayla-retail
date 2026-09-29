@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   diasDelRango,
   etiquetaRango,
+  etiquetaRangoFlecha,
   etiquetaRangoLarga,
   horaLima,
   hoyEnLima,
@@ -176,11 +177,26 @@ describe("textos", () => {
     expect(etiquetaRangoLarga({ desde: "no es fecha", hasta: "2026-09-18" })).toBe("");
   });
 
+  it("etiquetaRangoFlecha escribe «fecha → fecha» con las dos fechas siempre a la vista", () => {
+    expect(etiquetaRangoFlecha({ desde: "2026-08-01", hasta: "2026-08-30" })).toBe("1 ago. → 30 ago.");
+    // Donde etiquetaRango escribe «1–15 sep.», la píldora dice las dos fechas.
+    expect(etiquetaRangoFlecha({ desde: "2026-09-01", hasta: "2026-09-15" })).toBe("1 sep. → 15 sep.");
+    expect(etiquetaRangoFlecha({ desde: "2026-08-31", hasta: "2026-09-29" })).toBe("31 ago. → 29 sep.");
+    expect(etiquetaRangoFlecha({ desde: "2026-09-18", hasta: "2026-09-18" })).toBe("18 sep.");
+  });
+
+  it("etiquetaRangoFlecha lleva el año cuando el rango cruza de año o cuando se pide, y no inventa una fecha rota", () => {
+    expect(etiquetaRangoFlecha({ desde: "2025-12-28", hasta: "2026-01-03" })).toBe("28 dic. 2025 → 3 ene. 2026");
+    expect(etiquetaRangoFlecha({ desde: "2025-08-20", hasta: "2025-09-18" }, true)).toBe("20 ago. 2025 → 18 sep. 2025");
+    expect(etiquetaRangoFlecha({ desde: "2025-09-18", hasta: "2025-09-18" }, true)).toBe("18 sep. 2025");
+    expect(etiquetaRangoFlecha({ desde: "no es fecha", hasta: "2026-09-18" })).toBe("");
+  });
+
   it("textoPildoraPeriodo: cada letra dice SU rango — A y B distintos nunca escriben el mismo texto", () => {
     const a = { desde: "2026-07-24", hasta: "2026-08-22" };
     const b = { desde: "2026-08-23", hasta: "2026-09-21" };
-    expect(textoPildoraPeriodo("A", a)).toBe("Período A: desde 24 jul. hasta 22 ago.");
-    expect(textoPildoraPeriodo("B", b)).toBe("Período B: desde 23 ago. hasta 21 sep.");
+    expect(textoPildoraPeriodo("A", a)).toBe("Período A: 24 jul. → 22 ago.");
+    expect(textoPildoraPeriodo("B", b)).toBe("Período B: 23 ago. → 21 sep.");
     // El error del frame de Figma: la píldora B con el rango de A. Con rangos distintos, los textos difieren.
     expect(textoPildoraPeriodo("A", a).replace("A:", "")).not.toBe(textoPildoraPeriodo("B", b).replace("B:", ""));
   });

@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
@@ -154,7 +155,8 @@ function AvisoParecido({
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [colores, setColores] = useState(() => ordenar(coloresIniciales));
@@ -269,7 +271,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ codigo: c.codigo, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -278,7 +280,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, estado: "aprobado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${c.nombre} aprobado`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -298,7 +299,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify(c.estado === "rechazado" ? { codigo: c.codigo, estado: "aprobado" } : { codigo: c.codigo, activo: true }),
       });
       const datos = await res.json();
@@ -307,7 +308,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: true, estado: "aprobado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${c.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir color en una prenda." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -324,7 +324,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("color_rechazar") },
         body: JSON.stringify({ codigo: c.codigo, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -335,7 +335,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       setColores((actual) =>
         ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: false, estado: "rechazado" as const } : x)))
       );
-      responsable.despues(null);
       avisar.exito(`${c.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -534,7 +533,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={rechazandoCodigo === rechazandoColor.codigo} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
@@ -543,8 +541,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoColor)}
                 >
                   Confirmar rechazo
@@ -572,7 +568,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         />
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

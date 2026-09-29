@@ -21,7 +21,7 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 
 | # | Decisión | Por qué |
 |---|---|---|
-| 1 | **Sale al ingresar mercadería** (Recibir, Ingreso sin comprobante, cierre de una producción del Taller), **una por prenda física**. No al crear el producto. | Recién al ingresar se sabe cuántas prendas hay. Al crear el modelo no existe ninguna todavía. |
+| 1 | **Sale al ingresar mercadería** (Recibir, Ingreso sin comprobante, cierre de una producción del Taller), **una por prenda física**. No al crear el producto. | Recién al ingresar se sabe cuántas prendas hay. Al crear el modelo no existe ninguna todavía. **Desde el 2026-09-29 hay una excepción: el producto que se crea CON su stock de hoy (ADR-0212) sí se etiqueta al terminar el alta** (sección «Actualización 2026-09-29»). |
 | 2 | **Rollo DK-22205 (62 mm continuo, adhesivo) pegado sobre un cartón de 5 × 8 cm con agujero.** | Es lo que se usa hoy (foto del 2026-09-23). El cartón manda la medida: la etiqueta fue de **44 × 62 mm** (sección «El cartón de 5 × 8 cm») y hoy es de **40,1 × 62 mm** («Actualización 2026-09-25»). |
 | 3 | **Se imprime directo desde el ERP** (Chrome + driver Brother). Adiós P-touch Editor. | Nadie vuelve a copiar un precio a mano. |
 | 4 | **Diseño «D · Editorial, corregida»**, elegido entre 3 rondas de maquetas (`docs/maquetas/etiqueta-precio-2026-09/`). En la ronda 4 (el cartón) eligió el arreglo **«QR abajo»** y pidió **el QR lo más grande que entre**: 22 mm, 20 con campaña. | Inspirado en Zara/H&M. La crítica separó lo que sirve a la clienta de lo que sirve a la colaboradora (ver abajo). |
@@ -268,6 +268,37 @@ lo arregla. DESCARTÉ: capturas sacadas de internet, porque mostrarían otra ver
 —un párrafo que mezclaba impresora y campañas— y no solo el texto. SE ROMPE SI: Brother o Chrome cambian el diálogo (una
 foto deja de parecerse a la pantalla) o se cambia el rollo: las medidas viven una sola vez en `lib/guia-impresion-reglas.ts`
 (`MEDIDAS`), pero las fotos hay que volver a tomarlas.
+
+## Actualización 2026-09-29: también al terminar el alta de un producto con stock
+
+**Qué pasó:** en la tienda (foto de Felipe, «Almacén Trujillo»), después de crear «Camisa Lara» con 5 unidades, la pantalla
+de éxito ofrecía fotos, «Crear otro parecido» e «Ir a productos», pero no las etiquetas. La prenda estaba en la mano y para
+etiquetarla había que ir a Productos, buscarla y abrir su menú.
+
+**Por qué la decisión 1 ya no alcanza:** decía «recién al ingresar se sabe cuántas prendas hay». Desde el ADR-0212
+(2026-09-26) Nuevo producto guarda el modelo **y** su carga inicial en una sola operación, así que al terminar el alta ya
+existen las prendas y se sabe cuántas son. Un producto creado sin stock sigue sin ofrecerlas.
+
+```
+DECIDÍ: una tarjeta más en la pantalla de éxito, «Imprimir etiquetas» (`ProductoCreado.tsx`), que aparece solo si el
+        producto ya existe en la base y entró con unidades (`etiquetasDelAlta`, pura y probada). Abre
+        `/etiquetas-de-precio?producto=` en OTRA pestaña. Sale una etiqueta por unidad cargada.
+DESCARTÉ: (a) imprimir sola al guardar: abriría el diálogo de la Brother sin que nadie lo pida y no se deshace (gasta
+        rollo); (b) abrirla en la misma pestaña: «Crear otro parecido» vive solo en el estado de esa pantalla, y volver
+        dejaba el formulario en blanco, justo cuando se cargan 10 prendas de una colección; (c) leer los movimientos de la
+        carga inicial por `lote_id`, como Recibir: la carga inicial no tiene lote (el ADR-0212 descartó `recibir_lote` a
+        propósito, para no inflar «sin comprobante»), y `?producto=` ya lee el stock de la tienda, que en un producto
+        recién creado es exactamente lo cargado; (d) ofrecerla también sin stock o sin conexión: la pantalla de etiquetas
+        solo diría «no hay prendas».
+SE ROMPE SI: entre crear y pulsar el botón se cambia de sede en la cabecera: la etiqueta sale de la sede activa, así que
+        no encuentra las unidades (la pantalla lo dice, pero la persona no sabe por qué). O si se pulsa dos veces: no hay
+        registro de lo impreso (se descartó a propósito arriba), saldrían dos juegos.
+```
+
+**Verificado:** 3 pruebas nuevas en `etiqueta-precio-reglas.test.ts` (con stock, sin stock, sin conexión). La tarjeta se vio
+en el navegador con datos de ejemplo, con y sin stock: con stock la cuadrícula pasa a 2 × 2; sin stock vuelve a las 3
+tarjetas de siempre. El enlace sale `/etiquetas-de-precio?producto=<id>` con `target="_blank"`. **Falta:** crear un producto
+de verdad con stock en la tienda e imprimir (Felipe): la captura fue con datos de ejemplo, sin sesión.
 
 ## Lo que sigue
 

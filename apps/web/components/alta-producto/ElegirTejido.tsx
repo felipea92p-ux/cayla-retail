@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { fueraDeLaCategoria } from "@/lib/alta-producto";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 // La fila «Tejido» del paso 3 del alta: una tarjeta con muestra por cada tejido que la categoría ofrece. Tocar la elegida la suelta.
 //
@@ -17,10 +16,9 @@ import { useResponsable } from "@/lib/useResponsable";
 //
 // Elegir uno de esos NO puede ser solo marcarlo: la base rechaza crear un producto con un tejido que su categoría no ofrece
 // (`crear_producto_con_variantes`, «Ese tejido no está habilitado para la categoría elegida»). Así que tocarlo hace lo mismo que
-// escribir un tejido existente en «+ Nuevo tejido»: lo ofrece en la categoría (una escritura aparte, firmada con su propio combo
-// «Responsable», ADR-0161) y lo deja elegido. Se dice en pantalla antes del toque, porque cambia la categoría y no solo el producto.
-// El combo vive en la parte ABIERTA (`OtrosTejidos`) por la misma razón que en ProponerValor: nadie lee la asistencia por un botón
-// que nadie abrió.
+// escribir un tejido existente en «+ Nuevo tejido»: lo ofrece en la categoría (una escritura aparte, sin combo «Responsable»
+// desde 2026-09-29, clave `alta_producto_tejido`) y lo deja elegido. Se dice en pantalla antes del toque, porque cambia la categoría
+// y no solo el producto.
 
 export function TarjetaTejido({
   tejido,
@@ -151,22 +149,20 @@ function OtrosTejidos({
   ejesActuales: EjeIds;
   onOfrecido: (tejido: ValorVocabulario) => void;
 }) {
-  const responsable = useResponsable();
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function ofrecer(t: ValorVocabulario) {
-    if (guardandoId || !responsable.listo) return;
+    if (guardandoId) return;
     setGuardandoId(t.id);
     setError(null);
-    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, "tejidos", t.id), responsable.encabezados());
+    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, "tejidos", t.id), encabezadosOmitidos("alta_producto_tejido"));
     setGuardandoId(null);
     if (err) {
       // Nada quedó a medias: la categoría sigue como estaba y reintentar es seguro (ofrecer uno que ya está no lo repite).
       setError(`No se pudo agregar ${t.texto} a ${categoriaNombre}: ${err}`);
       return;
     }
-    responsable.despues(null);
     avisar.exito(`${t.texto} ahora se ofrece en ${categoriaNombre}`);
     onOfrecido(t);
   }
@@ -177,8 +173,7 @@ function OtrosTejidos({
         Otros tejidos del catálogo. Al elegir uno, <span className="text-tinta">{categoriaNombre}</span> lo ofrece desde ahora (también para las
         prendas que vengan) y queda elegido para esta.
       </p>
-      <ComboResponsable control={responsable} deshabilitado={guardandoId !== null} className="max-w-sm" />
-      <div className="flex flex-wrap gap-1.5" title={responsable.motivo ?? undefined}>
+      <div className="flex flex-wrap gap-1.5">
         {otros.map((t, i) => (
           <TarjetaTejido
             key={t.id}
@@ -187,7 +182,7 @@ function OtrosTejidos({
             elegido={false}
             indice={i}
             guardando={guardandoId === t.id}
-            deshabilitado={guardandoId !== null || !responsable.listo}
+            deshabilitado={guardandoId !== null}
             onClick={() => void ofrecer(t)}
           />
         ))}

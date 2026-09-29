@@ -27,6 +27,7 @@ import {
 import type { ConteoAbierto, PrioridadConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
@@ -35,6 +36,7 @@ import { Campo, CampoMonto, CampoSelect, CampoTexto, Desplegable } from "@/compo
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 import { guardar as guardarLocal, leer as leerLocal } from "@/lib/almacen-local";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
@@ -944,7 +946,7 @@ function ConteoEnCurso({
             )}
             {altaAbierta && (
               <AltaAlVuelo
-                codigoBarras={busqueda.trim()}
+                codigoBarras={guionDeLaPistola(busqueda.trim())}
                 categorias={categorias}
                 colores={colores}
                 tallasPorCategoria={tallasPorCategoria}
@@ -1348,13 +1350,17 @@ function RevisarCierre({
   const sinDecidir = faltanDecidir(faltantes, decisiones);
 
   async function cerrar() {
-    if (!responsable.listo || sinDecidir > 0) return;
+    if (sinDecidir > 0) return;
+    // Cerrar va sin responsable (Felipe, 2026-09-29). El «No está → 0» de abajo es contar: firma con quien cuenta si el
+    // combo de la pantalla del conteo lo tiene elegido (`conteo_contar` no lee al responsable en la base, así que sin él
+    // también se anota); no se exige para cerrar.
+    const ceros = idsACero(faltantes, decisiones);
     setCerrando(true);
     setError(null);
     const supabase = createClient();
     // «No está → 0»: se cuentan como 0 antes de cerrar, así el cierre las ajusta como a cualquier prenda contada. Una
     // por una y en orden: si una falla, no se cierra y lo que ya se anotó queda en «Contadas» (el conteo sigue abierto).
-    for (const varianteId of idsACero(faltantes, decisiones)) {
+    for (const varianteId of ceros) {
       const { error } = await firmar(
         supabase.rpc("conteo_contar", { p_conteo_id: conteo.id, p_variante_id: varianteId, p_cantidad_contada: 0 }),
         responsable.firma(),
@@ -1366,9 +1372,8 @@ function RevisarCierre({
         return;
       }
     }
-    const { error } = await firmar(supabase.rpc("cerrar_conteo", { p_conteo_id: conteo.id }), responsable.firma());
+    const { error } = await firmar(supabase.rpc("cerrar_conteo", { p_conteo_id: conteo.id }), firmaOmitida("conteo_cerrar"));
     setCerrando(false);
-    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "cerrar el conteo"));
       return;
@@ -1531,8 +1536,7 @@ function RevisarCierre({
             {!puedeCerrar && <p className="text-xs text-rojo">Solo un líder o la terminal administrativa puede cerrar el conteo.</p>}
             {error && <p className="text-sm text-rojo">{error}</p>}
 
-            {/* Cerrar aplica lo contado al stock: quien cierra se elige aquí mismo, encima del botón (ADR-0161). */}
-            {puedeCerrar && <ComboResponsable control={responsable} deshabilitado={cerrando} />}
+            {/* Cerrar aplica lo contado al stock y va sin responsable (Felipe, 2026-09-29). */}
 
             <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
               {sinDecidir > 0 && (
@@ -1546,8 +1550,7 @@ function RevisarCierre({
               <button
                 type="button"
                 onClick={cerrar}
-                disabled={cerrando || !puedeCerrar || !responsable.listo || sinDecidir > 0}
-                title={responsable.motivo ?? undefined}
+                disabled={cerrando || !puedeCerrar || sinDecidir > 0}
                 className="btn-cayla btn-primario"
               >
                 {cerrando ? "Cerrando…" : "Cerrar y ajustar el stock"}

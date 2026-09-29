@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ItemAyuda } from "@/components/ResumenActualizado";
 import { ResumenCabecera } from "@/components/ResumenCabecera";
 import { ResumenComparacionDetalle } from "@/components/ResumenComparacionDetalle";
@@ -9,6 +11,7 @@ import { ResumenVacio, type SedeParaVer } from "@/components/ResumenVacio";
 import { useResumenUrl } from "@/components/useResumenUrl";
 import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_LIMITACION_PROMEDIO, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import { pluralizar } from "@/lib/resumen-formato";
+import { periodosParaSembrar } from "@/lib/resumen-periodos-guardados";
 import { textoInstanteLima } from "@/lib/resumen-periodo";
 import type { ComparacionParaPantalla } from "@/lib/resumen-comparacion";
 
@@ -25,15 +28,30 @@ import type { ComparacionParaPantalla } from "@/lib/resumen-comparacion";
 // Rediseño 2026-09-22 (guía oficial): ya no hay «Vista general / Detalle por producto». Es una sola lectura de
 // arriba abajo —cifras, gráficos y la tabla debajo—, y la dona y «Ver ranking» filtran u ordenan esa tabla en vez
 // de mandar a otra vista. Sin nada que comparar, un vacío con salidas.
+//
+// Barra de período (2026-09-29): la misma tarjeta «PERÍODO ANALIZADO» de Desempeño, con A y B en lugar de los atajos,
+// la búsqueda debajo y sin categoría. Los avisos —A anterior al historial, períodos de distinta duración o
+// superpuestos, B recortado— ya no son párrafos sueltos entre la barra y las cifras: viven dentro de la tarjeta y solo
+// están cuando hay algo que decir.
 
-export function ResumenComparacionPanel({ datos, otrasTiendas }: { datos: ComparacionParaPantalla; otrasTiendas: SedeParaVer[] }) {
+export function ResumenComparacionPanel({ datos, otrasTiendas, claveGuardado }: { datos: ComparacionParaPantalla; otrasTiendas: SedeParaVer[]; claveGuardado: string }) {
   const { actualizar, pendiente } = useResumenUrl();
   const { periodoA, periodoB, ubicacion, avisos } = datos;
 
+  // Entrar a Comparar con una URL SIN fechas (el enlace guardado, «atrás» hacia una dirección vacía) sin haber pasado por
+  // la pestaña: si la persona dejó A y B elegidos, se le ponen en la URL. El clic de la pestaña ya lo hace antes de
+  // navegar (`ResumenCabecera`); esto cubre solo las demás entradas. `periodosParaSembrar` no hace nada si la URL ya
+  // trae fechas de Comparar, así que no hay bucle: la URL nueva las trae.
+  const params = useSearchParams();
+  useEffect(() => {
+    const sembrar = periodosParaSembrar(claveGuardado, (k) => params.has(k));
+    if (Object.keys(sembrar).length > 0) actualizar(sembrar, { conservarPagina: true });
+  }, [claveGuardado, params, actualizar]);
+
   return (
     <div className={`space-y-4 transition-opacity duration-200 ${pendiente ? "opacity-60" : ""}`} aria-busy={pendiente}>
-      <ResumenCabecera modo="comparar" ahoraIso={datos.ahoraIso} actualizar={actualizar}>
-        <ItemAyuda titulo="Cálculo">Hecho el {textoInstanteLima(new Date(datos.ahoraIso))}. Los dos períodos usan los mismos filtros (categoría y búsqueda del detalle).</ItemAyuda>
+      <ResumenCabecera modo="comparar" ahoraIso={datos.ahoraIso} actualizar={actualizar} claveGuardado={claveGuardado}>
+        <ItemAyuda titulo="Cálculo">Hecho el {textoInstanteLima(new Date(datos.ahoraIso))}. Los dos períodos usan la misma búsqueda.</ItemAyuda>
         <ItemAyuda titulo="Ritmo de venta">Unidades netas vendidas ÷ días con stock en el período (los días agotado no castigan el ritmo).</ItemAyuda>
         <ItemAyuda titulo="Evolución del ritmo">
           Compara el ritmo de B contra el de A: {"±"}25% es Aceleró o Desaceleró, si no, Estable. Con muy pocas unidades vendidas en los dos períodos no se afirma nada.
@@ -52,21 +70,23 @@ export function ResumenComparacionPanel({ datos, otrasTiendas }: { datos: Compar
         )}
       </ResumenCabecera>
 
-      <ResumenControles modo="comparar" periodo={periodoB} modoComparacion={periodoA.modo} rangoComparacion={periodoA.rango} alcance={datos.alcance} categorias={datos.categorias} actualizar={actualizar} />
-
-      {[...avisos, ...(periodoB.advertencia ? [periodoB.advertencia] : [])].map((aviso) => (
-        <p key={aviso} className="text-[11px] text-ambar-profundo">
-          {aviso}
-        </p>
-      ))}
+      <ResumenControles
+        modo="comparar"
+        periodo={periodoB}
+        rangoA={periodoA.rango}
+        alcance={datos.alcance}
+        avisos={avisos}
+        claveGuardado={claveGuardado}
+        actualizar={actualizar}
+      />
 
       {ubicacion.tipo !== "tienda" || datos.tabla.totalSede === 0 ? (
         <ResumenVacio ubicacion={ubicacion} modo="comparar" puedeAmpliar={false} otrasTiendas={otrasTiendas} actualizar={actualizar} />
       ) : (
         <>
-          {/* La entrada (cifras, dona, barras) se reproduce cuando cambia QUÉ se mira —el período o el alcance
-              (categoría, búsqueda)—, nunca al tocar el filtro de la dona (que no mueve estos agregados). */}
-          <ResumenComparacionGeneral key={`${periodoA.rango.desde}_${periodoA.rango.hasta}_${periodoB.desde}_${periodoB.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
+          {/* La entrada (cifras, dona, barras) se reproduce cuando cambia QUÉ se mira —el período o la búsqueda—,
+              nunca al tocar el filtro de la dona (que no mueve estos agregados). */}
+          <ResumenComparacionGeneral key={`${periodoA.rango.desde}_${periodoA.rango.hasta}_${periodoB.desde}_${periodoB.hasta}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
           <ResumenComparacionDetalle datos={datos} actualizar={actualizar} />
         </>
       )}

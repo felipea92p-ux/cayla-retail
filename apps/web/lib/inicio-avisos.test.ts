@@ -149,4 +149,42 @@ describe("armarEquipo", () => {
     const felipe = e.find((m) => m.personaId === "f")!;
     expect([felipe.nombre, felipe.estado]).toEqual(["Felipe A.", null]);
   });
+
+  it("una venta anulada no cuenta como venta ni como última acción de quien la registró", () => {
+    const e = armarEquipo(turno, [
+      { ocurrio_at: "2026-09-26T22:30:00Z", accion: "venta_anulada", descripcion: "anuló la venta B004-000009 de S/ 100", persona_id: "l", persona_nombre: "Lucía P.", detalle: { total: 100 }, tabla: "ventas", registro_id: "v-anulada" },
+      { ocurrio_at: "2026-09-26T22:00:00Z", accion: "venta_registrada", descripcion: "vendió 2 prendas por S/ 189", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 189 }, tabla: "ventas", registro_id: "v-buena" },
+      { ocurrio_at: "2026-09-26T21:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 100", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 100 }, tabla: "ventas", registro_id: "v-anulada" },
+    ]);
+    const micaela = e.find((m) => m.personaId === "m")!;
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/ 189"]);
+    // Quien anuló sí muestra que anuló (es una acción suya, no una venta).
+    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/ 100");
+  });
+
+  it("una venta de prueba anulada desaparece del todo: ni venta, ni «vendió…», ni «anuló…»", () => {
+    const e = armarEquipo(turno, [
+      { ocurrio_at: "2026-09-29T16:27:00Z", accion: "venta_anulada", descripcion: "anuló la venta B004-000033 de S/ 59.90", persona_id: "l", persona_nombre: "Lucía P.", detalle: { total: 59.9, es_prueba: true }, tabla: "ventas", registro_id: "v-prueba" },
+      // La línea original no lleva `es_prueba`: se marcó después de vender.
+      { ocurrio_at: "2026-09-29T15:57:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 59.90 · B004-000033", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 59.9 }, tabla: "ventas", registro_id: "v-prueba" },
+    ]);
+    const micaela = e.find((m) => m.personaId === "m")!;
+    expect([micaela.ventas, micaela.monto, micaela.ultima]).toEqual([0, 0, null]);
+    expect(e.find((m) => m.personaId === "l")!.ultima).toBeNull();
+  });
+
+  it("quien solo firmó una venta de prueba no aparece como «sin marcar asistencia»", () => {
+    const e = armarEquipo([], [
+      { ocurrio_at: "2026-09-29T16:27:00Z", accion: "venta_anulada", descripcion: "anuló la venta", persona_id: "f", persona_nombre: "Felipe Alvarez", detalle: { es_prueba: true }, tabla: "ventas", registro_id: "v-prueba" },
+      { ocurrio_at: "2026-09-29T15:57:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda", persona_id: "x", persona_nombre: "Alguien Más", detalle: { total: 10 }, tabla: "ventas", registro_id: "v-prueba" },
+    ]);
+    expect(e).toEqual([]);
+  });
+
+  it("sin tabla ni registro (filas viejas) no empareja nada: sigue contando como antes", () => {
+    const e = armarEquipo(turno, [
+      { ocurrio_at: "2026-09-26T22:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 50", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 50 } },
+    ]);
+    expect(e.find((m) => m.personaId === "m")!.monto).toBe(50);
+  });
 });
