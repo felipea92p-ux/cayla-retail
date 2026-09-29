@@ -99,16 +99,25 @@ export function textoSeBorraConHistoria(numVariantes: number | null, prendas: nu
 export const TEXTO_RESPALDO =
   "Queda un respaldo y una línea en Actividad con tu nombre. Si fue un error, avísale a Felipe ese mismo día: con el respaldo se puede devolver.";
 
-/** Por qué NO se puede, según el caso. */
-export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "nivel" | "razon">): string {
+/**
+ * Por qué NO se puede, según el caso.
+ *
+ * Con historia y en 0, se dice primero que no hay unidades: la tarjeta dice «Sin stock» y, sin esa frase, «tiene
+ * movimientos de stock (12)» se leía como «le quedan 12» (Felipe, 2026-09-28, con «Fdhh»: 6 entradas y 6 ajustes que la
+ * dejaron en 0). El número cuenta registros de su historia, no prendas; las prendas las trae la base aparte (`prendas`).
+ */
+export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "nivel" | "razon" | "prendas">): string {
   const razon = como.razon ?? "ya se usó";
   switch (como.nivel) {
     case "sistema":
       return `«${referencia}» ${razon}.`;
     case "con_documentos":
       return `«${referencia}» ${razon}. Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
-    case "con_historia":
-      return `«${referencia}» ${razon}. Solo una cuenta Admin puede eliminarlo con su historia.`;
+    case "con_historia": {
+      const quien = "Solo una cuenta Admin puede eliminarlo con su historia.";
+      if (como.prendas > 0 || !razon.startsWith("tiene ")) return `«${referencia}» ${razon}. ${quien}`;
+      return `«${referencia}» no tiene unidades en stock, pero ya tiene historia: ${razon.replace(/^tiene /, "")}. ${quien}`;
+    }
     default:
       return `«${referencia}» ${razon}.`;
   }

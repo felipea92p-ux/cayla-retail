@@ -4,6 +4,7 @@ import { createClient as crearClienteSupabase, type SupabaseClient } from "@supa
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
@@ -407,6 +408,22 @@ export async function getReposicionPorProveedor(
     if (Number(pag[0].total_productos) <= pagina * 100) break;
   }
   return contarProductosPorProveedor(filas);
+}
+
+/**
+ * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0270):
+ * la tarjeta del Catálogo dice lo mismo que Existencias. `null` si no se pudo leer (p. ej. la función todavía no está
+ * pegada en producción): la tarjeta vuelve a «Stock total N» en vez de romperse o inventar un cero.
+ */
+export async function getExistenciasProductos(productoIds: string[], ubicacionId: string | null): Promise<Map<string, ExistenciasProducto> | null> {
+  if (productoIds.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "fn_existencias_productos" as never,
+    { p_producto_ids: productoIds, p_ubicacion_id: ubicacionId } as never
+  );
+  if (error) return null;
+  return leerExistenciasProductos(data);
 }
 
 /** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`

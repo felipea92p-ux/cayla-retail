@@ -672,8 +672,15 @@ caso("8 · corregir solo la S a Negro dejaría «Sin color» M/L junto a Negro S
   return error(json(f.r), "mezcla_sin_color") ?? (f.antes === f.despues ? null : "la prenda cambió");
 });
 
+// ADR-0270, decisión 13 (20260929030000): una talla con prendas no se retira. Estos casos miden la mezcla de colores, no
+// el stock: antes de retirar una talla del seed se deja sin prendas (saltándose los disparadores, como YA_MEZCLADA).
+const SIN_PRENDAS = (...claves) => `${COMO_POSTGRES}set local session_replication_role = replica;
+update retail.stock set cantidad = 0, cantidad_apartada = 0 where variante_id in (${claves.map((c) => `:'${c}'`).join(", ")});
+set local session_replication_role = origin;
+`;
+
 caso("8 · …pero corregir la S y desactivar M y L sí pasa (las desactivadas no cuentan)", () => {
-  const f = correr(`${sesion(MICAELA)}${guardar("pa", [
+  const f = correr(`${SIN_PRENDAS("a_m", "a_l")}${sesion(MICAELA)}${guardar("pa", [
     cambio("a_s", { color_codigo: "'NEG'" }),
     cambio("a_m", { activo: "false" }),
     cambio("a_l", { activo: "false" }),
@@ -728,7 +735,7 @@ set local session_replication_role = origin;
 `;
 
 caso("8 · no empeora: una prenda que YA venía mezclada se sigue guardando (precio, con la ficha de main y con la nueva) y desactivar su «Sin color» pasa", () => {
-  const f = correr(`${YA_MEZCLADA}${sesion(MICAELA)}
+  const f = correr(`${YA_MEZCLADA}${SIN_PRENDAS("a_s")}${sesion(MICAELA)}
 select 'vieja', pg_temp.guardar_vieja(:'pa', 65);
 ${guardar("pa", [cambio("a_m", { precio: 66 })]).replace("'r'", "'nueva'")}
 ${guardar("pa", [cambio("a_s", { activo: "false" })]).replace("'r'", "'desactivar'")}
@@ -742,7 +749,7 @@ select 'activa_s', activo::text from retail.variantes where id = :'a_s';`);
 });
 
 caso("8 · no empeora: en esa prenda mezclada, recolorear la «Sin color M» (queda la L) o reactivar una se frena", () => {
-  const f = correr(`${YA_MEZCLADA}${COMO_POSTGRES}update retail.variantes set activo = false where id = :'a_l';
+  const f = correr(`${YA_MEZCLADA}${SIN_PRENDAS("a_l")}update retail.variantes set activo = false where id = :'a_l';
 ${sesion(MICAELA)}
 ${guardar("pa", [cambio("a_m", { color_codigo: "'BEI'" })]).replace("'r'", "'recolorear'")}
 ${guardar("pa", [cambio("a_l", { activo: "true" })]).replace("'r'", "'reactivar'")}`);

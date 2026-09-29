@@ -209,7 +209,7 @@ export function resumirInventario(filas: FilaStock[]): ResumenInventario {
 
 export type FilaExistencias = FilaStock & {
   /** Unidades de esta prenda en traslados que vienen HACIA esta ubicación y
-   *  todavía no se confirmaron (en tránsito o con diferencia pendiente). */
+   *  todavía no llegaron (`en_transito`; un traslado con diferencia ya entró al stock, ADR-0239). */
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
   enRed: SedeConStock[];
@@ -273,7 +273,10 @@ export async function getExistencias(
            )`
         )
         .eq("transferencia.ubicacion_destino_id", ubicacionId)
-        .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"])
+        // Solo `en_transito` (ADR-0270, tarea #5): desde ADR-0239 lo que coincidió en un traslado recibido con diferencia
+        // YA entró al stock del destino, y lo que no coincidió espera al líder en el destino, no en el camino. Contarlo acá
+        // lo sumaba dos veces: en «Disponible» y en «En camino». Es la misma regla que `fn_existencias` y que Traslados.
+        .eq("transferencia.estado", "en_transito")
         .order("id")
         .range(desde, hasta)
     ),

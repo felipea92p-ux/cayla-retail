@@ -10,14 +10,21 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
 import { describirRotacion } from "@/lib/reorden-reglas";
-import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { alertaDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import {
+  alertaDeStock,
+  lineasDeStock,
+  hrefEnExistencias,
+  EXPLICACION_STOCK_TOTAL,
+  MENSAJE_SIN_RESULTADOS,
+  SIN_EXISTENCIAS,
+  type ExistenciasProducto,
+  type LineasStock,
+} from "@/lib/productos-stock";
 import {
   coloresDe,
   margenDe,
@@ -67,39 +74,39 @@ type Fila = {
   costo: string | null;
   margen: MargenProducto | null;
   alerta: ReturnType<typeof alertaDeStock>;
+  /** Lo de la sede elegida (ADR-0270): «7 aquí» y aparte el resto. `null` si no se pudo leer o si no hay nada en la red. */
+  lineas: LineasStock | null;
   rotacion: string | null;
   descontinuado: boolean;
 };
 
 type Permisos = {
   puedeEditar: boolean;
-  puedeAjustar: boolean;
   puedeEliminar: boolean;
   veDinero: boolean;
 };
 
 export function ProductosTabla({
   productos,
+  existencias,
   ubicacionId,
   sede,
-  sububicaciones,
   puedeEditar,
-  puedeAjustar,
-  puedeBajarAlPiso,
+  veExistencias,
   puedeEliminar,
   veDinero,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
+  /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
+  existencias: Map<string, ExistenciasProducto> | null;
   ubicacionId: string;
   /** El nombre de la sede de `ubicacionId`: el stock de la ficha y las etiquetas son de ella, no de la red. */
   sede: string;
-  sububicaciones: Sububicacion[];
   /** Editar la ficha y descontinuar/reactivar (`editarCatalogo`). */
   puedeEditar: boolean;
-  puedeAjustar: boolean;
-  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
-  puedeBajarAlPiso: boolean;
+  /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
+  veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos` ya manda el costo vacío: aquí solo se esconden las columnas. */
@@ -117,15 +124,15 @@ export function ProductosTabla({
         costo: rangoSoles(p.variantes.map((v) => (tieneCosto(v.costo) ? v.costo : null))),
         margen: margenDe(p.variantes),
         alerta: alertaDeStock(p),
+        lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
         rotacion: describirRotacion(p.demandaDiaria),
         descontinuado: p.estado !== "activo",
       })),
-    [productos],
+    [productos, existencias],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
-  const [ajustando, setAjustando] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState<ProductoListado | null>(null);
   const [cambiando, setCambiando] = useState<"activo" | "descontinuado" | null>(null);
   const stockSede = useStockEnSede(ubicacionId);
@@ -140,7 +147,7 @@ export function ProductosTabla({
     setAbiertos(new Set());
   }
 
-  const permisos: Permisos = { puedeEditar, puedeAjustar, puedeEliminar, veDinero };
+  const permisos: Permisos = { puedeEditar, puedeEliminar, veDinero };
   const conMargen = veDinero;
 
   function alternar(conjunto: Set<string>, id: string): Set<string> {
@@ -172,13 +179,13 @@ export function ProductosTabla({
     historial: conDesde(`/productos/${f.p.productoId}/historial`, pantalla),
     etiquetas: urlEtiquetasDePrecio({ producto: f.p.productoId }, pantalla),
     etiquetasDe: (varianteId) => urlEtiquetasDePrecio({ variantes: [varianteId] }, pantalla),
+    existencias: veExistencias ? hrefEnExistencias(f.p.variantes) : null,
     // Se cuenta FRESCO al pedir imprimir: la ficha pudo quedar vieja (una venta, un traslado que acaba de llegar).
     unidades: async (varianteIds) => {
       const stock = await stockSede.leer([f.p.productoId]);
       return stock ? unidadesEnSede(stock, varianteIds ?? f.p.variantes.map((v) => v.varianteId)) : null;
     },
     sede,
-    ajustar: puedeAjustar ? () => setAjustando(f.p.productoId) : null,
     eliminar: puedeEliminar ? () => setEliminando(f.p) : null,
   });
 
@@ -242,7 +249,7 @@ export function ProductosTabla({
               {conMargen && <Th className="hidden text-right @4xl:table-cell">Costo</Th>}
               {conMargen && <Th className="text-right">Margen</Th>}
               <Th className="text-right" title={EXPLICACION_STOCK_TOTAL}>
-                Stock
+                {existencias ? "Stock aquí" : "Stock"}
               </Th>
               <Th className="pr-5">Estado</Th>
             </tr>
@@ -278,15 +285,6 @@ export function ProductosTabla({
       />
 
       {/* Los modales viven aquí, fuera de las filas: una fila clicable no debe recibir los clics de adentro (ADR-0128). */}
-      {ajustando && (
-        <AjustarInventarioModal
-          productoId={ajustando}
-          ubicacionId={ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeBajarAlPiso={puedeBajarAlPiso}
-          onClose={() => setAjustando(null)}
-        />
-      )}
       {eliminando && (
         <EliminarProductoModal
           producto={{ productoId: eliminando.productoId, referencia: eliminando.referencia, estado: eliminando.estado, numVariantes: eliminando.variantes.length }}
@@ -356,14 +354,17 @@ function EstadoChip({ fila }: { fila: Fila }) {
 
 /** Stock total y, debajo, a qué ritmo se vende. «Sin stock» no es rojo (máximo dos rojos por pantalla, ADR-0151). */
 function Stock({ fila, alinear = "right" }: { fila: Fila; alinear?: "right" | "left" }) {
-  const { alerta, p, rotacion } = fila;
+  const { alerta, p, rotacion, lineas } = fila;
   const tono = alerta === "bajo" ? "text-ambar" : alerta === "sin_stock" ? "text-tinta/45" : "text-tinta";
+  // ADR-0270: lo de la sede elegida arriba, y debajo lo que está en otra sede, en el Taller o en camino.
+  const resto = lineas ? [lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ") : "";
   return (
-    <span className={`block ${alinear === "right" ? "text-right" : ""}`} title={EXPLICACION_STOCK_TOTAL}>
+    <span className={`block ${alinear === "right" ? "text-right" : ""}`} title={resto || EXPLICACION_STOCK_TOTAL}>
       <span className={`block text-[14px] tabular-nums ${tono}`}>
-        {p.stockTotal.toLocaleString("es-PE")}
+        {lineas ? lineas.principal : p.stockTotal.toLocaleString("es-PE")}
         {alerta === "bajo" && <span className="ml-1 text-[11px]">· bajo</span>}
       </span>
+      {resto && <span className="block max-w-[14rem] truncate text-[11px] text-tinta/55">{resto}</span>}
       <span className="block whitespace-nowrap text-[11px] text-tinta/55" title="Ritmo de venta de los últimos 30 días, en todas las sedes">
         {rotacion ?? "sin ventas"}
       </span>
@@ -390,11 +391,12 @@ type AccionesFila = {
   etiquetas: string;
   /** Las etiquetas de UNA sola variante (talla + color), para el ícono que flota sobre su tarjeta. */
   etiquetasDe: (varianteId: string) => string;
+  /** «Ver en Existencias»: ahí se ajusta el stock (ADR-0270, decisión 9). Null si no ve ese módulo. */
+  existencias: string | null;
   /** Unidades de esas variantes (sin lista: todo el modelo) en la sede, leídas en el momento; `null` si la base no
    *  respondió. Con 0 no se abre Etiquetas: sale el aviso y el botón queda en rojo. */
   unidades: (varianteIds?: string[]) => Promise<number | null>;
   sede: string;
-  ajustar: (() => void) | null;
   eliminar: (() => void) | null;
 };
 
@@ -532,10 +534,10 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
           <Pencil aria-hidden className="h-4 w-4" />
         </Link>
       )}
-      {acciones.ajustar && (
-        <button type="button" onClick={acciones.ajustar} className={boton} aria-label={`Ajustar inventario de ${referencia}`} title="Ajustar inventario">
+      {acciones.existencias && (
+        <Link href={acciones.existencias} className={boton} aria-label={`Ver ${referencia} en Existencias`} title="Ver en Existencias">
           <PackageOpen aria-hidden className="h-4 w-4" />
-        </button>
+        </Link>
       )}
       <EnlaceEtiquetas
         href={acciones.etiquetas}
@@ -624,9 +626,12 @@ function TarjetaFila({
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
             <EstadoChip fila={fila} />
             <span className={`tabular-nums ${fila.alerta === "bajo" ? "text-ambar" : "text-tinta/70"}`} title={EXPLICACION_STOCK_TOTAL}>
-              Stock {p.stockTotal.toLocaleString("es-PE")}
+              {fila.lineas ? fila.lineas.principal : `Stock ${p.stockTotal.toLocaleString("es-PE")}`}
               {fila.alerta === "bajo" && " · bajo"}
             </span>
+            {fila.lineas && (fila.lineas.detalle || fila.lineas.avisos.length > 0) && (
+              <span className="text-tinta/55">{[fila.lineas.detalle, ...fila.lineas.avisos].filter(Boolean).join(" · ")}</span>
+            )}
             {conMargen && fila.margen && (
               <span className={`tabular-nums ${fila.margen.bajo ? "text-ambar" : "text-tinta/70"}`}>Margen {textoMargen(fila.margen)}</span>
             )}
@@ -733,11 +738,11 @@ function FichaVariantes({
             Editar
           </Link>
         )}
-        {acciones.ajustar && (
-          <button type="button" onClick={acciones.ajustar} className={boton}>
+        {acciones.existencias && (
+          <Link href={acciones.existencias} className={boton}>
             <PackageOpen aria-hidden className="h-4 w-4" />
-            Ajustar inventario
-          </button>
+            Ver en Existencias
+          </Link>
         )}
         <EnlaceEtiquetas
           href={acciones.etiquetas}

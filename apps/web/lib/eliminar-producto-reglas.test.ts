@@ -93,16 +93,25 @@ describe("textos", () => {
   });
 
   it("por qué no, según el caso", () => {
-    expect(textoNoSePuede("Polo Básico", { nivel: "con_documentos", razon: "tiene líneas de venta (4), líneas de conteo (4)" })).toBe(
+    expect(textoNoSePuede("Polo Básico", { nivel: "con_documentos", razon: "tiene líneas de venta (4), líneas de conteo (4)", prendas: 2 })).toBe(
       "«Polo Básico» tiene líneas de venta (4), líneas de conteo (4). Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí."
     );
-    expect(textoNoSePuede("Fdhh", { nivel: "con_historia", razon: "tiene movimientos de stock (6)" })).toBe(
-      "«Fdhh» tiene movimientos de stock (6). Solo una cuenta Admin puede eliminarlo con su historia."
-    );
-    expect(textoNoSePuede("Prenda sin Registrar", { nivel: "sistema", razon: "es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita" })).toBe(
+    expect(textoNoSePuede("Prenda sin Registrar", { nivel: "sistema", razon: "es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita", prendas: 0 })).toBe(
       "«Prenda sin Registrar» es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita."
     );
-    expect(textoNoSePuede("X", { nivel: "con_documentos", razon: null })).toMatch(/^«X» ya se usó\./);
+    expect(textoNoSePuede("X", { nivel: "con_documentos", razon: null, prendas: 0 })).toMatch(/^«X» ya se usó\./);
+  });
+
+  it("con historia y en 0: dice primero que no hay unidades, para que el número no se lea como stock (caso «Fdhh», 2026-09-28)", () => {
+    expect(textoNoSePuede("Fdhh", { nivel: "con_historia", razon: "tiene movimientos de stock (6)", prendas: 0 })).toBe(
+      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (6). Solo una cuenta Admin puede eliminarlo con su historia."
+    );
+  });
+
+  it("con historia y con unidades: la razón se dice tal cual", () => {
+    expect(textoNoSePuede("Fhfh", { nivel: "con_historia", razon: "tiene movimientos de stock (3)", prendas: 15 })).toBe(
+      "«Fhfh» tiene movimientos de stock (3). Solo una cuenta Admin puede eliminarlo con su historia."
+    );
   });
 });
 
