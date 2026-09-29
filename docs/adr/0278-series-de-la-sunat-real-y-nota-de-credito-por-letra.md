@@ -74,3 +74,20 @@ Entre 2 y 3 toda venta sigue yendo al sandbox y se comería el número 1 de la s
 - Se cambia `LUCODE_ENTORNO` antes de registrar las series nuevas (ver arriba: sale `B004-34`).
 - Alguien vuelve a crear `fn_reservar_numero_serie(uuid, text)` de 2 parámetros junto a la de 3: la llamada de 2 se vuelve ambigua (lo vigila `pnpm pruebas:notas-credito-serie-por-letra`, que exige una sola firma).
 - Una migración futura recrea `emitir_nota` desde un archivo viejo: vuelve a pedir la serie sin letra y, con dos notas activas, tomaría la primera por nombre (la BC) también para una factura. La prueba lo detecta.
+
+## Actualización 2026-09-29 (tarde) — Trujillo sigue en `B001`, pero el próximo es el 4 (no el 1)
+
+**Decide:** Felipe, con lo que leyó en el panel de Lucode (PROD). Se aplicó en producción dos veces el mismo día, porque su lectura cambió:
+
+1. **Primero** leyó que la serie de boleta era `B004` y que el próximo era el 4 → `pegar-en-produccion-serie-boleta-trujillo-b004-2026-09-29.sql` (B001 archivada, B004 activa con próximo 4).
+2. **Después** vio boletas emitidas **hasta `B001-000003`**: la serie en uso es `B001` y el que sigue es el 4 → `pegar-en-produccion-serie-boleta-trujillo-b001-proximo-4-2026-09-29.sql` (B004 archivada otra vez, B001 activa con próximo 4).
+
+**Estado final, verificado con un `select` en producción:** Tienda TRU · `B001` ACTIVA con próximo 4 · `B004` archivada · ningún comprobante tocado (`B001-000001`, `B004-000002`, `B004-000003`). Ninguna venta salió entre los dos cambios, así que no se emitió ningún número con la serie equivocada.
+
+**Qué cambia respecto a la decisión 1.** La serie de Trujillo sigue siendo `B001` (no cambia el nombre), pero **el contador arranca en 4, no en 1**: Lucode ya tiene los números 2 y 3 de `B001`. El ERP solo conoce `B001-000001`; el 2 y el 3 se emitieron por fuera del ERP (¿desde el panel de Lucode?). Para no repetirlos el contador va a 4, y hay un hueco 2-3 en `comprobantes` que **no es un error del ERP**. Arequipa (`B002`) y Lima (`B003`) siguen como quedaron, desde el 1: Felipe solo verificó la de Trujillo.
+
+**Lo que se aprende.** «Seguir en el N» exige comprobar el número contra el panel de Lucode antes de tocar el contador, y una serie que ya emitió por fuera del ERP tiene números que la base no ve. El script comprueba que el 4 esté libre **en el ERP**; contra Lucode solo puede comprobarlo una persona.
+
+**Qué no cambia.** `B001-000001` (una venta de prueba del 2026-09-29 a las 12:55, «aceptada» por Lucode en producción, con CDR) conserva su número: los comprobantes no se borran ni se renumeran. Qué hacer con esa boleta ante SUNAT —darla de baja por resumen diario, ADR-0016— es un paso aparte, de Felipe (ver el backlog del 2026-09-29).
+
+**Se rompe si** alguien vuelve a pegar `pegar-en-produccion-series-salida-a-produccion-2026-09.sql` de cero: su comprobación «ya hay comprobantes con alguna de las series nuevas» se detiene (existe `B001-000001`) y no cambia nada.
