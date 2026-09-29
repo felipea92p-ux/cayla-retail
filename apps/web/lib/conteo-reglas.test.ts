@@ -3,6 +3,7 @@ import {
   avanceEnVivo,
   pendientesDeLista,
   codigoDePrendaNueva,
+  mensajeMezclaEnCenso,
   codigosDeConteo,
   coincidenciasPorCodigo,
   compararTallas,
@@ -297,5 +298,21 @@ describe("pendientesDeLista (ADR-0241: «Contar esta prenda» desde Movimientos)
     expect(pendientesDeLista(todos, ["b"]).map((x) => x.varianteId)).toEqual(["b"]);
     expect(pendientesDeLista(todos, [])).toHaveLength(3);
     expect(pendientesDeLista(todos, ["z"])).toEqual([]);
+  });
+});
+
+describe("mensajeMezclaEnCenso — el alta al vuelo cae en «Sin color o con colores» (ADR-0263 T5)", () => {
+  const mezcla = { hint: "mezcla_sin_color", message: "Esta prenda quedaría con variantes «Sin color» junto a otras con color." };
+  it("con un color elegido: la prenda es «Sin color», y dice dónde se arregla", () => {
+    expect(mensajeMezclaEnCenso(mezcla, " Body Amir ", true)).toBe(
+      "«Body Amir» está registrada «Sin color», y una prenda no puede tener variantes «Sin color» y de color a la vez. Para sumarle este color, primero hay que ponerle su color a las que ya tiene, desde su ficha en Productos.",
+    );
+  });
+  it("sin color: la prenda tiene colores, que elija el suyo", () => {
+    expect(mensajeMezclaEnCenso(mezcla, "Body Amir", false)).toBe("«Body Amir» tiene colores: una variante «Sin color» no va junto a ellas. Elige el color de esta prenda.");
+  });
+  it("otro error (o ninguno): null, lo traduce traducirError", () => {
+    expect(mensajeMezclaEnCenso({ hint: "variante_ya_existe" }, "Body Amir", true)).toBeNull();
+    expect(mensajeMezclaEnCenso(null, "Body Amir", true)).toBeNull();
   });
 });

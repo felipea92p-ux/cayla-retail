@@ -267,11 +267,20 @@ begin
   return p;
 end $$;
 -- Una prenda (talla × color) con su código = el SKU, para encontrarla en la salida.
+-- Desde 20260929045000 (ADR-0263) la identidad (modelo, talla, color) no deja dos prendas «sin talla» del mismo
+-- modelo+color: la segunda recibe una talla libre. Aquí la talla no importa (cada prenda se lee por su código).
 create function pg_temp.variante(p_sku text, p_producto uuid default null, p_color text default null) returns uuid language plpgsql as $$
-declare v uuid;
+declare v uuid; p uuid := coalesce(p_producto, pg_temp.producto(p_sku)); t uuid;
 begin
-  insert into retail.variantes (producto_id, sku, codigo, precio, costo, color_codigo)
-    values (coalesce(p_producto, pg_temp.producto(p_sku)), p_sku, p_sku, 100, 40, p_color)
+  if exists (select 1 from retail.variantes x
+              where x.producto_id = p and x.color_codigo is not distinct from p_color and x.talla_id is null) then
+    select ta.id into t from retail.tallas ta
+     where not exists (select 1 from retail.variantes x
+                        where x.producto_id = p and x.color_codigo is not distinct from p_color and x.talla_id = ta.id)
+     order by ta.valor limit 1;
+  end if;
+  insert into retail.variantes (producto_id, sku, codigo, precio, costo, color_codigo, talla_id)
+    values (p, p_sku, p_sku, 100, 40, p_color, t)
     returning id into v;
   return v;
 end $$;

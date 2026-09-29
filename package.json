@@ -117,7 +117,7 @@
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",
-    "pruebas:corregir-identidad-variante": "node scripts/pruebas/corregir_identidad_variante.mjs",
+    "pruebas:corregir-variantes": "node scripts/pruebas/corregir_variantes.mjs",
     "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",

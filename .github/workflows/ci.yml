@@ -1022,14 +1022,17 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
-      # Color y talla de una variante se corrigen solo sin historia (20260928235500): por la ficha, la variante recién
-      # creada cambia de color o de talla habilitada, su código se recalcula y su código de barras se renombra; la que
-      # tiene un movimiento no cambia ni por la ficha ni con un update directo (hint `variante_con_historia`); un
-      # guardado de solo precio no toca código ni SKU; sin el disparador el update directo sí pasa (el hueco 3 existía);
-      # el parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
-      - name: pruebas:corregir-identidad-variante
+      # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
+      # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
+      # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en
+      # la misma variante, historial firmado y versión nueva; el choque con una variante existente (activa o no) se rechaza
+      # todo o nada; vendida, separada o entregada en un cambio, solo líder; el candado de la tabla (UNO solo: el del 0258 renombrado) frena el
+      # update directo; «Sin color» cuenta como un color (índice nulls not distinct); fotos y temporada siguen al color;
+      # sin mezcla «Sin color» + colores; fn_variantes_estado y la foto general en fn_productos; la ficha de main (la del
+      # 0258) sigue guardando precio sin tocar identidad ni pedir líder. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-variantes
         if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:corregir-identidad-variante
+        run: pnpm pruebas:corregir-variantes
 
       # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
       # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NACEN_SIN_UNIDADES } from "./variantes-ficha-reglas";
 import {
   agruparCambios,
   CAMPOS_CUBIERTOS,
@@ -6,12 +7,15 @@ import {
   cambiosDeVariante,
   formatoCosto,
   formatoPrecio,
+  NOTA_CORREGIDAS,
+  NOTA_DESACTIVADAS_CON_STOCK,
   resumenDeCambios,
   SIN_CAMBIOS,
   textoDeSalidaDeFicha,
   textoPendienteDeVariante,
   type FichaEditable,
   type NombresFicha,
+  type VarianteFicha,
 } from "./producto-cambios-reglas";
 
 const nombres: NombresFicha = {
@@ -120,14 +124,20 @@ describe("resumenDeCambios — variantes", () => {
     expect(r.frases).toEqual(["1 variante cambia sus etiquetas"]);
   });
 
-  it("corregir el color o la talla de una variante sin historia (ADR-0258) es un cambio: sin él, la barra no aparecería y no habría cómo guardarlo", () => {
+  it("corregir el color o la talla de una variante (ADR-0263) es un cambio: sin él, la barra no aparecería y no habría cómo guardarlo", () => {
     const r = resumen((f) => (f.variantes[1].identidad = id("Gris S")));
     expect(r.cambios).toEqual([{ tipo: "identidad", indice: 1, nombre: "Gris XS", antes: "Gris XS", despues: "Gris S" }]);
     expect(r.frases).toEqual(["1 variante cambia de color o talla"]);
     expect(r.frasesPasado).toEqual(["1 variante corregida de color o talla"]);
     expect(textoPendienteDeVariante(cambiosDeVariante(r, 1))).toBe("Color y talla: antes Gris XS");
     expect(agruparCambios(r.cambios)).toEqual([
-      { clave: "identidad", titulo: "Color o talla corregidos", lineas: [{ texto: "Gris XS", antes: "Gris XS", despues: "Gris S" }] },
+      {
+        clave: "identidad",
+        titulo: "Color o talla corregidos",
+        lineas: [{ texto: "Gris XS", antes: "Gris XS", despues: "Gris S" }],
+        cantidad: 1,
+        nota: NOTA_CORREGIDAS,
+      },
     ]);
   });
 
@@ -277,6 +287,118 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
 
   it("sin cambios no hay grupos", () => {
     expect(agruparCambios(SIN_CAMBIOS.cambios)).toEqual([]);
+  });
+});
+
+// ADR-0263: la sección de variantes manda los ejes de cada una (color y talla por separado), sus unidades, y puede cambiar
+// muchas a la vez (corregir un color entero, un precio en bloque, «Agregar color»). La hoja lo dice en pocas líneas.
+describe("agruparCambios — correcciones, precios en bloque y variantes nuevas (ADR-0263)", () => {
+  /** Una variante con sus ejes, como la arma `variantesParaResumen`. */
+  const conEjes = (idVar: string | null, color: string, talla: string, extra: Partial<VarianteFicha> = {}): VarianteFicha => ({
+    id: idVar,
+    nombre: `${color} ${talla}`.trim(),
+    activo: true,
+    precio: "90",
+    costo: "60",
+    etiquetaIds: [],
+    identidad: {
+      clave: `${color}|${talla}`,
+      texto: `${color} ${talla}`.trim(),
+      ejes: { color: { clave: color, texto: color }, talla: { clave: talla, texto: talla || "sin talla" } },
+    },
+    ...extra,
+  });
+  const prenda = (variantes: VarianteFicha[]): FichaEditable => ({ ...ficha(), variantes });
+  const antes = prenda([conEjes("a", "Sin color", "S"), conEjes("b", "Sin color", "M"), conEjes("c", "Sin color", "L"), conEjes("d", "Azul", "S")]);
+
+  it("tres variantes del mismo color corregidas al mismo color son UNA línea, con sus tallas al lado", () => {
+    const ahora = prenda([conEjes("a", "Negro", "S"), conEjes("b", "Negro", "M"), conEjes("c", "Negro", "L"), conEjes("d", "Azul", "S")]);
+    const r = resumenDeCambios(antes, ahora, nombres);
+    expect(r.total).toBe(3);
+    expect(r.cambios[0]).toEqual({
+      tipo: "identidad",
+      indice: 0,
+      nombre: "Negro S",
+      antes: "Sin color S",
+      despues: "Negro S",
+      color: { antes: "Sin color", despues: "Negro" },
+      queda: "S",
+    });
+    const [grupo] = agruparCambios(r.cambios);
+    expect(grupo).toEqual({
+      clave: "identidad",
+      titulo: "Color o talla corregidos",
+      lineas: [{ texto: "3 variantes pasan de Sin color a Negro", detalle: "S, M, L" }],
+      cantidad: 3,
+      nota: NOTA_CORREGIDAS,
+    });
+  });
+
+  it("una talla corregida dice de qué talla a cuál; si cambian las dos cosas, la variante entera", () => {
+    const ahora = prenda([conEjes("a", "Sin color", "XS"), conEjes("b", "Sin color", "M"), conEjes("c", "Sin color", "L"), conEjes("d", "Rojo", "M")]);
+    const lineas = agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios)[0].lineas;
+    expect(lineas).toEqual([{ texto: "1 variante pasa de talla S a XS" }, { texto: "Azul S pasa a ser Rojo M" }]);
+  });
+
+  it("quitarle la talla se dice «sin talla», y no se repite al lado", () => {
+    const ahora = prenda([conEjes("a", "Sin color", ""), conEjes("b", "Sin color", "M"), conEjes("c", "Sin color", "L"), conEjes("d", "Azul", "S")]);
+    expect(agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios)[0].lineas).toEqual([{ texto: "1 variante pasa de talla S a sin talla" }]);
+  });
+
+  it("un precio en bloque es una línea con cuántas y cuáles; la insignia cuenta las variantes, no las líneas", () => {
+    const ahora = prenda(antes.variantes.map((v) => ({ ...v, precio: v.id === "d" ? "120" : "99.90" })));
+    const precios = agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios).find((g) => g.clave === "precios");
+    expect(precios).toEqual({
+      clave: "precios",
+      titulo: "Precios",
+      lineas: [
+        { texto: "3 variantes: Sin color S, Sin color M, Sin color L", antes: "S/ 90", despues: "S/ 99.90" },
+        { texto: "Azul S", antes: "S/ 90", despues: "S/ 120" },
+      ],
+      cantidad: 4,
+    });
+  });
+
+  it("muchas variantes se nombran cortas: las tres primeras y cuántas más", () => {
+    const muchas = prenda(["XS", "S", "M", "L", "XL", "XXL"].map((t) => conEjes(t, "Negro", t)));
+    const ahora = prenda(muchas.variantes.map((v) => ({ ...v, costo: "55" })));
+    const costos = agruparCambios(resumenDeCambios(muchas, ahora, nombres).cambios)[0];
+    expect(costos.lineas).toEqual([{ texto: "6 variantes: Negro XS, Negro S, Negro M y 3 más", antes: "S/ 60", despues: "S/ 55" }]);
+  });
+
+  it("«Agregar color» son variantes nuevas con el mismo precio: una línea, y la nota de que nacen sin unidades", () => {
+    const ahora = prenda([...antes.variantes, conEjes(null, "Verde", "S"), conEjes(null, "Verde", "M")]);
+    const agregan = agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios)[0];
+    expect(agregan).toEqual({
+      clave: "agregan",
+      titulo: "Se agregan",
+      lineas: [{ texto: "2 variantes: Verde S, Verde M", detalle: "S/ 90" }],
+      cantidad: 2,
+      nota: NACEN_SIN_UNIDADES,
+    });
+  });
+
+  it("desactivar una variante con unidades dice cuántas tiene y que siguen en el inventario", () => {
+    const ahora = prenda(antes.variantes.map((v) => (v.id === "a" ? { ...v, activo: false, unidades: 17 } : v.id === "b" ? { ...v, activo: false, unidades: 0 } : v)));
+    const r = resumenDeCambios(antes, ahora, nombres);
+    expect(r.cambios).toEqual([
+      { tipo: "desactiva", indice: 0, nombre: "Sin color S", unidades: 17 },
+      { tipo: "desactiva", indice: 1, nombre: "Sin color M" },
+    ]);
+    expect(agruparCambios(r.cambios)).toEqual([
+      {
+        clave: "desactivan",
+        titulo: "Se desactivan",
+        lineas: [{ texto: "Sin color S", detalle: "17 u. en stock" }, { texto: "Sin color M" }],
+        cantidad: 2,
+        nota: NOTA_DESACTIVADAS_CON_STOCK,
+      },
+    ]);
+  });
+
+  it("sin unidades no hay nota: no hay nada que siga en el inventario", () => {
+    const ahora = prenda(antes.variantes.map((v) => (v.id === "a" ? { ...v, activo: false } : v)));
+    expect(agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios)[0].nota).toBeUndefined();
   });
 });
 

@@ -16,11 +16,14 @@ import { Boton } from "@/components/ui/campos";
  *
  * «Revisar y guardar» es un botón de envío del formulario: abre la hoja con lo que va a cambiar (`ConfirmarCambios`) y ahí se
  * elige quién hace la operación. Con «otra persona cambió esta prenda» (ADR-0193) guardar de nuevo chocaría igual: en su lugar
- * se ofrece recargar.
+ * se ofrece recargar. Lo mismo si lo principal ya se guardó pero no se pudo leer cómo quedaron las variantes (ADR-0263):
+ * volver a guardar crearía otra vez las nuevas, así que antes hay que recargar.
  */
 export function BarraDeCambios({
   cantidad,
   versionCambiada,
+  sinLeerVariantes = false,
+  yaSeGuardoLoDemas = false,
   bloqueada,
   onDescartar,
   onRecargar,
@@ -28,6 +31,11 @@ export function BarraDeCambios({
   cantidad: number;
   /** Otra persona guardó la prenda mientras se editaba: lo escrito sigue aquí, pero guardar ya no es posible sin recargar. */
   versionCambiada: boolean;
+  /** Lo principal ya quedó guardado pero no se pudo leer cómo quedaron las variantes: guardar de nuevo las duplicaría. */
+  sinLeerVariantes?: boolean;
+  /** El guardado principal ya salió bien y falló una parte de después (etiquetas, temporada): lo que la barra cuenta es solo
+   *  lo que falta, y decir «Aún no se guardó nada» haría creer que se perdió todo (y volver a escribir los precios). */
+  yaSeGuardoLoDemas?: boolean;
   /** Se está guardando: nada se toca. */
   bloqueada: boolean;
   onDescartar: () => void;
@@ -37,6 +45,7 @@ export function BarraDeCambios({
   const [ultima, setUltima] = useState(cantidad);
   if (cantidad > 0 && cantidad !== ultima) setUltima(cantidad);
   const cifra = cantidad > 0 ? cantidad : ultima;
+  const hayQueRecargar = versionCambiada || sinLeerVariantes;
   return (
     <BarraFija
       visible={cantidad > 0}
@@ -47,6 +56,10 @@ export function BarraDeCambios({
           <p role="alert" className="font-medium text-ambar-profundo">
             Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios; lo que escribiste sigue aquí hasta entonces, por si quieres anotarlo.
           </p>
+        ) : sinLeerVariantes ? (
+          <p role="alert" className="font-medium text-ambar-profundo">
+            La prenda ya quedó guardada, pero no se pudo leer cómo quedaron sus variantes. Recarga antes de seguir: así no se crea ninguna variante dos veces.
+          </p>
         ) : undefined
       }
       resumen={
@@ -55,8 +68,8 @@ export function BarraDeCambios({
           <div className="min-w-0">
             <p className="text-sm font-semibold text-tinta">Tienes {cifra === 1 ? "1 cambio" : `${cifra} cambios`} sin guardar</p>
             <p className="text-[13px] text-tinta/65">
-              Aún no se guardó nada.
-              <span className="hidden sm:inline"> Cuando termines, pulsa «Revisar y guardar».</span>
+              {yaSeGuardoLoDemas ? "Lo demás ya quedó guardado; falta esto." : "Aún no se guardó nada."}
+              <span className="hidden sm:inline">{yaSeGuardoLoDemas ? " Pulsa «Revisar y guardar»." : " Cuando termines, pulsa «Revisar y guardar»."}</span>
             </p>
           </div>
         </div>
@@ -67,7 +80,7 @@ export function BarraDeCambios({
           <Boton type="button" peso="discreto" className="max-sm:shrink-0" disabled={bloqueada} onClick={onDescartar}>
             Descartar
           </Boton>
-          {versionCambiada ? (
+          {hayQueRecargar ? (
             <Boton type="button" peso="primario" className="max-sm:flex-1" onClick={onRecargar}>
               Recargar la prenda
             </Boton>

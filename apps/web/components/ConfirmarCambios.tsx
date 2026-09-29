@@ -19,6 +19,11 @@ import type { ControlResponsable } from "@/lib/useResponsable";
  * `onConfirmar` guarda y dice si la hoja debe cerrarse: sí cuando salió bien (la pantalla se va sola) o cuando lo que falló
  * se arregla en la ficha (un nombre repetido, una versión vieja); NO cuando falló por el responsable (dejó de estar de turno,
  * por ejemplo): ahí se queda abierta para elegir a otra persona sin perder el lugar.
+ *
+ * Con la sección de variantes de ADR-0263, un grupo puede juntar varios cambios en una línea («3 variantes pasan de Sin color
+ * a Negro»): la insignia dice cuántos cambios son (`cantidad`), no cuántas líneas, y la `nota` del grupo dice lo que conviene
+ * saber antes de confirmar (el código viejo sigue sonando; las nuevas nacen sin unidades). `avisos`: lo que deja guardar pero
+ * hay que leer antes (todas las variantes quedan desactivadas).
  */
 export function ConfirmarCambios({
   nombre,
@@ -26,12 +31,15 @@ export function ConfirmarCambios({
   control,
   onConfirmar,
   onClose,
+  avisos = [],
 }: {
   nombre: string;
   resumen: ResumenCambios;
   control: ControlResponsable;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
+  /** Lo que no impide guardar pero conviene leer justo antes de confirmar. */
+  avisos?: readonly string[];
 }) {
   const [enCurso, setEnCurso] = useState(false);
   const grupos = agruparCambios(resumen.cambios);
@@ -52,7 +60,7 @@ export function ConfirmarCambios({
               <section key={g.clave} className="py-2.5 first:pt-0">
                 <h3 className="label-cayla mb-1.5 flex items-center gap-2 text-[11px] text-taupe">
                   {g.titulo}
-                  <span className="rounded-full bg-ambar/15 px-2 text-[11px] font-semibold tracking-normal text-ambar">{g.lineas.length}</span>
+                  <span className="rounded-full bg-ambar/15 px-2 text-[11px] font-semibold tracking-normal text-ambar">{g.cantidad}</span>
                 </h3>
                 <ul className="space-y-1">
                   {g.lineas.map((l, i) => (
@@ -68,9 +76,20 @@ export function ConfirmarCambios({
                     </li>
                   ))}
                 </ul>
+                {g.nota && <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.nota}</p>}
               </section>
             ))}
           </div>
+
+          {avisos.length > 0 && (
+            <div className="space-y-1">
+              {avisos.map((a, i) => (
+                <p key={i} className="text-[12.5px] leading-snug text-ambar-profundo">
+                  {a}
+                </p>
+              ))}
+            </div>
+          )}
 
           <ComboResponsable control={control} deshabilitado={enCurso} />
 

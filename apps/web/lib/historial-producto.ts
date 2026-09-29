@@ -70,9 +70,11 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 async function nombresParaCambios(supabase: Supabase, filas: readonly FilaRpc[]): Promise<NombresHistorial> {
   const falta = nombresPorBuscar(filas);
   const vacio = Promise.resolve({ data: null, error: null });
-  const [resTemporadas, resColores, resMarcas, resProveedores] = await Promise.all([
+  const [resTemporadas, resColores, resTallas, resMarcas, resProveedores] = await Promise.all([
     falta.temporadas ? supabase.rpc("fn_temporadas") : vacio,
     falta.colores.length > 0 ? supabase.from("colores").select("codigo, nombre").in("codigo", falta.colores) : vacio,
+    // Solo las filas `talla_id` de ADR-0258 (anotaban el uuid): se busca su valor para no mostrar nunca un uuid.
+    falta.tallas.length > 0 ? supabase.from("tallas").select("id, valor").in("id", falta.tallas) : vacio,
     falta.marcas.length > 0 ? supabase.from("marcas").select("id, nombre").in("id", falta.marcas) : vacio,
     falta.proveedores.length > 0 ? supabase.from("proveedores").select("id, nombre").in("id", falta.proveedores) : vacio,
   ]);
@@ -81,6 +83,7 @@ async function nombresParaCambios(supabase: Supabase, filas: readonly FilaRpc[])
   return {
     temporadas: mapa(resTemporadas as { data: { clave: string; nombre: string }[] | null; error: unknown }, (t) => [t.clave, t.nombre]),
     colores: mapa(resColores as { data: { codigo: string; nombre: string }[] | null; error: unknown }, (c) => [c.codigo, c.nombre]),
+    tallas: mapa(resTallas as { data: { id: string; valor: string }[] | null; error: unknown }, (t) => [t.id, t.valor]),
     marcas: mapa(resMarcas as { data: { id: string; nombre: string }[] | null; error: unknown }, (m) => [m.id, m.nombre]),
     proveedores: mapa(resProveedores as { data: { id: string; nombre: string }[] | null; error: unknown }, (p) => [p.id, p.nombre]),
   };

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
+import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
+import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
 import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
@@ -12,6 +14,7 @@ import { Volver } from "@/components/ui/Volver";
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
 // verdad decide.
+
 export default async function EditarProductoPage({
   params,
   searchParams,
@@ -26,18 +29,26 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
       "las categorías del catálogo"
     ),
-    exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
+    // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
+    exigir(
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
+      "los colores del vocabulario"
+    ),
     getEjesPorCategoria(),
     supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
     getImagenesMuestra(),
+    // ADR-0263: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
+    // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
+    // SQL): ver `puedeCorregir`, abajo.
+    supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -50,15 +61,22 @@ export default async function EditarProductoPage({
   // módulo Etiquetas. Poner o quitar una CON descuento cambia el precio en caja y es solo del líder: a los demás no se les
   // ofrece (la que ya tenga la prenda se conserva tal cual: el selector no la muestra y el guardado no la toca). La base lo
   // vuelve a exigir en `actualizar_variantes_etiquetas`.
-  const daDescuentos = persona.rol === "lider";
+  const esLider = persona.rol === "lider";
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .filter((e) => daDescuentos || e.descuento_pct == null)
+    .filter((e) => esLider || e.descuento_pct == null)
     .map((e) => ({ id: e.id, texto: e.nombre }));
-  const hayConDescuento = !daDescuentos && vocabulario.some((e) => e.descuento_pct != null);
+  const hayConDescuento = !esLider && vocabulario.some((e) => e.descuento_pct != null);
 
   if (!producto) notFound();
+
+  // La web puede llegar a producción antes que el SQL de ADR-0263 (ya pasó). Sin él, la base ignora la corrección de color
+  // o talla de una variante SIN error, pero sí guarda las fotos que se movieron con ella: las variantes quedarían Negro y
+  // sus fotos Azul. Por eso, sin la función la ficha no ofrece corregir (lo dice en una línea); cualquier otro fallo de la
+  // lectura (red, permiso) no dice que la función falte y deja corregir: la base vuelve a exigir todo.
+  const puedeCorregir = !esFuncionAusente(resEstado.error);
+
 
   return (
     <div className="space-y-6">
@@ -74,12 +92,15 @@ export default async function EditarProductoPage({
 
       <ProductoForm
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
-        colores={colores}
+        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }))}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
         avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
         marcas={marcas}
+        estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
+        esLider={esLider}
+        puedeCorregir={puedeCorregir}
         producto={producto}
         volverA={volverA}
       />
