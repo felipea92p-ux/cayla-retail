@@ -22,7 +22,7 @@ export type { SubidaSinConexion };
 //
 // Las fotos elegidas en el alta ya se subieron al llegar aquí (NuevoProductoForm, después de crear el producto). Esta
 // pantalla dice cuántas quedaron, cuál no subió y qué colores siguen sin foto; para agregar o cambiar, lleva a la
-// galería de la edición (`/productos/{id}/editar#fotos`), que ya asigna cada foto a su color.
+// sección «Fotos por color» de la edición (`/productos/{id}/editar#fotos`, ADR-0279): un rectángulo por color.
 
 export type ResumenCreado = {
   /** `null` = guardado SIN CONEXIÓN (ADR-0210): todavía no existe en la base, así que no hay código ni ficha. */

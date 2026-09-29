@@ -476,6 +476,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   escrito a la vista y cambia la barra a «Recargar la prenda». Salir con cambios sin guardar pregunta
   (`components/ui/useSalidaSinGuardar.tsx`: enlaces del menú, «← Productos», Atrás, cerrar la pestaña) y al guardar, el aviso
   dice qué cambió y quién firmó (`avisar.exito` con `detalle`) antes de volver a `/productos`.
+  **Fotos por color (ADR-0279, 2026-09-29):** la sección «Fotos» de la ficha es `components/ficha-producto/FotosPorColor.tsx`
+  (reemplazó a `components/FotosProducto.tsx`, la galería suelta con un combo de los 71 colores): un rectángulo por cada color
+  que la prenda vende (`coloresFicha`, las variantes activas), con su portada o «Agregar foto de Beige», más «Todos los colores»
+  y un bloque para las fotos de un color sin variantes activas. Las reglas —qué ve cada color, la principal, el orden, pasar de
+  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → revisar (`RevisarFotosModal`, ADR-0228) → subir
+  es el hook `components/ficha-producto/useSubirFotos.tsx`, que también usa `AgregarColoresModal` (casilla «Foto de cada
+  color»; sus fotos suben a la ficha por `VariantesFicha.onFotosDeColores` → `ProductoForm.sumarFotosDeColores`). Recibe las
+  fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
+  `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
