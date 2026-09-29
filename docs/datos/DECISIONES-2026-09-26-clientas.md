@@ -8,6 +8,14 @@ recomendada primero, con Ganas/Pagas), en la sesión de la rama
 contradicción, mandan las actas del 2026-09-12 y del 2026-09-21**, y por eso las dos
 correcciones de la sección F esperan un «sí» explícito.
 
+> **Aviso a cualquier sesión que toque Clientas (2026-09-29):** este módulo **ya está
+> planificado** —esta acta y los cuatro pasos de la sección H— y **Dany lo instanció así**,
+> junto con las sesiones que lo construyen (Clientas y Rendimiento). No se rediseña desde
+> otra sesión: si tu cambio toca reglas, esquema, permiso, avisos, talla, cumpleaños o
+> identificación, y contradice o duplica lo de abajo, díselo al usuario antes de seguir. Un
+> cambio transversal que no toca reglas (por ejemplo la guía de foco, ADR-0284) sí es
+> válido. Estado al 2026-09-29: pasos 1 y 2 en `main` (ADR-0249); pasos 3 y 4 sin construir.
+
 **Por qué esta ronda:** Felipe pidió «crear un módulo que se llame clientes» para la
 fidelización, ideas de qué podría llevar y 20 preguntas para saber hacia dónde apunta.
 
