@@ -330,7 +330,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   uno solo si el rol ve esa pantalla.
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
-  `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.
+  `modo=comparar`, `bdesde`, `bhasta`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`; `cat` es solo de Desempeño:
+  Comparar la ignora). La sede es SIEMPRE la del selector global.
   Tres responsabilidades, una pantalla cada una: **Existencias** = qué hay AHORA (con su cobertura),
   **Análisis › Desempeño** = cómo se comportó el inventario en el período, **Análisis › Comparar períodos** =
   qué cambió entre dos períodos. El análisis NO mezcla el stock de hoy con métricas del período; Comparar
@@ -353,10 +354,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `/inventario/bajar?lineas=`, `/inventario/mover?lineas=`, `/etiquetas-de-precio?variantes=`, `/produccion/ordenes`,
   `/compras/nueva`, o abren `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede` (ADR-0242 D-7). ADR-0171, ADR-0245.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
-  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
-  píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
-  abre el MISMO selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano;
-  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: la MISMA tarjeta «PERÍODO
+  ANALIZADO» de Desempeño (`MarcoPeriodoAnalizado` en `ResumenControles`; ADR-0277) con dos píldoras «Período A: 1 ago. →
+  30 ago.» y «Período B: …» en lugar de los atajos, la búsqueda debajo y sin categoría; cada píldora abre el MISMO
+  selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano—. Los avisos
+  (un A o un B escrito que no se pudo respetar, períodos de distinta duración o superpuestos, A sin historial) salen
+  dentro de la tarjeta y solo cuando aplican. B tiene URL propia (`bdesde`/`bhasta`; mientras no se elige en Comparar
+  sigue siendo el período de Desempeño, ADR-0138) y A la suya (`comparar=personalizado`, `cdesde`, `chasta`); lo elegido
+  se recuerda por sede y por persona en el navegador (`lib/resumen-periodos-guardados.ts`, sobre `almacen-local`) y siembra
+  la URL al entrar a Comparar (el clic de la pestaña, `ResumenCabecera`, o el montaje del panel) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
   ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
   «Distribución de sell-through», los tres en una fila) + `…Detalle` DEBAJO, en la misma pantalla (desde el 2026-09-22
   ya no hay «Vista general / Detalle»: la dona filtra la tabla con `?cambio=`). La columna «Cambio relevante» de las
@@ -373,7 +379,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · Comunes: `ResumenCabecera` (pestañas Desempeño | Comparar períodos), `ResumenActualizado` («Actualizado
   hh:mm ⓘ»), `ResumenBanner` (exactitud), `ResumenBloques` (solo la tarjeta `Bloque`), `ui/BuscadorDebounced`
   (el campo de búsqueda con espera de 350 ms, antes duplicado entre Desempeño y Comparar), `resumen-periodo`,
-  `resumen-filtros` (alcance + bandas de sell-through), `resumen-busqueda`.
+  `resumen-periodos-guardados` (los períodos A y B que la persona dejó elegidos en Comparar), `resumen-filtros` (alcance
+  + bandas de sell-through), `resumen-busqueda`.
   · Sin UI desde ADR-0138 (dependían del stock de hoy y salieron del análisis): las 5 tarjetas de señales, la
   tabla de prioridades con acciones, el detalle/capital en modal y los 3 bloques inferiores. Su LÓGICA sigue en
   `lib/` (`resumen-reglas` motor de reposición, curvas rotas y capital; `resumen-acciones`; `armarResumen`),

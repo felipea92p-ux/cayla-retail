@@ -1,9 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { ResumenActualizado } from "@/components/ResumenActualizado";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
+import { periodosParaSembrar } from "@/lib/resumen-periodos-guardados";
 
 // La fila de arriba del Análisis de inventario: los dos modos —Desempeño y Comparar períodos— a la
 // izquierda, y la marca discreta «Actualizado» a la derecha.
@@ -56,22 +58,34 @@ export function ResumenCabecera({
   modo,
   ahoraIso,
   actualizar,
+  claveGuardado,
   children,
 }: {
   modo: ModoResumen;
   ahoraIso: string;
   actualizar: (cambios: CambiosUrl) => void;
+  /** Dónde se recuerdan A y B (`clavePeriodosElegidos`): por sede y por persona. */
+  claveGuardado: string;
   /** Lo que dice el popover de «Actualizado». */
   children: ReactNode;
 }) {
+  const params = useSearchParams();
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
       <Pestanas
         etiqueta="Modo del análisis"
         valor={modo}
         opciones={MODOS}
-        // Cada modo tiene sus propios órdenes y filtros de tabla: al cambiar se parte de los iniciales.
-        onValor={(m) => actualizar(m === "comparar" ? { modo: "comparar", orden: null, st: null } : { modo: null, vista: null, senal: null, orden: null, cambio: null })}
+        // Cada modo tiene sus propios órdenes y filtros de tabla: al cambiar se parte de los iniciales. Al ENTRAR a
+        // Comparar se le suman los períodos que la persona dejó elegidos (2026-09-29), en este mismo clic: una sola
+        // navegación, sin un primer pintado con los de por defecto. Si la URL ya trae fechas de Comparar, no se toca.
+        onValor={(m) =>
+          actualizar(
+            m === "comparar"
+              ? { modo: "comparar", orden: null, st: null, ...periodosParaSembrar(claveGuardado, (k) => params.has(k)) }
+              : { modo: null, vista: null, senal: null, orden: null, cambio: null },
+          )
+        }
       />
       <ResumenActualizado ahoraIso={ahoraIso}>{children}</ResumenActualizado>
     </div>

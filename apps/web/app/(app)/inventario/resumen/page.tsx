@@ -5,6 +5,7 @@ import type { AccesoAnalisis } from "@/lib/analisis-que-hacer";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
 import { pideComparacion } from "@/lib/resumen-comparacion";
+import { clavePeriodosElegidos } from "@/lib/resumen-periodos-guardados";
 import { ResumenBanner } from "@/components/ResumenBanner";
 import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
 import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
@@ -56,15 +57,19 @@ export default async function ResumenInventarioPage({
     existencias: veModulo(persona, "existencias"),
   };
 
+  // Dónde recuerda ESTE navegador los períodos que esta persona dejó elegidos en Comparar, para esta sede (2026-09-29).
+  // Solo es una llave: quien la lee y la escribe es el navegador (`resumen-periodos-guardados.ts`).
+  const claveGuardado = clavePeriodosElegidos(ubicacionActiva.id, persona.personaId);
+
   const { exactitud, panel } = pideComparacion(params)
-    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} /> }))
+    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} claveGuardado={claveGuardado} /> }))
     : await Promise.all([
         getDesempenoInventario(ubicacionActiva, params),
         // «Pidieron y no había» es un dato secundario: si falla, su tarjeta no sale y lo demás sigue (principio 9).
         getPedidosNoAtendidos(ubicacionActiva.id).then((p) => p.filter((x) => !x.resuelto).length).catch(() => null),
       ]).then(([datos, pedidosNoAtendidos]) => ({
         exactitud: datos.exactitud,
-        panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} acceso={acceso} esLider={persona.rol === "lider"} pedidosNoAtendidos={pedidosNoAtendidos} />,
+        panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} acceso={acceso} esLider={persona.rol === "lider"} pedidosNoAtendidos={pedidosNoAtendidos} claveGuardado={claveGuardado} />,
       }));
 
   return (
