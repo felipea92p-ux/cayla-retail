@@ -1,4 +1,4 @@
-## 2026-09-29 — Una identidad para todo el alta de producto (ADR-0283)
+## 2026-09-29 — Una identidad para todo el alta de producto (ADR-0285)
 
 **QUÉ HICE:** «Nueva prenda» pide ahora quién registra UNA sola vez, en un recuadro arriba de los pasos, y esa persona firma la prenda y todo lo que se crea a mitad de camino (marca, talla, tejido, color, etiqueta, muestra, valor, categoría). El paso 4 solo muestra el nombre con «Cambiar». Se acaba al salir de la pantalla; «Crear otro parecido» la conserva. Web solamente, sin migración.
 

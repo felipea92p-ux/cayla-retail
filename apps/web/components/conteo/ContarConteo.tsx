@@ -243,8 +243,26 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   const [ultimaId, setUltimaId] = useState<string | null>(null);
 
   useEffect(() => {
-    // En el celular el teclado taparía la lista al cargar: solo se enfoca con puntero fino (pistola y teclado).
-    if (window.matchMedia?.("(pointer: fine)").matches) escanerRef.current?.focus();
+    const enfocarEscaner = () => {
+      // En el celular el teclado taparía la lista al cargar: solo se enfoca con puntero fino (pistola y teclado).
+      if (window.matchMedia?.("(pointer: fine)").matches) escanerRef.current?.focus();
+    };
+    if (soloVariantes.length === 0) {
+      enfocarEscaner();
+      return;
+    }
+    // «Volver a contar» (desde Revisar) y «Contar esta prenda» llegan acotados a lo que hay que contar: el cursor cae en la cifra
+    // de la primera variante, con su número seleccionado, y no en el escáner. Se enfoca también en el celular: la persona pidió
+    // escribir esa cifra. Va un instante después de montar: al llegar por un enlace, Next enfoca el contenedor de la página
+    // justo después de montarla y le quitaría el foco a la cifra.
+    const id = window.setTimeout(() => {
+      const campo = tarjetaRef.current?.querySelector<HTMLInputElement>(CAMPOS_VISIBLES);
+      if (!campo) return enfocarEscaner();
+      campo.focus({ preventScroll: true });
+      campo.scrollIntoView({ block: "center" });
+    }, 0);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir la pantalla: `soloVariantes` no cambia mientras está abierta.
   }, []);
 
   /** Una cantidad escrita en la fila de una variante. `false` = no se aplicó (falta el responsable): la fila vuelve a su cifra. */

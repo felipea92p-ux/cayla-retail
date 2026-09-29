@@ -42,11 +42,35 @@ export type DatosFicha = {
   foto: string | null;
   fotos: number;
   avance: PasoAvance[];
-  /** Lo siguiente que falta para crear (responsable incluido), o null si ya se puede. */
+  /** Lo siguiente que falta para crear (responsable incluido), o null si ya se puede. Decide si «Crear» está apagado. */
   siguiente: string | null;
+  /** «El hilo» (ADR-0284): lo que sigue en el camino —puede ser una sugerencia, como los colores—, tocable para ir a su campo.
+   *  `bloquea` false = crear ya se puede. null = no queda nada. */
+  guia: { texto: string; nombre: string; bloquea: boolean; onIr: () => void } | null;
 };
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+
+/** «Siguiente: Elige el tejido.» —un toque que lleva al campo— o «Todo listo para crear.». Lo usan la ficha y la barra del celular. */
+function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
+  const g = d.guia;
+  if (!g) {
+    return d.siguiente ? (
+      <p role="status" className={`${clase} text-taupe`}>{`Siguiente: ${d.siguiente}`}</p>
+    ) : (
+      <p role="status" className={`${clase} text-verde`}>
+        Todo listo para crear.
+      </p>
+    );
+  }
+  return (
+    <p role="status" className={`${clase} text-taupe`}>
+      <button type="button" onClick={g.onIr} className="text-left underline decoration-tinta/20 underline-offset-4 transition-colors hover:text-tinta hover:decoration-tinta/50">
+        {g.bloquea ? `Siguiente: ${g.texto}` : `Ya puedes crear. Sin elegir todavía: ${g.nombre.toLocaleLowerCase("es")}.`}
+      </button>
+    </p>
+  );
+}
 const Vacio = ({ children = "—" }: { children?: string }) => <span className="text-tinta/25">{children}</span>;
 /** A la vista, hasta 8 puntos de color; el resto se cuenta («+N»). Con 12 colores la fila no cabía en la foto. */
 const MAX_PUNTOS = 8;
@@ -166,15 +190,13 @@ export function FichaPrevia({
             {textoCrear}
           </button>
         </div>
-        <p role="status" className={`text-center text-[12.5px] ${datos.siguiente ? "text-taupe" : "text-verde"}`}>
-          {datos.siguiente ? `Siguiente: ${datos.siguiente}` : "Todo listo para crear."}
-        </p>
+        <Siguiente d={datos} clase="text-center text-[12.5px]" />
       </aside>
 
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
-      <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+      <div data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {verMovil && (
           <div className="mb-3 max-h-[60vh] space-y-3 overflow-y-auto [animation:cayla-revelar_240ms_var(--ease-cayla)]">
             <Tarjeta d={datos} />
@@ -202,7 +224,7 @@ export function FichaPrevia({
             {cargando ? "Creando…" : "Crear"}
           </button>
         </div>
-        <p className="mt-1 text-xs text-taupe">{datos.siguiente ? `Siguiente: ${datos.siguiente}` : "Todo listo."}</p>
+        <Siguiente d={datos} clase="mt-1 text-xs" />
       </div>
     </>
   );
