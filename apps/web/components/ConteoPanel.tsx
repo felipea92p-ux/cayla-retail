@@ -27,6 +27,7 @@ import {
 import type { ConteoAbierto, PrioridadConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
@@ -944,7 +945,7 @@ function ConteoEnCurso({
             )}
             {altaAbierta && (
               <AltaAlVuelo
-                codigoBarras={busqueda.trim()}
+                codigoBarras={guionDeLaPistola(busqueda.trim())}
                 categorias={categorias}
                 colores={colores}
                 tallasPorCategoria={tallasPorCategoria}
