@@ -39,6 +39,7 @@ import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { CampoSelect } from "@/components/ui/campos";
@@ -446,20 +447,17 @@ export function RecordarModal({
   const [pos, setPos] = useState(0);
   const [hechas, setHechas] = useState<ReadonlySet<string>>(() => new Set());
   const [enviando, setEnviando] = useState(false);
-  // Avisar es una operación de la tienda: firma quien atiende (ADR-0161). En el lote el combo no se vacía entre una
-  // clienta y la siguiente —es la misma persona escribiendo—; vuelve a vacío al terminar.
-  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+  // Avisar va sin responsable (Felipe, 2026-09-29): el aviso queda a nombre de la cuenta, sin combo.
   const actual = cola[Math.min(pos, cola.length - 1)];
   const mensaje = mensajeWhatsapp(actual, ubicacion.etiqueta, hoy);
 
   async function escribir(cerrar: () => void) {
-    if (!responsable.listo || enviando) return;
+    if (enviando) return;
     window.open(enlaceWhatsapp(actual.celular, mensaje), "_blank", "noopener,noreferrer");
     setEnviando(true);
-    const { error } = await firmar(createClient().rpc("registrar_aviso_separacion", { p_separacion_id: actual.id }), responsable.firma());
+    const { error } = await firmar(createClient().rpc("registrar_aviso_separacion", { p_separacion_id: actual.id }), firmaOmitida("aviso_apartado"));
     setEnviando(false);
     if (error) {
-      responsable.despues(error);
       return avisar.error(traducirError(error, "anotar el aviso"), { detalle: "El chat se abrió, pero el aviso no quedó anotado: vuelve a intentarlo." });
     }
     const nuevas = new Set([...hechas, actual.id]);
@@ -467,7 +465,6 @@ export function RecordarModal({
     onAvisada(actual.id);
     const siguiente = cola.findIndex((a) => !nuevas.has(a.id));
     if (siguiente >= 0) return setPos(siguiente);
-    responsable.despues(null);
     avisar.exito(nuevas.size === 1 ? `Aviso a ${actual.nombres} anotado` : `${nuevas.size} avisos anotados`);
     router.refresh();
     cerrar();
@@ -525,7 +522,6 @@ export function RecordarModal({
             <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">{mensaje}</p>
             <p className="text-xs text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             {varias ? (
               <button type="button" onClick={saltar} disabled={cola.length - hechas.size <= 1} className={botonCancelar}>
@@ -538,8 +534,7 @@ export function RecordarModal({
             )}
             <button
               type="button"
-              disabled={enviando || !responsable.listo || hechas.has(actual.id)}
-              title={responsable.motivo ?? undefined}
+              disabled={enviando || hechas.has(actual.id)}
               onClick={() => escribir(cerrar)}
               className={`${botonPrimario} flex flex-1 items-center justify-center gap-2`}
             >

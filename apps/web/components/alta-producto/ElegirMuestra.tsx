@@ -5,7 +5,6 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
@@ -13,7 +12,7 @@ import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { aLaVista, seccionesMuestras, unirSinRepetir } from "@/lib/muestras-alta-reglas";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 // Las filas «Tejido» y «Patrón» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -25,9 +24,9 @@ import { useResponsable } from "@/lib/useResponsable";
 //
 // Elegir uno «Del catálogo» NO puede ser solo marcarlo: la base rechaza crear un producto con un tejido o patrón que su
 // categoría no ofrece (`crear_producto_con_variantes`, «Ese tejido no está habilitado para la categoría elegida»). Tocarlo
-// lo ofrece en la categoría —una escritura aparte, firmada con su propio combo «Responsable» (ADR-0161)— y lo deja elegido;
-// es el mismo gesto que tenía el «Ver más» de `ElegirTejido` y se dice en la sección antes del toque, porque cambia la
-// categoría y no solo el producto. El combo vive dentro de la hoja: nadie lee la asistencia por un botón que nadie abrió.
+// lo ofrece en la categoría —una escritura aparte, sin combo «Responsable» desde 2026-09-29 (clave `alta_producto_muestra`)— y lo deja
+// elegido; es el mismo gesto que tenía el «Ver más» de `ElegirTejido` y se dice en la sección antes del toque, porque cambia la
+// categoría y no solo el producto.
 //
 // La muestra es la FOTO o el DIBUJO real del tejido/patrón que se eligió en Atributos (ADR-0256): `imagenes` id → URL.
 
@@ -128,7 +127,6 @@ function TarjetaMuestra({
   busqueda = "",
   deshabilitado = false,
   guardando = false,
-  motivo,
 }: {
   tipo: Tipo;
   valor: ValorVocabulario;
@@ -141,11 +139,10 @@ function TarjetaMuestra({
   deshabilitado?: boolean;
   /** Esta tarjeta es la que se está ofreciendo en la categoría ahora mismo. */
   guardando?: boolean;
-  motivo?: string;
 }) {
   const Muestra = tipo === "tejidos" ? MuestraTejido : MuestraPatron;
   return (
-    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={motivo ?? (enHoja ? undefined : valor.texto)}>
+    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={enHoja ? undefined : valor.texto}>
       <Muestra nombre={valor.texto} imagenUrl={imagenUrl ?? null} className="h-10 w-full" />
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
@@ -185,22 +182,20 @@ function HojaMuestras({
   const [busqueda, setBusqueda] = useState("");
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const responsable = useResponsable();
   const t = TEXTOS[tipo];
   const { propias, delCatalogo } = seccionesMuestras(deLaCategoria, universo, busqueda);
 
   async function ofrecer(v: ValorVocabulario) {
-    if (guardandoId || !responsable.listo) return;
+    if (guardandoId) return;
     setGuardandoId(v.id);
     setError(null);
-    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, v.id), responsable.encabezados());
+    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, v.id), encabezadosOmitidos("alta_producto_muestra"));
     setGuardandoId(null);
     if (err) {
       // Nada quedó a medias: la categoría sigue como estaba y reintentar es seguro (ofrecer uno que ya está no lo repite).
       setError(`No se pudo agregar ${v.texto} a ${categoriaNombre}: ${err}`);
       return;
     }
-    responsable.despues(null);
     avisar.exito(`${v.texto} ahora se ofrece en ${categoriaNombre}`);
     onOfrecido(v);
   }
@@ -263,7 +258,6 @@ function HojaMuestras({
                 · elegir uno lo suma a {categoriaNombre} (también para las prendas que vengan)
               </small>
             </TituloSeccion>
-            <ComboResponsable control={responsable} deshabilitado={guardandoId !== null} compacto className="mb-2 max-w-sm" />
             <GrillaMuestras>
               {delCatalogo.map((v) => (
                 <TarjetaMuestra
@@ -275,8 +269,7 @@ function HojaMuestras({
                   enHoja
                   busqueda={busqueda}
                   guardando={guardandoId === v.id}
-                  deshabilitado={guardandoId !== null || !responsable.listo}
-                  motivo={responsable.motivo ?? undefined}
+                  deshabilitado={guardandoId !== null}
                   onClick={() => void ofrecer(v)}
                 />
               ))}

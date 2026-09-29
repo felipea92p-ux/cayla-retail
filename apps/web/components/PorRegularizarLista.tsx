@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
-import { useResponsable } from "@/lib/useResponsable";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { cifrasPorRegularizar, estaVencida, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
@@ -14,7 +14,6 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { Campo, Desplegable } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
@@ -178,8 +177,7 @@ function RegularizarModal({
   const [elegidaId, setElegidaId] = useState("");
   const [forma, setForma] = useState<"ya_registrada" | "llego_nueva" | null>(null);
   const [guardando, setGuardando] = useState(false);
-  // Firma quien regulariza en la sede de la prenda (ADR-0161/0162).
-  const responsable = useResponsable({ ubicacionId: f.ubicacionId, etiqueta: f.sede });
+  // Regularizar va sin responsable (Felipe, 2026-09-29): firma la cuenta, sin combo.
 
   const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
   // Primero las que calzan con lo que anotó caja (categoría, talla y color): así almacén la encuentra sin tipear.
@@ -191,14 +189,13 @@ function RegularizarModal({
   }, [prendas, f.categoria, f.talla, f.color]);
 
   async function guardar() {
-    if (!elegida || !forma || !responsable.listo) return;
+    if (!elegida || !forma) return;
     setGuardando(true);
     const { data, error } = await firmar(
       createClient().rpc("regularizar_prenda", { p_id: f.id, p_variante_id: elegida.id, p_forma: forma }),
-      responsable.firma(),
+      firmaOmitida("regularizar_prenda"),
     );
     setGuardando(false);
-    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "regularizar la prenda"));
       return;
@@ -256,12 +253,10 @@ function RegularizarModal({
           )}
         </div>
 
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
         <button
           type="button"
           onClick={guardar}
-          disabled={guardando || !elegida || !forma || !responsable.listo}
-          title={responsable.motivo ?? undefined}
+          disabled={guardando || !elegida || !forma}
           className={`${botonPrimario} w-full`}
         >
           {guardando ? "Guardando…" : "Regularizar"}

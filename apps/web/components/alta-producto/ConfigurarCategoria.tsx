@@ -4,8 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
 import { guardarEjesCategoria, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 
 // Una categoría sin tallas (o sin tejidos/patrones, si su familia los exige)
@@ -19,8 +18,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 // "Guardar" sin contexto sería dejar que se haga sin saberlo.
 //
 // NO va dentro de la transacción del alta (mismo criterio que ProponerValor).
-// Por lo mismo lleva su propio combo «Responsable» (ADR-0161): es un guardado
-// aparte del producto, y quien cambia la categoría firma ese cambio.
+// Es un guardado aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_categoria`).
 
 const TEXTOS: Record<TipoVocabulario, { faltante: string; accion: string; efecto: string }> = {
   tallas: {
@@ -63,7 +61,6 @@ export function ConfigurarCategoria({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const responsable = useResponsable();
   const t = TEXTOS[tipo];
 
   function alternar(id: string) {
@@ -71,7 +68,7 @@ export function ConfigurarCategoria({
   }
 
   async function guardar() {
-    if (elegidos.length === 0 || guardando || !responsable.listo) return;
+    if (elegidos.length === 0 || guardando) return;
     setGuardando(true);
     setError(null);
     const nuevos: EjeIds = {
@@ -80,13 +77,12 @@ export function ConfigurarCategoria({
       patronIds: tipo === "patrones" ? elegidos : ejesActuales.patronIds,
     };
     // Tallas: todas las elegidas quedan como curva habitual (es lo que la persona acaba de decir que ofrece).
-    const err = await guardarEjesCategoria(categoriaId, nuevos, responsable.encabezados(), tipo === "tallas" ? elegidos : undefined);
+    const err = await guardarEjesCategoria(categoriaId, nuevos, encabezadosOmitidos("alta_producto_categoria"), tipo === "tallas" ? elegidos : undefined);
     setGuardando(false);
     if (err) {
       setError(err);
       return;
     }
-    responsable.despues(null);
     avisar.exito(`${categoriaNombre} actualizada`, { detalle: t.efecto });
     onGuardado(universo.filter((v) => elegidos.includes(v.id)));
   }
@@ -118,12 +114,10 @@ export function ConfigurarCategoria({
           {error}
         </p>
       )}
-      <ComboResponsable control={responsable} deshabilitado={guardando} />
       <button
         type="button"
         onClick={() => void guardar()}
-        disabled={elegidos.length === 0 || guardando || !responsable.listo}
-        title={responsable.motivo ?? undefined}
+        disabled={elegidos.length === 0 || guardando}
         className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
       >
         {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}

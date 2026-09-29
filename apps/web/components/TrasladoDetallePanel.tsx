@@ -41,9 +41,9 @@ import {
   type LineaLeida,
 } from "@/lib/traslados-recepcion-reglas";
 import type { LineaTraslado, TrasladoDetalle } from "@/lib/traslados";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
@@ -83,8 +83,8 @@ export function TrasladoDetallePanel({
   catalogo: VarianteBusqueda[];
 }) {
   const router = useRouter();
-  // Recibir y anular guardan en la tienda: piden Responsable (ADR-0161). Uno solo para todo el panel: en la sede
-  // destino firma el conteo y la confirmación; en la de origen, la anulación.
+  // Recibir (contar, confirmar, cerrar con diferencia) va sin responsable (Felipe, 2026-09-29); solo anular pide
+  // Responsable (ADR-0161), en la sede de origen.
   const responsable = useResponsable();
 
   const [conteos, setConteos] = useState<Conteos>({});
@@ -119,7 +119,6 @@ export function TrasladoDetallePanel({
   const aCiegas = contable && enTransito && !revisando;
   const terminar = puedeTerminar(lectura, resumenGuardado);
   const ocupado = trabajando !== null;
-  const bloqueoConteo = contable && !responsable.listo;
 
   const pasos = recorridoRecepcion(
     t,
@@ -143,14 +142,13 @@ export function TrasladoDetallePanel({
 
   /** Manda UNA prenda a la base. Devuelve si quedó guardada. */
   function guardarLinea(varianteId: string, valor: number, version: number): Promise<boolean> {
-    const firma = responsable.firma();
     if (versiones.current.get(varianteId) === version) ponerEstado(varianteId, { tipo: "guardando" });
     return cola.current
       .agregar(async () => {
         const consulta = createClient()
           .rpc("registrar_recepcion_traslado", { p_transferencia_id: t.id, p_variante_id: varianteId, p_cantidad_recibida: valor })
           .setHeader("x-espera", "no");
-        const { error } = await firmar(consulta, firma);
+        const { error } = await firmar(consulta, firmaOmitida("traslado_recibir"));
         if (error) throw error;
       })
       .then(
@@ -159,8 +157,6 @@ export function TrasladoDetallePanel({
           return true;
         },
         (e: ErrorEscritura) => {
-          // Un rechazo por el responsable vacía el combo y relee la lista; lo contado sigue en pantalla.
-          responsable.despues(e);
           if (versiones.current.get(varianteId) === version) ponerEstado(varianteId, { tipo: "error", mensaje: traducirError(e, "guardar lo contado") });
           return false;
         },
@@ -276,16 +272,14 @@ export function TrasladoDetallePanel({
 
   /** Una prenda que no venía en el envío: se anota con 1 y queda como diferencia para el líder. */
   async function anotarDeMas(varianteId: string) {
-    if (!responsable.listo) return;
     setTrabajando("extra");
     setError(null);
     const { error } = await firmar(
       createClient().rpc("registrar_recepcion_traslado", { p_transferencia_id: t.id, p_variante_id: varianteId, p_cantidad_recibida: 1 }),
-      responsable.firma(),
+      firmaOmitida("traslado_recibir"),
     );
     setTrabajando(null);
     if (error) {
-      responsable.despues(error);
       setError(traducirError(error, "anotar la prenda de más"));
       return;
     }
@@ -304,7 +298,6 @@ export function TrasladoDetallePanel({
   }
 
   async function confirmar(destino: DestinoRecepcion, cerrarModal: () => void) {
-    if (!responsable.listo) return;
     setTrabajando("confirmar");
     setError(null);
     if (!(await guardarPendientes())) {
@@ -315,10 +308,9 @@ export function TrasladoDetallePanel({
     }
     const { data, error } = await firmar(
       createClient().rpc("confirmar_traslado", { p_transferencia_id: t.id, p_destino: destino ?? undefined }),
-      responsable.firma(),
+      firmaOmitida("traslado_recibir"),
     );
     setTrabajando(null);
-    responsable.despues(error);
     cerrarModal();
     if (error) {
       setError(traducirError(error, "confirmar la recepción"));
@@ -341,7 +333,6 @@ export function TrasladoDetallePanel({
   }
 
   async function cerrarConDiferencia(nota: string, cerrarModal: () => void) {
-    if (!responsable.listo) return;
     setTrabajando("cerrar");
     setError(null);
     if (!(await guardarPendientes())) {
@@ -350,9 +341,8 @@ export function TrasladoDetallePanel({
       setError("Hay prendas que no se guardaron. Reintenta antes de cerrar.");
       return;
     }
-    const { data, error } = await firmar(createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: nota }), responsable.firma());
+    const { data, error } = await firmar(createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: nota }), firmaOmitida("traslado_recibir"));
     setTrabajando(null);
-    responsable.despues(error);
     cerrarModal();
     if (error) {
       setError(traducirError(error, "cerrar el traslado"));
@@ -485,18 +475,16 @@ export function TrasladoDetallePanel({
                   }}
                   placeholder="Escanea la etiqueta o escribe su código"
                   autoComplete="off"
-                  disabled={bloqueoConteo || trabajando === "extra"}
+                  disabled={trabajando === "extra"}
                   className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
                 />
               </label>
-              <ComboResponsable control={responsable} deshabilitado={ocupado} />
             </div>
-            {bloqueoConteo && responsable.motivo && <p className="text-xs text-rojo-profundo">{responsable.motivo}</p>}
             {avisoEscaneo && (
               <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta">
                 <span>{avisoEscaneo.texto}</span>
                 {avisoEscaneo.fueraId && (
-                  <button type="button" onClick={() => void anotarDeMas(avisoEscaneo.fueraId!)} disabled={ocupado || !responsable.listo} className="btn-cayla btn-enlace btn-chico">
+                  <button type="button" onClick={() => void anotarDeMas(avisoEscaneo.fueraId!)} disabled={ocupado} className="btn-cayla btn-enlace btn-chico">
                     {trabajando === "extra" ? "Anotando…" : "Llegó igual: anotarla como prenda de más"}
                   </button>
                 )}
@@ -513,7 +501,6 @@ export function TrasladoDetallePanel({
                         setAvisoEscaneo(null);
                         sumar(l.varianteId, 1);
                       }}
-                      disabled={bloqueoConteo}
                       className="flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-hueso/60"
                     >
                       <span className="min-w-0 truncate">
@@ -542,7 +529,7 @@ export function TrasladoDetallePanel({
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-taupe">{verEnviado && l.cantidadEnviada !== null ? <>Enviado <span className="tabular-nums text-tinta">{l.cantidadEnviada}</span></> : null}</span>
                   {editable ? (
-                    <Contador linea={l} valor={leida.valor} deshabilitado={bloqueoConteo || ocupado} onSumar={(d) => sumar(l.varianteId, d)} onCambiar={(n) => cambiar(l.varianteId, n)} />
+                    <Contador linea={l} valor={leida.valor} deshabilitado={ocupado} onSumar={(d) => sumar(l.varianteId, d)} onCambiar={(n) => cambiar(l.varianteId, n)} />
                   ) : (
                     <span className="text-taupe">
                       {esDestino || !enTransito ? "Recibido" : "Contado"} <span className="tabular-nums text-tinta">{leida.valor ?? "—"}</span>
@@ -589,7 +576,7 @@ export function TrasladoDetallePanel({
                     <td className="px-3 py-2 text-right">
                       {editable ? (
                         <span className="inline-flex flex-col items-end">
-                          <Contador linea={l} valor={leida.valor} deshabilitado={bloqueoConteo || ocupado} onSumar={(d) => sumar(l.varianteId, d)} onCambiar={(n) => cambiar(l.varianteId, n)} />
+                          <Contador linea={l} valor={leida.valor} deshabilitado={ocupado} onSumar={(d) => sumar(l.varianteId, d)} onCambiar={(n) => cambiar(l.varianteId, n)} />
                           <EstadoLinea estado={guardado[l.varianteId]} onReintentar={() => reintentar(l.varianteId)} />
                         </span>
                       ) : (
@@ -626,8 +613,7 @@ export function TrasladoDetallePanel({
                   <button
                     type="button"
                     onClick={() => setModal("confirmar")}
-                    disabled={ocupado || resumenGuardado.errores > 0 || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    disabled={ocupado || resumenGuardado.errores > 0}
                     className="btn-cayla btn-primario"
                   >
                     Confirmar recepción
@@ -708,7 +694,7 @@ export function TrasladoDetallePanel({
           opcionesDestino={opcionesDestino}
           lectura={lectura}
           ocupado={trabajando === "confirmar"}
-          motivoSinResponsable={responsable.motivo}
+          motivoSinResponsable={null}
           onConfirmar={(destino, cerrar) => void confirmar(destino, cerrar)}
           onClose={() => setModal(null)}
         />
@@ -719,7 +705,7 @@ export function TrasladoDetallePanel({
           origenNombre={t.ubicacionOrigenNombre}
           consecuencia={consecuenciaCierre(t.lineas, conteos, { destino: lugarRecibido, sede: t.ubicacionDestinoNombre })}
           ocupado={trabajando === "cerrar"}
-          motivoSinResponsable={responsable.motivo}
+          motivoSinResponsable={null}
           onCerrarTraslado={(nota, cerrar) => void cerrarConDiferencia(nota, cerrar)}
           onClose={() => setModal(null)}
         />

@@ -21,9 +21,8 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
-import { useResponsable } from "@/lib/useResponsable";
-import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
-import { nombresCortos } from "@/lib/nombre-integrante";
+import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 import {
   cambioDeDato,
   resumenDeCambios,
@@ -116,8 +115,8 @@ import type { ContextoFicha } from "@/components/ficha-producto/piezas";
        barra «Tienes N cambios sin guardar» (`BarraDeCambios`, sobre `BarraFija`);
        ya no hay panel a la derecha: la barra es el ÚNICO camino para guardar;
      · «Revisar y guardar» abre la hoja con lo que va a cambiar y el combo
-       «Responsable» adentro (`ConfirmarCambios`); recién «Confirmar y guardar»
-       llama a la base;
+       «Confirmar y guardar» (`ConfirmarCambios`; sin combo «Responsable» desde
+       2026-09-29, clave `producto_confirmar_cambios`); recién ahí llama a la base;
      · salir con cambios pregunta (`useSalidaSinGuardar`, el mismo aviso de
        Compras y Recibir): enlaces, Atrás y cerrar la pestaña.
    Qué cambió lo decide UNA función pura (`lib/producto-cambios-reglas.ts`) que
@@ -303,9 +302,8 @@ export function ProductoForm({
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
-  // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las llamadas
-  // de «Confirmar y guardar» van con la misma firma: son un solo gesto).
-  const responsable = useResponsable();
+  // Editar una prenda es Catálogo; desde 2026-09-29 se guarda sin elegir responsable: todas las llamadas de «Confirmar y
+  // guardar» van con la misma firma soltada (`producto_confirmar_cambios`): son un solo gesto.
   const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto }));
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
@@ -496,16 +494,8 @@ export function ProductoForm({
    *  que tiene la base, y «Descartar» recarga en vez de volver a esa foto vieja. */
   const seGuardoAlgo = () => versionRef.current !== (producto?.version ?? null);
 
-  /** Quién firma, para decirlo en el aviso de éxito («Por Rosa · …»). Con nombre corto, igual que en el combo. */
-  function nombreDelResponsable(): string | null {
-    const todas = [...responsable.lista.elegibles, ...responsable.lista.enPausa];
-    const elegida = todas.find((p) => p.personaId === responsable.elegidoId);
-    if (!elegida) return null;
-    return nombresCortos(todas.map((p) => p.nombre)).get(elegida.nombre) ?? elegida.nombre;
-  }
-
   /** «Revisar y guardar»: lo que la base exigiría igual, dicho aquí con el campo a enfocar. Recién con todo en orden se abre la
-   *  hoja «Revisa y guarda los cambios»; ahí se elige quién hace la operación y se confirma. */
+   *  hoja «Revisa y guarda los cambios»; ahí se confirma. */
   function revisar(e?: React.FormEvent) {
     e?.preventDefault();
     if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
@@ -538,18 +528,12 @@ export function ProductoForm({
     setHojaAbierta(true);
   }
 
-  /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: `false` solo cuando falló por el responsable (dejó
-   *  de estar de turno, por ejemplo) y hay que elegir a otra persona ahí mismo; con cualquier otro error se cierra para que se
-   *  vea la ficha y el campo a corregir. */
+  /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: siempre `true` (sin combo «Responsable» ya no hay
+   *  nada que elegir ahí); con un error se cierra para que se vea la ficha y el campo a corregir. */
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
-    const firma = responsable.firma();
-    if (!responsable.listo || !firma) {
-      avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
-      return false;
-    }
+    const firma = firmaOmitida("producto_confirmar_cambios");
     // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
-    const quien = nombreDelResponsable();
     const hecho = resumen.frasesPasado;
 
     setLoading(true);
@@ -598,11 +582,8 @@ export function ProductoForm({
     if (error) {
       cerrarProceso();
       setLoading(false);
-      responsable.despues(error);
-      // Por el responsable la hoja sigue abierta (se elige a otra persona ahí); con cualquier otro error se cierra ANTES de
-      // avisar, para que el foco pueda irse al campo que hay que corregir.
-      const seguirEnLaHoja = esErrorDeResponsable(error);
-      if (!seguirEnLaHoja) setHojaAbierta(false);
+      // La hoja se cierra ANTES de avisar, para que el foco pueda irse al campo que hay que corregir.
+      setHojaAbierta(false);
       if (esVersionCambiada(error)) {
         // Otra persona guardó esta prenda mientras se editaba: el formulario NO se cierra (lo escrito sigue a la vista
         // para anotarlo) y se ofrece recargar, que trae sus cambios. La barra pasa a decirlo y a ofrecer «Recargar».
@@ -619,7 +600,7 @@ export function ProductoForm({
       }
       // Cayó dos veces seguidas por el mismo choque: se dice con palabras, no con «deadlock detected».
       avisar.error(esChoqueDeCandados(error) ? FRASE_CHOQUE_DE_CANDADOS : traducirError(error, "guardar el producto"));
-      return !seguirEnLaHoja;
+      return true;
     }
     if (typeof versionNueva === "number") versionRef.current = versionNueva;
     setSeGuardoParte(true);
@@ -634,7 +615,6 @@ export function ProductoForm({
     if (errorLectura || !deLaBase) {
       cerrarProceso();
       setLoading(false);
-      responsable.despues(null);
       setHayQueRecargar(true);
       setHojaAbierta(false);
       avisar.error(`${nombrePrenda} ya quedó guardado, pero no se pudo leer cómo quedaron sus variantes.`, {
@@ -666,14 +646,12 @@ export function ProductoForm({
       if (errorEtiquetas) {
         cerrarProceso();
         setLoading(false);
-        // Si falla, la barra sigue con los cambios: «Revisar y guardar» de nuevo es el mismo gesto (salvo rechazo por responsable).
-        responsable.despues(errorEtiquetas);
-        const seguirEnLaHoja = esErrorDeResponsable(errorEtiquetas);
-        if (!seguirEnLaHoja) setHojaAbierta(false);
+        // Si falla, la barra sigue con los cambios: «Revisar y guardar» de nuevo es el mismo gesto.
+        setHojaAbierta(false);
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
           detalle: `${nombrePrenda} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para las etiquetas.`,
         });
-        return !seguirEnLaHoja;
+        return true;
       }
       actuales = marcarEtiquetasGuardadas(actuales);
       setFilas(actuales);
@@ -689,13 +667,11 @@ export function ProductoForm({
       if (errorTemporada) {
         cerrarProceso();
         setLoading(false);
-        responsable.despues(errorTemporada);
-        const seguirEnLaHoja = esErrorDeResponsable(errorTemporada);
-        if (!seguirEnLaHoja) setHojaAbierta(false);
+        setHojaAbierta(false);
         avisar.error(traducirError(errorTemporada, "guardar la temporada de los colores"), {
           detalle: `${nombrePrenda} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para la temporada de los colores.`,
         });
-        return !seguirEnLaHoja;
+        return true;
       }
       // Lo guardado = lo que había + lo que se acaba de mandar; lo elegido a mano para esos colores ya no está pendiente.
       const aplicados = cambiosColor;
@@ -710,7 +686,6 @@ export function ProductoForm({
 
     cerrarProceso();
     setLoading(false);
-    responsable.despues(null);
 
     if (sinAplicar.length > 0) {
       // Red de seguridad: la ficha no ofrece corregir sin la función de la base (`puedeCorregir`), pero si igual llega
@@ -731,7 +706,7 @@ export function ProductoForm({
     setHojaAbierta(false);
     avisar.exito(`${nombrePrenda} guardado`, {
       detalle:
-        [quien ? `Por ${quien}` : null, hechoTodo.length > 0 ? hechoTodo.join(", ") : null, creadas > 0 ? NACEN_SIN_UNIDADES : null]
+        [hechoTodo.length > 0 ? hechoTodo.join(", ") : null, creadas > 0 ? NACEN_SIN_UNIDADES : null]
           .filter(Boolean)
           .join(" · ") || undefined,
       // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se ofrece reimprimir.
@@ -1096,7 +1071,6 @@ export function ProductoForm({
           nombre={producto?.referencia ?? referencia}
           resumen={resumen}
           avisos={avisosSinBloquear}
-          control={responsable}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}
         />
