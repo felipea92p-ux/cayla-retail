@@ -1,4 +1,4 @@
-// Pantalla registrada: Inventario ▸ Conteo (rediseño 2026-09-29, ADR-0277).
+// Pantalla registrada: Inventario ▸ Conteo (rediseño 2026-09-29, ADR-0282).
 //
 // Tres escenarios: el Inicio (formulario para abrir, o la tarjeta «en curso» si ya hay un conteo abierto), Contar y Revisar.
 // Los dos últimos necesitan un conteo abierto: si no hay uno, ABREN uno de la primera sububicación (almacén) en la base

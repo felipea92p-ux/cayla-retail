@@ -115,7 +115,9 @@ export function SeriesPanel({
             <Ayuda titulo="Series de comprobantes">
               La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
               caracteres. En facturación electrónica las defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
-              tienda (B004 Trujillo, B005 Arequipa) para saber de dónde vino cada venta. El correlativo lo lleva el sistema.
+              tienda (B001 Trujillo, B002 Arequipa, B003 Lima) para saber de dónde vino cada venta. Las notas de crédito llevan la letra del
+              documento que corrigen: BC.. si corrigen boletas y FC.. si corrigen facturas, así que cada tienda lleva las dos. El correlativo
+              lo lleva el sistema.
             </Ayuda>
           </h2>
           <p className="mt-0.5 text-xs text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>

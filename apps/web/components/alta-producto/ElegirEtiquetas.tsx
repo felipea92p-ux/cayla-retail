@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Search } from "lucide-react";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { MuestraEtiqueta, TONOS } from "@/components/MuestraEtiqueta";
 import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
 import { Modal } from "@/components/ui/Modal";
@@ -24,7 +23,7 @@ import {
   significadoDelTexto,
   textoDeDescuento,
 } from "@/lib/etiquetas-alta-reglas";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -42,7 +41,7 @@ import { useResponsable } from "@/lib/useResponsable";
      ASUME:   `etiquetas` = aprobadas y activas (lo que trae `getContextoAlta`, más las creadas aquí). Quien no es líder
               no ve las que llevan descuento (`repartirEtiquetas`): la base las rechazaría, así que ni se ofrecen.
      NO HACE: no guarda la prenda ni sus etiquetas (eso es del envío del formulario, `p_etiqueta_ids`); solo crea una
-              etiqueta NUEVA en el vocabulario, y solo con conexión y con un responsable de turno (ADR-0161).
+              etiqueta NUEVA en el vocabulario, y solo con conexión (sin combo «Responsable» desde 2026-09-29).
 
    A diferencia de Tejido/Patrón/Temporada: acá se elige de a VARIAS (no una), así que tocar una tarjeta en la hoja NO
    la cierra, y el «Ver todos» cuenta el universo entero (elegibles + cubiertas), no solo lo que ofrece una categoría.
@@ -407,8 +406,7 @@ function HojaEtiquetas({
   );
 }
 
-// «Crear» es UNA escritura aparte del producto (ADR-0161): lleva su propio combo «Responsable», igual que «+ Nuevo tejido».
-// Vive en la parte ABIERTA para que el formulario no lea la asistencia (`useResponsable`) por un campo que nadie usó.
+// «Crear» es UNA escritura aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_etiqueta`).
 // NO va dentro de la transacción del alta: si crear la etiqueta fallara a mitad, la persona perdería la prenda que llenaba.
 // Si la red cae, la respuesta es «No se pudo hablar con el servidor» y NO se crea nada: la prenda y lo llenado siguen ahí.
 // Lo que pasa después lo decide la RESPUESTA (¿quedó aprobada?), no lo que este panel anunció: `puedeAprobar` solo cambia el texto.
@@ -425,22 +423,20 @@ function CrearEtiquetaAbierta({
   onPendiente: (valor: ValorCreado) => void;
   onCerrar: () => void;
 }) {
-  const responsable = useResponsable();
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panel = useRef<HTMLDivElement>(null);
 
   async function crear() {
-    if (trabajando || !responsable.listo) return;
+    if (trabajando) return;
     setTrabajando(true);
     setError(null);
-    const { valor, error: errCrear } = await proponerEtiqueta(nombre, responsable.encabezados());
+    const { valor, error: errCrear } = await proponerEtiqueta(nombre, encabezadosOmitidos("alta_producto_etiqueta"));
     setTrabajando(false);
     if (errCrear || !valor) {
       setError(errCrear ?? "No se pudo crear la etiqueta. Reintenta.");
       return;
     }
-    responsable.despues(null);
     if (valor.aprobado) onAprobada(valor);
     else onPendiente(valor);
   }
@@ -468,9 +464,8 @@ function CrearEtiquetaAbierta({
           ? "Queda en el catálogo para usarla en otras prendas, y se marca en esta."
           : "Queda pendiente: un líder tiene que aprobarla en Catálogo → Atributos antes de poder marcarla en una prenda."}
       </p>
-      <ComboResponsable control={responsable} deshabilitado={trabajando} compacto className="max-w-sm" />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void crear()} disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
+        <button type="button" onClick={() => void crear()} disabled={trabajando} className="btn-cayla btn-primario">
           {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
         </button>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">

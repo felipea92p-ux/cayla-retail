@@ -2,13 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@cayla-retail/database";
 import { encabezadosResponsable, type Firma } from "@/lib/responsable-reglas";
+import type { FirmaOmitida } from "@/lib/responsable-omitido";
 
 /**
  * @param opciones.firma — solo en rutas `/api/*` que guardan una operación de tienda: la firma del combo «Responsable»
  *   que mandó la pantalla (`firmaDeEncabezados(request.headers)`, ADR-0161/0162). Viaja en cada consulta de este
- *   cliente como `x-responsable`/`x-ubicacion`, que la base lee en `fn_actor_persona_id`. Sin firma, igual que antes.
+ *   cliente como `x-responsable`/`x-ubicacion` (o, en una acción soltada del combo, `x-responsable-omitido`), que la base lee en
+ *   `fn_actor_persona_id`. Sin firma, igual que antes.
  */
-export async function createClient(opciones: { firma?: Firma | null } = {}) {
+export async function createClient(opciones: { firma?: Firma | FirmaOmitida | null } = {}) {
   const cookieStore = await cookies();
   return createServerClient<Database, "retail">(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

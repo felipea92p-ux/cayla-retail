@@ -3,7 +3,6 @@
 import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Desplegable } from "@/components/ui/campos";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -14,7 +13,7 @@ import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
 import { useEnLinea } from "@/lib/useEnLinea";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 // «+ Nuevo color» sin salir de Nuevo producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -35,8 +34,7 @@ import { useResponsable } from "@/lib/useResponsable";
 // loader). Si esa lectura falla, se sugiere con los activos y, si choca, la API responde «Ese código de 3 letras ya lo
 // usa otro color» y se muestra tal cual.
 //
-// Responsable (ADR-0161): crear un color es un guardado aparte del producto, con su propio combo. Vive en este
-// componente, que solo se monta al abrir el formulario: no se lee la asistencia por un botón que nadie tocó.
+// Crear un color es un guardado aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_color`).
 
 export function NuevoColorAlta({
   colores,
@@ -65,7 +63,6 @@ export function NuevoColorAlta({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(false);
-  const responsable = useResponsable();
   const enLinea = useEnLinea();
   const id = useId();
 
@@ -104,13 +101,13 @@ export function NuevoColorAlta({
 
   async function crear() {
     setIntento(true);
-    if (guardando || bloqueo || !responsable.listo) return;
+    if (guardando || bloqueo) return;
     setGuardando(true);
     setError(null);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("alta_producto_color") },
         body: JSON.stringify({ nombre: nombreDeColor(nombre), codigo, familiaColor: familia, hex }),
       });
       const datos = await res.json().catch(() => null);
@@ -119,7 +116,6 @@ export function NuevoColorAlta({
         setError((datos as { error?: string } | null)?.error ?? "No se pudo crear el color. Vuelve a intentarlo.");
         return;
       }
-      responsable.despues(null);
       avisar.exito(`${leido.color.nombre} creado y elegido`);
       onCreado(leido.color, leido.pendiente);
     } catch {
@@ -232,12 +228,11 @@ export function NuevoColorAlta({
       )}
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <ComboResponsable control={responsable} deshabilitado={guardando} className="max-w-xs" />
         <button
           type="button"
           onClick={() => void crear()}
-          disabled={guardando || !responsable.listo || !enLinea || mismoNombre}
-          title={(!enLinea || mismoNombre ? bloqueo : responsable.motivo) ?? undefined}
+          disabled={guardando || !enLinea || mismoNombre}
+          title={(!enLinea || mismoNombre ? bloqueo : null) ?? undefined}
           className="btn-cayla btn-primario"
         >
           {guardando ? "Creando…" : "Crear y elegir"}

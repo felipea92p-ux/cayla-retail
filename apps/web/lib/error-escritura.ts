@@ -436,7 +436,7 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * `hint` de las reglas del Conteo (rediseño 2026-09-29, `20260929170100_conteo_rediseno_funciones.sql`): `abrir_conteo`,
+ * `hint` de las reglas del Conteo (rediseño 2026-09-29, `20260930010100_conteo_rediseno_funciones.sql`): `abrir_conteo`,
  * `conteo_contar`, `conteo_recontar`, `conteo_confirmar_diferencia` y `cerrar_conteo` levantan `P0001` con un `hint` estable
  * por cada regla. Cada uno tiene su frase acá —dicha desde quien cuenta, con qué hacer— y se mira ANTES que el `P0001`
  * genérico: así el texto que ve la colaboradora no depende de cómo redacte el mensaje la función de Postgres.

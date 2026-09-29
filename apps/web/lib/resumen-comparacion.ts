@@ -1,11 +1,11 @@
 import { RANGOS_SELL_THROUGH_PCT, SELL_THROUGH_CAMBIO_RELEVANTE_PP, TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "./inventario-reglas";
-import { calcularSellThrough, calcularTendencia, calcularVelocidad, listarCategorias, evaluarExactitud, type EstadoCosto, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
+import { calcularSellThrough, calcularTendencia, calcularVelocidad, evaluarExactitud, type EstadoCosto, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
 import type { CamposBusqueda } from "./resumen-busqueda";
 import { aplicarAlcance, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen } from "./resumen-filtros";
 import { formatoRotacion, formatoSellThrough, formatoVariacion, formatoVelocidad, pluralizar } from "./resumen-formato";
 import { baseRotacionDeVariante, calcularRotacion, costoEsVerificable, rotacionComparada, valorInventario, variacionRotacionPct, type BaseRotacion, type MotivoSinRotacion, type RotacionComparada } from "./rotacion";
 import { leerEventosPiso, rotacionUnidades, type EventoPiso, type RotacionUnidades } from "./inventario-exposicion";
-import { diasDelRango, etiquetaRango, resolverComparacion, type ModoComparacion, type PeriodoResuelto, type Rango } from "./resumen-periodo";
+import { diasDelRango, etiquetaRango, hoyEnLima, MAX_DIAS_PERIODO, parseIso, resolverComparacion, type ModoComparacion, type PeriodoResuelto, type Rango } from "./resumen-periodo";
 import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
 
 // Comparación de dos períodos, A contra B (2026-09-19, ADR-0138). Puro y sin servidor: `fn_resumen_comparacion`
@@ -716,7 +716,10 @@ export function leerVistaComparacion(p: ParamsCrudos): { alcance: AlcanceResumen
   const cambioUrl = primero(p.cambio);
   const orden = primero(p.orden);
   return {
-    alcance,
+    // Comparar NO tiene filtro de categoría (2026-09-29, Felipe: «eliminarlo completamente»): un `cat` en la URL —de
+    // Desempeño, que sí lo tiene, o de un enlace viejo— se ignora, para que ningún filtro quede aplicado sin un control
+    // que lo muestre. La búsqueda sí: es la misma de Desempeño.
+    alcance: { ...alcance, categoriaId: null },
     cambio: FILTROS_CAMBIO.find((f) => f.valor === cambioUrl)?.valor ?? "todos",
     orden: OPCIONES_ORDEN_COMPARACION.find((o) => o.valor === orden)?.valor ?? "vendidos_b",
     pagina,
@@ -744,9 +747,8 @@ export type ComparacionParaPantalla = {
   evolucion: EvolucionRitmoTotal;
   ranking: AnalisisComparacion[];
   distribucion: DistribucionSellThrough;
-  /** Cuántas variantes hay en cada filtro del detalle (dentro del alcance de categoría y búsqueda). */
+  /** Cuántas variantes hay en cada filtro del detalle (dentro del alcance de la búsqueda). */
   conteoCambios: Record<Exclude<FiltroCambio, "todos">, number>;
-  categorias: { id: string; nombre: string; variantes: number }[];
   tabla: { filas: AnalisisComparacion[]; pagina: number; paginas: number; total: number; totalAlcance: number; totalSede: number };
   exactitud: EstadoExactitud;
   /** Cosas que la persona debe saber antes de creer una cifra (períodos de distinta duración, superpuestos…). */
@@ -755,9 +757,25 @@ export type ComparacionParaPantalla = {
   estimadas: number;
 };
 
+/**
+ * Las fechas de B en Comparar (2026-09-29). Hasta ahora B era SIEMPRE el período de Desempeño (`preset`/`desde`/`hasta`,
+ * ADR-0138), así que elegir B aquí le cambiaba el período a Desempeño, y elegir «7 días» allá le cambiaba B a Comparar:
+ * la persona no podía dejar sus dos períodos «fijos». Ahora, en cuanto B se elige en Comparar, sus fechas viven en la URL
+ * propia `bdesde`/`bhasta` y le ganan a las de Desempeño; mientras B no se haya elegido aquí sigue siendo el período que
+ * se venía analizando (el mismo traspaso de siempre, y los enlaces viejos con `preset`/`desde`/`hasta` siguen sirviendo).
+ * A ya tenía sus propios parámetros (`comparar`, `cdesde`, `chasta`).
+ */
+export function paramsDeComparar(params: ParametrosResumen): ParametrosResumen {
+  const desde = primero(params.bdesde);
+  const hasta = primero(params.bhasta);
+  if (!desde || !hasta) return params;
+  // Fechas rotas: `resolverPeriodo` cae en los últimos 30 días y lo dice en su `advertencia`.
+  return { ...params, preset: "personalizado", desde, hasta };
+}
+
 /** Qué fechas hay que pedirle a la RPC: A es «comparar con» y B el período analizado. */
 export function rangosDeLaComparacion(params: ParametrosResumen, ahora: Date): { rangoA: Rango; modoA: ModoComparacion; periodoB: PeriodoResuelto } {
-  const { periodo, modo, comparacion } = rangosDelResumen(params, ahora);
+  const { periodo, modo, comparacion } = rangosDelResumen(paramsDeComparar(params), ahora);
   if (comparacion) return { rangoA: comparacion, modoA: modo, periodoB: periodo };
   // «Sin comparación» no tiene sentido aquí: A es obligatorio y se cae en «período anterior».
   return { rangoA: resolverComparacion(periodo, "anterior")!, modoA: "anterior", periodoB: periodo };
@@ -771,6 +789,37 @@ export function rangosDeLaComparacion(params: ParametrosResumen, ahora: Date): {
 export function avisoSinHistorialEnA(filas: readonly FilaComparacion[]): string[] {
   const hubo = filas.some((f) => f.a.stockInicio > 0 || f.a.stockCierre > 0 || f.a.ventas > 0 || f.a.entradas > 0);
   return filas.length > 0 && !hubo ? ["El período A es anterior al historial de esta sede: no tiene stock, ventas ni entradas que comparar. Elige un A más reciente."] : [];
+}
+
+/**
+ * Lo que la persona escribió para A y el servidor no pudo respetar tal cual (2026-09-29). B ya lo explicaba con la
+ * `advertencia` de `resolverPeriodo`; A cambiaba EN SILENCIO —un A en el futuro se sustituía por «el período justo antes de
+ * B» y el único aviso decía «anterior al historial», que culpa a los datos, no a lo escrito—. Mismos casos y mismas palabras
+ * que B, para que un rango inválido se diga igual sea A o B. Fechas al revés no son un error (se ordenan solas); un A que
+ * nadie pidió a mano («período anterior» por defecto) no tiene nada que avisar.
+ */
+export function avisoDelPeriodoA(params: ParametrosResumen, hoy: string): string[] {
+  if (primero(params.comparar) !== "personalizado") return [];
+  const desde = primero(params.cdesde);
+  const hasta = primero(params.chasta);
+  if (!desde || !hasta || !parseIso(desde) || !parseIso(hasta)) {
+    return ["Elige las dos fechas del período A; mientras tanto se muestra el período justo antes de B."];
+  }
+  const [ini, fin] = desde <= hasta ? [desde, hasta] : [hasta, desde];
+  if (ini > hoy) return ["El período A no puede empezar en el futuro; se muestra el período justo antes de B."];
+  if (diasDelRango({ desde: ini, hasta: fin > hoy ? hoy : fin }) > MAX_DIAS_PERIODO) return [`El período A se acortó a ${MAX_DIAS_PERIODO} días (el máximo).`];
+  if (fin > hoy) return ["El período A llega hasta hoy: no hay ventas de días que aún no pasaron."];
+  return [];
+}
+
+/**
+ * La `advertencia` de B (`resolverPeriodo`, escrita para una pantalla con UN solo período: «El período llega hasta hoy…»)
+ * dicha con su letra. En Comparar aparece junto a las de A, y sin la letra no se sabría de cuál habla. Un texto que no
+ * empiece como los conocidos queda tal cual: mejor un aviso sin letra que uno inventado.
+ */
+export function avisoDelPeriodoB(advertencia: string | null): string[] {
+  if (!advertencia) return [];
+  return [advertencia.replace(/^(El período|Elige las dos fechas del período)/, "$1 B")];
 }
 
 export function avisosDeComparacion(a: Rango, b: Rango): string[] {
@@ -814,17 +863,18 @@ export function armarComparacion(e: {
     alcance,
     cambio,
     orden,
-    // Los agregados salen de TODO el alcance (categoría y búsqueda): el filtro de cambio solo recorta la tabla,
+    // Los agregados salen de TODO el alcance (la búsqueda): el filtro de cambio solo recorta la tabla,
     // así tocar «Aceleraron» en la dona no mueve ninguna cifra.
     kpis: calcularKpis(enAlcance),
     evolucion: evolucionRitmoTotal(enAlcance),
     ranking: rankingRotacion(enAlcance),
     distribucion: distribucionSellThrough(enAlcance),
     conteoCambios: contarCambios(enAlcance),
-    categorias: listarCategorias(todas),
     tabla: { filas: p.items, pagina: p.pagina, paginas: p.paginas, total: p.total, totalAlcance: enAlcance.length, totalSede: todas.length },
     exactitud: evaluarExactitud(e.conteos, e.ahora),
-    avisos: [...avisosDeComparacion(rangoA, rangoB), ...avisoSinHistorialEnA(e.filas)],
+    // Primero lo que se escribió y no se pudo respetar (A y B), después si los dos períodos se pueden comparar, al final si
+    // A tiene historial.
+    avisos: [...avisoDelPeriodoA(e.params, hoyEnLima(e.ahora)), ...avisoDelPeriodoB(periodoB.advertencia), ...avisosDeComparacion(rangoA, rangoB), ...avisoSinHistorialEnA(e.filas)],
     estimadas: enAlcance.filter((x) => !x.fila.ledgerConsistente).length,
   };
 }

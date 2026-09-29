@@ -301,7 +301,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «Terminé de contar» muestra lo enviado; `TrasladoConfirmarModal` → `confirmar_traslado(p_destino)` (piso o
   almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;
   `TrasladoAnularModal` → `anular_traslado` (origen o líder, sin conteos)).
-- `/inventario/conteo` (**Conteo rediseñado**, ADR-0277, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
+- `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
   **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 4 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
   categorías y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y
   `AccionesEnCurso`; sin abierto, `AbrirConteo.tsx`: dónde/qué/quién en tres preguntas, `rpc abrir_conteo`) + `ConteosLista.tsx` («Conteos recientes»: Todo correcto /
@@ -333,7 +333,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   uno solo si el rol ve esa pantalla.
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
-  `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.
+  `modo=comparar`, `bdesde`, `bhasta`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`; `cat` es solo de Desempeño:
+  Comparar la ignora). La sede es SIEMPRE la del selector global.
   Tres responsabilidades, una pantalla cada una: **Existencias** = qué hay AHORA (con su cobertura),
   **Análisis › Desempeño** = cómo se comportó el inventario en el período, **Análisis › Comparar períodos** =
   qué cambió entre dos períodos. El análisis NO mezcla el stock de hoy con métricas del período; Comparar
@@ -356,10 +357,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `/inventario/bajar?lineas=`, `/inventario/mover?lineas=`, `/etiquetas-de-precio?variantes=`, `/produccion/ordenes`,
   `/compras/nueva`, o abren `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede` (ADR-0242 D-7). ADR-0171, ADR-0245.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
-  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
-  píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
-  abre el MISMO selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano;
-  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: la MISMA tarjeta «PERÍODO
+  ANALIZADO» de Desempeño (`MarcoPeriodoAnalizado` en `ResumenControles`; ADR-0277) con dos píldoras «Período A: 1 ago. →
+  30 ago.» y «Período B: …» en lugar de los atajos, la búsqueda debajo y sin categoría; cada píldora abre el MISMO
+  selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano—. Los avisos
+  (un A o un B escrito que no se pudo respetar, períodos de distinta duración o superpuestos, A sin historial) salen
+  dentro de la tarjeta y solo cuando aplican. B tiene URL propia (`bdesde`/`bhasta`; mientras no se elige en Comparar
+  sigue siendo el período de Desempeño, ADR-0138) y A la suya (`comparar=personalizado`, `cdesde`, `chasta`); lo elegido
+  se recuerda por sede y por persona en el navegador (`lib/resumen-periodos-guardados.ts`, sobre `almacen-local`) y siembra
+  la URL al entrar a Comparar (el clic de la pestaña, `ResumenCabecera`, o el montaje del panel) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
   ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
   «Distribución de sell-through», los tres en una fila) + `…Detalle` DEBAJO, en la misma pantalla (desde el 2026-09-22
   ya no hay «Vista general / Detalle»: la dona filtra la tabla con `?cambio=`). La columna «Cambio relevante» de las
@@ -376,7 +382,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · Comunes: `ResumenCabecera` (pestañas Desempeño | Comparar períodos), `ResumenActualizado` («Actualizado
   hh:mm ⓘ»), `ResumenBanner` (exactitud), `ResumenBloques` (solo la tarjeta `Bloque`), `ui/BuscadorDebounced`
   (el campo de búsqueda con espera de 350 ms, antes duplicado entre Desempeño y Comparar), `resumen-periodo`,
-  `resumen-filtros` (alcance + bandas de sell-through), `resumen-busqueda`.
+  `resumen-periodos-guardados` (los períodos A y B que la persona dejó elegidos en Comparar), `resumen-filtros` (alcance
+  + bandas de sell-through), `resumen-busqueda`.
   · Sin UI desde ADR-0138 (dependían del stock de hoy y salieron del análisis): las 5 tarjetas de señales, la
   tabla de prioridades con acciones, el detalle/capital en modal y los 3 bloques inferiores. Su LÓGICA sigue en
   `lib/` (`resumen-reglas` motor de reposición, curvas rotas y capital; `resumen-acciones`; `armarResumen`),
@@ -409,7 +416,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   solo ofrece «Confirmar de nuevo», o «Comprobar» si el borrador ya se había enviado; mientras se guarda o el loader
   está a la vista, lo que manda la pistola va a un búfer, `esperaOcupada()` de `lib/espera-estado.ts`) → RPC
   `bajar_al_piso`. La base se toca una sola vez, al confirmar.
-- `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
+- `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?producto=` también desde el éxito de Nuevo producto; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
   pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
   `produccion_id`, o el `stock` de la tienda de la sesión para una campaña o un producto; el alcance de una campaña y la
   campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +
@@ -472,6 +479,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   escrito a la vista y cambia la barra a «Recargar la prenda». Salir con cambios sin guardar pregunta
   (`components/ui/useSalidaSinGuardar.tsx`: enlaces del menú, «← Productos», Atrás, cerrar la pestaña) y al guardar, el aviso
   dice qué cambió y quién firmó (`avisar.exito` con `detalle`) antes de volver a `/productos`.
+  **Fotos por color (ADR-0279, 2026-09-29):** la sección «Fotos» de la ficha es `components/ficha-producto/FotosPorColor.tsx`
+  (reemplazó a `components/FotosProducto.tsx`, la galería suelta con un combo de los 71 colores): un rectángulo por cada color
+  que la prenda vende (`coloresFicha`, las variantes activas), con su portada o «Agregar foto de Beige», más «Todos los colores»
+  y un bloque para las fotos de un color sin variantes activas. Las reglas —qué ve cada color, la principal, el orden, pasar de
+  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → revisar (`RevisarFotosModal`, ADR-0228) → subir
+  es el hook `components/ficha-producto/useSubirFotos.tsx`, que también usa `AgregarColoresModal` (casilla «Foto de cada
+  color»; sus fotos suben a la ficha por `VariantesFicha.onFotosDeColores` → `ProductoForm.sumarFotosDeColores`). Recibe las
+  fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
+  `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
@@ -501,6 +517,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
   copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
   a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
+  Su pantalla de éxito (`components/alta-producto/ProductoCreado.tsx`) ofrece «Imprimir etiquetas» —en otra pestaña,
+  `/etiquetas-de-precio?producto=`— solo si el producto entró con stock (`etiquetasDelAlta`, ADR-0180 act. 2026-09-29).
   Las **etiquetas** (ADR-0109, act. 2026-09-27 c) son una fila del paso 3 «Cómo se hace» (después de Colores, antes de
   Fotos — no del paso 2, que es puro texto): `components/alta-producto/ElegirEtiquetas.tsx`, con el mismo molde que
   Tejido, Patrón y Temporada (uniformidad 2026-09-29, `components/alta-producto/GrillaMuestras.tsx`): una grilla chica
@@ -856,8 +874,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   con `itemsParaLucode`) → `lib/lucode.ts` → `actualizar_transmision_comprobante`, o
   `fn_marcar_reintento_transmision` si Lucode no responde. `/api/lucode/reintentar` toma lo vencido con
   `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`). La numeración sale
-  de `fn_reservar_numero_serie` (solo la serie activa), que llaman `emitir_comprobante`, `emitir_nota` y
-  `aprobar_devolucion`. El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →
+  de `fn_reservar_numero_serie` (solo la serie activa; en las notas, la de la letra del original: BC.. corrige
+  boletas, FC.. facturas, ADR-0278), que llaman `emitir_comprobante` y `emitir_nota` (esta última desde
+  `aprobar_devolucion`). El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →
   `lib/padron.ts` → padrón externo (RENIEC/SUNAT); formato y dígito verificador en
   `packages/shared/src/documento.ts`. ADR-0008.
 - `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
@@ -1082,10 +1101,10 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `fn_es_llegada_a_cayla(tipo, motivo, lote, producción, recepción)` (2026-09-27, ADR-0208 revisión 5 del paso 3, `20260928120310`; **sin pegar**; interna, sin `EXECUTE` para nadie) | La llegada A CAYLA: `fn_es_llegada` sin la recepción de un traslado (lote, producción o carga inicial). De ella sale el fin de estación en `fn_frescura_sede` (la temporada cuenta desde que la prenda llegó a la empresa, no a la tienda) |
 | `fn_verificar_bajadas()` (2026-09-25, ADR-0208; `0200`, en producción: 0 filas según Felipe, 2026-09-25; solo SQL Editor) | Bajadas sin ítems y ítems cuyo movimiento no sea almacén → piso de la misma tienda, misma prenda y cantidad. Debe dar 0 filas |
 | `fn_prenda_corta(p_variante_id)` (2026-09-25, ADR-0208; `0200`, **pegada en producción** según Felipe) | El nombre legible de una prenda en los mensajes de `bajar_al_piso` («referencia · talla · color», omitiendo las partes vacías). Solo la usan otras funciones: `revoke` a `public`, `anon` y `authenticated` |
-| `fn_conteos_resumen` (2026-09-16; **reescrita 2026-09-29, ADR-0277, `20260929170100`, sin pegar**) | Lista de conteos de una ubicación con `lineas`/`sistema`/`contado`/`diferencia` de las líneas VERIFICADAS (`cantidad_contada` no nula), más `pendientes` y `parcial`; ya no trae `soles_diferencia`; `security invoker` (RLS de conteos decide). Alimenta Inicio de Conteo y la exactitud de Análisis (lee `lineas`, `lineas_con_diferencia`, `estado`, `cerrado_en`, que no cambian de sentido). ADR-0071 |
-| `abrir_conteo` / `conteo_contar` / `conteo_recontar` / `conteo_confirmar_diferencia` / `cerrar_conteo(p_conteo, p_parcial)` (2026-09-29, ADR-0277, `20260929170100`; **solo local: sin pegar**) | El ciclo del conteo. `abrir_conteo` congela la foto (una fila por variante con stock > 0 de la sububicación, `contada` NULL) y exige sububicación en tiendas con piso y almacén; `conteo_contar` lee el stock bajo `for share` y guarda el «debe haber» de ese instante (devuelve la línea como jsonb); `conteo_recontar` y `conteo_confirmar_diferencia` mueven una línea con diferencia; `cerrar_conteo` aplica cada diferencia como delta `ajuste/conteo` sobre el stock actual (todo o nada) y deja intactas las pendientes de un cierre parcial. Firman con `fn_actor_persona_id(true)` |
-| `fn_conteo_detalle(p_conteo)` (2026-09-29, ADR-0277; **sin pegar**; lectura) | Un conteo completo en UN jsonb (`conteo`, `resumen`, `lineas[]` con `debe_haber`, `foto`, `contada`, `anterior`, `actual`, `estado`): un solo renglón, no lo alcanza el tope de 1.000 filas de PostgREST. La regla de estados vive en el ayudante interno `fn_conteo_lineas_json` |
-| ~~`previsualizar_cierre_conteo`~~ / ~~`fn_prioridad_conteo`~~ / ~~`fn_soles_diferencia_conteo`~~ (**eliminadas** en `20260929170100`, sin pegar) | Retiradas con el rediseño (ADR-0277): ninguna otra función las llamaba |
+| `fn_conteos_resumen` (2026-09-16; **reescrita 2026-09-29, ADR-0282, `20260930010100`, sin pegar**) | Lista de conteos de una ubicación con `lineas`/`sistema`/`contado`/`diferencia` de las líneas VERIFICADAS (`cantidad_contada` no nula), más `pendientes` y `parcial`; ya no trae `soles_diferencia`; `security invoker` (RLS de conteos decide). Alimenta Inicio de Conteo y la exactitud de Análisis (lee `lineas`, `lineas_con_diferencia`, `estado`, `cerrado_en`, que no cambian de sentido). ADR-0071 |
+| `abrir_conteo` / `conteo_contar` / `conteo_recontar` / `conteo_confirmar_diferencia` / `cerrar_conteo(p_conteo, p_parcial)` (2026-09-29, ADR-0282, `20260930010100`; **solo local: sin pegar**) | El ciclo del conteo. `abrir_conteo` congela la foto (una fila por variante con stock > 0 de la sububicación, `contada` NULL) y exige sububicación en tiendas con piso y almacén; `conteo_contar` lee el stock bajo `for share` y guarda el «debe haber» de ese instante (devuelve la línea como jsonb); `conteo_recontar` y `conteo_confirmar_diferencia` mueven una línea con diferencia; `cerrar_conteo` aplica cada diferencia como delta `ajuste/conteo` sobre el stock actual (todo o nada) y deja intactas las pendientes de un cierre parcial. Firman con `fn_actor_persona_id(true)` |
+| `fn_conteo_detalle(p_conteo)` (2026-09-29, ADR-0282; **sin pegar**; lectura) | Un conteo completo en UN jsonb (`conteo`, `resumen`, `lineas[]` con `debe_haber`, `foto`, `contada`, `anterior`, `actual`, `estado`): un solo renglón, no lo alcanza el tope de 1.000 filas de PostgREST. La regla de estados vive en el ayudante interno `fn_conteo_lineas_json` |
+| ~~`previsualizar_cierre_conteo`~~ / ~~`fn_prioridad_conteo`~~ / ~~`fn_soles_diferencia_conteo`~~ (**eliminadas** en `20260930010100`, sin pegar) | Retiradas con el rediseño (ADR-0282): ninguna otra función las llamaba |
 | `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
 | `fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta)` (2026-09-19, **solo local: no aplicada en producción**; la usan Desempeño —con el período partido en dos mitades— y Comparar períodos) | Por variante de UNA sede y para cada período A/B: unidades vendidas y devueltas (misma clasificación por FK que `fn_resumen_variantes`), importe cobrado, costo de lo vendido y de lo devuelto EN COMPONENTES (COGS: `venta_items.costo_unitario`, el costo de ese día) y unidades sin costo, entradas (lo que llegó de afuera), stock utilizable al inicio y al cierre reconstruido del ledger (saldo(t) = saldo de hoy − Σ movimientos posteriores) y días con stock; `ledger_consistente`. Solo `fn_es_lider()` con `fn_puede_operar_ubicacion` (0 filas para un colaborador). `security definer`, `revoke … from public, anon`. NO decide nada: las reglas viven en `lib/resumen-comparacion.ts`. ADR-0138 |
 | `fn_movimientos_variantes` / `fn_busqueda_singulares` / `fn_busqueda_formas_color` (2026-09-21, ADR-0071; **en `main` y en local, pendiente en producción**) | El Filtro de búsqueda especial en SQL: `fn_movimientos_variantes(text) returns uuid[]` (misma firma y permisos que antes; NULL si no hay nada escrito) parte lo escrito en términos y exige todos, sobre nombre, SKU, códigos, color y talla; las dos ayudas llevan las reglas de plural, género y alias de color. Espejo de `lib/filtro-busqueda-especial.ts`, atado por `filtro-busqueda-especial.casos.json` y `pnpm pruebas:fn-movimientos-busqueda-especial`. La usa `fn_movimientos_busqueda`. |

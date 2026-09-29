@@ -530,7 +530,7 @@ begin
   -- ---------- conteo con diferencia real, acotado al piso (Lima separa
   -- piso/almacén desde 20260914210000_inventario_piso_almacen.sql — un
   -- conteo de "toda la ubicación" ya no es válido ahí, hay que elegir) ----------
-  -- Rediseño del conteo (20260929170100): al abrir, cada variante con stock en el piso queda «pendiente» (foto), y el
+  -- Rediseño del conteo (20260930010100): al abrir, cada variante con stock en el piso queda «pendiente» (foto), y el
   -- conteo no se cierra hasta que no quede ninguna pendiente y toda diferencia esté confirmada. Este seed verifica
   -- todas, deja UNA con diferencia (la blusa, una de menos) y la CONFIRMA antes de cerrar: sin la confirmación,
   -- `cerrar_conteo` rechaza el cierre (hint diferencias_sin_confirmar).

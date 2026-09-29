@@ -13,6 +13,8 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
+import { useSedeActiva } from "@/components/SedeActiva";
 
 // Apartar una prenda para una clienta (ADR-0141): `retail.apartar_prenda` (ADR-0240: `apartar_stock` + el módulo «Apartados»). La prenda sigue físicamente
 // en la tienda —el conteo no cambia— pero deja de estar DISPONIBLE: ninguna caja puede cobrarla ni
@@ -49,8 +51,12 @@ export function ApartarModal({
   // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
   // una red que se cae), la base devuelve lo ya guardado en vez de apartar la prenda dos veces. Uno por cada vez que se abre la ventana.
   const token = useRef<string>(crypto.randomUUID());
-  // Apartar guarda en la tienda (deja la prenda no disponible): pide Responsable (ADR-0161).
+  // Apartar guarda en la tienda (deja la prenda no disponible). Con la cuenta de una PERSONA va sin responsable (Felipe,
+  // 2026-09-29: firma ella); en una terminal el combo se queda: `separaciones.creado_por` es NOT NULL y `apartar_stock`
+  // rechaza un actor vacío.
   const responsable = useResponsable();
+  const esPersona = Boolean(useSedeActiva()?.personaSesionId);
+  const listo = esPersona || responsable.listo;
 
   const disponible = donde === "piso" ? pisoDisponible : almacenDisponible;
   const errores = validarApartar({ cantidad, clienta, contacto, fecha }, disponible, hoy);
@@ -60,7 +66,7 @@ export function ApartarModal({
     e.preventDefault();
     setIntento(true);
     if (Object.keys(errores).length > 0) return;
-    if (!responsable.listo) return;
+    if (!listo) return;
 
     setEnviando(true);
     // La puerta con el candado de «Apartados» (ADR-0240); `apartar_stock` ya no se llama desde el navegador.
@@ -74,9 +80,9 @@ export function ApartarModal({
       p_nota: nota.trim() || undefined,
       p_sububicacion_id: (donde === "piso" ? sububicacionPiso : sububicacionAlmacen).id,
       p_token: token.current,
-    }), responsable.firma());
+    }), esPersona ? firmaOmitida("apartar_prenda") : responsable.firma());
     setEnviando(false);
-    responsable.despues(error);
+    if (!esPersona) responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "apartar la prenda"));
       return;
@@ -155,7 +161,7 @@ export function ApartarModal({
             placeholder="Ej. la pasa a recoger por la tarde"
           />
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          {!esPersona && <ComboResponsable control={responsable} deshabilitado={enviando} />}
 
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
@@ -165,8 +171,8 @@ export function ApartarModal({
               type="submit"
               peso="primario"
               cargando={enviando}
-              disabled={!responsable.listo}
-              title={responsable.motivo ?? undefined}
+              disabled={!listo}
+              title={esPersona ? undefined : (responsable.motivo ?? undefined)}
               className="flex-1"
             >
               Apartar

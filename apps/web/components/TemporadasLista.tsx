@@ -17,6 +17,7 @@ import { Boton, CampoTexto, Desplegable, Segmentado } from "@/components/ui/camp
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import type { Confirmacion } from "@/lib/confirmar-catalogo";
+import { encabezadosOmitidos, type ClaveSinResponsable } from "@/lib/responsable-omitido";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import {
   calendarioPorAnio,
@@ -81,11 +82,12 @@ function entra(i: number): { className: string; style: CSSProperties } {
 
 type Carga = { datos: DatosPestanaTemporadas } | { nota: string } | null;
 
-async function enviar(cuerpo: Record<string, unknown>, responsable: ControlResponsable): Promise<{ ok: true; datos: Record<string, unknown> } | { ok: false; error: string }> {
+// `responsable`: el combo de la pantalla, o la clave de una acción soltada de él (`responsable-omitido.ts`).
+async function enviar(cuerpo: Record<string, unknown>, responsable: ControlResponsable | ClaveSinResponsable): Promise<{ ok: true; datos: Record<string, unknown> } | { ok: false; error: string }> {
   try {
     const res = await fetch("/api/productos/temporadas", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+      headers: { "Content-Type": "application/json", ...(typeof responsable === "string" ? encabezadosOmitidos(responsable) : responsable.encabezados()) },
       body: JSON.stringify(cuerpo),
     });
     const datos = await res.json().catch(() => ({}));
@@ -460,7 +462,7 @@ function VistaCalendario({
 
       {editando && <ModalFecha evento={editando} calendario={calendario} responsable={responsable} onClose={() => setEditando(null)} />}
       {agregando && (
-        <ModalAnio anio={anioHoy + 1} calendario={calendario} responsable={responsable} onClose={() => setAgregando(false)} />
+        <ModalAnio anio={anioHoy + 1} calendario={calendario} onClose={() => setAgregando(false)} />
       )}
     </section>
   );
@@ -607,12 +609,10 @@ function ModalFecha({
 function ModalAnio({
   anio,
   calendario,
-  responsable,
   onClose,
 }: {
   anio: number;
   calendario: EventoCalendario[];
-  responsable: ControlResponsable;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -634,7 +634,7 @@ function ModalAnio({
     setGuardando(true);
     const r = await enviar(
       { accion: "fecha", fechas: filas.map((f, i) => ({ anio: f.anio, estacion: f.estacion, inicio: revision[i].instante, fuente })) },
-      responsable,
+      "temporada_fechas_anio", // sin responsable (Felipe, 2026-09-29)
     );
     setGuardando(false);
     if (!r.ok) {
@@ -642,7 +642,6 @@ function ModalAnio({
       avisar.error(r.error);
       return;
     }
-    responsable.despues(null);
     avisar.exito(`Calendario de ${anio} agregado`, {
       detalle:
         fuente === "senamhi"
@@ -680,7 +679,6 @@ function ModalAnio({
               <Segmentado etiqueta="¿De dónde salen estas fechas?" valor={fuente} onValor={setFuente} opciones={OPCIONES_FUENTE} pie={PIE_FUENTE[fuente]} />
             </>
           )}
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
           <div className="flex gap-2">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
@@ -689,8 +687,7 @@ function ModalAnio({
               peso="primario"
               className="flex-1"
               cargando={guardando}
-              disabled={!responsable.listo || hayError || filas.length === 0}
-              title={responsable.motivo ?? undefined}
+              disabled={hayError || filas.length === 0}
               onClick={() => guardar(cerrar)}
             >
               Agregar {anio}

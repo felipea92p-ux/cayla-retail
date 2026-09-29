@@ -1,6 +1,6 @@
 -- ============================================================================
--- 20260929170100_conteo_rediseno_funciones.sql — CAYLA V2 · Inventario > Conteo (rediseño, 2026-09-29)
--- PARTE 2 de 2: las funciones. Requiere 20260929170000_conteo_rediseno_columnas.sql (parte 1).
+-- 20260930010100_conteo_rediseno_funciones.sql — CAYLA V2 · Inventario > Conteo (rediseño, 2026-09-29)
+-- PARTE 2 de 2: las funciones. Requiere 20260930010000_conteo_rediseno_columnas.sql (parte 1).
 --
 -- EL PROBLEMA PRIMERO. Ver la parte 1: el conteo de hoy no tiene una lista de lo que se espera, no distingue «sin
 -- contar» de «cero», deja cerrar aunque falten prendas y no obliga a mirar una diferencia antes de ajustar el stock.

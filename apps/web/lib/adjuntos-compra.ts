@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import { ADJUNTOS_BUCKET, ADJUNTOS_MAX_BYTES, ADJUNTOS_TIPOS, tamanoLegible } from "@/lib/compras-reglas";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import type { FirmaOmitida } from "@/lib/responsable-omitido";
 
 // Subida de adjuntos de factura desde el NAVEGADOR (20260914180000_compras_adjuntos.sql).
 // No pasa por Next: el archivo va directo del navegador al bucket, y recién
@@ -58,13 +59,15 @@ function rutaPara(compraId: string, f: File): string {
 
 /**
  * `firma`: quién hace la operación (combo «Responsable», ADR-0161/0162). `registrar_adjunto_compra` firma con esa
- * persona y, como el responsable es obligatorio, sin firma la base rechaza el registro de la fila.
+ * persona y, como el responsable es obligatorio, sin firma la base rechaza el registro de la fila. Adjuntar a una factura
+ * ya registrada va sin responsable (`firmaOmitida("compra_adjunto_subir")`, Felipe 2026-09-29); registrar la compra
+ * (`CompraFormV2`) sigue mandando la firma del combo.
  */
 export async function subirAdjuntosCompra(
   supabase: Cliente,
   compraId: string,
   archivos: File[],
-  firma: Firma | null,
+  firma: Firma | FirmaOmitida | null,
 ): Promise<ResultadoSubida> {
   const resultado: ResultadoSubida = { subidos: [], fallidos: [], errorRegistro: null };
   for (const f of archivos) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Pruebas del rediseño de Inventario > Conteo (migraciones `20260929170000_conteo_rediseno_columnas.sql` y
- * `20260929170100_conteo_rediseno_funciones.sql`) contra el Postgres local — CAYLA V2.
+ * Pruebas del rediseño de Inventario > Conteo (migraciones `20260930010000_conteo_rediseno_columnas.sql` y
+ * `20260930010100_conteo_rediseno_funciones.sql`) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA (todo en la BASE, no en la pantalla):
  *   · la FOTO al abrir: una línea pendiente por cada variante con stock > 0 en el lugar del conteo (nunca stock 0, ni
@@ -55,7 +55,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Truji
 
 const EN_SECO = process.argv.includes("--en-seco");
 const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
-const MIGRACIONES_NUEVAS = `${leer("20260929170000_conteo_rediseno_columnas.sql")}\n${leer("20260929170100_conteo_rediseno_funciones.sql")}`;
+const MIGRACIONES_NUEVAS = `${leer("20260930010000_conteo_rediseno_columnas.sql")}\n${leer("20260930010100_conteo_rediseno_funciones.sql")}`;
 const PRELUDIO = EN_SECO ? MIGRACIONES_NUEVAS : "";
 const MIG_ADR_0189 = leer("20260924120000_concurrencia_cambios_devoluciones_conteo.sql");
 const MIG_VACIO = leer("20260923120000_conteo_vacio_no_se_cierra.sql");

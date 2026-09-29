@@ -185,6 +185,22 @@ export function urlEtiquetasDePrecio(
   return conDesde(`/etiquetas-de-precio?producto=${origen.producto}`, desde);
 }
 
+/**
+ * ¿Se ofrece «Imprimir etiquetas» en la pantalla de éxito de Nuevo producto (ADR-0180, «Actualización 2026-09-29»)?
+ *
+ * PROMETE: un enlace y el número de etiquetas SOLO si el producto ya existe en la base (`id`) y entró con unidades de hoy
+ *          (`stock`, la carga inicial de ADR-0212). Sale una etiqueta por unidad, igual que en Existencias y Productos.
+ * ASUME:   esas unidades quedaron en la sede activa, que es desde donde `/etiquetas-de-precio?producto=` imprime
+ *          (`NuevoProductoForm` se remonta con `key={ubicacionId}` al cambiar de sede). Un producto recién creado no tiene
+ *          historia, así que lo que hay en la tienda es exactamente lo que se cargó.
+ * NO HACE: no lee la base. Guardado sin conexión (`id` nulo) o sin stock no ofrece nada: no hay prenda que etiquetar
+ *          todavía, y la pantalla de etiquetas solo diría «no hay prendas».
+ */
+export function etiquetasDelAlta(creado: { id: string | null; stock: { unidades: number } | null }): { href: string; unidades: number } | null {
+  if (!creado.id || !creado.stock || !(creado.stock.unidades > 0)) return null;
+  return { href: urlEtiquetasDePrecio({ producto: creado.id }), unidades: creado.stock.unidades };
+}
+
 /** Adónde vuelve la pantalla de etiquetas: a la que la abrió, que se deduce de lo que trae la URL. `lotes` sale tanto de
  *  Recibir como de su excepción (Ingreso sin comprobante): vuelve a Recibir, que lleva a las dos. Sin origen (la URL a
  *  secas), a Inicio. */

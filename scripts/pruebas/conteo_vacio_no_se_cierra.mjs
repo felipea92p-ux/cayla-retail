@@ -2,7 +2,7 @@
 /**
  * Pruebas del candado «un conteo sin nada verificado no se cierra» (ADR-0174, migración
  * `20260923120000_conteo_vacio_no_se_cierra.sql`; desde el rediseño de Conteo lo cumple `cerrar_conteo` de
- * `20260929170100_conteo_rediseno_funciones.sql`) contra el Postgres local — CAYLA V2.
+ * `20260930010100_conteo_rediseno_funciones.sql`) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que la regla viva EN LA BASE y no solo en el botón gris de la pantalla:
  *   · `cerrar_conteo` sobre un conteo abierto SIN NINGUNA VARIANTE VERIFICADA se rechaza (P0001, hint `conteo_vacio`,
@@ -44,7 +44,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 
 const EN_SECO = process.argv.includes("--en-seco");
 const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
-const SQL_REDISENO = `${leer("20260929170000_conteo_rediseno_columnas.sql")}\n${leer("20260929170100_conteo_rediseno_funciones.sql")}`;
+const SQL_REDISENO = `${leer("20260930010000_conteo_rediseno_columnas.sql")}\n${leer("20260930010100_conteo_rediseno_funciones.sql")}`;
 const SQL_ADR_0189 = leer("20260924120000_concurrencia_cambios_devoluciones_conteo.sql");
 const SQL_CONTEO_VACIO_VIEJA = leer("20260923120000_conteo_vacio_no_se_cierra.sql");
 const PRELUDIO = EN_SECO ? SQL_REDISENO : "";

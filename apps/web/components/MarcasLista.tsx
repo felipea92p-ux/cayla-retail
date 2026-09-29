@@ -13,6 +13,7 @@ import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 
 /**
  * Marcas del catálogo y sus proveedores (ADR-0109, `retail.marcas` +
@@ -34,8 +35,8 @@ import { firmar } from "@/lib/responsable-reglas";
  * El buscador encuentra por marca o por proveedor, sin tildes («¿qué me trae
  * Saavedra?»): con 80 marcas en tarjetas, bajar buscando una no es opción.
  *
- * Responsable (ADR-0161): editar lo pide en su ventana; desactivar y reactivar,
- * en una confirmación con el combo adentro (`ConfirmarConResponsable`). Crear usa
+ * Responsable (ADR-0161): editar lo pide en su ventana; desactivar y reactivar van sin él (Felipe, 2026-09-29) y
+ * eliminar lo pide dentro de su confirmación (`ConfirmarConResponsable`). Crear usa
  * el combo propio de `NuevaMarcaForm`.
  */
 
@@ -71,7 +72,8 @@ export function MarcasLista({
   const [buscando, setBuscando] = useState(false);
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
 
@@ -121,12 +123,11 @@ export function MarcasLista({
     avisar.exito(`${r.nombre} guardada`, { detalle: r.proveedores.map((p) => p.nombre).join(" · ") });
   }
 
+  // Desactivar y reactivar una marca van sin responsable (Felipe, 2026-09-29); eliminar la conserva.
   async function cambiarEstado(m: MarcaFila) {
-    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
     setTrabajando(m.id);
-    const { error } = await firmar(createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id), responsable.firma());
+    const { error } = await firmar(createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id), firmaOmitida("catalogo_confirmar_estado"));
     setTrabajando(null);
-    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, m.activo ? "desactivar la marca" : "reactivar la marca"));
     setMarcas((prev) => prev.map((x) => (x.id === m.id ? { ...x, activo: !x.activo } : x)));
     avisar.exito(m.activo ? `${m.nombre} desactivada` : `${m.nombre} reactivada`);
@@ -290,7 +291,7 @@ export function MarcasLista({
         <EditarMarcaModal marca={modo.marca} proveedores={proveedores} onGuardado={(r) => alEditar(modo.marca, r)} onClose={() => setModo(null)} />
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={confirmando.verbo === "Eliminar" ? responsable : undefined} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

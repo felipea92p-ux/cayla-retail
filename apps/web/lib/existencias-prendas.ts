@@ -6,6 +6,7 @@
 import { clavePercha, porColgar } from "./inventario-reglas";
 import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
+import { guionDeLaPistola } from "./escaner-guion";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
 export type FilaPrenda = Pick<
@@ -159,9 +160,10 @@ export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F 
   return tallas.find((f) => estadoTalla(f) === "por_colgar" && sePuedeBajar(f)) ?? tallas.find(sePuedeBajar) ?? null;
 }
 
-/** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios y sin mayúsculas. */
+/** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios, sin mayúsculas y con el guion que la
+ *  pistola escribe como apóstrofo en un teclado en español (`guionDeLaPistola`). */
 function normalizarCodigo(c: string): string {
-  return c.trim().toLowerCase();
+  return guionDeLaPistola(c).trim().toLowerCase();
 }
 
 /** ¿Qué talla es este código? Busca el código EXACTO (el de la etiqueta o un código de barras), nunca un pedazo: con la

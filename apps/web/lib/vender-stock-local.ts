@@ -127,6 +127,15 @@ export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui, apartadoAqu
   };
 }
 
+/** El aviso de que una prenda entró al ticket: lo que la cámara del teléfono dice con su tarjeta («al ticket») y en la
+ *  computadora, con lector o teclado, no decía nada — la prenda aparecía en el ticket y nadie sabía si la lectura había
+ *  entrado. El título es siempre el mismo a propósito: `avisar` no apila dos avisos con el mismo texto, así que escanear
+ *  varias prendas seguidas deja UNO solo (el de la última) en vez de una fila de tarjetas. `cantidad`: cuántas de esa
+ *  prenda lleva el ticket después de agregar; desde la segunda se dice, para no contar a ojo al escanear la misma dos veces. */
+export function avisoAgregada({ nombre, cantidad }: { nombre: string; cantidad: number }): AvisoStock {
+  return { titulo: "Agregada al ticket", detalle: cantidad > 1 ? `${nombre} · van ${cantidad} en el ticket` : nombre };
+}
+
 /** El aviso cuando ya están en el ticket todas las del piso («tope»). `quedoEn`: la cantidad se escribió a mano en el
  *  ticket y se recortó a lo que hay. Si en el almacén hay más, lo dice: la clienta que quiere dos no se va con una. */
 export function avisoTope({ nombre, sede, stockAqui, almacenAqui, quedoEn = false }: DatosAvisoStock & { quedoEn?: boolean }): AvisoStock {

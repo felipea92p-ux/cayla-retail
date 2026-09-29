@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   analizarVarianteComparacion,
   armarComparacion,
+  avisoDelPeriodoA,
+  avisoDelPeriodoB,
   cambioMostrado,
   contarCambios,
   detalleCambio,
@@ -14,6 +16,7 @@ import {
   mejoroRotacion,
   metricasDePeriodo,
   ordenarComparacion,
+  paramsDeComparar,
   pideComparacion,
   rangosDeLaComparacion,
   rankingRotacion,
@@ -27,6 +30,7 @@ import {
   type FilaComparacion,
   type OrdenComparacion,
 } from "./resumen-comparacion";
+import { resolverPeriodo } from "./resumen-periodo";
 
 // Las fórmulas de la comparación A vs B. Lo que importa: que el stock «al cierre» no se confunda con
 // ventas, que el ritmo y el sell-through usen las definiciones canónicas, que un cambio relevante sea
@@ -448,6 +452,134 @@ describe("la URL", () => {
     expect(roto.modoA).toBe("anterior");
     expect(roto.rangoA).toEqual({ desde: "2026-08-02", hasta: "2026-08-31" });
   });
+
+  describe("avisoDelPeriodoA — un A que no se pudo respetar se dice, igual que B (2026-09-29)", () => {
+    const hoy = "2026-10-05";
+
+    it("un A que nadie pidió a mano («período anterior» por defecto) no avisa nada", () => {
+      expect(avisoDelPeriodoA({}, hoy)).toEqual([]);
+      expect(avisoDelPeriodoA({ comparar: "anterior", cdesde: "2026-11-01", chasta: "2026-11-30" }, hoy)).toEqual([]);
+    });
+
+    it("un rango válido no avisa; fechas al revés se ordenan solas y tampoco son un error", () => {
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2026-08-01", chasta: "2026-08-30" }, hoy)).toEqual([]);
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2026-08-30", chasta: "2026-08-01" }, hoy)).toEqual([]);
+    });
+
+    it("faltan fechas o no existen: dice que se muestra el período justo antes de B (antes callaba)", () => {
+      for (const p of [{ cdesde: "2026-08-01" }, { chasta: "2026-08-30" }, {}, { cdesde: "2026-02-31", chasta: "2026-03-05" }, { cdesde: "no", chasta: "tampoco" }]) {
+        expect(avisoDelPeriodoA({ comparar: "personalizado", ...p }, hoy)).toEqual(["Elige las dos fechas del período A; mientras tanto se muestra el período justo antes de B."]);
+      }
+    });
+
+    it("un A que empieza en el futuro se sustituye por el anterior a B, y lo dice", () => {
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2026-11-01", chasta: "2026-11-30" }, hoy)).toEqual(["El período A no puede empezar en el futuro; se muestra el período justo antes de B."]);
+    });
+
+    it("un A que llega más allá de hoy se recorta a hoy y lo dice", () => {
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2026-09-20", chasta: "2026-12-31" }, hoy)).toEqual(["El período A llega hasta hoy: no hay ventas de días que aún no pasaron."]);
+    });
+
+    it("un A de más de un año se acorta y lo dice (con el fin recortado a hoy si hace falta)", () => {
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2024-01-01", chasta: "2025-06-30" }, hoy)).toEqual(["El período A se acortó a 366 días (el máximo)."]);
+      expect(avisoDelPeriodoA({ comparar: "personalizado", cdesde: "2024-01-01", chasta: "2027-01-01" }, hoy)).toEqual(["El período A se acortó a 366 días (el máximo)."]);
+    });
+
+    it("armarComparacion lo trae primero, antes de los avisos de duración y de historial", () => {
+      const r = armarComparacion({
+        filas: [],
+        ubicacion: { id: "u1", nombre: "Tienda Trujillo", tipo: "tienda" },
+        params: { modo: "comparar", bdesde: "2026-09-01", bhasta: "2026-09-30", comparar: "personalizado", cdesde: "2026-11-01", chasta: "2026-11-30" },
+        ahora: new Date("2026-10-05T15:00:00Z"),
+        conteos: { exactitud: null, ultimoCerradoEn: null },
+      });
+      expect(r.avisos[0]).toMatch(/no puede empezar en el futuro/);
+      // Y A quedó en el período justo antes de B (30 días: 2 ago. – 31 ago.).
+      expect(r.periodoA.rango).toEqual({ desde: "2026-08-02", hasta: "2026-08-31" });
+      expect(r.periodoA.modo).toBe("anterior");
+    });
+  });
+
+  describe("avisoDelPeriodoB — la advertencia de B dicha con su letra", () => {
+    const hoy = "2026-10-05";
+
+    it("todas las advertencias que puede dar resolverPeriodo dicen «B»: junto a las de A no se confunden", () => {
+      const casos = [
+        resolverPeriodo({ preset: "personalizado" }, hoy), // faltan fechas
+        resolverPeriodo({ preset: "personalizado", desde: "2026-11-01", hasta: "2026-11-30" }, hoy), // empieza en el futuro
+        resolverPeriodo({ preset: "personalizado", desde: "2026-09-20", hasta: "2026-12-31" }, hoy), // llega más allá de hoy
+        resolverPeriodo({ preset: "personalizado", desde: "2024-01-01", hasta: "2025-06-30" }, hoy), // más de un año
+      ];
+      for (const c of casos) {
+        expect(c.advertencia).not.toBeNull();
+        const [dicho] = avisoDelPeriodoB(c.advertencia);
+        expect(dicho).toMatch(/período B\b/);
+        // Solo se agrega la letra: el resto de la frase queda como la escribió resolverPeriodo.
+        expect(dicho.replace("período B", "período")).toBe(c.advertencia);
+      }
+    });
+
+    it("sin advertencia no hay aviso, y un texto desconocido queda tal cual (nada de letras inventadas)", () => {
+      expect(avisoDelPeriodoB(null)).toEqual([]);
+      expect(avisoDelPeriodoB("Otra cosa distinta.")).toEqual(["Otra cosa distinta."]);
+    });
+
+    it("armarComparacion lo trae en orden: A escrito, B escrito, comparabilidad e historial", () => {
+      const r = armarComparacion({
+        filas: [],
+        ubicacion: { id: "u1", nombre: "Tienda Trujillo", tipo: "tienda" },
+        params: { modo: "comparar", bdesde: "2026-09-20", bhasta: "2026-12-31", comparar: "personalizado", cdesde: "2026-08-01", chasta: "2026-08-15" },
+        ahora: new Date("2026-10-05T15:00:00Z"),
+        conteos: { exactitud: null, ultimoCerradoEn: null },
+      });
+      expect(r.avisos[0]).toMatch(/^El período B llega hasta hoy/);
+      expect(r.avisos[1]).toMatch(/duran distinto/); // A: 15 días, B: 16 días (hasta hoy)
+    });
+  });
+
+  describe("B tiene sus propias fechas en Comparar (2026-09-29)", () => {
+    const ahora = new Date("2026-10-05T15:00:00Z"); // 5 oct. en Lima
+
+    it("sin fechas propias, B sigue siendo el período de Desempeño; por defecto, los últimos 30 días con A justo antes", () => {
+      // El traspaso de siempre (ADR-0138): elegir «7 días» en Desempeño y pasar a Comparar deja B en esa semana.
+      const semana = rangosDeLaComparacion({ preset: "7d" }, ahora);
+      expect(semana.periodoB).toMatchObject({ desde: "2026-09-29", hasta: "2026-10-05", dias: 7 });
+      expect(semana.rangoA).toEqual({ desde: "2026-09-22", hasta: "2026-09-28" });
+      // Sin nada en la URL: dos ventanas consecutivas del mismo tamaño, calculadas con el «hoy» de Lima (no fijas).
+      const inicial = rangosDeLaComparacion({}, ahora);
+      expect(inicial.periodoB).toMatchObject({ desde: "2026-09-06", hasta: "2026-10-05", dias: 30 });
+      expect(inicial.rangoA).toEqual({ desde: "2026-08-07", hasta: "2026-09-05" });
+      expect(inicial.modoA).toBe("anterior");
+      // Y mañana se corren un día: el defecto nunca es una fecha escrita a mano.
+      const manana = rangosDeLaComparacion({}, new Date("2026-10-06T15:00:00Z"));
+      expect(manana.periodoB).toMatchObject({ desde: "2026-09-07", hasta: "2026-10-06" });
+    });
+
+    it("bdesde/bhasta le ganan al período de Desempeño: cambiar allá ya no mueve B aquí", () => {
+      const propio = { bdesde: "2026-08-31", bhasta: "2026-09-29", comparar: "personalizado", cdesde: "2026-08-01", chasta: "2026-08-30" };
+      const r = rangosDeLaComparacion({ ...propio, preset: "7d" }, ahora);
+      expect(r.periodoB).toMatchObject({ desde: "2026-08-31", hasta: "2026-09-29", dias: 30, preset: "personalizado" });
+      expect(r.rangoA).toEqual({ desde: "2026-08-01", hasta: "2026-08-30" });
+      expect(r.modoA).toBe("personalizado");
+    });
+
+    it("con solo una de las dos fechas propias no se inventa nada: B vuelve al período de Desempeño", () => {
+      expect(paramsDeComparar({ bdesde: "2026-08-31", preset: "7d" })).toEqual({ bdesde: "2026-08-31", preset: "7d" });
+      expect(rangosDeLaComparacion({ bhasta: "2026-09-29" }, ahora).periodoB).toMatchObject({ dias: 30 });
+    });
+
+    it("fechas propias rotas caen en los últimos 30 días y lo dicen (mismo aviso que ya tenía B)", () => {
+      const r = rangosDeLaComparacion({ bdesde: "no", bhasta: "tampoco" }, ahora);
+      expect(r.periodoB).toMatchObject({ desde: "2026-09-06", hasta: "2026-10-05" });
+      expect(r.periodoB.advertencia).toMatch(/Elige las dos fechas/);
+    });
+
+    it("una fecha de B en el futuro se recorta a hoy y avisa: no hay ventas de días que no pasaron", () => {
+      const r = rangosDeLaComparacion({ bdesde: "2026-09-20", bhasta: "2026-12-31" }, ahora);
+      expect(r.periodoB).toMatchObject({ desde: "2026-09-20", hasta: "2026-10-05" });
+      expect(r.periodoB.advertencia).toMatch(/hasta hoy/);
+    });
+  });
 });
 
 describe("armarComparacion", () => {
@@ -486,13 +618,25 @@ describe("armarComparacion", () => {
     expect(armar({ cambio: "acelero" }).kpis).toEqual(r.kpis);
   });
 
-  it("categoría y búsqueda recortan los KPI y la tabla, no el selector de categorías", () => {
-    const r = armar({ cat: "c2" });
-    expect(r.tabla.totalAlcance).toBe(2);
+  it("la búsqueda recorta los KPI y la tabla", () => {
+    const todo = armar();
+    expect(todo.tabla.totalAlcance).toBe(3);
+    const r = armar({ q: "blusa" });
+    expect(r.tabla.totalAlcance).toBe(2); // Blusa Emma y Blusa Ana
     expect(r.kpis.ventas.unidadesB).toBe(5);
-    expect(r.categorias.map((c) => c.id)).toEqual(["c1", "c2"]);
     expect(armar({ q: "luciana" }).tabla.total).toBe(1);
     expect(armar({ q: "nada que coincida" }).tabla.total).toBe(0);
+  });
+
+  it("Comparar no tiene categoría: un `cat` en la URL (de Desempeño o de un enlace viejo) se ignora, no filtra a escondidas", () => {
+    // Antes `cat=c2` dejaba 2 de las 3 variantes; sin un selector que lo muestre sería un filtro invisible.
+    const r = armar({ cat: "c2" });
+    expect(r.alcance.categoriaId).toBeNull();
+    expect(r.tabla.totalAlcance).toBe(3);
+    expect(r.kpis).toEqual(armar().kpis);
+    expect(r).not.toHaveProperty("categorias");
+    // La búsqueda, en cambio, sigue funcionando junto a un `cat` ignorado.
+    expect(armar({ cat: "c2", q: "luciana" }).tabla.total).toBe(1);
   });
 
   it("cuenta las variantes con historial que no cuadra (cifras estimadas)", () => {

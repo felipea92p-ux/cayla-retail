@@ -9,7 +9,7 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 
 // Las fotos del alta, POR COLOR, sin subir nada todavía (spike Nuevo producto, 2026-09-24).
 //
-// Por qué antes no se podía: la galería de la edición (`FotosProducto`) sube cada archivo al almacén apenas se elige.
+// Por qué antes no se podía: la edición (`FotosPorColor`, con `useSubirFotos`) sube cada archivo al almacén apenas se elige.
 // En el alta eso dejaba el archivo huérfano si la persona cancelaba el formulario, así que las fotos se habían dejado
 // para después de crear. Felipe (2026-09-24): «cuando agrego un nuevo producto no puedo cargar imagen».
 //

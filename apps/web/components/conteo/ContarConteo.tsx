@@ -11,6 +11,7 @@ import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { sonidoDeLectura } from "@/lib/conteo-conectado";
 import {
   acotarALista,
@@ -516,7 +517,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
       {alta && (
         <AltaAlVuelo
-          codigoBarras={alta}
+          codigoBarras={guionDeLaPistola(alta)}
           catalogo={catalogoCompleto}
           categorias={categorias}
           colores={colores}

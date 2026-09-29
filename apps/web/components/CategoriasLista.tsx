@@ -7,6 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
@@ -137,7 +138,8 @@ export function CategoriasLista({
   const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [categorias, setCategorias] = useState(categoriasIniciales);
@@ -326,12 +328,14 @@ export function CategoriasLista({
     }
   }
 
-  async function cambiarEstado(c: Categoria) {
+  // `soltada`: el clic viene de la confirmación de un clic (reactivar), que va sin responsable (Felipe, 2026-09-29). El
+  // «Desactivar categoría» de la ventana de edición conserva su combo.
+  async function cambiarEstado(c: Categoria, soltada = false) {
     setCambiandoId(c.id);
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...(soltada ? encabezadosOmitidos("catalogo_confirmar_estado") : responsable.encabezados()) },
         body: JSON.stringify({ id: c.id, activo: !c.activo }),
       });
       const datos = await res.json();
@@ -340,7 +344,7 @@ export function CategoriasLista({
         return;
       }
       setCategorias((actual) => actual.map((x) => (x.id === c.id ? { ...x, activo: !c.activo } : x)));
-      responsable.despues(null);
+      if (!soltada) responsable.despues(null);
       avisar.exito(c.activo ? `${c.nombre} desactivada` : `${c.nombre} reactivada`, {
         detalle: c.activo ? "Deja de aparecer al crear productos; el historial se conserva." : "Vuelve a estar disponible para productos nuevos.",
       });
@@ -797,7 +801,7 @@ export function CategoriasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoId === c.id}
-                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c)))}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c, true)))}
                   >
                     Reactivar
                   </Boton>
@@ -808,7 +812,7 @@ export function CategoriasLista({
         </section>
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

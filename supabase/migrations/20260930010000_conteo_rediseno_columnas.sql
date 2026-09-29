@@ -1,6 +1,6 @@
 -- ============================================================================
--- 20260929170000_conteo_rediseno_columnas.sql — CAYLA V2 · Inventario > Conteo (rediseño, 2026-09-29)
--- PARTE 1 de 2: las columnas. Las funciones van en 20260929170100_conteo_rediseno_funciones.sql.
+-- 20260930010000_conteo_rediseno_columnas.sql — CAYLA V2 · Inventario > Conteo (rediseño, 2026-09-29)
+-- PARTE 1 de 2: las columnas. Las funciones van en 20260930010100_conteo_rediseno_funciones.sql.
 --
 -- EL PROBLEMA PRIMERO. Hoy un conteo NO sabe qué debería haber en la tienda hasta que alguien escanea cada prenda:
 -- `conteo_items` solo tiene filas de prendas YA contadas, así que «qué falta por contar» no se puede responder desde

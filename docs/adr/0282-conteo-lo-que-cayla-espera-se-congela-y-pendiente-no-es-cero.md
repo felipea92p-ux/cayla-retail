@@ -1,4 +1,4 @@
-# ADR-0277 — Conteo: lo que CAYLA espera se ve y se congela al abrir, y «pendiente» no es cero
+# ADR-0282 — Conteo: lo que CAYLA espera se ve y se congela al abrir, y «pendiente» no es cero
 
 **Fecha:** 2026-09-29
 **Estado:** Construido y probado **solo en local** (rama `Benja-responsive`). Las dos migraciones **no están en producción**: ver «Cómo se despliega».
@@ -46,7 +46,7 @@
 
 ## Cómo se despliega (importante: web y SQL van juntos)
 
-Las migraciones **eliminan** funciones que la web vieja llama (`previsualizar_cierre_conteo`, `fn_prioridad_conteo`), quitan la columna `soles_diferencia` de `fn_conteos_resumen` y `conteo_contar` pasa de devolver `uuid` a `jsonb`. Pegarlas antes de publicar la web nueva rompe Conteo y el resumen de Análisis; publicar la web antes de pegarlas también. **Orden:** web nueva lista para publicar → `20260929170000_conteo_rediseno_columnas.sql` → `20260929170100_conteo_rediseno_funciones.sql` (idempotentes, sin políticas ni `drop trigger`, con `lock_timeout` de 3 s) → publicar. Antes de pegar: `pnpm migraciones:deriva` y comparar los cuerpos de `abrir_conteo`, `conteo_contar`, `cerrar_conteo` y `fn_conteos_resumen` con producción (se recrean enteros: un parche vivo que solo exista allá se perdería). Re-pegar `20260923120000` sobre la base nueva ya no es un no-op: aborta (42883, busca `cerrar_conteo(uuid)`) sin tocar nada; `20260924120000` sí sigue siendo un no-op.
+Las migraciones **eliminan** funciones que la web vieja llama (`previsualizar_cierre_conteo`, `fn_prioridad_conteo`), quitan la columna `soles_diferencia` de `fn_conteos_resumen` y `conteo_contar` pasa de devolver `uuid` a `jsonb`. Pegarlas antes de publicar la web nueva rompe Conteo y el resumen de Análisis; publicar la web antes de pegarlas también. **Orden:** web nueva lista para publicar → `20260930010000_conteo_rediseno_columnas.sql` → `20260930010100_conteo_rediseno_funciones.sql` (idempotentes, sin políticas ni `drop trigger`, con `lock_timeout` de 3 s) → publicar. Antes de pegar: `pnpm migraciones:deriva` y comparar los cuerpos de `abrir_conteo`, `conteo_contar`, `cerrar_conteo` y `fn_conteos_resumen` con producción (se recrean enteros: un parche vivo que solo exista allá se perdería). Re-pegar `20260923120000` sobre la base nueva ya no es un no-op: aborta (42883, busca `cerrar_conteo(uuid)`) sin tocar nada; `20260924120000` sí sigue siendo un no-op.
 
 ## Números (local, 1.200 variantes sintéticas, con ROLLBACK)
 

@@ -5,6 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Modal } from "@/components/ui/Modal";
@@ -82,7 +83,8 @@ function TarjetaTalla({ t, apagada = false, children }: { t: Talla; apagada?: bo
 export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales: Talla[]; puedeEditar: boolean }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [tallas, setTallas] = useState(() => ordenar(tallasIniciales));
@@ -158,7 +160,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("talla_aprobar") },
         body: JSON.stringify({ id: t.id, estado: "aprobado", notas: comentarioAprobar.trim() }),
       });
       const datos = await res.json();
@@ -167,7 +169,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.talla.notas } : x))));
-      responsable.despues(null);
       avisar.exito(`${t.valor} aprobada`);
       setAprobandoAbierto(null);
       setComentarioAprobar("");
@@ -183,7 +184,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("talla_rechazar") },
         body: JSON.stringify({ id: t.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -192,7 +193,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${t.valor} rechazada`, { detalle: "Cae a Desactivadas. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -215,7 +215,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ id: t.id, activo: false }),
       });
       const datos = await res.json();
@@ -224,7 +224,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, activo: false } : x))));
-      responsable.despues(null);
       avisar.exito(`${t.valor} desactivada`, { detalle: "Deja de aparecer al elegir talla en una prenda nueva; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -350,7 +349,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={aprobandoId === aprobandoTalla.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoTalla.id}>
                   Cancelar
@@ -359,8 +357,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="primario"
                   className="flex-1"
                   cargando={aprobandoId === aprobandoTalla.id}
-                  disabled={!comentarioAprobar.trim() || !responsable.listo}
-                  title={responsable.motivo ?? undefined}
+                  disabled={!comentarioAprobar.trim()}
                   onClick={() => aprobar(aprobandoTalla)}
                 >
                   Confirmar aprobación
@@ -376,7 +373,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoTalla.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTalla.id}>
                   Cancelar
@@ -385,8 +381,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoTalla.id}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoTalla)}
                 >
                   Confirmar rechazo
@@ -397,7 +391,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         </Modal>
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

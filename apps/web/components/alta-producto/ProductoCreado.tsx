@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
+import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
 
 export type { SubidaSinConexion };
 
@@ -14,11 +15,14 @@ export type { SubidaSinConexion };
 // empezar de cero en cada una y sin nadie que le recordara las fotos.
 //
 // Tres salidas, y solo una es la principal (fotos): sin foto, la grilla de
-// Productos muestra apenas el tono del color.
+// Productos muestra apenas el tono del color. Si el producto entró con su stock de hoy (ADR-0212) hay una cuarta:
+// imprimir sus etiquetas de precio ahora, con la prenda en la mano (ADR-0180, «Actualización 2026-09-29»). Se abre en
+// OTRA pestaña a propósito: «Crear otro parecido» vive solo en el estado de esta pantalla, y volver de una pestaña
+// que la reemplaza dejaba el formulario en blanco.
 //
 // Las fotos elegidas en el alta ya se subieron al llegar aquí (NuevoProductoForm, después de crear el producto). Esta
 // pantalla dice cuántas quedaron, cuál no subió y qué colores siguen sin foto; para agregar o cambiar, lleva a la
-// galería de la edición (`/productos/{id}/editar#fotos`), que ya asigna cada foto a su color.
+// sección «Fotos por color» de la edición (`/productos/{id}/editar#fotos`, ADR-0279): un rectángulo por color.
 
 export type ResumenCreado = {
   /** `null` = guardado SIN CONEXIÓN (ADR-0210): todavía no existe en la base, así que no hay código ni ficha. */
@@ -46,6 +50,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
   const [codigo, setCodigo] = useState<string | null>(null);
   const sinConexion = creado.id === null;
   const enEspera = creado.fotosEnEspera ?? 0;
+  const etiquetas = etiquetasDelAlta(creado);
 
   // Lleva el foco al mensaje: quien usa lector de pantalla o teclado se entera de que se guardó.
   useEffect(() => {
@@ -119,7 +124,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid gap-4 ${etiquetas ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
         {/* La salida principal: las fotos (lo que falte de ellas). Un alta descartada no tiene ficha ni fotos que agregar. */}
         {subida !== "descartada" && (
           <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
@@ -163,6 +168,22 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             ) : (
               <p className="text-xs text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
             )}
+          </div>
+        )}
+
+        {etiquetas && (
+          <div className="card-cayla flex flex-col justify-between gap-4 p-5">
+            <div className="space-y-2">
+              <p className="label-cayla text-[11px] text-tinta/70">Con la prenda en la mano</p>
+              <h3 className="text-base font-medium text-tinta">Imprimir etiquetas</h3>
+              <p className="text-sm text-tinta/70">
+                {etiquetas.unidades === 1 ? "Sale 1 etiqueta" : `Salen ${etiquetas.unidades} etiquetas`}, una por prenda cargada ({creado.stock?.donde}), con su precio y el QR que lee la caja.
+                Se abren en otra pestaña: esta pantalla te espera para las fotos o para crear otro parecido.
+              </p>
+            </div>
+            <Link href={etiquetas.href} target="_blank" rel="noopener" className="btn-cayla btn-secundario">
+              Imprimir etiquetas
+            </Link>
           </div>
         )}
 

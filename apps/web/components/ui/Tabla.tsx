@@ -35,6 +35,9 @@ export type Columna = {
   subtitulo?: string;
   /** Texto que explica la columna al pasar el mouse (`title`). */
   ayuda?: string;
+  /** Clases extra del título: para mostrarlo solo desde cierto ancho de la TABLA (`hidden @min-[1070px]:block`, con
+   *  `@container` en la `Tabla`), la misma condición que esconde la celda de cada fila. */
+  clase?: string;
 };
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
@@ -92,7 +95,7 @@ export function Encabezado({
         <span
           key={i}
           title={c.ayuda}
-          className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""}`}
+          className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""} ${c.clase ?? ""}`}
           role="columnheader"
         >
           {c.titulo}

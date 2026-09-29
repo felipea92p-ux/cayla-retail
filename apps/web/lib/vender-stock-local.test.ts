@@ -4,6 +4,7 @@ import {
   almacenReleido,
   apartadoEnPiso,
   apartadoReleido,
+  avisoAgregada,
   avisoCortas,
   avisoQuedaronEnAlmacen,
   avisoSinPiso,
@@ -289,5 +290,22 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
       detalle:
         "Blusa Paracas · M, Casaca Ximena · S. Según el sistema están en el almacén de Tienda TRU. Para cobrarlas, que las bajen en Inventario ▸ Existencias ▸ Reponer (aunque ya las tengas en la mano, hay que registrarlo).",
     });
+  });
+});
+
+describe("el aviso de que una prenda entró al ticket (avisoAgregada)", () => {
+  it("la primera unidad: el título dice qué pasó y el detalle, sobre qué prenda", () => {
+    expect(avisoAgregada({ nombre: "Camisa Lara · Rosado · STD", cantidad: 1 })).toEqual({
+      titulo: "Agregada al ticket",
+      detalle: "Camisa Lara · Rosado · STD",
+    });
+  });
+
+  it("desde la segunda unidad dice cuántas van, para no contar a ojo al escanear la misma dos veces", () => {
+    expect(avisoAgregada({ nombre: "Camisa Lara · Rosado · STD", cantidad: 2 }).detalle).toBe("Camisa Lara · Rosado · STD · van 2 en el ticket");
+  });
+
+  it("el título es el mismo para cualquier prenda: `avisar` no apila dos con el mismo texto, así que quedan de a uno", () => {
+    expect(avisoAgregada({ nombre: "A", cantidad: 1 }).titulo).toBe(avisoAgregada({ nombre: "B", cantidad: 3 }).titulo);
   });
 });

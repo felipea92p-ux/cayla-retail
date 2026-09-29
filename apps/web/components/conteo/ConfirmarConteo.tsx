@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Info } from "lucide-react";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -15,7 +14,7 @@ import { existenciaTrasElAjuste, mensajeDeCierre, textoAjusteNegativo, textoQued
 import { paginar } from "@/lib/paginacion";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
-import { useResponsable } from "@/lib/useResponsable";
+import { firmaOmitida } from "@/lib/responsable-omitido";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -61,7 +60,6 @@ export function ConfirmarConteo({
   puedeCerrar: boolean;
 }) {
   const router = useRouter();
-  const responsable = useResponsable();
   const [cerrando, setCerrando] = useState(false);
   const [fallo, setFallo] = useState<{ texto: string; incierto: boolean } | null>(null);
   const [pagina, setPagina] = useState(1);
@@ -73,13 +71,13 @@ export function ConfirmarConteo({
   const urlRevisar = `${urlConteo}/revisar`;
 
   async function cerrar() {
-    if (cerrando || !puedeCerrar || !responsable.listo) return;
+    if (cerrando || !puedeCerrar) return;
     setCerrando(true);
     setFallo(null);
     try {
-      const { error } = await firmar(createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }), responsable.firma());
+      // Cerrar va sin responsable (Felipe, 2026-09-29, ADR-0280): la clave `conteo_cerrar` la respeta la base.
+      const { error } = await firmar(createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }), firmaOmitida("conteo_cerrar"));
       if (error) {
-        responsable.despues(error);
         setFallo(mensajeDeCierre(error));
         setCerrando(false);
         return;
@@ -98,11 +96,7 @@ export function ConfirmarConteo({
   const resumenPie = [cambian, noCambian, ...(parcial ? [`${pendientes} sin verificar`] : [])].join(" · ");
 
   // Lo que dice el pie: si el botón está apagado, la razón —no un botón mudo—.
-  const razonApagado = !puedeCerrar
-    ? "Solo quien ajusta inventario puede cerrar el conteo."
-    : !responsable.listo
-      ? (responsable.motivo ?? "Elige quién hace esta operación.")
-      : null;
+  const razonApagado = !puedeCerrar ? "Solo quien ajusta inventario puede cerrar el conteo." : null;
 
   return (
     <>
@@ -182,7 +176,6 @@ export function ConfirmarConteo({
           </div>
         )}
 
-        <ComboResponsable control={responsable} deshabilitado={cerrando} className="w-full sm:w-72" />
       </section>
 
       {parcial && (
