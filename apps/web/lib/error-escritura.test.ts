@@ -458,6 +458,49 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
   });
 });
 
+// ADR-0263 (20260929045000): corregir el color y la talla de una variante que ya existe. Las funciones dicen qué pasó y
+// qué hacer, con el código de la variante que ya está; dos de sus rechazos llegan con 42501 (permiso) y no deben caer al
+// genérico con «Código:».
+describe("corregir color y talla de una variante (ADR-0263)", () => {
+  it("los rechazos con hint pasan tal cual, también los de permiso (42501)", () => {
+    const casos = [
+      { message: "El color, la talla y el código de una variante se corrigen desde su ficha, no directo.", code: "42501", hint: "identidad_variante" },
+      { message: "No tienes permiso para corregir el color o la talla de una prenda.", code: "42501", hint: "catalogo_sin_permiso" },
+      {
+        message: "La variante BOD-0003-S ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder puede corregir su color o su talla.",
+        code: "42501",
+        hint: "correccion_solo_lider",
+      },
+      {
+        message: "Ya existe Negro S en esta prenda (BOD-0003-NEG-S), pero está desactivada: reactívala en vez de corregir esta.",
+        code: "P0001",
+        hint: "variante_ya_existe",
+      },
+      {
+        message: "Esta prenda quedaría con variantes «Sin color» junto a otras con color. Ponle color a las que no lo tienen o desactívalas.",
+        code: "P0001",
+        hint: "mezcla_sin_color",
+      },
+    ];
+    for (const c of casos) expect(traducirError(c, "guardar el producto")).toBe(c.message);
+  });
+
+  it("el candado de identidad (nulls not distinct) dice que «Sin color» cuenta como un color, sin citar a Postgres", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "variantes_identidad_unica"', code: "23505" },
+      "guardar el producto",
+    );
+    expect(salida).toContain("«Sin color» cuenta como un color");
+    expect(salida).not.toContain("variantes_identidad_unica");
+    // La talla ya no se compara por texto («M» = «m»): es de la lista cerrada.
+    expect(salida).not.toContain("Única");
+  });
+
+  it("un 42501 sin esos hints sigue sin colarse", () => {
+    expect(traducirError({ message: "permission denied for table variantes", code: "42501", hint: "otra_cosa" }, "guardar el producto")).toContain("Código:");
+  });
+});
+
 describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2026-09-28)", () => {
   // Lo que escribe `retail.fn_exigir_modulo('clientas')` en las 11 funciones de la ficha de clienta.
   const clientas = {

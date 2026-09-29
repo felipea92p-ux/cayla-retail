@@ -2905,8 +2905,9 @@ apartados y 50 liberaciones. El cuerpo de 120320 y el de 120330, en la misma bas
 
 ## Actualización 2026-09-28 — paso 4: la pantalla
 
-**Estado:** construida en la rama `claude/frescura-paso4-pantalla` (sin PR todavía). La migración
-`20260929100000_frescura_modulo_y_candado.sql` está **sin pegar**. Se pega sola, ANTES de publicar la web. Si la web va
+**Estado:** **en producción desde el 2026-09-28**: Felipe pegó `20260929100000_frescura_modulo_y_candado.sql` (md5
+verificados en solo lectura) y después se fusionó el PR #585 y Vercel publicó la web. Lo que sigue es cómo estaba al
+construirla. La migración se pegaba sola, ANTES de publicar la web. Si la web va
 primero, el menú no muestra Frescura ni al líder y la URL dice «Sin acceso»: sus módulos salen de `retail.modulos`. Al
 revés no pasa nada, porque la web de hoy ignora un módulo que no conoce.
 

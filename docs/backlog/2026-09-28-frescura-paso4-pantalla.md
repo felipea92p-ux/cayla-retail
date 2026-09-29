@@ -1,4 +1,4 @@
-## 🌿 Frescura del piso · paso 4: la pantalla (2026-09-28, ADR-0208) — migración `20260929100000` **sin pegar**; rama `claude/frescura-paso4-pantalla`
+## 🌿 Frescura del piso · paso 4: la pantalla (2026-09-28, ADR-0208) — migración `20260929100000` **EN PRODUCCIÓN** (Felipe la pegó el 2026-09-28; verificada por md5) y web publicada con el PR #585
 
 - [x] Pantalla `/inventario/frescura`, directo en Inventario (6.ª fila), con los colores A y las frases C que Felipe eligió
       en la maqueta (`docs/maquetas/frescura-3c-2026-09/`). Tiene cabecera con cuatro cifras («Por decidir» filtra),
@@ -25,11 +25,15 @@
 - [x] Navegador (página de prueba sin sesión) a 1280 y 375 px: sin desplazamiento lateral, 0 rojos en la lista y 1 con
       la hoja abierta, Escape y foco bien, consola limpia.
 
-### SQL POR PEGAR (en este orden, cada parte sola en el SQL Editor)
+### SQL: PEGADO el 2026-09-28 y verificado
+
+Felipe pegó `20260929100000` y la consulta de abajo dio exactamente lo esperado (más: sin sobrecargas, permisos
+solo de la dueña y `authenticated` en las tres lecturas, y el candado nuevo rechaza una llamada sin sesión con
+`frescura_sin_permiso`). Después se fusionó el PR #585 y Vercel publicó la web. Cómo se pegó:
 
 1. `supabase/migrations/20260929100000_frescura_modulo_y_candado.sql` (md5 del archivo `a7fcf105df3381abeb082dc29ddfa0de`;
    el de antes de la revisión, `1e5880ef…`, ya no vale).
-   - Va **antes de publicar la web**: con la web nueva y sin esta migración, el menú no muestra Frescura ni al líder.
+   - Fue **antes de publicar la web**: con la web nueva y sin esta migración, el menú no muestra Frescura ni al líder.
    - Solo trae un `insert` en `retail.modulos`, tres `create or replace function`, comentarios, `revoke` y `grant`.
      `fn_frescura_sede` devuelve además `apartadas_piso_hoy` en cada prenda (la web de hoy lo ignora).
    - Pide el paso 3 pegado (ya está, 2026-09-28): la guarda compara el md5 vivo de cada función con el de producción y

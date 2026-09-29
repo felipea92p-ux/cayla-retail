@@ -37,13 +37,51 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] **#7 Una talla con prendas no se retira** (`20260929030000`): disparador en `variantes` con mensaje que dice dónde están. `pnpm pruebas:talla-con-prendas` 11/11 con control. Tres pruebas de otros módulos que armaban ese estado viejo ahora lo arman sin disparadores.
 - [x] **Guardia:** `lib/stock-una-sola-cifra.test.ts` falla si un archivo nuevo de la web lee la tabla `stock`; 7 quedan como legado con su porqué.
 - [x] Batería completa del CI contra un Postgres 17 desechable con las 361 migraciones: 107/108. La que falla (`pruebas:proveedores-produccion`, 14/15, «un nombre repetido con otra tilde») **falla igual sin estos cambios**: revisar aparte.
-- [ ] **#1 Sacar las pruebas (Felipe, con el botón del ADR-0252):** Fhfh, Fdhh, Y.j.j, Prueba Pantalon, Producto de Prueba y Jean Baggy. Polo Básico, Blusa Carlita, Test de Produto 2 y Blusa Xd tienen documentos: purga con receta (ADR-0224), uno por uno con «dale». Reales según Felipe: Bodys, Falda Milagros, chalecos, conjuntos y blusas. Sin decidir: Camisa con Brillos, Pantalon Sastre, Pantalon Cayla, Básico Manga Larga y Vestido Aurora (nunca recibieron stock).
+- [x] **#1 Sacar las pruebas (Felipe, con el botón del ADR-0252), hecho el 2026-09-28 noche (verificado en producción):** Fhfh, Fdhh, Y.j.j, Prueba Pantalon, Producto de Prueba y Jean Baggy. Polo Básico, Blusa Carlita, Test de Produto 2 y Blusa Xd tienen documentos: purga con receta (ADR-0224), uno por uno con «dale». Reales según Felipe: Bodys, Falda Milagros, chalecos, conjuntos y blusas. Sin decidir: Camisa con Brillos, Pantalon Sastre, Pantalon Cayla, Básico Manga Larga y Vestido Aurora (nunca recibieron stock).
 - [ ] **Pegar las 3 migraciones** después de la limpieza (Felipe eligió «después de borrar»), en orden, cada una en una sola parte, con ensayo que termina en excepción y verificación por efectos. Todas son solo `create or replace` + grants y un `create or replace trigger`: sin políticas ni `alter table`.
+  - **Con `20260929045000` (ADR-0263, de main):** esa migración parcha `fn_productos` por ancla (foto general) y la nuestra la reescribe. La nuestra ya trae ese cambio con su marca, así que el orden no importa: pegada antes, el parche se salta («ya tenía el parche»); después, no lo borra. Consecuencia: la consulta «ANTES DE PEGAR» del 045000 espera `fn_productos` 8af6c222 y, con la nuestra pegada, verá 1af39da2; es esperado. Huellas tras pegar las 3: fn_existencias eeb8be16, fn_existencias_base 2cd8f24e, fn_existencias_productos 2711e831, fn_productos 1af39da2, fn_productos_resumen 7a6ea36a, fn_stock_por_sede 19273e62, fn_talla_con_prendas_no_se_retira d4ff85a4. Y `scripts/pruebas/corregir_variantes.mjs` (de main) deja sin prendas las tallas que retira: la decisión 13 lo exige.
 - [ ] **#4 resto:** Buscar y Etiquetas todavía suman Cuarentena; `lib/inventario-v2.ts` y `useStockEnVivo.ts` leen `stock` directo (con la regla correcta). Y `components/useStockEnSede.ts` (llegó de main el 28-sep: stock por talla en la ficha del Catálogo y el candado de Etiquetas, físico); con la cifra única pegada, la tarjeta esconde su «En tu sede» para no mostrar dos cifras de «aquí». Pasarlos a `fn_existencias` y achicar la lista de legado.
 - [ ] **#6 Candados de estado en la base** (`fn_exigir_variante_operable` en las ~12 escrituras) — L, estructural; incluye cerrar la carrera «retirar mientras se recibe» de la #7.
 - [ ] #8 «Prenda» = el modelo en Existencias; #9 filtro «Pruebas»; #10 venta en 0 → «por regularizar» (objeción registrada en ADR-0270: flujo general, no la casilla); #11 descontinuado completo; #12 datos del catálogo. Detalle en `docs/pantallas/catalogo-inventario.md`.
 - [ ] **Traslado #4 (Taller → AQP) «en tránsito» desde el 17-sep sin ninguna prenda:** residuo de la demo retirada. No mueve cifras; decidir anularlo.
 - [ ] **Fuera de esta tarea:** Vender descarga el stock de TODA la red en un solo JSON al abrir (`fn_stock_por_sede_json`): 11 MB con 3 000 productos. Venía de antes; pedir solo las tallas que se muestran.
+
+## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0263; D-136 a D-138) — web + migración `20260929045000` **EN PRODUCCIÓN (2026-09-28); falta fusionar la web**; rama `claude/product-variant-editing-9307ed`
+Pedido de Felipe (2026-09-28, captura de BOD-0003 «Body Amir», 3 variantes «Sin color» con 17 u. de carga inicial): «una vez
+creado el producto la edición es muy limitada… mejor de lo que haría Shopify». Reemplaza ADR-0243 D-133 (color, talla y código
+de solo lectura) y la regla del ADR-0258 («solo sin historia», D-139/D-140), integrado sobre `main` (Felipe: «Integrar sobre
+main»): se conserva el guardado en dos tiempos del #568 (ADR-0257) y la migración se construye encima del 0258 ya pegado.
+- [x] Base: `fn_corregir_identidad_variante` (misma firma que la del 0258, ahora SECURITY DEFINER; misma prenda, mal registrada:
+  conserva id, stock e historia; vendida por venta, separación o cambio → solo líder; choque con otra variante → aviso), código
+  recalculado con el viejo sonando en `codigos_barras`, fotos y temporada que siguen al color, índice `variantes_identidad_unica`
+  NULLS NOT DISTINCT, candado de identidad en la tabla (el disparador del 0258, renombrado y con la regla nueva), historial de
+  color/talla/código/activa (reemplaza el bloque del 0258), `fn_variantes_estado`, foto general en `fn_productos`; se borran
+  `fn_variantes_con_historia` y `fn_identidad_variante_sin_historia`.
+- [x] Ficha: variantes por ejes y agrupadas por color; «Corregir color/talla» separado de «Agregar color/talla» (matriz del alta,
+  tallas habilitadas, etiquetas de las activas, «nacen sin unidades»); precio/costo en bloque; stock por sede; la barra «Tienes N
+  cambios sin guardar» y la hoja «Revisa y guarda los cambios» del #568 cuentan las variantes con una sola cuenta
+  (`variantesParaResumen`); lo pendiente se mide contra lo que tiene la base.
+- [x] Pruebas: `pnpm pruebas:corregir-variantes` 50/50 (carreras reales con COMMIT, mutación y la ficha de `main` sobre la base
+  nueva) en el CI, en una base desde cero y en una réplica de producción (`main` con el 0258 + esta), con `retail` idéntico entre
+  las dos; suites de catálogo en verde; revisión adversarial de 5 lentes: 17 hallazgos confirmados, todos resueltos. Se retiró
+  `pnpm pruebas:corregir-identidad-variante` (la del 0258): afirmaba la regla que se reemplaza.
+- [x] **`20260929045000` EN PRODUCCIÓN** (pegada por Felipe en el SQL Editor el 2026-09-28; verificada por Claude con solo lectura):
+  índice NULLS NOT DISTINCT, candado `variantes_identidad_solo_por_funcion`, `variantes_sin_mezcla_de_color` diferible, una sola
+  `fn_corregir_identidad_variante` (DEFINER), `fn_variantes_estado`, sin restos del 0258, `fn_codigo_variante_libre` cerrada a la
+  API, 0 prendas mezcladas, y las 9 huellas `md5(prosrc)` iguales a las de la base desde cero.
+- [ ] **Fusionar el PR #576** (publica la web nueva; la de `main` ya funciona igual sobre la base nueva) y **refrescar el
+  diccionario** (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] **Coordinar con el PR #580 (ADR-0270):** su `20260929020000` reescribe `fn_productos` entera. Si en producción se pega
+  DESPUÉS de esta, borra el parche de la foto general; quien pegue el segundo revisa la huella de `fn_productos`.
+- [ ] **Abierto (T8):** una venta de dos tallas en orden inverso al id contra la corrección de esas dos tallas todavía puede dar
+  40P01; la ficha reintenta una vez y, si vuelve, lo dice con palabras. Cerrarlo del todo es que `fn_bloquear_en_orden` tome
+  `for key share` en Ventas, Traslados, Compras y Producción (decisión de varios módulos).
+- [ ] **Abierto:** «Unir variantes» (D-138, fase aparte); `fn_historial_producto_cambios` devuelve `sku` y no `codigo`.
+- Cómo verificas (tras pegar el SQL):
+  - Abre BOD-0003 ▸ Editar ▸ «Corregir color» en el grupo «Sin color» ▸ Negro: la vista previa dice `BOD-0003-S → BOD-0003-NEG-S`;
+    guarda. Escanea una etiqueta vieja `BOD-0003-S` en Vender: sale la prenda, ahora Negro.
+  - «+ Agregar color» ▸ Azul marino: nacen S/M/L con el precio de la prenda y la etiqueta «Nuevo»; «Nacen sin unidades».
+  - Con una integrante no líder, «Corregir» una variante ya vendida: el menú la muestra apagada con su porqué.
 
 ## 🔎 Cabecera: buscador global (Ctrl/Cmd+K), lockup «CAYLA / Retail» y el colibrí en vector (2026-09-28, ADR-0262) — solo web, sin migración; rama `claude/dynamic-visual-spike-857d01`
 

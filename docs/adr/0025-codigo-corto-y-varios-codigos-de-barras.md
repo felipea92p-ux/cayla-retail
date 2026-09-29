@@ -125,6 +125,11 @@ Tres invariantes que mantienen esto honesto y que hay que respetar:
    `where categoria_id = …`, **nunca** `where codigo like 'BLU-%'`.
 3. `codigo` es `unique` pero no es PK ni destino de ninguna FK.
 
+> **Actualización 2026-09-28 (ADR-0263, D-137):** el invariante 1 cambia para el código de una VARIANTE al corregir su
+> color o su talla (se registró mal): recibe el código de su identidad nueva y el viejo se queda en `codigos_barras`
+> apuntando a la misma variante, así la etiqueta ya pegada sigue sonando. Reclasificar o renombrar la categoría sigue sin
+> recalcular nada, y el código de la prenda (`productos.codigo`) no cambia.
+
 Si mañana una prenda pasa de Blusas a Tops y sigue diciendo `BLU-0042`, no es un
 bug: se compró y se etiquetó como blusa, y la etiqueta ya está pegada. **El
 almacén manda sobre la taxonomía.**

@@ -14,6 +14,7 @@ const NOMBRES: NombresHistorial = {
     ["invierno", "Invierno"],
   ]),
   colores: new Map([["MAR", "Marfil"]]),
+  tallas: new Map([["t-s", "S"]]),
   marcas: new Map([["m-1", "Cayla"]]),
   proveedores: new Map([["p-1", "Textiles Norte"]]),
 };
@@ -86,7 +87,7 @@ describe("nombresPorBuscar — solo se consulta lo que hace falta", () => {
       { campo: "proveedor_id", valor_anterior: null, valor_nuevo: "p-1" },
       { campo: "precio", valor_anterior: "10", valor_nuevo: "12" },
     ]);
-    expect(falta).toEqual({ temporadas: true, colores: ["MAR"], marcas: ["m-1", "m-2"], proveedores: ["p-1"] });
+    expect(falta).toEqual({ temporadas: true, colores: ["MAR"], tallas: [], marcas: ["m-1", "m-2"], proveedores: ["p-1"] });
   });
   it("sin filas de temporada, no se lee la lista", () => {
     expect(nombresPorBuscar([{ campo: "precio", valor_anterior: "1", valor_nuevo: "2" }]).temporadas).toBe(false);
@@ -95,5 +96,56 @@ describe("nombresPorBuscar — solo se consulta lo que hace falta", () => {
     expect(colorDeCampo("temporada:NEG")).toBe("NEG");
     expect(colorDeCampo("temporada")).toBeNull();
     expect(colorDeCampo("temporada:")).toBeNull();
+  });
+});
+
+// ADR-0263: corregir el color o la talla de una variante, y activarla o desactivarla, deja rastro con quién lo hizo.
+describe("los campos de una variante corregida (ADR-0263)", () => {
+  it("color, talla, código y estado, con su nombre", () => {
+    expect(etiquetaCampo("color")).toBe("Color");
+    expect(etiquetaCampo("talla")).toBe("Talla");
+    expect(etiquetaCampo("codigo")).toBe("Código");
+    expect(etiquetaCampo("activo")).toBe("Estado");
+  });
+  it("el color por su nombre (vacío = «Sin color»); la talla tal cual (vacía = «Sin talla»)", () => {
+    expect(textoValorCambio("color", null, null, NOMBRES)).toBe("Sin color");
+    expect(textoValorCambio("color", "MAR", null, NOMBRES)).toBe("Marfil");
+    expect(textoValorCambio("color", "NEG", null, NOMBRES)).toBe("NEG");
+    expect(textoValorCambio("talla", "S", null)).toBe("S");
+    expect(textoValorCambio("talla", null, null)).toBe("Sin talla");
+  });
+  it("activa o desactivada en palabras; el código tal cual", () => {
+    expect(textoValorCambio("activo", "true", null)).toBe("Activa");
+    expect(textoValorCambio("activo", "false", null)).toBe("Desactivada");
+    expect(textoValorCambio("codigo", "BOD-0003-NEG-S", null)).toBe("BOD-0003-NEG-S");
+  });
+  it("se buscan los nombres de los dos colores de una corrección", () => {
+    const falta = nombresPorBuscar([{ campo: "color", valor_anterior: null, valor_nuevo: "NEG" }, { campo: "color", valor_anterior: "NEG", valor_nuevo: "AZU" }]);
+    expect(falta.colores).toEqual(["NEG", "AZU"]);
+    expect(falta.temporadas).toBe(false);
+  });
+});
+
+// ADR-0258 (pegada en producción antes que ADR-0263) anotaba la corrección como `color_codigo` y `talla_id` (el uuid). Esas
+// filas ya existen: se dicen igual que las de ahora, sin mostrar nunca un uuid.
+describe("los campos de ADR-0258 que ya están en el historial", () => {
+  it("color_codigo es «Color», con su nombre", () => {
+    expect(etiquetaCampo("color_codigo")).toBe("Color");
+    expect(textoValorCambio("color_codigo", "MAR", null, NOMBRES)).toBe("Marfil");
+    expect(textoValorCambio("color_codigo", null, null, NOMBRES)).toBe("Sin color");
+  });
+  it("talla_id es «Talla», con su valor buscado; sin leerlo, se dice sin el uuid", () => {
+    expect(etiquetaCampo("talla_id")).toBe("Talla");
+    expect(textoValorCambio("talla_id", "t-s", null, NOMBRES)).toBe("S");
+    expect(textoValorCambio("talla_id", null, null, NOMBRES)).toBe("Sin talla");
+    expect(textoValorCambio("talla_id", "3f2b0c1e-0000-4000-8000-000000000000", null, NOMBRES)).toBe("Una talla que no se pudo leer");
+  });
+  it("se buscan los dos colores y las dos tallas (por id) de una corrección de ADR-0258", () => {
+    const falta = nombresPorBuscar([
+      { campo: "color_codigo", valor_anterior: null, valor_nuevo: "NEG" },
+      { campo: "talla_id", valor_anterior: "t-s", valor_nuevo: "t-m" },
+    ]);
+    expect(falta.colores).toEqual(["NEG"]);
+    expect(falta.tallas).toEqual(["t-s", "t-m"]);
   });
 });

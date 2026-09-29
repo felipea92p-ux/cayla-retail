@@ -101,8 +101,8 @@ function SeccionCambios({ cambios }: { cambios: CambioProducto[] }) {
                 <span className="text-tinta">{c.etiqueta}</span>
                 {c.entidad === "variante" && (
                   <span className="ml-2 font-mono text-xs text-tinta/65">
-                    {c.varianteSku}
-                    {(c.varianteTalla || c.varianteColor) && ` · ${[c.varianteTalla, c.varianteColor].filter(Boolean).join(" · ")}`}
+                    {/* Cuál variante es HOY (talla · color): el SKU está vacío en casi todas, y sin él la línea empezaba con «·». */}
+                    {[c.varianteSku, c.varianteTalla, c.varianteColor].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 <span className="ml-2 text-tinta/75">

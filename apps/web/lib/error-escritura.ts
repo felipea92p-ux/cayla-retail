@@ -250,11 +250,15 @@ const HUELLAS: Huella[] = [
     frase: 'Ya existe una variante con ese SKU — revisa el catálogo en vez de crear uno nuevo.',
   },
   {
-    // 20260916190000_variantes_identidad_unica.sql — la talla se compara como
-    // en el código impreso ("M" = "m ", "Única" = "U"); sin color cuenta como un color.
+    // 20260929045000_corregir_siempre_color_y_talla_de_variantes.sql (ADR-0263) — vuelve el candado de identidad con
+    // `nulls not distinct`: una talla y un color van una sola vez por prenda, y «Sin color» cuenta como un color. La talla
+    // ya no se compara por texto (es de la lista cerrada, `talla_id`). Las funciones avisan antes con su frase y el código
+    // de la que ya existe (D-138); esto es la red si algún camino se salta el aviso.
     marca: "variantes_identidad_unica",
     frase:
-      "Ya existe una variante con esa talla y color en este producto. La talla se compara como en la etiqueta: \"M\" y \"m\" son la misma, y \"Única\" es lo mismo que \"U\".",
+      // El censo (alta al vuelo) cae aquí cuando el código escaneado es nuevo pero la talla+color ya existía: la frase de
+      // `variantes_producto_talla_color_unico` (que se borró) lo decía; esta lo sigue diciendo.
+      "Esta prenda ya tiene una variante con esa talla y ese color («Sin color» cuenta como un color). Si está desactivada, reactívala en vez de crear otra; si escaneaste un código nuevo, puede ser otra etiqueta de la misma prenda: búscala en el catálogo.",
   },
   {
     // 20260912235500_vocabulario_cerrado.sql — el código impreso es único.
@@ -416,6 +420,22 @@ const HUELLAS: Huella[] = [
 const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
 
 /**
+ * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
+ * de CAYLA y dice qué hacer («Ya existe Negro S en esta prenda (BOD-0003-NEG-S), pero está desactivada: reactívala…»).
+ * Tres llegan con `42501` (el candado de la tabla, el permiso de catálogo y el «solo un líder»), que sin esto caerían al
+ * genérico con «Código:».
+ * Se miran ANTES que las huellas: el hint es nuestro y exacto, y el mensaje trae un código de prenda que no debe
+ * confundirse con el nombre de ninguna restricción.
+ */
+const HINTS_VARIANTE: ReadonlySet<string> = new Set([
+  "identidad_variante",
+  "catalogo_sin_permiso",
+  "correccion_solo_lider",
+  "variante_ya_existe",
+  "mezcla_sin_color",
+]);
+
+/**
  * `hint` `<módulo>_sin_modulo`: la cuenta no tiene ese módulo en su rol (ADR-0161). Llega con `42501` y un mensaje ya en
  * castellano que dice qué pedir («Tu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y
  * accesos.»): lo escriben `retail.fn_exigir_modulo` (ADR-0249, 2026-09-28) y los candados de módulo que ya existían
@@ -522,6 +542,8 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
 
   // ADR-0193: la base ya lo dice en castellano («Otra persona cambió esta prenda… Recarga para ver sus cambios.»).
   if (esVersionCambiada(error)) return error.message || "Otra persona cambió esto mientras lo editabas. Recarga para ver sus cambios.";
+
+  if (error.hint && HINTS_VARIANTE.has(error.hint) && error.message) return error.message;
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();

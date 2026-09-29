@@ -89,15 +89,6 @@ export async function getCostosVariantes(ids?: string[]): Promise<Map<string, nu
 
 /** De estas variantes, las que ya tienen costo de Compras o del Taller (20260927190000): su costo ya no se corrige a mano.
  *  `null` si no se pudo preguntar (la migración aún no está en esta base). */
-/** Cuáles de estas variantes ya tienen historia (20260928235500). `null` = la función todavía no existe en la base. */
-async function getVariantesConHistoria(ids: string[]): Promise<Set<string> | null> {
-  if (ids.length === 0) return new Set();
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_variantes_con_historia", { p_ids: ids });
-  if (error || !Array.isArray(data)) return null;
-  return new Set(data as string[]);
-}
-
 async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> | null> {
   if (ids.length === 0) return new Set();
   const supabase = await createClient();
@@ -473,10 +464,6 @@ export type VarianteDetalle = {
    *  costo declarado (alta o carga inicial), se puede corregir. null = no se pudo saber (la migración 20260927190000
    *  aún no está): la ficha lo trata como oficial, que es lo seguro. */
   costoOficial: boolean | null;
-  /** true = ya tiene movimientos, ventas, compras o traslados: su color y su talla no se cambian. false = sin historia,
-   *  se corrigen desde la ficha (20260928235500). null = no se pudo saber (la migración aún no está): se trata como con
-   *  historia, que es lo seguro. */
-  conHistoria: boolean | null;
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
@@ -558,10 +545,9 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
   const ids = (data.variantes ?? []).map((v) => v.id);
-  const [costos, conCostoOficial, conHistoria, temporadas] = await Promise.all([
+  const [costos, conCostoOficial, temporadas] = await Promise.all([
     getCostosVariantes(ids),
     getVariantesConCostoOficial(ids),
-    getVariantesConHistoria(ids),
     getFichaTemporadas(id),
   ]);
 
@@ -598,7 +584,6 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       precio: Number(v.precio),
       costo: costos ? (costos.get(v.id) ?? 0) : null,
       costoOficial: conCostoOficial ? conCostoOficial.has(v.id) : null,
-      conHistoria: conHistoria ? conHistoria.has(v.id) : null,
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),

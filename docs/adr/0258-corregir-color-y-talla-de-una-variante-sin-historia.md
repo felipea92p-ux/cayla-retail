@@ -90,3 +90,15 @@ La migración va en UNA parte: sin políticas ni `drop trigger`, porque usa `cre
   disparador, el update directo sí pasaba.
 - Después de pegar en producción, abrir una prenda con una variante recién creada (sin stock). Sus combos de color y
   talla se pueden cambiar, y al guardar el código cambia. Una variante con stock sigue fija.
+
+## Actualización 2026-09-28 (noche): superado por ADR-0263
+
+Felipe eligió la regla de ADR-0263 («Integrar sobre main»): el color y la talla se corrigen SIEMPRE (si la variante ya
+se vendió, solo un líder) y el código viejo SIGUE sonando en `codigos_barras`. D-139 y D-140 quedan superadas por D-136,
+D-137 y D-138. La migración de este ADR (`20260928235500`) se queda en `main` y en producción; la de ADR-0263
+(`20260929045000`) se construye encima: renombra el disparador `variantes_identidad_sin_historia` a
+`variantes_identidad_solo_por_funcion` con la regla nueva, conserva la firma de `fn_corregir_identidad_variante` (ahora
+SECURITY DEFINER), reemplaza el bloque del historial y borra `fn_variantes_con_historia` y
+`fn_identidad_variante_sin_historia`. `pnpm pruebas:corregir-identidad-variante` se retiró (lo que seguía valiendo lo cubre
+`pnpm pruebas:corregir-variantes`). `20260928235500` no se vuelve a pegar después de `20260929045000`: devolvería el
+candado «solo sin historia».

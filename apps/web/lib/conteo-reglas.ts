@@ -278,6 +278,20 @@ export function codigoDePrendaNueva(fila: { sku: string | null; codigo?: string 
 }
 
 /**
+ * El alta al vuelo cayó en la regla «Sin color o con colores» (hint `mezcla_sin_color`, ADR-0263 T5): la prenda con ese
+ * nombre ya existe «del otro lado» y `censo_crear_variante` le iba a colgar la variante. La frase de la base habla desde
+ * la ficha («ponle color a las que no lo tienen o desactívalas»), que desde el Conteo no se puede hacer: esta dice qué
+ * pasó con ESTA prenda y dónde se arregla. `null` si el error es otro (lo traduce `traducirError`).
+ */
+export function mensajeMezclaEnCenso(error: { hint?: string | null } | null | undefined, referencia: string, conColor: boolean): string | null {
+  if (error?.hint !== "mezcla_sin_color") return null;
+  const nombre = `«${referencia.trim()}»`;
+  return conColor
+    ? `${nombre} está registrada «Sin color», y una prenda no puede tener variantes «Sin color» y de color a la vez. Para sumarle este color, primero hay que ponerle su color a las que ya tiene, desde su ficha en Productos.`
+    : `${nombre} tiene colores: una variante «Sin color» no va junto a ellas. Elige el color de esta prenda.`;
+}
+
+/**
  * «Contar esta prenda» (ADR-0241, desde un movimiento de Movimientos): `?variantes=` acota «Faltan por contar» a esas
  * tallas. Solo la lista de la pantalla: el conteo abierto sigue siendo el que es (su alcance en la base no cambia), y
  * cerrarlo ajusta SOLO lo contado (`cerrar_conteo` recorre `conteo_items`), así que lo demás no queda en cero. Sin

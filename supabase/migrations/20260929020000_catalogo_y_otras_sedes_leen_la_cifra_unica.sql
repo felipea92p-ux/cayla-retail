@@ -37,6 +37,10 @@
 -- PRODUCCIÓN
 --   Solo `create or replace function` y `grant`: sin políticas ni `alter table` (ADR-0195). Se pega DESPUÉS de
 --   20260929010000, entera, en una sola parte.
+--   CON 20260929045000 (ADR-0263, de main): esa migración PARCHA `fn_productos` por ancla (sin foto propia de su color,
+--   la variante muestra la foto general) y esta la REESCRIBE entera. Para que el orden no importe, este cuerpo ya trae
+--   ese mismo cambio con su marca «20260929045000»: pegada antes, el parche ve la marca y se salta («ya tenía el
+--   parche»); pegada después, no borra la foto general. El resultado es idéntico en los dos órdenes.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -242,8 +246,9 @@ begin
     select pf.url
     from producto_fotos pf
     where pf.producto_id = pg.id
-      and pf.color_codigo is not distinct from v.color_codigo
-    order by pf.orden
+      and (pf.color_codigo is not distinct from v.color_codigo or pf.color_codigo is null)
+    -- 20260929045000 (ADR-0228/0263): la de su color primero; si su color no tiene, la general.
+    order by (pf.color_codigo is null), pf.orden
     limit 1
   ) foto on true
   left join lateral (
