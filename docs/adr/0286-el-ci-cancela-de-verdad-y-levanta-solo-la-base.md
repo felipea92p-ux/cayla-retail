@@ -43,6 +43,38 @@ corrida «cancelada»). Si tenía una falla real que el commit nuevo no arregla,
 **Cómo se verifica.** Se empuja dos veces seguidas al PR: la segunda corrida tiene que arrancar en segundos, y la primera
 tiene que terminar «cancelada» en segundos, sin correr pruebas.
 
+## Parte 2 · Levantar solo la base
+
+**Lo que pasaba.** `npx supabase start` bajaba y arrancaba 8 contenedores (la base más gotrue, kong, mailpit, postgres-meta,
+postgrest, storage-api y studio). Las 124 pruebas de `scripts/pruebas/` y `scripts/caja/` hablan solo con
+`supabase_db_cayla-retail` por `docker exec … psql`: ninguna llama a la API, a auth ni a storage (se buscó `fetch(`,
+`createClient`, `/rest/v1`, `/auth/v1`, `/storage/v1` y los puertos del stack; los 4 aciertos eran el celular de prueba
+`987654321`, que contiene «54321»). Las migraciones y el seed se aplican **antes** de que arranquen los contenedores de
+servicios (en el log: seed 22:12:42, «Starting containers» 22:12:43), así que tampoco los necesitan.
+
+**Decisión.** `npx supabase@2.118.0 start -x gotrue,kong,mailpit,postgres-meta,postgrest,storage-api,studio`, con la versión y
+la lista como variables del job (`SUPABASE_CLI`, `SIN_SERVICIOS`) para que los dos pasos que levantan la base las compartan.
+Los nombres son los que acepta ese CLI (`supabase start --help`) y coinciden con las 7 imágenes que el CI bajaba. **La
+versión se fija** porque los nombres de `-x` son de una versión: con `npx supabase` a secas (hoy 2.118.0, la misma que usó
+la última corrida) un renombre del CLI —ya avisa que `inbucket` cambió— pondría el CI en rojo sin que cambie el código.
+Subirla es cambiar un número en un PR.
+
+**Qué se espera.** ~40–50 s menos por corrida completa (estimado, no medido) y menos fallas por el límite de descargas de
+`public.ecr.aws`: pasa de bajar 8 imágenes a bajar 1.
+
+**Qué se pierde.**
+- El CI deja de ser una réplica del stack completo. Si una prueba futura necesita un servicio (RLS por la API con un JWT
+  real, la API de storage), fallará con «conexión rechazada» y habrá que sacar ese servicio de `SIN_SERVICIOS`.
+- Subir el CLI ya no es automático.
+
+**Riesgo abierto (sin verificar antes de la primera corrida).** Quince pruebas insertan en `auth.users` y una toca
+`storage.*` (`dinero_compras_solo_lider.mjs`). Si gotrue o storage-api terminan de armar esas tablas al arrancar (columnas
+que agregan sus propias migraciones), esas pruebas fallarían sin ellos. **Si la primera corrida sale roja por eso, plan B:**
+sacar `gotrue` y `storage-api` de `SIN_SERVICIOS` (siguen ahorrándose 5 de las 7 descargas). Se revierte solo este commit.
+
+**Cómo se verifica.** La corrida del PR tiene que dar el mismo resultado que `main` en las 124 pruebas, y el paso
+`npx supabase start` tiene que bajar de ~88 s a ~40 s.
+
 ## Qué se descartó
 
 - **Repartir las pruebas en varios jobs.** Gana tiempo, pero cada job paga sus ~88 s de arranque.

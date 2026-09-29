@@ -184,6 +184,15 @@ jobs:
     if: ${{ !cancelled() && needs.alcance.outputs.alcance != 'nada' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # SOLO LA BASE (ADR-0286, Parte 2). Las 124 pruebas de este job hablan con el contenedor `supabase_db_cayla-retail` por
+    # `docker exec … psql`; ninguna usa la API, auth, storage ni el panel. Levantarlos costaba ~60 de los ~88 s de
+    # `supabase start` (bajar 7 imágenes, con reintentos por «Rate exceeded») sin que nada los llamara. Se excluyen los siete
+    # que este CLI baja y se fija su versión: los nombres de `-x` son de esta versión, y con `npx supabase` a secas un
+    # renombre del CLI pondría el CI en rojo sin que cambie el código. Para subirla: cambiar el número aquí, en una PR.
+    # Si una prueba futura necesita uno de esos servicios (RLS por la API con un JWT real, storage), sácalo de SIN_SERVICIOS.
+    env:
+      SUPABASE_CLI: supabase@2.118.0
+      SIN_SERVICIOS: gotrue,kong,mailpit,postgres-meta,postgrest,storage-api,studio
     steps:
       - uses: actions/checkout@v4
 
@@ -207,14 +216,14 @@ jobs:
       # `steps.supabase`): la base es la de main, que ya las pasó. Corre en su lugar el paso siguiente.
       - id: supabase
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
-        run: npx supabase start
+        run: npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
 
       # PR «solo web» (ADR-0259): el mismo Postgres, pero solo las pruebas que leen apps/web (~2 min en vez de ~6). Cuáles
       # son lo deduce el script leyendo cada prueba y lo que importa: una prueba nueva que lea la web entra sola.
       - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
         run: |
-          npx supabase start
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
           node scripts/ci/pruebas-web.mjs
 
       # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
