@@ -1,4 +1,4 @@
-# ADR-0279 · Veintiocho acciones sin el combo «Responsable»
+# ADR-0280 · Veintiocho acciones sin el combo «Responsable»
 
 - **Fecha:** 2026-09-29 · **Estado:** propuesto, **a probar en local** por Felipe antes de tocar producción. Nada de esto
   está en producción: la migración `20260929230000_acciones_sin_responsable.sql` **no se ha pegado**.

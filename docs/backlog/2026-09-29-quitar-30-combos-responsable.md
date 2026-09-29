@@ -1,4 +1,4 @@
-## 🧾 Veintiocho acciones sin combo «Responsable» (2026-09-29, ADR-0279) — web + 1 migración; rama `claude/quitar-30-combos-responsable`
+## 🧾 Veintiocho acciones sin combo «Responsable» (2026-09-29, ADR-0280) — web + 1 migración; rama `claude/quitar-30-combos-responsable`
 
 **Estado:** hecho en la rama, **a probar en local por Felipe**; la migración NO está en producción. Si no le sirve: «volver»
 (`git revert` del commit «quita 30 combos» y, si ya se pegó, `delete from retail.acciones_sin_responsable;`).

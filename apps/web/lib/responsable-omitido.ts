@@ -2,7 +2,7 @@
  * Las acciones que Felipe soltó del combo «Responsable» (2026-09-29) — la lista viva de lo que la web deja de preguntar.
  *
  * EL PROBLEMA. El combo «Responsable» (ADR-0161) se pedía en 149 lugares de la web. Felipe los repasó uno por uno y
- * marcó 30 donde estorba más de lo que ayuda (28 quedaron sueltas: ver ADR-0279): el alta de producto lo pedía hasta 9 veces seguidas, aprobar o rechazar un
+ * marcó 30 donde estorba más de lo que ayuda (28 quedaron sueltas: ver ADR-0280): el alta de producto lo pedía hasta 9 veces seguidas, aprobar o rechazar un
  * valor del Catálogo, adjuntar un archivo a una factura, cerrar un conteo, recibir un traslado…
  *
  * LA REGLA. Esas acciones se guardan sin elegir a nadie. La pantalla ya no pinta el combo y manda el encabezado

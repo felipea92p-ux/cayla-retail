@@ -1,4 +1,4 @@
-## 2026-09-29 — Veintiocho acciones sin el combo «Responsable» (ADR-0279)
+## 2026-09-29 — Veintiocho acciones sin el combo «Responsable» (ADR-0280)
 
 **QUÉ HICE:** De los 149 lugares donde el ERP pide elegir responsable, 28 dejan de pedirlo (Felipe marcó 30; dos filas no eran lo que decían sus etiquetas y se conservan): 7 de tienda y Compras (apartar, aviso, traslado, cerrar conteo, regularizar, adjuntos) y 21 del Catálogo (alta de producto, aprobar y rechazar valores, campañas, fechas de temporada). Los otros 121 siguen igual. Hay un «volver» de un solo commit.
 

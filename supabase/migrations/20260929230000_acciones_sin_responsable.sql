@@ -5,7 +5,7 @@
 -- presentes en la tienda la hace: 149 lugares en la web. Felipe repasó los 149 uno por uno y marcó 30 donde el combo
 -- estorba más de lo que ayuda (el alta de producto pedía hasta 9 veces el mismo nombre; aprobar un color, adjuntar un
 -- archivo a una factura…). De esos 30 quedaron 28 acciones: dos filas eran en realidad el «Quién cuenta» de todo el conteo
--- y el modal «Nuevo color», que Felipe no quería soltar (ver ADR-0279). La lista viva está en
+-- y el modal «Nuevo color», que Felipe no quería soltar (ver ADR-0280). La lista viva está en
 -- `apps/web/lib/responsable-omitido.ts`.
 --
 -- LA REGLA NUEVA. Esas 28 acciones se pueden hacer SIN elegir responsable:
