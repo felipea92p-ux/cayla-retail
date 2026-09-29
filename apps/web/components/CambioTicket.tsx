@@ -9,6 +9,7 @@ import { EMISOR } from "@/lib/emisor";
 import { enlaceWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
 import { fechaHoraLima } from "@/lib/recibo-reglas";
 import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
 
 /* ====================================================================
@@ -53,6 +54,8 @@ function textoDiferencia(d: number): string {
 }
 
 export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: TicketCambio; onNuevo: () => void; onCerrar: () => void }) {
+  // El PDF sale como «Cambio B004-000004.pdf» (el ticket nombra la venta que se cambió), no «Retail - CAYLA.pdf».
+  useTituloDeImpresion(ticket.comprobante ? `Cambio ${ticket.comprobante}` : null);
   const { fecha, hora } = fechaHoraLima(ticket.registradoEn);
   const cantidad = ticket.cantidad > 1 ? ` (×${ticket.cantidad})` : "";
   const whatsapp = enlaceWhatsApp(

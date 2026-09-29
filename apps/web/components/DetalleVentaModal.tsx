@@ -11,6 +11,7 @@ import { leerVentaDetalle } from "@/lib/venta-detalle";
 import { puedeImprimir, type VentaDetalle } from "@/lib/venta-detalle-reglas";
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 
 const money = (n: number) => "S/" + n.toFixed(2);
 
@@ -48,6 +49,9 @@ export function DetalleVentaModal({
   const [carga, setCarga] = useState<Carga>({ fase: "cargando" });
   const [intento, setIntento] = useState(0);
   const [imprimiendo, setImprimiendo] = useState<Impresion>(null);
+  // Al reimprimir o guardar como PDF (ticket o A4), el archivo se llama como el comprobante («B004-000004.pdf»).
+  const reciboAImprimir = carga.fase === "lista" ? carga.detalle.recibo : null;
+  useTituloDeImpresion(imprimiendo && reciboAImprimir ? textoNumeroRecibo(reciboAImprimir) : null);
 
   useEffect(() => {
     let vigente = true;
