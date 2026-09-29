@@ -22,7 +22,7 @@ import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
@@ -188,12 +188,15 @@ export function NuevoProductoForm({
   const puedePiso = destino.separaPiso && destino.puedeBajar;
   const [alPiso, setAlPiso] = useState(false);
   const [cargando, setCargando] = useState(false);
-  // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
-  // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
+  // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Quien abre el alta se identifica
+  // UNA vez, arriba de los pasos (`QuienRegistra`), y esa identidad firma la prenda Y lo que se crea a mitad del formulario
+  // (marca, talla, tejido, color… ver `useFirmaDeMitad`): ninguno pinta su propio combo (Felipe, 2026-09-29). Vive en el estado de
+  // esta pantalla: al salir del alta se acaba, y «Crear otro parecido» la conserva (sigue siendo la misma persona).
   // La tienda es la misma donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ.
-  // El combo vive al final del paso 4 («Quién lo registra»), donde la persona termina; la ficha solo repite qué falta.
+  // El paso 4 («Quién lo registra») solo repite el nombre, con «Cambiar»; la ficha repite qué falta.
   const responsable = useResponsable({ ubicacionId: destino.ubicacionId, etiqueta: destino.etiqueta });
   const responsableAlta: ResponsableAlta = { listo: responsable.listo, faltaElegir: responsable.estado === "falta", motivo: responsable.motivo };
+  const quienRegistra = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const colaOffline = useColaProductos();
   const enLinea = useEnLinea();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
@@ -499,7 +502,9 @@ export function NuevoProductoForm({
       });
       return;
     }
-    responsable.despues(error);
+    // Solo si la base rechazó por el responsable (ya no está presente…) se suelta y se relee la lista. Si salió bien NO: la
+    // identidad se conserva para «Crear otro parecido» (Felipe, 2026-09-29) y se acaba al salir de la pantalla.
+    if (error) responsable.despues(error);
 
     if (error || !productoId) {
       setCargando(false);
@@ -964,10 +969,15 @@ export function NuevoProductoForm({
           inicial». Lo que llegue después se registra al recibirlo.
         </p>
 
-        {/* Quién firma el alta (ADR-0161): una sola vez en la pantalla, aquí, donde la persona termina. La tienda es la misma
-            donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ. */}
+        {/* Quién firma el alta (ADR-0161): se elige UNA vez, arriba de los pasos (`QuienRegistra`); aquí, donde la persona
+            termina, solo se ve a nombre de quién va a quedar, con la salida para cambiarlo. */}
         <FilaAlta etiqueta="Quién lo registra" ayuda="Queda a su nombre en el historial">
-          <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
+          <p className="flex flex-wrap items-center gap-x-2 text-[14px]">
+            {quienRegistra ? <b className="font-semibold text-tinta">{quienRegistra}</b> : <span className="text-taupe">Todavía nadie</span>}
+            <button type="button" onClick={irAQuienRegistra} disabled={cargando} className="btn-cayla btn-enlace text-[12.5px]">
+              {quienRegistra ? "Cambiar" : "Elegir"}
+            </button>
+          </p>
         </FilaAlta>
       </div>
     );
@@ -991,64 +1001,67 @@ export function NuevoProductoForm({
   });
 
   return (
-    <form
-      onSubmit={onSubmit}
-      // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
-      // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-      }}
-      className="space-y-4"
-    >
-      {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        <div className="min-w-0 space-y-2.5">
-          <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
-          {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
-              operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
-          {!enLinea && (
-            <AvisoInline tono="ambar">
-              <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
-              marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
-              revisar al subir).
-            </AvisoInline>
-          )}
-          {copiadoDe && (
-            <AvisoInline tono="neutro">
-              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
-              temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
-            </AvisoInline>
-          )}
-          {PASOS_ALTA.map((n) => (
-            <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
-              {cuerpo(n)}
-            </PasoAlta>
-          ))}
-        </div>
+    <IdentidadAltaProveedor control={responsable}>
+      <form
+        onSubmit={onSubmit}
+        // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
+        // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+        }}
+        className="space-y-4"
+      >
+        {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <div className="min-w-0 space-y-2.5">
+            <QuienRegistra control={responsable} deshabilitado={cargando} />
+            <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
+            {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
+                operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
+            {!enLinea && (
+              <AvisoInline tono="ambar">
+                <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
+                marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
+                revisar al subir).
+              </AvisoInline>
+            )}
+            {copiadoDe && (
+              <AvisoInline tono="neutro">
+                Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
+                temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
+              </AvisoInline>
+            )}
+            {PASOS_ALTA.map((n) => (
+              <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
+                {cuerpo(n)}
+              </PasoAlta>
+            ))}
+          </div>
 
-        <FichaPrevia
-          datos={{
-            nombre: nombreFinal,
-            codigo: categoria ? base : null,
-            categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
-            marca: marcaId ? marcaNombre || null : null,
-            tejido: tejidoTexto,
-            variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
-            hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
-            precio: precioNum > 0 ? precioNum : null,
-            margen,
-            colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
-            foto: fotosOrdenadas[0]?.vista ?? null,
-            fotos: fotos.length,
-            avance,
-            siguiente: siguienteDelAlta(problemas, responsableAlta),
-          }}
-          cargando={cargando}
-          onCancelar={() => salida.pedirSalir("/productos")}
-          onAbrirPaso={irAPaso}
-        />
-      </div>
-      {salida.aviso}
-    </form>
+          <FichaPrevia
+            datos={{
+              nombre: nombreFinal,
+              codigo: categoria ? base : null,
+              categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
+              marca: marcaId ? marcaNombre || null : null,
+              tejido: tejidoTexto,
+              variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
+              hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
+              precio: precioNum > 0 ? precioNum : null,
+              margen,
+              colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
+              foto: fotosOrdenadas[0]?.vista ?? null,
+              fotos: fotos.length,
+              avance,
+              siguiente: siguienteDelAlta(problemas, responsableAlta),
+            }}
+            cargando={cargando}
+            onCancelar={() => salida.pedirSalir("/productos")}
+            onAbrirPaso={irAPaso}
+          />
+        </div>
+        {salida.aviso}
+      </form>
+    </IdentidadAltaProveedor>
   );
 }
