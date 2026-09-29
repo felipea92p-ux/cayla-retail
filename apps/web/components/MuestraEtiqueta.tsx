@@ -30,6 +30,10 @@ export const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
   neutral: { fondo: "#EFE8DA", acento: TINTA },
 };
 
+// Pizarra (#4C5D6E) diluida al 14 % sobre crema, la misma cuenta con que salen los fondos de `TONOS`. Vive aquí, junto a
+// ellos, porque la comparten Temporadas (otoño e invierno) y Categorías (Calzado y Papelería).
+export const TONO_PIZARRA = { fondo: "#DDDBD7", acento: "#4C5D6E" };
+
 const ANCHO = 180; // 3:1, como las muestras de Patrones y Tejidos
 const ALTO = 60;
 
