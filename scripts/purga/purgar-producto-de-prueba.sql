@@ -1,7 +1,9 @@
 -- ============================================================================
 -- scripts/purga/purgar-producto-de-prueba.sql — ADR-0224 (ampliado el 2026-09-28: ventas con boleta de prueba,
--- separaciones, compras con su recepción, conteos, bajadas y traslados dentro de la tienda)
--- Deshace POR COMPLETO un producto de prueba y los documentos de prueba que lo tocaron (ventas, separaciones, compras).
+-- separaciones, compras con su recepción, conteos, bajadas, traslados dentro de la tienda; y el 2026-09-29: traslados
+-- ENTRE sedes —envío y, si ya se recibió, recepción— y proformas/cotizaciones)
+-- Deshace POR COMPLETO un producto de prueba y los documentos de prueba que lo tocaron (ventas, separaciones, compras,
+-- traslados entre sedes, proformas).
 -- Se corre a mano, una vez por producto, nunca desde la web: borra historia que el sistema declara inmutable
 -- (`movimientos`, costos, bajadas…), y esa promesa solo se rompe con una persona presente, un ensayo a la vista y un respaldo.
 -- Lo que tiene solo historia de stock lo borra un Admin desde Productos (ADR-0252); esto es para lo que tiene DOCUMENTOS.
@@ -35,6 +37,8 @@
 --     select set_config('cayla_purga.ventas',       '<id>,<id>', false);   -- ids de venta, con coma; '-' si no hay
 --     select set_config('cayla_purga.separaciones', '<id>', false);        -- opcional; '-' o sin poner si no hay
 --     select set_config('cayla_purga.compras',      '<id>', false);        -- opcional; '-' o sin poner si no hay
+--     select set_config('cayla_purga.traslados',    '<id>', false);        -- opcional; '-' o sin poner si no hay (transferencias)
+--     select set_config('cayla_purga.proformas',    '<id>', false);        -- opcional; '-' o sin poner si no hay (cotizaciones)
 --   Si el producto está en un documento que no nombraste, el ensayo lo rechaza y te da su id: nada se borra por omisión.
 --   ENSAYO (lo que corre si no se dice otra cosa): termina con una EXCEPCIÓN que trae el resumen. Nada queda escrito.
 --   CORRIDA REAL: además   select set_config('cayla_purga.modo', 'definitivo', false);   y solo con el «dale» de Felipe.
@@ -80,6 +84,8 @@ begin
   perform 1 from separaciones where id = any (pg_temp.lista('separaciones')) order by id for update;
   perform 1 from compras where id = any (pg_temp.lista('compras')) order by id for update;
   perform 1 from comprobantes where venta_id = any (pg_temp.lista('ventas')) or separacion_id = any (pg_temp.lista('separaciones')) order by id for update;
+  perform 1 from transferencias where id = any (pg_temp.lista('traslados')) order by id for update;
+  perform 1 from proformas where id = any (pg_temp.lista('proformas')) order by id for update;
 end $$;
 
 -- ---- 1. Alcance: todo lo que se va a borrar, calculado UNA vez ----
@@ -100,10 +106,25 @@ create temp table zz_compra_item on commit drop as
 create temp table zz_comp on commit drop as
   select id, tipo, serie, numero, ubicacion_id, entorno_transmision from comprobantes
    where venta_id in (select id from zz_venta) or separacion_id in (select id from zz_sep);
--- Los movimientos: los del producto, los de otras prendas que salieron por esas ventas y los que recibieron esas compras.
+-- El traslado se borra ENTERO (como una separación o una compra): sus líneas de envío y, si ya se recibió, sus líneas
+-- de recepción — puede traer una prenda «sustituida» que nunca se envió (sin fila en transferencia_items).
+create temp table zz_traslado on commit drop as
+  select id, ubicacion_origen_id, ubicacion_destino_id from transferencias where id = any (pg_temp.lista('traslados'));
+create temp table zz_traslado_item on commit drop as
+  select id, transferencia_id, variante_id from transferencia_items where transferencia_id in (select id from zz_traslado);
+create temp table zz_traslado_recep on commit drop as
+  select id, transferencia_id, variante_id from transferencia_recepciones where transferencia_id in (select id from zz_traslado);
+-- La proforma se borra ENTERA: sin llave foránea a variantes (guarda sus prendas en un jsonb), así que el candado de
+-- «quién más cita esto» por llave (f) no la vería sola — solo el candado por texto suelto (g). Por eso se nombra a
+-- mano, como una separación o una compra.
+create temp table zz_proforma on commit drop as
+  select id, numero from proformas where id = any (pg_temp.lista('proformas'));
+-- Los movimientos: los del producto, los de otras prendas que salieron por esas ventas, los que recibieron esas compras
+-- y los que nacieron de los traslados nombrados (envío y, si ya se recibió, recepción).
 create temp table zz_mov on commit drop as
   select * from movimientos
-   where variante_id in (select id from zz_var) or venta_item_id in (select id from zz_item) or compra_item_id in (select id from zz_compra_item);
+   where variante_id in (select id from zz_var) or venta_item_id in (select id from zz_item) or compra_item_id in (select id from zz_compra_item)
+      or transferencia_item_id in (select id from zz_traslado_item) or transferencia_recepcion_id in (select id from zz_traslado_recep);
 
 -- LA lista: cada fila que se borra, por tabla e id. Las tablas sin un `id` propio (stock, el reparto de una compra, las
 -- líneas de una bajada, las marcas de reintento…) son «hojas»: se borran con su padre y se describen en `zz_hoja`.
@@ -129,7 +150,11 @@ insert into zz_borrar
   union select 'compra_items', id from zz_compra_item
   union select 'compra_reasignaciones', id from compra_reasignaciones where compra_item_id in (select id from zz_compra_item)
   union select 'compra_item_cierres', id from compra_item_cierres where compra_item_id in (select id from zz_compra_item)
-  union select 'lotes', lote_id from zz_mov where lote_id is not null;
+  union select 'lotes', lote_id from zz_mov where lote_id is not null
+  union select 'transferencias', id from zz_traslado
+  union select 'transferencia_items', id from zz_traslado_item
+  union select 'transferencia_recepciones', id from zz_traslado_recep
+  union select 'proformas', id from zz_proforma;
 -- El envío (la guía con la que llegó) se va solo si se queda vacío: todos sus lotes se borran y no trae nada más.
 insert into zz_borrar
   select 'envios', e.id from envios e
@@ -146,14 +171,17 @@ insert into zz_hoja values
   ('bajada_piso_items', 'movimiento_id', 'movimientos'),
   ('movimientos_internos_intentos', 'movimiento_id', 'movimientos'),
   ('compra_item_destinos', 'compra_item_id', 'compra_items'),
-  ('comprobante_anticipos', 'comprobante_id', 'comprobantes');
+  ('comprobante_anticipos', 'comprobante_id', 'comprobantes'),
+  -- Lo que deja `anular_venta` (2026-09-29): por qué se anuló cada línea, y con qué movimiento se devolvió el stock.
+  ('venta_anulacion_items', 'venta_id', 'ventas');
 
 -- Las tablas que se borran por id, aunque en esta corrida no tengan filas.
 create temp table zz_tablas on commit drop as
   select unnest(array['productos', 'variantes', 'codigos_barras', 'producto_fotos', 'pedidos_no_atendidos', 'movimientos',
                       'conteo_items', 'costo_historial', 'apartados', 'ventas', 'venta_items', 'venta_pagos', 'comprobantes',
                       'separaciones', 'separacion_items', 'separacion_pagos', 'compras', 'compra_items', 'compra_reasignaciones',
-                      'compra_item_cierres', 'lotes', 'envios']) as tabla;
+                      'compra_item_cierres', 'lotes', 'envios', 'transferencias', 'transferencia_items', 'transferencia_recepciones',
+                      'proformas']) as tabla;
 
 -- El filtro «esta fila NO se va con la purga», para buscar quién más cita o menciona lo que se borra.
 create function pg_temp.fuera_de_la_lista(p_tabla text, p_alias text) returns text language sql stable as $f$
@@ -200,12 +228,15 @@ begin
   if retail.fn_producto_es_pieza_del_sistema((select id from zz_prod)) then
     raise exception '[purga] «%» es la pieza «Monto manual» del punto de venta: no se purga nunca.', current_setting('cayla_purga.producto');
   end if;
-  foreach v_txt in array array['ventas', 'separaciones', 'compras'] loop
+  foreach v_txt in array array['ventas', 'separaciones', 'compras', 'traslados', 'proformas'] loop
     v_pedidas := cardinality(pg_temp.lista(v_txt));
-    execute format('select count(*) from %I', case v_txt when 'ventas' then 'zz_venta' when 'separaciones' then 'zz_sep' else 'zz_compra' end) into v_n;
+    execute format('select count(*) from %I', case v_txt
+      when 'ventas' then 'zz_venta' when 'separaciones' then 'zz_sep' when 'compras' then 'zz_compra'
+      when 'traslados' then 'zz_traslado' else 'zz_proforma' end) into v_n;
     if v_n <> v_pedidas then
       raise exception '[purga] Pedí % % y encontré %. Revisa los ids.', v_pedidas,
-        case v_txt when 'ventas' then 'venta(s)' when 'separaciones' then 'separación(es)' else 'compra(s)' end, v_n;
+        case v_txt when 'ventas' then 'venta(s)' when 'separaciones' then 'separación(es)' when 'compras' then 'compra(s)'
+          when 'traslados' then 'traslado(s)' else 'proforma(s)' end, v_n;
     end if;
   end loop;
 
@@ -223,19 +254,27 @@ begin
   -- Lo demás, solo si es una nota interna, si fue al entorno de pruebas de SUNAT o si nunca salió de la base. El
   -- `coalesce` no es adorno: sin entorno, `entorno = 'sandbox'` da NULL, y `not (… or NULL or …)` también: la boleta que
   -- ya intentó salir se colaba sin contarse (lo cazó la prueba).
+  -- `no_emitido` es su propia rama, sin exigir cero intentos: es el estado al que `anular_venta` manda un comprobante
+  -- que ya venía reintentando (ADR-0224, 2026-09-29) — y `fn_tomar_comprobantes_para_reintento` nunca vuelve a tomar
+  -- ni un `no_emitido` ni el de una venta `anulada`: no es que «nunca salió», es que ya se decidió que no va a salir.
   select count(*), string_agg(c.serie || '-' || c.numero || ' (' || c.estado || ')', ', ' order by c.serie, c.numero) into v_n, v_txt
     from comprobantes c join zz_comp z on z.id = c.id
    where not coalesce(
          (c.tipo = 'nota_venta' and c.estado = 'interna' and c.enviado_at is null and c.respuesta_sunat is null)
       or c.entorno_transmision is not distinct from 'sandbox'
-      or (c.entorno_transmision is null and c.estado in ('pendiente', 'no_emitido') and c.enviado_at is null and c.respuesta_sunat is null
+      or (c.entorno_transmision is null and c.estado = 'no_emitido' and c.enviado_at is null and c.respuesta_sunat is null
+          and c.anulacion_solicitada_at is null)
+      or (c.entorno_transmision is null and c.estado = 'pendiente' and c.enviado_at is null and c.respuesta_sunat is null
           and coalesce(c.intentos_transmision, 0) = 0 and c.ultimo_intento_transmision_at is null and c.anulacion_solicitada_at is null),
        false);
   if v_n > 0 then v_malas := v_malas || format(E'\n  · %s comprobante(s) ya intentaron salir a SUNAT sin decir a qué entorno (%s): se revisa con el PSE antes de borrar', v_n, v_txt); end if;
   -- Uno pendiente que el envío automático acaba de tomar (su reserva vence en el futuro): se espera a que la suelte.
+  -- Solo si SIGUE en un estado que ese envío vuelve a mirar (`pendiente`/`pendiente_reintento`): un `no_emitido` (p. ej.
+  -- por `anular_venta`) puede arrastrar una reserva vieja en `proximo_reintento_at` que ya no significa nada —
+  -- `fn_tomar_comprobantes_para_reintento` nunca lo vuelve a tomar.
   select count(*), string_agg(c.serie || '-' || c.numero, ', ') into v_n, v_txt
     from comprobantes c join zz_comp z on z.id = c.id
-   where c.entorno_transmision is null and c.proximo_reintento_at > now();
+   where c.entorno_transmision is null and c.estado in ('pendiente', 'pendiente_reintento') and c.proximo_reintento_at > now();
   if v_n > 0 then v_malas := v_malas || format(E'\n  · %s comprobante(s) se están enviando a SUNAT justo ahora (%s): espera 5 minutos y vuelve a ensayar', v_n, v_txt); end if;
 
   -- (b) El producto solo puede estar en los documentos que nombraste. Si está en otro, se dice cuál (con su id).
@@ -254,6 +293,18 @@ begin
      and exists (select 1 from compra_items x where x.compra_id = c.id
                   and (x.variante_id in (select id from zz_var) or x.producto_id in (select id from zz_prod)));
   if v_n > 0 then v_malas := v_malas || format(E'\n  · el producto está en %s compra(s) que no pediste borrar (cayla_purga.compras): %s', v_n, v_txt); end if;
+  select count(*), string_agg(tr.id::text, ', ') into v_n, v_txt
+    from transferencias tr
+   where tr.id not in (select id from zz_traslado)
+     and exists (select 1 from transferencia_items x where x.transferencia_id = tr.id and x.variante_id in (select id from zz_var));
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · el producto está en %s traslado(s) que no pediste borrar (cayla_purga.traslados): %s', v_n, v_txt); end if;
+  -- Las proformas no tienen llave foránea a variantes (van en un jsonb): el candado (g), por texto, las encuentra
+  -- igual, pero acá se avisa con su número en vez de un id suelto.
+  select count(*), string_agg('#' || p.numero, ', ' order by p.numero) into v_n, v_txt
+    from proformas p
+   where p.id not in (select id from zz_proforma)
+     and exists (select 1 from jsonb_array_elements(p.items) i where nullif(i ->> 'variante_id', '')::uuid in (select id from zz_var));
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · el producto está en %s proforma(s) que no pediste borrar (cayla_purga.proformas): %s', v_n, v_txt); end if;
 
   -- (c) Cada documento nombrado tiene que tocar el producto: un id equivocado no se lleva una venta real.
   select count(*), string_agg(v.id::text, ', ') into v_n, v_txt from zz_venta v
@@ -266,9 +317,20 @@ begin
    where not exists (select 1 from zz_compra_item i where i.compra_id = c.id
                       and (i.variante_id in (select id from zz_var) or i.producto_id in (select id from zz_prod)));
   if v_n > 0 then v_malas := v_malas || format(E'\n  · %s compra(s) nombrada(s) no tienen este producto (¿id equivocado?): %s', v_n, v_txt); end if;
+  select count(*), string_agg(t.id::text, ', ') into v_n, v_txt from zz_traslado t
+   where not exists (select 1 from zz_traslado_item i where i.transferencia_id = t.id and i.variante_id in (select id from zz_var));
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s traslado(s) nombrado(s) no tienen este producto (¿id equivocado?): %s', v_n, v_txt); end if;
+  select count(*), string_agg('#' || p.numero, ', ') into v_n, v_txt from zz_proforma z join proformas p on p.id = z.id
+   where not exists (select 1 from jsonb_array_elements(p.items) i where nullif(i ->> 'variante_id', '')::uuid in (select id from zz_var));
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s proforma(s) nombrada(s) no tienen este producto (¿id equivocado?): %s', v_n, v_txt); end if;
+  -- Una proforma que ya se convirtió en venta se resuelve nombrando la venta (zz_venta), no la proforma: la venta es
+  -- lo real; la proforma que la originó es solo su borrador.
+  select count(*), string_agg('#' || p.numero, ', ') into v_n, v_txt from zz_proforma z join proformas p on p.id = z.id
+   where p.venta_id is not null or p.comprobante_id is not null;
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s proforma(s) nombrada(s) ya tienen una venta o un comprobante encima: nómbralo a él, no a la proforma: %s', v_n, v_txt); end if;
 
-  -- (d) Una separación o una compra se borra ENTERA: no puede traer prendas de otros productos (habría que reescribirla).
-  -- Una venta sí puede: lo que sacó de otras prendas vuelve a su stock (e).
+  -- (d) Una separación, una compra, un traslado o una proforma se borran ENTEROS: no pueden traer prendas de otros
+  -- productos (habría que reescribirlos). Una venta sí puede: lo que sacó de otras prendas vuelve a su stock (e).
   select (select count(*) from separacion_items x where x.separacion_id in (select id from zz_sep) and x.variante_id not in (select id from zz_var))
        + (select count(*) from apartados x where x.separacion_id in (select id from zz_sep) and x.variante_id not in (select id from zz_var))
     into v_n;
@@ -282,15 +344,32 @@ begin
   -- El efectivo de una separación entró a una caja con su propio movimiento de caja: esa caja no se reescribe.
   select count(*) into v_n from separacion_pagos x where x.separacion_id in (select id from zz_sep) and x.caja_movimiento_id is not null;
   if v_n > 0 then v_malas := v_malas || format(E'\n  · %s pago(s) de esas separaciones entraron en efectivo a una caja: se resuelve a mano', v_n); end if;
+  select count(*) into v_n from zz_traslado_item x where x.variante_id not in (select id from zz_var);
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · esos traslados también llevan %s prenda(s) de otros productos: se resuelve a mano', v_n); end if;
+  -- Lo que se recibió puede traer una «sustitución» (una prenda que nunca se envió, sin fila en transferencia_items):
+  -- si esa prenda sustituida sigue siendo un producto real que existe, no se borra sin nombrarlo; si ya no existe
+  -- (huérfana de otra purga anterior), no hay nada real que proteger y no frena.
+  select count(*) into v_n from zz_traslado_recep x
+   where x.variante_id not in (select id from zz_var) and exists (select 1 from variantes v where v.id = x.variante_id);
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · esos traslados recibieron %s prenda(s) sustituidas de otro producto real: se resuelve a mano', v_n); end if;
+  -- Una línea de proforma que apunta a una variante de OTRO producto que sigue existiendo sí frena (es un producto
+  -- real, no se lleva sin nombrarlo); una que apunta a una variante que ya no existe (huérfana de otra purga) no —
+  -- ahí no queda nada real que proteger, y esa proforma nunca podría nombrar algo que ya no se puede nombrar.
+  select count(*), string_agg(distinct '#' || z.numero || ' → ' || (i ->> 'codigo'), ', ') into v_n, v_txt
+    from zz_proforma z join proformas p on p.id = z.id, jsonb_array_elements(p.items) i
+    join variantes v on v.id = nullif(i ->> 'variante_id', '')::uuid
+   where v.id not in (select id from zz_var);
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · esas proformas también citan %s línea(s) de otro producto real: %s', v_n, v_txt); end if;
 
-  -- (e) Los movimientos: solo los que nacen de lo que se borra. Un traslado entre sedes, una devolución, un cambio o una
+  -- (e) Los movimientos: solo los que nacen de lo que se borra. Una devolución, un cambio o una
   -- producción son historia con otros dueños.
   select count(*) into v_n from zz_mov m
    where m.devolucion_item_id is not null or m.cambio_id is not null or m.produccion_id is not null
-      or m.transferencia_item_id is not null or m.transferencia_recepcion_id is not null
+      or (m.transferencia_item_id is not null and m.transferencia_item_id not in (select id from zz_traslado_item))
+      or (m.transferencia_recepcion_id is not null and m.transferencia_recepcion_id not in (select id from zz_traslado_recep))
       or (m.venta_item_id is not null and m.venta_item_id not in (select id from zz_item))
       or (m.compra_item_id is not null and m.compra_item_id not in (select id from zz_compra_item));
-  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s movimiento(s) del producto vienen de un traslado entre sedes, una devolución, un cambio, una producción o un documento que no nombraste', v_n); end if;
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s movimiento(s) del producto vienen de un traslado, una devolución, un cambio, una producción o un documento que no nombraste', v_n); end if;
   -- Las prendas de otros productos que esas ventas sacaron: cada línea tiene que ser una salida por venta de la misma
   -- cantidad, para poder devolverla sin adivinar.
   select count(*) into v_n from zz_mov m join zz_item i on i.id = m.venta_item_id
@@ -411,9 +490,15 @@ delete from costo_historial where id in (select id from zz_borrar where tabla = 
 delete from compra_item_destinos where compra_item_id in (select id from zz_borrar where tabla = 'compra_items');
 delete from compra_reasignaciones where id in (select id from zz_borrar where tabla = 'compra_reasignaciones');
 delete from compra_item_cierres where id in (select id from zz_borrar where tabla = 'compra_item_cierres');
--- Una línea de conteo y su ajuste se citan entre sí: van en UNA sentencia (las llaves se revisan al final de ella).
-with lineas as (delete from conteo_items where id in (select id from zz_borrar where tabla = 'conteo_items') returning 1)
+delete from proformas where id in (select id from zz_borrar where tabla = 'proformas');
+-- Una línea de conteo y su ajuste se citan entre sí, y lo mismo un traslado con su movimiento de envío/recepción
+-- (`transferencia_items.movimiento_id` ↔ `movimientos.transferencia_item_id`, y su espejo con las recepciones):
+-- todo va en UNA sentencia (las llaves se revisan al final de ella).
+with lineas as (delete from conteo_items where id in (select id from zz_borrar where tabla = 'conteo_items') returning 1),
+     recep as (delete from transferencia_recepciones where id in (select id from zz_borrar where tabla = 'transferencia_recepciones') returning 1),
+     titems as (delete from transferencia_items where id in (select id from zz_borrar where tabla = 'transferencia_items') returning 1)
 delete from movimientos where id in (select id from zz_borrar where tabla = 'movimientos');
+delete from transferencias where id in (select id from zz_borrar where tabla = 'transferencias');
 delete from lotes where id in (select id from zz_borrar where tabla = 'lotes');
 delete from envios where id in (select id from zz_borrar where tabla = 'envios');
 delete from compra_items where id in (select id from zz_borrar where tabla = 'compra_items');
@@ -422,6 +507,7 @@ delete from comprobante_anticipos where comprobante_id in (select id from zz_bor
 -- Una separación y su boleta de anticipo se citan entre sí (separaciones.comprobante_anticipo_id ↔ comprobantes.separacion_id).
 with boletas as (delete from comprobantes where id in (select id from zz_borrar where tabla = 'comprobantes') returning 1)
 delete from separaciones where id in (select id from zz_borrar where tabla = 'separaciones');
+delete from venta_anulacion_items where venta_id in (select id from zz_borrar where tabla = 'ventas');
 delete from venta_pagos where id in (select id from zz_borrar where tabla = 'venta_pagos');
 delete from venta_items where id in (select id from zz_borrar where tabla = 'venta_items');
 delete from ventas where id in (select id from zz_borrar where tabla = 'ventas');
@@ -475,11 +561,20 @@ insert into actividad (ocurrio_at, modulo, accion, descripcion, ubicacion_id, ta
                  'se deshizo la compra de prueba ' || coalesce(c.serie, '') || '-' || coalesce(c.numero, '') || ' (purga del producto ' || (select codigo from zz_prod) || ')'
             from zz_compra c
           union all
+          select 'traslados', tr.ubicacion_origen_id, 'transferencias', tr.id::text,
+                 'se deshizo el traslado de prueba (purga del producto ' || (select codigo from zz_prod) || ')'
+            from zz_traslado tr
+          union all
+          select 'vender', null::uuid, 'proformas', p.id::text,
+                 'se deshizo la proforma de prueba #' || p.numero || ' (purga del producto ' || (select codigo from zz_prod) || ')'
+            from zz_proforma z join proformas p on p.id = z.id
+          union all
           select 'productos', null::uuid, 'productos', p.id::text,
                  'se eliminó el producto de prueba ' || p.codigo || ' (' || p.referencia || ') con toda su historia: '
                    || (select count(*) from zz_borrar where tabla = 'movimientos') || ' movimientos, '
-                   || (select count(*) from zz_venta) || ' venta(s), ' || (select count(*) from zz_sep) || ' separación(es) y '
-                   || (select count(*) from zz_compra) || ' compra(s)'
+                   || (select count(*) from zz_venta) || ' venta(s), ' || (select count(*) from zz_sep) || ' separación(es), '
+                   || (select count(*) from zz_compra) || ' compra(s), ' || (select count(*) from zz_traslado) || ' traslado(s) y '
+                   || (select count(*) from zz_proforma) || ' proforma(s)'
             from zz_prod p) x;
 
 insert into historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
@@ -514,7 +609,9 @@ create temp table zz_resumen on commit drop as
   union all select 18, 'costos registrados', (select count(*) from zz_borrar where tabla = 'costo_historial')
   union all select 19, 'líneas de conteo', (select count(*) from zz_borrar where tabla = 'conteo_items')
   union all select 20, 'líneas de bajada al piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'bajada_piso_items')
-  union all select 21, 'pedidos no atendidos', (select count(*) from zz_borrar where tabla = 'pedidos_no_atendidos');
+  union all select 21, 'pedidos no atendidos', (select count(*) from zz_borrar where tabla = 'pedidos_no_atendidos')
+  union all select 22, 'traslados', (select count(*) from zz_traslado)
+  union all select 23, 'proformas', (select count(*) from zz_proforma);
 
 do $$
 declare r record; v_n bigint; v_resumen text; v_libro bigint;
