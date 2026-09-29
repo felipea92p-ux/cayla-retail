@@ -31,6 +31,7 @@ import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
+import { textoLoQueFalta } from "@/lib/marca-proveedor-reglas";
 import { subirFotoProducto } from "@/lib/producto-fotos";
 import { debeEncolarse } from "@/lib/error-escritura";
 import { nombreEnCola, nuevaOperacion } from "@/lib/cola-offline";
@@ -346,8 +347,6 @@ export function NuevoProductoForm({
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
     categoriaId,
-    marcaId,
-    proveedorId,
     referencia,
     comprobandoNombre,
     nombreBloqueado: parecidos.hayIdentico,
@@ -448,8 +447,9 @@ export function NuevoProductoForm({
       // Solo si se eligió una: sin la clave, la base (aun la que todavía no tiene el SQL de temporadas) crea igual.
       p_temporada: temporadaParaAlta(temporada),
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
-      p_marca_id: marcaId,
-      p_proveedor_id: proveedorId,
+      // Pueden faltar (ADR-0283): sin la clave, el producto nace sin marca o sin proveedor y se completa al editarlo.
+      p_marca_id: marcaId || undefined,
+      p_proveedor_id: proveedorId || undefined,
       // Paso 4 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
       p_ubicacion_id: conStock ? destino.ubicacionId : undefined,
       p_al_piso: conStock && puedePiso && alPiso,
@@ -494,6 +494,7 @@ export function NuevoProductoForm({
         colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
         fotos: { subidas: 0, fallidas: fotosGuardadas ? [] : fotosOrdenadas.map((f) => `${f.archivo.name}: este navegador no pudo guardarla`), coloresConFoto: [] },
         stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+        sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
         fotosEnEspera: fotosGuardadas ? fotosOrdenadas.length : 0,
         token: op.token,
       });
@@ -553,6 +554,7 @@ export function NuevoProductoForm({
       colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
       fotos: { subidas, fallidas, coloresConFoto: [...conFoto] },
       stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+      sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
     });
   }
 
@@ -694,8 +696,9 @@ export function NuevoProductoForm({
           <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles">
             <CampoTexto etiqueta="Descripción" caja placeholder="Manga globo, botones forrados…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
-          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae">
+          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae · opcional">
             <ElegirMarcaProveedor
+              opcional
               sugerencias={false}
               marcas={listasMarca.marcas}
               proveedores={listasMarca.proveedores}
@@ -703,7 +706,7 @@ export function NuevoProductoForm({
               onListas={setListasMarca}
               usosCategoria={contexto.parejasPorCategoria[categoriaId] ?? []}
               categoriaNombre={categoria?.nombre}
-              nombresIniciales={marcaId ? { marca: marcaNombre, proveedor: proveedorNombre } : undefined}
+              nombresIniciales={marcaId || proveedorId ? { marca: marcaNombre, proveedor: proveedorNombre } : undefined}
               marcaId={marcaId}
               proveedorId={proveedorId}
               onElegir={(m, p, nombres) => {
@@ -711,12 +714,6 @@ export function NuevoProductoForm({
                 setProveedorId(p);
                 setMarcaNombre(nombres.marca);
                 setProveedorNombre(nombres.proveedor);
-              }}
-              onLimpiar={() => {
-                setMarcaId("");
-                setProveedorId("");
-                setMarcaNombre("");
-                setProveedorNombre("");
               }}
               puedeCrear
             />
