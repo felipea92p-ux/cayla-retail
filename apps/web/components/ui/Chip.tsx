@@ -18,9 +18,14 @@ import type { ReactNode } from "react";
    `vivo` (2026-09-19, ADR-0136, opt-in): un puntito rojo que late suave junto al texto —el
    chip «Vencida» de Comprobantes, lo único de la lista que pide actuar HOY—. Es la única
    animación en bucle permitida en la pantalla; con movimiento reducido el punto queda quieto.
+
+   `tinta` (2026-09-28, Frescura del piso, ADR-0208 paso 4): contorno de tinta y letra gruesa,
+   sin fondo. Es lo más serio que dice un chip SIN ser rojo: la «Crítica» de Frescura, que en
+   una tienda con 3 o más se pasaba de MAX_ROJO_POR_PANTALLA (2) si iba en rojo. Felipe lo
+   eligió en la maqueta («colores A»). No es «hay que actuar hoy» (eso sigue siendo `rojo`).
    ==================================================================== */
 
-export type TonoChip = "neutro" | "ambar" | "verde" | "rojo" | "pizarra" | "apagado";
+export type TonoChip = "neutro" | "ambar" | "verde" | "rojo" | "pizarra" | "apagado" | "tinta";
 
 // Guía oficial (2026-09-22, ADR-0169): insignia sin borde, fondo del color del estado al 10–15 % y un punto
 // del mismo color antes del texto. `pizarra` es el estado informativo (en camino, en revisión): no es semáforo.
@@ -32,6 +37,8 @@ const TONO: Record<TonoChip, string> = {
   pizarra: "bg-pizarra/15 text-pizarra",
   // /65 y no /45: tachado, el 45 % no llegaba a 3:1 y «Anulado» / «No emitido» son la única palabra que dice el estado.
   apagado: "border border-tinta/10 bg-transparent text-tinta/65",
+  // Contorno de 1.5 px por dentro (sin sumar alto) y letra gruesa: se distingue del ámbar sin gastar un rojo.
+  tinta: "bg-transparent font-semibold text-tinta shadow-[inset_0_0_0_1.5px_var(--color-tinta)]",
 };
 
 // El punto de la insignia: `currentColor`, así hereda el tono sin una tabla aparte.

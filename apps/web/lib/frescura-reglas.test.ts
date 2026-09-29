@@ -796,6 +796,8 @@ const talla = (varianteId: string, productoId: string, o: Partial<TallaFrescuraC
   almacenHoy: 0,
   apartadasHoy: 0,
   ...o,
+  // Lo apartado de estas pruebas es del piso, salvo que se diga otra cosa (paso 4: `apartadas_piso_hoy`).
+  apartadasPisoHoy: o.apartadasPisoHoy ?? o.apartadasHoy ?? 0,
 });
 
 function sedeDePrueba(): LecturaFrescuraConPiso {
@@ -1319,7 +1321,7 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     const ap = prendaDe(sede, "apartada");
     const libre = prendaDe(sede, "libre");
     expect(ap).toMatchObject({ pisoHoy: 0, apartadasHoy: 3, reloj: { segundos: 10 * D, alMenos: false } });
-    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 }]);
+    expect(ap.tallas).toEqual([{ varianteId: "AP", talla: "M", pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3 }]);
     expect(ap.estado).toMatchObject({ quieta: false, sugerencias: [] });
     expect(libre.reloj.segundos).toBe(60 * D);
     expect(libre.estado).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true });
@@ -1363,6 +1365,27 @@ describe("analizarSede: casos de la revisión 7 (decisiones de Felipe y reglas c
     if (!vieja?.separaPiso) throw new Error("sin lectura");
     expect(vieja.apartados).toEqual({});
     expect(vieja.tallas[0].apartadasHoy).toBe(0);
+  });
+
+  it("paso 4 · lee `apartadas_piso_hoy` (lo apartado en el PISO); sin la clave (producción antes del paso 4), lo deduce de `apartados` (−Σ delta), nunca más que lo apartado", () => {
+    const leer = (prendas: Record<string, unknown>[], apartados: Record<string, [string, number][]> = {}) => {
+      const l = leerFrescuraSede({ separa_piso: true, desde: ts(0), ahora: ts(10), prendas, eventos: {}, apartados });
+      if (!l?.separaPiso) throw new Error("sin lectura");
+      return l.tallas.map((t) => [t.varianteId, t.apartadasHoy, t.apartadasPisoHoy]);
+    };
+    // Con la clave: manda la base (1 del piso y 1 del almacén).
+    expect(leer([{ variante_id: "v1", producto_id: "p1", apartadas_hoy: 2, apartadas_piso_hoy: 1 }])).toEqual([["v1", 2, 1]]);
+    // Sin la clave: el saldo y los puntos del piso (−2 al empezar, +1 liberada) dejan 1 apartada en el piso.
+    const saldo: [string, number][] = [[ts(0), -2], [ts(3), 1]];
+    expect(leer([{ variante_id: "v1", producto_id: "p1", apartadas_hoy: 3 }], { v1: saldo })).toEqual([["v1", 3, 1]]);
+    // Sin puntos en el piso: todo lo apartado está en el almacén.
+    expect(leer([{ variante_id: "v2", producto_id: "p1", apartadas_hoy: 1 }])).toEqual([["v2", 1, 0]]);
+    // Nunca más que lo apartado ni menos que 0 (un dato raro no inventa apartadas).
+    expect(leer([{ variante_id: "v3", producto_id: "p1", apartadas_hoy: 1 }], { v3: [[ts(1), -5]] })).toEqual([["v3", 1, 1]]);
+    expect(leer([{ variante_id: "v4", producto_id: "p1", apartadas_hoy: 1 }], { v4: [[ts(1), 2]] })).toEqual([["v4", 1, 0]]);
+    // La prenda suma lo de sus tallas.
+    const dos = [talla("AP3-S", "tres", { talla: "S", apartadasHoy: 2, apartadasPisoHoy: 0 }), talla("AP3-M", "tres", { apartadasHoy: 1 })];
+    expect(prendaDe(analizarSede(lectura(dos, {})).sede, "tres")).toMatchObject({ apartadasHoy: 3, apartadasPisoHoy: 1 });
   });
 
   it("R7-2 · el éxito que se agotó y se repuso ayer no «dejó de vender»: sus últimos 30 días en el piso son 1 desde ayer y 29 antes de agotarse. Sigue pilar, sin «trasladar»; con la temporada pasada, «sigue vendiendo»", () => {
