@@ -19,8 +19,20 @@
 // SI NO HAY PROVEEDOR CONFIGURADO el sistema NO se rompe: devuelve
 // `sin_proveedor` y el formulario sigue funcionando escribiendo el nombre a
 // mano — que es exactamente como se factura hoy (principio 9).
+//
+// ORDEN DE FUENTES (2026-09-29, ADR-0008 «Actualización»):
+//   1. caché en memoria
+//   2. SUNAT público (gratis): el servicio del formulario de denuncias de SUNAT,
+//      que prellena el nombre por DNI o RUC. NO es una API documentada — no
+//      tiene contrato ni garantía — por eso es la PRIMERA opción y nunca la única.
+//   3. proveedor de pago (PADRON_PROVEEDOR): si SUNAT no lo encontró o falló.
+// Límite conocido del gratis: para RUC trae razón social y dirección, pero NO
+// estado ni condición (ACTIVO / HABIDO), que `advertenciasDe` necesita.
 
 export type TipoConsulta = "dni" | "ruc";
+
+/** De qué fuente salió una consulta al padrón. */
+export type OrigenPadron = "sunat_publico" | "proveedor";
 
 export type DatosPadron = {
   numero: string;
@@ -35,7 +47,7 @@ export type DatosPadron = {
 };
 
 export type ResultadoPadron =
-  | { ok: true; datos: DatosPadron }
+  | { ok: true; datos: DatosPadron; origen: OrigenPadron }
   | { ok: false; motivo: "sin_proveedor" | "no_encontrado" | "sin_respuesta" | "cuota_agotada" | "credenciales"; detalle: string };
 
 // ==================== caché en memoria ====================
@@ -48,21 +60,21 @@ export type ResultadoPadron =
 const TTL_DNI_MS = 24 * 60 * 60 * 1000; // el nombre de una persona no cambia
 const TTL_RUC_MS = 60 * 60 * 1000; // estado/condición sí cambian: se refresca cada hora
 const MAX_CACHE = 500;
-const cache = new Map<string, { datos: DatosPadron; vence: number }>();
+const cache = new Map<string, { datos: DatosPadron; origen: OrigenPadron; vence: number }>();
 
-function leerCache(clave: string): DatosPadron | null {
+function leerCache(clave: string): { datos: DatosPadron; origen: OrigenPadron } | null {
   const hit = cache.get(clave);
   if (!hit) return null;
   if (Date.now() > hit.vence) {
     cache.delete(clave);
     return null;
   }
-  return hit.datos;
+  return { datos: hit.datos, origen: hit.origen };
 }
 
-function guardarCache(clave: string, datos: DatosPadron, ttl: number) {
+function guardarCache(clave: string, datos: DatosPadron, origen: OrigenPadron, ttl: number) {
   if (cache.size >= MAX_CACHE) cache.delete(cache.keys().next().value as string);
-  cache.set(clave, { datos, vence: Date.now() + ttl });
+  cache.set(clave, { datos, origen, vence: Date.now() + ttl });
 }
 
 // ==================== adaptadores ====================
@@ -153,7 +165,166 @@ export function normalizarRespuestaPadron(tipo: TipoConsulta, numero: string, d:
   };
 }
 
+// ==================== SUNAT público (gratis, primera opción) ====================
+// El servicio `itfisdenreg` es el del formulario público de denuncias de SUNAT: al
+// tipear un DNI o RUC devuelve el nombre para prellenar el «denunciado». Verificado
+// contra la API real 2026-09-29 (RUC de la propia SUNAT):
+//   RUC  → {"message":"success","lista":[{"apenomdenunciado":"RAZÓN SOCIAL   ",
+//           "direstablecimiento":"AV. … - Nro: 1472  - LIMA", …}]}   (sin estado ni condición)
+//   nada → {"error":"No existen datos para los filtros seleccionados"}  (HTTP 200, no 404)
+// Content-Type llega como text/plain; `respuesta.json()` no lo mira, por eso sirve.
+// El DNI usa la misma estructura (`apenomdenunciado`); el caso de éxito del DNI NO se
+// verificó con un número real. Por eso el lector es tolerante y, ante cualquier forma
+// que no reconoce, devuelve `sin_respuesta` → la consulta cae al proveedor de pago.
+// Un formato desconocido nunca produce un nombre inventado.
+const URL_SUNAT_PUBLICO = "https://ww1.sunat.gob.pe/ol-ti-itfisdenreg/itfisdenreg.htm";
+// Más corto que el del proveedor (5 s): si SUNAT tarda, todavía queda la segunda
+// fuente, y entre las dos quien atiende espera 8 s como máximo.
+const TOPE_SUNAT_PUBLICO_MS = 3000;
+
+/** PADRON_SUNAT_PUBLICO — vacío: DNI y RUC; `solo_dni`: el RUC va directo al
+ *  proveedor (que sí informa estado y condición); `no`: apagado del todo. */
+function usaSunatPublico(tipo: TipoConsulta): boolean {
+  const modo = (process.env.PADRON_SUNAT_PUBLICO ?? "").trim().toLowerCase();
+  if (modo === "no") return false;
+  if (modo === "solo_dni") return tipo === "dni";
+  return true;
+}
+
+// Interruptor de circuito. Una API sin contrato puede bloquear las IP de Vercel, servir
+// una página de firewall o simplemente ponerse lenta. Sin esto, cada consulta pagaría 3 s
+// de espera antes de llegar al proveedor. Con 3 fallos seguidos SUNAT se salta 5 minutos;
+// pasado ese tiempo la siguiente consulta la prueba (y si falla, vuelve a pausar).
+// «No existe ese número» NO cuenta como fallo: es una respuesta válida.
+// Es por instancia del servidor, igual que la caché: un ahorro, no un candado.
+const FALLOS_PARA_PAUSAR = 3;
+const PAUSA_SUNAT_MS = 5 * 60 * 1000;
+let fallosSunat = 0;
+let sunatPausadaHasta = 0;
+
+function registrarFalloSunat() {
+  fallosSunat += 1;
+  if (fallosSunat >= FALLOS_PARA_PAUSAR) sunatPausadaHasta = Date.now() + PAUSA_SUNAT_MS;
+}
+
+function registrarRespuestaSunat() {
+  fallosSunat = 0;
+  sunatPausadaHasta = 0;
+}
+
+/** Solo para las pruebas: la caché y este contador viven en el módulo. */
+export function reiniciarSunatPublico() {
+  registrarRespuestaSunat();
+}
+
+const sinEspacios = (s: string) => s.replace(/\s+/g, " ").trim();
+
+/** Traduce la respuesta de SUNAT público al mismo resultado que el proveedor.
+ *  Exportada por lo mismo que `normalizarRespuestaPadron`: es la pieza que se rompe
+ *  si SUNAT cambia el formato, y se prueba sin salir a internet. */
+export function leerSunatPublico(tipo: TipoConsulta, numero: string, json: unknown): ResultadoPadron {
+  const inesperado: ResultadoPadron = { ok: false, motivo: "sin_respuesta", detalle: "El padrón respondió algo inesperado" };
+  if (!json || typeof json !== "object" || Array.isArray(json)) return inesperado;
+  const cuerpo = json as Record<string, unknown>;
+
+  if (typeof cuerpo.error === "string") {
+    return /no existen datos/i.test(cuerpo.error)
+      ? { ok: false, motivo: "no_encontrado", detalle: "El padrón no tiene registrado ese número" }
+      : inesperado;
+  }
+  if (!Array.isArray(cuerpo.lista)) return inesperado;
+  if (cuerpo.lista.length === 0) {
+    return { ok: false, motivo: "no_encontrado", detalle: "El padrón no tiene registrado ese número" };
+  }
+
+  const fila = cuerpo.lista[0];
+  if (!fila || typeof fila !== "object") return inesperado;
+  const f = fila as Record<string, unknown>;
+  // El nombre y la dirección vienen rellenados con espacios hasta un ancho fijo.
+  const nombre = texto(f, "apenomdenunciado");
+  const direccion = texto(f, "direstablecimiento");
+  const datos = normalizarRespuestaPadron(tipo, numero, {
+    ...f,
+    nombre: nombre ? sinEspacios(nombre) : null,
+    direccion: direccion ? sinEspacios(direccion) : null,
+  });
+  return datos ? { ok: true, datos, origen: "sunat_publico" } : inesperado;
+}
+
+async function consultarSunatPublico(tipo: TipoConsulta, numero: string): Promise<ResultadoPadron> {
+  const url =
+    tipo === "dni"
+      ? `${URL_SUNAT_PUBLICO}?accion=obtenerDatosDni&numDocumento=${numero}`
+      : `${URL_SUNAT_PUBLICO}?accion=obtenerDatosRuc&nroRuc=${numero}`;
+
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(TOPE_SUNAT_PUBLICO_MS),
+      cache: "no-store",
+    });
+  } catch {
+    registrarFalloSunat();
+    return { ok: false, motivo: "sin_respuesta", detalle: "El padrón no respondió a tiempo" };
+  }
+  if (!respuesta.ok) {
+    registrarFalloSunat();
+    return { ok: false, motivo: "sin_respuesta", detalle: `El padrón respondió ${respuesta.status}` };
+  }
+
+  let json: unknown;
+  try {
+    json = await respuesta.json();
+  } catch {
+    // Típico de un firewall que devuelve su página HTML con estado 200.
+    registrarFalloSunat();
+    return { ok: false, motivo: "sin_respuesta", detalle: "El padrón devolvió algo que no es JSON" };
+  }
+
+  const resultado = leerSunatPublico(tipo, numero, json);
+  if (resultado.ok || resultado.motivo === "no_encontrado") registrarRespuestaSunat();
+  else registrarFalloSunat();
+  return resultado;
+}
+
+// ==================== orden de fuentes ====================
 export async function consultarPadron(tipo: TipoConsulta, numero: string): Promise<ResultadoPadron> {
+  const clave = `${tipo}:${numero}`;
+  const enCache = leerCache(clave);
+  if (enCache) return { ok: true, ...enCache };
+
+  const ttl = tipo === "dni" ? TTL_DNI_MS : TTL_RUC_MS;
+
+  // 1) SUNAT público. Encontrado → listo, sin gastar una consulta pagada. No lo
+  //    encuentra o falla → sigue al proveedor de pago, que es lo que se pidió.
+  let publico: ResultadoPadron | null = null;
+  if (usaSunatPublico(tipo)) {
+    publico =
+      Date.now() < sunatPausadaHasta
+        ? { ok: false, motivo: "sin_respuesta", detalle: "El padrón no respondió a tiempo" }
+        : await consultarSunatPublico(tipo, numero);
+    if (publico.ok) {
+      guardarCache(clave, publico.datos, publico.origen, ttl);
+      return publico;
+    }
+  }
+
+  // 2) Proveedor de pago.
+  const pago = await consultarProveedorPago(tipo, numero);
+  if (pago.ok) {
+    guardarCache(clave, pago.datos, pago.origen, ttl);
+    return pago;
+  }
+
+  // Fallaron las dos. Si el proveedor ni está configurado, decir «la consulta
+  // automática no está activada» sería falso (SUNAT sí estaba activa): se informa
+  // por qué falló SUNAT. Si el proveedor sí está, su motivo manda (cuota, credenciales…).
+  if (pago.motivo === "sin_proveedor" && publico) return publico;
+  return pago;
+}
+
+async function consultarProveedorPago(tipo: TipoConsulta, numero: string): Promise<ResultadoPadron> {
   const nombreProveedor = process.env.PADRON_PROVEEDOR;
   const token = process.env.PADRON_TOKEN;
   if (!nombreProveedor || !token) {
@@ -167,10 +338,6 @@ export async function consultarPadron(tipo: TipoConsulta, numero: string): Promi
       detalle: `PADRON_PROVEEDOR="${nombreProveedor}" no existe. Opciones: ${Object.keys(PROVEEDORES).join(", ")}`,
     };
   }
-
-  const clave = `${tipo}:${numero}`;
-  const enCache = leerCache(clave);
-  if (enCache) return { ok: true, datos: enCache };
 
   let respuesta: Response;
   try {
@@ -213,8 +380,7 @@ export async function consultarPadron(tipo: TipoConsulta, numero: string): Promi
   const datos = cuerpo ? normalizarRespuestaPadron(tipo, numero, cuerpo) : null;
   if (!datos) return { ok: false, motivo: "no_encontrado", detalle: "El padrón no tiene registrado ese número" };
 
-  guardarCache(clave, datos, tipo === "dni" ? TTL_DNI_MS : TTL_RUC_MS);
-  return { ok: true, datos };
+  return { ok: true, datos, origen: "proveedor" };
 }
 
 // ==================== lectura de negocio ====================
@@ -245,6 +411,9 @@ export type RespuestaPadron = {
   direccion: string | null;
   /** De dónde salió el nombre: del padrón oficial, de un comprobante anterior, o de ningún lado. */
   fuente: "padron" | "historial" | "ninguna";
+  /** Solo cuando fuente = "padron": qué servicio contestó. `sunat_publico` es el gratis —
+   *  para RUC no informa estado ni condición—; `proveedor` es el de pago. */
+  via: OrigenPadron | null;
   advertencias: string[];
   /** Solo cuando fuente = "ninguna": por qué no se pudo. */
   motivo: string | null;
