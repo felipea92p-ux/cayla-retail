@@ -369,12 +369,14 @@ begin
       or (m.transferencia_recepcion_id is not null and m.transferencia_recepcion_id not in (select id from zz_traslado_recep))
       or (m.venta_item_id is not null and m.venta_item_id not in (select id from zz_item))
       or (m.compra_item_id is not null and m.compra_item_id not in (select id from zz_compra_item));
-  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s movimiento(s) del producto vienen de un traslado, una devolución, un cambio, una producción o un documento que no nombraste', v_n); end if;
+  if v_n > 0 then v_malas := v_malas || format(E'\n  · %s movimiento(s) del producto vienen de un traslado entre sedes, una devolución, un cambio, una producción o un documento que no nombraste', v_n); end if;
   -- Las prendas de otros productos que esas ventas sacaron: cada línea tiene que ser una salida por venta de la misma
-  -- cantidad, para poder devolverla sin adivinar.
+  -- cantidad (para poder devolverla sin adivinar), o esa misma salida ya anulada por línea (`anular_venta`: su entrada
+  -- de reversa ya devolvió el stock — zz_restaura la neteará más abajo, así la purga no la devuelve dos veces).
   select count(*) into v_n from zz_mov m join zz_item i on i.id = m.venta_item_id
    where m.variante_id not in (select id from zz_var)
-     and not (m.tipo = 'salida' and m.variante_id = i.variante_id and m.cantidad = i.cantidad and m.ubicacion_destino_id is null);
+     and not (m.tipo = 'salida' and m.variante_id = i.variante_id and m.cantidad = i.cantidad and m.ubicacion_destino_id is null)
+     and not (m.tipo = 'entrada' and m.motivo = 'anulacion_venta' and m.variante_id = i.variante_id and m.cantidad = i.cantidad);
   if v_n > 0 then v_malas := v_malas || format(E'\n  · %s movimiento(s) de otras prendas de esas ventas no son una salida simple de la cantidad vendida', v_n); end if;
   select count(*) into v_n from (
     select m.variante_id, m.ubicacion_id, m.sububicacion_id from zz_mov m
@@ -424,14 +426,18 @@ create temp table zz_purga on commit drop as
   select 'purga ' || (select codigo from zz_prod) || ' ' || to_char(now() at time zone 'America/Lima', 'YYYY-MM-DD HH24:MI') as nombre;
 
 -- El stock de las OTRAS prendas que hay que devolver, con su cantidad de antes (para comprobar y para volver atrás).
+-- Neto de salida menos su entrada de reversa si esa línea ya se anuló (`anular_venta`): esa entrada ya devolvió el
+-- stock ANTES de que corriera la purga (zz_restaura.antes ya la incluye), así que sumarla de nuevo lo devolvería dos veces.
 create temp table zz_restaura on commit drop as
-  select m.variante_id, m.ubicacion_id, m.sububicacion_id, sum(m.cantidad)::int as q,
+  select m.variante_id, m.ubicacion_id, m.sububicacion_id,
+         sum(case when m.tipo = 'entrada' then -m.cantidad else m.cantidad end)::int as q,
          (select s.cantidad from stock s where s.variante_id = m.variante_id and s.ubicacion_id = m.ubicacion_id
              and s.sububicacion_id is not distinct from m.sububicacion_id) as antes,
          (select s.cantidad_apartada from stock s where s.variante_id = m.variante_id and s.ubicacion_id = m.ubicacion_id
              and s.sububicacion_id is not distinct from m.sububicacion_id) as apartada_antes
     from zz_mov m where m.venta_item_id is not null and m.variante_id not in (select id from zz_var)
-   group by m.variante_id, m.ubicacion_id, m.sububicacion_id;
+   group by m.variante_id, m.ubicacion_id, m.sububicacion_id
+  having sum(case when m.tipo = 'entrada' then -m.cantidad else m.cantidad end) <> 0;
 
 do $$
 declare r record; v_nombre text := (select nombre from zz_purga);
