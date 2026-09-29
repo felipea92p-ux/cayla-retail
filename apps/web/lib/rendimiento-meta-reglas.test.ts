@@ -5,12 +5,16 @@ import {
   avance,
   columnaDePersona,
   leerSoles,
+  lecturaDeRitmo,
+  minutosDeHora,
+  minutosEnLima,
   ordenarPersonas,
   primerDiaDelMes,
   puedeEditarMeta,
   rangoDeLectura,
   repartePorHoras,
   resumenDeSede,
+  ritmoDelTurno,
   serieParaGrafico,
   turnoDeHoy,
   ultimoDiaDelMes,
@@ -289,5 +293,51 @@ describe("puedeEditarMeta: quién puede tocar qué fila", () => {
 
   it("una cuenta sin persona (Admin de terminal) no se confunde con la fila", () => {
     expect(puedeEditarMeta({ ...ok, personaCuentaId: null })).toEqual({ puede: true });
+  });
+});
+
+describe("ritmo esperado (D-159): cuánto del turno ya pasó y cómo va contra eso", () => {
+  const turno = { entradaHoy: "09:00", salidaHoy: "18:00" };
+
+  it("lee las horas «09:00» y «09:00:00» y no inventa las que no entiende", () => {
+    expect(minutosDeHora("09:00")).toBe(540);
+    expect(minutosDeHora("18:30:00")).toBe(1110);
+    expect(minutosDeHora("25:00")).toBeNull();
+    expect(minutosDeHora("abc")).toBeNull();
+    expect(minutosDeHora(null)).toBeNull();
+  });
+
+  it("los minutos de Lima: 16:00 UTC son las 11:00 de Lima (UTC−5, todo el año)", () => {
+    expect(minutosEnLima(new Date("2026-09-29T16:00:00Z"))).toBe(660);
+    // Pasada la medianoche UTC todavía es de tarde en Lima: el corte no se equivoca de día.
+    expect(minutosEnLima(new Date("2026-09-30T02:30:00Z"))).toBe(21 * 60 + 30);
+  });
+
+  it("a mitad del turno el ritmo es 0.5; antes de empezar 0; después de terminar 1", () => {
+    expect(ritmoDelTurno(turno, 13 * 60 + 30)).toBe(0.5);
+    expect(ritmoDelTurno(turno, 8 * 60)).toBe(0);
+    expect(ritmoDelTurno(turno, 19 * 60)).toBe(1);
+  });
+
+  it("sin turno cargado, o con un turno al revés, no hay ritmo (nunca un 0 que mienta)", () => {
+    expect(ritmoDelTurno({ entradaHoy: null, salidaHoy: null }, 600)).toBeNull();
+    expect(ritmoDelTurno({ entradaHoy: "18:00", salidaHoy: "09:00" }, 600)).toBeNull();
+  });
+
+  it("dice Adelante, En ritmo o Por debajo con 10 puntos de margen", () => {
+    expect(lecturaDeRitmo(350, 500, 0.5)).toBe("Adelante"); // 70 % contra 50 %
+    expect(lecturaDeRitmo(250, 500, 0.5)).toBe("En ritmo"); // 50 % contra 50 %
+    expect(lecturaDeRitmo(150, 500, 0.5)).toBe("Por debajo"); // 30 % contra 50 %
+    expect(lecturaDeRitmo(300, 500, 0.5)).toBe("Adelante"); // justo 10 puntos arriba (60 % contra 50 %)
+    expect(lecturaDeRitmo(200, 500, 0.5)).toBe("Por debajo"); // justo 10 puntos abajo (40 % contra 50 %)
+    expect(lecturaDeRitmo(275, 500, 0.5)).toBe("En ritmo"); // 5 puntos arriba todavía es «en ritmo»
+    expect(lecturaDeRitmo(225, 500, 0.5)).toBe("En ritmo"); // 5 puntos abajo también
+  });
+
+  it("no dice nada si el turno no empezó, no hay turno o no hay meta de hoy", () => {
+    expect(lecturaDeRitmo(0, 500, 0)).toBeNull();
+    expect(lecturaDeRitmo(0, 500, null)).toBeNull();
+    expect(lecturaDeRitmo(100, null, 0.5)).toBeNull();
+    expect(lecturaDeRitmo(100, 0, 0.5)).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
@@ -14,11 +14,14 @@ import {
   avance,
   columnaDePersona,
   ETIQUETA_MOTIVO,
+  lecturaDeRitmo,
+  minutosEnLima,
   ordenarPersonas,
   primerDiaDelMes,
   puedeEditarMeta,
   repartePorHoras,
   resumenDeSede,
+  ritmoDelTurno,
   serieParaGrafico,
   turnoDeHoy,
   VISTAS,
@@ -79,6 +82,15 @@ export function PanelRendimiento({
   const [vista, setVista] = useState<Vista>(vistaInicial);
   const [orden, setOrden] = useState<Orden>("nombre");
   const [editando, setEditando] = useState<PersonaMeta | null>(null);
+  // La hora de Lima solo se conoce ya en el navegador: sin esto el servidor y el navegador pintarían horas distintas (D-159, «ritmo
+  // esperado»: cuánto del turno ya pasó). Antes de montarse no hay marca ni palabra; luego se actualiza cada minuto.
+  const [ahoraMin, setAhoraMin] = useState<number | null>(null);
+  useEffect(() => {
+    const poner = () => setAhoraMin(minutosEnLima());
+    poner();
+    const id = window.setInterval(poner, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const res = useMemo(() => resumenDeSede(serie, vista, hoy), [serie, vista, hoy]);
   const resMes = useMemo(() => resumenDeSede(serie, "mes", hoy), [serie, hoy]);
@@ -213,6 +225,9 @@ export function PanelRendimiento({
               const c = columnaDePersona(p, vista);
               const av = avance(c.vendido, c.meta);
               const turno = vista === "hoy" ? turnoDeHoy(p) : null;
+              const ritmo = vista === "hoy" && ahoraMin !== null ? ritmoDelTurno(p, ahoraMin) : null;
+              const lectura = vista === "hoy" ? lecturaDeRitmo(c.vendido, c.meta, ritmo) : null;
+              const marcaRitmo = ritmo !== null && ritmo > 0 ? Math.round(ritmo * 100) : null;
               const permiso = puedeEditarMeta({
                 personaFilaId: p.personaId,
                 personaCuentaId,
@@ -255,8 +270,11 @@ export function PanelRendimiento({
                   <div className="min-w-0">
                     {av !== null ? (
                       <>
-                        <BarraAvance pct={av} marca={vista === "mes" ? res.tocabaPct : null} />
-                        <p className="mt-1 text-xs tabular-nums text-taupe">{av} %</p>
+                        <BarraAvance pct={av} marca={vista === "mes" ? res.tocabaPct : marcaRitmo} />
+                        <p className="mt-1 text-xs tabular-nums text-taupe">
+                          {av} %{lectura && <> · {lectura}</>}
+                          {marcaRitmo !== null && marcaRitmo < 100 && <> · ritmo {marcaRitmo} %</>}
+                        </p>
                       </>
                     ) : (
                       <p className="text-xs text-taupe">{c.vendido > 0 ? "Sin meta" : "—"}</p>

@@ -170,6 +170,45 @@ export function turnoDeHoy(p: Pick<PersonaMeta, "entradaHoy" | "salidaHoy">): st
   return p.entradaHoy && p.salidaHoy ? `${p.entradaHoy.slice(0, 5)}–${p.salidaHoy.slice(0, 5)}` : null;
 }
 
+/** «09:00» o «09:00:00» a minutos desde la medianoche; `null` si no se entiende. */
+export function minutosDeHora(hhmm: string | null): number | null {
+  const m = hhmm?.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h < 24 && min < 60 ? h * 60 + min : null;
+}
+
+/** Los minutos desde la medianoche de Lima de un instante (Lima va fija en UTC−5, sin horario de verano). */
+export function minutosEnLima(ahora: Date = new Date()): number {
+  const lima = new Date(ahora.getTime() - 5 * 3600 * 1000);
+  return lima.getUTCHours() * 60 + lima.getUTCMinutes();
+}
+
+/**
+ * Cuánto de su turno de hoy ya pasó, de 0 a 1 (D-159, «ritmo esperado»): la marca vertical de la barra de hoy. `null` si no tiene turno
+ * cargado. Antes de empezar vale 0 y después de terminar, 1.
+ */
+export function ritmoDelTurno(p: Pick<PersonaMeta, "entradaHoy" | "salidaHoy">, ahoraMin: number): number | null {
+  const e = minutosDeHora(p.entradaHoy);
+  const s = minutosDeHora(p.salidaHoy);
+  if (e === null || s === null || s <= e) return null;
+  return Math.min(1, Math.max(0, (ahoraMin - e) / (s - e)));
+}
+
+export type LecturaRitmo = "Adelante" | "En ritmo" | "Por debajo";
+
+/**
+ * Cómo va contra lo que tocaba a esta hora (D-159). Son palabras, no un semáforo: 10 puntos por encima o por debajo del ritmo. Sin
+ * ritmo (no tiene turno) o con el turno sin empezar (ritmo 0) no se dice nada: no hay contra qué comparar.
+ */
+export function lecturaDeRitmo(vendido: number, metaHoy: number | null, ritmo: number | null): LecturaRitmo | null {
+  if (metaHoy === null || metaHoy <= 0 || ritmo === null || ritmo <= 0) return null;
+  // Redondeado a milésimas: 0.6 − 0.5 da 0.0999…98 en coma flotante y «justo 10 puntos» tiene que contar como 10.
+  const d = Math.round((vendido / metaHoy - ritmo) * 1000) / 1000;
+  return d >= 0.1 ? "Adelante" : d <= -0.1 ? "Por debajo" : "En ritmo";
+}
+
 /** ¿La tienda reparte la meta por horas programadas? Con que una persona tenga base «horas», sí. */
 export function repartePorHoras(personas: PersonaMeta[]): boolean {
   return personas.some((p) => p.base === "horas");
