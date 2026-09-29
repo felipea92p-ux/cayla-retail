@@ -31,10 +31,13 @@ export default async function MarcasPage() {
   const usoParejaTotal = new Map<string, number>();
   const usoMarca = new Map<string, number>();
   for (const p of productos) {
-    const pareja = `${p.marca_id}|${p.proveedor_id}`;
-    usoParejaTotal.set(pareja, (usoParejaTotal.get(pareja) ?? 0) + 1);
+    // Un producto sin marca (ADR-0283) no cuenta para ninguna tarjeta; uno con marca pero sin proveedor cuenta para su marca,
+    // no para una pareja (la llave compuesta solo lo ata a ella cuando hay los dos).
+    if (!p.marca_id) continue;
+    const pareja = p.proveedor_id ? `${p.marca_id}|${p.proveedor_id}` : null;
+    if (pareja) usoParejaTotal.set(pareja, (usoParejaTotal.get(pareja) ?? 0) + 1);
     if (p.estado !== "activo") continue;
-    usoPareja.set(pareja, (usoPareja.get(pareja) ?? 0) + 1);
+    if (pareja) usoPareja.set(pareja, (usoPareja.get(pareja) ?? 0) + 1);
     usoMarca.set(p.marca_id, (usoMarca.get(p.marca_id) ?? 0) + 1);
   }
 

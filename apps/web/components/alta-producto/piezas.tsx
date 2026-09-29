@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { EtiquetaAhora, MarcaCampo, VozDelEstado } from "@/components/alta-producto/guia";
+import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 
 // Piezas compartidas del formulario "Nuevo producto" (ADR-0109).
 //
@@ -136,14 +138,16 @@ export function PasoAlta({
   /** La línea del paso plegado («Blusa Lirio · CAYLA · Popelina · Liso»). */
   resumen?: ReactNode;
   onAbrir: () => void;
-  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: el botón que cierra el paso. */
-  pie?: { texto: string; listo: boolean; accion: ReactNode };
+  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: el botón que cierra el paso.
+   *  `faltan`: «Falta: Marca · Tejido…» tocable (ADR-0284); si viene y el paso no está listo, reemplaza a `texto` a la vista y
+   *  `texto` queda solo para el lector de pantalla. */
+  pie?: { texto: string; listo: boolean; accion: ReactNode; faltan?: ReactNode };
   children: ReactNode;
 }) {
   const id = `paso-${numero}`;
   if (estado === "hecho") {
     return (
-      <section aria-labelledby={id} className="rounded-xl border border-sand bg-papel">
+      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
         <button type="button" onClick={onAbrir} className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-3.5 text-left sm:flex-nowrap sm:px-5">
           <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-verde text-[11px] text-crema">
             ✓
@@ -159,7 +163,7 @@ export function PasoAlta({
   }
   if (estado === "pendiente") {
     return (
-      <section aria-labelledby={id} className="rounded-xl border border-dashed border-sand">
+      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-dashed border-sand">
         <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
           <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] tabular-nums text-tinta/60">
             {numero}
@@ -172,7 +176,7 @@ export function PasoAlta({
     );
   }
   return (
-    <section aria-labelledby={id} className="rounded-xl border border-sand bg-papel">
+    <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
       <div className="flex items-center gap-3 px-4 pt-4 sm:px-5">
         <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-tinta text-[11px] tabular-nums text-crema">
           {numero}
@@ -187,10 +191,23 @@ export function PasoAlta({
       <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:pl-14 sm:pr-5">
         {children}
         {pie && (
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-sand pt-4">
-            <p role="status" className={`mr-auto text-[12.5px] ${pie.listo ? "text-verde" : "text-taupe"}`}>
-              {pie.texto}
-            </p>
+          // Pegado al borde de abajo de la ventana mientras el paso siga más abajo (ADR-0284): el paso 3 mide varias pantallas, y
+          // el «qué falta» y el «Seguir →» no pueden quedar enterrados al fondo. Sale de los márgenes del contenido (`-mx`) y
+          // se pega al fondo de la tarjeta (`-mb-5`) para que, en su lugar natural, no deje un hueco. Solo desde `lg`: en celular
+          // la barra de la ficha ya va pegada abajo con su «Siguiente: …» tocable, y las dos juntas taparían un cuarto de la pantalla.
+          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-ml-14 sm:-mr-5 sm:pl-14 sm:pr-5">
+            {pie.faltan && !pie.listo ? (
+              <>
+                <p role="status" className="sr-only">
+                  {pie.texto}
+                </p>
+                {pie.faltan}
+              </>
+            ) : (
+              <p role="status" className={`mr-auto text-[12.5px] ${pie.listo ? "text-verde" : "text-taupe"}`}>
+                {pie.texto}
+              </p>
+            )}
             {pie.accion}
           </div>
         )}
@@ -204,24 +221,65 @@ export function PasoAlta({
  * debajo, a todo el ancho. Antes el título iba en una columna de 8rem a la izquierda y le robaba ancho a las muestras de
  * tejido y a la tabla. Sin «obligatorio» en rojo: casi todo lo es, así que la ayuda marca lo opcional («Opcional · …») y
  * el rojo queda para los errores.
+ *
+ * «El hilo» (ADR-0284): con `campo` y `estado`, el título lleva a su izquierda una marca (hecho, sigue aquí, falta, opcional) y
+ * el campo que sigue se tiñe y dice «Sigue aquí». Sin ellos, la fila se dibuja como siempre.
  */
-export function FilaAlta({ etiqueta, ayuda, accion, children }: { etiqueta: string; ayuda?: ReactNode; /** A la derecha del título (atajos). */ accion?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="border-t border-sand py-3.5 first:border-t-0 first:pt-0.5">
-      <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-[13px] font-semibold text-tinta">{etiqueta}</span>
-        {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
-        {accion && <span className="ml-auto">{accion}</span>}
+export function FilaAlta({
+  etiqueta,
+  ayuda,
+  accion,
+  campo,
+  estado,
+  children,
+}: {
+  etiqueta: string;
+  ayuda?: ReactNode;
+  /** A la derecha del título (atajos). */
+  accion?: ReactNode;
+  campo?: CampoAlta;
+  estado?: EstadoCampo;
+  children: ReactNode;
+}) {
+  const titulo = (
+    <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      {campo && estado && (
+        <span className="self-center">
+          <MarcaCampo estado={estado} />
+        </span>
+      )}
+      <span className="text-[13px] font-semibold text-tinta">
+        {estado && <VozDelEstado estado={estado} />}
+        {etiqueta}
+      </span>
+      {estado === "ahora" && <EtiquetaAhora />}
+      {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
+      {accion && <span className="ml-auto">{accion}</span>}
+    </div>
+  );
+  if (!campo || !estado) {
+    return (
+      <div className="border-t border-sand py-3.5 first:border-t-0 first:pt-0.5">
+        {titulo}
+        <div className="min-w-0">{children}</div>
       </div>
-      <div className="min-w-0">{children}</div>
+    );
+  }
+  return (
+    <div data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
+      <div className="hilo-fila-in">
+        {titulo}
+        <div className="min-w-0">{children}</div>
+      </div>
     </div>
   );
 }
 
 /**
- * Un grupo opcional que arranca plegado («Temporada y etiquetas · opcional»). Plegado, la línea dice qué se eligió
- * («— Verano, 2 etiquetas»): nadie tiene que abrirlo para saber si ya lo llenó. Lo de adentro se desmonta al plegar,
- * así que su estado tiene que vivir en el formulario (las etiquetas propuestas ya viven ahí por eso).
+ * Un grupo opcional y plegable («Temporada y etiquetas · opcional»); quien lo usa decide si arranca abierto. Plegado,
+ * la línea dice qué se eligió («— Verano, 2 etiquetas»): nadie tiene que abrirlo para saber si ya lo llenó. Lo de
+ * adentro se desmonta al plegar, así que su estado tiene que vivir en el formulario (las etiquetas propuestas ya viven
+ * ahí por eso).
  */
 export function PlegableAlta({
   titulo,

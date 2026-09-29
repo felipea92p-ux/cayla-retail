@@ -11,7 +11,7 @@ import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-produc
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparTallas, alternar, curvaCambiada, faltanDeLaCategoria, porOfrecer, textoCurva, unirSinRepetir } from "@/lib/muestras-alta-reglas";
 import { compararTallas } from "@/lib/tallas";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -24,7 +24,7 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 //
 // Una talla que la categoría no ofrece NO puede quedar solo marcada: `crear_producto_con_variantes` rechaza el producto
 // («Una de las tallas elegidas no está habilitada para esta categoría»). Así que «Listo» primero la ofrece en la categoría
-// —UNA escritura con todas las nuevas, sin combo «Responsable» desde 2026-09-29 (clave `alta_producto_talla`), como un tejido del
+// —UNA escritura con todas las nuevas, firmada por quien inició el alta (`useFirmaDeMitad`, sin combo propio desde 2026-09-29), como un tejido del
 // catálogo— y recién entonces la deja elegida. Si esa escritura falla, la hoja no se cierra y nada cambia.
 // La hoja trabaja sobre una copia: «Listo» aplica, Escape / el velo / «Cancelar» la descartan.
 
@@ -170,6 +170,7 @@ function HojaTallas({
   const [busqueda, setBusqueda] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const firma = useFirmaDeMitad("alta_producto_talla");
 
   const grupos = agruparTallas(todas, busqueda);
   const nuevas = porOfrecer(marcadas, deLaCategoria)
@@ -185,10 +186,11 @@ function HojaTallas({
       onListo(marcadas);
       return;
     }
+    if (!firma.listo) return;
     setGuardando(true);
     setError(null);
     const ejes = nuevas.reduce((e, t) => sumarAlEje(e, "tallas", t.id), ejesActuales);
-    const err = await guardarEjesCategoria(categoriaId, ejes, encabezadosOmitidos("alta_producto_talla"));
+    const err = await guardarEjesCategoria(categoriaId, ejes, firma.encabezados());
     setGuardando(false);
     if (err) {
       // Nada quedó a medias: la categoría sigue como estaba, la hoja sigue abierta y reintentar es seguro.
@@ -274,6 +276,7 @@ function HojaTallas({
               <span className="text-tinta">{listaNuevas}</span> {nuevas.length === 1 ? "no es" : "no son"} de {categoriaNombre}: al tocar «Listo»,{" "}
               {categoriaNombre} {nuevas.length === 1 ? "la ofrece" : "las ofrece"} desde ahora (también para las prendas que vengan).
             </p>
+            <AvisoSinIdentidad firma={firma} enHoja />
           </div>
         )}
         {error && (
@@ -292,7 +295,8 @@ function HojaTallas({
             <button
               type="button"
               onClick={() => void listo()}
-              disabled={guardando}
+              disabled={guardando || (nuevas.length > 0 && !firma.listo)}
+              title={nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}
               className="btn-cayla btn-primario"
             >
               {guardando ? "Guardando…" : "Listo"}

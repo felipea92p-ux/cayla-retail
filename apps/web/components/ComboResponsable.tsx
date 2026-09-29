@@ -8,8 +8,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
@@ -78,8 +77,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((p) => clave(p.nombre).includes(k));
+    return filtrarCombo(opciones, busqueda, (p) => ({ texto: p.nombre }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
@@ -242,7 +240,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           <div
             ref={capa}
             style={{ position: "fixed", ...posLista }}
-            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
+            className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-xl"
           >
           {mostrarBuscador && (
             <input
@@ -272,7 +270,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   aria-selected={p.personaId === elegidoId}
                   disabled={p.enPausa}
                   onClick={() => elegir(p)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-sand/55 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-rojo/10 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
                   <span className="min-w-0 flex-1">

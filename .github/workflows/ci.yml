@@ -1048,6 +1048,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
 
+      # Un producto puede crearse sin marca y/o sin proveedor (20260930020000, ADR-0283, Felipe 2026-09-29): el alta acepta
+      # cualquier combinación de vacíos; sigue prohibida una pareja que nadie registró (función y llave compuesta, aun con un
+      # INSERT directo) y lo desactivado; editar completa lo que falta pero no borra lo guardado y deja rastro con «antes»
+      # vacío; el filtro de Productos entiende el uuid nulo como «sin marca»/«sin proveedor»; la migración se pega dos veces.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:producto-sin-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:producto-sin-marca
+
       # El costo se corrige a mano solo hasta la primera compra (20260927190000, Felipe 2026-09-26): sin compras
       # (costo declarado) un líder lo corrige y el historial lo anota como 'costo_declarado', no 'costo' (Resumen no
       # la lee como «alterada»); con compras (costo oficial) ni la API ni un update directo lo pisan; el camino

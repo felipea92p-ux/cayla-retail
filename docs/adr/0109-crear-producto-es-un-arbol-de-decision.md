@@ -1,5 +1,8 @@
 # ADR-0109 — Crear un producto es un árbol de decisión (familia → categoría → marca → atributos), y sus reglas viven en la base
 
+> **Actualización 2026-09-29 (ADR-0283):** marca y proveedor **ya no son obligatorios**. Un producto puede crearse sin ellos (cada uno por separado) y completarse
+> después; lo que sigue siendo imposible es una pareja no registrada. La fila «Obligatoriedad» de la tabla de decisiones de abajo quedó reemplazada por esa regla.
+
 **Fecha:** 2026-09-18
 **Estado:** Construido: mapa de datos, esquema, formulario nuevo, pantalla de éxito, y —segunda parte— marca y proveedor en todo el ciclo del producto. Las
 migraciones se probaron contra un Postgres 17 desechable con el esquema mínimo y el

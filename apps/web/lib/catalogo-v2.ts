@@ -1,4 +1,4 @@
-import { contarProductosPorProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
+import { contarProductosPorProveedor, filtroDeMarcaOProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
@@ -219,8 +219,9 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
   return {
     busqueda: p.q?.trim() || undefined,
     categoriaId: esUuid(p.cat) ? p.cat : undefined,
-    marcaId: esUuid(p.marca) ? p.marca : undefined,
-    proveedorId: esUuid(p.proveedor) ? p.proveedor : undefined,
+    // `sin` = los que no tienen (ADR-0283): a la base llega como el uuid nulo, que `fn_productos` entiende como «sin marca».
+    marcaId: filtroDeMarcaOProveedor(p.marca),
+    proveedorId: filtroDeMarcaOProveedor(p.proveedor),
     colorCodigo: p.color?.trim() || undefined,
     estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
     precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
@@ -242,9 +243,9 @@ export type ProductoListado = {
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
-  /** De quién es y quién lo trae (20260918231000). */
-  marca: string;
-  proveedor: string;
+  /** De quién es y quién lo trae (20260918231000). `null` = todavía sin registrar (ADR-0283). */
+  marca: string | null;
+  proveedor: string | null;
   estado: string;
   stockMinimo: number | null;
   stockTotal: number;
@@ -511,7 +512,8 @@ export type ProductoDetalle = {
   tejido: string | null;
   patronId: string | null;
   patron: string | null;
-  /** De quién es y quién lo trae (20260918231000): obligatorios, siempre una pareja registrada. */
+  /** De quién es y quién lo trae (20260918231000). «» = todavía sin registrar (ADR-0283: pueden faltar, cada uno por separado;
+   *  si están los dos, son una pareja registrada). */
   marcaId: string;
   marcaNombre: string;
   proveedorId: string;
@@ -569,9 +571,9 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     tejido: data.tejido?.nombre ?? null,
     patronId: data.patron_id,
     patron: data.patron?.nombre ?? null,
-    marcaId: data.marca_id,
+    marcaId: data.marca_id ?? "",
     marcaNombre: data.marca?.nombre ?? "",
-    proveedorId: data.proveedor_id,
+    proveedorId: data.proveedor_id ?? "",
     proveedorNombre: data.proveedor?.nombre ?? "",
     fotos: [...(data.producto_fotos ?? [])]
       .sort((a, b) => a.orden - b.orden)

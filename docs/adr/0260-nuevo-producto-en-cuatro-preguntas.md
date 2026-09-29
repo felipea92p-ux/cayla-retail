@@ -22,7 +22,7 @@ se creaba en otra pestaña.
 | Paso | Qué lleva |
 |---|---|
 | 1 · ¿A qué categoría pertenece? | Buscador + familias (sin «las que más usas»). Avanza solo. |
-| 2 · ¿Cómo es? | Nombre, descripción (a la vista, opcional), marca y proveedor, tejido y patrón (`ElegirMuestra`); temporada y etiquetas plegadas en «Temporada y etiquetas · opcional» (`PlegableAlta`). |
+| 2 · ¿Cómo es? | Nombre, descripción (a la vista, opcional), marca y proveedor, tejido y patrón (`ElegirMuestra`); temporada y etiquetas en «Temporada y etiquetas · opcional» (`PlegableAlta`; abierto al llegar al paso, plegable — Felipe 2026-09-29). |
 | 3 · ¿En qué tallas y colores? | `ElegirTallas`, `ElegirColores` y UNA tabla (`MatrizVariantes`) con la foto de cada color en su fila. |
 | 4 · ¿Cuánto cuesta y cuántas hay? | Precio, costo y margen; la misma tabla con cantidades o «¿Alguna cuesta distinto?» (`MatrizCantidades`), «Llenar todas con», dónde están, «Quién lo registra» y «Crear producto» en el pie. |
 
