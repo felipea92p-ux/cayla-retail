@@ -155,3 +155,43 @@ buscador era hueso y los combos de al lado no.
 
 Queda sin resolver (no es de esta regla, lo destapó): Escape con la lista de un combo abierta cierra el modal entero en
 todo el ERP (ver BACKLOG, 2026-09-26).
+
+## Actualización 2026-09-29 — el buscador tolera cómo escribe la gente
+
+**El problema.** Una persona escribió `La   Femme21` (tres espacios, el número pegado) en el buscador de marca y proveedor de
+Nuevo producto y no salió nada. En producción existen la marca **«La Femme 21»** y su proveedor **«CORPORACION LA FEMME21 S.A.C.»**
+(consultado el 2026-09-29, solo lectura): el dato estaba; el filtro no lo encontraba. La regla de este ADR decía cuándo
+aparece el buscador y cuánto se pagina, pero no cómo se compara el texto, y cada uno de los cinco combos (`ComboBuscable`,
+`Desplegable`, `ComboResponsable`, `FiltrosPildora` y el filtro de proveedor de `FiltrosRecibidas`) tenía su propio
+`clave(texto).includes(lo escrito)`. `clave()` baja a minúsculas, quita tildes y recorta los bordes; nada más. Dos espacios
+seguidos o `Femme21` contra `Femme 21` bastaban para no coincidir.
+
+**La regla.** Una sola función pura, `filtrarCombo` en `lib/combo-reglas.ts` (con `normalizarBusqueda`, `coincidenciaCombo`
+y `mismoNombreCombo`), y los cinco combos la llaman:
+
+- **Se normaliza** lo escrito y lo buscado: sin mayúsculas ni tildes, los signos valen por un espacio (`S.A.C.` → `s a c`),
+  los espacios se juntan y una letra pegada a un número se separa (`Femme21` → `femme 21`).
+- **Cuatro niveles, de mejor a peor:** (1) lo escrito aparece tal cual; (2) todas sus palabras aparecen, en cualquier orden
+  (`21 femme`); (3) aparece sin espacios (`lafemme21`, solo desde 3 letras); (4) todas aparecen con un error de tipeo.
+- **Lo aproximado solo si nada coincide tal cual.** Escribir bien `cayla` nunca trae `Caila`; escribir mal `La Feme 21` sí trae
+  `La Femme 21`. Se muestran primero los mejores niveles y, en el nivel 4, los de menos errores.
+- **Error de tipeo** = una letra de más, de menos, cambiada, o dos vecinas intercambiadas (distancia de Damerau-Levenshtein).
+  Tolerancia por palabra escrita: hasta 3 letras, ninguna (una letra ya es otra palabra); 4 a 7, una; 8 o más, dos. También
+  contra el comienzo de la palabra, porque todavía se está escribiendo (`femn` → `femme`).
+- **Los números no se corrigen:** `La Femme 22` no encuentra `La Femme 21` (otra numeración es otra marca). Un número escrito
+  solo pide el mismo comienzo (`2` encuentra `21`).
+- **«+ Registrar …» no se ofrece** si el nombre ya existe según la base (`mismoNombreCombo`: espacios juntados, sin mayúsculas
+  ni tildes, igual que `retail.fn_clave_texto`); `Femme21` y `Femme 21` la base los ve distintos, y ahí sigue mandando la
+  pregunta «¿no será…?» de `nombres-parecidos.ts`.
+
+- DECIDÍ: una función central para los cinco combos, con el error de tipeo como último recurso y nunca mezclado con lo exacto.
+  DESCARTÉ: (a) tolerar errores siempre, porque en una lista de 300 referencias escribir `lino` traería `pino` y `fino` y
+  taparía lo correcto; (b) una búsqueda en la base (`pg_trgm`), porque marcas y proveedores son menos de 100 y ya viajan en la
+  pantalla —el mismo razonamiento de `nombres-parecidos.ts`—, y comparar aquí no depende de la red; (c) arreglar solo el
+  selector de marca, porque el defecto era de los cinco y el ADR pide una regla, no cinco parecidas.
+  SE ROMPE SI: una lista pasa de unos miles de opciones (el nivel 4 recorre todas por cada tecla) —ahí se filtra en la base—,
+  o si alguien vuelve a escribir un `clave(x).includes(y)` dentro de un combo: `lib/combos-buscan-con-la-regla.test.ts` lo
+  detecta y hace fallar el CI.
+- Queda fuera, a propósito: mezclar los dos defectos a la vez (`Lafeme21`: sin espacio y con una letra de menos), y las pantallas
+  de lista que filtran por URL (`ProveedoresPanel`, Por pagar, Gastos…): son buscadores de pantalla, no combos, con su propio
+  filtro. Ver BACKLOG (`docs/backlog/2026-09-29-provider-search-robustness-731d45.md`).
