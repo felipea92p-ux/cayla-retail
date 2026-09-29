@@ -59,7 +59,7 @@ const CUERPO = readFileSync(process.env.PURGA_SCRIPT ?? join(RAIZ, "scripts/purg
 const RESTAURAR = readFileSync(process.env.RESTAURAR_SCRIPT ?? join(RAIZ, "scripts/purga/restaurar-purga.sql"), "utf8").replace(/^(begin|commit);.*\[\[transaccion\]\].*$/gm, "");
 // Para volver a correrlo dentro de la misma transacción (lo temporal del script ya existe).
 const LIMPIAR = `drop table if exists zz_prod, zz_var, zz_venta, zz_sep, zz_compra, zz_item, zz_compra_item, zz_comp, zz_mov, zz_borrar, zz_hoja,
-  zz_tablas, zz_sunat_produccion, zz_purga, zz_restaura, zz_candado, zz_resumen;
+  zz_tablas, zz_sunat_produccion, zz_purga, zz_restaura, zz_candado, zz_resumen, zz_traslado, zz_traslado_item, zz_traslado_recep, zz_proforma;
 drop function if exists pg_temp.libro_descuadra(), pg_temp.lista(text), pg_temp.fuera_de_la_lista(text, text);
 `;
 
@@ -494,11 +494,26 @@ ${RESTOS}`,
        jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 65)), null, gen_random_uuid()) as otra \\gset`,
     /NO SE BORRA NADA[\s\S]*OTRAS ventas/
   );
-  rechazo(
-    "rechazo: una venta ya anulada deja filas que la citan (anulación por línea)",
-    `select retail.anular_venta(:'venta', 'prueba automatizada', (select jsonb_agg(jsonb_build_object('venta_item_id', vi.id, 'condicion', 'vendible')) from retail.venta_items vi where vi.venta_id = :'venta')) as _a \\gset`,
-    /NO SE BORRA NADA[\s\S]*citan a/
-  );
+  // Antes esto se rechazaba (venta_anulacion_items sin dueño reconocido, y su entrada de reversa contaba como
+  // «otra prenda» sin salida simple). Ahora venta_anulacion_items es una hoja de la venta y la reversa se reconoce:
+  // la purga tiene que dejar todo limpio, sin devolver el stock ajeno dos veces (5b lo comprueba solo).
+  {
+    const r = correr(
+      `${escena()}
+select retail.anular_venta(:'venta', 'prueba automatizada', (select jsonb_agg(jsonb_build_object('venta_item_id', vi.id, 'condicion', 'vendible')) from retail.venta_items vi where vi.venta_id = :'venta')) as _a \\gset
+${RESTOS}
+${purgaDefinitiva()}
+${RESTOS}
+select count(*) from retail.venta_anulacion_items where venta_id = :'venta';`
+    );
+    const [antes, despues, anulaciones] = ultimas(r);
+    // 6 movimientos (no 4): anular_venta agrega una entrada de reversa por cada línea, y 2 de las 4 líneas son de este producto.
+    esperar(
+      "definitivo: una venta ya anulada por línea se purga limpio (venta_anulacion_items se va con ella, sin devolver el stock ajeno dos veces)",
+      r.ok && antes === "1,2,2,2,6,1,4,1,1" && despues === RESTOS_NADA && anulaciones === "0",
+      r
+    );
+  }
   rechazo(
     "rechazo: un cambio de prenda sobre esa venta (sus movimientos nacen de un cambio: historia con otro dueño)",
     `select id as item_va from retail.venta_items where venta_id = :'venta' and variante_id = :'va' \\gset
