@@ -1,48 +1,66 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Package, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
-import { sufijoVariantes, textoFaltaElegir } from "@/lib/conteo-inicio-reglas";
+import { TODA_LA_UBICACION, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
+import { camposDeApertura, type AlcanceElegido } from "@/lib/conteo-inicio-guia";
+import { filtrarCombo } from "@/lib/combo-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { avisar } from "@/components/ui/Avisos";
-import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { IconoPercha } from "@/components/ui/IconoPercha";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 
 /* ====================================================================
-   AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo, rediseño 2026-09-29)
+   AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
 
-   Tres preguntas, una debajo de la otra, y un botón que dice cuándo se puede:
-     1. «¿Dónde vas a contar?»  — Almacén de tienda o Piso de venta. Solo en una sede que los separa; el Taller no los
-                                 separa y su conteo es de toda la ubicación: la pregunta ni aparece.
-     2. «¿Qué vas a contar?»    — Todo, o una categoría.
-     3. «Contará»               — el responsable (combo de asistencia, ADR-0161/0162): firma la apertura.
+   Tres preguntas a la izquierda y, a la derecha, «Tu conteo»: cuántas variantes trae lo elegido, un resumen de tres líneas y el botón.
+     1. «¿Dónde vas a contar?»  — Almacén de tienda o Piso de venta. Solo en una sede que los separa; el Taller no los separa y su
+                                 conteo es de toda la ubicación: la pregunta ni aparece.
+     2. «¿Qué vas a contar?»    — Todo, o una categoría (con buscador, a la vista: un toque en vez de abrir una lista).
+     3. «¿Quién cuenta?»        — el responsable (combo de asistencia, ADR-0161/0162): firma la apertura.
 
-   Van APILADAS y no en tres columnas: con el lateral abierto una ventana de 1024 px deja ~670 al contenido y cada
-   columna quedaba en ~200. Las opciones de las preguntas 1 y 2 son tarjetas con `role="radio"` y se parten en dos
-   columnas según el ancho de la TARJETA (`@container`), no el de la ventana.
+   La cifra de «Tu conteo» son VARIANTES (modelo · color · talla), nunca unidades: el conteo es a ciegas, y decir cuántas prendas
+   espera el sistema le regalaría la meta a quien cuenta. Sale de `fn_conteo_alcance`, con la misma regla que la foto de `abrir_conteo`
+   (lo prueba `scripts/pruebas/conteo_rediseno.mjs`). Es un dato de apoyo: sin él (la función no está todavía en la base) la tarjeta
+   se dibuja igual, sin cifras.
 
-   «Debe haber» se congela al abrir (la base toma la foto de lo que hay en el lugar): por eso elegir el lugar no es un
-   detalle. Una sede con piso y almacén exige uno de los dos — la base también lo rechaza (`sububicacion_requerida`).
+   Guía de foco (ADR-0284): cada pregunta dice si está hecha, cuál sigue y qué falta, y el pie de «Tu conteo» lista lo que falta con
+   un toque que lleva al campo. Toda la lógica está en `lib/conteo-inicio-guia.ts`, comprobada contra lo que `abrir_conteo` rechaza.
+
+   Con el ancho de la TARJETA (`@container`), no el de la ventana: con el lateral abierto una ventana de 1024 px deja ~670 al
+   contenido. Angosta, «Tu conteo» pasa a una barra pegada abajo con la cifra y el botón.
+
+   Las categorías son píldoras con su buscador y no el combo del sistema (ADR-0209) a propósito: son pocas decenas, elegir una es
+   LA decisión de esta tarjeta y verlas todas ahorra un paso. El filtro es el mismo del sistema (`filtrarCombo`: sin tildes ni
+   mayúsculas, tolera un error de tipeo). Si se generaliza, es una decisión de ADR-0209, no de esta pantalla.
+
+   «Debe haber» se congela al abrir (la base toma la foto de lo que hay en el lugar): por eso elegir el lugar no es un detalle. Una
+   sede con piso y almacén exige uno de los dos — la base también lo rechaza (`sububicacion_requerida`).
 
    Abrir lleva directo a contar (`router.push`): no se relee este inicio, que ya no es donde se trabaja. `?variantes=`
    («Contar esta prenda» desde Movimientos, ADR-0241) se arrastra a la ruta del conteo para que la lista salga acotada.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string };
-type Alcance = "todo" | "categoria";
 
 export function AbrirConteo({
   ubicacionId,
   sububicaciones,
   categorias,
   ultimoPorLugar,
+  alcance = null,
   trasladosPorAtender,
   variantes = [],
 }: {
@@ -51,6 +69,8 @@ export function AbrirConteo({
   categorias: Categoria[];
   /** Por sububicación (id): «Último conteo: 12 · 28/09» o «Nunca se contó». */
   ultimoPorLugar: Record<string, string>;
+  /** Cuántas variantes trae un conteo de cada lugar y categoría; `null` = no se pudo leer (la tarjeta sale sin cifras). */
+  alcance?: AlcanceConteo | null;
   /** Traslados hacia esta sede por atender (el mismo número del menú); `null` = no se sabe o no ve Traslados. */
   trasladosPorAtender: number | null;
   /** «Contar esta prenda»: las variantes de `?variantes=`, para arrastrarlas al conteo que se abre. */
@@ -69,25 +89,33 @@ export function AbrirConteo({
   );
   const separaPisoAlmacen = lugares.length > 0;
   const [lugarId, setLugarId] = useState<string | "">("");
-  const [alcance, setAlcance] = useState<Alcance>("todo");
+  const [queCuento, setQueCuento] = useState<AlcanceElegido>("todo");
   const [categoriaId, setCategoriaId] = useState<string | "">("");
 
   const lugar = separaPisoAlmacen ? (lugares.find((l) => l.id === lugarId) ?? null) : null;
-  const categoria = alcance === "categoria" && categoriaId ? (categorias.find((c) => c.id === categoriaId) ?? null) : null;
-  const opcionesCategoria = useMemo(() => categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [categorias]);
+  const categoria = queCuento === "categoria" && categoriaId ? (categorias.find((c) => c.id === categoriaId) ?? null) : null;
 
-  const dondeHecho = !separaPisoAlmacen || lugar !== null;
-  const queHecho = alcance === "todo" || categoria !== null;
-  const faltan = [
-    dondeHecho ? null : "dónde vas a contar",
-    queHecho ? null : "la categoría",
-    responsable.listo ? null : "quién cuenta",
-  ].filter((x): x is string => x !== null);
-  const listo = faltan.length === 0;
+  // Lo que la persona ve como «faltante» sale de la guía, y la guía de lo que la base exige (`lib/conteo-inicio-guia.ts`).
+  const guia = useGuiaCampos(
+    camposDeApertura({ separaPisoAlmacen, lugarId: lugar?.id ?? "", alcance: queCuento, categoriaId: categoria?.id ?? "", responsableListo: responsable.listo }),
+    { enModal: false }
+  );
+  const listo = guia.puedeConfirmar;
 
-  // «Contará: Micaela»: el nombre corto de quien el combo tiene elegido (o «Contará» a secas mientras nadie).
+  // La clave del lugar en `alcance`: el piso o el almacén elegido, o «toda la ubicación» en una sede que no los separa.
+  const lugarClave = separaPisoAlmacen ? (lugar?.id ?? null) : TODA_LA_UBICACION;
+  const hayCifras = alcance !== null && lugarClave !== null;
+  const cuantas = variantesDelConteo(alcance, lugarClave, queCuento === "categoria" ? (categoria?.id ?? null) : null);
+
+  // «Cuenta Micaela»: el nombre corto de quien el combo tiene elegido.
   const elegido = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId) ?? null;
   const nombreElegido = elegido ? (nombresCortos(responsable.lista.elegibles.map((p) => p.nombre)).get(elegido.nombre) ?? elegido.nombre) : null;
+
+  // Al pedir «Una categoría» el cursor va al buscador, salvo en un celular (abriría el teclado sin que la persona lo pida).
+  const buscador = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (queCuento === "categoria" && !window.matchMedia("(pointer: coarse)").matches) buscador.current?.focus({ preventScroll: true });
+  }, [queCuento]);
 
   async function abrir() {
     if (!listo || abriendo) return;
@@ -120,123 +148,190 @@ export function AbrirConteo({
   }
 
   const idTitulo = useId();
-  const resumen = [lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : separaPisoAlmacen ? null : "Toda la ubicación", categoria ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre }) : null]
-    .filter((x): x is string => x !== null)
-    .join(" · ");
-  let numero = 0;
+  const textoDonde = separaPisoAlmacen ? (lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : null) : "Toda la ubicación";
+  const textoQue = categoria ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre }) : queCuento === "categoria" ? "Una categoría" : "Todo";
+  const ayudaQue =
+    queCuento === "todo" ? (
+      textoDonde && separaPisoAlmacen ? (
+        <>
+          Todas las prendas del <b className="font-medium text-tinta">{textoDonde}</b>.
+        </>
+      ) : (
+        "Todas las prendas registradas en esta ubicación."
+      )
+    ) : categoria ? (
+      <>
+        Solo las prendas de <b className="font-medium text-tinta">{categoria.nombre}</b>.
+      </>
+    ) : (
+      "Elige una categoría para acotar el conteo."
+    );
 
   return (
-    <section className="card-cayla @container space-y-6 p-5 sm:p-6" aria-labelledby={idTitulo}>
-      <div className="space-y-1">
-        <h2 id={idTitulo} className="font-display text-xl text-tinta">
-          Abrir un conteo
-        </h2>
-        {!separaPisoAlmacen && <p className="text-sm text-taupe">Aquí se cuenta toda la ubicación: no hay piso y almacén por separado.</p>}
-      </div>
+    <section className="card-cayla @container" aria-labelledby={idTitulo}>
+      <div className="grid @[46rem]:grid-cols-[minmax(0,1fr)_19.5rem]">
+        <div inert={abriendo} className={`min-w-0 space-y-7 p-5 transition-opacity duration-200 @[46rem]:p-8 ${abriendo ? "opacity-60" : ""}`}>
+          <div className="space-y-1">
+            <h2 id={idTitulo} className="font-display text-2xl text-tinta">
+              Abrir un conteo
+            </h2>
+            <p className="text-sm text-taupe">
+              {separaPisoAlmacen ? "Tres respuestas y empiezas a escanear." : "Aquí se cuenta toda la ubicación: no hay piso y almacén por separado."}
+            </p>
+          </div>
 
-      {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
-          «de más»; si no, se recibe después y descuadra lo contado. */}
-      {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-        <div className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-          <span className="min-w-0 flex-1 text-tinta">
-            <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-            atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-          </span>
-          <Link href="/inventario/traslados" className="btn-cayla btn-enlace text-sm">
-            Ver traslados →
-          </Link>
-        </div>
-      )}
-
-      {separaPisoAlmacen && (
-        <Pregunta numero={++numero} titulo="¿Dónde vas a contar?" hecho={lugar !== null}>
-          <TarjetasOpcion
-            etiqueta="Dónde vas a contar"
-            valor={lugarId}
-            onValor={setLugarId}
-            deshabilitado={abriendo}
-            opciones={lugares.map((l) => ({
-              valor: l.id,
-              titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-              linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
-            }))}
-          />
-        </Pregunta>
-      )}
-
-      <Pregunta numero={++numero} titulo="¿Qué vas a contar?" hecho={queHecho}>
-        <TarjetasOpcion<Alcance>
-          etiqueta="Qué vas a contar"
-          valor={alcance}
-          onValor={setAlcance}
-          deshabilitado={abriendo}
-          opciones={[
-            { valor: "todo", titulo: "Todo", linea: "Todas las prendas registradas en esta ubicación." },
-            { valor: "categoria", titulo: "Una categoría", linea: "Solo las prendas de una categoría." },
-          ]}
-        />
-        {alcance === "categoria" && (
-          // El buscador y la paginación de combos son de la regla global (ADR-0209): con 25 categorías se busca escribiendo.
-          <ComboBuscable
-            caja
-            valor={categoriaId}
-            onValor={setCategoriaId}
-            opciones={opcionesCategoria}
-            marcador="Elige una categoría"
-            etiquetaAccesible="Categoría"
-            className="mt-1 w-full @[30rem]:max-w-sm"
-          />
-        )}
-      </Pregunta>
-
-      <Pregunta numero={++numero} titulo={nombreElegido ? `Contará: ${nombreElegido}` : "Contará"} hecho={responsable.listo}>
-        <ComboResponsable control={responsable} deshabilitado={abriendo} className="w-full @[36rem]:w-72" />
-      </Pregunta>
-
-      {error && (
-        <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-sand pt-4">
-        <p aria-live="polite" className="min-w-0 text-sm text-taupe">
-          {listo ? (
-            <>
-              Se abrirá un conteo de <b className="font-semibold text-tinta">{resumen}</b>.
-            </>
-          ) : (
-            textoFaltaElegir(faltan)
+          {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
+              «de más»; si no, se recibe después y descuadra lo contado. */}
+          {!!trasladosPorAtender && trasladosPorAtender > 0 && (
+            <div className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
+              <span className="min-w-0 flex-1 text-tinta">
+                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
+                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
+              </span>
+              <Link href="/inventario/traslados" className="btn-cayla btn-enlace text-sm">
+                Ver traslados →
+              </Link>
+            </div>
           )}
-        </p>
-        <button type="button" onClick={() => void abrir()} disabled={!listo || abriendo} className="btn-cayla btn-primario h-11 w-full @[30rem]:w-auto">
-          {abriendo ? "Abriendo…" : "Empezar conteo"}
-        </button>
+
+          {separaPisoAlmacen && (
+            <CampoGuiado id="donde" guia={guia} titulo="¿Dónde vas a contar?">
+              <TarjetasOpcion
+                etiqueta="Dónde vas a contar"
+                valor={lugarId}
+                onValor={setLugarId}
+                deshabilitado={abriendo}
+                opciones={lugares.map((l) => ({
+                  valor: l.id,
+                  titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
+                  cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
+                }))}
+              />
+            </CampoGuiado>
+          )}
+
+          <CampoGuiado id="que" guia={guia} titulo="¿Qué vas a contar?">
+            <SegmentoDeslizante
+              etiqueta="Qué vas a contar"
+              valor={queCuento}
+              onCambio={(v) => setQueCuento(v as AlcanceElegido)}
+              opciones={[
+                { clave: "todo", etiqueta: "Todo" },
+                { clave: "categoria", etiqueta: "Una categoría" },
+              ]}
+            />
+            <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
+              {ayudaQue}
+            </p>
+            {/* Se despliega dentro de la misma pregunta (sin lista flotante, ADR-0185). Cerrada, `inert`: ni se enfoca ni se lee. */}
+            <div
+              inert={queCuento !== "categoria"}
+              className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "categoria" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <ElegirCategoria
+                  categorias={categorias}
+                  valor={categoriaId}
+                  onValor={setCategoriaId}
+                  buscador={buscador}
+                  cifraDe={hayCifras ? (id) => variantesDelConteo(alcance, lugarClave, id) ?? 0 : null}
+                />
+              </div>
+            </div>
+          </CampoGuiado>
+
+          <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
+            <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
+          </CampoGuiado>
+
+          {error && (
+            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
+              {error}
+            </p>
+          )}
+        </div>
+
+        {/* «Tu conteo»: a la derecha en una tarjeta ancha; en una angosta, la barra pegada abajo con la cifra y el botón. */}
+        <aside
+          aria-label="Resumen del conteo"
+          className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
+        >
+          <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
+
+          {alcance && (
+            <div aria-live="polite" className="flex min-w-0 items-baseline gap-2 @[46rem]:flex-col @[46rem]:gap-0.5">
+              <span className={`font-display text-[26px] leading-none @[46rem]:text-[52px] ${cuantas === null ? "text-taupe/50" : "text-tinta"}`}>
+                {cuantas === null ? "—" : <CifraQueCuenta valor={cuantas} />}
+              </span>
+              <span className="text-xs text-taupe @[46rem]:text-sm">
+                {cuantas === null ? (
+                  // Sin cifra todavía: en la tarjeta ancha se dice qué falta elegir; en la barra angosta, una línea (el «Falta:» de abajo ya lo dice).
+                  <>
+                    <span className="@[46rem]:hidden">variantes por contar</span>
+                    <span className="hidden @[46rem]:inline">
+                      {separaPisoAlmacen && !lugar ? "Elige dónde para ver cuántas variantes" : "Elige la categoría para ver cuántas variantes"}
+                    </span>
+                  </>
+                ) : cuantas === 1 ? (
+                  "variante por contar"
+                ) : (
+                  "variantes por contar"
+                )}
+              </span>
+            </div>
+          )}
+
+          <dl className="hidden border-t border-sand text-sm @[46rem]:block">
+            <Fila etiqueta="Dónde" valor={textoDonde} />
+            <Fila etiqueta="Qué" valor={textoQue} />
+            <Fila etiqueta="Cuenta" valor={nombreElegido} />
+          </dl>
+          <p className="hidden text-[12.5px] leading-relaxed text-taupe @[46rem]:block">
+            Al empezar se congela lo que CAYLA dice que hay, para compararlo con lo que cuentes.
+          </p>
+
+          <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
+            <PieGuia guia={guia} listo="Todo listo para empezar." />
+          </div>
+          <button
+            type="button"
+            onClick={() => void abrir()}
+            disabled={!listo || abriendo}
+            title={guia.frase ?? undefined}
+            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+          >
+            {abriendo ? "Abriendo…" : "Empezar conteo"}
+          </button>
+        </aside>
       </div>
     </section>
   );
 }
 
-/** Una pregunta: su número en círculo (hecho = tinta; falta = borde sand), su título y lo que se responde. */
-function Pregunta({ numero, titulo, hecho, children }: { numero: number; titulo: string; hecho: boolean; children: ReactNode }) {
+/** «175 variantes registradas» / «1 variante registrada». */
+function textoVariantesRegistradas(n: number): string {
+  return `${n.toLocaleString("es-PE")} ${n === 1 ? "variante registrada" : "variantes registradas"}`;
+}
+
+/** Una línea del resumen de «Tu conteo»: lo que falta elegir se lee apagado, sin culpar a nadie. */
+function Fila({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
-    <div className="space-y-2.5">
-      <p className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className={`grid h-5 w-5 place-items-center rounded-full border text-[11px] transition-colors ${hecho ? "border-tinta bg-tinta text-crema" : "border-sand text-taupe"}`}
-        >
-          {numero}
-        </span>
-        <span className="eyebrow-cayla !text-taupe">{titulo}</span>
-        <span className="sr-only">{hecho ? "(listo)" : "(falta)"}</span>
-      </p>
-      {children}
+    <div className="flex justify-between gap-3 border-b border-sand py-2.5">
+      <dt className="text-taupe">{etiqueta}</dt>
+      <dd className={`text-right ${valor ? "font-medium text-tinta" : "text-taupe/70"}`}>{valor ?? "Sin elegir"}</dd>
     </div>
   );
 }
 
-type OpcionTarjeta<T extends string> = { valor: T; titulo: string; linea: string };
+/** Flechas de un `radiogroup`: el índice al que se pasa (con vuelta) o `null` si la tecla no es una flecha. */
+function flechaDeRadio(tecla: string, i: number, total: number): number | null {
+  const paso = tecla === "ArrowRight" || tecla === "ArrowDown" ? 1 : tecla === "ArrowLeft" || tecla === "ArrowUp" ? -1 : 0;
+  return paso === 0 ? null : (i + paso + total) % total;
+}
+
+type OpcionTarjeta<T extends string> = { valor: T; titulo: string; linea: string; icono: ReactNode; cifra: string | null };
 
 /**
  * Elegir UNA de pocas opciones grandes (un dedo las alcanza): `radiogroup` con flechas, como cualquier grupo de radios. Solo
@@ -259,16 +354,15 @@ function TarjetasOpcion<T extends string>({
   const elegida = opciones.findIndex((o) => o.valor === valor);
 
   function alTeclado(e: React.KeyboardEvent<HTMLButtonElement>, i: number) {
-    const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
-    if (paso === 0) return;
+    const j = flechaDeRadio(e.key, i, opciones.length);
+    if (j === null) return;
     e.preventDefault();
-    const j = (i + paso + opciones.length) % opciones.length;
     onValor(opciones[j].valor);
     botones.current[j]?.focus();
   }
 
   return (
-    <div role="radiogroup" aria-label={etiqueta} className="grid gap-2 @[30rem]:grid-cols-2">
+    <div role="radiogroup" aria-label={etiqueta} className="grid grid-cols-2 gap-2.5">
       {opciones.map((o, i) => {
         const activa = o.valor === valor;
         return (
@@ -284,15 +378,111 @@ function TarjetasOpcion<T extends string>({
             disabled={deshabilitado}
             onClick={() => onValor(o.valor)}
             onKeyDown={(e) => alTeclado(e, i)}
-            className={`flex min-h-14 flex-col items-start justify-start rounded-lg border px-3.5 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 disabled:cursor-default disabled:opacity-60 ${
-              activa ? "border-tinta bg-sand/40 ring-1 ring-tinta" : "border-sand bg-papel hover:border-taupe/45"
+            className={`relative flex min-h-28 flex-col items-start rounded-lg border px-3.5 py-3.5 text-left transition-[border-color,background-color,box-shadow] duration-200 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 disabled:cursor-default @[30rem]:px-4 ${
+              activa ? "border-tinta bg-sand/40 shadow-[inset_0_0_0_1px_var(--color-tinta)]" : "border-sand bg-papel hover:border-taupe/45"
             }`}
           >
-            <span className="block text-[15px] text-tinta">{o.titulo}</span>
-            <span className="block text-xs text-taupe">{o.linea}</span>
+            <span className={`mb-2 transition-colors duration-200 ${activa ? "text-tinta" : "text-taupe"}`}>{o.icono}</span>
+            <span className="block text-[15px] font-medium text-tinta">{o.titulo}</span>
+            <span className="block text-xs text-tinta-60">{o.linea}</span>
+            {o.cifra && <span className="block text-xs text-taupe">{o.cifra}</span>}
+            <span
+              aria-hidden
+              className={`absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-tinta text-crema transition-[opacity,transform] duration-200 ease-cayla ${
+                activa ? "scale-100 opacity-100" : "scale-[0.6] opacity-0"
+              }`}
+            >
+              <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.5 6.4 5 8.8l4.5-5.2" />
+              </svg>
+            </span>
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Las categorías a la vista, con su buscador: elegir una es un toque. Con la cifra de cada una (variantes en el lugar elegido)
+ * cuando se conoce, para saber de antemano de qué tamaño es el conteo. Una categoría con 0 sigue siendo elegible: no es un error.
+ */
+function ElegirCategoria({
+  categorias,
+  valor,
+  onValor,
+  buscador,
+  cifraDe,
+}: {
+  categorias: Categoria[];
+  valor: string;
+  onValor: (id: string) => void;
+  buscador: React.RefObject<HTMLInputElement | null>;
+  cifraDe: ((categoriaId: string) => number) | null;
+}) {
+  const [consulta, setConsulta] = useState("");
+  // Sin buscar: las que tienen prendas en este lugar, primero. Buscando manda lo que mejor coincide con lo escrito.
+  // (Unas decenas de categorías por render: no vale la pena memorizarlo, y `cifraDe` cambia de identidad en cada render.)
+  const visibles = filtrarCombo(categoriasPorVariantes(categorias, cifraDe), consulta, (c) => ({ texto: c.nombre }));
+  const botones = useRef<(HTMLButtonElement | null)[]>([]);
+  const elegida = visibles.findIndex((c) => c.id === valor);
+
+  function alTeclado(e: React.KeyboardEvent<HTMLButtonElement>, i: number) {
+    const j = flechaDeRadio(e.key, i, visibles.length);
+    if (j === null) return;
+    e.preventDefault();
+    onValor(visibles[j].id);
+    botones.current[j]?.focus();
+  }
+
+  return (
+    <div className="space-y-3 pt-3">
+      <label className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
+        <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+        <span className="sr-only">Buscar categoría</span>
+        <input
+          ref={buscador}
+          type="text"
+          autoComplete="off"
+          value={consulta}
+          onChange={(e) => setConsulta(e.target.value)}
+          onKeyDown={(e) => {
+            // Un control que usa el Escape (aquí, borra su búsqueda) no lo deja pasar (ADR-0136).
+            if (e.key === "Escape" && consulta) {
+              e.stopPropagation();
+              setConsulta("");
+            }
+          }}
+          placeholder="Buscar categoría"
+          className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
+        />
+      </label>
+      <div role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
+        {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
+        {visibles.map((c, i) => {
+          const activa = c.id === valor;
+          return (
+            <button
+              key={c.id}
+              ref={(el) => {
+                botones.current[i] = el;
+              }}
+              type="button"
+              role="radio"
+              aria-checked={activa}
+              tabIndex={(elegida === -1 ? i === 0 : activa) ? 0 : -1}
+              onClick={() => onValor(c.id)}
+              onKeyDown={(e) => alTeclado(e, i)}
+              className={`inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5 text-[13.5px] transition-colors duration-150 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 ${
+                activa ? "border-tinta bg-tinta text-crema" : `border-sand bg-papel hover:border-taupe/45 ${cifraDe && cifraDe(c.id) === 0 ? "text-tinta/55" : "text-tinta"}`
+              }`}
+            >
+              {c.nombre}
+              {cifraDe && <small className={`text-xs ${activa ? "text-crema/70" : "text-taupe"}`}>{cifraDe(c.id).toLocaleString("es-PE")}</small>}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

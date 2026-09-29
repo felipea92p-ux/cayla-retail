@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { textoAlcance, textoLugar, type ConteoResumen } from "@/lib/conteo-reglas";
-import { textoUltimoConteo } from "@/lib/conteo-inicio-reglas";
+import { textoUltimoConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { TABLA } from "@/components/ui/Tabla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -28,6 +28,7 @@ export function ConteoVista({
   conteos,
   sububicaciones,
   categorias,
+  alcance = null,
   trasladosPorAtender = null,
   soloPrendas = [],
   variantes = [],
@@ -40,6 +41,8 @@ export function ConteoVista({
   conteos: ConteoResumen[];
   sububicaciones: Sububicacion[];
   categorias: { id: string; nombre: string }[];
+  /** Cuántas variantes trae un conteo de cada lugar y categoría (`fn_conteo_alcance`); `null` = no se pudo leer: la tarjeta sale sin cifras. */
+  alcance?: AlcanceConteo | null;
   /** Traslados hacia esta sede por atender: el aviso «antes de contar». `null` = no se sabe o no ve Traslados. */
   trasladosPorAtender?: number | null;
   /** Las prendas de «Contar esta prenda» (`?variantes=`, ADR-0241), ya con su nombre. Vacío = la lista de siempre. */
@@ -90,6 +93,7 @@ export function ConteoVista({
             sububicaciones={sububicaciones}
             categorias={categorias}
             ultimoPorLugar={ultimoPorLugar}
+            alcance={alcance}
             trasladosPorAtender={trasladosPorAtender}
             variantes={variantes}
           />

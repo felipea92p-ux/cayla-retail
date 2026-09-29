@@ -1,0 +1,8 @@
+## 🧮 Abrir un conteo con «Tu conteo» y guía de foco (2026-09-29, ADR-0282 actualización e) — rama `claude/dynamic-mockup-count-design-cd32a0`
+
+- [x] `AbrirConteo.tsx` reescrito según la maqueta: dos columnas, píldoras de categoría con buscador y cifra, «Tu conteo» (variantes, resumen, botón), barra pegada abajo en celular. Verificado en localhost (Trujillo con piso/almacén, Taller sin «dónde», 375 px).
+- [x] `fn_conteo_alcance` (migración `20260930040000`, solo lectura): la cifra sale con la misma regla que la foto de `abrir_conteo`; `scripts/pruebas/conteo_rediseno.mjs` la compara fila por fila (piso, almacén, categoría, Taller) con 2 controles de mutación (49/49 en verde).
+- [x] Guía de foco estándar (`useGuiaCampos({ enModal: false })`, `CampoGuiado`, `PieGuia`); lógica en `lib/conteo-inicio-guia.ts` contra las 32 combinaciones de lo que la base exige. `/inventario/conteo` pasa a «aplicada» (`PENDIENTES_HOY` 80 → 79).
+- [ ] **POR PEGAR (2026-09-29):** `supabase/migrations/20260930040000_conteo_alcance_por_lugar.sql` (una parte, solo lectura, sin políticas). Hasta entonces la tarjeta sale sin cifras (a propósito, probado en `lib/conteo-inicio-reglas.test.ts`); pegarlo antes o después de fusionar es igual de seguro.
+- [ ] **Sin probar:** el botón «Empezar conteo» de punta a punta con la tarjeta nueva (no se abrió un conteo en la base local compartida); el flujo `?variantes=` con la tarjeta nueva; el gate responsive de `inventario.conteo`.
+- [ ] **Decisión de Felipe:** las categorías como píldoras (no el combo) son una excepción a ADR-0209; el segmentado «Todo / Una categoría» usa el del sistema (`SegmentoDeslizante`, pulgar oscuro), no el claro de la maqueta.

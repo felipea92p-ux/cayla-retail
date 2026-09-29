@@ -35,7 +35,12 @@ export type GuiaCampos = {
   ir: (id: string) => void;
 };
 
-export function useGuiaCampos(campos: readonly CampoDeGuia[]): GuiaCampos {
+/**
+ * `enModal` (por defecto sí): el formulario vive dentro de un modal, que se desplaza solo lo mínimo. Una PANTALLA con su propio
+ * formulario corto (Conteo ▸ Abrir un conteo) pasa `{ enModal: false }`: se lleva el campo a la vista de la ventana, sin taparlo
+ * con la barra de abajo ni con la cabecera.
+ */
+export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }: { enModal?: boolean } = {}): GuiaCampos {
   const estados = estadosDe(campos);
   const ahora = siguienteDe(campos)?.id ?? null;
   const puedeConfirmar = sePuedeConfirmar(campos);
@@ -47,8 +52,8 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[]): GuiaCampos {
     const antes = previo.current;
     previo.current = ahora;
     if (antes === undefined || antes === ahora || ahora === null || estaEscribiendo()) return;
-    asegurarVisible(ahora, { enModal: true });
-  }, [ahora]);
+    asegurarVisible(ahora, { enModal });
+  }, [ahora, enModal]);
 
   return {
     campos,
@@ -59,6 +64,6 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[]): GuiaCampos {
     puedeConfirmar,
     frase: fraseDeLoQueFalta(campos),
     claseConfirmar: puedeConfirmar ? "hilo-seguir" : "",
-    ir: (id) => irAlIdCampo(id, { cursor: true, enModal: true }),
+    ir: (id) => irAlIdCampo(id, { cursor: true, enModal }),
   };
 }

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
+import { alcanceDeRespuesta, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoResumen, type DetalleConteo, type PrendaConteo } from "@/lib/conteo-reglas";
 
@@ -49,6 +50,20 @@ export async function getConteosResumen(ubicacionId: string, limite = 20): Promi
   const nombrePorId = new Map(nombres.map((n) => [n.id, n.nombre]));
 
   return filas.map((c) => conteoResumenDesdeFila(c, nombrePorId));
+}
+
+/**
+ * Cuántas variantes traería un conteo de cada lugar y categoría de la sede, para decirlo ANTES de abrir («175 variantes por contar»).
+ * Es un dato de apoyo, no una condición: si la función no está todavía en la base (la web salió antes que el SQL) o falla, devuelve
+ * `null` y la tarjeta de abrir se dibuja igual, sin cifras — abrir un conteo nunca depende de esta lectura. Solo variantes, nunca
+ * unidades: el conteo es a ciegas.
+ */
+export async function getAlcanceConteo(ubicacionId: string): Promise<AlcanceConteo | null> {
+  const supabase = await createClient();
+  const { alcance, fallo } = alcanceDeRespuesta(await supabase.rpc("fn_conteo_alcance", { p_ubicacion_id: ubicacionId }));
+  // Queda dicho en el log del servidor: una cifra que falta en producción no se descubre solo mirando la pantalla.
+  if (fallo) console.warn(`fn_conteo_alcance no respondió; «Abrir un conteo» sale sin cifras. ${fallo}`);
+  return alcance;
 }
 
 /**
