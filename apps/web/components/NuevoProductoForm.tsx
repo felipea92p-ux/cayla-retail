@@ -82,9 +82,10 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // números del acordeón y la caja «Siguiente paso»); y tejido y patrón, que DESCRIBEN la prenda, vivían con sus variantes.
 // Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
 // avance, además del acordeón, es la lista «Avance» bajo la ficha.
-// TEMPORADA y ETIQUETAS van plegadas en «Temporada y etiquetas · opcional» (la línea plegada dice lo elegido): son
-// opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas conservan su selector con dibujo por
-// concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto o dibujo real (`contexto.imagenes`).
+// TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», a la vista al abrir el paso pero plegables (plegado, la
+// línea dice lo elegido): son opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas
+// conservan su selector con dibujo por concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto
+// o dibujo real (`contexto.imagenes`).
 // Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
 // punteada. A la derecha, la prenda tal como va a quedar y la lista «Avance» (las 4 preguntas, tocables). En celular esa
 // ficha baja a una barra pegada abajo con «Crear».
@@ -177,8 +178,9 @@ export function NuevoProductoForm({
   // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
   // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
   const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
-  // «Temporada y etiquetas · opcional» (paso 2) arranca plegado: la línea plegada ya dice lo elegido.
-  const [masAbierto, setMasAbierto] = useState(false);
+  // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
+  // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
+  const [masAbierto, setMasAbierto] = useState(true);
   // Paso 4 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
