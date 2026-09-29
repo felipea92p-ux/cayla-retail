@@ -17,7 +17,7 @@
 /** Para los colores sin hex: varios tonos del propio catálogo, en rueda. */
 const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
 
-export function MuestraColor({ nombre, hex }: { nombre: string | null; hex: string | null }) {
+export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string | null; hex: string | null; compacta?: boolean }) {
   if (!nombre) return <span className="text-tinta/45">—</span>;
 
   return (
@@ -34,7 +34,7 @@ export function MuestraColor({ nombre, hex }: { nombre: string | null; hex: stri
         // que alto cierra en semicírculo a cada lado — la forma de una
         // etiqueta de tela, no de un punto. Borde tenue para que Blanco y
         // Crudo se vean sobre crema; el brillo interior le da volumen.
-        className="h-3.5 w-7 shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
+        className={`h-3.5 ${compacta ? "w-[18px]" : "w-7"} shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none`}
         style={{ background: hex ?? VARIOS_COLORES }}
       />
       <span

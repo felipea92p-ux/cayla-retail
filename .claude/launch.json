@@ -36,6 +36,18 @@
       ],
       "port": 8791,
       "autoPort": true
+    },
+    {
+      "name": "cayla-retail-dev-3070",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=3070",
+        "pnpm",
+        "--filter",
+        "web",
+        "dev"
+      ],
+      "port": 3070
     }
   ]
 }

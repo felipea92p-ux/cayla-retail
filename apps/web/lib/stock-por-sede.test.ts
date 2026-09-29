@@ -111,11 +111,12 @@ describe("resumenRed — «Disponible en X sedes» de Existencias", () => {
         { sede: "Taller", cantidad: 14 },
         { sede: "Lima", cantidad: 22 },
       ]),
-    ).toEqual({ sedes: 2, total: 36, detalle: "Taller: 14 · Lima: 22" });
+    ).toEqual({ sedes: 2, total: 36, detalle: "Taller: 14 · Lima: 22", linea: "Disponible en 2 sedes: 36" });
   });
 
-  it("una sola sede no pluraliza el conteo, pero sí arma el objeto", () => {
-    expect(resumenRed([{ sede: "Taller", cantidad: 5 }])).toEqual({ sedes: 1, total: 5, detalle: "Taller: 5" });
+  it("una sola sede no pluraliza el conteo, pero sí arma el objeto (y la línea la nombra)", () => {
+    expect(resumenRed([{ sede: "Taller", cantidad: 5 }])).toEqual({ sedes: 1, total: 5, detalle: "Taller: 5", linea: "Disponible en Taller: 5" });
+    expect(resumenRed([{ sede: "Trujillo", cantidad: 8 }])?.linea).toBe("Disponible en Trujillo: 8");
   });
 
   it("sin otras sedes, null — no «Disponible en 0 sedes»", () => {

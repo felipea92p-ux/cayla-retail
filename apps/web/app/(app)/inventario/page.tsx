@@ -8,14 +8,13 @@ import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categorias";
-import { recomendacionesDeSede, accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
+import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -147,7 +146,6 @@ export default async function InventarioPage({
 
   const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
-  const recomendaciones = vende ? recomendacionesDeSede(stockBase, politica) : [];
 
   return (
     <div className="space-y-4">
@@ -244,17 +242,11 @@ export default async function InventarioPage({
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         comparacionFallo={semana.fallo}
-        recomendaciones={recomendaciones}
         politica={politica}
         veTraslados={veModulo(persona, "traslados")}
         puedeBajarAlPiso={puedeBajarAlPiso}
         veApartados={veModulo(persona, "apartados")}
         esTienda={vende}
-        // Las otras tiendas, por su nombre corto (el que muestra «Dónde más hay»): a quién se le pide una talla para una
-        // clienta (tarea #9, ADR-0233). El Taller no aparta.
-        tiendasParaPedir={ubicaciones
-          .filter((u) => u.tipo === "tienda" && u.id !== ubicacionActivaId)
-          .map((u) => ({ id: u.id, nombre: u.nombre, corto: nombreCortoSede(u.nombre) }))}
       />
     </div>
   );
