@@ -186,6 +186,72 @@
   }
 }
 
+/* ---- LA LUZ del control que sigue (ADR-0284, actualización f) ----
+   Dentro de un modal —y también en las filas del alta— el campo que sigue se ENCIENDE: un halo suave alrededor del bloque, y la caja
+   de texto, el combo o el botón desplegable de adentro con el fondo más claro (papel) y el borde firme, para que destaquen entre sus
+   vecinos en hueso. Sirve a CUALQUIER control (una caja, un combo, chips, un interruptor, un grupo de tres cajas): envuelve el
+   bloque, no conoce el control. Se pinta por detrás y por fuera (`::before`, `box-shadow`): no cambia el tamaño de nada ni empuja a
+   los vecinos. Llega con un solo respiro (700 ms) y se queda quieta; con movimiento reducido, sin nada de eso. Solo tokens; sin rojo. */
+.hilo-luz {
+  position: relative;
+  isolation: isolate;
+}
+.hilo-luz::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  z-index: -1;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
+  box-shadow: var(--hilo-halo);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms var(--ease-cayla);
+}
+.hilo-luz[data-estado="ahora"]::before {
+  opacity: 1;
+  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
+}
+:root {
+  --hilo-halo:
+    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  --hilo-halo-inicio:
+    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
+    0 0 0 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
+}
+@keyframes hilo-luz-llega {
+  from { box-shadow: var(--hilo-halo-inicio); }
+}
+/* La fila del alta enciende igual (su tinte ya existía; se le suma el halo). */
+.hilo-fila[data-estado="ahora"] {
+  box-shadow: var(--hilo-halo);
+  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
+}
+/* El control encendido: más claro que sus vecinos y con el borde firme. Un campo «en caja» es un contenedor `.caja-cayla` (hueso, con
+   borde) con un <input> transparente adentro: se enciende LA CAJA, y el input solo si está suelto (subrayado, sin caja); si no, se vería
+   un rectángulo claro dentro del marco en hueso. */
+:is(.hilo-fila, .hilo-luz)[data-estado="ahora"] :is(
+    .caja-cayla,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input),
+    textarea:not(.caja-cayla textarea),
+    [role="combobox"]:not(.caja-cayla [role="combobox"]),
+    button[aria-haspopup]:not(.caja-cayla button)
+  ) {
+  background-color: var(--color-papel);
+  border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hilo-luz::before {
+    transition: none;
+    animation: none;
+  }
+  .hilo-fila[data-estado="ahora"] {
+    animation: none;
+  }
+}
+
 /* ---- Editar producto (ADR-0284, actualización c) ----
    Un campo de la ficha que va en una cuadrícula y no tiene su propia fila: la caja sale 8 px a cada lado y se los devuelve de
    relleno, así el destello de «llevarte al campo» le queda holgado sin correr nada. */

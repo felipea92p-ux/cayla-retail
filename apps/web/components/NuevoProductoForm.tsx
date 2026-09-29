@@ -22,7 +22,7 @@ import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
-import { asegurarVisible, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
+import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -430,9 +430,7 @@ export function NuevoProductoForm({
     }
     // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa a la marca (el tinte se
     // mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil.
-    const activo = document.activeElement;
-    const escribiendo = activo instanceof HTMLTextAreaElement || (activo instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(activo.type));
-    if (ahoraCampo && previa.ahora !== ahoraCampo && !escribiendo) asegurarVisible(ahoraCampo);
+    if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
   }, [paso, ahoraCampo, guia]);
 
   function estadoPaso(n: NumeroPaso): "abierto" | "hecho" | "pendiente" {

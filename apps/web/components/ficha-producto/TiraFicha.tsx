@@ -38,11 +38,19 @@ export function TiraFicha({ pendientes, completadaAqui, onIr }: { pendientes: re
 /** El título de un campo con su marca a la izquierda (y «Sigue aquí» si es el que sigue). `null` = el campo ya venía completo: sin marca. */
 export function ConMarca({ estado, children }: { estado: EstadoCampo | null; children: ReactNode }) {
   if (!estado) return <>{children}</>;
+  // La marca y el texto van en una fila que NO se envuelve: una etiqueta larga («Acepta que la contactemos por WhatsApp») se parte
+  // dentro de su propio texto, no deja la marca sola en una línea de arriba.
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 align-middle">
-      <MarcaCampo estado={estado} />
-      {children}
-      {estado === "ahora" && <EtiquetaAhora />}
+    <span className="inline-flex items-start gap-x-1.5 align-middle">
+      <span className="mt-px shrink-0">
+        <MarcaCampo estado={estado} />
+      </span>
+      <span className="min-w-0">{children}</span>
+      {estado === "ahora" && (
+        <span className="shrink-0 self-center">
+          <EtiquetaAhora />
+        </span>
+      )}
     </span>
   );
 }

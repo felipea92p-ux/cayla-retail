@@ -134,6 +134,67 @@ Felipe (2026-09-29): «que cada uno de los módulos tenga esta función de focus
   las pocas referencias que eran suyas —`QuienRegistra`, `useFirmaDeMitad`, «las ocho acciones del alta»— se atribuyeron una por una;
   todo el resto de «ADR-0283» en el código es el de la marca y el proveedor y no se tocó).
 
+## Actualización 2026-09-29 (e) — la skill `/focus` y dónde está aplicada la guía
+
+Felipe (2026-09-29): una skill «focus» que, al invocarla, **recorra cada pantalla que se está construyendo o editando, verifique si
+tiene la guía estandarizada y, si no la tiene, se lo avise y la implemente**.
+
+- **`.claude/skills/focus/SKILL.md`**: recorre → avisa → implementa (en ese orden; el aviso va antes de tocar código). Con `todo` solo
+  informa el tablero de las 85 pantallas; con una ruta o un módulo trabaja solo eso. Tiene «paradas» donde pregunta en vez de decidir:
+  cuando «qué falta» no sale de una validación existente, cuando exigir algo bloquearía una operación que hoy se permite, cuando el
+  estándar no cabe, o cuando otra sesión toca los mismos archivos.
+- **`scripts/focus/escanear.mjs`** (`pnpm focus`; 17 pruebas en `escanear.test.mjs`) es su ojo determinista: archivos cambiados (la
+  rama contra `origin/main` + sin commitear) → pantallas que los usan → ¿tiene campos o pasos? ¿usa las piezas de la guía? ¿qué dice
+  `lib/guia-de-foco-pantallas.ts`? Un veredicto por pantalla: `con-guia`, `sin-guia` o `no-aplica`. **Es por texto y no juzga**: sirve
+  para no olvidarse; la skill confirma cada veredicto leyendo. Detalles que costaron un falso positivo y ya están cubiertos por
+  pruebas: `fin-guia` y `recepcion-guia` no son la guía de foco (se exige el **uso** de las piezas, no el nombre), y los archivos que
+  definen las piezas (`guia.tsx`, `piezas.tsx`, `useGuiaAlta.ts`, `TiraFicha.tsx`) no cuentan como «tener guía». Los archivos que
+  8 o más pantallas comparten (el combo «Responsable», `kit.tsx`…) no cuentan como «de una pantalla», para que tocar un combo no
+  marque medio ERP.
+- **Dónde está aplicada hoy:** `/productos/nuevo` y `/productos/[id]/editar` (2 de 85). El escáner ve 68 pantallas con campos y sin guía,
+  y 15 sin campos (solo 3 están declaradas `no-aplica`: las otras 12 son candidatas, con su motivo, cuando Felipe repase cada módulo).
+- **Sin correr en el CI todavía:** `escanear.test.mjs` se corre a mano (`node --test scripts/focus/escanear.test.mjs`); no se tocó
+  `.github/workflows/ci.yml` en este cambio.
+
+## Actualización 2026-09-29 (f) — los modales, y la luz sobre el control que sigue
+
+Felipe (2026-09-29): «que la skill de focus también aplique para **modales**, y dentro de ellos **ilumine los textbox** para indicar el
+camino; no solo los textbox, también los **combos** o demás componentes que se encuentren ahí».
+
+- **La luz.** Dentro de un modal (y ahora también en las filas del alta, para que el estándar sea uno solo) el control que sigue se
+  ENCIENDE: un halo suave alrededor del bloque (`box-shadow`, borde de tinta al 24 % y un halo al 5 %), la caja de texto, el combo o el
+  botón desplegable de adentro con el fondo más claro (`papel`, contra el hueso de sus vecinos) y el borde firme, y la marca «Sigue
+  aquí» en su título. Llega con un solo respiro de 700 ms y se queda quieta; con movimiento reducido, sin nada de eso. Solo tokens, sin
+  rojo. Se pinta **por detrás y por fuera** (`.hilo-luz::before`, `box-shadow`): no cambia el tamaño de nada ni empuja a los vecinos
+  (un primer intento con margen negativo se descartó: `space-y-*` pisa el margen y corría los campos).
+- **Sirve a cualquier control.** `<CampoGuiado>` envuelve un bloque y no conoce el control: caja de texto, combo (`ComboBuscable`,
+  `Desplegable`, `ComboResponsable`), chips, interruptor, segmentado, o un grupo de varios. Una regla de **grupo** («basta uno de tres
+  datos») es UN campo virtual que enciende el bloque entero.
+- **Las piezas** (`components/guia-de-foco/`): `useGuiaCampos` (estado del modal; la luz se mueve al completar y, si el siguiente queda
+  fuera de vista dentro del modal, se le trae con `nearest`; **nunca mientras se teclea**), `CampoGuiado` y `PieGuia` («Falta: …»
+  tocable sobre el botón principal, «Todo listo» si no falta nada). La lógica pura es `lib/guia-campos.ts` (13 casos), que comparte tipo
+  con la del alta (`EstadoCampo`). `FaltanDelPaso` ahora es genérico y sirve a los dos.
+- **La guía no cambia qué se puede confirmar.** `hecho` y `requerido` salen de la validación real del modal; el `disabled` del botón
+  principal es el de siempre (la guía solo le agrega `title` con lo que falta y un aro cuando ya se puede).
+- **Piloto:** `components/NuevaClientaModal.tsx` (el alta de una clienta): el bloque «Identificación» (DNI, nombre y WhatsApp; basta
+  uno) se enciende como un solo grupo, el permiso de WhatsApp y el cumpleaños son opcionales, y el combo «Responsable» se enciende si
+  falta. Verificado en el navegador: la luz aparece en el grupo, se apaga al escribir el DNI y el pie pasa a «Todo listo para
+  registrar.»; el modal no se movió al teclear. No se tocó ninguna regla ni redacción de Clientas (hay un plan escrito en
+  `docs/datos/DECISIONES-2026-09-26-clientas.md`, D-92 a D-111): la guía copia la validación de hoy —basta un dato: DNI, nombre o
+  WhatsApp— y, si el plan la cambia, la guía la sigue; el permiso de WhatsApp sigue siendo un opcional más, no «el paso que da el permiso».
+- **Los modales entran al registro y a la prueba obligatoria** (`lib/guia-de-foco-pantallas.ts`, `MODALES`): un modal es todo archivo de
+  `components/` o `app/(app)/` que dibuja un `<Modal>`, `<ModalRuta>` o `Dialog.Content` con campos. Hay **90** (1 `aplicada`, 89
+  `pendiente`; la cuenta `MODALES_PENDIENTES_HOY` es exacta y solo baja). **Un modal nuevo no puede nacer `pendiente`.** Cada `pendiente`
+  lleva en un comentario cuántos controles trae: con UNO solo no hay camino que indicar y suele ser `no-aplica` (con motivo). Antes la
+  prueba «no veía» a los modales y la única barrera era la casilla del PR. Se comprobó que falla con un modal sin declarar, con la
+  cuenta subida, con una evidencia falsa y con un modal fantasma.
+- **La skill `/focus`** trata a los modales como objetivo propio (escáner: tabla de modales con controles y desde qué pantallas se
+  abren; 25 pruebas en `escanear.test.mjs`). Las pantallas dejaron de contar los campos de sus modales: una pantalla no queda «con guía»
+  porque uno de sus modales la tenga. Límite conocido: un archivo que es a la vez el formulario principal y dibuja un `<Modal>` cuenta
+  como modal.
+- **Decisión de Felipe:** ¿un modal de un solo control (un motivo, una confirmación) debe llevar la luz o basta con `no-aplica`? Hoy la
+  skill los propone `no-aplica` con motivo y los deja en la lista del cierre para que los revises.
+
 ## Lo que queda a decisión de Felipe
 
 1. **¿Cuánto se debe notar?** Está en «sutil pero claro»: tinte + etiqueta + marca. Si en tienda sigue pasando desapercibido, el

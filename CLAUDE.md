@@ -245,8 +245,8 @@ Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR
    (`useResponsable` + `<ComboResponsable>`), con el mismo candado de asistencia en todas partes. Los permisos se preguntan
    a la cuenta (`fn_ve_modulo`, `fn_es_lider`), no al responsable; `fn_actor_persona_id(false)` queda SOLO para comparar con
    la cuenta en un permiso («no te quites a ti mismo», `fn_alcanzo_a`). Detalle: ADR-0161, «Actualización 2026-09-23 (c)».
-4. **Guía de foco:** cada pantalla del módulo con campos o pasos trae su guía y se declara en `lib/guia-de-foco-pantallas.ts`
-   (regla «Guía de foco», más abajo): `lib/guia-de-foco.test.ts` falla si una `page.tsx` nueva no está declarada.
+4. **Guía de foco:** cada pantalla y cada modal del módulo con campos o pasos trae su guía y se declara en `lib/guia-de-foco-pantallas.ts`
+   (regla «Guía de foco», más abajo): `lib/guia-de-foco.test.ts` falla si una `page.tsx` o un modal nuevo no está declarado.
 
 **Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
 lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o
@@ -307,6 +307,11 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
 1. **Cada campo dice su estado**, en su título: ✓ hecho · «Sigue aquí» (uno solo a la vez, con un tinte suave) · falta · opcional.
    Piezas: `MarcaCampo`, `EtiquetaAhora`, `ConMarca` (`components/alta-producto/guia.tsx`, `components/ficha-producto/TiraFicha.tsx`);
    en un formulario por pasos, `<FilaAlta campo= estado=>` (`alta-producto/piezas.tsx`) y `<PasoAlta pie={{ faltan }}>`.
+   **En un modal (u hoja) el control que sigue se ENCIENDE**: un halo suave alrededor del bloque y la caja de texto, el combo o el
+   desplegable de adentro con el fondo más claro (`papel`); sirve a cualquier control —caja, combo, chips, interruptor, un grupo— y
+   al completarlo la luz pasa al siguiente. Se hace con `useGuiaCampos` + `<CampoGuiado>` alrededor de cada bloque + `<PieGuia>` sobre
+   el botón principal (`components/guia-de-foco/`; lógica en `lib/guia-campos.ts`; piloto: `components/NuevaClientaModal.tsx`). Una regla
+   de grupo («basta uno de tres datos») es UN campo virtual que envuelve a los tres. **La guía no cambia qué se puede confirmar.**
 2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Para completar esta ficha» (`TiraFicha`) en una ficha que se edita:
    cada cosa **lleva al campo** (lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor). Los campos se
    encuentran por `data-campo` con `irAlIdCampo` / `useGuiaAlta` (`alta-producto/useGuiaAlta.ts`), **nunca por clases de estilo**.
@@ -321,13 +326,19 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
    tokens (`app/estilos/alta-guia.css`, clases `hilo-*`). Verificado en escritorio y a 375 px (el pie del paso no se pega bajo `lg`).
 
 **Cómo se hace cumplir** (ya no depende de acordarse):
-- **`lib/guia-de-foco.test.ts` + `lib/guia-de-foco-pantallas.ts`:** cada `page.tsx` de `app/(app)` se declara `aplicada` (con los archivos
-  que usan las piezas: la prueba los abre y lo comprueba), `no-aplica` (con su motivo) o `pendiente` (la deuda de las pantallas
-  hechas ANTES de la regla; la cuenta `PENDIENTES_HOY` es exacta y solo baja). **Una pantalla nueva no puede nacer `pendiente`:** o
-  trae su guía o dice por qué no aplica. Ese archivo es también el tablero del despliegue módulo por módulo.
-- **Un modal o un componente con campos no es una `page.tsx`**: la prueba no lo ve, la regla vale igual. Lo pide la casilla de
-  `.github/pull_request_template.md`.
-- Al terminar una pantalla pendiente: pásala a `aplicada`, baja `PENDIENTES_HOY`, y escribe qué campos cuentan como «falta»
+- **`lib/guia-de-foco.test.ts` + `lib/guia-de-foco-pantallas.ts`:** cada `page.tsx` de `app/(app)` (`PANTALLAS`) **y cada modal** (`MODALES`:
+  todo archivo de `components/` o `app/(app)/` que dibuja un `<Modal>`, `<ModalRuta>` o `Dialog.Content` con campos; la clave es su archivo)
+  se declara `aplicada` (con los archivos que usan las piezas: la prueba los abre y lo comprueba), `no-aplica` (con su motivo; un modal
+  de UN solo control suele serlo) o `pendiente` (la deuda de lo hecho ANTES de la regla; las cuentas `PENDIENTES_HOY` y
+  `MODALES_PENDIENTES_HOY` son exactas y solo bajan). **Una pantalla o un modal nuevo no puede nacer `pendiente`:** o trae su guía o dice
+  por qué no aplica. Ese archivo es también el tablero del despliegue módulo por módulo.
+- **`/focus` (skill) + `pnpm focus`:** recorre las pantallas **y los modales** que estás construyendo o editando (`scripts/focus/escanear.mjs`:
+  archivos cambiados → pantallas y modales → ¿campos? ¿usa las piezas de la guía? ¿qué dice el registro?), **avisa a Felipe cuáles no la
+  tienen y después la implementa** con el estándar. Correla antes de dar por terminada cualquier pantalla o modal con campos o pasos; con `todo` solo
+  informa el tablero completo. No decide reglas de negocio: «falta» sale de la validación que ya existe.
+- **Lo que la prueba no ve:** un componente con campos que no es página ni modal (un panel embebido, una fila que se edita en la lista).
+  La regla vale igual; lo pide la casilla de `.github/pull_request_template.md`.
+- Al terminar una pantalla o un modal pendiente: pásalo a `aplicada`, baja el contador que toque (`PENDIENTES_HOY` o `MODALES_PENDIENTES_HOY`), y escribe qué campos cuentan como «falta»
   (una decisión de negocio de Felipe, no tuya: en Editar producto solo cuentan fotos, tejido y patrón). Detalle y decisiones:
   `docs/adr/0284-nuevo-producto-que-guia-a-quien-lo-llena.md`.
 
@@ -431,7 +442,7 @@ sin que nada avisara.
 **Antes de empezar algo grande en este repo**, mirar si alguien más ya lo está
 haciendo: `git status --short` y los archivos tocados en las últimas horas. El
 2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
-Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
+Skills de este repo: `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco y la implementa; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el

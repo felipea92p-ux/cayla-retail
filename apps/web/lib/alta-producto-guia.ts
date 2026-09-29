@@ -19,8 +19,9 @@ import { faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
-/** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. */
-export type EstadoCampo = "hecho" | "ahora" | "falta" | "opcional";
+/** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
+export type { EstadoCampo } from "./guia-campos";
+import type { EstadoCampo } from "./guia-campos";
 
 export type CampoGuia = {
   id: CampoAlta;
