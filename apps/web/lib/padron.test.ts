@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { advertenciasDe, consultarPadron, normalizarRespuestaPadron } from "./padron";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
+import { advertenciasDe, consultarPadron, leerSunatPublico, normalizarRespuestaPadron, reiniciarSunatPublico } from "./padron";
 
 // Estas pruebas cubren la pieza que se rompe cuando un proveedor del padrón
 // cambia de formato — sin gastar consultas reales, que se pagan. Los objetos de
@@ -99,13 +99,21 @@ describe("advertenciasDe — lo que impide que la factura sea válida", () => {
 // Prueba `consultarPadron` de punta a punta (URL, cabecera de autorización,
 // manejo de cada código de error, caché) sin gastar una sola consulta pagada ni
 // depender de que el proveedor esté arriba hoy.
-describe("consultarPadron", () => {
+describe("consultarPadron — proveedor de pago", () => {
   const original = { ...process.env };
   const fetchOriginal = global.fetch;
+
+  // Aquí se prueba SOLO el proveedor de pago: SUNAT público va apagado para que el
+  // simulador de `fetch` no conteste por él. El orden entre las dos fuentes se prueba
+  // más abajo, en su propio bloque.
+  beforeEach(() => {
+    process.env.PADRON_SUNAT_PUBLICO = "no";
+  });
 
   afterEach(() => {
     process.env.PADRON_PROVEEDOR = original.PADRON_PROVEEDOR;
     process.env.PADRON_TOKEN = original.PADRON_TOKEN;
+    process.env.PADRON_SUNAT_PUBLICO = original.PADRON_SUNAT_PUBLICO;
     global.fetch = fetchOriginal;
   });
 
@@ -187,5 +195,234 @@ describe("consultarPadron", () => {
     const r = await consultarPadron("dni", "87654321");
     expect(llamadas[0].url).toBe("https://api.factiliza.com/v1/dni/info/87654321");
     expect(r.ok === true && r.datos.nombre).toBe("ANA TORRES RUIZ");
+  });
+});
+
+// ==================== SUNAT público (gratis, primera opción) ====================
+// La respuesta de abajo es la REAL que devolvió el servicio el 2026-09-29 para el RUC
+// de la propia SUNAT (dato público), tal cual, con sus espacios de relleno.
+const RESPUESTA_RUC_REAL = {
+  message: "success",
+  lista: [
+    {
+      idprovincia: "01",
+      iddistrito: "01",
+      apenomdenunciado: "SUPERINTENDENCIA NACIONAL DE ADUANAS Y DE ADMINISTRACION TRIBUTARIA - SUNAT                         ",
+      iddepartamento: "15",
+      direstablecimiento: "AV. GARCILASO DE LA VEGA - Nro: 1472  - LIMA",
+      desdistrito: "LIMA                      ",
+    },
+  ],
+};
+const RESPUESTA_NO_EXISTE = { error: "No existen datos para los filtros seleccionados" };
+
+describe("leerSunatPublico", () => {
+  it("lee un RUC real: nombre y dirección sin espacios de relleno, sin estado ni condición", () => {
+    const r = leerSunatPublico("ruc", "20131312955", RESPUESTA_RUC_REAL);
+    expect(r).toEqual({
+      ok: true,
+      origen: "sunat_publico",
+      datos: {
+        numero: "20131312955",
+        tipo: "ruc",
+        nombre: "SUPERINTENDENCIA NACIONAL DE ADUANAS Y DE ADMINISTRACION TRIBUTARIA - SUNAT",
+        // SUNAT público no informa estado ni condición: null, nunca «ACTIVO» inventado.
+        estado: null,
+        condicion: null,
+        direccion: "AV. GARCILASO DE LA VEGA - Nro: 1472 - LIMA",
+      },
+    });
+  });
+
+  it("un DNI con la misma estructura devuelve el nombre y nunca estado/condición", () => {
+    // Forma SUPUESTA: el éxito del DNI no se verificó con un número real (solo el «no existe»).
+    const r = leerSunatPublico("dni", "46027897", { message: "success", lista: [{ apenomdenunciado: "  torres ruiz ana   " }] });
+    expect(r.ok && r.datos.nombre).toBe("TORRES RUIZ ANA");
+    expect(r.ok && r.datos.estado).toBeNull();
+  });
+
+  it("«No existen datos» es no_encontrado, no un error", () => {
+    expect(leerSunatPublico("dni", "00000000", RESPUESTA_NO_EXISTE)).toEqual({
+      ok: false,
+      motivo: "no_encontrado",
+      detalle: "El padrón no tiene registrado ese número",
+    });
+  });
+
+  it("una lista vacía también es no_encontrado", () => {
+    const r = leerSunatPublico("ruc", "20131312955", { message: "success", lista: [] });
+    expect(r.ok === false && r.motivo).toBe("no_encontrado");
+  });
+
+  it.each([
+    ["otro mensaje de error", { error: "Sesión expirada" }],
+    ["sin `lista`", { message: "success" }],
+    ["lista con algo que no es objeto", { lista: ["x"] }],
+    ["fila sin nombre", { lista: [{ direstablecimiento: "AV. X 1" }] }],
+    ["null", null],
+    ["una lista suelta", []],
+    ["un texto", "<html>firewall</html>"],
+  ])("formato que no reconoce (%s) → sin_respuesta, para que caiga al proveedor", (_caso, json) => {
+    const r = leerSunatPublico("ruc", "20131312955", json);
+    expect(r.ok === false && r.motivo).toBe("sin_respuesta");
+  });
+});
+
+describe("consultarPadron — orden de fuentes", () => {
+  const original = { ...process.env };
+  const fetchOriginal = global.fetch;
+
+  type Sim = { status: number; json?: unknown } | "caido";
+  /** Simula las dos fuentes por separado y anota a quién se llamó y en qué orden. */
+  function simular(sunat: Sim, pago: Sim) {
+    const llamadas: ("sunat" | "pago")[] = [];
+    global.fetch = (async (url: string) => {
+      const cual = String(url).includes("sunat.gob.pe") ? "sunat" : "pago";
+      llamadas.push(cual);
+      const r = cual === "sunat" ? sunat : pago;
+      if (r === "caido") throw new Error("sin conexión");
+      return { ok: r.status >= 200 && r.status < 300, status: r.status, json: async () => r.json };
+    }) as unknown as typeof fetch;
+    return llamadas;
+  }
+
+  const PAGO_OK = { status: 200, json: { razon_social: "Cayla SAC", estado: "ACTIVO", condicion: "HABIDO" } };
+  const SUNAT_OK = { status: 200, json: RESPUESTA_RUC_REAL };
+  const SUNAT_NO_EXISTE = { status: 200, json: RESPUESTA_NO_EXISTE };
+
+  beforeEach(() => {
+    reiniciarSunatPublico();
+    process.env.PADRON_PROVEEDOR = "decolecta";
+    process.env.PADRON_TOKEN = "sk_secreto";
+    delete process.env.PADRON_SUNAT_PUBLICO;
+  });
+
+  afterEach(() => {
+    process.env.PADRON_PROVEEDOR = original.PADRON_PROVEEDOR;
+    process.env.PADRON_TOKEN = original.PADRON_TOKEN;
+    process.env.PADRON_SUNAT_PUBLICO = original.PADRON_SUNAT_PUBLICO;
+    global.fetch = fetchOriginal;
+    reiniciarSunatPublico();
+  });
+
+  // Números distintos por caso: la caché de `consultarPadron` es real y compartida.
+
+  it("si SUNAT lo encuentra, el proveedor de pago NO se llama (no se gasta cuota)", async () => {
+    const llamadas = simular(SUNAT_OK, PAGO_OK);
+    const r = await consultarPadron("ruc", "20100000011");
+    expect(llamadas).toEqual(["sunat"]);
+    expect(r.ok && r.origen).toBe("sunat_publico");
+  });
+
+  it("si SUNAT no lo encuentra, se va al proveedor de pago", async () => {
+    const llamadas = simular(SUNAT_NO_EXISTE, PAGO_OK);
+    const r = await consultarPadron("ruc", "20100000022");
+    expect(llamadas).toEqual(["sunat", "pago"]);
+    expect(r.ok && r.origen).toBe("proveedor");
+    expect(r.ok && r.datos.estado).toBe("ACTIVO");
+  });
+
+  it.each([
+    ["se cae", "caido" as Sim, "20100000201"],
+    ["responde 503", { status: 503 } as Sim, "20100000202"],
+    ["contesta un HTML de firewall", { status: 200, json: undefined } as Sim, "20100000203"],
+  ])("si SUNAT %s, se va al proveedor de pago", async (_caso, sunat, ruc) => {
+    const llamadas = simular(sunat, PAGO_OK);
+    const r = await consultarPadron("ruc", ruc);
+    expect(llamadas).toEqual(["sunat", "pago"]);
+    expect(r.ok && r.origen).toBe("proveedor");
+  });
+
+  it("la segunda consulta del mismo número sale de la caché sin llamar a nadie", async () => {
+    const llamadas = simular(SUNAT_OK, PAGO_OK);
+    await consultarPadron("ruc", "20100000033");
+    await consultarPadron("ruc", "20100000033");
+    expect(llamadas).toEqual(["sunat"]);
+  });
+
+  it("sin proveedor de pago configurado, SUNAT sola alcanza para consultar", async () => {
+    delete process.env.PADRON_PROVEEDOR;
+    delete process.env.PADRON_TOKEN;
+    const llamadas = simular(SUNAT_OK, PAGO_OK);
+    const r = await consultarPadron("ruc", "20100000044");
+    expect(llamadas).toEqual(["sunat"]);
+    expect(r.ok).toBe(true);
+  });
+
+  it("sin proveedor y SUNAT caída, el motivo es el de SUNAT — no «no está activada»", async () => {
+    delete process.env.PADRON_PROVEEDOR;
+    delete process.env.PADRON_TOKEN;
+    simular("caido", PAGO_OK);
+    const r = await consultarPadron("ruc", "20100000055");
+    expect(r).toEqual({ ok: false, motivo: "sin_respuesta", detalle: "El padrón no respondió a tiempo" });
+  });
+
+  it("sin proveedor y SUNAT sin ese número, dice que no está registrado", async () => {
+    delete process.env.PADRON_PROVEEDOR;
+    delete process.env.PADRON_TOKEN;
+    simular(SUNAT_NO_EXISTE, PAGO_OK);
+    const r = await consultarPadron("dni", "10000001");
+    expect(r.ok === false && r.motivo).toBe("no_encontrado");
+  });
+
+  it("si fallan las dos, manda el motivo del proveedor de pago (cuota, credenciales…)", async () => {
+    simular("caido", { status: 429 });
+    const r = await consultarPadron("ruc", "20100000066");
+    expect(r.ok === false && r.motivo).toBe("cuota_agotada");
+  });
+
+  it("PADRON_SUNAT_PUBLICO=no: SUNAT no se llama nunca", async () => {
+    process.env.PADRON_SUNAT_PUBLICO = "no";
+    const llamadas = simular(SUNAT_OK, PAGO_OK);
+    const r = await consultarPadron("ruc", "20100000077");
+    expect(llamadas).toEqual(["pago"]);
+    expect(r.ok && r.origen).toBe("proveedor");
+  });
+
+  it("PADRON_SUNAT_PUBLICO=solo_dni: el RUC va directo al proveedor (trae estado), el DNI prueba SUNAT", async () => {
+    process.env.PADRON_SUNAT_PUBLICO = "solo_dni";
+    const llamadas = simular({ status: 200, json: { lista: [{ apenomdenunciado: "TORRES RUIZ ANA" }] } }, PAGO_OK);
+    await consultarPadron("ruc", "20100000088");
+    await consultarPadron("dni", "10000002");
+    expect(llamadas).toEqual(["pago", "sunat"]);
+  });
+
+  describe("interruptor de circuito", () => {
+    it("tras 3 fallos seguidos de SUNAT deja de llamarla, y la consulta sigue por el proveedor", async () => {
+      const llamadas = simular("caido", PAGO_OK);
+      await consultarPadron("ruc", "20100000101");
+      await consultarPadron("ruc", "20100000102");
+      await consultarPadron("ruc", "20100000103");
+      expect(llamadas.filter((l) => l === "sunat")).toHaveLength(3);
+
+      llamadas.length = 0;
+      const r = await consultarPadron("ruc", "20100000104");
+      expect(llamadas).toEqual(["pago"]); // SUNAT en pausa: ni se intenta
+      expect(r.ok).toBe(true);
+    });
+
+    it("«no existe» NO cuenta como fallo: SUNAT sigue en servicio", async () => {
+      const llamadas = simular(SUNAT_NO_EXISTE, PAGO_OK);
+      for (const n of ["20100000111", "20100000112", "20100000113", "20100000114"]) {
+        await consultarPadron("ruc", n);
+      }
+      expect(llamadas.filter((l) => l === "sunat")).toHaveLength(4);
+    });
+
+    it("un acierto entre fallos reinicia la cuenta: SUNAT no se pausa por fallos que no fueron seguidos", async () => {
+      simular("caido", PAGO_OK);
+      await consultarPadron("ruc", "20100000121"); // fallo 1
+      await consultarPadron("ruc", "20100000122"); // fallo 2
+      simular(SUNAT_OK, PAGO_OK);
+      await consultarPadron("ruc", "20100000123"); // acierta → la cuenta vuelve a cero
+      simular("caido", PAGO_OK);
+      await consultarPadron("ruc", "20100000124"); // fallo 1 de la racha nueva
+      await consultarPadron("ruc", "20100000125"); // fallo 2
+      // Con 5 fallos acumulados en total ya estaría pausada; con la cuenta reiniciada, este
+      // tercero de la racha todavía sale a intentar SUNAT.
+      const llamadas = simular("caido", PAGO_OK);
+      await consultarPadron("ruc", "20100000126");
+      expect(llamadas).toEqual(["sunat", "pago"]);
+    });
   });
 });

@@ -100,3 +100,69 @@ Borrar `apps/web/app/api/padron/`, `apps/web/lib/padron.ts`,
 `packages/shared/src/documento.ts` y sus pruebas, y devolver a
 `ComprobantesPanel.tsx` los dos campos de texto sueltos que tenía antes. No hay
 nada que revertir en la base de datos: esta funcionalidad no toca el esquema.
+
+---
+
+## Actualización 2026-09-29 — SUNAT público como primera opción, el proveedor de pago como respaldo
+
+**Pedido de Felipe:** usar como primera opción dos URL de SUNAT
+(`ww1.sunat.gob.pe/ol-ti-itfisdenreg/itfisdenreg.htm?accion=obtenerDatosDni&numDocumento=…` y
+`…accion=obtenerDatosRuc&nroRuc=…`) y, si no encuentra el número o falla, seguir con el proveedor de pago.
+
+**Qué es ese servicio (verificado contra la respuesta real, 2026-09-29).** `itfisdenreg` es el backend del formulario
+público de *denuncias* de SUNAT: al tipear un DNI o RUC prellena el nombre del «denunciado». **No es una API
+documentada, no tiene contrato ni versión ni garantía de disponibilidad para terceros.** Detrás hay un firewall F5.
+
+| Caso | Respuesta real |
+| --- | --- |
+| RUC existe | `{"message":"success","lista":[{"apenomdenunciado":"RAZÓN SOCIAL␠␠␠…","direstablecimiento":"AV. … - Nro: 1472  - LIMA", …}]}` |
+| No existe (DNI o RUC) | `{"error":"No existen datos para los filtros seleccionados"}` con **HTTP 200**, no 404 |
+| Content-Type | `text/plain`, aunque el cuerpo es JSON |
+| Latencia medida | 40–500 ms |
+
+**Decisión (mantiene la de arriba: adaptadores propios; suma una fuente):**
+
+1. `consultarPadron` (`lib/padron.ts`) pasa a ser un orquestador: **caché → SUNAT público (tope 3 s) → proveedor de pago**.
+   «No lo encuentra» y «falla» caen ambos al de pago, como se pidió. Si SUNAT contesta, el de pago **no se llama**: no
+   se gasta cuota.
+2. **Con SUNAT público ya no hace falta contratar proveedor** para que el padrón funcione. Sin `PADRON_PROVEEDOR`, el
+   respaldo simplemente no existe; si SUNAT también falla, el motivo que se muestra es el de SUNAT (no «la consulta no
+   está activada», que sería falso).
+3. **Interruptor de circuito** (por instancia, como la caché): 3 fallos seguidos de SUNAT (timeout, HTTP ≠ 2xx, cuerpo
+   que no es JSON —típico de una página de firewall—, formato irreconocible) la saltan 5 minutos. Sin esto, si SUNAT
+   bloquea las IP de Vercel, **cada** consulta pagaría 3 s de espera antes de llegar al proveedor. «No existe ese
+   número» **no** cuenta como fallo: es una respuesta válida.
+4. **Palanca `PADRON_SUNAT_PUBLICO`**: vacío = DNI y RUC; `solo_dni` = el RUC va directo al proveedor; `no` = apagado.
+   Cambiarla es una variable de entorno y un redeploy, no código.
+5. Ante cualquier forma que el lector no reconoce devuelve `sin_respuesta` → cae al de pago. **Un formato desconocido
+   nunca produce un nombre inventado.**
+
+**Lo que se pierde, y por qué importa (decisión pendiente de Felipe).** SUNAT público para RUC trae razón social y
+dirección, **pero no estado ni condición** (ACTIVO / BAJA, HABIDO / NO HABIDO). `advertenciasDe` vive de esos dos campos,
+y el contexto de arriba dice por qué: una factura a un RUC de baja o no habido la rechaza SUNAT, el correlativo ya se
+consumió y la clienta pierde el crédito fiscal. Con SUNAT como primera opción para RUC, **esa advertencia deja de salir**
+en los RUC que SUNAT resuelve; la pantalla lo dice («No informa si el RUC está activo y habido») en vez de dejar que la
+ausencia de chips se lea como «todo en orden». La emisión no se bloquea (la advertencia nunca bloqueó): SUNAT lo revisa al
+transmitir vía Lucode. Si Felipe prefiere no perder esa red de seguridad en facturas: `PADRON_SUNAT_PUBLICO=solo_dni`
+(RUC con estado, pagando esa consulta; DNI gratis). Se aplicó lo pedido —gratis primero en ambos— y se deja la palanca.
+
+**Lo que NO se verificó.** Solo se vio el éxito del RUC (con el RUC de la propia SUNAT, dato público) y el «no existe»
+del DNI. **El éxito del DNI no se probó con un número real**: se asume la misma estructura (`apenomdenunciado`). Si el
+orden del nombre difiere del proveedor de pago (APELLIDOS NOMBRES vs. NOMBRES APELLIDOS), el nombre se ve distinto según la
+fuente; no afecta a la validez de una boleta, pero conviene confirmarlo con un DNI real y normalizar el orden.
+Tampoco se probó **desde las IP de Vercel**: esto solo se sabrá en producción, y el interruptor es la red por si SUNAT las bloquea.
+
+**Se rompe si:** SUNAT cambia el formato o el nombre de los campos (el lector cae al de pago, sin nombre inventado);
+retira o protege el endpoint (interruptor de circuito → de pago); o lo limita por volumen (la caché de 24 h/1 h y el tope
+de 60 consultas/min por persona de `/api/padron` ya frenan un bucle desbocado).
+
+**Datos personales.** El DNI de la clienta ahora sale primero hacia SUNAT y solo si falla hacia el proveedor de pago;
+`docs/datos/06-DATOS-PERSONALES.md` §6 lo refleja.
+
+**Pruebas.** `lib/padron.test.ts`: 45 casos, incluido el orden de fuentes, el interruptor de circuito y la respuesta real
+de SUNAT. Se comprobó por mutación que rompen si el interruptor no se abre, si «no existe» cuenta como fallo o si se llama
+al de pago aunque SUNAT haya acertado. Verificación real: `consultarPadron("ruc", "20131312955")` sin ningún proveedor
+configurado devolvió la razón social en 218 ms.
+
+**Cómo se revierte:** `PADRON_SUNAT_PUBLICO=no` (sin código). Para quitarlo del todo, borrar de `lib/padron.ts` la sección
+«SUNAT público» y dejar `consultarPadron` llamando solo a `consultarProveedorPago`.
