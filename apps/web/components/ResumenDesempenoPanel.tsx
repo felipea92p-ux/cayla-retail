@@ -37,12 +37,15 @@ export function ResumenDesempenoPanel({
   acceso,
   esLider,
   pedidosNoAtendidos,
+  claveGuardado,
 }: {
   datos: DesempenoParaPantalla;
   otrasTiendas: SedeParaVer[];
   acceso: AccesoAnalisis;
   esLider: boolean;
   pedidosNoAtendidos: number | null;
+  /** Dónde se recuerdan los períodos de Comparar: la pestaña «Comparar períodos» los siembra al entrar. */
+  claveGuardado: string;
 }) {
   const { actualizar, pendiente } = useResumenUrl();
   const { periodo, ubicacion } = datos;
@@ -50,7 +53,7 @@ export function ResumenDesempenoPanel({
 
   return (
     <div className={`space-y-4 transition-opacity duration-200 ${pendiente ? "opacity-60" : ""}`} aria-busy={pendiente}>
-      <ResumenCabecera modo="desempeno" ahoraIso={datos.ahoraIso} actualizar={actualizar}>
+      <ResumenCabecera modo="desempeno" ahoraIso={datos.ahoraIso} actualizar={actualizar} claveGuardado={claveGuardado}>
         <ItemAyuda titulo="Período">
           {periodo.etiqueta}
           {periodo.preset === "mes" || periodo.preset === "personalizado" ? ` (${pluralizar(periodo.dias, "día", "días")})` : ""}. Todo lo de esta pantalla es del período: el stock de hoy no interviene (eso está en Existencias).

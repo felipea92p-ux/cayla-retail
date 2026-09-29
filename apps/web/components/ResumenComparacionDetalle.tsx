@@ -25,10 +25,10 @@ import {
 // no es una vista aparte) y la dona de arriba la filtra. La tabla es ancha a propósito: se desplaza dentro de su tarjeta y nunca
 // ensancha la página.
 //
-// La búsqueda (`alcance.q`) subió a la franja de controles compartida (`ResumenControles.tsx`, 2026-09-23):
-// ya no tiene su propio campo acá. Sigue siendo la misma pieza de `alcance` — arriba filtra también cifras
-// y gráficos de la Vista general, no solo esta tabla — y «Limpiar filtros» abajo la sigue limpiando junto
-// con categoría y cambio.
+// La búsqueda (`alcance.q`) vive en la tarjeta «PERÍODO ANALIZADO» de arriba (`ResumenControles.tsx`, la misma de
+// Desempeño; 2026-09-29): acá no tiene su propio campo. Es la misma pieza de `alcance` — filtra también cifras
+// y gráficos, no solo esta tabla — y «Limpiar filtros» abajo la sigue limpiando junto con el cambio. Comparar no tiene
+// filtro de categoría.
 
 // Mínimo ≈ 58 rem (la prenda con el mismo piso que en Existencias, 13.5rem): cabe en una ventana de
 // 1440 px sin desplazar la tabla; más angosto, se desplaza dentro de su tarjeta (nunca la página entera).
@@ -129,7 +129,8 @@ function FiltroChip({ activo, n, onClick, children }: { activo: boolean; n: numb
 
 export function ResumenComparacionDetalle({ datos, actualizar }: { datos: ComparacionParaPantalla; actualizar: (cambios: CambiosUrl, opciones?: { conservarPagina?: boolean }) => void }) {
   const { tabla, conteoCambios, cambio, orden, periodoA, periodoB, alcance } = datos;
-  const hayFiltros = alcance.q !== "" || alcance.categoriaId !== null || cambio !== "todos";
+  // Sin categoría (2026-09-29): Comparar solo filtra por búsqueda y por cambio.
+  const hayFiltros = alcance.q !== "" || cambio !== "todos";
   // El paginador está al pie: la página nueva se lee desde arriba de la tabla (como Inventario). Sin esto, ir a la
   // última página —más corta— acortaba la pantalla justo bajo el mouse y la vista «se subía sola» (ADR-0185).
   const irA = (pag: number) => {
@@ -137,7 +138,8 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
     const tabla = document.getElementById("detalle-titulo")?.closest("section");
     if (tabla && tabla.getBoundingClientRect().top < 0) tabla.scrollIntoView({ block: "start" });
   };
-  const limpiar = () => actualizar({ q: null, cat: null, cambio: null });
+  // No toca `cat`: la categoría es de Desempeño y sigue ahí para cuando la persona vuelva.
+  const limpiar = () => actualizar({ q: null, cambio: null });
 
   return (
     <section className="card-cayla overflow-x-auto" aria-labelledby="detalle-titulo">
