@@ -1,9 +1,37 @@
 # ADR-0219 — Rendimiento: las ventas de cada persona, para la encargada y el Admin
 
 **Fecha:** 2026-09-26
-**Estado:** **Propuesta.** Las decisiones de negocio están tomadas (Felipe, 20 preguntas, 2026-09-26, después de hablarlo con
-el gerente). El diseño técnico de abajo espera su aprobación. **Nada construido, nada en producción.**
+**Estado:** **Construido en rama, no en producción** (actualización 2026-09-29 abajo). El diseño técnico de este
+documento se construyó tal cual, con una corrección estadística que se agrega a la sección 3.
 **Decide:** Felipe, 2026-09-26.
+
+> **Actualización 2026-09-29 (construcción, primera mitad).** Rama `claude/rendimiento-efron-morris`, migración
+> `20260929160000_rendimiento_modulo_y_equipo.sql` (sin pegar en producción, pide el ok puntual de Felipe). Construido:
+> el módulo (sección 5), `fn_rendimiento_ubicaciones` (sección 1) y `fn_rendimiento_equipo` con lo mínimo para los DOS
+> RANKINGS de la sección 3 (ventas, soles, horas — no las demás cifras de la tabla todavía). La pantalla
+> `/rendimiento` dibuja los dos rankings y las cifras de cabecera; no trae el selector de mes (siempre el mes en
+> curso), ni la ficha de cada persona, ni la corrección de quién atendió (sección 4: `venta_reasignaciones` y
+> `reasignar_asesora`) — por eso la objeción abierta de este documento (la encargada corrigiéndose a sí misma) sigue
+> sin resolver, porque el mecanismo que la haría posible no existe todavía.
+>
+> **La corrección que este documento no tenía: contracción de Efron-Morris/James-Stein en «soles por hora».** La
+> sección 3 decía «ordena por soles por hora» (el número crudo). Con 12 integrantes en TRU y 2 en AQP, el crudo de
+> alguien con pocas horas es en gran parte ruido de muestra chica —la propia D-66/D-115 ya lo reconocía con la marca
+> «muestra chica», pero solo avisaba, no corregía el orden—. `apps/web/lib/rendimiento-reglas.ts` ahora ordena por el
+> número CONTRAÍDO hacia el promedio del RESTO de la tienda (sin la propia persona: mismo principio que
+> `contraElResto` de Frescura), con la fuerza del prior anclada a las horas que le toma a la tienda, a su propio
+> ritmo, llegar a las 40 ventas de D-66 — no un parámetro nuevo que estimar de los datos, inestable con 2 o 3
+> integrantes por tienda. El crudo se sigue mostrando en la tabla (D-116 no cambia); solo el ORDEN del ranking usa el
+> número contraído. «Cierra más ventas» queda como conteo crudo, sin tocar (funciona sin horas, en AQP y Lima).
+>
+> Detalle, ejemplo numérico y las 7 pruebas: `apps/web/lib/rendimiento-reglas.ts` y su `.test.ts`. **DESCARTÉ:**
+> estimar la varianza entre personas de los propios datos del mes (el Efron-Morris clásico) — con k=2 en AQP es
+> ruido puro o está indefinido. **SE ROMPE SI:** una tienda no tiene ninguna persona con horas>0 en el mes — no hay
+> resto del que partir, y el ranking de soles por hora queda vacío (igual que hoy sin esta corrección).
+>
+> **De paso**, la migración corrige `fn_exigir_rol_de_terminal`: le faltaba `cayla_global` en su lista de «solo
+> personas» desde ADR-0275 (20260929140000) sin que nadie lo hubiera notado — se arregla junto con sumar
+> `rendimiento`, con guarda de md5 sobre el cuerpo vivo.
 **Afecta (cuando se construya):** una migración nueva (módulo `rendimiento`, `fn_rendimiento_ubicaciones`,
 `fn_rendimiento_equipo`, `fn_rendimiento_persona`, tabla `venta_reasignaciones` y función `reasignar_asesora`),
 `apps/web/lib/modulos.ts`, `apps/web/lib/menu.ts`, `apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento-reglas.ts`
