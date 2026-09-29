@@ -4,7 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
 import { guardarEjesCategoria, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 
 // Una categoría sin tallas (o sin tejidos/patrones, si su familia los exige)
@@ -18,7 +18,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 // "Guardar" sin contexto sería dejar que se haga sin saberlo.
 //
 // NO va dentro de la transacción del alta (mismo criterio que ProponerValor).
-// Es un guardado aparte del producto; desde 2026-09-29 va sin combo «Responsable» (clave `alta_producto_categoria`).
+// Es un guardado aparte del producto; lo firma quien inició el alta (`useFirmaDeMitad`), sin combo propio (2026-09-29).
 
 const TEXTOS: Record<TipoVocabulario, { faltante: string; accion: string; efecto: string }> = {
   tallas: {
@@ -61,6 +61,7 @@ export function ConfigurarCategoria({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const firma = useFirmaDeMitad("alta_producto_categoria");
   const t = TEXTOS[tipo];
 
   function alternar(id: string) {
@@ -68,7 +69,7 @@ export function ConfigurarCategoria({
   }
 
   async function guardar() {
-    if (elegidos.length === 0 || guardando) return;
+    if (elegidos.length === 0 || guardando || !firma.listo) return;
     setGuardando(true);
     setError(null);
     const nuevos: EjeIds = {
@@ -77,7 +78,7 @@ export function ConfigurarCategoria({
       patronIds: tipo === "patrones" ? elegidos : ejesActuales.patronIds,
     };
     // Tallas: todas las elegidas quedan como curva habitual (es lo que la persona acaba de decir que ofrece).
-    const err = await guardarEjesCategoria(categoriaId, nuevos, encabezadosOmitidos("alta_producto_categoria"), tipo === "tallas" ? elegidos : undefined);
+    const err = await guardarEjesCategoria(categoriaId, nuevos, firma.encabezados(), tipo === "tallas" ? elegidos : undefined);
     setGuardando(false);
     if (err) {
       setError(err);
@@ -114,10 +115,12 @@ export function ConfigurarCategoria({
           {error}
         </p>
       )}
+      <AvisoSinIdentidad firma={firma} />
       <button
         type="button"
         onClick={() => void guardar()}
-        disabled={elegidos.length === 0 || guardando}
+        disabled={elegidos.length === 0 || guardando || !firma.listo}
+        title={firma.motivo ?? undefined}
         className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
       >
         {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}

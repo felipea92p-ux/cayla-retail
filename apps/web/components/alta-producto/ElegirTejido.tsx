@@ -6,7 +6,7 @@ import { MuestraTejido } from "@/components/MuestraTejido";
 import { fueraDeLaCategoria } from "@/lib/alta-producto";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // La fila «Tejido» del paso 3 del alta: una tarjeta con muestra por cada tejido que la categoría ofrece. Tocar la elegida la suelta.
 //
@@ -16,8 +16,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 //
 // Elegir uno de esos NO puede ser solo marcarlo: la base rechaza crear un producto con un tejido que su categoría no ofrece
 // (`crear_producto_con_variantes`, «Ese tejido no está habilitado para la categoría elegida»). Así que tocarlo hace lo mismo que
-// escribir un tejido existente en «+ Nuevo tejido»: lo ofrece en la categoría (una escritura aparte, sin combo «Responsable»
-// desde 2026-09-29, clave `alta_producto_tejido`) y lo deja elegido. Se dice en pantalla antes del toque, porque cambia la categoría
+// escribir un tejido existente en «+ Nuevo tejido»: lo ofrece en la categoría (una escritura aparte, firmada por quien inició el alta:
+// `useFirmaDeMitad`, sin combo propio desde 2026-09-29) y lo deja elegido. Se dice en pantalla antes del toque, porque cambia la categoría
 // y no solo el producto.
 
 export function TarjetaTejido({
@@ -149,14 +149,15 @@ function OtrosTejidos({
   ejesActuales: EjeIds;
   onOfrecido: (tejido: ValorVocabulario) => void;
 }) {
+  const firma = useFirmaDeMitad("alta_producto_tejido");
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function ofrecer(t: ValorVocabulario) {
-    if (guardandoId) return;
+    if (guardandoId || !firma.listo) return;
     setGuardandoId(t.id);
     setError(null);
-    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, "tejidos", t.id), encabezadosOmitidos("alta_producto_tejido"));
+    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, "tejidos", t.id), firma.encabezados());
     setGuardandoId(null);
     if (err) {
       // Nada quedó a medias: la categoría sigue como estaba y reintentar es seguro (ofrecer uno que ya está no lo repite).
@@ -173,7 +174,8 @@ function OtrosTejidos({
         Otros tejidos del catálogo. Al elegir uno, <span className="text-tinta">{categoriaNombre}</span> lo ofrece desde ahora (también para las
         prendas que vengan) y queda elegido para esta.
       </p>
-      <div className="flex flex-wrap gap-1.5">
+      <AvisoSinIdentidad firma={firma} />
+      <div className="flex flex-wrap gap-1.5" title={firma.motivo ?? undefined}>
         {otros.map((t, i) => (
           <TarjetaTejido
             key={t.id}
@@ -182,7 +184,7 @@ function OtrosTejidos({
             elegido={false}
             indice={i}
             guardando={guardandoId === t.id}
-            deshabilitado={guardandoId !== null}
+            deshabilitado={guardandoId !== null || !firma.listo}
             onClick={() => void ofrecer(t)}
           />
         ))}
