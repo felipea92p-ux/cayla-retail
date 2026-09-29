@@ -275,3 +275,9 @@ foto deja de parecerse a la pantalla) o se cambia el rollo: las medidas viven un
 - **Paso 3 — construido (ADR-0182):** el precio de campaña baja al .90 en la caja y la base lo verifica. Falta pegar su
   migración en producción con OK de Felipe, el mismo día que se publique la web.
 - ~~Ajustar la medida a la cartulina~~ — hecho: 44 × 62 mm para el cartón de 5 × 8 cm.
+
+## Actualización 2026-09-29 — la marca de la prenda en la etiqueta (ADR-0281, decisión 6)
+
+`EtiquetaPrecio.tsx` imprime `productos.marca_id` (`marca`) al pie, a la izquierda del QR y sobre el código, en 2 mm y peso 800,
+dos líneas como máximo. Se eligió ese hueco tras medir la etiqueta: con campaña solo sobran 1,4 mm entre el bloque de precio y el
+pie, así que cualquier línea nueva sobre el nombre empujaría el QR. No suma alto. `lib/etiquetas-precio.ts` la lee junto al producto.
