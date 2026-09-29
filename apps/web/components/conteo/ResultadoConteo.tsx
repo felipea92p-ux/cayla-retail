@@ -6,6 +6,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Volver } from "@/components/ui/Volver";
+import { EditarConteo } from "@/components/conteo/EditarConteo";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 
@@ -14,7 +15,7 @@ import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 
    Lo que se ve al abrir un conteo ya cerrado: cómo salió (todo correcto, N diferencias corregidas, parcial), cuántas
    variantes se verificaron, y tres salidas —Existencias para ver cómo quedó el stock, Movimientos para ver cada ajuste,
-   y la vuelta a Conteo—. Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
+   y la vuelta a Conteo— más «Editar conteo», que lo reabre para corregirlo (`EditarConteo`). Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
 
    «Variantes corregidas» da el rastro sin ir a Movimientos: cada variante que se ajustó, con lo que CAYLA esperaba y lo
    que se contó («11 → 9»). Solo las que tienen su movimiento de ajuste (`ajusteMovimientoId`): lo que el cierre de verdad
@@ -28,7 +29,7 @@ import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 /** Cuántas variantes corregidas se dibujan; el resto se resume en una línea. */
 const MAX_CORREGIDAS = 60;
 
-export async function ResultadoConteo({ detalle, sede, volverA }: { detalle: DetalleConteo; sede: string; volverA: string | null }) {
+export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: { detalle: DetalleConteo; sede: string; volverA: string | null; puedeEditar: boolean }) {
   const { conteo, resumen, lineas } = detalle;
   const parcial = resumen.pendientes > 0;
   const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial });
@@ -79,6 +80,8 @@ export async function ResultadoConteo({ detalle, sede, volverA }: { detalle: Det
           <Link href={`/inventario/movimientos?proc=conteo&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`} className="btn-cayla btn-secundario h-11">
             Ver movimientos del conteo
           </Link>
+          {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
+          {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} />}
         </div>
       </section>
 
