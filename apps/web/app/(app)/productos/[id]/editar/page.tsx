@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
@@ -77,6 +78,22 @@ export default async function EditarProductoPage({
   // lectura (red, permiso) no dice que la función falte y deja corregir: la base vuelve a exigir todo.
   const puedeCorregir = !esFuncionAusente(resEstado.error);
 
+  // Ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es la ventana de Existencias
+  // sobre la SEDE ACTIVA, y solo para quien tiene el módulo «Ajustar stock» (`ajustarStock`), que es lo mismo que exige la base
+  // (`ajustar_inventario`). Sin el módulo no se pide ni una consulta más. «Bajada al piso» sigue las mismas reglas que en
+  // Existencias: el rol lo ve y la sede separa piso y almacén.
+  const puedeAjustarStock = puede(persona, "ajustarStock");
+  const sububicaciones = puedeAjustarStock ? await getSububicaciones(persona.ubicacionId) : [];
+  const separaPisoAlmacen = encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null;
+  const ajusteStock = puedeAjustarStock
+    ? {
+        productoId: producto.id,
+        ubicacionId: persona.ubicacionId,
+        sede: persona.ubicacionEtiqueta,
+        sububicaciones,
+        puedeBajarAlPiso: veModulo(persona, "bajada_piso") && separaPisoAlmacen,
+      }
+    : null;
 
   return (
     <div className="space-y-6">
@@ -101,6 +118,7 @@ export default async function EditarProductoPage({
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
         puedeCorregir={puedeCorregir}
+        ajusteStock={ajusteStock}
         producto={producto}
         volverA={volverA}
       />

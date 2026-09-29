@@ -39,6 +39,7 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { AgregarColoresModal, type ResultadoAgregarColores } from "./AgregarColoresModal";
 import { AgregarTallasModal } from "./AgregarTallasModal";
+import { AjusteDeStock } from "./AjusteDeStock";
 import { CambiarEnBloque } from "./CambiarEnBloque";
 import { CorregirVarianteModal, type EjesCorreccion } from "./CorregirVarianteModal";
 import { PuntoColor, type ContextoFicha } from "./piezas";
@@ -266,6 +267,10 @@ export function VariantesFicha({
           // Un color recién agregado todavía no existe: no hay nada «registrado mal» que corregir, se cambia (el modal dice lo
           // mismo). Con una sola variante que ya exista en el grupo, es «Corregir».
           const verbo = todasNuevas(g.filas) ? "Cambiar" : "Corregir";
+          // Ajustar stock (2026-09-29): la ventana busca la prenda en la base, así que va el color TAL COMO ESTÁ GUARDADO, no el
+          // que se esté corrigiendo a medias en pantalla. Un color todo nuevo todavía no existe: no tiene stock que ajustar.
+          const guardadaDelColor = g.filas.find((f) => f.guardada)?.guardada ?? null;
+          const colorGuardado = guardadaDelColor ? (guardadaDelColor.colorCodigo === null ? null : n.color(guardadaDelColor.colorCodigo)) : null;
           return (
             <section key={g.colorCodigo ?? "sin-color"} className="rounded-xl border border-sand" aria-label={`Color ${n.color(g.colorCodigo)}`}>
               <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-sand px-3 py-2.5">
@@ -275,6 +280,9 @@ export function VariantesFicha({
                   {activasGrupo} {activasGrupo === 1 ? "variante" : "variantes"}
                   {u !== null ? ` · ${u} u.` : ""}
                 </span>
+                {guardadaDelColor && (
+                  <AjusteDeStock ajuste={ctx.ajusteStock} colorNombre={colorGuardado} forma="enlace" descripcion={n.color(g.colorCodigo)} deshabilitado={deshabilitado} />
+                )}
                 {/* «Corregir», no «Cambiar»: si la prenda ahora viene en otro color, eso es «Agregar color» (D-136). «Cambiar»
                     solo para un grupo que todavía no existe (recién agregado). */}
                 {ctx.puedeCorregir && (
@@ -561,6 +569,15 @@ function FilaVariante({
             <span className="block py-1.5 text-sm tabular-nums sm:text-right" title={e ? textoSedes(e) : undefined}>
               {e ? `${e.stock} u.` : g ? "0 u." : "—"}
               {e && e.apartado > 0 && <span className="text-taupe"> · {e.apartado} ap.</span>}
+              {g && (
+                <AjusteDeStock
+                  ajuste={ctx.ajusteStock}
+                  colorNombre={g.colorCodigo === null ? null : n.color(g.colorCodigo)}
+                  forma="lapiz"
+                  descripcion={nombre}
+                  deshabilitado={deshabilitado}
+                />
+              )}
             </span>
             {e && e.sedes.length > 0 && <span className="block text-[11px] text-taupe sm:hidden">{textoSedes(e)}</span>}
           </div>
