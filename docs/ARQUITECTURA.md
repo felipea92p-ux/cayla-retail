@@ -919,6 +919,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
+- **CAYLA Global** (ADR-0275, módulo `cayla_global`, «módulo del Admin»): la vista de toda la empresa. No es una ruta
+  sino una PERSPECTIVA: la cookie `cayla_ubicacion_activa` vale `global` (la escribe `app/actions/ubicacion.ts` tras
+  `fn_ve_modulo('cayla_global')`), `lib/persona-actual.ts` pone `vista = "global"` y filtra `modulos` con
+  `lib/vista-global.ts` (`MODULOS_DE_LA_VISTA_GLOBAL`: Clientas, las seis de Finanzas —que abren en «todas» con
+  `verDeLaVista`—, Configuración y Actividad), y `proxy.ts` manda cualquier otra ruta a `/global/elige-sede`.
+  - `/global` («Salud del negocio») → `lib/cayla-global.ts` (`fn_global_cobertura`: con qué datos cuenta, por sede) y
+    `lib/cayla-global-tablero.ts` (reglas puras). El tablero completo espera la maqueta `docs/maquetas/cayla-global-2026-09/`.
+  - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
+    entrar a la vista por un enlace.
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 

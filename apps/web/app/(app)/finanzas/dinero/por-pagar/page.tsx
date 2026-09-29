@@ -11,6 +11,7 @@ import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { PorPagarConsolidado } from "@/components/finanzas/PorPagarConsolidado";
 import { PagoTallerDesdeUrl } from "@/components/finanzas/PorPagarAcciones";
 import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
+import { verDeLaVista } from "@/lib/vista-global";
 
 // Finanzas ▸ Cuentas y dinero ▸ Por pagar (ADR-0195 F4). La puerta es el módulo Cuentas y dinero (el candado real está en la
 // base, `fn_por_pagar_consolidado`: el líder, todo; con el módulo, su tienda). `?ver=` (solo el líder) elige qué mirar: la
@@ -24,7 +25,7 @@ export default async function PorPagarFinanzasPage({ searchParams }: { searchPar
   const pagaCompras = accionesDeCompraDe(persona).pagar;
 
   const unidades = await getUnidadesPorPagar(persona);
-  const ver = leerVer(sp.ver, unidades, esLider, persona.ubicacionId);
+  const ver = leerVer(verDeLaVista(persona.vista, sp.ver), unidades, esLider, persona.ubicacionId);
   const { datos: filas, falla } = await getPorPagarConsolidado(ver);
 
   // El pago que pide la URL, si la fila está en la lista, todavía se debe y esta cuenta la puede pagar.

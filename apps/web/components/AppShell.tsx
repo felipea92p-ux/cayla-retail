@@ -94,6 +94,10 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
+  /** ADR-0275: si puede elegir CAYLA Global en el selector, y si la está mirando ahora (entonces `ubicacionEtiqueta` dice
+   *  «CAYLA Global» y `modulos` trae solo los de esa vista). Opcionales: ausentes, todo sigue como antes. */
+  puedeVerGlobal?: boolean;
+  vista?: "sede" | "global";
   /** Si esta sesión es la de una TERMINAL, un aparato SIN persona (ADR-0162). Opcional: quien arma el AppShell sin persona
    *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
    *  muestra el aparato (no una persona) y no abre «Mi perfil». */
@@ -223,6 +227,8 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
   panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
+  pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
@@ -1139,18 +1145,26 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
-            {persona.puedeCambiarUbicacion ? (
-              <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
+            {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
+              <UbicacionSwitcher
+                ubicaciones={ubicaciones}
+                ubicacionActualId={persona.ubicacionId}
+                puedeVerGlobal={!!persona.puedeVerGlobal}
+                enVistaGlobal={persona.vista === "global"}
+              />
             ) : (
               <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
             )}
-            <Link
-              href="/buscar"
-              aria-label="Buscar"
-              className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
-            >
-              <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
-            </Link>
+            {/* `/buscar` es el buscador de prendas de UNA sede: en CAYLA Global no existe (ADR-0275). */}
+            {persona.vista === "global" ? null : (
+              <Link
+                href="/buscar"
+                aria-label="Buscar"
+                className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+              >
+                <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+              </Link>
+            )}
           </div>
         </div>
       </header>

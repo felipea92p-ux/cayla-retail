@@ -951,6 +951,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-lider-editable
 
+      # ADR-0275: CAYLA Global (la vista de toda la empresa) nace SOLO para el Admin. Vigila el «módulo del Admin» (el Admin
+      # lo conserva aunque se le quite al Líder de equipo; con Caja, en cambio, lo pierde como decidió el ADR-0253), que un
+      # líder que no es Admin no la dé ni la asigne («solo das lo que ves»), que no vaya a una terminal y el candado de
+      # `fn_global_cobertura`. ROLLBACK siempre.
+      - name: pruebas:cayla-global
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cayla-global
+
       # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
       # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
       # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra

@@ -11,7 +11,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -352,5 +352,24 @@ describe("REGLA: un módulo nuevo nace solo para el líder", () => {
       expect(m!.nombre.length, clave).toBeGreaterThan(0);
       expect(m!.incluye.length, clave).toBeGreaterThan(0);
     }
+  });
+});
+
+// ADR-0275: un módulo puede nacer QUITADO al Líder de equipo (al nacer, solo lo ve el Admin). La web lo supone sin leer la
+// base (`modulosDeHoy`), así que su lista tiene que ser exactamente la de las migraciones que lo insertan en
+// `lider_modulos_ocultos` al nacer. Fuera de eso, esa tabla la escribe solo Roles y accesos (`guardar_modulos_rol`).
+describe("REGLA: lo que nace quitado al líder es lo mismo en la web y en las migraciones", () => {
+  it("las claves insertadas en lider_modulos_ocultos por una migración son las de NACEN_QUITADOS_AL_LIDER", () => {
+    const deLaBase = new Set<string>();
+    for (const { sql } of TODAS) {
+      for (const m of sql.matchAll(/insert into retail\.lider_modulos_ocultos\s*\(modulo\)\s*values\s*\('([a-z_]+)'\)/gi)) deLaBase.add(m[1]!);
+    }
+    expect([...deLaBase].sort()).toEqual([...NACEN_QUITADOS_AL_LIDER].sort());
+  });
+
+  it("el líder, sin haber leído la base, ve todo menos lo que nace quitado", () => {
+    const claves = modulosDeHoy("lider").map((m) => m.clave);
+    for (const c of NACEN_QUITADOS_AL_LIDER) expect(claves).not.toContain(c);
+    expect(claves).toHaveLength(CLAVES_MODULO.length - NACEN_QUITADOS_AL_LIDER.length);
   });
 });

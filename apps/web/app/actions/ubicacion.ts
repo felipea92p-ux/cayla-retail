@@ -19,15 +19,26 @@ import { createClient } from "@/lib/supabase/server";
 // cookie: nunca guarda un id que la persona no podría usar de todas formas,
 // pero tampoco es la única puerta — si algún día alguien llama a una RPC
 // saltándose esta acción, esa RPC igual la frena.
-export async function cambiarUbicacionActiva(ubicacionId: string) {
+//
+// ADR-0275: el valor "global" (repetido aquí por la misma razón que el nombre de la cookie; es `VALOR_VISTA_GLOBAL` de
+// lib/vista-global.ts) elige CAYLA Global, la vista de toda la empresa. Se guarda solo si la base dice que la cuenta ve
+// el módulo `cayla_global` (al nacer, solo el Admin); si no, no pasa nada, igual que con una sede que no puede operar.
+// Devuelve si la cambió: el selector no lo necesita (repinta y la cabecera dice dónde quedó), pero /global/entrar sí,
+// para no volver a /global en círculo cuando la base dice que no.
+export async function cambiarUbicacionActiva(ubicacionId: string): Promise<boolean> {
   const supabase = await createClient();
   const { data: verificado } = await supabase.auth.getClaims();
-  if (!verificado?.claims?.sub) return;
+  if (!verificado?.claims?.sub) return false;
 
-  const { data: puedeOperarla } = await supabase.rpc("fn_puede_operar_ubicacion", {
-    p_ubicacion_id: ubicacionId,
-  });
-  if (!puedeOperarla) return;
+  if (ubicacionId === "global") {
+    const { data: veGlobal } = await supabase.rpc("fn_ve_modulo", { p_clave: "cayla_global" });
+    if (veGlobal !== true) return false;
+  } else {
+    const { data: puedeOperarla } = await supabase.rpc("fn_puede_operar_ubicacion", {
+      p_ubicacion_id: ubicacionId,
+    });
+    if (!puedeOperarla) return false;
+  }
 
   const cookieStore = await cookies();
   cookieStore.set("cayla_ubicacion_activa", ubicacionId, {
@@ -36,4 +47,5 @@ export async function cambiarUbicacionActiva(ubicacionId: string) {
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
+  return true;
 }

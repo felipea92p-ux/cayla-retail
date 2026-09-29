@@ -4,6 +4,7 @@ import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
+import { verDeLaVista } from "@/lib/vista-global";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5, spike «¿Ganamos?»). Lee en el servidor y deja a una sola pieza
 // cliente mirar. `?mes=2026-08` elige el mes (por defecto, el de hoy, «a la fecha»); `?ver=` (solo el líder) elige qué
@@ -30,7 +31,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
       anteriores={anterior?.datos ?? null}
       esLider={persona.rol === "lider"}
       sedeActual={persona.ubicacionId}
-      verParam={sp.ver}
+      verParam={verDeLaVista(persona.vista, sp.ver)}
       mes={mes}
       mesPrevio={previo}
       hoy={hoy}

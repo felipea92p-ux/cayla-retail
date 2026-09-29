@@ -3,6 +3,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe } from "@/lib/gastos-reglas";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { PresupuestoPanel } from "@/components/finanzas/PresupuestoPanel";
+import { verDeLaVista } from "@/lib/vista-global";
 
 // Finanzas ▸ Reportes ▸ Presupuesto (ADR-0195, capa «para decidir»; spike «¿Vamos según lo planeado?»): cada tope y la meta
 // de ventas del mes contra lo real a la fecha y la proyección al cierre. `?mes=2026-09` elige el mes (por defecto, el de
@@ -21,7 +22,7 @@ export default async function PresupuestoPage({ searchParams }: { searchParams: 
       esLider={persona.rol === "lider"}
       sedeActual={persona.ubicacionId}
       tiendaNombre={persona.ubicacionEtiqueta}
-      verParam={sp.ver}
+      verParam={verDeLaVista(persona.vista, sp.ver)}
       mes={mes}
       hoy={hoy}
       fallas={falla ? [falla] : []}

@@ -21,6 +21,7 @@ export const CLAVES_MODULO = [
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
   "actividad",
+  "cayla_global",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -105,6 +106,10 @@ export const MODULOS: readonly Modulo[] = [
   // (botón «Actividad»). Nace sin rol; con el módulo, una cuenta ve la actividad de SU tienda; el líder, la de todas.
   // Solo para personas (`MODULOS_SOLO_PERSONAS`): una terminal compartida no revisa lo que hacen las demás.
   { clave: "actividad", grupo: "Gestión", nombre: "Actividad", incluye: "Ver quién hizo qué en cada módulo de su tienda: ventas, anulaciones, caja y cambios, con fecha, hora y persona" },
+  // ADR-0275 (20260929140000, Felipe 2026-09-28): la vista de toda la empresa, desde el selector de sede. Excepción a «un
+  // módulo nuevo nace visible para el líder»: nace QUITADO al Líder de equipo (`lider_modulos_ocultos`), así que al nacer
+  // solo la ve el Admin, y solo un Admin la da (`fn_exigir_modulos_dentro_de_lo_mio`). Qué se usa ahí: `lib/vista-global.ts`.
+  { clave: "cayla_global", grupo: "Gestión", nombre: "CAYLA Global", incluye: "Ver CAYLA como una sola empresa: las tiendas, el Taller y la empresa juntos, qué tan sano está el negocio y qué conviene decidir; desde el selector de sede" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -127,10 +132,15 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Colaboradores, y Roles y accesos, nunca van en el rol de una terminal: solo se dan a personas", origen: "ADR-0161 P6" },
 ];
 
+/** Los módulos que nacen QUITADOS al Líder de equipo (su migración los inserta en `lider_modulos_ocultos`): al nacer solo
+ *  los ve el Admin (`fn_ve_modulo`). Espejo de la base, para lo que la web supone sin haberla leído (`modulosDeHoy`). */
+export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
+
 /** Los módulos que solo se dan a PERSONAS, nunca a una terminal (ADR-0161 P6, Felipe 2026-09-22; en la base,
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
- *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad"];
+ *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
+ *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);
@@ -172,7 +182,7 @@ export function modulosDeHoy(
   rol: "lider" | "integrante",
   terminal: { legado: TipoTerminalLegado | null } | null = null,
 ): readonly ModuloDeCuenta[] {
-  if (rol === "lider") return CLAVES_MODULO.map((clave) => ({ clave, completo: true }));
+  if (rol === "lider") return CLAVES_MODULO.filter((c) => !NACEN_QUITADOS_AL_LIDER.includes(c)).map((clave) => ({ clave, completo: true }));
   if (terminal) return terminal.legado ? MODULOS_DE_HOY[terminal.legado] : [];
   return MODULOS_DE_HOY.integrante;
 }
