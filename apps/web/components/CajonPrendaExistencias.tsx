@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, X } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -27,28 +27,36 @@ const MS_SALIDA = 240;
    Historial— y solo aparece si su rol la tiene (ADR-0161, ADR-0240): un botón que terminaría en «Sin acceso» no se dibuja.
    ==================================================================== */
 
-/** Un renglón de acción: ícono, qué hace y a dónde lleva. Enlace si va a otra pantalla, botón si abre algo aquí. */
+/** Un renglón de acción: ícono, qué hace y a dónde lleva. Enlace si va a otra pantalla, botón si abre algo aquí.
+ *  `peligro` (trasplantado de `DetallePrendaExistencias.tsx`, ADR-0252): lo que no se deshace (Eliminar) se lee en rojo
+ *  profundo, para que no se confunda con las acciones de al lado. */
 function Accion({
   icono: Icono,
   texto,
   principal = false,
+  peligro = false,
   href,
   onClick,
 }: {
   icono: ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
   texto: string;
   principal?: boolean;
+  peligro?: boolean;
   href?: string;
   onClick?: () => void;
 }) {
   const clase = `group flex h-12 w-full items-center rounded-[10px] px-5 text-left text-[15px] transition-colors ${
-    principal ? "bg-tinta text-crema hover:bg-tinta/90" : "border border-tinta/55 bg-transparent text-tinta hover:bg-hueso/60"
+    principal
+      ? "bg-tinta text-crema hover:bg-tinta/90"
+      : peligro
+        ? "border border-rojo-profundo/40 bg-transparent text-rojo-profundo hover:bg-rojo/[0.06]"
+        : "border border-tinta/55 bg-transparent text-tinta hover:bg-hueso/60"
   }`;
   const contenido = (
     <>
       <Icono aria-hidden className="h-[22px] w-6 shrink-0" strokeWidth={1.4} />
       <span className="ml-9 min-w-0 flex-1 truncate">{texto}</span>
-      <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${principal ? "text-crema/85" : "text-tinta/70"}`} />
+      <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${principal ? "text-crema/85" : peligro ? "text-rojo-profundo/70" : "text-tinta/70"}`} />
     </>
   );
   return href ? (
@@ -82,8 +90,10 @@ export function CajonPrendaExistencias({
   sinModuloBajada,
   puedeAjustar,
   veTraslados,
+  puedeEliminar = false,
   onReponer,
   onAjustar,
+  onEliminar,
   onCerrar,
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
@@ -99,8 +109,13 @@ export function CajonPrendaExistencias({
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
+  /** Solo un Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
+   *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
+  puedeEliminar?: boolean;
   onReponer: (f: FilaExistencias) => void;
   onAjustar: (f: FilaExistencias) => void;
+  /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
+  onEliminar?: () => void;
   onCerrar: () => void;
 }) {
   // Cierre en dos tiempos, como `Modal`: primero sale, luego se desmonta.
@@ -124,7 +139,7 @@ export function CajonPrendaExistencias({
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
   const hayOperar = (puedeReponer && tallaAReponer !== null) || hrefTrasladar !== null;
-  const hayGestion = puedeAjustar || hrefEtiquetas !== null;
+  const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
     <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
@@ -268,6 +283,10 @@ export function CajonPrendaExistencias({
                     <div className="grid gap-2">
                       {puedeAjustar && <Accion icono={Archive} texto="Ajustar stock" onClick={() => onAjustar(prenda.tallas[0])} />}
                       {hrefEtiquetas && <Accion icono={Barcode} texto="Imprimir etiquetas" href={hrefEtiquetas} />}
+                      {/* ADR-0252: al final y en rojo, como en `DetallePrendaExistencias.tsx` — es del PRODUCTO entero (todas sus
+                          tallas y colores, en todas las sedes), no de esta talla ni de este color; la ventana que abre lo dice y la
+                          base decide si de verdad se puede. */}
+                      {puedeEliminar && onEliminar && <Accion icono={Trash2} texto="Eliminar el producto" onClick={onEliminar} peligro />}
                     </div>
                   </Grupo>
                 )}

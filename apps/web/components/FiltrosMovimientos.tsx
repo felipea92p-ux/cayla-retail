@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Camera, Search, SlidersHorizontal, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
   CATEGORIAS,
@@ -126,6 +127,7 @@ export function FiltrosMovimientos({
   const params = useSearchParams();
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const primera = useRef(true);
+  const { buscando, buscar } = useBusquedaEnUrl();
   const entrada = useRef<HTMLInputElement>(null);
   // Celular (ADR-0241): los filtros viven en una hoja y la cámara lee una etiqueta.
   const [hoja, setHoja] = useState(false);
@@ -139,7 +141,8 @@ export function FiltrosMovimientos({
   const enPersonalizado = periodo === "personalizado" || periodo === "todo";
   const mostrarFechas = enPersonalizado || personalizadoAbierto;
 
-  function aplicar(cambios: Record<string, string>) {
+  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
+  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -148,7 +151,9 @@ export function FiltrosMovimientos({
     p.delete("cursor");
     p.delete("mov");
     const qs = p.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    if (tipeado) buscar(href);
+    else router.push(href);
   }
 
   // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
@@ -162,10 +167,10 @@ export function FiltrosMovimientos({
       const filtro = filtroDePalabra(busqueda);
       if (filtro) {
         setBusqueda("");
-        aplicar({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" });
+        aplicar({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" }, { tipeado: true });
         return;
       }
-      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() });
+      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() }, { tipeado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -331,6 +336,7 @@ export function FiltrosMovimientos({
             autoComplete="off"
             className="h-full w-full rounded-lg bg-transparent pl-9 pr-9 text-base text-tinta outline-none placeholder:text-taupe sm:text-sm"
           />
+          <SenalBuscando activo={buscando} className="absolute right-10 bg-hueso pl-2" />
           {busqueda && (
             <button
               type="button"

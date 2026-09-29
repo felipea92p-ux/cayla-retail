@@ -1,6 +1,6 @@
 "use client";
 
-import { FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
@@ -11,8 +11,21 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import {
+  AccionTarjeta,
+  BarraAtributos,
+  BotonesPendiente,
+  BotonReactivar,
+  GRILLA_ATRIBUTOS,
+  PieTarjeta,
+  SinCoincidencias,
+  TarjetaAtributo,
+  TituloGrupo,
+} from "@/components/atributos/kit";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
-import { parsearColor, rgbDeHex } from "@/lib/color-entrada";
+import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
+import { filtrarColores } from "@/lib/atributos-buscar";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -92,8 +105,22 @@ function gruposPorFamilia(lista: Color[]) {
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
 // así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, familia, className = "h-12 w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
+function Muestra({ hex, familia, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
   return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+}
+
+/** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
+function DetalleColor({ c }: { c: Color }) {
+  return (
+    <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+      <span className="font-mono">{c.codigo}</span>
+      {c.pantoneTcx && (
+        <span className="font-mono" title="Código Pantone para pedir la tela">
+          {c.pantoneTcx}
+        </span>
+      )}
+    </p>
+  );
 }
 
 // Aviso, no candado: el color que se está creando o editando se ve casi igual que otro del vocabulario
@@ -123,72 +150,6 @@ function AvisoParecido({
   );
 }
 
-// El color se elige de tres maneras que dan lo mismo: el selector del
-// navegador, el código HTML (`#c9b79c`) o el RGB (`201, 183, 156`) — este
-// último lo que da una ficha de proveedor o un programa de diseño. En la base
-// solo se guarda el hex. Mientras se escribe, un texto a medias no pisa el
-// color vigente; al salir del campo, si no era válido, vuelve al último bueno.
-// La muestra es UN rectángulo relleno con el color. El <input type="color">
-// nativo va escondido detrás y se abre al tocar la muestra: pintado tal cual
-// dejaba un recuadro con otro más chico adentro, y un Crudo o un Blanco casi
-// no se distinguían del fondo crema.
-function MuestraColor({ hex, onHex, className = "" }: { hex: string | null; onHex?: (hex: string) => void; className?: string }) {
-  // Sin elegir: caja punteada, no un color de relleno. Un beige por defecto se
-  // guardaba sin que nadie lo notara (5 colores en producción llevan #c9b79c).
-  const caja = `relative block h-9 w-14 shrink-0 rounded-md shadow-inner ${
-    hex ? "border border-tinta/35" : "border border-dashed border-tinta/40"
-  } ${className}`;
-  if (!onHex) return <span className={caja} style={hex ? { backgroundColor: hex } : undefined} aria-hidden />;
-  return (
-    <label className={`${caja} cursor-pointer focus-within:ring-2 focus-within:ring-rojo/40`} style={hex ? { backgroundColor: hex } : undefined}>
-      <input type="color" aria-label="Elegir color con el selector" value={hex ?? "#c9b79c"} onChange={(e) => onHex(e.target.value)} className="sr-only" />
-    </label>
-  );
-}
-
-function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string) => void }) {
-  const [texto, setTexto] = useState(hex ?? "");
-  const [ultimoHex, setUltimoHex] = useState(hex);
-  // El selector nativo también mueve el color: el campo de texto lo sigue.
-  if (hex !== ultimoHex) {
-    setUltimoHex(hex);
-    setTexto(hex ?? "");
-  }
-  const invalido = texto.trim() !== "" && parsearColor(texto) === null;
-
-  return (
-    <div className="flex items-start gap-3">
-      <MuestraColor hex={hex} onHex={onHex} className="mt-6" />
-      <div className="min-w-0 flex-1">
-        <CampoTexto
-          etiqueta="Color"
-          mono
-          value={texto}
-          onChange={(e) => {
-            setTexto(e.target.value);
-            const valido = parsearColor(e.target.value);
-            if (valido) {
-              setUltimoHex(valido);
-              onHex(valido);
-            }
-          }}
-          onBlur={() => setTexto(hex ?? "")}
-          tono={invalido ? "error" : undefined}
-          pie={
-            invalido
-              ? "No se entiende. Prueba #c9b79c o 201, 183, 156."
-              : hex
-                ? `RGB ${rgbDeHex(hex)} · acepta #hex o R, G, B`
-                : "Toca el cuadro o escribe #hex o R, G, B"
-          }
-          placeholder="#c9b79c"
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
@@ -207,6 +168,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoCodigo, setRechazandoCodigo] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  // La familia de la píldora elegida (ADR-0261). La grilla solo se re-asienta cuando la persona cambia un filtro, nunca
+  // al cargar la pantalla: el movimiento responde a una acción (ver globals.css).
+  const [familia, setFamilia] = useState<string>("todas");
+  const [animar, setAnimar] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -222,6 +188,18 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const activos = colores.filter((c) => c.activo);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
+  const familiaDe = (c: Color) => (FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor) ? c.familiaColor : "sin-familia");
+  const pasaFamilia = (c: Color) => familia === "todas" || familiaDe(c) === familia;
+  const activosVisibles = filtrarColores(activos, busqueda).filter(pasaFamilia);
+  const desactivadosVisibles = filtrarColores(desactivados, busqueda).filter(pasaFamilia);
+  const hayFiltros = familia !== "todas" || busqueda.trim() !== "";
+  const quitarFiltros = () => {
+    setFamilia("todas");
+    setBusqueda("");
+    setAnimar(true);
+  };
+  // Las píldoras: solo las familias que tienen algún color activo, en el orden de siempre (Neutro, Azul, Rojo…).
+  const familiasConColores = gruposPorFamilia(activos);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
   const codigosUsados = new Set(colores.map((c) => c.codigo));
@@ -370,70 +348,75 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <span />
-        <button
-          type="button"
-          onClick={abrir}
-          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-        >
-          + Agregar color
-        </button>
-      </div>
-
-      {gruposPorFamilia(activos).map(({ familia, texto, colores: coloresDeLaFamilia }) => (
-        <section key={familia} className="space-y-3">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            {texto} <span className="text-tinta/40">· {coloresDeLaFamilia.length}</span>
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {coloresDeLaFamilia.map((c) => (
-              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-                <Muestra hex={c.hex} familia={c.familiaColor} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
-                  {c.estado === "pendiente" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-                  )}
-                </div>
-                <div className="flex justify-between gap-2 text-[11px] text-tinta/65">
-                  <span className="font-mono">{c.codigo}</span>
-                  {c.pantoneTcx && <span className="font-mono" title="Código Pantone para pedir la tela">{c.pantoneTcx}</span>}
-                </div>
-                {puedeEditar && (
-                  <div className="flex gap-2">
-                    {c.estado === "pendiente" && (
-                      <Boton
-                        peso="primario"
-                        className="flex-1 px-2.5 py-1.5 text-[11px]"
-                        cargando={aprobandoCodigo === c.codigo}
-                        onClick={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
-                      >
-                        Aprobar
-                      </Boton>
-                    )}
-                    {c.estado === "pendiente" && (
-                      <Boton
-                        peso="discreto"
-                        className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                        onClick={() => {
-                          setRechazandoAbierto(c.codigo);
-                          setMotivoRechazo("");
-                        }}
-                      >
-                        Rechazar
-                      </Boton>
-                    )}
-                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
-                      Editar
-                    </Boton>
-                  </div>
-                )}
-              </div>
+      <BarraAtributos
+        etiqueta="Filtrar colores"
+        filtros={
+          <>
+            <BotonFiltro activo={familia === "todas"} onClick={() => { setFamilia("todas"); setAnimar(true); }} cuenta={activos.length}>
+              Todos
+            </BotonFiltro>
+            {familiasConColores.map((g) => (
+              <BotonFiltro
+                key={g.familia}
+                activo={familia === g.familia}
+                onClick={() => { setFamilia(familia === g.familia ? "todas" : g.familia); setAnimar(true); }}
+                cuenta={g.colores.length}
+              >
+                {g.texto}
+              </BotonFiltro>
             ))}
-          </div>
-        </section>
-      ))}
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar color", placeholder: "Buscar color o código" }}
+        agregar={{ texto: "+ Agregar color", onClick: abrir }}
+      />
+
+      {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {busqueda.trim() ? <>Ningún color coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ningún color cumple estos filtros."}
+        </SinCoincidencias>
+      )}
+
+      <div key={familia} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+        {gruposPorFamilia(activosVisibles).map(({ familia: clave, texto, colores: coloresDeLaFamilia }) => (
+          <section key={clave} className="space-y-3">
+            <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
+              {texto}
+            </TituloGrupo>
+            <div className={GRILLA_ATRIBUTOS}>
+              {coloresDeLaFamilia.map((c) => (
+                <TarjetaAtributo
+                  key={c.codigo}
+                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                  nombre={c.nombre}
+                  notas={c.notas}
+                  insignia={c.estado === "pendiente" ? "Pendiente" : null}
+                  detalle={<DetalleColor c={c} />}
+                >
+                  {puedeEditar && (
+                    <>
+                      {c.estado === "pendiente" && (
+                        <BotonesPendiente
+                          aprobando={aprobandoCodigo === c.codigo}
+                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
+                          onRechazar={() => {
+                            setRechazandoAbierto(c.codigo);
+                            setMotivoRechazo("");
+                          }}
+                        />
+                      )}
+                      {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
+                      <PieTarjeta>
+                        <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
+                      </PieTarjeta>
+                    </>
+                  )}
+                </TarjetaAtributo>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
 
       {agregando && (
         <Modal
@@ -516,34 +499,31 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         </Modal>
       )}
 
-      {desactivados.length > 0 && (
-        <section className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no se pueden elegir en una prenda nueva</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {desactivados.map((c) => (
-              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
-                <Muestra hex={c.hex} familia={c.familiaColor} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
-                  {c.estado === "rechazado" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                  )}
-                </div>
-                <div className="flex justify-between text-[11px] text-tinta/65">
-                  <span className="font-mono">{c.codigo}</span>
-                  <span>{c.familiaColor ?? "—"}</span>
-                </div>
+      {desactivadosVisibles.length > 0 && (
+        <section className="space-y-3">
+          <TituloGrupo cuenta={desactivadosVisibles.length}>Desactivados — ya no se pueden elegir en una prenda nueva</TituloGrupo>
+          <div className={GRILLA_ATRIBUTOS}>
+            {desactivadosVisibles.map((c) => (
+              <TarjetaAtributo
+                key={c.codigo}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                nombre={c.nombre}
+                insignia={c.estado === "rechazado" ? "Rechazado" : null}
+                detalle={
+                  <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+                    <span className="font-mono">{c.codigo}</span>
+                    <span>{textoDeFamilia(c.familiaColor)}</span>
+                  </p>
+                }
+                apagada
+              >
                 {puedeEditar && (
-                  <Boton
-                    peso="discreto"
-                    className="px-2.5 py-1.5 text-[11px]"
-                    cargando={cambiandoCodigo === c.codigo}
+                  <BotonReactivar
+                    cambiando={cambiandoCodigo === c.codigo}
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => reactivar(c)))}
-                  >
-                    {cambiandoCodigo === c.codigo ? "…" : "Reactivar"}
-                  </Boton>
+                  />
                 )}
-              </div>
+              </TarjetaAtributo>
             ))}
           </div>
         </section>
@@ -758,7 +738,7 @@ function ColorEditarModal({
               <div>
                 <p className="label-cayla text-[11px] text-tinta/65">Color</p>
                 <div className="mt-1.5 flex items-center gap-3">
-                  <MuestraColor hex={hex} />
+                  <MuestraEditable hex={hex} />
                   <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
                   <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
                     Cambiar color

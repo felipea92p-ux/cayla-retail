@@ -19,7 +19,7 @@ import { iconoDeEtiqueta, type IconoEtiqueta } from "@/lib/etiqueta-visual";
 export type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
 
 const TINTA = "#1A1A18";
-const CREMA = "#F5F0E8";
+export const CREMA = "#F5F0E8";
 
 // `fondo` = el tono del grupo diluido ~14% sobre crema. `acento` = el tono
 // pleno (ámbar / verde / taupe-profundo de globals.css).
@@ -33,9 +33,12 @@ export const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
 const ANCHO = 180; // 3:1, como las muestras de Patrones y Tejidos
 const ALTO = 60;
 
+/** Un ícono dibujado centrado en (0,0) dentro de ±14 unidades; `a` es el color de acento. */
+export type DibujoIcono = (a: string) => ReactElement;
+
 // Cada ícono se dibuja centrado en (0,0) dentro de ±14 unidades. `a` es el
 // color de acento del grupo.
-const ICONOS: Record<IconoEtiqueta | "generico", (a: string) => ReactElement> = {
+const ICONOS: Record<IconoEtiqueta | "generico", DibujoIcono> = {
   // Destello de cuatro puntas + uno chico.
   nuevo: (a) => (
     <>
@@ -259,12 +262,38 @@ export function MuestraEtiqueta({
   estilo: Estilo;
   className?: string;
 }) {
-  const icono = iconoDeEtiqueta(nombre) ?? "generico";
   const { fondo, acento } = TONOS[estilo];
-  const dibujo = ICONOS[icono];
-
   return (
-    <div className={`${className} overflow-hidden rounded-lg`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
+    <MuestraIcono
+      dibujo={ICONOS[iconoDeEtiqueta(nombre) ?? "generico"]}
+      fondo={fondo}
+      acento={acento}
+      etiqueta={`Ilustración de la etiqueta ${nombre}`}
+      className={className}
+    />
+  );
+}
+
+/**
+ * El molde de las muestras con ícono de Atributos (Etiquetas y Temporadas, ADR-0261): el ícono grande al centro y dos ecos
+ * tenues a los lados sobre el tinte de su tono. Un solo molde para que las dos pestañas se vean hechas por la misma mano.
+ */
+export function MuestraIcono({
+  dibujo,
+  fondo,
+  acento,
+  etiqueta,
+  className = "aspect-[3/1] w-full",
+}: {
+  dibujo: DibujoIcono;
+  fondo: string;
+  acento: string;
+  /** Lo que lee un lector de pantalla: «Ilustración de la etiqueta Nuevo». */
+  etiqueta: string;
+  className?: string;
+}) {
+  return (
+    <div className={`${className} overflow-hidden rounded-lg`} style={{ backgroundColor: fondo }} role="img" aria-label={etiqueta}>
       <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" aria-hidden>
         {/* Ecos tenues a los lados: llenan el ancho sin competir con el ícono. */}
         <g transform="translate(34 38) rotate(-14) scale(0.85)" opacity={0.18}>

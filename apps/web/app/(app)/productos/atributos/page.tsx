@@ -69,6 +69,7 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
         nombresDeCategorias(categorias),
       ),
       porTemporada: prendasPorTemporada(filas),
+      prendasActivas: productos.length,
       anioHoy: anioHoyLima(new Date()),
     },
   };
@@ -97,15 +98,15 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos] = await Promise.all([
     supabase
       .from("colores")
       .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
-    supabase.from("tejidos").select("id, nombre, activo, notas, estado").order("nombre"),
-    supabase.from("patrones").select("id, nombre, activo, notas, estado").order("nombre"),
+    supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
+    supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
     // Etiquetas (y lo que necesita su editor de campaña) solo se pide al abrir esa pestaña:
     // así un despliegue que llegue antes que el SQL de producción no tumba Colores/Tallas/etc.
     tipo === "etiquetas"
@@ -135,6 +136,11 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
           supabase.from("variante_etiquetas").select("etiqueta_id, variante_id").order("variante_id").order("etiqueta_id").range(desde, hasta)
         )
       : Promise.resolve({ data: [], error: null }),
+    // Cuántas prendas usan cada tejido y cada patrón (ADR-0256): lo que dice cada tarjeta. Solo al abrir esas pestañas;
+    // por páginas, porque el catálogo crece (`leerTodas`).
+    tipo === "tejidos" || tipo === "patrones"
+      ? leerTodas((desde, hasta) => supabase.from("productos").select("id, tejido_id, patron_id").order("id").range(desde, hasta))
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -162,6 +168,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     activo: t.activo,
     notas: t.notas,
     estado: t.estado as "pendiente" | "aprobado" | "rechazado",
+    imagenUrl: t.imagen_muestra_url,
+    descripcionDibujo: t.descripcion_dibujo,
   }));
   const patrones = exigir(resPatrones, "los patrones del vocabulario").map((p) => ({
     id: p.id,
@@ -169,7 +177,15 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     activo: p.activo,
     notas: p.notas,
     estado: p.estado as "pendiente" | "aprobado" | "rechazado",
+    imagenUrl: p.imagen_muestra_url,
+    descripcionDibujo: p.descripcion_dibujo,
   }));
+  const prendasPorTejido: Record<string, number> = {};
+  const prendasPorPatron: Record<string, number> = {};
+  for (const u of exigir(resUsos, "las prendas de cada tejido y patrón")) {
+    if (u.tejido_id) prendasPorTejido[u.tejido_id] = (prendasPorTejido[u.tejido_id] ?? 0) + 1;
+    if (u.patron_id) prendasPorPatron[u.patron_id] = (prendasPorPatron[u.patron_id] ?? 0) + 1;
+  }
   const etiquetaCategorias = new Map<string, string[]>();
   for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
     etiquetaCategorias.set(f.etiqueta_id, [...(etiquetaCategorias.get(f.etiqueta_id) ?? []), f.categoria_id]);
@@ -229,6 +245,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         tallas={tallas}
         tejidos={tejidos}
         patrones={patrones}
+        prendasPorTejido={prendasPorTejido}
+        prendasPorPatron={prendasPorPatron}
         etiquetas={etiquetas}
         categorias={categorias}
         prendasConCosto={prendasConCosto}

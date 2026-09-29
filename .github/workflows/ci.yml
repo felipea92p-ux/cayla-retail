@@ -46,11 +46,28 @@ permissions:
   contents: read
 
 jobs:
+  # Cuánto del job de Postgres hace falta (ADR-0259): `nada` si el PR solo cambia documentos, `web` si además solo toca
+  # apps/web, `completo` en cualquier otro caso y en todo push a main. Dos commits: en un PR, HEAD^1 es el main de hoy.
+  alcance:
+    name: Qué toca el PR
+    runs-on: ubuntu-latest
+    outputs:
+      alcance: ${{ steps.medir.outputs.alcance }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: medir
+        run: node scripts/ci/alcance.mjs
+
   verificar:
     name: Tipos, lint y pruebas
     runs-on: ubuntu-latest
     steps:
+      # Dos commits: el candado de la bitácora compara el PR contra el main de hoy (HEAD^1 del merge del PR).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # La versión de pnpm sale de `packageManager` en package.json — no se repite acá.
       # Dos números que hay que acordarse de mover juntos terminan distintos.
@@ -104,6 +121,22 @@ jobs:
         if: ${{ always() }}
         run: node scripts/migraciones/versiones.mjs
 
+      # Ninguna migración nueva usa `drop trigger`: en Supabase toma en exclusiva auth y storage hasta el final de la
+      # pegada y choca con el Asesor de seguridad (40P01, ADR-0195). Pasó el 2026-09-27 (`20260927190000`, #538).
+      # Las 22 que ya lo tenían quedan en su legado. Solo lee archivos; no necesita node_modules.
+      - name: Migraciones sin drop trigger
+        if: ${{ always() }}
+        run: |
+          node --test scripts/migraciones/sin-drop-trigger.test.mjs
+          node scripts/migraciones/sin-drop-trigger.mjs
+
+      # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
+      # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
+      # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
+      - name: Pruebas del check SQL pegado y de la deriva
+        if: ${{ always() }}
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs
+
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
       # `main`; el 2026-09-17 hubo seis choques). Solo lee nombres de archivo; no necesita
@@ -114,6 +147,15 @@ jobs:
         run: |
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
+
+      # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
+      # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
+      # PR», que decide cuánto corre el job de Postgres. Solo leen archivos; no necesitan node_modules.
+      - name: Bitácora y backlog, una entrada por archivo
+        if: ${{ always() }}
+        run: |
+          node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs
+          node scripts/docs/entradas-por-archivo.mjs
 
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
@@ -126,6 +168,11 @@ jobs:
 
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres
+    needs: alcance
+    # Un PR que solo cambia documentos deja la base y la web iguales a las de main: el job se salta (GitHub cuenta un job
+    # saltado como aprobado). Con `!cancelled()` y no `success()`: si `alcance` falla, su salida llega vacía y el job
+    # corre COMPLETO; nunca se salta por no saber (ADR-0259).
+    if: ${{ !cancelled() && needs.alcance.outputs.alcance != 'nada' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -147,9 +194,19 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
 
+      # En un PR «solo web» este paso no corre, y con él se saltan todas las pruebas de abajo (todas piden
+      # `steps.supabase`): la base es la de main, que ya las pasó. Corre en su lugar el paso siguiente.
       - id: supabase
-        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        if: ${{ always() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
         run: npx supabase start
+
+      # PR «solo web» (ADR-0259): el mismo Postgres, pero solo las pruebas que leen apps/web (~2 min en vez de ~6). Cuáles
+      # son lo deduce el script leyendo cada prueba y lo que importa: una prueba nueva que lea la web entra sola.
+      - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
+        if: ${{ always() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
+        run: |
+          npx supabase start
+          node scripts/ci/pruebas-web.mjs
 
       # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
@@ -486,6 +543,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # Descontinuar/reactivar en bloque desde la Tabla de Productos (ADR-0254): todo o nada, al reactivar revisa marca y
+      # proveedor como «Editar» y nombra la prenda que falla; sin permiso lo dice en palabras. Cada caso en ROLLBACK.
+      - name: pruebas:productos-estado-en-bloque
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-estado-en-bloque
+
       # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
       # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
       # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.
@@ -610,6 +673,21 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:notas-credito
 
+      # Arreglos que vivían SOLO en producción, traídos a main (ADR-0255, 20260928200000 y 20260928200100): mira el
+      # ESTADO VIVO de la base, así que se pone roja el día que una migración vuelva a abrir una puerta (un `drop function` +
+      # `create function` no conserva los `revoke`). emitir_comprobante / emitir_nota / fn_aplicar_movimiento /
+      # recalcular_stock solo para su dueña (42501 para authenticated, anon y service_role); stock y movimientos sin
+      # escritura directa para nadie de la app, con la lectura intacta (y los permisos, contra la lista EXPLÍCITA de
+      # producción, también por columna); notas de crédito: un cierre deja de esperar su nota si tiene una atada o si el
+      # comprobante ya tiene la de faltante; fn_rentabilidad solo para el líder; las dos migraciones pegadas sobre la foto
+      # de producción (armada desde su propio texto, así que un cambio posterior legítimo no la pone roja) cambian solo lo
+      # que dicen; y cerrar las puertas no rompe la tienda
+      # (como authenticated, la venta con boleta y la devolución aprobada siguen emitiendo, con su control: sin el EXECUTE
+      # de la dueña se caen). Cada caso termina en ROLLBACK.
+      - name: pruebas:arreglos-en-vivo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:arreglos-en-vivo
+
       # ── Pruebas que ya existían y pasaban pero no corrían en ningún sitio (cableadas el 2026-09-25) ────────────────────
       # Un script en `scripts/pruebas/` que nadie corre es una intención, no un candado (mismo problema que `deriva-produccion`,
       # abajo). Este bloque va en el MEDIO del job, junto a los de Compras, a propósito: cada fase de Finanzas anexa su paso al
@@ -714,6 +792,19 @@ jobs:
       - name: pruebas:clientas
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas
+
+      # La ficha de clienta es del módulo «Clientas» y anonimizar borra todo (ADR-0249, actualización 2026-09-28): sus 11
+      # funciones rechazan con 42501 `clientas_sin_modulo` a la cuenta cuyo rol no lo tiene (antes de pedir «Responsable») y la
+      # política de la tabla le devuelve 0 filas; líder, persona y terminal con el módulo pasan. Registrar con el DNI de una
+      # ficha archivada la reactiva (mismo id, historial, version+1). Anonimizar no deja el DNI, el nombre ni el celular en
+      # clientas, clientas_fusiones ni en la actividad (Clientas y Apartados). Control con el cambio deshecho (el ataque pasa),
+      # los archivos pegados sobre el estado de producción, dos veces y en el orden equivocado, candado de versión y
+      # vigilantes que muerden; las cinco ramas de la actividad de un apartado; y dos cajas a la vez con el mismo DNI (dos
+      # conexiones: la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK (la carrera con COMMIT solo
+      # corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:clientas-modulo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:clientas-modulo
 
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
@@ -852,6 +943,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-cobertura
 
+      # ADR-0253: ningún módulo es «solo del líder» (Configuración, Impuestos y Cierre de mes se dan como cualquiera, con
+      # todo lo del líder dentro) y el Líder de equipo se edita (lo que se le quita, sin Roles y accesos, lo mueve un
+      # Admin). Vigila además que ninguna de las 36 funciones reescritas vuelva a preguntar fn_es_lider(): una migración
+      # que las recree desde un archivo viejo del repo les devolvería el candado sin que nada más avise. ROLLBACK siempre.
+      - name: pruebas:roles-lider-editable
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles-lider-editable
+
       # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
       # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
       # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra
@@ -923,10 +1022,21 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
-      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
-      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
-      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
-      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      # Color y talla de una variante se corrigen solo sin historia (20260928235500): por la ficha, la variante recién
+      # creada cambia de color o de talla habilitada, su código se recalcula y su código de barras se renombra; la que
+      # tiene un movimiento no cambia ni por la ficha ni con un update directo (hint `variante_con_historia`); un
+      # guardado de solo precio no toca código ni SKU; sin el disparador el update directo sí pasa (el hueco 3 existía);
+      # el parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-identidad-variante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-identidad-variante
+
+      # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
+      # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja
+      # nada (la base entera, tabla por tabla); corrida definitiva que devuelve a stock lo ajeno, deja el libro cuadrando y los
+      # candados en su modo, y nunca toca un comprobante que llegó a SUNAT en producción; purgar + restaurar devuelve la base
+      # idéntica; rechaza lo que no se nombró o no entiende (otra venta, separación o compra, venta anulada, cambio, proforma,
+      # efectivo en caja, pago de compra, libro descuadrado). Cada caso termina en ROLLBACK.
       - name: pruebas:purgar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:purgar-producto
@@ -939,3 +1049,40 @@ jobs:
       - name: pruebas:eliminar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-producto
+
+      # Productos ▸ Eliminar con su historia (20260928230000, ADR-0252, solo Admin): un producto cuya historia es solo de stock
+      # (carga, ajuste, bajada al piso, conteo, apartado cerrado, pedido no atendido) se elimina completo sin tocar a otro, el
+      # libro de movimientos sigue cuadrando, deja rastro y línea en Actividad, los candados vuelven a su modo y siguen frenando;
+      # el respaldo se restaura idéntico con scripts/purga/restaurar-purga.sql; un Líder que no es Admin no puede; ventas,
+      # apartados abiertos, ingresos de proveedor y costos frenan hasta al Admin; y dos pruebas de deriva fallan si nace una
+      # tabla que cita movimientos, o un candado de DELETE, sin clasificar. Cada caso termina en ROLLBACK.
+      - name: pruebas:eliminar-producto-con-historia
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:eliminar-producto-con-historia
+
+      # Huellas del catálogo de main (`scripts/migraciones/deriva.sql`): prueba que la consulta corre sobre la base del CI
+      # y, en un push a main, las guarda como artefacto para compararlas con las de producción (`deriva.mjs`): qué SQL de
+      # main falta pegar y qué arreglo vive solo en producción (el 2026-09-27 se publicaron 6 cambios sin su SQL).
+      - name: Huellas de main (deriva)
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: |
+          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/huellas-main.tsv"
+          lineas=$(wc -l < "$RUNNER_TEMP/huellas-main.tsv")
+          echo "huellas de main: $lineas objetos"
+          test "$lineas" -gt 1000
+          # Cada línea es «grupo<TAB>clave<TAB>huella»: una línea suelta (un «SET» sin -q) rompería la comparación.
+          awk -F'\t' 'NF != 3 || length($3) != 12 || $3 !~ /^[0-9a-f]+$/ { print "línea rara: " $0; malo = 1 } END { exit malo }' "$RUNNER_TEMP/huellas-main.tsv"
+
+      # La función con llave que GitHub llama cada mañana en producción (20260928210000): con la llave, anon recibe
+      # EXACTAMENTE la celda de deriva.sql; sin ella, 42501; nadie más crea llaves ni lee la tabla de la llave.
+      - name: pruebas:huellas-catalogo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:huellas-catalogo
+
+      - name: Guardar huellas de main
+        if: ${{ github.event_name == 'push' && steps.supabase.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: huellas-main
+          path: ${{ runner.temp }}/huellas-main.tsv
+          retention-days: 30

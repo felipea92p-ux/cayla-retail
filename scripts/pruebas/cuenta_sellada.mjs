@@ -313,7 +313,7 @@ select pg_temp.intento(format('select retail.asignar_cuenta_pasada(%L, %L)', :'c
   esperar("decirlo después valida la cuenta con el medio (efectivo no es un banco)", r.ok && noSirve.includes("no guarda efectivo"), r);
   esperar("dicho una vez: baja la caja fuerte, sale de la lista y NO crea egresos ni toca la caja", r.ok && asignada === "90.00|0|0", r);
   esperar("no se dice dos veces", r.ok && dosVeces.includes("ya dice de qué cuenta"), r);
-  esperar("decir lo pasado es solo del líder", r.ok && noLider.includes("solo del líder"), r);
+  esperar("decir lo pasado es solo del líder", r.ok && noLider.includes("del líder o de quien tiene el módulo «Configuración»"), r);
   void _a; void _b; void _asig;
 }
 
@@ -474,7 +474,7 @@ select pg_temp.intento('select retail.fn_pagos_sin_cuenta()');`);
   esperar("la colaboradora ve su cajón y los bancos; no el cajón de Lima ni lo que tiene el líder", r.ok && micaela === "1|0|0|1", r);
   esperar("lo que tiene el líder solo lo mueve el líder", r.ok && rendir.includes("solo lo mueve el líder"), r);
   esperar("la caja fuerte de su tienda sí", r.ok && suya !== "" && !suya.includes("no es de tu tienda") && !suya.includes("solo"), r);
-  esperar("la lista de lo pasado es solo del líder", r.ok && lista.includes("solo del líder"), r);
+  esperar("la lista de lo pasado es solo del líder", r.ok && lista.includes("del líder o de quien tiene el módulo «Configuración»"), r);
 }
 
 // 14. Permisos: nadie lee lo nuevo directo; las internas no se abren.

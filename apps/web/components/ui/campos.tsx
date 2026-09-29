@@ -167,6 +167,10 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
       <div className={caja ? "caja-cayla relative px-3" : "relative"}>
         <input
           id={id}
+          // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha
+          // de contactos de quien está en la caja: el ícono azul de persona. En el ERP nunca se escribe el contacto
+          // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
+          autoComplete="off"
           {...props}
           onFocus={(e) => {
             setEnfocado(true);

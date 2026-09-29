@@ -2,22 +2,31 @@ import { notFound, redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ProductoForm } from "@/components/ProductoForm";
 import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
+import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
 // verdad decide.
-export default async function EditarProductoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditarProductoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ desde?: string | string[] }>;
+}) {
   const { id } = await params;
+  // Tabla o Grilla, con sus filtros: de donde se salió a editar (`lib/vuelta-productos.ts`).
+  const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -28,6 +37,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
     supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
+    getImagenesMuestra(),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -53,7 +63,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <div>
-        <Volver href="/productos" a="Productos" className="mb-2" />
+        <Volver href={volverA} a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {producto.referencia}
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
@@ -66,10 +76,12 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
         colores={colores}
         ejes={ejes}
+        imagenes={imagenes}
         etiquetas={etiquetas}
         avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
         marcas={marcas}
         producto={producto}
+        volverA={volverA}
       />
     </div>
   );

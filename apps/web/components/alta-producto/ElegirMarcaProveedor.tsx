@@ -2,34 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import {
-  marcaAutomatica,
-  marcasDeProveedor,
-  proveedorAutomatico,
-  proveedoresDeMarca,
-  sugerenciasDeCategoria,
-  type MarcaConProveedores,
-  type MarcaOpcion,
-  type ParejaUso,
-  type ProveedorOpcion,
-  type Vinculo,
-} from "@/lib/marcas";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
+import { proveedoresDeMarca, sugerenciasDeCategoria, type MarcaConProveedores, type MarcaOpcion, type ParejaUso, type ProveedorOpcion, type Vinculo } from "@/lib/marcas";
+import { cuantasMarcas, opcionesDeParejas, separarPareja } from "@/lib/marca-proveedor-reglas";
 
 // Elegir DE QUIÉN es un producto: marca y proveedor (ADR-0109). Una marca la
 // pueden traer varios proveedores (raro, pero pasa con accesorios y chompas
 // importadas), así que son dos datos con una regla: el proveedor tiene que
 // traer esa marca — la base lo obliga con una llave compuesta.
 //
-// Hecho para ir RÁPIDO, porque en el censo se usa 300-900 veces:
-//   1. sugerencias — las parejas más usadas en esta categoría, un toque;
-//   2. una sola caja busca marcas y proveedores a la vez (sin tildes);
-//   3. si la marca la trae UN solo proveedor, se elige sola (y a la inversa);
-//   4. si falta algo, "+ Nueva marca" / "+ Nuevo proveedor" sin salir.
-// La búsqueda es un ComboBuscable: los resultados flotan sobre el formulario (7 a la vista) en vez de abrir una
-// lista que empujaba todo hacia abajo, y «+ Nueva marca «…»» es la última opción (spike Nuevo producto, 2026-09-24).
+// Spike Nuevo producto v2 (Felipe, 2026-09-28): en Nuevo producto, SOLO el buscador. Los chips de
+// «lo más usado» en la categoría se apagan ahí con `sugerencias={false}`; Editar producto y el censo de
+// Conteo los conservan (por defecto `true`): Felipe pidió quitarlos en el alta, no en otros módulos, y en el
+// censo son el atajo de 300-900 escaneos. Se fueron para todos los pasos «¿cuál de sus proveedores?»:
+// el buscador ofrece directamente las PAREJAS («CAYLA» · la trae Taller Lima),
+// de la A a la Z, toda la lista al tocarlo y filtrada al escribir (sin tildes,
+// por marca o por proveedor; con más de 50 se pagina sola, ADR-0209). Un toque y
+// la pareja queda elegida — en el censo se usa 300-900 veces.
+//
+// Registrar lo que falta es la primera fila de la lista, fija arriba al bajar
+// (`crearArriba`), y además un enlace siempre a la vista bajo el buscador. Los dos
+// abren UN formulario, «Registrar marca o proveedor» (NuevaMarcaForm), que cubre
+// marca nueva, proveedor nuevo y un proveedor más para una marca que ya existe.
+// Mientras está abierto, el buscador se esconde.
 //
 // Las listas viven acá (copia local) para que lo recién creado aparezca sin
 // recargar, y se le AVISAN al padre (`onListas`): el padre puede desmontar este
@@ -42,8 +39,10 @@ type Props = {
   marcas: MarcaOpcion[];
   proveedores: ProveedorOpcion[];
   vinculos: Vinculo[];
-  /** Parejas usadas en productos recientes de la categoría elegida (para sugerir). */
+  /** Parejas usadas en productos recientes de la categoría: los chips «Lo más usado» bajo el buscador. */
   usosCategoria: ParejaUso[];
+  /** `false` apaga esos chips (Nuevo producto, spike v2). Por defecto se muestran, como antes. */
+  sugerencias?: boolean;
   categoriaNombre?: string;
   /** Nombres de la pareja YA guardada (edición): se muestran aunque la marca o el proveedor estén hoy desactivados y no vengan en las listas activas. */
   nombresIniciales?: { marca: string; proveedor: string };
@@ -63,6 +62,7 @@ export function ElegirMarcaProveedor({
   vinculos: vinculosIni,
   usosCategoria,
   categoriaNombre,
+  sugerencias = true,
   nombresIniciales,
   marcaId,
   proveedorId,
@@ -74,16 +74,12 @@ export function ElegirMarcaProveedor({
   const [marcas, setMarcas] = useState(marcasIni);
   const [proveedores, setProveedores] = useState(proveedoresIni);
   const [vinculos, setVinculos] = useState(vinculosIni);
-  const [marcaTentativa, setMarcaTentativa] = useState<string | null>(null);
-  const [provTentativo, setProvTentativo] = useState<string | null>(null);
-  // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, solo otro proveedor para una marca, o la primera marca de un proveedor que no trae ninguna).
-  // `marcaId` va solo con `marcaFija` (sumar otro proveedor a una marca que existe): sirve para no ofrecer a quien ya la trae.
-  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean; marcaId?: string; proveedorFijo?: ProveedorOpcion } | null>(null);
+  // null = no se está registrando nada; si no, con qué nombre de marca abre el formulario (lo tipeado en el buscador).
+  const [creando, setCreando] = useState<{ nombre: string } | null>(null);
 
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
-  const sugeridas = useMemo(() => sugerenciasDeCategoria(usosCategoria, marcas, proveedores), [usosCategoria, marcas, proveedores]);
-  // Para que «+ Nueva marca» pregunte «¿no será CAYLA, que la trae CAYLA SAC?» antes de crear otra.
+  // Para que el formulario diga «CAYLA · ya existe. Hoy la traen …» y pregunte «¿no será CAYLA?» antes de crear otra.
   const marcasConProveedores = useMemo<MarcaConProveedores[]>(
     () =>
       marcas.map((m) => ({
@@ -94,53 +90,11 @@ export function ElegirMarcaProveedor({
       })),
     [marcas, proveedores, vinculos]
   );
-  // Marcas y proveedores en UNA lista para el buscador; el detalle dice qué es cada uno y con quién va.
-  const opcionesBusqueda = useMemo(
-    () =>
-      [
-        ...marcas.map((m) => ({
-          valor: `m:${m.id}`,
-          texto: m.nombre,
-          detalle: `Marca · ${proveedoresDeMarca(vinculos, m.id).map((id) => proveedores.find((p) => p.id === id)?.nombre).filter(Boolean).join(", ") || "sin proveedor"}`,
-        })),
-        ...proveedores.map((p) => {
-          const n = marcasDeProveedor(vinculos, p.id).length;
-          return { valor: `p:${p.id}`, texto: p.nombre, detalle: `Proveedor · ${n} marca${n === 1 ? "" : "s"}` };
-        }),
-      ],
-    [marcas, proveedores, vinculos]
+  const opciones = useMemo(() => opcionesDeParejas(marcas, proveedores, vinculos), [marcas, proveedores, vinculos]);
+  const sugeridas = useMemo(
+    () => (sugerencias ? sugerenciasDeCategoria(usosCategoria, marcas, proveedores) : []),
+    [sugerencias, usosCategoria, marcas, proveedores]
   );
-  function onElegir(m: string, p: string, nombres?: { marca: string; proveedor: string }) {
-    onElegirProp(m, p, nombres ?? { marca: marcaPor(m)?.nombre ?? "", proveedor: provPor(p)?.nombre ?? "" });
-  }
-  const usosDe = (m: string, p: string) => usosCategoria.find((u) => u.marcaId === m && u.proveedorId === p)?.usos ?? 0;
-
-  function limpiarTentativas() {
-    setMarcaTentativa(null);
-    setProvTentativo(null);
-  }
-
-  function elegirMarca(id: string) {
-    const auto = proveedorAutomatico(vinculos, id);
-    if (auto) {
-      limpiarTentativas();
-      onElegir(id, auto);
-    } else {
-      setProvTentativo(null);
-      setMarcaTentativa(id);
-      }
-  }
-
-  function elegirProveedor(id: string) {
-    const auto = marcaAutomatica(vinculos, id);
-    if (auto) {
-      limpiarTentativas();
-      onElegir(auto, id);
-    } else {
-      setMarcaTentativa(null);
-      setProvTentativo(id);
-      }
-  }
 
   function alGuardarNueva(r: MarcaGuardada) {
     const proveedoresNuevos =
@@ -155,189 +109,77 @@ export function ElegirMarcaProveedor({
     onListas?.({ marcas: marcasNuevas, proveedores: proveedoresNuevos, vinculos: vinculosNuevos });
     avisar.exito(`${r.marcaNombre} · ${r.proveedorNombre}`, { detalle: "Marca y proveedor guardados." });
     setCreando(null);
-    limpiarTentativas();
-    onElegir(r.marcaId, r.proveedorId, { marca: r.marcaNombre, proveedor: r.proveedorNombre });
+    onElegirProp(r.marcaId, r.proveedorId, { marca: r.marcaNombre, proveedor: r.proveedorNombre });
   }
 
   // ---------- ya elegidos ----------
-  // «+ Otro proveedor para CAYLA» también acá (2026-09-25): una marca con UN solo proveedor se elige sola con ese
-  // proveedor (paso 3 de arriba), y hasta ahora de este estado solo se salía con «Cambiar», que vuelve a elegir lo
-  // mismo. Quien necesitaba «CAYLA, pero la confecciona Jacard» no tenía cómo decirlo y terminó creando «Cayla 2».
-  // Y al revés: elegir a Jacard trae sola su única marca (Krisstell), así que «+ Otra marca de Jacard» también va acá.
-  // Son las mismas salidas que ya tenían los estados «falta el proveedor» y «falta la marca».
+  // Como el spike: la pareja en una línea y «Cambiar». Sumarle otro proveedor a la marca elegida ya no necesita un
+  // atajo propio: «Cambiar» → «¿No está?» abre el formulario que lo cubre.
   if (marcaId && proveedorId && !creando) {
     const m = marcaPor(marcaId);
     const p = provPor(proveedorId);
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tinta/20 bg-tinta/[0.03] px-3 py-2.5">
-        <p className="text-sm text-tinta">
-          <span className="font-medium">{m?.nombre ?? nombresIniciales?.marca ?? "Marca"}</span>
-          <span className="text-tinta/45"> · </span>
-          <span className="text-tinta/80">{p?.nombre ?? nombresIniciales?.proveedor ?? "Proveedor"}</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-hueso px-3 py-2.5">
+        <p className="min-w-0 text-sm text-tinta">
+          <span className="font-semibold">{m?.nombre ?? nombresIniciales?.marca ?? "Marca"}</span>
+          <span className="text-taupe"> · la trae {p?.nombre ?? nombresIniciales?.proveedor ?? "Proveedor"}</span>
         </p>
-        <div className="flex flex-wrap gap-4">
-          {puedeCrear && m && (
-            <button
-              type="button"
-              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true, marcaId: m.id })}
-              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
-            >
-              + Otro proveedor para {m.nombre}
-            </button>
-          )}
-          {puedeCrear && p && (
-            <button
-              type="button"
-              onClick={() => setCreando({ nombre: "", marcaFija: false, proveedorFijo: p })}
-              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
-            >
-              + Otra marca de {p.nombre}
-            </button>
-          )}
-          <button type="button" onClick={onLimpiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-            Cambiar
-          </button>
-        </div>
+        <button type="button" onClick={onLimpiar} className="btn-cayla btn-enlace ml-auto text-[12.5px]">
+          Cambiar
+        </button>
       </div>
     );
   }
 
-  // ---------- crear marca / proveedor sin salir ----------
+  // ---------- registrar marca o proveedor sin salir ----------
   if (creando) {
     return (
       <NuevaMarcaForm
-        proveedores={creando.marcaId ? proveedores.filter((p) => !vinculos.some((v) => v.marcaId === creando.marcaId && v.proveedorId === p.id)) : proveedores}
-        nombreInicial={creando.nombre}
-        marcaFija={creando.marcaFija}
-        proveedorFijo={creando.proveedorFijo}
+        proveedores={proveedores}
         marcas={marcasConProveedores}
+        nombreInicial={creando.nombre}
+        textoGuardar="Registrar y elegir"
         onGuardado={alGuardarNueva}
         onCancelar={() => setCreando(null)}
       />
     );
   }
 
-  // ---------- una marca elegida, falta el proveedor ----------
-  if (marcaTentativa) {
-    const m = marcaPor(marcaTentativa);
-    const provs = proveedoresDeMarca(vinculos, marcaTentativa)
-      .map((id) => provPor(id))
-      .filter((p): p is ProveedorOpcion => Boolean(p))
-      .sort((a, b) => usosDe(marcaTentativa, b.id) - usosDe(marcaTentativa, a.id));
-    return (
-      <div className="space-y-3">
-        <p className="text-sm text-tinta">
-          <span className="font-medium">{m?.nombre}</span> la traen varios proveedores. ¿Cuál es esta vez?
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {provs.map((p) => (
-            <ChipOpcion key={p.id} elegido={false} onClick={() => (limpiarTentativas(), onElegir(marcaTentativa, p.id))}>
-              {p.nombre}
-              {usosDe(marcaTentativa, p.id) > 0 && <span className="text-[11px] text-tinta/50">· lo más usado</span>}
-            </ChipOpcion>
-          ))}
-        </div>
-        <div className="flex gap-4">
-          {puedeCrear && m && (
-            <button
-              type="button"
-              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true, marcaId: m.id })}
-              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
-            >
-              + Otro proveedor para {m.nombre}
-            </button>
-          )}
-          <button type="button" onClick={limpiarTentativas} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
-            Cambiar marca
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------- un proveedor elegido, falta la marca ----------
-  if (provTentativo) {
-    const p = provPor(provTentativo);
-    const ms = marcasDeProveedor(vinculos, provTentativo)
-      .map((id) => marcaPor(id))
-      .filter((x): x is MarcaOpcion => Boolean(x))
-      .sort((a, b) => usosDe(b.id, provTentativo) - usosDe(a.id, provTentativo));
-    // Un proveedor recién registrado (o cuyas marcas se desactivaron) no trae ninguna marca todavía: sin una salida
-    // acá, la persona quedaba frente a una lista vacía y un solo botón, «Cambiar proveedor».
-    const sinMarcas = ms.length === 0;
-    return (
-      <div className="space-y-3">
-        <p className="text-sm text-tinta">
-          {sinMarcas ? (
-            <>
-              <span className="font-medium">{p?.nombre}</span> todavía no trae ninguna marca.
-            </>
-          ) : (
-            <>
-              <span className="font-medium">{p?.nombre}</span> trae varias marcas. ¿Cuál es?
-            </>
-          )}
-        </p>
-        {!sinMarcas && (
-          <div className="flex flex-wrap gap-1.5">
-            {ms.map((m) => (
-              <ChipOpcion key={m.id} elegido={false} onClick={() => (limpiarTentativas(), onElegir(m.id, provTentativo))}>
-                {m.nombre}
-              </ChipOpcion>
-            ))}
-          </div>
-        )}
-        <div className="flex gap-4">
-          {puedeCrear && p && (
-            <button
-              type="button"
-              onClick={() => setCreando({ nombre: "", marcaFija: false, proveedorFijo: p })}
-              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
-            >
-              {sinMarcas ? `+ Primera marca de ${p.nombre}` : `+ Otra marca de ${p.nombre}`}
-            </button>
-          )}
-          <button type="button" onClick={limpiarTentativas} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
-            Cambiar proveedor
-          </button>
-        </div>
-        {sinMarcas && !puedeCrear && <p className="text-xs text-tinta/55">Pídele a un Líder que le agregue la marca.</p>}
-      </div>
-    );
-  }
-
-  // ---------- nada elegido: búsqueda + sugerencias ----------
-  // La caja de búsqueda va primero (es lo que se usa siempre) y las sugeridas debajo,
-  // como atajo — no al revés (pedido de Felipe, 2026-09-27: la caja competía por atención
-  // con los chips aunque fuera la acción más usada).
+  // ---------- nada elegido: solo el buscador ----------
+  const total = cuantasMarcas(opciones);
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <ComboBuscable
-          id="buscar-marca"
-          caja
-          className="min-w-[14rem] flex-1"
-          etiquetaAccesible="Buscar una marca o un proveedor"
-          marcador={sugeridas.length > 0 ? "Busca otra marca o proveedor…" : "Busca una marca o un proveedor…"}
-          valor=""
-          onValor={(v) => (v.startsWith("m:") ? elegirMarca(v.slice(2)) : elegirProveedor(v.slice(2)))}
-          opciones={opcionesBusqueda}
-          limite={7}
-          crear={puedeCrear ? { etiqueta: (q) => (q ? `+ Nueva marca «${q}»` : "+ Nueva marca"), onCrear: (q) => setCreando({ nombre: q, marcaFija: false }) } : undefined}
-        />
-        {puedeCrear && (
-          <button type="button" onClick={() => setCreando({ nombre: "", marcaFija: false })} className="btn-cayla btn-secundario">
-            + Nueva marca
-          </button>
-        )}
-      </div>
-
+    <div className="space-y-1.5">
+      <ComboBuscable
+        id="buscar-marca"
+        caja
+        etiquetaAccesible="Buscar una marca o un proveedor"
+        marcador={total > 0 ? `Toca para ver las ${total} marcas, o escribe la marca o el proveedor…` : "Escribe la marca o el proveedor…"}
+        valor=""
+        onValor={(v) => {
+          const { marcaId: m, proveedorId: p } = separarPareja(v);
+          onElegirProp(m, p, { marca: marcaPor(m)?.nombre ?? "", proveedor: provPor(p)?.nombre ?? "" });
+        }}
+        opciones={opciones}
+        crearArriba
+        crear={
+          puedeCrear
+            ? {
+                etiqueta: (q) => (q ? `+ Registrar «${q}» como marca nueva` : "+ Registrar una marca o un proveedor nuevo"),
+                onCrear: (q) => setCreando({ nombre: q }),
+              }
+            : undefined
+        }
+      />
       {sugeridas.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 pt-1.5">
           <p className="label-cayla text-[11px] text-tinta/60">{categoriaNombre ? `Lo más usado en ${categoriaNombre}` : "Lo más usado"}</p>
           <div className="flex flex-wrap gap-1.5">
             {sugeridas.map((s) => (
-              <ChipOpcion key={`${s.marca.id}|${s.proveedor.id}`} elegido={false} onClick={() => onElegir(s.marca.id, s.proveedor.id)}>
+              <ChipOpcion
+                key={`${s.marca.id}|${s.proveedor.id}`}
+                elegido={false}
+                onClick={() => onElegirProp(s.marca.id, s.proveedor.id, { marca: s.marca.nombre, proveedor: s.proveedor.nombre })}
+              >
                 {s.marca.nombre}
                 <span className="text-tinta/45">·</span>
                 <span className="text-tinta/70">{s.proveedor.nombre}</span>
@@ -346,13 +188,15 @@ export function ElegirMarcaProveedor({
           </div>
         </div>
       )}
-
       {puedeCrear ? (
-        <a href="/productos/marcas" target="_blank" rel="noreferrer" className="label-cayla inline-block text-[11px] text-tinta/50 underline underline-offset-4 hover:text-rojo">
-          Administrar marcas
-        </a>
+        <p className="text-xs text-taupe">
+          ¿No está?{" "}
+          <button type="button" onClick={() => setCreando({ nombre: "" })} className="btn-cayla btn-enlace text-xs">
+            + Registrar una marca o un proveedor nuevo
+          </button>
+        </p>
       ) : (
-        <p className="text-xs text-tinta/55">¿Falta una marca? Pídele a un Líder que la agregue.</p>
+        <p className="text-xs text-taupe">¿Falta una marca? Pídele a un Líder que la agregue.</p>
       )}
     </div>
   );

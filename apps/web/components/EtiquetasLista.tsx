@@ -2,8 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
-import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -12,7 +10,19 @@ import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import {
+  AccionTarjeta,
+  BarraAtributos,
+  BotonesPendiente,
+  BotonReactivar,
+  DesactivarTarjeta,
+  GRILLA_ATRIBUTOS,
+  PieTarjeta,
+  SinCoincidencias,
+  TarjetaAtributo,
+  TituloGrupo,
+} from "@/components/atributos/kit";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
@@ -87,11 +97,6 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-// Misma grilla y misma tarjeta (p-4, imagen 3:1) que Colores, Tejidos y Patrones:
-// las cinco pestañas de Atributos comparten medidas, así que al cambiar de una a
-// otra la ilustración no crece ni se corre.
-const GRILLA = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
-
 /** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
  *  y el rango de fechas, juntos debajo del nombre. */
 function chipDeVigencia(v: Vigencia | null) {
@@ -117,59 +122,50 @@ function TarjetaEtiqueta({
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
   return (
-    <div
-      className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
-        apagada ? "opacity-60" : ""
-      }`}
+    <TarjetaAtributo
+      muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />}
+      nombre={e.nombre}
+      notas={e.estado !== "rechazado" ? e.notas : null}
+      insignia={e.estado === "pendiente" ? "Pendiente" : e.estado === "rechazado" ? "Rechazada" : null}
+      apagada={apagada}
+      detalle={
+        <>
+          {(vigencia || rango) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {chipDeVigencia(vigencia)}
+              {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+            </div>
+          )}
+          {e.descuentoPct !== null && (
+            <p className="text-[11px] text-tinta/75">
+              <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
+              {" · "}
+              {e.categoriaIds.length === 0
+                ? "solo en las prendas etiquetadas"
+                : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
+            </p>
+          )}
+          {prendas !== null && (
+            <p className="text-[11px] tabular-nums text-tinta/60">
+              {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
+            </p>
+          )}
+          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
+          {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
+              prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
+          {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
+            <Link
+              href={urlEtiquetasDePrecio({ campana: e.id })}
+              className="label-cayla mt-0.5 self-start text-[10px] text-tinta/75 underline underline-offset-4 transition-colors hover:text-tinta"
+            >
+              {vigencia?.estado === "terminada" ? "Volver al precio normal" : "Imprimir etiquetas de precio"}
+            </Link>
+          )}
+        </>
+      }
     >
-      <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
-      <div className="flex flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[15px] font-medium leading-snug text-tinta">
-            {e.nombre}
-            {e.notas && e.estado !== "rechazado" && <Ayuda titulo={e.nombre}>{e.notas}</Ayuda>}
-          </p>
-          {e.estado === "pendiente" && (
-            <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-          )}
-          {e.estado === "rechazado" && (
-            <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazada</span>
-          )}
-        </div>
-        {(vigencia || rango) && (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {chipDeVigencia(vigencia)}
-            {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
-          </div>
-        )}
-        {e.descuentoPct !== null && (
-          <p className="text-[11px] text-tinta/75">
-            <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
-            {" · "}
-            {e.categoriaIds.length === 0
-              ? "solo en las prendas etiquetadas"
-              : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
-          </p>
-        )}
-        {prendas !== null && (
-          <p className="text-[11px] tabular-nums text-tinta/60">
-            {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
-          </p>
-        )}
-        {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
-        {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
-            prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
-        {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
-          <Link
-            href={urlEtiquetasDePrecio({ campana: e.id })}
-            className="label-cayla mt-0.5 self-start text-[10px] text-tinta/75 underline underline-offset-4 transition-colors hover:text-tinta"
-          >
-            {vigencia?.estado === "terminada" ? "Volver al precio normal" : "Imprimir etiquetas de precio"}
-          </Link>
-        )}
-      </div>
       {children}
-    </div>
+    </TarjetaAtributo>
   );
 }
 
@@ -218,7 +214,6 @@ export function EtiquetasLista({
   // recargar la página.
   const [manuales, setManuales] = useState(variantesManuales);
   const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
   const [grupo, setGrupo] = useState<Estilo | "todas">("todas");
   const [soloVigentes, setSoloVigentes] = useState(false);
   // El grid solo se re-asienta cuando la persona cambia un filtro, nunca al
@@ -406,80 +401,46 @@ export function EtiquetasLista({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div role="group" aria-label="Filtrar etiquetas" className="flex flex-wrap items-center gap-1.5">
-          <BotonFiltro activo={grupo === "todas"} onClick={() => { setGrupo("todas"); setAnimar(true); }} cuenta={activas.length}>
-            Todas
-          </BotonFiltro>
-          {gruposConEtiquetas.map((g) => (
-            <BotonFiltro
-              key={g}
-              activo={grupo === g}
-              onClick={() => { setGrupo(grupo === g ? "todas" : g); setAnimar(true); }}
-              cuenta={activas.filter((e) => e.estilo === g).length}
-            >
-              {ESTILOS[g].grupo}
+      <BarraAtributos
+        etiqueta="Filtrar etiquetas"
+        filtros={
+          <>
+            <BotonFiltro activo={grupo === "todas"} onClick={() => { setGrupo("todas"); setAnimar(true); }} cuenta={activas.length}>
+              Todas
             </BotonFiltro>
-          ))}
-          {vigentesHoy > 0 && (
-            <>
-              <span aria-hidden className="mx-1 hidden h-4 w-px bg-tinta/15 sm:block" />
+            {gruposConEtiquetas.map((g) => (
               <BotonFiltro
-                activo={soloVigentes}
-                onClick={() => { setSoloVigentes((v) => !v); setAnimar(true); }}
-                cuenta={vigentesHoy}
-                punto="bg-verde"
+                key={g}
+                activo={grupo === g}
+                onClick={() => { setGrupo(grupo === g ? "todas" : g); setAnimar(true); }}
+                cuenta={activas.filter((e) => e.estilo === g).length}
               >
-                Vigentes hoy
+                {ESTILOS[g].grupo}
               </BotonFiltro>
-            </>
-          )}
-        </div>
-
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
-            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              onFocus={() => setBuscando(true)}
-              onBlur={() => setBuscando(false)}
-              placeholder="Buscar"
-              aria-label="Buscar etiqueta"
-              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => setBusqueda("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
+            ))}
+            {vigentesHoy > 0 && (
+              <>
+                <span aria-hidden className="mx-1 hidden h-4 w-px bg-tinta/15 sm:block" />
+                <BotonFiltro
+                  activo={soloVigentes}
+                  onClick={() => { setSoloVigentes((v) => !v); setAnimar(true); }}
+                  cuenta={vigentesHoy}
+                  punto="bg-verde"
+                >
+                  Vigentes hoy
+                </BotonFiltro>
+              </>
             )}
-            <Hilo activo={buscando} />
-          </div>
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar etiqueta
-          </button>
-        </div>
-      </div>
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar etiqueta", placeholder: "Buscar etiqueta" }}
+        agregar={{ texto: "+ Agregar etiqueta", onClick: () => setAgregando(true) }}
+      />
 
       {hayFiltros && activasVisibles.length + desactivadasVisibles.length === 0 && (
-        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-tinta/75">
-            {q ? <>Ninguna etiqueta coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ninguna etiqueta cumple estos filtros."}
-          </p>
-          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={quitarFiltros}>
-            Quitar filtros
-          </Boton>
-        </div>
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {q ? <>Ninguna etiqueta coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ninguna etiqueta cumple estos filtros."}
+        </SinCoincidencias>
       )}
 
       <div key={`${grupo}-${soloVigentes}`} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
@@ -489,65 +450,31 @@ export function EtiquetasLista({
           const { grupo: nombreGrupo, dot } = ESTILOS[clave];
           return (
             <section key={clave} className="space-y-3">
-              <p className="label-cayla flex items-center gap-1.5 text-[11px] text-tinta/65">
-                <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
+              <TituloGrupo punto={dot} cuenta={delGrupo.length}>
                 {nombreGrupo}
-                <span className="font-normal tabular-nums text-tinta/40">{delGrupo.length}</span>
-              </p>
-              <div className={GRILLA}>
+              </TituloGrupo>
+              <div className={GRILLA_ATRIBUTOS}>
                 {delGrupo.map((e) => (
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
                     {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
-                        // Dos botones lado a lado no caben en una tarjeta angosta («Rechazar» se cortaba, medido a 1024 px): con
-                        // `flex-wrap` y un mínimo por botón, si no caben en fila pasan a dos filas (misma solución que Tallas).
-                        <div className="flex flex-wrap gap-2">
-                          <Boton peso="primario" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap" onClick={() => abrirAprobacion(e)}>
-                            Aprobar
-                          </Boton>
-                          <Boton
-                            peso="discreto"
-                            className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap text-rojo"
-                            onClick={() => {
-                              setRechazandoAbierto(e.id);
-                              setMotivoRechazo("");
-                            }}
-                          >
-                            Rechazar
-                          </Boton>
-                        </div>
+                        <BotonesPendiente
+                          onAprobar={() => abrirAprobacion(e)}
+                          onRechazar={() => {
+                            setRechazandoAbierto(e.id);
+                            setMotivoRechazo("");
+                          }}
+                        />
                       ) : (
-                        // Desactivar no es lo que se hace a diario: aparece al pasar el
-                        // mouse o al enfocar con teclado, y en pantallas táctiles (sin
-                        // hover) se ve siempre. Reserva su espacio para que la tarjeta
-                        // no salte de alto.
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex flex-wrap gap-x-3 gap-y-1">
-                            <button
-                              type="button"
-                              onClick={() => setEtiquetando(e)}
-                              className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-                            >
-                              Prendas
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfigurando(e)}
-                              className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-                            >
-                              Configurar campaña
-                            </button>
-                          </span>
-                          <button
-                            type="button"
-                            disabled={cambiandoId === e.id}
+                        <PieTarjeta>
+                          <AccionTarjeta onClick={() => setEtiquetando(e)}>Prendas</AccionTarjeta>
+                          <AccionTarjeta onClick={() => setConfigurando(e)}>Configurar campaña</AccionTarjeta>
+                          <DesactivarTarjeta
+                            cambiando={cambiandoId === e.id}
                             onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => desactivar(e)))}
-                            className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
-                          >
-                            {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
-                          </button>
-                        </div>
+                          />
+                        </PieTarjeta>
                       ))}
                   </TarjetaEtiqueta>
                 ))}
@@ -559,24 +486,15 @@ export function EtiquetasLista({
 
       {desactivadasVisibles.length > 0 && (
         <section className="space-y-3">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            Desactivadas — ya no se pueden aplicar a una variante nueva
-            <span className="ml-1.5 font-normal tabular-nums text-tinta/40">{desactivadasVisibles.length}</span>
-          </p>
-          <div className={GRILLA}>
+          <TituloGrupo cuenta={desactivadasVisibles.length}>Desactivadas — ya no se pueden aplicar a una variante nueva</TituloGrupo>
+          <div className={GRILLA_ATRIBUTOS}>
             {desactivadasVisibles.map((e) => (
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
                 {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
-                  <div className="px-1 pb-1">
-                    <Boton
-                      peso="discreto"
-                      className="w-full px-2.5 py-1.5 text-[11px]"
-                      cargando={cambiandoId === e.id}
-                      onClick={() => (e.estado === "rechazado" ? abrirAprobacion(e) : setConfirmando(confirmacionCatalogo("reactivar", e.nombre, () => reactivar(e))))}
-                    >
-                      Reactivar
-                    </Boton>
-                  </div>
+                  <BotonReactivar
+                    cambiando={cambiandoId === e.id}
+                    onClick={() => (e.estado === "rechazado" ? abrirAprobacion(e) : setConfirmando(confirmacionCatalogo("reactivar", e.nombre, () => reactivar(e))))}
+                  />
                 )}
               </TarjetaEtiqueta>
             ))}

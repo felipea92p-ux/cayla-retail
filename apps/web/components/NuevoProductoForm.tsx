@@ -1,28 +1,27 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { MuestraPatron } from "@/components/MuestraPatron";
-import { MuestraTejido } from "@/components/MuestraTejido";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
+import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
+import { AtajosTallas, ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
-import { ProponerValor } from "@/components/alta-producto/ProponerValor";
-import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta } from "@/components/alta-producto/piezas";
+import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
-import { FotosAlta, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
-import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
+import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
 import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
@@ -38,10 +37,11 @@ import { useColaProductos } from "@/lib/useColaProductos";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { guardarFotos } from "@/lib/fotos-pendientes";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import {
   PASOS_ALTA,
   codigoBasePrevisto,
-  codigoVariantePrevisto,
   construirCeldas,
   estadoSubidaSinConexion,
   faltaDelPaso,
@@ -51,44 +51,56 @@ import {
   nivelMargen,
   ordenarColores,
   ordenarFotosAlta,
+  pasoAbrible,
   pasoHecho,
+  piePaso,
   problemasAlta,
   resumenStock,
+  siguienteDelAlta,
   textoDestinoStock,
+  textoTallas,
   tituloReferencia,
+  type ColorAlta,
   type DestinoStock,
+  type ResponsableAlta,
   type EstadoAlta,
   type PasoAlta as NumeroPaso,
 } from "@/lib/alta-producto";
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
-// "Nuevo producto" en 5 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
-//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor) ·
-//   3 Cómo se hace (tallas, tejido, patrón, colores, etiquetas, fotos) · 4 Precio y variantes (precio, costo, tabla
-//   talla × color) · 5 Cuántas tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma
-//   transacción que el producto).
-// Las ETIQUETAS viven en el paso 3, después de Colores (2026-09-27, ADR-0109 «Actualización b»): son un selector visual
-// con dibujo por concepto (`MuestraEtiqueta`, el mismo de Atributos ▸ Etiquetas), como Tejido, Patrón y Colores — no
-// encajaban entre los campos de puro texto del paso 2. Tejido gana la misma textura real que ya tenía Patrón (antes
-// texto plano, el mismo error que tenían las etiquetas). Historia: primero un enlace «+ Etiquetas» escondido al final
-// del paso 4 (hasta el 2026-09-26); después, siempre visibles pero solo texto (un día); ahora, con dibujo y en su lugar.
+// "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
+// 2026-09-24, y antes 7 bloques, ADR-0109):
+//   1 ¿A qué categoría pertenece? (familia → categoría) · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido,
+//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color, con
+//   la foto en la fila de su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
+//   —ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto— y quién lo registra).
+// Por qué así (README del spike v2): el paso «Cómo se hace» había crecido a 7 campos; cada color aparecía 4 veces (chips,
+// casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
+// números del acordeón y la caja «Siguiente paso»); y tejido y patrón, que DESCRIBEN la prenda, vivían con sus variantes.
+// Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
+// avance, además del acordeón, es la lista «Avance» bajo la ficha.
+// TEMPORADA y ETIQUETAS van plegadas en «Temporada y etiquetas · opcional» (la línea plegada dice lo elegido): son
+// opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas conservan su selector con dibujo por
+// concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto o dibujo real (`contexto.imagenes`).
 // Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
-// punteada. A la derecha, la prenda tal como va a quedar y UNA frase: el siguiente paso (no la lista entera de lo
-// que falta). En celular esa ficha baja a una barra pegada abajo con «Crear».
+// punteada. A la derecha, la prenda tal como va a quedar y la lista «Avance» (las 4 preguntas, tocables). En celular esa
+// ficha baja a una barra pegada abajo con «Crear».
 //
 // Diseñado para que equivocarse sea difícil, no para avisar después:
 //   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos) y al elegirla se pasa sola al paso 2;
 //   * el nombre se comprueba contra el catálogo MIENTRAS se escribe;
 //   * lo que la familia exige (Indumentaria: tejido y patrón) no se puede saltar;
 //   * lo que viene marcado de antemano es la curva habitual de la categoría;
-//   * «Seguir» no se apaga en silencio: al lado dice qué falta.
+//   * «Seguir» no se apaga en silencio: al lado dice qué falta. Casi todo es obligatorio, así que se marca lo OPCIONAL
+//     («Opcional · …») y el rojo queda para los errores.
 //
 // El alta es UNA transacción (`crear_producto_con_stock_inicial`, que envuelve a `crear_producto_con_variantes`): producto,
-// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en el paso 3 pero se guardan en el navegador y se suben DESPUÉS de que la base creó
-// el producto (ver `FotosAlta`): cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y
-// la pantalla de éxito dice cuál falta. Las filas de `producto_fotos` se escriben directo: su política
-// `producto_fotos_write_lider` (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
+// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en la tabla del paso 3 (en la
+// fila de su color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
+// cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y la pantalla de éxito dice cuál
+// falta. Las filas de `producto_fotos` se escriben directo: su política `producto_fotos_write_lider`
+// (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
 //
 // Al guardar NO se vuelve a la lista: aparece una pantalla de éxito con tres salidas — fotos, crear otro parecido,
 // ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, temporada, precio, costo
@@ -99,13 +111,11 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
 
 const TITULOS: Record<NumeroPaso, string> = {
-  1: "Qué producto es",
-  2: "Quién es y cómo se llama",
-  3: "Cómo se hace",
-  4: "Precio y variantes",
-  5: "Cuántas tienes hoy",
+  1: "¿A qué categoría pertenece?",
+  2: "¿Cómo es?",
+  3: "¿En qué tallas y colores?",
+  4: "¿Cuánto cuesta y cuántas hay?",
 };
-const CORTOS: Record<NumeroPaso, string> = { 1: "Qué es", 2: "Nombre y marca", 3: "Cómo se hace", 4: "Precio", 5: "Stock" };
 
 export function NuevoProductoForm({
   contexto,
@@ -129,6 +139,13 @@ export function NuevoProductoForm({
   // Marcas, proveedores y vínculos: el selector se desmonta al plegar el paso 2 (y al ver la pantalla de éxito);
   // lo creado aquí adentro (una marca nueva, un proveedor nuevo) tiene que sobrevivir a eso.
   const [listasMarca, setListasMarca] = useState({ marcas: contexto.marcas, proveedores: contexto.proveedores, vinculos: contexto.vinculos });
+  // Los colores creados AQUÍ («+ Nuevo color» del paso 3) se suman a los que trajo la página, igual que las etiquetas: si la
+  // página se relee (`router.refresh()` al «crear otro parecido») y ya los trae, no se duplican.
+  const [coloresNuevos, setColoresNuevos] = useState<ColorAlta[]>([]);
+  const colores = useMemo(
+    () => [...contexto.colores, ...coloresNuevos.filter((n) => !contexto.colores.some((c) => c.codigo === n.codigo))],
+    [contexto.colores, coloresNuevos]
+  );
 
   const [paso, setPaso] = useState<NumeroPaso>(1);
   const [categoriaId, setCategoriaId] = useState("");
@@ -150,7 +167,6 @@ export function NuevoProductoForm({
   const [costoTocado, setCostoTocado] = useState(false);
   const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
-  const [editandoPrecios, setEditandoPrecios] = useState(false);
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   // Las etiquetas creadas AQUÍ (campo «Etiquetas» del paso 2) se suman a las que trajo la página; si la página se relee
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
@@ -159,23 +175,44 @@ export function NuevoProductoForm({
   // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
   // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
   const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
-  // Paso 5 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
+  // «Temporada y etiquetas · opcional» (paso 2) arranca plegado: la línea plegada ya dice lo elegido.
+  const [masAbierto, setMasAbierto] = useState(false);
+  // Paso 4 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
   // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
   // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
+  // hereda por no mirar la pregunta.
   const puedePiso = destino.separaPiso && destino.puedeBajar;
-  const [alPiso, setAlPiso] = useState(puedePiso);
+  const [alPiso, setAlPiso] = useState(false);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
   // La tienda es la misma donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ.
+  // El combo vive al final del paso 4 («Quién lo registra»), donde la persona termina; la ficha solo repite qué falta.
   const responsable = useResponsable({ ubicacionId: destino.ubicacionId, etiqueta: destino.etiqueta });
+  const responsableAlta: ResponsableAlta = { listo: responsable.listo, faltaElegir: responsable.estado === "falta", motivo: responsable.motivo };
   const colaOffline = useColaProductos();
   const enLinea = useEnLinea();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
+
+  // «¿Salir sin guardar?» (2026-09-28). Nuevo producto no guarda borrador: salir a medias pierde TODO lo llenado. La foto
+  // junta lo que la persona eligió (no el paso abierto ni lo que se creó a mitad del alta —una marca, una talla—, que ya
+  // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
+  // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
+  const fotoActual = fotoFormulario({
+    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
+    overridePrecio, etiquetasElegidas, cantidades, sinStock, alPiso,
+  });
+  const [fotoAlAbrir] = useState(fotoActual);
+  const salida = useSalidaSinGuardar(
+    !creado && fotoActual !== fotoAlAbrir,
+    "Llenaste parte de este producto nuevo y todavía no se creó. Si sales ahora, se pierde lo que llenaste."
+  );
 
   const categoria = contexto.categorias.find((c) => c.id === categoriaId) ?? null;
   const familia = categoria ? (contexto.familias.find((f) => f.codigo === categoria.familia) ?? null) : null;
@@ -188,11 +225,14 @@ export function NuevoProductoForm({
   const tejidosCategoria = ejes.tejidos[categoriaId] ?? [];
   const patronesCategoria = ejes.patrones[categoriaId] ?? [];
   const habituales = ejes.habituales[categoriaId] ?? [];
-  const tallaTexto = (id: string) => tallasCategoria.find((t) => t.id === id)?.texto ?? "";
   // La temporada de la categoría ELEGIDA: es lo que hereda la prenda si no se elige otra (ADR-0246).
   const listaTemporadas = contexto.temporadas?.lista ?? [];
   const temporadaCategoria = nombreTemporada(listaTemporadas, contexto.temporadas?.porCategoria[categoriaId]);
-  const opcionesTemporadaAlta = opcionesTemporada(listaTemporadas, { nombre: temporadaCategoria, de: "categoría" });
+  // «Ninguna» se lee mejor que «Igual que su categoría (…)» (revisión de claridad del spike v2): la aclaración de que
+  // entonces usa la de su categoría va en la ayuda del campo, no dentro de la opción.
+  const opcionesTemporadaAlta = opcionesTemporada(listaTemporadas, { nombre: temporadaCategoria, de: "categoría" }).map((o) =>
+    o.valor === SIN_PROPIA ? { ...o, texto: "Ninguna" } : o
+  );
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
@@ -254,14 +294,6 @@ export function NuevoProductoForm({
     setOverridePrecio({});
   }
 
-  function alternarTalla(id: string) {
-    setTallasElegidas((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }
-
-  const curvaCambiada =
-    habituales.length > 0 &&
-    (tallasElegidas.length !== habituales.length || tallasElegidas.some((t) => !habituales.includes(t)));
-
   function alternarColor(codigo: string) {
     if (coloresElegidos.includes(codigo)) {
       // Quitar un color se lleva sus fotos: una foto de un color que el producto no tiene no se ve en ninguna parte.
@@ -274,13 +306,24 @@ export function NuevoProductoForm({
     }
   }
 
+  // «+ Nuevo color» desde el alta (spike v2): antes había que ir a Catálogo → Atributos en otra pestaña y volver a
+  // «actualizar los colores». El color creado entra a la lista y queda elegido.
+  function colorCreado(color: ColorAlta) {
+    setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]));
+    setColoresElegidos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+  }
+
   // ---------- al configurar una categoría o proponer un valor sin salir del alta ----------
-  function agregarValor(tipo: "tallas" | "tejidos" | "patrones", valor: ValorVocabulario) {
-    setEjes((prev) => ({ ...prev, [tipo]: { ...prev[tipo], [categoriaId]: [...(prev[tipo][categoriaId] ?? []), valor] } }));
+  // Es el `onOfrecido` de ElegirTallas y ElegirMuestra: el valor ya quedó ofrecido en la categoría (desde su hoja «Ver
+  // todos» o propuesto nuevo) y aquí SOLO se suma a la fila y al universo. Elegirlo no es cosa de este paso: ElegirMuestra
+  // llama después a `onElegir(id)` y ElegirTallas a `onElegidas(lista completa)`. Idempotente: un reintento tras un fallo
+  // no lo duplica.
+  function ofrecerValor(tipo: "tallas" | "tejidos" | "patrones", valor: ValorVocabulario) {
+    setEjes((prev) => {
+      const actuales = prev[tipo][categoriaId] ?? [];
+      return actuales.some((v) => v.id === valor.id) ? prev : { ...prev, [tipo]: { ...prev[tipo], [categoriaId]: [...actuales, valor] } };
+    });
     setUniverso((prev) => (prev[tipo].some((v) => v.id === valor.id) ? prev : { ...prev, [tipo]: [...prev[tipo], valor] }));
-    if (tipo === "tallas") setTallasElegidas((prev) => [...prev, valor.id]); // recién creada para este producto: queda elegida
-    if (tipo === "tejidos") setTejidoId(valor.id);
-    if (tipo === "patrones") setPatronId(valor.id);
   }
 
   function categoriaConfigurada(tipo: "tallas" | "tejidos" | "patrones", elegidos: ValorVocabulario[]) {
@@ -343,16 +386,13 @@ export function NuevoProductoForm({
   const nivel = nivelMargen(margen);
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
 
-  const { frecuentes, grupos } = useMemo(
-    () => ordenarColores(contexto.colores, contexto.usoColores[categoriaId] ?? {}, FAMILIAS_COLOR, 6),
-    [contexto.colores, contexto.usoColores, categoriaId]
-  );
-  const colorPorCodigo = (cod: string) => contexto.colores.find((c) => c.codigo === cod);
+  // Sin fila de «más usados» (Felipe, 2026-09-28): los colores se eligen buscándolos o en la carta por familia.
+  const { grupos } = useMemo(() => ordenarColores(colores, contexto.usoColores[categoriaId] ?? {}, FAMILIAS_COLOR), [colores, contexto.usoColores, categoriaId]);
+  const colorPorCodigo = (cod: string) => colores.find((c) => c.codigo === cod);
   const coloresDatos = coloresElegidos.map((cod) => colorPorCodigo(cod)).filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   // ---------- código previsto ----------
   const base = codigoBasePrevisto(categoria?.prefijo ?? null, categoria?.prefijo ? (contexto.correlativos[categoria.prefijo] ?? 0) : null);
-  const codigosVariantes = celdasIncluidas.map((c) => codigoVariantePrevisto(base, c.color, c.tallaId ? tallaTexto(c.tallaId) : null));
 
   // Las etiquetas de campaña que ya rigen sobre esta categoría se aplican solas: elegirlas a mano sería redundante y las
   // dejaría duplicadas en cada variante. Si la persona eligió una y DESPUÉS cambió a una categoría que la cubre, no se manda.
@@ -414,7 +454,7 @@ export function NuevoProductoForm({
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
-      // Paso 5 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
+      // Paso 4 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
       p_ubicacion_id: conStock ? destino.ubicacionId : undefined,
       p_al_piso: conStock && puedePiso && alPiso,
     };
@@ -536,14 +576,14 @@ export function NuevoProductoForm({
     setSinStock(false);
     setCostoTocado(true); // el costo ya es el de la prenda anterior: no volver a sugerir encima
     token.current = crypto.randomUUID(); // un producto nuevo es una operación nueva, no un reintento
-    // El correlativo del código previsto y los colores «más usados» ya cambiaron. Sin red NO se relee: la relectura
+    // El correlativo del código previsto ya cambió (y un color creado aquí ya viene en la lista). Sin red NO se relee: la relectura
     // fallaría y Next caería a una navegación completa, que sin internet deja la pestaña en blanco.
     if (creado.id) router.refresh();
     setPaso(2);
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "Con este precio pierdes dinero", bajo: "Poco: un descuento se lo come", normal: "Sin descontar IGV" } as const;
+  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Margen bajo", normal: "Buen margen" } as const;
 
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
@@ -562,23 +602,35 @@ export function NuevoProductoForm({
     );
   }
 
-  // ---------- la línea de cada paso plegado ----------
+  // ---------- la línea de cada paso plegado (y de la lista «Avance» de la ficha) ----------
+  const tejidoTexto = [...tejidosCategoria, ...universo.tejidos].find((t) => t.id === tejidoId)?.texto ?? null;
+  const patronTexto = [...patronesCategoria, ...universo.patrones].find((t) => t.id === patronId)?.texto ?? null;
+  const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+  // Lo que dice «Temporada y etiquetas · opcional» plegado: solo lo que se eligió a propósito.
+  const resumenMas =
+    [temporada !== SIN_PROPIA ? nombreTemporada(listaTemporadas, temporada) : null, nombresEtiquetas.length ? plural(nombresEtiquetas.length, "etiqueta", "etiquetas") : null]
+      .filter(Boolean)
+      .join(", ") || null;
   const resumen: Record<NumeroPaso, string> = {
     1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
-    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`].filter(Boolean).join(" · "),
-    3: [
-      tallasOrdenadas.map((t) => t.texto).join(" "),
-      tejidosCategoria.find((t) => t.id === tejidoId)?.texto,
-      patronesCategoria.find((t) => t.id === patronId)?.texto,
-      temporada !== SIN_PROPIA ? nombreTemporada(listaTemporadas, temporada) : temporadaCategoria ? `${temporadaCategoria} (de su categoría)` : null,
-      coloresElegidos.length ? `${coloresElegidos.length} color${coloresElegidos.length === 1 ? "" : "es"}` : "sin color",
-      nombresEtiquetas.join(", "),
-      fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : null,
+    2: [nombreFinal, marcaNombre, tejidoTexto, patronTexto].filter(Boolean).join(" · "),
+    // «26–42 (9) · 8 colores · 68 variantes · 7 fotos»: con muchas tallas se leen primera–última y cuántas.
+    3: tallasOrdenadas.length
+      ? [
+          textoTallas(tallasOrdenadas.map((t) => t.texto)),
+          coloresElegidos.length ? plural(coloresElegidos.length, "color", "colores") : "sin color",
+          plural(celdasIncluidas.length, "variante", "variantes"),
+          fotos.length ? plural(fotos.length, "foto", "fotos") : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "",
+    4: [
+      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
       .join(" · "),
-    4: [precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null, `${celdasIncluidas.length} variante${celdasIncluidas.length === 1 ? "" : "s"}`].filter(Boolean).join(" · "),
-    5: stock.total > 0 ? `${stock.total} unidad${stock.total === 1 ? "" : "es"} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : "",
   };
 
   const ejesActuales = (sin?: "tallas" | "tejidos" | "patrones") => ({
@@ -587,24 +639,47 @@ export function NuevoProductoForm({
     patronIds: sin === "patrones" ? [] : patronesCategoria.map((t) => t.id),
   });
 
+  // ---------- el pie de cada paso: qué falta, o la acción que lo cierra ----------
+  const textoCrear = cargando ? (fotos.length > 0 ? "Creando y subiendo fotos…" : "Creando…") : "Crear producto";
+  function pie(n: NumeroPaso) {
+    if (n === 1) return undefined; // elegir la categoría ya pasa al paso 2
+    const { texto, listo } = piePaso(problemas, n, responsableAlta);
+    const accion =
+      n < 4 ? (
+        <button type="button" onClick={() => irAPaso((n + 1) as NumeroPaso)} disabled={Boolean(faltaDelPaso(problemas, n))} className="btn-cayla btn-primario">
+          Seguir →
+        </button>
+      ) : (
+        // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
+        <button type="submit" disabled={!puedeGuardar || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
+          {textoCrear}
+        </button>
+      );
+    return { texto, listo, accion };
+  }
+
   function cuerpo(n: NumeroPaso) {
     if (n === 1) {
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <p className="text-[13px] text-taupe">
+            Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
+          </p>
           <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} />
-          <p className="text-xs text-taupe">La categoría decide el código, las tallas y los tejidos. Al elegirla pasas solo al siguiente paso.</p>
         </div>
       );
     }
     if (n === 2) {
+      const ayudaOpcional = (texto: string) => (exige ? texto : `Opcional · ${texto}`);
       return (
         <div>
-          <FilaAlta etiqueta="Nombre" ayuda="Como lo dirías en tienda">
+          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta">
             <div className="space-y-2">
               <CampoTexto
                 id="nombre-producto"
-                etiqueta="Referencia"
+                etiqueta="Nombre"
                 caja
+                className="!h-12 text-base"
                 placeholder="Blusa Aurora"
                 value={referencia}
                 onChange={(e) => setReferencia(e.target.value)}
@@ -620,11 +695,12 @@ export function NuevoProductoForm({
               <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
             </div>
           </FilaAlta>
-          <FilaAlta etiqueta="Descripción" ayuda="Opcional">
-            <CampoTexto etiqueta="Descripción" caja placeholder="Tela, corte, detalle…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles">
+            <CampoTexto etiqueta="Descripción" caja placeholder="Manga globo, botones forrados…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
-          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién la trae">
+          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae">
             <ElegirMarcaProveedor
+              sugerencias={false}
               marcas={listasMarca.marcas}
               proveedores={listasMarca.proveedores}
               vinculos={listasMarca.vinculos}
@@ -649,45 +725,10 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-        </div>
-      );
-    }
-    if (n === 3) {
-      return (
-        <div>
-          <FilaAlta etiqueta="Tallas" ayuda={habituales.length > 0 ? "Vienen las habituales" : undefined}>
-            {tallasCategoria.length === 0 && categoria ? (
-              <ConfigurarCategoria
-                tipo="tallas"
-                categoriaId={categoriaId}
-                categoriaNombre={categoria.nombre}
-                universo={universo.tallas}
-                ejesActuales={ejesActuales("tallas")}
-                onGuardado={(el) => categoriaConfigurada("tallas", el)}
-              />
-            ) : (
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {tallasCategoria.map((t) => (
-                    <ChipOpcion key={t.id} elegido={tallasElegidas.includes(t.id)} onClick={() => alternarTalla(t.id)} className="tabular-nums">
-                      {t.texto}
-                    </ChipOpcion>
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  {curvaCambiada && (
-                    <button type="button" onClick={() => setTallasElegidas(habituales)} className="btn-cayla btn-enlace text-xs">
-                      Volver a la curva habitual
-                    </button>
-                  )}
-                  <ProponerValor tipo="tallas" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tallas} onCreado={(v) => agregarValor("tallas", v)} />
-                </div>
-              </div>
-            )}
-          </FilaAlta>
 
+          {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
           {(exige || tejidosCategoria.length > 0) && (
-            <FilaAlta etiqueta="Tejido" ayuda={exige ? `${familia?.nombre} lo pide` : "Opcional"}>
+            <FilaAlta etiqueta="Tejido" ayuda={ayudaOpcional("De qué tela es")}>
               {tejidosCategoria.length === 0 && categoria ? (
                 <ConfigurarCategoria
                   tipo="tejidos"
@@ -699,34 +740,25 @@ export function NuevoProductoForm({
                   onGuardado={(el) => categoriaConfigurada("tejidos", el)}
                 />
               ) : (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    {tejidosCategoria.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}
-                        aria-pressed={tejidoId === t.id}
-                        className={`flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors ${
-                          tejidoId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
-                        }`}
-                      >
-                        <MuestraTejido nombre={t.texto} />
-                        <span className="px-0.5">
-                          {tejidoId === t.id && <span aria-hidden>✓ </span>}
-                          {t.texto}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <ProponerValor tipo="tejidos" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tejidos} onCreado={(v) => agregarValor("tejidos", v)} />
-                </div>
+                <ElegirMuestra
+                  key={categoriaId}
+                  tipo="tejidos"
+                  deLaCategoria={tejidosCategoria}
+                  universo={universo.tejidos}
+                  imagenes={contexto.imagenes.tejidos}
+                  elegidoId={tejidoId}
+                  onElegir={setTejidoId}
+                  categoriaId={categoriaId}
+                  categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                  ejesActuales={ejesActuales()}
+                  onOfrecido={(v) => ofrecerValor("tejidos", v)}
+                />
               )}
             </FilaAlta>
           )}
 
           {(exige || patronesCategoria.length > 0) && (
-            <FilaAlta etiqueta="Patrón" ayuda={exige ? "Sin diseño = Liso" : "Opcional"}>
+            <FilaAlta etiqueta="Patrón" ayuda={ayudaOpcional("El dibujo de la tela. Si no tiene, elige Liso")}>
               {patronesCategoria.length === 0 && categoria ? (
                 <ConfigurarCategoria
                   tipo="patrones"
@@ -738,151 +770,129 @@ export function NuevoProductoForm({
                   onGuardado={(el) => categoriaConfigurada("patrones", el)}
                 />
               ) : (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    {patronesCategoria.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setPatronId((prev) => (prev === t.id ? "" : t.id))}
-                        aria-pressed={patronId === t.id}
-                        className={`flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors ${
-                          patronId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
-                        }`}
-                      >
-                        <MuestraPatron nombre={t.texto} />
-                        <span className="px-0.5">
-                          {patronId === t.id && <span aria-hidden>✓ </span>}
-                          {t.texto}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <ProponerValor tipo="patrones" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.patrones} onCreado={(v) => agregarValor("patrones", v)} />
-                </div>
+                <ElegirMuestra
+                  key={categoriaId}
+                  tipo="patrones"
+                  deLaCategoria={patronesCategoria}
+                  universo={universo.patrones}
+                  imagenes={contexto.imagenes.patrones}
+                  elegidoId={patronId}
+                  onElegir={setPatronId}
+                  categoriaId={categoriaId}
+                  categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                  ejesActuales={ejesActuales()}
+                  onOfrecido={(v) => ofrecerValor("patrones", v)}
+                />
               )}
             </FilaAlta>
           )}
 
-          <FilaAlta etiqueta="Temporada" ayuda="Opcional">
-            {contexto.temporadas ? (
-              <div className="max-w-sm space-y-1">
-                <CampoSelect etiqueta="Temporada" caja id="temporada-producto" valor={temporada} onValor={setTemporada} opciones={opcionesTemporadaAlta} />
+          <PlegableAlta titulo="Temporada y etiquetas" resumen={resumenMas} abierto={masAbierto} onAlternar={() => setMasAbierto((v) => !v)}>
+            <FilaAlta
+              etiqueta="Temporada"
+              ayuda={`Sin año: el sistema lo sabe por la fecha en que llega. Si eliges «Ninguna», usa la de su categoría${temporadaCategoria ? ` (${temporadaCategoria})` : ""}.`}
+            >
+              {contexto.temporadas ? (
+                <div className="max-w-sm">
+                  <CampoSelect etiqueta="Temporada" caja id="temporada-producto" valor={temporada} onValor={setTemporada} opciones={opcionesTemporadaAlta} />
+                </div>
+              ) : (
                 <p className="text-xs text-taupe">
-                  Sin año: el sistema lo sabe por la fecha en que llega a la tienda. Si un color es de otra temporada, se ajusta después en la ficha.
+                  La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
+                  producto.
                 </p>
-              </div>
+              )}
+            </FilaAlta>
+            <FilaAlta
+              etiqueta="Etiquetas"
+              ayuda={`Para buscar y agrupar${nombresEtiquetas.length ? ` · ${plural(nombresEtiquetas.length, "elegida", "elegidas")}` : ""}`}
+            >
+              <ElegirEtiquetas
+                etiquetas={vocabEtiquetas}
+                categoriaId={categoriaId}
+                elegidas={etiquetasElegidas}
+                onElegidas={setEtiquetasElegidas}
+                esLider={esLider}
+                puedeAprobar={puedeAprobarEtiquetas}
+                enLinea={enLinea}
+                onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
+                propuestas={etiquetasPropuestas}
+                onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
+              />
+            </FilaAlta>
+          </PlegableAlta>
+        </div>
+      );
+    }
+    if (n === 3) {
+      return (
+        <div>
+          <FilaAlta
+            etiqueta="Tallas"
+            ayuda={categoria && tallasCategoria.length > 0 ? `${categoria.nombre} ofrece ${plural(tallasCategoria.length, "talla", "tallas")}` : undefined}
+            accion={
+              tallasCategoria.length > 0 ? (
+                <AtajosTallas deLaCategoria={tallasCategoria} universo={universo.tallas} elegidas={tallasElegidas} onElegidas={setTallasElegidas} habituales={habituales} />
+              ) : undefined
+            }
+          >
+            {tallasCategoria.length === 0 && categoria ? (
+              <ConfigurarCategoria
+                tipo="tallas"
+                categoriaId={categoriaId}
+                categoriaNombre={categoria.nombre}
+                universo={universo.tallas}
+                ejesActuales={ejesActuales("tallas")}
+                onGuardado={(el) => categoriaConfigurada("tallas", el)}
+              />
             ) : (
-              <p className="pt-2 text-xs text-taupe">
-                La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
-                producto.
-              </p>
+              <ElegirTallas
+                key={categoriaId}
+                deLaCategoria={tallasCategoria}
+                universo={universo.tallas}
+                elegidas={tallasElegidas}
+                onElegidas={setTallasElegidas}
+                habituales={habituales}
+                categoriaId={categoriaId}
+                categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                ejesActuales={ejesActuales()}
+                onOfrecido={(v) => ofrecerValor("tallas", v)}
+                sinAtajos
+              />
             )}
           </FilaAlta>
 
           <FilaAlta
             etiqueta="Colores"
-            ayuda={coloresElegidos.length ? `${coloresElegidos.length} elegido${coloresElegidos.length === 1 ? "" : "s"}` : "Sin colores = una variante sin color"}
+            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
           >
-            <div className="space-y-2">
-              <ElegirColores
-                colores={contexto.colores}
-                frecuentes={frecuentes}
-                grupos={grupos}
-                elegidos={coloresElegidos}
-                onAlternar={alternarColor}
-                categoriaNombre={categoria?.nombre}
+            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
+          </FilaAlta>
+
+          {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
+          <div className="border-t border-sand pt-3.5">
+            {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
+              <AvisoInline tono="neutro">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</AvisoInline>
+            ) : (
+              <MatrizVariantes
+                celdas={celdas}
+                tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
+                colores={coloresDatos}
+                excluidas={excluidas}
+                onExcluidas={setExcluidas}
+                fotos={fotos}
+                onFotos={setFotos}
+                disabled={cargando}
               />
-              <p className="text-xs text-taupe">
-                ¿Falta un color?{" "}
-                <Link href="/productos/atributos?tipo=colores" target="_blank" className="underline underline-offset-2 hover:text-tinta">
-                  Créalo en Catálogo → Atributos
-                </Link>{" "}
-                (otra pestaña) y luego{" "}
-                <button type="button" onClick={() => router.refresh()} className="underline underline-offset-2 hover:text-tinta">
-                  actualiza los colores
-                </button>
-                .
-              </p>
-            </div>
-          </FilaAlta>
-
-          <FilaAlta etiqueta="Etiquetas" ayuda="Opcional · para buscar y agrupar">
-            <ElegirEtiquetas
-              etiquetas={vocabEtiquetas}
-              categoriaId={categoriaId}
-              elegidas={etiquetasElegidas}
-              onElegidas={setEtiquetasElegidas}
-              esLider={esLider}
-              puedeAprobar={puedeAprobarEtiquetas}
-              enLinea={enLinea}
-              onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-              propuestas={etiquetasPropuestas}
-              onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
-            />
-          </FilaAlta>
-
-          <FilaAlta etiqueta="Fotos" ayuda="Opcional · una o más por color">
-            <FotosAlta colores={coloresDatos} fotos={fotos} onFotos={setFotos} disabled={cargando} />
-          </FilaAlta>
-        </div>
-      );
-    }
-    if (n === 5) {
-      return (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta">
-            ¿Cuántas tienes hoy en <strong>{destino.etiqueta}</strong>?{" "}
-            <span className="text-taupe">Cuenta cada talla y color. Lo que no tengas, déjalo vacío.</span>
-          </p>
-          <MatrizCantidades
-            celdas={celdas}
-            tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
-            colores={coloresDatos}
-            excluidas={excluidas}
-            cantidades={cantidades}
-            onCantidad={(clave, valor) => {
-              setCantidades((prev) => ({ ...prev, [clave]: valor }));
-              if (valor !== "" && valor !== "0") setSinStock(false); // escribir una cantidad responde la pregunta
-            }}
-          />
-
-          {stock.total > 0 ? (
-            destino.separaPiso && (
-              <div className="space-y-2">
-                <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
-                <div className="flex flex-wrap gap-1.5">
-                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
-                    Colgadas en el piso de venta
-                  </ChipOpcion>
-                  <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
-                    Guardadas en el almacén
-                  </ChipOpcion>
-                </div>
-                {!puedePiso && (
-                  <p className="text-xs text-taupe">
-                    Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
-                  </p>
-                )}
-              </div>
-            )
-          ) : (
-            <ChipOpcion elegido={sinStock} onClick={() => setSinStock((v) => !v)}>
-              Todavía no tengo unidades de este producto
-            </ChipOpcion>
-          )}
-
-          <p className="nota-cayla text-[12.5px]">
-            Es la <strong>carga inicial</strong>: lo que ya está en la tienda entra al inventario sin comprobante ni proveedor, y queda en
-            Movimientos como «Carga inicial». La mercadería que llegue después se registra al recibirla (Compras o «Recibir sin comprobante»).
-          </p>
+            )}
+          </div>
         </div>
       );
     }
     return (
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-3">
-          <CampoMonto etiqueta="Precio de venta" pie="Para todas las variantes" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
+          <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
           <CampoMonto
             etiqueta="Costo"
             pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
@@ -913,33 +923,78 @@ export function NuevoProductoForm({
           </AvisoInline>
         )}
 
-        <div>
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm">
-              <b className="tabular-nums">{celdasIncluidas.length}</b>{" "}
-              <span className="text-taupe">variante{celdasIncluidas.length === 1 ? "" : "s"} · toca una celda para quitarla</span>
-            </p>
-            {celdasIncluidas.length > 0 && (
-              <button type="button" onClick={() => setEditandoPrecios((v) => !v)} className="btn-cayla btn-enlace text-[12.5px]">
-                {editandoPrecios ? "Listo, volver" : "Poner un precio distinto a alguna"}
-              </button>
-            )}
-          </div>
-          <MatrizVariantes
-            celdas={celdas}
-            tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
-            colores={coloresDatos}
-            excluidas={excluidas}
-            onExcluidas={setExcluidas}
-            precioBase={precioBase}
-            precios={overridePrecio}
-            onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
-            editandoPrecios={editandoPrecios}
-          />
-        </div>
+        {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
+        <MatrizCantidades
+          celdas={celdas}
+          tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
+          colores={coloresDatos}
+          excluidas={excluidas}
+          cantidades={cantidades}
+          onCantidad={(clave, valor) => {
+            setCantidades((prev) => ({ ...prev, [clave]: valor }));
+            if (valor !== "" && valor !== "0") setSinStock(false); // escribir una cantidad responde la pregunta
+          }}
+          precioBase={precioBase}
+          precios={overridePrecio}
+          onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
+          destinoEtiqueta={destino.etiqueta}
+        />
+
+        {stock.total > 0 ? (
+          destino.separaPiso && (
+            <div className="space-y-2">
+              <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
+              <div className="flex flex-wrap gap-1.5">
+                <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
+                  Guardadas en el almacén
+                </ChipOpcion>
+                <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                  En piso de venta
+                </ChipOpcion>
+              </div>
+              {!puedePiso && (
+                <p className="text-xs text-taupe">
+                  Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
+                </p>
+              )}
+            </div>
+          )
+        ) : (
+          <ChipOpcion elegido={sinStock} onClick={() => setSinStock((v) => !v)}>
+            Todavía no tengo unidades de este producto
+          </ChipOpcion>
+        )}
+
+        <p className="nota-cayla text-[12.5px]">
+          Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
+          inicial». Lo que llegue después se registra al recibirlo.
+        </p>
+
+        {/* Quién firma el alta (ADR-0161): una sola vez en la pantalla, aquí, donde la persona termina. La tienda es la misma
+            donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ. */}
+        <FilaAlta etiqueta="Quién lo registra" ayuda="Queda a su nombre en el historial">
+          <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
+        </FilaAlta>
       </div>
     );
   }
+
+  // La lista «Avance» de la ficha: cada pregunta con su resumen (contestada), lo que le falta (abierta) o «—» (todavía no
+  // se llega). Se toca para volver a una; la que no se alcanza no responde.
+  const avance: PasoAvance[] = PASOS_ALTA.map((n) => {
+    const e = estadoPaso(n);
+    const abrible = e !== "pendiente" || pasoAbrible(problemas, n);
+    const pieN = n === 1 ? null : piePaso(problemas, n, responsableAlta);
+    const texto =
+      e === "hecho"
+        ? resumen[n] || "Listo"
+        : e === "abierto"
+          ? (pieN && !pieN.listo ? pieN.texto : (faltaDelPaso(problemas, n) ?? "Listo"))
+          : abrible
+            ? (faltaDelPaso(problemas, n) ?? "—")
+            : "—";
+    return { numero: n, titulo: TITULOS[n], estado: e, texto, abrible };
+  });
 
   return (
     <form
@@ -951,29 +1006,7 @@ export function NuevoProductoForm({
       }}
       className="space-y-4"
     >
-      {/* Los 4 pasos de un vistazo: el hecho en verde, el abierto en tinta. Se puede volver a uno hecho. */}
-      <nav aria-label="Pasos" className="grid grid-cols-5 gap-1.5">
-        {PASOS_ALTA.map((n) => {
-          const e = estadoPaso(n);
-          return (
-            <button
-              key={n}
-              type="button"
-              disabled={e === "pendiente"}
-              onClick={() => irAPaso(n)}
-              aria-current={e === "abierto" ? "step" : undefined}
-              aria-label={TITULOS[n]}
-              className={`flex items-baseline gap-2 border-t-2 pt-2 text-left text-[12.5px] transition-colors disabled:cursor-default ${
-                e === "abierto" ? "border-tinta text-tinta" : e === "hecho" ? "border-verde text-tinta" : "border-sand text-tinta/55"
-              }`}
-            >
-              <span className="text-[11px] font-bold tabular-nums">{e === "hecho" ? "✓" : n}</span>
-              <span className="hidden font-semibold sm:inline">{CORTOS[n]}</span>
-            </button>
-          );
-        })}
-      </nav>
-
+      {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="min-w-0 space-y-2.5">
           <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
@@ -982,7 +1015,8 @@ export function NuevoProductoForm({
           {!enLinea && (
             <AvisoInline tono="ambar">
               <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
-              marca, un proveedor, una talla, un tejido, un patrón o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a revisar al subir).
+              marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
+              revisar al subir).
             </AvisoInline>
           )}
           {copiadoDe && (
@@ -992,17 +1026,7 @@ export function NuevoProductoForm({
             </AvisoInline>
           )}
           {PASOS_ALTA.map((n) => (
-            <PasoAlta
-              key={n}
-              numero={n}
-              titulo={TITULOS[n]}
-              estado={estadoPaso(n)}
-              resumen={resumen[n]}
-              onAbrir={() => irAPaso(n)}
-              falta={faltaDelPaso(problemas, n)}
-              onSeguir={n >= 2 && n <= 4 ? () => irAPaso((n + 1) as NumeroPaso) : undefined}
-              textoSeguir={n === 3 ? "Seguir al precio" : n === 4 ? "Seguir a las cantidades" : "Seguir"}
-            >
+            <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
               {cuerpo(n)}
             </PasoAlta>
           ))}
@@ -1012,26 +1036,25 @@ export function NuevoProductoForm({
           datos={{
             nombre: nombreFinal,
             codigo: categoria ? base : null,
-            codigosVariantes: categoria && tallasElegidas.length ? codigosVariantes : [],
             categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
             marca: marcaId ? marcaNombre || null : null,
-            tallas: tallasOrdenadas.map((t) => t.texto).join(" · "),
-            etiquetas: nombresEtiquetas,
-            tejidoPatron: [tejidosCategoria.find((t) => t.id === tejidoId)?.texto, patronesCategoria.find((t) => t.id === patronId)?.texto].filter(Boolean).join(" · "),
+            tejido: tejidoTexto,
             variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
+            hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
             precio: precioNum > 0 ? precioNum : null,
+            margen,
             colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
             foto: fotosOrdenadas[0]?.vista ?? null,
             fotos: fotos.length,
-            stock: stock.total > 0 ? `${stock.total} · ${puedePiso && alPiso ? "piso" : destino.separaPiso ? "almacén" : destino.etiqueta}` : sinStock ? "Ninguna todavía" : null,
-            siguiente: problemas[0]?.texto ?? null,
+            avance,
+            siguiente: siguienteDelAlta(problemas, responsableAlta),
           }}
-          responsable={responsable}
           cargando={cargando}
-          puedeGuardar={puedeGuardar}
-          onCancelar={() => router.push("/productos")}
+          onCancelar={() => salida.pedirSalir("/productos")}
+          onAbrirPaso={irAPaso}
         />
       </div>
+      {salida.aviso}
     </form>
   );
 }

@@ -5,6 +5,7 @@
 // la etiqueta de precio impresa; por eso todo lo suyo dice «etiqueta de precio» o `EtiquetaPrecio`, nunca «etiqueta» a secas.
 
 import { ordenTalla } from "./catalogo-grupos";
+import { conDesde, desdeSeguro } from "./vuelta-productos";
 import { vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana } from "./vender-reglas";
@@ -170,20 +171,31 @@ export function fechaEtiqueta(hoy: string): string {
 
 /** El enlace a la pantalla de impresión: desde el resultado de un ingreso (los lotes de Recibir / Ingreso sin
  *  comprobante, o la producción cerrada del Taller), desde una campaña o desde un producto. */
-export function urlEtiquetasDePrecio(origen: { lotes: string[] } | { produccion: string } | { campana: string } | { producto: string }): string {
+export function urlEtiquetasDePrecio(
+  origen: { lotes: string[] } | { produccion: string } | { campana: string } | { producto: string } | { variantes: string[] },
+  /** La pantalla exacta que abre las etiquetas (ruta + filtros + vista): con ella, «Volver» regresa a la misma Tabla
+   *  o Grilla con los mismos filtros, y no a la vista por defecto. Solo la usan producto y variantes (`desdeSeguro`). */
+  desde?: string,
+): string {
   if ("lotes" in origen) return `/etiquetas-de-precio?lotes=${origen.lotes.join(",")}`;
+  // Varias prendas marcadas en la Tabla de Productos (ADR-0254): sus tallas, como las marcadas en Existencias (ADR-0237).
+  if ("variantes" in origen) return conDesde(`/etiquetas-de-precio?variantes=${origen.variantes.join(",")}`, desde);
   if ("produccion" in origen) return `/etiquetas-de-precio?produccion=${origen.produccion}`;
   if ("campana" in origen) return `/etiquetas-de-precio?campana=${origen.campana}`;
-  return `/etiquetas-de-precio?producto=${origen.producto}`;
+  return conDesde(`/etiquetas-de-precio?producto=${origen.producto}`, desde);
 }
 
 /** Adónde vuelve la pantalla de etiquetas: a la que la abrió, que se deduce de lo que trae la URL. `lotes` sale tanto de
  *  Recibir como de su excepción (Ingreso sin comprobante): vuelve a Recibir, que lleva a las dos. Sin origen (la URL a
  *  secas), a Inicio. */
 export function volverDeEtiquetas(
-  origen: { tipo: "lotes" } | { tipo: "produccion"; id: string } | { tipo: "campana" } | { tipo: "producto" } | { tipo: "variantes" } | null
+  origen: { tipo: "lotes" } | { tipo: "produccion"; id: string } | { tipo: "campana" } | { tipo: "producto" } | { tipo: "variantes" } | null,
+  desde?: string | null,
 ): { href: string; a: string } {
   if (!origen) return { href: "/", a: "Inicio" };
+  // Producto y variantes salen de la Tabla o la Grilla de Productos: se vuelve a la misma vista, con sus filtros.
+  const vuelta = desdeSeguro(desde);
+  if (vuelta && (origen.tipo === "producto" || origen.tipo === "variantes")) return { href: vuelta, a: "Productos" };
   switch (origen.tipo) {
     case "lotes":
       return { href: "/recibir", a: "Recibir mercadería" };
@@ -212,7 +224,10 @@ export type OrigenDeTexto =
   | { tipo: "produccion" }
   | { tipo: "campana"; campana: { nombre: string; pct: number; vigencia: Vigencia | null } | null }
   | { tipo: "producto"; nombre: string | null }
-  | { tipo: "variantes" }
+  /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
+   *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
+   *  «marcó» nada. */
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -252,9 +267,17 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         vacio: `En ${sede} no hay prendas de este modelo.`,
       };
     case "variantes":
+      if (o.desdeProductos && o.tallas === 1) {
+        return {
+          ...base,
+          sobretitulo: "Productos · Una talla",
+          bajada: `En ${sede} hay ${prendas} de esta talla y color. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
+          vacio: `En ${sede} no hay unidades de esta talla y color.`,
+        };
+      }
       return {
         ...base,
-        sobretitulo: "Existencias · Prendas marcadas",
+        sobretitulo: `${o.desdeProductos ? "Productos" : "Existencias"} · Prendas marcadas`,
         bajada: `En ${sede} hay ${prendas} de ${modelos} entre las que marcaste. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
         vacio: `En ${sede} no hay unidades de las prendas que marcaste.`,
       };

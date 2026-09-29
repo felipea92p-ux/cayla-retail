@@ -157,3 +157,46 @@ navegador (2026-09-21), sin ninguna muestra con loader y aviso a la vez: (1) gua
 «Guardado» sale recién cuando se va; (2) guardado de 40 ms → sin loader, el aviso sale enseguida; (3) guardar y navegar a una
 pantalla que tarda 1,2 s → un solo loader continuo (guardado + carga) y «Guardado» al final; (4) guardado que falla → el error sale
 tras el loader y el cursor llega al campo en ese momento.
+
+## Actualización 2026-09-28 — escribir en un buscador no abre el loader
+
+**Problema (Felipe, con captura).** En Productos, escribir «fd» en el buscador cubría la pantalla con «Cargando» a mitad de
+palabra. El buscador manda lo escrito a la URL (`?q=`) tras 350 ms y la página se vuelve a pedir a la base; para el interceptor
+eso era una navegación de Next (`RSC: 1`), es decir «abrir una pantalla». Con el loader a la vista el resto de la app queda
+`inert`, así que además el campo perdía el foco. Punto de venta y Apartados no lo sufrían porque filtran en el navegador. Lo
+mismo pasaba en Movimientos, Facturas y Por pagar, Recibidas y el Historial de ventas.
+
+**Decisión (Felipe, 2026-09-28, sobre un spike de dos opciones).** Lo que se **tipea** en un buscador por URL no muestra el
+loader en ninguna pantalla; en su lugar, el campo dice «Buscando…» en rojo (el hilo barre, si el campo lo tiene) y los resultados
+de antes se atenúan a 0,45 hasta que llega la respuesta. Se descartó «sin ninguna señal» (como Vender): aquí cada búsqueda va a
+la base y los resultados viejos se confundirían con los nuevos. Un filtro por **clic** (categoría, píldora, «Limpiar todo»,
+paginar) es una acción decidida y sigue con el loader.
+
+**Cómo queda.**
+- `components/ui/BusquedaEnUrl.tsx`: `useBusquedaEnUrl()` devuelve `buscar(href)` —anuncia la dirección con
+  `navegacionSinEspera` y navega dentro de un `useTransition`— y `buscando`, que pone `data-buscando` en `<html>` y `aria-busy` en
+  las zonas. `SenalBuscando` es el «Buscando…» (entra y sale con opacidad, sin mover nada; un `role="status"` lo anuncia).
+- `components/ui/Espera.tsx`: guarda los anuncios (15 s de vigencia, **se consumen en la primera petición que los usa**: volver a
+  esa misma dirección por un clic es una carga más).
+- `lib/espera-reglas.ts`: `claveNavegacion` (ruta + parámetros ordenados, sin el `_rsc` que agrega Next) y `clasificarPeticion`
+  devuelve `null` para una navegación anunciada. Pura y con pruebas.
+- `globals.css`, «BÚSQUEDA EN CURSO»: `html[data-buscando] [data-resultados] { opacity: .45 }`, 200 ms con `--ease-cayla`, sin
+  transición con movimiento reducido. Cada página marca su lista con `data-resultados`.
+- Usan el hook: `FiltrosProductos`, `FiltrosMovimientos`, `FiltrosCompras` (Facturas y Por pagar), `FiltrosRecibidas` y
+  `BuscadorHistorial`. Un buscador nuevo que filtre por URL navega con `buscar(href)`, nunca con `router.push` suelto.
+
+**Cómo se verifica.** `pnpm --filter web test lib/espera-reglas.test.ts`. A mano (2026-09-28, base local, respuesta retrasada 1,5 s
+a propósito), con un observador de `[data-espera]` y `data-buscando`: en Productos, Movimientos, Facturas y el Historial (este a
+375 px) se escribió en el buscador → ninguna muestra con loader, «Buscando…» a la vista durante la espera, lista a opacidad 0,45,
+y el foco y el texto siguieron en el campo.
+
+**Añadido el mismo día — Análisis (Felipe: «te faltó la búsqueda de Análisis»).** Inventario ▸ Análisis no usa
+`FiltrosX` sino su propio estado en URL (`components/useResumenUrl.ts`, `router.replace` en una transición), y por eso el
+primer barrido —que buscaba `router.push` junto a una pausa de `setTimeout`— no lo vio. `actualizar(cambios, { tipeado })`
+anuncia la dirección con `navegacionSinEspera`, igual que `buscar(href)`; solo lo pide el buscador (`ResumenControles` →
+`BuscadorDebounced`). El atenuado ya lo tenía el panel (`pendiente`, opacidad 0,6), así que no lleva `data-resultados`.
+`BuscadorDebounced` dice «Buscando…» mientras lo que mandó no volvió en la URL, y adopta como enviado lo que llegue por
+otra vía para que la señal no quede pegada. Revisados y fuera a propósito: Cambios, Devoluciones y Buscar por comprobante
+buscan al pulsar Enter o un botón (acción decidida: loader), y Gastos cambia la URL solo por clics. Verificado en el
+navegador con la respuesta retrasada 1,5 s: sin loader, «Buscando…» durante la espera, foco intacto; un cambio de URL
+externo (`router.replace`) actualiza el campo y apaga la señal.

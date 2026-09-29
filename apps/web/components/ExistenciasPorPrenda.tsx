@@ -33,22 +33,40 @@ const AYUDA_TALLA = {
   normal: "en el piso",
 } as const;
 
-/** La curva: una pastilla por talla con «piso·almacén» (o el total, donde no se separa). */
-export function CurvaTallas({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>; separa: boolean }) {
+/** La curva: una pastilla por talla con «piso·almacén» (o el total, donde no se separa). Cada pastilla es un botón:
+ *  abre el detalle de la prenda ya parado en esa talla, sin obligar a elegirla de nuevo dentro del modal. */
+export function CurvaTallas({
+  prenda,
+  separa,
+  onAbrirTalla,
+}: {
+  prenda: PrendaAgrupada<FilaExistencias>;
+  separa: boolean;
+  onAbrirTalla: (varianteId: string) => void;
+}) {
   return (
-    <span className="flex flex-wrap gap-2.5">
+    <span className="flex flex-wrap gap-1.5 sm:gap-1">
       {prenda.tallas.map((f) => {
         const estado = estadoTalla(f);
         const cifra = separa ? `${f.pisoDisponible ?? 0}·${f.almacenDisponible ?? 0}` : `${f.disponible}`;
         return (
-          <span
+          <button
+            type="button"
             key={f.varianteId}
+            onClick={(e) => {
+              // La fila entera también abre el detalle (sin talla): este clic es más específico y no debe llegar a ella.
+              e.stopPropagation();
+              onAbrirTalla(f.varianteId);
+            }}
+            aria-label={`Ver la talla ${f.talla ?? "Única"} de ${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
             title={`${f.talla ?? "Única"}: ${separa ? `${f.pisoDisponible ?? 0} en piso, ${f.almacenDisponible ?? 0} en almacén` : `${f.disponible} disponibles`} — ${AYUDA_TALLA[estado]}${f.apartado > 0 ? ` · ${f.apartado} apartada${f.apartado === 1 ? "" : "s"}` : ""}`}
-            className={`inline-flex min-w-[3.25rem] flex-col items-center rounded-lg border px-1.5 py-[3px] text-[13px] leading-tight tabular-nums ${estado === "sin_stock" ? CLASE_TALLA.sin_stock : CLASE_TALLA.normal}`}
+            className={`inline-flex min-h-11 min-w-11 cursor-pointer flex-col items-center justify-center rounded-lg border px-1.5 py-0.5 text-xs sm:min-h-0 sm:min-w-[3.25rem] sm:justify-start sm:py-[3px] sm:text-[13px] leading-tight tabular-nums transition-[filter] hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 ${
+              estado === "sin_stock" ? CLASE_TALLA.sin_stock : CLASE_TALLA.normal
+            }`}
           >
-            <span className="text-[11px] opacity-75">{f.talla ?? "Única"}</span>
-            <span>{cifra}</span>
-          </span>
+            <span className="text-[11px] font-semibold opacity-75 sm:font-normal">{f.talla ?? "Única"}</span>
+            <span className={estado === "sin_stock" ? "line-through" : ""}>{cifra}</span>
+          </button>
         );
       })}
     </span>
@@ -217,7 +235,7 @@ export function ExistenciasPorPrenda({
               </span>
             </div>
             <span className="min-w-0">
-              <CurvaTallas prenda={p} separa={separa} />
+              <CurvaTallas prenda={p} separa={separa} onAbrirTalla={(varianteId) => onAbrir(p, varianteId)} />
             </span>
             {separa ? (
               <>

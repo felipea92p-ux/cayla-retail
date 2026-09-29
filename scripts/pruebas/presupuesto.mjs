@@ -347,10 +347,10 @@ create temp table m as select * from retail.fn_presupuesto_vs_real('2032-03-01',
 select 'X2 con el módulo ve SU tienda y nada más (ni la empresa, ni el Taller, ni CAYLA)', (select count(*) > 0 and bool_and(ubicacion_id = :'tru') from m);
 select 'X2 y ve los mismos números que el líder (servicios 818.47, se pasa)', (select proyeccion = 818.47 and estado = 'se_pasa' from m where linea = '636');
 select 'X3 pedir otra tienda falla', (select pg_temp.intento(format('select * from retail.fn_presupuesto_vs_real(%L, %L, %L)', '2032-03-01', :'lim', '2032-03-10')) like '%No puedes ver%');
-select 'X4 no escribe una casilla (Configuración es solo del líder y la base lo vuelve a pedir)', (select pg_temp.intento(format('select retail.guardar_presupuesto(%L, %L, %L, 1)', '2032-03-01', :'tru', '656')) like '%Solo el líder%');
-select 'X4 no aplica una propuesta', (select pg_temp.intento('select retail.guardar_presupuesto_lote(''2032-03-01'', ''[{"cuenta":"656","monto":1}]'', ''mes_anterior'')') like '%Solo el líder%');
-select 'X4 no propone ni lee la configuración', (select pg_temp.intento('select * from retail.fn_presupuesto_propuesta(''2032-03-01'', ''mes_anterior'')') like '%Solo el líder%')
-  and (select pg_temp.intento('select retail.fn_presupuesto_configuracion(''2032-03-01'')') like '%Solo el líder%');
+select 'X4 no escribe una casilla (sin el módulo Configuración; la base lo vuelve a pedir)', (select pg_temp.intento(format('select retail.guardar_presupuesto(%L, %L, %L, 1)', '2032-03-01', :'tru', '656')) like '%necesita el módulo «Configuración»%');
+select 'X4 no aplica una propuesta', (select pg_temp.intento('select retail.guardar_presupuesto_lote(''2032-03-01'', ''[{"cuenta":"656","monto":1}]'', ''mes_anterior'')') like '%necesita el módulo «Configuración»%');
+select 'X4 no propone ni lee la configuración', (select pg_temp.intento('select * from retail.fn_presupuesto_propuesta(''2032-03-01'', ''mes_anterior'')') like '%necesita el módulo «Configuración»%')
+  and (select pg_temp.intento('select retail.fn_presupuesto_configuracion(''2032-03-01'')') like '%necesita el módulo «Configuración»%');
 select 'X4 y su casilla sigue igual', (select monto = 300 from retail.presupuestos where mes = '2032-03-01' and ubicacion_id = :'tru' and cuenta = '656');
 select 'X5 nadie lee ni escribe la tabla directo (sin permisos para authenticated ni anon)',
   (select not has_table_privilege('authenticated', 'retail.presupuestos', 'select') and not has_table_privilege('authenticated', 'retail.presupuestos', 'insert')

@@ -1,19 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import type { ProductoListado } from "@/lib/catalogo-v2";
+import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/productos-vista";
+import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { usePantallaActual } from "@/lib/usePantallaActual";
+import { conDesde } from "@/lib/vuelta-productos";
+import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
+import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
+import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 
 /**
- * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
+ * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
  * misma fuente de datos (`ProductoListado[]`, ya filtrada/paginada por
  * `fn_productos`), sin pedir nada nuevo al servidor.
  *
@@ -23,120 +31,10 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
  * nunca genérico.
  */
 
-type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null };
-
-function coloresDe(variantes: VarianteCatalogo[]): ColorDisponible[] {
-  const vistos = new Map<string, ColorDisponible>();
-  for (const v of variantes) {
-    if (!v.color) continue;
-    if (!vistos.has(v.color)) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
-  }
-  return [...vistos.values()];
-}
-
-/** Mismo criterio que `rangoCosto` en `ProductosAgrupados.tsx`, aplicado a precio. */
-function rangoPrecio(variantes: VarianteCatalogo[]): string {
-  if (variantes.length === 0) return "—";
-  const precios = variantes.map((v) => v.precio);
-  const min = Math.min(...precios);
-  const max = Math.max(...precios);
-  return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
-}
-
-/** Tinte de fondo del color activo, mezclado hacia crema — el mismo cálculo
- *  que se probó en el mockup antes de escribir este componente. */
-function mezclar(hex: string, pct: number): string {
-  const n = parseInt(hex.slice(1), 16) || 0;
-  const r = (n >> 16) & 255,
-    g = (n >> 8) & 255,
-    b = n & 255;
-  const base = { r: 245, g: 240, b: 232 }; // crema
-  const mr = Math.round(r * pct + base.r * (1 - pct));
-  const mg = Math.round(g * pct + base.g * (1 - pct));
-  const mb = Math.round(b * pct + base.b * (1 - pct));
-  return `rgb(${mr}, ${mg}, ${mb})`;
-}
-
-function IconoPercha({ color, size = 36 }: { color?: string; size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      width={size}
-      height={size}
-      fill="none"
-      stroke={color ?? "#1a1a18"}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="opacity-45"
-      aria-hidden
-    >
-      <path d="M32 8a5 5 0 1 1 5 5" />
-      <path d="M32 13v6" />
-      <path d="M8 40 L32 19 L56 40" />
-      <path d="M8 40 Q32 52 56 40" />
-    </svg>
-  );
-}
-
-/** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
- *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
- *  (hover, o si no hay hover, el fijado, o si no hay ninguno, el primero). */
-function SwatchesColor({
-  colores,
-  activo,
-  onHover,
-  onFijar,
-  tamano = "h-4 w-4",
-}: {
-  colores: ColorDisponible[];
-  activo: string | null;
-  onHover: (nombre: string | null) => void;
-  onFijar: (nombre: string) => void;
-  tamano?: string;
-}) {
-  if (colores.length === 0) return null;
-  return (
-    // onMouseLeave/onBlur van en el GRUPO, no en cada botón: `mouseleave` no
-    // burbujea entre hermanos, así que mover el mouse de un swatch al
-    // vecino nunca pasa por un instante "sin hover" — antes, con el
-    // handler en cada botón, ese instante hacía caer `activo` al primer
-    // color de la lista (el fallback de `nombreActivo`) y el anillo
-    // "saltaba" ahí antes de asentarse en el nuevo, un parpadeo que se
-    // sentía trabado. Mismo motivo para el blur por teclado: `relatedTarget`
-    // decide si el foco se fue del grupo entero, no solo del botón actual.
-    <div
-      role="radiogroup"
-      aria-label="Color"
-      className="flex items-center gap-1.5"
-      onMouseLeave={() => onHover(null)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
-      }}
-    >
-      {colores.map((c) => (
-        <button
-          key={c.nombre}
-          type="button"
-          role="radio"
-          aria-checked={c.nombre === activo}
-          aria-label={c.nombre}
-          onMouseEnter={() => onHover(c.nombre)}
-          onFocus={() => onHover(c.nombre)}
-          onClick={() => onFijar(c.nombre)}
-          className={`${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
-            c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
-          }`}
-          style={{ background: c.hex }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function ProductosGrilla({
   productos,
   ubicacionId,
+  sede,
   sububicaciones,
   puedeAjustar,
   puedeBajarAlPiso,
@@ -145,6 +43,8 @@ export function ProductosGrilla({
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
+  /** El nombre de la sede de `ubicacionId`: el stock por talla de la vista rápida y las etiquetas son de ella. */
+  sede: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
   /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
@@ -153,6 +53,14 @@ export function ProductosGrilla({
   puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
+  // El stock de la sede de TODA la página en una sola lectura (una por tarjeta serían 24), y otra vez cuando la página
+  // cambia o se refresca (un ajuste): `productos` es otro arreglo.
+  const stockSede = useStockEnSede(ubicacionId);
+  const { leer } = stockSede;
+  useEffect(() => {
+    if (productos.length > 0) void leer(productos.map((p) => p.productoId));
+  }, [productos, leer]);
+
   if (productos.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
@@ -160,7 +68,14 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
+        <TarjetaProducto
+          key={p.productoId}
+          producto={p}
+          stock={stockSede.de(p.productoId)}
+          leer={leer}
+          ubicacionId={ubicacionId}
+          sede={sede}
+          sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
       ))}
     </div>
   );
@@ -168,14 +83,21 @@ export function ProductosGrilla({
 
 function TarjetaProducto({
   producto,
+  stock,
+  leer,
   ubicacionId,
+  sede,
   sububicaciones,
   puedeAjustar,
   puedeBajarAlPiso,
   puedeEliminar,
 }: {
   producto: ProductoListado;
+  /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   ubicacionId: string;
+  sede: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
   puedeBajarAlPiso: boolean;
@@ -197,6 +119,7 @@ function TarjetaProducto({
   const descontinuado = producto.estado !== "activo";
   const alerta = alertaDeStock(producto);
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
+  const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
@@ -244,7 +167,7 @@ function TarjetaProducto({
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoPrecio(producto.variantes)}</span>
+          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(producto.variantes.map((v) => v.precio)) ?? "—"}</span>
           <span title={EXPLICACION_STOCK_TOTAL} className={`ml-auto whitespace-nowrap text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>
             {alerta === "sin_stock" ? (
               <Chip tono="neutro" versalitas={false}>
@@ -257,6 +180,16 @@ function TarjetaProducto({
             ) : (
               textoDeStock(producto.stockTotal)
             )}
+            {/* El total es de toda la red; debajo, lo que hay aquí: lo que se puede vender, ajustar y etiquetar en la sede. */}
+            <span
+              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
+              title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
+            >
+              En tu sede:{" "}
+              <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
+                {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
+              </span>
+            </span>
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -268,6 +201,9 @@ function TarjetaProducto({
       {vistaRapida && (
         <VistaRapidaModal
           producto={producto}
+          stock={stock}
+          leer={leer}
+          sede={sede}
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
@@ -304,6 +240,9 @@ function TarjetaProducto({
 
 function VistaRapidaModal({
   producto,
+  stock,
+  leer,
+  sede,
   colores,
   colorInicial,
   onClose,
@@ -313,6 +252,9 @@ function VistaRapidaModal({
   puedeEliminar,
 }: {
   producto: ProductoListado;
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
+  sede: string;
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
@@ -321,12 +263,21 @@ function VistaRapidaModal({
   onEliminar: () => void;
   puedeEliminar: boolean;
 }) {
+  const pantalla = usePantallaActual();
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
 
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
   const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
+
+  // Stock por talla EN ESTA SEDE, como la ficha de la Tabla: es el mismo número con el que Etiquetas decide cuántas salen.
+  // Viene de la lectura de toda la página; al abrir se relee este modelo, por si cambió desde que se cargó la grilla.
+  useEffect(() => {
+    void leer([producto.productoId]);
+  }, [producto, leer]);
+  const ids = producto.variantes.map((v) => v.varianteId);
+  const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, ids) : null;
 
   return (
     <Modal titulo={producto.referencia} subtitulo={producto.codigo ?? undefined} onClose={onClose} ancho="max-w-3xl">
@@ -351,15 +302,25 @@ function VistaRapidaModal({
           </Chip>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="scroll-cayla overflow-x-auto">
+        {/* min-w-0: sin él, la tabla ensancha la columna (y la hoja) en vez de desplazarse dentro de su caja. */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <p className="text-[12px] text-tinta/60">
+            Stock en {sede || "tu sede"}
+            {totalSede !== null && <span className="tabular-nums text-tinta">: {totalSede.toLocaleString("es-PE")}</span>}
+          </p>
+          <div className="scroll-cayla -mt-2 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-sand text-left">
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Talla</th>
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Color</th>
                   <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Precio</th>
-                  <th className="label-cayla py-2 text-[10.5px] text-tinta/60">Código</th>
+                  <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60" title={`Unidades en ${sede || "tu sede"}`}>
+                    Stock
+                  </th>
+                  {/* En el celular no cabe junto a la impresora de cada talla: el código queda en la ficha y en la etiqueta. */}
+                  <th className="label-cayla hidden py-2 text-[10.5px] text-tinta/60 sm:table-cell">Código</th>
+                  <th className="w-10 py-2" aria-label="Etiqueta de la talla" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand">
@@ -368,20 +329,59 @@ function VistaRapidaModal({
                     <td className="py-2 pr-3 text-tinta/80">{v.talla ?? "—"}</td>
                     <td className="py-2 pr-3 text-tinta/80">{v.color ?? "—"}</td>
                     <td className="py-2 pr-3 text-right tabular-nums text-tinta">S/{v.precio.toFixed(2)}</td>
-                    <td className="py-2 font-mono text-xs text-tinta/65">{v.codigo ?? v.sku ?? "—"}</td>
+                    <td className="py-2 pr-3 text-right">
+                      <StockDeTalla stock={stock} varianteId={v.varianteId} />
+                    </td>
+                    <td className="hidden py-2 font-mono text-xs text-tinta/65 sm:table-cell">{v.codigo ?? v.sku ?? "—"}</td>
+                    {/* La etiqueta de ESTA talla y color, como el ícono que flota sobre la variante en la Tabla. Aquí va
+                        siempre a la vista (no al pasar el mouse): la vista rápida también se abre en el celular. */}
+                    <td className="py-1 pl-2 text-right">
+                      <EnlaceEtiquetas
+                        href={urlEtiquetasDePrecio({ variantes: [v.varianteId] }, pantalla)}
+                        unidades={async () => {
+                          const fresco = await leer([producto.productoId]);
+                          return fresco ? unidadesEnSede(fresco, [v.varianteId]) : null;
+                        }}
+                        que={[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "Esta talla")}
+                        sede={sede}
+                        className={(negado) =>
+                          `inline-grid h-8 w-8 place-items-center rounded-md transition-colors duration-200 ease-cayla ${
+                            negado ? "bg-rojo text-crema hover:bg-rojo-profundo" : "text-tinta/55 hover:bg-hueso hover:text-tinta"
+                          }`
+                        }
+                        aria-label={`Etiqueta de precio de ${[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta talla")}`}
+                        title="Imprimir la etiqueta de esta talla"
+                      >
+                        <Printer aria-hidden className="h-4 w-4" />
+                      </EnlaceEtiquetas>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-auto flex gap-2 pt-2">
-            <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
+          {/* flex-wrap: con los cuatro botones (líder), a 375 px no caben en una fila y sacaban «Eliminar» de la hoja. */}
+          <div className="mt-auto flex flex-wrap gap-2 pt-2">
+            <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
+            <EnlaceEtiquetas
+              href={urlEtiquetasDePrecio({ producto: producto.productoId }, pantalla)}
+              unidades={async () => {
+                const fresco = await leer([producto.productoId]);
+                return fresco ? unidadesEnSede(fresco, ids) : null;
+              }}
+              que={producto.referencia}
+              sede={sede}
+              className={(negado) =>
+                negado
+                  ? "label-cayla flex-1 rounded-md border border-rojo bg-rojo px-3 py-2.5 text-center text-[11px] text-crema transition-colors hover:bg-rojo-profundo"
+                  : `${botonCancelar} text-center`
+              }
+            >
               Etiquetas
-            </Link>
+            </EnlaceEtiquetas>
             {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
             {puedeAjustar && (
               <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
@@ -399,4 +399,18 @@ function VistaRapidaModal({
       </div>
     </Modal>
   );
+}
+
+/** Stock de una talla en la sede, en negrita: es lo que cambia de una talla a otra. Con 0 se apaga (no es rojo:
+ *  ADR-0151); mientras se lee, un guion, nunca un 0 que no es cierto. */
+function StockDeTalla({ stock, varianteId }: { stock: StockDeModelo; varianteId: string }) {
+  if (!stock || stock === "error") {
+    return (
+      <span className="text-tinta/30" title={stock === "error" ? "No se pudo leer el stock de la tienda" : undefined}>
+        —
+      </span>
+    );
+  }
+  const n = stock.get(varianteId) ?? 0;
+  return <span className={`font-semibold tabular-nums ${n === 0 ? "text-tinta/35" : "text-tinta"}`}>{n.toLocaleString("es-PE")}</span>;
 }

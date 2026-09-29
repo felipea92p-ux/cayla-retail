@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nuevo producto v2 · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Nuevo producto v2 (2026-09-28)
+   Tokens = los oficiales de apps/web/app/globals.css (ADR-0169).
+   Volumen = el de producción el 2026-09-28 (47 categorías, 76 colores,
+   27 tallas, 24 tejidos, 9 patrones, 84 marcas, 78 proveedores; por
+   categoría hasta 10 tejidos, 8 patrones y 9 tallas). Nombres de catálogo
+   reales; marcas, proveedores y cantidades inventados. No es la
+   implementación: sirve para decidir la distribución.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t45:rgba(26,26,24,.45);--t25:rgba(26,26,24,.25);
+  --t15:rgba(26,26,24,.15);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--rojo)}
+.tab{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,6px,0)}to{opacity:1;transform:none}}
+.revela{animation:sube 280ms var(--ease)}
+/* hoja (ADR-0136): velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada de 55 ms */
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes hoja{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}to{opacity:1;transform:none}}
+@keyframes pieza{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+
+/* ---------- barra del spike y comparación (no son parte de la pantalla) ---------- */
+.spike{max-width:1240px;margin:14px auto 0;padding:0 24px}
+.spike>.barra-spike{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;color:var(--t60);font-size:12px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+.compara{margin-top:12px;border:1px dashed var(--t25);border-radius:12px;padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;font-size:13px}
+.compara h3{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+.compara ol{list-style:none;display:grid;gap:6px}
+.compara ol li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
+.compara li i{font-style:normal;width:20px;height:20px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:10.5px;font-weight:700;margin-top:1px}
+.compara li b{font-weight:600}
+.compara li span{color:var(--taupe)}
+.compara .pesado{color:var(--rojo-p)}
+.compara .hoy i{color:var(--t60)}
+.compara .nuevo i{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.compara .ancho{grid-column:1/-1;border-top:1px solid var(--sand);padding-top:12px;color:var(--t75)}
+.compara .ancho ul{padding-left:18px;display:grid;gap:3px;grid-template-columns:1fr 1fr;column-gap:28px}
+.compara .cifras-reales{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.compara .cifras-reales span{background:var(--hueso);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--tinta)}
+
+/* ---------- marco ---------- */
+.marco{max-width:1240px;margin:0 auto;padding:22px 24px 80px}
+.celular .marco{max-width:375px;padding:16px 16px 0;border:1px solid var(--sand);border-radius:28px;margin-top:18px;min-height:760px}
+.app{container-type:inline-size}
+.volver{font-size:12.5px;color:var(--taupe);display:inline-flex;gap:6px;margin-bottom:12px}
+.cab h1{font-size:34px;line-height:1.1;margin-top:4px}
+.cab p.bajada{margin-top:6px;font-size:15px;color:var(--taupe);max-width:620px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start;margin-top:22px}
+
+/* ---------- pasos ---------- */
+.paso{background:var(--papel);border:1px solid var(--sand);border-radius:14px;margin-bottom:10px;scroll-margin-top:12px}
+.paso.pendiente{background:transparent;border-style:dashed}
+.paso-cab{display:flex;align-items:center;gap:12px;padding:14px 18px;width:100%;text-align:left}
+.num{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--t60)}
+.paso.hecho .num{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.paso.abierto .num{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.paso-tit{font-weight:600;font-size:15px;white-space:nowrap}
+.paso.pendiente .paso-tit{color:var(--t45);font-weight:500}
+.paso-res{flex:1;min-width:0;color:var(--taupe);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paso-cab .cambiar{font-size:12.5px;text-decoration:underline;text-underline-offset:2px;flex:none}
+.paso-pista{font-size:12.5px;color:var(--t45);margin-left:auto}
+.paso-cuerpo{padding:0 18px 18px 56px}
+.paso-intro{font-size:13px;color:var(--taupe);margin:-4px 0 12px}
+.paso-pie{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--sand)}
+.paso-pie .falta{font-size:12.5px;color:var(--taupe);margin-right:auto}
+.paso-pie .falta.ok{color:var(--verde)}
+
+.bloque{padding:14px 0;border-top:1px solid var(--sand)}
+.bloque:first-child{border-top:0;padding-top:2px}
+.bloque>.et{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;margin-bottom:8px}
+.bloque>.et b{font-size:13px;font-weight:600}
+.bloque>.et small{font-size:12px;color:var(--taupe)}
+.bloque>.et .req{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--rojo)}
+.bloque>.et .der{margin-left:auto;display:flex;gap:14px}
+.ayuda{font-size:12px;color:var(--taupe);margin-top:6px}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:36px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--t15);border-radius:8px;padding:5px 12px;font-size:13.5px;color:var(--t75);transition:border-color 150ms,background 150ms;text-align:left}
+.chip:hover{border-color:var(--t45)}
+.chip[aria-pressed=true]{border-color:var(--tinta);background:var(--t07);color:var(--tinta)}
+.chip[aria-pressed=true]::before{content:"✓";font-size:11px}
+.chip.talla{min-width:48px;justify-content:center;font-variant-numeric:tabular-nums}
+.chip.agregar{border-style:dashed;color:var(--taupe)}
+.chip.agregar::before{content:none}
+.quitable{display:inline-flex;align-items:center;gap:7px;min-height:36px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:4px 6px 4px 12px;font-size:13.5px;color:var(--tinta)}
+.elegidos{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;align-items:center}
+.quitable button{width:24px;height:24px;border-radius:50%;font-size:15px;line-height:1;color:var(--t60)}
+.quitable button:hover{background:var(--t07);color:var(--tinta)}
+.punto{width:12px;height:12px;border-radius:50%;border:1px solid var(--t25);flex:none;display:inline-block}
+.caja{width:100%;background:var(--hueso);border:1px solid transparent;border-radius:8px;padding:10px 12px;font-size:14.5px;outline:none;transition:border-color 150ms}
+.caja:focus{border-color:var(--taupe)}
+.caja.grande{font-size:17px;padding:11px 14px}
+.caja.monto{text-align:right;font-variant-numeric:tabular-nums}
+.pie-campo{font-size:12px;color:var(--taupe);margin-top:6px}
+.pie-campo b{color:var(--tinta)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:9px 16px;font-size:13.5px;font-weight:500;white-space:nowrap;transition:background 150ms,border-color 150ms}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-primario:hover:not(:disabled){background:var(--rojo-p)}
+.btn-secundario{border-color:var(--sand)}
+.btn-secundario:hover{background:rgba(232,224,208,.5)}
+.btn-enlace{text-decoration:underline;text-underline-offset:2px;padding:0;font-size:12.5px;color:var(--taupe)}
+.btn-enlace:hover{color:var(--tinta)}
+.aviso{border-radius:8px;border:1px solid var(--t15);background:var(--t04);padding:9px 12px;font-size:13px;margin-top:8px}
+.aviso.ambar{border-color:rgba(116,80,26,.4);background:rgba(116,80,26,.06);color:var(--ambar)}
+
+/* buscador + lista flotante */
+.buscar{position:relative}
+.buscar svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--taupe);fill:none;stroke-width:1.7;pointer-events:none}
+.buscar .caja{padding-left:36px}
+.lista{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--papel);border:1px solid var(--sand);border-radius:10px;max-height:300px;overflow:auto;padding:4px;box-shadow:0 10px 28px rgba(26,26,24,.10)}
+.lista .enc{font-size:11px;color:var(--taupe);padding:6px 10px 4px}
+.opcion{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 10px;border-radius:7px;font-size:13.5px}
+.opcion:hover{background:var(--hueso)}
+.opcion small{margin-left:auto;color:var(--taupe);font-size:11.5px;white-space:nowrap}
+.opcion.crear{border-top:1px solid var(--sand);margin-top:4px;padding-top:9px;font-weight:600}
+/* La opción de crear va PRIMERO y queda fija arriba mientras se baja por la lista: nadie tiene que llegar al final de 84 marcas. */
+.opcion.crear.fija{position:sticky;top:-4px;z-index:1;background:var(--papel);border-top:0;margin:-4px -4px 4px;padding:10px 14px;width:calc(100% + 8px);border-radius:10px 10px 0 0;border-bottom:1px solid var(--sand)}
+.opcion.crear.fija:hover{background:var(--hueso)}
+.fila-label{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+mark{background:none;color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:2px}
+
+/* paso 1 */
+.familias{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fam{border:1px solid var(--sand);border-radius:12px;padding:11px 14px;text-align:left;transition:border-color 150ms,background 150ms;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fam:hover{border-color:var(--t45)}
+.fam[aria-pressed=true]{border-color:var(--tinta);background:var(--t04)}
+.fam b{font-size:14px;font-weight:600}
+.fam span{font-size:12px;color:var(--taupe);white-space:nowrap}
+.cats{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.cat{border:1px solid var(--sand);border-radius:10px;padding:8px 12px;text-align:left;background:var(--crema);transition:border-color 150ms}
+.cat:hover{border-color:var(--t45)}
+.cat b{display:block;font-weight:600;font-size:13.5px;line-height:1.3}
+.cat small{color:var(--taupe);font-size:11.5px}
+
+/* muestras de tejido y patrón */
+.muestras-tx{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.tx{border:1px solid var(--t15);border-radius:9px;padding:5px;text-align:left;font-size:12.5px;color:var(--t75);transition:border-color 150ms,background 150ms;min-width:0}
+.tx:hover{border-color:var(--t45)}
+.tx i{display:block;height:40px;border-radius:5px;background-color:var(--hueso)}
+.tx span{display:block;padding:4px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx[aria-pressed=true]{border-color:var(--tinta);background:var(--t07);color:var(--tinta)}
+.tx[aria-pressed=true] span::before{content:"✓ ";font-size:11px}
+.tx.ver{border-style:dashed;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:var(--taupe);min-height:70px}
+.tx.ver b{font-size:13px;color:var(--tinta);font-weight:600}
+.tx.ver span{padding:0}
+.tx.ver:hover{background:var(--t04)}
+.t-algodon{background-image:radial-gradient(var(--t15) 1px,transparent 1.2px);background-size:5px 5px}
+.t-lino{background-image:repeating-linear-gradient(0deg,var(--t07) 0 1px,transparent 1px 4px),repeating-linear-gradient(90deg,var(--t15) 0 1px,transparent 1px 5px)}
+.t-viscosa{background-image:linear-gradient(115deg,transparent 20%,rgba(251,248,242,.9) 45%,transparent 70%)}
+.t-seda{background-image:linear-gradient(100deg,transparent 10%,rgba(251,248,242,.95) 35%,transparent 55%,rgba(251,248,242,.6) 75%,transparent 90%)}
+.t-sheen{background-image:repeating-linear-gradient(90deg,var(--t04) 0 2px,transparent 2px 4px),linear-gradient(120deg,transparent 30%,rgba(251,248,242,.8) 50%,transparent 70%)}
+.t-denim{background-color:#7f93ad!important;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 1px,transparent 1px 4px)}
+.t-drill{background-color:#cbb998!important;background-image:repeating-linear-gradient(45deg,var(--t15) 0 1px,transparent 1px 5px)}
+.t-pana{background-image:repeating-linear-gradient(90deg,var(--t15) 0 3px,rgba(251,248,242,.6) 3px 6px)}
+.t-rib{background-image:repeating-linear-gradient(90deg,var(--t15) 0 1.5px,transparent 1.5px 4px)}
+.t-lana{background-image:radial-gradient(var(--t15) 2px,transparent 2.5px),radial-gradient(var(--t07) 2px,transparent 2.5px);background-size:8px 8px,8px 8px;background-position:0 0,4px 4px}
+.t-pique{background-image:radial-gradient(circle,transparent 1.5px,var(--t15) 2px,transparent 2.5px);background-size:6px 6px}
+.t-tejido{background-image:repeating-linear-gradient(60deg,var(--t15) 0 1px,transparent 1px 5px),repeating-linear-gradient(-60deg,var(--t15) 0 1px,transparent 1px 5px)}
+.p-rayas{background-image:repeating-linear-gradient(90deg,var(--taupe) 0 3px,transparent 3px 9px)}
+.p-floral{background-image:radial-gradient(circle at 30% 40%,var(--rojo) 0 3px,transparent 3.5px),radial-gradient(circle at 70% 65%,var(--verde) 0 3px,transparent 3.5px);background-size:18px 18px}
+.p-cuadros{background-image:repeating-linear-gradient(0deg,rgba(76,93,110,.35) 0 2px,transparent 2px 9px),repeating-linear-gradient(90deg,rgba(76,93,110,.35) 0 2px,transparent 2px 9px)}
+.p-lunares{background-image:radial-gradient(var(--tinta) 2px,transparent 2.5px);background-size:10px 10px}
+.p-animal{background-color:#d8b77e!important;background-image:radial-gradient(ellipse 4px 3px at 30% 30%,#5a3a28 60%,transparent 70%),radial-gradient(ellipse 3px 4px at 75% 70%,#5a3a28 60%,transparent 70%);background-size:14px 12px}
+.p-cable{background-image:radial-gradient(ellipse 5px 7px at 50% 50%,transparent 55%,var(--t25) 60%,transparent 75%);background-size:12px 12px}
+.p-estampado{background-image:radial-gradient(circle at 20% 30%,var(--pizarra) 0 2.5px,transparent 3px),radial-gradient(circle at 70% 20%,var(--ambar) 0 2px,transparent 2.5px),radial-gradient(circle at 50% 75%,var(--rojo) 0 2.5px,transparent 3px);background-size:16px 16px}
+.p-macrame{background-image:repeating-linear-gradient(45deg,var(--t25) 0 1.5px,transparent 1.5px 8px),repeating-linear-gradient(-45deg,var(--t25) 0 1.5px,transparent 1.5px 8px)}
+
+/* marca y proveedor */
+.pareja{flex-direction:column;align-items:flex-start;gap:0;line-height:1.25;min-height:44px}
+.pareja small{font-size:11.5px;color:var(--taupe)}
+.pareja[aria-pressed=true]::before{display:none}
+.elegida{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:9px;padding:9px 12px}
+.elegida b{font-weight:600}
+.elegida .btn-enlace{margin-left:auto}
+
+.panel-nuevo{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:14px 16px;background:var(--crema);display:grid;gap:12px}
+.panel-nuevo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.panel-nuevo .panel-tit{font-weight:600;font-size:14px}
+.panel-nuevo .acc{display:flex;justify-content:flex-end;gap:8px}
+.dos-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@container (max-width:820px){.dos-col{grid-template-columns:1fr}}
+.plegable{margin-top:4px;border-top:1px solid var(--sand);padding-top:12px}
+.plegable>button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:13px;font-weight:600}
+.plegable>button .flecha{transition:transform 200ms var(--ease);display:inline-block}
+.plegable.abierto>button .flecha{transform:rotate(90deg)}
+.plegable>button small{font-weight:400;color:var(--taupe)}
+.plegable .dentro{margin-top:6px}
+
+/* colores */
+.paleta{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:6px 12px;background:var(--crema);display:grid;column-gap:24px}
+@container (min-width:900px){.paleta{grid-template-columns:1fr 1fr}.paleta .fam-c:nth-child(2){border-top:0}}
+.paleta .fam-c{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--sand)}
+.paleta .fam-c:first-child{border-top:0}
+.paleta .fam-c p{font-size:11.5px;color:var(--taupe)}
+.muestras{display:flex;flex-wrap:wrap;gap:6px}
+.muestra{width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11px;font-weight:700;transition:transform 150ms var(--ease)}
+.muestra:hover{transform:scale(1.12)}
+.muestra[aria-pressed=true]{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--tinta)}
+.muestra[aria-pressed=true]::after{content:"✓"}
+.paleta-pie{grid-column:1/-1;border-top:1px solid var(--sand);padding:7px 0 3px;font-size:12px;color:var(--taupe);min-height:30px;display:flex;gap:6px;align-items:center}
+.nuevo-color{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--crema);display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:end}
+.nuevo-color label{font-size:12px;font-weight:600;display:block;margin-bottom:4px}
+.nuevo-color input[type=color]{width:44px;height:42px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso);padding:3px}
+
+/* la tabla de la prenda */
+.tabla-cab{display:flex;align-items:center;justify-content:space-between;gap:10px 12px;margin:4px 0 8px;flex-wrap:wrap}
+.tabla-cab p{font-size:13px}
+.tabla-cab p b{font-size:15px}
+.scroll{overflow:auto;border:1px solid var(--sand);border-radius:12px;background:var(--papel);max-height:520px}
+table.prenda{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+.prenda th,.prenda td{border-top:1px solid var(--sand);padding:0;text-align:center}
+.prenda thead th{border-top:0;background:var(--hueso);padding:8px 6px;font-weight:600;font-size:12px;position:sticky;top:0;z-index:2;white-space:nowrap}
+.prenda thead th.izq{text-align:left;padding-left:14px;left:0;z-index:3;box-shadow:1px 0 0 var(--sand)}
+.prenda thead th.col{cursor:pointer}
+.prenda thead th.col:hover{color:var(--rojo-p)}
+/* la columna del color queda fija al desplazarse a la derecha (muchas tallas) y la fila de tallas, al bajar (muchos colores) */
+.prenda th.fila{text-align:left;padding:8px 10px 8px 12px;font-weight:500;white-space:nowrap;background:var(--papel);position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--sand)}
+.fila-color{display:flex;align-items:center;gap:10px}
+.fotos-fila{display:flex;gap:4px;align-items:center}
+.mini{width:34px;height:42px;border-radius:5px;border:1px solid var(--sand);display:grid;place-items:center;position:relative;flex:none}
+.mini i{width:14px;height:20px;border-radius:2px;background:rgba(251,248,242,.85)}
+.mini .n{position:absolute;right:-5px;top:-6px;background:var(--tinta);color:var(--crema);font-size:9.5px;font-weight:700;border-radius:999px;padding:0 5px;line-height:15px}
+.mini-mas{width:34px;height:42px;border-radius:5px;border:1px dashed var(--t25);color:var(--taupe);font-size:17px;flex:none;display:grid;place-items:center}
+.mini-mas:hover{border-color:var(--t45);color:var(--tinta)}
+.fila-color .nom{display:flex;flex-direction:column;line-height:1.2}
+.fila-color .nom b{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.fila-color .nom small{font-size:11px;color:var(--taupe)}
+.quitar-fila{color:var(--t45);font-size:15px;padding:0 10px}
+.quitar-fila:hover{color:var(--rojo-p)}
+.celda{width:100%;min-width:54px;height:52px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;transition:background 150ms}
+.celda.si::before{content:"✓";font-size:12px;color:var(--verde);font-weight:700}
+.celda.no{color:var(--t25);background:repeating-linear-gradient(135deg,transparent 0 6px,var(--t04) 6px 7px)}
+button.celda:hover{background:var(--t04)}
+.celda input{width:48px;border:1px solid transparent;border-radius:7px;background:var(--hueso);text-align:center;font-size:14px;padding:6px 3px;outline:none;font-variant-numeric:tabular-nums}
+.celda input:focus{border-color:var(--taupe);background:var(--papel)}
+.celda input.distinto{color:var(--ambar);font-weight:600}
+.prenda td.total,.prenda th.total{border-left:1px solid var(--sand);font-variant-numeric:tabular-nums;color:var(--taupe);padding:0 12px;text-align:right}
+.prenda tfoot td,.prenda tfoot th{background:var(--hueso);font-weight:600;padding:8px 6px;font-variant-numeric:tabular-nums;position:sticky;bottom:0}
+.prenda tfoot th{text-align:left;padding-left:14px;left:0;z-index:2}
+.rellenar{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--taupe)}
+.rellenar input{width:52px;background:var(--hueso);border:1px solid transparent;border-radius:7px;padding:5px 6px;text-align:center;outline:none}
+.rellenar input:focus{border-color:var(--taupe)}
+.rellenar .btn{padding:5px 10px;font-size:12.5px}
+
+/* paso 4 */
+.cifras{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.cifras label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.margen{font-size:30px;line-height:1;padding:6px 0 2px;font-variant-numeric:tabular-nums}
+.margen.ok{color:var(--verde)}.margen.bajo{color:var(--ambar)}.margen.neg{color:var(--rojo-p)}.margen.nada{color:var(--t25)}
+.segmento{display:inline-flex;border:1px solid var(--sand);border-radius:9px;padding:3px;background:var(--crema)}
+.segmento button{padding:5px 12px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--t60)}
+.segmento button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--sand)}
+.donde{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:14px}
+.donde p{font-size:13px;font-weight:600}
+.nota-mini{font-size:12px;color:var(--taupe);margin-top:12px}
+
+/* ---------- ficha ---------- */
+.ficha{position:sticky;top:16px;display:grid;gap:12px}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.tarjeta .foto{height:150px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);font-size:12px;position:relative;text-align:center;padding:0 24px;transition:background 300ms var(--ease)}
+.tarjeta .foto .grande{width:78px;height:104px;border-radius:6px;background:rgba(251,248,242,.85)}
+.tarjeta .foto .puntos{position:absolute;left:14px;bottom:12px;display:flex;gap:4px;align-items:center}
+.tarjeta .foto .puntos i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--papel)}
+.tarjeta .foto .puntos small{font-size:11px;color:var(--tinta);background:rgba(251,248,242,.92);border-radius:999px;padding:0 6px;margin-left:2px}
+.tarjeta .foto .cuenta{position:absolute;right:10px;top:10px;background:rgba(251,248,242,.92);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--tinta)}
+.tarjeta .cuerpo{padding:14px 16px 16px}
+.tarjeta .cod{font-size:12.5px;color:var(--taupe)}
+.tarjeta h2{font-size:25px;line-height:1.12;margin:2px 0}
+.tarjeta .sub{font-size:13px;color:var(--taupe)}
+.vacio{color:var(--t25)}
+.tarjeta .precio{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--sand)}
+.tarjeta .precio b{font-size:24px}
+.tarjeta .cifras-f{display:grid;grid-template-columns:1fr 1fr;margin-top:10px;border:1px solid var(--sand);border-radius:10px;overflow:hidden}
+.tarjeta .cifras-f div{padding:8px 10px}
+.tarjeta .cifras-f div+div{border-left:1px solid var(--sand)}
+.tarjeta .cifras-f small{display:block;font-size:11px;color:var(--taupe)}
+.tarjeta .cifras-f b{font-size:17px;font-variant-numeric:tabular-nums}
+.avance{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:6px}
+.avance button{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;width:100%;text-align:left;padding:7px 8px;border-radius:9px}
+.avance button:hover:not(:disabled){background:var(--t04)}
+.avance button:disabled{cursor:default}
+.avance i{font-style:normal;width:22px;height:22px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--t60)}
+.avance .hecho i{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.avance .abierto{background:var(--hueso)}
+.avance .abierto i{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.avance b{display:block;font-size:13px;font-weight:600}
+.avance span{display:block;font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avance .pendiente b{color:var(--t45);font-weight:500}
+.responsable label{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
+.acciones{display:flex;gap:8px}
+.acciones .btn-primario{flex:1}
+.listo-msg{font-size:12.5px;color:var(--verde);text-align:center}
+
+/* ---------- hoja «Ver todos» (el <Modal variante="hoja"> del ERP) ---------- */
+.velo{position:fixed;inset:0;z-index:50;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;animation:velo 220ms var(--ease)}
+.hoja{width:min(680px,100%);max-height:84vh;display:flex;flex-direction:column;background:var(--papel);border:1px solid var(--sand);border-radius:18px;box-shadow:0 24px 60px rgba(26,26,24,.18);animation:hoja 420ms var(--ease) both}
+.hoja>*{animation:pieza 360ms var(--ease) both}
+.hoja>*:nth-child(1){animation-delay:120ms}.hoja>*:nth-child(2){animation-delay:175ms}.hoja>*:nth-child(3){animation-delay:230ms}.hoja>*:nth-child(4){animation-delay:285ms}
+.hoja.quieta,.hoja.quieta>*{animation:none}
+.hoja .tx span{white-space:normal;line-height:1.25;overflow:visible}
+.hoja-cab{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 4px}
+.hoja-cab h2{font-size:24px;line-height:1.15}
+.hoja-cab p{font-size:13px;color:var(--taupe);margin-top:2px}
+.hoja-cab .cerrar{margin-left:auto;width:32px;height:32px;border-radius:50%;font-size:18px;color:var(--t60);flex:none}
+.hoja-cab .cerrar:hover{background:var(--t07);color:var(--tinta)}
+.hoja-busca{padding:10px 20px 8px}
+.hoja-cuerpo{overflow:auto;padding:4px 20px 18px;flex:1}
+.hoja-cuerpo h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin:16px 0 8px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.hoja-cuerpo h3 small{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+.hoja-cuerpo h3:first-child{margin-top:4px}
+.hoja-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--sand);padding:12px 20px}
+.hoja-pie p{font-size:12.5px;color:var(--taupe)}
+.nada{font-size:13px;color:var(--taupe);padding:18px 0}
+
+.barra{display:none}
+.creado{margin:28px auto 0;max-width:620px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:32px 28px;text-align:center}
+.creado .ok-marca{width:52px;height:52px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center;font-size:24px;margin:0 auto 14px}
+.creado h2{font-size:28px;line-height:1.15}
+.creado>p{margin-top:6px}
+.acciones-creado{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
+
+@container (max-width:820px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .ficha-col{display:none}
+  .cab h1{font-size:28px}
+  .paso-cab{padding:13px 14px}
+  .paso-cuerpo{padding:0 14px 16px}
+  .paso-res{display:none}
+  .paso-tit{white-space:normal}
+  .familias{grid-template-columns:1fr 1fr}
+  .fam{flex-direction:column;gap:0}
+  .cats{grid-template-columns:1fr 1fr}
+  .muestras-tx{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cifras{grid-template-columns:1fr 1fr;gap:10px}
+  .cifras>div:last-child{grid-column:1/-1;display:flex;align-items:baseline;gap:10px}
+  .cifras>div:last-child .margen{font-size:24px}
+  .nuevo-color{grid-template-columns:1fr auto}
+  .nuevo-color .btn-primario{grid-column:1/-1}
+  .celda{min-width:44px;height:48px}
+  .celda input{width:40px;padding:6px 2px}
+  .prenda th.fila{padding:6px 6px 6px 8px}
+  .fila-color{gap:6px}
+  .fila-color .nom b{font-size:12.5px}
+  .fila-color .nom small{display:none}
+  .fotos-fila .mini ~ .mini-mas{display:none}
+  .quitar-fila{padding:0 6px}
+  .prenda td.total,.prenda th.total{padding:0 6px 0 4px}
+  .prenda thead th{padding:8px 3px}
+  .segmento{width:100%}.segmento button{flex:1}
+  .barra{display:block;position:sticky;bottom:0;margin:16px -16px 0;background:var(--papel);border-top:1px solid var(--sand);padding:10px 16px 14px;z-index:5}
+  .barra .linea{display:flex;align-items:center;gap:10px}
+  .barra .linea div{flex:1;min-width:0;font-size:12.5px}
+  .barra .linea b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barra .falta{font-size:12px;color:var(--taupe);margin-top:4px}
+}
+/* en celular la hoja sale desde abajo, a lo ancho */
+@media (max-width:600px){
+  .velo{align-items:flex-end;padding:0}
+  .hoja{border-radius:18px 18px 0 0;max-height:88vh;width:100%}
+  .hoja .muestras-tx{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .compara{grid-template-columns:1fr}.compara .ancho ul{grid-template-columns:1fr}.marco{padding:16px 16px 0}.spike{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="spike">
+  <div class="barra-spike" role="toolbar" aria-label="Controles del spike">
+    <strong style="color:var(--tinta)">Spike · Nuevo producto v2</strong>
+    <span>Ver en:</span>
+    <button data-preset="vacio">Vacío</button>
+    <button data-preset="p2">Paso 2</button>
+    <button data-preset="p3">Paso 3</button>
+    <button data-preset="p4">Paso 4</button>
+    <button data-preset="listo">Listo para crear</button>
+    <button data-preset="creado">Creado</button>
+    <button data-preset="mucho">Mucho de todo (jean)</button>
+    <button data-preset="hoja">«Ver todos» abierto</button>
+    <span class="sep"></span>
+    <button id="btn-celular" aria-pressed="false">Celular 375 px</button>
+    <button id="btn-compara" aria-pressed="true">Hoy vs. propuesta</button>
+  </div>
+  <div class="compara" id="compara">
+    <div class="hoy">
+      <h3>Hoy · 5 pasos (en <span class="mono">main</span>)</h3>
+      <ol>
+        <li><i>1</i><div><b>Qué producto es</b> <span>· categoría</span></div></li>
+        <li><i>2</i><div><b>Quién es y cómo se llama</b> <span>· nombre, descripción, marca y proveedor</span></div></li>
+        <li><i>3</i><div><b class="pesado">Cómo se hace</b> <span class="pesado">· 7 campos: tallas, tejido, patrón, temporada, colores, etiquetas, fotos</span></div></li>
+        <li><i>4</i><div><b>Precio y variantes</b> <span>· precio, costo, margen, tabla talla × color</span></div></li>
+        <li><i>5</i><div><b>Cuántas tienes hoy</b> <span>· <span class="pesado">la misma tabla, otra vez</span>, con cantidades</span></div></li>
+      </ol>
+    </div>
+    <div class="nuevo">
+      <h3>Propuesta · 4 preguntas</h3>
+      <ol>
+        <li><i>1</i><div><b>¿A qué categoría pertenece?</b> <span>· buscador y familias</span></div></li>
+        <li><i>2</i><div><b>¿Cómo es?</b> <span>· nombre, descripción, marca, tejido y patrón. Temporada y etiquetas plegadas (opcionales)</span></div></li>
+        <li><i>3</i><div><b>¿En qué tallas y colores?</b> <span>· tallas, colores y <b>una tabla</b> con la foto de cada color en su fila</span></div></li>
+        <li><i>4</i><div><b>¿Cuánto cuesta y cuántas hay?</b> <span>· precio, costo, margen y <b>la misma tabla</b> ya con cantidades</span></div></li>
+      </ol>
+    </div>
+    <div class="ancho">
+      <h3>Cuando hay mucho · el catálogo de producción hoy</h3>
+      <div class="cifras-reales"><span>47 categorías</span><span>76 colores</span><span>27 tallas</span><span>24 tejidos</span><span>9 patrones</span><span>24 etiquetas</span><span>84 marcas</span><span>78 proveedores</span><span>por categoría: hasta 10 tejidos, 8 patrones, 9 tallas</span></div>
+      <ul>
+        <li><b>A la vista, nunca más de 6 opciones por campo:</b> las de esta categoría, en el orden en que más se usan.</li>
+        <li><b>El resto va detrás de «Ver todos · N»</b>: una hoja con buscador sin tildes y grupos (naturales, de punto…).</li>
+        <li><b>Lo elegido nunca se esconde:</b> si viene de «Ver todos», pasa al primer lugar de la fila.</li>
+        <li><b>Categorías:</b> buscador + familias con su cuenta; al abrir una, sus categorías en grilla.</li>
+        <li><b>La tabla:</b> la columna del color y la fila de tallas quedan fijas al desplazarte; «Llenar todas con…» llena las 68 casillas de un golpe.</li>
+        <li><b>La ficha y los resúmenes:</b> hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)».</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div id="raiz"></div>
+<div id="capa-hoja"></div>
+
+<script>
+/* =========================================================================
+   DATOS · catálogo con nombres y volumen de producción (2026-09-28)
+   ========================================================================= */
+const FAMILIAS = [
+  {cod:"indumentaria", nombre:"Indumentaria", exige:true, cats:[["Abrigos","ABR"],["Blazers","BLZ"],["Bodys","BOD"],["Camisas y Blusas","CMS"],["Casacas","CAS"],["Chalecos","CHA"],["Chompas","CMP"],["Conjuntos","CON"],["Enterizos","ENT"],["Faldas","FAL"],["Jeans","JEA"],["Pantalones","PAN"],["Poleras","SUD"],["Polos","POL"],["Ropa interior/Lencería","LEN"],["Shorts","SHO"],["Tops","TOP"],["Vestidos","VES"]]},
+  {cod:"accesorios", nombre:"Accesorios y Complementos", exige:false, cats:[["Bolsos y Carteras","CAR"],["Cinturones","CIN"],["Gorros y Sombreros","GOR"],["Lentes de sol","LSO"],["Mochilas","MOC"],["Pañuelos y Pañoletas","BUF"],["Relojes","REL"],["Riñoneras","RIN"]]},
+  {cod:"calzado", nombre:"Calzado", exige:false, cats:[["Bailarinas","BAI"],["Botas","BOT"],["Botines","BOI"],["Mocasines","MSN"],["Sandalias","SAN"],["Zapatillas","ZAP"],["Zapatos formales","ZFO"]]},
+  {cod:"bisuteria", nombre:"Bisutería", exige:false, cats:[["Anillos","ANL"],["Aretes","ARE"],["Collares","COL"],["Pulseras","PUL"]]},
+  {cod:"papeleria", nombre:"Papelería", exige:false, cats:[["Colores","UTC"],["Lapiceros","LAP"],["Libretas/Cuadernos","LIB"],["Útiles de oficina","UOF"]]},
+  {cod:"belleza", nombre:"Belleza", exige:false, cats:[["Maquillaje","MAQ"]]},
+];
+const CUENTA = {}; // productos por categoría (inventado, estable)
+FAMILIAS.forEach(f => f.cats.forEach(([n], i) => CUENTA[n] = 3 + ((n.length * 37 + i * 11) % 140)));
+const TOTAL_CATS = FAMILIAS.reduce((a, x) => a + x.cats.length, 0);
+const famDe = n => FAMILIAS.find(x => x.cats.some(c => c[0] === n)).cod;
+
+const TEJIDOS = {"Algodón":"t-algodon","Algodón alicrado":"t-lino","Algodón pima":"t-algodon","Alpaca":"t-lana","Chifón":"t-seda","Denim":"t-denim","Drill":"t-drill","Gabardina":"t-drill","Hilo":"t-tejido","Hilo de algodón":"t-tejido","Jersey":"t-rib","Lana":"t-lana","Licra":"t-sheen","Lino":"t-lino","Pana":"t-pana","Piqué":"t-pique","Polar":"t-lana","Poliéster":"t-viscosa","Popelina":"t-algodon","Rib":"t-rib","Seda":"t-seda","Suplex":"t-sheen","Tela":"t-algodon","Viscosa":"t-viscosa"};
+const GRUPO_TEJIDO = {"Naturales":["Algodón","Algodón pima","Algodón alicrado","Lino","Seda","Alpaca","Lana","Hilo","Hilo de algodón"],"De punto":["Jersey","Rib","Piqué","Polar","Suplex","Licra"],"Planos y de trabajo":["Denim","Drill","Gabardina","Pana","Popelina","Tela"],"Sintéticos y artificiales":["Poliéster","Viscosa","Chifón"]};
+const PATRONES = {"Liso":"p-liso","Rayas":"p-rayas","Cuadros":"p-cuadros","Floral":"p-floral","Lunares":"p-lunares","Estampado":"p-estampado","Animal print":"p-animal","Cable knit":"p-cable","Macramé":"p-macrame"};
+const TALLAS_TODAS = {"Letras":["XS","S","M","L","XL","XXL"],"Números":["6","7","8","9","26","28","30","32","34","35","36","37","38","39","40","41","42","44"],"Otras":["Estándar","Única"]};
+const ORDEN_TALLA = Object.values(TALLAS_TODAS).flat();
+/* Lo que ofrece cada categoría, en el orden en que más se usa (tope real: 10 tejidos, 8 patrones, 9 tallas). */
+const CONFIG = {
+  "Camisas y Blusas": {tallas:["XS","S","M","L","XL","XXL"], habituales:["S","M","L"],
+    tejidos:["Algodón","Viscosa","Lino","Popelina","Seda","Algodón pima","Poliéster","Chifón","Piqué","Hilo"],
+    patrones:["Liso","Rayas","Floral","Cuadros","Lunares","Estampado","Animal print","Macramé"]},
+  "Jeans": {tallas:["26","28","30","32","34","36","38","40","42"], habituales:["28","30","32","34"],
+    tejidos:["Denim","Drill","Gabardina","Licra","Algodón"], patrones:["Liso","Estampado","Rayas"]},
+};
+const confDefault = f => f?.exige
+  ? {tallas:["XS","S","M","L","XL"], habituales:["S","M","L"], tejidos:["Algodón","Jersey","Viscosa","Poliéster","Lino","Rib","Licra"], patrones:["Liso","Rayas","Estampado","Floral"]}
+  : {tallas:["Única"], habituales:["Única"], tejidos:[], patrones:[]};
+
+const FAM_COLOR = [
+  ["Neutros",[["Blanco","#F4F9FF"],["Crudo","#F3ECE0"],["Nude","#F2D3BC"],["Beige","#D5BA98"],["Gris piedra","#C3BDAB"],["Gris perla","#C5C5C5"],["Gris melange","#A2A2A1"],["Gris","#848587"],["Topo","#82776B"],["Gris antracita","#48464A"],["Negro","#2D2C2F"]]],
+  ["Tierras",[["Arena","#CCA67F"],["Caqui","#A39264"],["Camel","#B0885B"],["Moka","#A47864"],["Tostado","#A47045"],["Terracota","#B3573F"],["Coñac","#864C24"],["Marrón","#694833"],["Chocolate","#4B342F"]]],
+  ["Rojos y rosas",[["Rosado","#F0A1BF"],["Palo rosa","#D9A6A1"],["Salmón","#FAA181"],["Coral","#EA6759"],["Fucsia","#CF2D71"],["Rojo","#BD332D"],["Frambuesa","#A52350"],["Cereza","#9B1B30"],["Vino","#6C2831"]]],
+  ["Morados",[["Lavanda","#D2C4D6"],["Lila","#BCA4CB"],["Malva","#B88AAC"],["Orquídea","#AD5E99"],["Violeta","#775496"],["Mora","#854C65"],["Morado","#563474"],["Ciruela","#692D5D"],["Berenjena","#47253C"]]],
+  ["Azules",[["Celeste","#A9CADA"],["Azul claro","#80A0D4"],["Turquesa","#33BECC"],["Azul denim","#5979A2"],["Azul eléctrico","#4A5FA5"],["Cobalto","#00539C"],["Azul petróleo","#2A5C6A"],["Índigo","#49516D"],["Azul marino","#2A304E"]]],
+  ["Verdes",[["Verde agua","#A1D7C9"],["Pistacho","#BED38E"],["Salvia","#A1AD92"],["Verde limón","#9FC131"],["Esmeralda","#009B74"],["Verde","#487D49"],["Verde oliva","#6A6F34"],["Verde militar","#4B5335"],["Verde botella","#264E36"]]],
+  ["Amarillos",[["Vainilla","#F2E6B1"],["Amarillo limón","#EADA4F"],["Amarillo","#F0C05A"],["Mostaza","#C89721"],["Durazno","#FFBE98"],["Mandarina","#EE9626"],["Naranja","#E8703A"]]],
+  ["Metálicos",[["Plateado","#B8BCC0"],["Plata vieja","#8C8D88"],["Champán","#E2D1A6"],["Dorado","#C8A951"],["Oro viejo","#A68A45"],["Oro rosa","#D6A08C"],["Cobre","#B46A3C"],["Bronce","#8C6B3B"]]],
+];
+const COLORES = {}; for (const [, cs] of FAM_COLOR) for (const [n, h] of cs) COLORES[n] = h;
+const claro = h => { const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16); return (r*299+g*587+b*114)/1000 > 150; };
+
+/* 84 marcas y 78 proveedores (inventados, en la cantidad real). */
+const RAIZ = ["Alondra","Kusi","Qori","Wayra","Urpi","Tika","Nativa","Pampa","Lúcuma","Inti","Killa","Sumaq","Maki","Ayni","Chaska","Pacha","Runa","Sisa","Yaku","Kantu","Mayu","Suyay","Allin","Ñusta","Illa","Puka","Misti","Colca","Paracas","Lirio","Molle","Totora","Aguaymanto","Huayruro","Cantuta","Retama","Achiote","Chirimoya","Quinua","Maca","Tara","Pisco"];
+const MARCAS = [["CAYLA",["Taller Lima","Confecciones Andina","Taller Arequipa"]]];
+for (let i = 0; MARCAS.length < 84; i++) MARCAS.push([RAIZ[i % RAIZ.length] + ["", " Studio"][Math.floor(i / RAIZ.length)], []]);
+const PROVEEDORES = ["Taller Lima","Confecciones Andina","Taller Arequipa","Gamarra Textil","Grupo Alondra SAC"];
+for (let i = 0; PROVEEDORES.length < 78; i++) PROVEEDORES.push(`${["Confecciones","Textil","Inversiones","Corporación","Industrias","Creaciones","Importaciones","Distribuidora"][i % 8]} ${RAIZ[(i * 5) % RAIZ.length]} ${["SAC","EIRL","SRL"][i % 3]}`);
+MARCAS.forEach(([, ps], i) => { if (!ps.length) ps.push(PROVEEDORES[3 + (i * 7) % 75]); if (i % 9 === 0 && i) ps.push(PROVEEDORES[3 + (i * 11) % 75]); });
+const PAREJAS = []; MARCAS.forEach(([m, ps]) => ps.forEach(p => PAREJAS.push([m, p])));
+
+const ETIQUETAS = {"Campañas y fechas":["Aniversario CAYLA","Black Friday","CyberWow","Día de la Madre","Día de la Mujer","Día de la Tierra","Día Internacional del Gato","Día Internacional del Perro","Fiestas Patrias","Halloween","Navidad","San Valentín"],"La prenda":["Hecho a mano","Pieza única","Reedición","Nuevo"],"Para vender":["Top ventas","Últimas unidades","Para liquidar"]};
+const TODAS_ETIQ = Object.values(ETIQUETAS).flat();
+const ETIQ_MAS_USADAS = ["Nuevo","Top ventas","Hecho a mano","Día de la Madre","Últimas unidades","Reedición"];
+const TEMPORADAS = ["Ninguna","Verano","Otoño","Invierno","Primavera"];
+const EXISTENTES = ["Blusa Aurora","Blusa Aurora Manga Larga","Jean Mom Tiro Alto"];
+const SEDE = "TRU · Real Plaza";
+const RESPONSABLES = ["Elige quién registra…","Rosa Quispe","Milagros Díaz","Lucía Torres"];
+
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+let s;
+const NM_VACIO = {nuevaMarca:false, nmMarca:"", nmMarcaSel:null, listaMarca:false, nmProvQ:"", listaProv:false, nmProv:null, nmProvNuevo:false, nmRazon:"", nmRuc:""};
+function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"", pareja:null, busMP:"", listaMP:false, ...NM_VACIO, tejido:null, patron:null,
+  mas:false, desc:"", temporada:0, etiquetas:[],
+  tallas:[], colores:[], busColor:"", paleta:true, nuevoColor:false, ncNombre:"", ncHex:"#9c6b4f", fotos:{},
+  fuera:[], precio:"", costo:"", modo:"cant", cant:{}, precios:{}, relleno:"", donde:"piso", sinStock:false, responsable:0,
+  hoja:null, celular:false, creado:false, copiado:""}; }
+const blusa = () => ({...vacio(), familia:"indumentaria", cat:"Camisas y Blusas", tallas:["S","M","L"]});
+const jean = () => ({...vacio(), familia:"indumentaria", cat:"Jeans"});
+const PRESETS = {
+  vacio: () => vacio(),
+  p2: () => ({...blusa(), abierto:2, nombre:"blusa lirio"}),
+  p3: () => ({...blusa(), abierto:3, nombre:"blusa lirio", pareja:0, tejido:"Lino", patron:"Liso", colores:["Crudo","Terracota"], fotos:{"Crudo":2}}),
+  p4: () => ({...blusa(), abierto:4, nombre:"blusa lirio", pareja:0, tejido:"Lino", patron:"Liso", tallas:["S","M","L","XL"], colores:["Crudo","Terracota","Azul marino"], fotos:{"Crudo":2,"Terracota":1}, fuera:["Azul marino|XL"], precio:"89.90", costo:"38.50"}),
+  listo: () => ({...blusa(), abierto:4, nombre:"blusa lirio", pareja:0, tejido:"Lino", patron:"Liso", mas:true, desc:"Manga globo, botones forrados", temporada:1, etiquetas:["Nuevo","Hecho a mano"],
+    tallas:["S","M","L","XL"], colores:["Crudo","Terracota","Azul marino"], fotos:{"Crudo":2,"Terracota":1}, fuera:["Azul marino|XL"], precio:"89.90", costo:"38.50",
+    cant:{"Crudo|S":"2","Crudo|M":"3","Crudo|L":"2","Crudo|XL":"1","Terracota|S":"1","Terracota|M":"2","Terracota|L":"2","Azul marino|M":"2","Azul marino|L":"1"}, precios:{"Crudo|XL":"94.90"}, responsable:1}),
+  /* Mucho de todo: 9 tallas × 8 colores = 72 celdas, un tejido traído de «Ver todos» (Pana), 4 etiquetas. */
+  mucho: () => ({...jean(), abierto:3, nombre:"jean mom tiro alto clásico", pareja:7, tejido:"Pana", patron:"Liso", mas:true, temporada:3,
+    etiquetas:["Nuevo","Top ventas","Reedición","CyberWow"], tallas:["26","28","30","32","34","36","38","40","42"],
+    colores:["Azul denim","Índigo","Celeste","Negro","Gris","Blanco","Caqui","Verde militar"], fotos:{"Azul denim":3,"Índigo":1,"Negro":2,"Caqui":1},
+    fuera:["Blanco|40","Blanco|42","Caqui|42","Verde militar|42"], precio:"139.90", costo:"62.00"}),
+  creado: () => ({...PRESETS.listo(), creado:true}),
+  /* Solo por enlace (#proveedor): sumarle un proveedor nuevo a una marca que ya existe. */
+  proveedor: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarcaSel:{nombre:"CAYLA", existe:true}, nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
+  /* Solo por enlace (#marca): el formulario de marca nueva abierto, con un proveedor nuevo. */
+  marca: () => ({...PRESETS.p2(), nuevaMarca:true, nmMarcaSel:{nombre:"Killa Denim", existe:false}, nmProvNuevo:true, nmRazon:"Textil Andina SAC", nmRuc:"20601234567"}),
+  hoja: () => ({...blusa(), abierto:2, nombre:"blusa lirio", pareja:0, hoja:{tipo:"tejido", q:""}}),
+};
+
+/* =========================================================================
+   DERIVADOS
+   ========================================================================= */
+const fam = () => FAMILIAS.find(f => f.cod === s.familia);
+const cat = () => { const f = fam(); return f && f.cats.find(c => c[0] === s.cat); };
+const conf = () => CONFIG[s.cat] ?? confDefault(fam());
+const titulo = t => t.trim().replace(/\s+/g," ").toLowerCase().replace(/(^|\s)\S/g, m => m.toUpperCase());
+const nombreFinal = () => titulo(s.nombre);
+const sinTilde = x => x.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const coincide = (texto, q) => !q.trim() || sinTilde(texto).includes(sinTilde(q.trim()));
+const repetido = () => EXISTENTES.find(e => sinTilde(e) === sinTilde(nombreFinal()));
+const tallasOrden = () => [...s.tallas].sort((a, b) => ORDEN_TALLA.indexOf(a) - ORDEN_TALLA.indexOf(b));
+const textoTallas = () => { const t = tallasOrden(); return t.length > 5 ? `${t[0]}–${t[t.length - 1]} (${t.length})` : t.join(" "); };
+const filasColor = () => s.colores.length ? s.colores : [null];
+const clave = (c, t) => `${c ?? "—"}|${t}`;
+const celdas = () => filasColor().flatMap(c => tallasOrden().map(t => clave(c, t)));
+const incluidas = () => celdas().filter(k => !s.fuera.includes(k));
+const num = v => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? 0 : n; };
+const unid = k => Math.max(0, Math.floor(num(s.cant[k] ?? "")));
+const totalStock = () => incluidas().reduce((a, k) => a + unid(k), 0);
+const margen = () => { const p = num(s.precio), c = num(s.costo); return p > 0 && c > 0 ? (p - c) / p * 100 : null; };
+const nivel = m => m === null ? "nada" : m < 0 ? "neg" : m < 45 ? "bajo" : "ok";
+const soles = n => "S/ " + n.toFixed(2);
+const nFotos = () => Object.values(s.fotos).reduce((a, b) => a + b, 0);
+const codigo = () => { const c = cat(); return c ? `${c[1]}-${String(CUENTA[c[0]] + 1).padStart(4, "0")}` : null; };
+const pareja = () => s.pareja === null ? null : PAREJAS[s.pareja];
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+/* Lo que se ve de una lista larga: las primeras `max` de la categoría; si lo elegido viene de más abajo
+   (o de «Ver todos»), va primero y empuja a la última. Lo elegido nunca se esconde. */
+function aLaVista(lista, elegido, max){
+  const top = lista.slice(0, max);
+  return elegido && !top.includes(elegido) ? [elegido, ...lista.slice(0, max - 1)] : top;
+}
+
+function falta(n){
+  const exige = fam()?.exige;
+  if (n === 1) return s.cat ? null : "Elige la categoría";
+  if (n === 2) {
+    if (!s.nombre.trim()) return "Falta el nombre";
+    if (repetido()) return "Ese nombre ya existe";
+    if (s.pareja === null) return "Falta la marca";
+    if (exige && !s.tejido) return "Falta el tejido";
+    if (exige && !s.patron) return "Falta el patrón";
+    return null;
+  }
+  if (n === 3) {
+    if (!s.tallas.length) return "Elige al menos una talla";
+    if (!incluidas().length) return "Quedó sin variantes";
+    return null;
+  }
+  if (n === 4) {
+    if (!(num(s.precio) > 0)) return "Falta el precio";
+    if (totalStock() === 0 && !s.sinStock) return "Cuenta lo que hay hoy (o marca que aún no tienes)";
+    return null;
+  }
+}
+const alcanzable = n => [1,2,3,4].filter(m => m < n).every(m => !falta(m));
+const hecho = n => !falta(n) && alcanzable(n);
+const estado = n => n === s.abierto ? "abierto" : hecho(n) ? "hecho" : "pendiente";
+const primerFalta = () => { for (const n of [1,2,3,4]) { const f = falta(n); if (f) return f; } return s.responsable ? null : "Elige quién registra"; };
+
+const TIT = {1:"¿A qué categoría pertenece?", 2:"¿Cómo es?", 3:"¿En qué tallas y colores?", 4:"¿Cuánto cuesta y cuántas hay?"};
+function resumen(n){
+  if (n === 1) return cat() ? `${fam().nombre} › ${cat()[0]}` : "";
+  if (n === 2) { const p = pareja(); return [nombreFinal(), p && p[0], s.tejido, s.patron].filter(Boolean).join(" · "); }
+  if (n === 3) return s.tallas.length ? `${textoTallas()} · ${plural(s.colores.length, "color", "colores")} · ${plural(incluidas().length, "variante", "variantes")}${nFotos() ? ` · ${plural(nFotos(), "foto", "fotos")}` : ""}` : "";
+  if (n === 4) return [num(s.precio) > 0 && soles(num(s.precio)), totalStock() ? `${totalStock()} en tienda` : s.sinStock && "sin stock aún"].filter(Boolean).join(" · ");
+}
+
+/* =========================================================================
+   PINTAR
+   ========================================================================= */
+const $ = (sel, r = document) => r.querySelector(sel);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const punto = c => `<span class="punto" style="background:${COLORES[c]}"></span>`;
+const camara = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const lupa = `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>`;
+function marcar(texto, q){
+  const t = q.trim(); if (!t) return esc(texto);
+  const i = sinTilde(texto).indexOf(sinTilde(t));
+  return i < 0 ? esc(texto) : esc(texto.slice(0, i)) + "<mark>" + esc(texto.slice(i, i + t.length)) + "</mark>" + esc(texto.slice(i + t.length));
+}
+
+function paso(n){
+  const e = estado(n), puede = alcanzable(n);
+  if (e === "abierto") return `
+    <section class="paso abierto" id="paso-${n}">
+      <div class="paso-cab"><span class="num">${n}</span><h2 class="paso-tit">${TIT[n]}</h2></div>
+      <div class="paso-cuerpo revela">${cuerpo(n)}${pie(n)}</div>
+    </section>`;
+  if (e === "hecho") return `
+    <section class="paso hecho" id="paso-${n}">
+      <button class="paso-cab" data-abrir="${n}"><span class="num">✓</span><h2 class="paso-tit">${TIT[n]}</h2><span class="paso-res">${esc(resumen(n))}</span><span class="cambiar">Cambiar</span></button>
+    </section>`;
+  return `
+    <section class="paso pendiente" id="paso-${n}">
+      <button class="paso-cab" ${puede ? `data-abrir="${n}"` : "disabled"} style="${puede ? "" : "cursor:default"}"><span class="num">${n}</span><h2 class="paso-tit">${TIT[n]}</h2>${puede ? '<span class="paso-pista">Abrir</span>' : ""}</button>
+    </section>`;
+}
+function textoPie(n){
+  const f = falta(n);
+  if (f) return [f, false];
+  if (n < 4) return ["Listo. Sigue cuando quieras.", true];
+  return s.responsable ? ["Todo listo. Revisa la ficha y crea el producto.", true] : ["Solo falta elegir quién lo registra.", false];
+}
+function pie(n){
+  if (n === 1) return "";
+  const [txt, ok] = textoPie(n);
+  const boton = n < 4
+    ? `<button class="btn btn-primario" data-seguir="${n + 1}" ${falta(n) ? "disabled" : ""}>Seguir →</button>`
+    : `<button class="btn btn-primario" data-accion="crear" ${primerFalta() ? "disabled" : ""}>Crear producto</button>`;
+  return `<div class="paso-pie"><p class="falta ${ok ? "ok" : ""}" data-vivo="falta-${n}">${esc(txt)}</p>${boton}</div>`;
+}
+const cuerpo = n => [null, cuerpo1, cuerpo2, cuerpo3, cuerpo4][n]();
+
+/* ---- 1 · categoría: buscador + familias (sin «las que más usas», Felipe 2026-09-28) ---- */
+function cuerpo1(){
+  const q = s.busCat, f = fam();
+  const halladas = q.trim() ? FAMILIAS.flatMap(x => x.cats.filter(c => coincide(c[0], q)).map(c => [x, c])) : [];
+  return `
+    <p class="paso-intro">Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.</p>
+    <div class="buscar">${lupa}<input class="caja" data-campo="busCat" placeholder="Busca entre las ${TOTAL_CATS} categorías: jeans, aretes, blazers…" value="${esc(q)}" autocomplete="off"></div>
+    ${q.trim() ? `<div class="cats revela">${halladas.length ? halladas.map(([x, c]) => `<button class="cat" data-cat="${esc(c[0])}"><b>${marcar(c[0], q)}</b><small>${x.nombre} · ${CUENTA[c[0]]} productos</small></button>`).join("") : `<p class="nada">Ninguna categoría se llama así. Crear una es de Catálogo → Categorías.</p>`}</div>` : `
+    <div class="familias" style="margin-top:14px">${FAMILIAS.map(x => `<button class="fam" data-familia="${x.cod}" aria-pressed="${s.familia === x.cod}"><b>${x.nombre}</b><span>${plural(x.cats.length, "categoría", "categorías")}</span></button>`).join("")}</div>
+    ${f ? `<div class="cats revela">${f.cats.map(c => `<button class="cat" data-cat="${esc(c[0])}"><b>${c[0]}</b><small>${c[1]} · ${CUENTA[c[0]]} productos</small></button>`).join("")}</div>` : ""}`}`;
+}
+
+/* ---- 2 · cómo es ---- */
+function tiles(tipo, lista, elegido){
+  const mapa = tipo === "tejido" ? TEJIDOS : PATRONES, total = Object.keys(mapa).length;
+  return `<div class="muestras-tx">${aLaVista(lista, elegido, 5).map(t => `<button class="tx" data-${tipo}="${esc(t)}" aria-pressed="${elegido === t}"><i class="${mapa[t]}"></i><span>${t}</span></button>`).join("")}
+    <button class="tx ver" data-hoja="${tipo}"><b>Ver todos</b><span>${total} ${tipo === "tejido" ? "tejidos" : "patrones"}</span></button></div>`;
+}
+function cuerpo2(){
+  const p = pareja(), rep = repetido(), exige = fam()?.exige, c = conf();
+  const q = s.busMP;
+  // Sin «más usadas» (Felipe, 2026-09-28): al tocar el buscador se abre la lista entera, de la A a la Z, y al escribir se filtra.
+  const res = PAREJAS.map((x, i) => [x, i]).filter(([x]) => coincide(x[0] + " " + x[1], q)).sort((a, b) => a[0][0].localeCompare(b[0][0], "es"));
+  return `
+    <div class="bloque">
+      <div class="et"><b>Nombre</b><small>Como se lo dirías a una clienta</small></div>
+      <input class="caja grande" data-campo="nombre" placeholder="${s.cat === "Jeans" ? "Jean Mom Tiro Alto" : "Blusa Aurora"}" value="${esc(s.nombre)}" autocomplete="off">
+      <p class="pie-campo" data-vivo="nombre-pie">${pieNombre()}</p>
+      <div data-vivo="repetido">${rep ? avisoRepetido(rep) : ""}</div>
+    </div>
+    <div class="bloque">
+      <div class="et"><b>Descripción</b><small>Opcional · lo que no dice el nombre: corte, largo, detalles</small></div>
+      <input class="caja" id="desc" data-campo="desc" placeholder="Manga globo, botones forrados…" value="${esc(s.desc)}" autocomplete="off">
+    </div>
+    <div class="bloque">
+      <div class="et"><b>Marca y proveedor</b><small>Quién la hace y quién te la trae</small></div>
+      ${p ? `<div class="elegida"><div><b>${esc(p[0])}</b> <span class="taupe">· la trae ${esc(p[1])}</span></div><button class="btn-enlace" data-accion="quitar-pareja">Cambiar</button></div>`
+        : s.nuevaMarca ? nuevaMarcaHtml() : `<div class="buscar" data-combo="mp">${lupa}
+             <input class="caja" data-campo="busMP" placeholder="Toca para ver las ${MARCAS.length} marcas, o escribe la marca o el proveedor…" value="${esc(q)}" autocomplete="off">
+             ${s.listaMP || q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nm-abrir">+ Registrar ${q.trim() ? `«${esc(titulo(q))}» como marca nueva` : "una marca o un proveedor nuevo"}</button><p class="enc">${q.trim() ? plural(res.length, "resultado", "resultados") : "Todas las marcas, de la A a la Z"}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>la trae ${marcar(x[1], q)}</small></button>`).join("")}</div>` : ""}
+           </div>
+           <p class="ayuda">¿No está? <button class="btn-enlace" data-accion="nm-abrir">+ Registrar una marca o un proveedor nuevo</button></p>`}
+    </div>
+    ${c.tejidos.length || exige ? `<div class="bloque">
+      <div class="et"><b>Tejido</b><small>${exige ? "" : "Opcional · "}De qué tela es</small></div>
+      ${tiles("tejido", c.tejidos, s.tejido)}
+    </div>` : ""}
+    ${c.patrones.length || exige ? `<div class="bloque">
+      <div class="et"><b>Patrón</b><small>${exige ? "" : "Opcional · "}El dibujo de la tela. Si no tiene, elige Liso</small></div>
+      ${tiles("patron", c.patrones, s.patron)}
+    </div>` : ""}
+    <div class="plegable ${s.mas ? "abierto" : ""}">
+      <button data-accion="mas"><span class="flecha">›</span> Temporada y etiquetas <small>· opcional${resumenMas()}</small></button>
+      ${s.mas ? `<div class="dentro revela">
+        <div class="bloque"><div class="et"><b>Temporada</b><small>Sin año: el sistema lo sabe por la fecha en que llega. Si eliges «Ninguna», usa la de su categoría</small></div>
+          <div class="chips">${TEMPORADAS.map((t, i) => `<button class="chip" data-temporada="${i}" aria-pressed="${s.temporada === i}">${t}</button>`).join("")}</div></div>
+        <div class="bloque"><div class="et"><b>Etiquetas</b><small>Para buscar y agrupar${s.etiquetas.length ? ` · ${plural(s.etiquetas.length, "elegida", "elegidas")}` : ""}</small></div>
+          <div class="chips">
+            ${[...s.etiquetas, ...ETIQ_MAS_USADAS.filter(e => !s.etiquetas.includes(e))].slice(0, Math.max(6, s.etiquetas.length)).map(t => `<button class="chip" data-etiqueta="${esc(t)}" aria-pressed="${s.etiquetas.includes(t)}">${t}</button>`).join("")}
+            <button class="chip agregar" data-hoja="etiqueta">Ver todas · ${TODAS_ETIQ.length}</button>
+          </div></div>
+      </div>` : ""}
+    </div>`;
+}
+/* Marca nueva (el NuevaMarcaForm del ERP): nombre de la marca y quién la trae — un proveedor que ya existe o uno nuevo. */
+function nuevaMarcaHtml(){
+  const q = s.nmProvQ, lista = PROVEEDORES.map((p, i) => [p, i]).filter(([p]) => coincide(p, q)).sort((a, b) => a[0].localeCompare(b[0], "es"));
+  const prov = s.nmProv !== null
+    ? `<div class="elegida"><div><b>${esc(PROVEEDORES[s.nmProv])}</b></div><button class="btn-enlace" data-accion="nm-prov-cambiar">Cambiar</button></div>`
+    : s.nmProvNuevo
+      ? `<div class="dos-col"><div><label for="nm-razon">Razón social</label><input class="caja" id="nm-razon" data-campo="nmRazon" placeholder="Textil Andina SAC" value="${esc(s.nmRazon)}" autocomplete="off"></div>
+           <div><label for="nm-ruc">RUC <span class="taupe" style="font-weight:400">· opcional</span></label><input class="caja" id="nm-ruc" data-campo="nmRuc" inputmode="numeric" placeholder="11 dígitos" value="${esc(s.nmRuc)}" autocomplete="off"></div></div>
+         <p class="ayuda"><button class="btn-enlace" data-accion="nm-prov-existente">Mejor elijo uno que ya existe</button></p>`
+      : `<div class="buscar" data-combo="prov">${lupa}<input class="caja" id="nm-prov" data-campo="nmProvQ" placeholder="Toca para ver los ${PROVEEDORES.length} proveedores, o escribe…" value="${esc(q)}" autocomplete="off">
+           ${s.listaProv || q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nm-prov-nuevo">+ Proveedor nuevo${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button><p class="enc">${q.trim() ? plural(lista.length, "proveedor", "proveedores") : "Todos, de la A a la Z"}</p>${lista.map(([p, i]) => `<button class="opcion" data-nmprov="${i}">${marcar(p, q)}</button>`).join("")}</div>` : ""}</div>`;
+  // Marca: una que ya existe (para sumarle un proveedor) o una nueva. Se busca o se escribe en el mismo campo.
+  const qm = s.nmMarca, sel = s.nmMarcaSel;
+  const marcas = MARCAS.map(m => m[0]).filter(m => coincide(m, qm)).sort((a, b) => a.localeCompare(b, "es"));
+  const exacta = MARCAS.some(m => sinTilde(m[0]) === sinTilde(qm.trim()));
+  const traenHoy = sel?.existe ? PAREJAS.filter(x => x[0] === sel.nombre).map(x => x[1]) : [];
+  const marca = sel
+    ? `<div class="elegida"><div><b>${esc(sel.nombre)}</b> <span class="taupe">· ${sel.existe ? `ya existe. Hoy la trae${traenHoy.length > 1 ? "n" : ""} ${esc(traenHoy.join(", "))}` : "marca nueva"}</span></div><button class="btn-enlace" data-accion="nm-marca-cambiar">Cambiar</button></div>`
+    : `<div class="buscar" data-combo="nmmarca">${lupa}<input class="caja" id="nm-marca" data-campo="nmMarca" placeholder="Busca una marca que ya existe o escribe una nueva…" value="${esc(qm)}" autocomplete="off">
+         ${s.listaMarca || qm.trim() ? `<div class="lista">${qm.trim() && !exacta ? `<button class="opcion crear fija" data-accion="nm-marca-nueva">+ Marca nueva «${esc(titulo(qm))}»</button>` : qm.trim() ? "" : `<p class="opcion crear fija" style="cursor:default;font-weight:500;color:var(--taupe)">+ ¿Es nueva? Escribe su nombre arriba</p>`}<p class="enc">${marcas.length ? (qm.trim() ? "Ya existen" : "Todas, de la A a la Z") : "Ninguna marca se llama así"}</p>${marcas.map(m => `<button class="opcion" data-nmmarca="${esc(m)}">${marcar(m, qm)}</button>`).join("")}</div>` : ""}</div>`;
+  const repetida = nmRepetida();
+  return `<div class="panel-nuevo revela">
+    <p class="panel-tit">Registrar marca o proveedor</p>
+    <p class="taupe" style="font-size:12.5px;margin-top:-6px">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
+    <div><label for="nm-marca">Marca</label>${marca}</div>
+    <div><div class="fila-label"><label for="nm-prov">¿Quién te la trae?</label>${s.nmProv === null && !s.nmProvNuevo ? `<button class="btn-enlace" data-accion="nm-prov-nuevo">+ Proveedor nuevo</button>` : ""}</div>${prov}</div>
+    ${repetida ? `<div class="aviso ambar" style="margin:0">${esc(sel.nombre)} ya la trae ${esc(PROVEEDORES[s.nmProv])}. No hace falta registrarla: cancela y elígela en el buscador.</div>` : ""}
+    <div class="acc"><button class="btn btn-secundario" data-accion="nm-cancelar">Cancelar</button><button class="btn btn-primario" data-accion="nm-crear" ${nmListo() ? "" : "disabled"}>Registrar y elegir</button></div>
+  </div>`;
+}
+const nmRepetida = () => s.nmMarcaSel?.existe && s.nmProv !== null && PAREJAS.some(x => x[0] === s.nmMarcaSel.nombre && x[1] === PROVEEDORES[s.nmProv]);
+const nmListo = () => s.nmMarcaSel && (s.nmProv !== null || (s.nmProvNuevo && s.nmRazon.trim())) && !nmRepetida();
+function pieNombre(){ const f = nombreFinal(); return f && f !== s.nombre.trim() ? `Se guardará como <b>${esc(f)}</b>` : "Empieza por el tipo de prenda: Blusa, Jean, Vestido…"; }
+function avisoRepetido(r){ return `<div class="aviso ambar"><b>${esc(r)}</b> ya existe. Si es otro color de la misma prenda, <button class="btn-enlace">agrégale el color allá</button>; si es otra prenda, cámbiale el nombre.</div>`; }
+function resumenMas(){ const n = [s.temporada && TEMPORADAS[s.temporada], s.etiquetas.length && plural(s.etiquetas.length, "etiqueta", "etiquetas")].filter(Boolean); return n.length ? ` — <b style="color:var(--tinta);font-weight:600">${n.join(", ")}</b>` : ""; }
+
+/* ---- 3 · tallas y colores ---- */
+function cuerpo3(){
+  const c = conf(), q = s.busColor;
+  const hallados = q.trim() ? Object.keys(COLORES).filter(x => coincide(x, q)) : [];
+  // Un color elegido se ve en UN solo lugar y de UNA sola forma: la fila «elegidos», con su ×. Se elige de una sola
+  // manera: buscándolo o en la carta (abierta de entrada). Sin fila de «más usados» (Felipe, 2026-09-28).
+  const extra = s.tallas.filter(t => !c.tallas.includes(t));
+  const curva = s.tallas.length !== c.habituales.length || !c.habituales.every(t => s.tallas.includes(t));
+  const total = Object.keys(COLORES).length;
+  return `
+    <div class="bloque">
+      <div class="et"><b>Tallas</b><small>${esc(s.cat)} ofrece ${plural(c.tallas.length, "talla", "tallas")}</small>
+        <span class="der">${curva ? `<button class="btn-enlace" data-accion="curva">Solo las de siempre (${c.habituales.length > 3 ? c.habituales[0] + "–" + c.habituales[c.habituales.length - 1] : c.habituales.join(" ")})</button>` : ""}${s.tallas.length < c.tallas.length ? `<button class="btn-enlace" data-accion="todas-tallas">Todas las tallas</button>` : ""}</span></div>
+      <div class="chips">${[...c.tallas, ...extra].map(t => `<button class="chip talla" data-talla="${t}" aria-pressed="${s.tallas.includes(t)}">${t}</button>`).join("")}<button class="chip agregar" data-hoja="talla">+ Otra talla</button></div>
+    </div>
+    <div class="bloque">
+      <div class="et"><b>Colores</b><small>${s.colores.length ? plural(s.colores.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}</small></div>
+      <div class="elegidos">${s.colores.length
+        ? s.colores.map(x => `<span class="quitable">${punto(x)}${x}<button data-color="${x}" aria-label="Quitar ${x}">×</button></span>`).join("")
+        : `<p class="taupe" style="font-size:12.5px">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de abajo.</p>`}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+        <div class="buscar" style="flex:1;min-width:210px">${lupa}
+          <input class="caja" data-campo="busColor" placeholder="Busca entre los ${total} colores: petróleo, coral…" value="${esc(q)}" autocomplete="off">
+          ${q.trim() ? `<div class="lista"><button class="opcion crear fija" data-accion="nuevo-color">+ Crear el color «${esc(titulo(q))}»</button><p class="enc">${plural(hallados.length, "color", "colores")}</p>${hallados.map(x => `<button class="opcion" data-color="${x}" data-limpia="1">${punto(x)}${marcar(x, q)}${s.colores.includes(x) ? "<small>elegido</small>" : ""}</button>`).join("")}</div>` : ""}
+        </div>
+        <button class="btn btn-secundario" data-accion="paleta">${s.paleta ? "Ocultar la carta" : `Ver los ${total} colores`}</button>
+        <button class="btn btn-secundario" data-accion="nuevo-color">+ Nuevo color</button>
+      </div>
+      ${s.paleta ? `<div class="paleta revela">${FAM_COLOR.map(([f, cs]) => `<div class="fam-c"><p>${f}</p><div class="muestras">${cs.map(([x, h]) => `<button class="muestra" data-nombre="${x}" style="background:${h};color:${claro(h) ? "var(--tinta)" : "#fff"}" data-color="${x}" aria-pressed="${s.colores.includes(x)}" aria-label="${x}"></button>`).join("")}</div></div>`).join("")}
+        <p class="paleta-pie" data-vivo="color-bajo">Pasa el mouse o toca un círculo: aquí sale su nombre.</p></div>` : ""}
+      ${s.nuevoColor ? `<div class="nuevo-color revela">
+          <div><label>Nombre del color</label><input class="caja" data-campo="ncNombre" placeholder="Palo de rosa" value="${esc(s.ncNombre)}"></div>
+          <div><label>Muestra</label><input type="color" data-campo="ncHex" value="${s.ncHex}"></div>
+          <button class="btn btn-primario" data-accion="crear-color" ${s.ncNombre.trim() ? "" : "disabled"}>Crear y elegir</button>
+        </div>` : ""}
+    </div>
+    <div class="bloque">
+      <div class="tabla-cab">
+        <p><b class="tab">${incluidas().length}</b> <span class="taupe">variantes (cada talla en cada color). <span style="color:var(--verde);font-weight:700">✓</span> se crea. ¿Alguna no existe, como ${esc(s.colores.at(-1) ?? "esta prenda")} en ${tallasOrden().at(-1) ?? "una talla"}? Tócala y queda <span style="color:var(--t45)">—</span></span></p>
+      </div>
+      ${tablaVariantes()}
+      <p class="ayuda">La foto va en la fila de su color. Una sola alcanza: se muestra en los colores que no tengan la suya. Se sube al crear el producto.</p>
+    </div>`;
+}
+function filaColorHtml(c, conFotos){
+  if (c === null) return `<div class="fila-color"><div class="nom"><b>Sin color</b><small>una sola variante por talla</small></div></div>`;
+  const nf = s.fotos[c] || 0, h = COLORES[c];
+  const fotos = conFotos ? `<div class="fotos-fila">${nf ? `<button class="mini" style="background:${h}" data-foto="${c}" title="${plural(nf, "foto", "fotos")} de ${c} · toca para agregar otra"><i></i>${nf > 1 ? `<span class="n">${nf}</span>` : ""}</button>` : ""}<button class="mini-mas" data-foto="${c}" title="Agregar foto de ${c}" aria-label="Agregar foto de ${c}">${camara}</button></div>` : "";
+  return `<div class="fila-color">${fotos}<div class="nom"><b>${punto(c)}${c}</b>${conFotos ? `<small>${nf ? plural(nf, "foto", "fotos") : "agrega su foto"}</small>` : ""}</div></div>`;
+}
+function tablaVariantes(){
+  if (!s.tallas.length) return `<div class="aviso">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</div>`;
+  const ts = tallasOrden();
+  return `<div class="scroll"><table class="prenda">
+    <thead><tr><th class="izq">Color y fotos</th>${ts.map(t => `<th>${t}</th>`).join("")}</tr></thead>
+    <tbody>${filasColor().map(c => `<tr><th class="fila">${filaColorHtml(c, true)}</th>${ts.map(t => { const k = clave(c, t), no = s.fuera.includes(k);
+      return `<td><button class="celda ${no ? "no" : "si"}" data-celda="${k}" title="${no ? "No se crea · toca para volver a ponerla" : "Toca para quitarla"}">${no ? "—" : ""}</button></td>`; }).join("")}</tr>`).join("")}</tbody>
+  </table></div>`;
+}
+
+/* ---- 4 · precio y cantidades ---- */
+function cuerpo4(){
+  const m = margen();
+  return `
+    <div class="cifras">
+      <div><label>Precio de venta</label><input class="caja monto" data-campo="precio" inputmode="decimal" placeholder="0.00" value="${esc(s.precio)}"><p class="pie-campo">Para todas las tallas y colores</p></div>
+      <div><label>Costo</label><input class="caja monto" data-campo="costo" inputmode="decimal" placeholder="0.00" value="${esc(s.costo)}"><p class="pie-campo">Sugerido: el del último producto de ${esc(s.cat ?? "la categoría")}</p></div>
+      <div><label>Margen</label><p class="margen disp ${nivel(m)}" data-vivo="margen">${m === null ? "—" : Math.round(m) + " %"}</p><p class="pie-campo" data-vivo="margen-txt">${textoMargen(m)}</p></div>
+    </div>
+    <div class="bloque" style="margin-top:14px">
+      <div class="tabla-cab">
+        <div class="segmento" role="group" aria-label="Qué escribes en la tabla">
+          <button data-modo="cant" aria-pressed="${s.modo === "cant"}">Cuántas tienes hoy</button>
+          <button data-modo="precio" aria-pressed="${s.modo === "precio"}">¿Alguna cuesta distinto?</button>
+        </div>
+        ${s.modo === "cant" ? `<div class="rellenar">Llenar todas con <input data-campo="relleno" inputmode="numeric" placeholder="1" value="${esc(s.relleno)}" aria-label="Cantidad para todas las variantes"><button class="btn btn-secundario" data-accion="rellenar">Aplicar</button></div>` : ""}
+      </div>
+      <p class="taupe" style="font-size:12.5px;margin:-2px 0 8px">${s.modo === "cant" ? `Lo que hay hoy en ${SEDE}. Lo que no tengas, déjalo vacío. <span style="color:var(--t45)">—</span> = no existe.` : `Escribe solo la que cuesta distinto. Vacía = ${num(s.precio) > 0 ? soles(num(s.precio)) : "el precio de venta"}.`}</p>
+      ${tablaCantidades()}
+      <div class="donde" data-vivo="donde">${dondeHtml()}</div>
+      <p class="nota-mini">Es la carga inicial: entra al inventario de ${SEDE} sin comprobante y queda en Movimientos como «Carga inicial». Lo que llegue después se registra al recibirlo.</p>
+    </div>
+    <div class="bloque responsable">
+      <div class="et"><b>Quién lo registra</b><small>Queda a su nombre en el historial</small></div>
+      <button class="caja" data-accion="resp" style="text-align:left;display:flex;justify-content:space-between;max-width:360px;${s.responsable ? "" : "color:var(--t45)"}">${RESPONSABLES[s.responsable]}<span class="taupe">▾</span></button>
+    </div>`;
+}
+function textoMargen(m){ return m === null ? "Con el costo, se calcula" : m < 0 ? "Pierdes dinero en cada venta" : m < 45 ? "Margen bajo" : "Buen margen"; }
+function dondeHtml(){
+  if (totalStock() > 0) return `<p>¿Dónde están?</p><div class="chips"><button class="chip" data-donde="piso" aria-pressed="${s.donde === "piso"}">Colgadas en el piso de venta</button><button class="chip" data-donde="almacen" aria-pressed="${s.donde === "almacen"}">Guardadas en el almacén</button></div>`;
+  return `<button class="chip" data-accion="sin-stock" aria-pressed="${s.sinStock}">Todavía no tengo unidades de este producto</button>`;
+}
+const totCol = t => filasColor().reduce((a, c) => a + (s.fuera.includes(clave(c, t)) ? 0 : unid(clave(c, t))), 0);
+const totFil = c => tallasOrden().reduce((a, t) => a + (s.fuera.includes(clave(c, t)) ? 0 : unid(clave(c, t))), 0);
+function tablaCantidades(){
+  const ts = tallasOrden(), precio = num(s.precio);
+  return `<div class="scroll"><table class="prenda">
+    <thead><tr><th class="izq">Color</th>${ts.map(t => `<th>${t}</th>`).join("")}${s.modo === "cant" ? '<th class="total">Total</th>' : ""}</tr></thead>
+    <tbody>${filasColor().map(c => `<tr><th class="fila">${filaColorHtml(c, false)}</th>${ts.map(t => { const k = clave(c, t);
+      if (s.fuera.includes(k)) return `<td><span class="celda no" title="Esta combinación no existe (la quitaste en el paso 3)">—</span></td>`;
+      if (s.modo === "cant") return `<td><span class="celda"><input data-cant="${k}" inputmode="numeric" placeholder="0" value="${esc(s.cant[k] ?? "")}" aria-label="${c ?? "Sin color"} ${t}"></span></td>`;
+      const v = s.precios[k] ?? "";
+      return `<td><span class="celda"><input data-precio="${k}" inputmode="decimal" class="${v && num(v) !== precio ? "distinto" : ""}" placeholder="${precio > 0 ? precio.toFixed(2) : "0.00"}" value="${esc(v)}" style="width:66px"></span></td>`; }).join("")}
+      ${s.modo === "cant" ? `<td class="total" data-vivo="fil-${c ?? "—"}">${totFil(c) || ""}</td>` : ""}</tr>`).join("")}</tbody>
+    ${s.modo === "cant" ? `<tfoot><tr><th>Total</th>${ts.map(t => `<td data-vivo="col-${t}">${totCol(t) || ""}</td>`).join("")}<td class="total" style="color:var(--tinta)" data-vivo="tot">${totalStock()}</td></tr></tfoot>` : ""}
+  </table></div>`;
+}
+
+/* ---- la ficha ---- */
+function ficha(){
+  const c = cat(), p = pareja(), m = margen(), st = totalStock(), f = primerFalta();
+  const primerFoto = s.colores.find(x => s.fotos[x]);
+  const puntos = s.colores.slice(0, 8), mas = s.colores.length - puntos.length;
+  const avance = [1,2,3,4].map(n => { const e = estado(n), puede = alcanzable(n);
+    return `<button class="${e}" data-abrir="${n}" ${puede ? "" : "disabled"}><i>${e === "hecho" ? "✓" : n}</i><div><b>${TIT[n]}</b><span>${esc(e === "hecho" ? resumen(n) : e === "abierto" ? (falta(n) ?? "Listo") : "—")}</span></div></button>`; }).join("");
+  return `
+    <div class="tarjeta">
+      <div class="foto" style="background:${primerFoto ? COLORES[primerFoto] : "var(--hueso)"}">${primerFoto ? `<span class="grande"></span><span class="cuenta">${plural(nFotos(), "foto", "fotos")}</span>` : "La foto aparece aquí cuando la agregues en la fila de su color"}
+        ${puntos.length ? `<span class="puntos">${puntos.map(x => `<i style="background:${COLORES[x]}" title="${x}"></i>`).join("")}${mas > 0 ? `<small>+${mas}</small>` : ""}</span>` : ""}</div>
+      <div class="cuerpo">
+        <p class="cod mono">${codigo() ?? '<span class="vacio">— código —</span>'}</p>
+        <h2 class="disp">${nombreFinal() ? esc(nombreFinal()) : '<span class="vacio">Sin nombre</span>'}</h2>
+        <p class="sub">${c ? `${fam().nombre} › ${c[0]}` : '<span class="vacio">Sin categoría</span>'}${p ? ` · ${esc(p[0])}` : ""}${s.tejido ? ` · ${s.tejido}` : ""}</p>
+        <div class="cifras-f">
+          <div><small>Variantes</small><b>${s.tallas.length ? incluidas().length : "—"}</b></div>
+          <div><small>Hoy en tienda</small><b>${st ? st : s.sinStock ? "0" : "—"}</b></div>
+        </div>
+        <div class="precio"><span class="taupe">Precio${m !== null ? ` · margen ${Math.round(m)} %` : ""}</span><b class="disp tab">${num(s.precio) > 0 ? soles(num(s.precio)) : '<span class="vacio">S/ —</span>'}</b></div>
+      </div>
+    </div>
+    <nav class="avance" aria-label="Avance">${avance}</nav>
+    <div class="acciones"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario" ${f ? "disabled" : ""} title="${esc(f ?? "")}">Crear producto</button></div>
+    <p class="listo-msg" style="${f ? "color:var(--taupe)" : ""}">${f ? `Siguiente: ${esc(f)}` : "Todo listo para crear."}</p>`;
+}
+function creadoHtml(){
+  const st = totalStock();
+  return `<div class="creado revela">
+    <p class="ok-marca">✓</p>
+    <h2 class="disp">${esc(nombreFinal())} ya está en el catálogo</h2>
+    <p class="taupe">${codigo()} · ${plural(incluidas().length, "variante", "variantes")}${st ? ` · ${plural(st, "unidad", "unidades")} en ${SEDE}` : ""}${nFotos() ? ` · ${plural(nFotos(), "foto", "fotos")} subiendo` : ""}</p>
+    <div class="acciones-creado">
+      <button class="btn btn-primario" data-accion="otro-parecido">Crear otro parecido</button>
+      <button class="btn btn-secundario">Terminé, ir a Productos</button>
+    </div>
+    <p class="taupe" style="font-size:12.5px;margin-top:14px">«Otro parecido» guarda la categoría, la marca, las tallas y el precio: solo cambias el nombre y los colores.</p>
+  </div>`;
+}
+function barraCelular(){
+  const f = primerFalta();
+  return `<div class="barra"><div class="linea"><div><b>${esc(nombreFinal() || "Nuevo producto")}</b><span class="taupe tab">${codigo() ?? "—"} · ${incluidas().length} var. · ${num(s.precio) > 0 ? soles(num(s.precio)) : "S/ —"}${totalStock() ? ` · ${totalStock()} hoy` : ""}</span></div>
+    <button class="btn btn-secundario">Ver</button><button class="btn btn-primario" ${f ? "disabled" : ""}>Crear</button></div>
+    <p class="falta">${f ? `Siguiente: ${esc(f)}` : "Todo listo."}</p></div>`;
+}
+
+/* ---- la hoja «Ver todos»: buscador + grupos; lo elegido queda a la vista en el paso ---- */
+function hojaHtml(){
+  const h = s.hoja; if (!h) return "";
+  const q = h.q;
+  let tit, baj, cuerpoH, pieH;
+  if (h.tipo === "tejido" || h.tipo === "patron") {
+    const esTej = h.tipo === "tejido", mapa = esTej ? TEJIDOS : PATRONES;
+    const deCat = esTej ? conf().tejidos : conf().patrones;
+    const elegido = esTej ? s.tejido : s.patron, total = Object.keys(mapa).length;
+    tit = esTej ? "Elige el tejido" : "Elige el patrón";
+    baj = `${total} en el catálogo. Arriba, los que ya usa ${esc(s.cat)}.`;
+    const grilla = lista => `<div class="muestras-tx">${lista.map(t => `<button class="tx" data-${h.tipo}="${esc(t)}" data-cierra="1" aria-pressed="${elegido === t}"><i class="${mapa[t]}"></i><span>${marcar(t, q)}</span></button>`).join("")}</div>`;
+    const a = deCat.filter(t => coincide(t, q)), resto = Object.keys(mapa).filter(t => !deCat.includes(t) && coincide(t, q));
+    const nota = `<small>· elegir uno lo suma a ${esc(s.cat)}</small>`;
+    const otros = esTej
+      ? Object.entries(GRUPO_TEJIDO).map(([g, ts]) => { const l = ts.filter(t => resto.includes(t)); return l.length ? `<h3>${g} ${nota}</h3>${grilla(l)}` : ""; }).join("")
+      : resto.length ? `<h3>Del catálogo ${nota}</h3>${grilla(resto)}` : "";
+    cuerpoH = ((a.length ? `<h3>Los de ${esc(s.cat)} <small>· ${a.length}</small></h3>${grilla(a)}` : "") + otros) || `<p class="nada">Ningún ${esTej ? "tejido" : "patrón"} se llama así.</p>`;
+    pieH = `<p>¿No está? Propón uno: queda pendiente hasta que el líder lo apruebe.</p><button class="btn btn-secundario">+ Proponer ${esTej ? "tejido" : "patrón"}</button>`;
+  } else if (h.tipo === "talla") {
+    tit = "Agrega otra talla"; baj = `${ORDEN_TALLA.length} tallas en el catálogo. Las que elijas se suman a esta prenda.`;
+    cuerpoH = Object.entries(TALLAS_TODAS).map(([g, ts]) => { const l = ts.filter(t => coincide(t, q)); return l.length ? `<h3>${g}</h3><div class="chips">${l.map(t => `<button class="chip talla" data-talla="${t}" aria-pressed="${s.tallas.includes(t)}">${marcar(t, q)}</button>`).join("")}</div>` : ""; }).join("") || `<p class="nada">Ninguna talla se llama así.</p>`;
+    pieH = `<p data-vivo="hoja-cuenta">${plural(s.tallas.length, "talla elegida", "tallas elegidas")}</p><button class="btn btn-primario" data-accion="cerrar-hoja">Listo</button>`;
+  } else {
+    tit = "Etiquetas"; baj = `${TODAS_ETIQ.length} etiquetas. Elige todas las que apliquen.`;
+    cuerpoH = Object.entries(ETIQUETAS).map(([g, es]) => { const l = es.filter(e => coincide(e, q)); return l.length ? `<h3>${g}</h3><div class="chips">${l.map(e => `<button class="chip" data-etiqueta="${esc(e)}" aria-pressed="${s.etiquetas.includes(e)}">${marcar(e, q)}</button>`).join("")}</div>` : ""; }).join("") || `<p class="nada">Ninguna etiqueta se llama así. <button class="btn-enlace">+ Crear «${esc(titulo(q))}»</button></p>`;
+    pieH = `<p>${plural(s.etiquetas.length, "elegida", "elegidas")}</p><button class="btn btn-primario" data-accion="cerrar-hoja">Listo</button>`;
+  }
+  return `<div class="velo" data-accion="velo"><div class="hoja" role="dialog" aria-modal="true" aria-label="${tit}">
+    <div class="hoja-cab"><div><h2 class="disp">${tit}</h2><p>${baj}</p></div><button class="cerrar" data-accion="cerrar-hoja" aria-label="Cerrar">×</button></div>
+    <div class="hoja-busca"><div class="buscar">${lupa}<input class="caja" data-campo="hojaQ" placeholder="Buscar…" value="${esc(q)}" autocomplete="off"></div></div>
+    <div class="hoja-cuerpo">${cuerpoH}</div>
+    <div class="hoja-pie">${pieH}</div>
+  </div></div>`;
+}
+
+function render(){
+  const act = document.activeElement, foco = act?.dataset?.campo, pos = act?.selectionStart;
+  const yaAbierta = !!$(".velo"), scrollHoja = $(".hoja-cuerpo")?.scrollTop ?? 0;
+  $("#raiz").innerHTML = `
+    <div class="marco"><div class="app">
+      <a class="volver" href="#">← Productos</a>
+      <header class="cab">
+        <p class="eyebrow">Catálogo · Productos</p>
+        <h1 class="disp">Nuevo producto</h1>
+        ${s.creado ? "" : `<p class="bajada">Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar.</p>`}
+      </header>
+      ${s.creado ? creadoHtml() : `<div class="grid">
+        <div>${s.copiado ? `<div class="aviso" style="margin:0 0 10px">Empiezas desde <b>${esc(s.copiado)}</b>: mantuve la categoría, la marca, el tejido, el patrón, las tallas, el precio y las etiquetas. Ponle su nombre y sus colores.</div>` : ""}${[1,2,3,4].map(paso).join("")}</div>
+        <aside class="ficha-col"><div class="ficha" id="ficha">${ficha()}</div></aside>
+      </div>
+      ${barraCelular()}`}
+    </div></div>`;
+  $("#capa-hoja").innerHTML = hojaHtml();
+  // Repintar una hoja ya abierta (buscar, marcar tallas) no repite su entrada: solo la primera vez se anima.
+  if (yaAbierta && $(".hoja")) { $(".velo").style.animation = "none"; $(".hoja").classList.add("quieta"); $(".hoja-cuerpo").scrollTop = scrollHoja; }
+  document.body.classList.toggle("celular", s.celular);
+  document.body.style.overflow = s.hoja ? "hidden" : "";
+  if (foco) { const el = $(`[data-campo="${foco}"]`); if (el) { el.focus({preventScroll:true}); try { el.setSelectionRange(pos, pos); } catch {} } }
+  else if (s.hoja && !yaAbierta) $('[data-campo="hojaQ"]')?.focus({preventScroll:true});
+}
+
+/* Refresco sin repintar el campo que se está escribiendo (foco y cursor quedan donde estaban). */
+function vivo(){
+  const fi = $("#ficha"); if (!fi) return; fi.innerHTML = ficha();
+  const set = (k, html) => { const el = $(`[data-vivo="${k}"]`); if (el) el.innerHTML = html; };
+  [2,3,4].forEach(n => { const el = $(`[data-vivo="falta-${n}"]`); if (el) { const [txt, ok] = textoPie(n); el.textContent = txt; el.classList.toggle("ok", ok); const b = $(`[data-seguir="${n + 1}"]`); if (b) b.disabled = !!falta(n); } });
+  const crear = $('.paso-pie [data-accion="crear"]'); if (crear) crear.disabled = !!primerFalta();
+  const resp = $('.paso [data-accion="resp"]'); if (resp) { resp.firstChild.textContent = RESPONSABLES[s.responsable]; resp.style.color = s.responsable ? "" : "var(--t45)"; }
+  set("nombre-pie", pieNombre());
+  const r = repetido(); set("repetido", r ? avisoRepetido(r) : "");
+  const m = margen(), mg = $('[data-vivo="margen"]'); if (mg) { mg.textContent = m === null ? "—" : Math.round(m) + " %"; mg.className = `margen disp ${nivel(m)}`; }
+  set("margen-txt", textoMargen(m));
+  if (s.abierto === 4 && s.modo === "cant") {
+    tallasOrden().forEach(t => set(`col-${t}`, totCol(t) || ""));
+    filasColor().forEach(c => set(`fil-${c ?? "—"}`, totFil(c) || ""));
+    set("tot", totalStock()); set("donde", dondeHtml());
+  }
+  const barra = $(".barra"); if (barra) barra.outerHTML = barraCelular();
+}
+
+/* =========================================================================
+   EVENTOS
+   ========================================================================= */
+function abrir(n){ s.abierto = n; render(); $(`#paso-${n}`)?.scrollIntoView({block:"nearest", behavior:"smooth"}); }
+const alternar = (lista, v) => lista.includes(v) ? lista.filter(x => x !== v) : [...lista, v];
+document.addEventListener("click", e => {
+  const b = e.target.closest("button, .velo"); if (!b) return;
+  const d = b.dataset;
+  if (d.preset) {
+    const cel = s.celular; s = PRESETS[d.preset](); s.celular = cel; render();
+    document.querySelectorAll(".spike [data-preset]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    if (!s.hoja) $(`#paso-${s.abierto}`)?.scrollIntoView({block:"start", behavior:"smooth"});
+    return;
+  }
+  if (b.id === "btn-celular") { s.celular = !s.celular; b.setAttribute("aria-pressed", s.celular); render(); return; }
+  if (b.id === "btn-compara") { const on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", on); $("#compara").style.display = on ? "" : "none"; return; }
+  if (!b.closest("#raiz, #capa-hoja")) return;
+  if (d.accion === "velo") { if (e.target === b) { s.hoja = null; render(); } return; } // clic en el velo, fuera de la hoja
+  if (d.abrir) return abrir(+d.abrir);
+  if (d.seguir) return abrir(+d.seguir);
+  if (d.familia) { s.familia = s.familia === d.familia ? null : d.familia; return render(); }
+  if (d.cat) { const cambia = s.cat !== d.cat; s.familia = famDe(d.cat); s.cat = d.cat; s.busCat = ""; if (cambia) { s.tallas = [...conf().habituales]; s.tejido = null; s.patron = null; s.fuera = []; } return abrir(2); }
+  if (d.nmmarca !== undefined) { s.nmMarcaSel = {nombre:d.nmmarca, existe:true}; s.listaMarca = false; return render(); }
+  if (d.nmprov !== undefined) { s.nmProv = +d.nmprov; s.nmProvQ = ""; s.listaProv = false; return render(); }
+  if (d.pareja !== undefined) { s.pareja = +d.pareja; s.busMP = ""; s.listaMP = false; return render(); }
+  if (d.hoja) { s.hoja = {tipo:d.hoja, q:""}; return render(); }
+  if (d.tejido) { s.tejido = s.tejido === d.tejido && !d.cierra ? null : d.tejido; if (d.cierra) s.hoja = null; return render(); }
+  if (d.patron) { s.patron = s.patron === d.patron && !d.cierra ? null : d.patron; if (d.cierra) s.hoja = null; return render(); }
+  if (d.temporada) { s.temporada = +d.temporada; return render(); }
+  if (d.etiqueta) { s.etiquetas = alternar(s.etiquetas, d.etiqueta); return render(); }
+  if (d.talla) { s.tallas = alternar(s.tallas, d.talla); return render(); }
+  if (d.color) { s.colores = alternar(s.colores, d.color); if (d.limpia) s.busColor = ""; return render(); }
+  if (d.foto) { s.fotos[d.foto] = (s.fotos[d.foto] || 0) + 1; return render(); }
+  if (d.celda) { s.fuera = alternar(s.fuera, d.celda); return render(); }
+  if (d.col) { const ks = filasColor().map(c => clave(c, d.col)); const todas = ks.every(k => s.fuera.includes(k)); s.fuera = todas ? s.fuera.filter(k => !ks.includes(k)) : [...new Set([...s.fuera, ...ks])]; return render(); }
+  if (d.modo) { s.modo = d.modo; return render(); }
+  if (d.donde) { s.donde = d.donde; return render(); }
+  const a = d.accion;
+  if (a === "nm-abrir") { s.nuevaMarca = true; s.nmMarca = titulo(s.busMP); s.nmMarcaSel = null; s.busMP = ""; s.listaMP = false; render(); $("#nm-marca")?.focus(); return; }
+  if (a === "nm-cancelar") { Object.assign(s, NM_VACIO); return render(); }
+  if (a === "nm-marca-nueva") { s.nmMarcaSel = {nombre:titulo(s.nmMarca), existe:false}; s.listaMarca = false; return render(); }
+  if (a === "nm-marca-cambiar") { s.nmMarca = s.nmMarcaSel.nombre; s.nmMarcaSel = null; render(); $("#nm-marca")?.focus(); return; }
+  if (a === "nm-prov-nuevo") { s.nmProvNuevo = true; s.nmRazon = titulo(s.nmProvQ); s.nmProvQ = ""; s.listaProv = false; render(); $("#nm-razon")?.focus(); return; }
+  if (a === "nm-prov-existente" || a === "nm-prov-cambiar") { s.nmProvNuevo = false; s.nmProv = null; return render(); }
+  if (a === "nm-crear") {
+    const marca = s.nmMarcaSel.nombre, prov = s.nmProv !== null ? PROVEEDORES[s.nmProv] : titulo(s.nmRazon);
+    if (s.nmProv === null) PROVEEDORES.push(prov);
+    const m = MARCAS.find(x => x[0] === marca); if (m) m[1].push(prov); else MARCAS.push([marca, [prov]]);
+    PAREJAS.push([marca, prov]); s.pareja = PAREJAS.length - 1;
+    Object.assign(s, NM_VACIO);
+    return render();
+  }
+  if (a === "cerrar-hoja") { s.hoja = null; return render(); }
+  if (a === "mas") { s.mas = !s.mas; return render(); }
+  if (a === "quitar-pareja") { s.pareja = null; return render(); }
+  if (a === "curva") { s.tallas = [...conf().habituales]; return render(); }
+  if (a === "todas-tallas") { s.tallas = [...new Set([...s.tallas, ...conf().tallas])]; return render(); }
+  if (a === "paleta") { s.paleta = !s.paleta; return render(); }
+  if (a === "nuevo-color") { s.nuevoColor = true; if (s.busColor.trim()) s.ncNombre = titulo(s.busColor); s.busColor = ""; return render(); }
+  if (a === "crear-color") { const n = titulo(s.ncNombre); COLORES[n] = s.ncHex; FAM_COLOR[FAM_COLOR.length - 1][1].push([n, s.ncHex]); s.colores = [...s.colores, n]; s.nuevoColor = false; s.ncNombre = ""; return render(); }
+  if (a === "rellenar") { if (s.relleno.trim()) { const v = String(Math.max(0, Math.floor(num(s.relleno)))); incluidas().forEach(k => s.cant[k] = v); if (+v > 0) s.sinStock = false; } return render(); }
+  if (a === "crear") { s.creado = true; render(); window.scrollTo({top:0}); return; }
+  if (a === "otro-parecido") { const base = {...s}; s = {...vacio(), familia:base.familia, cat:base.cat, pareja:base.pareja, tejido:base.tejido, patron:base.patron, tallas:base.tallas, precio:base.precio, costo:base.costo, temporada:base.temporada, etiquetas:base.etiquetas, mas:base.mas, abierto:2, responsable:base.responsable, celular:base.celular, copiado:titulo(base.nombre)}; render(); return; }
+  if (a === "resp") { s.responsable = s.responsable % (RESPONSABLES.length - 1) + 1; return vivo(); } // en el ERP es <ComboResponsable>; aquí rota
+  if (a === "sin-stock") { s.sinStock = !s.sinStock; return vivo(); }
+});
+/* La lista de marcas se abre al entrar al buscador y se cierra al salir de él (el clic de una opción llega antes). */
+document.addEventListener("focusin", e => {
+  if (e.target.dataset?.campo === "busMP" && !s.listaMP) { s.listaMP = true; render(); }
+  if (e.target.dataset?.campo === "nmProvQ" && !s.listaProv) { s.listaProv = true; render(); }
+  if (e.target.dataset?.campo === "nmMarca" && !s.listaMarca) { s.listaMarca = true; render(); }
+});
+document.addEventListener("pointerdown", e => {
+  if (s.listaMP && !e.target.closest('[data-combo="mp"]')) { s.listaMP = false; render(); }
+  if (s.listaProv && !e.target.closest('[data-combo="prov"]')) { s.listaProv = false; render(); }
+  if (s.listaMarca && !e.target.closest('[data-combo="nmmarca"]')) { s.listaMarca = false; render(); }
+});
+/* El nombre del color bajo el mouse: la paleta no muestra nombres (círculos de 26 px). */
+document.addEventListener("pointerover", e => {
+  const m = e.target.closest(".muestra"), el = $('[data-vivo="color-bajo"]'); if (!m || !el) return;
+  el.innerHTML = `${punto(m.dataset.nombre)} <b style="color:var(--tinta)">${m.dataset.nombre}</b>${s.colores.includes(m.dataset.nombre) ? " · elegido" : ""}`;
+});
+document.addEventListener("input", e => {
+  const el = e.target, d = el.dataset;
+  if (d.campo === "hojaQ") { s.hoja.q = el.value; return render(); }
+  if (d.campo) {
+    s[d.campo] = el.value;
+    if (["busMP","busColor","busCat","nmProvQ","nmMarca"].includes(d.campo)) return render(); // abren o cierran su lista
+    if (["nmRazon","nmRuc"].includes(d.campo)) { const b = $('[data-accion="nm-crear"]'); if (b) b.disabled = !nmListo(); return; }
+    if (d.campo === "ncNombre") { const btn = $('[data-accion="crear-color"]'); if (btn) btn.disabled = !el.value.trim(); return; }
+    if (d.campo === "relleno" || d.campo === "ncHex") return;
+    return vivo();
+  }
+  if (d.cant) { s.cant[d.cant] = el.value.replace(/[^\d]/g, ""); if (el.value !== s.cant[d.cant]) el.value = s.cant[d.cant]; if (num(s.cant[d.cant]) > 0) s.sinStock = false; return vivo(); }
+  if (d.precio) { s.precios[d.precio] = el.value; el.classList.toggle("distinto", !!el.value && num(el.value) !== num(s.precio)); return vivo(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  // Escape libre (ADR-0136): primero cierra la lista de un buscador o borra la búsqueda de la hoja; después, la hoja.
+  const act = document.activeElement?.dataset?.campo;
+  if (act === "busMP" && (s.busMP || s.listaMP)) { s.busMP = ""; s.listaMP = false; return render(); }
+  if (["busColor","busCat"].includes(act) && s[act]) { s[act] = ""; return render(); }
+  if (s.hoja) { if (act === "hojaQ" && s.hoja.q) { s.hoja.q = ""; return render(); } s.hoja = null; render(); }
+});
+
+/* Enlace directo a un estado: #listo, #mucho, #hoja, #p4,celular… (esconde la comparación). */
+const pedido = location.hash.slice(1).split(",");
+s = (PRESETS[pedido[0]] ?? PRESETS.vacio)();
+s.celular = pedido.includes("celular");
+if (PRESETS[pedido[0]]) { $("#compara").style.display = "none"; $("#btn-compara").setAttribute("aria-pressed", "false"); $(`.spike [data-preset="${pedido[0]}"]`)?.setAttribute("aria-pressed", "true"); }
+$("#btn-celular").setAttribute("aria-pressed", s.celular);
+render();
+</script>
+</body>
+</html>

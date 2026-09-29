@@ -133,33 +133,38 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           hasta={filtros.hasta ?? ""}
           resumen={resumenSinProceso ?? resumen}
         />
-        {vacio ? (
-          <MovimientosVacio
-            sede={sede}
-            periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : periodo === "hoy" ? "hoy" : `los últimos ${periodo} días`}
-            conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
-            en90={en90}
-            params={params}
-          />
-        ) : (
-          <MovimientosLista
-            operaciones={operaciones}
-            prendas={prendas}
-            saldos={saldos}
-            apartados={apartados}
-            // Los módulos a los que llevan los atajos, preguntados como en cualquier pantalla (`veModulo`, ADR-0161).
-            accesos={{
-              modulos: MODULOS_DE_ATAJOS.filter((clave) => veModulo(persona, clave)),
-              puedeAjustar: puede(persona, "ajustarStock"),
-            }}
-            // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
-            // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
-            plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
-            hoyLima={hoyEnLima()}
-            enlaceCompras={esLider}
-            enlaceVentas={veModulo(persona, "historial")}
-          />
-        )}
+        {/* `data-resultados` (main, ADR-0149): se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+        <div data-resultados>
+          {vacio ? (
+            <MovimientosVacio
+              sede={sede}
+              periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : periodo === "hoy" ? "hoy" : `los últimos ${periodo} días`}
+              conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+              en90={en90}
+              params={params}
+            />
+          ) : (
+            // Sin `ubicacionId`/`sububicaciones`: el cajón nuevo (diseño aprobado 2026-09-28) no tiene «Corregir con un
+            // ajuste» — MovimientosLista ya no los recibe (ver su propio comentario sobre por qué).
+            <MovimientosLista
+              operaciones={operaciones}
+              prendas={prendas}
+              saldos={saldos}
+              apartados={apartados}
+              // Los módulos a los que llevan los atajos, preguntados como en cualquier pantalla (`veModulo`, ADR-0161).
+              accesos={{
+                modulos: MODULOS_DE_ATAJOS.filter((clave) => veModulo(persona, clave)),
+                puedeAjustar: puede(persona, "ajustarStock"),
+              }}
+              // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
+              // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
+              plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
+              hoyLima={hoyEnLima()}
+              enlaceCompras={esLider}
+              enlaceVentas={veModulo(persona, "historial")}
+            />
+          )}
+        </div>
       </section>
 
       <PaginacionCursor

@@ -60,6 +60,9 @@ export function MovimientosLista({
   // La operación abierta se reconstruye a partir de UN id de sus filas (`abiertoId`, la misma URL `?mov=` de
   // siempre): así una fila suelta y una operación de muchas prendas comparten el mismo estado, sin uno nuevo — abrir
   // la operación es abrir cualquiera de sus filas (diseño aprobado 2026-09-28, ver CajonMovimiento.tsx).
+  //
+  // «Corregir con un ajuste» (main, ADR-0241/ADR-0237) no vuelve: el cajón nuevo es solo de CONSULTA (sección 14 del
+  // pedido) — ajustar stock sigue viviendo en Existencias, nunca dentro del detalle de un movimiento.
   const operacionAbierta = abiertoId ? (operaciones.find((op) => op.filas.some((f) => f.id === abiertoId)) ?? null) : null;
   const abierto = operacionAbierta?.filas.find((f) => f.id === abiertoId) ?? operacionAbierta?.filas[0] ?? null;
 

@@ -273,7 +273,7 @@ select pg_temp.intento('select count(*) from retail.gastos_fijos_descartados');`
   esperar("descartarlo otra vez no falla ni duplica", r.ok && repetido === "SIN_ERROR", r);
   esperar("con el módulo, descarta los de su tienda", r.ok && suTienda === "SIN_ERROR", r);
   esperar("los de otra tienda, no", r.ok && otra.includes("No ves"), r);
-  esperar("los de la empresa, solo el líder", r.ok && empresa.includes("Solo el líder"), r);
+  esperar("los de la empresa, no (son del líder o de quien configura o cierra el mes, ADR-0253)", r.ok && empresa.includes("«Configuración» o «Cierre de mes»"), r);
   esperar("nadie lee los descartes directo", r.ok && directo.includes("permission denied"), r);
 }
 

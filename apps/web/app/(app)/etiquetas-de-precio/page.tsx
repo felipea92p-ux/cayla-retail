@@ -1,6 +1,7 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getEtiquetasDePrecio, type OrigenEtiquetas } from "@/lib/etiquetas-precio";
 import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, volverDeEtiquetas, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
+import { desdeDeParams } from "@/lib/vuelta-productos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 
@@ -9,13 +10,14 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - una orden cerrada del Taller (`?produccion=`);
 //   - una campaña (`?campana=`): sus prendas en la tienda, con el precio de campaña o, si ya terminó, el normal;
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
-//   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237).
+//   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237), las marcadas en la Tabla de
+//     Productos o la impresora de UNA talla (Tabla y Grilla); con `?desde=` de Productos el encabezado habla de Productos.
 // La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado (paso 2, ADR-0182).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
 // `exigirModulo`. Lo que cuida los datos es la base: `movimientos_select` y `stock_select` solo dejan ver lo de las
 // sedes que uno opera, y un id escrito a mano de otra tienda devuelve una lista vacía.
-type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[] };
+type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[]; desde?: string | string[] };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
   const persona = await requirePersonaActualV2();
@@ -26,6 +28,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const [campana] = idsDeParam(params.campana);
   const [producto] = idsDeParam(params.producto);
   const variantes = idsDeParam(params.variantes);
+  const desde = desdeDeParams(params.desde);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion }
@@ -45,9 +48,11 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       ? { tipo: "campana", campana: datos.campana ?? null }
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
-        : origen
-          ? { tipo: origen.tipo }
-          : { tipo: "ninguno" };
+        : origen?.tipo === "variantes"
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length }
+          : origen
+            ? { tipo: origen.tipo }
+            : { tipo: "ninguno" };
   const cuenta = {
     unidades: datos.etiquetas.reduce((a, e) => a + e.cantidad, 0),
     modelos: new Set(datos.etiquetas.map((e) => e.prenda)).size,
@@ -59,7 +64,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen)}
+      volver={volverDeEtiquetas(origen, desde)}
     />
   );
 }

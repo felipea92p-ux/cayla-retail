@@ -160,6 +160,14 @@ describe("urlEtiquetasDePrecio", () => {
     expect(idsDeParam(new URL(url, "http://x").searchParams.get("lotes") ?? "")).toEqual([A, B]);
     expect(urlEtiquetasDePrecio({ produccion: A })).toBe(`/etiquetas-de-precio?produccion=${A}`);
   });
+
+  it("las tallas de varias prendas marcadas en la Tabla de Productos (ADR-0254) van como `variantes`", () => {
+    const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+    const B = "0a1b2c3d-4e5f-4a6b-9c7d-8e9f0a1b2c3d";
+    const url = urlEtiquetasDePrecio({ variantes: [A, B] });
+    expect(url).toBe(`/etiquetas-de-precio?variantes=${A},${B}`);
+    expect(idsDeParam(new URL(url, "http://x").searchParams.get("variantes") ?? "")).toEqual([A, B]);
+  });
 });
 
 describe("mejorCampanaPorVariante — la misma que elige la caja", () => {
@@ -248,6 +256,23 @@ describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", (
     expect(e.bajada).toContain("5 prendas de 2 modelos");
     expect(e.vacio).toContain("Tienda Trujillo");
   });
+  it("una sola talla impresa desde Productos no habla de «marcadas»", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: true, tallas: 1 }, { unidades: 6, modelos: 1 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Una talla");
+    expect(e.bajada).toContain("En Tienda Lima hay 6 prendas de esta talla y color");
+    expect(e.bajada).not.toContain("marcaste");
+    expect(e.vacio).toBe("En Tienda Lima no hay unidades de esta talla y color.");
+  });
+  it("varias prendas marcadas en la Tabla de Productos: marcadas, pero en Productos", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: true, tallas: 8 }, { unidades: 5, modelos: 2 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Prendas marcadas");
+    expect(e.bajada).toContain("entre las que marcaste");
+  });
+  it("una sola talla marcada en Existencias sigue siendo «marcada»", () => {
+    expect(encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: false, tallas: 1 }, n, "Tienda Lima").sobretitulo).toBe(
+      "Existencias · Prendas marcadas",
+    );
+  });
   it("un producto habla de lo que hay en la tienda", () => {
     const e = encabezadoDeEtiquetas({ tipo: "producto", nombre: "Blusa Emma" }, { unidades: 1, modelos: 1 }, "Tienda Trujillo");
     expect(e.sobretitulo).toBe("Productos · Blusa Emma");
@@ -267,5 +292,23 @@ describe("volverDeEtiquetas — la vuelta a la pantalla que abrió las etiquetas
   });
   it("con la URL a secas (sin origen) vuelve a Inicio", () => {
     expect(volverDeEtiquetas(null)).toEqual({ href: "/", a: "Inicio" });
+  });
+});
+
+describe("Volver a la misma vista de Productos (Tabla o Grilla)", () => {
+  const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+  it("la URL de etiquetas lleva la pantalla de origen y «Volver» regresa a ella, con su vista y filtros", () => {
+    const desde = "/productos?vista=tabla&q=polo&pagina=2";
+    const url = urlEtiquetasDePrecio({ producto: A }, desde);
+    const leido = new URL(url, "http://x").searchParams.get("desde");
+    expect(leido).toBe(desde);
+    expect(volverDeEtiquetas({ tipo: "producto" }, leido)).toEqual({ href: desde, a: "Productos" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, leido)).toEqual({ href: desde, a: "Productos" });
+  });
+  it("sin origen, o con uno que no es de Productos, vuelve como siempre", () => {
+    expect(urlEtiquetasDePrecio({ producto: A })).toBe(`/etiquetas-de-precio?producto=${A}`);
+    expect(urlEtiquetasDePrecio({ producto: A }, "https://malo.com")).toBe(`/etiquetas-de-precio?producto=${A}`);
+    expect(volverDeEtiquetas({ tipo: "producto" }, null)).toEqual({ href: "/productos", a: "Productos" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, "/inventario")).toEqual({ href: "/inventario", a: "Existencias" });
   });
 });
