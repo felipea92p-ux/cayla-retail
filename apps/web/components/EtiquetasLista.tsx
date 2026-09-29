@@ -6,7 +6,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
-import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { useResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -190,7 +191,8 @@ export function EtiquetasLista({
 }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   // «Prendas» abre su propio modal con su propio combo (`PrendasDeEtiquetaModal`).
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
@@ -199,7 +201,7 @@ export function EtiquetasLista({
   const [nombre, setNombre] = useState("");
   const [guardando, setGuardando] = useState(false);
   // Aprobar (y reactivar una rechazada) pide un comentario: la base lo exige en toda transición a «aprobado»
-  // (`lib/etiqueta-aprobacion-reglas.ts`). Mismo patrón que Tallas: una ventana con el comentario y el combo «Responsable».
+  // (`lib/etiqueta-aprobacion-reglas.ts`). Mismo patrón que Tallas: una ventana con el comentario, sin responsable (Felipe, 2026-09-29).
   const [aprobandoAbierto, setAprobandoAbierto] = useState<string | null>(null);
   const [comentarioAprobar, setComentarioAprobar] = useState("");
   const [aprobandoId, setAprobandoId] = useState<string | null>(null);
@@ -303,7 +305,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("etiqueta_estado") },
         body: JSON.stringify(cuerpo),
       });
       const datos = await res.json();
@@ -315,7 +317,6 @@ export function EtiquetasLista({
       setEtiquetas((actual) =>
         ordenar(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.etiqueta.notas } : x)))
       );
-      responsable.despues(null);
       avisar.exito(e.estado === "rechazado" ? `${e.nombre} reactivada` : `${e.nombre} aprobada`, e.estado === "rechazado" ? { detalle: "Vuelve a aparecer al etiquetar una variante." } : undefined);
       setAprobandoAbierto(null);
       setComentarioAprobar("");
@@ -331,7 +332,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("etiqueta_rechazar") },
         body: JSON.stringify({ id: e.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -340,7 +341,6 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${e.nombre} rechazada`, { detalle: "Cae a Desactivadas. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -358,7 +358,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ id: e.id, activo: true }),
       });
       const datos = await res.json();
@@ -367,7 +367,6 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: true, estado: "aprobado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${e.nombre} reactivada`, { detalle: "Vuelve a aparecer al etiquetar una variante." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -381,7 +380,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ id: e.id, activo: false }),
       });
       const datos = await res.json();
@@ -390,7 +389,6 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false } : x))));
-      responsable.despues(null);
       avisar.exito(`${e.nombre} desactivada`, { detalle: "Deja de aparecer al etiquetar una variante nueva; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -537,7 +535,6 @@ export function EtiquetasLista({
         <CampanaModal
           etiqueta={configurando}
           puedeDarDescuento={puedeDarDescuento}
-          responsable={responsable}
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[configurando.id] ?? []}
@@ -559,7 +556,6 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={aprobandoId === aprobandoEtiqueta.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
                   Cancelar
@@ -568,8 +564,7 @@ export function EtiquetasLista({
                   peso="primario"
                   className="flex-1"
                   cargando={aprobandoId === aprobandoEtiqueta.id}
-                  disabled={!comentarioAprobar.trim() || !responsable.listo}
-                  title={responsable.motivo ?? undefined}
+                  disabled={!comentarioAprobar.trim()}
                   onClick={() => aprobar(aprobandoEtiqueta)}
                 >
                   {aprobandoEtiqueta.estado === "rechazado" ? "Confirmar reactivación" : "Confirmar aprobación"}
@@ -585,7 +580,6 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoEtiqueta.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
                   Cancelar
@@ -594,8 +588,6 @@ export function EtiquetasLista({
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoEtiqueta.id}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoEtiqueta)}
                 >
                   Confirmar rechazo
@@ -606,7 +598,7 @@ export function EtiquetasLista({
         </Modal>
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
@@ -621,7 +613,6 @@ export function EtiquetasLista({
 function CampanaModal({
   etiqueta,
   puedeDarDescuento,
-  responsable,
   categorias,
   prendasConCosto,
   variantesManuales,
@@ -631,8 +622,6 @@ function CampanaModal({
   etiqueta: Etiqueta;
   /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
   puedeDarDescuento: boolean;
-  /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
-  responsable: ControlResponsable;
   categorias: CategoriaOpcion[];
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
@@ -672,7 +661,7 @@ function CampanaModal({
       const categoriaIds = [...elegidas];
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("etiqueta_campana") },
         body: JSON.stringify({
           id: etiqueta.id,
           campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
@@ -683,7 +672,6 @@ function CampanaModal({
         avisar.error(datos.error ?? "No se pudo guardar la campaña.");
         return;
       }
-      responsable.despues(null);
       avisar.exito(`${etiqueta.nombre} actualizada`);
       onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
     } catch {
@@ -781,12 +769,11 @@ function CampanaModal({
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
 
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
           <div className="flex gap-2 pt-1">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined}>
+            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido}>
               Guardar
             </Boton>
           </div>

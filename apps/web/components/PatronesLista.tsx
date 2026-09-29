@@ -5,6 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -69,7 +70,8 @@ export function PatronesLista({
 }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
-  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
+  // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   const responsable = useResponsable();
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [patrones, setPatrones] = useState(() => ordenar(patronesIniciales));
@@ -156,7 +158,7 @@ export function PatronesLista({
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ id: p.id, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -165,7 +167,6 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, estado: "aprobado" as const, activo: true } : x))));
-      responsable.despues(null);
       avisar.exito(`${p.nombre} aprobado`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -179,7 +180,7 @@ export function PatronesLista({
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("patron_rechazar") },
         body: JSON.stringify({ id: p.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -188,7 +189,6 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${p.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -204,7 +204,7 @@ export function PatronesLista({
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify(p.estado === "rechazado" ? { id: p.id, estado: "aprobado" } : { id: p.id, activo: true }),
       });
       const datos = await res.json();
@@ -213,7 +213,6 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: true, estado: "aprobado" as const } : x))));
-      responsable.despues(null);
       avisar.exito(`${p.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir patrón en un producto." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -227,7 +226,7 @@ export function PatronesLista({
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("catalogo_confirmar_estado") },
         body: JSON.stringify({ id: p.id, activo: false }),
       });
       const datos = await res.json();
@@ -236,7 +235,6 @@ export function PatronesLista({
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: false } : x))));
-      responsable.despues(null);
       avisar.exito(`${p.nombre} desactivado`, { detalle: "Deja de aparecer al elegir patrón en un producto nuevo; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -367,7 +365,6 @@ export function PatronesLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoPatron.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoPatron.id}>
                   Cancelar
@@ -376,8 +373,6 @@ export function PatronesLista({
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoPatron.id}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoPatron)}
                 >
                   Confirmar rechazo
@@ -420,7 +415,6 @@ export function PatronesLista({
           muestra={detalle}
           puedeEditar={puedeEditar}
           veProductos={veProductos}
-          responsable={responsable}
           colores={colores}
           generarCon={generarCon}
           onClose={() => {
@@ -433,7 +427,7 @@ export function PatronesLista({
         />
       )}
 
-      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

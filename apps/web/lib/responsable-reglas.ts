@@ -28,6 +28,8 @@
  * ADR-0026). La base los lee con `current_setting('request.headers')`.
  */
 
+import { ACCIONES_SIN_RESPONSABLE, ENCABEZADO_OMITIDO, type ClaveSinResponsable, type FirmaOmitida } from "./responsable-omitido";
+
 /** Una fila de `fn_asesoras_de_turno`: la asistencia de hoy según Dynamic. */
 export type FilaDeTurno = {
   persona_id: string;
@@ -170,7 +172,9 @@ export const ENCABEZADO_MOMENTO = "x-momento";
 export type Firma = { responsableId: string; ubicacionId: string; momento?: string | null };
 
 /** Los encabezados que lee `fn_actor_persona_id`. `x-momento` solo si hay momento (ISO 8601). */
-export function encabezadosResponsable(f: Firma): Record<string, string> {
+export function encabezadosResponsable(f: Firma | FirmaOmitida): Record<string, string> {
+  // Acción soltada del combo (`responsable-omitido.ts`): solo su clave, sin persona ni tienda.
+  if ("omitida" in f) return { [ENCABEZADO_OMITIDO]: f.omitida };
   const enc: Record<string, string> = {
     [ENCABEZADO_RESPONSABLE]: f.responsableId,
     [ENCABEZADO_UBICACION]: f.ubicacionId,
@@ -184,7 +188,7 @@ export function encabezadosResponsable(f: Firma): Record<string, string> {
  * cómo se mandan los encabezados. Sin firma, la consulta sale igual que antes — la base decide si la acepta (hoy,
  * `fn_exige_responsable()` es falso para personas y verdadero siempre para terminales).
  */
-export function firmar<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, firma: Firma | null): C {
+export function firmar<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, firma: Firma | FirmaOmitida | null): C {
   if (!firma) return consulta;
   let c = consulta;
   for (const [nombre, valor] of Object.entries(encabezadosResponsable(firma))) c = c.setHeader(nombre, valor);
@@ -195,10 +199,15 @@ export function firmar<C extends { setHeader(nombre: string, valor: string): C }
  * Del lado del servidor (una ruta `/api/*` que recibe el `fetch` del navegador): la firma que mandó la pantalla,
  * para reenviarla a la base. `null` si no vino — la ruta sigue funcionando como antes.
  */
-export function firmaDeEncabezados(encabezados: { get(nombre: string): string | null }): Firma | null {
+export function firmaDeEncabezados(encabezados: { get(nombre: string): string | null }): Firma | FirmaOmitida | null {
   const responsableId = encabezados.get(ENCABEZADO_RESPONSABLE)?.trim();
   const ubicacionId = encabezados.get(ENCABEZADO_UBICACION)?.trim();
-  if (!responsableId || !ubicacionId) return null;
+  if (!responsableId || !ubicacionId) {
+    // Una acción soltada del combo llega sin responsable, con su clave: se reenvía a la base tal cual (la base solo
+    // respeta las claves de su lista; una clave que no conocemos se descarta aquí y sigue el candado de siempre).
+    const clave = encabezados.get(ENCABEZADO_OMITIDO)?.trim();
+    return !responsableId && clave && clave in ACCIONES_SIN_RESPONSABLE ? { omitida: clave as ClaveSinResponsable } : null;
+  }
   const momento = encabezados.get(ENCABEZADO_MOMENTO)?.trim() || null;
   return { responsableId, ubicacionId, momento };
 }

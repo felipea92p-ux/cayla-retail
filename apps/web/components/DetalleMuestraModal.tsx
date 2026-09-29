@@ -8,7 +8,6 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { GeneradorDibujo } from "@/components/GeneradorDibujo";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { MuestraPatron } from "@/components/MuestraPatron";
@@ -17,7 +16,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { ordenarPrendas, textoPrendas, type PrendaDeMuestra, type TipoMuestra } from "@/lib/muestra-atributo-reglas";
 import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
-import type { ControlResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
 
 /**
@@ -25,8 +24,8 @@ import type { ColorDibujo } from "@/lib/dibujo-generado";
  *
  * Arriba, la muestra en grande: la imagen que eligió un Líder (una foto, o un dibujo generado desde una frase con
  * `GeneradorDibujo`), o el dibujo automático que sale del nombre. Quien puede editar el catálogo sube una foto, genera
- * un dibujo o quita la imagen; nada se guarda al elegir: primero se ve cómo queda, se elige el Responsable y recién
- * «Guardar» la sube y la deja en la base.
+ * un dibujo o quita la imagen; nada se guarda al elegir: primero se ve cómo queda y recién «Guardar» la sube y la deja
+ * en la base (sin responsable: Felipe, 2026-09-29).
  *
  * Abajo, las prendas que usan este tejido o patrón (las activas primero: son las que impiden desactivarlo). Se leen al
  * abrir, no con la pantalla: la grilla no necesita la foto de cada prenda.
@@ -62,7 +61,6 @@ export function DetalleMuestraModal({
   muestra,
   puedeEditar,
   veProductos,
-  responsable,
   colores,
   generarCon = null,
   onClose,
@@ -73,8 +71,6 @@ export function DetalleMuestraModal({
   puedeEditar: boolean;
   /** Solo quien ve el módulo Productos llega a la ficha de cada prenda. */
   veProductos: boolean;
-  /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
-  responsable: ControlResponsable;
   /** Los colores del catálogo: el generador dibuja con sus hex. */
   colores: readonly ColorDibujo[];
   /** Recién creado con una descripción: el detalle abre con el generador ya propuesto desde esa frase. */
@@ -161,7 +157,7 @@ export function DetalleMuestraModal({
       const descripcionDibujo = pendiente.tipo === "subir" && pendiente.origen === "dibujo" ? pendiente.descripcion.trim() || null : undefined;
       const res = await fetch(palabra.api, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        headers: { "Content-Type": "application/json", ...encabezadosOmitidos("muestra_foto") },
         body: JSON.stringify({ id: muestra.id, imagenMuestraUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) }),
       });
       const datos = await res.json();
@@ -169,7 +165,6 @@ export function DetalleMuestraModal({
         avisar.error(datos.error ?? "No se pudo guardar la foto.");
         return;
       }
-      responsable.despues(null);
       onImagen(muestra.id, url, descripcionDibujo);
       setPendiente(null);
       const que = pendiente.tipo === "subir" && pendiente.origen === "dibujo" ? "Dibujo" : "Foto";
@@ -268,7 +263,6 @@ export function DetalleMuestraModal({
 
           {pendiente && (
             <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
@@ -277,8 +271,6 @@ export function DetalleMuestraModal({
                   peso="primario"
                   className="flex-1"
                   cargando={guardando}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
                   onClick={guardar}
                 >
                   {pendiente.tipo === "quitar" ? "Quitar imagen" : pendiente.origen === "dibujo" ? "Guardar dibujo" : "Guardar foto"}

@@ -5,8 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
+import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 
 // "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
@@ -30,10 +29,8 @@ import { useResponsable } from "@/lib/useResponsable";
 // familia de color y tipo (cinco datos), y merece su propia pantalla
 // (Catálogo → Atributos → Colores); ver `EnlaceColorNuevo` en el formulario.
 //
-// Responsable (ADR-0161): agregar un valor es un guardado aparte del producto,
-// así que lleva su propio combo. Vive en la parte ABIERTA (`ProponerValorAbierto`)
-// para que el formulario no lea la asistencia tres veces por minuto por tres
-// enlaces «+ Nueva …» que nadie abrió.
+// Agregar un valor es un guardado aparte del producto; desde 2026-09-29 va sin combo
+// «Responsable» (clave `alta_producto_valor`).
 
 const TEXTOS: Record<TipoVocabulario, { boton: string; placeholder: string; singular: string }> = {
   tallas: { boton: "+ Nueva talla", placeholder: "Ej. 44", singular: "talla" },
@@ -67,12 +64,11 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
   const [texto, setTexto] = useState("");
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const responsable = useResponsable();
   const t = TEXTOS[tipo];
 
   async function agregar() {
     const limpio = texto.trim();
-    if (!limpio || trabajando || !responsable.listo) return;
+    if (!limpio || trabajando) return;
     setTrabajando(true);
     setError(null);
 
@@ -87,14 +83,13 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
 
     const { valor, error: errCrear } = existente
       ? { valor: { id: existente.id, texto: existente.texto, aprobado: true }, error: null }
-      : await proponerValorVocabulario(tipo, limpio, responsable.encabezados());
+      : await proponerValorVocabulario(tipo, limpio, encabezadosOmitidos("alta_producto_valor"));
     if (errCrear || !valor) {
       setError(errCrear);
       setTrabajando(false);
       return;
     }
     if (!valor.aprobado) {
-      responsable.despues(null);
       avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un Líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
       setTrabajando(false);
       setTexto("");
@@ -102,13 +97,12 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
       return;
     }
 
-    const errOfrecer = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, valor.id), responsable.encabezados());
+    const errOfrecer = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, valor.id), encabezadosOmitidos("alta_producto_valor"));
     setTrabajando(false);
     if (errOfrecer) {
       setError(`«${valor.texto}» ya está en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Vuelve a tocar «Agregar»: no se crea otra vez.`);
       return;
     }
-    responsable.despues(null);
     avisar.exito(`${valor.texto} agregada a la categoría`);
     onCreado({ id: valor.id, texto: valor.texto });
     setTexto("");
@@ -117,7 +111,6 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
 
   return (
     <div className="space-y-2">
-      <ComboResponsable control={responsable} deshabilitado={trabajando} className="max-w-sm" />
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
           Nombre de la {t.singular} nueva
@@ -142,8 +135,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
         <button
           type="button"
           onClick={() => void agregar()}
-          disabled={!texto.trim() || trabajando || !responsable.listo}
-          title={responsable.motivo ?? undefined}
+          disabled={!texto.trim() || trabajando}
           className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
         >
           {trabajando ? "Guardando…" : "Agregar"}
