@@ -73,7 +73,7 @@ import {
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
-import { buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
+import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
@@ -919,12 +919,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (!term) return;
-      const exacta = resolverCodigoV2(q, variantesVisibles);
-      if (exacta) return agregar(exacta);
-      if (resultados.length > 0) return agregar(resultados[Math.min(activo, resultados.length - 1)]);
-      setAviso(`No encontramos «${q.trim()}» en ${ubicacionEtiqueta}.`);
-      return;
+      const accion = accionDelEnter(q, variantesVisibles, resultados, activo);
+      if (!accion) return;
+      // Cada lectura cierra el campo, la haya encontrado o no: una que fallaba se quedaba escrita y la pistola escribía la
+      // siguiente ENCIMA (ninguna volvía a coincidir). Lo que no se encontró se dice en el aviso, con el código.
+      setQ("");
+      setActivo(0);
+      if (accion.tipo === "no-encontrada") {
+        setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
+        return;
+      }
+      // Entra al ticket solo si hay en el piso: `agregar` lo decide (`motivoNoCobrable`) y, si no, avisa por qué.
+      return agregar(accion.variante);
     }
     if (e.key === "ArrowDown" && resultados.length > 0) {
       e.preventDefault();
