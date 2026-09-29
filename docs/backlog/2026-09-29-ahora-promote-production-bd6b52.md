@@ -1,0 +1,11 @@
+## 🚀 Salida a la SUNAT real: series nuevas y nota de crédito por letra (2026-09-29, ADR-0278) — 2 SQL POR PEGAR; rama `claude/ahora-promote-production-bd6b52`
+
+- [x] `20260929170000_notas_de_credito_una_serie_por_letra.sql`: índice `(ubicacion_id, tipo, letra)`, `fn_reservar_numero_serie` con letra opcional (firma vieja dropeada), `emitir_nota` pide la serie del original, `registrar_serie_comprobante` valida el formato. Probada con `APLICAR_ANTES` (17/17 en `pnpm pruebas:notas-credito-serie-por-letra`); sin ella la prueba falla justo en el hueco.
+- [x] `pegar-en-produccion-series-salida-a-produccion-2026-09.sql`: archiva 6 series y registra 12, todo o nada e idempotente. Simulado en local con los nombres de producción, corrido dos veces, con rollback.
+- [ ] **POR PEGAR (2026-09-29), en este orden:** (1) `20260929170000_…` — verificación al pie del archivo; (2) el script de datos, en una ventana sin ventas. **No se pegó nada:** el estado de producción es el de las series viejas hasta que Felipe lo haga.
+- [ ] **Vercel (Felipe, después del script):** `LUCODE_ENTORNO=produccion` solo en Production, `LUCODE_TOKEN` el de `app.apisunat.pe` (¿el de hoy es el de sandbox? no se puede leer desde aquí), redesplegar; rotar el token (pasó por el chat el 2026-09-09). Nunca antes del script: una venta saldría como `B004-34`.
+- [ ] **Decisión pendiente de Felipe — el cron.** `cronNoTransmite` (`apps/web/lib/transmision-reglas.ts`) sigue haciendo que el reintento automático no transmita fuera del sandbox. Con producción activa hay que cambiarla a propósito (ADR-0165, act. 2026-09-23); este PR no lo hace.
+- [ ] Una venta chica real y ver en Emitidos «Aceptado» sin «· prueba», y en Lucode (ambiente PROD).
+- [ ] Refrescar el volcado y el diccionario después de pegar (`docs/datos/generado/COMO-REFRESCAR.md`): aún describen el índice `series_comprobantes_activa_por_tienda_y_tipo`.
+- [ ] «Sin serie de nota de crédito» (`seriesPorTienda.faltan`) mira solo si hay alguna, no las dos letras: una tienda con solo `BC..` no se avisa de que le falta `FC..`.
+- [ ] `B004-1` (primera prueba real, 2026-09-05) no está en la base; solo en Lucode. Sin consecuencias hoy; queda anotado por si se cuadra el libro contra Lucode.

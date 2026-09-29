@@ -342,6 +342,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:comprobante-venta-anulada
 
+      # Una tienda con DOS series de nota de crédito, BC.. (boletas) y FC.. (facturas), y cada nota con la letra de su
+      # original; nombres que SUNAT rechaza (NC01) no se registran; la nota sin su serie no gasta números (20260929170000).
+      - name: pruebas:notas-credito-serie-por-letra
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:notas-credito-serie-por-letra
+
       # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
       # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
       # Cada caso termina en ROLLBACK.
