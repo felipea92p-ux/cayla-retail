@@ -983,6 +983,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actor-firma
 
+      # Las 30 acciones que Felipe soltó del combo «Responsable» (2026-09-29, 20260929230000): persona + clave → firma ella sin
+      # asistencia; terminal + clave → la acción queda sin persona (NULL); sin clave, o con una que no está en la lista (la
+      # caja, la venta) → el candado de siempre; con tabla vacía («volver») todo vuelve a exigir responsable. ROLLBACK siempre.
+      - name: pruebas:responsable-omitido
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:responsable-omitido
+
       # ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
       # comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.
       - name: pruebas:quien-pendientes
