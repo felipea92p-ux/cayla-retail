@@ -1,0 +1,400 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
+import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { Chip } from "@/components/ui/Chip";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
+import { diaYHoraLima } from "@/lib/fechas-lima";
+import {
+  asignacionDeVista,
+  avance,
+  columnaDePersona,
+  ETIQUETA_MOTIVO,
+  ordenarPersonas,
+  primerDiaDelMes,
+  puedeEditarMeta,
+  repartePorHoras,
+  resumenDeSede,
+  serieParaGrafico,
+  turnoDeHoy,
+  VISTAS,
+  type CambioMeta,
+  type DiaSerie,
+  type Orden,
+  type PersonaMeta,
+  type Vista,
+} from "@/lib/rendimiento-meta-reglas";
+import { EditarMetaModal } from "./EditarMetaModal";
+import { GraficoVentasMeta } from "./GraficoVentasMeta";
+
+/* ====================================================================
+   El panel de Rendimiento de UNA tienda (ADR-0286, spike docs/maquetas/rendimiento-meta-2026-09/)
+
+   Cifras → nota → «Cómo va» (una fila por persona, con su meta editable) → ventas contra la meta → cambios de meta.
+   Los rankings del mes van DESPUÉS, en la página (servidor).
+
+   Hoy · Semana · Mes salen de UNA sola lectura que hizo el servidor: cambiar de vista es estado local. La URL se
+   actualiza con `history.replaceState` (para poder compartirla o recargar en la misma vista) pero no navega: ni pide
+   nada a la base, ni prende el loader, ni mueve el scroll (Felipe, 2026-09-29: «que se mantenga la posición»).
+   ==================================================================== */
+
+const SOLES = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
+
+const PLANTILLA = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]";
+
+const TEXTO_VISTA: Record<Vista, { periodo: string; enPeriodo: string; meta: string; tabla: string }> = {
+  hoy: { periodo: "hoy", enPeriodo: "hoy", meta: "de hoy", tabla: "Cómo va hoy" },
+  semana: { periodo: "7 días", enPeriodo: "en 7 días", meta: "de los 7 días", tabla: "Cómo va la semana" },
+  mes: { periodo: "el mes", enPeriodo: "en el mes", meta: "del mes", tabla: "Cómo va el mes" },
+};
+
+const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
+
+function BarraAvance({ pct, marca }: { pct: number; marca?: number | null }) {
+  return (
+    <div
+      role="progressbar"
+      aria-valuenow={Math.min(pct, 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className="relative mt-2 h-1.5 rounded-full bg-sand"
+    >
+      <div className="h-full rounded-full bg-tinta" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+      {marca !== null && marca !== undefined && (
+        <span aria-hidden className="absolute -top-[3px] h-3 w-0.5 rounded bg-taupe" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
+      )}
+    </div>
+  );
+}
+
+export function PanelRendimiento({
+  ubicacionId,
+  nombre,
+  hoy,
+  serie,
+  personas,
+  historial,
+  vistaInicial,
+  personaCuentaId,
+  esAdmin,
+}: {
+  ubicacionId: string;
+  nombre: string;
+  hoy: string;
+  serie: DiaSerie[];
+  personas: PersonaMeta[];
+  historial: CambioMeta[];
+  vistaInicial: Vista;
+  personaCuentaId: string | null;
+  esAdmin: boolean;
+}) {
+  const [vista, setVista] = useState<Vista>(vistaInicial);
+  const [orden, setOrden] = useState<Orden>("nombre");
+  const [editando, setEditando] = useState<PersonaMeta | null>(null);
+
+  const res = useMemo(() => resumenDeSede(serie, vista, hoy), [serie, vista, hoy]);
+  const resMes = useMemo(() => resumenDeSede(serie, "mes", hoy), [serie, hoy]);
+  const grafico = useMemo(() => serieParaGrafico(serie, hoy), [serie, hoy]);
+  const filas = useMemo(() => ordenarPersonas(personas, vista, orden), [personas, vista, orden]);
+  const porHoras = repartePorHoras(personas);
+  const asignacion = asignacionDeVista(personas, vista, res.meta);
+  const t = TEXTO_VISTA[vista];
+  const mes = primerDiaDelMes(hoy);
+  const mesEtiqueta = MESES[Number(mes.slice(5, 7)) - 1];
+
+  function cambiarVista(v: Vista) {
+    setVista(v);
+    // Solo la barra de direcciones: nada de navegar (no vuelve a pedir la pantalla ni mueve el scroll).
+    const url = new URL(window.location.href);
+    if (v === "hoy") url.searchParams.delete("vista");
+    else url.searchParams.set("vista", v);
+    window.history.replaceState(null, "", url);
+  }
+
+  const vendieron = personas.filter((p) => columnaDePersona(p, vista).vendido > 0).length;
+  const programadas = personas.filter((p) => p.entradaHoy !== null).length;
+  const pctMeta = avance(res.soles, res.meta);
+
+  const columnas: Columna[] = [
+    {
+      titulo: (
+        <BotonOrden activo={orden === "nombre"} onClick={() => setOrden("nombre")}>
+          Persona
+        </BotonOrden>
+      ),
+    },
+    {
+      titulo: (
+        <BotonOrden activo={orden === "ventas"} onClick={() => setOrden("ventas")}>
+          Vendió
+        </BotonOrden>
+      ),
+    },
+    { titulo: "Meta", ayuda: porHoras ? "Repartida por horas programadas (turnos de Dynamic)" : "Partes iguales entre quienes marcaron asistencia" },
+    {
+      titulo: (
+        <BotonOrden activo={orden === "avance"} onClick={() => setOrden("avance")}>
+          Avance
+        </BotonOrden>
+      ),
+    },
+    { titulo: "", alinear: "der" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
+        <SegmentoDeslizante
+          etiqueta="Período"
+          valor={vista}
+          onCambio={(k) => cambiarVista(k as Vista)}
+          opciones={VISTAS.map((v) => ({ clave: v.clave, etiqueta: v.etiqueta }))}
+        />
+      </div>
+
+      {/* Las cuatro cifras */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <TarjetaCifra etiqueta={`Soles ${t.periodo}`} valor={SOLES.format(res.soles)}>
+          {res.ventas > 0 ? `${res.ventas} ${plural(res.ventas, "venta", "ventas")}` : "Sin ventas todavía"}
+        </TarjetaCifra>
+
+        {res.meta === null || pctMeta === null ? (
+          <TarjetaCifra
+            etiqueta="Meta de la sede"
+            valor="Sin meta"
+            vacia
+            accion={{ href: "/configuracion?tab=tiendas", texto: "Cargarla en Configuración" }}
+          >
+            Falta cargarla para {nombre}. Sin ella no hay qué repartir.
+          </TarjetaCifra>
+        ) : (
+          <TarjetaCifra etiqueta={`Meta ${t.meta}`} valor={`${pctMeta} %`}>
+            {res.soles >= res.meta ? `Superada por ${SOLES.format(res.soles - res.meta)}` : `Faltan ${SOLES.format(res.meta - res.soles)} de ${SOLES.format(res.meta)}`}
+            {res.tocabaPct !== null && ` · a hoy tocaba ${res.tocabaPct} %`}
+            <BarraAvance pct={pctMeta} marca={res.tocabaPct} />
+          </TarjetaCifra>
+        )}
+
+        {vista === "hoy" && personas.length > 0 ? (
+          <TarjetaCifra etiqueta="Programadas hoy" valor={String(programadas)}>
+            {vendieron} {plural(vendieron, "vendió", "vendieron")}
+          </TarjetaCifra>
+        ) : (
+          <TarjetaCifra etiqueta="Personas" valor={personas.length > 0 ? String(vendieron) : "—"}>
+            {personas.length > 0 ? `${plural(vendieron, "persona vendió", "personas vendieron")} ${t.enPeriodo}` : "Sin personal cargado"}
+          </TarjetaCifra>
+        )}
+
+        <TarjetaCifra etiqueta="Ticket promedio" valor={res.ticket !== null ? SOLES.format(res.ticket) : "—"}>
+          {res.ticket !== null ? "por venta" : "Sin ventas todavía"}
+        </TarjetaCifra>
+      </div>
+
+      {res.meta === null && (
+        <p className="nota-cayla">
+          Sin meta de la sede no hay qué repartir: cárgala en <b>Configuración ▸ Tiendas y caja</b> y la meta de cada persona se calcula sola, por sus horas
+          programadas. Mientras tanto, esta pantalla muestra lo vendido.
+        </p>
+      )}
+      {res.meta !== null && personas.length > 0 && !porHoras && (
+        <p className="nota-cayla">
+          {nombre} no tiene horarios cargados en Dynamic: la meta se reparte en <b>partes iguales</b> entre quienes marcaron asistencia.
+        </p>
+      )}
+
+      {/* Cómo va cada persona */}
+      <section className="space-y-3" aria-label={t.tabla}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="label-cayla text-[11px] font-bold text-taupe">{t.tabla}</h2>
+          <Chip tono="neutro" versalitas={false}>
+            Editan la líder de la sede y el Admin
+          </Chip>
+        </div>
+
+        {personas.length === 0 ? (
+          <div className="card-cayla p-5">
+            <p className="text-sm text-tinta/75">
+              <b>{nombre} todavía no tiene personal cargado en Dynamic.</b> Sin eso no hay quién atendió ni horas programadas: no hay a quién repartirle la meta.
+            </p>
+          </div>
+        ) : (
+          <Tabla>
+            <Encabezado columnas={columnas} plantilla={PLANTILLA} />
+            {filas.map((p) => {
+              const c = columnaDePersona(p, vista);
+              const av = avance(c.vendido, c.meta);
+              const turno = vista === "hoy" ? turnoDeHoy(p) : null;
+              const permiso = puedeEditarMeta({
+                personaFilaId: p.personaId,
+                personaCuentaId,
+                esAdmin,
+                metaSedeMes: resMes.meta,
+                metaAutoMes: p.metaAutoMes,
+              });
+              return (
+                <div key={p.personaId} role="row" className={`fila-cayla grid gap-x-4 gap-y-1 px-5 py-3 sm:items-center ${PLANTILLA}`}>
+                  <div className="min-w-0">
+                    <p className="flex flex-wrap items-center gap-1.5 text-sm text-tinta">
+                      <span className="font-medium">{p.nombre}</span>
+                      {p.esEncargada && (
+                        <Chip tono="pizarra" versalitas={false}>
+                          Encargada
+                        </Chip>
+                      )}
+                      {personaCuentaId === p.personaId && (
+                        <Chip tono="neutro" versalitas={false}>
+                          tú
+                        </Chip>
+                      )}
+                    </p>
+                    {vista === "hoy" && (
+                      <p className="text-xs text-taupe">{turno ?? (porHoras ? "Sin turno cargado hoy" : "")}</p>
+                    )}
+                  </div>
+                  <p className="tabular-nums text-sm text-tinta">
+                    <span className="mr-1 text-xs text-taupe sm:hidden">Vendió</span>
+                    {SOLES.format(c.vendido)}
+                    <small className="block text-xs text-taupe">{c.ventas > 0 ? `${c.ventas} ${plural(c.ventas, "venta", "ventas")}` : " "}</small>
+                  </p>
+                  <p className="tabular-nums text-sm text-tinta">
+                    <span className="mr-1 text-xs text-taupe sm:hidden">Meta</span>
+                    {c.meta !== null ? SOLES.format(c.meta) : "—"}
+                    <small className="block text-xs text-taupe">
+                      {c.meta === null ? (vista === "hoy" ? "Sin parte hoy" : "Sin parte") : p.metaAjustadaMes !== null ? <Chip tono="ambar" versalitas={false}>Ajustada</Chip> : p.base === "horas" ? "por horas" : "partes iguales"}
+                    </small>
+                  </p>
+                  <div className="min-w-0">
+                    {av !== null ? (
+                      <>
+                        <BarraAvance pct={av} marca={vista === "mes" ? res.tocabaPct : null} />
+                        <p className="mt-1 text-xs tabular-nums text-taupe">{av} %</p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-taupe">{c.vendido > 0 ? "Sin meta" : "—"}</p>
+                    )}
+                  </div>
+                  <div className="sm:text-right">
+                    <BotonCompacto
+                      variante="fila"
+                      icono={<Pencil aria-hidden strokeWidth={1.75} />}
+                      disabled={!permiso.puede}
+                      title={permiso.puede ? `Cambiar la meta de ${p.nombre}` : permiso.motivo}
+                      aria-label={`Cambiar la meta de ${p.nombre}`}
+                      onClick={() => setEditando(p)}
+                    >
+                      Meta
+                    </BotonCompacto>
+                  </div>
+                </div>
+              );
+            })}
+            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`}>
+              {asignacion.tipo === "sin_meta" ? (
+                <span>Sin meta de la sede no hay qué repartir.</span>
+              ) : (
+                <span>
+                  Asignado a {personas.length === 1 ? "1 persona" : `las ${personas.length}`}: <b className="tabular-nums text-tinta">{SOLES.format(asignacion.asignado)}</b> de{" "}
+                  <b className="tabular-nums text-tinta">{SOLES.format(asignacion.metaSede)}</b> de la sede
+                  {asignacion.tipo === "cuadra" && " · cuadra"}
+                  {asignacion.tipo === "faltan" && ` · faltan ${SOLES.format(asignacion.diferencia)} por asignar`}
+                  {asignacion.tipo === "pasa" && ` · se pasa por ${SOLES.format(-asignacion.diferencia)}`}
+                </span>
+              )}
+              <span>{porHoras ? "Reparto por horas programadas (turnos de Dynamic)" : "Sin horarios cargados: partes iguales entre quienes marcaron asistencia"}</span>
+            </div>
+          </Tabla>
+        )}
+      </section>
+
+      <GraficoVentasMeta
+        titulo="Ventas contra la meta"
+        semana={grafico.semana}
+        mes={grafico.mes}
+        inicial={vista === "mes" ? "mes" : "semana"}
+        etiquetas={{
+          ventas: "Ventas de la sede",
+          meta: "Meta del día",
+          ventasAcum: "Ventas acumuladas",
+          metaAcum: "Meta acumulada",
+          tooltip: "Ventas",
+          deMeta: "la meta de",
+          aria: "Ventas de la sede",
+        }}
+      />
+
+      <Historial cambios={historial} />
+
+      {editando && (
+        <EditarMetaModal
+          key={editando.personaId}
+          persona={editando}
+          ubicacionId={ubicacionId}
+          ubicacionNombre={nombre}
+          mes={mes}
+          mesEtiqueta={mesEtiqueta}
+          metaSedeMes={resMes.meta}
+          onClose={() => setEditando(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BotonOrden({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      title="Ordenar por esta columna"
+      className={`text-xs ${activo ? "font-semibold text-tinta" : "font-normal text-taupe"} hover:text-tinta`}
+    >
+      {children}
+      {activo && <span aria-hidden> ↓</span>}
+    </button>
+  );
+}
+
+function Historial({ cambios }: { cambios: CambioMeta[] }) {
+  return (
+    <details className="card-cayla p-5">
+      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta">
+        <span>Cambios de meta ({cambios.length})</span>
+        <Chip tono="neutro" versalitas={false}>
+          no se borran
+        </Chip>
+      </summary>
+      <ul className="mt-3 divide-y divide-sand">
+        {cambios.length === 0 && <li className="py-2 text-sm text-taupe">Todavía nadie cambió una meta este mes.</li>}
+        {cambios.map((c) => {
+          const { dia, hora } = diaYHoraLima(c.creadoEn);
+          const motivo = c.motivo === "otro" && c.detalle ? `Otro: ${c.detalle}` : (ETIQUETA_MOTIVO[c.motivo] ?? c.motivo);
+          return (
+            <li key={c.id} className="grid grid-cols-[5.5rem_1fr] gap-3 py-2 text-sm">
+              <span className="text-xs tabular-nums text-taupe">
+                {dia} · {hora}
+              </span>
+              <div>
+                <p className="text-tinta">
+                  <span className="font-medium">{c.persona}</span>:{" "}
+                  <span className="tabular-nums">
+                    {SOLES.format(c.metaAntes)} → {c.meta === null ? "automática" : SOLES.format(c.meta)}
+                  </span>{" "}
+                  <span className="text-taupe">al mes</span>
+                </p>
+                <p className="text-xs text-taupe">
+                  {c.cambiadoPor} · {motivo}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+  );
+}

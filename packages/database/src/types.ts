@@ -6084,6 +6084,27 @@ export type Database = {
           persona_id: string
           salida_hoy: string
           ubicacion_id: string
+          vendido_7d: number
+          vendido_hoy: number
+          vendido_mes: number
+          ventas_7d: number
+          ventas_hoy: number
+          ventas_mes: number
+        }[]
+      }
+      fn_metas_historial: {
+        Args: { p_mes?: string; p_ubicacion_id: string }
+        Returns: {
+          cambiado_por: string
+          creado_en: string
+          detalle: string
+          id: number
+          meta: number
+          meta_antes: number
+          mes: string
+          motivo: string
+          persona: string
+          persona_id: string
         }[]
       }
       fn_mi_meta: {
@@ -6666,7 +6687,13 @@ export type Database = {
       }
       fn_rendimiento_serie: {
         Args: { p_desde: string; p_hasta: string; p_ubicacion_id: string }
-        Returns: { fecha: string; total: number; ventas: number }[]
+        Returns: {
+          fecha: string
+          meta_asignada: number
+          meta_sede: number
+          total: number
+          ventas: number
+        }[]
       }
       fn_resumen_variantes: {
         Args: {

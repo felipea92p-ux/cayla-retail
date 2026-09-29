@@ -11,9 +11,11 @@
  *   · ESTADOS IMPOSIBLES: sin motivo, meta ≤ 0, mayor que la de la sede, «otro» sin decir qué, persona de otra tienda, mes pasado, tienda sin meta,
  *     la propia meta (solo un Admin), una cuenta sin el módulo Rendimiento, una terminal, una meta que cambió mientras se editaba;
  *   · el historial no se edita ni se borra, y la web no lo toca directo;
+ *   · LO QUE PINTA RENDIMIENTO: lo vendido por persona (hoy, 7 días, mes; sin anuladas, de prueba ni de otra tienda), la meta de la sede por día con lo ya
+ *     asignado a las personas, y el historial de cambios con nombres, solo para quien ve la tienda;
  *   · ALCANCE: `fn_mi_meta` da SOLO lo mío (nunca lo de otra persona); `fn_metas_equipo` da el equipo completo de la tienda (aunque no haya
  *     vendido) a la líder de sede y al Admin, y nada a una integrante; las ventas por día son de quien atendió y de la tienda que se ve;
- *   · PERMISOS: las cuatro internas no las ejecuta nadie desde la web; las cinco públicas, solo cuentas con sesión.
+ *   · PERMISOS: las cuatro internas no las ejecuta nadie desde la web; las seis públicas, solo cuentas con sesión.
  *
  * CÓMO. Mismo patrón que `mis_ventas_del_dia.mjs` y `actividad.mjs`: cada escenario en su transacción con ROLLBACK (nunca se commitea nada en el
  * Postgres local compartido). El local solo trae `personas` y `sedes` de Dynamic, así que cada escenario CREA dentro de su transacción las tablas de
@@ -427,17 +429,122 @@ select count(*) || '|' || (select total from retail.fn_mis_ventas_por_dia(:'hoy'
   esperar("una terminal recibe 0 filas de fn_mis_ventas_por_dia", ultima(termv) === "0", termv);
 }
 
+// ───────────────────────── LO VENDIDO POR PERSONA, LA META DE LA SEDE POR DÍA Y EL HISTORIAL (lo que pinta Rendimiento) ─────────────────────────
+
+const VENTA_HELPER = `
+create function pg_temp.venta2(p_ubic uuid, p_asesora uuid, p_hace interval, p_cant int, p_precio numeric,
+                               p_anulada boolean default false, p_prueba boolean default false) returns void language plpgsql as $f$
+declare v uuid;
+begin
+  insert into retail.ventas (ubicacion_id, asesora_id, usuario_id, created_at, es_prueba, estado, anulado_en, motivo_anulacion, anulado_por)
+  values (p_ubic, p_asesora, p_asesora, now() - p_hace, p_prueba, case when p_anulada then 'anulada' else 'completada' end,
+          case when p_anulada then now() end, case when p_anulada then 'prueba' end, case when p_anulada then p_asesora end)
+  returning id into v;
+  insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario)
+  values (v, (select id from retail.variantes order by id limit 1), p_cant, p_precio, 0);
+end;
+$f$;
+`;
+
+// 14. fn_metas_equipo trae lo que vendió cada una (hoy, 7 días, mes) con la definición de Rendimiento.
+{
+  const r = correr(`${MUNDO}${VENTA_HELPER}
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 2, 50);                    -- Ana, hoy: 100
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 1, 30);                    -- Ana, hoy: otra venta de 30
+select pg_temp.venta2(:'trujillo', :'pb', interval '0', 1, 80);                    -- Beto, hoy: 80
+select pg_temp.venta2(:'trujillo', :'pa', interval '3 days', 1, 70);               -- Ana, hace 3 días: 70 (cuenta en 7 días, no en hoy)
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 5, 100, true, false);      -- anulada: no cuenta
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 5, 100, false, true);      -- de prueba: no cuenta
+select pg_temp.venta2(:'lima', :'pa', interval '0', 5, 100);                       -- otra tienda: no cuenta acá
+${cambiaA(L_AUTH)}
+select string_agg(pg_temp.q(persona_id) || '=' || vendido_hoy::int || '/' || ventas_hoy || '/' || vendido_7d::int || '/' || ventas_7d, ',' order by pg_temp.q(persona_id))
+  from retail.fn_metas_equipo(:'mes') where ubicacion_id = :'trujillo';`);
+  const linea = ultima(r) ?? "";
+  // Ana: hoy 130 en 2 ventas; 7 días 200 en 3 (a menos que hace 3 días caiga en el mes anterior: el 7d no depende del mes). Beto: 80 en 1. Lidia y Micaela: 0.
+  esperar("fn_metas_equipo suma lo vendido por persona: Ana 130 hoy (2 ventas) y 200 en 7 días; Beto 80; sin contar anuladas, de prueba ni de otra tienda",
+    linea === "A=130/2/200/3,B=80/1/80/1,L=0/0/0/0,M=0/0/0/0", r);
+  const mes = correr(`${MUNDO}${VENTA_HELPER}
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 2, 50);
+${cambiaA(L_AUTH)}
+select (vendido_mes = 100) || '|' || (ventas_mes = 1) from retail.fn_metas_equipo(:'mes') where persona_id = :'pa';`);
+  esperar("lo vendido del mes incluye lo de hoy (100 en 1 venta)", ["t|t", "true|true"].includes(ultima(mes) ?? ""), mes);
+  const previo = correr(`${MUNDO}${VENTA_HELPER}
+select pg_temp.venta2(:'trujillo', :'pa', interval '0', 2, 50);
+${cambiaA(L_AUTH)}
+select (vendido_mes = 0) || '|' || (vendido_hoy = 100) from retail.fn_metas_equipo((:'mes'::date - interval '1 month')::date) where persona_id = :'pa';`);
+  esperar("pedir otro mes no mezcla lo de este: en el mes anterior Ana no tiene ventas del mes (y «hoy» sigue siendo hoy, no el mes pedido)", ["t|t", "true|true"].includes(ultima(previo) ?? ""), previo);
+}
+
+// 15. fn_rendimiento_serie trae la meta de la sede de cada día y lo ya asignado a las personas.
+{
+  const r = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select (meta_sede = (select round(p.meta) from retail.fn_parametros_caja(:'trujillo', :'hoy'::date) p)) || '|' ||
+       (meta_asignada = meta_sede) || '|' ||
+       (meta_asignada = (select sum(meta_hoy) from retail.fn_metas_equipo(:'mes') where ubicacion_id = :'trujillo'))
+  from retail.fn_rendimiento_serie(:'trujillo', :'hoy'::date, :'hoy'::date);`);
+  esperar("la serie trae la meta de la sede de hoy y lo asignado a las cuatro cuadra con ella y con la suma de fn_metas_equipo",
+    ["t|t|t", "true|true|true"].includes(ultima(r) ?? ""), r);
+  const ajust = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select meta_auto_mes as auto_a from retail.fn_metas_equipo(:'mes') where persona_id = :'pa' \\gset
+select retail.fijar_meta_persona(:'pa', :'trujillo', :'mes', :'auto_a'::numeric * 0.5, 'capacitacion') \\gset
+select (meta_asignada < meta_sede) || '|' ||
+       (meta_asignada = (select sum(meta_hoy) from retail.fn_metas_equipo(:'mes') where ubicacion_id = :'trujillo'))
+  from retail.fn_rendimiento_serie(:'trujillo', :'hoy'::date, :'hoy'::date);`);
+  esperar("si la líder baja la meta de Ana, lo asignado queda por debajo de la meta de la sede (la pantalla dice cuánto falta por asignar)",
+    ["t|t", "true|true"].includes(ultima(ajust) ?? ""), ajust);
+  const sinHorarios = correr(`${MUNDO}delete from public.horarios_asignados;
+${cambiaA(L_AUTH)}
+select (meta_sede is not null) || '|' || (meta_asignada is null)
+  from retail.fn_rendimiento_serie(:'trujillo', :'hoy'::date, :'hoy'::date);`);
+  esperar("sin horarios ni asistencia: la meta de la sede se ve y lo asignado es nulo (nada repartido, nunca un 0 inventado)",
+    ["t|t", "true|true"].includes(ultima(sinHorarios) ?? ""), sinHorarios);
+  const sinMetaSede = correr(`${MUNDO}delete from retail.ubicacion_metas_dia where ubicacion_id = :'trujillo';
+${cambiaA(L_AUTH)}
+select (meta_sede is null) || '|' || (meta_asignada is null) from retail.fn_rendimiento_serie(:'trujillo', :'hoy'::date, :'hoy'::date);`);
+  esperar("sin meta de la sede la serie trae ventas pero meta nula", ["t|t", "true|true"].includes(ultima(sinMetaSede) ?? ""), sinMetaSede);
+}
+
+// 16. fn_metas_historial: los cambios del mes, con nombres, solo a quien ve la tienda.
+{
+  const r = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select meta_auto_mes as auto_a from retail.fn_metas_equipo(:'mes') where persona_id = :'pa' \\gset
+select retail.fijar_meta_persona(:'pa', :'trujillo', :'mes', 20000, 'cambia_horario') \\gset
+select retail.fijar_meta_persona(:'pb', :'trujillo', :'mes', 12000, 'otro', 'vuelve de licencia') \\gset
+select count(*) || '|' || string_agg(persona || ':' || meta::int || ':' || motivo || ':' || cambiado_por, ',' order by id)
+  from retail.fn_metas_historial(:'trujillo');`);
+  esperar("el historial trae los dos cambios del mes con el nombre de a quién y de quién los hizo",
+    ultima(r) === "2|Ana P.:20000:cambia_horario:Lidia E.,Beto P.:12000:otro:Lidia E.", r);
+  const orden = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select retail.fijar_meta_persona(:'pa', :'trujillo', :'mes', 20000, 'cambia_horario') \\gset
+select retail.fijar_meta_persona(:'pb', :'trujillo', :'mes', 12000, 'cambia_horario') \\gset
+select persona from retail.fn_metas_historial(:'trujillo') limit 1;`);
+  esperar("del más nuevo al más viejo", ultima(orden) === "Beto P.", orden);
+  const otroMes = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select retail.fijar_meta_persona(:'pa', :'trujillo', :'mes', 20000, 'cambia_horario') \\gset
+select count(*) from retail.fn_metas_historial(:'trujillo', (:'mes'::date - interval '1 month')::date);`);
+  esperar("el historial de otro mes no trae los cambios de este", ultima(otroMes) === "0", otroMes);
+  const admin = correr(`${MUNDO}${cambiaA(L_AUTH)}
+select retail.fijar_meta_persona(:'pa', :'trujillo', :'mes', 20000, 'cambia_horario') \\gset
+${cambiaA(FELIPE)}
+select count(*) from retail.fn_metas_historial(:'trujillo');`);
+  esperar("un Admin también lo ve", ultima(admin) === "1", admin);
+  const integrante = correr(`${MUNDO}${cambiaA(MICAELA)}select pg_temp.intento(format($$select * from retail.fn_metas_historial(%L)$$, :'trujillo'));`);
+  esperar("una integrante no puede leer el historial de metas", contiene(integrante, "No puedes ver el rendimiento de esa tienda"), integrante);
+  const lima = correr(`${MUNDO}${cambiaA(L_AUTH)}select pg_temp.intento(format($$select * from retail.fn_metas_historial(%L)$$, :'lima'));`);
+  esperar("la líder de Trujillo no lee el historial de Lima", contiene(lima, "No puedes ver el rendimiento de esa tienda"), lima);
+}
+
 // ───────────────────────── PERMISOS ─────────────────────────
 {
   const internas = ["fn_horas_programadas(uuid,date,date)", "fn_asistencia_por_dia(uuid,date,date)", "fn_reparto_meta(uuid,date,date)", "fn_metas_por_dia(uuid,date,date)"];
   const publicas = ["fn_metas_equipo(date)", "fn_mi_meta()", "fn_mis_ventas_por_dia(date,date)", "fn_rendimiento_serie(uuid,date,date)",
-    "fijar_meta_persona(uuid,uuid,date,numeric,text,text,numeric)"];
+    "fn_metas_historial(uuid,date)", "fijar_meta_persona(uuid,uuid,date,numeric,text,text,numeric)"];
   const q = (rol, fns) => fns.map((f) => `has_function_privilege('${rol}', 'retail.${f}', 'execute')`).join(" || ',' || ");
   const r = correr(`select (${q("authenticated", internas)}) || '|' || (${q("anon", internas)}) || '|' || (${q("authenticated", publicas)}) || '|' || (${q("anon", publicas)});`);
   const [aInt, anInt, aPub, anPub] = (ultima(r) ?? "").split("|");
   const todos = (s, v) => (s ?? "").split(",").every((x) => x === v || (v === "false" && x === "f") || (v === "true" && x === "t"));
   esperar("las 4 funciones internas no las ejecuta nadie desde la web", todos(aInt, "false") && todos(anInt, "false"), r);
-  esperar("las 5 públicas las ejecuta authenticated y no anon", todos(aPub, "true") && todos(anPub, "false"), r);
+  esperar("las 6 públicas las ejecuta authenticated y no anon", todos(aPub, "true") && todos(anPub, "false"), r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en verde");

@@ -6,8 +6,9 @@
 --      (Dynamic), y las partes de un día suman EXACTAMENTE esa meta. Sin horarios, partes iguales entre quienes marcaron asistencia.
 --   2. `fijar_meta_persona` deja que la líder de la sede (o un Admin) cambie la meta DEL MES de una persona, con motivo, en una sola
 --      transacción y con un historial (`metas_persona_ajustes`) que nadie edita ni borra. Nadie cambia la suya, salvo un Admin.
---   3. `fn_metas_equipo` (líder/Admin) y `fn_mi_meta` (solo lo mío) leen de la MISMA definición; `fn_mis_ventas_por_dia` y
---      `fn_rendimiento_serie` dan las ventas por día para el gráfico.
+--   3. `fn_metas_equipo` (líder/Admin, con lo vendido por persona) y `fn_mi_meta` (solo lo mío) leen de la MISMA definición;
+--      `fn_mis_ventas_por_dia` y `fn_rendimiento_serie` (con la meta de la sede por día) dan las ventas por día para el gráfico, y
+--      `fn_metas_historial` lee los cambios de meta (la tabla no se lee directo).
 --
 -- ASUME: que la sede tiene meta (`ubicacion_metas_dia`, campañas incluidas, por `fn_parametros_caja`): sin ella no hay nada que repartir y
 --   las funciones devuelven 0 filas, NUNCA una meta inventada. Que Dynamic mantiene vigentes los horarios (`public.horarios_asignados`, hoy 21
@@ -336,12 +337,14 @@ revoke all on function retail.fn_metas_por_dia(uuid, date, date) from public, an
 -- ---------- 3a. El equipo de las tiendas que la cuenta ve (líder de sede o Admin) ----------
 -- Una fila por persona de la tienda, AUNQUE no haya vendido (`fn_rendimiento_equipo` solo trae a quien vendió). Alcance: el mismo de Rendimiento
 -- (`fn_rendimiento_ubicaciones`): Admin, todas; con el módulo, su tienda; el resto, nada. `es_encargada`: su rol trae el módulo `rendimiento` o es
--- líder con esa tienda (D-160: las encargadas de TRU son «Líder de equipo»).
+-- líder con esa tienda (D-160: las encargadas de TRU son «Líder de equipo»). Trae también lo que vendió (hoy, últimos 7 días y el mes) con la MISMA
+-- definición de venta de Rendimiento (ADR-0219, punto 2): completada, no de prueba, de quien ATENDIÓ (`asesora_id`), con IGV, en esa tienda.
 create or replace function retail.fn_metas_equipo(p_mes date default null)
 returns table (
   ubicacion_id uuid, persona_id uuid, nombre text, es_encargada boolean, base text,
   entrada_hoy text, salida_hoy text, horas_hoy numeric,
-  meta_auto_mes numeric, meta_ajustada_mes numeric, meta_mes numeric, meta_hoy numeric, meta_7d numeric
+  meta_auto_mes numeric, meta_ajustada_mes numeric, meta_mes numeric, meta_hoy numeric, meta_7d numeric,
+  vendido_hoy numeric, ventas_hoy integer, vendido_7d numeric, ventas_7d integer, vendido_mes numeric, ventas_mes integer
 )
 language plpgsql
 stable
@@ -374,6 +377,16 @@ begin
     ),
     hoy as (
       select h.persona_id, h.entrada, h.salida, h.horas from retail.fn_horas_programadas(v_u, v_hoy, v_hoy) h
+    ),
+    vd as (
+      select vt.asesora_id as persona_id, (vt.created_at at time zone 'America/Lima')::date as dia,
+             sum(vi.subtotal) as total, count(distinct vt.id) as n
+        from retail.ventas vt
+        join retail.venta_items vi on vi.venta_id = vt.id
+       where vt.ubicacion_id = v_u and vt.estado = 'completada' and not vt.es_prueba and vt.asesora_id is not null
+         and vt.created_at >= (least(v_mes, v_hoy - 6)::timestamp at time zone 'America/Lima')
+         and vt.created_at < (greatest((v_mes + interval '1 month')::date, v_hoy + 1)::timestamp at time zone 'America/Lima')
+       group by 1, 2
     )
     select v_u, g.persona_id, g.nombre, g.es_encargada,
            (select case when bool_or(x.base = 'horas') then 'horas' when count(*) > 0 then 'iguales' end
@@ -383,7 +396,13 @@ begin
            (select case when bool_or(x.ajustada) then max(x.meta_mes) end from md x where x.persona_id = g.persona_id and x.mes = v_mes),
            (select max(x.meta_mes) from md x where x.persona_id = g.persona_id and x.mes = v_mes),
            (select x.meta_dia from md x where x.persona_id = g.persona_id and x.fecha = v_hoy),
-           (select sum(x.meta_dia) from md x where x.persona_id = g.persona_id and x.fecha between v_hoy - 6 and v_hoy)
+           (select sum(x.meta_dia) from md x where x.persona_id = g.persona_id and x.fecha between v_hoy - 6 and v_hoy),
+           (select coalesce(sum(x.total), 0) from vd x where x.persona_id = g.persona_id and x.dia = v_hoy)::numeric,
+           (select coalesce(sum(x.n), 0) from vd x where x.persona_id = g.persona_id and x.dia = v_hoy)::integer,
+           (select coalesce(sum(x.total), 0) from vd x where x.persona_id = g.persona_id and x.dia between v_hoy - 6 and v_hoy)::numeric,
+           (select coalesce(sum(x.n), 0) from vd x where x.persona_id = g.persona_id and x.dia between v_hoy - 6 and v_hoy)::integer,
+           (select coalesce(sum(x.total), 0) from vd x where x.persona_id = g.persona_id and x.dia >= v_mes and x.dia < (v_mes + interval '1 month')::date)::numeric,
+           (select coalesce(sum(x.n), 0) from vd x where x.persona_id = g.persona_id and x.dia >= v_mes and x.dia < (v_mes + interval '1 month')::date)::integer
       from gente g
       left join hoy hy on hy.persona_id = g.persona_id
      order by g.nombre;
@@ -392,7 +411,7 @@ end;
 $fn$;
 
 comment on function retail.fn_metas_equipo(date) is
-  'ADR-0286: una fila por persona de las tiendas que fn_rendimiento_ubicaciones() le deja ver a la cuenta (Admin: todas; con el módulo rendimiento, su tienda; el resto, nada), aunque no haya vendido: turno de hoy, meta automática, meta ajustada, meta del mes, de hoy y de los últimos 7 días. security definer, stable.';
+  'ADR-0286: una fila por persona de las tiendas que fn_rendimiento_ubicaciones() le deja ver a la cuenta (Admin: todas; con el módulo rendimiento, su tienda; el resto, nada), aunque no haya vendido: turno de hoy, meta automática, meta ajustada, meta del mes, de hoy y de los últimos 7 días, y lo vendido en esos tres períodos (asesora_id, completadas, no de prueba, con IGV, en esa tienda). security definer, stable.';
 
 revoke all on function retail.fn_metas_equipo(date) from public, anon;
 grant execute on function retail.fn_metas_equipo(date) to authenticated;
@@ -493,7 +512,7 @@ revoke all on function retail.fn_mis_ventas_por_dia(date, date) from public, ano
 grant execute on function retail.fn_mis_ventas_por_dia(date, date) to authenticated;
 
 create or replace function retail.fn_rendimiento_serie(p_ubicacion_id uuid, p_desde date, p_hasta date)
-returns table (fecha date, total numeric, ventas integer)
+returns table (fecha date, total numeric, ventas integer, meta_sede numeric, meta_asignada numeric)
 language plpgsql
 stable
 security definer
@@ -510,7 +529,9 @@ begin
   return query
     select d::date,
            coalesce(v.total, 0)::numeric,
-           coalesce(v.n, 0)::integer
+           coalesce(v.n, 0)::integer,
+           (select p.meta from retail.fn_parametros_caja(p_ubicacion_id, d::date) p),
+           a.asignado
       from generate_series(p_desde, p_hasta, interval '1 day') d
       left join (
         select (vt.created_at at time zone 'America/Lima')::date as dia, sum(vi.subtotal) as total, count(distinct vt.id) as n
@@ -521,15 +542,58 @@ begin
            and vt.created_at < ((p_hasta + 1)::timestamp at time zone 'America/Lima')
          group by 1
       ) v on v.dia = d::date
+      left join (
+        select m.fecha as dia, sum(m.meta_dia) as asignado
+          from retail.fn_metas_por_dia(p_ubicacion_id, p_desde, p_hasta) m
+         group by 1
+      ) a on a.dia = d::date
      order by d;
 end;
 $fn$;
 
 comment on function retail.fn_rendimiento_serie(uuid, date, date) is
-  'ADR-0286: las ventas por día de UNA tienda (completadas, no de prueba, con IGV), un día por fila aunque sea 0, solo si la tienda está en fn_rendimiento_ubicaciones() de quien pregunta. Rango máximo de 93 días. security definer, stable.';
+  'ADR-0286: las ventas por día de UNA tienda (completadas, no de prueba, con IGV), un día por fila aunque sea 0, con la meta de la sede de ese día (fn_parametros_caja; null si no tiene) y lo que ya se asignó a las personas (null si nadie tiene parte). Solo si la tienda está en fn_rendimiento_ubicaciones() de quien pregunta. Rango máximo de 93 días. security definer, stable.';
 
 revoke all on function retail.fn_rendimiento_serie(uuid, date, date) from public, anon;
 grant execute on function retail.fn_rendimiento_serie(uuid, date, date) to authenticated;
+
+-- ---------- 3d. El historial de cambios de meta de una tienda (la tabla no se lee directo) ----------
+-- Los cambios del mes pedido (sin fecha: el de hoy), del más nuevo al más viejo, con el nombre de quien cambió y de a quién. Solo tiendas de
+-- `fn_rendimiento_ubicaciones()`: el mismo alcance de Rendimiento. 200 filas como mucho (una tienda no cambia tantas en un mes).
+create or replace function retail.fn_metas_historial(p_ubicacion_id uuid, p_mes date default null)
+returns table (id bigint, persona_id uuid, persona text, mes date, meta_antes numeric, meta numeric, motivo text, detalle text, cambiado_por text, creado_en timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+#variable_conflict use_column
+declare
+  v_mes date := coalesce(date_trunc('month', p_mes)::date, date_trunc('month', (now() at time zone 'America/Lima'))::date);
+begin
+  if p_ubicacion_id is null or not (p_ubicacion_id = any (coalesce(retail.fn_rendimiento_ubicaciones(), '{}'::uuid[]))) then
+    raise exception 'No puedes ver el rendimiento de esa tienda' using errcode = '42501';
+  end if;
+  return query
+    select a.id, a.persona_id,
+           coalesce(nullif(trim(p.nombres || ' ' || left(coalesce(p.apellidos, ''), 1) || '.'), '.'), 'Sin nombre'),
+           a.mes, a.meta_antes, a.meta, a.motivo, a.detalle,
+           coalesce(nullif(trim(q.nombres || ' ' || left(coalesce(q.apellidos, ''), 1) || '.'), '.'), 'Sin nombre'),
+           a.created_at
+      from retail.metas_persona_ajustes a
+      left join public.personas p on p.id = a.persona_id
+      left join public.personas q on q.id = a.cambiado_por
+     where a.ubicacion_id = p_ubicacion_id and a.mes = v_mes
+     order by a.created_at desc, a.id desc
+     limit 200;
+end;
+$fn$;
+
+comment on function retail.fn_metas_historial(uuid, date) is
+  'ADR-0286 (D-148): los cambios de meta de una tienda en un mes (persona, meta antes y después, motivo, quién y cuándo), del más nuevo al más viejo, solo si la tienda está en fn_rendimiento_ubicaciones() de quien pregunta. La tabla no se lee directo. security definer, stable.';
+
+revoke all on function retail.fn_metas_historial(uuid, date) from public, anon;
+grant execute on function retail.fn_metas_historial(uuid, date) to authenticated;
 
 
 -- ============================================================================
