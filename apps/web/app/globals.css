@@ -7,6 +7,7 @@
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/alta-guia.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -258,6 +259,25 @@ body {
     background: var(--color-papel);
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-xl);
+  }
+
+  /* Lista flotante de un combo (ComboBuscable, Desplegable, píldoras de filtro, Responsable). Va SOBRE un campo o una tarjeta
+     que ya son papel u hueso, así que un borde `sand` y una sombra corta la dejaban del mismo tono que lo que tapa (2026-09-29,
+     «no se diferencia del fondo»). Aquí se levanta con un borde de tinta suave y una sombra de elevación larga y tibia; el
+     color de la superficie sigue siendo papel (el más claro del sistema: no hay blanco). El radio lo pone quien la usa. */
+  .lista-flotante {
+    background: var(--color-papel);
+    border: 1px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
+    box-shadow:
+      0 20px 46px -16px rgb(26 26 24 / 0.32),
+      0 3px 8px -3px rgb(26 26 24 / 0.16);
+  }
+
+  /* La opción activa de una lista (con el mouse o con las flechas): un terracota muy tenue. Era arena/hueso, casi del tono del
+     fondo (2026-09-29, «se resalta en un color muy parecido al de fondo»). Se mezcla con papel en vez de usar una opacidad, así la
+     fila queda OPACA: la fila fija de «Registrar…» (`sticky`) no deja leer las opciones que pasan por debajo. */
+  .opcion-activa {
+    background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel));
   }
 
   /* Título/cifra en serif — "el alma del sistema" */

@@ -16,5 +16,5 @@
 - [ ] **Pregunta abierta:** apartar una prenda desde una TERMINAL sigue pidiendo responsable (`separaciones.creado_por` NOT NULL).
       Soltarlo exige decidir quién queda como creadora del apartado o aflojar esa columna.
 - [ ] Decidir si en una terminal debe quedar al menos «el último responsable elegido en este turno» para las 28 acciones
-      (hoy quedan sin nombre de persona). *Las 8 del alta de producto ya lo resuelven de otra forma (ADR-0283: quien inicia el alta
+      (hoy quedan sin nombre de persona). *Las 8 del alta de producto ya lo resuelven de otra forma (ADR-0285: quien inicia el alta
       firma todo); quedan las otras 20.*
