@@ -1,229 +1,224 @@
 # Pantalla — Atributos (`/productos/atributos`)
 
-> Modo: completo · Fecha: 2026-09-21 · Rol/sede: líder, Tienda TRU · Datos: real parcial (SQL de producción: A1, A2, B1, C1, C2, C3, D2; **sin** A3, D1, D3, E1–E3)
-> SHA analizado: `b6b85206` (= origin/main; rama al día, `0 0`) — si esos archivos cambian después, este análisis está vencido
-> Archivos: `apps/web/app/(app)/productos/atributos/page.tsx` · `apps/web/components/AtributosHub.tsx` · `EtiquetasLista.tsx` · `ColoresLista.tsx` · `TallasLista.tsx` · `TejidosLista.tsx` · `PatronesLista.tsx` · `PrendasDeEtiquetaModal.tsx` · `lib/etiqueta-vigencia.ts` · `lib/etiqueta-visual.ts` · `app/api/productos/{etiquetas,colores,tallas,tejidos,patrones}/route.ts` · RPC `actualizar_campana_etiqueta`, `etiquetar_variantes`, `actualizar_variantes_etiquetas`, `campanas_vigentes`, `fn_campanas_por_variante` · tablas `colores`, `tallas`, `tejidos`, `patrones`, `etiquetas`, `etiqueta_categorias`, `variante_etiquetas`
-> Otra sesión tocándola: **no directamente**. `SESIONES-ACTIVAS.md` línea 48 (rediseño de Categorías + consolidación de Atributos, PR #119, 2026-09-18) y línea 24 (crear producto como árbol de decisión, ADR-0109) rozan el mismo terreno: si ese PR sigue abierto, la #10 y la #11 pueden chocar con él.
+> Modo: completo (re-análisis) · Fecha: 2026-09-29 · Rol/sede: líder y admin, Tienda Lima (local; la pantalla no depende de sede) · Datos: **real** — consultas de solo lectura a producción hechas por el agente en la sesión (no las corrió Felipe; el apéndice de `catalogo-plan-de-ataque.md` las lista para que las confirme) y recorrido visual de las seis pestañas en local (datos de siembra; producción tiene otros números)
+> SHA analizado: `38f9d7ce` (origin/main; el código se leyó en `123bb733` y entre los dos solo cambió `alta-producto/ProductoCreado.tsx`). Si cambian `atributos/page.tsx`, `AtributosHub.tsx`, `components/atributos/kit.tsx` o alguna de las seis listas, este análisis está vencido.
+> Archivos: `apps/web/app/(app)/productos/atributos/{page,layout}.tsx` · `components/AtributosHub.tsx` · `components/atributos/kit.tsx` · `EtiquetasLista.tsx` · `ColoresLista.tsx` · `TallasLista.tsx` · `TejidosLista.tsx` · `PatronesLista.tsx` · `TemporadasLista.tsx` · `PrendasDeEtiquetaModal.tsx` · `lib/etiqueta-vigencia.ts` · `lib/etiqueta-aprobacion-reglas.ts` · `app/api/productos/{etiquetas,colores,tallas,tejidos,patrones,temporadas}/route.ts` · RPC `actualizar_campana_etiqueta`, `etiquetar_variantes`, `actualizar_variantes_etiquetas`, `campanas_vigentes`, `fn_campanas_por_variante` · tablas `colores`, `tallas`, `tejidos`, `patrones`, `etiquetas`, `etiqueta_categorias`, `variante_etiquetas`, `temporadas`
+> Otra sesión tocándola: **no directamente.** Estuvo la de «Atributos uniforme» (ADR-0261, 2026-09-28) y ya está en `main`; `docs/SESIONES-ACTIVAS.md:62` sigue listándola (fila vieja).
+> **Re-análisis.** El anterior (`b6b85206`, 2026-09-21) estaba **vencido** (15 commits, +507/−389 líneas; `EtiquetasLista` y `TallasLista` casi rehechas) y no se tomó como base; se leyó solo para marcar qué tareas se cerraron (Historial).
+> Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción-agente]` consulta de solo lectura del 2026-09-29 · `[inferido]` · `[no verificable]`.
 
 ## 0 · Veredicto
-Pantalla bien construida en lo que no se ve —candados de estado y de descuento en la base, RLS en las 7 tablas, un solo lugar para los cinco vocabularios— y con un problema de fondo: **el módulo que más se ve, Etiquetas, hoy no toca ni una prenda ni un sol**. Producción tiene 24 etiquetas, 0 prendas etiquetadas, 0 categorías cubiertas y 0 descuentos configurados, mientras Black Friday empieza en 49 días.
-**Cumple su finalidad:** 6,1/10 · **Relevancia:** 5,8/10 — Comodidad (pero es raíz de datos: color y talla están en las 127 variantes; tejido y patrón, en ningún producto).
+Desde el 21-sep se arregló lo de fondo del flujo de aprobación (aprobar una etiqueta con comentario funciona) y las seis pestañas comparten un solo kit visual. **Pero el camino a la plata sigue sin freno**: una campaña con descuento se guarda sin confirmar, sin fechas obligatorias, hasta 100 % y sin rastro de quién la tocó, y hoy las dos campañas con descuento de producción (Aniversario 10 %, Para liquidar 20 %) **no llegan a ninguna prenda**. Además las etiquetas de rotación prometen una medición que no existe («Top ventas», con 4 prendas puestas a mano).
+**Cumple su finalidad:** 5,0/10 (promedio 6,6, con tope 5: el descuento de campaña puede tocar el precio en caja sin confirmación ni traza) · **Relevancia:** 5,6/10 — Comodidad (pero es raíz de datos de todo producto y decide qué descuento cobra la caja)
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para mantener los cinco vocabularios cerrados que describen una prenda (color, talla, tejido, patrón y etiqueta) y, en Etiquetas, para configurar campañas cuyo descuento cobra sola la caja."
-Fuente: ADR-0024 (vocabulario de color), ADR-0095 (taxonomía de tallas, tejidos, patrones y etiquetas), ADR-0107 y ADR-0108 (la etiqueta de campaña guarda el descuento y la venta lo aplica); `docs/datos/modulos/02-catalogo-y-vocabulario.md` (avisa que describe V1, así que no lo cito como vigente). La captura no se usó para esto.
-¿Docs y pantalla coinciden? **Casi.** Los ADR dicen que la etiqueta con campaña llega a caja; la pantalla lo cumple. Pero el texto en pantalla («lo puede usar de inmediato») no coincide con el código para 4 de los 5 vocabularios (ver #5). Ninguna decisión escrita cubre **quién aprueba el vocabulario**: D-13 lista lo que un Líder puede que un Integrante no, y no incluye aprobar valores.
+"Esta pantalla existe para mantener los seis vocabularios cerrados que describen una prenda (color, talla, tejido, patrón, etiqueta y temporada) y, en Etiquetas, para configurar campañas cuyo descuento cobra sola la caja." Fuente: ADR-0024 (color), ADR-0095 (taxonomía), ADR-0107 y ADR-0108 (etiqueta con descuento que la venta aplica), ADR-0112 (etiquetar en lote), ADR-0246 (temporadas) y ADR-0261 (kit uniforme); **no la captura**. ¿Docs y pantalla coinciden? **Casi.** Los ADR dicen que la campaña llega a caja y es cierto; pero el texto en pantalla («lo puede usar de inmediato») no coincide con el código en 4 de 5 vocabularios, y las notas de las etiquetas prometen una medición automática que no existe. Ninguna decisión D-nn cubre **quién aprueba el vocabulario** ni cuánto descuento puede dar una campaña (ADR-0108 la dejó sin tope a propósito).
 
 ## 2 · Objeción
-1. **Etiquetas es una vitrina sin mercadería.** `[producción B1, C1]` 24 etiquetas, `variante_etiquetas` = 0 filas, `etiqueta_categorias` = 0, `descuento_pct` NULL en las 24. Las 127 variantes y los 39 productos activos no llevan ninguna. Cuatro de las etiquetas prometen medición automática que no existe (`Nuevo`, `Últimas unidades`, `Top ventas`, `Para liquidar`): no hay cron ni trigger que las ponga `[código, revisión del mapa]`. Quien mira la pantalla cree que hay un sistema de rotación funcionando; no lo hay.
-2. **El camino a la plata no tiene freno humano.** Una campaña con «Configurar campaña» aplica descuento automático en Vender a todas las prendas de las categorías elegidas, sin código, sin motivo y sin tope (ADR-0108, decisión de Felipe). El modal avisa «por debajo del costo» pero no confirma un 50 % ni dice a cuántas prendas llega `[código EtiquetasLista.tsx:617-784]`. Un 5 escrito como 50 pasa en silencio. Y cambiar `descuento_pct` no deja rastro de quién lo hizo `[inferido: la auditoría de cambios solo cubre productos y variantes]`.
-3. **El botón «Aprobar» de una etiqueta propuesta falla.** `[código EtiquetasLista.tsx:278-284]` manda `{id, estado:"aprobado"}` sin comentario; el trigger exige comentario no vacío `[código 20260917230000:92-95]` y el alta (`etiquetas/route.ts:21`) solo guarda el nombre, así que toda propuesta nace sin nota. Hoy no se ve porque **nunca ha habido una propuesta**: `[producción C2]` todo está `aprobado`, cero `pendiente`, cero `rechazado`. No confirmado con D3 (cuerpo de la función en producción); el BACKLOG dice que etiquetas coincide por huella con el repo.
-4. Trade-off: no toques el diseño de las tarjetas (funciona y es lo mejor de la pantalla); arregla el alcance y el freno del descuento **antes del 2026-11-09**, y decide con Felipe el rumbo de Etiquetas (#6) antes de invertir más en ellas.
+1. **Un descuento de campaña se guarda sin freno y hoy no llega a nadie.** `EtiquetasLista.tsx:652-694` guarda el % sin confirmar y sin decir a cuántas prendas llega; no exige fechas (`valido` no las pide: con `vigente_desde/hasta` nulos `fn_campanas_por_variante` rige **siempre**); la tabla permite hasta 100 % (`etiquetas_descuento_rango`). No queda quién lo cambió: `etiquetas` solo tiene `propuesto_por`, `aprobado_por` y `aprobado_en`, y no existe una tabla `etiquetas_historial` `[producción-agente]`. En producción: «Aniversario CAYLA» (10 %, 1–14 oct, empieza en 2 días) y «Para liquidar» (20 %, 23 sep–1 oct, vence en 2 días) tienen **0 prendas etiquetadas y 0 categorías alcanzadas** `[producción-agente]`: la tarjeta dice «vigente» y no rebaja nada.
+2. **Las etiquetas de rotación prometen algo que no existe.** La nota de «Top ventas» dice «se aplica según rotación real medida por el sistema, nunca a criterio manual», y producción tiene **4 prendas con esa etiqueta puesta a mano** `[producción-agente]`. No hay cron ni trigger que mida nada: solo tres caminos manuales escriben `variante_etiquetas` `[código]`. Las notas, además, están escritas en jerga interna («Patrón Bershka», «`lib/inteligencia.ts`», «`fn_etiquetas_estado_trigger`») y se muestran en el «!» de cada tarjeta (`kit.tsx:181`).
+3. **«Lo puede usar de inmediato» es falso para tallas, tejidos, patrones y etiquetas.** El texto sigue en `page.tsx:234-236` y en los subtítulos de los modales (`TallasLista.tsx:325`, `TejidosLista.tsx:337`, `PatronesLista.tsx`, `EtiquetasLista.tsx:506`); solo Color se filtra por `activo` (`alta-producto-datos.ts:76`). Los demás exigen `estado = 'aprobado'` (`:84-91`) y, aun aprobado, un tejido, talla o patrón nuevo **no sirve en una categoría hasta habilitarlo en Categorías** (`20260918231100:171-175`); ninguna pantalla lo dice.
+4. **Las seis pestañas se ven iguales y se comportan distinto** (integridad conceptual): aprobar exige comentario en Tallas y Etiquetas y un clic en Colores, Tejidos y Patrones; desactivar vive dentro de «Editar» solo en Colores; editar existe solo en Colores; el estado vacío existe solo en Tejidos y Patrones; las notas (motivo de rechazo) no se muestran en Tejidos y Patrones; dos normalizadores de búsqueda; y tres criterios de «en uso» para bloquear desactivar.
+5. Trade-off: no toques el kit visual ni las tarjetas de Tallas y Patrones (son lo mejor de la pantalla). Arregla el freno del descuento y las promesas de las etiquetas **antes del 2026-10-01**, y decide con Felipe el rumbo de las etiquetas de rotación (#9) antes de invertir más en ellas.
 
 ## 3 · Lo que está bien y no se toca
-- **Candados en la base, no en la pantalla.** `[producción A2]` `etiquetas_estado_check`, `etiquetas_rechazado_no_activo`, `etiquetas_descuento_rango`, `etiquetas_descuento_solo_aprobada` (una colaboradora no puede proponer una etiqueta ya con «100 %»), `etiquetas_vigencia_coherente`, `etiquetas_estilo_valido`; lo mismo para los otros cuatro vocabularios.
-- **RLS activo en las 7 tablas** `[producción D2]`. Insert para cualquier sesión, update solo Líder `[código migraciones]`; la API repite el 403 (`etiquetas/route.ts:31-34`).
-- **Nada se borra:** desactivar/reactivar con sección aparte, y desactivar se bloquea si el valor está en uso (409) `[código etiquetas/route.ts:103-116, colores/route.ts:161-181]`. Un nombre no se duplica por mayúsculas o espacios (`*_clave_unica`, ADR-0024) `[código]`.
-- **Vigencia calculada al leer, con fecha de Lima** (no `current_date` UTC) `[código lib/etiqueta-vigencia.ts:25-30, ADR-0108]`: sin cron que se caiga.
-- **Ilustraciones que no mienten:** un tejido o patrón nuevo sin dibujo muestra «Sin muestra», no un dibujo equivocado `[código MuestraTejido.tsx:356-370]`; la talla es el propio texto. `[visto]` Tallas y Patrones se leen mejor que casi cualquier ERP.
-- **Aviso de costo solo para Líder:** el costo no viaja a otros roles `[código page.tsx:47-49]`.
-- **Prendas etiquetadas por lote con vista previa** (`etiquetar_variantes`, tope 50 cambios, ADR-0112) `[código PrendasDeEtiquetaModal.tsx:145]`.
-- Modales con `<Modal>` del sistema (ADR-0136) `[visto]`.
+- **Candados de tabla:** unicidad de nombre sin mayúsculas/tildes/espacios en las cinco tablas (`*_clave_unica` sobre `fn_clave_texto`); `estado` ∈ {pendiente, aprobado, rechazado} y «rechazado ⇒ inactivo»; en etiquetas, `etiquetas_descuento_rango`, `etiquetas_descuento_solo_aprobada` (una propuesta no nace con «100 %»), `etiquetas_vigencia_coherente` y `etiquetas_estilo_valido`; en colores, formato de hex y de Pantone (único) `[producción-agente A2, A3]`.
+- **RLS activo en todas las tablas** (`temporadas` con RLS y 0 políticas, sin `GRANT` a `authenticated`: solo se lee por función, la convención de CLAUDE.md) `[producción-agente D2]`.
+- **Aprobar una etiqueta ya funciona:** `lib/etiqueta-aprobacion-reglas.ts:23` arma el cuerpo con el comentario y no deja enviarlo vacío; prueba `pnpm pruebas:etiquetas-aprobar` (commit `2f17bc2d`, 2026-09-26). Cerró el fallo que el análisis del 21-sep predijo.
+- **Nada se borra:** desactivar/reactivar con sección aparte; desactivar se bloquea si el valor está en uso (409) `[código *route.ts]`.
+- **Vigencia calculada al leer, con fecha de Lima** (`fn_hoy_lima`, `etiqueta-vigencia.ts:17-30`), sin cron que se caiga; tolerancia de 3 días para ventas sin red (`20260922150000:351,460`).
+- **La venta guarda la campaña** (`descuento_etiqueta_id`, `20260918170000`): el rastro del lado de la caja existe aunque el del cambio no.
+- **`registrar_venta` verifica la campaña** y rechaza lo que no cuadre (`venta_campana_no_vigente`).
+- **Las ilustraciones no mienten:** un tejido o patrón sin dibujo muestra «Sin muestra» (`MuestraTejido.tsx`); la talla es el propio texto `[visto]`.
+- **El kit de ADR-0261 se usa en las seis pestañas:** misma barra de píldoras, buscador y tarjeta `[visto]`.
+- **Aviso de costo solo para Líder:** el costo no viaja a otros roles (`page.tsx`).
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 7 | Coherente y con carácter propio; tres patrones de acción distintos entre pestañas, texto de 10 px y una nota interna con «Patrón Bershka» visible al público | `[visto]` `[código Chip.tsx:52, EtiquetasLista.tsx:488]` |
-| Lógica de negocio | 5 | El aprobar falla, el texto promete lo que no ocurre, las etiquetas no se aplican solas y las campañas quedan fechadas en 2026 | `[código]` `[producción C1, C3]` |
-| Arquitectura | 6,5 | Candados y RLS sólidos; sin auditoría de cambios de descuento; consulta de variantes con costo sin paginar | `[producción A2, D2]` `[código page.tsx:47-49]` |
-| Funciones | 5,5 | Las esenciales funcionan; hay fantasmas y faltan editar nombre/nota/estilo y ver «cuántas prendas usan esto» | `[código]` |
-| Utilidad | 5,5 | Una colaboradora nueva propone y no ve su propuesta; la Líder aprueba y falla | `[código]` `[inferido]` |
-| Conexión con el ERP | 7 | Alimenta el alta de producto, la variante y, por campaña, `registrar_venta`; sin integraciones externas | `[código]` |
+| Estética | 7,5 | Kit uniforme y limpio; desborda a 1024 px y el «!» muestra jerga interna | `[visto]` `[producción-agente]` |
+| Lógica de negocio | 6 | Descuento sin freno, sin fechas obligatorias, hoy sin alcance; rotación prometida y no medida | `[código EtiquetasLista.tsx:652-694]` `[producción-agente]` |
+| Arquitectura | 6,5 | Buenos candados de tabla; «en uso» es un chequeo previo no atómico; sin auditoría de descuento | `[código]` `[producción-agente]` |
+| Funciones | 6 | Editar solo en Colores; «Configurar campaña» en todas; etiqueta nueva no se puede editar | `[código]` |
+| Utilidad | 6 | «Llega una temporada nueva» = tres pantallas y tres dudas | `[código]` `[inferido]` |
+| Conexión con el ERP | 7,5 | Alimenta alta, edición, Vender, etiquetas de precio y Frescura | `[código]` |
 
-**Estética.**
-- (a) Coherencia con CAYLA: crema y tinta, esquinas suaves, rojo casi ausente (máx. 2 se cumple) `[visto]`. Las tarjetas de ilustración son coherentes con Categorías y con Productos.
-- Falla: chips, «Prendas», «Configurar campaña» y «Desactivar» a 10 px `[código EtiquetasLista.tsx:141,144,488,495,504]`; el «!» mide 20×20 (`Ayuda.tsx:105`), lejos de un objetivo táctil de 44 px. En la captura, «DESACTIVAR» solo aparece al pasar el mouse y en gris casi invisible `[visto, imagen 1]`. `ADR-0012` fija el piso de contraste: ya lo violan Categorías (`CategoriasLista.tsx:670`, 9 px) y Colaboradores (`:139`) → es un defecto de tres pantallas, una sola tarea raíz (#11).
-- Inconsistencia entre pestañas `[visto]`: Etiquetas y Tallas tienen buscador, chips de grupo y conteos; Colores, Tejidos y Patrones no. Acciones por tarjeta: Etiquetas (enlaces de 10 px), Colores («Editar» + doble clic para desactivar), Tejidos y Patrones (botón «Desactivar» a todo el ancho en cada tarjeta, 17 y 7 veces).
-- (b) Marca y tono: el «!» de «Nuevo» dice «Patrón Bershka: llegadas frecuentes como gancho de retorno» `[visto, imagen 2]`. Es una nota de investigación de mercado; no es para la boutique. Viene de la siembra `[código 20260917230100:61]`; «Top ventas» cita a «Zara… RFID» (`:67`).
-- (c) Nielsen: el mismo botón «Configurar campaña» aparece en «Pieza única», «Hecho a mano» y «Reedición» `[visto]`, que no son campañas (visibilidad y control: la pantalla ofrece una acción que no aplica).
-- Sidebar `[visto, imágenes 6 y 8]`: «Colaboradores» aparece resaltado a la vez que «Atributos». `[no verificable]`: probablemente el mouse encima; sin captura del estado de reposo no lo cuento como defecto.
+### Estética (7,5)
+- `[visto]` Encabezado corto, seis píldoras (Etiquetas, Colores, Tallas, Tejidos, Patrones, Temporadas), un texto de ayuda por pestaña, filtros en píldoras, buscador y «+ Agregar X» a la derecha. Las tarjetas de Colores (con muestra, código Pantone) y Patrones (con dibujo) son de lo mejor del ERP.
+- `[visto]` **A 1024 px de ancho la página desborda 10 px en horizontal** y el pie de las tarjetas de Etiquetas corta «CONFIGURAR CAMPAÑA» (contenedor de 657 px con contenido de 707 px; tarjeta de 120 px con contenido de 155 px). En escritorio grande no se ve; en tablet horizontal sí.
+- `[producción-agente]` Las notas que salen en el «!» de las etiquetas usan lenguaje de desarrollo («Patrón Bershka», «`lib/inteligencia.ts`»): una colaboradora no debería leerlo.
+- Rojo dentro de norma `[visto]`. Cabecera simple de Catálogo, no `<EncabezadoPagina>`: **sin decidir** por CLAUDE.md, es pregunta a Felipe.
 
-**Lógica de negocio.**
-- Regla violada 1: la promesa «Cualquiera con sesión propone un valor nuevo y lo puede usar de inmediato» (`page.tsx:128-129`, `EtiquetasLista.tsx:266-267`, `TallasLista.tsx:141-142`) es falsa para talla, tejido, patrón y etiqueta: el alta y la edición de producto los filtran por `estado='aprobado'` `[código alta-producto-datos.ts:67-74, catalogo-v2.ts:494-502]`. Solo el color pendiente sí se ofrece (`alta-producto-datos.ts:59`). Ninguna D-nn cubre el punto.
-- Regla violada 2 (principio 4, «una sola fuente de verdad»): «Top ventas» y «Últimas unidades» dicen medirse solas y son manuales. Además `[producción C1]` con solo `prendas_a_mano = 0`, el conteo «Sin prendas etiquetadas» de la tarjeta **tampoco** mira las categorías: una campaña por categoría cubriría decenas de prendas y la tarjeta diría «Sin prendas etiquetadas» `[código EtiquetasLista.tsx:162-166, page.tsx:109-112]`.
-- Vigencia: `[producción C1]` 12 campañas con fechas de 2026 (p. ej. Día de la Madre 2026-04-26 → 05-10, Fiestas Patrias 07-14 → 07-29). Siete ya pasaron y siguen `activo=true` con chip «Fuera de temporada». Después del 25-dic-2026 quedan todas caducas; no hay «repetir cada año». «CyberWow» no tiene fechas.
-- Vocabularios que se pisan `[producción C3]` `[inferido]`: «Animal print» y «Estampado» existen como **color** y como **patrón** (0 usos como color); hay «Multicolor» como color; hay tallas «Estándar» (15 usos) y «Única» (0 usos); un color se llama «Arena (retirado)» (el estado escrito en el nombre, cuando ya existe `activo`).
-- Uso `[producción C3]`: **los 17 tejidos y los 7 patrones tienen 0 productos**; 39 productos activos, ninguno con tejido ni patrón (el BACKLOG ya lo sabe: «completar tejido y patrón de los 38 productos activos»). Tallas: solo S, M, L, Estándar y 28/30/32 tienen uso; XS, XL, XXL, 6–9, 26, 34–42 y Única, 0.
-- Cualquiera propone: hoy `[producción C2]` nadie lo ha hecho (cero pendientes). El flujo de aprobación existe y jamás se ha ejercitado.
+### Lógica de negocio (6)
+- Regla violada #1: CLAUDE.md principio 2 (cero estados inconsistentes): un descuento sin fechas es permanente y sin dueño, un estado que el esquema debería impedir; ninguna decisión escrita cubre esto (ADR-0108 dejó «sin tope» a propósito, pero no «sin fechas, sin confirmar y sin rastro»).
+- Regla violada #2: el error es del diseño, no de la persona (criterio global, exigencia 12): la nota de «Top ventas» promete lo que el sistema no hace, y el copy de «de inmediato» promete lo que la base contradice.
+- **Solape de campañas:** gana el mayor porcentaje, no se suman, y la pantalla no avisa cuando dos se pisan (`fn_campanas_por_variante`, `20260918170000:75`).
+- **Aprobar puede ser autoaprobarse:** el trigger no lo impide (`[código agente]`); con pocos líderes es aceptable, pero queda sin traza.
+- **Desactivar una campaña o cambiar su % con la caja abierta** hace que esa caja reciba `venta_campana_no_vigente` hasta recargar: el cajero ve un rechazo sin explicación.
 
-**Arquitectura.**
-- Estados imposibles: `rechazado_no_activo`, `descuento_solo_aprobada` y `vigencia_coherente` los impiden en la base `[producción A2]`. Los triggers deciden `pendiente` o `aprobado` por `fn_es_lider()` en el insert, no la API `[código 20260917230000:62-77]`.
-- Transacción: `actualizar_campana_etiqueta` hace delete + insert de `etiqueta_categorias` dentro de la función `[código 20260918160000:97-142]`: es atómico. Bien.
-- Concurrencia: dos Líderes que editan la misma campaña: gana el último; sin control de versión ni registro de quién `[inferido]`. Hoy hay un solo admin `[código 01-INVARIANTES.md:175, puede estar viejo]`, así que el riesgo real es bajo.
-- Caída externa: no aplica; no hay SUNAT ni Culqi aquí. Se degrada así: si `campanas_vigentes` falla, la caja vende sin descuento de campaña y no pierde la venta (`registrar_venta` solo exige lo vigente hoy, con 3 días de tolerancia offline, ADR-0108). Lo que **sí** puede pasar es un despliegue que llegue antes que el SQL: la pantalla lo cubre pidiendo las tablas de etiquetas solo en esa pestaña (`page.tsx:31-33`).
-- Volumen `[producción B1]`: 35 colores, 25 tallas, 17 tejidos, 7 patrones, 24 etiquetas → los listados no son un problema hoy ni a tres años. **Riesgo real:** `page.tsx:47-49` pide todas las variantes activas con costo (127 hoy). El módulo 02 habla de ~900 prendas × tallas ≈ 2 700 variantes; PostgREST corta en 1 000 filas por defecto `[no verificable: es el valor de fábrica de Supabase, no lo vi en la configuración]`; el aviso «por debajo del costo» contaría de menos sin error.
-- Auditoría: solo `propuesto_por`, `aprobado_por`, `aprobado_en`. Cambiar hex, nombre o `descuento_pct` no deja historial; `historial_producto_cambios` solo cubre productos y variantes `[código 20260915204541:40-108]`. Las filas sembradas tienen esos campos en NULL.
-- Tests: hay de las reglas puras (`etiqueta-campana.test.ts`, `etiqueta-vigencia.test.ts`, `tallas.test.ts`…); **no hay** de las 5 rutas API ni de los RPC. El bug de #4 pasó por ahí.
-- Datos personales: ninguno (vocabularios). Lente de dinero: el descuento de campaña.
+### Arquitectura (6,5)
+- **Transacción:** cada alta, aprobación y campaña es una llamada a su ruta `/api` o RPC; guardar campaña es `actualizar_campana_etiqueta` (una transacción). No hay escritura a medias.
+- **Concurrencia:** «en uso» al desactivar es un chequeo previo, no atómico (el comentario de la siembra `20260917230100:75` lo atribuye al trigger, erróneamente): dos personas, una desactiva un color mientras la otra lo usa en una prenda nueva → puede quedar un color inactivo en uso; el disparador de estado no lo evita. `[no verificable]` con carga real.
+- **Volumen:** 77 colores, 30 tallas, 26 tejidos, 10 patrones, 24 etiquetas, 9 temporadas `[producción-agente]`: la pantalla carga todo en servidor sin problema; un cambio de pestaña es una recarga de servidor (`AtributosHub.tsx:149-160`).
+- **Caída externa:** ninguna dependencia externa. Se degrada así: si una lectura falla sale la pantalla de error general; no se pierde ningún dato.
+- **Auditoría:** ninguna tabla de historial para etiquetas ni para el vocabulario; sí existen `roles_historial`, `configuracion_historial` y `colaboradores_historial` `[producción-agente]`: el patrón está.
+- **Duplicación:** `TejidosLista` y `PatronesLista` son casi idénticas (439 líneas cada una, ~126 de diferencia); los `try/fetch/catch` de las seis son casi el mismo bloque.
+- **Candados solo en API o pantalla:** código de color de 3 letras y hex obligatorios (la tabla acepta NULL); nombre no vacío y sin largo máximo (Marcas sí tiene `btrim <> ''`); fechas de una campaña con descuento; el trigger no bloquea «aprobado → pendiente» por `UPDATE` directo.
 
-**Funciones.**
-- Existen y funcionan (`[código]`, salvo lo que marca #4): agregar en las 5 pestañas, aprobar/rechazar/desactivar/reactivar, editar color, etiquetar prendas en lote, configurar campaña, buscador y filtros de Etiquetas y Tallas.
-- Fantasma: (1) **Aprobar etiqueta** sin campo de comentario (falla); (2) `sedes_permitidas` de etiquetas sin ninguna UI (`EtiquetasLista.tsx:23-28`), y cuatro etiquetas «Para liquidar — sede» desactivadas por eso `[visto, imagen 3]`; (3) `DESCUENTO_YA_SE_APLICA = true`, un interruptor fijo (`EtiquetasLista.tsx:89`) que apaga un aviso ya inútil; (4) `imagen_muestra_url` en tejidos y patrones `[producción A1]` sin UI que la lea ni la suba; (5) «Top ventas» y «Últimas unidades» como promesa de medición.
-- Faltan: editar nombre, nota o estilo de una etiqueta, talla, tejido o patrón (solo Colores tiene «Editar»; una etiqueta nueva nace `neutral` y no hay cómo cambiarlo) · ver cuántas prendas usan cada valor · alcance real de una campaña · renovar campañas al año siguiente · fusionar duplicados.
-- Sobran: el botón «Configurar campaña» en etiquetas que no son campaña (decisión de #6), los dos «!» globales que repiten lo mismo (título y texto fijo por pestaña).
+### Funciones (6)
+- **Existen y funcionan:** proponer/aprobar/rechazar/desactivar/reactivar en las seis; buscador; segmentación por píldoras; «Prendas» con vista previa y tope de 50 cambios (ADR-0112); vigencia en chip; «Imprimir etiquetas de precio» / «Volver al precio normal»; cuatro vistas de Temporadas.
+- **Engañosas:** «Configurar campaña» sale en todas las etiquetas, incluida «Pieza única» y «Hecho a mano»; «Desactivar» dice «Deja de aparecer al etiquetar» y no que la campaña **deja de cobrarse** en Vender; la tarjeta dice «Sin prendas etiquetadas» aunque una campaña cubra categorías (`EtiquetasLista.tsx:148-152`).
+- **Faltan:** editar nombre, nota y estilo de una etiqueta (las nuevas nacen «General»); editar en Tallas, Tejidos y Patrones (la API de tejidos/patrones ya acepta `nombre`); ver cuántas prendas usan un color o una talla; confirmar antes de guardar un descuento; bandeja única de pendientes.
+- **Sobran:** código muerto: `DESCUENTO_YA_SE_APLICA = true` (`EtiquetasLista.tsx:91`), comentarios que ya no describen la pantalla (`ColoresLista.tsx:166, 264`, «aún sin construir» en `:619`).
 
-**Utilidad (persona sin contexto).** Escenario 1, colaboradora nueva, un martes de tienda: quiere marcar unas blusas como «Oferta verano». Abre Atributos → Etiquetas → «Agregar etiqueta». El modal dice «Queda disponible de inmediato para cualquier variante» `[visto, imagen 4]`. Guarda y la etiqueta no aparece al editar el producto (queda `pendiente`). No hay mensaje que diga «espera a que te la apruebe la Líder». Duda, la crea otra vez con otro nombre; ahora hay dos (la clave única solo frena mayúsculas). Escenario 2, Líder: ve «Pendiente», presiona Aprobar y recibe «exige un comentario breve» sin campo dónde escribirlo. Escenario 3, Líder preparando Black Friday: configura 30 % por categoría, vuelve a la lista y la tarjeta dice «Sin prendas etiquetadas»: cree que no funcionó. Los tres fallos son de diseño, no de capacitación.
+### Utilidad — persona sin contexto (6)
+Escenario real: *llega una temporada nueva con un color y un tejido que no existen.*
+1. Colores ▸ «+ Agregar color»: la colaboradora debe elegir un hex y un código de 3 letras. Un integrante lo deja **pendiente**, pero el alta sí lo ofrece (Color se filtra por `activo`).
+2. Tejidos ▸ «+ Agregar tejido»: el modal dice «Queda disponible de inmediato» y es falso: está pendiente y el alta lo filtra por aprobado.
+3. **Duda 1:** tras aprobarlo, tampoco aparece en su categoría hasta habilitarlo en Categorías; nada en Atributos lo dice, la tarjeta solo dice «Sin prendas».
+4. **Duda 2:** si se equivoca al escribir el nombre de un tejido, **no puede renombrarlo**.
+5. **Duda 3:** si un color pendiente ya se usó en una prenda, no se puede rechazar ni desactivar; queda aprobar y corregir la prenda.
+6. La líder aprueba: comentario obligatorio en Tallas y Etiquetas, un clic en Colores, Tejidos y Patrones.
+7. Temporadas: asignar las prendas nuevas en «Por completar» (hasta 500) o fijar la temporada por categoría.
+8. Campaña de temporada: el modal deja guardar % sin fechas y sin confirmar alcance.
 
-**Conexión con el ERP.** Ver §6.
+### Conexión con el ERP (7,5) — ver §6.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 7 | Indirecto alto: color y talla son la base de cada reporte; directo bajo, la pantalla no ayuda a decidir |
-| Dinero y stock que toca | ×1 | 5 | Sin campañas configuradas hoy, pero el descuento sale de aquí y llega a caja; 0 stock |
-| Frecuencia y personas que la usan | ×1 | 3 | Vocabularios casi estáticos: cero propuestas registradas, un Líder |
-| Qué se detiene si falla | ×1 | 7 | Sin colores ni tallas aprobados no se puede dar de alta un producto |
+| Gestión (directo + indirecto) | ×2 | 6 | Raíz de los datos de toda prenda y decide campañas; pero hoy hay 4 prendas etiquetadas y 2 campañas sin alcance |
+| Dinero y stock que toca | ×1 | 6 | El descuento de una campaña llega a caja; no mueve stock |
+| Frecuencia y personas que la usan | ×1 | 4 | Pocas veces por semana; más al abrir temporada o cargar el censo |
+| Qué se detiene si falla | ×1 | 6 | Sin valores aprobados (talla, tejido, patrón) no se da de alta una prenda; color sí |
 
-Relevancia = (2·7 + 5 + 3 + 7) / 5 = **5,8** → Comodidad.
+Relevancia = (2·6 + 6 + 4 + 6) / 5 = **5,6** — Comodidad.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** el alta de producto y el censo proponen valores nuevos (`ProponerValor.tsx`, `lib/alta-producto-ejes.ts:39`); las siembras vienen de migraciones (`20260917230100`, `20260918140000_tejidos_seed`, `20260918154730_colores_audit…`).
-- **Aguas abajo:** `variantes.color_codigo` y `talla_id`, `productos.tejido_id` y `patron_id`, `variante_etiquetas`, `categoria_tallas/tejidos/patrones`; 19 archivos leen colores y 20 leen tallas `[código, mapa]`. Y **el único camino a dinero real**: `campanas_vigentes()` → `PuntoDeVenta` → `registrar_venta` `[código vender/page.tsx:57, 20260918170000:137-264]`. No encontré uso de etiquetas en tienda online, precios base ni inventario `[no verificable: no busqué en integraciones externas]`.
-- **Pájaro dueño y vecinos:** LORO (catálogo y vocabulario, módulo 02) según `docs/datos/modulos/02-catalogo-y-vocabulario.md`; vecinos: Vender (campañas), Nuevo producto y Editar producto, Categorías (`categoria_tallas`, `categoria_tejidos`, `categoria_patrones`), censo. No consulté `AVIARIO.md`.
-- **Externos:** ninguno. Si SUNAT o Nubefact caen, esta pantalla no se entera; el comprobante guarda el descuento ya aplicado a cada línea.
+- **Aguas arriba:** Categorías (habilita tallas, tejidos y patrones por categoría); Nuevo producto y Censo (proponen valores «al vuelo»).
+- **Aguas abajo:** Nuevo producto y Editar (`alta-producto-datos.ts`, `[id]/editar/page.tsx`); temporada por color en la ficha (`catalogo-v2.ts:600-660`); Vender (`vender/page.tsx:68`, campañas; `descuentoDeCampana` redondea al .90, ADR-0182); Etiquetas de precio (`lib/etiquetas-precio.ts`, misma regla de la caja); Conteo y Productos (colores); Frescura (temporadas, `lib/frescura.ts:68`); historial de producto (ids de color y talla). Buscar-prenda **no** usa los sinónimos de color.
+- **Pájaro dueño y vecinos:** 02 Loro (catálogo). Vecinos: Ventas (campañas) y Frescura (temporadas).
+- **Externos, y qué pasa si caen:** ninguno. Se degrada así: nada externo de qué depender; si Supabase no responde la pantalla no carga y no se pierde ningún dato. La caja, en cambio, puede rechazar ventas con campaña recién cambiada hasta recargar.
+- **¿Renombrar o desactivar rompe algo?** Desactivar un color se bloquea con variantes activas; renombrar cambia el nombre en todas las pantallas sin reescribir ventas; renombrar una talla por API no recalcula los códigos ya asignados (`variantes.codigo` se calcula una vez).
 
 ## 7 · Las 12 tareas, por importancia
-Orden: primero lo que toca dinero y tiene fecha (Black Friday, 2026-11-09), después el flujo de aprobación, después el rumbo de Etiquetas, al final lo cosmético.
 
-### #1 · Corregir — Que «Prendas etiquetadas» y el alcance de una campaña digan la verdad
-- **Dónde:** `page.tsx:47-52,109-112` y `EtiquetasLista.tsx:162-166`; nueva RPC de solo lectura `resumen_alcance_etiquetas()` (prefijo `resumen_`, así el loader no bloquea, ver `espera-reglas.ts`) que cuenta, por etiqueta, variantes manuales ∪ variantes de las categorías cubiertas.
-- **Por qué en este puesto:** es lo que la Líder mira al armar Black Friday. Hoy una campaña por categoría aparece como «Sin prendas etiquetadas». Además `page.tsx:47-49` trae toda `variantes` con costo y se topa con el límite de 1 000 filas hacia las ~2 700 variantes previstas (el aviso «por debajo del costo» contaría de menos sin error). Mover el conteo a la base arregla las dos cosas.
-- **Cómo lo verificas tú:** en Etiquetas, configura una campaña de prueba con una categoría que tenga productos; la tarjeta debe decir «Alcanza N prendas». Con SQL: `select count(*) from retail.variantes v join retail.productos p on p.id=v.producto_id where p.categoria_id = '<id>' and v.activo` debe dar el mismo N.
-- **Esfuerzo / dependencias:** M · migración nueva; cambio de esquema en producción → confirma Felipe.
+### #1 · Reconstruir — Freno humano y alcance real antes de guardar un descuento de campaña
+- **Dónde:** `EtiquetasLista.tsx:652-694` (confirmación con «N % a M prendas de K categorías»; exigir fechas; avisar 100 % y bajo costo); `actualizar_campana_etiqueta` (devolver el alcance); `CHECK` nuevo `etiquetas_descuento_con_fechas` en la tabla.
+- **Por qué en este puesto:** es dinero en caja. Y hoy mismo: «Aniversario CAYLA» empieza en 2 días y «Para liquidar» vence en 2, y ninguna llega a una sola prenda; nadie lo ve porque la tarjeta dice «vigente».
+- **Cómo lo verificas tú:** al guardar «Aniversario CAYLA» el modal dice «Llegará a 0 prendas» y no deja confirmar; guardar un % sin fechas falla con mensaje claro; un 100 % pide una segunda confirmación.
+- **Esfuerzo / dependencias:** M · migración con `retail.` (las dos filas actuales ya tienen fechas: el `CHECK` no rompe nada) y **confirmación de Felipe antes de pegarla**.
+- **DECIDÍ:** confirmar en pantalla, exigir fechas en la tabla y que la RPC devuelva el alcance. **DESCARTÉ:** imponer un tope de porcentaje, porque ADR-0108 lo dejó sin tope a propósito (decisión de Felipe) y un tope rígido frenaría una liquidación real. **SE ROMPE SI:** se programa una campaña «Todo el año» sin vencimiento a propósito (ej. «Colaboradores»): habrá que permitirla con una fecha lejana explícita, no con NULL.
 
-### #2 · Corregir — Freno humano antes de guardar un descuento de campaña
-- **Dónde:** `CampanaModal` `EtiquetasLista.tsx:617-784` (`guardar` :658).
-- **Por qué en este puesto:** hoy ningún paso pide confirmar un 50 % o un 100 %, y el descuento entra en caja solo (ADR-0108). No se pone un límite (Felipe lo decidió: se puede vender bajo costo en liquidación); se pone una **confirmación**: «Esto pondrá 60 % a N prendas de 3 categorías del 09-nov al 30-nov. ¿Confirmas?». Sin esto, un error de tecleo llega al mostrador.
-- **Cómo lo verificas tú:** en el modal escribe 50, presiona guardar → aparece el resumen con el N de #1 y un botón «Confirmar»; escribe 10 → guarda directo.
-- **Esfuerzo / dependencias:** S · no antes de la #1 (usa su conteo).
+### #2 · Corregir — Que las etiquetas de rotación digan la verdad
+- **Dónde:** `etiquetas.notas` de «Top ventas», «Nuevo», «Últimas unidades», «Para liquidar» y las artesanales (dato); `kit.tsx:181` (el «!»); `EtiquetasLista.tsx:148-152` («Sin prendas etiquetadas»).
+- **Por qué en este puesto:** las notas afirman una medición inexistente, hay 4 prendas «Top ventas» a mano, y la jerga interna se ve en pantalla. Bajo daño hoy, alto en confianza cuando alguien decida por esa etiqueta.
+- **Cómo lo verificas tú:** el «!» de «Top ventas» dice «Por ahora se marca a mano»; ninguna nota nombra un archivo, un trigger ni una marca ajena.
+- **Esfuerzo / dependencias:** S · ninguna (`UPDATE` de 7 filas, no de esquema).
 
-### #3 · Mejorar — Dejar rastro de quién cambió un descuento o una vigencia
-- **Dónde:** trigger nuevo sobre `retail.etiquetas` (columnas `descuento_pct`, `vigente_desde`, `vigente_hasta`, `activo`) hacia una tabla `etiquetas_historial` append-only; modelo idéntico a `historial_producto_cambios` (`20260915204541:40-108`).
-- **Por qué en este puesto:** el descuento mueve dinero y hoy no queda quién lo tocó ni el valor anterior. Con un solo admin el riesgo es bajo; con un segundo Líder (D-14) sube. No borres nunca: la tabla solo recibe inserciones.
-- **Cómo lo verificas tú:** cambia el % de una etiqueta de prueba y consulta `select * from retail.etiquetas_historial order by created_at desc limit 3`; debe verse el valor viejo, el nuevo, quién y cuándo.
-- **Esfuerzo / dependencias:** M · migración; confirma Felipe (esquema en producción).
-
-### #4 · Corregir — «Aprobar» y «Reactivar» una etiqueta exigen un comentario que la pantalla no pide
-- **Dónde:** `EtiquetasLista.tsx:278-298` (`aprobar`) y `:324-344` (`reactivar`); modelo de referencia `TallasLista.tsx:405-430`; trigger `20260917230000:92-95`; alta `etiquetas/route.ts:21`.
-- **Por qué en este puesto:** cierto por código, no confirmado en producción (falta D3). Cero propuestas hoy (`[producción C2]`), por eso no ha dolido; en cuanto una colaboradora proponga una etiqueta, la Líder no podrá aprobarla. Se corrige copiando Tallas (modal de comentario al aprobar) y, mejor, pidiendo «¿para qué sirve?» al proponer.
-- **Cómo lo verificas tú:** entra como Integrante, propón «Prueba»; entra como Líder, presiona Aprobar: debe abrir el modal, pedir el comentario y dejar la etiqueta `aprobada`. Sin el arreglo hoy debe salir el error «Aprobar una etiqueta exige un comentario breve».
+### #3 · Corregir — «Lo puede usar de inmediato» y el puente a Categorías
+- **Dónde:** `page.tsx:234-236`, `TallasLista.tsx:325` y `:141-142`, `TejidosLista.tsx:337`, `PatronesLista.tsx`, `EtiquetasLista.tsx:506`.
+- **Por qué en este puesto:** el mismo texto falso en cinco lugares es una sola tarea raíz; hace que la colaboradora crea que un tejido «ya sirve» y el alta lo rechace. Es el mismo defecto que aparece como «Fuera de esta pantalla» en Categorías.
+- **Cómo lo verificas tú:** proponer un tejido dice «Queda pendiente hasta que un líder lo apruebe; después habilítalo en Categorías» con un enlace a esa categoría.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #5 · Corregir — Decir la verdad sobre lo que pasa con una propuesta
-- **Dónde:** `page.tsx:128-129`, `EtiquetasLista.tsx:266-267`, `TallasLista.tsx:141-142`, y el modal «Nueva etiqueta» `[visto, imagen 4]`.
-- **Por qué en este puesto:** el texto actual provoca duplicados (escenario 1 de §4). Cambia a «Tu propuesta queda pendiente hasta que un Líder la apruebe; mientras tanto no aparece al crear productos». Alternativa descartada: hacer que el pendiente se ofrezca de verdad; abriría el vocabulario cerrado que ADR-0024 protege.
-- **Cómo lo verificas tú:** como Integrante, guarda una etiqueta: el aviso dice que está pendiente y la tarjeta muestra «Pendiente».
-- **Esfuerzo / dependencias:** S · ninguna.
+### #4 · Reconstruir — Rastro de quién cambia el vocabulario y los descuentos
+- **Dónde:** una tabla de historial del catálogo escrita por las RPC y rutas (`etiquetas`, y las demás), igual al patrón de `configuracion_historial`; `actualizar_campana_etiqueta`.
+- **Por qué en este puesto:** el descuento es la única cosa de esta pantalla que cambia precios sin que se sepa quién, y la misma falta aparece en Marcas (#4 de `productos-marcas.md`): es una **raíz compartida**, no dos tareas.
+- **Cómo lo verificas tú:** cambiar el % de «Aniversario CAYLA» y ver en el historial «de 10 a 15 %, [responsable], hoy 14:05».
+- **Esfuerzo / dependencias:** M · **no antes de decidir el diseño único en `catalogo-plan-de-ataque.md`** (una tabla genérica o una por dominio).
+- **DECIDÍ:** una sola tabla de historial de vocabulario para todo Catálogo. **DESCARTÉ:** una tabla por pantalla (marcas, etiquetas, categorías…), porque son ocho tablas con la misma forma y dos formas de leerlas. **SE ROMPE SI:** se guarda el «antes» y «después» como texto libre y luego alguien quiere filtrar por porcentaje: guardar campo, valor anterior y valor nuevo por separado.
 
-### #6 · Replantear — Etiquetas de rotación calculadas; etiquetas de campaña manuales
-- **Dónde:** `etiquetas.estilo` (`neutral/urgencia/positivo/campana`), `20260917230100`, `lib/inteligencia.ts`, `variante_etiquetas`, `EtiquetasLista.tsx`.
-- **Por qué en este puesto:** es una decisión de Felipe y condiciona la #7 y #12 (ver §8). `DECIDÍ:` proponer, no imponer, separar tres familias: rotación calculada (Nuevo, Últimas unidades), campaña manual (las 12 de temporada y Para liquidar) y atributo de producto (Hecho a mano, Pieza única, Reedición). `DESCARTÉ:` seguir con todo manual, porque cuesta 127 variantes etiquetadas a mano hoy y un olvido por cada ingreso mañana. `SE ROMPE SI:` se calcula «Top ventas» con las 9 ventas que tiene producción hoy (BACKLOG, 2026-09-19): saldría ruido, no señal.
-- **Cómo lo verificas tú:** decisión de Felipe en chat; el entregable es un ADR. Cuando se implemente, «Nuevo» debe aparecer solo en las prendas ingresadas en los últimos N días, sin que nadie las marque.
-- **Esfuerzo / dependencias:** L · decide Felipe; no antes de las #1–#4.
+### #5 · Corregir — Desactivar una campaña con la caja abierta, y la etiqueta que no se deja quitar
+- **Dónde:** `EtiquetasLista.tsx:379-394` (el texto de «Desactivar»); `fn_campanas_por_variante` (exige `activo`); `PrendasDeEtiquetaModal.tsx:90,106` (solo carga variantes activas).
+- **Por qué en este puesto:** en hora pico, apagar una campaña hace que la caja rechace ventas con `venta_campana_no_vigente` hasta recargar, y nadie se lo dijo a quien la apagó; y una etiqueta con filas en variantes inactivas no se puede desactivar ni quitar desde «Prendas» (`[no confirmado de punta a punta]`).
+- **Cómo lo verificas tú:** «Desactivar» en una campaña con prendas dice «Deja de cobrarse en Vender; las cajas abiertas se actualizan al recargar»; una etiqueta con variantes inactivas ofrece quitarlas.
+- **Esfuerzo / dependencias:** S–M · ninguna.
 
-### #7 · Corregir — Reescribir las notas «!» en el idioma de CAYLA
-- **Dónde:** `retail.etiquetas.notas` de las 24 filas (siembra `20260917230100:59-67`); migración nueva de `update`, sin borrar nada.
-- **Por qué en este puesto:** el texto se muestra a toda la boutique y cita «Patrón Bershka» y «Zara… RFID». Para «Top ventas» y «Últimas unidades» además promete medición que no existe. Una nota por etiqueta: qué es, cuándo se usa, quién la pone.
-- **Cómo lo verificas tú:** pasa el mouse sobre el «!» de «Nuevo»: no debe nombrar a ninguna marca ajena.
-- **Esfuerzo / dependencias:** S · no antes de decidir la #6 (la nota debe decir si es automática o manual).
+### #6 · Eliminar/fusionar — Un solo comportamiento entre las seis pestañas
+- **Dónde:** `ColoresLista.tsx`, `TallasLista.tsx`, `TejidosLista.tsx`, `PatronesLista.tsx`, `EtiquetasLista.tsx`, `kit.tsx`; `atributos-buscar.ts` y `patron-visual` (dos normalizadores).
+- **Por qué en este puesto:** cinco decisiones iguales tomadas de cinco formas (aprobar, desactivar, editar, estado vacío, notas visibles): una está mal aunque todas «funcionen» (Brooks). Con el censo, las cinco se usarán más.
+- **Cómo lo verificas tú:** en cualquier pestaña, aprobar pide el mismo comentario, desactivar está en el mismo sitio, «Editar» existe y el rechazo deja ver su motivo.
+- **Esfuerzo / dependencias:** L · después de la #3 (copys) y de decidir si aprobar exige comentario en todas o solo donde el trigger lo pide.
 
-### #8 · Mejorar — Renovar una campaña para el año siguiente
-- **Dónde:** `CampanaModal` (`EtiquetasLista.tsx:617-784`), `lib/etiqueta-vigencia.ts`.
-- **Por qué en este puesto:** `[producción C1]` las 12 campañas de temporada tienen fecha de 2026; siete ya pasaron. En enero, la Líder edita 12 modales a mano o las olvida y el Día de la Madre de 2027 no tiene campaña. Un botón «Renovar para 2027» que sume 12 meses a las dos fechas (la restricción `vigencia_coherente` sigue mandando).
-- **Cómo lo verificas tú:** en «Día de la Madre» (2026-04-26 → 05-10), presiona Renovar: debe leer 2027-04-26 → 05-10; el chip pasa de «Fuera de temporada» a «En N días».
-- **Esfuerzo / dependencias:** S · ninguna.
+### #7 · Mejorar — Una bandeja única «Por aprobar»
+- **Dónde:** `AtributosHub.tsx` (contador por pestaña); `lib/useColaProductos.ts` (la cola de productos por revisar ya existe).
+- **Por qué en este puesto:** producción hoy no tiene nada pendiente `[producción-agente]`, pero el censo creará colores, tallas y productos «al vuelo»; la líder tendrá que abrir cada pestaña y la ficha de cada producto para encontrarlos `[inferido]`.
+- **Cómo lo verificas tú:** tras proponer un color y una talla, un contador «2 por aprobar» aparece en el menú y lleva a una lista única.
+- **Esfuerzo / dependencias:** M · después de la #6.
 
-### #9 · Eliminar/fusionar/conectar — Duplicados entre vocabularios
-- **Dónde:** `colores` («Animal print», «Estampado», «Multicolor», «Arena (retirado)»), `patrones` (los mismos dos nombres), `tallas` («Estándar» 15 usos y «Única» 0).
-- **Por qué en este puesto:** dos formas de decir lo mismo ensucian los reportes por color, patrón y talla (`colores.tipo = 'estampado'` ya existe). Regla: nada se borra; se desactiva el sobrante (`activo=false`) y, si hace falta, se reasignan las variantes con SQL revisado por Felipe.
-- **Cómo lo verificas tú:** `select valor, count(*) from retail.tallas t left join retail.variantes v on v.talla_id=t.id where t.activo group by 1` debe listar una sola de «Estándar»/«Única».
-- **Esfuerzo / dependencias:** M · confirma Felipe (datos de producción); conviene antes de la #10.
+### #8 · Mejorar — Candados de nombre y poder renombrar
+- **Dónde:** `CHECK (btrim(nombre) <> '' and length(nombre) <= 60)` en las cinco tablas (Marcas ya lo tiene); `TejidosLista`, `PatronesLista`, `TallasLista`, `EtiquetasLista` (renombrar; la API de tejidos y patrones ya acepta `nombre`).
+- **Por qué en este puesto:** hoy un nombre vacío o de 300 letras pasa la base, y una errata en un tejido no tiene arreglo.
+- **Cómo lo verificas tú:** crear un tejido con solo espacios falla; renombrar «Algodon» a «Algodón» funciona y el nombre cambia en todas las prendas.
+- **Esfuerzo / dependencias:** M · una migración de varias tablas con `CHECK`; cuidado con los valores actuales (comprobar que ninguno viola antes de pegar).
 
-### #10 · Mejorar — Las cinco pestañas con el mismo vocabulario de uso, y «cuántas prendas lo usan»
-- **Dónde:** `AtributosHub.tsx`, `ColoresLista.tsx`, `TejidosLista.tsx`, `PatronesLista.tsx` (sin buscador ni filtros), `page.tsx:18` (orden de pestañas: `etiquetas` es la primera, aunque colores y tallas son lo que usan las 127 variantes).
-- **Por qué en este puesto:** hoy hay tres patrones de acción por tarjeta, y nadie ve que 17 tejidos y 7 patrones tienen 0 uso `[producción C3]`. Un conteo «N prendas» por tarjeta (una consulta agregada, mismo estilo que #1) le dice a la Líder qué sobra; con «Desactivar» solo tras un menú, no a todo el ancho en cada tarjeta.
-- **Cómo lo verificas tú:** en Tejidos, cada tarjeta muestra «0 productos» y el buscador filtra «alg» → Algodón y Algodón pima.
-- **Esfuerzo / dependencias:** M · no antes de la #9.
+### #9 · Replantear — ¿Etiquetas calculadas (rotación) y etiquetas manuales (campaña) en una misma pantalla?
+- **Dónde:** las 24 etiquetas (`etiquetas`, `variante_etiquetas`, `etiqueta_categorias`) y `kit.tsx`.
+- **Por qué en este puesto:** la mitad de las etiquetas promete una medición que nadie construyó, y hay 4 prendas etiquetadas de 24; no es un defecto, es una decisión de rumbo (ya estaba como #6 del análisis del 21-sep, sin resolver).
+- **Cómo lo verificas tú:** — (pide una decisión).
+- **Esfuerzo / dependencias:** M–L según la respuesta · después de la #2.
+- **DECIDÍ:** proponerle a Felipe separar dos familias: **campañas** (manuales, con fechas y descuento) y **rotación** (calculadas por el sistema, sin que nadie las ponga). **DESCARTÉ:** dejarlo todo manual y quitar la promesa (la #2 ya lo hace de forma provisional), porque el valor de «Últimas unidades» o «Top ventas» es justamente que nadie decida a criterio. **SE ROMPE SI:** se calcula «Top ventas» con ventas de una sola tienda o de pocos días y se etiqueta una prenda por azar: con 3 tiendas y catálogo nuevo, las ventas no alcanzan para medir.
 
-### #11 · Corregir — Piso tipográfico y de contraste (tarea raíz en tres pantallas)
-- **Dónde:** `components/ui/Chip.tsx:52` (10 px), `EtiquetasLista.tsx:141,144,488,495,504`, `TallasLista.tsx:75,78,353`, `ColoresLista.tsx:329,441`, `TejidosLista.tsx:187,270`, `PatronesLista.tsx:187,270`, `AtributosHub.tsx:111`, `Ayuda.tsx:105` (20 px de alto), modales sin `alCerrarEnfocar` (`Modal.tsx:20-22`).
-- **Por qué en este puesto:** ADR-0012 fija el piso. La misma falla está en Categorías (`CategoriasLista.tsx:670`) y en Colaboradores (`:139`): **una** tarea raíz que se resuelve en `Chip` y en un token compartido, no pantalla por pantalla. Incluye: `role="tablist"` en las pestañas, `aria-expanded` en el «!», «Desactivar» visible sin hover.
-- **Cómo lo verificas tú:** inspecciona un chip «Pendiente»: `font-size` ≥ 11 px; el foco vuelve al botón que abrió el modal al cerrarlo.
-- **Esfuerzo / dependencias:** M · coordinar con la sesión de la línea 48 de `SESIONES-ACTIVAS.md`.
+### #10 · Corregir — Desborde a 1024 px y contraste
+- **Dónde:** `EtiquetasLista.tsx` (pie de tarjeta), contenedores de 657 px con contenido de 707 px; piso tipográfico de ADR-0012 (`docs/adr/0012-piso-de-contraste-y-esquinas-suaves.md`).
+- **Por qué en este puesto:** solo se ve en tablet horizontal; en escritorio no. Es la misma tarea raíz de piso tipográfico que en otras pantallas.
+- **Cómo lo verificas tú:** a 1024 px `documentElement.scrollWidth` es igual a `clientWidth` y «CONFIGURAR CAMPAÑA» se lee entero.
+- **Esfuerzo / dependencias:** S.
 
-### #12 · Eliminar/fusionar/conectar — Retirar lo dormido · *bajo valor / opcional*
-- **Dónde:** `etiquetas.sedes_permitidas` y las 4 etiquetas «Para liquidar — sede» desactivadas (`EtiquetasLista.tsx:23-28`), `DESCUENTO_YA_SE_APLICA` (`:89`), `imagen_muestra_url` de tejidos y patrones, «Galentine's Day» desactivada.
-- **Por qué en este puesto:** no daña nada; solo lee ruido. Se retira el código muerto (no las columnas: nunca se borra) y se deja una línea en el ADR de la #6.
-- **Cómo lo verificas tú:** `grep -rn "sedes_permitidas\|DESCUENTO_YA_SE_APLICA" apps/web` devuelve solo la migración.
-- **Esfuerzo / dependencias:** S · después de la #6.
+### #11 · Mejorar — Renovar una campaña de un año al siguiente *(bajo valor / opcional)*
+- **Dónde:** `EtiquetasLista.tsx:621` (modal de campaña); las 13 campañas de calendario (fechas de 2026 sin año visible).
+- **Por qué en este puesto:** después de Black Friday las fechas quedan del año pasado y hay que reescribirlas a mano; ahorra minutos una vez al año.
+- **Cómo lo verificas tú:** «Renovar para 2027» copia el % y las categorías con las fechas del año siguiente.
+- **Esfuerzo / dependencias:** S · después de la #1.
+
+### #12 · Eliminar/fusionar — Código muerto y duplicado · *bajo valor / opcional*
+- **Dónde:** `DESCUENTO_YA_SE_APLICA` (`EtiquetasLista.tsx:91`), comentarios viejos (`ColoresLista.tsx:166, 264`; `AtributosHub.tsx` encabezado), `page.tsx` (tipo de `estado` de color); `TejidosLista` ≈ `PatronesLista`.
+- **Por qué en este puesto:** no dañan datos; ahorran lectura a la próxima persona y evitan que un cambio en uno olvide al otro.
+- **Cómo lo verificas tú:** `TejidosLista` y `PatronesLista` comparten un solo componente; `grep DESCUENTO_YA_SE_APLICA` da 0.
+- **Esfuerzo / dependencias:** M · después de la #6.
 
 ## 8 · Estrategia alternativa
-Existe una que apoya mejor la gestión, y es la de la tarea #6. **Decide Felipe.**
-
-| | Hoy: todas manuales | Alternativa: tres familias |
-|---|---|---|
-| **Ganas** | Nada que construir; ya funciona el camino a caja | «Nuevo» y «Últimas unidades» dicen la verdad sin que nadie los mantenga; nadie etiqueta 127 variantes a mano; menos botones que no aplican |
-| **Pagas** | Etiquetas que nadie pone: 0 de 127 hoy; notas que prometen automatismo; cada ingreso pide una marca manual | Definir umbrales con Felipe (¿«Nuevo» = 30 días?, ¿«Últimas» = 3 unidades?), una función de lectura, y no calcular «Top ventas» hasta tener ventas suficientes |
+La de la #9. **Ganas:** las etiquetas dejan de mentir y la caja solo cobra descuento de campañas hechas por personas con fechas; lo calculado se hace bien una vez. **Pagas:** construir la medición (ventas por prenda y ventana de días) o vivir sin esas etiquetas. **No cambia** las seis pestañas ni el kit. Decide Felipe.
 
 ## 9 · Referentes de ERP y futuro
-Filtro «¿le sirve a 3 tiendas y 1 taller hoy?»:
-- **Odoo (etiquetas de producto):** viene de memoria, no verificado. Una etiqueta se aplica al producto, no se calcula. CAYLA ya es más fina: descuento y vigencia en la propia etiqueta.
-- **Shopify (colecciones automáticas por regla):** viene de memoria, no verificado. Inspira la alternativa de #6 (regla → etiqueta), sin copiarla.
-- **Futuro, no cuenta entre las 12:** sedes en las etiquetas de campaña (`sedes_permitidas`) cuando haya promociones distintas por tienda; tallas por rango de calzado (hoy «numeración» mezcla 6–9, 26 y 28–42 en un grupo `[código lib/tallas.ts:182-215]`).
+- *(De memoria, no verificado)* Shopify y Odoo ligan un descuento a una regla con fechas y alcance visible antes de activarla; la vista previa del alcance es estándar. Odoo maneja «etiquetas» como campo libre sin flujo de aprobación; el flujo proponer/aprobar de CAYLA es más estricto y con 3 tiendas y un taller es razonable.
+- **Futuro (no cuenta entre las 12):** vigencia por sede; campañas que se apilen con reglas; sinónimos de color también en Buscar-prenda.
 
 ## 10 · Fuera de esta pantalla
-**Dos de los cinco vocabularios no alimentan ni un dato.** `[producción C3]` 17 tejidos y 7 patrones aprobados, con 0 de 39 productos activos que los usen. Todo reporte por tejido o patrón sale vacío, y esta pantalla los presenta como si fueran datos vivos. El BACKLOG ya lo tiene como pendiente (completar tejido y patrón de los 38 productos activos); es más urgente que cualquier tarea de arriba si Felipe quiere análisis por material antes de la próxima compra.
+**Categorías decide qué tejidos, tallas y patrones puede usar una prenda, y Atributos lo promete al revés**: aprobar un valor aquí no lo hace disponible en la categoría. La persona sigue el texto de Atributos y el alta la contradice.
 
-## 11 · Líneas propuestas para BACKLOG.md
-- [ ] `[pantalla:atributos]` #1 Alcance real de una campaña (manual ∪ categoría) con RPC `resumen_alcance_etiquetas`; corrige el límite de 1 000 filas — M
-- [ ] `[pantalla:atributos]` #2 Confirmación antes de guardar un descuento de campaña (sin límite, con resumen) — S
-- [ ] `[pantalla:atributos]` #3 Historial de cambios de `descuento_pct` y vigencias (`etiquetas_historial`, append-only) — M
-- [ ] `[pantalla:atributos]` #4 Aprobar/reactivar etiqueta con comentario (hoy falla en el trigger) — S
-- [ ] `[pantalla:atributos]` #5 Texto que diga que la propuesta queda pendiente hasta que un Líder la apruebe — S
-- [ ] `[pantalla:atributos]` #6 Decidir: rotación calculada vs. campaña manual vs. atributo de producto — L (decide Felipe)
-- [ ] `[pantalla:atributos]` #7 Reescribir las 24 notas «!» sin «Bershka»/«Zara» — S
-- [ ] `[pantalla:atributos]` #8 Botón «Renovar para el año siguiente» en campañas de temporada — S
-- [ ] `[pantalla:atributos]` #9 Desactivar duplicados entre vocabularios (Animal print/Estampado, Estándar/Única) — M
-- [ ] `[pantalla:atributos]` #10 Pestañas uniformes con buscador, filtros y «N prendas lo usan» — M
-- [ ] `[pantalla:atributos]` #11 Piso tipográfico y de contraste compartido en `Chip` y `Ayuda` (raíz: Atributos, Categorías, Colaboradores) — M
-- [ ] `[pantalla:atributos]` #12 Retirar código dormido (`sedes_permitidas`, flag fijo) — S (bajo valor)
+## 11 · Líneas propuestas para el backlog
+- [ ] `[pantalla:atributos]` #1 Confirmar alcance, fechas obligatorias y aviso de 100 % en campañas — M (antes del 2026-10-01)
+- [ ] `[pantalla:atributos]` #2 Etiquetas de rotación: notas y «!» sin promesas falsas ni jerga — S
+- [ ] `[pantalla:atributos]` #3 «Lo puede usar de inmediato» + puente a Categorías (5 sitios) — S
+- [ ] `[pantalla:atributos]` #4 Historial único del vocabulario y de los descuentos (raíz con Marcas #4) — M
+- [ ] `[pantalla:atributos]` #5 Desactivar campaña con caja abierta y etiqueta en uso — S–M
+- [ ] `[pantalla:atributos]` #6 Un solo comportamiento entre las seis pestañas — L
+- [ ] `[pantalla:atributos]` #7 Bandeja única «Por aprobar» — M
+- [ ] `[pantalla:atributos]` #8 Candados de nombre + renombrar — M
+- [ ] `[pantalla:atributos]` #9 Decidir: etiquetas calculadas vs. manuales — M–L
+- [ ] `[pantalla:atributos]` #10 Desborde a 1024 px y contraste — S
+- [ ] `[pantalla:atributos]` #11 Renovar campaña de un año al siguiente — S (bajo valor)
+- [ ] `[pantalla:atributos]` #12 Código muerto y duplicado (Tejidos ≈ Patrones) — M (bajo valor)
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Título «Atributos» + «!» | Explica los 5 vocabularios | ajustar (promete «de inmediato») | `page.tsx:126-130` |
-| Pestañas | Etiquetas · Colores · Tallas · Tejidos · Patrones | Cambia `?tipo=` | ajustar (sin `role=tablist`; orden por uso) | `AtributosHub.tsx:106-118` |
-| Etiquetas | Chips de grupo + conteo | Filtra por estilo | bien | `EtiquetasLista.tsx:371-398` |
-| Etiquetas | Buscador | Filtra por nombre, sin tildes | bien | `:401-424` |
-| Etiquetas | «+ Agregar etiqueta» | Propone o crea | ajustar (#5) | `:425-431` |
-| Etiquetas | Tarjeta con ilustración | Muestra icono y estilo | bien | `MuestraEtiqueta.tsx:19-282` |
-| Etiquetas | «!» por tarjeta | Muestra `notas` | ajustar (#7) | `:138`, `Ayuda.tsx` |
-| Etiquetas | Chip de vigencia | «En N días», «Vigente», «Fuera de temporada» | bien | `:105-110`, `lib/etiqueta-vigencia.ts:25-30` |
-| Etiquetas | «Sin prendas etiquetadas» | Cuenta prendas manuales | ajustar (#1) | `:162-166` |
-| Etiquetas | «Prendas» | Etiqueta prendas en lote | bien | `PrendasDeEtiquetaModal.tsx:145` |
-| Etiquetas | «Configurar campaña» | % + fechas + categorías | ajustar (#2, #3, #8) | `CampanaModal :617-784` |
-| Etiquetas | «Aprobar» | Cambia a `aprobado` | ajustar (falla, #4) | `:278-298` |
-| Etiquetas | «Desactivar» / «Reactivar» | Baja y alta lógica | ajustar (visibilidad, #11) | `:346`, `:324` |
-| Etiquetas | Sección «Desactivadas» | Lista las inactivas | bien | `[visto, imagen 3]` |
-| Colores | «+ Agregar color» / «Editar» | Alta y edición con código, familia, hex | bien | `ColoresLista.tsx:306, 359` |
-| Colores | Agrupado por familia | Neutro, azul… | bien | `:53` |
-| Tallas | Chips Letras / Numeración / Única y estándar | Agrupa | ajustar (calzado) | `lib/tallas.ts:182-215` |
-| Tallas | Modal de aprobar con comentario | Exige nota | bien | `TallasLista.tsx:405-430` |
-| Tejidos / Patrones | Tarjeta con muestra + «Desactivar» | Baja lógica | ajustar (#10) | `TejidosLista.tsx:190-214` |
-| Tejidos / Patrones | (sin buscador, sin editar) | — | falta | `[visto, imágenes 7 y 8]` |
-| Todas | Modales | Radix Dialog con foco atrapado | ajustar (`alCerrarEnfocar`) | `Modal.tsx:20-22, 60-113` |
+| Cabecera | Título + «!» + seis pestañas | Recarga de servidor por pestaña | bien | `[visto]` `[código AtributosHub.tsx:149-160]` |
+| Etiquetas | Píldoras por estilo + «Vigentes hoy» | Filtra | bien | `[visto]` |
+| Etiquetas | «!» de cada tarjeta | Muestra `notas` | **ajustar** (jerga y promesa falsa) | `[producción-agente]` `[código kit.tsx:181]` |
+| Etiquetas | «Configurar campaña» | Guarda % y fechas | **ajustar** (sin confirmar ni fechas obligatorias) | `[código EtiquetasLista.tsx:652-694]` |
+| Etiquetas | «Prendas» | Vista previa y lote (tope 50) | bien | `[código PrendasDeEtiquetaModal.tsx:145]` |
+| Etiquetas | «Desactivar» | Apaga y deja de cobrar | ajustar (no lo dice) | `[código :379-394]` |
+| Colores | Tarjeta con muestra y Pantone | Editar completo | bien | `[visto]` |
+| Tallas | Tarjeta y aviso del equipo | Sin editar ni ver uso; jerga interna | ajustar | `[código AtributosHub.tsx:68]` |
+| Tejidos / Patrones | «En uso / Sin prendas» + detalle | Foto, dibujo y prendas; notas invisibles | ajustar (notas) | `[código kit.tsx:180]` |
+| Temporadas | Grilla, completar, por categoría, calendario | Asigna y fija fechas (solo líder) | bien | `[código TemporadasLista.tsx]` |
+| — | Bandeja de pendientes / historial del vocabulario | No existen | falta | `[producción-agente]` |
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-21 | completo | 6,1 | 5,8 | — (primer análisis) |
+| 2026-09-29 | completo, re-análisis (código + producción por agente + recorrido visual) | 5,0 (tope) | 5,6 (Comodidad) | Del análisis del 21-sep, **cerradas 2 de 12**: #4 «Aprobar exige comentario» (commit `2f17bc2d`) y #5 «la verdad sobre una propuesta» en parte (Etiquetas corrigió su aviso). **Siguen abiertas** #1 (alcance verdadero), #2 (freno del descuento), #3 (rastro), #6 (Replantear rotación), #7 (jerga de los «!»), #8, #9, #10, #11 y #12. Baja de 6,1 a 5,0 por el tope de dinero, no por regresión: el descuento nunca tuvo freno |
