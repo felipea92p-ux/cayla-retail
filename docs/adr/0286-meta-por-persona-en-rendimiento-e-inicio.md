@@ -1,0 +1,226 @@
+# ADR-0286 — Meta por persona: se reparte sola desde la de la sede, la ajusta la líder de sede y la integrante ve la suya
+
+**Fecha:** 2026-09-29
+**Estado:** **Diseño aprobado por Felipe con un spike interactivo; construidos en local el paso 1 (`fn_mis_ventas_del_dia`, migración
+`20260930040000`) y el paso 2 (las metas en la base, migración `20260930050000`).** Ninguno está pegado en producción y pegarlos pide el ok puntual
+de Felipe. Los pasos 3 a 5 no se han empezado. Las decisiones que estaban abiertas se cerraron el mismo día (D-157 a D-160); lo que sigue abierto está
+en el acta.
+**Decide:** Felipe, 2026-09-29.
+**Afecta (cuando se construya):** una migración nueva en partes (`retail.metas_persona_ajustes`, `fn_horas_programadas`,
+`fn_asistencia_por_dia`, `fn_reparto_meta`, `fn_metas_por_dia`, `fn_metas_equipo`, `fn_mi_meta`, `fn_mis_ventas_por_dia`, `fn_rendimiento_serie`, `fijar_meta_persona`),
+`apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento.ts`, `apps/web/lib/rendimiento-reglas.ts`, un `lib/metas-reglas.ts`
+nuevo, `apps/web/components/rendimiento/*` nuevos, `apps/web/app/(app)/page.tsx` (Inicio), `apps/web/lib/inicio.ts`,
+`packages/database/src/types.ts` y `docs/ARQUITECTURA.md`. **No toca** `movimientos`, `stock`, `ventas` ni `venta_items`.
+**Acta:** [`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`](../datos/DECISIONES-2026-09-29-meta-por-persona.md) (D-142 a D-160,
+con las 8 preguntas, lo que se midió antes y lo que sigue abierto). **Referencia visual:**
+[`docs/maquetas/rendimiento-meta-2026-09/`](../maquetas/rendimiento-meta-2026-09/) (Rendimiento y el Inicio de la integrante, con datos de
+prueba y sin datos) y [`docs/maquetas/inicio-bloques-por-rol-2026-09/`](../maquetas/inicio-bloques-por-rol-2026-09/) (los bloques del Inicio por rol).
+**Relacionado:** ADR-0219 (Rendimiento; **este ADR le levanta el «metas por persona: todavía no»**), ADR-0225 (Inicio por rol),
+ADR-0161 y ADR-0178 (roles por módulo, escalón Admin), ADR-0207 (Actividad), ADR-0177 (quien registra no aprueba),
+ADR-0136 (modales), ADR-0149 (loader), ADR-0169 (paleta), ADR-0185 (la página no se encoge), ADR-0209 (combos), D-64, D-65, D-68.
+
+## Contexto
+
+Felipe pidió que cada integrante vea «algo simple» de su meta y que la líder de la sede vea todo el rendimiento de su tienda, con la
+meta de cada persona ajustable. Lo que existe hoy, medido en producción el 2026-09-29:
+
+- **Meta por persona: no existe.** Solo hay meta por sede (`ubicaciones.meta_venta_diaria`, `ubicacion_metas_dia` con campañas,
+  `fn_meta_mes`, `fn_parametros_caja`) y **ninguna tienda la tiene cargada**.
+- **Ventas: una sola en toda la historia.** No hay de dónde calcular «cómo se vende».
+- **«Tus ventas» del Inicio era falso.** `fn_ventas_del_dia`, para quien no es líder, devuelve todas las ventas de su tienda; el Inicio las
+  mostraba como de la persona. Una meta individual sobre ese número se habría llenado con lo que vendieron sus compañeras.
+- **Horarios de Dynamic:** `turnos` termina el 21-sep; `horarios_asignados` tiene 21 horarios abiertos hoy (de 31 personas);
+  `jornadas` (lo trabajado) está al día. Retail lee `jornadas` (`fn_asesoras_de_turno`, `fn_rendimiento_horas_nucleo`), no los horarios.
+- **Rendimiento** (ADR-0219, primera mitad, ya en producción) muestra el mes y dos rankings, sin meta, sin el día y sin la semana.
+- **Quién es «líder de la sede»:** Felipe cargó el 2026-09-29 a 4 encargadas de TRU como *Líder de equipo con Tienda TRU asignada*.
+  No existe un rol «Encargada de tienda».
+
+## Decisión
+
+### 1. El modelo, en una frase
+
+**La meta de la sede baja a cada persona según sus horas programadas; la líder de la sede o el Admin pueden ajustar la del mes de cada
+una, con motivo; y el avance se mide con quién atendió cada venta (Caja).** Se fija por mes, se calcula cada día y se ve en Hoy, Semana
+y Mes. La integrante ve solo lo suyo. La meta es para reconocer y acompañar: no se usa para pagar ni para evaluar (D-142).
+
+### 2. El reparto vive en la base, en UNA sola definición
+
+`retail.fn_reparto_meta(p_ubicacion_id uuid, p_desde date, p_hasta date) → (persona_id, fecha, meta_auto, base)`, **interna**
+(sin `grant` a `authenticated`); la usan las dos lecturas de abajo.
+
+- **Promete:** la parte AUTOMÁTICA de cada persona en cada día = meta de la sede de ese día × (sus horas programadas ÷ las de todas las
+  de esa sede ese día), en múltiplos de S/ 10 por el método del mayor resto, de modo que **las partes de un día suman exactamente la
+  meta de la sede de ese día**. `base` dice `'horas'` o `'iguales'`.
+- **Asume:** que la sede tiene meta (misma regla de `fn_parametros_caja`, campañas incluidas). Sin meta, 0 filas: nunca inventa una.
+  Sin horario vigente ese día: partes iguales entre quienes marcaron asistencia (`jornadas`); si nadie marcó, esa parte queda sin asignar.
+  *(Decidido por Felipe el 2026-09-29: D-158.)*
+
+- **DECIDÍ:** calcular el reparto en la base, con una sola función, y que la líder y la integrante lean de ella.
+- **DESCARTÉ:** calcularlo en la web (TypeScript, como `rendimiento-reglas.ts`). La integrante no puede leer las horas de sus
+  compañeras (D-149, «solo lo suyo»): solo una función `security definer` puede darle **su parte** sin mostrarle las de las demás. Y dos
+  cálculos, uno en el servidor y otro en la base, acabarían dando dos metas distintas para la misma persona.
+- **SE ROMPE SI:** alguien duplica la fórmula en una pantalla. Entonces la líder y la integrante ven metas distintas para la misma persona.
+
+### 3. Las horas programadas: una sola puerta a Dynamic
+
+`retail.fn_horas_programadas(p_ubicacion_id uuid, p_desde date, p_hasta date) → (persona_id, fecha, horas, fuente)`, interna.
+
+- **Promete:** las horas que le tocaba trabajar a cada persona de esa tienda cada día, con la fuente: `'horario'` (`horarios_asignados`
+  vigente ese día) o `'turno'` (una excepción de ese día en `turnos`; `es_descanso` vale 0 h).
+- **Asume:** que DO mantiene vigentes los horarios (hoy, 21 abiertos de 31). **Forma leída en producción el 2026-09-29:** `horario_por_dia` es un
+  objeto por día de la semana (`"0"` domingo … `"6"` sábado) con la entrada `e`, la salida `s` y los minutos de refrigerio `r`; las 21 vigentes lo traen y
+  ninguna persona tiene dos vigentes. Horas del día = salida − entrada − refrigerio. Es el ÚNICO lugar donde retail toca esas tablas de Dynamic: si su
+  forma cambia (Dynamic está migrando), se arregla aquí y no en cada pantalla. **«Persona de la tienda»** = `fn_ubicacion_de_partida` (la asignada; para un
+  líder, la de su sede de Dynamic), el mismo criterio de `fn_rendimiento_ubicaciones`.
+- **DESCARTÉ:** `turnos` como fuente principal. Termina el 2026-09-21 y no tiene filas de octubre.
+
+### 4. Los ajustes de la líder: una tabla que solo se agrega
+
+`retail.metas_persona_ajustes`: una fila por cambio, **sin `update` ni `delete`**, con RLS encendido y sin políticas (se lee y se escribe
+solo por funciones `security definer`, como `venta_reasignaciones` de ADR-0219).
+
+| Columna | Qué guarda |
+|---|---|
+| `ubicacion_id`, `persona_id`, `mes` | de quién, en qué tienda y para qué mes (`mes` es siempre el día 1) |
+| `meta` | la meta del mes **o `null` = «volver a la automática»** |
+| `meta_antes` | la meta efectiva justo antes de este cambio |
+| `motivo`, `detalle` | del catálogo cerrado (`cambia_horario`, `capacitacion`, `cubre_otra_tienda`, `vuelve_de_descanso`, `automatica`, `otro`); `otro` exige una línea |
+| `cambiado_por`, `created_at` | quién (la persona de retail que firmó) y cuándo |
+
+La meta vigente de una persona en un mes es **la fila más reciente** de esa combinación. El ajuste es sobre la **meta del mes**; la del
+día y la de la semana se recalculan en la misma proporción (`meta_ajustada ÷ meta_auto`).
+
+`retail.fijar_meta_persona(p_persona_id, p_ubicacion_id, p_mes, p_meta, p_motivo, p_detalle default null, p_meta_esperada default null)`
+— **una sola transacción**, que empieza y termina dentro de la función:
+
+1. Firma con `retail.fn_actor_persona_id(true)` (el responsable elegido, ADR-0161); la pantalla usa `<ComboResponsable>`.
+2. Toma un candado de la base por (persona, tienda, mes) para que dos personas que cambian la misma meta a la vez no se pisen.
+3. Comprueba los permisos y los estados imposibles de abajo.
+4. Si `p_meta_esperada` no coincide con la meta que hay ahora, se niega («la meta cambió mientras la editabas»).
+5. Inserta el ajuste y deja su línea en `retail.actividad` (si anotar falla, el cambio se guarda igual: principio de ADR-0207).
+
+**Estados que nunca deben existir, y con qué se impide:**
+
+| Estado imposible | Lo impide |
+|---|---|
+| Una meta ≤ 0, o mayor que la meta de la sede del mes | `check` de la tabla y la función |
+| Un cambio sin motivo, o «otro» sin su línea | `check` de la tabla |
+| Un ajuste automático con valor, o uno manual sin valor | `check ((motivo = 'automatica') = (meta is null))` |
+| Editar o borrar el historial | disparador que lo rechaza + `revoke` de escritura |
+| Cambiar la meta de un mes ya pasado | la función, con la fecha de Lima |
+| Una líder de sede cambiando **su propia** meta (solo un Admin) | la función: `p_persona_id = actor` y no Admin |
+| Cambiar la meta de otra tienda | la función, con `fn_rendimiento_ubicaciones()` |
+| Una persona que no es de esa tienda | la función |
+| Dos cambios simultáneos que se pisan | candado + `p_meta_esperada` |
+
+### 5. Las lecturas
+
+Todas `security definer`, `revoke … from public, anon`, `grant execute … to authenticated`.
+
+- **`fn_metas_equipo(p_mes date default null)`** — para la líder y el Admin: **una fila por persona de las tiendas que
+  `fn_rendimiento_ubicaciones()` le deja ver**, aunque no tenga ventas (`fn_rendimiento_equipo` solo trae a quien vendió): horas del mes,
+  meta automática, ajuste, meta del mes, meta de hoy y de los 7 días, y la base del reparto.
+- **`fn_mi_meta()`** (sin parámetros: mi tienda es la que me toca) — **solo la mía**: mi meta de cada día del mes y la del mes. Nunca horas ni metas ajenas.
+  Una terminal recibe 0 filas. Sin meta de la sede o sin horario, 0 filas: **el bloque no se dibuja** (D-150).
+- **`fn_mis_ventas_del_dia`** — *hecha* (paso 1): lo que atendió quien mira, completado y no de prueba. **`fn_ventas_del_dia` no cambia.**
+- **`fn_mis_ventas_por_dia(p_desde, p_hasta)`** y **`fn_rendimiento_serie(p_ubicacion_id, p_desde, p_hasta)`** — las ventas por día de una
+  persona y de una sede, para el gráfico. Índice existente: `ventas_ubicacion_fecha_idx`.
+
+**Qué cuenta como venta** (D-148): con IGV, completada y no de prueba; las devoluciones y los cambios no restan; el apartado cuenta el día
+que se entrega, a quien lo apartó. Es la definición de ADR-0219 punto 2, para que la integrante y la encargada vean el mismo número.
+
+### 6. Permisos
+
+**Se reutiliza el módulo `rendimiento`** (decidido por Felipe el 2026-09-29: D-157): quien lo ve cambia las metas de su tienda y el Admin las de todas,
+sin poder cambiar la propia. **No hay módulo nuevo**: la regla de ADR-0161 («quien ve un módulo hace todo lo que hay en él») se cumple sin
+tocar `rol_modulos`. **Ningún paso de esta construcción toca `roles`, `rol_modulos` ni `modulos`** (D-160): las encargadas de TRU siguen siendo «Líder de equipo» con
+Tienda TRU asignada y ven Rendimiento por eso (`fn_rendimiento_ubicaciones`); la base impide que cambien la propia. La integrante no necesita ningún módulo para ver su meta: son sus propios datos, en su Inicio (D-150).
+
+### 7. La web
+
+- **Rendimiento** (`/rendimiento`): selector Hoy · Semana · Mes (abre en Hoy, en la URL); cifras con meta y avance; «Cómo va hoy» por persona
+  con la meta editable; «Ventas contra la meta» con pestañas Semana | Mes (Acumulado | Por día); «Cambios de meta»; rankings al final. Sin meta de
+  la sede, la pantalla lo dice y lleva a Configuración › Metas.
+- **Gráfico:** **altura fija** (200 px en computadora, 176 en celular) y dibujado con el ancho medido de su caja: en una pantalla grande no
+  crece y las barras siguen delgadas. Trazo de 2 px, marcas de 8 px, leyenda siempre, una etiqueta directa selectiva, tooltip y «Ver como tabla».
+  La serie de referencia va punteada y en taupe. Tokens de `globals.css` (ADR-0169).
+- **No salta:** cambiar de período o de pestaña navega con `scroll: false` y conserva el foco (ADR-0185); reservar el alto del gráfico evita que la
+  página se acorte mientras se dibuja.
+- **La ventana «Meta»:** `<Modal variante="hoja">` (ADR-0136), motivo con `CampoSelect` (ADR-0209), `<ComboResponsable>` (ADR-0161).
+- **Inicio de la integrante:** «Tu meta de hoy», «Tu mes» y «Tus ventas contra tu meta» (Semana | Mes), solo si `fn_mi_meta` devuelve algo.
+  Reglas de presentación en `lib/metas-reglas.ts` (con pruebas): ritmo esperado, «asignado X de Y», orden.
+- **Inicio, ya construido** (D-152 a D-154): los accesos salen de lo que hace el rol; «Nuevo producto» exige Productos + catálogo; la líder lo tiene
+  en lugar de «Apartados»; la terminal de almacén lleva «Recibir mercadería» fijo. Ver la actualización en ADR-0225.
+
+### 8. Todo puede fallar
+
+| Si… | Pasa esto |
+|---|---|
+| Dynamic no responde o no se pueden leer los horarios | Rendimiento sigue mostrando ventas y dice «No se pudieron leer los horarios: la meta de cada persona no se puede calcular»; el Inicio de la integrante oculta el bloque de meta |
+| La sede no tiene meta | «Sin meta»; nada se reparte y nada se inventa |
+| Una persona no tiene horario vigente | Partes iguales entre quienes marcaron asistencia ese día (propuesta) |
+| La web se publica antes que la migración | Las lecturas de meta no existen: el bloque se oculta o dice «No se pudo leer»; **nunca** cae a mostrar el número de otra persona |
+| Fijar una meta falla a medias | No puede: es una sola transacción |
+
+### 9. Números (para no optimizar por superstición)
+
+Hasta ~30 personas por tienda (12 hoy en TRU) × 31 días = **unas 930 filas** por lectura del reparto: se calcula al leer, sin caché ni tabla
+de resultados. Los ajustes son pocos por persona por mes: **menos de 1.000 filas al año** en las tres tiendas. Las ventas por día usan
+`ventas_ubicacion_fecha_idx` (un mes de una tienda son cientos de filas).
+
+- **DESCARTÉ:** guardar la meta calculada de cada mes en una tabla. Se quedaría vieja al cambiar un horario a mitad de mes y habría dos
+  verdades. **SE ROMPE SI** el reparto tarda más de lo que una pantalla tolera; con las cifras de arriba no es plausible.
+
+## Orden de construcción y despliegue
+
+| # | Paso | Cómo se verifica | Estado |
+|---|---|---|---|
+| 0 | Estos papeles (ADR + acta + notas en D-64, D-68, D-113, D-125, ADR-0219 y ADR-0225) | Están escritos antes que el código | **Hecho** |
+| 1 | `fn_mis_ventas_del_dia` + `lib/inicio.ts` | `pnpm pruebas:mis-ventas` (7 casos, en el CI); con dos cuentas de la misma tienda cada una ve solo lo suyo | **Hecho en local**; producción pide el ok de Felipe |
+| 2 | La migración de metas (`20260930050000`, 4 partes, con `retail.` y `set lock_timeout`) | `pnpm pruebas:metas-persona` (~55 comprobaciones, en el CI): las partes suman exacto la meta de la sede (con una meta de 1.800 y con una de 1.845); un descanso, un turno y el «sin horarios» se comportan como dicen; cada estado imposible se rechaza; la segunda edición con la meta vieja se rechaza; nadie cambia la suya; la integrante no lee la de otra; una terminal no lee nada; la migración se aplica dos veces sin error | **Hecho en local**; producción pide el ok de Felipe |
+| 3 | Rendimiento web | Comparar captura y spike al mismo ancho, y a 375 px | Sin empezar |
+| 4 | Inicio de la integrante | Con una cuenta de prueba de TRU | Sin empezar |
+| 5 | Producción y datos | Cargar las metas de TRU; ensayo revertible y `md5` del cuerpo; luego `pnpm datos:generar:produccion` y `pnpm datos:comparar` | Sin empezar |
+
+**Reglas de producción** (CLAUDE.md): ensayo con rollback y el ok puntual de Felipe antes de pegar; las migraciones **antes** que la web; la
+migración del paso 2 crea tablas y funciones nuevas y **no altera tablas en uso**; si lleva políticas, van solas y al final (deadlocks del SQL
+Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU con las encargadas **antes** de publicar el paso 4.
+
+## Lo que se descubrió al construir el paso 2
+
+- **`fn_rendimiento_equipo` (ya en producción) no reconoce como «encargada» a una encargada que es Líder de equipo.** Marca `es_encargada` solo si el rol
+  trae el módulo `rendimiento` en `rol_modulos`, y el rol Líder no tiene filas ahí (ve todo por ser líder). Como las 4 encargadas de TRU son Líder (D-160),
+  el chip «Encargada» no les saldría en los rankings. `fn_metas_equipo` ya usa la regla correcta (líder con esa tienda, o rol con el módulo); **la corrección de
+  `fn_rendimiento_equipo` va en el paso 3** y, al tocar una función en producción, pide el ok de Felipe.
+- **El Postgres local compartido no tenía la migración de Rendimiento del 2026-09-29** (`20260929160000`, ya en `main` y en producción), y sin ella
+  `fn_rendimiento_ubicaciones` no existe. Se aplicó al local para probar; el CI reconstruye la base desde cero, así que no le afecta.
+- **La carrera real de dos conexiones no se probó.** Se probó de forma secuencial que la segunda edición con la meta vieja se rechaza. Que el candado ponga en
+  fila a dos personas que editan a la vez es una garantía de Postgres, pero verlo exige commitear datos (el historial no se puede borrar) y eso solo se hace en
+  una base desechable (`BASE_DESECHABLE=1`, como `bajada_al_piso_concurrencia.mjs`). Queda pendiente.
+- **Solo en el local:** dos Admin cuya sede base de Dynamic es Lima cuentan como personas de Lima (`fn_ubicacion_de_partida`), por eso el Admin ve 6 filas y no 4.
+  En producción los Admin están en Central y no son de ninguna tienda.
+
+## Fuera de alcance
+
+- **Sugerir la meta de la sede desde el historial** (D-144): fase 2, con 4 semanas de ventas.
+- **Bono, comisión o evaluación con la meta** (D-142, D-65): no. Si algún día se quiere, antes va un abogado laboralista.
+- **Ranking o comparación entre integrantes, visible para ellas** (D-66 en pausa), **la ficha por persona** y **«corregir quién atendió»**
+  (ADR-0219, segunda mitad): siguen pendientes. Corregir una venta de persona mueve las cifras de las dos; los ajustes de meta no cambian.
+- **Taller** (ADR-0219, respuesta 19) y **Lima**, que no tiene personal cargado en Dynamic (D-62).
+- **El estado de «no hay meta» por tienda como interruptor** (descartado en D-150).
+
+## Objeciones registradas
+
+- **Encendida por defecto quita el colchón** de que las metas se revisen antes de mostrarse (D-150). Felipe lo decidió; se cubre con el orden
+  del despliegue, no con un interruptor.
+- **«Ritmo esperado»** («Adelante», «En ritmo», «Por debajo») lo agregó Claude al spike. Ayuda a leer el día pero puede sentirse como un
+  juicio; **Felipe decidió que se queda** (D-159).
+- **Las encargadas son «Líder de equipo»** y heredan todo lo del líder. Un rol propio les daría solo lo que necesitan; **Felipe decidió no crearlo y no tocar roles** (D-160).
+
+## Cómo se verifica (cuando se construya)
+
+1. **Base:** una prueba SQL por función en `scripts/pruebas/` (con rollback, sesión simulada, y en el CI): reparto exacto, cada estado imposible
+   de la tabla de arriba, concurrencia sobre la misma meta, alcance por rol (Admin, líder de sede, integrante, terminal) y `pnpm pruebas:roles`.
+2. **Web:** pruebas de las reglas puras; en el navegador, los tres roles, con datos y sin datos, a 1440 y a 375 px; y que cambiar de período
+   no mueva la posición de la pantalla.
+3. **Producción:** solo lectura después de cada migración (existencia, `md5` del cuerpo, permisos), y refrescar el diccionario.

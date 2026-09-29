@@ -62,6 +62,23 @@ Se revisaron Shopify POS, Square, Toast, Dynamics 365 Commerce y Zebra Workcloud
   - La vendedora ve solo nombres: `fn_actividad` exige el módulo Actividad, y el #389 decidió que no ve cifras de sus compañeras.
 - **D7: sin ventas todavía, una sola línea útil** (caja abierta o cerrada, meta) en vez de tres tarjetas vacías.
 
+### Actualización 2026-09-29 (accesos por función del rol)
+
+Pedido de Felipe: que cada rol y cada terminal tenga accesos de lo que usa. Lo que cambia respecto de **D5**:
+
+- **La lista sale de lo que hace la cuenta**, leído de sus módulos, no de su nombre ni del tipo de sede: si ve Vender es del **mostrador**
+  (Apartados, Stock, Cambios, Nuevo producto…); si no vende y está en una tienda es de la **trastienda** (la terminal de almacén o un rol
+  administrativo: Recibir, Traslados, Stock, Nuevo producto…); la **líder**, el **almacén** y el **taller** tienen la suya. Un rol nuevo entra solo a la
+  lista que le toca y, si nada coincide, queda al menos «Buscar». Sigue el **tope de 4** de D5.
+- **«Nuevo producto»** (`/productos/nuevo`) exige ver Productos **y** poder escribir en el catálogo (`editarCatalogo`): un rol limitado lo vería y la base
+  rechazaría el guardado. En el mostrador va cuarto y saca a Caja de esa fila.
+- **La líder** lleva «Nuevo producto» **en lugar de «Apartados»**; Apartados sigue en «Te toca» y en el menú de Ventas.
+- **La terminal de almacén** (y todo rol que no vende en una tienda) lleva **«Recibir mercadería»** fijo en el celular, como el almacén como sede.
+- **«Las 3 tiendas hoy»** (bloque nuevo del Inicio) es solo de la líder. La terminal del mostrador no ve el Inicio: aterriza en `/vender`.
+- Decisiones D-152 a D-154 de [`DECISIONES-2026-09-29-meta-por-persona.md`](../datos/DECISIONES-2026-09-29-meta-por-persona.md). Construido en
+  `lib/inicio-avisos.ts` (`accesosRapidos`, con pruebas) y `app/(app)/page.tsx`. Los bloques nuevos por rol están en
+  [`docs/maquetas/inicio-bloques-por-rol-2026-09/`](../maquetas/inicio-bloques-por-rol-2026-09/); «Hoy en la trastienda» y los demás no están construidos.
+
 ## Lo que queda abierto
 
 - **La cabecera:** usa `<CabeceraPantalla>` (fecha en rojo → saludo → rol y sede), como el spike aprobado. La regla de
