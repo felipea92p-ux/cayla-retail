@@ -426,6 +426,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:conteo-vacio
 
+      # Rediseño de Conteo (20260930010000/010100): la foto al abrir (solo stock > 0, la sububicación y la categoría del
+      # conteo), vacío ≠ 0, verificar / recontar / confirmar, cierre con pendientes solo si es parcial y nunca con
+      # diferencias sin confirmar, y el «debe haber» leído al verificar (venta antes o después de contar: sin falso
+      # faltante, el ajuste va sobre el stock actual). Incluye un control que demuestra que la prueba muerde. Cada caso: ROLLBACK.
+      - name: pruebas:conteo-rediseno
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:conteo-rediseno
+
       # Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
       # venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.
       - name: pruebas:candado-ventas

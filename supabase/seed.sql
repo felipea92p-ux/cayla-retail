@@ -530,6 +530,10 @@ begin
   -- ---------- conteo con diferencia real, acotado al piso (Lima separa
   -- piso/almacén desde 20260914210000_inventario_piso_almacen.sql — un
   -- conteo de "toda la ubicación" ya no es válido ahí, hay que elegir) ----------
+  -- Rediseño del conteo (20260930010100): al abrir, cada variante con stock en el piso queda «pendiente» (foto), y el
+  -- conteo no se cierra hasta que no quede ninguna pendiente y toda diferencia esté confirmada. Este seed verifica
+  -- todas, deja UNA con diferencia (la blusa, una de menos) y la CONFIRMA antes de cerrar: sin la confirmación,
+  -- `cerrar_conteo` rechaza el cierre (hint diferencias_sin_confirmar).
   conteo1_id := retail.abrir_conteo(ubic_lima, sub_piso_lima);
   perform retail.conteo_contar(conteo1_id, s.variante_id, s.cantidad)
     from retail.stock s
@@ -537,6 +541,7 @@ begin
   perform retail.conteo_contar(conteo1_id, sku_blu_emma_neg_m,
     (select cantidad - 1 from retail.stock
        where ubicacion_id = ubic_lima and sububicacion_id = sub_piso_lima and variante_id = sku_blu_emma_neg_m));
+  perform retail.conteo_confirmar_diferencia(conteo1_id, sku_blu_emma_neg_m);
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
 

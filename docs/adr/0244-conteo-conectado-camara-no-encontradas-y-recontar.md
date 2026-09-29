@@ -86,3 +86,7 @@
   «Recontar las 2» → «A recontar · 2», historial plegado y el detalle con «Lo que sigue». Capturas a 1.440 px y a 375 px.
   La hoja de la cámara se abrió con una cámara falsa; **falta probarla con un teléfono real y etiquetas reales.**
 - **Falta:** verlo con una cuenta real (líder e integrante) y un conteo de verdad.
+
+## Actualización 2026-09-29 (ADR-0282)
+
+Se conservan la cámara en ráfaga y el bip (`EscanerConteo`, `debeContarLectura`, `sonido-conteo`). **Se reemplazan** «No se encontraron» / «No está → 0» / «Dejar como está» (una variante sin contar es «Pendiente», nunca 0; el cierre parcial se llama «Cerrar como conteo parcial» y deja las pendientes intactas), el recontar a ciegas (ahora se ve «CAYLA dice» y «Contaste») y las marcas locales `a-mano`/`recontar` en `localStorage` (el estado de reconteo vive en la base). También se retiran «Imprimir etiquetas · N» y «Lo que sigue» del detalle.

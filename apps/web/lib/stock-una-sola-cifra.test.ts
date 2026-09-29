@@ -23,7 +23,6 @@ const LEGADO: Record<string, string> = {
     "Existencias y Vender: piso y almacén por sububicación con los datos de la prenda en una sola consulta. Ya aplica la regla (libre, sin Cuarentena, sin tallas retiradas, sin pruebas); pasa a fn_existencias en la tarea #4.",
   "lib/useStockEnVivo.ts":
     "Vender: relee cada 10 s, desde el navegador, lo cobrable de la sede (la misma regla que getDisponibleEnSede de inventario-v2); pasa a fn_existencias con ella.",
-  "lib/conteos.ts": "Conteo: lo libre en el almacén por prenda, para ofrecer «Bajar al piso» después de contar el piso.",
   "lib/movimientos-v2.ts": "Movimientos: «Hoy en la sede» de una prenda en el detalle de un movimiento (físico, a propósito).",
   "components/useStockEnSede.ts":
     "Catálogo (main, 2026-09-28): stock por talla de la ficha y el candado de Etiquetas (físico, la misma lectura que Etiquetas). Pendiente: pasar a fn_existencias (tarea #4).",

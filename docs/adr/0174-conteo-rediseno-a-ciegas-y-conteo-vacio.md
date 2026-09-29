@@ -73,3 +73,7 @@ de Tienda TRU (2026-09-22) aparecieron cuatro problemas de fondo:
   abrir en tres pasos → contar 3 lecturas de la misma prenda (guardó 1, 2, 3 en orden, `x-espera: no`) → «+» →
   escribir 7 (con loader, firmado por la responsable) → revisar en el modal → detalle → vacío → 390 px sin
   desplazamiento lateral. Sin errores de consola. Capturas `implementado-*.png` junto a la maqueta.
+
+## Actualización 2026-09-29 (ADR-0282)
+
+**El conteo ya NO es a ciegas:** quien cuenta ve «Debe haber» y «Contaste» y CAYLA dice «Correcto», «Faltan N» o «Hay N de más». También desaparece «Conviene contar primero» y todo costo en Conteo. Lo que sigue en pie de este ADR: **ningún conteo vacío se cierra** (ahora es «ninguna variante verificada», hint `conteo_vacio`) y el «pendiente» nunca genera un ajuste. Lo demás lo reemplaza ADR-0282.

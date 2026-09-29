@@ -30,12 +30,13 @@
  * @property {string} [limite]
  */
 
+import pantallaConteo from "./inventario.conteo.mjs";
 import pantallaExistencias from "./inventario.existencias.mjs";
 import pantallaTraslados from "./inventario.traslados.mjs";
 import pantallaVender from "./vender.mjs";
 
 /** @type {Pantalla[]} */
-export const TODAS_LAS_PANTALLAS = [pantallaExistencias, pantallaTraslados, pantallaVender];
+export const TODAS_LAS_PANTALLAS = [pantallaExistencias, pantallaTraslados, pantallaConteo, pantallaVender];
 
 export const PANTALLAS_POR_ID = new Map(TODAS_LAS_PANTALLAS.map((p) => [p.id, p]));
 

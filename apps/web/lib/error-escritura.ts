@@ -436,6 +436,30 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * `hint` de las reglas del Conteo (rediseño 2026-09-29, `20260930010100_conteo_rediseno_funciones.sql`): `abrir_conteo`,
+ * `conteo_contar`, `conteo_recontar`, `conteo_confirmar_diferencia` y `cerrar_conteo` levantan `P0001` con un `hint` estable
+ * por cada regla. Cada uno tiene su frase acá —dicha desde quien cuenta, con qué hacer— y se mira ANTES que el `P0001`
+ * genérico: así el texto que ve la colaboradora no depende de cómo redacte el mensaje la función de Postgres.
+ *
+ * Los dos que traen un NÚMERO («Faltan 3 variantes por contar») usan el mensaje de la base cuando llega, porque esa cifra
+ * solo la sabe ella; la frase fija es solo el respaldo si el mensaje no viene. `conteo_cerrado` (el conteo ya no está
+ * abierto: otra persona lo cerró o lo canceló mientras esta pantalla seguía abierta) todavía no lo levanta ninguna función
+ * —hoy dicen «Ese conteo ya está cerrado» sin hint—, pero queda escrito para cuando la base lo estrene.
+ */
+const HINTS_CONTEO: ReadonlyMap<string, string | ((mensajeDeLaBase: string) => string)> = new Map<string, string | ((mensajeDeLaBase: string) => string)>([
+  ["cantidad_invalida", "La cantidad contada no puede ser negativa. Si no queda ninguna, escribe 0."],
+  ["fuera_de_alcance", "Esta prenda no pertenece al conteo actual. Puedes agregarla igual o dejarla fuera."],
+  ["recontar_no_aplica", "Solo se puede volver a contar una variante que tiene diferencia. Recarga la pantalla para ver cómo quedó."],
+  ["confirmar_no_aplica", "Solo se puede confirmar una variante que tiene diferencia. Recarga la pantalla para ver cómo quedó."],
+  ["conteo_vacio", "Este conteo no tiene ninguna variante verificada, así que no se puede cerrar. Si no vas a contar, cancélalo."],
+  ["conteo_pendientes", (m) => m || "Todavía quedan variantes sin contar. Vuelve a contar o cierra como conteo parcial."],
+  ["diferencias_sin_confirmar", (m) => m || "Hay diferencias sin confirmar. Confirma o vuelve a contar cada una antes de cerrar."],
+  ["sububicacion_requerida", "Esta sede separa el piso de venta y el almacén de tienda: elige dónde vas a contar."],
+  ["sububicacion_invalida", "Solo se puede contar el piso de venta o el almacén de tienda de esta sede."],
+  ["conteo_cerrado", "Este conteo ya se cerró o se canceló. Recarga la pantalla para ver cómo quedó."],
+]);
+
+/**
  * `hint` `<módulo>_sin_modulo`: la cuenta no tiene ese módulo en su rol (ADR-0161). Llega con `42501` y un mensaje ya en
  * castellano que dice qué pedir («Tu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y
  * accesos.»): lo escriben `retail.fn_exigir_modulo` (ADR-0249, 2026-09-28) y los candados de módulo que ya existían
@@ -544,6 +568,10 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   if (esVersionCambiada(error)) return error.message || "Otra persona cambió esto mientras lo editabas. Recarga para ver sus cambios.";
 
   if (error.hint && HINTS_VARIANTE.has(error.hint) && error.message) return error.message;
+
+  // Las reglas del Conteo: su frase, no la del mensaje crudo (salvo las dos que traen la cuenta, ver arriba).
+  const deConteo = error.hint ? HINTS_CONTEO.get(error.hint) : undefined;
+  if (deConteo !== undefined) return typeof deConteo === "function" ? deConteo(error.message ?? "") : deConteo;
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();
