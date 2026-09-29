@@ -129,7 +129,10 @@ Felipe (2026-09-29): «que cada uno de los módulos tenga esta función de focus
 - **Lo que la prueba no ve:** un modal o un componente con campos que no es una `page.tsx`. Lo cubre el texto de la regla y una
   casilla nueva en `.github/pull_request_template.md`.
 - **Numeración:** este ADR se escribió como 0283 y se pasó a **0284** porque otra rama (`claude/product-add-single-validation-0c6fab`, «Una
-  identidad para todo el alta de producto») ya usaba 0283.
+  identidad para todo el alta de producto») ya usaba 0283. Después `main` recibió DOS ADR-0283 (#620 «Producto sin marca ni proveedor»
+  y #621 «Una identidad…») y su CI se puso rojo en `pnpm adr:numeros`; **«Una identidad…» pasó a ADR-0285** (commit aparte de este PR:
+  las pocas referencias que eran suyas —`QuienRegistra`, `useFirmaDeMitad`, «las ocho acciones del alta»— se atribuyeron una por una;
+  todo el resto de «ADR-0283» en el código es el de la marca y el proveedor y no se tocó).
 
 ## Lo que queda a decisión de Felipe
 

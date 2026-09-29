@@ -1,4 +1,4 @@
-# ADR-0283 · Una identidad para todo el alta de producto
+# ADR-0285 · Una identidad para todo el alta de producto
 
 - **Fecha:** 2026-09-29 · **Estado:** construido, web solamente (sin migración). Probado con pruebas y en el navegador con una
   sesión de Admin; el camino de una terminal sin persona **no se pudo ejercer en local** (la base local no tiene asistencia).
