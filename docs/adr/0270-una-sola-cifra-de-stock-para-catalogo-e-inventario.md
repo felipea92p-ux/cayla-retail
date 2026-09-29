@@ -3,8 +3,8 @@
 **Fecha:** 2026-09-28
 **Estado:** Aceptado (decisiones de Felipe). El plan y el orden están en
 [`docs/pantallas/catalogo-inventario.md`](../pantallas/catalogo-inventario.md) (12 tareas).
-**Construido (rama, sin pegar):** tareas #2, #3, #5 y #7, y la parte de la base de la #4. Tres migraciones **por pegar en
-orden**: `20260929010000` (la cifra única: `fn_existencias_base` + `fn_existencias`), `20260929020000` (Catálogo, cabecera y
+**Construido y en producción (SQL pegado el 2026-09-28 noche, 7 huellas verificadas; la web sale al fusionar #580):** tareas #2, #3, #5 y #7, y la parte de la base de la #4. Tres migraciones, pegadas en
+orden: `20260929010000` (la cifra única: `fn_existencias_base` + `fn_existencias`), `20260929020000` (Catálogo, cabecera y
 «Dónde más hay» la leen; `fn_existencias_productos` para la tarjeta) y `20260929030000` (una talla con prendas no se
 retira). Pruebas: `fn-existencias` 15/15, `catalogo-cifra-unica` 14/14 y `talla-con-prendas` 11/11, todas con control y
 mutaciones detectadas; batería completa del CI 107/108 (la que falla, falla igual sin estos cambios). Web: la tarjeta por
