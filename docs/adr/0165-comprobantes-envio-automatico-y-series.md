@@ -44,3 +44,7 @@ Felipe decidió en el plano maestro (PL-113) que el reintento no puede depender 
 - **Solo sandbox.** Mientras toda venta sea de prueba, el cron no transmite si `LUCODE_ENTORNO` no es `sandbox` (`cronNoTransmite`, con su prueba). Salir a producción suma un cuarto paso a los tres de arriba: cambiar esa regla a propósito.
 
 Se rompe si: falta `CRON_SECRET` en Vercel (el cron responde 401 y no hace nada — la cola vuelve a depender de las pantallas); o se sube la web antes de pegar `20260924113817` (el cron falla con `permission denied for function fn_tomar_comprobantes_para_reintento`, sin tocar nada).
+
+## Actualización 2026-09-29 — salida a la SUNAT real: series nuevas y una nota de crédito por letra (ADR-0278)
+
+Felipe decidió salir a la SUNAT real. El ADR-0278 fija las series nuevas (Trujillo 1, Arequipa 2, Lima 3: `B001`–`B003`, `F001`–`F003`, `BC01`–`BC03`, `FC01`–`FC03`), archiva las de prueba y resuelve lo que la sección «Se rompe si» de arriba dejaba en BACKLOG (una tienda que corrige boletas **y** facturas): sin cambiar la firma de `emitir_nota` ni de `aprobar_devolucion`, porque `emitir_nota` ya conoce el tipo del original. Los cuatro pasos de «Consecuencias» quedan escritos con su orden, sus SQL y la ventana sin ventas en el ADR-0278. **El cuarto paso —la regla «Solo sandbox» del cron— sigue como estaba** hasta que Felipe lo autorice a propósito.
