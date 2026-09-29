@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
 import { construirCeldas, ordenarColores, type ColorAlta } from "@/lib/alta-producto";
@@ -26,7 +29,8 @@ import {
   type FilaFicha,
   type Identidad,
 } from "@/lib/variantes-ficha-reglas";
-import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
+import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
+import { useSubirFotos } from "./useSubirFotos";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -35,6 +39,9 @@ import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, VistaPreviaCodigos
 // qué va a nacer; una celda se toca para quitarla. Una combinación que ya existía desactivada no se duplica: vuelve a
 // venderse. Si la prenda tiene todas sus variantes desactivadas, las tallas salen de todas ellas (nunca nace una «Única»
 // por accidente).
+//
+// Cada color nuevo trae su casilla «Foto de referencia (opcional)» (ADR-0279, como el alta): la foto sube al elegirla y entra a la
+// ficha con el color al que se agregó, en el mismo gesto. Sin ella, el rectángulo vacío de «Fotos por color» la espera igual.
 //
 // Si la prenda hoy es «Sin color», primero pregunta de qué color son las que ya tiene (una corrección, con su vista
 // previa de códigos): una prenda nunca mezcla «Sin color» con colores (la base lo rechaza con `mezcla_sin_color`).
@@ -45,6 +52,8 @@ export type ResultadoAgregarColores = {
   combos: Identidad[];
   precio: string;
   costo: string;
+  /** Las fotos elegidas (ya subidas) de los colores que de verdad se crean, una por color. */
+  fotos: { colorCodigo: string; url: string }[];
 };
 
 export function AgregarColoresModal({
@@ -88,6 +97,16 @@ export function AgregarColoresModal({
   const [montos] = useState(() => precioYCostoPorDefecto(filas));
   const [precio, setPrecio] = useState(montos.precio);
   const [costo, setCosto] = useState(montos.costo);
+  // La foto de referencia de cada color nuevo (una por color: volver a elegir la reemplaza).
+  const [fotoDe, setFotoDe] = useState<Record<string, string>>({});
+  const { elegir: elegirFoto, ocupado: subiendoFoto, revision } = useSubirFotos({
+    onSubidas: (nuevas) =>
+      setFotoDe((a) => {
+        const b = { ...a };
+        for (const f of nuevas) if (f.colorCodigo) b[f.colorCodigo] = f.url;
+        return b;
+      }),
+  });
 
   // Paso 1 (solo si era «Sin color»): la corrección de las que ya tiene.
   const destinoPrimero = colorDeLasQueTiene ? { colorCodigo: colorDeLasQueTiene } : null;
@@ -186,6 +205,53 @@ export function AgregarColoresModal({
             />
           </section>
 
+          {nuevos.length > 0 && (
+            <section className="space-y-2">
+              <p className="text-[12.5px] font-semibold text-tinta">
+                Foto de cada color <span className="font-normal text-taupe">· opcional</span>
+              </p>
+              <ul className="space-y-2">
+                {nuevos.map((codigo) => {
+                  const url = fotoDe[codigo];
+                  return (
+                    <li key={codigo} className="flex items-center gap-3 rounded-xl border border-sand p-2.5">
+                      {url ? (
+                        <span className="relative block aspect-[4/5] w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-papel">
+                          <Image src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" unoptimized />
+                        </span>
+                      ) : (
+                        <BotonFoto
+                          onArchivos={(archivos) => elegirFoto(archivos.slice(0, 1), codigo)}
+                          disabled={subiendoFoto}
+                          etiqueta={`Agregar foto de ${n.color(codigo)}`}
+                          className="grid aspect-[4/5] w-10 shrink-0 place-items-center rounded-md border-[1.5px] border-dashed border-taupe/55 bg-hueso/35 text-taupe transition-colors hover:border-tinta hover:text-tinta disabled:opacity-50"
+                        >
+                          <Camera aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                        </BotonFoto>
+                      )}
+                      <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">
+                        <PuntoColor codigo={codigo} colores={ctx.colores} />
+                        <span className="truncate">{n.color(codigo)}</span>
+                      </span>
+                      {url ? (
+                        <button
+                          type="button"
+                          onClick={() => setFotoDe((a) => Object.fromEntries(Object.entries(a).filter(([c]) => c !== codigo)))}
+                          className="btn-cayla btn-enlace ml-auto text-[12.5px]"
+                        >
+                          Quitar
+                        </button>
+                      ) : (
+                        <span className="ml-auto text-[12.5px] text-taupe">agrega su foto</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-[12.5px] text-taupe">Si no la tienes a la mano, la agregas después en «Fotos por color».</p>
+            </section>
+          )}
+
           {tallasDeLaPrenda.length > 0 && (
             <section className="space-y-1.5">
               <p className="text-[12.5px] font-semibold text-tinta">En qué tallas</p>
@@ -242,12 +308,18 @@ export function AgregarColoresModal({
           <PieModal
             onCancelar={cerrar}
             texto={texto}
-            deshabilitado={!puede}
+            deshabilitado={!puede || subiendoFoto}
             onConfirmar={() => {
-              onConfirmar({ colorDeLasQueTiene: colorDeLasQueTiene || null, combos, precio, costo });
+              // Solo las fotos de los colores que de verdad nacen (uno con todas sus celdas quitadas no se crea).
+              const creados = new Set(combos.map((c) => c.colorCodigo));
+              const fotos = Object.entries(fotoDe)
+                .filter(([codigo]) => creados.has(codigo))
+                .map(([colorCodigo, url]) => ({ colorCodigo, url }));
+              onConfirmar({ colorDeLasQueTiene: colorDeLasQueTiene || null, combos, precio, costo, fotos });
               cerrar();
             }}
           />
+          {revision}
         </div>
       )}
     </Modal>
