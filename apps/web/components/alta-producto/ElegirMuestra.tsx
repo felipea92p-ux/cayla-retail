@@ -8,6 +8,7 @@ import { Resaltado } from "@/components/ui/Resaltado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { MuestraTejido } from "@/components/MuestraTejido";
+import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
@@ -78,18 +79,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
             onClick={() => onElegir(v.id === elegidoId ? "" : v.id)}
           />
         ))}
-        <button
-          type="button"
-          onClick={() => setHoja(true)}
-          aria-haspopup="dialog"
-          // Borde punteado y sin muestra: se lee como «más opciones», no como un tejido más ni como «crear uno nuevo».
-          className="flex min-h-[70px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-dashed border-tinta/25 p-1.5 text-center text-taupe transition-colors hover:border-tinta/50 hover:bg-tinta/[0.04]"
-        >
-          <span className="text-[13px] font-semibold text-tinta">Ver todos</span>
-          <span className="text-[12px] tabular-nums">
-            {todos.length} {todos.length === 1 ? t.singular : t.plural}
-          </span>
-        </button>
+        <TileVerTodos total={todos.length} singular={t.singular} plural={t.plural} onClick={() => setHoja(true)} />
       </GrillaMuestras>
 
       {hoja && (
@@ -128,11 +118,6 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
   );
 }
 
-/** La grilla de tarjetas: en escritorio las que quepan de ~92 px; en celular, 3 columnas. Nunca scroll horizontal. */
-function GrillaMuestras({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(92px,1fr))]">{children}</div>;
-}
-
 function TarjetaMuestra({
   tipo,
   valor,
@@ -160,16 +145,7 @@ function TarjetaMuestra({
 }) {
   const Muestra = tipo === "tejidos" ? MuestraTejido : MuestraPatron;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={elegido}
-      disabled={deshabilitado}
-      title={motivo ?? (enHoja ? undefined : valor.texto)}
-      className={`flex min-w-0 flex-col gap-1 rounded-md border p-1.5 text-left text-[12.5px] transition-colors disabled:cursor-not-allowed ${
-        elegido ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
-      } ${guardando ? "" : "disabled:opacity-50"}`}
-    >
+    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={motivo ?? (enHoja ? undefined : valor.texto)}>
       <Muestra nombre={valor.texto} imagenUrl={imagenUrl ?? null} className="h-10 w-full" />
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
@@ -179,7 +155,7 @@ function TarjetaMuestra({
         )}
         {guardando ? "Agregando…" : <Resaltado texto={valor.texto} busqueda={busqueda} />}
       </span>
-    </button>
+    </TarjetaMuestraBase>
   );
 }
 
