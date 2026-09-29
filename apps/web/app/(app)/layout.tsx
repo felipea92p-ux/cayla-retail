@@ -17,10 +17,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // El contador de «Traslados» del menú (2026-09-18): en paralelo con la lista de ubicaciones, y
   // total (nunca lanza) — este layout no tiene `error.tsx` propio, así que una excepción acá
   // dejaría sin pantalla a toda la app por un número.
-  const [ubicaciones, trasladosPorAtender] = await Promise.all([
-    persona.puedeCambiarUbicacion ? getUbicaciones() : Promise.resolve([]),
+  // ADR-0275: quien ve CAYLA Global sin ser líder también tiene selector, con su propia sede y la vista global.
+  const [todasLasUbicaciones, trasladosPorAtender] = await Promise.all([
+    persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
   ]);
+
+  const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
 
   // El lateral plegado (2026-09-19) se lee acá y no en el cliente: así la primera pintura ya sale
   // con el ancho que la persona dejó, sin el salto de 17rem a 4.75rem que daría localStorage.
@@ -36,6 +39,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ubicacionEtiqueta: persona.ubicacionEtiqueta,
         ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
+        puedeVerGlobal: persona.puedeVerGlobal,
+        vista: persona.vista,
         terminal: persona.terminal,
         permisos: persona.permisos,
         modulos: persona.modulos.map((m) => m.clave),

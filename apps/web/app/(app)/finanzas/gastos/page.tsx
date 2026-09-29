@@ -16,6 +16,7 @@ import {
 } from "@/lib/gastos";
 import { getDestinosDeposito } from "@/lib/cuentas-dinero";
 import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
+import { verDeLaVista } from "@/lib/vista-global";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
 
@@ -38,7 +39,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
     getTiposActivo(),
     getDestinosDeposito(),
   ]);
-  const ver = leerVer(sp.ver, contexto.ubicaciones, esLider, persona.ubicacionId);
+  const ver = leerVer(verDeLaVista(persona.vista, sp.ver), contexto.ubicaciones, esLider, persona.ubicacionId);
   const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
     getPanelGastos(desde, hasta, ver),
     getGastos(desde, hasta, ver),

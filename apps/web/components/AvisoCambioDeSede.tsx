@@ -11,14 +11,14 @@ import { useEsperando } from "@/components/ui/Espera";
  * `activo` viene del `useTransition` del selector, no de un reloj. Los nombres se congelan mientras
  * `activo`: al terminar la carga `de`/`a` ya son los nuevos y el aviso todavía está saliendo.
  */
-export function AvisoCambioDeSede({ activo, de, a }: { activo: boolean; de: string; a: string }) {
-  const [textos, setTextos] = useState({ de, a });
-  if (activo && (textos.de !== de || textos.a !== a)) setTextos({ de, a });
+export function AvisoCambioDeSede({ activo, de, a, detalle = "Trayendo el inventario de esa sede…" }: { activo: boolean; de: string; a: string; detalle?: string }) {
+  const [textos, setTextos] = useState({ de, a, detalle });
+  if (activo && (textos.de !== de || textos.a !== a || textos.detalle !== detalle)) setTextos({ de, a, detalle });
   useEsperando(activo, {
     etiqueta: "Cambiando de sede",
     titulo: `${textos.de} →`,
     resalte: textos.a,
-    detalle: "Trayendo el inventario de esa sede…",
+    detalle: textos.detalle,
   });
   return null;
 }

@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CAYLA Global · maqueta</title>
+<meta name="description" content="Maqueta navegable del tablero «Salud del negocio» de CAYLA Global: la vista de toda la empresa, solo para el Admin. Datos inventados.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · CAYLA Global ▸ Salud del negocio (2026-09-28)
+   Pregunta: ¿cómo se ve CAYLA como una sola empresa, para decidir?
+   Tokens copiados TAL CUAL de apps/web/app/globals.css (ADR-0169).
+   Solo modo claro (el ERP no tiene modo oscuro). Datos inventados.
+   ==================================================================== */
+:root {
+  color-scheme: light;
+  /* Paleta primaria */
+  --color-rojo: #b8412d;
+  --color-crema: #f5f0e8;
+  --color-tinta: #1a1a18;
+  /* Paleta secundaria */
+  --color-rojo-profundo: #8b2a1f;
+  --color-sand: #e8e0d0;
+  --color-taupe: #805c4c;
+  --color-papel: #fbf8f2;
+  --color-hueso: #eae1d2;
+  --color-pizarra: #4c5d6e;
+  --color-tinta-60: #5b544c;
+  /* Semáforo */
+  --color-verde: #48603f;
+  --color-ambar: #74501a;
+  --color-verde-profundo: #44583a;
+  --color-taupe-profundo: #805c4c;
+  --color-ambar-profundo: #734f15;
+  /* Familias tipográficas (en el ERP llegan por next/font; aquí, de Google Fonts) */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+  /* Radios */
+  --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-2xl: 20px;
+  /* Sombras: SOLO para lo que flota (modal, lista, aviso, panel de la maqueta) */
+  --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
+  --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
+  --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
+  /* Movimiento */
+  --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --ease-salida: cubic-bezier(0.4, 0, 1, 1);
+  --lateral: 17rem;
+  --barra: 60px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--color-crema); color: var(--color-tinta); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid color-mix(in oklab, var(--color-rojo) 60%, transparent); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+svg.ic { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.ic.s { width: 16px; height: 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------------- Piezas del sistema (globals.css, @layer components) ---------------- */
+.card-cayla { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl); }
+.font-display { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.005em; }
+.label-cayla { text-transform: uppercase; letter-spacing: 0.13em; font-weight: 600; }
+.btn-cayla { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-radius: var(--radius-md); border: 1px solid transparent; padding: 0.5rem 1rem; font-size: 13.5px; font-weight: 500; line-height: 1.25; white-space: nowrap; transition: background-color 150ms, border-color 150ms, color 150ms; }
+.btn-cayla:disabled { cursor: not-allowed; opacity: 0.5; }
+.btn-chico { min-height: 2.75rem; padding: 0.3125rem 0.75rem; font-size: 12.5px; }
+.btn-primario { background: var(--color-tinta); color: var(--color-crema); }
+.btn-primario:hover:not(:disabled) { background: var(--color-rojo-profundo); }
+.btn-secundario { background: transparent; color: var(--color-tinta); border-color: var(--color-sand); }
+.btn-secundario:hover:not(:disabled) { border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent); background: color-mix(in oklab, var(--color-sand) 50%, transparent); }
+.btn-sutil { background: transparent; color: var(--color-taupe); border-color: var(--color-sand); }
+.btn-sutil:hover:not(:disabled) { color: var(--color-tinta); background: color-mix(in oklab, var(--color-sand) 30%, transparent); }
+.btn-enlace { background: none; border: none; padding: 0; color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; font-size: 13.5px; }
+.btn-enlace:hover { color: var(--color-taupe); }
+.pildora-cayla { display: inline-flex; align-items: center; gap: 0.375rem; border-radius: 999px; border: 1px solid var(--color-sand); padding: 0.3125rem 0.875rem; font-size: 13px; font-weight: 600; color: var(--color-taupe); white-space: nowrap; transition: background-color 150ms, border-color 150ms, color 150ms; }
+.pildora-cayla:hover { color: var(--color-tinta); background: color-mix(in oklab, var(--color-sand) 40%, transparent); }
+.pildora-cayla[aria-pressed="true"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+.nota-cayla { background: color-mix(in oklab, var(--color-hueso) 85%, transparent); border-radius: var(--radius-xl); padding: 0.875rem 1.125rem; font-size: 13px; line-height: 1.6; color: var(--color-taupe); }
+.nota-cayla b { color: var(--color-tinta); font-weight: 600; }
+
+/* Chip: insignia con punto (ui/Chip.tsx) */
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; font-size: 13px; line-height: 20px; border-radius: 999px; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.chip.verde { background: color-mix(in oklab, var(--color-verde) 15%, transparent); color: var(--color-verde); }
+.chip.ambar { background: color-mix(in oklab, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
+.chip.pizarra { background: color-mix(in oklab, var(--color-pizarra) 15%, transparent); color: var(--color-pizarra); }
+.chip.neutro { background: var(--color-sand); color: var(--color-taupe); }
+.chip.rojo { background: color-mix(in oklab, var(--color-rojo) 10%, transparent); color: var(--color-rojo-profundo); }
+
+/* ---------------- Carcasa: lateral + barra de arriba ---------------- */
+.lateral { position: fixed; inset: 0 auto 0 0; width: var(--lateral); display: flex; flex-direction: column; background: var(--color-crema); border-right: 1px solid color-mix(in oklab, var(--color-tinta) 10%, transparent); z-index: 40; }
+.logo { display: flex; align-items: center; gap: 12px; padding: 28px 0 24px 28px; }
+.logo svg { height: 32px; width: auto; flex: none; }
+.logo .marca { display: flex; flex-direction: column; }
+.logo .marca b { font-size: 14px; letter-spacing: 0.26em; font-weight: 600; }
+.logo .marca span { font-size: 10px; letter-spacing: 0.2em; font-weight: 600; color: var(--color-taupe-profundo); text-transform: uppercase; }
+.menu { flex: 1; overflow-y: auto; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 22px; scrollbar-width: thin; scrollbar-color: var(--color-sand) transparent; }
+.menu-grupo > p { padding: 0 16px 8px; font-size: 11px; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+.menu-grupo.pronto > p { color: color-mix(in oklab, var(--color-tinta) 45%, transparent); }
+.fila-menu { position: relative; display: flex; width: 100%; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px 0 16px; border-radius: var(--radius-md); color: color-mix(in oklab, var(--color-tinta) 80%, transparent); text-align: left; font-size: 14.5px; transition: background-color 150ms, color 150ms; }
+.fila-menu:hover { background: color-mix(in oklab, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+.fila-menu .ic { color: color-mix(in oklab, var(--color-tinta) 60%, transparent); }
+.fila-menu[aria-current="page"] { background: color-mix(in oklab, var(--color-sand) 70%, transparent); color: var(--color-tinta); font-weight: 500; }
+.fila-menu[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 50%; width: 2px; height: 16px; transform: translateY(-50%); border-radius: 9px; background: var(--color-rojo); }
+.fila-menu .chev { margin-left: auto; width: 14px; height: 14px; color: color-mix(in oklab, var(--color-tinta) 40%, transparent); }
+.fila-menu.hija { padding-left: 28px; min-height: 38px; font-size: 14px; }
+.fila-menu[aria-disabled="true"] { color: color-mix(in oklab, var(--color-tinta) 38%, transparent); cursor: default; }
+.fila-menu[aria-disabled="true"] .ic { color: color-mix(in oklab, var(--color-tinta) 28%, transparent); }
+.fila-menu[aria-disabled="true"]:hover { background: transparent; }
+.lema { padding: 14px 28px 16px; font-family: var(--font-serif); font-style: italic; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.yo { border-top: 1px solid color-mix(in oklab, var(--color-tinta) 10%, transparent); padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+.av { width: 36px; height: 36px; border-radius: 50%; background: var(--color-sand); display: grid; place-items: center; font-family: var(--font-serif); font-weight: 600; font-size: 14px; flex: none; }
+.yo b { display: block; font-size: 14px; font-weight: 500; }
+.yo span { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+
+.barra { position: fixed; top: 0; left: var(--lateral); right: 0; height: var(--barra); display: flex; align-items: center; gap: 12px; padding: 0 32px; background: color-mix(in oklab, var(--color-crema) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid color-mix(in oklab, var(--color-tinta) 10%, transparent); z-index: 30; }
+.barra .logo-movil { display: none; }
+.barra .plegar { color: color-mix(in oklab, var(--color-tinta) 55%, transparent); display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-md); }
+.barra .der { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.barra .etiqueta-sede { font-size: 11px; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+
+/* Selector de sede: `Desplegable forma="pastilla"` + lista flotante (useDestinoFlotante, anim-revelar) */
+.selector { position: relative; }
+.pastilla { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--color-sand); border-radius: var(--radius-md); padding: 6px 10px; font-size: 11px; color: var(--color-tinta); transition: border-color 150ms; }
+.pastilla:hover, .pastilla[aria-expanded="true"] { border-color: var(--color-rojo); }
+.pastilla .ic { width: 14px; height: 14px; color: var(--color-taupe); }
+.pastilla[data-global="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-tinta); }
+.lista { position: absolute; right: 0; top: calc(100% + 6px); width: 270px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 6px; box-shadow: var(--shadow-lg); z-index: 60; animation: cayla-revelar 240ms var(--ease-cayla) both; }
+.lista .grupo { padding: 8px 10px 4px; font-size: 10.5px; color: var(--color-taupe); }
+.lista hr { border: 0; border-top: 1px solid var(--color-sand); margin: 6px 4px; }
+.op { display: flex; width: 100%; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); text-align: left; font-size: 14px; }
+.op:hover, .op:focus-visible { background: color-mix(in oklab, var(--color-sand) 50%, transparent); outline: none; }
+.op[aria-selected="true"] { font-weight: 600; }
+.op .t { flex: 1; min-width: 0; }
+.op .t small { display: block; font-size: 12px; font-weight: 400; color: var(--color-taupe); line-height: 1.35; }
+.op .visto { width: 16px; height: 16px; color: var(--color-tinta); }
+
+/* ---------------- Contenido ---------------- */
+main { margin-left: var(--lateral); padding: calc(var(--barra) + 36px) 40px 120px; }
+.pag { max-width: 1160px; margin: 0 auto; }
+
+/* Cabecera (EncabezadoPagina, ADR-0220) */
+.enc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px; }
+.enc-izq { min-width: 0; }
+.enc-linea { display: flex; align-items: center; gap: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-taupe-profundo); }
+.hilo { display: block; height: 1px; width: 32px; flex: none; background: var(--color-taupe); }
+.enc h1 { margin-top: 12px; font-size: 46px; line-height: 1; letter-spacing: -0.015em; }
+.enc-frase { margin-top: 10px; max-width: 28rem; font-size: 15px; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); }
+.enc-der { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.periodo { display: flex; flex-wrap: wrap; gap: 6px; }
+.periodo-nota { font-size: 12.5px; color: var(--color-taupe); }
+
+/* Veredicto en una línea */
+.veredicto { margin-top: 34px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.veredicto p { font-family: var(--font-serif); font-weight: 500; font-size: 27px; line-height: 1.28; letter-spacing: -0.005em; max-width: 46ch; color: var(--color-tinta); text-wrap: pretty; }
+.veredicto p b { font-weight: 600; }
+
+/* Cuatro veredictos (TarjetaCifra + Chip) */
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 26px; }
+.cifra { padding: 20px; display: flex; flex-direction: column; min-width: 0; }
+.cifra-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.cifra-top .label-cayla { font-size: 11px; font-weight: 700; color: var(--color-taupe); }
+.cifra-valor { margin-top: 8px; font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cifra-sig { margin-top: 4px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta); }
+.cifra-det { list-style: none; margin-top: 12px; display: grid; gap: 6px; font-size: 13px; line-height: 1.5; color: var(--color-taupe); }
+.cifra-det b { color: var(--color-tinta); font-weight: 600; }
+.cifra-accion { margin-top: auto; padding-top: 14px; align-self: flex-start; font-size: 11px; color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; }
+.cifra-accion:hover { text-decoration: none; }
+.cifra.vacia { background: transparent; border-style: dashed; }
+.cifra.vacia .cifra-valor { color: color-mix(in oklab, var(--color-tinta) 45%, transparent); }
+.cifra.vacia .cifra-sig { color: var(--color-taupe); }
+/* Medidor: valor contra el mínimo */
+.medidor { margin-top: 14px; }
+.medidor .pista { position: relative; height: 6px; border-radius: 99px; background: color-mix(in oklab, var(--color-tinta) 8%, transparent); }
+.medidor .relleno { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--color-tinta); transform-origin: left; }
+.medidor .corte { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--color-taupe); }
+.medidor .et { position: relative; height: 18px; margin-top: 4px; font-size: 11.5px; color: var(--color-taupe); }
+.medidor .et span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+/* Escala de rebajas */
+.escala { margin-top: 14px; }
+.escala .arriba, .escala .abajo { position: relative; height: 17px; font-size: 11.5px; color: var(--color-taupe); }
+.escala .arriba span, .escala .abajo span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.escala .arriba span { color: var(--color-tinta); font-weight: 600; }
+.escala .pista { position: relative; height: 8px; border-radius: 99px; background: color-mix(in oklab, var(--color-tinta) 6%, transparent); margin: 2px 0; }
+.escala .banda { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--color-sand); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-taupe) 30%, transparent); }
+.escala .marca { position: absolute; top: -3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--color-tinta); border: 2px solid var(--color-papel); }
+/* Barras de caja a 6 semanas */
+.semanas { margin-top: 14px; }
+.semanas .barras { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; align-items: end; height: 58px; }
+.semanas .barras i { display: block; border-radius: 3px 3px 0 0; background: color-mix(in oklab, var(--color-tinta) 18%, transparent); transform-origin: bottom; }
+.semanas .barras i.bajo { background: var(--color-tinta); }
+.semanas .minimo { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--color-taupe); }
+.semanas .ejes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 4px; font-size: 11px; color: var(--color-taupe); text-align: center; font-variant-numeric: tabular-nums; }
+.partes { margin-top: 12px; display: grid; gap: 8px; }
+.parte { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding-top: 8px; border-top: 1px solid var(--color-sand); font-size: 13px; }
+.parte span { color: var(--color-tinta); }
+.parte span small { display: block; font-size: 12px; color: var(--color-taupe); }
+.parte b { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Secciones (h2 de bloque) */
+.bloque { margin-top: 30px; }
+.bloque-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 20px; padding: 18px 22px 14px; border-bottom: 1px solid var(--color-sand); }
+.bloque-cab h2 { font-family: var(--font-serif); font-weight: 600; font-size: 22px; line-height: 1.2; }
+.bloque-cab p { font-size: 13.5px; color: var(--color-taupe); margin-top: 3px; max-width: 70ch; }
+.bloque-cab .der { font-size: 13px; color: var(--color-taupe); text-align: right; }
+.bloque-cab .der b { color: var(--color-tinta); font-weight: 600; }
+
+/* Decisiones de esta semana */
+.decisiones { list-style: none; }
+.dec { display: grid; grid-template-columns: 10px minmax(0, 1fr) 190px 160px; gap: 6px 16px; align-items: center; padding: 16px 22px; border-top: 1px solid var(--color-sand); transition: background-color 150ms, opacity 200ms; }
+.dec:first-child { border-top: 0; }
+.dec:nth-child(even) { background: color-mix(in oklab, var(--color-hueso) 35%, transparent); }
+.dec .punto { width: 8px; height: 8px; border-radius: 50%; align-self: start; margin-top: 7px; background: var(--color-taupe); }
+.dec .punto[data-tono="ambar"] { background: var(--color-ambar); }
+.dec .punto[data-tono="pizarra"] { background: var(--color-pizarra); }
+.dec-tipo { font-size: 11px; color: var(--color-taupe); }
+.dec-que { margin-top: 3px; font-size: 15px; font-weight: 500; line-height: 1.4; }
+.dec-det { margin-top: 3px; font-size: 13px; color: var(--color-taupe); line-height: 1.5; }
+.dec-monto { text-align: right; }
+.dec-monto b { display: block; font-size: 22px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.dec-monto span { display: block; font-size: 12px; color: var(--color-taupe); line-height: 1.35; }
+.dec-accion { display: flex; justify-content: flex-end; }
+.dec-accion .btn-cayla { min-width: 140px; }
+.dec.hecha .dec-texto, .dec.hecha .dec-monto { opacity: 0.55; }
+.dec.hecha .dec-que { text-decoration: line-through; text-decoration-color: color-mix(in oklab, var(--color-tinta) 40%, transparent); }
+.dec.resalta { animation: cayla-destello 1400ms var(--ease-cayla); }
+.dec-vacia { padding: 18px 22px; border-top: 1px dashed var(--color-sand); display: flex; gap: 14px; align-items: flex-start; font-size: 13.5px; color: var(--color-taupe); line-height: 1.55; }
+.dec-vacia b { color: var(--color-tinta); font-weight: 600; }
+.disco { width: 34px; height: 34px; border-radius: 50%; background: var(--color-hueso); display: grid; place-items: center; flex: none; color: var(--color-taupe); }
+.pie-bloque { padding: 12px 22px; border-top: 1px solid var(--color-sand); font-size: 12.5px; color: var(--color-taupe); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 18px; }
+
+/* Tabla (TABLA de ui/Tabla.tsx: cabecera sand, títulos taupe, zebra hueso) */
+.scroll { overflow-x: auto; }
+table.t { width: 100%; border-collapse: collapse; min-width: 960px; }
+table.t thead th { background: color-mix(in oklab, var(--color-sand) 70%, transparent); font-size: 12px; font-weight: 400; color: var(--color-taupe); text-align: right; padding: 9px 12px; vertical-align: bottom; line-height: 1.3; }
+table.t thead th small { display: block; font-size: 11px; color: color-mix(in oklab, var(--color-taupe) 80%, transparent); }
+table.t thead th:first-child, table.t td:first-child { text-align: left; padding-left: 22px; }
+table.t thead th:last-child, table.t td:last-child { padding-right: 22px; }
+table.t td { padding: 12px; border-top: 1px solid var(--color-sand); text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; vertical-align: top; white-space: nowrap; }
+table.t tbody tr.fila:nth-child(even of .fila) { background: color-mix(in oklab, var(--color-hueso) 50%, transparent); }
+table.t tbody tr.fila { transition: background-color 150ms; }
+table.t tbody tr.fila:hover { background: color-mix(in oklab, var(--color-crema) 60%, transparent); }
+table.t tr.total td { background: color-mix(in oklab, var(--color-sand) 35%, transparent); font-weight: 600; border-top: 1px solid color-mix(in oklab, var(--color-taupe) 35%, transparent); }
+table.t td .d2 { display: block; font-size: 12px; font-weight: 400; color: var(--color-taupe); white-space: nowrap; line-height: 1.35; margin-top: 2px; }
+table.t td.c-neg .d2, table.t td.c-tipo .d2 { white-space: normal; }
+table.t td .d2.ambar { color: var(--color-ambar); }
+table.t td .d2.rojo { color: var(--color-rojo-profundo); }
+table.t td.c-tipo { text-align: left; white-space: normal; min-width: 200px; }
+table.t td.c-neg { min-width: 150px; }
+table.t td.c-tipo .d2 { max-width: 210px; }
+.neg b { font-weight: 600; font-size: 14.5px; }
+.neg .d2 { font-size: 12px; }
+.sin { color: color-mix(in oklab, var(--color-tinta) 45%, transparent); }
+.valor-ambar { color: var(--color-ambar); }
+.valor-rojo { color: var(--color-rojo-profundo); }
+.valor-verde { color: var(--color-verde); }
+.cita { font-family: var(--font-serif); font-style: italic; font-size: 15px; color: var(--color-tinta); }
+.leyenda-tipos { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.leyenda-tipos span { display: inline-flex; gap: 6px; align-items: baseline; }
+
+/* El Taller */
+.taller-cab-der { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 240px; }
+.capacidad { width: 240px; }
+.capacidad .pista { height: 6px; border-radius: 99px; background: color-mix(in oklab, var(--color-tinta) 8%, transparent); overflow: hidden; }
+.capacidad .pista i { display: block; height: 100%; background: var(--color-tinta); border-radius: 99px; transform-origin: left; }
+.capacidad p { font-size: 12.5px; color: var(--color-taupe); margin-top: 4px; text-align: right; }
+.capacidad p b { color: var(--color-tinta); }
+table.t.taller { min-width: 720px; }
+.vacio-bloque { padding: 26px 22px; display: flex; gap: 14px; align-items: flex-start; font-size: 14px; color: var(--color-taupe); line-height: 1.55; }
+.vacio-bloque b { color: var(--color-tinta); }
+
+.nota-final { margin-top: 30px; }
+
+/* Pantallas que no son el tablero */
+.anotacion { border: 1px dashed var(--color-taupe); border-radius: var(--radius-lg); padding: 12px 16px; font-size: 13px; color: var(--color-taupe); margin-bottom: 26px; line-height: 1.55; }
+.anotacion b { color: var(--color-tinta); }
+.centro { display: flex; min-height: 52vh; align-items: center; justify-content: center; padding: 20px 0; }
+.aviso-sede { max-width: 32rem; width: 100%; padding: 32px; text-align: center; }
+.aviso-sede .disco { width: 48px; height: 48px; margin: 0 auto 14px; border-radius: 50%; background: var(--color-hueso); display: grid; place-items: center; color: var(--color-tinta); }
+.aviso-sede .label-cayla { font-size: 11px; color: var(--color-taupe); }
+.aviso-sede h1, .aviso-sede h2 { margin-top: 6px; font-size: 26px; line-height: 1.2; }
+.aviso-sede p.t { margin-top: 10px; font-size: 14.5px; color: color-mix(in oklab, var(--color-tinta) 75%, transparent); }
+.aviso-sede .botones { margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.aviso-sede .botones .btn-cayla { min-width: 128px; }
+.aviso-sede .volver { margin-top: 18px; }
+.placeholder { margin-top: 26px; padding: 30px; text-align: center; color: var(--color-taupe); font-size: 14px; border-style: dashed; background: transparent; }
+
+/* ---------------- Modal (<Modal>, ADR-0136) ---------------- */
+.velo { position: fixed; inset: 0; z-index: 90; background: rgb(26 26 24 / 0.32); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: cayla-velo 220ms var(--ease-cayla) both; }
+.velo.sale { animation: cayla-velo-sale 220ms var(--ease-salida) both; }
+.hoja { position: fixed; z-index: 91; left: 50%; top: 64px; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 96px); overflow: auto; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl); padding: 24px 24px 20px; margin-left: calc(min(560px, calc(100vw - 32px)) / -2); box-shadow: var(--shadow-xl); }
+.hoja.entra { animation: cayla-modal-entra 420ms var(--ease-cayla) backwards; }
+.hoja.sale { animation: cayla-modal-sale 220ms var(--ease-salida) both; }
+.cascada > * { animation: cayla-cascada 500ms var(--ease-cayla) backwards; animation-delay: calc(var(--k, 0) * 55ms + 120ms); }
+.hoja h2 { font-size: 25px; line-height: 1.2; padding-right: 36px; }
+.hoja .bajada { margin-top: 4px; font-size: 14px; color: var(--color-taupe); }
+.x { position: absolute; right: 14px; top: 14px; width: 34px; height: 34px; border-radius: var(--radius-md); display: grid; place-items: center; color: var(--color-taupe); }
+.x:hover { background: color-mix(in oklab, var(--color-sand) 50%, transparent); color: var(--color-tinta); }
+.ruta { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); align-items: stretch; gap: 8px; }
+.ruta .sede { border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 10px 12px; }
+.ruta .sede .label-cayla { font-size: 10.5px; color: var(--color-taupe); }
+.ruta .sede b { display: block; font-size: 15px; font-weight: 600; margin-top: 2px; }
+.ruta .sede span { display: block; font-size: 12.5px; color: var(--color-taupe); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.ruta .flecha { display: grid; place-items: center; color: var(--color-taupe); }
+.prenda { margin-top: 12px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-lg); background: color-mix(in oklab, var(--color-hueso) 55%, transparent); }
+.tela { width: 34px; height: 40px; border-radius: 6px; background: var(--color-hueso); border: 1px solid color-mix(in oklab, var(--color-taupe) 30%, transparent); flex: none; }
+.prenda b { display: block; font-size: 14.5px; font-weight: 600; }
+.prenda span { display: block; font-size: 12.5px; color: var(--color-taupe); }
+.campo { margin-top: 16px; }
+.campo > .label-cayla { display: block; font-size: 11px; color: var(--color-taupe); margin-bottom: 8px; }
+.paso { display: flex; align-items: center; gap: 10px; }
+.paso button { width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--color-sand); background: var(--color-hueso); font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.paso button:hover:not(:disabled) { border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent); }
+.paso button:disabled { opacity: 0.4; cursor: not-allowed; }
+.paso output { font-family: var(--font-serif); font-weight: 600; font-size: 30px; min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+.paso .sug { font-size: 12.5px; color: var(--color-taupe); }
+.reparto { margin-top: 8px; font-size: 13px; color: var(--color-tinta); line-height: 1.5; min-height: 3em; }
+.reparto.ambar { color: var(--color-ambar); }
+.resp { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: color-mix(in oklab, var(--color-hueso) 55%, transparent); font-size: 13.5px; }
+.resp .av { width: 30px; height: 30px; font-size: 12px; }
+.resp small { display: block; font-size: 12px; color: var(--color-taupe); }
+.info { margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius-lg); background: color-mix(in oklab, var(--color-pizarra) 10%, transparent); color: var(--color-pizarra); font-size: 13px; line-height: 1.5; }
+.info svg { margin-top: 1px; }
+.hoja-pie { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--color-sand); }
+.gira { animation: cayla-gira 800ms linear infinite; }
+
+/* Aviso de éxito (avisar.exito), arriba a la derecha */
+.avisos { position: fixed; top: calc(var(--barra) + 12px); right: 16px; z-index: 95; display: grid; gap: 8px; }
+.aviso { display: flex; gap: 10px; align-items: flex-start; width: min(370px, calc(100vw - 32px)); background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl); padding: 12px 14px; box-shadow: var(--shadow-lg); font-size: 13.5px; animation: cayla-aviso 320ms var(--ease-cayla) both; }
+.aviso.sale { animation: cayla-velo-sale 220ms var(--ease-salida) both; }
+.aviso .ok { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; background: color-mix(in oklab, var(--color-verde) 14%, transparent); color: var(--color-verde); }
+.aviso .ok.info { background: color-mix(in oklab, var(--color-pizarra) 14%, transparent); color: var(--color-pizarra); }
+.aviso .ok svg { width: 14px; height: 14px; stroke-width: 2; }
+.aviso .ok:not(.info) path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: cayla-trazo 380ms 140ms var(--ease-cayla) forwards; }
+.aviso b { font-weight: 600; display: block; }
+.aviso p { color: var(--color-taupe); font-size: 13px; margin-top: 1px; }
+
+/* Loader único (ADR-0149): cubre todo, dura lo que tarda */
+.espera { position: fixed; inset: 0; z-index: 99; display: grid; place-items: center; background: color-mix(in oklab, var(--color-crema) 82%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); animation: cayla-velo 200ms var(--ease-cayla) both; }
+.espera div { display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 13.5px; color: var(--color-taupe); }
+.espera svg { height: 30px; width: auto; }
+
+/* ---------------- Panel «Ver como» (solo de la maqueta; no existe en el ERP) ---------------- */
+.vc { position: fixed; right: 16px; bottom: 16px; z-index: 80; width: 300px; background: var(--color-tinta); color: var(--color-crema); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); font-size: 13px; }
+.vc-cab { display: flex; width: 100%; align-items: center; gap: 8px; padding: 11px 14px; color: var(--color-crema); font-weight: 600; }
+.vc-cab .tag { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: color-mix(in oklab, var(--color-crema) 60%, transparent); border: 1px dashed color-mix(in oklab, var(--color-crema) 40%, transparent); border-radius: 99px; padding: 1px 8px; }
+.vc-cab .ic { margin-left: auto; width: 16px; height: 16px; transition: transform 200ms var(--ease-cayla); }
+.vc[data-abierto="false"] .vc-cab .ic { transform: rotate(180deg); }
+.vc[data-abierto="false"] .vc-cuerpo { display: none; }
+.vc[data-abierto="false"] { width: auto; }
+.vc-cuerpo { padding: 0 14px 14px; display: grid; gap: 8px; }
+.vc-l { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: color-mix(in oklab, var(--color-crema) 55%, transparent); margin-top: 6px; }
+.vc-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid color-mix(in oklab, var(--color-crema) 28%, transparent); border-radius: var(--radius-md); overflow: hidden; }
+.vc-seg button { padding: 7px 8px; font-size: 12.5px; font-weight: 500; color: var(--color-crema); }
+.vc-seg button + button { border-left: 1px solid color-mix(in oklab, var(--color-crema) 20%, transparent); }
+.vc-seg button[aria-pressed="true"] { background: var(--color-crema); color: var(--color-tinta); }
+.vc-sw { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 4px 0; }
+.vc-sw input { appearance: none; -webkit-appearance: none; width: 30px; height: 18px; border-radius: 99px; background: color-mix(in oklab, var(--color-crema) 25%, transparent); position: relative; flex: none; margin-top: 1px; cursor: pointer; transition: background-color 150ms; }
+.vc-sw input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-crema); transition: transform 180ms var(--ease-cayla); }
+.vc-sw input:checked { background: var(--color-verde); }
+.vc-sw input:checked::after { transform: translateX(12px); }
+.vc-sw b { display: block; font-weight: 600; font-size: 12.5px; }
+.vc-sw small { display: block; font-size: 11.5px; line-height: 1.4; color: color-mix(in oklab, var(--color-crema) 65%, transparent); }
+.vc-link { text-align: left; font-size: 12.5px; color: var(--color-crema); text-decoration: underline; text-underline-offset: 3px; padding: 2px 0; }
+.vc-link:hover { color: color-mix(in oklab, var(--color-crema) 75%, transparent); }
+.vc-pie { font-size: 11px; line-height: 1.45; color: color-mix(in oklab, var(--color-crema) 55%, transparent); border-top: 1px solid color-mix(in oklab, var(--color-crema) 15%, transparent); padding-top: 8px; margin-top: 4px; }
+
+/* Barra de abajo (celular) */
+.tabs { display: none; }
+
+/* ---------------- Movimiento (globals.css) ---------------- */
+@keyframes cayla-sube { from { opacity: 0; transform: translate3d(0, 16px, 0); } }
+@keyframes cayla-dibuja-x { from { transform: scaleX(0); } }
+@keyframes cayla-velo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cayla-velo-sale { to { opacity: 0; } }
+@keyframes cayla-revelar { from { opacity: 0; transform: translate3d(0, -3px, 0); } to { opacity: 1; transform: none; } }
+@keyframes cayla-asentar { from { opacity: 0.35; transform: translate3d(0, 4px, 0); } to { opacity: 1; transform: none; } }
+@keyframes cayla-modal-entra { from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
+@keyframes cayla-modal-sale { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); } }
+@keyframes cayla-hoja { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
+@keyframes cayla-hoja-sale { to { opacity: 0; transform: translate3d(0, 24px, 0); } }
+@keyframes cayla-cascada { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+@keyframes cayla-aviso { from { opacity: 0; transform: translate3d(0, -8px, 0); } }
+@keyframes cayla-trazo { to { stroke-dashoffset: 0; } }
+@keyframes cayla-gira { to { transform: rotate(360deg); } }
+@keyframes cayla-crece-x { from { transform: scaleX(0); } }
+@keyframes cayla-crece-y { from { transform: scaleY(0); } }
+@keyframes cayla-destello { 0% { background: color-mix(in oklab, var(--color-sand) 80%, transparent); } 100% { background: transparent; } }
+/* Llegada a la pantalla: escalonada, una sola vez (ADR-0128). Filtrar NO re-anima. */
+.llega .anim-sube { animation: cayla-sube 850ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 70ms + 80ms); }
+.llega .hilo { transform-origin: left; animation: cayla-dibuja-x 1.1s var(--ease-cayla) 250ms backwards; }
+.llega .medidor .relleno, .llega .capacidad .pista i { animation: cayla-crece-x 900ms var(--ease-cayla) 450ms backwards; }
+.llega .semanas .barras i { animation: cayla-crece-y 700ms var(--ease-cayla) backwards; animation-delay: calc(var(--b, 0) * 45ms + 450ms); }
+/* Una cifra que cambió (otro periodo) se re-asienta para que el ojo note el cambio */
+.asienta { animation: cayla-asentar 320ms var(--ease-cayla) both; }
+
+/* ---------------- Anchos ---------------- */
+@media (max-width: 1240px) {
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1080px) {
+  .dec { grid-template-columns: 10px minmax(0, 1fr) 150px; }
+  .dec-accion { grid-column: 2 / -1; justify-content: flex-start; }
+}
+@media (max-width: 767px) {
+  :root { --barra: 56px; }
+  .lateral { display: none; }
+  .barra { left: 0; padding: 0 16px; }
+  .barra .plegar { display: none; }
+  .barra .logo-movil { display: flex; align-items: center; }
+  .barra .logo-movil svg { height: 26px; width: auto; }
+  main { margin-left: 0; padding: calc(var(--barra) + 22px) 16px 150px; }
+  .enc h1 { font-size: 36px; }
+  .enc-der { align-items: flex-start; }
+  .veredicto { margin-top: 26px; }
+  .veredicto p { font-size: 22px; }
+  .cifras { grid-template-columns: 1fr; }
+  .bloque-cab { padding: 16px; }
+  .bloque-cab .der { text-align: left; }
+  /* Decisiones: filas apiladas, el botón debajo */
+  .dec { grid-template-columns: 10px minmax(0, 1fr); padding: 16px; }
+  .dec-monto { grid-column: 2; text-align: left; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .dec-monto b { display: inline; font-size: 20px; }
+  .dec-monto span { display: inline; }
+  .dec-accion { grid-column: 2; justify-content: stretch; margin-top: 6px; }
+  .dec-accion .btn-cayla, .dec-accion .chip { width: 100%; justify-content: center; }
+  .dec-vacia, .pie-bloque, .vacio-bloque { padding-left: 16px; padding-right: 16px; }
+  /* La tabla se vuelve fichas apiladas: cada dato con su etiqueta */
+  table.t, table.t.taller { min-width: 0; }
+  table.t thead { display: none; }
+  table.t, table.t tbody, table.t tr, table.t td { display: block; width: 100%; }
+  table.t tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; padding: 16px; border-top: 1px solid var(--color-sand); }
+  table.t tbody tr:first-child { border-top: 0; }
+  table.t td, table.t td:first-child, table.t td:last-child { padding: 0; border: 0; text-align: left; white-space: normal; }
+  table.t td[data-l]::before { content: attr(data-l); display: block; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); margin-bottom: 2px; }
+  table.t td.c-neg, table.t td.c-tipo { grid-column: 1 / -1; }
+  table.t td.c-neg { order: -2; }
+  table.t td.c-tipo { order: -1; }
+  table.t td.c-tipo { min-width: 0; }
+  table.t td .d2 { white-space: normal; }
+  table.t tr.total td { background: transparent; border: 0; }
+  table.t tr.total { background: color-mix(in oklab, var(--color-sand) 35%, transparent); }
+  .taller-cab-der { align-items: flex-start; min-width: 0; width: 100%; }
+  .capacidad { width: 100%; }
+  .capacidad p { text-align: left; }
+  /* Modal: hoja que sube desde el borde, sin escala */
+  .hoja { left: 0; right: 0; bottom: 0; top: auto; width: auto; margin-left: 0; max-height: 90vh; border-radius: var(--radius-2xl) var(--radius-2xl) 0 0; padding: 22px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .hoja.entra { animation-name: cayla-hoja; animation-duration: 380ms; }
+  .hoja.sale { animation-name: cayla-hoja-sale; }
+  .ruta { grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr); }
+  .hoja-pie .btn-cayla { flex: 1; }
+  .avisos { left: 16px; right: 16px; }
+  .aviso { width: 100%; }
+  .aviso-sede { padding: 24px 18px; }
+  .aviso-sede .botones .btn-cayla { flex: 1 1 100%; }
+  /* Barra de abajo */
+  .tabs { display: grid; position: fixed; left: 0; right: 0; bottom: 0; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); grid-template-columns: repeat(4, 1fr); background: color-mix(in oklab, var(--color-crema) 95%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid color-mix(in oklab, var(--color-tinta) 10%, transparent); z-index: 40; }
+  .tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .tabs button[aria-current="page"] { color: var(--color-tinta); font-weight: 600; }
+  .vc { right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); width: min(300px, calc(100vw - 24px)); }
+  .lista { width: min(280px, calc(100vw - 32px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<aside class="lateral" id="lateral" aria-label="Menú principal"></aside>
+<header class="barra" id="barra"></header>
+<main><div class="pag" id="pag"></div></main>
+<nav class="tabs" id="tabs" aria-label="Menú"></nav>
+<div id="capa"></div>
+<div class="avisos" id="avisos" aria-live="polite"></div>
+<div id="espera"></div>
+<aside class="vc" id="vc" aria-label="Controles de la maqueta"></aside>
+
+<script>
+/* ==================================================================
+   Íconos: los trazos de apps/web/components/AppShell.tsx (IC).
+   «pulso» y «config» son propuestas de esta maqueta (ver README).
+   ================================================================== */
+const IC = {
+  pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
+  panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
+  gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
+  dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
+  reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
+  impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
+  cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
+  config: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
+  actividad: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
+  existencias: "M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4",
+  movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
+  analisis: "M3 17l6-6 4 4 8-8M15 6h6v6",
+  traslados: "M4 12h13M13 5l7 7-7 7",
+  produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
+  venta: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
+  vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  catalogo: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  compras: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2M12 12v4m-2-2h4",
+  finanzas: "M4 4h9v7H4zM15 4h5v4h-5zM15 10h5v10h-5zM4 13h9v7H4z",
+  chev: "M9 6l6 6-6 6", abajo: "M6 9l6 6 6-6", visto: "M5 12l5 5L20 7", cerrar: "M6 6l12 12M18 6L6 18",
+  menu: "M4 7h16M4 12h16M4 17h16", mas: "M5 12h.01M12 12h.01M19 12h.01", candado: "M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z",
+  info: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 16v-5M12 8h.01", reloj: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2"
+};
+const svg = (k, c = "ic") => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+/* El colibrí (components/ui/IsotipoCayla.tsx) */
+const ISOTIPO = `<svg viewBox="0 0 223 150" aria-hidden="true" fill="none" stroke="var(--color-rojo)" stroke-width="9" stroke-linejoin="round"><path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102"/><path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87"/><path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12"/><path d="M172,16 C156,22 144,38 134,62"/></svg>`;
+
+/* ==================================================================
+   Datos de ejemplo — inventados, pero cuadran entre sí:
+   · 12 meses: vendió S/ 1,940,000, margen S/ 1,003,000 (52 %), ganó S/ 232,000.
+   · Capital: S/ 748,000 = stock S/ 418,000 + muebles, equipos, telas y máquinas S/ 330,000.
+   · Retorno 232,000 ÷ 748,000 = 31 %. GMROI 1,003,000 ÷ 418,000 = 2.40.
+   · Semanas de stock = stock al costo ÷ costo de lo vendido por semana (12 meses).
+   ================================================================== */
+const TASA_CORTE = 12, BONO = 6.2;
+const PERIODOS = {
+  sep: { nombre: "Septiembre", nota: "Del 1 al 28 · faltan 2 días para cerrar", col: "sept., al 28", mes: "septiembre" },
+  ago: { nombre: "Agosto", nota: "Mes cerrado", col: "agosto", mes: "agosto" },
+  "12m": { nombre: "12 meses", nota: "Octubre 2025 a septiembre 2026", col: "12 meses", mes: "los últimos 12 meses" },
+};
+/* v vendió · g ganó (utilidad operativa, antes de impuestos) · c caja que generó */
+const NEGOCIOS = [
+  { id: "tru", nombre: "Tienda TRU", sub: "Trujillo", stock: 135000, activos: 60000, rinde: 110, semanas: 17, cap100: 22, clase: "gran",
+    p: { sep: { v: 73900, g: 17600, c: 16200 }, ago: { v: 79200, g: 19300, c: 20600 }, "12m": { v: 900000, g: 215000, c: 221000 } } },
+  { id: "aqp", nombre: "Tienda AQP", sub: "Arequipa · reformada en marzo", stock: 108000, activos: 95000, rinde: 45, semanas: 21, cap100: 36, clase: "buen",
+    p: { sep: { v: 43500, g: 6100, c: 3900 }, ago: { v: 47100, g: 7400, c: 5200 }, "12m": { v: 560000, g: 91800, c: 35800 } } },
+  { id: "lim", nombre: "Tienda LIM", sub: "Lima", stock: 175000, activos: 85000, rinde: 8, semanas: 34, cap100: 54, clase: "pesado",
+    p: { sep: { v: 38600, g: 500, c: 2300 }, ago: { v: 40300, g: 1100, c: 3600 }, "12m": { v: 480000, g: 21200, c: 39200 } } },
+  { id: "emp", nombre: "Empresa", sub: "Gastos centrales", activos: 10000, clase: "central",
+    p: { sep: { g: -8000, c: -8000 }, ago: { g: -8000, c: -8000 }, "12m": { g: -96000, c: -100000 } } },
+  { id: "taller", nombre: "Taller", sub: "Confección, en Lima", stock: 60000, activos: 20000, clase: "aparte",
+    p: { sep: { c: -3100 }, ago: { c: -4200 }, "12m": { c: -18000 } } },
+];
+const TOTAL = { capital: 748000, stock: 418000, rinde: 31, semanas: 23,
+  p: { sep: { v: 156000, g: 16200, c: 11300 }, ago: { v: 166600, g: 19800, c: 17200 }, "12m": { v: 1940000, g: 232000, c: 178000 } } };
+const RENTABLE = { sep: { margen: 51, rebajas: 15 }, ago: { margen: 53, rebajas: 12 }, "12m": { margen: 52, rebajas: 14 } };
+const GMROI = "2.40";
+const SEMANAS_CAJA = [ ["28/9", 64200], ["5/10", 58900], ["12/10", 56000], ["19/10", 61300], ["26/10", 57400], ["2/11", 63800] ];
+const MINIMO_CAJA = 40000;
+
+/* El Taller contra maquilar afuera: costo por prenda en casa y la última cotización de maquila registrada */
+const TALLER = [
+  { tipo: "Blusa", casa: 18, afuera: 24, u: { sep: 620, ago: 660, "12m": 7400 } },
+  { tipo: "Vestido", casa: 34, afuera: 41, u: { sep: 380, ago: 410, "12m": 4300 } },
+  { tipo: "Falda", casa: 16, afuera: 19, u: { sep: 240, ago: 250, "12m": 2900 } },
+  { tipo: "Pantalón", casa: 31, afuera: 29, u: { sep: 260, ago: 290, "12m": 3100 } },
+  { tipo: "Casaca", casa: 52, afuera: 58, u: { sep: 140, ago: 150, "12m": 1300 } },
+];
+const CAPACIDAD = { sep: [82, 1640, 2000], ago: [88, 1760, 2000], "12m": [79, 18960, 24000] };
+
+/* Decisiones de esta semana, ordenadas por soles en juego. porPrenda: necesita semanas de ventas por prenda en el ERP. */
+const DECISIONES = [
+  { id: "rebajar", tipo: "Rebajar", donde: "Tienda LIM", tono: "ambar", porPrenda: true,
+    que: "12 modelos llevan más de 90 días colgados en LIM: 380 prendas.",
+    det: "Cada semana que siguen colgados, la rebaja que van a necesitar es más grande.",
+    monto: 18400, montoTxt: "al costo, colgados", accion: "Ver prendas",
+    aviso: ["En la versión real abre Frescura del piso de Tienda LIM", "Los 12 modelos con más de 90 días, cada uno con la rebaja que conviene y cuánto se recupera."] },
+  { id: "meta", tipo: "Meta", donde: "Tienda AQP", tono: "ambar",
+    que: "AQP va en 68 % de su meta con 2 días por cerrar.",
+    det: "Al ritmo de hoy cierra septiembre en S/ 46,600 contra una meta de S/ 64,000. Octubre tiene la misma meta.",
+    monto: 17400, montoTxt: "bajo la meta", accion: "Ajustar meta",
+    aviso: ["En la versión real abre Configuración ▸ Metas", "La meta de octubre de Tienda AQP, con lo que vendió cada mes al lado para fijarla con datos."] },
+  { id: "mover", tipo: "Dinero", donde: "Cuenta BCP", tono: "pizarra",
+    que: "S/ 16,000 sobre tu mínimo de caja en la cuenta BCP.",
+    det: "Aun en la semana más apretada (la del 12 de octubre) seguirías sobre tu mínimo de S/ 40,000.",
+    monto: 16000, montoTxt: "que no vas a necesitar en 6 semanas", accion: "Mover dinero",
+    aviso: ["En la versión real abre Finanzas ▸ Cuentas y dinero", "Para pasar el sobrante a otra cuenta o a un depósito a plazo. Queda anotado quién lo movió y cuándo."] },
+  { id: "pagar", tipo: "Dinero", donde: "3 proveedores", tono: "ambar",
+    que: "3 pagos a proveedores vencen esta semana.",
+    det: "Textiles Andinos (miércoles), Avíos del Norte (jueves) y Distribuidora Aurora (viernes).",
+    monto: 9800, montoTxt: "por pagar", accion: "Pagar",
+    aviso: ["En la versión real abre Compras ▸ Por pagar", "Los 3 pagos de esta semana, listos para marcar como pagados desde la cuenta que elijas."] },
+  { id: "brisa", tipo: "Pedir producción", donde: "Las tres tiendas", tono: "pizarra", porPrenda: true,
+    que: "El Vestido Brisa vendió el 46 % en 3 semanas en las tres tiendas.",
+    det: "Al ritmo de hoy se agota en 3 semanas y el Taller tarda 4 en hacer otra tanda. Sugerido: 60 vestidos.",
+    monto: 9500, montoTxt: "de venta si se agota", accion: "Pedir al Taller",
+    aviso: ["En la versión real abre una orden nueva del Taller", "Vestido Brisa, 60 prendas, repartidas según lo que vende cada tienda. Producirlas cuesta unos S/ 2,040."] },
+  { id: "aurora", tipo: "Marca", donde: "Aurora, de un tercero", tono: "pizarra", porPrenda: true,
+    que: "Marca Aurora: cada S/ 1 en stock deja S/ 1.10 al año; tu marca deja S/ 3.20.",
+    det: "Aurora espera la confirmación de su pedido de verano hasta el viernes.",
+    monto: 8600, montoTxt: "de pedido por confirmar", accion: "Ver marca",
+    aviso: ["En la versión real abre la marca Aurora", "Lo que se vendió, lo que queda en cada tienda y cuánto deja cada sol en stock, al lado de tu marca."] },
+  { id: "frenar", tipo: "Frenar", donde: "Taller", tono: "ambar", porPrenda: true,
+    que: "El Pantalón Recto lleva 5 % vendido en 6 semanas y hay 60 en producción.",
+    det: "Las otras prendas nuevas de la temporada van en 30 % a las 6 semanas.",
+    monto: 1860, montoTxt: "al costo, por fabricar", accion: "Frenar la orden",
+    aviso: ["En la versión real abre la orden OP-0418 del Taller", "Para pausarla antes de cortar la tela. La tela ya comprada queda para otra prenda."] },
+  { id: "traslado", tipo: "Trasladar", donde: "TRU → AQP", tono: "pizarra", porPrenda: true, modal: true,
+    que: "Blusa Lino talla M: alcanza 14 semanas en TRU y está agotada en AQP.",
+    det: "AQP vendía 6 por semana antes de agotarse. Sugerido: 10 prendas.",
+    monto: 1300, montoTxt: "de venta en AQP", accion: "Armar traslado" },
+];
+/* El primer día no hay detalle por prenda: lo que sí se puede decidir con totales de Alegra */
+const DECISION_LIMA_TOTAL = { id: "lima", tipo: "Capital", donde: "Tienda LIM", tono: "ambar",
+  que: "Lima tiene 34 semanas de venta en stock, el doble que Trujillo.",
+  det: "Si rotara como Trujillo, liberaría ese capital. Qué prendas son, se sabrá cuando Lima opere en el ERP.",
+  monto: 87100, montoTxt: "al costo, de más contra TRU", accion: "Ver Lima",
+  aviso: ["En la versión real abre Finanzas ▸ Reportes de Tienda LIM", "Stock, ventas y semanas de stock de cada mes. El detalle por prenda llega cuando Lima opere en el ERP."] };
+
+const SEDES = [ { id: "taller", nombre: "Taller" }, { id: "aqp", nombre: "Tienda AQP" }, { id: "lim", nombre: "Tienda LIM" }, { id: "tru", nombre: "Tienda TRU" } ];
+const nombreSede = id => id === "global" ? "CAYLA Global" : (SEDES.find(s => s.id === id) || {}).nombre;
+
+/* ==================================================================
+   Estado
+   ================================================================== */
+const esCelular = () => window.matchMedia("(max-width: 767px)").matches;
+const sinMovimiento = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const st = {
+  cuenta: "admin",      // admin | lider
+  vista: "global",      // global | tru | aqp | lim | taller
+  ruta: "tablero",      // tablero | vender | inicio
+  periodo: "sep",
+  sinAlegra: false,
+  primerDia: false,
+  hechas: {},
+  listaAbierta: false,
+  panel: !esCelular(),
+  llega: true,          // la próxima pintada es una llegada (anima); filtrar no anima
+  asienta: false,
+};
+
+/* ==================================================================
+   Formato (el del ERP: lib/resumen-formato.ts → «S/ 51,870»)
+   ================================================================== */
+const n0 = n => Math.round(n).toLocaleString("en-US");
+const S = n => (n < 0 ? "−" : "") + "S/\u00a0" + n0(Math.abs(n));
+/* «S/ 46,600» nunca se parte entre la moneda y el número */
+const nb = t => String(t).replace(/S\/ (?=\d)/g, "S/\u00a0");
+const pct = n => `${n} %`;
+const esc = s => String(s).replace(/"/g, "&quot;");
+
+/* ==================================================================
+   Carcasa: lateral, barra de arriba, barra de abajo
+   ================================================================== */
+const MENU_GLOBAL = [
+  { titulo: null, items: [ { id: "salud", et: "Salud del negocio", ic: "pulso", ruta: "tablero" } ] },
+  { titulo: "Ventas", items: [ { id: "clientas", et: "Clientas", ic: "clientas", va: ["Clientas, de toda CAYLA", "Una sola lista de clientas para las tres tiendas."] } ] },
+  { titulo: "Finanzas", items: [
+    { id: "f-res", et: "Resumen", ic: "panorama", va: ["Finanzas ▸ Resumen, de toda CAYLA", "Se abre con «Todas las tiendas» ya elegido."] },
+    { id: "f-gas", et: "Gastos", ic: "gastos", va: ["Finanzas ▸ Gastos, de toda CAYLA", "Los gastos de las tres tiendas, el Taller y la empresa."] },
+    { id: "f-din", et: "Cuentas y dinero", ic: "dinero", va: ["Finanzas ▸ Cuentas y dinero", "Todas las cuentas, cajones y cajas fuertes de CAYLA."] },
+    { id: "f-rep", et: "Reportes", ic: "reportes", va: ["Finanzas ▸ Reportes, de toda CAYLA", "Estado de resultados, flujo de caja y presupuesto de la empresa entera."] },
+    { id: "f-imp", et: "Impuestos", ic: "impuestos", va: ["Finanzas ▸ Impuestos", "IGV y renta: ya eran de toda la empresa."] },
+    { id: "f-cie", et: "Cierre de mes", ic: "cierre", va: ["Finanzas ▸ Cierre de mes", "Cerrar septiembre para todas las sedes a la vez."] },
+  ] },
+  { titulo: "Gestión", items: [
+    { id: "config", et: "Configuración", ic: "config", va: ["Configuración: metas y presupuesto", "Metas de venta y presupuesto de cada tienda, tu mínimo de caja y tu mínimo exigido (12 %)."] },
+    { id: "actividad", et: "Actividad", ic: "actividad", va: ["Actividad, de todas las sedes", "Quién hizo qué, con fecha, hora y persona."] },
+  ] },
+  { titulo: "Pronto en la vista global", pronto: true, items: [
+    { id: "existencias", et: "Existencias", ic: "existencias" },
+    { id: "movimientos", et: "Movimientos", ic: "movimientos" },
+    { id: "analisis", et: "Análisis", ic: "analisis" },
+    { id: "traslados", et: "Traslados", ic: "traslados" },
+    { id: "produccion", et: "Producción", ic: "produccion" },
+  ] },
+];
+function menuSede() {
+  const items = [];
+  if (st.vista === "taller") items.push({ id: "produccion", et: "Producción", ic: "produccion", grupo: true });
+  items.push({ id: "inicio", et: "Inicio", ic: "inicio", ruta: "inicio" });
+  if (st.vista !== "taller") {
+    items.push({ id: "ventas", et: "Ventas", ic: "venta", grupo: true, abierto: st.ruta === "vender" });
+    if (st.ruta === "vender") items.push({ id: "pos", et: "Punto de Venta", ic: "vender", hija: true, ruta: "vender" }, { id: "caja", et: "Caja", ic: "dinero", hija: true }, { id: "hist", et: "Historial", ic: "actividad", hija: true });
+  }
+  items.push({ id: "inventario", et: "Inventario", ic: "inventario", grupo: true }, { id: "catalogo", et: "Catálogo", ic: "catalogo", grupo: true });
+  if (st.vista !== "taller") items.push({ id: "compras", et: "Compras", ic: "compras", grupo: true });
+  items.push({ id: "finanzas", et: "Finanzas", ic: "finanzas", grupo: true }, { id: "clientas", et: "Clientas", ic: "clientas" });
+  return [ { titulo: null, items } ];
+}
+function activoMenu() {
+  if (st.vista === "global") return st.ruta === "tablero" ? "salud" : null;
+  return st.ruta === "vender" ? "pos" : "inicio";
+}
+function pintarLateral() {
+  const grupos = st.vista === "global" ? MENU_GLOBAL : menuSede();
+  const act = activoMenu();
+  const persona = st.cuenta === "admin" ? { ini: "FA", nombre: "Felipe Alvarez", rol: "Admin · " + nombreSede(st.vista) } : { ini: "CV", nombre: "Carla Vega", rol: "Líder · Tienda TRU" };
+  document.getElementById("lateral").innerHTML = `
+    <div class="logo">${ISOTIPO}<span class="marca"><b>CAYLA</b><span>Retail</span></span></div>
+    <nav class="menu">
+      ${grupos.map(g => `<div class="menu-grupo ${g.pronto ? "pronto" : ""}">
+        ${g.titulo ? `<p class="label-cayla">${g.titulo}</p>` : ""}
+        ${g.items.map(it => `<button class="fila-menu ${it.hija ? "hija" : ""}" data-menu="${it.id}" ${g.pronto ? `aria-disabled="true" title="Pronto en la vista global: elige una sede para verla"` : ""} ${act === it.id ? `aria-current="page"` : ""}>
+          ${svg(it.ic)}<span>${it.et}</span>${it.grupo ? svg(it.abierto ? "abajo" : "chev", "ic chev") : ""}</button>`).join("")}
+      </div>`).join("")}
+    </nav>
+    <p class="lema">Donde el estilo transforma.</p>
+    <div class="yo"><span class="av">${persona.ini}</span><div><b>${persona.nombre}</b><span>${persona.rol}</span></div></div>`;
+}
+function opcionesSelector() {
+  if (st.cuenta !== "admin") return [ { grupo: null, ops: SEDES } ];
+  return [ { grupo: "Toda la empresa", ops: [ { id: "global", nombre: "CAYLA Global", sub: "Las tres tiendas, el Taller y la empresa: para analizar y decidir" } ] }, { grupo: "Sedes", ops: SEDES } ];
+}
+function pintarBarra() {
+  const grupos = opcionesSelector();
+  document.getElementById("barra").innerHTML = `
+    <span class="plegar" aria-hidden="true">${svg("menu")}</span>
+    <span class="logo-movil">${ISOTIPO}</span>
+    <div class="der">
+      <div class="selector" id="selector">
+        <button class="pastilla label-cayla" id="pastilla" aria-haspopup="listbox" aria-expanded="${st.listaAbierta}" aria-label="Cambiar de ubicación" data-global="${st.vista === "global"}">${nombreSede(st.vista)}${svg("abajo")}</button>
+        ${st.listaAbierta ? `<div class="lista" role="listbox" aria-label="Ubicaciones">
+          ${grupos.map((g, gi) => `${gi ? "<hr>" : ""}${g.grupo ? `<p class="grupo label-cayla">${g.grupo}</p>` : ""}
+            ${g.ops.map(o => `<button class="op" role="option" data-sede="${o.id}" aria-selected="${st.vista === o.id}"><span class="t">${o.nombre}${o.sub ? `<small>${o.sub}</small>` : ""}</span>${st.vista === o.id ? svg("visto", "ic visto") : ""}</button>`).join("")}`).join("")}
+        </div>` : ""}
+      </div>
+    </div>`;
+}
+function pintarTabs() {
+  const tabs = st.vista === "global"
+    ? [ ["salud", "Salud", "pulso"], ["clientas", "Clientas", "clientas"], ["f-res", "Finanzas", "finanzas"], ["mas", "Más", "mas"] ]
+    : [ ["inicio", "Inicio", "inicio"], ["ventas", "Ventas", "venta"], ["inventario", "Inventario", "inventario"], ["mas", "Más", "mas"] ];
+  const act = activoMenu();
+  document.getElementById("tabs").innerHTML = tabs.map(([id, et, ic]) => `<button data-menu="${id}" ${act === id || (act === "pos" && id === "ventas") ? `aria-current="page"` : ""}>${svg(ic)}${et}</button>`).join("");
+}
+
+/* ==================================================================
+   Tablero «Salud del negocio»
+   ================================================================== */
+function encabezado(sede, titulo, frase, derecha = "") {
+  return `<header class="enc">
+    <div class="enc-izq anim-sube">
+      <p class="enc-linea"><span class="hilo" aria-hidden="true"></span><span>${sede} · lunes 28 de septiembre</span></p>
+      <h1 class="font-display">${titulo}</h1>
+      <p class="enc-frase">${frase}</p>
+    </div>
+    ${derecha ? `<div class="enc-der anim-sube" style="--i:1">${derecha}</div>` : ""}
+  </header>`;
+}
+
+function veredicto() {
+  const top = st.primerDia ? "Lo que más cuesta hoy es el stock de más en Lima: <b>S/ 87,100</b> al costo." : "Lo que más cuesta hoy es el stock dormido de Lima: <b>S/ 18,400</b> al costo.";
+  const salud = st.sinAlegra ? "CAYLA tiene caja; si crea valor se sabrá con 12 meses de historia." : "CAYLA está sana: crea valor y tiene caja.";
+  return `<section class="veredicto anim-sube" style="--i:2" aria-label="Veredicto">
+    <p>${salud} ${top}</p>
+    <button class="btn-enlace" data-ir-decision>Ver la decisión ↓</button>
+  </section>`;
+}
+
+const cls = () => st.asienta ? "asienta" : "";
+
+function tarjetaValor() {
+  if (st.sinAlegra) return tarjetaVacia("¿Crea valor?", "Necesita 12 meses de ventas: disponible desde septiembre 2027, o al traer la historia de Alegra.", 0);
+  const w = x => `${x / 40 * 100}%`;
+  return `<article class="card-cayla cifra anim-sube" style="--i:3">
+    <div class="cifra-top"><p class="label-cayla">¿Crea valor?</p><span class="chip verde">Crea valor</span></div>
+    <p class="cifra-valor font-display">${pct(TOTAL.rinde)}</p>
+    <p class="cifra-sig">Por cada S/ 100 que CAYLA tiene metidos en stock, muebles y equipos, ganó S/ ${TOTAL.rinde} en los últimos 12 meses.</p>
+    <div class="medidor" role="img" aria-label="Rinde ${TOTAL.rinde} %; tu mínimo es ${TASA_CORTE} %">
+      <div class="pista"><span class="relleno" style="width:${w(TOTAL.rinde)}"></span><span class="corte" style="left:${w(TASA_CORTE)}"></span></div>
+      <div class="et"><span style="left:${w(TASA_CORTE)}">mínimo ${TASA_CORTE} %</span></div>
+    </div>
+    <ul class="cifra-det"><li>Tu mínimo exigido es <b>${TASA_CORTE} %</b>: bono del Perú ${BONO} % + riesgo del negocio ${(TASA_CORTE - BONO).toFixed(1)} %. Se cambia en Configuración.</li></ul>
+    <button class="cifra-accion label-cayla" data-detalle="valor">Ver detalle →</button>
+  </article>`;
+}
+
+function tarjetaCrece() {
+  if (st.sinAlegra) return tarjetaVacia("¿Crece?", "Necesita 12 meses de ventas: disponible desde septiembre 2027, o al traer la historia de Alegra.", 1);
+  if (st.periodo === "ago") return tarjetaVacia("¿Crece?", "Sin agosto 2025 para comparar: la historia de Alegra empieza en septiembre 2025. Septiembre sí se puede comparar.", 1, "Ver septiembre");
+  if (st.periodo === "12m") return tarjetaVacia("¿Crece?", "Comparar 12 meses con los 12 anteriores pide 24 meses de historia: disponible en septiembre 2027.", 1, "Ver septiembre");
+  return `<article class="card-cayla cifra anim-sube" style="--i:4">
+    <div class="cifra-top"><p class="label-cayla">¿Crece?</p><span class="chip verde">Crece</span></div>
+    <p class="cifra-valor font-display ${cls()}">+8 %</p>
+    <p class="cifra-sig">Al ritmo de hoy, septiembre cierra en S/ 167,100 contra S/ 154,700 de septiembre 2025.</p>
+    <div class="partes">
+      <div class="parte"><span>Más tickets<small>1,343 contra 1,279</small></span><b>+5 %</b></div>
+      <div class="parte"><span>Ticket más alto<small>S/ 125 contra S/ 121</small></span><b>+3 %</b></div>
+    </div>
+    <button class="cifra-accion label-cayla" data-detalle="crece">Ver detalle →</button>
+  </article>`;
+}
+
+function tarjetaRentable() {
+  const r = RENTABLE[st.periodo];
+  const x = v => `${v / 40 * 100}%`;
+  return `<article class="card-cayla cifra anim-sube" style="--i:5">
+    <div class="cifra-top"><p class="label-cayla">¿Es rentable?</p><span class="chip verde">Rentable</span></div>
+    <p class="cifra-valor font-display ${cls()}">${pct(r.margen)}</p>
+    <p class="cifra-sig">De cada S/ 100 vendidos en ${PERIODOS[st.periodo].mes} quedan S/ ${r.margen} después de pagar la prenda y las rebajas.</p>
+    <div class="escala" role="img" aria-label="${r.rebajas} de cada 100 prendas se vendieron rebajadas. Zara: 15 a 20. Sus pares: 30 a 40.">
+      <div class="arriba"><span style="left:${x(r.rebajas)}">CAYLA ${r.rebajas}</span></div>
+      <div class="pista"><span class="banda" style="left:${x(15)};width:${x(5)}"></span><span class="banda" style="left:${x(30)};width:${x(10)}"></span><span class="marca" style="left:${x(r.rebajas)}"></span></div>
+      <div class="abajo"><span style="left:${x(17.5)}">Zara</span><span style="left:${x(35)}">pares</span></div>
+    </div>
+    <ul class="cifra-det">
+      <li><b>${r.rebajas} de cada 100</b> prendas vendidas salieron con rebaja (Zara: 15 a 20; sus pares: 30 a 40).</li>
+      <li>${st.sinAlegra ? "Cuánto deja cada S/ 1 en stock: <b>necesita 12 meses</b>." : `Cada S/ 1 en stock dejó <b>S/ ${GMROI}</b> de margen en 12 meses (sano: más de 2).`}</li>
+    </ul>
+    <button class="cifra-accion label-cayla" data-detalle="rentable">Ver detalle →</button>
+  </article>`;
+}
+
+function tarjetaCaja() {
+  const t = TOTAL.p[st.periodo];
+  const max = 70000, min = Math.min(...SEMANAS_CAJA.map(s => s[1]));
+  return `<article class="card-cayla cifra anim-sube" style="--i:6">
+    <div class="cifra-top"><p class="label-cayla">¿Tiene caja?</p><span class="chip verde">Tiene caja</span></div>
+    <p class="cifra-valor font-display ${cls()}">${S(t.c)}</p>
+    <p class="cifra-sig">Caja libre de ${PERIODOS[st.periodo].mes}: lo que dejó el negocio después de pagar todo, incluidas telas y mercadería.</p>
+    <div class="semanas" role="img" aria-label="Saldo de las próximas 6 semanas; el punto más bajo es ${S(min)}, sobre tu mínimo de ${S(MINIMO_CAJA)}">
+      <div class="barras">
+        ${SEMANAS_CAJA.map(([, v], i) => `<i class="${v === min ? "bajo" : ""}" style="height:${v / max * 100}%;--b:${i}"></i>`).join("")}
+        <span class="minimo" style="bottom:${MINIMO_CAJA / max * 100}%"></span>
+      </div>
+      <div class="ejes">${SEMANAS_CAJA.map(s => `<span>${s[0]}</span>`).join("")}</div>
+    </div>
+    <ul class="cifra-det">
+      <li>En 6 semanas el punto más bajo es <b>${S(min)}</b> (semana del 12 de octubre): ${S(min - MINIMO_CAJA)} sobre tu mínimo de ${S(MINIMO_CAJA)}, la línea punteada.</li>
+      <li>El stock alcanza para <b>${TOTAL.semanas} semanas</b> de venta (${S(TOTAL.stock)} al costo).</li>
+    </ul>
+    <button class="cifra-accion label-cayla" data-detalle="caja">Ver detalle →</button>
+  </article>`;
+}
+
+function tarjetaVacia(etq, texto, i, accion) {
+  return `<article class="card-cayla cifra vacia anim-sube" style="--i:${3 + i}">
+    <div class="cifra-top"><p class="label-cayla">${etq}</p><span class="chip neutro">Sin historia</span></div>
+    <p class="cifra-valor font-display">—</p>
+    <p class="cifra-sig">${texto}</p>
+    ${accion ? `<button class="cifra-accion label-cayla" data-periodo="sep">${accion} →</button>` : `<button class="cifra-accion label-cayla" data-detalle="alegra">Qué hace falta →</button>`}
+  </article>`;
+}
+
+function decisionesVisibles() {
+  if (!st.primerDia) return DECISIONES;
+  return [DECISION_LIMA_TOTAL, ...DECISIONES.filter(d => !d.porPrenda)];
+}
+function bloqueDecisiones() {
+  const lista = decisionesVisibles();
+  const hechas = lista.filter(d => st.hechas[d.id]).length;
+  return `<section class="card-cayla bloque anim-sube" style="--i:7" id="decisiones" aria-labelledby="t-dec">
+    <div class="bloque-cab">
+      <div><h2 id="t-dec">Decisiones de esta semana</h2><p>Primero lo que más plata pone en juego. Cada una se resuelve con un botón y queda anotada con tu nombre.</p></div>
+      <p class="der"><b>${lista.length - hechas}</b> por decidir${hechas ? ` · ${hechas} ${hechas === 1 ? "hecha" : "hechas"}` : ""}</p>
+    </div>
+    <ul class="decisiones">
+      ${lista.map(d => {
+        const hecha = st.hechas[d.id];
+        return `<li class="dec ${hecha ? "hecha" : ""}" id="dec-${d.id}">
+          <span class="punto" data-tono="${d.tono}" aria-hidden="true"></span>
+          <div class="dec-texto">
+            <p class="dec-tipo label-cayla">${d.tipo} · ${d.donde}</p>
+            <p class="dec-que">${d.que}</p>
+            <p class="dec-det">${d.det}</p>
+          </div>
+          <div class="dec-monto"><b class="font-display">${S(d.monto)}</b><span>${d.montoTxt}</span></div>
+          <div class="dec-accion">${hecha ? `<span class="chip verde">${hecha}</span>` : `<button class="btn-cayla ${d.modal ? "btn-primario" : "btn-secundario"}" data-decision="${d.id}">${d.accion}</button>`}</div>
+        </li>`;
+      }).join("")}
+    </ul>
+    ${st.primerDia ? `<div class="dec-vacia"><span class="disco">${svg("reloj", "ic s")}</span><p><b>Las decisiones por prenda todavía no aparecen</b> (trasladar, pedir al Taller, frenar, rebajar y marcas): necesitan 3 semanas de ventas de cada prenda en el ERP. TRU y AQP las tendrán desde el lunes 19 de octubre; LIM y el Taller, 3 semanas después de empezar a operar en el ERP.</p></div>` : ""}
+    <div class="pie-bloque"><span>Ordenadas por soles en juego: lo que más cuesta si se deja pasar, primero.</span><span>Ámbar: empeora si esperas · Pizarra: oportunidad</span></div>
+  </section>`;
+}
+
+function chipTipo(n) {
+  if (st.sinAlegra && ["gran", "buen", "pesado"].includes(n.clase)) return `<span class="chip neutro">Sin 12 meses</span><span class="d2">Se clasifica con lo que rinde en un año.</span>`;
+  const T = {
+    gran: ["verde", "Gran negocio", `Usa S/ ${n.cap100} de capital por cada S/ 100 que vende al año.`],
+    buen: ["pizarra", "Buen negocio", `Usa S/ ${n.cap100} por cada S/ 100: crecer le pide capital.`],
+    pesado: ["ambar", "Negocio pesado", `Usa S/ ${n.cap100} por cada S/ 100 y rinde menos que tu mínimo.`],
+    central: ["neutro", "Costo central", "Contador, marketing, sistemas y oficina. Lo pagan las tiendas con su margen."],
+    aparte: ["neutro", "Se mide aparte", `No le vende a clientas: <button class="btn-enlace" data-ir-taller style="font-size:12px">contra maquilar afuera ↓</button>`],
+  }[n.clase];
+  return `<span class="chip ${T[0]}">${T[1]}</span><span class="d2">${T[2]}</span>`;
+}
+function celdaRinde(n) {
+  if (!["gran", "buen", "pesado"].includes(n.clase)) return `<span class="sin">—</span><span class="d2">${n.clase === "central" ? "no aplica" : "ver abajo"}</span>`;
+  if (st.sinAlegra) return `<span class="sin">—</span><span class="d2">necesita 12 meses</span>`;
+  return n.rinde < TASA_CORTE ? `<span class="valor-ambar">${pct(n.rinde)}</span><span class="d2 ambar">bajo tu mínimo</span>` : `${pct(n.rinde)}`;
+}
+function bloqueNegocios() {
+  const per = PERIODOS[st.periodo];
+  const filas = NEGOCIOS.map(n => {
+    const p = n.p[st.periodo];
+    const cap = (n.stock || 0) + n.activos;
+    return `<tr class="fila">
+      <td class="c-neg neg"><b>${n.nombre}</b><span class="d2">${n.sub}</span></td>
+      <td data-l="Vendió · ${per.col}"><span class="${cls()}">${p.v != null ? S(p.v) : `<span class="sin">—</span>`}</span>${p.v == null ? `<span class="d2">no vende</span>` : ""}</td>
+      <td data-l="Ganó · ${per.col}"><span class="${cls()}">${p.g != null ? S(p.g) : `<span class="sin">—</span>`}</span>${p.g == null ? `<span class="d2">va en cada prenda</span>` : ""}</td>
+      <td data-l="Capital que usa">${S(cap)}${n.stock && n.id !== "taller" ? `<span class="d2">stock ${n0(n.stock)}</span><span class="d2" style="margin-top:0">muebles ${n0(n.activos)}</span>` : n.id === "emp" ? `<span class="d2">equipos de oficina</span>` : `<span class="d2">telas y confección 60,000</span><span class="d2" style="margin-top:0">máquinas 20,000</span>`}</td>
+      <td data-l="Rinde al año">${celdaRinde(n)}</td>
+      <td data-l="Caja · ${per.col}"><span class="${cls()}">${S(p.c)}</span></td>
+      <td data-l="Semanas de stock">${n.semanas ? `${n.semanas}${n.id === "lim" ? `<span class="d2 ambar">el doble que TRU</span>` : ""}` : `<span class="sin">—</span>`}</td>
+      <td class="c-tipo" data-l="Tipo de negocio">${chipTipo(n)}</td>
+    </tr>`;
+  }).join("");
+  const t = TOTAL.p[st.periodo];
+  return `<section class="card-cayla bloque anim-sube" style="--i:8" id="negocios" aria-labelledby="t-neg">
+    <div class="bloque-cab">
+      <div><h2 id="t-neg">Cada negocio de CAYLA</h2><p>Como Buffett lee sus empresas: cuánto vende cada una, cuánto capital le pide y cuánto le rinde ese capital.</p></div>
+      <p class="der">Capital y semanas de stock: <b>hoy</b><br>Rinde: <b>últimos 12 meses</b></p>
+    </div>
+    <div class="scroll">
+      <table class="t">
+        <thead><tr>
+          <th>Negocio</th>
+          <th>Vendió<small>${per.col}</small></th>
+          <th>Ganó<small>utilidad operativa</small></th>
+          <th>Capital que usa<small>stock al costo + activos</small></th>
+          <th>Rinde<small>al año, sobre su capital</small></th>
+          <th>Caja que generó<small>${per.col}</small></th>
+          <th>Semanas<small>de stock</small></th>
+          <th style="text-align:left">Tipo de negocio</th>
+        </tr></thead>
+        <tbody>
+          ${filas}
+          <tr class="total">
+            <td class="c-neg neg"><b>CAYLA</b><span class="d2">toda la empresa</span></td>
+            <td data-l="Vendió · ${per.col}"><span class="${cls()}">${S(t.v)}</span></td>
+            <td data-l="Ganó · ${per.col}"><span class="${cls()}">${S(t.g)}</span></td>
+            <td data-l="Capital que usa">${S(TOTAL.capital)}</td>
+            <td data-l="Rinde al año">${st.sinAlegra ? `<span class="sin">—</span>` : pct(TOTAL.rinde)}</td>
+            <td data-l="Caja · ${per.col}"><span class="${cls()}">${S(t.c)}</span></td>
+            <td data-l="Semanas de stock">${TOTAL.semanas}</td>
+            <td class="c-tipo" data-l="Tipo de negocio"><span class="sin">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pie-bloque" style="display:grid;gap:8px">
+      <p class="cita">Buffett: un negocio flojo que da caja no se cierra, pero tampoco se rescata metiéndole más capital.</p>
+      <p class="leyenda-tipos">
+        <span><span class="chip verde">Gran negocio</span> rinde más de 3 veces tu mínimo y usa menos de S/ 25 de capital por cada S/ 100 que vende.</span>
+        <span><span class="chip pizarra">Buen negocio</span> rinde más que tu mínimo, pero crecer le pide más capital.</span>
+        <span><span class="chip ambar">Negocio pesado</span> rinde menos que tu mínimo (${TASA_CORTE} %).</span>
+      </p>
+    </div>
+  </section>`;
+}
+
+function bloqueTaller() {
+  const cab = `<div class="bloque-cab">
+      <div><h2 id="t-tal">El Taller, contra maquilar afuera</h2><p>El Taller no le vende a clientas: se mide por cuánto cuesta hacer cada prenda en casa contra mandarla a maquilar.</p></div>
+      ${st.primerDia ? "" : (() => { const [p, u, cap] = CAPACIDAD[st.periodo]; return `<div class="taller-cab-der"><div class="capacidad" role="img" aria-label="Capacidad usada ${p} %"><div class="pista"><i style="width:${p}%"></i></div><p>Capacidad usada: <b>${p} %</b> · ${n0(u)} de ${n0(cap)} prendas</p></div></div>`; })()}
+    </div>`;
+  if (st.primerDia) {
+    return `<section class="card-cayla bloque anim-sube" style="--i:9" id="taller" aria-labelledby="t-tal">${cab}
+      <div class="vacio-bloque"><span class="disco">${svg("produccion", "ic s")}</span><p><b>Sin datos: el Taller aún no opera en el ERP.</b> Cuando registre sus órdenes, aquí aparece cuánto cuesta cada tipo de prenda en casa contra maquilarla afuera, y cuánta de su capacidad se usa.</p></div>
+    </section>`;
+  }
+  let ahorro = 0;
+  const filas = TALLER.map(r => {
+    const u = r.u[st.periodo], dif = (r.casa - r.afuera) / r.afuera * 100, d = Math.round(dif);
+    ahorro += (r.afuera - r.casa) * u;
+    const caro = d > 0;
+    return `<tr class="fila">
+      <td class="c-neg neg"><b>${r.tipo}</b></td>
+      <td data-l="Hechas · ${PERIODOS[st.periodo].col}"><span class="${cls()}">${n0(u)}</span></td>
+      <td data-l="Costo en casa">${S(r.casa)}<span class="d2">por prenda</span></td>
+      <td data-l="Maquila afuera">${S(r.afuera)}<span class="d2">referencia</span></td>
+      <td data-l="En casa sale">${caro ? `<span class="valor-rojo">+${d} %</span><span class="d2 rojo">afuera sale más barato</span>` : `<span class="valor-verde">${d} %</span><span class="d2">ahorro por prenda</span>`}</td>
+    </tr>`;
+  }).join("");
+  const pant = TALLER.find(r => r.tipo === "Pantalón");
+  return `<section class="card-cayla bloque anim-sube" style="--i:9" id="taller" aria-labelledby="t-tal">${cab}
+    <div class="scroll"><table class="t taller">
+      <thead><tr><th>Tipo de prenda</th><th>Hechas<small>${PERIODOS[st.periodo].col}</small></th><th>Costo en casa<small>tela, avíos, mano de obra y gastos</small></th><th>Maquila afuera<small>última cotización</small></th><th>En casa sale</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table></div>
+    <div class="pie-bloque" style="align-items:center">
+      <span>Contra maquilar todo afuera, el Taller ahorró <b style="color:var(--color-tinta)" class="${cls()}">${S(ahorro)}</b> en ${PERIODOS[st.periodo].mes}. El pantalón sale ${S(pant.casa - pant.afuera)} más caro en casa: con ${n0(pant.u[st.periodo])} hechos ${st.periodo === "12m" ? "en 12 meses" : "en el mes"}, son ${S((pant.casa - pant.afuera) * pant.u[st.periodo])}.</span>
+      <button class="btn-cayla btn-secundario" data-va="taller">Ver órdenes del Taller</button>
+    </div>
+  </section>`;
+}
+
+function notaFinal() {
+  const txt = st.primerDia
+    ? `<b>Con qué datos.</b> Ventas, costo, gastos y valor del stock por mes, de Alegra desde septiembre 2025 (totales por sede); detalle por prenda desde que cada sede opera en el ERP: TRU y AQP desde el 28-sep. LIM y el Taller aún no operan en el ERP: sus cifras por prenda dicen «sin datos», nunca 0.`
+    : `<b>Con qué datos.</b> Ventas, costo, gastos y valor del stock por mes, de Alegra desde septiembre 2025 (totales por sede); el detalle por prenda, desde que cada sede opera en el ERP. Una cifra que no tiene datos dice «sin datos», nunca 0. Las utilidades son antes de impuestos.`;
+  return `<p class="nota-cayla nota-final anim-sube" style="--i:10">${txt}</p>`;
+}
+
+function vistaTablero() {
+  const der = `<div class="periodo" role="group" aria-label="Periodo">${Object.entries(PERIODOS).map(([k, p]) => `<button class="pildora-cayla" data-periodo="${k}" aria-pressed="${st.periodo === k}">${p.nombre}</button>`).join("")}</div><p class="periodo-nota">${PERIODOS[st.periodo].nota}</p>`;
+  return `${encabezado("CAYLA Global", "Salud del negocio", "Cómo está CAYLA como una sola empresa y qué conviene decidir esta semana.", der)}
+    ${veredicto()}
+    <section class="cifras" aria-label="Cuatro preguntas">${tarjetaValor()}${tarjetaCrece()}${tarjetaRentable()}${tarjetaCaja()}</section>
+    ${bloqueDecisiones()}
+    ${bloqueNegocios()}
+    ${bloqueTaller()}
+    ${notaFinal()}`;
+}
+
+/* ==================================================================
+   Las otras pantallas
+   ================================================================== */
+function vistaEligeSede() {
+  const tiendas = SEDES.filter(s => s.id !== "taller");
+  return `<div class="centro"><div class="card-cayla aviso-sede anim-sube">
+    <span class="disco">${svg("vender")}</span>
+    <p class="label-cayla">Punto de venta</p>
+    <h1 class="font-display">Punto de venta trabaja en una sede</h1>
+    <p class="t">Elige la sede arriba para usarlo, o toca una de estas:</p>
+    <div class="botones">${tiendas.map(s => `<button class="btn-cayla btn-secundario" data-ir-sede="${s.id}">${s.nombre}</button>`).join("")}</div>
+    <p class="volver"><button class="btn-enlace" data-menu="salud">← Volver a Salud del negocio</button></p>
+  </div></div>`;
+}
+function vistaSede() {
+  const titulo = st.ruta === "vender" ? "Punto de Venta" : "Inicio";
+  const nota = st.cuenta === "lider"
+    ? `<div class="anotacion anim-sube"><b>Maqueta · Líder de TRU.</b> No ve «CAYLA Global»: su selector de arriba tiene solo sedes y su menú es el de siempre. Nada de su pantalla cambia. Si abre por un enlace la dirección del tablero, ve la tarjeta de más abajo.</div>`
+    : `<div class="anotacion anim-sube"><b>Maqueta · Admin parado en ${nombreSede(st.vista)}.</b> Aquí sigue el ERP de hoy, sin cambios. Para volver al tablero, elige «CAYLA Global» en el selector de arriba.</div>`;
+  const cuerpo = st.cuenta === "lider"
+    ? `<div class="centro" style="min-height:0;margin-top:26px"><div class="card-cayla aviso-sede anim-sube" style="--i:2">
+        <span class="disco">${svg("candado")}</span>
+        <p class="label-cayla">Salud del negocio</p>
+        <h2 class="font-display">Tu cuenta no tiene CAYLA Global</h2>
+        <p class="t">Es la vista de toda la empresa y hoy la ve el Admin. Si la necesitas, pídesela en Colaboradores, en la pestaña Roles y accesos.</p>
+        <p class="volver"><button class="btn-cayla btn-primario" data-menu="inicio">Volver al inicio</button></p>
+      </div></div>`
+    : `<div class="card-cayla placeholder anim-sube" style="--i:2">${st.ruta === "vender" ? `Aquí se abre el mostrador de ${nombreSede(st.vista)}, igual que hoy.` : `Aquí va el Inicio de ${nombreSede(st.vista)}, igual que hoy.`}</div>`;
+  return `${nota}${encabezado(nombreSede(st.vista), titulo, st.ruta === "vender" ? "Cobra, arma el ticket y emite el comprobante." : "Lo de hoy en esta sede.")}${cuerpo}`;
+}
+
+/* ==================================================================
+   Pintar
+   ================================================================== */
+function pintar() {
+  if (st.cuenta === "lider" && st.vista === "global") st.vista = "tru";
+  pintarLateral(); pintarBarra(); pintarTabs(); pintarPanel();
+  const pag = document.getElementById("pag");
+  let html;
+  if (st.vista === "global") html = st.ruta === "vender" ? vistaEligeSede() : vistaTablero();
+  else html = vistaSede();
+  pag.innerHTML = nb(html);
+  pag.classList.toggle("llega", st.llega);
+  st.llega = false; st.asienta = false;
+}
+function llegar(cambios) { Object.assign(st, cambios, { llega: true }); window.scrollTo(0, 0); pintar(); }
+
+/* ==================================================================
+   Panel «Ver como» (solo de la maqueta)
+   ================================================================== */
+function pintarPanel() {
+  const vc = document.getElementById("vc");
+  vc.dataset.abierto = String(st.panel);
+  vc.innerHTML = `
+    <button class="vc-cab" id="vc-toggle" aria-expanded="${st.panel}"><span class="tag">Maqueta</span>Ver como${svg("abajo")}</button>
+    <div class="vc-cuerpo">
+      <p class="vc-l">Cuenta</p>
+      <div class="vc-seg" role="group" aria-label="Cuenta">
+        <button data-cuenta="admin" aria-pressed="${st.cuenta === "admin"}">Admin</button>
+        <button data-cuenta="lider" aria-pressed="${st.cuenta === "lider"}">Líder de TRU</button>
+      </div>
+      <p class="vc-l">Datos</p>
+      <label class="vc-sw"><input type="checkbox" id="sw-alegra" ${st.sinAlegra ? "checked" : ""}><span><b>Sin historia de Alegra</b><small>Las cifras que piden 12 meses quedan vacías.</small></span></label>
+      <label class="vc-sw"><input type="checkbox" id="sw-dia" ${st.primerDia ? "checked" : ""}><span><b>Primer día real (28-sep)</b><small>Todavía sin detalle por prenda: sin esas decisiones ni costo del Taller.</small></span></label>
+      <p class="vc-l">Probar</p>
+      <button class="vc-link" id="probar-vender">Entrar a Punto de venta estando en CAYLA Global →</button>
+      <p class="vc-pie">Datos inventados: ninguna cifra ni nombre es real. Por defecto el tablero se ve lleno, como si cada sede ya llevara semanas en el ERP; «Primer día real» muestra el 28-sep.</p>
+    </div>`;
+}
+
+/* ==================================================================
+   Modal «Armar traslado» (<Modal>, ADR-0136)
+   ================================================================== */
+const TRASLADO = { stockTru: 20, ritmoTru: 1.4, ritmoAqp: 6, sugerido: 10 };
+let modal = null;
+function repartoTexto(q) {
+  const quedan = TRASLADO.stockTru - q;
+  const semT = quedan / TRASLADO.ritmoTru, semA = q / TRASLADO.ritmoAqp;
+  const w = x => x < 1 ? "menos de 1 semana" : x < 1.5 ? "1 semana" : x < 2 ? "casi 2 semanas" : `unas ${Math.round(x)} semanas`;
+  const poco = semT < 4;
+  return { html: `TRU se queda con <b>${quedan}</b> (${w(semT)}) · AQP recibe <b>${q}</b> (${w(semA)}).${poco ? " TRU quedaría con menos de 4 semanas." : ""}`, poco };
+}
+function abrirTraslado(boton) {
+  modal = { q: TRASLADO.sugerido, boton, enviando: false };
+  const r = repartoTexto(modal.q);
+  document.getElementById("capa").innerHTML = nb(`
+    <div class="velo" id="velo"></div>
+    <div class="hoja entra" role="dialog" aria-modal="true" aria-labelledby="m-tit">
+      <button class="x" id="m-cerrar" aria-label="Cerrar">${svg("cerrar", "ic s")}</button>
+      <div class="cascada">
+        <h2 class="font-display" id="m-tit">Armar traslado</h2>
+        <p class="bajada">Blusa Lino talla M, de Tienda TRU a Tienda AQP.</p>
+        <div class="ruta">
+          <div class="sede"><span class="label-cayla">Sale de</span><b>Tienda TRU</b><span>20 en stock · alcanza 14 semanas</span></div>
+          <span class="flecha">${svg("traslados")}</span>
+          <div class="sede"><span class="label-cayla">Llega a</span><b>Tienda AQP</b><span>Agotada · vendía 6 por semana</span></div>
+        </div>
+        <div class="prenda"><span class="tela" aria-hidden="true"></span><div><b>Blusa Lino · Crudo · talla M</b><span>BLI-CRU-M · S/ 129</span></div></div>
+        <div class="campo"><span class="label-cayla">Cantidad</span>
+          <div class="paso"><button id="menos" aria-label="Una menos">−</button><output id="cant" aria-live="polite">${modal.q}</output><button id="mas" aria-label="Una más">+</button><span class="sug">Sugerido: ${TRASLADO.sugerido}</span></div>
+          <p class="reparto ${r.poco ? "ambar" : ""}" id="reparto">${r.html}</p>
+        </div>
+        <div class="campo"><span class="label-cayla">Responsable</span>
+          <div class="resp"><span class="av">FA</span><span>Felipe Alvarez<small>Admin: firma a su nombre sin marcar asistencia.</small></span></div>
+        </div>
+        <p class="info">${svg("info", "ic s")}<span>El traslado queda anotado en las dos sedes: Tienda TRU lo ve para despachar y Tienda AQP, para recibir.</span></p>
+        <div class="hoja-pie"><button class="btn-cayla btn-secundario" id="m-cancelar">Cancelar</button><button class="btn-cayla btn-primario" id="m-enviar">Enviar traslado</button></div>
+      </div>
+    </div>`);
+  [...document.querySelectorAll("#capa .cascada > *")].forEach((el, i) => el.style.setProperty("--k", i));
+  document.getElementById("m-enviar").focus({ preventScroll: true });
+}
+function actualizarCantidad(delta) {
+  if (!modal || modal.enviando) return;
+  modal.q = Math.max(1, Math.min(TRASLADO.stockTru, modal.q + delta));
+  const out = document.getElementById("cant"), rep = document.getElementById("reparto");
+  out.textContent = modal.q;
+  const r = repartoTexto(modal.q);
+  rep.innerHTML = r.html; rep.classList.toggle("ambar", r.poco);
+  [out, rep].forEach(el => { el.classList.remove("asienta"); void el.offsetWidth; el.classList.add("asienta"); });
+  document.getElementById("menos").disabled = modal.q <= 1;
+  document.getElementById("mas").disabled = modal.q >= TRASLADO.stockTru;
+}
+function cerrarModal(despues) {
+  const capa = document.getElementById("capa"), hoja = capa.querySelector(".hoja"), velo = capa.querySelector(".velo");
+  if (!hoja) return;
+  const volverA = modal && modal.boton;
+  hoja.classList.remove("entra"); hoja.classList.add("sale"); velo.classList.add("sale");
+  modal = null;
+  setTimeout(() => { capa.innerHTML = ""; if (despues) despues(); else if (volverA && document.body.contains(volverA)) volverA.focus({ preventScroll: true }); }, sinMovimiento() ? 0 : 220);
+}
+function enviarTraslado() {
+  if (!modal || modal.enviando) return;
+  modal.enviando = true;
+  const q = modal.q, b = document.getElementById("m-enviar");
+  b.disabled = true; document.getElementById("m-cancelar").disabled = true;
+  b.innerHTML = `<svg class="ic s gira" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7"/></svg>Enviando…`;
+  setTimeout(() => {
+    cerrarModal(() => {
+      st.hechas.traslado = "Enviado · T-0142";
+      pintar();
+      avisar(`Traslado T-0142 enviado`, `${q} ${q === 1 ? "Blusa Lino M" : "Blusas Lino M"} de TRU a AQP. Queda anotado en las dos sedes.`);
+      const fila = document.getElementById("dec-traslado");
+      if (fila) fila.classList.add("resalta");
+    });
+  }, sinMovimiento() ? 150 : 750);
+}
+
+/* ==================================================================
+   Aviso (arriba a la derecha) y loader
+   ================================================================== */
+function avisar(titulo, texto, tipo = "ok") {
+  const cont = document.getElementById("avisos"), el = document.createElement("div");
+  el.className = "aviso"; el.setAttribute("role", "status");
+  el.innerHTML = `<span class="ok ${tipo === "info" ? "info" : ""}">${svg(tipo === "info" ? "info" : "visto", "ic")}</span><div><b>${nb(titulo)}</b><p>${nb(texto)}</p></div>`;
+  cont.appendChild(el);
+  setTimeout(() => { el.classList.add("sale"); setTimeout(() => el.remove(), 220); }, 4600);
+}
+function esperar(mensaje, luego) {
+  const e = document.getElementById("espera");
+  e.innerHTML = `<div class="espera" role="status"><div>${ISOTIPO}<span>${mensaje}</span></div></div>`;
+  setTimeout(() => { e.innerHTML = ""; luego(); }, sinMovimiento() ? 120 : 520);
+}
+function cambiarSede(id, ruta) {
+  st.listaAbierta = false;
+  if (id === st.vista && !ruta) { pintar(); return; }
+  esperar(`Pasando a ${nombreSede(id)}…`, () => {
+    const nueva = ruta || (id === "global" ? "tablero" : (st.ruta === "vender" ? "vender" : "inicio"));
+    llegar({ vista: id, ruta: nueva });
+  });
+}
+
+/* ==================================================================
+   Eventos
+   ================================================================== */
+const DETALLE = {
+  valor: ["Así sale el 31 %", "Ganó S/ 232,000 en 12 meses (antes de impuestos) ÷ S/ 748,000 de capital: S/ 418,000 de stock al costo + S/ 330,000 de muebles, equipos, telas y máquinas."],
+  crece: ["Así sale el +8 %", "Septiembre al ritmo de hoy (S/ 156,000 en 28 días → S/ 167,100 en 30) contra septiembre 2025 de Alegra (S/ 154,700). Tickets y ticket promedio salen de los mismos meses."],
+  rentable: ["Así sale el margen", "Venta menos lo que costaron las prendas y lo que se rebajó. El S/ 2.40 es el margen de 12 meses (S/ 1,003,000) ÷ el stock al costo (S/ 418,000)."],
+  caja: ["Así sale la caja", "Lo que entró por ventas menos todo lo que salió: sueldos, alquileres, proveedores, telas e impuestos. Las 6 semanas suman lo que vence y lo que se espera vender."],
+  alegra: ["Qué hace falta", "Traer de Alegra las ventas, el costo, los gastos y el valor del stock por mes y por sede desde septiembre 2025. Sin eso, estas cifras esperan a que el ERP junte 12 meses propios."],
+};
+document.addEventListener("click", e => {
+  const q = s => e.target.closest(s);
+  let el;
+  // Lista del selector
+  if ((el = q("#pastilla"))) { st.listaAbierta = !st.listaAbierta; pintarBarra(); if (st.listaAbierta) { const s = document.querySelector('.op[aria-selected="true"]') || document.querySelector(".op"); s && s.focus({ preventScroll: true }); } return; }
+  if ((el = q("[data-sede]"))) { cambiarSede(el.dataset.sede); return; }
+  if (st.listaAbierta && !q("#selector")) { st.listaAbierta = false; pintarBarra(); }
+  // Panel de la maqueta
+  if (q("#vc-toggle")) { st.panel = !st.panel; pintarPanel(); return; }
+  if ((el = q("[data-cuenta]"))) { if (el.dataset.cuenta === st.cuenta) return; const c = el.dataset.cuenta; llegar(c === "admin" ? { cuenta: c, vista: "global", ruta: "tablero" } : { cuenta: c, vista: "tru", ruta: "inicio" }); return; }
+  if (q("#probar-vender")) { if (esCelular()) st.panel = false; llegar({ cuenta: "admin", vista: "global", ruta: "vender" }); return; }
+  // Modal
+  if (q("#m-cerrar") || q("#m-cancelar") || q("#velo")) { cerrarModal(); return; }
+  if (q("#menos")) { actualizarCantidad(-1); return; }
+  if (q("#mas")) { actualizarCantidad(1); return; }
+  if (q("#m-enviar")) { enviarTraslado(); return; }
+  // Tablero
+  if ((el = q("[data-periodo]"))) { if (st.periodo === el.dataset.periodo) return; st.periodo = el.dataset.periodo; st.asienta = true; pintar(); return; }
+  if ((el = q("[data-detalle]"))) { const [t, x] = DETALLE[el.dataset.detalle]; avisar(t, x, "info"); return; }
+  if (q("[data-ir-decision]")) { const primera = document.querySelector("#decisiones .dec"); if (primera) { primera.scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "center" }); primera.classList.remove("resalta"); void primera.offsetWidth; primera.classList.add("resalta"); const b = primera.querySelector("button"); b && b.focus({ preventScroll: true }); } return; }
+  if (q("[data-ir-taller]")) { document.getElementById("taller").scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "start" }); return; }
+  if ((el = q("[data-decision]"))) {
+    const d = [...DECISIONES, DECISION_LIMA_TOTAL].find(x => x.id === el.dataset.decision);
+    if (d.modal) abrirTraslado(el); else avisar(d.aviso[0], d.aviso[1], "info");
+    return;
+  }
+  if (q("[data-va='taller']")) { avisar("En la versión real abre Producción ▸ Órdenes", "Las órdenes del Taller de todas las tiendas, con su costo por prenda.", "info"); return; }
+  if ((el = q("[data-ir-sede]"))) { cambiarSede(el.dataset.irSede, "vender"); return; }
+  // Menú
+  if ((el = q("[data-menu]"))) {
+    const id = el.dataset.menu;
+    if (id === "salud") { if (st.vista === "global" && st.ruta === "tablero") { window.scrollTo({ top: 0, behavior: sinMovimiento() ? "auto" : "smooth" }); return; } llegar({ vista: "global", ruta: "tablero" }); return; }
+    if (id === "inicio") { if (st.vista !== "global") llegar({ ruta: "inicio" }); return; }
+    if (id === "pos") { llegar({ ruta: "vender" }); return; }
+    if (el.getAttribute("aria-disabled") === "true") { avisar(`${el.textContent.trim()} todavía no suma las sedes`, "Elige una sede en el selector de arriba para verla. Entra a la vista global cuando aprenda a sumar toda la red.", "info"); return; }
+    const it = MENU_GLOBAL.flatMap(g => g.items).find(x => x.id === id);
+    if (st.vista === "global" && it && it.va) { avisar(`En la versión real abre ${it.va[0]}`, it.va[1], "info"); return; }
+    if (id === "mas") { avisar("En la versión real abre el menú completo", "Las mismas filas del lateral, como un cajón.", "info"); return; }
+    avisar("Maqueta: el ERP de hoy", "Esta parte no cambia con CAYLA Global.", "info");
+  }
+});
+document.addEventListener("change", e => {
+  if (e.target.id === "sw-alegra") { st.sinAlegra = e.target.checked; st.asienta = true; pintar(); }
+  if (e.target.id === "sw-dia") { st.primerDia = e.target.checked; st.asienta = true; pintar(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  // Escape libre (ADR-0136): primero cierra la lista, después la hoja.
+  if (st.listaAbierta) { st.listaAbierta = false; pintarBarra(); document.getElementById("pastilla").focus(); return; }
+  if (modal && !modal.enviando) cerrarModal();
+});
+document.addEventListener("keydown", e => {
+  // Flechas dentro de la lista del selector
+  if (!st.listaAbierta || !["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  const ops = [...document.querySelectorAll(".op")], i = ops.indexOf(document.activeElement);
+  const j = e.key === "ArrowDown" ? Math.min(ops.length - 1, i + 1) : Math.max(0, i - 1);
+  ops[j] && ops[j].focus(); e.preventDefault();
+});
+
+pintar();
+</script>
+</body>
+</html>
