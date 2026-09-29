@@ -24,9 +24,8 @@ público (ver `docs/backlog/2026-09-26-*` sobre F-01). Lo de abajo es el resumen
 
 ### Antes de abrir caja en TRU (~270 min, sin migración salvo donde se marca)
 
-- [ ] **Parche del `sku` NULL en los mensajes de rechazo** (~40 min, con migración — parche vivo con guarda de md5
-      sobre el cuerpo real de `registrar_venta` y `separar_prendas`, leído de producción, no del archivo del repo).
-      Sin esto, cualquier rechazo de venta muestra el error crudo de Postgres.
+- [x] **Parche del `sku` NULL en los mensajes de rechazo** — hecho y pegado en producción, ver
+      `docs/backlog/2026-09-29-parche-sku-nulo-mensajes-caja.md`.
 - [ ] **La grilla de Vender no se congela con el catálogo real** (~215 min, solo web): ventana + memo + comparar antes
       de repintar + un solo motor de búsqueda. Hoy, con 1.500 tarjetas, cada escaneo tarda 1,2 s; medido a 2,3 ms
       con el arreglo. **Ojo:** `docs/SESIONES-ACTIVAS.md` tiene una fila del 2026-09-18 (`claude/local-work-3a718a`)
