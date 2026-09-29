@@ -335,6 +335,16 @@
   "src_table": "medios_de_cobro"
  },
  {
+  "conname": "metas_persona_ajustes_cambiado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
+ },
+ {
   "conname": "movimientos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "movimientos"

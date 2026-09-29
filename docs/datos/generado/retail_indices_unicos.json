@@ -1,5 +1,10 @@
 [
  {
+  "indexdef": "CREATE UNIQUE INDEX acciones_sin_responsable_pkey ON retail.acciones_sin_responsable USING btree (clave)",
+  "indexname": "acciones_sin_responsable_pkey",
+  "tablename": "acciones_sin_responsable"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX actividad_pkey ON retail.actividad USING btree (id)",
   "indexname": "actividad_pkey",
   "tablename": "actividad"
@@ -660,6 +665,11 @@
   "tablename": "medios_de_cobro"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX metas_persona_ajustes_pkey ON retail.metas_persona_ajustes USING btree (id)",
+  "indexname": "metas_persona_ajustes_pkey",
+  "tablename": "metas_persona_ajustes"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX modulos_pkey ON retail.modulos USING btree (clave)",
   "indexname": "modulos_pkey",
   "tablename": "modulos"
@@ -995,8 +1005,8 @@
   "tablename": "separaciones"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_activa_por_tienda_y_tipo ON retail.series_comprobantes USING btree (ubicacion_id, tipo) WHERE (archivada_at IS NULL)",
-  "indexname": "series_comprobantes_activa_por_tienda_y_tipo",
+  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_activa_por_tienda_tipo_y_letra ON retail.series_comprobantes USING btree (ubicacion_id, tipo, (\nCASE\n    WHEN (tipo = ANY (ARRAY['nota_credito'::text, 'nota_debito'::text])) THEN \"left\"(serie, 1)\n    ELSE ''::text\nEND)) WHERE (archivada_at IS NULL)",
+  "indexname": "series_comprobantes_activa_por_tienda_tipo_y_letra",
   "tablename": "series_comprobantes"
  },
  {
@@ -1160,13 +1170,13 @@
   "tablename": "variantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX variantes_pkey ON retail.variantes USING btree (id)",
-  "indexname": "variantes_pkey",
+  "indexdef": "CREATE UNIQUE INDEX variantes_identidad_unica ON retail.variantes USING btree (producto_id, talla_id, color_codigo) NULLS NOT DISTINCT",
+  "indexname": "variantes_identidad_unica",
   "tablename": "variantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX variantes_producto_talla_color_unico ON retail.variantes USING btree (producto_id, talla_id, color_codigo)",
-  "indexname": "variantes_producto_talla_color_unico",
+  "indexdef": "CREATE UNIQUE INDEX variantes_pkey ON retail.variantes USING btree (id)",
+  "indexname": "variantes_pkey",
   "tablename": "variantes"
  },
  {

@@ -1,5 +1,15 @@
 [
  {
+  "conname": "acciones_sin_responsable_clave_check",
+  "definicion": "CHECK ((clave ~ '^[a-z0-9_]+$'::text))",
+  "tabla": "retail.acciones_sin_responsable"
+ },
+ {
+  "conname": "acciones_sin_responsable_pkey",
+  "definicion": "PRIMARY KEY (clave)",
+  "tabla": "retail.acciones_sin_responsable"
+ },
+ {
   "conname": "actividad_accion_check",
   "definicion": "CHECK ((accion ~ '^[a-z_]+$'::text))",
   "tabla": "retail.actividad"
@@ -1760,6 +1770,21 @@
   "tabla": "retail.conteo_items"
  },
  {
+  "conname": "conteo_items_cantidad_foto_check",
+  "definicion": "CHECK ((cantidad_foto >= 0))",
+  "tabla": "retail.conteo_items"
+ },
+ {
+  "conname": "conteo_items_confirmada_coherente",
+  "definicion": "CHECK (((confirmada_en IS NULL) OR (cantidad_contada IS NOT NULL)))",
+  "tabla": "retail.conteo_items"
+ },
+ {
+  "conname": "conteo_items_contada_anterior_check",
+  "definicion": "CHECK ((contada_anterior >= 0))",
+  "tabla": "retail.conteo_items"
+ },
+ {
   "conname": "conteo_items_conteo_id_fkey",
   "definicion": "FOREIGN KEY (conteo_id) REFERENCES retail.conteos(id)",
   "tabla": "retail.conteo_items"
@@ -2758,6 +2783,61 @@
   "conname": "medios_de_cobro_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.medios_de_cobro"
+ },
+ {
+  "conname": "metas_ajustes_automatica_sin_valor",
+  "definicion": "CHECK (((motivo = 'automatica'::text) = (meta IS NULL)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_ajustes_otro_con_detalle",
+  "definicion": "CHECK (((motivo <> 'otro'::text) OR (detalle IS NOT NULL)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_cambiado_por_fkey",
+  "definicion": "FOREIGN KEY (cambiado_por) REFERENCES personas(id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_detalle_check",
+  "definicion": "CHECK (((detalle IS NULL) OR ((char_length(btrim(detalle)) >= 1) AND (char_length(btrim(detalle)) <= 80))))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_mes_check",
+  "definicion": "CHECK ((mes = (date_trunc('month'::text, (mes)::timestamp with time zone))::date))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_meta_antes_check",
+  "definicion": "CHECK ((meta_antes >= (0)::numeric))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_meta_check",
+  "definicion": "CHECK (((meta IS NULL) OR (meta > (0)::numeric)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['cambia_horario'::text, 'capacitacion'::text, 'cubre_otra_tienda'::text, 'vuelve_de_descanso'::text, 'otro'::text, 'automatica'::text])))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.metas_persona_ajustes"
  },
  {
   "conname": "modulos_clave_check",
@@ -5060,8 +5140,8 @@
   "tabla": "retail.variantes"
  },
  {
-  "conname": "variantes_producto_talla_color_unico",
-  "definicion": "UNIQUE (producto_id, talla_id, color_codigo)",
+  "conname": "variantes_sin_mezcla_de_color",
+  "definicion": "TRIGGER DEFERRABLE",
   "tabla": "retail.variantes"
  },
  {

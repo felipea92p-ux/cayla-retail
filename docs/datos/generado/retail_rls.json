@@ -1,4 +1,9 @@
 {
+ "acciones_sin_responsable": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "actividad": {
   "forzado": false,
   "relkind": "r",
@@ -400,6 +405,11 @@
   "rls": true
  },
  "medios_de_cobro": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "metas_persona_ajustes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
