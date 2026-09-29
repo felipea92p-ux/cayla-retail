@@ -7,6 +7,7 @@
 
 import { diaYHoraLima } from "./fechas-lima";
 import { resultadoConteo, textoProgreso, type ConteoResumen } from "./conteo-reglas";
+import { tolerar } from "./resultado";
 
 /** Cuántos conteos trae el historial del inicio (`fn_conteos_resumen`, del más reciente al más antiguo). */
 export const LIMITE_HISTORIAL_CONTEO = 20;
@@ -41,11 +42,59 @@ export function textoAvanceHistorial(c: Pick<ConteoResumen, "estado" | "lineas" 
   return `${c.lineas} ${c.lineas === 1 ? "variante verificada" : "variantes verificadas"}`;
 }
 
-/** «Falta elegir dónde vas a contar y quién cuenta.» — lo que le falta a la tarjeta de abrir, sin culpar a nadie. `null` si no falta nada. */
-export function textoFaltaElegir(faltan: readonly string[]): string | null {
-  if (faltan.length === 0) return null;
-  const lista = faltan.length === 1 ? faltan[0] : `${faltan.slice(0, -1).join(", ")} y ${faltan[faltan.length - 1]}`;
-  return `Falta elegir ${lista}.`;
+/** La clave de «toda la ubicación» en `AlcanceConteo`: lo que cuenta una sede que no separa piso y almacén (el Taller). */
+export const TODA_LA_UBICACION = "toda";
+
+/** Una fila de `fn_conteo_alcance`: cuántas variantes traería un conteo de ese lugar y esa categoría (`sububicacion_id` NULL = toda la ubicación). */
+export type FilaAlcance = { sububicacion_id: string | null; categoria_id: string | null; variantes: number };
+
+/** Cuántas VARIANTES (nunca unidades: el conteo es a ciegas) trae un conteo de cada lugar, en total y por categoría. Clave: id de sububicación o `TODA_LA_UBICACION`. */
+export type AlcanceConteo = Record<string, { total: number; porCategoria: Record<string, number> }>;
+
+/**
+ * Ordena las filas de `fn_conteo_alcance` para preguntarlas por lugar. Un producto sin categoría (`categoria_id` NULL) suma al total
+ * del lugar pero no aparece en ninguna categoría: no hay chip para elegirlo, y un conteo «Todo» sí lo incluye.
+ */
+export function armarAlcance(filas: readonly FilaAlcance[]): AlcanceConteo {
+  const out: AlcanceConteo = {};
+  for (const f of filas) {
+    const lugar = (out[f.sububicacion_id ?? TODA_LA_UBICACION] ??= { total: 0, porCategoria: {} });
+    lugar.total += f.variantes;
+    if (f.categoria_id) lugar.porCategoria[f.categoria_id] = (lugar.porCategoria[f.categoria_id] ?? 0) + f.variantes;
+  }
+  return out;
+}
+
+/**
+ * La respuesta de `fn_conteo_alcance` ya leída: las cifras, o `null` y el porqué si la base no pudo darlas. Es la mitad de «dato de apoyo»
+ * de la tarjeta de abrir: si la función todavía no existe en la base (la web salió antes que el SQL) o falla, la tarjeta se dibuja sin
+ * cifras y abrir un conteo sigue funcionando. Un mapa vacío (`{}`) NO es lo mismo que `null`: es una sede sin stock, con todo en cero.
+ */
+export function alcanceDeRespuesta(respuesta: { data: readonly FilaAlcance[] | null; error: { message: string } | null }): { alcance: AlcanceConteo | null; fallo: string | null } {
+  const { datos, fallo } = tolerar(respuesta, "cuántas variantes trae cada conteo");
+  return { alcance: datos ? armarAlcance(datos) : null, fallo };
+}
+
+/**
+ * Las categorías con prendas en el lugar elegido, primero: una sede real tiene decenas de categorías y en un piso o un almacén casi
+ * todas están en 0, así que en orden alfabético las que sí se cuentan quedarían enterradas. Con el mismo número, el orden de siempre
+ * (por nombre). Sin cifras (`cifraDe` nulo) no hay nada que ordenar: se devuelve tal cual.
+ */
+export function categoriasPorVariantes<T extends { id: string }>(categorias: readonly T[], cifraDe: ((categoriaId: string) => number) | null): T[] {
+  if (!cifraDe) return [...categorias];
+  return [...categorias].sort((a, b) => cifraDe(b.id) - cifraDe(a.id));
+}
+
+/**
+ * Cuántas variantes traería el conteo que se está armando, o `null` si todavía no se sabe: no se cargó la cifra (la función no está en
+ * la base o falló) o falta elegir el lugar. Con categoría, las de esa categoría en ese lugar (0 si no tiene ninguna registrada allí: un
+ * conteo así solo serviría para encontrar prendas que aparecieron donde no estaban, y por eso no se bloquea).
+ */
+export function variantesDelConteo(alcance: AlcanceConteo | null, lugar: string | null, categoriaId: string | null): number | null {
+  if (!alcance || !lugar) return null;
+  const l = alcance[lugar];
+  if (!l) return 0;
+  return categoriaId ? (l.porCategoria[categoriaId] ?? 0) : l.total;
 }
 
 /**

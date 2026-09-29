@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 80;
+export const PENDIENTES_HOY = 79;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -87,7 +87,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- inventario ----
   "/inventario": PENDIENTE,
   "/inventario/bajar": PENDIENTE,
-  "/inventario/conteo": PENDIENTE,
+  "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
   "/inventario/conteo/[id]/confirmar": PENDIENTE,
   "/inventario/conteo/[id]/revisar": PENDIENTE,

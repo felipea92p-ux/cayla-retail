@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abrir un conteo — maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens de la guía «CAYLA Dynamic» (ADR-0169): ningún hex suelto fuera de este bloque. Sin rojo: aquí nada es un error. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --tinta-60:#5b544c; --sand:#e8e0d0; --taupe:#805c4c;
+    --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+    --r-control:8px; --r-superficie:16px; --r-pildora:999px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --serif:"EB Garamond", ui-serif, Georgia, serif;
+    --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font:14px/1.5 var(--sans); font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;}
+  button,input{font:inherit; color:inherit;}
+  button{cursor:pointer;}
+  h1,h2,h3,p{margin:0;}
+  :focus-visible{outline:2px solid var(--tinta); outline-offset:2px;}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+
+  /* ---------- Barra de la demo (no es parte de la pantalla) ---------- */
+  .demo{position:sticky; top:0; z-index:40; background:var(--tinta); color:var(--crema); padding:10px 16px;}
+  .demo-in{max-width:1180px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px;}
+  .demo b{font:500 17px var(--serif); white-space:nowrap;}
+  .demo .grupo{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .demo .grupo > span{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; opacity:.6;}
+  .seg-demo{display:inline-flex; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); overflow:hidden;}
+  .seg-demo button{background:transparent; border:0; padding:6px 11px; font-size:12.5px; opacity:.75; white-space:nowrap;}
+  .seg-demo button[aria-pressed="true"]{background:var(--crema); color:var(--tinta); opacity:1;}
+  .demo .reiniciar{margin-left:auto; background:transparent; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); padding:6px 11px; font-size:12.5px;}
+  .demo :focus-visible{outline-color:var(--crema);}
+
+  /* ---------- Escenario ---------- */
+  .escenario{padding:40px 16px 72px; display:flex; justify-content:center;}
+  .marco{width:100%; max-width:1040px; transition:max-width 420ms var(--ease);}
+  .marco[data-ancho="celular"]{max-width:375px;}
+  .marco[data-ancho="celular"] .tarjeta{border-radius:var(--r-superficie);}
+  .nota-demo{margin-top:18px; font-size:12px; color:var(--taupe); text-align:center;}
+
+  /* ---------- La tarjeta: se adapta a SU ancho, no al de la ventana ---------- */
+  .tarjeta{container-type:inline-size; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); position:relative;}
+  .cuerpo{display:grid; grid-template-columns:minmax(0,1fr) 316px;}
+  .form{padding:32px 36px 36px; display:flex; flex-direction:column; gap:26px; min-width:0;}
+  .form h2{font:500 26px/1.15 var(--serif); letter-spacing:-.005em;}
+  .form .sub{margin-top:4px; font-size:13.5px; color:var(--tinta-60);}
+
+  /* Aviso de traslados por atender (ámbar = «al filo», no error) */
+  .aviso{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; border:1px solid color-mix(in oklab, var(--ambar) 32%, transparent); background:color-mix(in oklab, var(--ambar) 7%, transparent); border-radius:var(--r-control); padding:11px 14px; font-size:13.5px;}
+  .aviso[hidden]{display:none;}
+  .aviso span{flex:1 1 260px; min-width:0;}
+  .aviso a{color:var(--tinta); font-weight:500; text-decoration:underline; text-underline-offset:3px; white-space:nowrap;}
+
+  /* ---------- Una pregunta ---------- */
+  .pregunta{position:relative; border-radius:var(--r-control); margin:-10px -12px; padding:10px 12px; transition:background-color 260ms var(--ease);}
+  .pregunta[hidden]{display:none;}
+  .pregunta.ahora{background:color-mix(in oklab, var(--hueso) 42%, transparent);}
+  .pregunta.destello{animation:destello 700ms var(--ease);}
+  @keyframes destello{0%{background:color-mix(in oklab, var(--hueso) 42%, transparent);} 30%{background:var(--hueso);} 100%{background:color-mix(in oklab, var(--hueso) 42%, transparent);}}
+  .cab{display:flex; align-items:center; gap:10px; margin-bottom:12px; min-height:24px;}
+  .num{width:22px; height:22px; flex:none; border-radius:50%; display:grid; place-items:center; font-size:11.5px; font-weight:600; border:1.5px solid var(--sand); color:var(--taupe); transition:background-color 220ms var(--ease), border-color 220ms var(--ease), color 220ms var(--ease);}
+  .num svg{width:12px; height:12px; display:none;}
+  .pregunta.hecho .num{background:var(--tinta); border-color:var(--tinta); color:var(--papel);}
+  .pregunta.hecho .num i{display:none;}
+  .pregunta.hecho .num svg{display:block; animation:aparece 260ms var(--ease);}
+  .pregunta.ahora .num{border-color:var(--tinta); color:var(--tinta);}
+  .pregunta.revisar .num{border-style:dashed; border-color:var(--taupe);}
+  .num i{font-style:normal;}
+  .cab h3{font:600 15px/1.3 var(--sans); flex:1;}
+  .estado{font-size:12px; color:var(--taupe); white-space:nowrap;}
+  .pregunta.ahora .estado{color:var(--tinta); font-weight:500;}
+  .pregunta.hecho .estado{color:var(--verde);}
+  @keyframes aparece{from{opacity:0; transform:scale(.6);} to{opacity:1; transform:scale(1);}}
+
+  /* ---------- Tarjetas grandes: dónde ---------- */
+  .lugares{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .lugar{position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:16px 16px 15px; min-height:112px; transition:border-color 180ms var(--ease), background-color 180ms var(--ease), box-shadow 180ms var(--ease);}
+  .lugar:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  .lugar[aria-checked="true"]{border-color:var(--tinta); background:color-mix(in oklab, var(--sand) 45%, var(--papel)); box-shadow:inset 0 0 0 1px var(--tinta);}
+  .lugar .ico{width:26px; height:26px; color:var(--taupe); margin-bottom:8px; transition:color 180ms var(--ease);}
+  .lugar[aria-checked="true"] .ico{color:var(--tinta);}
+  .lugar .t{font-size:15.5px; font-weight:500;}
+  .lugar .l{font-size:12.5px; color:var(--tinta-60);}
+  .lugar .n{font-size:12.5px; color:var(--taupe);}
+  .lugar .marca{position:absolute; top:12px; right:12px; width:20px; height:20px; border-radius:50%; background:var(--tinta); color:var(--papel); display:grid; place-items:center; opacity:0; transform:scale(.6); transition:opacity 180ms var(--ease), transform 220ms var(--ease);}
+  .lugar .marca svg{width:11px; height:11px;}
+  .lugar[aria-checked="true"] .marca{opacity:1; transform:none;}
+
+  /* ---------- Segmentado: qué ---------- */
+  .seg{position:relative; display:grid; grid-template-columns:1fr 1fr; background:var(--hueso); border-radius:var(--r-control); padding:3px; max-width:340px;}
+  .seg .pulgar{position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px); background:var(--papel); border-radius:6px; box-shadow:0 0 0 1px var(--sand); transition:transform 300ms var(--ease);}
+  .seg[data-valor="categoria"] .pulgar{transform:translateX(100%);}
+  .seg button{position:relative; background:transparent; border:0; padding:9px 12px; font-size:14px; border-radius:6px; color:var(--tinta-60); transition:color 200ms var(--ease);}
+  .seg button[aria-checked="true"]{color:var(--tinta); font-weight:500;}
+  .ayuda{margin-top:10px; font-size:13px; color:var(--tinta-60);}
+  .ayuda b{font-weight:500; color:var(--tinta);}
+
+  /* Selector de categoría: se despliega dentro de la misma pregunta (sin lista flotante) */
+  .despliega{display:grid; grid-template-rows:0fr; transition:grid-template-rows 340ms var(--ease);}
+  .despliega > div{overflow:hidden; min-height:0;}
+  .despliega.abierto{grid-template-rows:1fr;}
+  .cats{padding-top:14px;}
+  .buscar{position:relative; max-width:340px;}
+  .buscar svg{position:absolute; left:12px; top:50%; width:16px; height:16px; transform:translateY(-50%); color:var(--taupe); pointer-events:none;}
+  .buscar input{width:100%; height:40px; border:0; background:var(--hueso); border-radius:var(--r-control); padding:0 12px 0 36px; font-size:14px;}
+  .buscar input::placeholder{color:var(--taupe);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; max-height:152px; overflow-y:auto; padding:2px 2px 6px; scrollbar-width:thin;}
+  .chip{display:inline-flex; align-items:baseline; gap:7px; border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-pildora); padding:7px 14px; font-size:13.5px; transition:background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);}
+  .chip small{font-size:12px; color:var(--taupe); transition:color 160ms var(--ease);}
+  .chip:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  .chip[aria-checked="true"]{background:var(--tinta); border-color:var(--tinta); color:var(--papel);}
+  .chip[aria-checked="true"] small{color:color-mix(in oklab, var(--papel) 70%, transparent);}
+  .chips .vacio{font-size:13px; color:var(--tinta-60); padding:6px 2px;}
+
+  /* ---------- Quién cuenta ---------- */
+  .quien{position:relative; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .persona{display:inline-flex; align-items:center; gap:10px; background:var(--hueso); border:0; border-radius:var(--r-pildora); padding:5px 14px 5px 5px; transition:background-color 160ms var(--ease);}
+  .persona:hover{background:color-mix(in oklab, var(--hueso) 70%, var(--sand));}
+  .avatar{width:30px; height:30px; flex:none; border-radius:50%; background:var(--papel); box-shadow:0 0 0 1px var(--sand); display:grid; place-items:center; font:500 12.5px var(--serif); color:var(--tinta);}
+  .persona .nom{font-size:14.5px; font-weight:500;}
+  .persona svg{width:15px; height:15px; color:var(--taupe);}
+  .firma{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--pizarra);}
+  .firma svg{width:15px; height:15px; flex:none;}
+  .lista{position:absolute; z-index:8; top:calc(100% + 8px); left:0; width:min(320px, 100%); background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:6px; box-shadow:0 10px 30px color-mix(in oklab, var(--tinta) 12%, transparent); opacity:0; transform:translateY(-4px); pointer-events:none; visibility:hidden; transition:opacity 200ms var(--ease), transform 200ms var(--ease), visibility 0s linear 200ms;}
+  .lista.abierta{opacity:1; transform:none; pointer-events:auto; visibility:visible; transition:opacity 240ms var(--ease), transform 240ms var(--ease);}
+  .lista .cabl{padding:8px 10px 6px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe);}
+  .lista button{display:flex; width:100%; align-items:center; gap:10px; background:transparent; border:0; text-align:left; padding:8px 10px; border-radius:6px;}
+  .lista button:hover, .lista button:focus-visible{background:var(--hueso); outline:none;}
+  .lista .pto{width:7px; height:7px; border-radius:50%; background:var(--verde); flex:none;}
+  .lista .ck{margin-left:auto; width:15px; height:15px; opacity:0;}
+  .lista button[aria-selected="true"] .ck{opacity:1;}
+
+  /* ---------- Resumen y botón ---------- */
+  .resumen{background:color-mix(in oklab, var(--hueso) 55%, var(--papel)); border-left:1px solid var(--sand); border-radius:0 var(--r-superficie) var(--r-superficie) 0; padding:32px 26px 28px; display:flex; flex-direction:column; gap:20px;}
+  .eyebrow{font-size:11px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--taupe);}
+  .total{display:flex; flex-direction:column; gap:2px;}
+  .total .cifra{font:500 52px/1 var(--serif); letter-spacing:-.01em; min-height:52px;}
+  .total .cifra.vacia{color:color-mix(in oklab, var(--taupe) 55%, transparent);}
+  .total .unidad{font-size:13.5px; color:var(--tinta-60);}
+  .filas{display:grid; gap:0; margin:0; padding:0; border-top:1px solid var(--sand);}
+  .filas div{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--sand); font-size:13.5px;}
+  .filas dt{color:var(--tinta-60);}
+  .filas dd{margin:0; text-align:right; font-weight:500;}
+  .filas dd.pend{font-weight:400; color:var(--taupe);}
+  .nota{font-size:12.5px; line-height:1.5; color:var(--tinta-60);}
+  .accion{margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+  .falta{font-size:13px; color:var(--tinta-60); min-height:20px;}
+  .falta button{background:none; border:0; padding:0; color:var(--tinta); font-weight:500; text-decoration:underline; text-underline-offset:3px;}
+  .falta button:hover{color:var(--taupe);}
+  .empezar{display:flex; align-items:center; justify-content:center; gap:10px; height:50px; width:100%; border:0; border-radius:var(--r-control); background:var(--tinta); color:var(--crema); font-size:15px; font-weight:500; transition:background-color 200ms var(--ease), color 200ms var(--ease), opacity 200ms var(--ease);}
+  .empezar svg{width:18px; height:18px; transition:transform 220ms var(--ease);}
+  .empezar:not([aria-disabled="true"]):hover svg{transform:translateX(3px);}
+  .empezar[aria-disabled="true"]{background:color-mix(in oklab, var(--tinta) 30%, var(--hueso)); color:color-mix(in oklab, var(--papel) 88%, transparent);}
+  .empezar.girando{pointer-events:none;}
+  .giro{width:16px; height:16px; border-radius:50%; border:2px solid color-mix(in oklab, var(--crema) 35%, transparent); border-top-color:var(--crema); animation:gira 700ms linear infinite;}
+  @keyframes gira{to{transform:rotate(360deg);}}
+
+  /* ---------- Estado final: conteo abierto ---------- */
+  .hecho-vista{display:none; padding:56px 36px 60px; text-align:center; flex-direction:column; align-items:center; gap:14px;}
+  .tarjeta.abierto .cuerpo{display:none;}
+  .tarjeta.abierto .hecho-vista{display:flex; animation:entra 420ms var(--ease);}
+  @keyframes entra{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  .sello{width:56px; height:56px; border-radius:50%; background:var(--tinta); color:var(--papel); display:grid; place-items:center;}
+  .sello svg{width:26px; height:26px;}
+  .sello path{stroke-dasharray:30; stroke-dashoffset:30; animation:traza 420ms 160ms var(--ease) forwards;}
+  @keyframes traza{to{stroke-dashoffset:0;}}
+  .hecho-vista h2{font:500 28px/1.15 var(--serif);}
+  .hecho-vista .resu{color:var(--tinta-60); font-size:14.5px; max-width:40ch;}
+  .hecho-vista .resu b{color:var(--tinta); font-weight:500;}
+  .hecho-vista .acciones{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:8px;}
+  .hecho-vista .acciones .empezar{width:auto; padding:0 26px;}
+  .btn-sutil{background:transparent; border:1px solid var(--sand); border-radius:var(--r-control); height:50px; padding:0 22px; font-size:14.5px;}
+  .btn-sutil:hover{background:color-mix(in oklab, var(--sand) 50%, transparent);}
+
+  /* ---------- Angosto (celular o ventana estrecha): una columna y barra de acción pegada abajo ---------- */
+  @container (max-width: 719px){
+    .cuerpo{grid-template-columns:minmax(0,1fr);}
+    .form{padding:24px 18px 28px; gap:24px;}
+    .form h2{font-size:24px;}
+    .pregunta{margin:-10px; padding:10px;}
+    .lugares{gap:8px;}
+    .lugar{min-height:104px; padding:14px 12px;}
+    .resumen{position:sticky; bottom:0; z-index:6; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px 14px; padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)); border-left:0; border-top:1px solid var(--sand); border-radius:0 0 var(--r-superficie) var(--r-superficie); background:var(--papel);}
+    .resumen .eyebrow, .resumen .filas, .resumen .nota{display:none;}
+    .total{flex-direction:row; align-items:baseline; gap:8px; min-width:0;}
+    .total .cifra{font-size:26px; min-height:0;}
+    .total .unidad{font-size:12.5px;}
+    .accion{display:contents;}
+    .accion .falta{grid-column:1 / -1; grid-row:2; min-height:0;}
+    .accion .falta:empty{display:none;}
+    .empezar{grid-column:2; grid-row:1; height:46px; width:auto; padding:0 20px; font-size:14.5px;}
+    .hecho-vista{padding:44px 20px 48px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}
+  }
+  html[data-quieto] *, html[data-quieto] *::before, html[data-quieto] *::after{animation-duration:.01ms !important; transition-duration:.01ms !important;}
+</style>
+</head>
+<body>
+
+<div class="demo">
+  <div class="demo-in">
+    <b>Maqueta · Abrir un conteo</b>
+    <div class="grupo"><span>Sede</span>
+      <div class="seg-demo" data-demo="sede">
+        <button type="button" aria-pressed="true" data-v="tru">Tienda TRU</button>
+        <button type="button" aria-pressed="false" data-v="taller">Taller</button>
+      </div>
+    </div>
+    <div class="grupo"><span>Aviso</span>
+      <div class="seg-demo" data-demo="aviso">
+        <button type="button" aria-pressed="false" data-v="no">Sin traslados</button>
+        <button type="button" aria-pressed="false" data-v="si">2 por atender</button>
+      </div>
+    </div>
+    <div class="grupo"><span>Ancho</span>
+      <div class="seg-demo" data-demo="ancho">
+        <button type="button" aria-pressed="true" data-v="escritorio">Escritorio</button>
+        <button type="button" aria-pressed="false" data-v="celular">Celular</button>
+      </div>
+    </div>
+    <button type="button" class="reiniciar" id="reiniciar">Reiniciar</button>
+  </div>
+</div>
+
+<main class="escenario">
+  <div class="marco" id="marco" data-ancho="escritorio">
+
+    <section class="tarjeta" id="tarjeta" aria-labelledby="titulo">
+      <div class="cuerpo">
+
+        <div class="form">
+          <div>
+            <h2 id="titulo">Abrir un conteo</h2>
+            <p class="sub" id="sub">Tres respuestas y empiezas a escanear.</p>
+          </div>
+
+          <div class="aviso" id="aviso" hidden>
+            <span><b style="font-weight:600">Antes de contar:</b> hay 2 traslados hacia esta sede por atender. Recíbelos primero, o esas prendas saldrán como diferencia.</span>
+            <a href="#" data-sin-ir>Ver traslados →</a>
+          </div>
+
+          <!-- 1 · Dónde -->
+          <div class="pregunta" data-campo="donde" id="p-donde">
+            <div class="cab">
+              <span class="num"><i>1</i><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4 5 8.8l4.5-5.2"/></svg></span>
+              <h3 id="q-donde">¿Dónde vas a contar?</h3>
+              <span class="estado" data-estado></span>
+            </div>
+            <div class="lugares" role="radiogroup" aria-labelledby="q-donde" id="lugares"></div>
+          </div>
+
+          <!-- 2 · Qué -->
+          <div class="pregunta" data-campo="que" id="p-que">
+            <div class="cab">
+              <span class="num"><i>2</i><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4 5 8.8l4.5-5.2"/></svg></span>
+              <h3 id="q-que">¿Qué vas a contar?</h3>
+              <span class="estado" data-estado></span>
+            </div>
+            <div class="seg" id="seg" role="radiogroup" aria-labelledby="q-que" data-valor="todo">
+              <span class="pulgar" aria-hidden="true"></span>
+              <button type="button" role="radio" aria-checked="true" data-v="todo">Todo</button>
+              <button type="button" role="radio" aria-checked="false" data-v="categoria">Una categoría</button>
+            </div>
+            <p class="ayuda" id="ayuda-que" aria-live="polite"></p>
+            <div class="despliega" id="despliega">
+              <div>
+                <div class="cats">
+                  <label class="buscar">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"/><path d="m10.6 10.6 3 3"/></svg>
+                    <span class="sr">Buscar categoría</span>
+                    <input id="buscar" type="text" placeholder="Buscar categoría" autocomplete="off">
+                  </label>
+                  <div class="chips" id="chips" role="radiogroup" aria-label="Categoría"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 · Quién -->
+          <div class="pregunta" data-campo="quien" id="p-quien">
+            <div class="cab">
+              <span class="num"><i>3</i><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4 5 8.8l4.5-5.2"/></svg></span>
+              <h3>¿Quién cuenta?</h3>
+              <span class="estado" data-estado></span>
+            </div>
+            <div class="quien">
+              <button type="button" class="persona" id="persona" aria-haspopup="listbox" aria-expanded="false">
+                <span class="avatar" id="avatar">F</span>
+                <span class="nom" id="nombre">Felipe</span>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6.2 4 4 4-4"/></svg>
+              </button>
+              <span class="firma" id="firma">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.6 2.8 3.5v4.2c0 3.1 2.2 5.4 5.2 6.7 3-1.3 5.2-3.6 5.2-6.7V3.5L8 1.6Z"/><path d="m5.6 8 1.7 1.7 3.1-3.4"/></svg>
+                <span id="firma-txt">Lo que guardes queda a tu nombre</span>
+              </span>
+              <div class="lista" id="lista" role="listbox" aria-label="Quién cuenta"></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="resumen" aria-label="Resumen del conteo">
+          <p class="eyebrow">Tu conteo</p>
+          <div class="total" aria-live="polite">
+            <span class="cifra vacia" id="cifra">—</span>
+            <span class="unidad" id="unidad">Elige dónde para ver cuántas variantes</span>
+          </div>
+          <dl class="filas">
+            <div><dt>Dónde</dt><dd id="r-donde" class="pend">Sin elegir</dd></div>
+            <div><dt>Qué</dt><dd id="r-que">Todo</dd></div>
+            <div><dt>Cuenta</dt><dd id="r-quien">Felipe</dd></div>
+          </dl>
+          <p class="nota">Al empezar se congela lo que CAYLA dice que hay, para compararlo con lo que cuentes.</p>
+          <div class="accion">
+            <p class="falta" id="falta" aria-live="polite"></p>
+            <button type="button" class="empezar" id="empezar" aria-disabled="true">
+              <span id="empezar-txt">Empezar conteo</span>
+              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9h11M10 4.5 14.5 9 10 13.5"/></svg>
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <div class="hecho-vista" id="hecho-vista" aria-live="polite">
+        <span class="sello"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.4 11 18.4 20.2 8"/></svg></span>
+        <h2>Conteo 12 abierto</h2>
+        <p class="resu" id="hecho-resu"></p>
+        <div class="acciones">
+          <button type="button" class="empezar" id="ir-contar"><span>Ir a contar</span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9h11M10 4.5 14.5 9 10 13.5"/></svg></button>
+          <button type="button" class="btn-sutil" id="otra-vez">Reiniciar maqueta</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="nota-demo">La barra negra de arriba y este texto no son parte de la pantalla. Los datos son de ejemplo; «Ir a contar» en la app real abre la pantalla de escanear.</p>
+  </div>
+</main>
+
+<script>
+(() => {
+  /* ===== Datos de ejemplo ===== */
+  const CATEGORIAS = [
+    ["Camisas y Blusas", 58], ["Polos", 71], ["Pantalones", 47], ["Vestidos", 39], ["Blazers", 22], ["Faldas", 31],
+    ["Chompas", 34], ["Casacas", 19], ["Shorts", 26], ["Enterizos", 14], ["Tops", 36], ["Conjuntos", 17], ["Jeans", 41],
+    ["Abrigos", 12], ["Pijamas", 15], ["Accesorios", 33]
+  ];
+  const TOTAL_ALMACEN = CATEGORIAS.reduce((s, c) => s + c[1], 0);   // variantes (modelo · color · talla), NO unidades: el conteo es a ciegas
+  const PROP_PISO = 0.34;
+  const SEDES = {
+    tru: { nombre: "Tienda TRU", separa: true,
+      lugares: [
+        { id: "almacen", titulo: "Almacén de tienda", icono: "caja", ultimo: "Nunca se contó", factor: 1 },
+        { id: "piso", titulo: "Piso de venta", icono: "percha", ultimo: "Último conteo: <span style='white-space:nowrap'>10 · 28/09</span>", factor: PROP_PISO }
+      ] },
+    taller: { nombre: "Taller", separa: false, lugares: [], totalTodo: 380 }
+  };
+  const PERSONAS = [
+    { id: "yo", nombre: "Felipe", completo: "Felipe Alvarez", tu: true },
+    { id: "mi", nombre: "Micaela", completo: "Micaela Torres" },
+    { id: "ro", nombre: "Rosa", completo: "Rosa Quispe" },
+    { id: "lu", nombre: "Lucía", completo: "Lucía Ramos" }
+  ];
+
+  const ICONOS = {
+    caja: '<svg class="ico" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.2 13 3.6l9.5 4.6v10.6L13 23.4 3.5 18.8V8.2Z"/><path d="M3.8 8.4 13 13l9.2-4.6M13 13v10"/></svg>',
+    percha: '<svg class="ico" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8.2V6.9c0-1.2 1-2.1 2.2-2.1a2.2 2.2 0 0 1 2.2 2.3c0 1-.7 1.6-1.6 2"/><path d="M13 8.2 3 17.2c-.9.8-.3 2.3.9 2.3h18.2c1.2 0 1.8-1.5.9-2.3L13 8.2Z"/></svg>'
+  };
+  const OK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4 5 8.8l4.5-5.2"/></svg>';
+
+  /* ===== Estado ===== */
+  const est = { sede: "tru", lugar: "", alcance: "todo", cat: "", quien: "yo", visto: { donde: false, que: false, quien: false }, filtro: "", abriendo: false };
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => n.toLocaleString("es-PE");
+  const sede = () => SEDES[est.sede];
+  const lugarObj = () => sede().lugares.find((l) => l.id === est.lugar) || null;
+  const persona = () => PERSONAS.find((p) => p.id === est.quien);
+  const factor = () => (lugarObj() ? lugarObj().factor : 1);
+  const cuentaCat = (c) => Math.round(c[1] * factor());
+  const catObj = () => CATEGORIAS.find((c) => c[0] === est.cat) || null;
+
+  /* ===== Utilidad: grupo de radios con flechas (mismo comportamiento que la pantalla real) ===== */
+  function radios(grupo, alElegir) {
+    grupo.addEventListener("keydown", (e) => {
+      const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+      if (!paso) return;
+      const bs = [...grupo.querySelectorAll('[role="radio"]')];
+      const i = bs.indexOf(document.activeElement);
+      if (i < 0) return;
+      e.preventDefault();
+      const b = bs[(i + paso + bs.length) % bs.length];
+      b.focus(); b.click();
+    });
+    grupo.addEventListener("click", (e) => {
+      const b = e.target.closest('[role="radio"]');
+      if (b && grupo.contains(b)) alElegir(b.dataset.v);
+    });
+  }
+  function tabindexRoving(grupo) {
+    const bs = [...grupo.querySelectorAll('[role="radio"]')];
+    const marcada = bs.findIndex((b) => b.getAttribute("aria-checked") === "true");
+    bs.forEach((b, i) => (b.tabIndex = (marcada === -1 ? i === 0 : i === marcada) ? 0 : -1));
+  }
+
+  /* ===== Dibujo ===== */
+  function dibujaLugares() {
+    const g = $("lugares");
+    g.innerHTML = sede().lugares.map((l) => {
+      const n = Math.round(TOTAL_ALMACEN * l.factor);
+      return `<button type="button" class="lugar" role="radio" aria-checked="${est.lugar === l.id}" data-v="${l.id}">
+        <span class="marca">${OK}</span>${ICONOS[l.icono]}
+        <span class="t">${l.titulo}</span>
+        <span class="l">${l.ultimo}</span>
+        <span class="n">${fmt(n)} variantes registradas</span>
+      </button>`;
+    }).join("");
+    tabindexRoving(g);
+  }
+
+  function dibujaChips() {
+    const g = $("chips");
+    const q = est.filtro.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const lista = CATEGORIAS.filter((c) => c[0].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q));
+    g.innerHTML = lista.length
+      ? lista.map((c) => `<button type="button" class="chip" role="radio" aria-checked="${est.cat === c[0]}" data-v="${c[0]}">${c[0]}${est.lugar || !sede().separa ? `<small>${fmt(cuentaCat(c))}</small>` : ""}</button>`).join("")
+      : '<p class="vacio">Ninguna categoría se llama así.</p>';
+    tabindexRoving(g);
+  }
+
+  function total() {
+    if (!sede().separa) { const c = catObj(); return c ? Math.round(sede().totalTodo * (c[1] / TOTAL_ALMACEN)) : sede().totalTodo; }
+    if (!lugarObj()) return null;
+    const c = catObj();
+    if (est.alcance === "categoria") return c ? cuentaCat(c) : null;
+    return Math.round(TOTAL_ALMACEN * factor());
+  }
+
+  /* Lo que falta, en el orden en que se responde */
+  function faltan() {
+    const f = [];
+    if (sede().separa && !lugarObj()) f.push(["donde", "dónde vas a contar"]);
+    if (est.alcance === "categoria" && !catObj()) f.push(["que", "la categoría"]);
+    return f;
+  }
+  const listo = () => faltan().length === 0;
+
+  let cifraAntes = null, tween = 0;
+  function poneCifra(n) {
+    const el = $("cifra");
+    if (n === null) { el.textContent = "—"; el.classList.add("vacia"); cifraAntes = null; return; }
+    el.classList.remove("vacia");
+    const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-quieto");
+    const desde = cifraAntes ?? n;
+    cancelAnimationFrame(tween);
+    if (quieto || desde === n) { el.textContent = fmt(n); cifraAntes = n; return; }
+    const t0 = performance.now(), dur = 380;
+    const paso = (t) => {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(desde + (n - desde) * e));
+      if (p < 1) tween = requestAnimationFrame(paso); else cifraAntes = n;
+    };
+    tween = requestAnimationFrame(paso);
+  }
+
+  function textoQue() {
+    if (est.alcance === "todo") return "Todo";
+    const c = catObj(); return c ? "Solo " + c[0] : "Una categoría";
+  }
+  function textoDonde() {
+    return sede().separa ? (lugarObj() ? lugarObj().titulo : null) : "Toda la ubicación";
+  }
+
+  function pinta() {
+    // Guía de foco (ADR-0284): cada pregunta dice su estado. Hecho = la persona la contestó; armado de antemano = «Por revisar».
+    const hechoDonde = !sede().separa || !!lugarObj();
+    const hechoQue = est.alcance === "todo" ? est.visto.que : !!catObj();
+    const hechoQuien = est.visto.quien;
+    const revisarQue = est.alcance === "todo" && !est.visto.que;
+    const revisarQuien = !est.visto.quien;
+
+    const preguntas = [
+      ["donde", hechoDonde, false],
+      ["que", hechoQue, revisarQue],
+      ["quien", hechoQuien, revisarQuien]
+    ];
+    // «Sigue aquí»: la primera que falta de verdad; si nada falta, la primera por revisar.
+    const pendiente = preguntas.find(([c]) => faltan().some((f) => f[0] === c)) || preguntas.find(([, h, r]) => !h && r);
+    preguntas.forEach(([campo, hecho, revisar]) => {
+      const p = document.querySelector(`[data-campo="${campo}"]`);
+      const ahora = pendiente && pendiente[0] === campo;
+      p.classList.toggle("hecho", hecho);
+      p.classList.toggle("ahora", !!ahora && !hecho);
+      p.classList.toggle("revisar", revisar && !hecho);
+      const e = p.querySelector("[data-estado]");
+      e.textContent = hecho ? "Listo" : ahora ? "Sigue aquí" : revisar ? "Por revisar" : "Falta";
+    });
+
+    // Qué
+    $("seg").dataset.valor = est.alcance;
+    $("seg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === est.alcance)));
+    tabindexRoving($("seg"));
+    $("despliega").classList.toggle("abierto", est.alcance === "categoria");
+    const lug = lugarObj();
+    $("ayuda-que").innerHTML = est.alcance === "todo"
+      ? (lug ? `Todas las prendas del <b>${lug.titulo}</b>.` : sede().separa ? "Todas las prendas del lugar que elijas." : "Todas las prendas registradas en el Taller.")
+      : (catObj() ? `Solo las prendas de <b>${catObj()[0]}</b>.` : "Elige una categoría para acotar el conteo.");
+
+    // Resumen
+    const n = total();
+    poneCifra(n);
+    $("unidad").textContent = n === null
+      ? (sede().separa && !lug ? "Elige dónde para ver cuántas variantes" : "Elige la categoría para ver cuántas variantes")
+      : n === 1 ? "variante por contar" : "variantes por contar";
+    const dd = $("r-donde"); const td = textoDonde();
+    dd.textContent = td || "Sin elegir"; dd.classList.toggle("pend", !td);
+    $("r-que").textContent = textoQue();
+    $("r-quien").textContent = persona().nombre;
+
+    // Botón y «Falta: …» tocable (cada cosa lleva al campo)
+    const f = faltan();
+    $("falta").innerHTML = f.length
+      ? "Falta: " + f.map(([c, t]) => `<button type="button" data-ir="${c}">${t}</button>`).join(" · ")
+      : "";
+    $("empezar").setAttribute("aria-disabled", String(!listo()));
+    $("empezar-txt").textContent = est.abriendo ? "Abriendo…" : "Empezar conteo";
+  }
+
+  /* ===== Acciones ===== */
+  function elegirLugar(id) { est.lugar = id; est.visto.donde = true; dibujaLugares(); if (est.alcance === "categoria") dibujaChips(); pinta(); }
+  function elegirAlcance(v) {
+    est.alcance = v; est.visto.que = true;
+    if (v === "todo") est.cat = "";
+    dibujaChips(); pinta();
+    if (v === "categoria") setTimeout(() => { if (!matchMedia("(pointer:coarse)").matches) $("buscar").focus({ preventScroll: true }); }, 340);
+  }
+  function elegirCat(nombre) { est.cat = nombre; est.visto.que = true; dibujaChips(); pinta(); }
+
+  function irACampo(campo) {
+    const p = document.querySelector(`[data-campo="${campo}"]`);
+    if (!p) return;
+    // Solo se mueve lo que no se ve; nunca con foco en un campo de texto.
+    const r = p.getBoundingClientRect();
+    const fuera = r.top < 70 || r.bottom > innerHeight - 90;
+    if (fuera && document.activeElement?.tagName !== "INPUT") p.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    p.classList.remove("destello"); void p.offsetWidth; p.classList.add("destello");
+    setTimeout(() => {
+      const foco = campo === "que" && est.alcance === "categoria" ? $("buscar") : p.querySelector('[role="radio"][tabindex="0"], input, button');
+      foco && foco.focus({ preventScroll: true });
+    }, 120);
+  }
+
+  /* Responsable */
+  function dibujaLista() {
+    $("lista").innerHTML = `<div class="cabl">De turno ahora · ${sede().nombre}</div>` + PERSONAS.map((p) =>
+      `<button type="button" role="option" aria-selected="${p.id === est.quien}" data-p="${p.id}"><span class="pto"></span><span>${p.completo}${p.tu ? " <small style='color:var(--taupe)'>(tú)</small>" : ""}</span>
+      <svg class="ck" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.4 3 3 6-6.6"/></svg></button>`).join("");
+  }
+  function abreLista(si) {
+    $("lista").classList.toggle("abierta", si);
+    $("persona").setAttribute("aria-expanded", String(si));
+    if (si) setTimeout(() => $("lista").querySelector('[aria-selected="true"]')?.focus(), 30);
+  }
+  function pintaPersona() {
+    const p = persona();
+    $("avatar").textContent = p.nombre[0];
+    $("nombre").textContent = p.nombre;
+    $("firma-txt").textContent = p.tu ? "Eres admin: lo que guardes queda a tu nombre" : `Lo que ${p.nombre} guarde queda a su nombre`;
+    dibujaLista();
+  }
+
+  function empezar() {
+    if (est.abriendo) return;
+    const f = faltan();
+    if (f.length) { irACampo(f[0][0]); return; }
+    est.abriendo = true;
+    const b = $("empezar"); b.classList.add("girando");
+    $("empezar-txt").textContent = "Abriendo…";
+    b.insertAdjacentHTML("afterbegin", '<span class="giro" id="giro"></span>');
+    b.querySelector("svg").style.display = "none";
+    setTimeout(() => {
+      const donde = textoDonde();
+      $("hecho-resu").innerHTML = `<b>${donde}</b> · ${textoQue()} · <b>${fmt(total())}</b> variantes. Cuenta <b>${persona().nombre}</b>. Ya puedes escanear.`;
+      $("tarjeta").classList.add("abierto");
+      $("giro")?.remove(); b.querySelector("svg").style.display = ""; b.classList.remove("girando");
+      est.abriendo = false;
+      $("ir-contar").focus({ preventScroll: true });
+    }, 950);
+  }
+
+  function reinicia(conservar = {}) {
+    Object.assign(est, { lugar: "", alcance: "todo", cat: "", quien: "yo", visto: { donde: false, que: false, quien: false }, filtro: "", abriendo: false }, conservar);
+    $("tarjeta").classList.remove("abierto");
+    $("buscar").value = "";
+    abreLista(false);
+    $("sub").textContent = sede().separa ? "Tres respuestas y empiezas a escanear." : "Aquí se cuenta toda la ubicación: no hay piso y almacén por separado.";
+    $("p-donde").hidden = !sede().separa;
+    // La numeración sigue a lo que se ve: el Taller no pregunta «dónde».
+    const nums = [...document.querySelectorAll(".pregunta:not([hidden]) .num i")];
+    nums.forEach((el, i) => (el.textContent = String(i + 1)));
+    cifraAntes = null;
+    dibujaLugares(); dibujaChips(); pintaPersona(); pinta();
+  }
+
+  /* ===== Enlaces ===== */
+  radios($("lugares"), elegirLugar);
+  radios($("seg"), elegirAlcance);
+  radios($("chips"), elegirCat);
+  $("buscar").addEventListener("input", (e) => { est.filtro = e.target.value; dibujaChips(); });
+  $("buscar").addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && e.target.value) { e.stopPropagation(); e.target.value = ""; est.filtro = ""; dibujaChips(); }
+    if (e.key === "ArrowDown") { const c = $("chips").querySelector('[role="radio"]'); if (c) { e.preventDefault(); c.focus(); } }
+  });
+  $("persona").addEventListener("click", () => abreLista(!$("lista").classList.contains("abierta")));
+  $("lista").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-p]"); if (!b) return;
+    est.quien = b.dataset.p; est.visto.quien = true; pintaPersona(); pinta(); abreLista(false); $("persona").focus();
+  });
+  document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".quien")) abreLista(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("lista").classList.contains("abierta")) { e.stopPropagation(); abreLista(false); $("persona").focus(); } });
+  $("falta").addEventListener("click", (e) => { const b = e.target.closest("[data-ir]"); if (b) irACampo(b.dataset.ir); });
+  $("empezar").addEventListener("click", empezar);
+  $("otra-vez").addEventListener("click", () => reinicia());
+  $("reiniciar").addEventListener("click", () => reinicia());
+  $("ir-contar").addEventListener("click", () => { $("ir-contar").querySelector("span").textContent = "En la app abre «Contando»"; setTimeout(() => ($("ir-contar").querySelector("span").textContent = "Ir a contar"), 1600); });
+  document.querySelector("[data-sin-ir]").addEventListener("click", (e) => e.preventDefault());
+
+  // Barra de la demo
+  document.querySelectorAll(".seg-demo").forEach((grupo) => grupo.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    grupo.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    const v = b.dataset.v;
+    if (grupo.dataset.demo === "sede") { est.sede = v; reinicia({ sede: v }); }
+    if (grupo.dataset.demo === "aviso") $("aviso").hidden = v !== "si";
+    if (grupo.dataset.demo === "ancho") $("marco").dataset.ancho = v;
+  }));
+
+  reinicia();
+})();
+</script>
+</body>
+</html>

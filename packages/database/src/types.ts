@@ -5873,6 +5873,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_conteo_alcance: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          categoria_id: string
+          sububicacion_id: string
+          variantes: number
+        }[]
+      }
       fn_conteo_detalle: { Args: { p_conteo_id: string }; Returns: Json }
       fn_conteos_resumen: {
         Args: { p_limite?: number; p_ubicacion_id: string }

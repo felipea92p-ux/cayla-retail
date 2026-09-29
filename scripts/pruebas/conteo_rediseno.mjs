@@ -23,6 +23,9 @@
  *     `movimiento_id` (Finanzas y Movimientos lo leen así);
  *   · `fn_conteos_resumen` NO cuenta pendientes en `lineas` (la exactitud no se infla) y no trae `soles_diferencia`;
  *   · sububicación obligatoria en tiendas con piso/almacén, y el Taller (sin sububicación) sigue contando;
+ *   · `fn_conteo_alcance` (la cifra «cuántas variantes» de la tarjeta de abrir, migración `20260930040000`): coincide fila por
+ *     fila con la foto de `abrir_conteo` (piso, almacén, categoría y Taller), no ofrece la cuarentena, no la ve quien no opera la
+ *     sede, y sus controles (mutada, dan otra cifra que la foto) demuestran que la prueba muerde;
  *   · permisos (una colaboradora de otra sede no opera el conteo), anular sin cambios, CHECKs de la tabla, grants, marcas
  *     de parche una sola vez y firmas sin sobrecargas viejas;
  *   · el simulacro de re-pegado de las migraciones viejas y de las nuevas;
@@ -55,7 +58,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Truji
 
 const EN_SECO = process.argv.includes("--en-seco");
 const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
-const MIGRACIONES_NUEVAS = `${leer("20260930010000_conteo_rediseno_columnas.sql")}\n${leer("20260930010100_conteo_rediseno_funciones.sql")}`;
+const MIGRACIONES_NUEVAS = `${leer("20260930010000_conteo_rediseno_columnas.sql")}\n${leer("20260930010100_conteo_rediseno_funciones.sql")}\n${leer("20260930040000_conteo_alcance_por_lugar.sql")}`;
 const PRELUDIO = EN_SECO ? MIGRACIONES_NUEVAS : "";
 const MIG_ADR_0189 = leer("20260924120000_concurrencia_cambios_devoluciones_conteo.sql");
 const MIG_VACIO = leer("20260923120000_conteo_vacio_no_se_cierra.sql");
@@ -770,6 +773,68 @@ select concat_ws(',', split_part(:'r1', '|', 2), (select count(*) from retail.co
   pg_temp.stock(:'va', :'tl', null),
   (select sububicacion_id is null from retail.movimientos where conteo_item_id in (select id from retail.conteo_items where conteo_id = :'conteo')));`),
   ["sububicacion_invalida", "2", "2/4", "1", "1", "3", "t"]
+);
+
+// ---------------------------------------------------------------------------
+// 8b. La cifra de la tarjeta de abrir (`fn_conteo_alcance`): tiene que ser la de la foto
+// ---------------------------------------------------------------------------
+/**
+ * La cifra previa contra la foto real: para cada alcance se pide la cifra a `fn_conteo_alcance`, se abre el conteo de verdad
+ * y se cuentan sus filas (`conteo_items`). Escena: piso = va, vb, vc (ve quedó en 0 y la pieza del sistema no se cuenta) → 3,
+ * de Camisas y Blusas → 2; almacén = vd, va → 2; el Taller cuenta a `va` UNA vez aunque esté en dos lugares → 2.
+ * Devuelve: piso=foto, camisas=foto, almacén=foto, filas de cuarentena, Taller=foto, y las cuatro cifras.
+ */
+const PARIDAD_ALCANCE = (mutacion = "") =>
+  comoFelipe(`${ESCENA}
+${mutacion}
+select coalesce(sum(variantes), 0) as a_piso from retail.fn_conteo_alcance(:'u') where sububicacion_id = :'piso' \\gset
+select coalesce(sum(variantes), 0) as a_cam from retail.fn_conteo_alcance(:'u') where sububicacion_id = :'piso' and categoria_id = :'cat_camisas' \\gset
+select coalesce(sum(variantes), 0) as a_alm from retail.fn_conteo_alcance(:'u') where sububicacion_id = :'alm' \\gset
+select count(*) as a_cua from retail.fn_conteo_alcance(:'u') where sububicacion_id = :'cua' \\gset
+${ABRIR_PISO}
+select count(*) as f_piso from retail.conteo_items where conteo_id = :'conteo' \\gset
+select retail.anular_conteo(:'conteo') as _a1 \\gset
+select retail.abrir_conteo(:'u', :'piso', 'categoria', :'cat_camisas') as conteo \\gset
+select count(*) as f_cam from retail.conteo_items where conteo_id = :'conteo' \\gset
+select retail.anular_conteo(:'conteo') as _a2 \\gset
+select retail.abrir_conteo(:'u', :'alm') as conteo \\gset
+select count(*) as f_alm from retail.conteo_items where conteo_id = :'conteo' \\gset
+insert into retail.ubicaciones (nombre, tipo) values ('ZZ Taller alcance', 'taller') returning id as tl \\gset
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) values (:'tl', 'Rack A', 'rack') returning id as rack \\gset
+select pg_temp.poner(:'va', :'tl', null, 4) \\gset
+select pg_temp.poner(:'va', :'tl', :'rack', 1) \\gset
+select pg_temp.poner(:'vb', :'tl', null, 2) \\gset
+select coalesce(sum(variantes), 0) as a_tl from retail.fn_conteo_alcance(:'tl') where sububicacion_id is null \\gset
+select retail.abrir_conteo(:'tl') as conteo_tl \\gset
+select count(*) as f_tl from retail.conteo_items where conteo_id = :'conteo_tl' \\gset
+select concat_ws(',', :a_piso = :f_piso, :a_cam = :f_cam, :a_alm = :f_alm, :a_cua, :a_tl = :f_tl, :a_piso, :a_cam, :a_alm, :a_tl);`);
+
+exito(
+  "la cifra de la tarjeta de abrir (fn_conteo_alcance) es la de la foto: piso, categoría, almacén y Taller (una variante en dos lugares cuenta una vez); la cuarentena no se ofrece",
+  PARIDAD_ALCANCE(),
+  ["t", "t", "t", "0", "t", "3", "2", "2", "2"]
+);
+
+control(
+  "control: si la cifra contara también las variantes en 0 (el ve del piso), ya no coincide con la foto",
+  PARIDAD_ALCANCE(MUTAR("retail.fn_conteo_alcance(uuid)", "where pv.cantidad > 0", "where pv.cantidad >= 0")),
+  ["t", "t", "t", "0", "t", "3", "2", "2", "2"]
+);
+
+control(
+  "control: si la cifra contara la pieza del sistema (el cargo especial no es una prenda), ya no coincide con la foto",
+  PARIDAD_ALCANCE(MUTAR("retail.fn_conteo_alcance(uuid)", "and not fn_producto_es_pieza_del_sistema(p.id)", "and true")),
+  ["t", "t", "t", "0", "t", "3", "2", "2", "2"]
+);
+
+exito(
+  "fn_conteo_alcance no se la da a quien no opera la sede: una colaboradora de otra sede recibe vacío (no un error), y el líder sí ve cifras",
+  comoFelipe(`${ESCENA}
+set local request.jwt.claim.sub = '${MICAELA}';
+select count(*) as n_micaela from retail.fn_conteo_alcance(:'u') \\gset
+set local request.jwt.claim.sub = '${FELIPE}';
+select concat_ws(',', :n_micaela, (select count(*) > 0 from retail.fn_conteo_alcance(:'u')));`),
+  ["0", "t"]
 );
 
 // ---------------------------------------------------------------------------

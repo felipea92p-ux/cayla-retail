@@ -312,9 +312,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;
   `TrasladoAnularModal` → `anular_traslado` (origen o líder, sin conteos)).
 - `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
-  **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 4 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
-  categorías y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y
-  `AccionesEnCurso`; sin abierto, `AbrirConteo.tsx`: dónde/qué/quién en tres preguntas, `rpc abrir_conteo`) + `ConteosLista.tsx` («Conteos recientes»: Todo correcto /
+  **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 5 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
+  categorías, `getAlcanceConteo` → RPC `fn_conteo_alcance` —dato de apoyo: cuántas variantes trae cada lugar y categoría; si no llega, la tarjeta sale sin cifras— y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y
+  `AccionesEnCurso`; sin abierto, `AbrirConteo.tsx`: dónde/qué/quién en tres preguntas + «Tu conteo» (variantes, resumen y botón; guía de foco `lib/conteo-inicio-guia.ts`), `rpc abrir_conteo`) + `ConteosLista.tsx` («Conteos recientes»: Todo correcto /
   N diferencias corregidas / Conteo parcial / Cancelado / En curso). `?variantes=` con abierto redirige a `/inventario/conteo/<id>?variantes=`.
   → `/inventario/conteo/[id]` decide por estado (`getDetalleConteo` → RPC `fn_conteo_detalle`, un solo jsonb con cabecera, resumen y líneas): **abierto** →
   `ContarConteo.tsx` (`ListaConteo` = una tabla con un `tbody` por percha, `FilaConteo` memoizada + `CampoContaste`; el estado de las líneas vive fuera de React en
