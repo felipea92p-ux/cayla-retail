@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spike · Catálogo: listado, editar y agregar estandarizados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-rojo: #b8412d; --color-crema: #f5f0e8; --color-tinta: #1a1a18;
+    --color-rojo-profundo: #8b2a1f; --color-sand: #e8e0d0; --color-taupe: #805c4c;
+    --color-taupe-profundo: #805c4c; --color-papel: #fbf8f2; --color-hueso: #eae1d2;
+    --color-verde: #48603f; --color-ambar: #74501a; --color-tinta-60: #5b544c;
+    --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+    --radius-md: 8px; --radius-xl: 16px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-crema); color: var(--color-tinta); font-family: var(--font-sans); padding: 32px 24px 96px; }
+  .envoltorio { max-width: 1280px; margin: 0 auto; }
+  .intro { max-width: 820px; margin-bottom: 36px; }
+  .intro h1 { font-family: var(--font-serif); font-weight: 600; font-size: 26px; margin: 0 0 12px; }
+  .intro p { font-size: 13.5px; line-height: 1.65; color: var(--color-tinta-60); margin: 0 0 8px; }
+  .intro code { background: var(--color-hueso); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .hallazgos { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+  .hallazgos li { font-size: 12.5px; line-height: 1.55; padding: 8px 12px; border-radius: var(--radius-md); background: color-mix(in oklab, var(--color-rojo) 6%, var(--color-papel)); border: 1px solid color-mix(in oklab, var(--color-rojo) 20%, var(--color-sand)); }
+  .hallazgos b { color: var(--color-rojo-profundo); }
+
+  .modulo { margin-bottom: 48px; }
+  .modulo-titulo { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--color-sand); }
+  .modulo-titulo h2 { font-family: var(--font-serif); font-weight: 600; font-size: 21px; margin: 0; }
+
+  .fila3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .fila3 { grid-template-columns: 1fr; } }
+  .col { border: 1px solid var(--color-sand); border-radius: var(--radius-xl); background: #fff; overflow: hidden; }
+  .col.falta { border-color: color-mix(in oklab, var(--color-rojo) 45%, var(--color-sand)); border-style: dashed; }
+  .col-cabecera { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 7px 14px; color: var(--color-tinta-60); background: var(--color-hueso); }
+  .col.falta .col-cabecera { color: var(--color-rojo-profundo); background: color-mix(in oklab, var(--color-rojo) 10%, var(--color-hueso)); }
+  .col-cuerpo { padding: 16px; background: var(--color-crema); min-height: 120px; }
+
+  /* tarjeta de listado */
+  .tarjeta-item { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .tarjeta-item .nombre { font-family: var(--font-serif); font-weight: 600; font-size: 14.5px; }
+  .tarjeta-item .meta { font-size: 11.5px; color: var(--color-taupe); margin-top: 2px; }
+  .acciones-fila { display: flex; gap: 10px; margin-top: 8px; font-size: 11.5px; }
+  .acciones-fila .btn-enlace { color: var(--color-tinta); text-decoration: underline; text-underline-offset: 2px; }
+  .acciones-fila .btn-enlace.rojo { color: var(--color-rojo); }
+  .acciones-fila .hover-nota { color: var(--color-tinta-60); font-style: italic; }
+
+  /* mini-modal */
+  .mini-modal { border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel); overflow: hidden; }
+  .mini-modal-cabecera { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 14px 8px; }
+  .mini-modal-cabecera h3 { font-family: var(--font-serif); font-weight: 600; font-size: 15px; margin: 0; }
+  .mini-modal-cabecera .x { color: var(--color-taupe); font-size: 13px; }
+  .mini-modal-campos { padding: 0 14px 10px; display: grid; gap: 6px; }
+  .campo-fantasma { height: 26px; border-radius: 6px; background: var(--color-hueso); }
+  .campo-fantasma.chico { width: 60%; }
+  .mini-modal-pie { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--color-sand); font-size: 11.5px; }
+  .mini-modal-pie .der { display: flex; gap: 8px; }
+  .chip-btn { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+  .chip-primario { background: var(--color-tinta); color: var(--color-crema); }
+  .chip-secundario { background: transparent; color: var(--color-tinta); border: 1px solid var(--color-sand); }
+  .chip-peligro { background: transparent; color: var(--color-rojo); }
+
+  .sin-nada { display: flex; align-items: center; justify-content: center; height: 100px; font-size: 12px; color: var(--color-rojo-profundo); text-align: center; padding: 0 16px; }
+
+  .nota-mini { margin-top: 10px; font-size: 11.5px; line-height: 1.5; color: var(--color-taupe); background: color-mix(in oklab, var(--color-hueso) 85%, transparent); border-radius: 10px; padding: 8px 10px; }
+  .nota-mini b { color: var(--color-tinta); }
+
+  .decision-box { border: 1px dashed var(--color-rojo); border-radius: var(--radius-xl); padding: 18px 22px; background: color-mix(in oklab, var(--color-rojo) 5%, var(--color-crema)); margin-top: 20px; }
+  .decision-box h3 { font-family: var(--font-serif); font-size: 16px; margin: 0 0 8px; }
+  table.opciones { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+  table.opciones th, table.opciones td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--color-sand); vertical-align: top; }
+  table.opciones th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--color-taupe); }
+</style>
+</head>
+<body>
+<div class="envoltorio">
+
+  <div class="intro">
+    <h1>Spike · Catálogo: listado, editar y agregar</h1>
+    <p>La cabecera de página (Opción A) ya está aplicada en <code>categorias/page.tsx</code>, <code>marcas/page.tsx</code> y <code>atributos/page.tsx</code>. Este spike mira un nivel más abajo: cómo se ve hoy el <b>listado</b>, el <b>agregar</b> y el <b>editar</b> de cada uno — leído directo del código, no adivinado — para decidir qué se estandariza antes de tocarlo.</p>
+    <ul class="hallazgos">
+      <li><b>1. Alta de Marcas es la única que NO usa <code>&lt;Modal&gt;</code>:</b> es un panel que aparece inline bajo el buscador (<code>MarcasLista.tsx:187</code>), mientras su propio «Editar» (<code>EditarMarcaModal.tsx:103</code>) y el alta de Categorías/Atributos sí usan el <code>&lt;Modal&gt;</code> oficial (ADR-0136).</li>
+      <li><b>2. Solo Categorías antepone una «Vista rápida»</b> antes de entrar a Editar (<code>VistaRapidaCategoria</code>, <code>CategoriasLista.tsx:867</code>); Marcas y las 6 pestañas de Atributos van directo al modal de edición.</li>
+      <li><b>3. «Editar nombre» no existe en Tallas, Tejidos ni Patrones</b> (solo Desactivar/Reactivar); Colores es el único de Atributos que sí lo tiene (<code>ColorEditarModal</code>, <code>ColoresLista.tsx:695</code>); Etiquetas lo resuelve distinto, con «Configurar campaña».</li>
+      <li><b>4. «Desactivar» vive en dos lugares distintos:</b> dentro del modal de Editar en Categorías y Colores; suelto en la tarjeta (al pasar el mouse) en Marcas, Tallas, Tejidos, Patrones y Etiquetas.</li>
+      <li><b>5. Acciones de fila de Marcas son texto plano siempre visible</b> («Editar · Desactivar · Eliminar», <code>MarcasLista.tsx:209-236</code>); el resto usa el kit de tarjeta (<code>DesactivarTarjeta</code>) que aparece solo al pasar el mouse o con foco.</li>
+    </ul>
+  </div>
+
+  <!-- CATEGORÍAS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Categorías</h2></div>
+    <div class="fila3">
+      <div class="col">
+        <div class="col-cabecera">Listado</div>
+        <div class="col-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">Blusas</div>
+            <div class="meta">BLU · Indumentaria · 214 productos</div>
+          </div>
+          <div class="tarjeta-item">
+            <div class="nombre">Vestidos largos</div>
+            <div class="meta">VEL · subcategoría de Vestidos · 38 productos</div>
+          </div>
+          <div class="nota-mini">Tarjeta entera clicable → abre <b>Vista rápida</b>, no hay botones sueltos.</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-cabecera">Agregar</div>
+        <div class="col-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Nueva categoría</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos">
+              <div class="campo-fantasma"></div><div class="campo-fantasma"></div><div class="campo-fantasma chico"></div>
+            </div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-cabecera">Editar</div>
+        <div class="col-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar categoría</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos">
+              <div class="campo-fantasma"></div><div class="campo-fantasma"></div><div class="campo-fantasma chico"></div>
+            </div>
+            <div class="mini-modal-pie"><span class="chip-btn chip-peligro" style="padding-left:0">Desactivar categoría</span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar cambios</span></span></div>
+          </div>
+          <div class="nota-mini">Mismo componente que «Agregar»; solo cambia el título y aparece «Desactivar» en el pie.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARCAS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Marcas</h2></div>
+    <div class="fila3">
+      <div class="col">
+        <div class="col-cabecera">Listado</div>
+        <div class="col-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">Vermont</div>
+            <div class="meta">Ganesha SAC, Textiles Lima · 340 productos</div>
+            <div class="acciones-fila"><span class="btn-enlace">Editar</span><span class="btn-enlace">Desactivar</span></div>
+          </div>
+          <div class="nota-mini">Texto subrayado <b>siempre visible</b> — no usa el kit <code>DesactivarTarjeta</code> (aparece solo al hover en el resto del módulo).</div>
+        </div>
+      </div>
+      <div class="col falta">
+        <div class="col-cabecera">Agregar — no usa Modal</div>
+        <div class="col-cuerpo">
+          <div class="sin-nada">Panel <b>inline</b> bajo el buscador (mismo <code>NuevaMarcaForm</code> de Nuevo producto), no una hoja con velo.</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-cabecera">Editar</div>
+        <div class="col-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Editar marca</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos">
+              <div class="campo-fantasma chico"></div><div class="campo-fantasma"></div>
+            </div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATRIBUTOS -->
+  <div class="modulo">
+    <div class="modulo-titulo"><h2>Atributos — 6 pestañas (kit de ADR-0261)</h2></div>
+    <div class="fila3">
+      <div class="col">
+        <div class="col-cabecera">Listado (todas las pestañas)</div>
+        <div class="col-cuerpo">
+          <div class="tarjeta-item">
+            <div class="nombre">■ Cobalto</div>
+            <div class="meta">Familia: Azules · 56 prendas</div>
+            <div class="acciones-fila"><span class="btn-enlace">Editar</span><span class="hover-nota">Desactivar (al pasar el mouse)</span></div>
+          </div>
+          <div class="tarjeta-item">
+            <div class="nombre">M</div>
+            <div class="meta">Tallas de letra · 812 prendas</div>
+            <div class="acciones-fila"><span class="hover-nota">Sin «Editar» — solo Desactivar (al pasar el mouse)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-cabecera">Agregar</div>
+        <div class="col-cuerpo">
+          <div class="mini-modal">
+            <div class="mini-modal-cabecera"><h3>Nuevo color / talla / tejido…</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos">
+              <div class="campo-fantasma"></div><div class="campo-fantasma chico"></div>
+            </div>
+            <div class="mini-modal-pie"><span></span><span class="der"><span class="chip-btn chip-secundario">Cancelar</span><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Las 6 pestañas abren un <code>&lt;Modal&gt;</code> propio para agregar — esta parte ya es pareja.</div>
+        </div>
+      </div>
+      <div class="col falta">
+        <div class="col-cabecera">Editar — solo Colores lo tiene</div>
+        <div class="col-cuerpo">
+          <div class="mini-modal" style="margin-bottom:10px">
+            <div class="mini-modal-cabecera"><h3>Editar «Cobalto»</h3><span class="x">✕</span></div>
+            <div class="mini-modal-campos"><div class="campo-fantasma"></div></div>
+            <div class="mini-modal-pie"><span class="chip-btn chip-peligro" style="padding-left:0">Desactivar</span><span class="der"><span class="chip-btn chip-primario">Guardar</span></span></div>
+          </div>
+          <div class="nota-mini">Tallas/Tejidos/Patrones: <b>no existe</b> este modal, solo Desactivar/Reactivar en la tarjeta. Etiquetas lo resuelve con «Configurar campaña» (otro modal, con fechas y descuento).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="decision-box">
+    <h3>Lo que falta decidir (protocolo de pregunta)</h3>
+    <table class="opciones">
+      <tr><th>Decisión</th><th>Ganas</th><th>Pagas</th></tr>
+      <tr>
+        <td><b>1. Alta de Marcas → <code>&lt;Modal&gt;</code></b> (recomendada, aplica una regla ya vigente)</td>
+        <td>Las 3 pantallas comparten el mismo mecanismo de alta; cumple ADR-0136 al pie de la letra.</td>
+        <td>Ninguno real: <code>NuevaMarcaForm</code> no cambia, solo cómo <code>MarcasLista</code> lo envuelve.</td>
+      </tr>
+      <tr>
+        <td><b>2. Vista rápida antes de Editar</b> — ¿la llevo a Marcas/Atributos, o la dejo solo en Categorías?</td>
+        <td>Llevarla a todas da un paso de lectura antes de editar por error; dejarla solo en Categorías respeta que ahí hay más campos que mirar.</td>
+        <td>Llevarla a todas suma un clic extra en pantallas donde hoy se edita directo (Colores, Marcas).</td>
+      </tr>
+      <tr>
+        <td><b>3. «Editar nombre» en Tallas/Tejidos/Patrones</b> — ¿se agrega (como Colores), o se deja así (solo Desactivar/Reactivar)?</td>
+        <td>Agregarlo corrige un typo sin desactivar y crear de nuevo (perdiendo el historial de uso).</td>
+        <td>Es una pantalla nueva por vocabulario (aunque comparta el kit); si nunca hubo un typo real, es trabajo sin pedido.</td>
+      </tr>
+      <tr>
+        <td><b>4. Dónde vive «Desactivar»</b> — ¿siempre en la tarjeta (como Marcas/Tallas/Tejidos/Patrones/Etiquetas), o dentro del modal de Editar (como Categorías/Colores)?</td>
+        <td>En la tarjeta es un clic menos para lo que se usa seguido; dentro del modal agrupa toda acción destructiva en un solo lugar.</td>
+        <td>Cambiar Categorías/Colores a «en la tarjeta» es tocar 2 componentes ya probados sin un problema reportado.</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

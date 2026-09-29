@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Catálogo — pantallas reales (mockup navegable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --color-rojo:#b8412d; --color-crema:#f5f0e8; --color-tinta:#1a1a18; --color-rojo-profundo:#8b2a1f;
+    --color-sand:#e8e0d0; --color-taupe:#805c4c; --color-papel:#fbf8f2; --color-hueso:#eae1d2;
+    --color-verde:#48603f; --color-ambar:#74501a; --color-tinta-60:#5b544c;
+    --font-sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --font-serif:"EB Garamond",ui-serif,Georgia,serif;
+    --font-mono:"JetBrains Mono",ui-monospace,monospace;
+    --radius-md:8px; --radius-xl:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--color-crema);color:var(--color-tinta);font-family:var(--font-sans);padding-bottom:80px}
+  .top{position:sticky;top:0;z-index:20;background:var(--color-crema);border-bottom:1px solid var(--color-sand);padding:14px 24px 0}
+  .top h1{font-family:var(--font-serif);font-weight:600;font-size:18px;margin:0 0 3px}
+  .top .sub{font-size:11.5px;color:var(--color-tinta-60);margin:0 0 10px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;overflow-x:auto;padding-bottom:10px}
+  .tab{border:none;background:transparent;padding:7px 13px;font-size:12px;font-weight:600;color:var(--color-taupe);border-radius:8px 8px 0 0;cursor:pointer;white-space:nowrap}
+  .tab.activo{background:#fff;color:var(--color-tinta);box-shadow:inset 0 -2px 0 var(--color-rojo)}
+  .envoltorio{max-width:1100px;margin:0 auto;padding:20px 24px 0}
+  .tabpanel[data-group="mod"]{display:none}
+  .tabpanel[data-group="mod"].activo{display:block}
+  .nav-vistas{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .nav-vistas .tab{border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;color:var(--color-taupe)}
+  .nav-vistas .tab.activo{background:var(--color-tinta);color:var(--color-crema);border-color:var(--color-tinta);box-shadow:none}
+  .subpanel{display:none}
+  .subpanel.activo{display:block;animation:aparece .15s ease}
+  @keyframes aparece{from{opacity:0}to{opacity:1}}
+
+  .hoja{background:#fff;border:1px solid var(--color-sand);border-radius:var(--radius-xl);padding:20px;margin-bottom:14px}
+  .hoja h2{font-family:var(--font-serif);font-weight:600;font-size:16.5px;margin:0 0 4px}
+  .hoja .sub{font-size:11.5px;color:var(--color-tinta-60);margin:0 0 16px}
+
+  .campo{margin-bottom:12px}
+  .campo label{display:block;font-size:10.5px;font-weight:600;color:var(--color-taupe);margin-bottom:4px}
+  .campo input,.campo select,.campo textarea{width:100%;border:1px solid var(--color-sand);border-radius:6px;padding:7px 9px;font-size:12.5px;font-family:inherit;background:#fff;color:var(--color-tinta)}
+  .campo input[disabled]{background:var(--color-hueso);color:var(--color-tinta-60)}
+  .campo textarea{resize:vertical;min-height:40px}
+  .campo .pie{font-size:10.5px;color:var(--color-taupe);margin-top:3px;line-height:1.4}
+  .campo.mono input{font-family:var(--font-mono)}
+  .fila{display:grid;gap:12px}
+  .fila.c2{grid-template-columns:1fr 1fr}
+  .fila.c3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.fila.c2,.fila.c3{grid-template-columns:1fr}}
+
+  table.tabla-real{width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0}
+  table.tabla-real th{text-align:left;background:var(--color-hueso);padding:7px 9px;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-taupe);font-weight:700}
+  table.tabla-real th.der,table.tabla-real td.der{text-align:right}
+  table.tabla-real td{padding:7px 9px;border-bottom:1px solid var(--color-sand);vertical-align:middle}
+  table.tabla-real tr:last-child td{border-bottom:none}
+  .swatch{width:13px;height:13px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:2px}
+  .chip-estado{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.03em;white-space:nowrap}
+  .chip-estado.activo{background:color-mix(in oklab,var(--color-verde) 15%,transparent);color:var(--color-verde)}
+  .chip-estado.descontinuado{background:var(--color-hueso);color:var(--color-tinta-60)}
+  .chip-estado.pedir{background:color-mix(in oklab,var(--color-ambar) 15%,transparent);color:var(--color-ambar)}
+  .mono{font-family:var(--font-mono)}
+
+  .acordeon-paso{border:1px solid var(--color-sand);border-radius:10px;margin-bottom:8px;overflow:hidden}
+  .acordeon-cabecera{padding:11px 15px;background:var(--color-hueso);font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .acordeon-cabecera .n{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:var(--color-tinta);color:var(--color-crema);font-size:10px;margin-right:8px;flex-shrink:0}
+  .acordeon-cuerpo{padding:16px;background:#fff}
+  .acordeon-paso.cerrado .acordeon-cuerpo{display:none}
+  .acordeon-paso.cerrado .acordeon-cabecera{opacity:.6}
+
+  .barra-cambios{background:color-mix(in oklab,var(--color-ambar) 10%,var(--color-papel));border:1px solid color-mix(in oklab,var(--color-ambar) 35%,transparent);border-radius:10px;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .campo-cambiado{background:color-mix(in oklab,var(--color-ambar) 8%,#fff)!important;border-color:color-mix(in oklab,var(--color-ambar) 40%,var(--color-sand))!important}
+  .pie-cambio{font-size:10px;color:var(--color-ambar);margin-top:2px}
+
+  .btn{display:inline-flex;align-items:center;gap:5px;border-radius:8px;border:1px solid transparent;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .btn-primario{background:var(--color-tinta);color:var(--color-crema)}
+  .btn-secundario{background:transparent;color:var(--color-tinta);border-color:var(--color-sand)}
+  .btn-peligro{background:transparent;color:var(--color-rojo);border:none;text-decoration:underline;text-underline-offset:2px;padding:0;font-size:11.5px}
+  .btn-enlace{background:none;border:none;color:var(--color-tinta);text-decoration:underline;text-underline-offset:2px;padding:0;font-size:11.5px;cursor:pointer}
+  .btn-enlace.tenue{color:var(--color-tinta-60)}
+  .pie-hoja{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--color-sand);flex-wrap:wrap;gap:10px}
+  .pie-hoja .der{display:flex;gap:8px}
+
+  .tarjeta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:6px}
+  .tarjeta{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:12px;padding:13px}
+  .tarjeta .nombre{font-family:var(--font-serif);font-weight:600;font-size:14.5px}
+  .tarjeta .meta{font-size:11px;color:var(--color-taupe);margin-top:2px}
+  .tarjeta .acciones{display:flex;gap:9px;margin-top:9px;font-size:10.5px;flex-wrap:wrap;align-items:center}
+  .muestra-color{height:44px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(0,0,0,.08)}
+  .muestra-img{height:44px;border-radius:8px;margin-bottom:8px;background:repeating-linear-gradient(45deg,var(--color-hueso),var(--color-hueso) 6px,var(--color-sand) 6px,var(--color-sand) 12px)}
+  .nota-mini{font-size:11px;line-height:1.55;color:var(--color-taupe);background:color-mix(in oklab,var(--color-hueso) 85%,transparent);border-radius:8px;padding:9px 12px;margin-top:10px}
+  .nota-mini b{color:var(--color-tinta)}
+  .badge-nuevo{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--color-rojo);color:#fff;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:1px}
+  .badge-mueve{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#a8741f;color:#fff;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:1px}
+  .fuera-alcance{border:1px dashed var(--color-sand);border-radius:var(--radius-xl);padding:16px 20px;font-size:12.5px;color:var(--color-tinta-60);background:var(--color-papel)}
+  .aviso{font-size:11.5px;padding:9px 12px;border-radius:8px;margin-bottom:12px}
+  .aviso.ambar{background:color-mix(in oklab,var(--color-ambar) 12%,transparent);color:var(--color-ambar)}
+  .aviso.verde{background:color-mix(in oklab,var(--color-verde) 12%,transparent);color:var(--color-verde)}
+  .grupo-titulo{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe);margin:16px 0 8px}
+  .grupo-titulo:first-child{margin-top:0}
+  .chip-pequena{display:inline-flex;align-items:center;border:1px solid var(--color-sand);border-radius:999px;padding:3px 10px;font-size:11px;margin:0 5px 5px 0;background:#fff}
+  .mini-modal-anidada{border:1px dashed var(--color-taupe);border-radius:12px;padding:14px 16px;margin-top:10px;background:var(--color-crema)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Catálogo — así se ven las pantallas reales hoy</h1>
+  <p class="sub">Leído directo del código (labels, campos y columnas literales) — nada de esto es código todavía, es la maqueta para tu visto bueno. Clic en cada pestaña para navegar como en la app.</p>
+  <div class="tabs" id="tabs-mod"></div>
+</div>
+
+<div class="envoltorio" id="envoltorio"></div>
+
+<script>
+function tab(grupo, id, texto, activo){ return `<button class="tab" data-group="${grupo}" data-target="${id}"${activo?' data-activo':''}>${texto}</button>`; }
+</script>
+
+<!-- ===================== PRODUCTOS ===================== -->
+<div class="tabpanel activo" data-group="mod" data-id="productos">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-prod" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-prod" data-target="rapida">Vista rápida</button>
+    <button class="tab" data-group="v-prod" data-target="nuevo">Nuevo producto</button>
+    <button class="tab" data-group="v-prod" data-target="editar">Editar producto</button>
+  </div>
+
+  <div class="subpanel activo" data-group="v-prod" data-id="listado">
+    <div class="hoja">
+      <h2>Productos</h2>
+      <p class="sub">Cada prenda del catálogo con sus colores, tallas y precios.</p>
+      <table class="tabla-real">
+        <thead><tr><th></th><th>Prenda</th><th>Marca · proveedor</th><th>Colores</th><th>Tallas</th><th class="der">Precio</th><th class="der">Costo</th><th class="der">Margen</th><th class="der">Stock</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td><input type="checkbox"></td><td><b>Blusa Aurora</b><br><span class="mono" style="font-size:10.5px;color:var(--color-taupe)">BLU-014 · Blusas</span></td><td>Vermont · Ganesha SAC</td><td><span class="swatch" style="background:#b8412d"></span><span class="swatch" style="background:#f5f0e8;border-color:#ccc"></span></td><td>S · M · L</td><td class="der">S/ 89.90</td><td class="der">S/ 42.00</td><td class="der">53%</td><td class="der">24 · ritmo alto</td><td><span class="chip-estado activo">Activo</span></td></tr>
+          <tr><td><input type="checkbox"></td><td><b>Blusa Lino</b><br><span class="mono" style="font-size:10.5px;color:var(--color-taupe)">BLU-009 · Blusas</span></td><td>Jacard · Textiles Lima</td><td><span class="swatch" style="background:#e8e0d0"></span><span class="swatch" style="background:#1a1a18"></span></td><td>S · M · L · XL</td><td class="der">S/ 79.90</td><td class="der">S/ 38.00</td><td class="der">52%</td><td class="der">3 · sin ventas</td><td><span class="chip-estado pedir">Pedir</span></td></tr>
+          <tr><td><input type="checkbox"></td><td><b>Blusa Carlita</b><br><span class="mono" style="font-size:10.5px;color:var(--color-taupe)">BLU-021 · Blusas</span></td><td>Vermont · Ganesha SAC</td><td><span class="swatch" style="background:#2f6aa3"></span></td><td>M · L</td><td class="der">S/ 99.90</td><td class="der">S/ 45.00</td><td class="der">55%</td><td class="der">0</td><td><span class="chip-estado descontinuado">Descontinuado</span></td></tr>
+        </tbody>
+      </table>
+      <p class="nota-mini">Clic en una fila abre la <b>ficha de variantes</b> (una tarjeta por talla+color, con Editar / Ajustar inventario / Etiquetas / Historial / Eliminar al pie).</p>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-prod" data-id="rapida">
+    <div class="hoja" style="max-width:480px">
+      <h2>Blusa Aurora</h2>
+      <p class="sub mono">BLU-014</p>
+      <div class="muestra-img" style="height:140px"></div>
+      <p style="margin:8px 0"><span class="swatch" style="background:#b8412d"></span> Rojo &nbsp; <span class="swatch" style="background:#f5f0e8;border-color:#ccc"></span> Blanco &nbsp; <span class="chip-estado activo">Activo</span></p>
+      <table class="tabla-real">
+        <thead><tr><th>Talla</th><th>Color</th><th class="der">Precio</th><th>Código</th></tr></thead>
+        <tbody>
+          <tr><td>S</td><td>Rojo</td><td class="der">S/ 89.90</td><td class="mono">BLU014-S-ROJ</td></tr>
+          <tr><td>M</td><td>Rojo</td><td class="der">S/ 89.90</td><td class="mono">BLU014-M-ROJ</td></tr>
+          <tr><td>M</td><td>Blanco</td><td class="der">S/ 89.90</td><td class="mono">BLU014-M-BLA</td></tr>
+        </tbody>
+      </table>
+      <div class="pie-hoja"><div><button class="btn btn-enlace">Editar</button> &nbsp; <button class="btn btn-enlace">Etiquetas</button></div><div class="der"><button class="btn btn-secundario">Ajustar inventario</button><button class="btn btn-peligro" style="border:1px solid var(--color-sand);border-radius:8px;padding:7px 14px;text-decoration:none">Eliminar</button></div></div>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-prod" data-id="nuevo">
+    <div class="hoja">
+      <h2>Nuevo producto</h2>
+      <p class="sub">Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar.</p>
+
+      <div class="acordeon-paso cerrado">
+        <div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span><span class="n">1</span>¿A qué categoría pertenece?</span><span class="mono" style="font-size:11px">Blusas · Indumentaria ✓</span></div>
+        <div class="acordeon-cuerpo"><p class="nota-mini">Tarjetas de familia → categoría (<code>ArbolCategoria</code>); al tocar una pasa sola al paso 2.</p></div>
+      </div>
+
+      <div class="acordeon-paso">
+        <div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span><span class="n">2</span>¿Cómo es?</span></div>
+        <div class="acordeon-cuerpo">
+          <div class="campo"><label>Nombre</label><input value="Blusa Aurora" placeholder="Blusa Aurora"></div>
+          <div class="campo"><label>Descripción</label><textarea placeholder="Opcional"></textarea></div>
+          <div class="fila c2">
+            <div class="campo"><label>Marca y proveedor</label><select><option>Vermont · Ganesha SAC</option></select></div>
+            <div class="campo"><label>Tejido (opcional)</label><select><option>Popelina</option></select></div>
+          </div>
+          <div class="campo"><label>Patrón (opcional)</label><select><option>Liso</option></select></div>
+          <div class="acordeon-paso cerrado" style="margin-top:4px">
+            <div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span style="font-size:12px">Temporada y etiquetas</span></div>
+            <div class="acordeon-cuerpo">
+              <div class="campo"><label>Temporada</label><select><option>Verano</option></select></div>
+              <div class="campo"><label>Etiquetas</label><select><option>— ninguna —</option></select></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="acordeon-paso cerrado">
+        <div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span><span class="n">3</span>¿En qué tallas y colores?</span><span class="mono" style="font-size:11px">S M L · Rojo, Blanco</span></div>
+        <div class="acordeon-cuerpo"><p class="nota-mini">Tallas + Colores, y debajo la matriz (<code>MatrizVariantes</code>): una fila por color con su foto, una columna por talla.</p></div>
+      </div>
+
+      <div class="acordeon-paso cerrado">
+        <div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span><span class="n">4</span>¿Cuánto cuesta y cuántas hay?</span></div>
+        <div class="acordeon-cuerpo"><p class="nota-mini">Precio de venta, Costo, Margen (solo lectura) + la misma tabla con cantidades (<code>MatrizCantidades</code>) + "¿Dónde están?" (Guardadas en el almacén / En piso de venta) + Quién lo registra.</p></div>
+      </div>
+
+      <div class="pie-hoja" style="border-top:none;margin-top:6px"><span></span><button class="btn btn-primario">Crear producto</button></div>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-prod" data-id="editar">
+    <div class="hoja">
+      <h2>Editar producto</h2>
+      <div class="barra-cambios">
+        <span>Tienes <b>2 cambios</b> sin guardar</span>
+        <span><button class="btn btn-secundario">Descartar</button> <button class="btn btn-primario">Revisar y guardar</button></span>
+      </div>
+
+      <div class="grupo-titulo">Producto</div>
+      <div class="fila c2">
+        <div class="campo"><label>Referencia</label><input class="campo-cambiado" value="Blusa Aurora">
+          <p class="pie-cambio">antes: Blusa Aurora Clásica · <button class="btn btn-enlace tenue">Deshacer</button></p></div>
+        <div class="campo"><label>Categoría</label><select><option>Blusas</option></select></div>
+      </div>
+      <div class="fila c2">
+        <div class="campo"><label>Marca y proveedor</label><select><option>Vermont · Ganesha SAC</option></select></div>
+        <div class="campo"><label>Descripción (opcional)</label><input></div>
+      </div>
+      <div class="fila c2">
+        <div class="campo"><label>Tejido</label><select><option>Popelina</option></select></div>
+        <div class="campo"><label>Patrón</label><select><option>Liso</option></select></div>
+      </div>
+      <div class="fila c3">
+        <div class="campo"><label>Estado</label><select class="campo-cambiado"><option>Activo</option><option>Descontinuado</option></select>
+          <p class="pie-cambio">antes: Descontinuado · <button class="btn btn-enlace tenue">Deshacer</button></p></div>
+        <div class="campo"><label>Stock mínimo (opcional)</label><input value="5"></div>
+        <div class="campo"><label>Temporada (opcional)</label><select><option>Verano</option></select></div>
+      </div>
+      <label style="font-size:11.5px;display:flex;align-items:center;gap:7px;margin:4px 0 14px"><input type="checkbox" style="width:auto"> Permitir venta sin stock</label>
+      <div class="acordeon-paso cerrado"><div class="acordeon-cabecera" onclick="this.closest('.acordeon-paso').classList.toggle('cerrado')"><span style="font-size:12px">Temporada por color</span></div><div class="acordeon-cuerpo"></div></div>
+
+      <div class="grupo-titulo">Variantes (talla × color)</div>
+      <table class="tabla-real">
+        <thead><tr><th>Color</th><th>Talla</th><th>Código</th><th class="der">Precio</th><th class="der">Costo</th><th class="der">Margen</th><th>Activa</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Rojo</td><td>S</td><td class="mono">BLU014-S-ROJ</td><td class="der">89.90</td><td class="der">42.00</td><td class="der">53%</td><td><input type="checkbox" checked></td><td><button class="btn btn-enlace tenue">···</button></td></tr>
+          <tr><td>Rojo</td><td>M</td><td class="mono">BLU014-M-ROJ</td><td class="der">89.90</td><td class="der">42.00</td><td class="der">53%</td><td><input type="checkbox" checked></td><td><button class="btn btn-enlace tenue">···</button></td></tr>
+          <tr><td>Blanco</td><td>M</td><td class="mono">BLU014-M-BLA</td><td class="der">89.90</td><td class="der">42.00</td><td class="der">53%</td><td><input type="checkbox" checked></td><td><button class="btn btn-enlace tenue">···</button></td></tr>
+        </tbody>
+      </table>
+      <button class="btn btn-secundario" style="margin-top:6px">+ Agregar variante</button>
+
+      <div class="mini-modal-anidada">
+        <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-taupe);margin:0 0 8px">Al presionar «Revisar y guardar» se abre esta hoja</p>
+        <h2 style="font-size:15px">Revisa y guarda los cambios</h2>
+        <p class="sub">Esto es lo que va a cambiar en «Blusa Aurora Clásica». Nada se guarda hasta que confirmes.</p>
+        <table class="tabla-real"><tbody>
+          <tr><td>Referencia</td><td>Blusa Aurora Clásica → <b>Blusa Aurora</b></td></tr>
+          <tr><td>Estado</td><td>Descontinuado → <b>Activo</b></td></tr>
+        </tbody></table>
+        <div class="campo" style="margin-top:10px"><label>Responsable</label><select><option>Elige quién confirma…</option></select></div>
+        <div class="pie-hoja"><button class="btn btn-secundario">Volver a editar</button><button class="btn btn-primario">Confirmar y guardar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CATEGORÍAS ===================== -->
+<div class="tabpanel" data-group="mod" data-id="categorias">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-cat" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-cat" data-target="rapida">Vista rápida</button>
+    <button class="tab" data-group="v-cat" data-target="editar">Nueva / Editar categoría</button>
+  </div>
+
+  <div class="subpanel activo" data-group="v-cat" data-id="listado">
+    <div class="hoja">
+      <h2>Categorías</h2>
+      <p class="sub">Las categorías del catálogo, agrupadas por familia.</p>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><span class="chip-pequena mono">BLU</span><div class="nombre" style="margin-top:8px">Blusas</div><div class="meta">214 productos</div><div class="acciones"><span class="btn-enlace tenue" style="opacity:.7">Desactivar (al pasar el mouse)<span class="badge-mueve">mueve</span></span></div></div>
+        <div class="tarjeta"><span class="chip-pequena mono">VES</span><div class="nombre" style="margin-top:8px">Vestidos</div><div class="meta">3 sub · 96 productos</div></div>
+        <div class="tarjeta"><span class="chip-pequena mono">RBA</span><div class="nombre" style="margin-top:8px">Ropa de baño</div><div class="meta">sin productos</div><div class="meta" style="color:var(--color-taupe)">Verano</div></div>
+      </div>
+      <p class="nota-mini">Tarjeta entera clicable → abre <b>Vista rápida</b>. Grupo por familia con label + punto, igual que el resto del catálogo.</p>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-cat" data-id="rapida">
+    <div class="hoja" style="max-width:480px">
+      <h2>Blusas</h2>
+      <p class="sub">Indumentaria</p>
+      <p style="font-size:12px"><span class="chip-pequena mono">BLU</span></p>
+      <p style="font-size:12.5px">214 productos activos — <a href="#" class="btn-enlace">Ver en Productos →</a></p>
+      <div class="grupo-titulo">Tallas · ✓ = curva habitual</div>
+      <p><span class="chip-pequena">✓ S</span><span class="chip-pequena">✓ M</span><span class="chip-pequena">✓ L</span><span class="chip-pequena">XL</span></p>
+      <div class="grupo-titulo">Tejidos</div>
+      <p><span class="chip-pequena">Popelina</span><span class="chip-pequena">Denim</span></p>
+      <div class="grupo-titulo">Temporada por defecto</div>
+      <p style="font-size:12.5px">Sin temporada — <a href="#" class="btn-enlace">Elegirla en Atributos ▸ Temporadas</a></p>
+      <div class="pie-hoja"><button class="btn btn-secundario">Cerrar</button><button class="btn btn-primario">Editar</button></div>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-cat" data-id="editar">
+    <div class="hoja">
+      <h2>Editar categoría</h2>
+      <p class="sub">El prefijo queda fijo: ya hay productos creados con este código.</p>
+      <div class="fila c3">
+        <div class="campo"><label>Familia</label><select><option>Indumentaria</option></select></div>
+        <div class="campo"><label>Nombre</label><input value="Blusas"></div>
+        <div class="campo mono"><label>Prefijo (3 letras)</label><input value="BLU" disabled><p class="pie">Fijo: 214 productos lo usan</p></div>
+      </div>
+      <div class="campo"><label>Notas internas (opcional)</label><textarea placeholder="Solo la ve el equipo — nunca la clienta."></textarea></div>
+      <p style="font-size:11.5px;color:var(--color-taupe)">Temporada por defecto: sin temporada. Se elige en Atributos ▸ Temporadas.</p>
+
+      <div class="grupo-titulo">Subcategorías</div>
+      <p><span class="chip-pequena mono">MAN Manga larga</span><span class="chip-pequena mono">CRO Cropped</span></p>
+      <div class="fila c2" style="margin-top:8px"><div class="campo"><label>Nueva subcategoría</label><input placeholder="Nombre"></div><div class="campo mono"><label>Prefijo</label><input placeholder="ABC"></div></div>
+      <button class="btn btn-secundario" style="margin-bottom:6px">+ Agregar</button>
+
+      <div class="grupo-titulo">Tallas que ofrece</div>
+      <p><span class="chip-pequena">✓ S</span><span class="chip-pequena">✓ M</span><span class="chip-pequena">✓ L</span><span class="chip-pequena">XL</span></p>
+      <p style="font-size:11px;color:var(--color-taupe);margin:2px 0 8px">Curva habitual — las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+      <div class="grupo-titulo">Tejidos que ofrece</div>
+      <p><span class="chip-pequena">Popelina</span><span class="chip-pequena">Denim</span></p>
+      <div class="grupo-titulo">Patrones que ofrece</div>
+      <p><span class="chip-pequena">Liso</span><span class="chip-pequena">Rayas</span></p>
+
+      <div class="campo" style="margin-top:14px"><label>Responsable</label><select><option>Elige quién confirma…</option></select></div>
+
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario">Guardar cambios</button></span></div>
+      <p class="nota-mini"><b>«Desactivar categoría» ya no está en este pie</b> — pasó a la tarjeta del listado (decisión ya tomada).<span class="badge-mueve">mueve</span></p>
+
+      <div class="grupo-titulo">Desactivadas — no aparecen al crear productos nuevos</div>
+      <p><span class="chip-pequena">RBA Ropa de baño (vieja) <button class="btn btn-enlace" style="margin-left:6px">Reactivar</button></span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MARCAS ===================== -->
+<div class="tabpanel" data-group="mod" data-id="marcas">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-mar" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-mar" data-target="rapida">Vista rápida <span class="badge-nuevo">nuevo</span></button>
+    <button class="tab" data-group="v-mar" data-target="agregar">Agregar <span class="badge-mueve">Modal</span></button>
+    <button class="tab" data-group="v-mar" data-target="editar">Editar</button>
+  </div>
+
+  <div class="subpanel activo" data-group="v-mar" data-id="listado">
+    <div class="hoja">
+      <h2>Marcas</h2>
+      <p class="sub">De quién es cada prenda y qué proveedores la traen.</p>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><div class="nombre">Vermont</div><div class="meta">340 productos</div><div class="acciones"><a href="#" class="btn-enlace">Editar</a><a href="#" class="btn-enlace tenue">Desactivar</a></div>
+          <p class="nota-mini" style="margin-top:8px">La trae: Ganesha SAC (214), Textiles Lima (126)</p></div>
+        <div class="tarjeta"><div class="nombre">Jacard</div><div class="meta">128 productos</div><div class="acciones"><a href="#" class="btn-enlace">Editar</a><a href="#" class="btn-enlace tenue">Desactivar</a></div>
+          <p class="nota-mini" style="margin-top:8px">La trae: Textiles Lima (128)</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-mar" data-id="rapida">
+    <div class="hoja" style="max-width:420px">
+      <h2>Vermont</h2>
+      <div class="grupo-titulo">La trae</div>
+      <p><span class="chip-pequena">Ganesha SAC · 214 prod.</span><span class="chip-pequena">Textiles Lima · 126 prod.</span></p>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Editar</button></div>
+      <p class="nota-mini">Nueva — hoy Marcas edita directo, sin este paso.<span class="badge-nuevo">nuevo</span></p>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-mar" data-id="agregar">
+    <div class="hoja">
+      <h2>Registrar marca o proveedor</h2>
+      <p class="sub">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</p>
+      <div class="campo"><label>Marca</label><input placeholder="Busca una marca que ya existe o escribe una nueva…"></div>
+      <p style="font-size:11.5px;background:var(--color-hueso);border-radius:8px;padding:7px 10px;margin:-4px 0 12px"><b>Vermont</b> · ya existe. La trae Ganesha SAC, Textiles Lima. <button class="btn btn-enlace" style="margin-left:6px">Cambiar</button></p>
+      <div class="campo"><label>¿Quién te la trae? <button class="btn btn-enlace" style="margin-left:6px;font-size:10.5px">+ Proveedor nuevo</button></label><input placeholder="Toca para ver los 14 proveedores, o escribe…"></div>
+      <div class="fila c2">
+        <div class="campo"><label>Razón social</label><input placeholder="Textil Andina SAC"></div>
+        <div class="campo mono"><label>RUC · opcional</label><input placeholder="11 dígitos"></div>
+      </div>
+      <p class="nota-mini">Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.</p>
+      <div class="campo" style="margin-top:10px"><label>Responsable</label><select><option>Elige quién confirma…</option></select></div>
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario">Registrar</button></span></div>
+      <p class="nota-mini">Antes era un panel bajo el buscador; ahora abre en hoja con velo, como el resto del sistema.<span class="badge-mueve">mueve</span></p>
+    </div>
+  </div>
+
+  <div class="subpanel" data-group="v-mar" data-id="editar">
+    <div class="hoja">
+      <h2>Editar marca</h2>
+      <p class="sub">Vermont</p>
+      <div class="campo"><label>Nombre de la marca</label><input value="Vermont"></div>
+      <div class="grupo-titulo">¿Quién la trae?</div>
+      <table class="tabla-real"><tbody>
+        <tr><td>Ganesha SAC</td><td style="color:var(--color-taupe)">· 214 productos</td><td class="der"><span style="font-size:11px;color:var(--color-tinta-60)">Con productos</span></td></tr>
+        <tr><td>Textiles Lima</td><td style="color:var(--color-taupe)">· sin productos</td><td class="der"><button class="btn btn-enlace">Quitar</button></td></tr>
+      </tbody></table>
+      <div class="campo"><label>Sumar un proveedor a la marca</label><input placeholder="Suma otro proveedor (14 en la lista)…"></div>
+      <p class="nota-mini">Un proveedor con productos no se quita aquí: cámbiales el proveedor en Productos primero.</p>
+      <div class="campo" style="margin-top:10px"><label>Responsable</label><select><option>Elige quién confirma…</option></select></div>
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-primario">Guardar</button><button class="btn btn-secundario">Cancelar</button></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COLORES ===================== -->
+<div class="tabpanel" data-group="mod" data-id="colores">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-col" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-col" data-target="nuevo">Nuevo color</button>
+    <button class="tab" data-group="v-col" data-target="editar">Editar color</button>
+  </div>
+  <div class="subpanel activo" data-group="v-col" data-id="listado">
+    <div class="hoja">
+      <h2>Atributos ▸ Colores</h2>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><div class="muestra-color" style="background:#2f6aa3"></div><div class="nombre">Cobalto</div><div class="meta mono">AZC · 19-4150 TCX</div><div class="acciones"><a href="#" class="btn-enlace">Editar</a><a href="#" class="btn-enlace tenue">Desactivar (al pasar el mouse) <span class="badge-mueve">mueve</span></a></div></div>
+        <div class="tarjeta"><div class="muestra-color" style="background:#b8412d"></div><div class="nombre">Rojo</div><div class="meta mono">ROJ</div><div class="acciones"><a href="#" class="btn-enlace">Editar</a></div></div>
+        <div class="tarjeta"><div class="muestra-color" style="background:#e8e0d0"></div><div class="nombre">Crudo</div><div class="meta mono">CRU</div><div class="acciones"><a href="#" class="btn-enlace">Editar</a></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-col" data-id="nuevo">
+    <div class="hoja">
+      <h2>Nuevo color del vocabulario</h2>
+      <p class="sub">Queda disponible de inmediato para cualquier prenda nueva o existente.</p>
+      <div class="campo"><label>Nombre</label><input placeholder="Ej. Verde botella"></div>
+      <div class="fila c2">
+        <div class="campo mono"><label>Código (3 letras)</label><input placeholder="VEB" maxlength="3"><p class="pie">Sugerido del nombre</p></div>
+        <div class="campo"><label>Familia</label><select><option>Neutro</option><option>Azul</option><option>Rojo</option><option>Amarillo</option><option selected>Verde</option><option>Morado</option><option>Tierra</option><option>Metálico</option><option>Estampado</option></select></div>
+      </div>
+      <div class="fila c2">
+        <div class="campo mono"><label>Pantone (TCX)</label><input placeholder="19-1557 TCX"><p class="pie">Opcional: el código para pedir la tela al taller o al proveedor.</p></div>
+        <div class="campo"><label>Sinónimos</label><input placeholder="plomo, gris medio"><p class="pie">Opcional: cómo le dicen en tienda. El buscador los entiende.</p></div>
+      </div>
+      <div class="campo"><label>Notas</label><input placeholder="Proveedor de la tela, advertencias…"><p class="pie">Opcional, uso interno</p></div>
+      <div class="fila c2">
+        <div class="muestra-color" style="background:#3d6b3d;margin-top:20px"></div>
+        <div class="campo"><label>Color</label><input placeholder="#c9b79c"><p class="pie">Toca el cuadro o escribe #hex o R, G, B</p></div>
+      </div>
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario">Guardar color</button></span></div>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-col" data-id="editar">
+    <div class="hoja">
+      <h2>Editar «Cobalto»</h2>
+      <div class="fila c2">
+        <div class="campo"><label>Nombre</label><input value="Cobalto"></div>
+        <div class="campo mono"><label>Orden</label><input value="4"></div>
+      </div>
+      <div class="fila c2">
+        <div class="campo"><label>Familia</label><select><option selected>Azul</option></select></div>
+        <div class="campo mono"><label>Pantone (TCX)</label><input value="19-4150 TCX"></div>
+      </div>
+      <div class="campo"><label>Sinónimos</label><input placeholder="plomo, gris medio"></div>
+      <div class="campo"><label>Notas</label><input></div>
+      <div class="fila c2" style="align-items:center">
+        <div class="muestra-color" style="background:#2f6aa3;margin:0"></div>
+        <div><span class="mono" style="font-size:12px">#2f6aa3</span><br><button class="btn btn-enlace" style="color:var(--color-rojo)">Cambiar color</button></div>
+      </div>
+      <p class="pie" style="margin-top:6px">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
+      <p class="nota-mini"><b>«Desactivar color» ya no está en este pie</b> — pasó a la tarjeta del listado.<span class="badge-mueve">mueve</span></p>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TALLAS ===================== -->
+<div class="tabpanel" data-group="mod" data-id="tallas">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-tal" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-tal" data-target="nuevo">Nueva talla</button>
+    <button class="tab" data-group="v-tal" data-target="editar">Editar nombre <span class="badge-nuevo">nuevo</span></button>
+  </div>
+  <div class="subpanel activo" data-group="v-tal" data-id="listado">
+    <div class="hoja">
+      <h2>Atributos ▸ Tallas</h2>
+      <div class="grupo-titulo">● Letras · 4</div>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><div class="nombre">M</div><div class="meta">812 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Editar <span class="badge-nuevo">nuevo</span></a><a href="#" class="btn-enlace tenue">Desactivar (hover)</a></div></div>
+        <div class="tarjeta"><div class="nombre">L</div><div class="meta">640 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Editar <span class="badge-nuevo">nuevo</span></a></div></div>
+      </div>
+      <div class="grupo-titulo">● Numeración · 2</div>
+      <div class="tarjeta-grid"><div class="tarjeta"><div class="nombre">38</div><div class="meta">340 prendas</div></div></div>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-tal" data-id="nuevo">
+    <div class="hoja">
+      <h2>Nueva talla</h2>
+      <p class="sub">Queda disponible de inmediato para cualquier prenda nueva.</p>
+      <div class="campo"><label>Valor de la talla</label><input placeholder="Ej. M, 38, XSS"></div>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Guardar</button></div>
+      <div class="mini-modal-anidada">
+        <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-taupe);margin:0 0 8px">Al «Aprobar» una propuesta</p>
+        <h2 style="font-size:14px">Aprobar «XSS»</h2>
+        <p class="sub">A qué categoría aplica, por qué es distinta de las que ya existen — queda de referencia.</p>
+        <div class="campo"><label>Comentario (obligatorio)</label><textarea></textarea></div>
+        <button class="btn btn-primario" style="opacity:.5">Confirmar aprobación</button>
+      </div>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-tal" data-id="editar">
+    <div class="hoja">
+      <h2>Editar «M»</h2>
+      <div class="campo"><label>Valor de la talla</label><input value="M"></div>
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario">Guardar</button></span></div>
+      <p class="nota-mini">No existe hoy — hoy Tallas solo tiene Desactivar/Reactivar, sin renombrar. Mismo molde para Tejidos y Patrones.<span class="badge-nuevo">nuevo</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TEJIDOS/PATRONES ===================== -->
+<div class="tabpanel" data-group="mod" data-id="tejidos">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-tej" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-tej" data-target="nuevo">Nuevo tejido/patrón</button>
+    <button class="tab" data-group="v-tej" data-target="foto">Foto y prendas</button>
+    <button class="tab" data-group="v-tej" data-target="editar">Editar nombre <span class="badge-nuevo">nuevo</span></button>
+  </div>
+  <div class="subpanel activo" data-group="v-tej" data-id="listado">
+    <div class="hoja">
+      <h2>Atributos ▸ Tejidos</h2>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><div class="muestra-img"></div><div class="nombre">Denim</div><div class="meta">56 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Editar <span class="badge-nuevo">nuevo</span></a></div></div>
+        <div class="tarjeta"><div class="muestra-img"></div><div class="nombre">Popelina</div><div class="meta">120 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Editar <span class="badge-nuevo">nuevo</span></a></div></div>
+      </div>
+      <p class="nota-mini">Igual en Patrones (Rayado, Liso, Estampado…).</p>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-tej" data-id="nuevo">
+    <div class="hoja">
+      <h2>Nuevo tejido</h2>
+      <p class="sub">Queda disponible de inmediato para cualquier producto nuevo.</p>
+      <div class="campo"><label>Nombre del tejido</label><input placeholder="Ej. Algodón"></div>
+      <div class="campo"><label>Cómo se ve (opcional)</label><input placeholder="Ej. denim azul claro, grueso"><p class="pie">Si lo describes, te proponemos un dibujo con los colores del catálogo. Lo usas solo si te gusta.</p></div>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Guardar</button></div>
+      <p class="nota-mini">Mismo formulario para "Nuevo patrón" (cambia solo el sustantivo). No se sube foto aquí — eso va en «Foto y prendas», después de crearlo.</p>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-tej" data-id="foto">
+    <div class="hoja">
+      <h2>Denim</h2>
+      <p class="sub">Tejido · 56 prendas</p>
+      <div class="muestra-img" style="height:130px"></div>
+      <p style="margin:8px 0"><button class="btn btn-secundario">Subir foto</button> <button class="btn btn-secundario">Generar dibujo</button> <button class="btn btn-peligro">Quitar imagen</button></p>
+      <p class="nota-mini">Una foto real de la tela / un dibujo automático según el nombre ayudan a reconocerlo al recibir mercadería.</p>
+      <div class="grupo-titulo">Prendas con este tejido</div>
+      <table class="tabla-real"><tbody>
+        <tr><td><a href="#" class="btn-enlace">Blusa Aurora</a></td><td class="mono">BLU-014 · Blusas</td><td></td></tr>
+        <tr><td><a href="#" class="btn-enlace">Blusa Carlita</a></td><td class="mono">BLU-021 · Blusas</td><td><span class="chip-estado descontinuado">Descontinuada</span></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-tej" data-id="editar">
+    <div class="hoja">
+      <h2>Editar «Denim»</h2>
+      <div class="campo"><label>Nombre del tejido</label><input value="Denim"></div>
+      <div class="pie-hoja"><span></span><span class="der"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario">Guardar</button></span></div>
+      <p class="nota-mini">Nuevo — solo el nombre, sin hex ni Pantone (eso es propio de Colores). Igual en Patrones.<span class="badge-nuevo">nuevo</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ETIQUETAS ===================== -->
+<div class="tabpanel" data-group="mod" data-id="etiquetas">
+  <div class="nav-vistas">
+    <button class="tab activo" data-group="v-etq" data-target="listado">Listado</button>
+    <button class="tab" data-group="v-etq" data-target="nueva">Nueva etiqueta</button>
+    <button class="tab" data-group="v-etq" data-target="campana">Configurar campaña</button>
+  </div>
+  <div class="subpanel activo" data-group="v-etq" data-id="listado">
+    <div class="hoja">
+      <h2>Atributos ▸ Etiquetas</h2>
+      <div class="tarjeta-grid">
+        <div class="tarjeta"><div class="nombre">Para liquidar</div><div class="meta">Urgencia · 34 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Configurar campaña</a><a href="#" class="btn-enlace tenue">Desactivar</a></div></div>
+        <div class="tarjeta"><div class="nombre">Verano 2026</div><div class="meta">Campaña · 12 prendas</div><div class="acciones"><a href="#" class="btn-enlace">Configurar campaña</a></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-etq" data-id="nueva">
+    <div class="hoja">
+      <h2>Nueva etiqueta</h2>
+      <p class="sub">Queda disponible de inmediato para cualquier variante.</p>
+      <div class="campo"><label>Nombre de la etiqueta</label><input placeholder="Ej. Oferta, Verano 2026"></div>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Guardar etiqueta</button></div>
+      <p class="nota-mini">Sin combo de "estilo": nace siempre en el grupo General; el estilo (Rotación/Artesanal/Campaña/General) lo decide el nombre, no un editor.</p>
+    </div>
+  </div>
+  <div class="subpanel" data-group="v-etq" data-id="campana">
+    <div class="hoja">
+      <h2>Campaña «Para liquidar»</h2>
+      <div class="campo mono"><label>Descuento (%)</label><input placeholder="Ej. 20"><p class="pie">Vacío = solo informativa, sin descuento.</p></div>
+      <div class="fila c2">
+        <div class="campo"><label>Desde</label><input type="date"></div>
+        <div class="campo"><label>Hasta</label><input type="date"></div>
+      </div>
+      <div class="grupo-titulo">Categorías · opcional <button class="btn btn-enlace" style="margin-left:8px;font-size:10.5px">Quitar todas</button></div>
+      <p><span class="chip-pequena">Blusas</span><span class="chip-pequena">Vestidos</span></p>
+      <p class="nota-mini">En Vender, las prendas con esta etiqueta llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento.</p>
+      <div class="pie-hoja"><span></span><button class="btn btn-primario">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TEMPORADAS ===================== -->
+<div class="tabpanel" data-group="mod" data-id="temporadas">
+  <div class="hoja">
+    <h2>Atributos ▸ Temporadas</h2>
+    <div class="fuera-alcance">No es una tarjeta que se «edita» — calendario fijo de 9 temporadas, con su propio flujo (<code>ModalFecha</code>, <code>ModalAnio</code>, ADR-0246). Propongo dejarla fuera de esta estandarización.</div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("tabs-mod").innerHTML = [
+    ["productos","Productos"],["categorias","Categorías"],["marcas","Marcas"],
+    ["colores","Atributos ▸ Colores"],["tallas","Atributos ▸ Tallas"],["tejidos","Atributos ▸ Tejidos/Patrones"],
+    ["etiquetas","Atributos ▸ Etiquetas"],["temporadas","Atributos ▸ Temporadas"]
+  ].map(([id,txt],i)=>`<button class="tab${i===0?' activo':''}" data-group="mod" data-target="${id}">${txt}</button>`).join("");
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".tab");
+    if (!b) return;
+    const group = b.dataset.group, target = b.dataset.target;
+    document.querySelectorAll('.tab[data-group="'+group+'"]').forEach(x => x.classList.toggle("activo", x === b));
+    document.querySelectorAll('[data-group="'+group+'"][data-id]').forEach(x => x.classList.toggle("activo", x.dataset.id === target));
+    if (group === "mod") window.scrollTo({top:0, behavior:"instant"});
+  });
+</script>
+
+</body>
+</html>

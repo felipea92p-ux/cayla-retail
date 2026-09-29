@@ -430,6 +430,7 @@ export function TejidosLista({
           onImagen={(id, url, descripcionDibujo) =>
             setTejidos((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url, ...(descripcionDibujo !== undefined ? { descripcionDibujo } : {}) } : x)))
           }
+          onRenombrado={(id, nombre) => setTejidos((actual) => ordenar(actual.map((x) => (x.id === id ? { ...x, nombre } : x))))}
         />
       )}
 

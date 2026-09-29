@@ -22,6 +22,7 @@ import {
   SinCoincidencias,
   TarjetaAtributo,
   TituloGrupo,
+  VistaRapidaAtributo,
 } from "@/components/atributos/kit";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
@@ -111,6 +112,7 @@ function TarjetaEtiqueta({
   vigencia,
   apagada = false,
   prendas = null,
+  abrir,
   children,
 }: {
   e: Etiqueta;
@@ -118,6 +120,7 @@ function TarjetaEtiqueta({
   apagada?: boolean;
   /** Prendas etiquetadas a mano con ella (solo un Líder lo sabe); `null` = no mostrar. */
   prendas?: number | null;
+  abrir?: { onClick: () => void; titulo: string };
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
@@ -125,9 +128,10 @@ function TarjetaEtiqueta({
     <TarjetaAtributo
       muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />}
       nombre={e.nombre}
-      notas={e.estado !== "rechazado" ? e.notas : null}
+      notas={e.estado !== "rechazado" && !abrir ? e.notas : null}
       insignia={e.estado === "pendiente" ? "Pendiente" : e.estado === "rechazado" ? "Rechazada" : null}
       apagada={apagada}
+      abrir={abrir}
       detalle={
         <>
           {(vigencia || rango) && (
@@ -209,6 +213,8 @@ export function EtiquetasLista({
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
   const [configurando, setConfigurando] = useState<Etiqueta | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
+  // Vista rápida antes de «Configurar campaña» (ADR-0261 extendido).
+  const [viendo, setViendo] = useState<Etiqueta | null>(null);
   // Copia local de `variantesManuales`: al etiquetar desde el modal de prendas se
   // actualiza aquí (contador de la tarjeta y aviso de costo del modal de campaña) sin
   // recargar la página.
@@ -455,7 +461,13 @@ export function EtiquetasLista({
               </TituloGrupo>
               <div className={GRILLA_ATRIBUTOS}>
                 {delGrupo.map((e) => (
-                  <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
+                  <TarjetaEtiqueta
+                    key={e.id}
+                    e={e}
+                    vigencia={vigenciaEn(e)}
+                    prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}
+                    abrir={e.estado === "aprobado" ? { onClick: () => setViendo(e), titulo: `Ver ${e.nombre}` } : undefined}
+                  >
                     {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
@@ -469,7 +481,6 @@ export function EtiquetasLista({
                       ) : (
                         <PieTarjeta>
                           <AccionTarjeta onClick={() => setEtiquetando(e)}>Prendas</AccionTarjeta>
-                          <AccionTarjeta onClick={() => setConfigurando(e)}>Configurar campaña</AccionTarjeta>
                           <DesactivarTarjeta
                             cambiando={cambiandoId === e.id}
                             onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => desactivar(e)))}
@@ -519,6 +530,38 @@ export function EtiquetasLista({
             </div>
           )}
         </Modal>
+      )}
+
+      {viendo && (
+        <VistaRapidaAtributo
+          titulo={viendo.nombre}
+          muestra={<MuestraEtiqueta nombre={viendo.nombre} estilo={viendo.estilo} className="aspect-[3/1] w-full" />}
+          accion={{ texto: "Configurar campaña", onClick: () => { setConfigurando(viendo); setViendo(null); } }}
+          onClose={() => setViendo(null)}
+        >
+          {(() => {
+            const v = vigenciaEn(viendo);
+            const rango = textoRango(viendo.vigenteDesde, viendo.vigenteHasta);
+            return (
+              <>
+                {(v || rango) && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {chipDeVigencia(v)}
+                    {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+                  </div>
+                )}
+                {viendo.descuentoPct !== null && (
+                  <p className="text-[13px] text-tinta/75">
+                    <span className="font-medium tabular-nums text-tinta">{textoPct(viendo.descuentoPct)} % de descuento</span>
+                    {" · "}
+                    {viendo.categoriaIds.length === 0 ? "solo en las prendas etiquetadas" : `${viendo.categoriaIds.length} categoría${viendo.categoriaIds.length === 1 ? "" : "s"}`}
+                  </p>
+                )}
+                {viendo.notas && <p className="text-xs text-tinta/65">{viendo.notas}</p>}
+              </>
+            );
+          })()}
+        </VistaRapidaAtributo>
       )}
 
       {etiquetando && (

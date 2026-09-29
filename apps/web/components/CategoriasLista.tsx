@@ -447,6 +447,9 @@ export function CategoriasLista({
                     temporada={temporadaPorCategoria?.[c.id] ?? null}
                     subcategoriasQueCoinciden={coinciden?.get(c.id) ?? []}
                     onClick={() => setViendoId(c.id)}
+                    puedeEditar={puedeEditar}
+                    desactivando={cambiandoId === c.id}
+                    onDesactivar={() => setConfirmando(confirmacionCatalogo("desactivar", c.nombre, () => cambiarEstado(c)))}
                   />
                 ))}
               </div>
@@ -743,23 +746,8 @@ export function CategoriasLista({
           )}
 
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
-          <div className="mt-5 flex items-center justify-between gap-2">
-            {editando ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const c = categorias.find((x) => x.id === borrador.id);
-                  if (c) cambiarEstado(c);
-                }}
-                disabled={cambiandoId === borrador.id || !responsable.listo}
-                title={responsable.motivo ?? undefined}
-                className="text-xs text-rojo hover:underline disabled:opacity-50 disabled:no-underline"
-              >
-                {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
-              </button>
-            ) : (
-              <span />
-            )}
+          {/* «Desactivar» ya no vive en este pie — pasó a la tarjeta del listado (ADR-0261 extendido). */}
+          <div className="mt-5 flex items-center justify-end gap-2">
             <div className="flex gap-2">
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
@@ -825,6 +813,9 @@ function TarjetaCategoria({
   temporada,
   subcategoriasQueCoinciden,
   onClick,
+  puedeEditar,
+  desactivando,
+  onDesactivar,
 }: {
   c: Categoria;
   productos: number;
@@ -834,29 +825,41 @@ function TarjetaCategoria({
   /** Subcategorías que respondieron al buscador: la tarjeta dice por qué salió. */
   subcategoriasQueCoinciden: string[];
   onClick: () => void;
+  /** «Desactivar» al pie, como el resto de Catálogo (ADR-0261 extendido): visible solo al pasar el mouse o con foco. */
+  puedeEditar: boolean;
+  desactivando: boolean;
+  onDesactivar: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="card-cayla group flex flex-col items-start gap-3 p-3.5 text-left transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="flex w-full items-center justify-between">
-        <span className="rounded-md bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
-        <IconoFamilia familia={c.familia} className="h-5 w-5 text-tinta/30 transition-colors group-hover:text-tinta/55" />
-      </div>
-      <div>
-        <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
-        <p className="label-cayla mt-1 text-[11px] text-tinta/65">
-          {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
-          {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
-        </p>
-        {temporada && <p className="mt-0.5 text-[11px] text-taupe">{temporada}</p>}
-        {subcategoriasQueCoinciden.length > 0 && (
-          <p className="mt-0.5 text-[11px] text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>
-        )}
-      </div>
-    </button>
+    <div className="group/cat card-cayla flex flex-col gap-2 p-3.5 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+      <button type="button" onClick={onClick} className="flex flex-1 flex-col items-start gap-3 text-left">
+        <div className="flex w-full items-center justify-between">
+          <span className="rounded-md bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
+          <IconoFamilia familia={c.familia} className="h-5 w-5 text-tinta/30 transition-colors group-hover/cat:text-tinta/55" />
+        </div>
+        <div>
+          <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
+          <p className="label-cayla mt-1 text-[11px] text-tinta/65">
+            {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
+            {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
+          </p>
+          {temporada && <p className="mt-0.5 text-[11px] text-taupe">{temporada}</p>}
+          {subcategoriasQueCoinciden.length > 0 && (
+            <p className="mt-0.5 text-[11px] text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>
+          )}
+        </div>
+      </button>
+      {puedeEditar && (
+        <button
+          type="button"
+          disabled={desactivando}
+          onClick={onDesactivar}
+          className="label-cayla self-end whitespace-nowrap text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/cat:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          {desactivando ? "Desactivando…" : "Desactivar"}
+        </button>
+      )}
+    </div>
   );
 }
 

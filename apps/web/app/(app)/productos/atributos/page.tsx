@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { Ayuda } from "@/components/Ayuda";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
 import {
@@ -225,19 +226,22 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Atributos
-          <Ayuda titulo="Atributos">
-            Los vocabularios cerrados que describen una prenda además de su categoría: color,
-            talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
-            con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
-            lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-            calendario y se completan las prendas que todavía no la tienen.
-          </Ayuda>
-        </h1>
-      </div>
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo={
+          <>
+            Atributos
+            <Ayuda titulo="Atributos">
+              Los vocabularios cerrados que describen una prenda además de su categoría: color,
+              talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
+              con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
+              lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+              calendario y se completan las prendas que todavía no la tienen.
+            </Ayuda>
+          </>
+        }
+        subtitulo="Los vocabularios cerrados que describen una prenda además de su categoría."
+      />
 
       <AtributosHub
         tipo={tipo}

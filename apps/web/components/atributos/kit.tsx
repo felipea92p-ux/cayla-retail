@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Boton, Hilo } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
 
 /**
  * Las piezas que comparten las seis pestañas de Catálogo ▸ Atributos (ADR-0261, Felipe 2026-09-28: «todo este módulo
@@ -260,5 +261,48 @@ export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => 
     <Boton peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
+  );
+}
+
+/**
+ * La "vuelta de tuerca" antes de editar (ADR-0261 extendido): un clic en una tarjeta ya no cae directo al
+ * formulario — cae acá primero, de solo lectura, y `accion` recién ahí abre lo que corresponda (el modal de
+ * editar en Colores/Tallas/Tejidos/Patrones, «Configurar campaña» en Etiquetas). Mismo molde que
+ * `VistaRapidaCategoria` y `VistaRapidaMarca`: no se fusiona la lógica de cada pestaña, solo cómo se ve el paso
+ * intermedio.
+ */
+export function VistaRapidaAtributo({
+  titulo,
+  muestra,
+  children,
+  accion,
+  onClose,
+}: {
+  titulo: string;
+  /** La misma muestra de la tarjeta (el rectángulo de color, el ícono…) — opcional, no todas las pestañas la tienen. */
+  muestra?: ReactNode;
+  /** El detalle: lo mismo que ya decía la tarjeta, sin repetir el nombre. */
+  children?: ReactNode;
+  /** El botón primario: «Editar» en la mayoría, «Configurar campaña» en Etiquetas. */
+  accion: { texto: string; onClick: () => void };
+  onClose: () => void;
+}) {
+  return (
+    <Modal titulo={titulo} onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-4">
+          {muestra}
+          {children}
+          <div className="flex justify-end gap-2">
+            <Boton peso="fantasma" onClick={cerrar}>
+              Cerrar
+            </Boton>
+            <Boton peso="primario" onClick={accion.onClick}>
+              {accion.texto}
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
