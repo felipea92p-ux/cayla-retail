@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, Package, ScanLine, Search, SlidersHorizontal, Tag, Truck, X } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Package, ScanLine, Search, SlidersHorizontal, Table2, Tag, Truck, X } from "lucide-react";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Desplegable } from "@/components/ui/campos";
@@ -29,6 +29,7 @@ import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
+import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -386,6 +387,12 @@ export function InventarioPanel({
   // talla» es la tabla del #445, una fila por talla con Cobertura y Ritmo. La prenda abierta se guarda por su clave, no
   // una copia: tras reponer o apartar, el `router.refresh` trae las cifras nuevas y el detalle las muestra.
   const [vista, setVista] = useState<"prenda" | "talla">("prenda");
+  // La lista de entrada son tarjetas (maqueta `existencias-tarjetas-2026-09`); «Ver detalle» pasa a la tabla de siempre, con su
+  // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. El cajón de la prenda vive en la
+  // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
+  // (`abrirPorCodigo`) entra por la tabla.
+  const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
+  const [orden, setOrden] = useState<OrdenPrendas>("relevancia");
   // En el celular los combos de filtro viven plegados tras «Filtros» (tarea #6): seis cajas apiladas empujaban la primera
   // prenda dos pantallas más abajo. En computadora siempre están a la vista (la bandera no se usa desde `sm`).
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
@@ -458,7 +465,7 @@ export function InventarioPanel({
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
   const [pagina, setPagina] = useState(1);
-  const firmaFiltros = [busqueda, categoria, marcaEfectiva, talla, color, accion, condicion].join("\u0000");
+  const firmaFiltros = [busqueda, categoria, marcaEfectiva, talla, color, accion, condicion, orden].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -477,6 +484,12 @@ export function InventarioPanel({
     return sinTexto ? ordenarPorUrgencia(agrupadas) : agrupadas;
   }, [filtradas, sinTexto]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
+  // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido. Sin `orden` (o con uno que
+  // esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
+  const opcionesDeOrden = opcionesOrden(resumen.separaPisoAlmacen);
+  const ordenEfectivo = opcionesDeOrden.some((o) => o.valor === orden) ? orden : "relevancia";
+  const modelosOrdenados = useMemo(() => ordenarModelos(agruparPorModelo(prendas), ordenEfectivo), [prendas, ordenEfectivo]);
+  const paginaTarjetas = paginar(modelosOrdenados, pagina, FILAS_POR_PAGINA);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -575,6 +588,7 @@ export function InventarioPanel({
       return false;
     }
     setBusqueda("");
+    setVerDetalle(true);
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
   }
@@ -805,12 +819,15 @@ export function InventarioPanel({
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
           `scroll-mt-24` compensa la cabecera fija: con menos, al llegar aquí (paginar, «Reponer a piso hoy») el
-          buscador quedaba debajo de ella. */}
-      <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-24 overflow-hidden">
+          buscador quedaba debajo de ella.
+
+          Con «Ver detalle» (la tabla) sigue siendo UNA tarjeta. Con las tarjetas de prenda (la lista de entrada) los filtros
+          son la tarjeta y las prendas van debajo, cada una en la suya. */}
+      <div ref={tarjetaTablaRef} className={`scroll-mt-24 ${verDetalle ? "card-cayla overflow-hidden" : ""}`}>
       {stock.length > 0 && (
         // Diseño aprobado (2026-09-28): buscador, cinco combos, el resumen de lo que falta colgar y el selector de vista, uno bajo
         // otro y con poco aire; la tabla arranca justo debajo. Sin píldora «Por colgar» ni texto explicativo sobre la lista.
-        <div className="flex flex-col px-4 pt-4 sm:px-3 sm:pt-3">
+        <div className={`flex flex-col px-4 pt-4 sm:px-3 sm:pt-3 ${verDetalle ? "" : "card-cayla"}`}>
           {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario, y el subrayado rojo
               sugería que estaba mal escrito lo que era una marca. */}
           <label className="caja-cayla order-1 flex h-[38px] items-center gap-3 px-3.5">
@@ -913,12 +930,11 @@ export function InventarioPanel({
               Filtros
               {combosActivos > 0 && <span className="font-normal tabular-nums">· {combosActivos}</span>}
             </button>
-            {separa && (
-              <p className="text-[13px] text-taupe" title="Tallas con unidades para bajar del almacén y ninguna para vender en el piso: la clienta no las ve">
-                {cuentaPorColgar.tallas} {cuentaPorColgar.tallas === 1 ? "talla" : "tallas"} por reponer · {cuentaPorColgar.unidades.toLocaleString("es-PE")}{" "}
-                {cuentaPorColgar.unidades === 1 ? "ud" : "uds"} en almacén
-              </p>
-            )}
+            {/* Cuántas prendas se ven (modelo + color). Las tallas por reponer, con sus unidades en el almacén, ya las dice la
+                tarjeta «Reponer a piso hoy». */}
+            <p className="text-[13px] text-taupe" aria-live="polite">
+              {modelosOrdenados.length} {modelosOrdenados.length === 1 ? "producto" : "productos"} · {separa ? "Vista de piso y almacén" : "Vista de la sede"}
+            </p>
             {/* La aclaración de «Por colgar», solo si ese estado está elegido y hay algo por colgar (sobre una lista vacía,
                 «elige cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
                 · si otro filtro esconde tallas, cuántas se ven de las que cuenta el resumen — mira toda la sede, y ver 3 filas
@@ -948,43 +964,76 @@ export function InventarioPanel({
                   </button>
                 </span>
               )}
-              {/* Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237. */}
-              <span className="flex items-center gap-2.5 text-[13px] text-taupe">
-                Vista:
-                <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-                  {(
-                    [
-                      ["prenda", "Por prenda"],
-                      ["talla", "Por talla"],
-                    ] as const
-                  ).map(([v, texto]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      aria-pressed={vista === v}
-                      onClick={() => {
-                        setVista(v);
-                        setPagina(1);
-                      }}
-                      className={`px-4 py-1 transition-colors ${vista === v ? "bg-hueso font-medium text-tinta" : "text-taupe hover:text-tinta"}`}
-                    >
-                      {texto}
-                    </button>
-                  ))}
+              {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
+              <button
+                type="button"
+                aria-pressed={verDetalle}
+                title={verDetalle ? "Volver a las tarjetas" : "Ver el detalle en una tabla"}
+                onClick={() => {
+                  // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
+                  if (verDetalle) setAbierta(null);
+                  setVerDetalle((d) => !d);
+                  setPagina(1);
+                }}
+                className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+              >
+                {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
+                {verDetalle ? "Ver tarjetas" : "Ver detalle"}
+              </button>
+              {verDetalle ? (
+                // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
+                <span className="flex items-center gap-2.5 text-[13px] text-taupe">
+                  Vista:
+                  <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
+                    {(
+                      [
+                        ["prenda", "Por prenda"],
+                        ["talla", "Por talla"],
+                      ] as const
+                    ).map(([v, texto]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={vista === v}
+                        onClick={() => {
+                          setVista(v);
+                          setPagina(1);
+                        }}
+                        className={`px-4 py-1 transition-colors ${vista === v ? "bg-hueso font-medium text-tinta" : "text-taupe hover:text-tinta"}`}
+                      >
+                        {texto}
+                      </button>
+                    ))}
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <span className="flex items-center gap-2.5 text-[13px] text-taupe">
+                  Ordenar por:
+                  <span className="w-44">
+                    <Desplegable
+                      valor={ordenEfectivo}
+                      onValor={setOrden}
+                      opciones={opcionesDeOrden.map((o) => ({ valor: o.valor, texto: o.texto }))}
+                      marcador="Más relevantes"
+                      forma="cajaBaja"
+                      alineacion="derecha"
+                      etiquetaAccesible="Ordenar por"
+                    />
+                  </span>
+                </span>
+              )}
             </span>
           </div>
         </div>
       )}
 
-      {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
+      {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
-      {marcaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
+      {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
       {/* Desde 3 letras: con una sola («b») casi todo el catálogo «coincide» y la línea aparecía y desaparecía en cada tecla, moviendo la tabla. */}
       {sinRastroAqui.total > 0 && filtradas.length > 0 && busqueda.trim().length >= 3 && (
-        <p className="nota-cayla mx-4 mb-3 sm:mx-5">
+        <p className={`nota-cayla mx-4 mb-3 sm:mx-5 ${verDetalle ? "" : "mt-3"}`}>
           {textoSinStock(sedeNombre)}{" "}
           {sinRastroAqui.productos.map((p, i) => (
             <span key={p.id}>
@@ -1003,12 +1052,13 @@ export function InventarioPanel({
         </p>
       )}
       {stock.length === 0 ? (
-        <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
+        <p className={`p-5 text-sm text-taupe ${verDetalle ? "" : "card-cayla"}`}>Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
         // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta.
         sinNadaPorColgar || !explicacionVacio ? (
-          <p className="border-t border-sand p-5 text-sm text-taupe">Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso.</p>
+          <p className={`p-5 text-sm text-taupe ${verDetalle ? "border-t border-sand" : "card-cayla mt-3.5"}`}>Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso.</p>
         ) : (
+          <div className={verDetalle ? "" : "card-cayla mt-3.5 overflow-hidden [&>div]:border-t-0"}>
           <ExistenciasVacio
             explicacion={explicacionVacio}
             sede={sedeNombre}
@@ -1029,7 +1079,57 @@ export function InventarioPanel({
             }}
             hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
           />
+          </div>
         )
+      ) : !verDetalle ? (
+        // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
+        <div className="mt-3.5">
+          <ExistenciasTarjetas
+            modelos={paginaTarjetas.filas}
+            separa={separa}
+            mostrarMarca={mostrarMarca}
+            puedeReponer={puedeReponer}
+            puedeAjustar={puedeAjustarAqui}
+            onReponer={(f, origen) => {
+              setAbierta(null);
+              abrirMovimiento(f.varianteId, "bajar", origen);
+            }}
+            onAjustar={(f) => {
+              setAbierta(null);
+              setAjustando(f);
+            }}
+            // «Ver detalle» de una tarjeta: ese producto en la tabla (donde está el cajón de la prenda).
+            onVerDetalle={(p) => {
+              setBusqueda(p.referencia);
+              setVerDetalle(true);
+              setPagina(1);
+            }}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
+            <span className="flex flex-wrap items-center gap-3">
+              <span>
+                {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
+                {modelosOrdenados.length} {modelosOrdenados.length === 1 ? "producto" : "productos"} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
+              </span>
+              <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
+              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
+                Exportar CSV
+              </button>
+            </span>
+            {separa && (
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-taupe/25 bg-hueso" />
+                  Piso · almacén de cada talla
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-rojo/35 bg-rojo/10" />
+                  Sin stock aquí
+                </span>
+              </span>
+            )}
+          </div>
+        </div>
       ) : vista === "prenda" ? (
         <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           <ExistenciasPorPrenda

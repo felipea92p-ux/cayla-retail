@@ -10,6 +10,9 @@ import {
   type BorradorMarca,
   type ParejaDeMarca,
   contarProductosPorProveedor,
+  SIN_EN_URL,
+  SIN_ID,
+  filtroDeMarcaOProveedor,
   marcaAutomatica,
   marcasParecidas,
   proveedorAutomatico,
@@ -106,6 +109,14 @@ describe("sugerencias por categoría (predecir el registro)", () => {
     expect(s[0].usos).toBe(2);
     expect(s).toHaveLength(2);
   });
+  it("un producto sin marca o sin proveedor no forma pareja: no cuenta (ADR-0283)", () => {
+    const c = contarParejasPorCategoria([
+      { categoria_id: "c9", marca_id: null, proveedor_id: null },
+      { categoria_id: "c9", marca_id: "m-adidas", proveedor_id: null },
+      { categoria_id: "c9", marca_id: null, proveedor_id: "p-a" },
+    ]);
+    expect(c).toEqual({});
+  });
   it("no sugiere una pareja cuya marca o proveedor ya no está disponible", () => {
     const s = sugerenciasDeCategoria([{ marcaId: "m-desactivada", proveedorId: "p-a", usos: 9 }], marcas, proveedores);
     expect(s).toEqual([]);
@@ -128,9 +139,20 @@ describe("A quién pedirle: productos por reponer, por proveedor", () => {
   it("sin nada por reponer, nada que mostrar", () => {
     expect(contarProductosPorProveedor([])).toEqual([]);
   });
-  it("una fila sin proveedor (la base aún sin el SQL de proveedores) no tiene a quién pedirle: se salta, no rompe", () => {
-    const sinProveedor = { producto_id: "p9" } as unknown as Parameters<typeof contarProductosPorProveedor>[0][number];
-    expect(contarProductosPorProveedor([sinProveedor, f("p1", "a", "Ámbar")])).toEqual([{ proveedorId: "a", proveedor: "Ámbar", productos: 1 }]);
+  it("un producto por reponer SIN proveedor no desaparece del radar: va al final como «Sin proveedor» (ADR-0283)", () => {
+    const r = contarProductosPorProveedor([
+      { producto_id: "p9", proveedor_id: null, proveedor_nombre: null },
+      { producto_id: "p9", proveedor_id: null, proveedor_nombre: null }, // otra talla del mismo producto: cuenta una
+      { producto_id: "p8", proveedor_id: null, proveedor_nombre: null },
+      f("p1", "a", "Ámbar"),
+    ]);
+    expect(r).toEqual([
+      { proveedorId: "a", proveedor: "Ámbar", productos: 1 },
+      { proveedorId: SIN_EN_URL, proveedor: "Sin proveedor", productos: 2 },
+    ]);
+  });
+  it("sin ningún producto sin proveedor, no aparece la fila «Sin proveedor»", () => {
+    expect(contarProductosPorProveedor([f("p1", "a", "Ámbar")]).some((x) => x.proveedorId === SIN_EN_URL)).toBe(false);
   });
 });
 
@@ -255,5 +277,20 @@ describe("¿No será la misma marca? (el caso «Cayla 2», 2026-09-25)", () => {
     expect(marcasParecidas("Divas", existentes)).toMatchObject({ igual: { nombre: "Divas" }, parecidas: [{ marca: { nombre: "Divas Now" } }] });
     expect(marcasParecidas("Kero", existentes)).toEqual({ igual: null, parecidas: [] });
     expect(marcasParecidas("   ", existentes)).toEqual({ igual: null, parecidas: [] });
+  });
+});
+
+describe("/productos?marca=sin y ?proveedor=sin (ADR-0283)", () => {
+  const UUID = "3f2b8c1e-5d4a-4e6b-9a7c-1d2e3f4a5b6c";
+  it("«sin» viaja a la base como el uuid nulo, que fn_productos entiende como «los que no tienen»", () => {
+    expect(filtroDeMarcaOProveedor("sin")).toBe(SIN_ID);
+  });
+  it("una marca o un proveedor de verdad sigue siendo su uuid", () => {
+    expect(filtroDeMarcaOProveedor(UUID)).toBe(UUID);
+  });
+  it("cualquier otra cosa se descarta, como antes", () => {
+    expect(filtroDeMarcaOProveedor("cayla")).toBeUndefined();
+    expect(filtroDeMarcaOProveedor("")).toBeUndefined();
+    expect(filtroDeMarcaOProveedor(undefined)).toBeUndefined();
   });
 });

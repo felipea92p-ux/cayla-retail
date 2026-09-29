@@ -5,7 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
@@ -29,8 +29,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 // familia de color y tipo (cinco datos), y merece su propia pantalla
 // (Catálogo → Atributos → Colores); ver `EnlaceColorNuevo` en el formulario.
 //
-// Agregar un valor es un guardado aparte del producto; desde 2026-09-29 va sin combo
-// «Responsable» (clave `alta_producto_valor`).
+// Agregar un valor es un guardado aparte del producto; lo firma quien inició el alta (`useFirmaDeMitad`), sin combo
+// propio desde 2026-09-29. Vive dentro de las hojas de tallas y muestras, de ahí el aviso `enHoja`.
 
 const TEXTOS: Record<TipoVocabulario, { boton: string; placeholder: string; singular: string }> = {
   tallas: { boton: "+ Nueva talla", placeholder: "Ej. 44", singular: "talla" },
@@ -64,11 +64,12 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
   const [texto, setTexto] = useState("");
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const firma = useFirmaDeMitad("alta_producto_valor");
   const t = TEXTOS[tipo];
 
   async function agregar() {
     const limpio = texto.trim();
-    if (!limpio || trabajando) return;
+    if (!limpio || trabajando || !firma.listo) return;
     setTrabajando(true);
     setError(null);
 
@@ -83,7 +84,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
 
     const { valor, error: errCrear } = existente
       ? { valor: { id: existente.id, texto: existente.texto, aprobado: true }, error: null }
-      : await proponerValorVocabulario(tipo, limpio, encabezadosOmitidos("alta_producto_valor"));
+      : await proponerValorVocabulario(tipo, limpio, firma.encabezados());
     if (errCrear || !valor) {
       setError(errCrear);
       setTrabajando(false);
@@ -97,7 +98,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
       return;
     }
 
-    const errOfrecer = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, valor.id), encabezadosOmitidos("alta_producto_valor"));
+    const errOfrecer = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, valor.id), firma.encabezados());
     setTrabajando(false);
     if (errOfrecer) {
       setError(`«${valor.texto}» ya está en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Vuelve a tocar «Agregar»: no se crea otra vez.`);
@@ -135,7 +136,8 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
         <button
           type="button"
           onClick={() => void agregar()}
-          disabled={!texto.trim() || trabajando}
+          disabled={!texto.trim() || trabajando || !firma.listo}
+          title={firma.motivo ?? undefined}
           className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
         >
           {trabajando ? "Guardando…" : "Agregar"}
@@ -144,6 +146,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
           Cancelar
         </button>
       </div>
+      <AvisoSinIdentidad firma={firma} enHoja />
       {error && (
         <p role="alert" className="text-xs text-rojo-profundo">
           {error}

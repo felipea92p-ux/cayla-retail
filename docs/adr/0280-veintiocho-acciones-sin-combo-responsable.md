@@ -106,3 +106,12 @@ Pegar la migración (una parte, sin políticas ni `alter` de tablas en uso: ADR-
 (`pnpm datos:generar:produccion`: la tabla `acciones_sin_responsable` es nueva) y verificar en producción que las 30 claves
 están y que `fn_actor_persona_id` tiene la marca `x-responsable-omitido`. **Sin la migración, la web que sube este PR deja
 las 28 acciones sin combo y la base las rechaza**: la migración se pega antes o junto con el despliegue de la web.
+
+## Actualización 2026-09-29 (b) — las ocho acciones del alta ya no quedan sin nombre (ADR-0285)
+
+En una terminal, las ocho acciones `alta_producto_*` dejaban el tejido, color, marca, talla, etiqueta, muestra, valor o
+categoría nuevos sin persona («lo que se pierde», arriba). Felipe pidió que quien inicia el alta se identifique una vez y firme todo
+lo que crea en ella: **dentro del alta esas acciones firman con esa persona** (ADR-0285, `useFirmaDeMitad`); la clave omitida solo
+se manda fuera del alta (`alta_producto_marca` desde Marcas, la ficha y el conteo; `alta_producto_color` desde «Agregar colores»
+de la ficha). Las otras veinte acciones no cambian.
+

@@ -164,9 +164,7 @@ export function fueraDeLaCategoria<T extends { id: string }>(universo: T[], deLa
 
 export type EstadoAlta = {
   categoriaId: string;
-  /** De quién es: marca y proveedor (ADR-0109), obligatorios. */
-  marcaId: string;
-  proveedorId: string;
+  // Marca y proveedor NO están aquí: desde ADR-0283 (2026-09-29) un producto se crea sin ellos y se completan después.
   referencia: string;
   /** Se está comprobando el nombre contra el catálogo: hasta que conteste, no se sabe si es duplicado. */
   comprobandoNombre: boolean;
@@ -195,10 +193,10 @@ export type EstadoAlta = {
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
-export type Problema = { bloque: "categoria" | "nombre" | "marca" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
+export type Problema = { bloque: "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
 /** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
- *  ver (nombre → marca → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
+ *  ver (nombre → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
@@ -206,7 +204,6 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   else if (e.nombreBloqueado) p.push({ bloque: "nombre", texto: "Ya existe un producto con ese nombre." });
   else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro producto, o abre el que ya existe." });
   else if (e.comprobandoNombre) p.push({ bloque: "nombre", texto: "Comprobando que el nombre no exista todavía…" });
-  if (!e.marcaId || !e.proveedorId) p.push({ bloque: "marca", texto: "Elige la marca y el proveedor." });
   if (e.exigeTejidoPatron) {
     if (!e.hayTejidosEnCategoria || !e.hayPatronesEnCategoria) {
       p.push({ bloque: "tela", texto: "Esta categoría no tiene tejidos o patrones habilitados: configúralos para continuar." });
@@ -280,8 +277,8 @@ export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean;
 /** Cada bloque se abre al resolver el anterior; los cerrados se ven atenuados, no ocultos (la persona ve el camino completo). */
 export function desbloqueos(e: EstadoAlta): Desbloqueos {
   const marca = Boolean(e.categoriaId);
-  // Primero de quién es (el proveedor manda: una marca cuelga de él), después cómo se llama.
-  const nombre = marca && Boolean(e.marcaId) && Boolean(e.proveedorId);
+  // La marca y el proveedor son opcionales (ADR-0283): ya no traban el nombre.
+  const nombre = marca;
   const nombreResuelto = nombre && e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const atributos = nombreResuelto;
   const atributosResueltos =
@@ -315,7 +312,6 @@ export function pasoDeProblema(p: Problema): PasoAlta {
     case "categoria":
       return 1;
     case "nombre":
-    case "marca":
     case "tela":
       return 2;
     case "tallas":

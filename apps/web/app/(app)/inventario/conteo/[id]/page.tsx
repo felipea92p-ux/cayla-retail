@@ -40,7 +40,7 @@ export default async function ConteoPage({
     return <CanceladoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} />;
   }
   if (conteo.estado === "cerrado") {
-    return <ResultadoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} />;
+    return <ResultadoConteo detalle={detalle} sede={persona.ubicacionEtiqueta} volverA={volverA} puedeEditar={puede(persona, "ajustarInventario")} />;
   }
 
   // Abierto: lo que necesita la pantalla de contar. Son las mismas fuentes que usaba el conteo de antes para el alta al vuelo.
@@ -57,7 +57,7 @@ export default async function ConteoPage({
   const soloVariantes = idsDeParam(variantes);
   const soloPrendas = soloVariantes.flatMap((vid) => {
     const p = catalogo.find((x) => x.varianteId === vid);
-    return p ? [[p.referencia, p.talla, p.color].filter(Boolean).join(" · ")] : [];
+    return p ? [[p.referencia, p.color, p.talla].filter(Boolean).join(" · ")] : [];
   });
   const hrefTodo = `/inventario/conteo/${conteo.id}${volverA ? `?volver=${encodeURIComponent(volverA)}` : ""}`;
   const generadoEn = idDeCarga();

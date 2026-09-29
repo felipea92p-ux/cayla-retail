@@ -12,7 +12,7 @@ import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { aLaVista, seccionesMuestras, unirSinRepetir } from "@/lib/muestras-alta-reglas";
-import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // Las filas «Tejido» y «Patrón» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -24,7 +24,7 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 //
 // Elegir uno «Del catálogo» NO puede ser solo marcarlo: la base rechaza crear un producto con un tejido o patrón que su
 // categoría no ofrece (`crear_producto_con_variantes`, «Ese tejido no está habilitado para la categoría elegida»). Tocarlo
-// lo ofrece en la categoría —una escritura aparte, sin combo «Responsable» desde 2026-09-29 (clave `alta_producto_muestra`)— y lo deja
+// lo ofrece en la categoría —una escritura aparte, firmada por quien inició el alta (`useFirmaDeMitad`, sin combo propio desde 2026-09-29)— y lo deja
 // elegido; es el mismo gesto que tenía el «Ver más» de `ElegirTejido` y se dice en la sección antes del toque, porque cambia la
 // categoría y no solo el producto.
 //
@@ -127,6 +127,7 @@ function TarjetaMuestra({
   busqueda = "",
   deshabilitado = false,
   guardando = false,
+  motivo,
 }: {
   tipo: Tipo;
   valor: ValorVocabulario;
@@ -139,10 +140,12 @@ function TarjetaMuestra({
   deshabilitado?: boolean;
   /** Esta tarjeta es la que se está ofreciendo en la categoría ahora mismo. */
   guardando?: boolean;
+  /** Por qué está apagada (falta elegir quién registra el alta): se ve al pasar el mouse. */
+  motivo?: string;
 }) {
   const Muestra = tipo === "tejidos" ? MuestraTejido : MuestraPatron;
   return (
-    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={enHoja ? undefined : valor.texto}>
+    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={motivo ?? (enHoja ? undefined : valor.texto)}>
       <Muestra nombre={valor.texto} imagenUrl={imagenUrl ?? null} className="h-10 w-full" />
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
@@ -182,14 +185,15 @@ function HojaMuestras({
   const [busqueda, setBusqueda] = useState("");
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const firma = useFirmaDeMitad("alta_producto_muestra");
   const t = TEXTOS[tipo];
   const { propias, delCatalogo } = seccionesMuestras(deLaCategoria, universo, busqueda);
 
   async function ofrecer(v: ValorVocabulario) {
-    if (guardandoId) return;
+    if (guardandoId || !firma.listo) return;
     setGuardandoId(v.id);
     setError(null);
-    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, v.id), encabezadosOmitidos("alta_producto_muestra"));
+    const err = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, v.id), firma.encabezados());
     setGuardandoId(null);
     if (err) {
       // Nada quedó a medias: la categoría sigue como estaba y reintentar es seguro (ofrecer uno que ya está no lo repite).
@@ -258,6 +262,7 @@ function HojaMuestras({
                 · elegir uno lo suma a {categoriaNombre} (también para las prendas que vengan)
               </small>
             </TituloSeccion>
+            <AvisoSinIdentidad firma={firma} enHoja className="mb-2" />
             <GrillaMuestras>
               {delCatalogo.map((v) => (
                 <TarjetaMuestra
@@ -269,7 +274,8 @@ function HojaMuestras({
                   enHoja
                   busqueda={busqueda}
                   guardando={guardandoId === v.id}
-                  deshabilitado={guardandoId !== null}
+                  deshabilitado={guardandoId !== null || !firma.listo}
+                  motivo={firma.motivo ?? undefined}
                   onClick={() => void ofrecer(v)}
                 />
               ))}

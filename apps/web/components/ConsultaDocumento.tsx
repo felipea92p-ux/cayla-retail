@@ -272,9 +272,16 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
               {datos.direccion && <p className="mt-1.5 text-xs leading-snug text-tinta/70">{datos.direccion}</p>}
               <p className="mt-1.5 text-[11px] text-tinta/65">
                 {datos.fuente === "padron"
-                  ? `Según ${etiqueta.padron}, consultado ahora`
+                  ? datos.via === "sunat_publico"
+                    ? "Según SUNAT, consultado ahora"
+                    : `Según ${etiqueta.padron}, consultado ahora`
                   : "De un comprobante anterior — no se pudo consultar el padrón ahora"}
               </p>
+              {/* La consulta gratuita de SUNAT trae razón social y dirección, pero no el estado
+                  ni la condición. Sin este aviso, «sin chips» se leería como «todo en orden». */}
+              {datos.fuente === "padron" && datos.tipo === "ruc" && !datos.estado && (
+                <p className="mt-1 text-[11px] text-tinta/65">No informa si el RUC está activo y habido.</p>
+              )}
             </>
           ) : (
             <p className="text-xs leading-snug text-tinta/70">
