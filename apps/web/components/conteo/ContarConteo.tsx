@@ -2,14 +2,18 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, ScanBarcode, X } from "lucide-react";
+import { Camera, Clock, Info, ScanBarcode, UserRound, X } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
 import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
+import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { BarraFija } from "@/components/ui/BarraFija";
+import { Chip } from "@/components/ui/Chip";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { sonidoDeLectura } from "@/lib/conteo-conectado";
@@ -27,7 +31,7 @@ import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { firmar } from "@/lib/responsable-reglas";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 
 /* ====================================================================
    ContarConteo · la pantalla donde se cuenta (Inventario ▸ Conteo ▸ Contar, rediseño 2026-09-29)
@@ -75,8 +79,8 @@ function prendaSinFicha(varianteId: string): PrendaConteo {
 const detalleDe = (p: { talla: string | null; color: string | null }) => [p.talla, p.color].filter(Boolean).join(" · ");
 const nombreDe = (p: PrendaConteo) => [p.referencia, p.color, p.talla].filter(Boolean).join(" · ");
 
-/** Los campos «Contaste» que se ven (los de perchas o filas escondidas por el buscador no cuentan para saltar con Enter). */
-const CAMPOS_VISIBLES = "tbody:not([hidden]) > tr:not([hidden]) input[data-contaste]";
+/** Los campos «Contaste» que se ven (los de tarjetas o filas escondidas por el buscador no cuentan para saltar con Enter). */
+const CAMPOS_VISIBLES = "article:not([hidden]) tbody > tr:not([hidden]) input[data-contaste]";
 
 /** Los avisos de «solo texto» (falta el responsable, número inválido) se van solos: no piden una respuesta. */
 const MS_AVISO_TEXTO = 8000;
@@ -93,9 +97,17 @@ export type PropsContarConteo = {
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
   marcas: CatalogoMarcas;
   puedeCrearMarcas: boolean;
+  /** La sede que se mira, para la línea de arriba de la cabecera. */
+  sede: string;
+  /** «Almacén de tienda · Todo»: lo que dice la cabecera bajo «Conteo N». */
+  lugar: string;
+  /** A dónde vuelve «← Conteo» (o «← Movimientos», si se llegó desde allá). */
+  volver: { href: string; a: string };
+  /** `?variantes=`: «Contando solo: … · Contar todo», ya armado por el servidor (va bajo los pasos). */
+  notaAcotada?: React.ReactNode;
 };
 
-export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, categorias, colores, tallasPorCategoria, marcas, puedeCrearMarcas }: PropsContarConteo) {
+export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, categorias, colores, tallasPorCategoria, marcas, puedeCrearMarcas, sede, lugar, volver, notaAcotada }: PropsContarConteo) {
   const router = useRouter();
   const conteo = detalle.conteo;
   const responsable = useResponsable();
@@ -227,7 +239,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
   // ---- Anotar -----------------------------------------------------------------------------------------------------
   const escanerRef = useRef<HTMLInputElement>(null);
-  const tarjetaRef = useRef<HTMLElement>(null);
+  const tarjetaRef = useRef<HTMLDivElement>(null);
   const [ultimaId, setUltimaId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -248,6 +260,23 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       return true;
     },
     [control]
+  );
+
+  /**
+   * «Completar todo» de una tarjeta: «encontré todo este producto tal como CAYLA esperaba». Cada talla que SIGUE pendiente se
+   * cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo responsable,
+   * mismo guardado agrupado y en serie, mismo estado y progreso). Las tallas que ya tienen número no se tocan. Si falta el
+   * responsable, se avisa una sola vez y no se anota ninguna.
+   */
+  const completarTodo = useCallback(
+    (varianteIds: string[]) => {
+      for (const id of varianteIds) {
+        const l = control.linea(id);
+        if (!l || l.contada !== null) continue;
+        if (!alConfirmar(id, l.debeHaber)) break;
+      }
+    },
+    [control, alConfirmar]
   );
 
   const alInvalido = useCallback((t: string) => setAviso({ tipo: "texto", texto: `«${t.trim()}» no es una cantidad. Escribe un número entero: 0 o más.` }), []);
@@ -446,53 +475,70 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
   return (
     <>
-      <section ref={tarjetaRef} aria-label="Contar" className="card-cayla @container overflow-hidden">
-        {/* La barra de herramientas: escanear/buscar en UN campo, quién cuenta y cuántas van. */}
-        <div className="space-y-2.5 border-b border-sand px-3 py-3 @[36rem]:px-5">
-          <div className="caja-cayla relative flex h-12 items-center">
-            <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 h-5 w-5 text-taupe" />
-            <input
-              ref={escanerRef}
-              type="text"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
-                e.preventDefault();
-                alEnterEscaner();
-              }}
-              aria-label="Escanear código"
-              placeholder="Escanea o escribe producto, color, talla o código"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              enterKeyHint="search"
-              className="h-full w-full min-w-0 bg-transparent pl-11 pr-3 text-base text-tinta outline-none placeholder:text-taupe placeholder:text-ellipsis sm:pr-32"
-            />
-            {/* En escritorio la cámara está al lado del campo; en el celular, en la barra de abajo (más a mano del pulgar). */}
-            <button type="button" onClick={abrirCamara} className="btn-cayla btn-secundario btn-chico absolute right-2 hidden sm:inline-flex">
-              <Camera aria-hidden className="h-4 w-4" />
-              Cámara
-            </button>
-          </div>
-          <ComboResponsable control={responsable} className="w-full sm:w-72" />
-          <CifrasConteo control={control} />
-          {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 && (
-            <p className="text-xs text-taupe">
-              Mostrando {nCoincidencias} de {acotadas.length} {acotadas.length === 1 ? "variante" : "variantes"} ·{" "}
-              <button type="button" onClick={() => setTexto("")} className="btn-cayla btn-enlace inline min-h-0 p-0 align-baseline text-xs">
-                Limpiar
-              </button>
-            </p>
-          )}
+      <EncabezadoPagina
+        sede={sede}
+        titulo={`Conteo ${conteo.numero}`}
+        subtitulo={lugar}
+        pie={
+          <>
+            <Volver forma="boton" href={volver.href} a={volver.a} />
+            <Chip tono="pizarra">En curso</Chip>
+          </>
+        }
+      >
+        <CifrasCabecera control={control} />
+      </EncabezadoPagina>
+      <PasosConteo actual="contar" />
+      {notaAcotada}
+
+      <div ref={tarjetaRef} role="region" aria-label="Contar" className="space-y-3">
+        {/* Escanear o buscar: UN campo de ancho completo. La cámara vive en la barra de abajo del celular. */}
+        <div className="relative">
+          <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-rojo-profundo" />
+          <input
+            ref={escanerRef}
+            type="text"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+              e.preventDefault();
+              alEnterEscaner();
+            }}
+            aria-label="Escanear código"
+            placeholder="Escanea o escribe producto, color, talla o código"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            className="h-[42px] w-full min-w-0 rounded-lg border border-taupe/25 bg-papel pl-11 pr-3 text-base text-tinta outline-none transition-colors placeholder:text-taupe placeholder:text-ellipsis focus:border-rojo-profundo/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/40 [@media(pointer:coarse)]:h-12"
+          />
+        </div>
+
+        <BarraInfo control={control} responsable={responsable} creadoEn={conteo.creadoEn} />
+
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-[13px] text-taupe">
+          <p className="flex min-w-0 items-center gap-2">
+            <Info aria-hidden className="h-4 w-4 shrink-0" />
+            {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 ? (
+              <span>
+                Mostrando {nCoincidencias} de {acotadas.length} {acotadas.length === 1 ? "variante" : "variantes"} ·{" "}
+                <button type="button" onClick={() => setTexto("")} className="btn-cayla btn-enlace inline min-h-0 p-0 align-baseline text-[13px]">
+                  Limpiar
+                </button>
+              </span>
+            ) : (
+              <span>Los productos se muestran en tarjetas. Cada tarjeta crece según el número de tallas del producto.</span>
+            )}
+          </p>
           {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
         </div>
 
         {!hayVariantes ? (
-          <p className="px-5 py-6 text-sm text-taupe">No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.</p>
+          <p className="card-cayla px-5 py-6 text-sm text-taupe">No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.</p>
         ) : vaciaPorAcotar ? (
-          <p className="px-5 py-6 text-sm text-taupe">Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.</p>
+          <p className="card-cayla px-5 py-6 text-sm text-taupe">Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.</p>
         ) : (
           <>
             {nCoincidencias === 0 && (
@@ -507,11 +553,19 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
             )}
             {/* Aunque no coincida nada la lista sigue montada (escondida): volver a dibujarla al borrar el buscador costaría medio segundo. */}
             <div hidden={nCoincidencias === 0}>
-              <ListaConteo grupos={grupos} coincidencias={coincidencias} control={control} alConfirmar={alConfirmar} alInvalido={alInvalido} alEnter={alEnterCampo} />
+              <ListaConteo
+                grupos={grupos}
+                coincidencias={coincidencias}
+                control={control}
+                alConfirmar={alConfirmar}
+                alInvalido={alInvalido}
+                alEnter={alEnterCampo}
+                alCompletar={completarTodo}
+              />
             </div>
           </>
         )}
-      </section>
+      </div>
 
       <PieContar control={control} aviso={contenidoAviso} preparando={preparando} alRevisar={() => void revisar()} alCamara={abrirCamara} />
 
@@ -567,14 +621,117 @@ function useEstadoGuardado(control: ControlConteo): EstadoGuardado {
   return useSyncExternalStore(control.suscribirGuardado, control.estadoGuardado, control.estadoGuardado);
 }
 
-function CifrasConteo({ control }: { control: ControlConteo }) {
-  return <ResumenConteo resumen={useResumen(control)} variante="cifras" />;
+/** Las tres cifras de arriba a la derecha: verificadas, pendientes y con diferencia. Viven aquí (y no en el servidor) porque se mueven con cada lectura. */
+function CifrasCabecera({ control }: { control: ControlConteo }) {
+  const r = useResumen(control);
+  const celdas = [
+    { valor: r.verificadas, etiqueta: "Variantes verificadas", color: "text-taupe-profundo" },
+    { valor: r.pendientes, etiqueta: "Pendientes", color: "text-tinta" },
+    { valor: r.conDiferencia, etiqueta: "Con diferencia", color: r.conDiferencia > 0 ? "text-rojo-profundo" : "text-verde" },
+  ];
+  return (
+    <section aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
+      {celdas.map((c) => (
+        <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
+          <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
+          <p className="mt-2 text-[13px] leading-tight text-tinta/70">{c.etiqueta}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const FORMATO_INICIO = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+/** «29/09/2026 · 13:36», en la hora de Lima (la de la tienda), sin importar la zona del aparato. */
+function textoInicio(iso: string): string {
+  const partes = FORMATO_INICIO.formatToParts(new Date(iso));
+  const de = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${de("day")}/${de("month")}/${de("year")} · ${de("hour")}:${de("minute")}`;
+}
+
+/** El anillo del progreso: pista en sand y avance en terracota (el mismo que el hilo de CAYLA), sin animación de más. */
+function Anillo({ porcentaje }: { porcentaje: number }) {
+  const r = 16;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg aria-hidden viewBox="0 0 40 40" className="h-10 w-10 shrink-0 -rotate-90">
+      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-sand" />
+      <circle
+        cx="20"
+        cy="20"
+        r={r}
+        fill="none"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - porcentaje / 100)}
+        className="stroke-rojo transition-[stroke-dashoffset] duration-300 ease-cayla"
+      />
+    </svg>
+  );
+}
+
+/**
+ * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
+ * están arriba a la derecha). El responsable es el mismo control de siempre: con Admin (o con quien ya está de turno) se
+ * ve su nombre; si falta elegir quién cuenta, aquí mismo aparece el combo (el candado de asistencia no se pierde), y
+ * quien no es Admin puede cambiarlo con «Cambiar».
+ */
+function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo; responsable: ControlResponsable; creadoEn: string }) {
+  const r = useResumen(control);
+  const porcentaje = r.variantes > 0 ? Math.min(100, Math.round((r.verificadas / r.variantes) * 100)) : 0;
+  const [cambiando, setCambiando] = useState(false);
+  const admin = responsable.estado === "admin";
+  const nombre = responsable.lista.elegibles.find((e) => e.personaId === responsable.elegidoId)?.nombre ?? null;
+  const mostrarCombo = !responsable.listo || !nombre || (cambiando && !admin);
+  const bloque = "flex min-w-0 items-center gap-3 px-5 py-3";
+  return (
+    <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <div className={bloque}>
+        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-tinta/70">Responsable</p>
+          {mostrarCombo ? (
+            <ComboResponsable control={responsable} className="mt-1 w-full" />
+          ) : (
+            <p className="flex items-baseline gap-2 text-base font-medium text-tinta">
+              <span className="truncate">{nombre}</span>
+              {!admin && (
+                <button type="button" onClick={() => setCambiando(true)} className="btn-cayla btn-enlace min-h-0 shrink-0 p-0 text-xs font-normal">
+                  Cambiar
+                </button>
+              )}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className={bloque}>
+        <Anillo porcentaje={porcentaje} />
+        <div className="min-w-0">
+          <p className="text-xs text-tinta/70">Progreso</p>
+          <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
+            <span>
+              {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
+            </span>
+            <span className="text-tinta/70">{porcentaje}%</span>
+          </p>
+        </div>
+      </div>
+      <div className={bloque}>
+        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <div className="min-w-0">
+          <p className="text-xs text-tinta/70">Inicio del conteo</p>
+          <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** Lo buscado no está en la lista del conteo. Si es una prenda que el catálogo sí conoce (por su etiqueta o por su nombre), se ofrece sumarla (una variante que nadie esperaba aquí). */
 function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeridas: PrendaConteo[]; alSumar: (p: PrendaConteo) => void }) {
   return (
-    <div className="space-y-3 px-5 py-6">
+    <div className="card-cayla space-y-3 px-5 py-6">
       <p className="text-sm text-taupe">Ninguna variante coincide con «{texto}».</p>
       {sugeridas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-sand bg-papel px-3.5 py-3 text-sm text-tinta">
@@ -641,6 +798,8 @@ function PieContar({
         <ResumenConteo
           resumen={resumen}
           variante="progreso"
+          conPorcentaje
+          className="max-w-xl"
           lateral={
             // Discreto: la ÚNICA confirmación por lectura. Sin modales ni avisos flotantes.
             <span role="status" aria-live="polite" className="inline-block min-w-[5.5rem] text-right">

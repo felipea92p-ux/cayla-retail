@@ -39,17 +39,18 @@ export type ResumenParaMostrar = Pick<ResumenDeConteo, "variantes" | "verificada
 // Un espacio duro antes del punto medio: al partirse la línea, el «·» se queda al final de la anterior y no abre la siguiente.
 const sinPuntoAlInicio = (t: string) => t.replaceAll(" · ", " · ");
 
-function Progreso({ resumen, lateral }: { resumen: ResumenParaMostrar; lateral?: ReactNode }) {
+function Progreso({ resumen, lateral, conPorcentaje = false }: { resumen: ResumenParaMostrar; lateral?: ReactNode; conPorcentaje?: boolean }) {
   const { variantes, verificadas } = resumen;
   const texto = textoProgreso({ verificadas, variantes });
   const porcentaje = variantes > 0 ? Math.min(100, Math.round((verificadas / variantes) * 100)) : 0;
   return (
     <div className="w-full min-w-0">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 text-sm font-medium tabular-nums text-tinta">{texto}</p>
+        <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-[15px] font-semibold" : "text-sm font-medium"}`}>{texto}</p>
         {lateral ? <span className="shrink-0 text-xs text-taupe">{lateral}</span> : null}
       </div>
       {/* Discreta: 6 px, tinta sobre sand, la que ya usaba el conteo. Progreso no es «correcto», por eso no es verde. */}
+      <div className={conPorcentaje ? "mt-1.5 flex items-center gap-4" : undefined}>
       <div
         role="progressbar"
         aria-label="Variantes verificadas"
@@ -57,9 +58,11 @@ function Progreso({ resumen, lateral }: { resumen: ResumenParaMostrar; lateral?:
         aria-valuemax={variantes}
         aria-valuenow={Math.min(verificadas, variantes)}
         aria-valuetext={texto}
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sand"
+        className={`h-1.5 overflow-hidden rounded-full bg-sand ${conPorcentaje ? "min-w-0 flex-1" : "mt-1.5"}`}
       >
         <div className="h-full rounded-full bg-tinta transition-[width] duration-300 ease-cayla" style={{ width: `${porcentaje}%` }} />
+      </div>
+      {conPorcentaje && <span className="w-9 shrink-0 text-right text-sm tabular-nums text-tinta/70">{porcentaje}%</span>}
       </div>
     </div>
   );
@@ -85,6 +88,7 @@ export function ResumenConteo({
   variante = "completo",
   parcial = false,
   lateral,
+  conPorcentaje = false,
   className = "",
 }: {
   resumen: ResumenParaMostrar;
@@ -93,6 +97,8 @@ export function ResumenConteo({
   parcial?: boolean;
   /** Solo «completo» y «progreso»: lo que va a la derecha de «18 de 37…» (el «Guardado» del pie de Contar). */
   lateral?: ReactNode;
+  /** Solo «progreso»: el porcentaje al final de la barra («0%»), como el pie de Contar. */
+  conPorcentaje?: boolean;
   className?: string;
 }) {
   const correctas = resumen.correctas ?? Math.max(0, resumen.verificadas - resumen.conDiferencia);
@@ -126,7 +132,7 @@ export function ResumenConteo({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <Progreso resumen={resumen} lateral={lateral} />
+      <Progreso resumen={resumen} lateral={lateral} conPorcentaje={conPorcentaje} />
       {variante === "completo" && <Cifras resumen={resumen} />}
     </div>
   );

@@ -36,9 +36,10 @@ export function SinFoto({ tamano = "h-9 w-9" }: { tamano?: string }) {
  *  del color vendido (con borde, para que un beige o un blanco no desaparezcan sobre
  *  el papel). Cambios la usa en grande (2026-09-18): la colaboradora compara la foto
  *  con la prenda que la clienta tiene en la mano. */
-export function MiniaturaPrenda({ fotoUrl, colorHex = null, tamano = "sm" }: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" }) {
+export function MiniaturaPrenda({ fotoUrl, colorHex = null, tamano = "sm" }: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" | "xl" }) {
   // `md` (44 px): la miniatura de las listas de Existencias del diseño aprobado (2026-09-28).
-  const [clase, px] = tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
+  // `xl` (60 px): la miniatura de la tarjeta de producto de Conteo ▸ Contar (2026-09-29).
+  const [clase, px] = tamano === "xl" ? ["h-[60px] w-[60px]", 60] : tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
   if (fotoUrl) {
     return <Image src={fotoUrl} alt="" width={px} height={px} unoptimized className={`${clase} shrink-0 rounded-md border border-tinta/10 object-cover`} />;
   }
