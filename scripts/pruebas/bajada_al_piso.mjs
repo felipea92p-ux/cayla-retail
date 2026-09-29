@@ -131,7 +131,11 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
                  (:'va', :'lim', :'alm_l', 10)) x(v, u, s, n);
 select count(*) as _colchon from (select retail.fn_aplicar_movimiento(m.id) from retail.movimientos m
   where m.variante_id in (:'va', :'vb', :'vc', :'vd', :'ve', :'vx') and m.tipo = 'entrada') x \\gset
+-- Talla retirada CON prendas: desde 20260929030000 (ADR-0270) eso ya no se puede producir, pero existe en datos
+-- viejos y esta prueba cubre justo ese caso: se arma sin disparadores, solo dentro de esta transacción.
+set local session_replication_role = replica;
 update retail.variantes set activo = false where id = :'vx';
+set local session_replication_role = origin;
 -- Apartadas para clientas en el almacén de Trujillo: vc 3 (quedan 2 libres) y ve 1 (quedan 3 libres).
 select retail.apartar_stock(:'vc', :'tru', 3, 'Ana Torres', '999111222', retail.fn_hoy_lima() + 3, null, :'alm_t', null) as _ap1 \\gset
 select retail.apartar_stock(:'ve', :'tru', 1, 'Ana Torres', '999111222', retail.fn_hoy_lima() + 3, null, :'alm_t', null) as _ap2 \\gset

@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
-  "existencias", "bajada_piso", "ajustar_stock", "conteos", "traslados", "movimientos",
+  "existencias", "bajada_piso", "ajustar_stock", "conteos", "traslados", "movimientos", "frescura",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
@@ -21,6 +21,8 @@ export const CLAVES_MODULO = [
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
   "actividad",
+  "cayla_global",
+  "rendimiento",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -71,6 +73,11 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
+  // Frescura del piso (ADR-0208 paso 4, 20260929100000): cuánto lleva colgada cada prenda contra las demás de su categoría
+  // en su sede, y qué hacer con lo que se queda. Nace SIN rol (solo el líder) y delegable: por el ADR-0253 sus tres
+  // lecturas piden «el líder, o este módulo, en una sede que opera». Quien lo tiene sin ser líder ve SU sede entera; el
+  // registro al colgar, «Las 3 tiendas» y la referencia de CAYLA (que leen las otras sedes) siguen siendo del líder.
+  { clave: "frescura", grupo: "Inventario", nombre: "Frescura del piso", incluye: "Ver cuánto lleva colgada cada prenda de su tienda contra las demás de su categoría, y qué conviene hacer con la que se queda" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar y archivar etiquetas sin descuento" },
@@ -100,6 +107,15 @@ export const MODULOS: readonly Modulo[] = [
   // (botón «Actividad»). Nace sin rol; con el módulo, una cuenta ve la actividad de SU tienda; el líder, la de todas.
   // Solo para personas (`MODULOS_SOLO_PERSONAS`): una terminal compartida no revisa lo que hacen las demás.
   { clave: "actividad", grupo: "Gestión", nombre: "Actividad", incluye: "Ver quién hizo qué en cada módulo de su tienda: ventas, anulaciones, caja y cambios, con fecha, hora y persona" },
+  // ADR-0275 (20260929140000, Felipe 2026-09-28): la vista de toda la empresa, desde el selector de sede. Excepción a «un
+  // módulo nuevo nace visible para el líder»: nace QUITADO al Líder de equipo (`lider_modulos_ocultos`), así que al nacer
+  // solo la ve el Admin, y solo un Admin la da (`fn_exigir_modulos_dentro_de_lo_mio`). Qué se usa ahí: `lib/vista-global.ts`.
+  { clave: "cayla_global", grupo: "Gestión", nombre: "CAYLA Global", incluye: "Ver CAYLA como una sola empresa: las tiendas, el Taller y la empresa juntos, qué tan sano está el negocio y qué conviene decidir; desde el selector de sede" },
+  // ADR-0219 (20260929160000, las 20 decisiones de Felipe del 2026-09-26): las ventas de cada persona del
+  // mes, para reconocer y acompañar — sin comisión ni bono (D-65, D-112). Nace sin rol (ADR-0161): solo la ve
+  // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
+  // una terminal compartida no revisa el desempeño de nadie.
+  { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -122,10 +138,15 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Colaboradores, y Roles y accesos, nunca van en el rol de una terminal: solo se dan a personas", origen: "ADR-0161 P6" },
 ];
 
+/** Los módulos que nacen QUITADOS al Líder de equipo (su migración los inserta en `lider_modulos_ocultos`): al nacer solo
+ *  los ve el Admin (`fn_ve_modulo`). Espejo de la base, para lo que la web supone sin haberla leído (`modulosDeHoy`). */
+export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
+
 /** Los módulos que solo se dan a PERSONAS, nunca a una terminal (ADR-0161 P6, Felipe 2026-09-22; en la base,
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
- *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad"];
+ *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
+ *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);
@@ -167,7 +188,7 @@ export function modulosDeHoy(
   rol: "lider" | "integrante",
   terminal: { legado: TipoTerminalLegado | null } | null = null,
 ): readonly ModuloDeCuenta[] {
-  if (rol === "lider") return CLAVES_MODULO.map((clave) => ({ clave, completo: true }));
+  if (rol === "lider") return CLAVES_MODULO.filter((c) => !NACEN_QUITADOS_AL_LIDER.includes(c)).map((clave) => ({ clave, completo: true }));
   if (terminal) return terminal.legado ? MODULOS_DE_HOY[terminal.legado] : [];
   return MODULOS_DE_HOY.integrante;
 }

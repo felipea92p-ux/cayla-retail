@@ -116,7 +116,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "frescura" | "pulso";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -147,6 +147,10 @@ type Comun = {
    * módulo (Inicio) no es de ningún rol: la ven las personas, y las terminales según `terminalVeInicio`.
    */
   modulo?: ClaveModulo;
+  /** La fila sale SOLO si el perfil trae sus `modulos` y ve el suyo; con la regla fija de antes (un perfil sin módulos,
+   *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
+   *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
+  soloConModulo?: true;
   /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: las etiquetas viven como
    *  pestaña de «Atributos», así que un rol que ve Etiquetas sin ver Categorías/atributos entra por la misma fila (y la
    *  pantalla le muestra solo esa pestaña). */
@@ -204,6 +208,9 @@ export const ARBOL: readonly Nodo[] = [
   // Una TERMINAL sigue su regla propia (`terminalVeInicio`, más abajo en `esVisible`): vende → su casa es el
   // mostrador, nunca Inicio, tenga o no este módulo en su rol.
   { id: "inicio", modulo: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
+  // CAYLA Global (ADR-0275): el tablero de toda la empresa. Solo sale estando en esa vista —parado en una sede, la cuenta
+  // no «tiene» este módulo (`modulosEnLaVista`)—, y ahí ocupa el lugar de Inicio, que es de una sede.
+  { id: "global", modulo: "cayla_global", soloConModulo: true, etiqueta: "Salud del negocio", estado: "viva", ruta: "/global", icono: "pulso", pajaro: "13 Águila" },
 
   // «Colaboradores» (a quién de Dynamic le doy entrada a retail) NO va en el menú lateral: se entra desde el perfil del
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
@@ -300,6 +307,11 @@ export const ARBOL: readonly Nodo[] = [
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Quinta pantalla (ADR-0101): decisión a nivel sede.
       { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "analisis", pajaro: "13 Águila", exige: "analizar" },
+      // Sexta (ADR-0208, paso 4; Felipe 2026-09-27: DIRECTO en Inventario, no en un subgrupo «Diagnóstico» que la escondía
+      // un clic más adentro). Sin `exige`: la visibilidad la da su módulo, que nace solo para el líder. El líder ve 6 filas
+      // aquí («Recibir mercadería» solo sale a quien NO ve Compras); solo un rol con Análisis, Frescura y Recibir sin
+      // Compras llega a 7, y para ese caso `menu.test.ts` tiene la excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`).
+      { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila" },
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
       { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras" },
     ],
@@ -375,6 +387,10 @@ export const ARBOL: readonly Nodo[] = [
   // acta (Avisos, Análisis) le sumen hermanas, ESE cambio hace el refactor a Grupo (Kent Beck:
   // primero el terreno, después el cambio), no antes.
   { id: "clientas", modulo: "clientas", etiqueta: "Clientas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
+  // Rendimiento (ADR-0219, respuesta 20): «al final del menú lateral», después de Finanzas. Nace sin rol
+  // (ADR-0161): solo la ve el líder hasta que Felipe se la da al rol de las encargadas. HOJA de primer nivel,
+  // no un grupo: hoy solo tiene la pantalla del equipo (la ficha de cada persona cuelga de su ruta, no del menú).
+  { id: "rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila" },
   {
     id: "configuracion", etiqueta: "Configuración", estado: "futura", pajaro: "01 Ganso", exige: "administrar",
     nota: "Módulo nuevo. Los nombres de las hijas son provisionales.",
@@ -489,6 +505,7 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolea
   if (n.ubicaciones && !n.ubicaciones.includes(perfil.ubicacionTipo)) return false;
   // Una terminal se mira SIEMPRE por sus módulos (sin ellos, ninguno: falla cerrado). Una persona, solo si los trae.
   const modulos = perfil.terminal ? (perfil.modulos ?? []) : perfil.modulos;
+  if (n.soloConModulo && !modulos) return false;
   if (modulos) {
     // La regla del mostrador manda sobre el módulo para una TERMINAL (Felipe, 2026-09-21): vende → su casa es el
     // mostrador, nunca Inicio, tenga o no el módulo en su rol. Independiente de «Inicio apagable» (20260925220000):

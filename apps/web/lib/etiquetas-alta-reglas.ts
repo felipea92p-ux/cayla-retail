@@ -1,6 +1,7 @@
 import { clave } from "./buscar-prenda-v2";
 import type { EtiquetaAlta } from "./alta-producto-datos";
 import { estiloConocido, GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "./etiqueta-grupos";
+import { MUESTRAS_A_LA_VISTA } from "./muestras-alta-reglas";
 
 // Las reglas del campo «Etiquetas» del alta de un producto (todas las etiquetas a la vista por grupo, elegir varias, buscar, y si
 // no existe crearla). Todo lo que decide QUÉ se ofrece y QUÉ pasa con lo escrito vive acá, puro y probado: el
@@ -53,6 +54,24 @@ export function repartirEtiquetas(
 export function coincideConTexto(et: Pick<EtiquetaAlta, "nombre">, texto: string): boolean {
   const k = claveEtiqueta(texto);
   return !k || claveEtiqueta(et.nombre).includes(k);
+}
+
+/**
+ * Lo que se ve en la grilla compacta del campo, sin abrir «Ver todos» (mismo molde que Tejido/Patrón/Temporada,
+ * ADR de uniformidad 2026-09-29): a diferencia de `aLaVista` (un solo elegido), acá puede haber VARIAS marcadas y
+ * varias cubiertas — ninguna de las dos se esconde nunca. Van primero, en el orden en que ya venían (`elegibles` +
+ * `cubiertas` de `repartirEtiquetas`); el resto llena hasta `max`.
+ */
+export function etiquetasALaVista(
+  elegibles: readonly EtiquetaAlta[],
+  cubiertas: readonly EtiquetaAlta[],
+  marcadas: ReadonlySet<string>,
+  max = MUESTRAS_A_LA_VISTA
+): EtiquetaAlta[] {
+  const todas = [...elegibles, ...cubiertas];
+  const importantes = todas.filter((e) => marcadas.has(e.id) || cubiertas.some((c) => c.id === e.id));
+  const resto = todas.filter((e) => !marcadas.has(e.id) && !cubiertas.some((c) => c.id === e.id));
+  return [...importantes, ...resto].slice(0, max);
 }
 
 export type GrupoDeEtiquetas = { estilo: EstiloEtiqueta; nombre: string; punto: string; etiquetas: EtiquetaAlta[] };

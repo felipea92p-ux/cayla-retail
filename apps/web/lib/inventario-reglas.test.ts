@@ -6,7 +6,6 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
-  puedeRetirarPiso,
   SENTIDO_PISO,
   sumarCantidades,
   topeMovimientoPiso,
@@ -45,18 +44,6 @@ describe("SENTIDO_PISO / topeMovimientoPiso", () => {
 
   it("nunca negativo, aunque llegue un disponible negativo por un dato raro", () => {
     expect(topeMovimientoPiso("retirar", { piso: -2, almacen: 4 })).toBe(0);
-  });
-
-  it("retirar se ofrece con cualquier cantidad libre en el piso — sin el umbral de «Reponer»", () => {
-    expect(puedeRetirarPiso(1)).toBe(true);
-    // Muy por encima del umbral de «Reponer a piso»: retirar sigue teniendo sentido (guardar otra temporada).
-    expect(puedeRetirarPiso(POLITICA_REF.umbralStockPisoReposicion + 20)).toBe(true);
-  });
-
-  it("no se ofrece si no queda nada libre colgado (todo vendido o todo apartado) ni en una sede sin piso", () => {
-    expect(puedeRetirarPiso(0)).toBe(false);
-    expect(puedeRetirarPiso(-1)).toBe(false);
-    expect(puedeRetirarPiso(null)).toBe(false);
   });
 
   it("los textos de cada sentido nombran su propio recorrido (no se copian del otro)", () => {

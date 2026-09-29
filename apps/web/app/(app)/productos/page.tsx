@@ -3,13 +3,13 @@ import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getSububicaciones } from "@/lib/sububicaciones";
 import {
   filtrosProductosDesdeParams,
   paginaProductosDesdeParams,
   listarProductos,
   getResumenProductos,
   getReposicionPorProveedor,
+  getExistenciasProductos,
   getSinTemporadaResumen,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
@@ -19,7 +19,7 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AQuienPedirle } from "@/components/AQuienPedirle";
-import { mensajeSinResultados } from "@/lib/productos-stock";
+import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -75,7 +75,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, sinTemporada] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -83,13 +83,19 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-    getSububicaciones(persona.ubicacionId),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
   ]);
 
-  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
-  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor(filtros) : [];
+  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
+  // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
+  const [reposicion, existencias] = await Promise.all([
+    resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
+    getExistenciasProductos(
+      resultado.productos.map((p) => p.productoId),
+      persona.ubicacionId
+    ),
+  ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
@@ -115,8 +121,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         titulo="Productos"
         subtitulo={
           <>
-            Cada prenda del catálogo con sus colores, tallas y precios. El stock es el total de todas las sedes y el Taller; para una sola sede,
-            mira{" "}
+            Cada prenda del catálogo con sus colores, tallas y precios. {EXPLICACION_STOCK_TOTAL} El detalle por talla y sede está en{" "}
             <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
               Existencias
             </Link>
@@ -181,21 +186,21 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         {vista === "grilla" ? (
           <ProductosGrilla
             productos={resultado.productos}
+            existencias={existencias}
+            veExistencias={veModulo(persona, "existencias")}
             ubicacionId={persona.ubicacionId}
-            sububicaciones={sububicaciones}
-            puedeAjustar={puede(persona, "ajustarStock")}
-            puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+            sede={persona.ubicacionEtiqueta}
             puedeEliminar={persona.rol === "lider"}
             mensajeVacio={mensajeSinResultados(filtros)}
           />
         ) : (
           <ProductosTabla
             productos={resultado.productos}
+            existencias={existencias}
             ubicacionId={persona.ubicacionId}
-            sububicaciones={sububicaciones}
+            sede={persona.ubicacionEtiqueta}
             puedeEditar={editaCatalogo}
-            puedeAjustar={puede(persona, "ajustarStock")}
-            puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+            veExistencias={veModulo(persona, "existencias")}
             puedeEliminar={persona.rol === "lider"}
             veDinero={puede(persona, "verDineroCompras")}
             mensajeVacio={mensajeSinResultados(filtros)}

@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { leerTodas } from "@/lib/resultado";
+import { mismoStock, type StockReleido } from "@/lib/stock-en-vivo-reglas";
+
+export type { StockReleido } from "@/lib/stock-en-vivo-reglas";
+export { mismoStock } from "@/lib/stock-en-vivo-reglas";
 
 /**
  * Stock en vivo, compartido por Vender/Apartados/Cambios (2026-09-25) — cierra el hueco que reportó Felipe:
@@ -19,15 +23,6 @@ import { leerTodas } from "@/lib/resultado";
  */
 
 /**
- * Tres números por prenda, de las MISMAS filas: lo cobrable (`cobrable`, el piso disponible), el almacén disponible de
- * esta sede (`almacen`, `null` sin almacén) y lo apartado en el piso (`apartado`). El almacén no se cobra, pero sin
- * releerlo la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar al
- * almacén (D-40, D-42). Y sin releer lo apartado, una prenda que otra caja aparta después de cargar la pantalla diría
- * «agotada» y no «apartada para una clienta».
- */
-export type StockReleido = { cobrable: Map<string, number>; almacen: Map<string, number | null>; apartado: Map<string, number> };
-
-/**
  * Lee de la base el stock cobrable de una sede (lectura directa de `stock`, la misma de `getDisponibleEnSede`
  * pero desde el cliente; un GET no enciende el loader general, ADR-0149). Con `ids`, solo esas prendas (`.in`,
  * acotado a `conocidos`); sin ellos, TODA la sede — sin `.in`, para no armar una URL con cientos de ids de
@@ -38,8 +33,12 @@ export type StockReleido = { cobrable: Map<string, number>; almacen: Map<string,
  * 2.300 (piso + almacén). Sin paginar, el sondeo de cada 10 s dejaba en 0 —«agotada»— toda prenda cuyas filas
  * cayeran fuera de las primeras 1.000, al azar; y con la fila de almacén dentro y la de piso fuera, la caja diría
  * «está en el almacén» de una prenda colgada. `sububicacion_id` desempata: la fila es única por (variante,
- * ubicación, sububicación), y sin un orden único dos páginas pueden repetir o saltarse filas. Con `ids` (lo recién
- * vendido, unas pocas filas) cabe en una página: en serie, para no pedir dos páginas vacías de yapa.
+ * ubicación, sububicación), y sin un orden único dos páginas pueden repetir o saltarse filas.
+ *
+ * Siempre en serie (`enParalelo: 1`, auditoría 2026-09-29): con `ids` (lo recién vendido, unas pocas filas)
+ * cabe en una página igual, y sin `ids` es el sondeo de cada 10 s de TODAS las cajas abiertas a la vez — pedir
+ * varias páginas en paralelo ahí multiplica las peticiones simultáneas contra PostgREST sin acortar un sondeo
+ * que ya corre en segundo plano, sin que nadie lo espere.
  */
 export async function leerStockDeSede(ubicacionId: string, conocidos: string[], ids?: string[]): Promise<StockReleido | null> {
   const conocidosSet = new Set(conocidos);
@@ -56,7 +55,7 @@ export async function leerStockDeSede(ubicacionId: string, conocidos: string[], 
         .eq("ubicacion_id", ubicacionId);
       return (ids ? consulta.in("variante_id", pedidas) : consulta).order("variante_id").order("sububicacion_id").range(desde, hasta);
     },
-    { enParalelo: ids ? 1 : undefined },
+    { enParalelo: 1 },
   );
   if (error || !data) return null;
   const cantidades = sumarCantidades(data);
@@ -88,14 +87,22 @@ export function useStockEnVivo(
     conocidosRef.current = conocidos;
     alLeerRef.current = alLeer;
   });
+  // Lo último que se avisó de verdad (no lo último que se leyó): si la sede no cambió en 10 s, `sondear` vuelve
+  // a leer lo mismo y NO llama a `alLeer` — evita el repintado de la grilla entera con datos idénticos.
+  const ultimoRef = useRef<StockReleido | null>(null);
 
   useEffect(() => {
     if (!activo) return;
     let cancelado = false;
+    // Cada arranque del sondeo (sede nueva, caja que se abre) parte sin memoria: la primera lectura siempre avisa.
+    ultimoRef.current = null;
     const sondear = async () => {
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
       const releido = await leerStockDeSede(ubicacionId, conocidosRef.current);
-      if (releido && !cancelado) alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);
+      if (!releido || cancelado) return;
+      if (ultimoRef.current && mismoStock(ultimoRef.current, releido)) return;
+      ultimoRef.current = releido;
+      alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);
     };
     void sondear();
     const id = window.setInterval(sondear, cadaMs);

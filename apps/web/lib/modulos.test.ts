@@ -11,7 +11,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -129,7 +129,7 @@ const CUENTAS_DE_HOY: Cuenta[] = [
 
 const RUTAS = [
   "/", "/vender", "/caja", "/vender/historial", "/cambios", "/devoluciones", "/vender/comprobantes", "/inventario", "/inventario/movimientos",
-  "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", "/recibir", "/productos", "/productos/categorias", "/compras",
+  "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", "/inventario/frescura", "/recibir", "/productos", "/productos/categorias", "/compras",
   "/compras/proveedores", "/produccion", "/produccion/ordenes", "/produccion/recibir",
 ];
 
@@ -150,15 +150,23 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
-// ÚNICAS diferencias buscadas con el menú de antes: dos módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
+// ÚNICAS diferencias buscadas con el menú de antes: los módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
 // congelara a propósito (es la foto de lo que YA HABÍA cuando se escribió, no se actualiza con cada módulo nuevo).
 // (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su propio módulo y nació sin rol. (20260925220000,
-// 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. Con los dos sumados, el menú
-// vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas dos pantallas.
+// 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. (ADR-0208 paso 4, 2026-09-28):
+// Frescura del piso nació sin rol; la fotografía del menú la trae porque sus perfiles no traen módulos (una fila que solo
+// depende de su módulo sale siempre ahí). (ADR-0219, 2026-09-29): Rendimiento, igual: nace sin rol. Con los cuatro
+// sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas cuatro pantallas.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
-    : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }, { clave: "inicio" as const, completo: false }];
+    : [
+        ...modulosDeHoy(c.rol),
+        { clave: "apartados" as const, completo: false },
+        { clave: "inicio" as const, completo: false },
+        { clave: "frescura" as const, completo: false },
+        { clave: "rendimiento" as const, completo: false },
+      ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
 
@@ -172,11 +180,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196) ni «inicio» (20260925220000) le faltan exactamente esas dos`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4) ni «rendimiento» (ADR-0219) le faltan exactamente esas cuatro`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados"].filter((h) => deAntes.includes(h)).sort();
+      const esperado = ["/", "/vender/apartados", "/inventario/frescura", "/rendimiento"].filter((h) => deAntes.includes(h)).sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
       expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
     });
@@ -345,5 +353,24 @@ describe("REGLA: un módulo nuevo nace solo para el líder", () => {
       expect(m!.nombre.length, clave).toBeGreaterThan(0);
       expect(m!.incluye.length, clave).toBeGreaterThan(0);
     }
+  });
+});
+
+// ADR-0275: un módulo puede nacer QUITADO al Líder de equipo (al nacer, solo lo ve el Admin). La web lo supone sin leer la
+// base (`modulosDeHoy`), así que su lista tiene que ser exactamente la de las migraciones que lo insertan en
+// `lider_modulos_ocultos` al nacer. Fuera de eso, esa tabla la escribe solo Roles y accesos (`guardar_modulos_rol`).
+describe("REGLA: lo que nace quitado al líder es lo mismo en la web y en las migraciones", () => {
+  it("las claves insertadas en lider_modulos_ocultos por una migración son las de NACEN_QUITADOS_AL_LIDER", () => {
+    const deLaBase = new Set<string>();
+    for (const { sql } of TODAS) {
+      for (const m of sql.matchAll(/insert into retail\.lider_modulos_ocultos\s*\(modulo\)\s*values\s*\('([a-z_]+)'\)/gi)) deLaBase.add(m[1]!);
+    }
+    expect([...deLaBase].sort()).toEqual([...NACEN_QUITADOS_AL_LIDER].sort());
+  });
+
+  it("el líder, sin haber leído la base, ve todo menos lo que nace quitado", () => {
+    const claves = modulosDeHoy("lider").map((m) => m.clave);
+    for (const c of NACEN_QUITADOS_AL_LIDER) expect(claves).not.toContain(c);
+    expect(claves).toHaveLength(CLAVES_MODULO.length - NACEN_QUITADOS_AL_LIDER.length);
   });
 });

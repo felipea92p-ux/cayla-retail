@@ -951,6 +951,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-lider-editable
 
+      # ADR-0275: CAYLA Global (la vista de toda la empresa) nace SOLO para el Admin. Vigila el «módulo del Admin» (el Admin
+      # lo conserva aunque se le quite al Líder de equipo; con Caja, en cambio, lo pierde como decidió el ADR-0253), que un
+      # líder que no es Admin no la dé ni la asigne («solo das lo que ves»), que no vaya a una terminal y el candado de
+      # `fn_global_cobertura`. ROLLBACK siempre.
+      - name: pruebas:cayla-global
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cayla-global
+
       # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
       # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
       # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra
@@ -1022,14 +1030,17 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
-      # Color y talla de una variante se corrigen solo sin historia (20260928235500): por la ficha, la variante recién
-      # creada cambia de color o de talla habilitada, su código se recalcula y su código de barras se renombra; la que
-      # tiene un movimiento no cambia ni por la ficha ni con un update directo (hint `variante_con_historia`); un
-      # guardado de solo precio no toca código ni SKU; sin el disparador el update directo sí pasa (el hueco 3 existía);
-      # el parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
-      - name: pruebas:corregir-identidad-variante
+      # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
+      # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
+      # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en
+      # la misma variante, historial firmado y versión nueva; el choque con una variante existente (activa o no) se rechaza
+      # todo o nada; vendida, separada o entregada en un cambio, solo líder; el candado de la tabla (UNO solo: el del 0258 renombrado) frena el
+      # update directo; «Sin color» cuenta como un color (índice nulls not distinct); fotos y temporada siguen al color;
+      # sin mezcla «Sin color» + colores; fn_variantes_estado y la foto general en fn_productos; la ficha de main (la del
+      # 0258) sigue guardando precio sin tocar identidad ni pedir líder. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-variantes
         if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:corregir-identidad-variante
+        run: pnpm pruebas:corregir-variantes
 
       # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
       # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja
@@ -1059,6 +1070,29 @@ jobs:
       - name: pruebas:eliminar-producto-con-historia
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-producto-con-historia
+
+      # Una sola cifra de stock (20260929010000, ADR-0270): fn_existencias devuelve por talla y sede físico, dañado, apartado y
+      # disponible = físico − dañado − apartado = piso + almacén + sin lugar, en TODA fila del seed; el físico cuadra con `stock`;
+      # la Cuarentena y lo apartado no se ofrecen; pruebas y «Monto manual» no cuentan; una talla retirada con unidades se ve;
+      # «en camino» es solo lo en_transito (no lo recibido con diferencia); sin cuenta activa, nada. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-existencias
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-existencias
+
+      # El Catálogo y «Dónde más hay» leen la cifra única (20260929020000, ADR-0270): «Stock total» es lo disponible de la
+      # red (no la suma cruda con dañadas y apartadas), la cabecera cuenta con la misma cifra que la lista, un producto de
+      # prueba no enciende alertas, fn_stock_por_sede ofrece lo disponible, y la tarjeta por sede (fn_existencias_productos)
+      # separa aquí / otras tiendas / Taller / en camino / tallas retiradas. Con control: las versiones viejas fallan.
+      - name: pruebas:catalogo-cifra-unica
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:catalogo-cifra-unica
+
+      # Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
+      # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
+      # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
+      - name: pruebas:talla-con-prendas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:talla-con-prendas
 
       # Huellas del catálogo de main (`scripts/migraciones/deriva.sql`): prueba que la consulta corre sobre la base del CI
       # y, en un push a main, las guarda como artefacto para compararlas con las de producción (`deriva.mjs`): qué SQL de

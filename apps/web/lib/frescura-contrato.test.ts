@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   armarFrescuraLider,
+  armarFrescuraSede,
   leerConfianzaRegistro,
   leerFrescuraSede,
   MARCA_EDAD_DESCONOCIDA,
@@ -36,7 +37,7 @@ type Crudo = {
     separa_piso: boolean;
     desde: string;
     ahora: string;
-    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number; apartadas_hoy: number }[];
+    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number; apartadas_hoy: number; apartadas_piso_hoy: number }[];
     eventos: Record<string, [string, number, number, string | null][]>;
     apartados: Record<string, [string, number][]>;
     tardias: { oid: string; variante_id: string; bajada_en: string; unidades_tardias: number }[];
@@ -155,6 +156,15 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
       expect(l.apartados?.[id]).toEqual(crudos.map(([ts, delta]) => ({ ts, delta })));
     }
     for (const t of l.tallas) expect(t.apartadasHoy, t.codigo ?? t.varianteId).toBe(SEDE.prendas.find((p) => p.variante_id === t.varianteId)!.apartadas_hoy);
+    // Paso 4: lo apartado en el PISO llega tal cual, y es lo mismo que la web deduce sin la clave (producción de antes).
+    const sinClave = leerFrescuraSede({ ...SEDE, prendas: SEDE.prendas.map((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== "apartadas_piso_hoy"))) });
+    if (!sinClave?.separaPiso) throw new Error("sin lectura");
+    for (const t of l.tallas) {
+      const cruda = SEDE.prendas.find((p) => p.variante_id === t.varianteId)!;
+      expect(typeof cruda.apartadas_piso_hoy, t.codigo ?? t.varianteId).toBe("number");
+      expect(t.apartadasPisoHoy, t.codigo ?? t.varianteId).toBe(cruda.apartadas_piso_hoy);
+      expect(sinClave.tallas.find((x) => x.varianteId === t.varianteId)!.apartadasPisoHoy, t.codigo ?? t.varianteId).toBe(cruda.apartadas_piso_hoy);
+    }
     // El vestido apartado: nada libre en el piso ni en el almacén, 3 apartadas, y lo del piso se apartó en un solo punto.
     const apartada = l.tallas.find((t) => t.codigo === "ZZ-FX-APARTADA-M")!;
     expect(apartada).toMatchObject({ pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 });
@@ -387,6 +397,24 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const sede = r.sedes[0].lectura.datos as FrescuraSede;
     expect(r.referenciaCayla.fallo).toBeNull();
     expect(r.referenciaCayla.datos).toEqual(sede.categorias);
+  });
+});
+
+describe("paso 4: quien tiene el módulo sin ser líder lee SOLO su sede (armarFrescuraSede)", () => {
+  it("una lectura de su tienda, ninguna del registro al colgar ni de otra tienda; lo mismo que esa tienda en la vuelta del líder", async () => {
+    const { rpc, llamadas } = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), fn_confianza_registro: () => ok(CONF) });
+    const suya = await armarFrescuraSede(TIENDA, rpc, 120);
+    expect(llamadas).toEqual([{ fn: "fn_frescura_sede", args: { p_ubicacion_id: TIENDA.id, p_dias: 120 } }]);
+    expect(suya.lectura.fallo).toBeNull();
+    const delLider = await armarFrescuraLider([TIENDA], rpc, 120);
+    expect(suya).toEqual(delLider.sedes[0]);
+  });
+
+  it("sin el módulo (frescura_sin_permiso) o con la base caída, un aviso; nunca una tienda vacía", async () => {
+    const sinPermiso = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ({ data: null, error: { message: "sin permiso", hint: "frescura_sin_permiso" } }) });
+    expect((await armarFrescuraSede(TIENDA, sinPermiso.rpc, 120)).lectura).toEqual({ datos: null, fallo: "No tienes acceso a la frescura de ZZ Tienda Frescura." });
+    const caida = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => Promise.reject(new Error("timeout")) });
+    expect((await armarFrescuraSede(TIENDA, caida.rpc, 120)).lectura.fallo).toBe("No se pudo cargar la frescura de ZZ Tienda Frescura. Lo demás de esta pantalla sí está al día.");
   });
 });
 

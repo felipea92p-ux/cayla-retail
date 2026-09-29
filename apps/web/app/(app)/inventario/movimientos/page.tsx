@@ -133,7 +133,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           hasta={filtros.hasta ?? ""}
           resumen={resumenSinProceso ?? resumen}
         />
-        {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+        {/* `data-resultados` (main, ADR-0149): se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
         <div data-resultados>
           {vacio ? (
             <MovimientosVacio
@@ -144,6 +144,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
               params={params}
             />
           ) : (
+            // Sin `ubicacionId`/`sububicaciones`: el cajón nuevo (diseño aprobado 2026-09-28) no tiene «Corregir con un
+            // ajuste» — MovimientosLista ya no los recibe (ver su propio comentario sobre por qué).
             <MovimientosLista
               operaciones={operaciones}
               prendas={prendas}
@@ -157,8 +159,6 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
               // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
               // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
               plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
-              ubicacionId={ubicacionActivaId}
-              sububicaciones={sububicaciones}
               hoyLima={hoyEnLima()}
               enlaceCompras={esLider}
               enlaceVentas={veModulo(persona, "historial")}

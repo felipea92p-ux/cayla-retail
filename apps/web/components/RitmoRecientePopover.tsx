@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { usePosicionAnclada } from "@/components/ui/useAnclaje";
 import { etiquetaRango } from "@/lib/resumen-periodo";
 import { VENTANA_RITMO_RECIENTE_DIAS, type RitmoReciente } from "@/lib/existencias-ritmo";
-import { textoRitmoReciente } from "@/lib/resumen-formato";
+import { textoRitmoReciente, textoRitmoRecienteCelda } from "@/lib/resumen-formato";
 
 /* ====================================================================
    RitmoRecientePopover · «Ritmo reciente» clickeable de Existencias (2026-09-25, sección 8-9 del pedido)
@@ -53,7 +53,7 @@ export function RitmoRecientePopover({
   if (!ritmo) return <span className="text-xs text-tinta/40">N/D</span>;
 
   const totalVentas = ritmo.dias.reduce((acc, d) => acc + d.ventas, 0);
-  const tono = ritmo.tipo === "medida" ? "text-tinta/80" : ritmo.tipo === "sin_salida" ? "text-tinta/50" : "text-tinta/70";
+  const tono = ritmo.tipo === "medida" ? "text-tinta/75" : "text-tinta/65";
 
   return (
     <>
@@ -63,9 +63,11 @@ export function RitmoRecientePopover({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => setAbierto((a) => !a)}
-        className={`rounded text-xs font-medium tabular-nums underline decoration-tinta/25 decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/60 ${tono}`}
+        // Diseño aprobado de Existencias (2026-09-28): la cifra se lee como texto llano («1 ud/día», «Sin datos suficientes»,
+        // en dos líneas si no cabe); sigue siendo un botón que abre el detalle, y lo dice con un subrayado punteado al pasar.
+        className={`max-w-full whitespace-normal rounded text-[13px] leading-tight tabular-nums underline decoration-transparent decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/40 focus-visible:decoration-tinta/40 ${tono}`}
       >
-        {textoRitmoReciente(ritmo)}
+        {textoRitmoRecienteCelda(ritmo)}
       </button>
       {abierto &&
         pos &&

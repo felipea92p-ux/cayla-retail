@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { textoQuedan } from "@/lib/movimientos-saldo";
-import { atajosDeOperacion, type AccesosAtajos, type ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
+import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import type { TonoChip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import {
@@ -41,6 +41,10 @@ import {
 export const FILA_MOVIMIENTO =
   "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 sm:grid-cols-[0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] sm:items-center sm:gap-x-4 sm:px-2";
 
+/** La fila de origen del cajón abierto (diseño aprobado 2026-09-28): un lavado suave, nunca un color fuerte — se
+ *  agrega AL LADO de `FILA_MOVIMIENTO`, no lo reemplaza, así sigue reaccionando al hover igual que cualquier otra. */
+const FILA_SELECCIONADA = "bg-hueso/70";
+
 // El tono que antes llevaba el chip de categoría, ahora como un punto: sobrio, y no
 // obliga a que «Entrada · Traslado recibido» quepa en un chip de versalitas.
 export const PUNTO_MOVIMIENTO: Record<TonoChip, string> = {
@@ -50,6 +54,7 @@ export const PUNTO_MOVIMIENTO: Record<TonoChip, string> = {
   rojo: "bg-rojo",
   pizarra: "bg-pizarra",
   apagado: "bg-tinta/15",
+  tinta: "bg-tinta",
 };
 
 /** Lo que una fila necesita saber de la pantalla, igual para todas. */
@@ -67,6 +72,10 @@ export type ContextoFila = {
   accesos: AccesosAtajos;
   onAbrir: (m: Movimiento) => void;
   onAbrirVenta: (m: Movimiento) => void;
+  /** El id de UNA fila del movimiento que está abierto en el cajón (diseño aprobado 2026-09-28): alcanza con ese id
+   *  para saber si ESTA fila, o la operación que la contiene, es la que se ve — la fila lo marca suave, sin colores
+   *  fuertes (sección 20 del pedido). Null = ningún cajón abierto. */
+  abiertoId: string | null;
 };
 
 /** La referencia de un apartado (ADR-0241): su código, que lleva a ESE apartado si quien mira ve Apartados, y la clienta
@@ -91,8 +100,9 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   const variante = [m.talla, m.color].filter(Boolean).join(" · ");
   const interno = m.categoria === "interno" || esApartado;
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
+  const seleccionada = ctx.abiertoId === m.id;
   return (
-    <li className={`${FILA_MOVIMIENTO} ${dentroDeOperacion ? "sm:pl-6" : ""}`}>
+    <li className={`${FILA_MOVIMIENTO} ${dentroDeOperacion ? "sm:pl-6" : ""} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(m)}
@@ -162,27 +172,15 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   );
 }
 
-/** Varias prendas guardadas de una sola vez: una fila que dice qué pasó, cuánto y de qué, y que al tocarla se despliega
- *  en sus prendas. Una operación de una sola prenda no pasa por acá: es una `FilaMovimiento` como cualquier otra. */
-export function FilaOperacion({
-  op,
-  prendas,
-  ctx,
-  abierta,
-  onAlternar,
-}: {
-  op: OperacionMovimiento;
-  prendas: Record<string, PrendaDeMovimiento>;
-  ctx: ContextoFila;
-  abierta: boolean;
-  onAlternar: () => void;
-}) {
+/** Varias prendas guardadas de una sola vez: una fila que dice qué pasó, cuánto y de qué, y que al tocarla abre el
+ *  cajón con TODAS sus prendas (diseño aprobado 2026-09-28, sección 4-6 del pedido: ya no se despliega hacia abajo —
+ *  antes de esta fecha, `abierta`/`onAlternar` insertaban una `<ul>` con una `FilaMovimiento` por variante debajo de
+ *  esta misma fila). Una operación de una sola prenda no pasa por acá: es una `FilaMovimiento` como cualquier otra. */
+export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; prendas: Record<string, PrendaDeMovimiento>; ctx: ContextoFila }) {
   const r = resumirOperacion(op, { enlaceCompras: ctx.enlaceCompras });
   const primera = op.filas[0];
   const esApartado = primera.categoria === "apartado" || primera.categoria === "liberacion_apartado";
   const referencia = esApartado ? referenciaApartado(primera, ctx) : r.referencia;
-  // Lo que se hace con TODO lo que llegó junto (ADR-0241): «Bajar estas 12 al piso», «Imprimir 12 etiquetas».
-  const atajos = abierta ? atajosDeOperacion(op.filas, ctx.accesos) : [];
   const donde = primera.sububicacion ? nombreCortoSububicacion(primera.sububicacion) : null;
   const productos = r.productos.length <= 2 ? r.productos.join(" y ") : `${r.productos.slice(0, 2).join(", ")} y ${r.productos.length - 2} más`;
   // Hasta tres fotos, una por producto: se reconoce el envío de un vistazo.
@@ -190,16 +188,14 @@ export function FilaOperacion({
     .map((id) => prendas[id]?.fotoUrl ?? null)
     .filter((url, i, todas) => todas.indexOf(url) === i)
     .slice(0, 3);
-  const detalleId = `op-${op.clave.replace(/[^a-zA-Z0-9]/g, "")}`;
+  const seleccionada = op.filas.some((m) => m.id === ctx.abiertoId);
   return (
     <li>
-      <div className={FILA_MOVIMIENTO}>
+      <div className={`${FILA_MOVIMIENTO} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
         <button
           type="button"
-          onClick={onAlternar}
-          aria-expanded={abierta}
-          aria-controls={detalleId}
-          aria-label={`${abierta ? "Ocultar" : "Ver"} las ${r.variantes} prendas: ${r.etiqueta}, ${textoCantidadOperacion(r)}`}
+          onClick={() => ctx.onAbrir(primera)}
+          aria-label={`Ver el detalle: las ${r.variantes} prendas de ${r.etiqueta}, ${textoCantidadOperacion(r)}`}
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
         {/* Un cambio entra y sale a la vez: ni verde ni rojo. */}
@@ -242,28 +238,9 @@ export function FilaOperacion({
 
         <span className={`col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-5 ${r.entran > 0 && r.salen === 0 ? "text-verde" : r.entran + r.salen === 0 && (r.movidas > 0 || r.apartadas > 0 || r.liberadas > 0) ? "font-medium text-taupe" : "text-tinta"}`}>
           <span className="whitespace-nowrap">{textoCantidadOperacion(r)}</span>
-          <ChevronDown aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/40 transition-transform duration-200 motion-reduce:transition-none ${abierta ? "rotate-180" : ""}`} />
+          <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
         </span>
       </div>
-
-      {abierta && (
-        <ul id={detalleId} className="mb-2 ml-2 divide-y divide-sand/70 border-l-2 border-sand pl-2">
-          {op.filas.map((m) => (
-            <FilaMovimiento key={m.id} m={m} prenda={prendas[m.varianteId]} ctx={ctx} dentroDeOperacion />
-          ))}
-        </ul>
-      )}
-      {atajos.length > 0 && (
-        <div className="mb-3 ml-4 flex flex-wrap gap-2">
-          {atajos.map((a) =>
-            a.href ? (
-              <Link key={a.clave} href={a.href} className={`btn-cayla ${a.principal ? "btn-primario" : "btn-secundario"} inline-flex items-center`}>
-                {a.texto}
-              </Link>
-            ) : null
-          )}
-        </div>
-      )}
     </li>
   );
 }
@@ -278,8 +255,6 @@ export function FilaBajadas({
   ctx,
   abierta,
   onAlternar,
-  desplegadas,
-  onAlternarOperacion,
 }: {
   clave: string;
   operaciones: OperacionMovimiento[];
@@ -287,8 +262,6 @@ export function FilaBajadas({
   ctx: ContextoFila;
   abierta: boolean;
   onAlternar: () => void;
-  desplegadas: ReadonlySet<string>;
-  onAlternarOperacion: (clave: string) => void;
 }) {
   const r = resumirBajadas(operaciones);
   const fotos = [...new Set(operaciones.flatMap((op) => op.filas.map((m) => prendas[m.varianteId]?.fotoUrl ?? null)))].slice(0, 3);
@@ -338,7 +311,7 @@ export function FilaBajadas({
             op.filas.length === 1 ? (
               <FilaMovimiento key={op.clave} m={op.filas[0]} prenda={prendas[op.filas[0].varianteId]} ctx={ctx} />
             ) : (
-              <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} abierta={desplegadas.has(op.clave)} onAlternar={() => onAlternarOperacion(op.clave)} />
+              <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} />
             )
           )}
         </ul>

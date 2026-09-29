@@ -4,6 +4,7 @@ import {
   claveEtiqueta,
   agruparEtiquetas,
   coincideConTexto,
+  etiquetasALaVista,
   fraseDeExistente,
   FRASE_ETIQUETA_INVALIDA,
   nombreDeEtiqueta,
@@ -63,6 +64,33 @@ describe("repartirEtiquetas", () => {
     const r = repartirEtiquetas(TODAS, { categoriaId: "", daDescuentos: true });
     expect(r.cubiertas).toEqual([]);
     expect(r.elegibles).toHaveLength(4);
+  });
+});
+
+describe("etiquetasALaVista: marcadas y cubiertas nunca se esconden en la grilla compacta", () => {
+  const ids = (l: EtiquetaAlta[]) => l.map((e) => e.id);
+  const A = et("a", "A");
+  const B = et("b", "B");
+  const C = et("c", "C");
+  const D = et("d", "D");
+  const E = et("e", "E");
+  const F = et("f", "F");
+  const CUBIERTA = et("cub", "Ya aplica");
+
+  it("sin nada marcado, se ven las primeras `max` elegibles y las cubiertas", () => {
+    expect(ids(etiquetasALaVista([A, B, C, D, E, F], [CUBIERTA], new Set(), 5))).toEqual(["cub", "a", "b", "c", "d"]);
+  });
+
+  it("una marcada que quedaría fuera del recorte va primero, igual que en `aLaVista`", () => {
+    expect(ids(etiquetasALaVista([A, B, C, D, E, F], [], new Set(["f"]), 5))).toEqual(["f", "a", "b", "c", "d"]);
+  });
+
+  it("varias marcadas caben todas antes que el relleno, aunque sean más que el hueco que dejan las cubiertas", () => {
+    expect(ids(etiquetasALaVista([A, B, C, D, E, F], [CUBIERTA], new Set(["e", "f"]), 5))).toEqual(["e", "f", "cub", "a", "b"]);
+  });
+
+  it("con pocas etiquetas en total, se ven todas sin rellenar de más", () => {
+    expect(ids(etiquetasALaVista([A, B], [], new Set(), 5))).toEqual(["a", "b"]);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -8,7 +8,7 @@ import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { MuestraTejido } from "@/components/MuestraTejido";
-import { Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
+import { Campo, CampoSelect, CampoTexto, Interruptor, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { BarraDeCambios } from "@/components/BarraDeCambios";
 import { ConfirmarCambios } from "@/components/ConfirmarCambios";
@@ -18,7 +18,7 @@ import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabular
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
-import { claveReferencia, codigoVariantePrevisto, codigosRepetidos, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -26,14 +26,13 @@ import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import {
   cambioDeDato,
-  cambiosDeVariante,
   resumenDeCambios,
   textoDeSalidaDeFicha,
-  textoPendienteDeVariante,
   type CampoDato,
   type FichaEditable,
-  type NombresFicha,
+  type NombresFicha as NombresCambios,
   type ResumenCambios,
+  type VarianteFicha,
 } from "@/lib/producto-cambios-reglas";
 import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import {
@@ -44,61 +43,69 @@ import {
   ofrecerTemporadaPorColor,
   temporadaHeredadaPorColor,
 } from "@/lib/temporada-ficha-reglas";
+import {
+  anclarFotos,
+  asignacionesDeEtiquetas,
+  avisoBloqueSinAplicar,
+  conUnReintentoSiChoca,
+  consolidar,
+  correccionesSinAplicar,
+  corregida,
+  costosSinComprobar,
+  elegirTemporada,
+  esChoqueDeCandados,
+  filasDeProducto,
+  FRASE_CHOQUE_DE_CANDADOS,
+  fotosComoSeVen,
+  marcarEtiquetasGuardadas,
+  moverTemporadas,
+  mudanzasAlGuardar,
+  NACEN_SIN_UNIDADES,
+  payloadVariantes,
+  problemasVariantes,
+  ubicar,
+  ubicarTemporadas,
+  variantesParaResumen,
+  type CampoBloque,
+  type EstadoVariante,
+  type FilaFicha,
+  type NombresFicha,
+  type TemporadaElegida,
+} from "@/lib/variantes-ficha-reglas";
+import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
+import type { ContextoFicha } from "@/components/ficha-producto/piezas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
 
    Usado solo por /productos/[id]/editar — el alta vive en
    NuevoProductoForm.tsx (la rama de alta que quedaba acá era código muerto
-   y se retiró junto con `catalogo_crear_producto`, ADR-0109), un componente propio desde que tallas/tejidos/
-   patrones pasaron a vocabulario cerrado (ADR-0095). Antes de esa fecha
-   era un único componente para alta y edición; ese reparto es el que
-   sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
-   detalle — no porque ambas rutas todavía lo compartan.
+   y se retiró junto con `catalogo_crear_producto`, ADR-0109).
 
-   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0095). Aplicar/quitar una
-   etiqueta de catálogo ("última unidad") a una variante puntual se
-   guarda en la MISMA acción que el resto del formulario — nunca un
-   botón de guardar aparte. Dos formas de guardar en el mismo formulario
-   ya costó un bug real esta sesión (mapeo categoría↔ejes): el botón
-   grande descartaba en silencio lo que el chico no había guardado
-   todavía. Solo aparece para variantes que ya existen (`v.id`) — una
-   fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
-   principal la cree, y esta sesión no intenta adivinar ese id.
+   VARIANTES (ADR-0263, 2026-09-28). La sección vive en
+   `components/ficha-producto/` y sus reglas en `lib/variantes-ficha-reglas.ts`:
+   la prenda se ve por ejes como en el alta, y CORREGIR («se registró mal»:
+   conserva id, stock, historia; el código se recalcula y el viejo sigue
+   sonando) es otro gesto que AGREGAR («llegó un color o una talla»). Este
+   archivo solo orquesta: guarda las filas, mueve con el color las fotos y la
+   temporada (lo mismo que hace la base al corregir), y guarda todo en UN
+   gesto. Reemplaza a D-133 (color, talla y código de solo lectura) y al SKU
+   sugerido por fila: el alta ya no pide SKU y la ficha tampoco; el que ya
+   tenía una variante se conserva y no se muestra.
 
-   CÓDIGO DE UNA FILA NUEVA (2026-09-28). Muestra el mismo código que la base
-   le va a dar (`codigoVariantePrevisto`, espejo del trigger
-   `variantes_asignar_codigo`): el código del producto (CMS-0001) + color +
-   talla, y cambia solo al elegir color o talla. Hasta hoy la fila nueva
-   ofrecía un SKU inventado desde el nombre (BLUSACARLITA-U) bajo la misma
-   columna «Código» que sus hermanas: parecía el código de la prenda y no lo
-   era — la pistola lee `codigo`, no el SKU. El SKU es legado (nullable desde
-   20260915221633) y Nuevo producto tampoco lo pide: aquí ya no se manda.
+   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0095). Se guardan en la MISMA
+   acción que el resto del formulario — nunca un botón de guardar aparte (dos
+   formas de guardar en el mismo formulario ya costaron un bug real). Desde
+   ADR-0263 también las de las variantes NUEVAS: tras el guardado principal se
+   leen sus ids (por su combinación, única en la prenda) y viajan en la misma
+   llamada a `actualizar_variantes_etiquetas`.
 
-   TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
-   lista cerrada, y la primera opción dice qué pasa si no se elige nada
-   («Igual que su categoría (Verano)»). Vacío = hereda, como siempre. Si la
-   prenda tiene 2 o más colores (o uno solo que ya tenga la suya guardada),
-   cada color puede tener la suya («Temporada
-   por color»): se guarda en la MISMA acción, después del guardado principal,
-   con UNA llamada a `asignar_temporadas` y solo con los colores que cambiaron
-   — el mismo criterio que las etiquetas. Sin la lista en la base (SQL sin
-   pegar), la ficha lo dice y manda la temporada tal como la leyó.
-
-   Identidad de variante: una variante con `id` (ya existe en la base) solo
-   deja tocar precio, costo y activo — igual que decide la RPC
-   `catalogo_actualizar_producto` (20260915150000). Cambiar color o talla de
-   una variante que ya se etiquetó es el hueco 3 que V1 nunca cerró
-   (docs/datos/modulos/02-catalogo-y-vocabulario.md); para eso se desactiva
-   y se agrega una fila nueva. Hasta el 2026-09-26 la pantalla igual ofrecía
-   los combos de color/talla y el SKU en esas filas: se podían cambiar, la
-   RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
-   muestran de solo lectura (`fija`), con el código que lee la pistola.
-   Excepción (20260928235500, Felipe 2026-09-28): una variante SIN HISTORIA
-   (ningún movimiento, venta, compra ni traslado) es `corregible`: muestra los
-   combos de color y talla, y la RPC los cambia y recalcula su código. La base
-   repite la regla con un candado en la tabla, así que una ficha vieja o una
-   llamada directa no la saltan.
+   TEMPORADA (2026-09-26, ADR-0246). Se elige de la lista cerrada; vacío =
+   hereda. Si la prenda tiene 2 o más colores (o uno solo que ya tenga la suya
+   guardada), cada color puede tener la suya, que se guarda después del
+   guardado principal con UNA llamada a `asignar_temporadas` y solo con los
+   colores que cambiaron. Sin la lista en la base (SQL sin pegar), la ficha lo
+   dice y manda la temporada tal como la leyó.
 
    GUARDAR EN DOS TIEMPOS (2026-09-28, ADR-0257). Antes el panel «Guardar
    cambios» estaba a la derecha (al final de la página en una tablet), el botón
@@ -115,130 +122,77 @@ import {
        Compras y Recibir): enlaces, Atrás y cerrar la pestaña.
    Qué cambió lo decide UNA función pura (`lib/producto-cambios-reglas.ts`) que
    compara TODO lo editable: sin barra no hay dónde guardar, así que un campo que
-   se escapara de esa comparación sería un campo que no se puede guardar (por eso
-   el color y la talla de una variante corregible también cuentan: `identidad`).
+   se escapara de esa comparación sería un campo que no se puede guardar. Las
+   variantes entran a esa cuenta por `variantesParaResumen` (correcciones de
+   color y talla, variantes nuevas, desactivadas, precios en bloque) y se cuentan
+   contra lo GUARDADO de cada fila, no contra la foto de al abrir: tras un
+   guardado a medias (etiquetas o temporada fallaron) la barra dice solo lo que
+   falta, y reintentar no crea dos veces las nuevas.
+
+   ADR-0263 reemplaza a la regla de ADR-0258 («color y talla se corrigen solo
+   sin historia», D-139/D-140): se corrigen siempre desde el modal «Corregir»;
+   si la variante ya se vendió, solo un líder (D-136, lo avisa
+   `fn_variantes_estado` y lo vuelve a exigir la base). Los combos de color y
+   talla que ADR-0258 ponía en las filas «sin historia» se retiraron.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
-type Color = { codigo: string; nombre: string; hex: string | null };
-
-type FilaVariante = {
-  /** Presente = variante existente (no se puede quitar, solo desactivar). */
-  id: string | null;
-  colorCodigo: string;
-  /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
-  tallaId: string;
-  precio: string;
-  costo: string;
-  /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
-  costoOriginal: string;
-  /** Costo de solo lectura: la variante ya entró por Compras o por el Taller y su costo es el promedio ponderado
-   *  (20260927190000; la base lo vuelve a exigir). Se corrige a mano solo hasta la primera compra (Felipe, 2026-09-26). */
-  costoFijo: boolean;
-  activo: boolean;
-  /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
-  etiquetaIds: string[];
-  /** Solo variantes existentes: lo que se muestra en lugar de los campos que ya no se pueden cambiar (color, talla y
-   *  código). `codigo` es el que lee la pistola (BLU-0042-AZM-M); el SKU queda como respaldo si todavía no lo tiene. */
-  fija: { color: string; talla: string; codigo: string } | null;
-  /** Variante existente sin historia (20260928235500): color y talla se pueden corregir. */
-  corregible: boolean;
-};
-
-/** Todo lo que la pantalla deja editar, tal como está en sus `useState`. Es lo que se captura al abrir (para comparar y para
- *  «Descartar») y lo que se vuelve a poner al descartar o al deshacer un descarte. */
-type EstadoFicha = {
-  referencia: string;
-  categoriaId: string;
-  descripcion: string;
-  estado: (typeof ESTADOS)[number]["valor"];
-  stockMinimo: string;
-  temporada: string;
-  temporadaColor: Record<string, string>;
-  permitirVentaSinStock: boolean;
-  tejidoId: string;
-  patronId: string;
-  marcaId: string;
-  proveedorId: string;
-  fotos: FotoLocal[];
-  variantes: FilaVariante[];
-};
-
-const NUMERO =
-  "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-/** El mismo campo con la línea de abajo en ámbar: lo que se cambió y todavía no se guardó. Se arma cambiando la clase, no sumando
- *  otra: dos utilidades de color de borde en el mismo elemento las resuelve el orden de la hoja de estilos, no el del atributo. */
-const NUMERO_CAMBIADO = NUMERO.replace("border-tinta/25", "border-ambar");
-
-/* Variantes: la fila se acomoda al ancho de SU TARJETA (container query `@[40rem]`), no al de la pantalla. Con el menú
-   lateral y la columna «Guardar cambios», una pantalla de 944 px deja la tarjeta en 577 px y el código salía «CMS…».
-   Ancha (≥ 40rem): una línea por variante, bajo la cabecera de columnas. Angosta: ficha de tres líneas —color, talla y
-   «activa»; el código entero; precio, costo y margen— con su rótulo encima, para que ningún número quede sin nombre.
-   El código nunca se corta: si no entra, parte línea. Las clases van literales: Tailwind no ve las que se arman con `${}`. */
-const FILA_VARIANTE =
-  "grid grid-cols-12 gap-x-3 gap-y-2 @[40rem]:gap-x-2 @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem] @[40rem]:items-center @[40rem]:gap-y-0";
-/** Celda que en la ficha angosta ocupa el rincón de arriba a la derecha (interruptor «activa» o «Quitar»). */
-const ESQUINA = "col-span-2 col-start-11 row-start-1 flex flex-col items-end @[40rem]:col-span-1 @[40rem]:col-start-auto @[40rem]:row-start-auto";
-
-/** Rótulo de un campo, solo en la ficha angosta: en la ancha lo dice la cabecera de columnas. */
-function RotuloAngosto({ children, derecha = false }: { children: React.ReactNode; derecha?: boolean }) {
-  return (
-    <span aria-hidden className={`label-cayla block text-[10px] text-tinta/50 @[40rem]:hidden ${derecha ? "text-right" : ""}`}>
-      {children}
-    </span>
-  );
-}
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
   { valor: "descontinuado", texto: "Descontinuado" },
 ] as const;
 
-/** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
- *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
- *  para lo que sale de dos que ya existen). Sin costo no hay margen: antes
- *  un campo vacío contaba como 0 y mostraba 100 %. */
-function margenPorcentaje(precio: string, costo: string): number | null {
-  if (costo.trim() === "") return null;
-  const p = Number(precio);
-  const c = Number(costo);
-  if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(c)) return null;
-  return ((p - c) / p) * 100;
-}
+/** Una foto de la ficha con su color de ORIGEN (ADR-0263): la que se ve y viaja sale de `fotosComoSeVen`. */
+type FotoFicha = FotoLocal & { fijo?: boolean };
 
-/** Compara dos listas de ids sin importar el orden — para saber si
- *  `etiquetaIds` de verdad cambió, no si solo se reordenó. */
-function mismoConjunto(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false;
-  const ordenA = [...a].sort();
-  const ordenB = [...b].sort();
-  return ordenA.every((id, i) => id === ordenB[i]);
-}
+/** Los datos de la prenda (sin fotos ni variantes), tal como están en sus `useState`. */
+type DatosPrenda = {
+  referencia: string;
+  categoriaId: string;
+  descripcion: string;
+  estado: (typeof ESTADOS)[number]["valor"];
+  stockMinimo: string;
+  temporada: string;
+  permitirVentaSinStock: boolean;
+  tejidoId: string;
+  patronId: string;
+  marcaId: string;
+  proveedorId: string;
+};
 
-/** El costo que se guarda y con el que se calcula el margen. Una variante existente con el campo vacío conserva el que
- *  tenía (el vacío no es «cero»); una fila nueva vacía nace sin costo, como siempre. */
-function costoEfectivo(v: FilaVariante): string {
-  if (v.costoFijo) return v.costoOriginal;
-  return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
-}
+/** Todo lo que la pantalla deja editar, tal como está en sus `useState` (ADR-0257). Se captura al abrir (para «Descartar») y
+ *  se vuelve a poner al descartar o al deshacer un descarte. Las fotos y la temporada por color van con su color de ORIGEN
+ *  (ADR-0263): lo que se ve se deriva de ellas y de las correcciones pendientes. */
+type EstadoFicha = DatosPrenda & { fotos: FotoFicha[]; filas: FilaFicha[]; temporadaEditada: TemporadaElegida[] };
 
-function filaVacia(): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null, corregible: false };
+/** La temporada por color que queda en la base tras mandar estos cambios (`null` = el color vuelve a seguir a su prenda). */
+function conCambiosDeColor(base: Readonly<Record<string, string>>, cambios: Readonly<Record<string, string | null>> | null): Record<string, string> {
+  const salida = { ...base };
+  for (const [color, clave] of Object.entries(cambios ?? {})) {
+    if (clave === null) delete salida[color];
+    else salida[color] = clave;
+  }
+  return salida;
 }
 
 export function ProductoForm({
   categorias,
-  colores,
+  colores: coloresVocabulario,
   ejes,
   imagenes,
   etiquetas,
   avisoEtiquetas,
   marcas,
+  estadoVariantes,
+  esLider,
+  puedeCorregir = true,
   producto,
   volverA = "/productos",
 }: {
   categorias: Categoria[];
-  colores: Color[];
+  /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
+  colores: ColorAlta[];
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
   /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
@@ -249,6 +203,14 @@ export function ProductoForm({
   avisoEtiquetas?: string;
   /** Marcas, proveedores y parejas registradas (ADR-0109). */
   marcas: CatalogoMarcas;
+  /** Stock y ventas por variante (`fn_variantes_estado`). `null` = no está en la base: la ficha sigue sin stock. */
+  estadoVariantes: Record<string, EstadoVariante> | null;
+  /** Para anticipar la regla de D-136 (una variante vendida la corrige solo un líder). La base la vuelve a exigir. */
+  esLider: boolean;
+  /** La base sabe corregir el color y la talla de una variante (tiene el SQL de ADR-0263). Sin eso la ficha no ofrece
+   *  corregir: una base vieja ignora la corrección pero SÍ guarda las fotos que se movieron con ella. La página la
+   *  calcula siempre (`esFuncionAusente` sobre `fn_variantes_estado`); sin pasarla, se asume que sí. */
+  puedeCorregir?: boolean;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
@@ -256,6 +218,13 @@ export function ProductoForm({
 }) {
   const router = useRouter();
   const editando = !!producto;
+  // Un color creado desde «Agregar color» (ElegirColores lo deja crear, ADR-0260) se suma al vocabulario de la ficha:
+  // así se nombra y se pinta igual que los que venían de la base.
+  const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
+  const colores = useMemo(
+    () => [...coloresVocabulario, ...coloresCreados.filter((c) => !coloresVocabulario.some((x) => x.codigo === c.codigo))],
+    [coloresVocabulario, coloresCreados]
+  );
 
   const [categoriaId, setCategoriaId] = useState(producto?.categoriaId ?? "");
   const [referencia, setReferencia] = useState(producto?.referencia ?? "");
@@ -265,17 +234,18 @@ export function ProductoForm({
   const [temporada, setTemporada] = useState(producto?.temporada ?? SIN_PROPIA);
   // ADR-0246: la lista y lo que ya estaba guardado al abrir. `null` = la base todavía no la tiene (SQL sin pegar).
   const temporadas = producto?.temporadas ?? null;
-  // color → clave de su temporada propia; un color sin entrada sigue a su prenda. `porColorGuardado` es la foto de lo
-  // que había en la base: contra ella se decide qué colores cambiaron (y se actualiza tras guardarlos, para que
-  // reintentar otra parte no los vuelva a mandar).
-  const [temporadaColor, setTemporadaColor] = useState<Record<string, string>>(() => temporadas?.porColor ?? {});
-  const porColorGuardado = useRef<Record<string, string>>(temporadas?.porColor ?? {});
+  // color → clave de su temporada propia; un color sin entrada sigue a su prenda. `porColorBase` es lo que hay en la base
+  // (al abrir, y tras cada guardado bueno); `temporadaEditada`, solo lo que la persona eligió a mano, anclado a su color
+  // de ORIGEN. Lo que se ve y contra qué se compara se DERIVA de las dos y de las correcciones pendientes (más abajo).
+  const [porColorBase, setPorColorBase] = useState<Record<string, string>>(() => temporadas?.porColor ?? {});
+  const [temporadaEditada, setTemporadaEditada] = useState<TemporadaElegida[]>([]);
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
   const [marcaId, setMarcaId] = useState(producto?.marcaId ?? "");
   const [proveedorId, setProveedorId] = useState(producto?.proveedorId ?? "");
-  const [fotos, setFotos] = useState<FotoLocal[]>(
+  // Cada foto con su color de ORIGEN: el guardado, o el que se le puso a mano (ADR-0263). La que se ve es `fotosVista`.
+  const [fotos, setFotos] = useState<FotoFicha[]>(
     () =>
       producto?.fotos.map((f) => ({
         clientKey: f.id ?? `${f.url}-${Math.random()}`,
@@ -285,60 +255,58 @@ export function ProductoForm({
         colorCodigo: f.colorCodigo,
       })) ?? []
   );
-  const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
-    if (!producto) return [filaVacia()];
-    return [...producto.variantes]
-      .sort((a, b) => compararTallas(a.talla ?? "", b.talla ?? ""))
-      .map((v) => {
-        const colorCodigo = v.colorCodigo ?? "";
-        const talla = v.talla ?? "";
-        return {
-          id: v.id,
-          colorCodigo,
-          tallaId: v.tallaId ?? "",
-          precio: String(v.precio),
-          costo: v.costo === null ? "" : String(v.costo),
-          costoOriginal: v.costo === null ? "" : String(v.costo),
-          // Sin saber si es oficial (la migración aún no está), se trata como oficial: es lo que no puede pisar nada.
-          costoFijo: v.costoOficial !== false,
-          activo: v.activo,
-          etiquetaIds: v.etiquetaIds,
-          fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
-          // Sin saber (null: la migración aún no está) se trata como con historia: fija, como antes.
-          corregible: v.conHistoria === false,
-        };
-      });
-  });
+
+  // ---------- cómo se llaman los colores y las tallas (también los que ya no están en el vocabulario activo) ----------
+  const tallaPorId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const lista of Object.values(ejes.tallas)) for (const t of lista) m.set(t.id, t.texto);
+    for (const v of producto?.variantes ?? []) if (v.tallaId && v.talla && !m.has(v.tallaId)) m.set(v.tallaId, v.talla);
+    return m;
+  }, [ejes.tallas, producto]);
+  const nombres: NombresFicha = useMemo(
+    () => ({
+      color: (c) => (c === null ? "Sin color" : (colores.find((x) => x.codigo === c)?.nombre ?? producto?.variantes.find((v) => v.colorCodigo === c)?.color ?? c)),
+      talla: (t) => (t === null ? "" : (tallaPorId.get(t) ?? "")),
+    }),
+    [colores, producto, tallaPorId]
+  );
+
+  const [filas, setFilas] = useState<FilaFicha[]>(() => (producto ? filasDeProducto(producto.variantes, nombres) : []));
+  // Fotos y temporada siguen al color como las va a dejar la base al guardar (`mudanzasAlGuardar`), calculado SIEMPRE
+  // desde lo guardado y desde el color de ORIGEN de cada cosa: nada se mueve gesto a gesto, así «Deshacer» una
+  // corrección devuelve todo a su lugar (fotos guardadas, fotos nuevas y temporada elegida a mano).
+  const mudanzas = useMemo(() => mudanzasAlGuardar(filas), [filas]);
+  const porColorGuardado = useMemo(() => moverTemporadas(porColorBase, mudanzas), [porColorBase, mudanzas]);
+  const temporadaUbicada = useMemo(() => ubicarTemporadas(temporadaEditada, mudanzas, porColorBase), [temporadaEditada, mudanzas, porColorBase]);
+  const temporadaColor = useMemo(() => ({ ...porColorGuardado, ...temporadaUbicada }), [porColorGuardado, temporadaUbicada]);
+  const fotosVista = useMemo(() => fotosComoSeVen(fotos, mudanzas), [fotos, mudanzas]);
+  // La subida de una foto termina después de un `await`: se ancla con las filas de ESE momento, no con las de cuando empezó.
+  const filasRef = useRef(filas);
+  useEffect(() => {
+    filasRef.current = filas;
+  }, [filas]);
   const [loading, setLoading] = useState(false);
   // ADR-0193 (edición simultánea): la versión de la prenda cuando se abrió la ficha. Viaja en cada guardado; si otra
   // persona guardó entre medio, la base rechaza (PT409) en vez de pisar sus precios. Tras un guardado bueno se toma la
   // versión que devuelve la base, para que reintentar solo las etiquetas no choque consigo mismo.
   const versionRef = useRef<number | null>(producto?.version ?? null);
   const [versionCambiada, setVersionCambiada] = useState(false);
+  // Se guardó lo principal pero no se pudo leer cómo quedaron las variantes: reintentar crearía las nuevas dos veces.
+  const [hayQueRecargar, setHayQueRecargar] = useState(false);
+  // Lo que el guardado principal YA hizo (correcciones aplicadas, variantes creadas, lo que la hoja dijo que se iba a
+  // hacer) hasta que el guardado termina completo: si fallan las etiquetas o la temporada y se reintenta, el aviso final
+  // igual ofrece reimprimir etiquetas, dice que las nuevas nacieron sin unidades y nombra todo lo guardado (tras
+  // consolidar, las filas y la barra ya no lo recuerdan).
+  const logrado = useRef<{ correcciones: boolean; nuevas: number; frases: string[] }>({ correcciones: false, nuevas: 0, frases: [] });
+  // Un monto escrito en «Cambiar en bloque» sin pulsar Aplicar: se perdería en silencio al guardar lo demás.
+  const [bloquePendiente, setBloquePendiente] = useState<CampoBloque | null>(null);
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
-  // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las dos
-  // llamadas de «Guardar cambios» van con la misma firma: son un solo gesto).
+  // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las llamadas
+  // de «Confirmar y guardar» van con la misma firma: son un solo gesto).
   const responsable = useResponsable();
-  // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
-  // resto de las pantallas de admin (una edición inline visible por vez).
-  const [etiquetasAbiertoEn, setEtiquetasAbiertoEn] = useState<number | null>(null);
   const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto }));
-  // Foto de lo que YA estaba guardado en el servidor al abrir el formulario
-  // — para mandar el RPC de etiquetas solo cuando de verdad cambió algo, no
-  // en cada guardado del producto (evitaría escribir sobre variantes cuyas
-  // etiquetas nadie tocó, pisando su `created_at` sin motivo).
-  const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
-  // Color y talla con que se abrió cada variante: a una corregible a la que se le cambió alguno se le muestra el código
-  // que le dará la base, no el que tenía.
-  const [identidadOriginal] = useState(
-    () => new Map((producto?.variantes ?? []).map((v) => [v.id, { colorCodigo: v.colorCodigo ?? "", tallaId: v.tallaId ?? "" }]))
-  );
-  const identidadCambiada = (v: FilaVariante) => {
-    const original = v.id ? identidadOriginal.get(v.id) : undefined;
-    return !!original && (original.colorCodigo !== v.colorCodigo || original.tallaId !== v.tallaId);
-  };
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
   // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
@@ -355,9 +323,8 @@ export function ProductoForm({
   const exigePatron = familiaExigente && !!producto?.patronId;
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
-  const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
-  const tallasCategoria = ejes.tallas[categoriaId] ?? [];
-  const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
+  // Las tallas que la categoría ofrece, en su orden (S, M, L… y no alfabético): para corregir y para agregar.
+  const tallasCategoria = [...(ejes.tallas[categoriaId] ?? [])].sort((a, b) => compararTallas(a.texto, b.texto));
   const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({
     valor: t.id,
     texto: t.texto,
@@ -368,13 +335,6 @@ export function ProductoForm({
     texto: t.texto,
     icono: <MuestraPatron nombre={t.texto} imagenUrl={imagenes.patrones[t.id]} className="aspect-[3/1] w-[72px]" />,
   }));
-  const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
-  // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
-  // producto todavía —prenda que nunca tuvo variantes— no hay cómo saberlo: lo asigna el correlativo al guardar).
-  const codigosFilas = variantes.map((v) =>
-    v.fija && !identidadCambiada(v) ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
-  );
-  const repetidos = new Set(codigosRepetidos(codigosFilas));
 
   // ---------- temporada (ADR-0246) ----------
   // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
@@ -387,19 +347,29 @@ export function ProductoForm({
   const opcionesTemporadaColor = temporadas
     ? opcionesTemporada(temporadas.lista, { nombre: nombreTemporada(temporadas.lista, temporadaPrenda), de: "prenda" })
     : [];
-  const coloresFicha = coloresConVariantesActivas(variantes);
+  const coloresFicha = coloresConVariantesActivas(filas.map((f) => ({ colorCodigo: f.colorCodigo ?? "", activo: f.activo })));
   // Un color que estaba todo apagado al abrir y se reactiva: su excepción (si la tiene) no llegó a la ficha. No se le
   // ofrece el desplegable (diría «Igual que su prenda» sin saberlo) ni se manda nada por él; se avisa.
   const coloresInciertos = coloresSinTemporadaConocida(producto?.variantes ?? [], coloresFicha);
   const coloresConTemporada = coloresFicha.filter((c) => !coloresInciertos.includes(c));
   // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
   // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
-  const ofreceTemporadaPorColor =
-    !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, temporadas.porColor, coloresInciertos);
+  const ofreceTemporadaPorColor = !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, porColorGuardado, coloresInciertos);
   const conTemporadaPropia = coloresConTemporada.filter((c) => (temporadaColor[c] ?? SIN_PROPIA) !== SIN_PROPIA).length;
-  const nombreColor = (codigo: string) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo;
   // Plegada: casi ninguna prenda la usa. Abierta si ya hay algún color con la suya, para que se vea sin buscarla.
   const [verTemporadaColor, setVerTemporadaColor] = useState(() => Object.keys(temporadas?.porColor ?? {}).length > 0);
+  const cambiosColor = ofreceTemporadaPorColor ? cambiosTemporadaPorColor(coloresConTemporada, temporadaColor, porColorGuardado) : null;
+
+  const ctx: ContextoFicha = {
+    nombres,
+    colores,
+    codigoProducto: producto?.codigo ?? null,
+    estado: estadoVariantes,
+    esLider,
+    veCosto,
+    costoSinComprobar: costosSinComprobar(producto?.variantes ?? []),
+    puedeCorregir,
+  };
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
@@ -409,19 +379,12 @@ export function ProductoForm({
     setPatronId("");
   }
 
-  function actualizarFila(i: number, cambio: Partial<FilaVariante>) {
-    setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
+  /** Lo que devuelve el editor de fotos viene con los colores como se ven: se guarda con su color de origen. */
+  function cambiarFotos(siguientes: FotoLocal[]) {
+    setFotos((actuales) => anclarFotos(siguientes, actuales, filasRef.current));
   }
 
-  function agregarFila() {
-    setVariantes((a) => [...a, filaVacia()]);
-  }
-
-  function quitarFila(i: number) {
-    setVariantes((a) => a.filter((_, n) => n !== i));
-  }
-
-  // ---------- qué cambió, contra lo que había al abrir (ADR-0257) ----------
+  // ---------- qué cambió, contra lo que tiene la base (ADR-0257) ----------
   // De aquí salen la barra «Tienes N cambios sin guardar», las marcas de cada fila y la lista de la hoja «Revisa y guarda los
   // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable. Deshacer a mano
   // un cambio lo quita de la cuenta (una fila agregada y quitada, o un precio devuelto, no son nada que perder).
@@ -429,11 +392,51 @@ export function ProductoForm({
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
 
+  function datosDeLaPrenda(): DatosPrenda {
+    return { referencia, categoriaId, descripcion, estado, stockMinimo, temporada, permitirVentaSinStock, tejidoId, patronId, marcaId, proveedorId };
+  }
   function capturar(): EstadoFicha {
-    return { referencia, categoriaId, descripcion, estado, stockMinimo, temporada, temporadaColor, permitirVentaSinStock, tejidoId, patronId, marcaId, proveedorId, fotos, variantes };
+    return { ...datosDeLaPrenda(), fotos, filas, temporadaEditada };
   }
   // Lo que había al abrir: se toma UNA vez. (Todo el estado se actualiza sin mutar, así que esta foto no se ensucia.)
   const [inicial] = useState<EstadoFicha>(capturar);
+  // Lo que tiene la BASE de la prenda y de sus fotos: al abrir, lo de `inicial`; tras un guardado principal bueno, lo que se
+  // mandó. Las variantes no van aquí: cada fila lleva lo suyo en `guardada` (`consolidar` lo actualiza). Contra esto se
+  // cuenta lo que falta guardar y a esto vuelve el «Deshacer» de un campo.
+  const [enLaBase, setEnLaBase] = useState<{ datos: DatosPrenda; fotos: FotoFicha[] }>(() => ({
+    datos: {
+      referencia: inicial.referencia,
+      categoriaId: inicial.categoriaId,
+      descripcion: inicial.descripcion,
+      estado: inicial.estado,
+      stockMinimo: inicial.stockMinimo,
+      temporada: inicial.temporada,
+      permitirVentaSinStock: inicial.permitirVentaSinStock,
+      tejidoId: inicial.tejidoId,
+      patronId: inicial.patronId,
+      marcaId: inicial.marcaId,
+      proveedorId: inicial.proveedorId,
+    },
+    fotos: inicial.fotos,
+  }));
+  // El guardado principal ya salió bien y falló lo que sigue (etiquetas, temporada, o la corrección no se aplicó): la barra
+  // lo dice («lo demás ya quedó guardado») en vez de «Aún no se guardó nada», que contradecía al aviso de error.
+  const [seGuardoParte, setSeGuardoParte] = useState(false);
+  // Sube con «Descartar» (y su «Deshacer»): la sección de variantes vuelve a nacer, y con ella lo que guarda por su cuenta
+  // («Precio puesto en N variantes…» de «Cambiar en bloque», las etiquetas abiertas, «Mostrar desactivadas»).
+  const [reinicio, setReinicio] = useState(0);
+
+  // Lo que impide guardar de las variantes (y un monto escrito en «Cambiar en bloque» sin aplicar): «Revisar y guardar» lo
+  // dice con el campo a enfocar. Lo que solo avisa (todas quedan desactivadas) se lee en la hoja, antes de confirmar. La
+  // sección de variantes marca sus filas con ESTA misma lista (una sola cuenta). La talla de cada variante nueva o corregida
+  // se revisa contra la categoría ELEGIDA: es contra la que valida la base.
+  const problemas = problemasVariantes(filas, nombres, {
+    tallasHabilitadas: tallasCategoria.map((t) => t.id),
+    nombre: categoriaActual?.nombre,
+    cambio: categoriaId !== enLaBase.datos.categoriaId,
+  });
+  const avisoBloque = avisoBloqueSinAplicar(bloquePendiente);
+  const avisosSinBloquear = problemas.filter((p) => !p.bloquea).map((p) => p.texto);
 
   function aplicar(e: EstadoFicha) {
     setReferencia(e.referencia);
@@ -442,61 +445,17 @@ export function ProductoForm({
     setEstado(e.estado);
     setStockMinimo(e.stockMinimo);
     setTemporada(e.temporada);
-    setTemporadaColor(e.temporadaColor);
     setPermitirVentaSinStock(e.permitirVentaSinStock);
     setTejidoId(e.tejidoId);
     setPatronId(e.patronId);
     setMarcaId(e.marcaId);
     setProveedorId(e.proveedorId);
     setFotos(e.fotos);
-    setVariantes(e.variantes);
+    setFilas(e.filas);
+    setTemporadaEditada(e.temporadaEditada);
   }
 
-  /** «Beige XS»; una fila nueva sin color ni talla es «Variante nueva». */
-  function nombreDeVariante(v: FilaVariante): string {
-    const partes = v.fija
-      ? [v.fija.color === "Sin color" ? "" : v.fija.color, v.fija.talla === "Sin talla" ? "" : v.fija.talla]
-      : [v.colorCodigo ? nombreColor(v.colorCodigo) : "", tallaTexto(v.tallaId)];
-    return partes.filter(Boolean).join(" ") || (v.fija ? v.fija.codigo : "Variante nueva");
-  }
-
-  function instantanea(e: EstadoFicha): FichaEditable {
-    return {
-      referencia: e.referencia,
-      categoriaId: e.categoriaId,
-      descripcion: e.descripcion,
-      estado: e.estado,
-      stockMinimo: e.stockMinimo,
-      temporada: e.temporada,
-      permitirVentaSinStock: e.permitirVentaSinStock,
-      tejidoId: e.tejidoId,
-      patronId: e.patronId,
-      marcaId: e.marcaId,
-      proveedorId: e.proveedorId,
-      temporadaColor: e.temporadaColor,
-      fotos: e.fotos.map((f) => ({ id: f.id, url: f.url, esPrincipal: f.esPrincipal, colorCodigo: f.colorCodigo })),
-      // El costo que se GUARDARÍA (no el escrito): una variante existente con el campo vacío conserva el suyo.
-      // `identidad`: el color y la talla ELEGIDOS (no los de `fija`, que son los de al abrir): así cuenta corregirlos.
-      variantes: e.variantes.map((v) => ({
-        id: v.id,
-        nombre: nombreDeVariante(v),
-        activo: v.activo,
-        precio: v.precio,
-        costo: costoEfectivo(v),
-        etiquetaIds: v.etiquetaIds,
-        identidad: {
-          clave: `${v.colorCodigo}|${v.tallaId}`,
-          // Sin tocar, el texto guardado (su talla puede no estar en la lista si cambió la categoría); corregida, la elegida.
-          texto:
-            v.fija && !identidadCambiada(v)
-              ? `${v.fija.color} ${v.fija.talla}`
-              : [v.colorCodigo ? nombreColor(v.colorCodigo) : "Sin color", tallaTexto(v.tallaId) || "Sin talla"].join(" "),
-        },
-      })),
-    };
-  }
-
-  const nombres: NombresFicha = {
+  const nombresCambios: NombresCambios = {
     categoria: (id) => categorias.find((c) => c.id === id)?.nombre ?? "otra categoría",
     // Se busca en todas las categorías: si se cambió de categoría, el tejido de ANTES vive en la lista de la de antes.
     tejido: (id) => Object.values(ejes.tejidos).flat().find((t) => t.id === id)?.texto ?? producto?.tejido ?? "otro tejido",
@@ -505,10 +464,23 @@ export function ProductoForm({
     proveedor: (id) => marcas.proveedores.find((p) => p.id === id)?.nombre ?? (id === producto?.proveedorId ? producto.proveedorNombre : "otro proveedor"),
     temporada: (clave) => opcionesTemporadaPrenda.find((o) => o.valor === clave)?.texto ?? (clave === SIN_PROPIA ? "Sin temporada" : clave),
     temporadaColor: (clave) => opcionesTemporadaColor.find((o) => o.valor === clave)?.texto ?? (clave === SIN_PROPIA ? "Igual que su prenda" : clave),
-    color: nombreColor,
+    color: (codigo) => nombres.color(codigo),
     etiqueta: (id) => etiquetas.find((e) => e.id === id)?.texto ?? "etiqueta",
   };
-  const resumen: ResumenCambios = resumenDeCambios(instantanea(inicial), instantanea(capturar()), nombres);
+  // Lo guardado y lo de ahora, con las mismas mudanzas: las fotos y la temporada que se van con un color corregido son parte
+  // de esa corrección (la base las muda sola), no un cambio aparte. De la temporada por color cuenta lo que SE MANDA.
+  const variantesResumen = variantesParaResumen(filas, nombres, estadoVariantes);
+  const fichaEditable = (datos: DatosPrenda, fotosFicha: readonly FotoLocal[], porColor: Record<string, string>, variantes: VarianteFicha[]): FichaEditable => ({
+    ...datos,
+    temporadaColor: porColor,
+    fotos: fotosFicha.map((f) => ({ id: f.id, url: f.url, esPrincipal: f.esPrincipal, colorCodigo: f.colorCodigo })),
+    variantes,
+  });
+  const resumen: ResumenCambios = resumenDeCambios(
+    fichaEditable(enLaBase.datos, fotosComoSeVen(enLaBase.fotos, mudanzas), porColorGuardado, variantesResumen.guardadas),
+    fichaEditable(datosDeLaPrenda(), fotosVista, conCambiosDeColor(porColorGuardado, cambiosColor), variantesResumen.ahora),
+    nombresCambios
+  );
   const hayCambios = !guardado && resumen.total > 0;
   // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
   // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
@@ -541,16 +513,11 @@ export function ProductoForm({
     if (versionCambiada) {
       return void avisar.error("Otra persona cambió esta prenda: recárgala para poder guardar.", { accion: { texto: "Recargar", onClick: recargar } });
     }
-    if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
-    if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
-    const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
-    if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    // Dos filas con el mismo color y talla darían el mismo código: la base rechazaría el guardado entero con un error
-    // técnico. Se avisa aquí, en la fila nueva que repite.
-    const repetida = codigosRepetidos(codigosFilas)[0];
-    if (repetida !== undefined) {
-      return void avisar.error(`Ya hay una variante ${codigosFilas[repetida]}: cambia el color o la talla de la nueva, o quítala.`, { enfocar: `producto-variante-${repetida}-codigo` });
+    if (hayQueRecargar) {
+      // Lo principal ya se guardó pero no se supo cómo quedaron las variantes: guardar otra vez crearía las nuevas dos veces.
+      return void avisar.error("Recarga la prenda antes de seguir: lo principal ya quedó guardado.", { accion: { texto: "Recargar", onClick: recargar } });
     }
+    if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
@@ -562,6 +529,12 @@ export function ProductoForm({
     }
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
+    if (avisoBloque) return void avisar.error(avisoBloque, { enfocar: "variantes-bloque-monto" });
+    const bloqueante = problemas.find((p) => p.bloquea);
+    if (bloqueante) {
+      const enfocar = bloqueante.clave ? `producto-variante-${bloqueante.clave}-precio` : filas.length === 0 ? "variantes-agregar-color" : undefined;
+      return void avisar.error(bloqueante.texto, enfocar ? { enfocar } : undefined);
+    }
     setHojaAbierta(true);
   }
 
@@ -580,18 +553,14 @@ export function ProductoForm({
     const hecho = resumen.frasesPasado;
 
     setLoading(true);
-    const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
+    const nombrePrenda = referencia.trim();
+    const cerrarProceso = avisar.proceso(`Guardando ${nombrePrenda}…`);
+    // Se mira ANTES de consolidar (después, lo corregido ya es «lo guardado» y lo nuevo ya existe).
+    const corregidas = filas.filter(corregida).length;
+    const nuevas = filas.filter((f) => !f.guardada).length;
 
-    const payloadVariantes = variantes.map((v) => ({
-      ...(v.id ? { id: v.id } : {}),
-      color_codigo: v.colorCodigo || null,
-      talla_id: v.tallaId || null,
-      precio: Number(v.precio),
-      costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
-      activo: v.activo,
-    }));
-
-    const payloadFotos = fotos.map((f) => ({
+    // Las fotos viajan como se ven: la base corrige primero (mudando las guardadas) y después escribe estos colores.
+    const payloadFotos = fotosVista.map((f) => ({
       ...(f.id ? { id: f.id } : {}),
       url: f.url,
       es_principal: f.esPrincipal,
@@ -599,24 +568,32 @@ export function ProductoForm({
     }));
 
     const supabase = createClient();
-    const { data: versionNueva, error } = await firmar(supabase.rpc("catalogo_actualizar_producto", {
-      p_producto_id: producto.id,
-      p_referencia: referencia.trim(),
-      p_estado: estado,
-      p_variantes: payloadVariantes,
-      p_permitir_venta_sin_stock: permitirVentaSinStock,
-      p_fotos: payloadFotos,
-      ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
-      ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
-      ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
-      ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
-      ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
-      ...(patronId ? { p_patron_id: patronId } : {}),
-      // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
-      ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
-      ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
-      ...(versionRef.current !== null ? { p_version_esperada: versionRef.current } : {}),
-    }), firma);
+    // Una corrección de color o talla bloquea sus variantes: si en ese mismo instante una venta o un traslado de varias
+    // tallas de esta prenda las toma en otro orden, la base deshace entera a una de las dos (40P01, ADR-0263 T8). Si cae
+    // esta, no se guardó nada: se repite una vez sola.
+    const { data: versionNueva, error } = await conUnReintentoSiChoca(() => firmar(
+      supabase.rpc("catalogo_actualizar_producto", {
+        p_producto_id: producto.id,
+        p_referencia: nombrePrenda,
+        p_estado: estado,
+        // Primero las corregidas, después las que existen, al final las nuevas; las claves de color y talla, SOLO en las
+        // corregidas (sin ellas la base no toca la identidad). Ver `payloadVariantes`.
+        p_variantes: payloadVariantes(filas),
+        p_permitir_venta_sin_stock: permitirVentaSinStock,
+        p_fotos: payloadFotos,
+        ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
+        ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
+        ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
+        ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+        ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+        ...(patronId ? { p_patron_id: patronId } : {}),
+        // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
+        ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
+        ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
+        ...(versionRef.current !== null ? { p_version_esperada: versionRef.current } : {}),
+      }),
+      firma
+    ));
 
     if (error) {
       cerrarProceso();
@@ -640,25 +617,52 @@ export function ProductoForm({
         avisar.error(lectura.mensaje, { enfocar: "producto-referencia" });
         return true;
       }
-      avisar.error(traducirError(error, "guardar el producto"));
+      // Cayó dos veces seguidas por el mismo choque: se dice con palabras, no con «deadlock detected».
+      avisar.error(esChoqueDeCandados(error) ? FRASE_CHOQUE_DE_CANDADOS : traducirError(error, "guardar el producto"));
       return !seguirEnLaHoja;
     }
     if (typeof versionNueva === "number") versionRef.current = versionNueva;
+    setSeGuardoParte(true);
+    // Lo principal ya está en la base: desde aquí, «sin guardar» se mide contra esto (la barra dice solo lo que falta).
+    setEnLaBase({ datos: datosDeLaPrenda(), fotos: fotosVista.map((f) => ({ ...f, fijo: false })) });
+    logrado.current.frases = [...new Set([...logrado.current.frases, ...hecho])];
 
-    // Etiquetas por variante se guardan en la MISMA acción, después del
-    // guardado principal — nunca un botón aparte (ver comentario del
-    // encabezado del archivo). Solo variantes que YA existían antes de
-    // este envío tienen id real para asignarles etiquetas, y de esas, solo
-    // las que de verdad cambiaron contra lo que había al abrir el
-    // formulario — mandar las 6 variantes en cada guardado (así nadie haya
-    // tocado "Etiquetas") pisaría `variante_etiquetas.created_at` de
-    // etiquetas que nadie movió, y expondría un guardado de solo precio a
-    // un error que no tiene nada que ver con lo que la persona hizo.
-    const asignacionesEtiquetas = variantes
-      .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
-      .map((v) => ({ variante_id: v.id as string, etiqueta_ids: v.etiquetaIds }));
-    if (editando && asignacionesEtiquetas.length > 0) {
-      const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas }), firma);
+    // Cómo quedaron las variantes: los ids de las nuevas (para sus etiquetas) y si la base aplicó las correcciones. Con
+    // la base sin el SQL de ADR-0263, `catalogo_actualizar_producto` ignora el color y la talla de una variante que ya
+    // existe SIN error: decir «guardado» sería el mismo engaño que D-133 cerró el 2026-09-26.
+    const { data: deLaBase, error: errorLectura } = await supabase.from("variantes").select("id, color_codigo, talla_id, codigo").eq("producto_id", producto.id);
+    if (errorLectura || !deLaBase) {
+      cerrarProceso();
+      setLoading(false);
+      responsable.despues(null);
+      setHayQueRecargar(true);
+      setHojaAbierta(false);
+      avisar.error(`${nombrePrenda} ya quedó guardado, pero no se pudo leer cómo quedaron sus variantes.`, {
+        detalle: "Recarga la ficha antes de seguir: así no se crea ninguna variante dos veces.",
+        accion: { texto: "Recargar", onClick: recargar },
+      });
+      return true;
+    }
+    const sinAplicar = correccionesSinAplicar(filas, deLaBase);
+    if (corregidas > sinAplicar.length) logrado.current.correcciones = true;
+    logrado.current.nuevas += nuevas;
+    let actuales = consolidar(filas, deLaBase);
+    setFilas(actuales);
+    if (sinAplicar.length === 0) {
+      // La base corrigió y mudó fotos y temporada de los colores que se quedaron sin variantes: lo que se veía pasa a ser
+      // lo guardado, y a la vez (en la misma pintada) su origen, porque las filas consolidadas ya no tienen mudanzas.
+      // Si la base no corrigió (sin el SQL), tampoco mudó nada: todo sigue anclado como estaba.
+      setPorColorBase(porColorGuardado);
+      setFotos(fotosVista.map((f) => ({ ...f, fijo: false })));
+      setTemporadaEditada(Object.entries(temporadaUbicada).map(([color, clave]) => ({ origen: color, fijo: false, clave })));
+    }
+    const mudanzasTras = mudanzasAlGuardar(actuales);
+
+    // Etiquetas por variante: en la MISMA acción, después del guardado principal, UNA llamada y solo las que cambiaron
+    // (mandarlas todas pisaría `variante_etiquetas.created_at` sin motivo). Las nuevas ya tienen id (`consolidar`).
+    const asignaciones = asignacionesDeEtiquetas(actuales);
+    if (asignaciones.length > 0) {
+      const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignaciones }), firma);
       if (errorEtiquetas) {
         cerrarProceso();
         setLoading(false);
@@ -667,21 +671,20 @@ export function ProductoForm({
         const seguirEnLaHoja = esErrorDeResponsable(errorEtiquetas);
         if (!seguirEnLaHoja) setHojaAbierta(false);
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
-          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para las etiquetas.`,
+          detalle: `${nombrePrenda} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para las etiquetas.`,
         });
         return !seguirEnLaHoja;
       }
-      // Ya están en la base: si lo que sigue falla y se reintenta, no se vuelven a mandar.
-      for (const a of asignacionesEtiquetas) etiquetaIdsOriginales.current.set(a.variante_id, a.etiqueta_ids);
+      actuales = marcarEtiquetasGuardadas(actuales);
+      setFilas(actuales);
     }
 
     // Temporada por color (ADR-0246): mismo gesto, después del guardado principal (un color recién agregado recién
     // existe ahora) y UNA sola llamada con solo los colores que cambiaron. Todo o nada: si falla, ningún color cambió.
-    const cambiosColor = ofreceTemporadaPorColor ? cambiosTemporadaPorColor(coloresConTemporada, temporadaColor, porColorGuardado.current) : null;
     if (cambiosColor) {
       const { error: errorTemporada } = await firmar(
         supabase.rpc("asignar_temporadas", { p_items: [{ producto_id: producto.id, colores: cambiosColor }] }),
-        firma,
+        firma
       );
       if (errorTemporada) {
         cerrarProceso();
@@ -690,24 +693,51 @@ export function ProductoForm({
         const seguirEnLaHoja = esErrorDeResponsable(errorTemporada);
         if (!seguirEnLaHoja) setHojaAbierta(false);
         avisar.error(traducirError(errorTemporada, "guardar la temporada de los colores"), {
-          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para la temporada de los colores.`,
+          detalle: `${nombrePrenda} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para la temporada de los colores.`,
         });
         return !seguirEnLaHoja;
       }
-      porColorGuardado.current = { ...temporadaColor };
+      // Lo guardado = lo que había + lo que se acaba de mandar; lo elegido a mano para esos colores ya no está pendiente.
+      const aplicados = cambiosColor;
+      setPorColorBase(conCambiosDeColor(porColorGuardado, aplicados));
+      setTemporadaEditada((actual) =>
+        actual.filter((e) => {
+          const color = ubicar(e, mudanzasTras);
+          return color === null || !(color in aplicados);
+        })
+      );
     }
 
     cerrarProceso();
     setLoading(false);
     responsable.despues(null);
 
+    if (sinAplicar.length > 0) {
+      // Red de seguridad: la ficha no ofrece corregir sin la función de la base (`puedeCorregir`), pero si igual llega
+      // aquí, se queda abierta con las correcciones a la vista, pendientes (la barra las sigue contando), para no perderlas.
+      setHojaAbierta(false);
+      avisar.error("Se guardó lo demás, pero el color y la talla no se corrigieron.", {
+        detalle: "El sistema todavía no pudo corregir el color o la talla; avisa a un líder. Tu corrección sigue en la ficha.",
+      });
+      return true;
+    }
+
+    // El guardado terminó completo: lo logrado se lee (aunque haya llegado en un reintento) y se olvida.
+    const { correcciones: huboCorrecciones, nuevas: creadas, frases } = logrado.current;
+    logrado.current = { correcciones: false, nuevas: 0, frases: [] };
+    const hechoTodo = [...new Set([...frases, ...hecho])];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó y quién lo firmó (la prueba de que quedó hecho).
     setGuardado(true);
     setHojaAbierta(false);
-    salida.soltar();
-    avisar.exito(`${referencia.trim()} guardado`, {
-      detalle: [quien ? `Por ${quien}` : null, hecho.length > 0 ? hecho.join(", ") : null].filter(Boolean).join(" · ") || undefined,
+    avisar.exito(`${nombrePrenda} guardado`, {
+      detalle:
+        [quien ? `Por ${quien}` : null, hechoTodo.length > 0 ? hechoTodo.join(", ") : null, creadas > 0 ? NACEN_SIN_UNIDADES : null]
+          .filter(Boolean)
+          .join(" · ") || undefined,
+      // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se ofrece reimprimir.
+      ...(huboCorrecciones ? { accion: { texto: "Imprimir etiquetas", onClick: () => router.push(`/etiquetas-de-precio?producto=${producto.id}`) } } : {}),
     });
+    salida.soltar();
     router.replace(volverA);
     router.refresh();
     return true;
@@ -722,55 +752,51 @@ export function ProductoForm({
     const antes = capturar();
     aplicar(inicial);
     setVersionCambiada(false);
-    setEtiquetasAbiertoEn(null);
+    // Lo que la sección de variantes guarda por su cuenta también vuelve a cero (un «Precio puesto en 6 variantes» que ya
+    // no es cierto, un monto escrito sin aplicar): nace de nuevo.
+    setReinicio((r) => r + 1);
+    setBloquePendiente(null);
     avisar.exito("Cambios descartados", {
       detalle: "La ficha volvió a como estaba guardada.",
-      accion: { texto: "Deshacer", onClick: () => aplicar(antes) },
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          aplicar(antes);
+          setReinicio((r) => r + 1);
+        },
+      },
       duracion: 7000,
     });
   }
 
-  /** Una fila existente vuelve a su precio, costo, estado y etiquetas de al abrir. (Una fila nueva no tiene «antes»: se quita.) */
-  function deshacerFila(i: number) {
-    const original = inicial.variantes.find((v) => v.id !== null && v.id === variantes[i]?.id);
-    if (!original) return;
-    actualizarFila(i, {
-      colorCodigo: original.colorCodigo,
-      tallaId: original.tallaId,
-      precio: original.precio,
-      costo: original.costo,
-      activo: original.activo,
-      etiquetaIds: original.etiquetaIds,
-    });
-  }
-
-  /** Un dato de la prenda vuelve a lo de al abrir. */
+  /** Un dato de la prenda vuelve a lo que tiene la base (lo de al abrir, si todavía no se guardó nada). */
   function deshacerCampo(campo: CampoDato) {
+    const base = enLaBase.datos;
     switch (campo) {
       case "referencia":
-        return setReferencia(inicial.referencia);
+        return setReferencia(base.referencia);
       case "categoria":
         // Elegir categoría vacía el tejido y el patrón: se devuelven juntos.
-        setCategoriaId(inicial.categoriaId);
-        setTejidoId(inicial.tejidoId);
-        return setPatronId(inicial.patronId);
+        setCategoriaId(base.categoriaId);
+        setTejidoId(base.tejidoId);
+        return setPatronId(base.patronId);
       case "marcaProveedor":
-        setMarcaId(inicial.marcaId);
-        return setProveedorId(inicial.proveedorId);
+        setMarcaId(base.marcaId);
+        return setProveedorId(base.proveedorId);
       case "descripcion":
-        return setDescripcion(inicial.descripcion);
+        return setDescripcion(base.descripcion);
       case "tejido":
-        return setTejidoId(inicial.tejidoId);
+        return setTejidoId(base.tejidoId);
       case "patron":
-        return setPatronId(inicial.patronId);
+        return setPatronId(base.patronId);
       case "estado":
-        return setEstado(inicial.estado);
+        return setEstado(base.estado);
       case "stockMinimo":
-        return setStockMinimo(inicial.stockMinimo);
+        return setStockMinimo(base.stockMinimo);
       case "temporada":
-        return setTemporada(inicial.temporada);
+        return setTemporada(base.temporada);
       case "ventaSinStock":
-        return setPermitirVentaSinStock(inicial.permitirVentaSinStock);
+        return setPermitirVentaSinStock(base.permitirVentaSinStock);
     }
   }
 
@@ -793,7 +819,15 @@ export function ProductoForm({
   return (
     // Sin panel a la derecha (ADR-0257): la ficha usa el ancho que hay, hasta 1080 px, y guarda desde la barra de abajo. El
     // relleno de abajo deja aire para que la barra no tape la última fila.
-    <form onSubmit={revisar} className="max-w-[1080px] pb-28 sm:pb-24">
+    <form
+      onSubmit={revisar}
+      // Revisar es un acto explícito: Enter dentro de un campo —cerrar un precio, corregir el nombre— no abre la hoja de
+      // guardado (con correcciones de color en juego, un Enter de costumbre la abriría a mitad de camino).
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+      }}
+      className="max-w-[1080px] pb-28 sm:pb-24"
+    >
       <div className="min-w-0 space-y-6">
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
@@ -987,7 +1021,7 @@ export function ProductoForm({
                     </p>
                     {coloresInciertos.length > 0 && (
                       <p className="nota-cayla mt-2 text-xs">
-                        {coloresInciertos.map(nombreColor).join(", ")}{" "}
+                        {coloresInciertos.map((c) => nombres.color(c)).join(", ")}{" "}
                         {coloresInciertos.length === 1 ? "estaba apagado" : "estaban apagados"} al abrir esta ficha: si{" "}
                         {coloresInciertos.length === 1 ? "tenía su propia temporada, la conserva" : "tenían su propia temporada, la conservan"}. Guarda
                         y vuelve a abrir la ficha para verla o cambiarla.
@@ -1006,11 +1040,11 @@ export function ProductoForm({
                                   className={`inline-block h-2.5 w-5 rounded-full border border-tinta/20 ${color?.hex ? "" : "bg-sand"}`}
                                   style={color?.hex ? { background: color.hex } : undefined}
                                 />
-                                {nombreColor(codigo)}
+                                {nombres.color(codigo)}
                               </span>
                             }
                             valor={temporadaColor[codigo] ?? SIN_PROPIA}
-                            onValor={(v) => setTemporadaColor((actual) => ({ ...actual, [codigo]: v }))}
+                            onValor={(v) => setTemporadaEditada((actual) => elegirTemporada(actual, codigo, v, filas))}
                             opciones={opcionesTemporadaColor}
                           />
                         );
@@ -1026,247 +1060,42 @@ export function ProductoForm({
         {/* ---------- fotos ---------- */}
         {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
         <section id="fotos" className="card-cayla scroll-mt-6 p-5">
-          <FotosProducto fotos={fotos} onFotos={setFotos} colores={colores} disabled={loading} />
+          <FotosProducto fotos={fotosVista} onFotos={cambiarFotos} colores={colores} disabled={loading} />
         </section>
 
-        {/* ---------- variantes ---------- */}
-        <section className="card-cayla @container space-y-3 p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
-          <div className="hidden gap-x-2 border-b border-tinta/10 pb-1 @[40rem]:grid @[40rem]:grid-cols-[minmax(5.5rem,1.5fr)_minmax(3.5rem,5rem)_minmax(8rem,1.3fr)_4.5rem_4.5rem_3.5rem_3rem_3rem]">
-            {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
-              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : i === 6 ? "text-center" : ""}`}>
-                {t}
-              </span>
-            ))}
-          </div>
-          {variantes.map((v, i) => {
-            // Lo que cambió en ESTA fila (ADR-0257): se marca en ámbar, con lo de antes y un «Deshacer», porque un interruptor
-            // o un precio se ven como algo ya hecho y no lo están hasta guardar.
-            const cambios = cambiosDeVariante(resumen, i);
-            const tocada = cambios.length > 0;
-            const seApaga = cambios.some((c) => c.tipo === "desactiva");
-            const precioCambio = cambios.some((c) => c.tipo === "precio");
-            const costoCambio = cambios.some((c) => c.tipo === "costo");
-            return (
-            <div
-              key={i}
-              className={`-mx-5 border-b border-tinta/10 px-5 pb-3 pt-2 transition-colors duration-300 ease-cayla last:border-0 ${
-                tocada ? "bg-ambar/[0.08] shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
-              }`}
-            >
-            <div className={FILA_VARIANTE}>
-              {v.fija && !v.corregible ? (
-                <>
-                  <div className={`col-span-6 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
-                    <RotuloAngosto>Color</RotuloAngosto>
-                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.color}</span>
-                  </div>
-                  <div className={`col-span-4 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
-                    <RotuloAngosto>Talla</RotuloAngosto>
-                    <span className="block break-words py-2 text-sm text-tinta">{v.fija.talla}</span>
-                  </div>
-                  <div className={`col-span-12 min-w-0 @[40rem]:col-span-1 ${seApaga ? "opacity-55" : ""}`}>
-                    <RotuloAngosto>Código</RotuloAngosto>
-                    <span className="block break-all py-2 font-mono text-xs tracking-wide text-tinta/70">{v.fija.codigo}</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="col-span-6 min-w-0 @[40rem]:col-span-1">
-                  <RotuloAngosto>Color</RotuloAngosto>
-                  <ComboBuscable
-                    etiquetaAccesible="Color"
-                    valor={v.colorCodigo}
-                    onValor={(c) => actualizarFila(i, { colorCodigo: c })}
-                    opciones={opcionesColor}
-                    marcador="Sin color"
-                  />
-                  </div>
-                  <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
-                  <RotuloAngosto>Talla</RotuloAngosto>
-                  <ComboBuscable
-                    etiquetaAccesible="Talla"
-                    valor={v.tallaId}
-                    onValor={(t) => actualizarFila(i, { tallaId: t })}
-                    opciones={opcionesTalla}
-                    marcador={categoriaId ? "Sin talla" : "Elige categoría"}
-                  />
-                  </div>
-                  <div className="col-span-12 min-w-0 @[40rem]:col-span-1">
-                  <RotuloAngosto>Código</RotuloAngosto>
-                  <span
-                    id={`producto-variante-${i}-codigo`}
-                    tabIndex={-1}
-                    className={`block break-all py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
-                    title={
-                      codigosFilas[i]
-                        ? repetidos.has(i)
-                          ? "Ya existe una variante con este color y talla."
-                          : "Así quedará al guardar. Cambia solo al elegir color o talla."
-                        : "Se asigna al guardar."
-                    }
-                  >
-                    {codigosFilas[i] ?? "Se asigna al guardar"}
-                  </span>
-                  </div>
-                </>
-              )}
-              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
-              <RotuloAngosto derecha>Precio</RotuloAngosto>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                aria-label="Precio"
-                id={`producto-variante-${i}-precio`}
-                placeholder="0.00"
-                value={v.precio}
-                onChange={(e) => actualizarFila(i, { precio: e.target.value })}
-                className={`${precioCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
-              />
-              </div>
-              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
-              <RotuloAngosto derecha>Costo</RotuloAngosto>
-              {veCosto && v.costoFijo ? (
-                <span
-                  className="block py-2 text-right text-sm tabular-nums text-tinta/70"
-                  title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
-                >
-                  {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
-                </span>
-              ) : veCosto ? (
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  aria-label="Costo"
-                  placeholder="0.00"
-                  value={v.costo}
-                  onChange={(e) => actualizarFila(i, { costo: e.target.value })}
-                  className={`${costoCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
-                />
-              ) : (
-                <span className="block py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
-              )}
-              </div>
-              <div className="col-span-4 min-w-0 @[40rem]:col-span-1">
-              <RotuloAngosto derecha>Margen</RotuloAngosto>
-              <span className="block py-2 text-right text-xs tabular-nums text-tinta/55">
-                {(() => {
-                  if (!veCosto) return "—";
-                  const m = margenPorcentaje(v.precio, costoEfectivo(v));
-                  return m === null ? "—" : `${m.toFixed(0)}%`;
-                })()}
-              </span>
-              </div>
-              {/* En la ficha angosta, «activa» (variante guardada) o «Quitar» (fila nueva) van arriba a la derecha: nunca
-                  están los dos, así que comparten el rincón; en la ancha, cada uno en su columna. */}
-              <div className={v.id ? `${ESQUINA} @[40rem]:items-center` : "hidden @[40rem]:block"}>
-                <RotuloAngosto derecha>Activa</RotuloAngosto>
-                <span className="flex py-2">
-                  {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
-                </span>
-              </div>
-              <div className={v.id ? "hidden @[40rem]:block" : `${ESQUINA} pt-4 @[40rem]:pt-0`}>
-                {!v.id && (
-                  <button type="button" onClick={() => quitarFila(i)} className="py-2 text-xs text-rojo">
-                    Quitar
-                  </button>
-                )}
-              </div>
-            </div>
-            {(v.id || tocada) && (
-              <div className="mt-1">
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                  {v.id ? (
-                    <button
-                      type="button"
-                      disabled={loading}
-                      aria-expanded={etiquetasAbiertoEn === i}
-                      onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
-                      className={`label-cayla text-[11px] disabled:opacity-50 ${
-                        v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
-                      }`}
-                    >
-                      Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
-                    </button>
-                  ) : (
-                    <span />
-                  )}
-                  {tocada && (
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ambar-profundo">
-                      <span className="inline-flex items-center gap-1.5 font-medium">
-                        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
-                        {textoPendienteDeVariante(cambios)}
-                      </span>
-                      {v.id && (
-                        <button
-                          type="button"
-                          onClick={() => deshacerFila(i)}
-                          className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo"
-                        >
-                          <Undo2 aria-hidden className="h-3 w-3" />
-                          Deshacer
-                        </button>
-                      )}
-                    </span>
-                  )}
-                </div>
-                {v.id && etiquetasAbiertoEn === i && (
-                  <div className="mt-2 space-y-1.5">
-                    {opcionesEtiqueta.length > 0 ? (
-                      <SelectorMultiple
-                        opciones={opcionesEtiqueta}
-                        seleccionadas={v.etiquetaIds}
-                        onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
-                        disabled={loading}
-                      />
-                    ) : (
-                      <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
-                    )}
-                    <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.</p>
-                    {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
-                  </div>
-                )}
-              </div>
-            )}
-            </div>
-            );
-          })}
-          {variantes.some((v) => v.fija && !v.corregible) && (
-            <p className="text-xs text-tinta/55">
-              Color, talla y código de una variante que ya tiene movimientos no se cambian: puede tener stock, ventas y etiquetas
-              impresas. Si está mal, desactívala y agrega la correcta.
-            </p>
-          )}
-          {variantes.some((v) => v.corregible) && (
-            <p className="text-xs text-tinta/55">
-              Las variantes que todavía no tienen movimientos (sin stock, ventas ni traslados) se corrigen aquí: al cambiarles
-              color o talla, su código cambia al guardar. Si ya imprimiste su etiqueta, vuelve a imprimirla.
-            </p>
-          )}
-          {veCosto && variantes.some((v) => v.costoFijo) && (
-            <p className="text-xs text-tinta/55">
-              {producto?.variantes.some((v) => v.costoOficial === null)
-                ? "No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí."
-                : "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí."}
-            </p>
-          )}
-          <p className="text-xs text-tinta/55">
-            El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar: no hace falta escribirlo.
-          </p>
-          <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
-            + Agregar variante
-          </button>
-        </section>
+        {/* ---------- variantes (ADR-0263) ---------- */}
+        <VariantesFicha
+          key={reinicio}
+          ctx={ctx}
+          filas={filas}
+          problemas={problemas}
+          onFilas={setFilas}
+          onBloquePendiente={setBloquePendiente}
+          tallasCategoria={tallasCategoria}
+          categoriaNombre={categoriaActual?.nombre}
+          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
+          etiquetas={opcionesEtiqueta}
+          avisoEtiquetas={avisoEtiquetas}
+          deshabilitado={loading}
+          resumen={resumen}
+        />
       </div>
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
-      <BarraDeCambios cantidad={hayCambios ? resumen.total : 0} versionCambiada={versionCambiada} bloqueada={loading} onDescartar={descartar} onRecargar={recargar} />
+      <BarraDeCambios
+        cantidad={hayCambios ? resumen.total : 0}
+        versionCambiada={versionCambiada}
+        sinLeerVariantes={hayQueRecargar}
+        yaSeGuardoLoDemas={seGuardoParte}
+        bloqueada={loading}
+        onDescartar={descartar}
+        onRecargar={recargar}
+      />
       {hojaAbierta && (
         <ConfirmarCambios
           nombre={producto?.referencia ?? referencia}
           resumen={resumen}
+          avisos={avisosSinBloquear}
           control={responsable}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}

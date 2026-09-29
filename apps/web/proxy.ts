@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -87,6 +88,34 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
+  }
+
+  // ADR-0275: en CAYLA Global (la cookie de la sede dice «global») una pantalla que trabaja en UNA sede no se abre con
+  // los datos de la sede donde trabaja la persona bajo el título «CAYLA Global»: el inicio lleva al tablero y el resto, a
+  // elegir sede. Una sola barrera para todas las rutas, tengan o no `exigirModulo`. Solo navegaciones GET: una Server
+  // Action viaja como POST a la ruta donde se usa y se valida sola. No es un permiso —la cookie «global» solo la escribe
+  // `cambiarUbicacionActiva` después de preguntarle a la base, y cada pantalla vuelve a preguntar—, es la perspectiva.
+  const ruta = request.nextUrl.pathname;
+  if (
+    haySesion &&
+    request.method === "GET" &&
+    !isLoginPage &&
+    !isAuthCallback &&
+    request.cookies.get("cayla_ubicacion_activa")?.value === VALOR_VISTA_GLOBAL &&
+    !rutaDeLaVistaGlobal(ruta)
+  ) {
+    const url = request.nextUrl.clone();
+    url.search = "";
+    if (ruta === "/") {
+      url.pathname = "/global";
+    } else {
+      url.pathname = RUTA_ELEGIR_SEDE;
+      url.searchParams.set("desde", ruta);
+    }
+    const redireccion = NextResponse.redirect(url);
+    // Si getClaims() refrescó la sesión en esta misma petición, las cookies nuevas viajan con la redirección.
+    response.cookies.getAll().forEach((c) => redireccion.cookies.set(c));
+    return redireccion;
   }
 
   return response;

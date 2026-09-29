@@ -12,13 +12,23 @@
  * de ellos cuente. Un campo que se escape de aquí sería un campo que no se puede guardar.
  *
  * Pura (sin React ni supabase): la usa `ProductoForm`, y la prueba de al lado la recorre entera.
+ *
+ * Las variantes llegan aquí desde la sección de ADR-0263 (corregir color y talla, agregar colores y tallas, precio en
+ * bloque): `variantesParaResumen` (lib/variantes-ficha-reglas.ts) las traduce a `VarianteFicha`. Con los ejes de cada una,
+ * la hoja dice las correcciones como las dice la tienda («3 variantes pasan de Sin color a Negro») y junta en UNA línea
+ * los precios que cambiaron igual (un precio en bloque sobre 12 variantes no son 12 renglones).
  */
 
 import { SIN_PROPIA } from "./temporada-reglas";
+import { NACEN_SIN_UNIDADES } from "./variantes-ficha-reglas";
 
 /* ====================== lo que se compara ====================== */
 
 export type FotoFicha = { id: string | null; url: string; esPrincipal: boolean; colorCodigo: string | null };
+
+/** Un eje de la identidad de una variante: `clave` se compara (el código del color, el id de la talla; "" = sin), `texto`
+ *  se dice («Negro», «S»). */
+export type EjeIdentidad = { clave: string; texto: string };
 
 export type VarianteFicha = {
   /** `null` = fila nueva, todavía sin guardar. */
@@ -30,9 +40,12 @@ export type VarianteFicha = {
   /** El costo que se GUARDARÍA, no el que está escrito: una variante existente con el campo vacío conserva el suyo. */
   costo: string;
   etiquetaIds: string[];
-  /** Color y talla (ADR-0258: una variante sin historia los corrige). `clave` es lo que se compara (los códigos), `texto`
-   *  lo que se dice («Beige XS»). Una variante con historia no deja tocarlos, así que en ella nunca cambian. */
-  identidad: { clave: string; texto: string };
+  /** Color y talla (ADR-0263: se corrigen aunque la variante tenga historia; si ya se vendió, solo un líder). `clave` es lo
+   *  que se compara (los códigos), `texto` lo que se dice («Beige XS»). Con `ejes`, la hoja sabe CUÁL de los dos cambió
+   *  y agrupa las correcciones iguales. */
+  identidad: { clave: string; texto: string; ejes?: { color: EjeIdentidad; talla: EjeIdentidad } };
+  /** Sus unidades en stock (todas las sedes), si se saben: al desactivarla, la hoja dice que siguen en el inventario. */
+  unidades?: number | null;
 };
 
 export type FichaEditable = {
@@ -103,11 +116,16 @@ export type CampoDato =
   | "temporada"
   | "ventaSinStock";
 
+/** Un eje que cambió en una corrección: de qué a qué, en palabras. */
+export type EjeCorregido = { antes: string; despues: string };
+
 export type Cambio =
-  | { tipo: "desactiva"; indice: number; nombre: string }
+  /** `unidades`: las que tiene en stock, si se saben y son más de 0 (siguen en el inventario: desactivar no las saca). */
+  | { tipo: "desactiva"; indice: number; nombre: string; unidades?: number }
   | { tipo: "activa"; indice: number; nombre: string }
   | { tipo: "nueva"; indice: number; nombre: string; precio: string }
-  | { tipo: "identidad"; indice: number; nombre: string; antes: string; despues: string }
+  /** Con los ejes de la variante: `color` y/o `talla` = el eje que cambió; `queda` = el que NO cambió, en palabras («S»). */
+  | { tipo: "identidad"; indice: number; nombre: string; antes: string; despues: string; color?: EjeCorregido; talla?: EjeCorregido; queda?: string }
   | { tipo: "precio"; indice: number; nombre: string; antes: string; despues: string }
   | { tipo: "costo"; indice: number; nombre: string; antes: string; despues: string }
   | { tipo: "etiquetas"; indice: number; nombre: string; suman: string[]; quitan: string[] }
@@ -189,6 +207,20 @@ const DATOS: readonly DatoDeFicha[] = [
   },
 ];
 
+/** Qué eje cambió en una corrección (y cómo se llama el que no), si la pantalla mandó los ejes de las dos. */
+function ejesCorregidos(antes: VarianteFicha, ahora: VarianteFicha): { color?: EjeCorregido; talla?: EjeCorregido; queda?: string } {
+  const a = antes.identidad.ejes;
+  const b = ahora.identidad.ejes;
+  if (!a || !b) return {};
+  const cambiaColor = a.color.clave !== b.color.clave;
+  const cambiaTalla = a.talla.clave !== b.talla.clave;
+  return {
+    ...(cambiaColor ? { color: { antes: a.color.texto, despues: b.color.texto } } : {}),
+    ...(cambiaTalla ? { talla: { antes: a.talla.texto, despues: b.talla.texto } } : {}),
+    ...(cambiaColor !== cambiaTalla ? { queda: cambiaColor ? b.talla.texto : b.color.texto } : {}),
+  };
+}
+
 function cambiosDeVariantes(inicial: readonly VarianteFicha[], actual: readonly VarianteFicha[], nombres: NombresFicha): Cambio[] {
   const cambios: Cambio[] = [];
   const alAbrir = new Map<string, VarianteFicha>();
@@ -202,9 +234,12 @@ function cambiosDeVariantes(inicial: readonly VarianteFicha[], actual: readonly 
       return;
     }
     if (v.identidad.clave !== antes.identidad.clave) {
-      cambios.push({ tipo: "identidad", indice, nombre: v.nombre, antes: antes.identidad.texto, despues: v.identidad.texto });
+      cambios.push({ tipo: "identidad", indice, nombre: v.nombre, antes: antes.identidad.texto, despues: v.identidad.texto, ...ejesCorregidos(antes, v) });
     }
-    if (v.activo !== antes.activo) cambios.push({ tipo: v.activo ? "activa" : "desactiva", indice, nombre: v.nombre });
+    if (v.activo && !antes.activo) cambios.push({ tipo: "activa", indice, nombre: v.nombre });
+    if (!v.activo && antes.activo) {
+      cambios.push({ tipo: "desactiva", indice, nombre: v.nombre, ...(v.unidades && v.unidades > 0 ? { unidades: v.unidades } : {}) });
+    }
     if (!mismoNumero(v.precio, antes.precio)) cambios.push({ tipo: "precio", indice, nombre: v.nombre, antes: antes.precio, despues: v.precio });
     if (!mismoNumero(v.costo, antes.costo)) cambios.push({ tipo: "costo", indice, nombre: v.nombre, antes: antes.costo, despues: v.costo });
     const suman = v.etiquetaIds.filter((id) => !antes.etiquetaIds.includes(id));
@@ -317,7 +352,9 @@ export const formatoCosto = (valor: string): string => soles(valor, "sin costo")
 export type ClaveGrupo = "desactivan" | "activan" | "agregan" | "identidad" | "precios" | "costos" | "etiquetas" | "fotos" | "datos" | "temporadaColor";
 
 export type LineaCambio = { texto: string; antes?: string; despues?: string; detalle?: string };
-export type GrupoCambios = { clave: ClaveGrupo; titulo: string; lineas: LineaCambio[] };
+/** `cantidad`: cuántos cambios hay en el grupo (lo que dice su insignia). Puede ser más que las líneas: los cambios iguales
+ *  se juntan en una («3 variantes pasan de Sin color a Negro»). `nota`: lo que conviene saber antes de confirmar. */
+export type GrupoCambios = { clave: ClaveGrupo; titulo: string; lineas: LineaCambio[]; cantidad: number; nota?: string };
 
 const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   desactivan: "Se desactivan",
@@ -331,6 +368,21 @@ const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   datos: "Datos de la prenda",
   temporadaColor: "Temporada por color",
 };
+
+/** Lo que conviene saber antes de confirmar, dicho una vez por grupo (no en cada línea). «Etiquetas de precio», no
+ *  «etiquetas» a secas: el modal de corregir dice que conservan sus etiquetas DE CAMPAÑA («Nuevo»), y leídas seguidas
+ *  parecían contradecirse. */
+export const NOTA_CORREGIDAS =
+  "Conservan su stock y su historia. Su código se recalcula y el de antes sigue sonando en la caja: reimprime sus etiquetas de precio.";
+export const NOTA_DESACTIVADAS_CON_STOCK = "Desactivar no saca sus unidades del inventario: solo dejan de venderse.";
+
+/** «Negro S, Negro M, Negro L y 3 más». */
+function listaCorta(nombres: readonly string[]): string {
+  return nombres.length <= 4 ? nombres.join(", ") : `${nombres.slice(0, 3).join(", ")} y ${nombres.length - 3} más`;
+}
+
+/** «Negro S» si es una; «3 variantes: Negro S, Negro M, Negro L» si son varias. */
+const variantesNombradas = (nombres: readonly string[]) => (nombres.length === 1 ? nombres[0] : `${nombres.length} variantes: ${listaCorta(nombres)}`);
 
 function lineaDeFotos(c: Cambio): LineaCambio | null {
   switch (c.tipo) {
@@ -349,52 +401,124 @@ function lineaDeFotos(c: Cambio): LineaCambio | null {
   }
 }
 
-/** Los cambios ordenados por grupo, listos para pintar. Los grupos vacíos no salen. */
+/**
+ * Los cambios ordenados por grupo, listos para pintar. Los grupos vacíos no salen.
+ *
+ * Lo que cambió IGUAL se junta en una línea, en el lugar donde apareció el primero: las correcciones del mismo color (o de la
+ * misma talla) —«3 variantes pasan de Sin color a Negro», con sus tallas al lado—, los precios y costos que pasan del mismo
+ * monto al mismo monto (un precio en bloque) y las variantes nuevas con el mismo precio (un «Agregar color»).
+ */
 export function agruparCambios(cambios: readonly Cambio[]): GrupoCambios[] {
-  const grupos = new Map<ClaveGrupo, LineaCambio[]>();
-  const sumar = (clave: ClaveGrupo, linea: LineaCambio) => grupos.set(clave, [...(grupos.get(clave) ?? []), linea]);
+  // Cada grupo es una lista de lugares: una línea ya hecha, o la llave de una línea que junta varios cambios.
+  const grupos = new Map<ClaveGrupo, (LineaCambio | string)[]>();
+  const cantidades = new Map<ClaveGrupo, number>();
+  const juntas = new Map<string, { nombres: string[]; hacer: (nombres: readonly string[]) => LineaCambio }>();
+  const contar = (clave: ClaveGrupo) => cantidades.set(clave, (cantidades.get(clave) ?? 0) + 1);
+  const sumar = (clave: ClaveGrupo, linea: LineaCambio | string) => grupos.set(clave, [...(grupos.get(clave) ?? []), linea]);
+  const juntar = (clave: ClaveGrupo, llave: string, nombre: string, hacer: (nombres: readonly string[]) => LineaCambio) => {
+    const k = `${clave}\n${llave}`;
+    const previa = juntas.get(k);
+    if (previa) return void previa.nombres.push(nombre);
+    juntas.set(k, { nombres: [nombre], hacer });
+    sumar(clave, k);
+  };
+  let desactivadasConStock = false;
 
   for (const c of cambios) {
     switch (c.tipo) {
       case "desactiva":
-        sumar("desactivan", { texto: c.nombre });
+        contar("desactivan");
+        if (c.unidades) desactivadasConStock = true;
+        sumar("desactivan", { texto: c.nombre, ...(c.unidades ? { detalle: `${c.unidades} u. en stock` } : {}) });
         break;
       case "activa":
+        contar("activan");
         sumar("activan", { texto: c.nombre });
         break;
-      case "nueva":
-        sumar("agregan", { texto: c.nombre, detalle: formatoPrecio(c.precio) });
+      case "nueva": {
+        contar("agregan");
+        const precio = formatoPrecio(c.precio);
+        juntar("agregan", precio, c.nombre, (nombres) => ({ texto: variantesNombradas(nombres), detalle: precio }));
         break;
-      case "identidad":
-        sumar("identidad", { texto: c.nombre, antes: c.antes, despues: c.despues });
+      }
+      case "identidad": {
+        contar("identidad");
+        const { color, talla } = c;
+        // Los ejes que no cambiaron se dicen al lado (las tallas de un color corregido); sin talla o sin color, nada.
+        const detalle = (quedan: readonly string[]) => {
+          const vistos = [...new Set(quedan.filter((q) => q && q !== "sin talla" && q !== "Sin color"))];
+          return vistos.length > 0 ? { detalle: vistos.join(", ") } : {};
+        };
+        if (color && !talla) {
+          juntar("identidad", `color\n${color.antes}\n${color.despues}`, c.queda ?? "", (quedan) => ({
+            texto: `${plural(quedan.length, "variante pasa", "variantes pasan")} de ${color.antes} a ${color.despues}`,
+            ...detalle(quedan),
+          }));
+        } else if (talla && !color) {
+          juntar("identidad", `talla\n${talla.antes}\n${talla.despues}`, c.queda ?? "", (quedan) => ({
+            texto: `${plural(quedan.length, "variante pasa", "variantes pasan")} de talla ${talla.antes} a ${talla.despues}`,
+            ...detalle(quedan),
+          }));
+        } else if (color && talla) {
+          sumar("identidad", { texto: `${c.antes} pasa a ser ${c.despues}` });
+        } else {
+          // Sin los ejes (quien llama no los mandó): la variante, de qué a qué.
+          sumar("identidad", { texto: c.nombre, antes: c.antes, despues: c.despues });
+        }
         break;
-      case "precio":
-        sumar("precios", { texto: c.nombre, antes: formatoPrecio(c.antes), despues: formatoPrecio(c.despues) });
+      }
+      case "precio": {
+        contar("precios");
+        const [antes, despues] = [formatoPrecio(c.antes), formatoPrecio(c.despues)];
+        juntar("precios", `${antes}\n${despues}`, c.nombre, (nombres) => ({ texto: variantesNombradas(nombres), antes, despues }));
         break;
-      case "costo":
-        sumar("costos", { texto: c.nombre, antes: formatoCosto(c.antes), despues: formatoCosto(c.despues) });
+      }
+      case "costo": {
+        contar("costos");
+        const [antes, despues] = [formatoCosto(c.antes), formatoCosto(c.despues)];
+        juntar("costos", `${antes}\n${despues}`, c.nombre, (nombres) => ({ texto: variantesNombradas(nombres), antes, despues }));
         break;
+      }
       case "etiquetas":
+        contar("etiquetas");
         sumar("etiquetas", {
           texto: c.nombre,
           detalle: [...c.suman.map((e) => `+ ${e}`), ...c.quitan.map((e) => `− ${e}`)].join("  "),
         });
         break;
       case "dato":
+        contar("datos");
         sumar("datos", { texto: c.etiqueta, antes: c.antes, despues: c.despues });
         break;
       case "temporada_color":
+        contar("temporadaColor");
         sumar("temporadaColor", { texto: c.color, antes: c.antes, despues: c.despues });
         break;
       default: {
         const linea = lineaDeFotos(c);
-        if (linea) sumar("fotos", linea);
+        if (linea) {
+          contar("fotos");
+          sumar("fotos", linea);
+        }
       }
     }
   }
+
+  const notas: Partial<Record<ClaveGrupo, string>> = {
+    identidad: NOTA_CORREGIDAS,
+    agregan: NACEN_SIN_UNIDADES,
+    ...(desactivadasConStock ? { desactivan: NOTA_DESACTIVADAS_CON_STOCK } : {}),
+  };
   return (Object.keys(TITULO_GRUPO) as ClaveGrupo[]).flatMap((clave) => {
-    const lineas = grupos.get(clave);
-    return lineas ? [{ clave, titulo: TITULO_GRUPO[clave], lineas }] : [];
+    const lugares = grupos.get(clave);
+    if (!lugares) return [];
+    const lineas = lugares.map((l) => {
+      if (typeof l !== "string") return l;
+      const junta = juntas.get(l)!;
+      return junta.hacer(junta.nombres);
+    });
+    const nota = notas[clave];
+    return [{ clave, titulo: TITULO_GRUPO[clave], lineas, cantidad: cantidades.get(clave) ?? lineas.length, ...(nota ? { nota } : {}) }];
   });
 }
 

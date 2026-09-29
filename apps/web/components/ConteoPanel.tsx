@@ -16,6 +16,7 @@ import {
   coincidenciasPorCodigo,
   codigoDePrendaNueva,
   crearColaEnSerie,
+  mensajeMezclaEnCenso,
   modoConteoValido,
   nuevaCantidad,
   prioridadDesdeFila,
@@ -1633,7 +1634,8 @@ function AltaAlVuelo({
     if (error) responsable.despues(error);
     const fila = data?.[0];
     if (error || !fila) {
-      setError(traducirError(error, "dar de alta esta prenda"));
+      // Una prenda es «Sin color» o tiene colores (ADR-0263 T5): la base lo frena, y aquí se dice con esta prenda.
+      setError(mensajeMezclaEnCenso(error, referencia, !!colorCodigo) ?? traducirError(error, "dar de alta esta prenda"));
       return;
     }
     // Dos casos con consecuencias distintas y la colaboradora tiene que saber cuál fue:

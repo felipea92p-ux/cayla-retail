@@ -14,6 +14,7 @@ import {
   type ModuloDeCuenta,
   type TipoTerminalLegado,
 } from "@/lib/modulos";
+import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
 
 // Integración con Dynamic (2026-09-12): retail ya no tiene su propia
 // tabla `personas` — Dynamic es dueño de esa identidad (rol, estado,
@@ -36,6 +37,13 @@ export type PersonaActualV2 = {
    *  (0012_control_total_temporal.sql) se revierta, esto puede volver a
    *  distinguirse sin tocar el componente. */
   puedeCambiarUbicacion: boolean;
+  /** ADR-0275: ¿está mirando CAYLA Global (toda la empresa) en vez de una sede? En «global», `ubicacionId`,
+   *  `ubicacionTipo` y `personaId` siguen siendo los de la sede donde trabaja (nada que dependa de ellos se rompe), pero
+   *  `ubicacionEtiqueta` dice «CAYLA Global» y `modulos` trae solo los que funcionan en esa vista: las pantallas de
+   *  operación no están (el menú no las muestra y `exigirModulo` manda a elegir sede). */
+  vista: Vista;
+  /** ¿Puede elegir «CAYLA Global» en el selector? Quien ve el módulo `cayla_global` (al nacer, solo el Admin). */
+  puedeVerGlobal: boolean;
   /** ¿Esta sesión es la de una TERMINAL (un aparato)? ES EL DATO que dice «esto es un aparato, no alguien»: desde el
    *  ADR-0162 una terminal es una cuenta de Auth SIN persona (`retail.terminales`), fija a una tienda y nunca líder. Con
    *  él, el pie del menú muestra el aparato y no una persona, «Mi perfil» no se ofrece (no hay perfil de RRHH que mostrar)
@@ -53,7 +61,8 @@ export type PersonaActualV2 = {
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
   /** Los módulos que ve esta cuenta según su ROL (ADR-0161 B2, `fn_mis_modulos()`): de acá salen el menú, `permisos` y
-   *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia. */
+   *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia.
+   *  Ya filtrados por la vista (ADR-0275, `modulosEnLaVista`): lo que la cuenta usa AHORA, parada donde está. */
   modulos: readonly ModuloDeCuenta[];
   /** ADR-0184 (Compras por tienda): las tiendas cuyas Compras ve, registra y paga esta cuenta — `fn_compras_ubicaciones()`:
    *  su tienda si su rol ve un módulo de Compras, más las que el líder le sumó en `compradores_de_tienda` (la persona de
@@ -122,7 +131,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
   // Sin `fn_mis_modulos()` (base anterior a los roles): una terminal ve lo de su tipo viejo, si la base aún lo devuelve.
   const legado = (TIPOS_TERMINAL_LEGADO as readonly string[]).includes(textoTerminal) ? (textoTerminal as TipoTerminalLegado) : null;
-  const modulos = deLaBase ? leerModulos(filasModulos) : modulosDeHoy(rol, terminal ? { legado } : null);
+  const modulosDeLaCuenta = deLaBase ? leerModulos(filasModulos) : modulosDeHoy(rol, terminal ? { legado } : null);
+  // ADR-0275: CAYLA Global es un módulo como cualquiera, pero no una pantalla de sede: decide si el selector la ofrece.
+  const puedeVerGlobal = !terminal && modulosDeLaCuenta.some((m) => m.clave === "cayla_global");
 
   let ubicacionId = data.ubicacion_id;
   let ubicacionEtiqueta = data.ubicacion_nombre ?? "";
@@ -133,10 +144,15 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // cada operación lo vuelve a validar el servidor en cada RPC
   // (fn_puede_operar_ubicacion), esto nunca es la única puerta. Mismo
   // mecanismo que V1 (lib/persona.ts, cookie cayla_sede_activa).
-  if (data.es_lider) {
-    const cookieStore = await cookies();
-    const activa = cookieStore.get(COOKIE_UBICACION)?.value;
-    if (activa && activa !== ubicacionId) {
+  //
+  // ADR-0275: la misma cookie guarda «global» cuando se eligió CAYLA Global. Vale solo si la cuenta HOY ve el módulo: si
+  // se le quitó, vuelve sola a su sede (sin error: la cookie vieja solo deja de valer).
+  const activa = (await cookies()).get(COOKIE_UBICACION)?.value;
+  const vista: Vista = activa === VALOR_VISTA_GLOBAL && puedeVerGlobal ? "global" : "sede";
+  if (vista === "global") {
+    ubicacionEtiqueta = NOMBRE_VISTA_GLOBAL;
+  } else if (data.es_lider) {
+    if (activa && activa !== ubicacionId && activa !== VALOR_VISTA_GLOBAL) {
       const { data: ubicacion } = await supabase
         .from("ubicaciones")
         .select("id, nombre, tipo")
@@ -151,9 +167,13 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     }
   }
 
+  // Los permisos salen de TODOS los módulos de la cuenta (un líder en CAYLA Global sigue siendo líder); lo que se usa
+  // ahora, de los de la vista (ADR-0275).
+  const permisos = permisosDeModulos(rol, modulosDeLaCuenta);
+  const modulos = modulosEnLaVista(vista, modulosDeLaCuenta);
+
   // ADR-0184: solo para quien no es líder y su rol ve un módulo de Compras (el líder ve todas; el resto, ninguna): una
   // llamada menos en el camino más transitado de la app. Quién entra lo dice el rol; de QUÉ TIENDAS, la base.
-  const permisos = permisosDeModulos(rol, modulos);
   let tiendasCompra: PersonaActualV2["tiendasCompra"] = [];
   if (!data.es_lider && permisos.includes("verDineroCompras")) {
     const { data: ids } = await supabase.rpc("fn_compras_ubicaciones");
@@ -170,6 +190,8 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     ubicacionEtiqueta,
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
+    vista,
+    puedeVerGlobal,
     terminal,
     personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
     esAdmin: !terminal && soyAdmin === true,
@@ -219,7 +241,12 @@ export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modul
 export async function exigirModulo(clave: ClaveModulo, ...alternos: ClaveModulo[]): Promise<PersonaActualV2> {
   const persona = await requirePersonaActualV2();
   // `alternos`: otros módulos que también abren esta pantalla (Atributos se abre con Etiquetas, que vive en una pestaña).
-  if (![clave, ...alternos].some((c) => veModulo(persona, c))) redirect(`/sin-acceso?modulo=${clave}`);
+  if (![clave, ...alternos].some((c) => veModulo(persona, c))) {
+    // ADR-0275: en CAYLA Global una pantalla de operación no es «sin acceso»: trabaja en una sede. Se ofrece elegirla.
+    // (La barrera de rutas de `proxy.ts` ya manda ahí casi siempre; esto cubre lo que llegue por otro camino.)
+    if (persona.vista === "global" && !funcionaEnVistaGlobal(clave)) redirect(`${RUTA_ELEGIR_SEDE}?modulo=${clave}`);
+    redirect(`/sin-acceso?modulo=${clave}`);
+  }
   return persona;
 }
 

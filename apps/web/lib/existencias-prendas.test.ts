@@ -7,6 +7,7 @@ import {
   lineasParaTrasladar,
   MAX_VARIANTES_EN_URL,
   ordenarPorUrgencia,
+  queHacerPrenda,
   sePuedeBajar,
   tallaParaReponer,
   tallaPorCodigo,
@@ -210,5 +211,36 @@ describe("tallaPorCodigo con un código repetido (tarea #11)", () => {
   it("un código único abre su talla, sin importar mayúsculas ni espacios", () => {
     expect(tallaPorCodigo([a, b, c], " 7750002 ")?.varianteId).toBe("c");
     expect(tallaPorCodigo([a, c], "CMS-a".toLowerCase())?.varianteId).toBe("a");
+  });
+});
+
+describe("queHacerPrenda — el diagnóstico de la lista «Por prenda» (diseño aprobado, 2026-09-28)", () => {
+  it("cuenta las tallas sin nada libre colgado: piso libre en 0, tengan o no algo atrás", () => {
+    const q = queHacerPrenda([
+      fila({ varianteId: "a", pisoDisponible: 0, almacenDisponible: 6, accionHoy: REPONER }),
+      fila({ varianteId: "b", pisoDisponible: 0, almacenDisponible: 6, accionHoy: REPONER }),
+      fila({ varianteId: "c", pisoDisponible: 3, almacenDisponible: 2, accionHoy: REPONER }),
+    ]);
+    expect(q).toEqual({ tipo: "sin_stock_piso", n: 2, critico: false });
+  });
+  it("es crítico si alguna de esas tallas no tiene NADA en ningún lado (no hay qué bajar)", () => {
+    const q = queHacerPrenda([
+      fila({ varianteId: "a", pisoDisponible: 0, almacenDisponible: 4, accionHoy: REPONER }),
+      fila({ varianteId: "b", pisoDisponible: 0, almacenDisponible: 0, accionHoy: REPONER }),
+    ]);
+    expect(q).toEqual({ tipo: "sin_stock_piso", n: 2, critico: true });
+  });
+  it("con todas colgadas, cuenta las que la regla de piso ya pide reponer", () => {
+    const q = queHacerPrenda([
+      fila({ varianteId: "a", pisoDisponible: 2, almacenDisponible: 5, accionHoy: REPONER }),
+      fila({ varianteId: "b", pisoDisponible: 9, almacenDisponible: 5, accionHoy: SIN_ACCION }),
+    ]);
+    expect(q).toEqual({ tipo: "por_reponer", n: 1 });
+  });
+  it("si nada pide nada: «mantener»", () => {
+    expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: 8, almacenDisponible: 1 })])).toEqual({ tipo: "mantener" });
+  });
+  it("donde no se separa piso y almacén (Taller) no hay diagnóstico de piso", () => {
+    expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: null, almacenDisponible: null, disponible: 5, accionHoy: null })])).toEqual({ tipo: "mantener" });
   });
 });

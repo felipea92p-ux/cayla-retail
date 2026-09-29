@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -15,6 +14,8 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { BuscadorGlobal } from "@/components/BuscadorGlobal";
+import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 
@@ -93,6 +94,10 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
+  /** ADR-0275: si puede elegir CAYLA Global en el selector, y si la está mirando ahora (entonces `ubicacionEtiqueta` dice
+   *  «CAYLA Global» y `modulos` trae solo los de esa vista). Opcionales: ausentes, todo sigue como antes. */
+  puedeVerGlobal?: boolean;
+  vista?: "sede" | "global";
   /** Si esta sesión es la de una TERMINAL, un aparato SIN persona (ADR-0162). Opcional: quien arma el AppShell sin persona
    *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
    *  muestra el aparato (no una persona) y no abre «Mi perfil». */
@@ -215,10 +220,15 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // 2026-09-27 — antes tomaba prestados los cuadros de "Resumen", que es otra
   // pantalla con otro nombre.
   analisis: "M3 17l6-6 4 4 8-8M15 6h6v6",
+  // Un brote: lo nuevo del piso (Frescura del piso, ADR-0208 paso 4). No la percha de «Existencias» (lo que hay
+  // colgado) ni la línea de «Análisis» (cómo se vendió): cuánto lleva lo colgado y qué se está quedando.
+  frescura: "M12 20v-8M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.3-5-5.5-5 0 3 2.3 5 5.5 5z",
   // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
   panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
+  pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
@@ -859,6 +869,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     modulos: persona.modulos ?? null,
     contadores: { trasladosPorAtender },
   });
+  // Buscador global (cabecera): toda pantalla que ESTE perfil ve, sin importar en qué grupo vive —
+  // mismo filtro por rol que ya resolvió `menuPara`, no uno nuevo.
+  const pantallasBuscables = menu.riel.flatMap(hojasDe);
 
   // Grupos colapsables: arrancan CERRADOS por defecto (pedido de Felipe,
   // 2026-09-16 — con "Catálogo" sumado a "Venta" se veía todo desplegado a
@@ -938,19 +951,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
-          <Image
-            src="/cayla-isotipo.png"
-            alt="CAYLA"
-            width={32}
-            height={32}
-            priority
-            className="h-8 w-auto transition-transform duration-500 ease-cayla group-hover:scale-105"
-          />
-          <span
-            className={`label-cayla text-sm text-tinta transition-[color,opacity] duration-200 group-hover:text-rojo ${compacto ? "opacity-0" : ""}`}
-            style={{ letterSpacing: "0.26em" }}
-          >
-            CAYLA
+          <IsotipoCayla className="h-8 w-auto shrink-0 transition-transform duration-500 ease-cayla group-hover:scale-105" />
+          <span className={`flex min-w-0 flex-col transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
+            <span className="label-cayla text-sm text-tinta transition-colors duration-200 group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
+              CAYLA
+            </span>
+            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
+            <span className="label-cayla text-[10px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
+              Retail
+            </span>
           </span>
         </Link>
         <button
@@ -1112,8 +1121,17 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               <path d="M15.5 9.5L13 12l2.5 2.5" className={`origin-center transition-transform duration-300 ease-cayla ${plegado ? "-scale-x-100" : ""}`} />
             </svg>
           </button>
+          {/* NUEVO — se agrega al lado del botón de plegar; ninguno de los dos existentes (Actividad,
+              Tienda TRU, más adelante) se mueve. Solo escritorio: en celular la lupa de siempre (abajo)
+              sigue yendo a `/buscar`, el buscador de prendas — este es otro buscador, otro trabajo. */}
+          <BuscadorGlobal
+            pantallas={pantallasBuscables}
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
+          />
           <Link href="/" className="flex items-center gap-2 sm:hidden">
-            <Image src="/cayla-isotipo.png" alt="CAYLA" width={26} height={26} priority className="h-[26px] w-auto" />
+            <IsotipoCayla className="h-[26px] w-auto" />
           </Link>
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción
@@ -1127,18 +1145,26 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
-            {persona.puedeCambiarUbicacion ? (
-              <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
+            {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
+              <UbicacionSwitcher
+                ubicaciones={ubicaciones}
+                ubicacionActualId={persona.ubicacionId}
+                puedeVerGlobal={!!persona.puedeVerGlobal}
+                enVistaGlobal={persona.vista === "global"}
+              />
             ) : (
               <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
             )}
-            <Link
-              href="/buscar"
-              aria-label="Buscar"
-              className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
-            >
-              <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
-            </Link>
+            {/* `/buscar` es el buscador de prendas de UNA sede: en CAYLA Global no existe (ADR-0275). */}
+            {persona.vista === "global" ? null : (
+              <Link
+                href="/buscar"
+                aria-label="Buscar"
+                className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+              >
+                <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+              </Link>
+            )}
           </div>
         </div>
       </header>

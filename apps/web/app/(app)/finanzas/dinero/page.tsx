@@ -2,6 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getContextoDinero, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { CuentasPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
+import { verDeLaVista } from "@/lib/vista-global";
 
 // Finanzas ▸ Cuentas y dinero ▸ Cuentas (ADR-0195 F3). Lee en el servidor y deja a una pieza cliente operar. `?ver=` (solo el
 // líder) elige qué sede mirar: por defecto la sede donde trabaja, o «todas» (ahí aparecen la plata del dueño y a qué
@@ -10,7 +11,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
-  const ctx = await getContextoDinero(persona, sp.ver);
+  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
   const [movimientos, medios, sinCuenta] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),

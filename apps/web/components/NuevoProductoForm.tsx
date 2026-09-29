@@ -6,11 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
+import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
 import { AtajosTallas, ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
@@ -24,7 +25,7 @@ import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPr
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
-import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
 import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -228,11 +229,6 @@ export function NuevoProductoForm({
   // La temporada de la categoría ELEGIDA: es lo que hereda la prenda si no se elige otra (ADR-0246).
   const listaTemporadas = contexto.temporadas?.lista ?? [];
   const temporadaCategoria = nombreTemporada(listaTemporadas, contexto.temporadas?.porCategoria[categoriaId]);
-  // «Ninguna» se lee mejor que «Igual que su categoría (…)» (revisión de claridad del spike v2): la aclaración de que
-  // entonces usa la de su categoría va en la ayuda del campo, no dentro de la opción.
-  const opcionesTemporadaAlta = opcionesTemporada(listaTemporadas, { nombre: temporadaCategoria, de: "categoría" }).map((o) =>
-    o.valor === SIN_PROPIA ? { ...o, texto: "Ninguna" } : o
-  );
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
@@ -793,9 +789,7 @@ export function NuevoProductoForm({
               ayuda={`Sin año: el sistema lo sabe por la fecha en que llega. Si eliges «Ninguna», usa la de su categoría${temporadaCategoria ? ` (${temporadaCategoria})` : ""}.`}
             >
               {contexto.temporadas ? (
-                <div className="max-w-sm">
-                  <CampoSelect etiqueta="Temporada" caja id="temporada-producto" valor={temporada} onValor={setTemporada} opciones={opcionesTemporadaAlta} />
-                </div>
+                <ElegirTemporada temporadas={listaTemporadas} clave={temporada} onElegir={setTemporada} />
               ) : (
                 <p className="text-xs text-taupe">
                   La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del

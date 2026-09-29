@@ -4,6 +4,7 @@ import { createClient as crearClienteSupabase, type SupabaseClient } from "@supa
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
@@ -88,15 +89,6 @@ export async function getCostosVariantes(ids?: string[]): Promise<Map<string, nu
 
 /** De estas variantes, las que ya tienen costo de Compras o del Taller (20260927190000): su costo ya no se corrige a mano.
  *  `null` si no se pudo preguntar (la migración aún no está en esta base). */
-/** Cuáles de estas variantes ya tienen historia (20260928235500). `null` = la función todavía no existe en la base. */
-async function getVariantesConHistoria(ids: string[]): Promise<Set<string> | null> {
-  if (ids.length === 0) return new Set();
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_variantes_con_historia", { p_ids: ids });
-  if (error || !Array.isArray(data)) return null;
-  return new Set(data as string[]);
-}
-
 async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> | null> {
   if (ids.length === 0) return new Set();
   const supabase = await createClient();
@@ -418,6 +410,22 @@ export async function getReposicionPorProveedor(
   return contarProductosPorProveedor(filas);
 }
 
+/**
+ * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0270):
+ * la tarjeta del Catálogo dice lo mismo que Existencias. `null` si no se pudo leer (p. ej. la función todavía no está
+ * pegada en producción): la tarjeta vuelve a «Stock total N» en vez de romperse o inventar un cero.
+ */
+export async function getExistenciasProductos(productoIds: string[], ubicacionId: string | null): Promise<Map<string, ExistenciasProducto> | null> {
+  if (productoIds.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "fn_existencias_productos" as never,
+    { p_producto_ids: productoIds, p_ubicacion_id: ubicacionId } as never
+  );
+  if (error) return null;
+  return leerExistenciasProductos(data);
+}
+
 /** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`
  *  menos `stock`/`orden`: esas dos cifras (stock bajo/sin stock) son lo que
  *  el resumen calcula, no algo que ya llega filtrado (igual que Movimientos
@@ -456,10 +464,6 @@ export type VarianteDetalle = {
    *  costo declarado (alta o carga inicial), se puede corregir. null = no se pudo saber (la migración 20260927190000
    *  aún no está): la ficha lo trata como oficial, que es lo seguro. */
   costoOficial: boolean | null;
-  /** true = ya tiene movimientos, ventas, compras o traslados: su color y su talla no se cambian. false = sin historia,
-   *  se corrigen desde la ficha (20260928235500). null = no se pudo saber (la migración aún no está): se trata como con
-   *  historia, que es lo seguro. */
-  conHistoria: boolean | null;
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
@@ -541,10 +545,9 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
   const ids = (data.variantes ?? []).map((v) => v.id);
-  const [costos, conCostoOficial, conHistoria, temporadas] = await Promise.all([
+  const [costos, conCostoOficial, temporadas] = await Promise.all([
     getCostosVariantes(ids),
     getVariantesConCostoOficial(ids),
-    getVariantesConHistoria(ids),
     getFichaTemporadas(id),
   ]);
 
@@ -581,7 +584,6 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       precio: Number(v.precio),
       costo: costos ? (costos.get(v.id) ?? 0) : null,
       costoOficial: conCostoOficial ? conCostoOficial.has(v.id) : null,
-      conHistoria: conHistoria ? conHistoria.has(v.id) : null,
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
