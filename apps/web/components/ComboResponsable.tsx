@@ -8,8 +8,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
@@ -78,8 +77,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    const k = clave(busqueda);
-    return opciones.filter((p) => clave(p.nombre).includes(k));
+    return filtrarCombo(opciones, busqueda, (p) => ({ texto: p.nombre }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
