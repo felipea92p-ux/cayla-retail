@@ -3,15 +3,16 @@ import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
-import { nombreDiaLima } from "@/lib/inicio-reglas";
+import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
 
-// Lecturas del bloque «Hoy» del Inicio. Reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
+// Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
-// discrepen en qué es «hoy» (docs/datos/11-KPIS.md, «Qué lo rompe» a: dos fuentes que nada obliga a cuadrar).
+// discrepen en qué es «hoy» (docs/datos/11-KPIS.md, «Qué lo rompe» a: dos fuentes que nada obliga a cuadrar). Una integrante
+// lee `fn_mis_ventas_del_dia`: solo lo que ella atendió, no el día de toda la tienda (`fuenteVentasDeHoy`).
 //
 // Cada pieza falla POR SEPARADO y devuelve null: «Hoy» es un dato secundario del que nadie decide plata
 // mirando un solo número, pero un cero mudo sí engañaría — por eso la pantalla distingue «0 ventas» de
@@ -20,7 +21,8 @@ import type { ClaveModulo } from "@/lib/modulos";
 export type HoyDeLaSede = {
   /** null = no se pudo leer (no es lo mismo que «cerrada»). */
   cajaAbierta: boolean | null;
-  /** El `total` de cada venta del día. Para una colaboradora la RPC devuelve solo las suyas. null = falló. */
+  /** El `total` de cada venta del día: las de TODA la sede para la líder, solo las que atendió ella para una integrante
+   *  (`fuenteVentasDeHoy`). null = falló. */
   totales: number[] | null;
   /** Solo la líder ve el comparativo y la meta: son cifras de toda la sede. null = no aplica o falló. */
   semanaAnterior: number | null;
@@ -52,7 +54,11 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
       }
     ),
     tolerarLectura("las ventas de hoy", async () => {
-      const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
+      // Sin caer al día de la tienda si la función personal no existe todavía: el número de otra persona sería peor que ninguno.
+      const res =
+        fuenteVentasDeHoy(esLider) === "fn_ventas_del_dia"
+          ? await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId })
+          : await supabase.rpc("fn_mis_ventas_del_dia");
       if (res.error) throw new Error(res.error.message);
       return (res.data ?? []).map((v) => Number(v.total));
     }),

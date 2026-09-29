@@ -9,6 +9,7 @@
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
 import type { ClaveModulo } from "./modulos";
+import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 
@@ -310,10 +311,14 @@ export function resumirApartados(apartados: { venceEl: string; clienta: string }
 
 // ── Accesos rápidos ──────────────────────────────────────────────────────────────────────────────
 
-export type ClaveAccesoIcono = "caja" | "apartados" | "stock" | "traslados" | "cambios" | "recibir" | "conteo" | "produccion" | "buscar";
+export type ClaveAccesoIcono = "caja" | "apartados" | "stock" | "traslados" | "cambios" | "recibir" | "conteo" | "produccion" | "buscar" | "nuevoProducto";
 export type AccesoRapido = { href: string; etiqueta: string; icono: ClaveAccesoIcono };
 
-const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null }> = {
+// `modulo`: la pantalla a la que lleva (si no lo ve, caería en «Sin acceso»). `permiso`: lo que además hace falta para que la
+// acción funcione al final. «Nuevo producto» pide los dos: ver Productos no basta, el rol tiene que poder ESCRIBIR en el
+// catálogo (un rol `limitado_como_hoy` lo ve pero la base rechaza el guardado, y un acceso que termina en un error es peor
+// que no tenerlo).
+const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
   caja: { href: "/caja", etiqueta: "Caja", icono: "caja", modulo: "caja" },
   apartados: { href: "/vender/apartados", etiqueta: "Apartados", icono: "apartados", modulo: "apartados" },
   stock: { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },
@@ -323,19 +328,47 @@ const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | n
   conteo: { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   produccion: { href: "/produccion", etiqueta: "Órdenes", icono: "produccion", modulo: "produccion" },
   buscar: { href: "/buscar", etiqueta: "Buscar", icono: "buscar", modulo: null },
+  nuevoProducto: { href: "/productos/nuevo", etiqueta: "Nuevo producto", icono: "nuevoProducto", modulo: "productos", permiso: "editarCatalogo" },
 };
 
-/** Hasta 4 accesos, en el orden que más usa cada perfil, SOLO de módulos que ve. «Vender» no está: tiene su lugar propio
- *  (cabecera en computadora, botón fijo en celular). «Buscar» no pide módulo: cierra la fila si queda lugar. */
-export function accesosRapidos(perfil: { esLider: boolean; ubicacionTipo: "tienda" | "almacen" | "taller"; modulos: readonly ClaveModulo[] }): AccesoRapido[] {
-  const orden: ClaveAccesoIcono[] =
-    perfil.ubicacionTipo === "taller" ? ["produccion", "recibir", "stock", "buscar"]
-      : perfil.ubicacionTipo === "almacen" ? ["traslados", "recibir", "conteo", "stock", "buscar"]
-        : perfil.esLider ? ["caja", "apartados", "traslados", "cambios", "stock", "buscar"]
-          : ["apartados", "stock", "cambios", "caja", "traslados", "recibir", "buscar"];
+/** Qué hace la cuenta, y de ahí su lista (Felipe, 2026-09-29: «cada rol con una lista genérica de lo que va a usar»). Se lee
+ *  de los MÓDULOS del rol y no de su nombre: un rol nuevo que vende recibe la lista del mostrador sin que nadie la escriba,
+ *  y una terminal es lo que su rol le deja hacer (ADR-0161, ADR-0162). El orden importa: solo caben 4. */
+/** La líder: «Nuevo producto» en lugar de Apartados (Felipe, 2026-09-29). Apartados sigue a un toque: el aviso «Apartados que
+ *  vencen» de «Te toca» lleva ahí, y el menú de Ventas también. */
+const LISTA_LIDER: ClaveAccesoIcono[] = ["caja", "nuevoProducto", "traslados", "cambios", "stock", "apartados", "buscar"];
+/** Quien vende: lo que la clienta le pide en el mostrador. «Nuevo producto» va cuarto y saca a Caja de esa fila para quien
+ *  puede cargar catálogo (Caja sigue en el menú y en «Tu día»); quien no puede, conserva Caja. */
+const LISTA_MOSTRADOR: ClaveAccesoIcono[] = ["apartados", "stock", "cambios", "nuevoProducto", "caja", "traslados", "recibir", "buscar"];
+/** Quien no vende y está en una tienda (la terminal de almacén, un rol administrativo): la mercadería que entra y se mueve.
+ *  «Conteo» va después porque se hace por temporadas, no cada día. */
+const LISTA_TRASTIENDA: ClaveAccesoIcono[] = ["recibir", "traslados", "stock", "nuevoProducto", "conteo", "buscar"];
+const LISTA_ALMACEN: ClaveAccesoIcono[] = ["traslados", "recibir", "conteo", "stock", "buscar"];
+const LISTA_TALLER: ClaveAccesoIcono[] = ["produccion", "recibir", "stock", "buscar"];
+
+/** Hasta 4 accesos, en el orden que más usa cada perfil, SOLO de módulos que ve (y, si la acción escribe, de permisos que
+ *  tiene). «Vender» no está: tiene su lugar propio (cabecera en computadora, botón fijo en celular). «Buscar» no pide módulo:
+ *  cierra la fila si queda lugar. La terminal del mostrador (ve el Punto de venta) nunca llega aquí: aterriza en `/vender`,
+ *  donde «Más» ya ofrece Caja, Cambios, Devoluciones e Historial según su rol (`lib/vender-accesos.ts`).
+ *
+ *  Con solo 4 lugares, meter uno saca a otro: por eso, y no por gusto, esta lista debería poder elegirse por rol (pendiente,
+ *  `docs/backlog/2026-09-29-accesos-rol-terminal-3e62ba.md`). */
+export function accesosRapidos(perfil: {
+  esLider: boolean;
+  ubicacionTipo: "tienda" | "almacen" | "taller";
+  modulos: readonly ClaveModulo[];
+  /** Lo que la cuenta puede hacer (`persona.permisos`). Sin él, ningún acceso que exija un permiso se muestra. */
+  permisos?: readonly Permiso[];
+}): AccesoRapido[] {
+  const orden =
+    perfil.ubicacionTipo === "taller" ? LISTA_TALLER
+      : perfil.ubicacionTipo === "almacen" ? LISTA_ALMACEN
+        : perfil.esLider ? LISTA_LIDER
+          : perfil.modulos.includes("vender") ? LISTA_MOSTRADOR
+            : LISTA_TRASTIENDA;
   return orden
     .map((k) => ACCESOS[k])
-    .filter((a) => a.modulo === null || perfil.modulos.includes(a.modulo))
+    .filter((a) => (a.modulo === null || perfil.modulos.includes(a.modulo)) && (!a.permiso || !!perfil.permisos?.includes(a.permiso)))
     .slice(0, 4)
     .map(({ href, etiqueta, icono }) => ({ href, etiqueta, icono }));
 }

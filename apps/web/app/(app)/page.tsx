@@ -75,7 +75,7 @@ export default async function InicioPage() {
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
   const visibles = avisosVisibles(avisos, eleccion, esLider);
-  const accesos = accesosRapidos({ esLider, ubicacionTipo: persona.ubicacionTipo, modulos });
+  const accesos = accesosRapidos({ esLider, ubicacionTipo: persona.ubicacionTipo, modulos, permisos: persona.permisos });
 
   // A un APARATO (ADR-0162) no se lo saluda por su «primer nombre»: se lo nombra entero.
   const primerNombre = persona.nombre.trim().split(/\s+/)[0];
@@ -91,10 +91,12 @@ export default async function InicioPage() {
           : "Integrante";
   const fecha = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date());
 
-  // El botón fijo del celular: vender en una tienda; recibir en el almacén. Nadie más lo necesita.
+  // El botón fijo del celular: vender en una tienda; recibir en el almacén y en la trastienda de una tienda (la terminal de
+  // almacén, un rol que no vende: Felipe, 2026-09-29). Quien vende, o no ve Recibir, no lo necesita.
+  const trastienda = persona.ubicacionTipo === "tienda" && !ve("vender");
   const fijo = vende
     ? { href: "/vender", etiqueta: "Vender", icono: "vender" as const }
-    : persona.ubicacionTipo === "almacen" && ve("recibir")
+    : (persona.ubicacionTipo === "almacen" || trastienda) && ve("recibir")
       ? { href: "/recibir", etiqueta: "Recibir mercadería", icono: "recibir" as const }
       : null;
 
@@ -325,7 +327,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
           <Link
             key={a.href}
             href={a.href}
-            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
+            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
             <Icono clave={a.icono} className="size-[22px]" />
             {a.etiqueta}
@@ -393,6 +395,7 @@ const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> 
   conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
   produccion: "M4 20V9l5 3V9l5 3V6l6 3v11z",
   buscar: "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5",
+  nuevoProducto: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8",
   chevron: "M9 6l6 6-6 6",
   check: "M5 12l4 4 10-10",
 };
