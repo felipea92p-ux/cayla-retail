@@ -1,7 +1,8 @@
 # ADR-0263 · Corregir el color y la talla de una variante que ya existe (y editar variantes como matriz)
 
 - **Fecha:** 2026-09-28 · **Estado:** aprobado por Felipe (tres preguntas, 2026-09-28; «Integrar sobre main», la misma
-  noche); construido (base y ficha), SQL sin pegar en producción.
+  noche); construido (base y ficha). `20260929045000` **en producción** desde el 2026-09-28 (pegada por
+  Felipe, verificada por huellas); la web se publica al fusionar el PR #576.
 - **Pedido:** Felipe, 2026-09-28, con captura de BOD-0003 «Body Amir»: «una vez creado el producto la edición es muy
   limitada, no me deja editar color y demás variantes de una forma adecuada o mejor de lo que haría Shopify».
 - **Número:** nació como ADR-0254 y migración `20260928233000` (reservados el 2026-09-28 y subidos a la rama); el 0254 lo

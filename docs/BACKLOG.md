@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0263; D-136 a D-138) — web + migración `20260929045000` **SIN PEGAR (se pega ANTES de fusionar la web)**; rama `claude/product-variant-editing-9307ed`
+## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0263; D-136 a D-138) — web + migración `20260929045000` **EN PRODUCCIÓN (2026-09-28); falta fusionar la web**; rama `claude/product-variant-editing-9307ed`
 Pedido de Felipe (2026-09-28, captura de BOD-0003 «Body Amir», 3 variantes «Sin color» con 17 u. de carga inicial): «una vez
 creado el producto la edición es muy limitada… mejor de lo que haría Shopify». Reemplaza ADR-0243 D-133 (color, talla y código
 de solo lectura) y la regla del ADR-0258 («solo sin historia», D-139/D-140), integrado sobre `main` (Felipe: «Integrar sobre
@@ -47,14 +47,12 @@ main»): se conserva el guardado en dos tiempos del #568 (ADR-0257) y la migraci
   nueva) en el CI, en una base desde cero y en una réplica de producción (`main` con el 0258 + esta), con `retail` idéntico entre
   las dos; suites de catálogo en verde; revisión adversarial de 5 lentes: 17 hallazgos confirmados, todos resueltos. Se retiró
   `pnpm pruebas:corregir-identidad-variante` (la del 0258): afirmaba la regla que se reemplaza.
-- [ ] **Pegar en producción ANTES de fusionar la web: SOLO `supabase/migrations/20260929045000_corregir_siempre_color_y_talla_de_variantes.sql`,
-  entera y sola.** Primero la consulta de ANTES DE PEGAR de su cola (solo lectura: huellas del 0258 y 0 repetidas); después
-  pegarla (toma `access exclusive` sobre `variantes` con `lock_timeout` de 3 s: si la tienda la tiene tomada, falla limpia y se
-  vuelve a pegar); después la consulta de DESPUÉS DE PEGAR (las ocho huellas). No hay script de limpieza del 0258 (ya no
-  existe) y `20260928235500` NO se vuelve a pegar: devolvería el candado «solo sin historia». Con la web nueva y la base de hoy,
-  la ficha no ofrece corregir (lo dice); con la web de `main` y la base nueva, todo sigue igual. Después: refrescar el
-  diccionario. **El pegado automático desde Claude Code lo bloqueó el clasificador de seguridad (2026-09-28):** lo pega Felipe
-  en el SQL Editor, o da el permiso para que se pegue por el conector.
+- [x] **`20260929045000` EN PRODUCCIÓN** (pegada por Felipe en el SQL Editor el 2026-09-28; verificada por Claude con solo lectura):
+  índice NULLS NOT DISTINCT, candado `variantes_identidad_solo_por_funcion`, `variantes_sin_mezcla_de_color` diferible, una sola
+  `fn_corregir_identidad_variante` (DEFINER), `fn_variantes_estado`, sin restos del 0258, `fn_codigo_variante_libre` cerrada a la
+  API, 0 prendas mezcladas, y las 9 huellas `md5(prosrc)` iguales a las de la base desde cero.
+- [ ] **Fusionar el PR #576** (publica la web nueva; la de `main` ya funciona igual sobre la base nueva) y **refrescar el
+  diccionario** (`docs/datos/generado/COMO-REFRESCAR.md`).
 - [ ] **Coordinar con el PR #580 (ADR-0270):** su `20260929020000` reescribe `fn_productos` entera. Si en producción se pega
   DESPUÉS de esta, borra el parche de la foto general; quien pegue el segundo revisa la huella de `fn_productos`.
 - [ ] **Abierto (T8):** una venta de dos tallas en orden inverso al id contra la corrección de esas dos tallas todavía puede dar
