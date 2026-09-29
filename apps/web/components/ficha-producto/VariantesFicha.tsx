@@ -81,6 +81,7 @@ export function VariantesFicha({
   tallasCategoria,
   categoriaNombre,
   onColorCreado,
+  onFotosDeColores,
   etiquetas,
   avisoEtiquetas,
   deshabilitado,
@@ -100,6 +101,8 @@ export function VariantesFicha({
   categoriaNombre?: string;
   /** Un color creado desde «Agregar color»: la ficha lo suma a su vocabulario para nombrarlo y pintarlo. */
   onColorCreado: (color: ColorAlta) => void;
+  /** Las fotos que se eligieron en «Agregar color» (ya subidas), cada una con el color al que se agregó (ADR-0279). */
+  onFotosDeColores: (fotos: { colorCodigo: string; url: string }[]) => void;
   /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
   etiquetas: { valor: string; texto: string }[];
   avisoEtiquetas?: string;
@@ -157,6 +160,7 @@ export function VariantesFicha({
         )
       : filas;
     agregar(r.combos, r.precio, r.costo, base);
+    if (r.fotos.length > 0) onFotosDeColores(r.fotos);
   }
 
   const fila = (f: FilaFicha, mostrarColor: boolean) => (

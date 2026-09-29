@@ -15,7 +15,8 @@ import { ConfirmarCambios } from "@/components/ConfirmarCambios";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
-import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
+import { FotosPorColor } from "@/components/ficha-producto/FotosPorColor";
+import { conFotosNuevas, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
@@ -382,6 +383,11 @@ export function ProductoForm({
     setFotos((actuales) => anclarFotos(siguientes, actuales, filasRef.current));
   }
 
+  /** Las fotos que se eligieron al agregar colores (ya subidas): entran con el color al que se agregaron (ADR-0279). */
+  function sumarFotosDeColores(nuevas: { colorCodigo: string; url: string }[]) {
+    cambiarFotos(conFotosNuevas(fotosVista, nuevas.map((n) => ({ clientKey: crypto.randomUUID(), id: null, url: n.url, esPrincipal: false, colorCodigo: n.colorCodigo }))));
+  }
+
   // ---------- qué cambió, contra lo que tiene la base (ADR-0257) ----------
   // De aquí salen la barra «Tienes N cambios sin guardar», las marcas de cada fila y la lista de la hoja «Revisa y guarda los
   // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable. Deshacer a mano
@@ -474,8 +480,9 @@ export function ProductoForm({
     fotos: fotosFicha.map((f) => ({ id: f.id, url: f.url, esPrincipal: f.esPrincipal, colorCodigo: f.colorCodigo })),
     variantes,
   });
+  const fotosGuardadas = fotosComoSeVen(enLaBase.fotos, mudanzas);
   const resumen: ResumenCambios = resumenDeCambios(
-    fichaEditable(enLaBase.datos, fotosComoSeVen(enLaBase.fotos, mudanzas), porColorGuardado, variantesResumen.guardadas),
+    fichaEditable(enLaBase.datos, fotosGuardadas, porColorGuardado, variantesResumen.guardadas),
     fichaEditable(datosDeLaPrenda(), fotosVista, conCambiosDeColor(porColorGuardado, cambiosColor), variantesResumen.ahora),
     nombresCambios
   );
@@ -1035,7 +1042,15 @@ export function ProductoForm({
         {/* ---------- fotos ---------- */}
         {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
         <section id="fotos" className="card-cayla scroll-mt-6 p-5">
-          <FotosProducto fotos={fotosVista} onFotos={cambiarFotos} colores={colores} disabled={loading} />
+          <FotosPorColor
+            fotos={fotosVista}
+            onFotos={cambiarFotos}
+            guardadas={fotosGuardadas}
+            colores={coloresFicha}
+            vocabulario={colores}
+            nombreColor={nombres.color}
+            disabled={loading}
+          />
         </section>
 
         {/* ---------- variantes (ADR-0263) ---------- */}
@@ -1049,6 +1064,7 @@ export function ProductoForm({
           tallasCategoria={tallasCategoria}
           categoriaNombre={categoriaActual?.nombre}
           onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
+          onFotosDeColores={sumarFotosDeColores}
           etiquetas={opcionesEtiqueta}
           avisoEtiquetas={avisoEtiquetas}
           deshabilitado={loading}

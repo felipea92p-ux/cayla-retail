@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fotos por color en Editar producto · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Paleta oficial «CAYLA Dynamic» (apps/web/app/globals.css, ADR-0169). El ERP no tiene modo oscuro: una sola vista.
+     El rojo es acento (solo la insignia «Principal»); el ámbar es «pendiente de guardar» (ADR-0257). */
+  :root {
+    color-scheme: light;
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+    --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+    --t85:color-mix(in srgb,var(--tinta) 85%,transparent); --t75:color-mix(in srgb,var(--tinta) 75%,transparent);
+    --t65:color-mix(in srgb,var(--tinta) 65%,transparent); --t55:color-mix(in srgb,var(--tinta) 55%,transparent);
+    --t25:color-mix(in srgb,var(--tinta) 25%,transparent); --t10:color-mix(in srgb,var(--tinta) 10%,transparent);
+    --ease:cubic-bezier(.32,.72,.24,1);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+    --serif:"EB Garamond",ui-serif,Georgia,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --mando-h:0px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;padding:10px 16px 40px}
+  button{font:inherit;color:inherit;cursor:pointer}
+  [hidden]{display:none!important}
+  :focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+  .i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .i.s{width:16px;height:16px}.i.xs{width:14px;height:14px}.i.g{width:26px;height:26px;stroke-width:1.4}
+  .etq{font:600 11px/1.3 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin:0}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--h,#ccc);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);flex:none}
+  .dot.mix{background:conic-gradient(var(--m1,#d5ba98),var(--m2,#a9cada),var(--m3,#48464a),var(--m1,#d5ba98))}
+
+  /* ============ Barra de la maqueta (no es parte del ERP) ============ */
+  .mando{position:sticky;top:8px;z-index:60;display:grid;gap:8px;padding:10px 14px;margin:0 auto 14px;max-width:1440px;border:1px dashed var(--taupe);border-radius:12px;background:color-mix(in srgb,var(--crema) 93%,transparent);backdrop-filter:blur(6px)}
+  .mando-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+  .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .etq-g{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:500 12.5px var(--sans);color:var(--taupe);padding:5px 11px;border-radius:999px}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  @media (max-height:760px){.mando{position:static}}
+  .mini{border:1px solid var(--sand);background:var(--papel);border-radius:8px;font:500 12px var(--sans);padding:6px 10px;color:var(--tinta)}
+  .mini:hover{border-color:var(--taupe)}
+  .decidido{font-size:12.5px;color:var(--taupe);margin:0;max-width:1100px}
+  .decidido b{color:var(--tinta)}
+
+  /* ============ Marco: la pantalla real, a distintos anchos ============ */
+  .estrado{margin:0 auto;width:100%}
+  .marco{position:relative;margin:0 auto;width:100%;border:1px solid var(--sand);border-radius:16px;overflow:clip;background:var(--crema);container:marco / inline-size}
+  .marco[data-ancho="escritorio"]{max-width:1180px}
+  .marco[data-ancho="tablet"]{max-width:820px}
+  .marco[data-ancho="celular"]{max-width:390px}
+  .pagina{padding:26px 36px 24px}
+  .volver{display:inline-block;font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);border:0;background:none;padding:0;margin-bottom:6px}
+  .eyebrow{font:700 11px var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--taupe);margin:0}
+  .h1{font:600 30px/1.1 var(--serif);margin:4px 0 0}
+  .h1 .cod{font:400 15px var(--mono);color:var(--t55);margin-left:10px}
+  .col-form{display:grid;gap:20px;min-width:0;margin-top:20px}
+  .tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:20px}
+  .tarjeta.stub{padding:14px 20px;color:var(--taupe);font-size:13px}
+  .tarjeta.stub b{color:var(--tinta);font-weight:600}
+  .sec-cab{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+  .cuenta{font-size:12.5px;color:var(--taupe);margin:0}
+  .cuenta b{color:var(--tinta);font-variant-numeric:tabular-nums}
+  .ayuda-sec{font-size:13px;color:var(--taupe);margin:6px 0 0;max-width:72ch}
+  .ayuda-sec b{color:var(--tinta);font-weight:600}
+  .pie-f{font-size:12px;color:var(--t55);margin:14px 0 0}
+
+  /* ============ Miniatura de una foto (la pieza común) ============ */
+  .thw{position:relative;flex:none}
+  .th{display:block;width:var(--tw,68px);aspect-ratio:4/5;position:relative;border:1px solid var(--sand);border-radius:8px;background:#fff;padding:0;overflow:hidden}
+  .th img{width:100%;height:100%;object-fit:cover;display:block}
+  .th:hover{border-color:var(--t55)}
+  .th.pend{border-color:var(--ambar);box-shadow:0 0 0 1px var(--ambar)}
+  .ins-p{position:absolute;left:0;top:0;background:var(--rojo);color:var(--crema);font:600 8.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:3px 5px}
+  .ins-n{position:absolute;right:4px;top:4px;background:var(--ambar);color:var(--papel);font:600 9px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:999px}
+  .mas{position:absolute;right:4px;bottom:4px;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--crema) 92%,transparent);display:grid;place-items:center;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .mas svg{width:14px;height:14px;fill:currentColor;stroke:none}
+  .cnt{position:absolute;right:-5px;top:-6px;border-radius:999px;background:var(--tinta);color:var(--crema);font:700 9.5px/15px var(--sans);padding:0 5px;font-variant-numeric:tabular-nums}
+
+  .add-mas{display:grid;place-items:center;align-content:center;gap:3px;width:var(--tw,68px);aspect-ratio:4/5;border:1px dashed var(--t25);border-radius:8px;background:transparent;color:var(--taupe);font:600 9px/1.2 var(--sans);letter-spacing:.09em;text-transform:uppercase;text-align:center;padding:0 2px}
+  .add-mas:hover{border-color:var(--tinta);color:var(--tinta)}
+  .add-vacio{display:flex;align-items:center;gap:12px;min-height:85px;padding:8px 20px 8px 16px;border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:12px;background:color-mix(in srgb,var(--hueso) 35%,transparent);color:var(--tinta);text-align:left}
+  .add-vacio:hover{border-color:var(--tinta);background:color-mix(in srgb,var(--hueso) 60%,transparent)}
+  .add-vacio b{display:block;font:600 13.5px/1.3 var(--sans)}
+  .add-vacio small{display:block;font-size:12px;color:var(--taupe)}
+  .add-vacio.suave{border-color:var(--t25);background:transparent}
+
+  /* Menú de una foto (popover) */
+  .menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:236px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;box-shadow:0 18px 44px -14px rgb(26 26 24/.26);animation:revela .22s var(--ease) both}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;border-radius:8px;padding:9px 10px;text-align:left;font-size:13.5px;color:var(--tinta)}
+  .menu button:hover{background:color-mix(in srgb,var(--sand) 55%,transparent)}
+  .menu button.pel{color:var(--rojo-profundo)}
+  .menu .menu-t{margin:2px 0 4px;padding:6px 10px 2px;font:600 11px/1.3 var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--taupe)}
+  .menu .menu-t small{display:block;font:400 12px var(--sans);letter-spacing:0;text-transform:none;color:var(--t65);margin-top:2px}
+  .menu hr{border:0;border-top:1px solid var(--sand);margin:4px 2px}
+
+  /* ============ HOY: la galería suelta con su combo de 71 colores ============ */
+  .hoy-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:14px}
+  .hoy-t{display:grid;gap:6px;align-content:start;position:relative}
+  .hoy-img{position:relative;aspect-ratio:4/5;border:1px solid var(--t10);background:#fff;overflow:hidden;padding:0;width:100%}
+  .hoy-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .hoy-img .ins-p{left:4px;top:4px}
+  .hoy-combo{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;border:0;border-bottom:1px solid var(--t25);background:transparent;padding:8px 2px;font:14px var(--sans);text-align:left;color:var(--tinta)}
+  .hoy-combo.vacio{color:var(--t55)}
+  .hoy-add{aspect-ratio:4/5;display:grid;place-items:center;align-content:center;gap:4px;border:1px dashed var(--t25);color:var(--t55);background:transparent;font:600 10px var(--sans);letter-spacing:.13em;text-transform:uppercase}
+  .lista-hoy{position:absolute;left:0;right:0;top:calc(100% - 4px);z-index:30;min-width:220px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:8px;box-shadow:0 18px 44px -14px rgb(26 26 24/.26);animation:revela .22s var(--ease) both}
+  .lista-hoy input{width:100%;border:1px solid var(--sand);border-radius:8px;background:var(--crema);padding:8px 10px;font:13.5px var(--sans);margin-bottom:6px;outline:none}
+  .lista-hoy .scroll{max-height:250px;overflow:auto}
+  .lista-hoy button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;border-radius:8px;padding:6px 8px;text-align:left;font-size:13.5px}
+  .lista-hoy button:hover{background:color-mix(in srgb,var(--sand) 55%,transparent)}
+  .lista-hoy .cuenta-l{font-size:11.5px;color:var(--taupe);padding:2px 4px 6px;margin:0}
+  .nota-mq{margin:0 0 6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--rojo) 9%,transparent);color:var(--rojo-profundo);font-size:12px;line-height:1.4}
+
+  /* ============ A · lista por color ============ */
+  .lista-a{list-style:none;margin:14px 0 0;padding:0}
+  .fila-a{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);gap:8px 18px;align-items:center;padding:12px 10px;margin:0 -10px;border-top:1px solid var(--sand);border-radius:0;transition:background .3s var(--ease),box-shadow .3s var(--ease)}
+  .fila-a:first-child{border-top:0}
+  .fila-a.pend{background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:inset 3px 0 0 var(--ambar);border-radius:12px}
+  .fila-a.flash{animation:flash 1.5s var(--ease)}
+  .fila-a.general .id-c b{color:var(--t85)}
+  .id-c{display:grid;gap:2px;min-width:0}
+  .id-c b{display:flex;align-items:center;gap:8px;font:600 14.5px/1.3 var(--sans)}
+  .id-c small{font-size:12px;color:var(--taupe);line-height:1.35}
+  .id-c small.falta{color:var(--ambar);font-weight:500}
+  small.pista{color:var(--tinta);font-weight:500}
+  .tira{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;min-width:0}
+  .huerfanas{margin-top:14px;border:1px dashed color-mix(in srgb,var(--ambar) 60%,transparent);border-radius:14px;background:color-mix(in srgb,var(--ambar) 6%,transparent);padding:12px 14px}
+  .huerfanas p{margin:0 0 10px;font-size:13px;color:var(--t85)}
+  .huerfanas p b{color:var(--ambar)}
+  .hf{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .hf .txt{font-size:13px;color:var(--t85);min-width:0}
+  .hf .txt small{display:block;color:var(--taupe);font-size:12px}
+  .enlace{border:0;background:none;padding:0;font:500 13px var(--sans);color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-align:left}
+  .enlace:hover{color:var(--taupe)}
+  .enlace.pel{color:var(--rojo-profundo)}
+
+  /* ============ C · tarjetas por color ============ */
+  .grid-c{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px 14px;margin-top:14px}
+  .tile{display:grid;gap:8px;align-content:start}
+  .tile .img{position:relative;display:block;width:100%;aspect-ratio:4/5;border-radius:12px;border:1px solid var(--sand);overflow:hidden;background:#fff;padding:0}
+  .tile .img img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .img:hover{border-color:var(--t55)}
+  .tile .img.pend{border-color:var(--ambar);box-shadow:0 0 0 1px var(--ambar)}
+  .tile .img .ins-p{left:8px;top:8px;border-radius:4px}
+  .tile .vacio{display:grid;place-items:center;align-content:center;gap:8px;width:100%;aspect-ratio:4/5;border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:12px;background:color-mix(in srgb,var(--hueso) 35%,transparent);text-align:center;padding:12px;color:var(--tinta)}
+  .tile .vacio:hover{border-color:var(--tinta);background:color-mix(in srgb,var(--hueso) 60%,transparent)}
+  .tile .vacio b{font:600 12.5px/1.3 var(--sans)}
+  .tile .vacio small{display:block;font-size:11.5px;color:var(--taupe);font-weight:400}
+  .tile .vacio.suave{border-color:var(--t25);background:transparent}
+  .tile .cap{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;min-width:0}
+  .tile .cap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tile .cap small{margin-left:auto;color:var(--taupe);font-weight:400;font-size:12px;white-space:nowrap}
+  .tile .cap small.falta{color:var(--ambar);font-weight:500}
+  .tile .pila{position:absolute;right:8px;bottom:8px;display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:color-mix(in srgb,var(--crema) 93%,transparent);padding:4px 9px;font:600 11px/1 var(--sans);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+
+  /* ============ Variantes (igual que hoy; B le suma la foto a la cabecera del color) ============ */
+  .v-cab{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+  .eje{display:flex;flex-wrap:wrap;align-items:center;gap:8px 8px;margin-top:12px}
+  .eje .rot{font:600 12.5px var(--sans);width:64px}
+  .chip-e{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);padding:8px 12px;font-size:14.5px}
+  .chip-e.nuevo{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,transparent)}
+  .chip-e svg{color:var(--t55)}
+  .nota-v{font-size:12.5px;color:var(--taupe);margin:12px 0 0}
+  .nota-v b{color:var(--tinta);font-weight:600}
+  .bloque{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:14px;padding:12px 16px;border:1px solid var(--sand);border-radius:16px;font-size:14px;color:var(--t75);pointer-events:none;opacity:.85}
+  .bloque .seg2{display:inline-flex;border:1px solid var(--sand);border-radius:999px;overflow:hidden}
+  .bloque .seg2 span{padding:6px 14px;font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .bloque .seg2 span.on{background:var(--tinta);color:var(--crema)}
+  .bloque .fake{border:0;border-radius:10px;background:var(--hueso);padding:9px 14px;color:var(--t55)}
+  .grupos{display:grid;gap:12px;margin-top:14px}
+  .grupo{border:1px solid var(--sand);border-radius:14px}
+  .g-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 14px;border-bottom:1px solid var(--sand)}
+  .g-cab.con-foto{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:12px 14px}
+  .g-cab.con-foto .der{margin-left:0}
+  .g-cab h3{margin:0;font:600 14.5px var(--sans)}
+  .g-cab .res{font-size:12.5px;color:var(--taupe)}
+  .g-cab .der{margin-left:auto}
+  .g-cab .cual{display:grid;gap:1px;min-width:0}
+  .g-cab .cual .l1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+  .g-cab .cual small{font-size:12px;color:var(--taupe)}
+  .g-cab .cual small.falta{color:var(--ambar);font-weight:500}
+  .eco{display:inline-grid;place-items:center;width:24px;aspect-ratio:4/5;border:1px solid var(--sand);border-radius:5px;background:#fff;overflow:hidden;padding:0;flex:none}
+  .eco img{width:100%;height:100%;object-fit:cover;display:block}
+  .eco.sin{border-style:dashed;border-color:var(--t25);background:transparent;color:var(--taupe)}
+  .eco:hover{border-color:var(--tinta)}
+  .slot{position:relative;display:grid;place-items:center;width:52px;aspect-ratio:4/5;border:1px solid var(--sand);border-radius:7px;background:#fff;padding:0;flex:none}
+  .slot img{width:100%;height:100%;object-fit:cover;display:block;border-radius:6px}
+  .slot.sin{border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);background:color-mix(in srgb,var(--hueso) 35%,transparent);color:var(--taupe)}
+  .slot.pend{border-color:var(--ambar);box-shadow:0 0 0 1px var(--ambar)}
+  .vr{display:grid;grid-template-columns:minmax(0,1fr) 6rem 6rem 3.5rem 4rem;gap:6px 12px;align-items:center;padding:11px 14px;border-top:1px solid var(--t10)}
+  .vr:first-of-type{border-top:0}
+  .vr .vt{font-size:14px}
+  .vr .vt small{display:block;font:11.5px var(--mono);color:var(--t55)}
+  .vr .vp,.vr .vc,.vr .vm,.vr .vs{font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums}
+  .vr .vm{color:var(--t55);font-size:12.5px}
+  .vr.nuevo{background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:inset 3px 0 0 var(--ambar)}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:1px 9px;border-radius:999px;font:500 12px/20px var(--sans);white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .chip.amb{background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar)}
+  .gen-b{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:14px;padding:12px 14px;border:1px dashed var(--t25);border-radius:14px}
+  .gen-b .txt{min-width:0;flex:1 1 220px;font-size:13px;color:var(--t85)}
+  .gen-b .txt small{display:block;font-size:12px;color:var(--taupe)}
+
+  /* ============ Botones ============ */
+  .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:8px;padding:12px 18px;font:600 11px/1.2 var(--sans);letter-spacing:.13em;text-transform:uppercase;white-space:nowrap;transition:background .2s,border-color .2s,color .2s,transform .15s}
+  .b:active:not(:disabled){transform:scale(.97)}
+  .b:disabled{cursor:not-allowed}
+  .b-prim{background:var(--tinta);color:var(--crema)}
+  .b-prim:hover:not(:disabled){background:var(--rojo-profundo)}
+  .b-prim:disabled{background:color-mix(in srgb,var(--tinta) 30%,transparent)}
+  .b-disc{border-color:var(--t25);color:var(--t75);background:transparent}
+  .b-disc:hover:not(:disabled){border-color:var(--rojo);color:var(--rojo)}
+
+  /* ============ Barra fija de cambios (ADR-0257) ============ */
+  .barra{position:sticky;bottom:0;z-index:20;border-top:1px solid var(--sand);background:color-mix(in srgb,var(--crema) 95%,transparent);backdrop-filter:blur(6px);transform:translateY(112%);transition:transform 240ms cubic-bezier(.4,0,1,1)}
+  .barra.visible{transform:none;transition:transform 420ms var(--ease)}
+  .barra-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 22px;padding:12px 36px}
+  .b-msg{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 300px}
+  .punto-amb{width:10px;height:10px;border-radius:50%;background:var(--ambar);margin-top:7px;flex:none}
+  .b-msg b{display:block;font:600 14.5px var(--sans)}
+  .b-msg .sub{display:block;font-size:13px;color:var(--t65)}
+  .b-acc{display:flex;align-items:center;gap:10px;flex:none}
+
+  /* ============ Hoja modal y avisos (ADR-0136) ============ */
+  #capa{position:fixed;inset:0 auto 0 0;width:100%;z-index:100;pointer-events:none}
+  #modal>*{pointer-events:auto}
+  .velo{position:absolute;inset:0;background:color-mix(in srgb,var(--tinta) 35%,transparent);backdrop-filter:blur(2px);animation:velo .25s var(--ease) both}
+  .pos{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding:7vh 16px 16px;pointer-events:none;overflow:auto}
+  .hoja{pointer-events:auto;width:100%;max-width:520px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:24px;animation:hoja .38s var(--ease) backwards;position:relative}
+  .hoja>*{animation:cascada .3s var(--ease) both}
+  .hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}
+  .hoja h2{font:600 24px/1.15 var(--serif);margin:0}
+  .hoja .baj{margin:4px 0 16px;font-size:13.5px;color:var(--taupe)}
+  .hoja .pie{display:flex;gap:8px;margin-top:18px}
+  .hoja .pie .b{flex:1}
+  .hoja .cerrar{position:absolute;right:14px;top:14px;border:0;background:none;padding:6px;border-radius:8px;color:var(--t55);animation:none}
+  #capa.movil .pos{align-items:flex-end;padding:0}
+  #capa.movil .hoja{max-width:none;border-radius:16px 16px 0 0}
+  .buscar{width:100%;border:0;border-radius:12px;background:var(--hueso);padding:11px 14px;font:14px var(--sans);color:var(--tinta);outline:none}
+  .buscar::placeholder{color:var(--t55)}
+  .carta{margin-top:12px;border:1px solid var(--sand);border-radius:14px;background:color-mix(in srgb,var(--hueso) 30%,transparent);padding:6px 12px;max-height:250px;overflow:auto}
+  .fam{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;align-items:center;padding:7px 0;border-top:1px solid var(--sand)}
+  .fam:first-child{border-top:0}
+  .fam>span{font-size:12.5px;color:var(--taupe)}
+  .fam .cs{display:flex;flex-wrap:wrap;gap:8px}
+  .sw{position:relative;width:26px;height:26px;border-radius:50%;border:0;padding:0;background:var(--h);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+  .sw:hover:not(:disabled){transform:scale(1.12)}
+  .sw[aria-pressed="true"]{outline:2px solid var(--tinta);outline-offset:2px}
+  .sw:disabled{opacity:.28;cursor:not-allowed}
+  .sw svg{position:absolute;inset:5px;width:16px;height:16px;stroke:var(--c,#fff);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .elegido{margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel)}
+  .elegido .nom{display:flex;align-items:center;gap:8px;font:600 14.5px var(--sans)}
+  .elegido .foto-l{display:flex;align-items:center;gap:12px;margin-left:auto}
+  .elegido .foto-l small{font-size:12px;color:var(--taupe);max-width:20ch;line-height:1.35}
+  .grid-h{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:14px;align-items:start}
+  .lista-cambios{display:grid;gap:8px;margin:0;padding:0;list-style:none;font-size:14px}
+  .lista-cambios li{display:flex;gap:10px}
+  .lista-cambios li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ambar);margin-top:8px;flex:none}
+  #avisos{position:absolute;top:calc(var(--mando-h) + 8px);right:16px;width:min(22rem,calc(100% - 2rem));display:flex;flex-direction:column;gap:8px}
+  .aviso-t{--c:var(--verde);position:relative;display:flex;align-items:flex-start;gap:12px;overflow:hidden;pointer-events:auto;border:1px solid var(--sand);border-radius:12px;background:var(--papel);padding:12px 10px 12px 12px;box-shadow:0 10px 24px -8px rgb(26 26 24/.18),0 2px 4px rgb(26 26 24/.06);animation:entra 260ms var(--ease) both}
+  .aviso-t[data-tono="neutro"]{--c:var(--pizarra)}
+  .aviso-t .ico{position:relative;flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--c) 11%,transparent);color:var(--c)}
+  .aviso-t .ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .aviso-t .tx{flex:1;min-width:0}
+  .aviso-t .tit{margin:0;padding-top:4px;font:600 14px/1.35 var(--sans);color:var(--tinta)}
+  .aviso-t .det{margin:1px 0 0;font-size:13px;line-height:1.4;color:var(--t65)}
+  .aviso-t.saliendo{animation:sale .26s var(--ease) forwards}
+  @keyframes velo{from{opacity:0}}
+  @keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.965)}}
+  @keyframes cascada{from{opacity:0;transform:translateY(6px)}}
+  @keyframes revela{from{opacity:0;transform:translateY(-4px)}}
+  @keyframes entra{from{opacity:0;transform:translateX(24px)}}
+  @keyframes sale{to{opacity:0;transform:translateX(24px)}}
+  @keyframes flash{0%,60%{background:color-mix(in srgb,var(--rojo) 12%,transparent)}100%{background:transparent}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+  /* ============ Responsivo: sale del ancho de la pantalla, no de la ventana ============ */
+  @container marco (max-width:899px){
+    .hoy-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @container marco (max-width:640px){
+    .pagina{padding:18px 16px 20px}
+    .h1{font-size:26px}
+    .tarjeta{padding:16px}
+    .hoy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .fila-a{grid-template-columns:minmax(0,1fr);padding:14px 10px}
+    .add-vacio{min-height:72px}
+    .grid-c{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .g-cab.con-foto{grid-template-columns:52px minmax(0,1fr)}
+    .g-cab.con-foto .der{grid-column:1/-1;justify-self:end}
+    .tile .cap{flex-wrap:wrap;row-gap:0}
+    .tile .cap span{flex:1 1 0}
+    .tile .cap small{flex-basis:100%;margin:-2px 0 0 20px}
+    .vr{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .vr .vt{grid-column:1/-1}
+    .vr .vp,.vr .vc,.vr .vm,.vr .vs{text-align:left}
+    .vr .vs{grid-column:auto}
+    .eje .rot{width:100%}
+    .barra-in{padding:12px 16px}
+    .fam{grid-template-columns:1fr}
+    .elegido .foto-l{margin-left:0}
+    .bloque{font-size:13px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ Barra de la maqueta ============ -->
+<div class="mando" id="mando">
+  <div class="mando-fila">
+    <div class="grp"><span class="etq-g">Versión</span>
+      <div class="seg" id="seg-v" role="group" aria-label="Versión">
+        <button type="button" data-v="hoy">Hoy</button>
+        <button type="button" data-v="A">A · Lista por color</button>
+        <button type="button" data-v="B">B · Foto dentro de cada color</button>
+        <button type="button" data-v="C">C · Tarjetas por color</button>
+      </div>
+    </div>
+    <div class="grp"><span class="etq-g">Ancho</span>
+      <div class="seg" id="seg-a" role="group" aria-label="Ancho">
+        <button type="button" data-a="escritorio">Escritorio</button>
+        <button type="button" data-a="tablet">Tablet 820</button>
+        <button type="button" data-a="celular">Celular 390</button>
+      </div>
+    </div>
+    <button type="button" class="mini" id="reiniciar">↺ Reiniciar caso</button>
+  </div>
+  <div class="mando-fila">
+    <div class="grp"><span class="etq-g">Prenda</span>
+      <div class="seg" id="seg-c" role="group" aria-label="Caso">
+        <button type="button" data-c="captura">Como la captura (4 colores, 4 fotos)</button>
+        <button type="button" data-c="sinfotos">Colores sin foto</button>
+        <button type="button" data-c="general">Con foto general</button>
+        <button type="button" data-c="huerfana">Foto de un color que ya no está</button>
+        <button type="button" data-c="muchos">Mucho de todo (8 colores · 12 fotos)</button>
+      </div>
+    </div>
+  </div>
+  <p class="decidido" id="decidido"></p>
+</div>
+
+<!-- ============ La pantalla: Editar producto (ProductoForm) ============ -->
+<div class="estrado">
+  <div class="marco" id="marco" data-ancho="escritorio">
+    <div class="pagina">
+      <button type="button" class="volver">← Productos</button>
+      <p class="eyebrow">Editar producto</p>
+      <h1 class="h1">Camisa Lino <span class="cod">CMS-0001</span></h1>
+      <div class="col-form">
+        <section class="tarjeta stub"><b>Datos de la prenda</b> · Referencia, categoría, marca, temporada, precio… <em>(sin cambios en este spike)</em></section>
+        <div id="slot-fotos"></div>
+        <div id="slot-variantes"></div>
+      </div>
+    </div>
+    <div class="barra" id="barra" role="region" aria-label="Cambios sin guardar"></div>
+  </div>
+</div>
+<div id="capa"><div id="modal"></div><div id="avisos" aria-live="polite"></div></div>
+
+<script>
+/* ====================== datos inventados (el vocabulario de colores es el real: 71) ====================== */
+const FAM = [
+  ["Neutros",[["Blanco","#F4F9FF"],["Crudo","#F3ECE0"],["Nude","#F2D3BC"],["Beige","#D5BA98"],["Gris piedra","#C3BDAB"],["Gris perla","#C5C5C5"],["Gris melange","#A2A2A1"],["Gris","#848587"],["Topo","#82776B"],["Gris antracita","#48464A"],["Negro","#2D2C2F"]]],
+  ["Tierras",[["Arena","#CCA67F"],["Caqui","#A39264"],["Camel","#B0885B"],["Moka","#A47864"],["Tostado","#A47045"],["Terracota","#B3573F"],["Coñac","#864C24"],["Marrón","#694833"],["Chocolate","#4B342F"]]],
+  ["Rojos y rosas",[["Rosado","#F0A1BF"],["Palo rosa","#D9A6A1"],["Salmón","#FAA181"],["Coral","#EA6759"],["Fucsia","#CF2D71"],["Rojo","#BD332D"],["Frambuesa","#A52350"],["Cereza","#9B1B30"],["Vino","#6C2831"]]],
+  ["Morados",[["Lavanda","#D2C4D6"],["Lila","#BCA4CB"],["Malva","#B88AAC"],["Orquídea","#AD5E99"],["Violeta","#775496"],["Mora","#854C65"],["Morado","#563474"],["Ciruela","#692D5D"],["Berenjena","#47253C"]]],
+  ["Azules",[["Celeste","#A9CADA"],["Azul claro","#80A0D4"],["Turquesa","#33BECC"],["Azul denim","#5979A2"],["Azul eléctrico","#4A5FA5"],["Cobalto","#00539C"],["Azul petróleo","#2A5C6A"],["Índigo","#49516D"],["Azul marino","#2A304E"]]],
+  ["Verdes",[["Verde agua","#A1D7C9"],["Pistacho","#BED38E"],["Salvia","#A1AD92"],["Verde limón","#9FC131"],["Esmeralda","#009B74"],["Verde","#487D49"],["Verde oliva","#6A6F34"],["Verde militar","#4B5335"],["Verde botella","#264E36"]]],
+  ["Amarillos",[["Vainilla","#F2E6B1"],["Amarillo limón","#EADA4F"],["Amarillo","#F0C05A"],["Mostaza","#C89721"],["Durazno","#FFBE98"],["Mandarina","#EE9626"],["Naranja","#E8703A"]]],
+  ["Metálicos",[["Plateado","#B8BCC0"],["Plata vieja","#8C8D88"],["Champán","#E2D1A6"],["Dorado","#C8A951"],["Oro viejo","#A68A45"],["Oro rosa","#D6A08C"],["Cobre","#B46A3C"],["Bronce","#8C6B3B"]]],
+];
+const VOC = FAM.flatMap(([f, cs]) => cs.map(([n, h]) => ({ n, h, f })));
+const HEX = Object.fromEntries(VOC.map(c => [c.n, c.h]));
+const claro = h => { const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16); return (r*299 + g*587 + b*114)/1000 > 150; };
+
+// [color|null, esPrincipal?, tipo?]
+const CASOS = {
+  captura:  { colores:["Beige","Celeste","Gris antracita","Rosado"], tallas:["Estándar"], stock:{Beige:2,Celeste:1,"Gris antracita":1,Rosado:1},
+              fotos:[["Celeste",1],["Beige"],["Gris antracita"],["Rosado"]] },
+  sinfotos: { colores:["Beige","Celeste","Gris antracita","Rosado"], tallas:["Estándar"], stock:{Beige:2,Celeste:1,"Gris antracita":1,Rosado:1},
+              fotos:[["Celeste",1]] },
+  general:  { colores:["Beige","Celeste","Gris antracita","Rosado"], tallas:["Estándar"], stock:{Beige:2,Celeste:1,"Gris antracita":1,Rosado:1},
+              fotos:[[null,1],["Celeste"]] },
+  huerfana: { colores:["Beige","Celeste","Gris antracita","Rosado"], tallas:["Estándar"], stock:{Beige:2,Celeste:1,"Gris antracita":1,Rosado:1},
+              fotos:[["Celeste",1],["Beige"],["Verde oliva"]] },
+  muchos:   { colores:["Blanco","Crudo","Beige","Celeste","Rosado","Verde oliva","Terracota","Negro"], tallas:["S","M","L"],
+              stock:{Blanco:9,Crudo:6,Beige:8,Celeste:5,Rosado:7,"Verde oliva":4,Terracota:3,Negro:12},
+              fotos:[["Blanco",1],["Blanco",0,"detalle"],["Crudo"],["Beige"],["Beige",0,"detalle"],["Celeste"],["Rosado"],["Rosado",0,"detalle"],["Rosado",0,"espalda"],["Negro"],["Terracota"],["Verde oliva"]] },
+};
+
+const DECIDIDO = {
+  hoy: "<b>Hoy.</b> Una galería suelta: cada foto lleva un combo con los <b>71 colores del catálogo</b> aunque la prenda tenga 4, y un color sin foto no se nota en ningún lado. Toca el nombre de un color bajo una foto para ver la lista.",
+  A: "<b>A · Ganas:</b> la misma idea «color + cámara» del alta, con varias fotos por color a la vista sin hoja aparte, y la ficha de variantes queda como está. <b>Pagas:</b> es la más alta: con 8 colores la sección mide ≈ 1.220 px (C: ≈ 640) y en celular ≈ 1.820 (C: ≈ 1.430); además cada color aparece una vez más, y lo enlazamos con una miniatura en su cabecera.",
+  B: "<b>B · Ganas:</b> cada color una sola vez, idéntico a la tabla del alta; al agregar un color su cámara ya está ahí. <b>Pagas:</b> las fotos se mezclan con precios y stock (más largo, miniaturas de 52 px), se pierde ver todas las fotos juntas y la sección «Fotos» desaparece (el enlace #fotos de la pantalla de éxito se re-apunta).",
+  C: "<b>C · Ganas:</b> rectángulos grandes, lo más literal a «un rectángulo por color» y lo más parecido a la galería que ya conocen; la más compacta (8 colores ≈ 640 px contra ≈ 1.220 de A); y el rectángulo vacío es imposible de no ver. <b>Pagas:</b> varias fotos de un mismo color se ven y manejan en una hoja aparte (un toque más).",
+};
+
+/* ====================== estado ====================== */
+const S = { version:"C", caso:"captura", ancho:"escritorio", colores:[], tallas:[], stock:{}, fotos:[], base:null, menu:null, hoja:null, comboHoy:null, seq:100 };
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const clon = o => JSON.parse(JSON.stringify(o));
+const I = {
+  camara: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+  mas: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  mas1: '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  chev: '<svg class="i xs" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  x: '<svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  lapiz: '<svg class="i xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+
+/* ====================== la foto de mentira: una camisa del color, sobre blanco (4:5, como las reales) ====================== */
+const _arte = {};
+function camisa(hex, extra = "") {
+  const osc = !claro(hex);
+  const tr = osc ? "rgba(255,255,255,.2)" : "rgba(0,0,0,.16)";
+  const sm = osc ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.07)";
+  return `<g ${extra}>
+    <path d="M78 66 L104 52 Q120 66 136 52 L162 66 L206 108 L186 134 L166 118 L166 246 Q120 256 74 246 L74 118 L54 134 L34 108 Z" fill="${hex}" stroke="${tr}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M166 118 L166 246 Q150 250 132 252 L132 130 Z" fill="${sm}"/>
+    <path d="M104 52 Q120 84 136 52" fill="none" stroke="${tr}" stroke-width="1.5"/>
+    <path d="M120 78 L120 248" stroke="${tr}" stroke-width="1" stroke-dasharray="1 9" stroke-linecap="round"/>
+    <path d="M186 134 L166 118 M54 134 L74 118" stroke="${tr}" stroke-width="1.2"/>
+  </g>`;
+}
+function fotoSrc(f) {
+  const k = f.c + "|" + (f.tipo || "frente");
+  if (_arte[k]) return _arte[k];
+  let cuerpo;
+  if (f.c === null) {
+    const hs = (S.base?.colores?.length ? S.base.colores : S.colores).slice(0, 3).map(c => HEX[c]);
+    while (hs.length < 3) hs.push("#d5ba98");
+    cuerpo = camisa(hs[2], 'transform="translate(30 10) rotate(8 120 150) scale(.88)"') + camisa(hs[1], 'transform="translate(-26 8) rotate(-7 120 150) scale(.88)"') + camisa(hs[0], 'transform="translate(2 18) scale(.9)"');
+  } else {
+    const hex = HEX[f.c] || "#cccccc";
+    if (f.tipo === "detalle") cuerpo = camisa(hex, 'transform="translate(120 96) scale(1.75) translate(-120 -100)"');
+    else if (f.tipo === "espalda") cuerpo = camisa(hex).replace(/<path d="M104 52 Q120 84 136 52"[^>]*>/, "").replace(/<path d="M120 78[^>]*>/, "");
+    else cuerpo = camisa(hex);
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300"><rect width="240" height="300" fill="#fff"/>${cuerpo}</svg>`;
+  return (_arte[k] = "data:image/svg+xml;utf8," + encodeURIComponent(svg));
+}
+
+/* ====================== helpers de dominio ====================== */
+const nombreDe = c => c === null ? "Todos los colores" : c;
+const dot = c => `<i class="dot" style="--h:${HEX[c] || "#ccc"}"></i>`;
+const dotMix = () => { const cs = S.colores.slice(0, 3).map(c => HEX[c]); return `<i class="dot mix" style="--m1:${cs[0] || "#d5ba98"};--m2:${cs[1] || "#a9cada"};--m3:${cs[2] || "#48464a"}"></i>`; };
+const suyas = c => S.fotos.filter(f => f.c === c);
+const baseFoto = id => S.base.fotos.find(b => b.id === id);
+const esNueva = f => !baseFoto(f.id);
+const esMovida = f => { const b = baseFoto(f.id); return !!b && b.c !== f.c; };
+const pendiente = f => esNueva(f) || esMovida(f);
+const generales = () => S.fotos.filter(f => f.c === null);
+const huerfanas = () => S.fotos.filter(f => f.c !== null && !S.colores.includes(f.c));
+const verGeneral = () => S.colores.length >= 2 || generales().length > 0;
+const esNuevoColor = c => !S.base.colores.includes(c);
+const conFoto = () => S.colores.filter(c => suyas(c).length > 0).length;
+
+function cargar(caso) {
+  const d = CASOS[caso];
+  S.caso = caso; S.colores = clon(d.colores); S.tallas = clon(d.tallas); S.stock = clon(d.stock); S.seq = 100;
+  S.fotos = d.fotos.map(([c, p, tipo], i) => ({ id: "f" + (i + 1), c, p: !!p, tipo: tipo || "frente" }));
+  S.base = { colores: clon(S.colores), fotos: clon(S.fotos) };
+  S.menu = null; S.hoja = null; S.comboHoy = null;
+}
+function agregarFoto(c) {
+  const ya = suyas(c).length;
+  const tipo = ya === 0 ? "frente" : ya === 1 ? "detalle" : "espalda";
+  const f = { id: "f" + (++S.seq), c, p: false, tipo };
+  S.fotos.push(f);
+  if (!S.fotos.some(x => x.p)) S.fotos[0].p = true;
+  toast({ titulo: c === null ? "Foto general agregada" : `Foto de ${c} agregada`, detalle: "En el ERP se abre antes la revisión: encuadre y fondo (ADR-0228)." });
+}
+function quitarFoto(id) {
+  const f = S.fotos.find(x => x.id === id); if (!f) return;
+  S.fotos = S.fotos.filter(x => x.id !== id);
+  if (f.p && S.fotos.length) S.fotos[0].p = true;
+}
+function ponerPrimera(id) {
+  const f = S.fotos.find(x => x.id === id); if (!f) return;
+  const i0 = S.fotos.findIndex(x => x.c === f.c);
+  S.fotos = S.fotos.filter(x => x.id !== id);
+  S.fotos.splice(i0, 0, f);
+}
+function unidades() { return S.colores.reduce((n, c) => n + (S.stock[c] || 0), 0); }
+
+/* ====================== lo que cambió contra lo guardado (misma cuenta y mismas frases que la barra real) ====================== */
+function frases() {
+  const out = [];
+  S.colores.filter(esNuevoColor).forEach(c => out.push(`Se agrega el color ${c}`));
+  const suman = S.fotos.filter(esNueva).length;
+  const quitan = S.base.fotos.filter(b => !S.fotos.some(x => x.id === b.id)).length;
+  if (suman) out.push(suman === 1 ? "Se suma 1 foto" : `Se suman ${suman} fotos`);
+  if (quitan) out.push(quitan === 1 ? "Se quita 1 foto" : `Se quitan ${quitan} fotos`);
+  const pr = a => a.find(f => f.p)?.id;
+  if (pr(S.base.fotos) !== pr(S.fotos) && S.fotos.length) out.push("Cambia la foto principal");
+  const movidas = S.fotos.filter(esMovida).length;
+  if (movidas) out.push(movidas === 1 ? "Cambia el color de 1 foto" : `Cambia el color de ${movidas} fotos`);
+  const orden = a => a.filter(f => S.fotos.some(x => x.id === f.id) && S.base.fotos.some(x => x.id === f.id)).map(f => f.id).join(",");
+  if (orden(S.base.fotos) !== orden(S.fotos) ) {
+    const sinNuevas = S.fotos.filter(f => S.base.fotos.some(x => x.id === f.id)).map(f => f.id).join(",");
+    const baseSin = S.base.fotos.filter(f => S.fotos.some(x => x.id === f.id)).map(f => f.id).join(",");
+    if (sinNuevas !== baseSin) out.push("Cambia el orden de las fotos");
+  }
+  return out;
+}
+
+/* ====================== piezas ====================== */
+function menuHtml(f) {
+  const mismo = suyas(f.c);
+  const primera = mismo[0]?.id === f.id;
+  if (S.menu.sub) {
+    const opts = [...S.colores.map(c => ({ c, n: c })), { c: null, n: "Todos los colores" }].filter(o => o.c !== f.c);
+    return `<div class="menu" role="menu">
+      <p class="menu-t">Pasar a…<small>Solo los colores de esta prenda</small></p>
+      ${opts.map(o => `<button type="button" role="menuitem" data-act="mover-a" data-id="${f.id}" data-c="${o.c === null ? "" : esc(o.c)}">${o.c === null ? dotMix() : dot(o.c)}${esc(o.n)}</button>`).join("")}
+      <hr><button type="button" data-act="menu-atras" data-id="${f.id}">← Atrás</button></div>`;
+  }
+  return `<div class="menu" role="menu">
+    ${!f.p ? `<button type="button" role="menuitem" data-act="principal" data-id="${f.id}">Usar como principal de la prenda</button>` : ""}
+    ${mismo.length > 1 && !primera ? `<button type="button" role="menuitem" data-act="primera" data-id="${f.id}">Ponerla primera en ${esc(nombreDe(f.c))}</button>` : ""}
+    <button type="button" role="menuitem" data-act="menu-mover" data-id="${f.id}">Pasar a otro color…</button>
+    <hr><button type="button" role="menuitem" class="pel" data-act="quitar" data-id="${f.id}">Quitar esta foto</button></div>`;
+}
+function th(f, tw = 68) {
+  return `<div class="thw" style="--tw:${tw}px">
+    <button type="button" class="th ${pendiente(f) ? "pend" : ""}" data-act="menu" data-id="${f.id}" aria-haspopup="menu" aria-label="Foto de ${esc(nombreDe(f.c))}${f.p ? " (principal)" : ""}. Opciones">
+      <img src="${fotoSrc(f)}" alt="">
+      ${f.p ? '<span class="ins-p">Principal</span>' : ""}
+      ${esNueva(f) ? '<span class="ins-n">Nueva</span>' : esMovida(f) ? '<span class="ins-n">Movida</span>' : ""}
+      <span class="mas">${I.mas}</span>
+    </button>
+    ${S.menu && S.menu.id === f.id ? menuHtml(f) : ""}
+  </div>`;
+}
+const addMas = (c, tw = 68) => `<button type="button" class="add-mas" style="--tw:${tw}px" data-act="agregar" data-c="${c === null ? "" : esc(c)}" aria-label="Agregar otra foto de ${esc(nombreDe(c))}">${I.mas1}<span>Otra foto</span></button>`;
+const addVacio = (c, suave = false) => `<button type="button" class="add-vacio ${suave ? "suave" : ""}" data-act="agregar" data-c="${c === null ? "" : esc(c)}">
+  ${I.camara.replace('class="i"', 'class="i g"')}<span><b>${c === null ? "Agregar una foto para todos los colores" : `Agregar foto de ${esc(c)}`}</b><small>JPG, PNG o WebP · hasta 25 MB</small></span></button>`;
+
+/* La foto sin color es la trampa de hoy: nace así (FotosProducto.tsx, colorCodigo: null) y se ve en TODOS los colores sin foto propia. */
+const PISTA_GENERAL = () => generales().length && S.colores.length >= 2 ? `<small class="pista">¿Es de un solo color? Tócala y pásala a su color.</small>` : "";
+function estadoTxt(c) {
+  const n = suyas(c).length;
+  if (n) return `<small>${n} ${n === 1 ? "foto" : "fotos"}</small>`;
+  if (generales().length) return `<small>Sin foto propia · se ve la general</small>`;
+  return `<small class="falta">Sin foto todavía</small>`;
+}
+function estadoCorto(c) {
+  const n = suyas(c).length;
+  if (n) return `<small>${n} ${n === 1 ? "foto" : "fotos"}</small>`;
+  if (generales().length) return `<small>usa la general</small>`;
+  return `<small class="falta">Sin foto</small>`;
+}
+function cabFotos(titulo, ayuda) {
+  const n = S.colores.length, k = conFoto();
+  return `<div class="sec-cab"><h2 class="etq">${titulo}</h2>${n ? `<p class="cuenta"><b>${k}</b> de <b>${n}</b> ${n === 1 ? "color con foto" : "colores con foto"}${k < n && !generales().length ? " · los demás se ven vacíos" : ""}</p>` : ""}</div>
+  <p class="ayuda-sec">${ayuda}</p>`;
+}
+function bloqueHuerfanas() {
+  const h = huerfanas(); if (!h.length) return "";
+  const cols = [...new Set(h.map(f => f.c))];
+  return `<div class="huerfanas"><p><b>${h.length === 1 ? "1 foto es de un color que ya no está en la prenda." : `${h.length} fotos son de colores que ya no están en la prenda.`}</b> ${cols.map(esc).join(", ")} ya no ${cols.length === 1 ? "tiene" : "tienen"} variantes activas: elige a qué color pasa o quítala.</p>
+    ${h.map(f => `<div class="hf">${th(f, 56)}<div class="txt">Era de <b>${esc(f.c)}</b><small>Nadie la ve mientras siga así</small></div>
+      <button type="button" class="enlace" data-act="menu-mover" data-id="${f.id}">Pasar a otro color</button>
+      <button type="button" class="enlace pel" data-act="quitar" data-id="${f.id}">Quitar</button></div>`).join("")}</div>`;
+}
+
+/* ====================== HOY ====================== */
+function fotosHoy() {
+  const lista = S.fotos.map((f, i) => `<div class="hoy-t">
+      <div class="hoy-img"><img src="${fotoSrc(f)}" alt="">${f.p ? '<span class="ins-p">Principal</span>' : ""}</div>
+      <button type="button" class="hoy-combo ${f.c === null ? "vacio" : ""}" data-act="combo-hoy" data-id="${f.id}" aria-haspopup="listbox">
+        <span>${f.c === null ? "¿Qué color es?" : esc(f.c)}</span>${I.chev}</button>
+      ${S.comboHoy === f.id ? `<div class="lista-hoy" role="listbox">
+        <p class="nota-mq">Maqueta: la lista trae los <b>${VOC.length} colores del catálogo</b> aunque esta prenda solo tiene ${S.colores.length}.</p>
+        <input type="search" placeholder="Buscar color…" data-filtro="hoy" aria-label="Buscar color">
+        <p class="cuenta-l">${VOC.length} colores</p>
+        <div class="scroll">${VOC.map(c => `<button type="button" role="option" data-act="hoy-elige" data-id="${f.id}" data-c="${esc(c.n)}" data-nombre="${esc(c.n.toLowerCase())}">${dot(c.n)}${esc(c.n)}</button>`).join("")}</div></div>` : ""}
+    </div>`).join("");
+  return `<section class="tarjeta" id="fotos"><h2 class="etq">Fotos</h2>
+    <div class="hoy-grid">${lista}<button type="button" class="hoy-add" data-act="agregar" data-c=""><span aria-hidden="true">+</span>Agregar foto</button></div>
+    <p class="pie-f" style="margin-top:12px">JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo. La primera queda de principal si no marcas otra. Una foto sin color se ve en todos los colores que no tengan la suya; ponle color solo si es la foto de ese color.</p></section>`;
+}
+
+/* ====================== A · lista por color ====================== */
+function filaA(c) {
+  const s = c === null ? generales() : suyas(c);
+  const pend = s.some(pendiente);
+  return `<li class="fila-a ${c === null ? "general" : ""} ${pend ? "pend" : ""}" id="fila-${c === null ? "todos" : esc(c.replace(/\s/g, "-"))}">
+    <div class="id-c"><b>${c === null ? dotMix() : dot(c)}${esc(nombreDe(c))}</b>
+      ${c === null ? `<small>${s.length ? `${s.length} ${s.length === 1 ? "foto" : "fotos"} · ` : "Opcional · "}se ve en los colores que no tienen la suya</small>${PISTA_GENERAL()}` : estadoTxt(c)}</div>
+    <div class="tira">${s.length === 0 ? addVacio(c, c === null) : s.map(f => th(f, 76)).join("") + addMas(c, 76)}</div>
+  </li>`;
+}
+function fotosA() {
+  return `<section class="tarjeta" id="fotos">
+    ${cabFotos("Fotos por color", "Cada color lleva su foto. Toca <b>Agregar foto</b> junto al color; con una alcanza, y si un color no tiene la suya se ve la de «Todos los colores».")}
+    <ul class="lista-a">${S.colores.map(filaA).join("")}${verGeneral() ? filaA(null) : ""}</ul>
+    ${bloqueHuerfanas()}
+    <p class="pie-f">JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo. Toca una foto para hacerla principal, cambiarla de color o quitarla.</p>
+  </section>`;
+}
+
+/* ====================== C · tarjetas por color ====================== */
+function tileC(c) {
+  const s = c === null ? generales() : suyas(c);
+  const portada = s[0];
+  const nombre = nombreDe(c);
+  const cuerpo = portada
+    ? `<button type="button" class="img ${s.some(pendiente) ? "pend" : ""}" data-act="hoja-fotos" data-c="${c === null ? "" : esc(c)}" aria-label="Ver las fotos de ${esc(nombre)}">
+         <img src="${fotoSrc(portada)}" alt="">${s.some(f => f.p) ? '<span class="ins-p">Principal</span>' : ""}
+         ${s.some(esNueva) ? '<span class="ins-n">Nueva</span>' : ""}
+         <span class="pila">${I.camara.replace('class="i"', 'class="i xs"')}${s.length}</span></button>`
+    : `<button type="button" class="vacio ${c === null ? "suave" : ""}" data-act="agregar" data-c="${c === null ? "" : esc(c)}">${I.camara.replace('class="i"', 'class="i g"')}
+         <b>${c === null ? "Foto para todos los colores" : `Agregar foto de ${esc(c)}`}</b><small>${c === null ? "Opcional" : "JPG, PNG o WebP"}</small></button>`;
+  return `<div class="tile">${cuerpo}<div class="cap">${c === null ? dotMix() : dot(c)}<span>${esc(nombre)}</span>${c === null ? (s.length ? `<small>${s.length} ${s.length === 1 ? "foto" : "fotos"}</small>` : "") : estadoCorto(c)}</div></div>`;
+}
+function fotosC() {
+  return `<section class="tarjeta" id="fotos">
+    ${cabFotos("Fotos por color", "Un rectángulo por color. Toca el de un color para <b>agregar su foto</b>, o para ver, cambiar o quitar las que ya tiene.")}
+    <div class="grid-c">${S.colores.map(tileC).join("")}${verGeneral() ? tileC(null) : ""}</div>
+    ${bloqueHuerfanas()}
+    <p class="pie-f">JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo.</p>
+  </section>`;
+}
+
+/* ====================== Variantes ====================== */
+function grupo(c) {
+  const nuevo = esNuevoColor(c);
+  const u = S.stock[c] || 0;
+  const filas = S.tallas.map(t => `<div class="vr ${nuevo ? "nuevo" : ""}">
+      <span class="vt">${esc(t)}<small>CMS-0001-${c.replace(/[^A-Za-zÁÉÍÓÚÑ]/g, "").slice(0, 3).toUpperCase()}-${t.slice(0, 3).toUpperCase()}</small></span>
+      <span class="vp">S/ 129.90</span><span class="vc">S/ 65.00</span><span class="vm">50%</span><span class="vs">${nuevo ? "—" : `${Math.max(1, Math.round(u / S.tallas.length))} u.`}</span></div>`).join("");
+  const s = suyas(c);
+  let cab;
+  if (S.version === "B") {
+    const p = s[0];
+    const slot = p
+      ? `<button type="button" class="slot ${s.some(pendiente) ? "pend" : ""}" data-act="hoja-fotos" data-c="${esc(c)}" aria-label="Ver o cambiar las fotos de ${esc(c)}"><img src="${fotoSrc(p)}" alt="">${s.length > 1 ? `<span class="cnt">${s.length}</span>` : ""}</button>`
+      : `<button type="button" class="slot sin" data-act="agregar" data-c="${esc(c)}" aria-label="Agregar foto de ${esc(c)}">${I.camara}</button>`;
+    cab = `<header class="g-cab con-foto">${slot}<div class="cual"><div class="l1">${dot(c)}<h3>${esc(c)}</h3><span class="res">${S.tallas.length} ${S.tallas.length === 1 ? "variante" : "variantes"}${nuevo ? "" : ` · ${u} u.`}</span>${nuevo ? '<span class="chip amb">Nuevo · sin guardar</span>' : ""}</div>${
+      s.length ? `<small>${s.length} ${s.length === 1 ? "foto" : "fotos"}${s.some(f => f.p) ? " · principal" : ""}</small>` : generales().length ? "<small>Sin foto propia · se ve la general · <b>toca la cámara</b></small>" : "<small class='falta'>Sin foto · toca la cámara para agregar la suya</small>"}</div>
+      <button type="button" class="enlace der" data-act="corregir">Corregir color</button></header>`;
+  } else {
+    const eco = S.version === "A"
+      ? (s[0] ? `<button type="button" class="eco" data-act="ir-foto" data-c="${esc(c)}" aria-label="Ir a las fotos de ${esc(c)}" title="Ver sus fotos"><img src="${fotoSrc(s[0])}" alt=""></button>`
+              : `<button type="button" class="eco sin" data-act="ir-foto" data-c="${esc(c)}" aria-label="${esc(c)} no tiene foto. Ir a agregarla" title="Sin foto: toca para agregarla">${I.camara.replace('class="i"', 'class="i xs"')}</button>`) : "";
+    cab = `<header class="g-cab">${eco}${dot(c)}<h3>${esc(c)}</h3><span class="res">${S.tallas.length} ${S.tallas.length === 1 ? "variante" : "variantes"}${nuevo ? "" : ` · ${u} u.`}</span>${nuevo ? '<span class="chip amb">Nuevo · sin guardar</span>' : ""}<button type="button" class="enlace der" data-act="corregir">Corregir color</button></header>`;
+  }
+  return `<section class="grupo" aria-label="Color ${esc(c)}">${cab}${filas}</section>`;
+}
+function variantes() {
+  const n = S.colores.length;
+  const b = S.version === "B";
+  const nota = b
+    ? `<p class="nota-v"><b>Cada color lleva su foto:</b> toca la cámara junto al color. Toca un color de arriba para <b>corregirlo</b> si se registró mal (conserva stock e historia). Si llegó mercadería nueva, usa <b>Agregar</b>.</p>`
+    : `<p class="nota-v">Toca un color o una talla para <b>corregirla</b> si se registró mal (conserva stock e historia). Si llegó mercadería nueva, usa <b>Agregar</b>.</p>`;
+  const generalB = b && verGeneral() ? `<div class="gen-b"><div class="txt"><b>Una foto para todos los colores</b><small>Opcional · se ve en los colores que no tienen la suya</small>${PISTA_GENERAL()}</div>
+      <div class="tira">${generales().length ? generales().map(f => th(f, 52)).join("") + addMas(null, 52) : `<button type="button" class="slot sin" style="width:52px" data-act="agregar" data-c="" aria-label="Agregar foto para todos los colores">${I.camara}</button>`}</div></div>` : "";
+  return `<section class="tarjeta" id="variantes">
+    <div class="v-cab"><h2 class="etq">Variantes (talla × color)</h2><p class="cuenta">${n * S.tallas.length} activas · ${n} colores · ${S.tallas.length} ${S.tallas.length === 1 ? "talla" : "tallas"} · ${unidades()} u. en stock</p></div>
+    <div class="eje"><span class="rot">Colores</span>${S.colores.map(c => `<button type="button" class="chip-e ${esNuevoColor(c) ? "nuevo" : ""}" data-act="corregir" title="Corregir el color ${esc(c)}, si se registró mal">${dot(c)}${esc(c)}${I.lapiz}</button>`).join("")}<button type="button" class="enlace" data-act="abrir-color" id="btn-agregar-color">+ Agregar color</button></div>
+    <div class="eje"><span class="rot">Tallas</span>${S.tallas.map(t => `<button type="button" class="chip-e" data-act="corregir">${esc(t)}${I.lapiz}</button>`).join("")}<button type="button" class="enlace" data-act="corregir">+ Agregar talla</button></div>
+    ${nota}
+    <div class="bloque" aria-hidden="true">Cambiar <span class="seg2"><span class="on">Precio</span><span>Costo</span></span> de <span class="fake">Todas las activas ▾</span> a <span class="fake">S/ 0.00</span></div>
+    ${b ? generalB + bloqueHuerfanas() : ""}
+    <div class="grupos">${S.colores.map(grupo).join("")}</div>
+  </section>`;
+}
+
+/* ====================== hojas ====================== */
+function hojaHtml() {
+  const h = S.hoja; if (!h) return "";
+  let cuerpo = "";
+  if (h.tipo === "fotos") {
+    const s = h.c === null ? generales() : suyas(h.c);
+    cuerpo = `<button type="button" class="cerrar" data-act="cerrar-hoja" aria-label="Cerrar">${I.x}</button>
+      <h2>Fotos de ${esc(nombreDe(h.c).toLowerCase() === "todos los colores" ? "todos los colores" : h.c)}</h2>
+      <p class="baj">${h.c === null ? "Estas fotos se ven en los colores que no tienen la suya. ¿Es de un solo color? Pásala a ese color. " : ""}Toca una foto para hacerla principal, ponerla primera, pasarla a otro color o quitarla.</p>
+      <div class="grid-h">${s.map(f => th(f, 100)).join("")}${addMas(h.c, 100)}</div>
+      <div class="pie"><button type="button" class="b b-prim" data-act="cerrar-hoja">Listo</button></div>`;
+  } else if (h.tipo === "color") {
+    const sel = h.sel;
+    cuerpo = `<button type="button" class="cerrar" data-act="cerrar-hoja" aria-label="Cerrar">${I.x}</button>
+      <h2>Agregar color</h2>
+      <p class="baj">Para lo que llegó nuevo. Las tallas que ya tiene la prenda se crean solas en el color nuevo.</p>
+      <input type="search" class="buscar" id="buscar-color" placeholder="Busca entre los ${VOC.length} colores: petróleo, coral…" aria-label="Buscar color">
+      <div class="carta" id="carta">${FAM.map(([f, cs]) => `<div class="fam" data-fam><span>${f}</span><div class="cs">${cs.map(([n, hx]) => {
+        const ya = S.colores.includes(n);
+        return `<button type="button" class="sw" style="--h:${hx};--c:${claro(hx) ? "#1a1a18" : "#fff"}" data-act="elegir-color" data-c="${esc(n)}" data-nombre="${esc(n.toLowerCase())}" title="${esc(n)}${ya ? " · ya está en la prenda" : ""}" aria-label="${esc(n)}${ya ? ", ya está en la prenda" : ""}" aria-pressed="${sel === n}" ${ya ? "disabled" : ""}>${sel === n ? I.ok : ""}</button>`;
+      }).join("")}</div></div>`).join("")}</div>
+      ${sel ? `<div class="elegido"><span class="nom">${dot(sel)}${esc(sel)}</span>
+        ${S.version === "hoy" ? "" : `<div class="foto-l">${h.foto
+          ? `<div class="thw" style="--tw:52px"><div class="th" style="--tw:52px"><img src="${fotoSrc({ c: sel, tipo: "frente" })}" alt="Foto de ${esc(sel)}"></div></div><button type="button" class="enlace pel" data-act="hoja-quitar-foto">Quitar</button>`
+          : `<small>Foto de referencia (opcional)</small><button type="button" class="slot sin" style="width:52px" data-act="hoja-foto" aria-label="Agregar foto de ${esc(sel)}">${I.camara}</button>`}</div>`}</div>` : ""}
+      <div class="pie"><button type="button" class="b b-disc" data-act="cerrar-hoja">Cancelar</button><button type="button" class="b b-prim" data-act="confirmar-color" ${sel ? "" : "disabled"}>${sel ? `Agregar ${esc(sel)}` : "Elige un color"}</button></div>`;
+  } else if (h.tipo === "revisar") {
+    const fr = frases();
+    cuerpo = `<button type="button" class="cerrar" data-act="cerrar-hoja" aria-label="Cerrar">${I.x}</button>
+      <h2>Revisa y guarda los cambios</h2>
+      <p class="baj">Esto es lo que se va a guardar en Camisa Lino.</p>
+      <ul class="lista-cambios">${fr.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+      <div class="pie"><button type="button" class="b b-disc" data-act="cerrar-hoja">Seguir editando</button><button type="button" class="b b-prim" data-act="confirmar-guardar">Confirmar y guardar</button></div>`;
+  }
+  return `<div class="velo" data-act="cerrar-hoja"></div><div class="pos"><div class="hoja" role="dialog" aria-modal="true">${cuerpo}</div></div>`;
+}
+
+/* ====================== barra de cambios ====================== */
+function barraHtml() {
+  const fr = frases(), n = fr.length;
+  return `<div class="barra-in"><div class="b-msg"><span class="punto-amb"></span><div><b>Tienes ${n} ${n === 1 ? "cambio" : "cambios"} sin guardar</b><span class="sub">Aún no se guardó nada. Cuando termines, pulsa «Revisar y guardar».</span></div></div>
+    <div class="b-acc"><button type="button" class="b b-disc" data-act="descartar">Descartar</button><button type="button" class="b b-prim" data-act="revisar">Revisar y guardar</button></div></div>`;
+}
+
+/* ====================== pintar ====================== */
+function pintar() {
+  const v = S.version;
+  $("#slot-fotos").innerHTML = v === "hoy" ? fotosHoy() : v === "A" ? fotosA() : v === "C" ? fotosC() : "";
+  $("#slot-variantes").innerHTML = variantes();
+  const n = frases().length;
+  const bar = $("#barra"); bar.innerHTML = barraHtml(); bar.classList.toggle("visible", n > 0);
+  $("#modal").innerHTML = hojaHtml();
+  $$("#seg-v button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.version)));
+  $$("#seg-a button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.a === S.ancho)));
+  $$("#seg-c button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.c === S.caso)));
+  $("#decidido").innerHTML = DECIDIDO[S.version];
+  $("#marco").dataset.ancho = S.ancho;
+  ajustarCapa();
+  history.replaceState(null, "", `#v=${S.version}&caso=${S.caso}&ancho=${S.ancho}`);
+}
+function ajustarCapa() {
+  const c = $("#capa"), r = $("#marco").getBoundingClientRect();
+  if (S.ancho === "escritorio") { c.style.left = "0"; c.style.width = "100%"; }
+  else { c.style.left = r.left + "px"; c.style.width = r.width + "px"; }
+  c.classList.toggle("movil", r.width < 640);
+  document.documentElement.style.setProperty("--mando-h", ($("#mando").offsetHeight + 8) + "px");
+}
+function toast({ titulo, detalle, tono = "exito", ms = 4200 }) {
+  ajustarCapa();
+  const el = document.createElement("div");
+  el.className = "aviso-t"; el.dataset.tono = tono; el.setAttribute("role", "status");
+  const glifo = tono === "neutro" ? '<path d="M3 8h10"/>' : '<path d="M3.5 8.5l3 3 6-7"/>';
+  el.innerHTML = `<span class="ico"><svg viewBox="0 0 16 16" aria-hidden="true">${glifo}</svg></span><div class="tx"><p class="tit">${esc(titulo)}</p>${detalle ? `<p class="det">${esc(detalle)}</p>` : ""}</div>`;
+  $("#avisos").appendChild(el);
+  setTimeout(() => { el.classList.add("saliendo"); setTimeout(() => el.remove(), 260); }, ms);
+}
+
+/* ====================== acciones ====================== */
+const ACC = {
+  menu: a => { S.comboHoy = null; S.menu = S.menu && S.menu.id === a.dataset.id ? null : { id: a.dataset.id, sub: false }; },
+  "menu-mover": a => { S.menu = { id: a.dataset.id, sub: true }; },
+  "menu-atras": a => { S.menu = { id: a.dataset.id, sub: false }; },
+  principal: a => { S.fotos.forEach(f => f.p = f.id === a.dataset.id); S.menu = null; },
+  primera: a => { ponerPrimera(a.dataset.id); S.menu = null; },
+  quitar: a => { quitarFoto(a.dataset.id); S.menu = null; },
+  "mover-a": a => { const f = S.fotos.find(x => x.id === a.dataset.id); if (f) f.c = a.dataset.c === "" ? null : a.dataset.c; S.menu = null; },
+  agregar: a => { S.menu = null; agregarFoto(a.dataset.c === "" ? null : a.dataset.c); },
+  "hoja-fotos": a => { S.menu = null; S.hoja = { tipo: "fotos", c: a.dataset.c === "" ? null : a.dataset.c }; },
+  "cerrar-hoja": () => { S.hoja = null; S.menu = null; },
+  "abrir-color": () => { S.hoja = { tipo: "color", sel: null, foto: false }; },
+  "elegir-color": a => { S.hoja.sel = a.dataset.c; S.hoja.foto = false; },
+  "hoja-foto": () => { S.hoja.foto = true; },
+  "hoja-quitar-foto": () => { S.hoja.foto = false; },
+  "confirmar-color": () => {
+    const c = S.hoja.sel; if (!c) return;
+    S.colores.push(c); S.stock[c] = 0;
+    if (S.hoja.foto) { S.fotos.push({ id: "f" + (++S.seq), c, p: false, tipo: "frente" }); if (!S.fotos.some(x => x.p)) S.fotos[0].p = true; }
+    S.hoja = null;
+    toast({ titulo: `${c} agregado`, detalle: S.version !== "hoy" && !suyas(c).length ? "Su foto queda pendiente: agrégala en su fila." : "Se guarda al pulsar «Revisar y guardar».", tono: "neutro" });
+  },
+  "combo-hoy": a => { S.menu = null; S.comboHoy = S.comboHoy === a.dataset.id ? null : a.dataset.id; },
+  "hoy-elige": a => { const f = S.fotos.find(x => x.id === a.dataset.id); if (f) f.c = a.dataset.c; S.comboHoy = null; },
+  "ir-foto": a => {
+    const c = a.dataset.c, el = document.getElementById("fila-" + c.replace(/\s/g, "-"));
+    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+  },
+  corregir: () => toast({ titulo: "Abre «Corregir color / talla»", detalle: "Sin cambios en este spike: la foto sigue al color, como hoy.", tono: "neutro" }),
+  descartar: () => { S.colores = clon(S.base.colores); S.fotos = clon(S.base.fotos); S.stock = clon(CASOS[S.caso].stock); S.menu = null; S.hoja = null; toast({ titulo: "Cambios descartados", tono: "neutro" }); },
+  revisar: () => { S.hoja = { tipo: "revisar" }; },
+  "confirmar-guardar": () => {
+    const fr = frases();
+    S.base = { colores: clon(S.colores), fotos: clon(S.fotos) }; S.hoja = null;
+    toast({ titulo: "Camisa Lino guardado", detalle: "Por Rosa · " + fr.join(", ").toLowerCase() });
+  },
+};
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-act]");
+  const dentro = e.target.closest(".menu, .lista-hoy");
+  if (a && a.classList.contains("velo") && e.target !== a) return;
+  let seguir = false;
+  if (!dentro && (S.menu || S.comboHoy) && !(a && ["menu", "menu-mover", "combo-hoy"].includes(a.dataset.act))) { S.menu = null; S.comboHoy = null; seguir = true; }
+  if (a && ACC[a.dataset.act]) { ACC[a.dataset.act](a, e); seguir = true; }
+  if (seguir) pintar();
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "buscar-color" || t.dataset.filtro === "hoy") {
+    const q = t.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const raiz = t.id === "buscar-color" ? $("#carta") : t.closest(".lista-hoy");
+    $$("[data-nombre]", raiz).forEach(b => { b.hidden = q && !b.dataset.nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q); });
+    $$("[data-fam]", raiz).forEach(f => { f.hidden = !$$("[data-nombre]", f).some(b => !b.hidden); });
+  }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (S.hoja) S.hoja = null; else { S.menu = null; S.comboHoy = null; } pintar(); } });
+$("#seg-v").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { S.version = b.dataset.v; S.menu = null; S.comboHoy = null; pintar(); } });
+$("#seg-a").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { S.ancho = b.dataset.a; pintar(); } });
+$("#seg-c").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { cargar(b.dataset.c); pintar(); } });
+$("#reiniciar").addEventListener("click", () => { cargar(S.caso); pintar(); });
+addEventListener("resize", ajustarCapa);
+
+/* Arranque: #v=B&caso=huerfana&ancho=celular */
+(function () {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (["hoy", "A", "B", "C"].includes(p.get("v"))) S.version = p.get("v");
+  if (["escritorio", "tablet", "celular"].includes(p.get("ancho"))) S.ancho = p.get("ancho");
+  cargar(CASOS[p.get("caso")] ? p.get("caso") : "captura");
+  pintar();
+})();
+</script>
+</body>
+</html>
