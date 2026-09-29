@@ -50,9 +50,14 @@
 -- deadlocks»). Con `lock_timeout` de 3 s.
 --
 -- DE PASO (sección 5): `fn_exigir_rol_de_terminal` —el candado de la base que impide darle a una
--- TERMINAL un módulo «solo personas»— tenía su lista (`c_solo_personas`) desactualizada desde
--- ADR-0275 (20260929140000): le faltaba `cayla_global`, y ahora también le faltaría `rendimiento`.
--- Se corrige de una vez, con guarda de md5 (causa raíz, no dos parches seguidos).
+-- TERMINAL un módulo «solo personas»— tenía su lista (`c_solo_personas`) desactualizada. El parche que
+-- ADR-0275 (20260929140000) escribió para sumar `cayla_global` **nunca llegó a pegarse en
+-- producción** (verificado en vivo el 2026-09-29: la lista seguía sin `cayla_global`), así que
+-- producción y una base rearmada desde cero (CI, `supabase db reset`) quedaron en dos estados
+-- distintos de la misma función — es lo que hizo fallar el CI la primera versión de esta sección,
+-- escrita con un solo md5 esperado. Se corrige por ancla (mismo mecanismo de ADR-0275), reconociendo
+-- los dos estados posibles y sumando `cayla_global` y `rendimiento` de una vez, sin importar cuál
+-- traiga la base donde se pegue.
 --
 -- SE ROMPE SI:
 --   · alguien le da el módulo `rendimiento` a un rol de TERMINAL: `fn_ve_modulo` ya lo impide en
@@ -240,69 +245,41 @@ revoke all on function retail.fn_rendimiento_equipo(date) from public, anon;
 grant execute on function retail.fn_rendimiento_equipo(date) to authenticated;
 
 -- ----------------------------------------------------------------------------
--- 5. `fn_exigir_rol_de_terminal`: suma «rendimiento» a `c_solo_personas» — y de paso «cayla_global»,
---    que quedó fuera desde ADR-0275 (20260929140000) sin que nadie lo notara hasta ahora. Con guarda
---    de md5 sobre el cuerpo vivo (parches-vivos-se-pierden-al-recrear): si alguien la parchó después,
---    esto aborta en vez de pisarlo.
+-- 5. `fn_exigir_rol_de_terminal`: suma «rendimiento» a `c_solo_personas`. Por ancla, sobre la
+--    definición VIVA (mismo mecanismo que ADR-0275, 20260929140000, sección 5) — no por md5 fijo: ese
+--    parche de ADR-0275 (sumar «cayla_global») se escribió, pero **nunca llegó a pegarse en
+--    producción** (verificado en vivo el 2026-09-29: la lista seguía en `['colaboradores', 'roles',
+--    'actividad']`), así que producción y una base rearmada desde cero por CI quedaron en dos estados
+--    distintos. En vez de asumir uno solo (lo que rompió el CI la primera vez que se escribió esta
+--    sección), se reconocen los DOS anclas posibles y punto de llegada es siempre la lista completa —
+--    de paso, cierra el hueco de ADR-0275 donde sea que siga abierto.
 -- ----------------------------------------------------------------------------
 
 do $$
 declare
-  v_actual text;
+  v_def text := pg_get_functiondef('retail.fn_exigir_rol_de_terminal(uuid, text)'::regprocedure);
+  v_sin_cayla_global text := 'array[''colaboradores'', ''roles'', ''actividad'']';
+  v_con_cayla_global text := 'array[''colaboradores'', ''roles'', ''actividad'', ''cayla_global'']';
+  v_completo text := 'array[''colaboradores'', ''roles'', ''actividad'', ''cayla_global'', ''rendimiento'']';
 begin
-  select md5(p.prosrc) into v_actual
-    from pg_proc p where p.oid = to_regprocedure('retail.fn_exigir_rol_de_terminal(uuid, text)');
-  if v_actual is null then
-    raise exception 'fn_exigir_rol_de_terminal no existe: pega antes 20260923140000_modulos_seis_decisiones.sql.';
+  if position(v_completo in v_def) > 0 then
+    null; -- ya tiene los cinco: se pega igual (idempotente) para dejar el comentario de la función al día.
+  elsif position(v_con_cayla_global in v_def) > 0 then
+    -- El parche de ADR-0275 sí está (una base rearmada desde cero, o una producción donde SÍ se pegó):
+    -- solo falta sumar «rendimiento».
+    v_def := replace(v_def, v_con_cayla_global, v_completo);
+  elsif position(v_sin_cayla_global in v_def) > 0 then
+    -- El caso medido en producción el 2026-09-29: el parche de ADR-0275 nunca se pegó. Se suman los dos
+    -- de una vez.
+    v_def := replace(v_def, v_sin_cayla_global, v_completo);
+  else
+    raise exception 'retail.fn_exigir_rol_de_terminal no tiene ninguna de las listas esperadas: alguien la cambió en vivo de otra forma. Reescribe la sección 5 de esta migración desde su definición real antes de pegar.';
   end if;
-  if v_actual <> '58ee419dc2bbdddda6b7576efd7a3dd1' then
-    raise exception 'fn_exigir_rol_de_terminal tiene otro cuerpo (md5 %): alguien la cambió en vivo después del 2026-09-29. Reescribe la sección 5 de esta migración desde su definición real antes de pegar.', v_actual;
-  end if;
+  execute v_def;
 end $$;
 
-create or replace function retail.fn_exigir_rol_de_terminal(p_rol_id uuid, p_modulo text default null)
-returns void
-language plpgsql
-security definer
-set search_path = retail, public, extensions
-as $fn$
-declare
-  c_solo_personas constant text[] := array['colaboradores', 'roles', 'actividad', 'cayla_global', 'rendimiento'];
-  v_rol retail.roles;
-  v_terminales text;
-  v_modulos text;
-begin
-  if p_modulo is not null and not (p_modulo = any (c_solo_personas)) then
-    return;
-  end if;
-  select * into v_rol from retail.roles where id = p_rol_id for update;
-  if v_rol.id is null then
-    return; -- el disparador de coherencia ya dice «ese rol no existe»
-  end if;
-
-  if p_modulo is null then
-    -- Se le da este rol a una terminal: el rol no puede incluir los módulos de personas.
-    select string_agg(m.nombre, ' y ' order by m.orden) into v_modulos
-      from retail.rol_modulos rm join retail.modulos m on m.clave = rm.modulo
-     where rm.rol_id = p_rol_id and rm.modulo = any (c_solo_personas);
-    if v_modulos is not null then
-      raise exception 'Una terminal no puede tener el rol «%»: incluye %, que solo se dan a personas. Elige otro rol o quítale esos módulos.', v_rol.nombre, v_modulos
-        using errcode = '23514', hint = 'rol_solo_personas';
-    end if;
-  else
-    -- Se enciende un módulo de personas en un rol: no puede tenerlo ninguna terminal.
-    select string_agg(t.nombre, ', ' order by t.nombre) into v_terminales from retail.terminales t where t.rol_id = p_rol_id;
-    if v_terminales is not null then
-      raise exception '«%» solo se da a personas, y el rol «%» lo tienen terminales (%). Dales otro rol antes de encenderlo.',
-        (select nombre from retail.modulos where clave = p_modulo), v_rol.nombre, v_terminales
-        using errcode = '23514', hint = 'rol_solo_personas';
-    end if;
-  end if;
-end;
-$fn$;
-
 comment on function retail.fn_exigir_rol_de_terminal(uuid, text) is
-  'ADR-0161 P6: una terminal nunca puede tener un módulo «solo personas» (colaboradores, roles, actividad, cayla_global, rendimiento). Sin p_modulo: valida el rol completo al dárselo a una terminal. Con p_modulo: valida que ningún rol de terminal tenga ese módulo antes de encenderlo. Actualizada 20260929160000 (sumó cayla_global, que faltaba desde ADR-0275, y rendimiento, ADR-0219).';
+  'ADR-0161 P6: una terminal nunca puede tener un módulo «solo personas» (colaboradores, roles, actividad, cayla_global, rendimiento). Sin p_modulo: valida el rol completo al dárselo a una terminal. Con p_modulo: valida que ningún rol de terminal tenga ese módulo antes de encenderlo. Actualizada 20260929160000: cierra el hueco de ADR-0275 («cayla_global» nunca llegó a pegarse en producción) y suma «rendimiento» (ADR-0219), por ancla sobre la definición viva, tolerando los dos estados posibles.';
 
 reset lock_timeout;
 
