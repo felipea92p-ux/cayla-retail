@@ -1,6 +1,6 @@
 import type { Estacion, Temporada } from "@/lib/temporada-reglas";
 import { estacionesDe, tonoDeTemporada, type TonoTemporada } from "@/lib/temporadas-pantalla";
-import { CREMA, MuestraIcono, TONOS, type DibujoIcono } from "@/components/MuestraEtiqueta";
+import { CREMA, MuestraIcono, TONO_PIZARRA, TONOS, type DibujoIcono } from "@/components/MuestraEtiqueta";
 
 /**
  * La imagen de una temporada en Atributos ▸ Temporadas (ADR-0261): el mismo molde que las etiquetas (ícono grande al
@@ -13,10 +13,10 @@ import { CREMA, MuestraIcono, TONOS, type DibujoIcono } from "@/components/Muest
  * gradientes ni sombras, como el resto de las muestras.
  */
 
-// Pizarra (#4C5D6E) diluida al 14 % sobre crema, la misma cuenta con que salen los fondos de `TONOS`.
+// El tono frío es la pizarra de `MuestraEtiqueta` (`TONO_PIZARRA`), la misma que usa Categorías.
 const TONOS_TEMPORADA: Record<TonoTemporada, { fondo: string; acento: string }> = {
   calido: TONOS.urgencia,
-  frio: { fondo: "#DDDBD7", acento: "#4C5D6E" },
+  frio: TONO_PIZARRA,
   neutro: TONOS.neutral,
 };
 

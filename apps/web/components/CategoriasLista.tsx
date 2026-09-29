@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -11,11 +10,15 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { Boton, Campo, CampoSelect, CampoTexto, Hilo, SelectorMultiple } from "@/components/ui/campos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
+import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 import { buscarCategorias } from "@/lib/categorias-reglas";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
-import { IconoFamilia } from "@/components/IconoFamilia";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { MuestraCategoria, tonoDeCategoria } from "@/components/MuestraCategoria";
+import { BarraAtributos, GRILLA_ATRIBUTOS, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
+import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 
 /**
@@ -165,7 +168,8 @@ export function CategoriasLista({
   const [ejesPorCategoria, setEjesPorCategoria] = useState(ejesPorCategoriaInicial);
   const [ejesDraft, setEjesDraft] = useState<EjesDraft>(EJES_VACIO);
   const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
+  // Filtro por familia (las píldoras de arriba, como en Atributos). Solo estado de pantalla: no cambia qué se guarda ni qué se lee.
+  const [familiaFiltro, setFamiliaFiltro] = useState("todas");
 
   const editando = borrador?.id !== null && borrador?.id !== undefined;
   const activas = categorias.filter((c) => c.activo);
@@ -176,7 +180,14 @@ export function CategoriasLista({
   const coinciden = buscarCategorias(activas, busqueda);
   const seVe = (c: Categoria) => coinciden === null || coinciden.has(c.id);
   const desactivadasCoinciden = buscarCategorias(desactivadas, busqueda);
-  const desactivadasVisibles = desactivadas.filter((c) => desactivadasCoinciden === null || desactivadasCoinciden.has(c.id));
+  // Una familia que ya no está (se desactivó desde /productos/familias) no puede quedar elegida: cae a «Todas».
+  const familiaActiva = familias.some((f) => f.codigo === familiaFiltro) ? familiaFiltro : "todas";
+  const enLaFamilia = (c: Categoria) => familiaActiva === "todas" || c.familia === familiaActiva;
+  const desactivadasVisibles = desactivadas.filter((c) => (desactivadasCoinciden === null || desactivadasCoinciden.has(c.id)) && enLaFamilia(c));
+  const quitarFiltros = () => {
+    setBusqueda("");
+    setFamiliaFiltro("todas");
+  };
 
   function abrirBorrador(b: Borrador | null) {
     setViendoId(null);
@@ -371,95 +382,73 @@ export function CategoriasLista({
   const subChoquePrefijo = quienUsaPrefijo(subDraft.prefijo, categorias, null);
   const subChoqueNombre = quienUsaNombre(subDraft.nombre, categorias, null);
 
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        {coinciden !== null && (
-          <p className="text-sm text-tinta/70" aria-live="polite">
-            {activas.filter((c) => esRaizVisible(c) && seVe(c)).length} de {activas.filter(esRaizVisible).length} categorías
-          </p>
-        )}
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              onFocus={() => setBuscando(true)}
-              onBlur={() => setBuscando(false)}
-              placeholder="Categoría o prefijo"
-              aria-label="Buscar categoría o prefijo"
-              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => setBusqueda("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <Hilo activo={buscando} />
-          </div>
-          {puedeEditar && (
-            <button
-              type="button"
-              onClick={() => abrirBorrador(borradorVacio(familias))}
-              className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-            >
-              + Agregar categoría
-            </button>
-          )}
-        </div>
-      </div>
+  // Lo que se ve, calculado una vez: las familias (todas, o solo la elegida en las píldoras) con sus categorías raíz que responden
+  // al buscador. Buscando, una familia sin nada que mostrar no aparece («Sin categorías todavía» mentiría); sin buscar, una
+  // familia vacía sí (un Líder que acaba de crearla tiene que verla).
+  const raicesDe = (f: string) => activas.filter((c) => c.familia === f && esRaizVisible(c));
+  const totalRaices = familias.reduce((n, f) => n + raicesDe(f.codigo).length, 0);
+  const grupos = familias
+    .filter((f) => familiaActiva === "todas" || f.codigo === familiaActiva)
+    .map((f) => ({ codigo: f.codigo, raices: raicesDe(f.codigo).filter(seVe) }))
+    .filter((g) => coinciden === null || g.raices.length > 0);
+  const hayFiltros = coinciden !== null || familiaActiva !== "todas";
+  const nadaQueMostrar = hayFiltros && grupos.length === 0 && desactivadasVisibles.length === 0;
 
-      {coinciden !== null && coinciden.size === 0 && desactivadasVisibles.length === 0 && (
-        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-tinta/75">Ninguna categoría coincide con «{busqueda.trim()}».</p>
-          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setBusqueda("")}>
-            Quitar búsqueda
-          </Boton>
-        </div>
+  return (
+    <div className="space-y-6">
+      <BarraAtributos
+        etiqueta="Filtrar por familia"
+        filtros={
+          <>
+            <BotonFiltro activo={familiaActiva === "todas"} onClick={() => setFamiliaFiltro("todas")} cuenta={totalRaices}>
+              Todas
+            </BotonFiltro>
+            {familias.map((f) => (
+              <BotonFiltro
+                key={f.codigo}
+                activo={familiaActiva === f.codigo}
+                onClick={() => setFamiliaFiltro(familiaActiva === f.codigo ? "todas" : f.codigo)}
+                cuenta={raicesDe(f.codigo).length}
+              >
+                {f.nombre}
+              </BotonFiltro>
+            ))}
+          </>
+        }
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar categoría o prefijo", placeholder: "Categoría o prefijo" }}
+        agregar={puedeEditar ? { texto: "+ Agregar categoría", onClick: () => abrirBorrador(borradorVacio(familias)) } : undefined}
+      />
+
+      {nadaQueMostrar && (
+        <SinCoincidencias onQuitar={quitarFiltros}>
+          {coinciden !== null ? <>Ninguna categoría coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ninguna categoría cumple este filtro."}
+        </SinCoincidencias>
       )}
 
-      {familias.map(({ codigo: f }) => {
-        const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c) && seVe(c));
-        // Buscando, una familia sin nada que mostrar no aparece: «Sin categorías todavía» mentiría.
-        if (coinciden !== null && raicesDeLaFamilia.length === 0) return null;
-        return (
-          <section key={f} className="card-cayla p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-tinta/70">
-                <IconoFamilia familia={f} className="h-[18px] w-[18px]" />
-                <p className="text-sm font-medium text-tinta">{etiquetaFamilia(f)}</p>
-              </div>
-              <p className="text-[11px] text-tinta/65">
-                {raicesDeLaFamilia.length} {raicesDeLaFamilia.length === 1 ? "categoría" : "categorías"}
-              </p>
+      {grupos.map(({ codigo: f, raices }) => (
+        <section key={f} className="space-y-3">
+          <TituloGrupo punto={PUNTO_DEL_TONO[tonoDeFamilia(f)]} cuenta={raices.length}>
+            {etiquetaFamilia(f)}
+          </TituloGrupo>
+          {raices.length > 0 ? (
+            <div className={GRILLA_ATRIBUTOS}>
+              {raices.map((c) => (
+                <TarjetaCategoria
+                  key={c.id}
+                  c={c}
+                  productos={productosPorCategoria[c.id] ?? 0}
+                  subcategorias={hijasDe(c.id).length}
+                  temporada={temporadaPorCategoria?.[c.id] ?? null}
+                  subcategoriasQueCoinciden={coinciden?.get(c.id) ?? []}
+                  onClick={() => setViendoId(c.id)}
+                />
+              ))}
             </div>
-            {raicesDeLaFamilia.length > 0 ? (
-              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {raicesDeLaFamilia.map((c) => (
-                  <TarjetaCategoria
-                    key={c.id}
-                    c={c}
-                    productos={productosPorCategoria[c.id] ?? 0}
-                    subcategorias={hijasDe(c.id).length}
-                    temporada={temporadaPorCategoria?.[c.id] ?? null}
-                    subcategoriasQueCoinciden={coinciden?.get(c.id) ?? []}
-                    onClick={() => setViendoId(c.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-xs italic text-tinta/65">Sin categorías todavía.</p>
-            )}
-          </section>
-        );
-      })}
+          ) : (
+            <p className="text-xs italic text-tinta/65">Sin categorías todavía.</p>
+          )}
+        </section>
+      ))}
 
       {viendo && (
         <VistaRapidaCategoria
@@ -817,11 +806,9 @@ export function CategoriasLista({
   );
 }
 
-/** Tarjeta de categoría — mismo gesto que `TarjetaProducto` en
- *  `ProductosGrilla.tsx` (elevación + sombra al pasar el mouse), pero sin
- *  foto: el ícono de familia hace ese trabajo. Siempre clickeable, para
- *  cualquier rol — ver qué ofrece una categoría es lectura, no requiere
- *  ser Líder (RLS de `categorias_select` ya lo permite). */
+/** Tarjeta de categoría: la de Atributos (`TarjetaAtributo`, ADR-0261) con el banner de su ícono y el tono de su familia
+ *  (`MuestraCategoria`). Siempre clicable para cualquier rol —ver qué ofrece una categoría es lectura, no requiere ser
+ *  Líder (RLS de `categorias_select` ya lo permite)—. «Desactivar» vive en la ventana de Editar. */
 function TarjetaCategoria({
   c,
   productos,
@@ -840,27 +827,23 @@ function TarjetaCategoria({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="card-cayla group flex flex-col items-start gap-3 p-3.5 text-left transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="flex w-full items-center justify-between">
-        <span className="rounded-md bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
-        <IconoFamilia familia={c.familia} className="h-5 w-5 text-tinta/30 transition-colors group-hover:text-tinta/55" />
-      </div>
-      <div>
-        <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
-        <p className="label-cayla mt-1 text-[11px] text-tinta/65">
-          {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
-          {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
-        </p>
-        {temporada && <p className="mt-0.5 text-[11px] text-taupe">{temporada}</p>}
-        {subcategoriasQueCoinciden.length > 0 && (
-          <p className="mt-0.5 text-[11px] text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>
-        )}
-      </div>
-    </button>
+    <TarjetaAtributo
+      muestra={<MuestraCategoria nombre={c.nombre} prefijo={c.prefijo} familia={c.familia} />}
+      // «Ropa interior/Lencería» no tiene dónde partirse y en una tarjeta angosta se sale: un espacio de ancho cero tras la barra.
+      nombre={c.nombre.replace(/\//g, "/\u200B")}
+      abrir={{ onClick, titulo: `Ver ${c.nombre}` }}
+      detalle={
+        <>
+          <p className="text-xs tabular-nums text-tinta/65">
+            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/55">{c.prefijo ?? "—"}</span>
+            {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
+            {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
+          </p>
+          {temporada && <p className="text-xs text-taupe-profundo">{temporada}</p>}
+          {subcategoriasQueCoinciden.length > 0 && <p className="text-xs text-tinta/65">Sub: {subcategoriasQueCoinciden.join(", ")}</p>}
+        </>
+      }
+    />
   );
 }
 
@@ -907,8 +890,11 @@ function VistaRapidaCategoria({
     <Modal titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-sand/60 text-tinta/60">
-            <IconoFamilia familia={familia} className="h-8 w-8" />
+          <div
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl"
+            style={{ backgroundColor: tonoDeCategoria(familia).fondo, color: tonoDeCategoria(familia).acento }}
+          >
+            <IconoCategoria prefijo={categoria.prefijo} familia={familia} className="h-8 w-8" />
           </div>
           <span className="rounded-md bg-sand px-2 py-1 font-mono text-xs font-semibold text-tinta/70">{categoria.prefijo ?? "—"}</span>
         </div>
