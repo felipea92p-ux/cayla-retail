@@ -26,6 +26,8 @@ import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
+import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
+import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, guardarTamanoGrilla, type TamanoGrilla } from "@/lib/tamano-grilla";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -46,8 +48,11 @@ export function ProductosGrilla({
   sede,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
 }: {
   productos: ProductoListado[];
+  /** El tamaño de las tarjetas que la persona dejó la última vez (cookie, leída en el servidor). */
+  tamanoInicial?: TamanoGrilla;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y las tarjetas dicen «Stock total N» como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
@@ -66,25 +71,35 @@ export function ProductosGrilla({
   useEffect(() => {
     if (productos.length > 0) void leer(productos.map((p) => p.productoId));
   }, [productos, leer]);
+  // Cuánto ver de un vistazo (Felipe, 2026-09-29): cambia cuántas tarjetas caben por fila, no cuántas trae la página.
+  const [tamano, setTamano] = useState<TamanoGrilla>(tamanoInicial);
+  const elegirTamano = (t: TamanoGrilla) => {
+    setTamano(t);
+    guardarTamanoGrilla(t);
+  };
 
   if (productos.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
 
   return (
-    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-      {productos.map((p) => (
-        <TarjetaProducto
-          key={p.productoId}
-          producto={p}
-          existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
-          veExistencias={veExistencias}
-          stock={stockSede.de(p.productoId)}
-          leer={leer}
-          sede={sede}
-          puedeEliminar={puedeEliminar}
-        />
-      ))}
+    <div className="space-y-4">
+      <SelectorTamanoGrilla valor={tamano} onCambiar={elegirTamano} />
+      <div className={`grid ${CLASES_GRILLA[tamano]}`}>
+        {productos.map((p) => (
+          <TarjetaProducto
+            key={p.productoId}
+            producto={p}
+            existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
+            veExistencias={veExistencias}
+            stock={stockSede.de(p.productoId)}
+            leer={leer}
+            sede={sede}
+            puedeEliminar={puedeEliminar}
+            compacta={tamano === "pequeno"}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -97,6 +112,7 @@ function TarjetaProducto({
   leer,
   sede,
   puedeEliminar,
+  compacta = false,
 }: {
   producto: ProductoListado;
   existencias: ExistenciasProducto | null;
@@ -106,6 +122,8 @@ function TarjetaProducto({
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
   puedeEliminar: boolean;
+  /** Tamaño «Pequeño»: la tarjeta angosta deja solo lo que se lee de un vistazo (nombre, código, precio, stock, colores). */
+  compacta?: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
@@ -158,22 +176,31 @@ function TarjetaProducto({
         )}
       </button>
 
-      <div className="flex flex-1 flex-col gap-2.5 px-4 py-4">
+      <div className={`flex flex-1 flex-col ${compacta ? "gap-2 px-3 py-3" : "gap-2.5 px-4 py-4"}`}>
         <div>
-          <p className="font-display text-[17px] leading-tight text-tinta">{producto.referencia}</p>
-          <p className="label-cayla mt-0.5 text-[10px] text-tinta/55">
-            {producto.codigo ?? "sin código"} · {producto.categoria ?? "sin categoría"}
+          <p className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
+          <p className="label-cayla mt-0.5 truncate text-[10px] text-tinta/55">
+            {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
           </p>
-          {/* De quién es y quién lo trae (ADR-0109). */}
+          {/* De quién es y quién lo trae (ADR-0109). En «Pequeño» solo la marca: el proveedor no cabe y se ve en la Tabla. */}
           <p className="mt-0.5 truncate text-[11px] text-tinta/60" title={`${producto.marca} · ${producto.proveedor}`}>
-            {producto.marca} <span className="text-tinta/35">·</span> {producto.proveedor}
+            {compacta ? (
+              producto.marca
+            ) : (
+              <>
+                {producto.marca} <span className="text-tinta/35">·</span> {producto.proveedor}
+              </>
+            )}
           </p>
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(producto.variantes.map((v) => v.precio)) ?? "—"}</span>
-          <span title={EXPLICACION_STOCK_TOTAL} className={`ml-auto whitespace-nowrap text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>
+          <span
+            title={EXPLICACION_STOCK_TOTAL}
+            className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}
+          >
             {alerta === "sin_stock" ? (
               <Chip tono="neutro" versalitas={false}>
                 Sin stock

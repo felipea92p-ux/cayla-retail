@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { ORDENES_DESPLEGABLE, ROTULO_ORDEN_PRODUCTOS, leerOrdenProductos } from "@/lib/productos-orden";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -95,7 +96,8 @@ export function FiltrosProductos({
   const chips: { texto: string; quitar: Record<string, string> }[] = [];
   const q = params.get("q");
   if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
-  if (orden) chips.push({ texto: orden === "precio_asc" ? "Precio: menor a mayor" : "Precio: mayor a menor", quitar: { orden: "" } });
+  const ordenLeido = leerOrdenProductos(orden);
+  if (ordenLeido) chips.push({ texto: ROTULO_ORDEN_PRODUCTOS[ordenLeido], quitar: { orden: "" } });
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
   // Con prefijo: una marca y su proveedor pueden llamarse igual («Adidas» / «Adidas»), y dos botones que dicen lo mismo no se distinguen.
   if (marca) chips.push({ texto: `Marca: ${marcas.find((m) => m.id === marca)?.nombre ?? "—"}`, quitar: { marca: "" } });
@@ -184,6 +186,19 @@ export function FiltrosProductos({
       {panelAbierto && (
         <PanelPildoras>
           <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
+
+          {/* Recientes, antiguos y vendidos (Felipe, 2026-09-29). El mismo parámetro `orden` que las flechas de precio: si
+              hay una de precio activa, aquí queda «Por nombre», que es apagar cualquiera de las dos. */}
+          <DesplegablePildora
+            icono={ArrowUpDown}
+            etiqueta="Ordenar"
+            valor={(ORDENES_DESPLEGABLE as readonly string[]).includes(orden ?? "") ? (orden as string) : TODOS}
+            onValor={(v) => aplicar({ orden: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Por nombre (A–Z)" },
+              ...ORDENES_DESPLEGABLE.map((o) => ({ valor: o as string, texto: ROTULO_ORDEN_PRODUCTOS[o] })),
+            ]}
+          />
 
           <DesplegablePildora
             icono={Shirt}

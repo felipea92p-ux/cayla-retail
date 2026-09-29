@@ -8,6 +8,7 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
+import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -184,10 +185,10 @@ export type FiltrosProductos = {
    *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
    *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
   stock?: "sin_stock" | "bajo" | "reponer";
-  /** Orden del catálogo (20260917180000) — null/undefined = por referencia,
-   *  el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen`
-   *  no pagina, así que nunca le llega (ver `paramsFiltrosProductos`). */
-  orden?: "precio_asc" | "precio_desc";
+  /** Orden del catálogo (20260917180000; recientes, antiguos y vendidos: 20260929180000) — null/undefined = por
+   *  referencia, el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen` no pagina, así que nunca le llega
+   *  (ver `paramsFiltrosProductos`). Las opciones y sus rótulos: `lib/productos-orden.ts`. */
+  orden?: OrdenProductos;
 };
 
 /** Parámetros de URL de /productos (ver `FiltrosProductos.tsx`). */
@@ -207,7 +208,8 @@ export type ParamsProductosListado = {
   orden?: string;
 };
 
-export const PRODUCTOS_POR_PAGINA = 24;
+// 20 por página (Felipe, 2026-09-29; eran 24): con el catálogo real la lista crece y una página corta se lee y carga más rápido.
+export const PRODUCTOS_POR_PAGINA = 20;
 
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 const esNumeroPositivo = (v?: string) => !!v && /^\d+(\.\d+)?$/.test(v);
@@ -225,7 +227,7 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
     stock:
       p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
-    orden: p.orden === "precio_asc" || p.orden === "precio_desc" ? p.orden : undefined,
+    orden: leerOrdenProductos(p.orden),
   };
 }
 

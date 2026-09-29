@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,9 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AQuienPedirle } from "@/components/AQuienPedirle";
+import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
+import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -58,6 +61,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const filtros = filtrosProductosDesdeParams(params);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
+  // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
+  // pintura ya salga con las columnas correctas (ver `lib/tamano-grilla.ts`).
+  const tamanoGrilla = leerTamanoGrilla((await cookies()).get(COOKIE_TAMANO_GRILLA)?.value);
   const supabase = await createClient();
 
   // Grilla ⇄ tabla (ADR-0077): reconstruye la URL con todos los filtros vigentes, solo
@@ -120,12 +126,23 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         sede={persona.ubicacionEtiqueta}
         titulo="Productos"
         subtitulo={
+          // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
+          // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
           <>
-            Cada prenda del catálogo con sus colores, tallas y precios. {EXPLICACION_STOCK_TOTAL} El detalle por talla y sede está en{" "}
-            <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
-              Existencias
-            </Link>
-            .
+            Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.
+            <Ayuda titulo="Productos">
+              <span className="block">
+                Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
+              </span>
+              <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
+              <span className="mt-2 block">
+                El detalle por talla y sede está en{" "}
+                <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
+                  Existencias
+                </Link>
+                .
+              </span>
+            </Ayuda>
           </>
         }
         acciones={
@@ -192,6 +209,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             sede={persona.ubicacionEtiqueta}
             puedeEliminar={persona.rol === "lider"}
             mensajeVacio={mensajeSinResultados(filtros)}
+            tamanoInicial={tamanoGrilla}
           />
         ) : (
           <ProductosTabla

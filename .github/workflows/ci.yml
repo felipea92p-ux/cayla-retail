@@ -1087,6 +1087,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:catalogo-cifra-unica
 
+      # Productos se ordena por «más recientes», «más antiguos», «más vendidos» y «menos vendidos» (20260929180000, Felipe
+      # 2026-09-29): el orden se decide en la base antes de cortar la página; «vendidos» cuenta las ventas de 30 días (las de
+      # hace 40 no); precio y nombre salen igual que antes; un orden desconocido se rechaza; aplicarla dos veces es inocuo.
+      # Con control: sin la migración, «recientes» se rechaza.
+      - name: pruebas:productos-orden
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-orden
+
       # Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
       # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
       # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
