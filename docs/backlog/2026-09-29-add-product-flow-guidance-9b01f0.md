@@ -36,3 +36,11 @@ sin nada que pegar en producción.
       Recibir, Traslados). Las piezas (`MarcaCampo`, `FaltanDelPaso`, `useGuiaAlta`) ya son genéricas; falta sacarlas de `alta-producto/`.
 - [ ] **Entorno local:** la base de desarrollo no trae patrones (producción tiene 9); se sembraron 3 de prueba en la base local.
       Conviene que el seed de `supabase/seed.sql` los traiga, para que «Indumentaria exige patrón» no deje el alta sin salida al probar.
+- [x] **`/focus` y modales (ADR-0284 e y f):** skill `.claude/skills/focus/SKILL.md` + escáner `scripts/focus/escanear.mjs` (`pnpm focus`, 25 pruebas).
+      Los **modales** entran al escáner, al registro (`MODALES`, 90) y a la prueba obligatoria; **la luz enciende el control que sigue**
+      (caja de texto, combo, chips, interruptor, grupo): `components/guia-de-foco/` + `lib/guia-campos.ts`. Piloto `NuevaClientaModal`.
+- [ ] **Despliegue de modales (Felipe):** quedan **89 modales `pendiente`** en `MODALES` (con su cuenta de controles). Los de un solo control son
+      candidatos a `no-aplica`. Por cada uno: `useGuiaCampos` + `CampoGuiado` + `PieGuia`, luego `aplicada` y bajar `MODALES_PENDIENTES_HOY`.
+- [ ] **Sin ver en pantalla (modales):** el modal a 375 px; un modal con combo desplegable abierto mientras la luz está sobre él; `ComboBuscable`
+      como control encendido; el modal en «Nuevo producto» tras el cambio de la luz de las filas del alta (revisar que no se vea pesada).
+- [ ] **CI:** `escanear.test.mjs` no corre en el CI (no se tocó `ci.yml`); se corre a mano con `node --test scripts/focus/escanear.test.mjs`.

@@ -32,3 +32,19 @@ y una ficha que ya venía completa no muestra nada.
 Felipe se lleva: abrir una prenda sin fotos ni tejido (p. ej. «Blusa Emma» en la base local), tocar «Fotos de 2 colores» y ver que
 lleva a la tarjeta de fotos; elegir un tejido y ver que sale de la tira. Y mirar un combo fuera del alta (filtros de Productos o de
 Compras) para decidir si el borde y la sombra nuevos se quedan en todos. Falta ver en pantalla el ✓ de fotos tras subir una.
+
+## 2026-09-29 (c) (La skill /focus y los modales: el control que sigue se ilumina)
+
+Qué hice: creé la skill `/focus` (recorre las pantallas en construcción, avisa cuáles no tienen la guía y después la implementa) con su
+escáner `pnpm focus`, y la extendí a los **modales**. Dentro de un modal el control que sigue se **enciende**: halo suave alrededor, la
+caja de texto o el combo de adentro más claros, marca «Sigue aquí»; al completarlo, la luz pasa al siguiente. Sirve a cualquier control
+(caja, combo, chips, interruptor, un grupo). Piezas nuevas: `useGuiaCampos`, `CampoGuiado`, `PieGuia`; piloto en «Registrar clienta».
+Los 90 modales con campos entraron al registro y a la prueba obligatoria: uno nuevo no puede nacer «pendiente».
+
+Por qué así: la guía no cambia qué se puede confirmar en un modal (sale de su validación real), y una regla de grupo («basta uno de tres
+datos») es un solo campo virtual que enciende el bloque. La luz se pinta por detrás y por fuera para no correr nada. Antes la prueba no veía
+los modales y la única barrera era la casilla del PR; ahora es mecánica, igual que con las pantallas.
+
+Felipe se lleva: abrir Clientas ▸ Registrar clienta y ver la luz en «Identificación»; escribir un DNI y ver que se apaga y el pie dice «Todo
+listo». Decidir si los modales de un solo control (un motivo, una confirmación) llevan la luz o se declaran «no aplica» (la skill los propone
+así). Quedan 89 modales por hacer, módulo por módulo, con `/focus <módulo>`.

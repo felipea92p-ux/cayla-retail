@@ -21,7 +21,7 @@ export type PantallaGuia =
   | { estado: "pendiente" };
 
 /** Lo que una pantalla «aplicada» tiene que usar: al menos una de estas piezas aparece en cada archivo de su evidencia. */
-export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora"] as const;
+export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
 export const PENDIENTES_HOY = 80;
@@ -138,4 +138,109 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/vender/comprobantes/proformas": PENDIENTE,
   "/vender/comprobantes/series": PENDIENTE,
   "/vender/historial": PENDIENTE,
+};
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// MODALES (ADR-0284, actualización f). Un MODAL es todo archivo bajo `components/` o `app/(app)/` que dibuja un `<Modal>`, un `<ModalRuta>`
+// o un `Dialog.Content` y tiene campos. Igual que las pantallas, cada uno se declara aquí, y la prueba falla si aparece uno sin declarar.
+// Dentro de un modal la guía ENCIENDE el control que sigue —caja de texto, combo, chips, interruptor, un grupo de cajas— con
+// `useGuiaCampos` + `<CampoGuiado>` + `<PieGuia>` (`components/guia-de-foco/`); la clave es la ruta del archivo bajo `apps/web`.
+// El comentario de cada `pendiente` dice cuántos controles trae: con UNO solo no hay camino que indicar y suele ser «no-aplica» (con motivo).
+// Un archivo que es a la vez el formulario principal de una pantalla y dibuja un `<Modal>` cuenta como modal: sepáralo si hace falta.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
+export const MODALES_PENDIENTES_HOY = 89;
+
+export const MODALES: Record<string, PantallaGuia> = {
+  "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
+  "components/AjustarInventarioModal.tsx": PENDIENTE, // 6 controles
+  "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
+  "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
+  "components/ApartarModal.tsx": PENDIENTE, // 8 controles
+  "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
+  "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
+  "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
+  "components/ClientaFichaModal.tsx": PENDIENTE, // 16 controles
+  "components/ColaboradoresModales.tsx": PENDIENTE, // 14 controles
+  "components/ColaboradoresPanel.tsx": PENDIENTE, // 3 controles
+  "components/ColoresLista.tsx": PENDIENTE, // 17 controles
+  "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
+  "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
+  "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
+  "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
+  "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
+  "components/ConfiguracionImpuestos.tsx": PENDIENTE, // 6 controles
+  "components/ConfirmarConResponsable.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/ConfirmarTransmision.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/CotizacionesMaquilaPanel.tsx": PENDIENTE, // 6 controles
+  "components/DetalleMuestraModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/EditarMarcaModal.tsx": PENDIENTE, // 5 controles
+  "components/EliminarProductoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/EtiquetasLista.tsx": PENDIENTE, // 7 controles
+  "components/FamiliasLista.tsx": PENDIENTE, // 2 controles
+  "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
+  "components/FiltrosMovimientos.tsx": PENDIENTE, // 3 controles
+  "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
+  "components/GastosPanel.tsx": PENDIENTE, // 13 controles
+  "components/InsumoModales.tsx": PENDIENTE, // 18 controles
+  "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
+  "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/NuevaOrdenProduccionForm.tsx": PENDIENTE, // 11 controles
+  "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
+  "components/OrdenModales.tsx": PENDIENTE, // 4 controles
+  "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
+  "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
+  "components/PatronesLista.tsx": PENDIENTE, // 4 controles
+  "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
+  "components/PedirAOtraSedeModal.tsx": PENDIENTE, // 2 controles
+  "components/PerfilModal.tsx": PENDIENTE, // 12 controles
+  "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
+  "components/PrendaSinRegistrarModal.tsx": PENDIENTE, // 8 controles
+  "components/PrendasDeEtiquetaModal.tsx": PENDIENTE, // 6 controles
+  "components/ProductosGrilla.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
+  "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
+  "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
+  "components/PuntoDeVenta.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
+  "components/ReasignarReparto.tsx": PENDIENTE, // 9 controles
+  "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
+  "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
+  "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
+  "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
+  "components/ReponerPisoModal.tsx": PENDIENTE, // 4 controles
+  "components/ResolverDanadosModal.tsx": PENDIENTE, // 4 controles
+  "components/ResumenPrevioEnvio.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/RolesModales.tsx": PENDIENTE, // 17 controles
+  "components/RolesPanel.tsx": PENDIENTE, // 5 controles
+  "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
+  "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
+  "components/TallasLista.tsx": PENDIENTE, // 4 controles
+  "components/TejidosLista.tsx": PENDIENTE, // 4 controles
+  "components/TemporadasLista.tsx": PENDIENTE, // 12 controles
+  "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
+  "components/TrasladoAnularModal.tsx": PENDIENTE, // 2 controles
+  "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/alta-producto/ElegirEtiquetas.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/alta-producto/ElegirMuestra.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/alta-producto/ElegirTallas.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
+  "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
+  "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
+  "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles
+  "components/finanzas/ConfiguracionCuentas.tsx": PENDIENTE, // 9 controles
+  "components/finanzas/ConfiguracionPresupuesto.tsx": PENDIENTE, // 4 controles
+  "components/finanzas/CuentasDinero.tsx": PENDIENTE, // 20 controles
+  "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
+  "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
+  "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
+  "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
+  "components/punto-de-venta/ClientaDelTicket.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
 };

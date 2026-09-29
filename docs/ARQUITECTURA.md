@@ -277,6 +277,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   El detalle termina con «Eliminar el producto» (ADR-0252, actualización): `permisosDelDetalle().eliminar` (solo Admin, en su
   sede) → `InventarioPanel` cierra el detalle y abre `EliminarProductoModal` (la de Productos, con `numVariantes` en `null` y el
   estado del producto que la página pega a cada fila con `conEstadoProducto`).
+  **Existencias en tarjetas (2026-09-29, maqueta `docs/maquetas/existencias-tarjetas-2026-09/`):** la lista de ENTRADA son tarjetas
+  (`components/ExistenciasTarjetas.tsx`: una por modelo, con sus colores adentro; la pastilla es `queHacerPrenda`); «Ver detalle»
+  (junto a «Ordenar por») pasa a la tabla de siempre (`ExistenciasPorPrenda` / «Por talla»), que es donde vive el cajón de la
+  prenda. Reponer y Ajustar de la tarjeta abren las mismas ventanas, con `permisosDelDetalle`. Solo web, sin RPC ni migración.
 - `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
   `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
   `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
@@ -980,11 +984,15 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
-- `/api/padron` → consulta de DNI/RUC contra el padrón externo. El token del
-  proveedor nunca sale del servidor. Devuelve siempre 200 con `fuente`
-  (`padron` | `historial` | `ninguna`) — "no pude averiguarlo" es una respuesta
-  normal, no un error. Antes de gastar una consulta pagada busca el documento
-  en `comprobantes` (memoria durable propia) y cachea en memoria por instancia.
+- `/api/padron` → consulta de DNI/RUC. El token del proveedor nunca sale del
+  servidor. Devuelve siempre 200 con `fuente` (`padron` | `historial` | `ninguna`)
+  y, si vino del padrón, `via` (`sunat_publico` | `proveedor`) — "no pude
+  averiguarlo" es una respuesta normal, no un error. Orden de fuentes (en
+  `consultarPadron`, `lib/padron.ts`; ADR-0008 «Actualización 2026-09-29»):
+  caché en memoria por instancia → **SUNAT público** (gratis, sin contrato, tope
+  3 s, con interruptor de circuito) → proveedor de pago. Si las dos fallan, la
+  ruta usa el nombre de un comprobante anterior de ese documento (`comprobantes`,
+  memoria durable propia). Para RUC, SUNAT público no informa estado ni condición.
 
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
