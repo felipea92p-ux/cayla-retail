@@ -8,6 +8,11 @@
  * corre en su transacción que TERMINA EN ROLLBACK, con la migración aplicada dentro: el Postgres local compartido no cambia.
  * Se lee como la líder del seed (`request.jwt.claim.sub`), igual que en `anular_venta_mismo_dia.mjs`.
  *
+ * LOS CONTROLES («sin la migración…») NO PUEDEN CONFIAR EN QUE LA BASE ESTÉ SIN PARCHE: en el CI y en producción la
+ * migración ya está puesta (el stack se levanta con TODAS las migraciones del repo), y en una base local vieja no. Por eso
+ * cada caso aplica primero la migración (idempotente) y el control le suma `DESHACER`, que quita el parche: el camino es el
+ * mismo en los tres sitios, sea cual sea el estado con que arranca la base. (Fallaba en el CI del PR #627 por esto: el control esperaba la base sin parche y la encontró parchada.)
+ *
  * USO: pnpm pruebas:actividad-oculta-ventas-de-prueba   (necesita el stack local: `npx supabase start`)
  */
 
@@ -46,11 +51,34 @@ insert into retail.actividad (ocurrio_at, modulo, accion, descripcion, persona_i
          (now(), 'vender', 'venta_registrada', 'vendió 1 prenda (normal)', :'persona', :'ubic', 'ventas', :'normal');
 `;
 
-/** Ejecuta `consulta` como líder, con o sin la migración, y devuelve lo que imprima. */
+// El «cómo se deshace» de la migración: quita la línea que agregó a cada función (y su salto de línea), si está. Lo usan los
+// controles para simular la base de antes; con la línea ausente no cambia nada.
+const DESHACER = `
+do $d$
+declare
+  f text;
+  v text;
+  linea constant text := 'and not coalesce(a.tabla = ''ventas'' and a.registro_id in (select v.id::text from retail.ventas v where v.es_prueba), false) -- ADR-0159/0278' || E'\\n     ';
+begin
+  foreach f in array array[
+    'retail.fn_actividad(text, uuid, uuid, timestamptz, timestamptz, timestamptz, bigint, integer)',
+    'retail.fn_actividad_personas(uuid, text)'
+  ] loop
+    v := pg_get_functiondef(f::regprocedure);
+    if position(linea in v) > 0 then
+      execute replace(v, linea, '');
+    end if;
+  end loop;
+end $d$;
+`;
+
+/** Ejecuta `consulta` como líder y devuelve lo que imprima. SIEMPRE aplica primero la migración (es idempotente); para la base
+ *  «de antes» le sigue `DESHACER`. Así el punto de partida da igual —local sin parche o CI con parche— y el camino es el mismo. */
 function correr(consulta, { conMigracion = true } = {}) {
   return psql(`
 begin;
-${conMigracion ? MIGRACION : ""}
+${MIGRACION}
+${conMigracion ? "" : DESHACER}
 ${ESCENA}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${consulta}
@@ -74,7 +102,7 @@ function caso(nombre, fn) {
 
 const filasDe = (id) => `select count(*) from retail.fn_actividad(p_limite => 200) where registro_id = :'${id}';`;
 
-caso("CONTROL: sin la migración, la venta de prueba SÍ sale en el panel (el hueco existía)", () => {
+caso("CONTROL: con el parche deshecho, la venta de prueba SÍ sale en el panel (el hueco existía)", () => {
   const n = correr(filasDe("prueba"), { conMigracion: false });
   if (n !== "1") return `salieron ${n} filas y debía salir 1`;
 });
@@ -95,13 +123,30 @@ caso("marcar la venta como prueba DESPUÉS de anotarla también la oculta (es po
   if (n !== "0") return `salieron ${n} filas y debían ser 0`;
 });
 const ultimaActividadEnElFuturo = `select coalesce(bool_or(ultima_at > now() + interval '1 day'), false) from retail.fn_actividad_personas() where persona_id = :'persona';`;
-caso("CONTROL: sin la migración, la fila oculta empuja la última actividad de la persona (el filtro «Persona» la contaba)", () => {
+caso("CONTROL: con el parche deshecho, la fila oculta empuja la última actividad de la persona (el filtro «Persona» la contaba)", () => {
   const r = correr(ultimaActividadEnElFuturo, { conMigracion: false });
   if (r !== "t") return `dio ${r} y debía dar t`;
 });
 caso("con la migración, el filtro «Persona» ya no cuenta las filas de una venta de prueba", () => {
   const r = correr(ultimaActividadEnElFuturo);
   if (r !== "f") return `dio ${r} y debía dar f`;
+});
+caso("deshacer quita el parche aunque la migración YA esté puesta (así corre el CI) y volver a pegarla lo restituye", () => {
+  const cuenta = `select (length(d) - length(replace(d, '-- ADR-0159/0278', ''))) / length('-- ADR-0159/0278')
+  from (select pg_get_functiondef('retail.fn_actividad(text, uuid, uuid, timestamptz, timestamptz, timestamptz, bigint, integer)'::regprocedure) as d
+        union all select pg_get_functiondef('retail.fn_actividad_personas(uuid, text)'::regprocedure)) t;`;
+  const n = psql(`
+begin;
+${MIGRACION}
+${cuenta}
+${DESHACER}
+${cuenta}
+${MIGRACION}
+${cuenta}
+rollback;`);
+  // La migración imprime líneas vacías (sus `select pg_temp.reemplazar`): se ignoran.
+  const veces = n.split("\n").filter((l) => l !== "").join(" ");
+  if (veces !== "1 1 0 0 1 1") return `la línea aparece (puesta / deshecha / vuelta a poner): ${veces}`;
 });
 caso("la migración se puede pegar dos veces: la línea queda una sola vez en cada función", () => {
   const n = psql(`
