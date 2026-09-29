@@ -8,7 +8,6 @@ import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Desplegable } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
-import { IconoPercha } from "@/components/ui/IconoPercha";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
@@ -23,7 +22,8 @@ import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
-import { DisponibleTotalOverlay } from "@/components/DisponibleTotalOverlay";
+import { ResumenComercialOverlay } from "@/components/ResumenComercialOverlay";
+import { TarjetaReponerAPiso } from "@/components/TarjetaReponerAPiso";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
@@ -598,16 +598,6 @@ export function InventarioPanel({
   // retirado — sin overlay, sin destino. La cobertura sigue disponible en Análisis; las recomendaciones, en «Acción hoy»
   // de cada fila y en la tarjeta «Reponer a piso hoy».
 
-  // «Reponer a piso hoy» (tarjeta A): variantes que ya cuenta `resumen.requierenReposicion`, y las
-  // unidades que se podrían bajar del almacén — el mismo `almacenDisponible` que usa el modal de
-  // reposición (neto de apartados: lo apartado no se puede mover). MISMA fuente que la tarjeta y
-  // la columna (`f.accionHoy`, `existencias-recomendaciones.ts`) — nunca un umbral aparte
-  // (`necesitaReponerPiso`, retirado 2026-09-25): dos reglas contando cosas distintas es
-  // exactamente la incoherencia que Felipe pidió cerrar.
-  const unidadesReponer = useMemo(
-    () => stock.reduce((acc, f) => (f.accionHoy?.tipo === "reponer_a_piso" && f.almacenDisponible !== null ? acc + f.almacenDisponible : acc), 0),
-    [stock]
-  );
   // «Resumen disponible»: dónde está lo LIBRE (neto de apartadas), así piso + almacén suman exactamente la cifra de la tarjeta.
   const libres = useMemo(
     () => ({ piso: stock.reduce((acc, f) => acc + (f.pisoDisponible ?? 0), 0), almacen: stock.reduce((acc, f) => acc + (f.almacenDisponible ?? 0), 0) }),
@@ -727,8 +717,8 @@ export function InventarioPanel({
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
-      {/* Prioridades de hoy (diseño aprobado por Felipe, 2026-09-28): la cabecera y las 4 tarjetas, en este orden — Reponer a
-          piso hoy, Incidencias, En camino hacia acá y Resumen disponible. Sin enlaces utilitarios a la derecha: «Ver
+      {/* Prioridades de hoy (diseño aprobado por Felipe, 2026-09-28; orden y «Reponer a piso hoy» rediseñados el 2026-09-29): la
+          cabecera y las 4 tarjetas — Resumen disponible, Reponer a piso hoy, En camino hacia acá e Incidencias. Sin enlaces utilitarios a la derecha: «Ver
           recomendaciones» y «Ver análisis de cobertura» ya no viven aquí (la cobertura es de Análisis). «Reponer a piso hoy»
           (2026-09-25) cuenta y filtra por «Acción hoy» — MISMA fuente que la columna de la tabla (`calcularAccionHoy`), nunca
           un semáforo aparte (sección 15). */}
@@ -750,39 +740,40 @@ export function InventarioPanel({
             </button>
           )}
         </div>
-        <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:gap-3.5 xl:flex xl:flex-nowrap">
-          {separa && (
-            <TarjetaPrioridad
-              icono={IconoPercha}
-              etiqueta="Reponer a piso hoy"
-              valor={resumen.requierenReposicion}
-              // «talla», no «variante» (tarea #10): es la palabra de la tienda, la de la píldora y la de cada fila.
-              unidad={resumen.requierenReposicion === 1 ? "talla" : "tallas"}
-              urgente={resumen.requierenReposicion > 0}
-              activa={accion === "reponer_a_piso"}
-              onClick={() => {
-                const activar = accion !== "reponer_a_piso";
-                setAccion(activar ? "reponer_a_piso" : TODAS);
-                // Al ponerlo, la vista baja a la tabla para ver lo filtrado; al quitarlo, se queda en la tarjeta.
-                if (activar) mostrarTablaFiltrada();
-              }}
-            >
-              {/* `porColgar` exige piso<=0, que siempre cae dentro de la regla de Acción hoy (piso<=umbral
-                  → reponer_a_piso): si hay algo «Por colgar», el contador de esta tarjeta ya no es 0, así
-                  que no hace falta una tercera rama para avisarlo por separado. No dice «con demanda»
-                  (2026-09-26): «Acción hoy» solo mira cuánto queda en el piso, nunca las ventas. */}
-              {resumen.requierenReposicion === 0 ? (
-                "Nada pendiente de bajar al piso"
-              ) : (
-                // Dos líneas (diseño aprobado). La primera dice en qué se distingue de la regla completa (tarea #10): esta tarjeta
-                // cuenta TODO lo que pide reponer (poco en el piso); «sin nada en el piso» es solo lo que lo tiene en cero.
-                <>
-                  <span className="block">{cuentaPorColgar.tallas} sin nada en el piso</span>
-                  <span className="block">{unidadesReponer.toLocaleString("es-PE")} uds en almacén para bajar</span>
-                </>
-              )}
+        {/* Orden (Felipe, 2026-09-29): Resumen disponible, Reponer a piso hoy, En camino hacia acá e Incidencias. «Reponer a piso hoy»
+            solo dice con qué empezar (`TarjetaReponerAPiso`): hasta tres prendas que piden piso. */}
+        {/* En pantalla grande, las tarjetas del mismo ancho (cuatro donde se separa piso y almacén, dos donde no). */}
+        <div className={`mt-3.5 grid grid-cols-2 gap-2.5 sm:gap-3.5 ${separa ? "xl:grid-cols-4" : "xl:grid-cols-2"}`}>
+          {/* En pantallas angostas el resumen ocupa el renglón entero (la tarjeta de reponer también), para que no quede un hueco al lado. */}
+          <div className={`${separa ? "max-xl:col-span-2" : ""} xl:contents`}>
+            <TarjetaPrioridad icono={Package} etiqueta="Resumen disponible" valor={resumen.disponible} unidad="uds" activa={viendoDisponible} onClick={() => setViendoDisponible(true)}>
+              {/* Donde se separa piso y almacén, dónde está lo disponible. Donde no (Taller), el cambio de 7 días. Al tocarla se abre
+                  `ResumenComercialOverlay`: ventas, cobertura y qué sale o no sale esta semana. */}
+              {separa
+                ? `${libres.piso.toLocaleString("es-PE")} en piso · ${libres.almacen.toLocaleString("es-PE")} en almacén`
+                : comparacionFallo
+                  ? "No se pudo calcular la comparación ahora"
+                  : deltaSede.pct === null
+                    ? "Sin datos de hace 7 días para comparar"
+                    : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
             </TarjetaPrioridad>
+          </div>
+          {separa && (
+            <TarjetaReponerAPiso
+              stock={stock}
+              onVerPrenda={(p) => {
+                setBusqueda(p.referencia);
+                mostrarTablaFiltrada();
+              }}
+            />
           )}
+          <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
+            {enCamino.traslados === 0
+              ? "Ningún traslado en camino"
+              : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
+                  enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
+                }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
+          </TarjetaPrioridad>
           {separa && (
             <TarjetaPrioridad
               icono={AlertTriangle}
@@ -795,24 +786,6 @@ export function InventarioPanel({
               {danadosPendientes.length === 0 ? "Ninguna prenda dañada pendiente" : "Dañado / cuarentena pendiente"}
             </TarjetaPrioridad>
           )}
-          <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
-            {enCamino.traslados === 0
-              ? "Ningún traslado en camino"
-              : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
-                  enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
-                }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
-          </TarjetaPrioridad>
-          <TarjetaPrioridad icono={Package} etiqueta="Resumen disponible" valor={resumen.disponible} unidad="uds" activa={viendoDisponible} onClick={() => setViendoDisponible(true)}>
-            {/* Donde se separa piso y almacén, dónde está lo disponible; el delta de 7 días sigue en su desglose (`DisponibleTotalOverlay`).
-                Donde no (Taller), lo de siempre. */}
-            {separa
-              ? `${libres.piso.toLocaleString("es-PE")} en piso · ${libres.almacen.toLocaleString("es-PE")} en almacén`
-              : comparacionFallo
-                ? "No se pudo calcular la comparación ahora"
-                : deltaSede.pct === null
-                  ? "Sin datos de hace 7 días para comparar"
-                  : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
-          </TarjetaPrioridad>
         </div>
       </div>
 
@@ -1469,7 +1442,7 @@ export function InventarioPanel({
 
       {viendoApartados && <ApartadosModal apartados={apartados} otraSede={!enSedeActiva} onClose={() => setViendoApartados(false)} />}
 
-      {viendoDisponible && <DisponibleTotalOverlay filas={filasSemana} esLider={esLider} onClose={() => setViendoDisponible(false)} />}
+      {viendoDisponible && <ResumenComercialOverlay filas={filasSemana} esLider={esLider} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
 
       {/* «Ver análisis de cobertura» (AnalisisCoberturaOverlay) y «Ver recomendaciones» (RecomendacionesOverlay) no vuelven:
           el rediseño del 2026-09-28 los reemplaza por «Prioridades de hoy» y el diagnóstico de cada fila; la cobertura
