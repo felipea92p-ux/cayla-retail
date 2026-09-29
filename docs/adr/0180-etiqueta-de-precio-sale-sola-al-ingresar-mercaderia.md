@@ -312,3 +312,97 @@ de verdad con stock en la tienda e imprimir (Felipe): la captura fue con datos d
 `EtiquetaPrecio.tsx` imprime `productos.marca_id` (`marca`) al pie, a la izquierda del QR y sobre el código, en 2 mm y peso 800,
 dos líneas como máximo. Se eligió ese hueco tras medir la etiqueta: con campaña solo sobran 1,4 mm entre el bloque de precio y el
 pie, así que cualquier línea nueva sobre el nombre empujaría el QR. No suma alto. `lib/etiquetas-precio.ts` la lee junto al producto.
+
+## Actualización 2026-09-29 (b) — el ícono de cada etiqueta comercial sale en el papel
+
+**Qué pidió Felipe:** al elegir una etiqueta comercial para una prenda (Nuevo, Para liquidar, Black Friday…), su **ícono** tiene que
+salir en el papel para saber a cuál pertenece. Una prenda puede tener dos etiquetas y las dos pueden traer descuento, pero
+**solo se aplica el mayor: no se acumulan** (eso ya era así en la caja; ADR-0107).
+
+**Decisiones de Felipe (2026-09-29, preguntadas una por una antes de programar):**
+
+| # | Decisión | Por qué |
+|---|---|---|
+| 1 | Salen **todas las etiquetas de la prenda que rigen, con o sin descuento, hasta 2 íconos**. | Nuevo o Hecho a mano no tocan el precio, pero identifican la prenda. Con 3 o más entran 2: primero las de descuento (mayor % antes), luego las que no rebajan. |
+| 2 | Con **dos descuentos**, salen **los dos íconos**; el «−20 %», el motivo, «válido hasta» y el precio son **solo de la ganadora**. | Ningún % se suma ni se muestra dos veces. La ganadora es la que ya elegía la caja (`mejorCampanaPorVariante`); el papel no calcula otra. |
+| 3 | ~~El ícono va al lado del nombre y sobre el precio.~~ **Reemplazada el mismo día: ver «Actualización 2026-09-29 (c)».** | Un ícono solo no decía qué era y las etiquetas con campaña se dibujaban distinto. |
+| 4 | Sale **también una etiqueta que todavía no empieza**, no una que ya terminó. Va detrás de las que ya rigen. | Es para la colaboradora: reconoce la prenda por su campaña desde que la etiqueta. El precio sigue siendo el de hoy. |
+
+**Decisiones técnicas (Claude):**
+- **Sin migración.** `etiquetas`, `variante_etiquetas` y `etiqueta_categorias` ya se leen con `authenticated`. `lib/etiquetas-precio.ts`
+  trae las elegidas a mano embebidas en la variante (`variante_etiquetas ( etiqueta_id )`) y, por las pocas categorías del envío,
+  las que alcanzan por categoría, los mismos dos caminos de `fn_campanas_por_variante`. Solo aprobadas y activas. **La caja no
+  cambia:** `fn_campanas_por_variante` sigue devolviendo solo las etiquetas con descuento.
+- **La regla vive en `iconosDelPapel` / `iconosPorVariante`** (`lib/etiqueta-precio-reglas.ts`, pura y probada). Dos etiquetas de la
+  misma familia («Para liquidar — Taller» y «— AQP») comparten dibujo y ocupan un solo lugar. Un nombre que no se reconoce cae en
+  el ícono genérico, como en la grilla de Atributos.
+- **Íconos propios para el papel** (`components/IconoEtiquetaPapel.tsx`), no los de `MuestraEtiqueta`: esos usan tintes,
+  transparencias y trazos de 1 unidad. La Brother imprime solo negro y blanco: una transparencia sale como trama y un trazo fino
+  se corta. Mismos 21 conceptos, con `#000`/`#fff`, trazo mínimo de 1,8 unidades (0,29 mm; el mínimo de la Brother es 0,2 mm) y
+  4,8 mm de lado.
+
+**DESCARTÉ:**
+- Reusar los íconos de pantalla con el acento en negro: las transparencias del 14 al 55 % saldrían como trama.
+- Los íconos **en la cabecera**, junto al colibrí (lo comparé con el CSS real, a 300 dpi, mismos 4,8 mm): **también entran**. La
+  cabecera crece 0,63 mm (4,17 → 4,8), el pie no se mueve y los dos íconos terminan a 2,24 mm del borde en vez de 3 (0,76 mm dentro
+  del acolchado). Su ventaja: el nombre conserva los 34,1 mm. Se descartó porque Felipe pidió el ícono junto al nombre; queda como
+  la salida si el nombre cortado molesta (abajo).
+- Un ícono debajo del precio o en el pie: no hay alto (1,4 mm con campaña) ni el pie tiene hueco.
+
+**Lo que se paga (medido, mismo banco para las dos ubicaciones):** con 2 íconos el nombre tiene **22,5 mm** de los 34,1 (≈ 13
+caracteres por línea); con 1, 28,1 mm. Sin campaña el nombre baja a 2 líneas y se lee entero. **Con campaña el nombre sigue en 1
+línea** («VESTIDO MIDI FLORAL» sale «VESTIDO MIDI…»). Nada más se mueve: la cabecera, el precio y el pie quedan donde estaban. Si en la
+tienda se ve seguido, la salida es pasar los íconos a la cabecera (mismo tamaño, un cambio de unas 10 líneas en `EtiquetaPrecio.tsx`
+y `globals.css`).
+
+**SE ROMPE SI:** se agrega un ícono a `IconoEtiqueta` (`lib/etiqueta-visual.ts`) sin su dibujo de papel en `IconoEtiquetaPapel.tsx`:
+TypeScript lo marca (el `Record` exige los 21) y el papel saldría sin ícono. O si alguien pone gris o transparencia en un dibujo.
+
+**Verificado:** 18 pruebas nuevas en `etiqueta-precio-reglas.test.ts` (71 en el archivo; suite completa 242 archivos, 153.035
+pruebas), incluida la de punta a punta con dos descuentos (Para liquidar 20 % y Aniversario 10 %: cobra 71.90 sobre 89.90, no
+sube ni baja por la de 10 %). Etiqueta real (`EtiquetaPrecio` + CSS de `globals.css`) fotografiada a 300 dpi con 6 casos sin
+desbordar; los 21 íconos revisados grandes y a 4,8 mm. Producción, solo lectura (2026-09-29): hoy 22 prendas tienen etiqueta
+(1 cada una: Nuevo 8, Top ventas 8, Últimas unidades 6); «Para liquidar» 20 % rige hasta el 1-oct y «Aniversario CAYLA» 10 %
+empieza ese día, así que el caso de dos descuentos aparece recién al elegir las dos en una prenda.
+**Falta (Felipe):** crear un producto con 2 etiquetas, imprimir en la Brother real y mirar el ícono de 4,8 mm en la térmica.
+
+## Actualización 2026-09-29 (c) — una sola manera de dibujar las etiquetas: ícono + palabra, en una fila (propuesta A)
+
+**Qué pidió Felipe:** (1) que el ícono diga qué significa, sin sobrecargar la etiqueta; (2) que Black Friday y Para liquidar **no se
+vean distintas** de las demás etiquetas: todo de una sola manera; (3) guiarse de la «propuesta A» (fila sin cajas, bajo el color).
+Reemplaza la decisión 3 de la sección (b) (los íconos al lado del nombre) y quita el bloque «ícono junto al nombre».
+
+**Cómo queda:**
+- **Una fila bajo el nombre y el color**, para TODAS las etiquetas de la prenda, traigan descuento o no: ícono de 3,6 mm + una
+  **palabra corta** (NUEVO, ÚLTIMAS, TOP VENTAS, LIQUIDAR, A MANO, PIEZA ÚNICA, REEDICIÓN, ANIVERSARIO, BLACK FRIDAY…), sin cajas. La
+  palabra sale de `rotuloDeEtiqueta` (`lib/etiqueta-visual.ts`): una por familia de concepto, no el nombre de la etiqueta («Día
+  Internacional del Gato» → DÍA GATO). Un nombre que no se reconoce imprime el suyo, cortado con «…» si no cabe. Máximo 12 letras
+  por palabra, y lo vigila una prueba.
+- **La campaña que rebaja el precio ya no se dibuja aparte.** Su ícono y su palabra van en la fila como los demás. El bloque de precio
+  conserva el precio tachado y el «−20 %», **deja de repetir el nombre de la campaña** (`campanaSaleEnLaFila`) y **la fecha de validez pasa a
+  la derecha del precio tachado** («Válido hasta el 30.10», antes «Precio válido hasta el 30.10» bajo una raya): esa línea tenía la mitad
+  libre, y quitar la franja de abajo libera ~4 mm. Si la campaña no salió en la fila (una etiqueta armada sin íconos), el bloque la nombra
+  como antes: nunca queda sin decir cuál es.
+- **Si dos etiquetas no caben juntas, una debajo de la otra** (Felipe, tras ver la hoja de combinaciones). Cada chip mide ~1,4 mm por letra de
+  su palabra, así que dos entran en la misma línea solo si son cortos (NUEVO + TOP VENTAS sí; LIQUIDAR + ANIVERSARIO no). La fila es un
+  `flex-wrap` sin cajas ni rayas: lo que no cabe baja a una 2.ª línea. Esa fila es además el único bloque de la etiqueta que puede
+  encogerse (`flex-shrink: 1`, piso de 3,4 mm = una línea) con `overflow: hidden`: red por si algún día el contenido no entra, y nunca
+  empuja el precio ni el QR fuera del papel.
+- **Espacio:** sin campaña sobran ~10 mm y las dos líneas caben con holgura; con campaña, tras mover la fecha, sobra ~1 mm con las dos
+  líneas. El caso más apretado es un nombre en 2 líneas + dos etiquetas largas: sobran 0,35 mm. Para que entre entero, el ícono bajó de 3,6 a
+  3,4 mm (trazo mínimo 0,20 mm, el mínimo de la Brother), el precio sin campaña sube 0,8 mm hacia la fila y el hueco entre líneas es de 0,3 mm.
+- **Íconos más gordos:** a 3,4 mm los trazos de 1,6 unidades quedaban en 0,18 mm; ahora ninguno baja de 1,8 unidades (0,20 mm).
+
+**Lo que se paga:** la frase de validez es más corta y sale del bloque que Felipe aprobó en el paso 2 (raya + «Precio válido hasta el…»);
+las etiquetas con campaña quedan con poco aire (~1 mm) bajo la fila. Si se ve apretado en la Brother, la salida es una sola línea de chips
+con campaña (la segunda se recorta), como antes.
+
+**Visto de paso, no es de este cambio:** con un precio de lista de 4 cifras y campaña (S/ 1,199.90 con −30 % → 839.90), el bloque negro del
+«−30 %» llega al borde derecho de la etiqueta. `.etq-precio-largo` solo se activa cuando el precio cobrado tiene 8 caracteres.
+
+**Verificado:** 116 pruebas entre `etiqueta-precio-reglas.test.ts` y `etiqueta-visual.test.ts` (suite completa: 242 archivos, 153.054),
+`tsc` sin errores nuevos (los de `conteo` ya estaban), eslint limpio. Tres hojas con la etiqueta real (`EtiquetaPrecio` + CSS de
+`globals.css`) a 300 dpi: cada etiqueta sola (12), pares (12) y casos límite (12: nombre largo, nombre en 2 líneas, talla única, 8 tallas,
+precio de 4 cifras, tres etiquetas, nombre propio, campaña sin fecha). En las 36 el pie queda a 3 mm del borde, ninguna se sale y
+**las 23 que llevan dos etiquetas las muestran las dos** (las que no caben juntas van una debajo de la otra).
+**Falta (Felipe):** imprimir en la Brother una prenda con 2 etiquetas y otra con campaña y 2 etiquetas, y mirar el ícono de 3,4 mm.

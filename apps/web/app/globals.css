@@ -575,6 +575,54 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Las etiquetas comerciales de la prenda (Nuevo, Últimas, Para liquidar, Black Friday…), TODAS iguales: ícono + palabra en una
+     fila bajo el color, sin cajas (Felipe, 2026-09-29, «propuesta A»): traigan descuento o no, se dibujan igual y en el mismo
+     lugar. Un ícono de 3,4 mm (trazo mínimo 0,20 mm) y la palabra de 1,9 mm en 700, la regla de legibilidad de arriba.
+     «CABE LO QUE CABE», sin que nadie lo decida: cada chip mide ~1,4 mm por letra de su palabra, así que dos casi nunca entran en
+     los 34,1 mm de una línea. Si no caben juntos, el segundo baja a una 2.ª línea; y esa fila es el ÚNICO bloque de la etiqueta que
+     puede encogerse (`flex-shrink: 1`, con un piso de 3,4 mm = una línea) y `overflow: hidden` recorta lo que sobra. Sin campaña
+     sobran ~10 mm y entran las dos líneas; con campaña, o con un nombre en 2 líneas, la fila baja sola a una y el 2.º chip se
+     va. Nunca empuja el precio ni el QR fuera del papel. Sin rayas entre chips: la de la segunda quedaba suelta al bajar de línea. */
+  .etiqueta-precio > .etq-etiquetas {
+    flex-shrink: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: center;
+    gap: 0.3mm 2.4mm;
+    min-height: 3.4mm;
+    margin-top: 0.9mm;
+    overflow: hidden;
+    list-style: none;
+  }
+  .etq-etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8mm;
+    max-width: 100%;
+    min-width: 0;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .etq-etiqueta > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .etq-icono {
+    display: block;
+    flex: none;
+    width: 3.4mm;
+    height: 3.4mm;
+  }
+  /* Sin campaña, el precio sube medio milímetro hacia la fila: es lo que hace falta para que un nombre en 2 líneas y dos
+     etiquetas largas (2 líneas de chips) entren enteras en vez de recortarse a media altura. */
+  .etq-etiquetas ~ .etq-precio {
+    margin-top: 1mm;
+  }
   .etq-precio {
     margin-top: 1.8mm;
     font-size: 6.2mm;
@@ -595,6 +643,18 @@ body {
     font-size: 2.4mm;
     font-weight: 600;
     letter-spacing: 0.05em;
+  }
+  .etq-antes {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.2mm;
+  }
+  .etq-vence {
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
   .etq-antes s {
     text-decoration-thickness: 0.25mm;
@@ -623,6 +683,12 @@ body {
     line-height: 1;
     white-space: nowrap;
   }
+  /* Con la fila de etiquetas y una campaña: la fecha de validez ya no tiene su franja propia (va junto al precio tachado, `.etq-vence`),
+     y con los ~4 mm que eso libera la fila entra en 2 líneas —una etiqueta debajo de la otra cuando no caben juntas—. Para que
+     entren con margen, el precio tachado se acerca a la fila. Solo cuando esa fila existe. */
+  .etq-etiquetas ~ .etq-antes {
+    margin-top: 0.5mm;
+  }
   .etq-motivo {
     margin-top: 0.9mm;
     padding-top: 0.8mm;
@@ -637,13 +703,6 @@ body {
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
-  }
-  .etq-motivo span {
-    display: block;
-    margin-top: 0.4mm;
-    font-size: 1.9mm;
-    font-weight: 700;
-    letter-spacing: 0.02em;
   }
   .etq-pie {
     margin-top: auto;

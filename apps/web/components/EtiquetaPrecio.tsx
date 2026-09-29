@@ -1,5 +1,6 @@
 import { CodigoQR } from "@/components/CodigoQR";
-import { esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
+import { IconoEtiquetaPapel } from "@/components/IconoEtiquetaPapel";
+import { campanaSaleEnLaFila, esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
 /** El QR, lo más grande que entra en 40,1 × 62 mm: 19 mm con o sin campaña (el lado incluye la zona muda, `lib/qr.ts`).
  *  Lo limita el ancho: el código de 16 caracteres tiene que caber ENTERO a su lado (con 22 mm salía «CMS-0011-NAR…»), y
@@ -12,16 +13,18 @@ const LADO_QR_MM = 19;
  * «QR abajo». Las medidas viven en `globals.css` (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
  *
  * Para la clienta: CAYLA arriba y la marca de la prenda al pie, en qué tallas viene el modelo con la suya marcada, prenda,
- * color y precio. Con una campaña
- * vigente (paso 2), el precio de lista tachado, el que cobra la caja con su «−20 %» en negro, y el porqué: el nombre de
- * la campaña y hasta cuándo vale. Para la colaboradora: el código escrito (si la pistola falla se teclea), la fecha de
- * impresión (si conviven dos etiquetas de la misma prenda, la más nueva manda) y el QR que lee la caja.
+ * color, sus etiquetas comerciales (ícono + palabra, una fila que baja a 2 líneas si no caben juntas) y el precio. Con una
+ * campaña vigente (paso 2), el precio de lista tachado con «Válido hasta el dd.mm» a su derecha, y el que cobra la caja con su
+ * «−20 %» en negro. Para la colaboradora: el código escrito (si la pistola falla se teclea), la fecha de impresión (si conviven
+ * dos etiquetas de la misma prenda, la más nueva manda) y el QR que lee la caja.
  */
 export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtiqueta; impreso: string }) {
   const unica = e.tallasDelModelo.length === 1 && esTallaUnica(e.tallasDelModelo[0]);
   const cobra = precioEtiqueta(e.campana ? e.precio - e.campana.descuento : e.precio);
   // «1,136.90» (8 caracteres) con su % no entra a tamaño completo en 34 mm: un punto menos de letra.
   const claseCobra = cobra.length >= 8 ? "etq-precio etq-precio-largo" : "etq-precio";
+  // ¿La campaña que rebaja el precio ya sale en la fila de etiquetas? Entonces no se repite su nombre en el bloque de abajo.
+  const campanaEnFila = campanaSaleEnLaFila(e);
   return (
     <article className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
@@ -57,10 +60,27 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
 
       <p className="etq-prenda">{e.prenda}</p>
       {e.color && <p className="etq-color">{e.color}</p>}
+      {/* Las etiquetas comerciales de la prenda (Felipe, 2026-09-29), TODAS iguales —ícono + palabra, en una fila bajo el color—,
+          traigan descuento o no: la que rebaja el precio (Para liquidar, Black Friday…) no se dibuja distinto. Un ícono solo no
+          dice qué es, por eso lleva su palabra. Son de identificación: el descuento es uno solo, el de `campana`. */}
+      {e.iconos.length > 0 && (
+        <ul className="etq-etiquetas" aria-label="Etiquetas de la prenda">
+          {e.iconos.map((i) => (
+            <li key={i.icono} className="etq-etiqueta" title={i.nombre}>
+              <IconoEtiquetaPapel icono={i.icono} nombre={i.nombre} decorativo />
+              <span>{i.rotulo}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {e.campana ? (
         <>
+          {/* La fecha de validez va en la misma línea que el precio tachado (a la derecha, donde no había nada): así el bloque de
+              precio no necesita su franja de «Precio válido hasta…» y la fila de etiquetas puede usar 2 líneas también con campaña
+              (Felipe, 2026-09-29: si dos etiquetas no caben juntas, una debajo de la otra). */}
           <p className="etq-antes">
             <s>S/ {precioEtiqueta(e.precio)}</s>
+            {e.campana.hasta && <span className="etq-vence">Válido hasta el {fechaVigencia(e.campana.hasta)}</span>}
           </p>
           <div className="etq-ahora">
             {/* El mismo descuento que cobra la caja (bajado al .90, ADR-0182): el papel nunca dice otro precio. */}
@@ -70,10 +90,13 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
             </p>
             <span className="etq-pct">−{e.campana.pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })}%</span>
           </div>
-          <div className="etq-motivo">
-            <b>{e.campana.nombre}</b>
-            {e.campana.hasta && <span>Precio válido hasta el {fechaVigencia(e.campana.hasta)}</span>}
-          </div>
+          {/* El nombre de la campaña ya está en la fila de etiquetas (su ícono y su palabra). Solo si la campaña NO salió en la
+              fila —una etiqueta armada sin íconos— se nombra aquí, como antes: la campaña nunca queda sin decir cuál es. */}
+          {!campanaEnFila && (
+            <div className="etq-motivo">
+              <b>{e.campana.nombre}</b>
+            </div>
+          )}
         </>
       ) : (
         <p className={claseCobra}>

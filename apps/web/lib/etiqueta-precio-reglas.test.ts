@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   armarEtiquetas,
+  campanaSaleEnLaFila,
   cantidadDeTexto,
   encabezadoDeEtiquetas,
   etiquetasDelAlta,
@@ -8,6 +9,8 @@ import {
   fechaDeAlcance,
   fechaEtiqueta,
   fechaVigencia,
+  iconosDelPapel,
+  iconosPorVariante,
   mejorCampanaPorVariante,
   idsDeParam,
   precioEtiqueta,
@@ -15,6 +18,7 @@ import {
   tallasDelModelo,
   urlEtiquetasDePrecio,
   volverDeEtiquetas,
+  type EtiquetaDeLaPrenda,
   type HermanaEtiqueta,
   type VarianteEtiqueta,
 } from "./etiqueta-precio-reglas";
@@ -212,6 +216,169 @@ describe("armarEtiquetas con campaña (ADR-0180 paso 2)", () => {
   it("sin campaña vigente la etiqueta sale con el precio de lista", () => {
     const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], new Map());
     expect(etiquetas[0].campana).toBeNull();
+  });
+});
+
+describe("iconosDelPapel — los íconos de las etiquetas de la prenda en el papel (Felipe, 2026-09-29)", () => {
+  const HOY = "2026-09-29";
+  const et = (etiquetaId: string, nombre: string, pct: number | null = null, desde: string | null = null, hasta: string | null = null): EtiquetaDeLaPrenda => ({
+    etiquetaId,
+    nombre,
+    pct,
+    desde,
+    hasta,
+  });
+  const familias = (e: readonly EtiquetaDeLaPrenda[], ganadora: string | null = null, max?: number) => iconosDelPapel(e, HOY, ganadora, max).map((i) => i.icono);
+
+  it("una etiqueta sin descuento (Nuevo, Hecho a mano…) también sale: identifica la prenda aunque no toque el precio", () => {
+    expect(iconosDelPapel([et("n", "Nuevo")], HOY, null)).toEqual([{ icono: "nuevo", rotulo: "Nuevo", nombre: "Nuevo" }]);
+    expect(familias([et("m", "Hecho a mano")])).toEqual(["manual"]);
+  });
+
+  it("dos etiquetas con descuento: salen los dos íconos, la ganadora primero (la de mayor %, la que cobra la caja)", () => {
+    const liquidar = et("l", "Para liquidar", 20);
+    const aniversario = et("a", "Aniversario CAYLA", 10);
+    expect(familias([aniversario, liquidar], "l")).toEqual(["liquidar", "aniversario"]);
+  });
+
+  it("la ganadora va primero aunque su % no fuera el de arriba en la lista: manda lo que cobra la caja", () => {
+    expect(familias([et("b", "Black Friday", 30), et("l", "Para liquidar", 20)], "l")).toEqual(["liquidar", "blackfriday"]);
+  });
+
+  it("con más de dos, entran solo dos: primero las de descuento (mayor % antes), luego las que no rebajan", () => {
+    const e = [et("n", "Nuevo"), et("a", "Aniversario CAYLA", 10), et("l", "Para liquidar", 20), et("t", "Top ventas")];
+    expect(familias(e, "l")).toEqual(["liquidar", "aniversario"]);
+    expect(familias([et("n", "Nuevo"), et("t", "Top ventas"), et("m", "Hecho a mano")], null)).toEqual(["manual", "nuevo"]);
+  });
+
+  it("una etiqueta que todavía no empieza sale igual (para la colaboradora), pero detrás de las que ya rigen", () => {
+    const proxima = et("b", "Black Friday", 30, "2026-11-27", "2026-11-30");
+    expect(familias([proxima])).toEqual(["blackfriday"]);
+    expect(familias([proxima, et("n", "Nuevo"), et("m", "Hecho a mano")])).toEqual(["manual", "nuevo"]);
+    expect(familias([proxima, et("n", "Nuevo")])).toEqual(["nuevo", "blackfriday"]);
+  });
+
+  it("varias que no empiezan: la más cercana primero", () => {
+    const navidad = et("n", "Navidad", 15, "2026-12-01", "2026-12-25");
+    const black = et("b", "Black Friday", 30, "2026-11-27", "2026-11-30");
+    expect(familias([navidad, black])).toEqual(["blackfriday", "navidad"]);
+  });
+
+  it("una etiqueta que ya terminó no sale", () => {
+    expect(familias([et("v", "Cyber lunes", 25, "2026-08-01", "2026-08-31")])).toEqual([]);
+    expect(familias([et("v", "Cyber lunes", 25, "2026-08-01", "2026-08-31"), et("n", "Nuevo")])).toEqual(["nuevo"]);
+  });
+
+  it("sin fechas la etiqueta rige siempre, y el último día de una campaña todavía cuenta", () => {
+    expect(familias([et("n", "Nuevo", null, null, null)])).toEqual(["nuevo"]);
+    expect(familias([et("b", "Black Friday", 30, "2026-09-01", HOY)])).toEqual(["blackfriday"]);
+  });
+
+  it("dos etiquetas de la misma familia comparten dibujo y ocupan un solo lugar", () => {
+    const e = [et("a", "Para liquidar — Tienda AQP", 20), et("b", "Para liquidar — Taller", 15), et("n", "Nuevo")];
+    expect(familias(e, "a")).toEqual(["liquidar", "nuevo"]);
+  });
+
+  it("un nombre que no se reconoce cae en el ícono genérico, como en la grilla de Atributos", () => {
+    expect(iconosDelPapel([et("x", "Vitrina principal")], HOY, null)).toEqual([{ icono: "generico", rotulo: "Vitrina principal", nombre: "Vitrina principal" }]);
+  });
+
+  it("sin etiquetas, sin íconos", () => {
+    expect(iconosDelPapel([], HOY, null)).toEqual([]);
+  });
+
+  it("el tope se puede cambiar, pero por defecto son dos", () => {
+    const e = [et("n", "Nuevo"), et("t", "Top ventas"), et("m", "Hecho a mano")];
+    expect(familias(e)).toHaveLength(2);
+    expect(familias(e, null, 3)).toHaveLength(3);
+  });
+});
+
+describe("iconosPorVariante — etiquetas a mano y por categoría, con un solo descuento", () => {
+  const HOY = "2026-09-29";
+  const catalogo = new Map<string, Omit<EtiquetaDeLaPrenda, "etiquetaId">>([
+    ["nuevo", { nombre: "Nuevo", pct: null, desde: null, hasta: null }],
+    ["liq", { nombre: "Para liquidar", pct: 20, desde: null, hasta: null }],
+    ["aniv", { nombre: "Aniversario CAYLA", pct: 10, desde: null, hasta: null }],
+  ]);
+  const variantes = [
+    { id: "camisa", categoriaId: "camisas" },
+    { id: "pantalon", categoriaId: "pantalones" },
+  ];
+
+  it("junta la etiqueta elegida a mano con la que la alcanza por su categoría", () => {
+    const m = iconosPorVariante(variantes, new Map([["camisa", ["nuevo"]]]), new Map([["camisas", ["liq"]]]), catalogo, new Map(), HOY);
+    expect(m.get("camisa")?.map((i) => i.icono)).toEqual(["liquidar", "nuevo"]);
+    expect(m.get("pantalon")).toEqual([]);
+  });
+
+  it("la misma etiqueta por los dos caminos cuenta una vez", () => {
+    const m = iconosPorVariante(variantes, new Map([["camisa", ["liq"]]]), new Map([["camisas", ["liq"]]]), catalogo, new Map(), HOY);
+    expect(m.get("camisa")).toEqual([{ icono: "liquidar", rotulo: "Liquidar", nombre: "Para liquidar" }]);
+  });
+
+  it("una etiqueta que no está en el catálogo (pendiente, rechazada o apagada) no sale", () => {
+    const m = iconosPorVariante(variantes, new Map([["camisa", ["pendiente"]]]), new Map(), catalogo, new Map(), HOY);
+    expect(m.get("camisa")).toEqual([]);
+  });
+
+  it("dos descuentos, dos íconos, UN precio: el papel cobra el mayor y la etiqueta de menor % no lo rebaja", () => {
+    // La ganadora sale de `mejorCampanaPorVariante` (la regla de la caja); acá se comprueba de punta a punta.
+    const filas = [
+      { variante_id: "camisa", etiqueta_id: "aniv", etiqueta_nombre: "Aniversario CAYLA", descuento_pct: 10 },
+      { variante_id: "camisa", etiqueta_id: "liq", etiqueta_nombre: "Para liquidar", descuento_pct: 20 },
+    ];
+    const campanas = mejorCampanaPorVariante(filas, new Map());
+    const iconos = iconosPorVariante(variantes, new Map([["camisa", ["aniv", "liq"]]]), new Map(), catalogo, campanas, HOY);
+    const { etiquetas } = armarEtiquetas(new Map([["camisa", 1]]), [blusa("camisa", "M", { precio: 89.9 })], [], campanas, iconos);
+    expect(etiquetas[0].iconos.map((i) => i.icono)).toEqual(["liquidar", "aniversario"]);
+    // 20 %, no 30 % ni 10 %: 89.90 → 71.92 exacto → 71.90 (bajado al .90), es decir, 18 de descuento.
+    expect(etiquetas[0].campana).toMatchObject({ nombre: "Para liquidar", pct: 20, descuento: 18 });
+  });
+});
+
+describe("iconosDelPapel · la palabra que acompaña al ícono", () => {
+  it("cada ícono lleva su palabra corta, no el nombre de la etiqueta: «Día Internacional del Gato» no cabe en 34 mm", () => {
+    const iconos = iconosDelPapel(
+      [
+        { etiquetaId: "g", nombre: "Día Internacional del Gato", pct: null, desde: null, hasta: null },
+        { etiquetaId: "u", nombre: "Últimas unidades", pct: null, desde: null, hasta: null },
+      ],
+      "2026-09-29",
+      null,
+    );
+    expect(iconos.map((i) => i.rotulo)).toEqual(["Día gato", "Últimas"]);
+    expect(iconos.map((i) => i.nombre)).toEqual(["Día Internacional del Gato", "Últimas unidades"]);
+  });
+});
+
+describe("campanaSaleEnLaFila — el bloque de precio no repite lo que la fila ya dice", () => {
+  const conCampana = { nombre: "Para liquidar", pct: 20, hasta: null, descuento: 18 };
+  const fila = [{ icono: "liquidar" as const, rotulo: "Liquidar", nombre: "Para liquidar" }];
+  it("con la campaña entre los íconos, sí", () => {
+    expect(campanaSaleEnLaFila({ campana: conCampana, iconos: fila })).toBe(true);
+  });
+  it("sin íconos (etiqueta armada a mano) o con otros distintos, no: el bloque nombra la campaña como antes", () => {
+    expect(campanaSaleEnLaFila({ campana: conCampana, iconos: [] })).toBe(false);
+    expect(campanaSaleEnLaFila({ campana: conCampana, iconos: [{ icono: "nuevo", rotulo: "Nuevo", nombre: "Nuevo" }] })).toBe(false);
+  });
+  it("sin campaña, no hay nada que repetir", () => {
+    expect(campanaSaleEnLaFila({ campana: null, iconos: fila })).toBe(false);
+  });
+});
+
+describe("armarEtiquetas · íconos", () => {
+  it("lleva a la etiqueta los íconos de SU prenda; una prenda sin íconos sale con la lista vacía", () => {
+    const iconos = new Map([["s", [{ icono: "nuevo" as const, rotulo: "Nuevo", nombre: "Nuevo" }]]]);
+    const { etiquetas } = armarEtiquetas(new Map([["s", 1], ["m", 1]]), [blusa("s", "S"), blusa("m", "M")], [], new Map(), iconos);
+    expect(etiquetas.find((e) => e.talla === "S")?.iconos).toEqual([{ icono: "nuevo", rotulo: "Nuevo", nombre: "Nuevo" }]);
+    expect(etiquetas.find((e) => e.talla === "M")?.iconos).toEqual([]);
+  });
+  it("los íconos no cambian lo demás: el mismo código, el mismo precio y la misma campaña con y sin ellos", () => {
+    const campana = new Map([["s", { etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: null }]]);
+    const con = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], campana, new Map([["s", [{ icono: "aniversario" as const, rotulo: "Aniversario", nombre: "Aniversario CAYLA" }]]])).etiquetas[0];
+    const sin = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], campana).etiquetas[0];
+    expect({ ...con, iconos: [] }).toEqual(sin);
   });
 });
 
