@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Existencias intuitiva · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Existencias intuitiva (2026-09-28)
+   Pedido de Felipe: «que cualquier persona pueda deducir y entender, que no
+   se maree». Parte de la pantalla de main (ADR-0237 + tareas del análisis
+   docs/pantallas/inventario.md) y cambia SOLO cómo se lee y se decide:
+   mismo stock, mismas acciones, mismas funciones de la base.
+   La barra oscura de arriba NO existe en el ERP: alterna el aparato, el rol
+   y las notas de diseño (los círculos numerados).
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina
+   (ADR-0220). Hojas = efecto de <Modal> (ADR-0136). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);
+  --amb-bg:rgba(116,80,26,.13);--amb-ring:rgba(116,80,26,.45);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+input{font:inherit;color:inherit}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .reset{margin-left:auto;align-self:center;color:rgba(245,240,232,.7);text-decoration:underline;text-underline-offset:3px}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+.escena.solo-pc{grid-template-columns:minmax(0,1fr)}
+.escena.solo-pc .col-tel,.escena.solo-tel .col-pc{display:none}
+.escena.solo-tel{grid-template-columns:395px;justify-content:center}
+@media (max-width:1180px){.escena{grid-template-columns:1fr}.col-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+
+/* ── marcos ── */
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08)}
+.marco-pc{height:940px}
+.marco-tel{width:395px;height:820px;border-radius:44px;border:10px solid var(--tinta)}
+.scroll{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+.capa{position:absolute;inset:0;pointer-events:none;z-index:40}
+.capa>*{pointer-events:auto}
+.capa .avisos-ok{pointer-events:none}
+
+/* ── app de computadora ── */
+.app{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:100%}
+.lat{background:var(--crema);border-right:1px solid var(--sand);padding:20px 12px;position:sticky;top:0;height:940px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat .grp{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t50);padding:14px 10px 4px}
+.lat a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.main{padding:24px 28px 60px;position:relative}
+
+/* ── cabecera (EncabezadoPagina) ── */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+h1.tit{font-family:'EB Garamond',serif;font-weight:400;font-size:46px;line-height:1.05;margin:10px 0 6px;letter-spacing:-.01em}
+.frase{color:var(--t65);max-width:520px}
+.acc{display:flex;gap:8px;align-items:center;position:relative}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap;transition:background .2s var(--ease),border-color .2s}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.pri:hover{background:#000}
+.btn.sut{background:transparent;border-color:transparent;color:var(--t80)}
+.btn.chico{padding:5px 10px;font-size:12.5px}
+.btn.gde{padding:12px 16px;font-size:14.5px;border-radius:11px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;min-width:230px;z-index:30;box-shadow:0 18px 40px -18px rgba(26,26,24,.35);animation:revelar .24s var(--ease)}
+.menu button{display:flex;gap:10px;align-items:center;width:100%;padding:8px 10px;border-radius:8px;font-size:13.5px}
+.menu button:hover{background:var(--hueso)}
+.menu small{display:block;color:var(--t65);font-size:11.5px}
+@keyframes revelar{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ── 1 · Para hacer hoy ── */
+.hoy-t{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px}
+.hoy-t h2{font-family:'EB Garamond',serif;font-weight:400;font-size:22px}
+.hoy-t p{color:var(--t65);font-size:13px}
+.tareas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tarea{display:flex;gap:12px;align-items:flex-start;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;text-align:left;transition:border-color .2s}
+.tarea:hover{border-color:var(--taupe)}
+.tarea .pt{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none}
+.tarea.amb .pt{background:var(--ambar)}
+.tarea.piz .pt{background:var(--pizarra)}
+.tarea.roj .pt{background:var(--rojo-p)}
+.tarea.ok .pt{background:var(--verde)}
+.tarea b{display:block;font-weight:600;font-size:14.5px;line-height:1.3}
+.tarea span.d{display:block;color:var(--t65);font-size:12.5px;margin-top:2px}
+.tarea .ir{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-weight:600;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.tarea.on{border-color:var(--ambar);background:#f6efe3}
+.cifras{display:flex;flex-wrap:wrap;gap:4px 18px;margin:14px 2px 0;color:var(--t65);font-size:13px}
+.cifras b{color:var(--tinta);font-weight:600}
+
+/* ── 2 · tarjeta: buscar + atajos + lista ── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-top:18px}
+.herr{padding:16px 16px 12px;display:grid;gap:12px;border-bottom:1px solid var(--sand)}
+.buscar{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:12px;padding:0 6px 0 14px;height:48px}
+.buscar input{flex:1;border:0;background:transparent;outline:none;font-size:15px;min-width:0}
+.buscar input::placeholder{color:var(--t50)}
+.buscar .x{color:var(--t50);padding:4px}
+.atajos{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.atajo{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:5px 12px;font-size:13px;white-space:nowrap;transition:background .2s,border-color .2s}
+.atajo:hover{border-color:var(--taupe)}
+.atajo[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.atajo .n{font-variant-numeric:tabular-nums;opacity:.7}
+.atajo .pt{width:7px;height:7px;border-radius:50%}
+.atajo.mas{margin-left:auto;border-style:dashed}
+.masf{display:grid;gap:8px;padding-top:2px}
+.masf .fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.masf .fila>span{width:74px;font-size:12px;color:var(--t65)}
+.leyenda{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 18px;font-size:12px;color:var(--t65);border-bottom:1px solid var(--sand)}
+.leyenda i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+.leyenda i.f{background:var(--amb-bg);box-shadow:inset 0 0 0 1px var(--amb-ring)}
+.leyenda i.a{border:1px dashed var(--t35)}
+.leyenda i.o{background:var(--hueso)}
+
+.prenda{display:grid;grid-template-columns:minmax(210px,1fr) 310px minmax(220px,1fr) 20px;gap:18px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background .2s}
+.prenda:hover{background:rgba(232,224,208,.35)}
+.prenda:last-child{border-bottom:0}
+.quien{display:flex;gap:12px;align-items:center;min-width:0}
+.foto{width:48px;height:58px;border-radius:9px;flex:none;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px var(--t10)}
+.foto:after{content:"";position:absolute;left:22%;right:22%;top:20%;bottom:10%;border-radius:40% 40% 8px 8px;background:rgba(255,255,255,.18)}
+.quien b{display:block;font-weight:500;font-size:14.5px;line-height:1.25}
+.quien .sub{display:flex;align-items:center;gap:6px;color:var(--t65);font-size:12.5px;margin-top:2px}
+.muestra{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--t35)}
+.estado{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px}
+.estado .lin{display:flex;align-items:center;gap:7px}
+.estado .pt{width:8px;height:8px;border-radius:50%;flex:none}
+.estado .extra{display:flex;gap:10px;color:var(--t65);font-size:12px}
+.chev{color:var(--t35)}
+
+/* la curva rotulada: renglón «Piso» y renglón «Almacén» en cada prenda */
+.curva{display:flex;gap:4px;align-items:stretch}
+.curva .rot2{display:grid;grid-template-rows:20px 24px 24px;align-items:center;font-size:11px;color:var(--t65);padding-right:4px;text-align:right}
+.col{display:grid;grid-template-rows:20px 24px 24px;align-items:center;justify-items:center;min-width:40px;border-radius:9px;background:var(--hueso);font-variant-numeric:tabular-nums;transition:box-shadow .2s,background .3s}
+.col:hover{box-shadow:inset 0 0 0 1.5px var(--t35)}
+.col .t{font-size:11px;font-weight:600;color:var(--t65)}
+.col .p{font-size:15px;font-weight:600}
+.col .a{font-size:13px;color:var(--t65);border-top:1px solid rgba(26,26,24,.08);width:70%;text-align:center;line-height:23px}
+.col.falta{background:var(--amb-bg);box-shadow:inset 0 0 0 1px var(--amb-ring)}
+.col.falta .p{color:var(--ambar-p)}
+.col.falta .t{color:var(--ambar-p)}
+.col.agot{background:transparent;border:1px dashed var(--t35)}
+.col.agot .p,.col.agot .a{color:var(--t35);font-weight:400}
+.col.sel{box-shadow:inset 0 0 0 2px var(--tinta)!important}
+.col.brilla{background:rgba(72,96,63,.18)}
+.curva.gde .rot2{grid-template-rows:24px 34px 30px;font-size:12px}
+.curva.gde .col{grid-template-rows:24px 34px 30px;min-width:54px;border-radius:12px}
+.curva.gde .col .p{font-size:20px}
+.curva.gde .col .a{font-size:14px;line-height:29px}
+.curva.gde .col .t{font-size:12.5px}
+
+.pie{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;color:var(--t65);font-size:12.5px;border-top:1px solid var(--sand)}
+.vacio{padding:36px 18px;text-align:center;color:var(--t65)}
+.vacio b{display:block;color:var(--tinta);font-size:15px;font-weight:500;margin-bottom:4px}
+
+/* ── hoja / modal (efecto de <Modal>, ADR-0136) ── */
+.velo{position:absolute;inset:0;z-index:40;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;justify-content:center;align-items:flex-start;padding:60px 20px;animation:velo .22s var(--ease) both;overflow:auto}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+.hoja{background:var(--papel);border-radius:18px;width:100%;max-width:560px;padding:22px 22px 20px;position:relative;animation:hoja .32s var(--ease) both}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.hoja>*{animation:casc .3s var(--ease) both}
+.hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}.hoja>*:nth-child(6){animation-delay:275ms}
+@keyframes casc{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cerrar{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+.cerrar:hover{background:var(--hueso)}
+.hcab{display:flex;gap:14px;align-items:center;padding-right:36px}
+.hcab .foto{width:56px;height:68px}
+.hcab h3{font-family:'EB Garamond',serif;font-weight:400;font-size:28px;line-height:1.1}
+.hcab .sub{display:flex;gap:8px;align-items:center;color:var(--t65);font-size:13px;margin-top:3px;flex-wrap:wrap}
+.paso{margin-top:18px}
+.paso>.lbl{display:block;margin-bottom:8px}
+.guia{font-size:13px;color:var(--t65);margin-top:8px}
+.talla{margin-top:16px;background:var(--crema);border:1px solid var(--sand);border-radius:14px;padding:14px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dos>div{background:var(--papel);border-radius:10px;padding:8px 12px}
+.dos .v{font-family:'EB Garamond',serif;font-size:32px;line-height:1.05}
+.dos small{display:block;color:var(--t65);font-size:12px}
+.frase-t{margin:12px 2px 12px;font-size:14px;line-height:1.45}
+.frase-t b{font-weight:600}
+.botones{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.botones .solo{grid-column:1/-1}
+.nota{background:var(--hueso);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--t80)}
+.otras{display:grid;gap:6px}
+.otras li{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--crema);border-radius:10px;padding:7px 12px;font-size:13.5px}
+.lnk{font-weight:600;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.mas-op{margin-top:16px;border-top:1px solid var(--sand);padding-top:10px}
+.mas-op>button{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--t80);padding:4px 0}
+.mas-op .lista{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;animation:revelar .24s var(--ease)}
+.op{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--sand);border-radius:11px;padding:9px 11px;text-align:left;font-size:13px;transition:border-color .2s}
+.op:hover{border-color:var(--taupe)}
+.op small{display:block;color:var(--t65);font-size:11.5px;line-height:1.35}
+.op .ic{color:var(--taupe);margin-top:1px}
+.contador{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px 0 12px}
+.contador button{width:44px;height:44px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);font-size:20px;display:grid;place-items:center}
+.contador .v{font-family:'EB Garamond',serif;font-size:44px;min-width:60px;text-align:center;line-height:1}
+
+/* escáner simulado */
+.cam{background:#26241f;border-radius:14px;height:220px;display:grid;place-items:center;position:relative;margin-top:14px;color:rgba(245,240,232,.75);font-size:13px}
+.cam:before{content:"";position:absolute;inset:34px 50px;border:2px solid rgba(245,240,232,.6);border-radius:12px}
+
+/* aviso de éxito (avisar.exito) */
+.avisos-ok{position:absolute;right:16px;top:16px;z-index:60;display:grid;gap:8px;pointer-events:none}
+.ok{background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:13px;display:flex;gap:8px;align-items:center;max-width:330px;animation:revelar .3s var(--ease) both;box-shadow:0 16px 30px -16px rgba(0,0,0,.5)}
+.ok .ic{color:#a9c39c}
+
+/* ── celular ── */
+.tel .main{padding:14px 16px 110px}
+.tel .pin{transform:scale(.9)}
+.tel .tcab{display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 16px;border-bottom:1px solid var(--sand);font-size:11px;letter-spacing:.12em;font-weight:600}
+.tel .tcab .logo{display:flex;align-items:center;gap:8px;letter-spacing:.3em}
+.tel .tcab .logo i{width:18px;height:15px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.tel h1.tit{font-size:34px;margin:6px 0 2px}
+.tel .frase{font-size:13px}
+.tel .cab{align-items:flex-start}
+.tel .acc{position:absolute;right:16px;top:30px}
+.tel .tareas{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px;gap:8px}
+.tel .tarea{min-width:236px;padding:11px 12px}
+.tel .hoy-t{margin:16px 0 8px}
+.tel .hoy-t p{display:none}
+.tel .cifras{font-size:12px;gap:2px 12px}
+.tel .tarjeta{margin:14px -16px 0;border-radius:0;border-left:0;border-right:0}
+.tel .herr{position:sticky;top:0;z-index:5;background:var(--papel);padding:12px 16px 10px}
+.tel .atajos{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.tel .atajo.mas{margin-left:0}
+.tel .leyenda{padding:8px 16px;gap:14px;font-size:11.5px}
+.tel .ley-txt{display:none}
+.tel .tarea span.d{display:none}
+.tel .tarea .ir{margin-top:4px}
+.tel .tarea{min-width:210px}
+.tel .prenda{grid-template-columns:1fr;gap:10px;padding:12px 16px}
+.tel .prenda .chev{display:none}
+.tel .curva .col{min-width:44px;flex:1}
+.tel .curva{width:100%}
+.tel .estado{flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;width:100%}
+.tel .velo{padding:0;align-items:flex-end}
+.tel .hoja{border-radius:22px 22px 0 0;max-width:none;padding:18px 16px 22px;max-height:92%;overflow:auto}
+.tel .hcab h3{font-size:24px}
+.tel .mas-op .lista{grid-template-columns:1fr}
+.fijo{position:absolute;left:16px;right:16px;bottom:18px;z-index:20}
+.fijo .btn{width:100%;padding:13px;font-size:15px;border-radius:14px;box-shadow:0 14px 30px -14px rgba(26,26,24,.55)}
+.tel .avisos-ok{left:12px;right:12px;top:58px}
+.tel .ok{max-width:none}
+
+/* ── notas de diseño (círculos numerados) ── */
+.pin{display:none;position:absolute;z-index:25;width:22px;height:22px;border-radius:50%;background:var(--rojo);color:#fff;font-size:11.5px;font-weight:700;place-items:center;box-shadow:0 0 0 3px var(--crema);pointer-events:none}
+body.notas .pin{display:grid}
+.rel{position:relative}
+.notas-lista{max-width:1180px;margin:0 auto 40px;padding:0 24px}
+.notas-lista h2{font-family:'EB Garamond',serif;font-weight:400;font-size:30px;margin:8px 0 4px}
+.notas-lista>p{color:var(--t65);margin-bottom:14px;max-width:760px}
+.ntab{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.nfila{display:grid;grid-template-columns:34px 1fr 1fr;gap:16px;padding:14px 18px;border-bottom:1px solid var(--sand);font-size:13.5px}
+.nfila:last-child{border-bottom:0}
+.nfila .n{width:24px;height:24px;border-radius:50%;background:var(--rojo);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.nfila h4{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);font-weight:600;margin-bottom:3px}
+.nfila.cab{background:var(--hueso);font-weight:600;font-size:12px}
+@media (max-width:760px){.nfila{grid-template-columns:30px 1fr}.nfila>div:last-child{grid-column:2}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="notas">
+
+<div class="spk">
+  <span class="tit">Existencias intuitiva · spike</span>
+  <div class="g"><span>Aparato</span><div class="seg" id="s-vista">
+    <button data-v="ambos" aria-pressed="true">Los dos</button><button data-v="pc" aria-pressed="false">Computadora</button><button data-v="tel" aria-pressed="false">Celular</button>
+  </div></div>
+  <div class="g"><span>Quién entra</span><div class="seg" id="s-rol">
+    <button data-v="lider" aria-pressed="true">Líder</button><button data-v="vend" aria-pressed="false">Vendedora sin «Bajada al piso»</button>
+  </div></div>
+  <div class="g"><span>Notas de diseño</span><div class="seg" id="s-notas">
+    <button data-v="si" aria-pressed="true">Ver los números</button><button data-v="no" aria-pressed="false">Ocultar</button>
+  </div></div>
+  <button class="reset" id="reset">Volver a empezar</button>
+</div>
+
+<div class="escena" id="escena">
+  <div class="col-pc"><p class="rot">Computadora · 1.440 px</p><div class="marco marco-pc" id="m-pc"><div class="scroll" id="pc"></div><div class="capa" id="capa-pc"></div></div></div>
+  <div class="col-tel"><p class="rot">Celular · 375 px</p><div class="marco marco-tel" id="m-tel"><div class="scroll" id="tel"></div><div class="capa tel" id="capa-tel"></div></div></div>
+</div>
+
+<section class="notas-lista">
+  <h2>Por qué hoy marea y qué cambia</h2>
+  <p>Cada número es un círculo rojo en la maqueta. Nada de esto toca la base: son las mismas cifras de <code>stock</code>, las mismas
+  acciones y las mismas funciones (<code>mover_entre_piso_y_almacen</code>, <code>apartar_prenda</code>, <code>pedir_prenda_para_apartar</code>). Cambia cómo se lee y dónde se decide.</p>
+  <div class="ntab" id="notas"></div>
+</section>
+
+<script>
+/* ───────────── íconos (trazos tipo lucide) ───────────── */
+const I={
+  buscar:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/>',
+  bajar:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  subir:'<path d="M12 21V9M7 14l5-5 5 5M5 3h14"/>',
+  bolsa:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>',
+  mas:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  camion:'<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  alerta:'<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+  caja:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+  chev:'<path d="m9 6 6 6-6 6"/>',
+  abajo:'<path d="m6 9 6 6 6-6"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  tag:'<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  hist:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  ajustar:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  contar:'<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
+  paquete:'<path d="M16.5 9.4 7.5 4.2M21 16V8l-9-5-9 5v8l9 5z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/>'
+};
+const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+
+/* ───────────── datos inventados (Tienda Lima) ───────────── */
+// cada talla: [talla, en el piso para vender, en el almacén, apartadas, {otras tiendas}]
+const BASE=[
+ {id:'carlita-bl',ref:'Blusa Carlita',color:'Blanco',hex:'#f1ece2',marca:'Miramhe',cat:'Blusas',precio:89,foto:'linear-gradient(160deg,#efe8dc,#d9cfbf)',
+  tallas:[['S',2,4,1,{}],['M',0,6,0,{Arequipa:4,Trujillo:2}],['L',0,3,0,{Arequipa:1}],['XL',3,0,0,{}]]},
+ {id:'ximena-az',ref:'Casaca Ximena',color:'Azul marino',hex:'#23304a',marca:'CAYLA',cat:'Casacas',precio:229,foto:'linear-gradient(160deg,#34425f,#1c263a)',
+  tallas:[['S',1,2,0,{}],['M',0,5,0,{Trujillo:3}],['L',2,1,0,{}]]},
+ {id:'aurora-vi',ref:'Vestido Aurora',color:'Vino',hex:'#6b2331',marca:'CAYLA',cat:'Vestidos',precio:179,foto:'linear-gradient(160deg,#7d3140,#4e1822)',
+  tallas:[['XS',0,0,0,{Arequipa:2}],['S',2,1,0,{}],['M',3,2,1,{}],['L',1,0,0,{}]],danadas:1},
+ {id:'palazzo-ne',ref:'Pantalón Palazzo',color:'Negro',hex:'#1d1d1b',marca:'Miramhe',cat:'Pantalones',precio:139,foto:'linear-gradient(160deg,#35332f,#151513)',
+  tallas:[['S',3,2,0,{}],['M',4,3,0,{}],['L',2,2,0,{}],['XL',1,1,0,{}]]},
+ {id:'lia-ca',ref:'Falda Lía',color:'Camel',hex:'#b88a5a',marca:'CAYLA',cat:'Faldas',precio:119,foto:'linear-gradient(160deg,#c89b6b,#9a6d42)',
+  tallas:[['S',2,0,0,{}],['M',0,0,0,{Trujillo:1,Arequipa:2}],['L',1,2,0,{}]]},
+ {id:'kira-bl',ref:'Top Kira',color:'Blanco',hex:'#f4f1ea',marca:'Miramhe',cat:'Blusas',precio:69,foto:'linear-gradient(160deg,#f3eee4,#dcd3c3)',
+  tallas:[['S',4,6,0,{}],['M',5,4,0,{}],['L',3,3,0,{}]]},
+ {id:'nube-ar',ref:'Cárdigan Nube',color:'Arena',hex:'#d8c7a6',marca:'CAYLA',cat:'Tejidos',precio:159,foto:'linear-gradient(160deg,#ddcdb0,#b9a47f)',
+  tallas:[['Única',0,7,0,{Arequipa:3}]]},
+ {id:'polo-ol',ref:'Polo Básico',color:'Oliva',hex:'#6a6b45',marca:'CAYLA',cat:'Polos',precio:49,foto:'linear-gradient(160deg,#7b7c55,#4f5033)',
+  tallas:[['S',6,8,0,{}],['M',7,9,2,{}],['L',5,6,0,{}],['XL',2,4,0,{}]],danadas:1},
+ {id:'ximena-ne',ref:'Casaca Ximena',color:'Negra',hex:'#1a1a18',marca:'CAYLA',cat:'Casacas',precio:229,foto:'linear-gradient(160deg,#2c2b28,#121210)',
+  tallas:[['S',2,1,0,{}],['M',2,2,0,{}],['L',1,0,0,{Arequipa:2}]]},
+];
+const clonar=()=>BASE.map(p=>({...p,tallas:p.tallas.map(t=>({t:t[0],piso:t[1],alm:t[2],ap:t[3],otras:{...t[4]}}))}));
+
+/* ───────────── estado del demo ───────────── */
+let S;
+function inicial(){S={prendas:clonar(),q:'',atajo:'todas',masAbierto:false,cat:'Todas',talla:'Todas',rol:'lider',
+  menu:null,hoja:null,avisos:[],brilla:null};}
+inicial();
+const esLider=()=>S.rol==='lider';
+
+/* reglas de lectura: UNA palabra por cosa (nota 1) */
+const estadoT=t=>t.piso<=0&&t.alm>0?'falta':(t.piso<=0&&t.alm<=0?'agot':'ok');
+const faltan=p=>p.tallas.filter(t=>estadoT(t)==='falta');
+const agotadas=p=>p.tallas.filter(t=>estadoT(t)==='agot');
+const apartadas=p=>p.tallas.reduce((s,t)=>s+t.ap,0);
+const tot=(p,k)=>p.tallas.reduce((s,t)=>s+t[k],0);
+const nombreT=t=>t.t==='Única'?'talla única':'la '+t.t;
+const listaT=ts=>{const n=ts.map(t=>t.t);return n.length<=1?n.join(''):n.slice(0,-1).join(', ')+' y '+n[n.length-1];};
+const plural=(n,s,p)=>`${n} ${n===1?s:p}`;
+const urg=p=>faltan(p).length?0:(agotadas(p).length?1:2);
+
+function filtradas(){
+  const q=S.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  return S.prendas.filter(p=>{
+    const txt=(p.ref+' '+p.color+' '+p.marca+' '+p.cat).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    if(q&&!q.split(/\s+/).every(w=>txt.includes(w)))return false;
+    if(S.atajo==='faltan'&&!faltan(p).length)return false;
+    if(S.atajo==='agotadas'&&!agotadas(p).length)return false;
+    if(S.atajo==='apartadas'&&!apartadas(p))return false;
+    if(S.atajo==='danadas'&&!p.danadas)return false;
+    if(S.cat!=='Todas'&&p.cat!==S.cat)return false;
+    if(S.talla!=='Todas'&&!p.tallas.some(t=>t.t===S.talla))return false;
+    return true;
+  }).sort((a,b)=>urg(a)-urg(b));
+}
+
+/* ───────────── piezas ───────────── */
+const pin=(n,estilo)=>`<span class="pin" style="${estilo}">${n}</span>`;
+
+function curva(p,{gde=false,sel=null,ctx=''}={}){
+  return `<div class="curva ${gde?'gde':''}">
+    <div class="rot2"><span></span><span>Piso</span><span>Almacén</span></div>
+    ${p.tallas.map((t,i)=>{const e=estadoT(t);const b=S.brilla===p.id+'|'+t.t?' brilla':'';
+      return `<button class="col ${e==='falta'?'falta':e==='agot'?'agot':''}${sel===t.t?' sel':''}${b}" data-acc="${ctx}talla" data-p="${p.id}" data-t="${t.t}"
+        title="Talla ${t.t}: ${t.piso} en el piso, ${t.alm} en el almacén" aria-label="Talla ${t.t}: ${t.piso} en el piso y ${t.alm} en el almacén">
+        <span class="t">${t.t==='Única'?'Ú':t.t}</span><span class="p">${e==='agot'?'—':t.piso}</span><span class="a">${e==='agot'?'—':t.alm}</span></button>`;}).join('')}
+  </div>`;
+}
+
+function estadoPrenda(p){
+  const f=faltan(p),a=agotadas(p),ap=apartadas(p);
+  let lin;
+  if(f.length){
+    lin=`<span class="lin"><span class="pt" style="background:var(--ambar)"></span><span>Falta en el piso: <b>${listaT(f)}</b></span></span>
+      ${esLider()?`<button class="btn chico" data-acc="bajarfila" data-p="${p.id}">${ic('bajar')}Bajar al piso</button>`:''}`;
+  }else if(a.length){
+    const otra=a.map(t=>Object.entries(t.otras).sort((x,y)=>y[1]-x[1])[0]).find(Boolean);
+    lin=`<span class="lin"><span class="pt" style="border:1.5px dashed var(--t50)"></span><span>Se agotó ${a.length===1?nombreT(a[0]):'la '+listaT(a)} aquí</span></span>
+      ${otra?`<span style="color:var(--t65);font-size:12px">Hay ${otra[1]} en ${otra[0]}</span>`:''}`;
+  }else{
+    lin=`<span class="lin"><span class="pt" style="background:var(--verde)"></span><span>Todo en el piso</span></span>`;
+  }
+  const extra=[ap?`${plural(ap,'apartada','apartadas')} para clientas`:'',p.danadas?`${plural(p.danadas,'dañada','dañadas')} en revisión`:''].filter(Boolean);
+  return `<div class="estado">${lin}${extra.length?`<span class="extra">${extra.join(' · ')}</span>`:''}</div>`;
+}
+
+function filaPrenda(p){
+  return `<div class="prenda" data-acc="abrir" data-p="${p.id}" role="button" tabindex="0">
+    <div class="quien"><span class="foto" style="background:${p.foto}"></span>
+      <span style="min-width:0"><b>${p.ref}</b><span class="sub"><span class="muestra" style="background:${p.hex}"></span>${p.color} · ${p.marca}</span></span></div>
+    ${curva(p)}
+    ${estadoPrenda(p)}
+    <span class="chev">${ic('chev')}</span>
+  </div>`;
+}
+
+function cifrasSede(){
+  const piso=S.prendas.reduce((s,p)=>s+tot(p,'piso'),0),alm=S.prendas.reduce((s,p)=>s+tot(p,'alm'),0),ap=S.prendas.reduce((s,p)=>s+apartadas(p),0);
+  return {piso,alm,ap,total:piso+alm};
+}
+
+function tareas(tel){
+  const nf=S.prendas.reduce((s,p)=>s+faltan(p).length,0);
+  const uds=S.prendas.reduce((s,p)=>s+faltan(p).reduce((x,t)=>x+t.alm,0),0);
+  const nd=S.prendas.reduce((s,p)=>s+(p.danadas||0),0);
+  const np=S.prendas.filter(p=>faltan(p).length).length; // el mismo número que el atajo «Falta en el piso»
+  const out=[];
+  if(nf)out.push(`<button class="tarea amb ${S.atajo==='faltan'?'on':''}" data-acc="atajo" data-v="faltan"><span class="pt"></span><span><b>${plural(nf,'talla falta','tallas faltan')} en el piso</b>
+     <span class="d">Están en el almacén, pero la clienta no las ve.</span><span class="ir">${S.atajo==='faltan'?'Ver todas las prendas':`Ver ${np===1?'la prenda':'las '+np+' prendas'}`} ${ic('chev')}</span></span></button>`);
+  else out.push(`<div class="tarea ok"><span class="pt"></span><span><b>Nada falta en el piso</b><span class="d">Todo lo que hay en el almacén ya tiene una en el piso.</span></span></div>`);
+  out.push(`<button class="tarea piz" data-acc="ir" data-v="Recibir mercadería, con el traslado de Trujillo abierto"><span class="pt"></span><span><b>1 traslado llega hoy</b>
+     <span class="d">18 prendas desde Trujillo, cerca de las 3 p. m.</span><span class="ir">Recibir ${ic('chev')}</span></span></button>`);
+  if(nd)out.push(`<button class="tarea roj" data-acc="atajo" data-v="danadas"><span class="pt"></span><span><b>${plural(nd,'prenda dañada','prendas dañadas')} por revisar</b>
+     <span class="d">Decide si se liquida, se bota o se dona.</span><span class="ir">Revisar ${ic('chev')}</span></span></button>`);
+  return out.join('');
+}
+
+function atajos(){
+  const cuenta=f=>S.prendas.filter(f).length;
+  const A=[['todas','Todas',S.prendas.length,null],['faltan','Falta en el piso',cuenta(p=>faltan(p).length),'var(--ambar)'],
+    ['agotadas','Agotadas aquí',cuenta(p=>agotadas(p).length),null],['apartadas','Apartadas',cuenta(p=>apartadas(p)>0),null],['danadas','Dañadas',cuenta(p=>p.danadas),'var(--rojo-p)']];
+  const extra=(S.cat!=='Todas')+(S.talla!=='Todas');
+  return A.map(([v,t,n,c])=>`<button class="atajo" data-acc="atajo" data-v="${v}" aria-pressed="${S.atajo===v}">${c?`<span class="pt" style="background:${c}"></span>`:''}${t} <span class="n">${n}</span></button>`).join('')
+    +`<button class="atajo mas" data-acc="masf" aria-expanded="${S.masAbierto}">${ic('ajustar')}Más filtros${extra?` · ${extra}`:''}</button>`;
+}
+function masFiltros(){
+  if(!S.masAbierto)return '';
+  const cats=['Todas',...new Set(BASE.map(p=>p.cat))],tallas=['Todas','XS','S','M','L','XL','Única'];
+  const grupo=(k,ops)=>ops.map(o=>`<button class="atajo" data-acc="f-${k}" data-v="${o}" aria-pressed="${S[k]===o}">${o}</button>`).join('');
+  return `<div class="masf"><div class="fila"><span>Categoría</span>${grupo('cat',cats)}</div><div class="fila"><span>Talla</span>${grupo('talla',tallas)}</div></div>`;
+}
+
+function lista(){
+  const ps=filtradas();
+  if(!ps.length){
+    const q=S.q.trim();
+    return `<div class="vacio"><b>${q?`No hay «${q}» en Tienda Lima`:'Ninguna prenda con ese filtro'}</b>
+      ${q?'Revisa cómo se escribe, o busca por código o color.':'Prueba con «Todas».'}
+      <div style="margin-top:12px"><button class="btn chico" data-acc="limpiar">Ver todas las prendas</button></div></div>`;
+  }
+  return ps.map(filaPrenda).join('');
+}
+
+/* ───────────── la hoja de una prenda ───────────── */
+function hojaPrenda(tel){
+  const h=S.hoja;const p=S.prendas.find(x=>x.id===h.p);const t=p.tallas.find(x=>x.t===h.t)||null;
+  let cuerpo='';
+  if(h.modo==='bajar'&&t){
+    cuerpo=`<div class="talla"><span class="lbl">Bajar al piso · ${t.t==='Única'?'talla única':'talla '+t.t}</span>
+      <p class="frase-t" style="text-align:center;margin-bottom:0">¿Cuántas bajas al piso?</p>
+      <div class="contador"><button data-acc="menos" aria-label="Una menos">−</button><span class="v num">${h.n}</span><button data-acc="masuno" aria-label="Una más">+</button></div>
+      <p class="guia" style="text-align:center;margin:-4px 0 14px">Hay ${t.alm} en el almacén. Quedarán ${t.piso+h.n} en el piso y ${t.alm-h.n} en el almacén.</p>
+      <div class="botones"><button class="btn gde" data-acc="volver">Cancelar</button><button class="btn pri gde" data-acc="confirmar">${ic('check')}Bajar ${h.n} al piso</button></div></div>`;
+  }else if(t){
+    const e=estadoT(t);const otras=Object.entries(t.otras).filter(([,n])=>n>0);
+    let frase,bot='';
+    if(e==='falta'){
+      frase=`<b>La clienta no la ve:</b> las ${t.alm} de ${nombreT(t)} están en el almacén.`;
+      bot=esLider()?`<button class="btn pri gde solo" data-acc="abajar">${ic('bajar')}Bajar al piso</button>`
+        :`<div class="nota solo">Para bajarla al piso, avísale a quien lo hace: tu rol no tiene «Bajada al piso».</div>`;
+      bot+=`<button class="btn gde solo" data-acc="ir" data-v="Apartar ${p.ref} ${t.t} para una clienta">${ic('bolsa')}Apartar para una clienta</button>`;
+    }else if(e==='agot'){
+      const mejor=otras.slice().sort((x,y)=>y[1]-x[1])[0];
+      frase=otras.length?`<b>No queda ninguna aquí.</b> Hay en ${otras.map(([s,n])=>`${s} (${n})`).join(' y ')}: pídela si una clienta la quiere.`:`<b>No queda ninguna</b> en esta tienda ni en las otras.`;
+      if(mejor)bot=`<button class="btn pri gde solo" data-acc="ir" data-v="Pedir ${p.ref} ${t.t} a ${mejor[0]} para una clienta">${ic('flecha')}Pedir a ${mejor[0]} para una clienta</button>`;
+    }else{
+      frase=t.alm>0?`Hay <b>${t.piso} para vender</b> en el piso y ${t.alm} de reserva en el almacén.`:`Todo lo que hay (${t.piso}) está en el piso.`;
+      bot=`<button class="btn pri gde ${t.alm>0&&esLider()?'':'solo'}" data-acc="ir" data-v="Apartar ${p.ref} ${t.t} para una clienta">${ic('bolsa')}Apartar para una clienta</button>`
+        +(t.alm>0&&esLider()?`<button class="btn gde" data-acc="abajar">${ic('bajar')}Bajar más</button>`:'');
+    }
+    cuerpo=`<div class="talla rel">${pin(6,'right:-8px;top:-8px')}
+      <span class="lbl">${t.t==='Única'?'Talla única':'Talla '+t.t}</span>
+      <div class="dos" style="margin-top:8px"><div><small>En el piso, para vender</small><span class="v num">${t.piso}</span></div><div><small>En el almacén</small><span class="v num">${t.alm}</span></div></div>
+      ${t.ap?`<p class="guia">+ ${plural(t.ap,'apartada','apartadas')} para clientas (no se cuentan arriba).</p>`:''}
+      <p class="frase-t">${frase}</p>
+      ${bot?`<div class="botones">${bot}</div>`:''}
+    </div>
+    <div class="paso"><span class="lbl">En otras tiendas</span>
+      ${otras.length?`<ul class="otras">${otras.map(([s,n])=>`<li><span>${s} · <b class="num">${n}</b></span><button class="lnk" data-acc="ir" data-v="Pedir ${p.ref} ${t.t} a ${s} para una clienta">Pedir para una clienta</button></li>`).join('')}</ul>`
+        :'<p class="guia" style="margin:0">En ninguna otra tienda.</p>'}</div>`;
+  }else{
+    cuerpo=`<p class="nota" style="margin-top:14px">Toca una talla para ver qué puedes hacer con ella.</p>`;
+  }
+  const masOp=h.modo==='bajar'?'':`<div class="mas-op"><button data-acc="masop" aria-expanded="${!!h.masop}">${ic(h.masop?'abajo':'chev')}Más opciones</button>
+    ${h.masop?`<div class="lista">
+      <button class="op" data-acc="ir" data-v="Mover mercadería con ${p.ref} cargada">${ic('flecha')}<span>Trasladar a otra tienda<small>Eliges destino y cantidad en «Mover mercadería».</small></span></button>
+      <button class="op" data-acc="ir" data-v="Etiquetas de ${p.ref} ${p.color}">${ic('tag')}<span>Imprimir etiquetas<small>De este color, con el precio de hoy.</small></span></button>
+      ${esLider()?`<button class="op" data-acc="ir" data-v="Corregir la cantidad (Ajustar, con motivo)">${ic('ajustar')}<span>Corregir la cantidad<small>Si lo contado no coincide. Pide un motivo.</small></span></button>`:''}
+      ${t&&t.piso>0&&esLider()?`<button class="op" data-acc="ir" data-v="Devolver ${t.t} al almacén">${ic('subir')}<span>Devolver al almacén<small>Quitar del piso lo que no se exhibe.</small></span></button>`:''}
+      <button class="op" data-acc="ir" data-v="Historial de ${p.ref}">${ic('hist')}<span>Ver su historial<small>Cada entrada, venta, traslado y corrección.</small></span></button>
+    </div>`:''}</div>`;
+  return `<div class="velo" data-acc="fondo"><div class="hoja" role="dialog" aria-label="${p.ref} ${p.color}">
+    <button class="cerrar" data-acc="cerrar" aria-label="Cerrar">${ic('x')}</button>
+    <div class="hcab"><span class="foto" style="background:${p.foto}"></span><div><h3>${p.ref}</h3>
+      <div class="sub"><span class="muestra" style="background:${p.hex}"></span>${p.color} · ${p.marca} · <span class="num">S/ ${p.precio}</span></div></div></div>
+    <div class="paso rel">${pin(5,'left:-10px;top:14px')}<span class="lbl">${p.tallas.length>1?'¿Qué talla?':'Su talla'}</span>${curva(p,{gde:true,sel:h.t,ctx:'h'})}</div>
+    ${cuerpo}
+    ${masOp}
+  </div></div>`;
+}
+
+function hojaEscaner(){
+  return `<div class="velo" data-acc="fondo"><div class="hoja" role="dialog" aria-label="Escanear prenda">
+    <button class="cerrar" data-acc="cerrar" aria-label="Cerrar">${ic('x')}</button>
+    <h3 class="serif" style="font-size:26px">Escanear prenda</h3>
+    <p class="guia" style="margin-top:2px">Apunta al código de la etiqueta. Se abre esa prenda, ya en su talla.</p>
+    <div class="cam">Cámara</div>
+    <div class="botones" style="margin-top:14px"><button class="btn gde" data-acc="cerrar">Cancelar</button><button class="btn pri gde" data-acc="simular">Simular lectura</button></div>
+  </div></div>`;
+}
+
+/* ───────────── pantalla completa ───────────── */
+function pantalla(tel){
+  const c=cifrasSede();
+  const menu=S.menu===(tel?'tel':'pc')?`<div class="menu">
+      <button data-acc="ir" data-v="Recibir mercadería">${ic('paquete')}<span>Recibir mercadería<small>Lo que llega de un proveedor o de otra tienda</small></span></button>
+      <button data-acc="ir" data-v="Contar">${ic('contar')}<span>Contar<small>Revisar que lo del sistema sea lo real</small></span></button>
+      <button data-acc="ir" data-v="Apartados">${ic('bolsa')}<span>Apartados<small>Lo reservado para clientas</small></span></button>
+      ${esLider()?`<button data-acc="ir" data-v="Nuevo traslado">${ic('flecha')}<span>Nuevo traslado<small>Enviar mercadería a otra tienda</small></span></button>`:''}
+    </div>`:'';
+  const cab=`<div class="cab rel">${pin(7,'left:-26px;top:34px')}
+    <div><div class="hilo">Tienda Lima · lunes 28 sep</div><h1 class="tit">Existencias</h1>
+      <p class="frase">${tel?'Qué hay en tu tienda y qué falta en el piso.':'Qué hay en tu tienda, dónde está y qué falta en el piso. <span style="color:var(--t50)">Vista de las 16:05.</span>'}</p></div>
+    <div class="acc">
+      ${tel?'':`<button class="btn" data-acc="escanear">${ic('scan')}Escanear</button>`}
+      ${esLider()&&!tel?`<button class="btn pri" data-acc="ir" data-v="Bajar al piso (varias prendas, escaneando)">${ic('bajar')}Bajar al piso</button>`:''}
+      <button class="btn ${tel?'sut':''}" data-acc="menu" aria-expanded="${!!menu}" aria-label="Más pantallas">${ic('mas')}${tel?'':'Más'}</button>
+      ${menu}
+    </div></div>`;
+  const hoy=`<div class="hoy-t rel">${pin(2,'left:-26px;top:6px')}<h2>Para hacer hoy</h2><p>Solo lo que pide que hagas algo.</p></div>
+    <div class="tareas">${tareas(tel)}</div>
+    <p class="cifras num"><span><b>${c.total}</b> ${tel?'prendas':'prendas para vender'}</span><span><b>${c.piso}</b> en el piso</span><span><b>${c.alm}</b> en el almacén</span>${c.ap?`<span><b>${c.ap}</b> apartadas</span>`:''}</p>`;
+  const tarjeta=`<div class="tarjeta">
+    <div class="herr rel">${pin(3,'left:-11px;top:-11px')}
+      <label class="buscar">${ic('buscar')}<input data-acc="q" value="${S.q.replace(/"/g,'&quot;')}" placeholder="${tel?'Busca prenda, código o color':'¿Qué prenda buscas? Nombre, código, color o marca'}" autocomplete="off" spellcheck="false">
+        ${S.q?`<button class="x" data-acc="borrar" aria-label="Borrar">${ic('x')}</button>`:''}</label>
+      <div class="atajos">${atajos()}</div>
+      ${masFiltros()}
+    </div>
+    <div class="leyenda rel">${pin(4,'left:-10px;top:6px')}<span class="ley-txt">Cada prenda muestra, por talla, cuántas hay en el <b style="color:var(--tinta)">piso</b> y en el <b style="color:var(--tinta)">almacén</b>.</span>
+      <span><i class="f"></i>Falta en el piso</span><span><i class="a"></i>Agotada aquí</span></div>
+    <div id="lista-${tel?'tel':'pc'}">${lista()}</div>
+    <div class="pie"><span>${plural(filtradas().length,'prenda','prendas')} · primero las que piden algo</span><button class="lnk" data-acc="ir" data-v="Descargar CSV">Descargar</button></div>
+  </div>`;
+  const hoja=S.hoja&&S.hoja.en===(tel?'tel':'pc')?(S.hoja.tipo==='scan'?hojaEscaner():hojaPrenda(tel)):'';
+  const avisos=`<div class="avisos-ok">${S.avisos.filter(a=>a.en===(tel?'tel':'pc')).map(a=>`<div class="ok">${ic('check')}<span>${a.txt}</span></div>`).join('')}</div>`;
+  if(tel){
+    return `<div class="tel"><div class="tcab"><span class="logo"><i></i>CAYLA</span><span>TIENDA LIMA ▾</span></div>
+      <div class="main">${cab}${hoy}<div class="rel">${pin(1,'right:-6px;top:20px')}${tarjeta}</div></div></div>`+'\u0000'+
+      (S.hoja&&S.hoja.en==='tel'?'':`<div class="fijo">${pin(8,'left:-6px;top:-10px')}<button class="btn pri" data-acc="escanear">${ic('scan')}Escanear prenda</button></div>`)+hoja+avisos;
+  }
+  return `<div class="app"><aside class="lat"><div class="logo"><i></i>CAYLA</div>
+      <a>Inicio</a><div class="grp">Ventas</div><a>Vender</a><a>Caja</a><a>Apartados</a>
+      <div class="grp">Inventario</div><a class="on">Existencias</a><a>Movimientos</a><a>Traslados</a><a>Recibir</a>
+      <div class="grp">Catálogo</div><a>Productos</a></aside>
+    <div><div class="top"><span class="sede">TIENDA LIMA ▾</span><span style="font-size:13px;color:var(--t65)">Felipe A.</span></div>
+      <div class="main">${cab}${hoy}<div class="rel">${pin(1,'right:-10px;top:-10px')}${tarjeta}</div></div></div></div>`+'\u0000'+hoja+avisos;
+}
+
+/* ───────────── dibujar y eventos ───────────── */
+function dibujar(foco){
+  for(const id of ['pc','tel']){
+    const el=document.getElementById(id);const top=el.scrollTop;
+    const [cuerpo,capa]=pantalla(id==='tel').split('\u0000');
+    el.innerHTML=cuerpo;el.scrollTop=top;document.getElementById('capa-'+id).innerHTML=capa;
+  }
+  if(foco){const inp=document.querySelector(`#${foco} input[data-acc=q]`);if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}}
+}
+function avisar(en,txt){const a={en,txt};S.avisos.push(a);dibujar();setTimeout(()=>{S.avisos=S.avisos.filter(x=>x!==a);dibujar();},3200);}
+function abrir(en,p,t){const pr=S.prendas.find(x=>x.id===p);
+  if(!t){const f=faltan(pr)[0]||(pr.tallas.length===1?pr.tallas[0]:null);t=f?f.t:null;}
+  S.hoja={en,tipo:'prenda',p,t,modo:null,n:1,masop:false};S.menu=null;dibujar();}
+
+function manejar(e,en){
+  const el=e.target.closest('[data-acc]');if(!el)return;
+  const acc=el.dataset.acc,v=el.dataset.v;
+  if(acc==='q')return;
+  if(acc==='fondo'&&e.target!==el)return;
+  e.stopPropagation();
+  const h=S.hoja;
+  switch(acc){
+    case 'abrir':abrir(en,el.dataset.p);break;
+    case 'talla':abrir(en,el.dataset.p,el.dataset.t);break;
+    case 'htalla':h.t=h.t===el.dataset.t&&S.prendas.find(x=>x.id===h.p).tallas.length>1?null:el.dataset.t;h.modo=null;h.n=1;dibujar();break;
+    case 'bajarfila':abrir(en,el.dataset.p);S.hoja.modo='bajar';dibujar();break;
+    case 'abajar':h.modo='bajar';h.n=1;dibujar();break;
+    case 'volver':h.modo=null;dibujar();break;
+    case 'menos':h.n=Math.max(1,h.n-1);dibujar();break;
+    case 'masuno':{const t=S.prendas.find(x=>x.id===h.p).tallas.find(x=>x.t===h.t);h.n=Math.min(t.alm,h.n+1);dibujar();break;}
+    case 'confirmar':{const p=S.prendas.find(x=>x.id===h.p),t=p.tallas.find(x=>x.t===h.t);t.piso+=h.n;t.alm-=h.n;
+      S.brilla=p.id+'|'+t.t;const n=h.n;S.hoja=null;
+      avisar(en,`Listo: ${n} ${p.ref} ${t.t==='Única'?'':t.t} ${n===1?'quedó':'quedaron'} en el piso.`);
+      setTimeout(()=>{S.brilla=null;dibujar();},900);break;}
+    case 'masop':h.masop=!h.masop;dibujar();break;
+    case 'cerrar':case 'fondo':S.hoja=null;dibujar();break;
+    case 'escanear':S.hoja={en,tipo:'scan'};S.menu=null;dibujar();break;
+    case 'simular':abrir(en,'ximena-az','M');break;
+    case 'menu':S.menu=S.menu===en?null:en;dibujar();break;
+    case 'atajo':S.atajo=S.atajo===v&&v!=='todas'?'todas':v;dibujar();break;
+    case 'masf':S.masAbierto=!S.masAbierto;dibujar();break;
+    case 'f-cat':S.cat=v;dibujar();break;
+    case 'f-talla':S.talla=v;dibujar();break;
+    case 'borrar':S.q='';dibujar(en);break;
+    case 'limpiar':S.q='';S.atajo='todas';S.cat='Todas';S.talla='Todas';dibujar();break;
+    case 'ir':S.menu=null;avisar(en,`Aquí iría a «${v}».`);break;
+  }
+}
+for(const id of ['pc','tel']){
+  const el=document.getElementById('m-'+id);
+  el.addEventListener('click',e=>{if(S.menu&&!e.target.closest('.acc')){S.menu=null;dibujar();}manejar(e,id);});
+  el.addEventListener('input',e=>{if(e.target.dataset.acc==='q'){S.q=e.target.value;dibujar(id);}});
+  el.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.hoja){S.hoja=null;dibujar();}
+    if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('prenda')){e.preventDefault();abrir(id,e.target.dataset.p);}});
+}
+
+/* barra del demo */
+function seg(id,fn){document.querySelectorAll(`#${id} button`).forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(`#${id} button`).forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b.dataset.v);});}
+seg('s-vista',v=>{document.getElementById('escena').className='escena'+(v==='pc'?' solo-pc':v==='tel'?' solo-tel':'');});
+seg('s-rol',v=>{S.rol=v;S.hoja=null;dibujar();});
+seg('s-notas',v=>document.body.classList.toggle('notas',v==='si'));
+document.getElementById('reset').onclick=()=>{const r=S.rol;inicial();S.rol=r;dibujar();};
+
+/* estado inicial por URL (para capturas): ?solo=pc|tel&abrir=<id>&talla=M&atajo=faltan&notas=0&rol=vend&bajar=1 */
+const U=new URLSearchParams(location.search);
+if(U.get('solo'))document.querySelector(`#s-vista [data-v=${U.get('solo')}]`).click();
+if(U.get('notas')==='0')document.querySelector('#s-notas [data-v=no]').click();
+if(U.get('rol')==='vend'){S.rol='vend';document.querySelectorAll('#s-rol button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='vend'));}
+if(U.get('atajo'))S.atajo=U.get('atajo');
+dibujar();
+if(U.get('abrir')){abrir(U.get('en')||'pc',U.get('abrir'),U.get('talla')||undefined);if(U.get('bajar')){S.hoja.modo='bajar';dibujar();}}
+
+/* notas de diseño: hoy → propuesta */
+const NOTAS=[
+ ['La misma tarea tiene cinco nombres: tarjeta «Reponer a piso hoy», píldora «Por colgar», filtro Acción «Reponer a piso», filtro Estado «Por colgar», botones «Reponer N tallas», «Reponer al piso» y «Bajar al piso».',
+  'Un verbo para la acción, «Bajar al piso» (el nombre del módulo y de su pantalla), y un estado, «Falta en el piso». Toda la pantalla usa esas dos frases y nada más.'],
+ ['Antes de la primera prenda hay cabecera con 5 accesos, «Prioridades de hoy» con 4 tarjetas y 3 enlaces, 6 combos, una píldora y el interruptor Por prenda/Por talla.',
+  'Tres bloques con una pregunta cada uno: «¿Qué hago hoy?» (tareas), «¿Hay tal prenda?» (buscador) y la lista. Las cifras sin acción bajan a una línea de texto.'],
+ ['El buscador es un campo más entre los combos. Y la pregunta más común en tienda es «¿tienes la Ximena en M?».',
+  'Buscador grande primero, que en el celular se queda fijo al hacer scroll. Debajo, 5 atajos con su número (Falta en el piso, Agotadas aquí, Apartadas, Dañadas) en lugar de 6 combos. Categoría y talla van a «Más filtros».'],
+ ['La curva «0·6» se entiende solo con la leyenda, que está al pie de la tabla (y en el celular no se ve cerca).',
+  'Cada prenda trae su mini tabla con dos renglones rotulados, «Piso» y «Almacén», y la talla arriba. Se lee sin leyenda. El color marca solo las dos cosas que importan: ámbar = falta en el piso, punteado = agotada aquí.'],
+ ['El detalle abre con tres bloques del mismo peso (acciones de talla, «Con esta prenda» con 4 o 5 tarjetas, «Dónde más hay») y la talla se lee otra vez como «0·6 · poco en piso».',
+  'Arriba, «¿Qué talla?» con la misma mini tabla, más grande. Si la abres desde una prenda a la que le falta algo, llega parada en la talla que falta.'],
+ ['Tocar una talla muestra los botones posibles, pero no explica la situación: hay que deducirla de «piso 0 · almacén 6».',
+  'Dos cifras grandes con su nombre y una frase que lo explica («La clienta no la ve: las 6 de la M están en el almacén») más UN botón principal según el caso. Si no queda ninguna, la frase dice en qué tienda hay y el botón lo pide. Trasladar, etiquetas, corregir, devolver al almacén e historial van a «Más opciones».'],
+ ['Cabecera con dos filas de accesos: «+ Nuevo traslado» como primario, más «Bajar al piso», «Recibir», «Contar» y «Apartados».',
+  'Un primario, el de todos los días: «Bajar al piso». Al lado, «Escanear» y un «Más» con las pantallas vecinas, cada una con una línea que dice para qué sirve. Nuevo traslado es de quien envía y se queda en Traslados y en «Más».'],
+ ['En el celular, el botón fijo «Escanear» ya existe. Lo que falta es respuesta: tras reponer, la fila cambia sin avisar qué pasó.',
+  'Se queda «Escanear prenda» fijo. Al bajar al piso, la celda de esa talla se ilumina un momento y el aviso dice qué quedó dónde («Listo: 2 Blusa Carlita M quedaron en el piso»), después del loader (ADR-0149).'],
+];
+document.getElementById('notas').innerHTML=`<div class="nfila cab"><span></span><div>Hoy (main)</div><div>En el spike</div></div>`+
+  NOTAS.map((n,i)=>`<div class="nfila"><span class="n">${i+1}</span><div>${n[0]}</div><div>${n[1]}</div></div>`).join('');
+</script>
+</body>
+</html>
