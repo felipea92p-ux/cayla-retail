@@ -84,3 +84,7 @@
   `insumos_devolucion` 10/10. `aprobar_devolucion_caja` queda 2/5 como antes (falla en «Solo un líder puede aprobar», por
   la cuenta de prueba del local; previo y ajeno). `conteo-vacio` sin `--en-seco` da 6/7 porque el local no tiene el
   bloque del conteo vacío en `cerrar_conteo` (previo; con `--en-seco` 7/7).
+
+## Actualización 2026-09-29 (ADR-0277)
+
+**Se conserva** la decisión central: el ajuste del cierre es un **delta** (`contada − cantidad_sistema`) sobre el stock ACTUAL, y `conteo_contar` lee el stock bajo `for share`. **Cambia** un detalle de la decisión 5: recontar sigue renovando `cantidad_sistema`, pero ahora hay además una foto congelada al abrir (`cantidad_foto`) que solo se muestra como referencia («Al abrir: 11 · salieron 1 durante el conteo»). Las marcas de parche `ADR-0189 (conteo-foto)` y `ADR-0189 (conteo-orden)` se conservan una vez cada una en las funciones nuevas para que re-pegar `20260924120000` siga siendo un no-op.

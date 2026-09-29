@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Minus, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { crearLector } from "@/components/EscanerCamara";
@@ -24,7 +24,9 @@ import { debeContarLectura } from "@/lib/conteo-conectado";
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
 export type LecturaConteo =
-  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number }
+  // `atencion`: la prenda se reconoció pero NO se sumó (necesita una respuesta de la persona: «Agregar igual», elegir quién
+  // cuenta…). El destello sale ámbar y no verde, y lo que hay que responder va en `aviso`.
+  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number; atencion?: boolean }
   | { encontrada: false; codigo: string };
 
 export function EscanerConteo({
@@ -34,6 +36,7 @@ export function EscanerConteo({
   onPaso,
   onDarDeAlta,
   onEscribir,
+  aviso,
   onClose,
 }: {
   /** El mismo camino del Enter de la pistola: resuelve la prenda, suma, guarda y suena. */
@@ -47,6 +50,10 @@ export function EscanerConteo({
   onDarDeAlta: (codigo: string) => void;
   /** Sin cámara: cerrar y dejar listo el campo para escribir. */
   onEscribir: () => void;
+  /** Algo que la persona tiene que responder sin cerrar la cámara («Esta prenda no pertenece al conteo actual» con sus
+   *  botones, un guardado que falló). Tiene prioridad sobre la prenda que se está contando: es lo urgente. Lo arma la
+   *  pantalla de Contar, que es la misma que lo muestra en su barra de abajo. */
+  aviso?: ReactNode;
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -76,7 +83,7 @@ export function EscanerConteo({
       huboHueco = false;
       const r = onCodigoRef.current(codigo);
       n += 1;
-      setDestello({ id: n, tono: r.encontrada ? "verde" : "ambar" });
+      setDestello({ id: n, tono: r.encontrada && !r.atencion ? "verde" : "ambar" });
       setDesconocido(r.encontrada ? null : r.codigo);
     };
 
@@ -187,7 +194,9 @@ export function EscanerConteo({
               (ADR-0185): no salta al llegar la primera lectura. */}
           <div className="relative z-10 rounded-t-[28px] bg-crema px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             <div aria-live="polite" className="min-h-[4.75rem]">
-              {desconocido ? (
+              {aviso ? (
+                <div className="flex min-h-[4.75rem] items-center">{aviso}</div>
+              ) : desconocido ? (
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ambar text-crema">!</span>
                   <span className="min-w-0 flex-1 text-sm text-tinta">

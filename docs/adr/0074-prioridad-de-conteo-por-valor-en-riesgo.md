@@ -82,3 +82,7 @@ que tanto la carga inicial del servidor como el refetch por categoría del clien
 criterio nuevo. Sin errores de consola atribuibles a este cambio (hay un error de React
 preexistente en la misma pantalla, ajeno a `fn_prioridad_conteo` — confirmado por SQL
 directo y derivado a otra sesión).
+
+## Actualización 2026-09-29 (ADR-0277) — retirado
+
+Felipe pidió sacar la prioridad por valor de Conteo: se eliminan `fn_prioridad_conteo`, `fn_soles_diferencia_conteo`, la tarjeta y la tabla «Conviene contar primero» y todo costo/PVP/S/ de la pantalla. Nada más llamaba a estas funciones (barrido de `pg_proc`). `fn_costos_variantes_json` se queda: la usan Compras, Catálogo y Productos.

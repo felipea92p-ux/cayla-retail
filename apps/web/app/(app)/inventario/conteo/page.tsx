@@ -1,92 +1,59 @@
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { redirect } from "next/navigation";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
-import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
-import { codigosDeConteo, pendientesConCodigo, pendientesDeLista, pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
+import { getConteosResumen } from "@/lib/conteos";
+import { LIMITE_HISTORIAL_CONTEO, sufijoVariantes } from "@/lib/conteo-inicio-reglas";
 import { idsDeParam } from "@/lib/etiqueta-precio-reglas";
-import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
-import { getCatalogo, getCostosVariantes, getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getCatalogo } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ConteoVista } from "@/components/ConteoVista";
 
-// Conteos físicos (Felipe, 2026-09-14; rediseño 2026-09-22, ADR-0174). Esta página LEE; `ConteoVista` dibuja (ahí vive
-// el porqué de cada pieza). Lo único que se decide acá es qué viaja al navegador: `pendientes` va SIN la cifra del
-// sistema (`pendientesSinCifras`) y acotado al alcance del conteo — el conteo sigue a ciegas.
+// El inicio de Conteo (rediseño 2026-09-29). Esta página LEE; `ConteoVista` dibuja (ahí vive el porqué de cada pieza).
+//
+// Lee lo mínimo para decidir «¿qué hago ahora?»: el historial de la sede —el conteo abierto, si hay, es su primera fila
+// (`fn_conteos_resumen` lo pone primero y una sede tiene a lo sumo uno)—, dónde se puede contar, las categorías y cuántos
+// traslados esperan. Ya NO lee el catálogo entero para mandarlo al navegador (contar vive en `/inventario/conteo/[id]`,
+// que sí lo necesita), ni la prioridad por valor, ni los costos, ni la vista previa del cierre: de las once consultas de
+// antes quedan cuatro, y las cuatro salen en paralelo.
 export default async function ConteoPage({ searchParams }: { searchParams: Promise<{ variantes?: string | string[] }> }) {
-  const persona = await requirePersonaActualV2();
-  // «Contar esta prenda» desde Movimientos (ADR-0241): `?variantes=<id>,<id>` acota la lista de lo que falta contar.
+  // La puerta del módulo se repite aquí porque un `layout.tsx` no vuelve a correr al navegar entre sus páginas hijas.
+  const persona = await exigirModulo("conteos");
+  // «Contar esta prenda» desde Movimientos (ADR-0241): `?variantes=<id>,<id>` acota la lista del conteo que se cuenta.
   const soloVariantes = idsDeParam((await searchParams).variantes);
   const supabase = await createClient();
-  // El costo va aparte del catálogo y solo a quien ve el dinero (20260923193700): sin permiso, null y el conteo va en unidades.
-  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas, costos, trasladosPorAtender] = await Promise.all([
-    getConteoAbierto(persona.ubicacionId),
-    getConteosResumen(persona.ubicacionId),
-    getCatalogo(),
+  const [conteos, sububicaciones, categorias, trasladosPorAtender] = await Promise.all([
+    getConteosResumen(persona.ubicacionId, LIMITE_HISTORIAL_CONTEO),
     getSububicaciones(persona.ubicacionId),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    getPrioridadConteo(persona.ubicacionId),
-    supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
-    getEjesPorCategoria(),
-    getCatalogoMarcas(),
-    getCostosVariantes(),
-    // El aviso «antes de contar» (Conteo conectado, 2026-09-26): el mismo número del menú (`cache`: el layout ya lo pidió,
-    // no es otra consulta). Solo a quien ve Traslados: el aviso lleva allá.
+    // El aviso «antes de contar»: el mismo número del menú (`cache`: el layout ya lo pidió, no es otra consulta). Solo a
+    // quien ve Traslados: el aviso lleva allá.
     veModulo(persona, "traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(null),
   ]);
-  const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }));
 
-  // Lo que falta contar sale de la misma vista previa que usa «Revisar y cerrar», sin la cantidad del sistema y
-  // acotado al alcance: en un conteo «Solo Blusas», la lista son blusas (la vista previa no conoce el alcance).
-  const previsualizacion = conteoAbierto ? await getPrevisualizacionCierre(conteoAbierto.id) : [];
-  const categoriaDe = new Map(catalogo.map((v) => [v.varianteId, v.categoria]));
-  // La función de Postgres da «el primer código de barras»; el que se lee en la etiqueta lo trae el catálogo.
-  const codigoDe = new Map(catalogo.map((v) => [v.varianteId, codigoDeEtiqueta(v)]));
-  const pendientes = conteoAbierto
-    ? pendientesConCodigo(
-        pendientesDeLista(
-          pendientesEnAlcance(pendientesSinCifras(previsualizacion), categoriaDe, conteoAbierto.alcance === "categoria" ? conteoAbierto.alcanceCategoriaNombre : null),
-          soloVariantes
-        ),
-        codigoDe
-      )
-    : [];
-  // Cómo se llaman las prendas pedidas, para decir arriba qué se está contando.
-  const soloPrendas = soloVariantes.flatMap((id) => {
-    const v = catalogo.find((x) => x.varianteId === id);
-    return v ? [[v.referencia, v.talla, v.color].filter(Boolean).join(" · ")] : [];
-  });
+  const abierto = conteos[0]?.estado === "abierto" ? conteos[0] : null;
+  // Con un conteo abierto no hay nada que decidir aquí: «Contar esta prenda» sigue directo a contarlo, ya acotado.
+  if (abierto && soloVariantes.length > 0) redirect(`/inventario/conteo/${abierto.id}${sufijoVariantes(soloVariantes)}`);
+
+  // Cómo se llaman las prendas pedidas, para decir arriba qué se va a contar. Solo cuando vienen (el catálogo está guardado
+  // por versión, así que no es una consulta nueva) y no hay conteo abierto (con uno, ya se redirigió).
+  const soloPrendas =
+    soloVariantes.length > 0
+      ? (await getCatalogo()).filter((v) => soloVariantes.includes(v.varianteId)).map((v) => [v.referencia, v.talla, v.color].filter(Boolean).join(" · "))
+      : [];
+
   return (
     <ConteoVista
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
+      sede={persona.ubicacionEtiqueta}
       ubicacionId={persona.ubicacionId}
-      puedeCerrar={puede(persona, "ajustarInventario")}
-      puedeCrearMarcas={puede(persona, "editarCatalogo")}
-      conteoAbierto={conteoAbierto}
+      abierto={abierto}
       conteos={conteos}
-      pendientes={pendientes}
-      soloPrendas={soloPrendas}
       sububicaciones={sububicaciones}
-      categorias={categoriasOpciones}
-      prioridad={prioridad}
-      colores={coloresOpciones}
-      tallasPorCategoria={ejes.tallas}
-      marcas={catalogoMarcas}
+      categorias={exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }))}
       trasladosPorAtender={trasladosPorAtender}
-      catalogo={catalogo
-        .filter((v) => v.activo)
-        .map((v) => ({
-          varianteId: v.varianteId,
-          referencia: v.referencia,
-          talla: v.talla,
-          color: v.color,
-          costo: costos ? (costos.get(v.varianteId) ?? 0) : null,
-          // `sku` es el código de la etiqueta (casi ninguna prenda tiene `sku`, ADR-0058) y `codigosBarras` conserva el
-          // sku legado como opción de escaneo: lo que se teclea o se escanea sigue resolviendo la misma prenda.
-          ...codigosDeConteo(v),
-        }))}
+      soloPrendas={soloPrendas}
+      variantes={soloVariantes}
     />
   );
 }

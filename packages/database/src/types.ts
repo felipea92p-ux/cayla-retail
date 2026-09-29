@@ -1541,31 +1541,43 @@ export type Database = {
       }
       conteo_items: {
         Row: {
-          cantidad_contada: number
+          cantidad_contada: number | null
+          cantidad_foto: number | null
           cantidad_sistema: number
+          confirmada_en: string | null
           conteo_id: string
+          contada_anterior: number | null
           diferencia: number | null
           id: string
           movimiento_id: string | null
           variante_id: string
+          verificado_en: string | null
         }
         Insert: {
-          cantidad_contada: number
+          cantidad_contada?: number | null
+          cantidad_foto?: number | null
           cantidad_sistema: number
+          confirmada_en?: string | null
           conteo_id: string
+          contada_anterior?: number | null
           diferencia?: number | null
           id?: string
           movimiento_id?: string | null
           variante_id: string
+          verificado_en?: string | null
         }
         Update: {
-          cantidad_contada?: number
+          cantidad_contada?: number | null
+          cantidad_foto?: number | null
           cantidad_sistema?: number
+          confirmada_en?: string | null
           conteo_id?: string
+          contada_anterior?: number | null
           diferencia?: number | null
           id?: string
           movimiento_id?: string | null
           variante_id?: string
+          verificado_en?: string | null
         }
         Relationships: [
           {
@@ -1601,6 +1613,7 @@ export type Database = {
           created_at: string
           es_prueba: boolean
           estado: string
+          foto_en: string | null
           id: string
           numero: number
           sububicacion_id: string | null
@@ -1615,6 +1628,7 @@ export type Database = {
           created_at?: string
           es_prueba?: boolean
           estado?: string
+          foto_en?: string | null
           id?: string
           numero?: number
           sububicacion_id?: string | null
@@ -1629,6 +1643,7 @@ export type Database = {
           created_at?: string
           es_prueba?: boolean
           estado?: string
+          foto_en?: string | null
           id?: string
           numero?: number
           sububicacion_id?: string | null
@@ -4991,7 +5006,6 @@ export type Database = {
       }
 
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
-      fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
       fn_variantes_estado: { Args: { p_producto_id: string }; Returns: Json }
@@ -5377,9 +5391,11 @@ export type Database = {
         }[]
       }
       cerrar_conteo: {
-        Args: { p_conteo_id: string }
+        Args: { p_conteo_id: string; p_parcial?: boolean }
         Returns: {
           lineas_ajustadas: number
+          lineas_correctas: number
+          lineas_pendientes: number
           unidades_faltantes: number
           unidades_sobrantes: number
         }[]
@@ -5429,13 +5445,23 @@ export type Database = {
           unidades_ingresadas: number
         }[]
       }
+      conteo_confirmar_diferencia: {
+        Args: { p_conteo_id: string; p_variante_id: string }
+        Returns: Json
+      }
       conteo_contar: {
         Args: {
-          p_cantidad_contada: number
+          // `null` = dejar la variante pendiente (des-contar). Escrito a mano: un `supabase gen types` lo volvería `number`.
+          p_cantidad_contada: number | null
+          p_confirmo_fuera_de_alcance?: boolean
           p_conteo_id: string
           p_variante_id: string
         }
-        Returns: string
+        Returns: Json
+      }
+      conteo_recontar: {
+        Args: { p_conteo_id: string; p_variante_id: string }
+        Returns: Json
       }
       convertir_proforma_a_comprobante: {
         Args: {
@@ -5846,6 +5872,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_conteo_detalle: { Args: { p_conteo_id: string }; Returns: Json }
       fn_conteos_resumen: {
         Args: { p_limite?: number; p_ubicacion_id: string }
         Returns: {
@@ -5862,8 +5889,9 @@ export type Database = {
           lineas: number
           lineas_con_diferencia: number
           numero: number
+          parcial: boolean
+          pendientes: number
           sistema: number
-          soles_diferencia: number
           sububicacion_id: string
           sububicacion_nombre: string
           sububicacion_tipo: string
@@ -6176,19 +6204,6 @@ export type Database = {
           ubicacion_id: string
           ubicacion_nombre: string
           ubicacion_tipo: string
-        }[]
-      }
-      fn_prioridad_conteo: {
-        Args: { p_alcance_categoria_id?: string; p_ubicacion_id: string }
-        Returns: {
-          color: string
-          dias_sin_contar: number
-          referencia: string
-          sku: string
-          sububicacion_id: string
-          talla: string
-          valor_en_riesgo: number
-          variante_id: string
         }[]
       }
       fn_producto_como_eliminar: {
@@ -7169,20 +7184,6 @@ export type Database = {
           comprobantes: number
           saldo: number
           tramo: string
-        }[]
-      }
-      previsualizar_cierre_conteo: {
-        Args: { p_conteo_id: string }
-        Returns: {
-          codigo: string
-          color: string
-          contada: number
-          diferencia: number
-          origen: string
-          referencia: string
-          sistema: number
-          talla: string
-          variante_id: string
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }

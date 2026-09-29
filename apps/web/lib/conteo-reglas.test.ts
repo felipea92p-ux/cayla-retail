@@ -1,143 +1,828 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  avanceEnVivo,
-  pendientesDeLista,
+  ESPERA_GUARDADO_MS,
+  acotarALista,
+  agruparConteo,
+  bloqueoDeCierre,
+  cantidadEscrita,
   codigoDePrendaNueva,
-  mensajeMezclaEnCenso,
   codigosDeConteo,
   coincidenciasPorCodigo,
-  compararTallas,
+  conteoResumenDesdeFila,
+  contarLinea,
+  crearAgrupadorDeGuardado,
   crearColaEnSerie,
-  pendientesConCodigo,
-  pendientesEnAlcance,
-  modoConteoValido,
-  nuevaCantidad,
-  pendientesSinCifras,
-  prioridadDesdeFila,
+  detalleDesdeJson,
+  estadoDeLinea,
+  etiquetaDeLinea,
+  filtrarConteo,
+  lineaDesdeJson,
+  mensajeMezclaEnCenso,
+  notaAjuste,
+  notaDeLinea,
   resultadoConteo,
-  tocar,
-  ultimoConteoConPrendas,
+  resumirLineas,
+  sumarLectura,
+  textoAlcance,
+  textoFaltanPorContar,
+  textoLugar,
+  textoProgreso,
+  textoQuedanSinVerificar,
+  textoResultadoConteo,
+  textoResumen,
+  textoRevision,
+  textoSeActualizaran,
+  textoTerminado,
+  type LineaConteo,
 } from "./conteo-reglas";
-import type { FilaPrevisualizacion } from "./conteo-varianza";
 
-// Tres reglas de Felipe (ADR-0174) que se rompen calladas si nadie las fija:
-//  · un conteo cerrado con 0 prendas no puede salir en verde «Sin diferencias»;
-//  · la lista de pendientes que ve quien cuenta nunca trae la cifra del sistema;
-//  · con «suma por escaneo», lecturas rápidas no pueden pisarse entre ellas al guardar.
+// Las reglas del conteo rediseñado que se rompen calladas si nadie las fija:
+//  · vacío NO es cero: una variante sin cantidad escrita sigue pendiente, y solo el 0 escrito la verifica;
+//  · el estado sale de los números con UNA fórmula, la misma que la base (regla D3);
+//  · lo que se ve y lo que se cierra no pueden contradecirse.
 
-function fila(p: Partial<FilaPrevisualizacion> = {}): FilaPrevisualizacion {
-  return {
-    variante_id: "v1",
-    codigo: "BLU-EMMA-M-NEG",
-    referencia: "Blusa Emma",
-    talla: "M",
-    color: "Negro",
-    contada: null,
-    sistema: 4,
-    diferencia: null,
-    origen: "no_contado",
+/** Una línea con los números que interesan; lo demás en su valor neutro. */
+function linea(p: Partial<LineaConteo> & { debeHaber: number; contada: number | null }): LineaConteo {
+  const base = {
+    varianteId: "v1",
+    foto: p.debeHaber,
+    anterior: null,
+    verificadoEn: null,
+    confirmadaEn: null,
+    actual: null,
+    ajusteMovimientoId: null,
     ...p,
   };
+  const estado = estadoDeLinea(base);
+  if (estado === null) throw new Error("la línea de prueba está ignorada");
+  return { ...base, diferencia: base.contada === null ? null : base.contada - base.debeHaber, estado };
 }
 
-describe("resultadoConteo", () => {
-  it("un conteo cerrado sin prendas es «vacío», no «sin diferencias»", () => {
-    expect(resultadoConteo({ estado: "cerrado", lineas: 0, lineasConDiferencia: 0 })).toBe("vacio");
+const AHORA = "2026-09-29T15:00:00.000Z";
+
+describe("estadoDeLinea — la regla D3", () => {
+  const n = (p: Partial<Parameters<typeof estadoDeLinea>[0]>) => estadoDeLinea({ contada: null, debeHaber: 5, foto: 5, anterior: null, confirmadaEn: null, ...p });
+
+  it("13/13 es correcta", () => {
+    expect(n({ debeHaber: 13, foto: 13, contada: 13 })).toBe("correcta");
   });
 
-  it("abierto es «en curso» aunque todavía no tenga prendas", () => {
-    expect(resultadoConteo({ estado: "abierto", lineas: 0, lineasConDiferencia: 0 })).toBe("en_curso");
+  it("13/11 y 5/6 tienen diferencia; 6/0 también (el 0 escrito es una verificación, no un pendiente)", () => {
+    expect(n({ debeHaber: 13, contada: 11 })).toBe("con_diferencia");
+    expect(n({ debeHaber: 5, contada: 6 })).toBe("con_diferencia");
+    expect(n({ debeHaber: 6, foto: 6, contada: 0 })).toBe("con_diferencia");
   });
 
-  it("cerrado con prendas: sin o con diferencia según las líneas", () => {
-    expect(resultadoConteo({ estado: "cerrado", lineas: 12, lineasConDiferencia: 0 })).toBe("sin_diferencias");
-    expect(resultadoConteo({ estado: "cerrado", lineas: 12, lineasConDiferencia: 3 })).toBe("con_diferencia");
+  it("sin cantidad escrita es pendiente, nunca correcta ni con diferencia: vacío ≠ 0", () => {
+    expect(n({ contada: null })).toBe("pendiente");
+    // Un «debe haber» de 0 tampoco convierte el vacío en un 0 correcto.
+    expect(n({ debeHaber: 0, foto: 3, contada: null })).toBe("pendiente");
+  });
+
+  it("si se pidió volver a contar y aún no hay cantidad nueva, está en reconteo", () => {
+    expect(n({ contada: null, anterior: 9 })).toBe("en_reconteo");
+    expect(n({ contada: null, anterior: 0 })).toBe("en_reconteo");
+  });
+
+  it("una diferencia confirmada sigue siendo diferencia; una coincidencia nunca es «confirmada»", () => {
+    expect(n({ debeHaber: 11, contada: 9, confirmadaEn: AHORA })).toBe("diferencia_confirmada");
+    expect(n({ debeHaber: 11, contada: 11, confirmadaEn: AHORA })).toBe("correcta");
+  });
+
+  it("una variante que no estaba en la foto, a la que se le borró la cantidad y que nunca se recontó, se IGNORA (null)", () => {
+    expect(n({ debeHaber: 0, foto: 0, contada: null })).toBeNull();
+    // Sin `foto` (la base la trae NULL en conteos anteriores al rediseño) cuenta como foto 0.
+    expect(n({ debeHaber: 0, foto: null, contada: null })).toBeNull();
+    // Pero una que no estaba en la foto y SÍ se contó, existe.
+    expect(n({ debeHaber: 0, foto: 0, contada: 1 })).toBe("con_diferencia");
+    expect(n({ debeHaber: 0, foto: 0, contada: 0 })).toBe("correcta");
+  });
+
+  it("el borde de D3: una inesperada (foto 0) mandada a recontar NO se ignora, sigue visible «en reconteo» (aunque la cifra anterior sea 0)", () => {
+    expect(n({ debeHaber: 0, foto: 0, contada: null, anterior: 2 })).toBe("en_reconteo");
+    expect(n({ debeHaber: 0, foto: 0, contada: null, anterior: 0 })).toBe("en_reconteo");
+    expect(n({ debeHaber: 0, foto: null, contada: null, anterior: 3 })).toBe("en_reconteo");
+    // La contraparte: con foto 0 y SIN anterior sigue ignorada; con foto > 0 nunca se ignora.
+    expect(n({ debeHaber: 0, foto: 0, contada: null, anterior: null })).toBeNull();
+    expect(n({ debeHaber: 3, foto: 3, contada: null, anterior: null })).toBe("pendiente");
   });
 });
 
-describe("ultimoConteoConPrendas", () => {
-  it("salta el abierto y los vacíos", () => {
-    const conteos = [
-      { numero: 6, estado: "abierto", lineas: 3 },
-      { numero: 5, estado: "cerrado", lineas: 0 },
-      { numero: 4, estado: "cerrado", lineas: 18 },
-      { numero: 3, estado: "cerrado", lineas: 9 },
-    ];
-    expect(ultimoConteoConPrendas(conteos)?.numero).toBe(4);
+describe("etiquetaDeLinea — el copy y el color de cada estado", () => {
+  const e = (l: LineaConteo) => etiquetaDeLinea(l);
+
+  it("13/13 → «Correcto» en verde", () => {
+    expect(e(linea({ debeHaber: 13, contada: 13 }))).toEqual({ texto: "Correcto", tono: "verde", confirmada: false });
   });
 
-  it("sin ningún conteo con prendas devuelve null (los 4 de TRU al 2026-09-22)", () => {
-    expect(ultimoConteoConPrendas([{ estado: "cerrado", lineas: 0 }, { estado: "cerrado", lineas: 0 }])).toBeNull();
+  it("13/11 → «Faltan 2», 6/0 → «Faltan 6», en rojo", () => {
+    expect(e(linea({ debeHaber: 13, contada: 11 }))).toMatchObject({ texto: "Faltan 2", tono: "rojo" });
+    expect(e(linea({ debeHaber: 6, contada: 0 }))).toMatchObject({ texto: "Faltan 6", tono: "rojo" });
+  });
+
+  it("5/6 → «Hay 1 de más» en rojo; una inesperada 0/1 también", () => {
+    expect(e(linea({ debeHaber: 5, contada: 6 }))).toMatchObject({ texto: "Hay 1 de más", tono: "rojo" });
+    expect(e(linea({ debeHaber: 0, foto: 0, contada: 1 }))).toMatchObject({ texto: "Hay 1 de más", tono: "rojo" });
+  });
+
+  it("un solo faltante se dice en singular: «Falta 1»", () => {
+    expect(e(linea({ debeHaber: 4, contada: 3 })).texto).toBe("Falta 1");
+  });
+
+  it("pendiente es NEUTRO, jamás rojo; en reconteo es ámbar", () => {
+    expect(e(linea({ debeHaber: 4, contada: null }))).toEqual({ texto: "Pendiente", tono: "neutro", confirmada: false });
+    expect(e(linea({ debeHaber: 4, contada: null, anterior: 2 }))).toEqual({ texto: "En reconteo", tono: "ambar", confirmada: false });
+  });
+
+  it("una diferencia confirmada conserva su texto rojo y suma la marca «Confirmado»", () => {
+    expect(e(linea({ debeHaber: 11, contada: 9, confirmadaEn: AHORA }))).toEqual({ texto: "Faltan 2", tono: "rojo", confirmada: true });
+  });
+
+  it("nunca usa el vocabulario que el contrato prohíbe", () => {
+    const todos = [
+      linea({ debeHaber: 11, contada: 9 }),
+      linea({ debeHaber: 5, contada: 6 }),
+      linea({ debeHaber: 4, contada: null }),
+      linea({ debeHaber: 4, contada: null, anterior: 1 }),
+      linea({ debeHaber: 4, contada: 4 }),
+    ].map((l) => e(l).texto.toLowerCase());
+    for (const t of todos) expect(t).not.toMatch(/variaci|reconcili|divergen|discrepan|ajuste neto|no se encontr|dejar como|ciegas/);
   });
 });
 
-describe("pendientesSinCifras", () => {
-  it("solo lo no contado, y SIN la cantidad del sistema", () => {
-    const res = pendientesSinCifras([fila(), fila({ variante_id: "v2", origen: "contado", contada: 3 })]);
-    expect(res).toHaveLength(1);
-    expect(res[0]).toEqual({ varianteId: "v1", sku: "BLU-EMMA-M-NEG", referencia: "Blusa Emma", talla: "M", color: "Negro" });
-    expect(Object.keys(res[0])).not.toContain("sistema");
-    expect(JSON.stringify(res)).not.toContain('"4"');
+describe("notaDeLinea y notaAjuste", () => {
+  it("«Al abrir: 11 · salió 1 durante el conteo» cuando la foto no es el «debe haber»", () => {
+    expect(notaDeLinea({ foto: 11, debeHaber: 10, contada: 9 })).toBe("Al abrir: 11 · salió 1 durante el conteo");
+    expect(notaDeLinea({ foto: 11, debeHaber: 9, contada: 9 })).toBe("Al abrir: 11 · salieron 2 durante el conteo");
+    expect(notaDeLinea({ foto: 4, debeHaber: 5, contada: 5 })).toBe("Al abrir: 4 · entró 1 durante el conteo");
+    expect(notaDeLinea({ foto: 4, debeHaber: 7, contada: 7 })).toBe("Al abrir: 4 · entraron 3 durante el conteo");
   });
 
-  it("una variante en piso y almacén sale una sola vez", () => {
-    expect(pendientesSinCifras([fila(), fila({ sistema: 2 })])).toHaveLength(1);
+  it("sin nota cuando la foto coincide con el «debe haber»", () => {
+    expect(notaDeLinea({ foto: 11, debeHaber: 11, contada: 11 })).toBeNull();
+    expect(notaDeLinea({ foto: 11, debeHaber: 11, contada: null })).toBeNull();
   });
 
-  it("las tallas van en el orden del rack, no alfabético", () => {
-    expect(["L", "S", "XL", "M", "XS"].sort(compararTallas)).toEqual(["XS", "S", "M", "L", "XL"]);
-    expect(["36", "28", "30"].sort(compararTallas)).toEqual(["28", "30", "36"]);
-    expect(["Única", "M", "S"].sort(compararTallas)).toEqual(["S", "M", "Única"]);
-    expect([null, "S"].sort(compararTallas)).toEqual(["S", null]);
+  it("una variante que no estaba registrada aquí: «Encontraste N que no estaba registrada aquí»", () => {
+    expect(notaDeLinea({ foto: 0, debeHaber: 0, contada: 1 })).toBe("Encontraste 1 que no estaba registrada aquí");
+    // Contada en 0 no es un hallazgo.
+    expect(notaDeLinea({ foto: 0, debeHaber: 0, contada: 0 })).toBeNull();
   });
 
-  it("ordena por nombre y talla, para recorrer el rack", () => {
-    const res = pendientesSinCifras([
-      fila({ variante_id: "a", referencia: "Camisa Lino", talla: "S" }),
-      fila({ variante_id: "b", referencia: "Blusa Emma", talla: "M" }),
-      fila({ variante_id: "c", referencia: "Blusa Emma", talla: "L" }),
+  it("notaAjuste: si el stock se movió tras verificar, dice cuánto hay hoy y en cuánto quedará", () => {
+    expect(notaAjuste({ actual: 10, debeHaber: 11, diferencia: -2 })).toBe("Hoy hay 10 por movimientos posteriores; quedará en 8.");
+  });
+
+  it("notaAjuste: sin nota si no hay movimientos posteriores, si no hay diferencia o si no se conoce el stock", () => {
+    expect(notaAjuste({ actual: 11, debeHaber: 11, diferencia: -2 })).toBeNull();
+    expect(notaAjuste({ actual: 10, debeHaber: 11, diferencia: 0 })).toBeNull();
+    expect(notaAjuste({ actual: null, debeHaber: 11, diferencia: -2 })).toBeNull();
+    expect(notaAjuste({ actual: 10, debeHaber: 11, diferencia: null })).toBeNull();
+  });
+});
+
+describe("contarLinea — lo que se pinta antes de que responda la base", () => {
+  it("escribir 11 sobre 13 → Faltan 2; escribir 13 → Correcto", () => {
+    const l = linea({ debeHaber: 13, contada: null });
+    expect(contarLinea(l, 11, AHORA)).toMatchObject({ contada: 11, diferencia: -2, estado: "con_diferencia", verificadoEn: AHORA, confirmadaEn: null });
+    expect(contarLinea(l, 13, AHORA)).toMatchObject({ contada: 13, diferencia: 0, estado: "correcta" });
+  });
+
+  it("escribir 0 verifica en cero (6/0 → Faltan 6): el 0 escrito NO es un pendiente", () => {
+    const r = contarLinea(linea({ debeHaber: 6, contada: null }), 0, AHORA);
+    expect(r).toMatchObject({ contada: 0, diferencia: -6, estado: "con_diferencia" });
+  });
+
+  it("borrar lo escrito (null) vuelve a pendiente con lo congelado al abrir, no a 0", () => {
+    const verificada = linea({ debeHaber: 10, foto: 11, contada: 9, verificadoEn: AHORA });
+    expect(contarLinea(verificada, null, AHORA)).toMatchObject({ contada: null, diferencia: null, estado: "pendiente", debeHaber: 11, verificadoEn: null });
+  });
+
+  it("borrar lo escrito de una que se estaba recontando la deja en reconteo (conserva la cifra anterior)", () => {
+    const l = linea({ debeHaber: 10, contada: 8, anterior: 9 });
+    expect(contarLinea(l, null, AHORA)).toMatchObject({ estado: "en_reconteo", anterior: 9 });
+  });
+
+  it("borrar la cantidad de una variante inesperada que nunca se recontó la hace desaparecer (null)", () => {
+    const inesperada = linea({ debeHaber: 0, foto: 0, contada: 1 });
+    expect(contarLinea(inesperada, null, AHORA)).toBeNull();
+  });
+
+  it("borrar la cantidad de una inesperada que YA se había mandado a recontar la deja visible «en reconteo», con su cifra anterior", () => {
+    // Se encontraron 2 que CAYLA no esperaba, se mandó a recontar (anterior 2), se volvió a contar (1) y se borró.
+    const inesperada = linea({ debeHaber: 0, foto: 0, contada: 1, anterior: 2 });
+    expect(contarLinea(inesperada, null, AHORA)).toMatchObject({ estado: "en_reconteo", anterior: 2, contada: null, diferencia: null, foto: 0, debeHaber: 0 });
+  });
+
+  it("verifica contra el stock vivo: lo que salió por venta mientras se contaba no es faltante", () => {
+    // Al abrir había 11; se vendió 1 (hoy hay 10). Se cuentan 10 → correcta, con «debe haber» 10.
+    const pendiente = linea({ debeHaber: 11, foto: 11, contada: null, actual: 10 });
+    expect(contarLinea(pendiente, 10, AHORA)).toMatchObject({ debeHaber: 10, foto: 11, diferencia: 0, estado: "correcta" });
+  });
+
+  it("recontar y escribir lo mismo que antes deja la diferencia confirmada de una vez (reconfirmada)", () => {
+    const enReconteo = linea({ debeHaber: 11, contada: null, anterior: 9 });
+    expect(contarLinea(enReconteo, 9, AHORA)).toMatchObject({ estado: "diferencia_confirmada", confirmadaEn: AHORA });
+    // Otra cifra distinta de la anterior: hay que confirmarla.
+    expect(contarLinea(enReconteo, 10, AHORA)).toMatchObject({ estado: "con_diferencia", confirmadaEn: null });
+    // Volver a la cifra esperada: coincide, nada que confirmar.
+    expect(contarLinea(enReconteo, 11, AHORA)).toMatchObject({ estado: "correcta", confirmadaEn: null });
+  });
+
+  it("cambiar una cantidad ya confirmada quita la confirmación", () => {
+    const confirmada = linea({ debeHaber: 11, contada: 9, confirmadaEn: AHORA });
+    expect(contarLinea(confirmada, 8, "2026-09-29T15:05:00.000Z")).toMatchObject({ estado: "con_diferencia", confirmadaEn: null });
+  });
+
+  it("no toca la línea de entrada", () => {
+    const l = linea({ debeHaber: 13, contada: null });
+    const copia = JSON.stringify(l);
+    contarLinea(l, 5, AHORA);
+    expect(JSON.stringify(l)).toBe(copia);
+  });
+});
+
+describe("resumirLineas, bloqueoDeCierre y los textos del resumen", () => {
+  const lineas = [
+    linea({ varianteId: "a", debeHaber: 5, contada: 5 }),
+    linea({ varianteId: "b", debeHaber: 13, contada: 11 }),
+    linea({ varianteId: "c", debeHaber: 5, contada: 6, confirmadaEn: AHORA }),
+    linea({ varianteId: "d", debeHaber: 4, contada: null }),
+    linea({ varianteId: "e", debeHaber: 3, contada: null, anterior: 2 }),
+    linea({ varianteId: "f", debeHaber: 7, contada: 0 }),
+  ];
+  const r = resumirLineas(lineas);
+
+  it("cuenta cada estado; pendientes incluye los que están en reconteo", () => {
+    expect(r).toEqual({
+      variantes: 6,
+      verificadas: 4,
+      pendientes: 2,
+      correctas: 1,
+      conDiferencia: 3,
+      confirmadas: 1,
+      enReconteo: 1,
+      unidadesSobrantes: 1,
+      unidadesFaltantes: 2 + 7,
+    });
+    expect(r.correctas + r.conDiferencia).toBe(r.verificadas);
+    expect(r.verificadas + r.pendientes).toBe(r.variantes);
+  });
+
+  it("un conteo sin líneas resume en ceros", () => {
+    expect(resumirLineas([])).toMatchObject({ variantes: 0, verificadas: 0, pendientes: 0 });
+  });
+
+  it("un pendiente no suma diferencia aunque su «debe haber» sea grande", () => {
+    const solo = resumirLineas([linea({ debeHaber: 50, contada: null })]);
+    expect(solo).toMatchObject({ unidadesFaltantes: 0, conDiferencia: 0, correctas: 0 });
+  });
+
+  it("los textos del resumen, con el copy del contrato", () => {
+    expect(textoResumen({ variantes: 37, verificadas: 18, pendientes: 19, conDiferencia: 2 })).toBe("37 variantes · 18 verificadas · 19 pendientes · 2 con diferencia");
+    expect(textoResumen({ variantes: 37, verificadas: 37, pendientes: 0, conDiferencia: 0 })).toBe("37 variantes · 37 verificadas · 0 pendientes");
+    expect(textoResumen({ variantes: 1, verificadas: 1, pendientes: 0, conDiferencia: 0 })).toBe("1 variante · 1 verificada · 0 pendientes");
+    expect(textoProgreso({ verificadas: 18, variantes: 37 })).toBe("18 de 37 variantes verificadas");
+    expect(textoProgreso({ verificadas: 0, variantes: 1 })).toBe("0 de 1 variante verificada");
+    expect(textoRevision({ correctas: 34, conDiferencia: 3, pendientes: 0 })).toBe("34 correctas · 3 con diferencia · 0 pendientes");
+    expect(textoRevision({ correctas: 1, conDiferencia: 0, pendientes: 1 })).toBe("1 correcta · 0 con diferencia · 1 pendiente");
+    expect(textoFaltanPorContar(2)).toBe("Faltan 2 variantes por contar.");
+    expect(textoFaltanPorContar(1)).toBe("Falta 1 variante por contar.");
+    expect(textoSeActualizaran(3)).toBe("Se actualizarán 3 variantes.");
+    expect(textoSeActualizaran(1)).toBe("Se actualizará 1 variante.");
+    expect(textoQuedanSinVerificar(4)).toBe("Quedan 4 variantes sin verificar; no cambiarán.");
+    expect(textoQuedanSinVerificar(1)).toBe("Queda 1 variante sin verificar; no cambiará.");
+  });
+
+  it("el conteo terminado: «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas»", () => {
+    expect(textoTerminado({ verificadas: 37, correctas: 34, conDiferencia: 3, pendientes: 0 }, false)).toBe("37 variantes verificadas · 34 coincidieron · 3 fueron corregidas");
+    expect(textoTerminado({ verificadas: 1, correctas: 1, conDiferencia: 0, pendientes: 0 }, false)).toBe("1 variante verificada · 1 coincidió · 0 fueron corregidas");
+    expect(textoTerminado({ verificadas: 18, correctas: 16, conDiferencia: 2, pendientes: 19 }, true)).toBe(
+      "18 variantes verificadas · 16 coincidieron · 2 fueron corregidas · 19 quedaron sin verificar (conteo parcial)"
+    );
+    expect(textoTerminado({ verificadas: 2, correctas: 2, conDiferencia: 0, pendientes: 1 }, true)).toContain("1 quedó sin verificar (conteo parcial)");
+    // Sin ser parcial no se menciona lo pendiente.
+    expect(textoTerminado({ verificadas: 2, correctas: 2, conDiferencia: 0, pendientes: 0 }, false)).not.toContain("sin verificar");
+  });
+
+  describe("bloqueoDeCierre: el mismo orden que cerrar_conteo", () => {
+    const resumen = (p: Partial<Parameters<typeof bloqueoDeCierre>[0]>) => ({ verificadas: 10, pendientes: 0, conDiferencia: 0, confirmadas: 0, ...p });
+
+    it("sin nada verificado no hay qué cerrar, ni siquiera como parcial", () => {
+      expect(bloqueoDeCierre(resumen({ verificadas: 0, pendientes: 5 }), false)).toBe("conteo_vacio");
+      expect(bloqueoDeCierre(resumen({ verificadas: 0, pendientes: 5 }), true)).toBe("conteo_vacio");
+    });
+
+    it("con pendientes solo se cierra si se pidió parcial, a propósito", () => {
+      expect(bloqueoDeCierre(resumen({ pendientes: 2 }), false)).toBe("conteo_pendientes");
+      expect(bloqueoDeCierre(resumen({ pendientes: 2 }), true)).toBeNull();
+    });
+
+    it("toda diferencia se confirma antes de cerrar, también en un parcial", () => {
+      expect(bloqueoDeCierre(resumen({ conDiferencia: 3, confirmadas: 2 }), false)).toBe("diferencias_sin_confirmar");
+      expect(bloqueoDeCierre(resumen({ pendientes: 2, conDiferencia: 3, confirmadas: 2 }), true)).toBe("diferencias_sin_confirmar");
+      expect(bloqueoDeCierre(resumen({ conDiferencia: 3, confirmadas: 3 }), false)).toBeNull();
+    });
+
+    it("pendientes se avisa antes que diferencias sin confirmar (orden de la base)", () => {
+      expect(bloqueoDeCierre(resumen({ pendientes: 1, conDiferencia: 1, confirmadas: 0 }), false)).toBe("conteo_pendientes");
+    });
+
+    it("todo correcto y sin pendientes: se puede cerrar", () => {
+      expect(bloqueoDeCierre(resumen({}), false)).toBeNull();
+    });
+  });
+});
+
+describe("resultadoConteo y su texto en el historial", () => {
+  const c = (p: Partial<Parameters<typeof resultadoConteo>[0]>) => ({ estado: "cerrado", lineas: 10, lineasConDiferencia: 0, parcial: false, ...p });
+
+  it("«Todo correcto» / «N diferencias corregidas» / «Conteo parcial» / «Cancelado» / «En curso»", () => {
+    expect(textoResultadoConteo(c({}))).toBe("Todo correcto");
+    expect(textoResultadoConteo(c({ lineasConDiferencia: 3 }))).toBe("3 diferencias corregidas");
+    expect(textoResultadoConteo(c({ lineasConDiferencia: 1 }))).toBe("1 diferencia corregida");
+    expect(textoResultadoConteo(c({ parcial: true }))).toBe("Conteo parcial");
+    expect(textoResultadoConteo(c({ estado: "anulado" }))).toBe("Cancelado");
+    expect(textoResultadoConteo(c({ estado: "abierto" }))).toBe("En curso");
+  });
+
+  it("un cerrado SIN verificadas (los vacíos de antes) y un anulado se leen «Cancelado», nunca «Todo correcto»", () => {
+    expect(resultadoConteo(c({ lineas: 0 }))).toBe("cancelado");
+    expect(textoResultadoConteo(c({ lineas: 0 }))).toBe("Cancelado");
+    expect(resultadoConteo(c({ estado: "anulado", lineas: 12 }))).toBe("cancelado");
+  });
+
+  it("un parcial es «Conteo parcial» aunque tenga diferencias corregidas", () => {
+    expect(resultadoConteo(c({ parcial: true, lineasConDiferencia: 2 }))).toBe("parcial");
+  });
+
+  it("abierto es «en curso» aunque todavía no tenga verificadas", () => {
+    expect(resultadoConteo(c({ estado: "abierto", lineas: 0 }))).toBe("en_curso");
+  });
+
+  it("nunca dice «Cerrado» ni «Vacío»", () => {
+    for (const p of [{}, { lineas: 0 }, { parcial: true }, { estado: "anulado" }, { lineasConDiferencia: 2 }]) {
+      expect(textoResultadoConteo(c(p))).not.toMatch(/cerrado|vac[ií]o/i);
+    }
+  });
+});
+
+describe("conteoResumenDesdeFila", () => {
+  const fila = {
+    id: "c1",
+    numero: 7,
+    estado: "cerrado",
+    created_at: "2026-09-29T14:00:00Z",
+    cerrado_en: "2026-09-29T15:00:00Z",
+    sububicacion_id: "s1",
+    sububicacion_nombre: "Piso de venta",
+    sububicacion_tipo: "piso_venta",
+    alcance: "todo",
+    alcance_categoria_nombre: null,
+    abierto_por: "p1",
+    cerrado_por: "p2",
+    lineas: 18,
+    lineas_con_diferencia: 2,
+    sistema: 40,
+    contado: 38,
+    diferencia: -2,
+    pendientes: 19,
+    parcial: true,
+  };
+  const nombres = new Map([["p1", "Micaela"], ["p2", "Sandra"]]);
+
+  it("pasa a camelCase, sin soles, con pendientes, parcial y el total de variantes", () => {
+    const r = conteoResumenDesdeFila(fila, nombres);
+    expect(r).toMatchObject({ id: "c1", numero: 7, estado: "cerrado", lineas: 18, lineasConDiferencia: 2, pendientes: 19, parcial: true, variantes: 37, abiertoPorNombre: "Micaela", cerradoPorNombre: "Sandra" });
+    expect(Object.keys(r)).not.toContain("solesDiferencia");
+  });
+
+  it("si la fila no trae pendientes ni parcial (SQL viejo), cae a 0 y false sin romper", () => {
+    const { pendientes: _p, parcial: _q, ...vieja } = fila;
+    void _p;
+    void _q;
+    expect(conteoResumenDesdeFila(vieja, nombres)).toMatchObject({ pendientes: 0, parcial: false, variantes: 18 });
+  });
+
+  it("sin nombre conocido dice «—»", () => {
+    expect(conteoResumenDesdeFila({ ...fila, abierto_por: null, cerrado_por: "otro" }, nombres)).toMatchObject({ abiertoPorNombre: "—", cerradoPorNombre: "—" });
+  });
+});
+
+describe("textoLugar y textoAlcance", () => {
+  it("Almacén de tienda / Piso de venta / Toda la ubicación", () => {
+    expect(textoLugar({ sububicacionTipo: "almacen_tienda", sububicacionNombre: "Almacén de tienda" })).toBe("Almacén de tienda");
+    expect(textoLugar({ sububicacionTipo: "piso_venta", sububicacionNombre: "Piso de venta" })).toBe("Piso de venta");
+    expect(textoLugar({ sububicacionTipo: null, sububicacionNombre: null })).toBe("Toda la ubicación");
+  });
+
+  it("otro tipo de lugar (un rack del Taller) se llama por su nombre", () => {
+    expect(textoLugar({ sububicacionTipo: "rack", sububicacionNombre: "Rack A" })).toBe("Rack A");
+  });
+
+  it("«Todo» o «Solo <categoría>»", () => {
+    expect(textoAlcance({ alcance: "todo", alcanceCategoriaNombre: null })).toBe("Todo");
+    expect(textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: "Blusas" })).toBe("Solo Blusas");
+    expect(textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: null })).toBe("Todo");
+  });
+});
+
+describe("agruparConteo — producto → color → tallas, con un orden que no se mueve", () => {
+  const f = (varianteId: string, productoId: string, referencia: string, color: string | null, talla: string | null, extra: Partial<{ colorHex: string | null; fotoUrl: string | null; sku: string }> = {}) => ({
+    varianteId,
+    productoId,
+    referencia,
+    color,
+    colorHex: null,
+    fotoUrl: null,
+    talla,
+    sku: varianteId,
+    ...extra,
+  });
+
+  it("junta por modelo y color, con las tallas en el orden del rack (no alfabético)", () => {
+    const grupos = agruparConteo([
+      f("a-xl", "p1", "Blusa Emma", "Beige", "XL"),
+      f("a-s", "p1", "Blusa Emma", "Beige", "S"),
+      f("b-m", "p1", "Blusa Emma", "Negro", "M"),
+      f("a-m", "p1", "Blusa Emma", "Beige", "M"),
+      f("a-l", "p1", "Blusa Emma", "Beige", "L"),
     ]);
-    // Blusa Emma M antes que L (orden del rack), después Camisa Lino.
-    expect(res.map((p) => p.varianteId)).toEqual(["b", "c", "a"]);
+    expect(grupos.map((g) => [g.color, g.tallas.map((t) => t.talla)])).toEqual([
+      ["Beige", ["S", "M", "L", "XL"]],
+      ["Negro", ["M"]],
+    ]);
   });
 
-  it("ignora filas sin variante (no se pueden contar)", () => {
-    expect(pendientesSinCifras([fila({ variante_id: null })])).toEqual([]);
+  it("agrupa por productoId, NO por nombre: dos modelos con el mismo nombre no mezclan sus tallas", () => {
+    const grupos = agruparConteo([f("x1", "p-uno", "Polo", "Rojo", "M"), f("x2", "p-dos", "Polo", "Rojo", "M"), f("x3", "p-uno", "Polo", "Rojo", "L")]);
+    expect(grupos).toHaveLength(2);
+    expect(grupos.map((g) => [g.productoId, g.tallas.map((t) => t.varianteId)])).toEqual([
+      ["p-dos", ["x2"]],
+      ["p-uno", ["x1", "x3"]],
+    ]);
+  });
+
+  it("numeración por número (28, 30, 36), y «Única» y sin talla al final", () => {
+    const [g] = agruparConteo([f("t36", "p", "Jean", "Azul", "36"), f("t28", "p", "Jean", "Azul", "28"), f("tnull", "p", "Jean", "Azul", null), f("t30", "p", "Jean", "Azul", "30"), f("tu", "p", "Jean", "Azul", "Única")]);
+    expect(g.tallas.map((t) => t.talla)).toEqual(["28", "30", "36", "Única", null]);
+  });
+
+  it("ordena los modelos por nombre y los colores por nombre, con «sin color» al final", () => {
+    const grupos = agruparConteo([
+      f("1", "p2", "Vestido Sofi", null, "M"),
+      f("2", "p1", "Blusa Emma", "Negro", "M"),
+      f("3", "p1", "Blusa Emma", null, "M"),
+      f("4", "p1", "Blusa Emma", "Beige", "M"),
+      f("5", "p2", "Vestido Sofi", "Azul", "M"),
+    ]);
+    expect(grupos.map((g) => [g.referencia, g.color])).toEqual([
+      ["Blusa Emma", "Beige"],
+      ["Blusa Emma", "Negro"],
+      ["Blusa Emma", null],
+      ["Vestido Sofi", "Azul"],
+      ["Vestido Sofi", null],
+    ]);
+  });
+
+  it("el orden es estable: el mismo resultado sin importar cómo lleguen las filas", () => {
+    const filas = [
+      f("a", "p1", "Blusa", "Beige", "S"),
+      f("b", "p1", "Blusa", "Beige", "M"),
+      f("c", "p1", "Blusa", "Negro", "L"),
+      f("d", "p2", "Camisa", "Blanco", "M"),
+      f("e", "p2", "Camisa", "Blanco", "S"),
+    ];
+    const esperado = JSON.stringify(agruparConteo(filas));
+    expect(JSON.stringify(agruparConteo([...filas].reverse()))).toBe(esperado);
+    expect(JSON.stringify(agruparConteo([filas[3], filas[0], filas[4], filas[2], filas[1]]))).toBe(esperado);
+  });
+
+  it("la foto y la muestra del color salen de la primera talla que las tenga", () => {
+    const [g] = agruparConteo([f("a", "p", "Blusa", "Beige", "S"), f("b", "p", "Blusa", "Beige", "M", { colorHex: "#d9c3a5", fotoUrl: "https://x/f.jpg" })]);
+    expect(g.colorHex).toBe("#d9c3a5");
+    expect(g.fotoUrl).toBe("https://x/f.jpg");
+  });
+
+  it("devuelve las mismas filas que recibió (para poder colgarles su línea)", () => {
+    const fila = { ...f("a", "p", "Blusa", "Beige", "S"), extra: 42 };
+    expect(agruparConteo([fila])[0].tallas[0]).toBe(fila);
+  });
+
+  it("sin filas, sin grupos", () => {
+    expect(agruparConteo([])).toEqual([]);
   });
 });
 
-describe("nuevaCantidad", () => {
-  it("un escaneo suma 1 sobre lo ya anotado, y la primera lectura es 1", () => {
-    expect(nuevaCantidad(undefined, { tipo: "suma", paso: 1 })).toBe(1);
-    expect(nuevaCantidad(4, { tipo: "suma", paso: 1 })).toBe(5);
+describe("filtrarConteo — búsqueda manual", () => {
+  const filas = [
+    { varianteId: "1", productoId: "p1", referencia: "Blusa Emma", color: "Beige", colorHex: null, fotoUrl: null, talla: "M", sku: "BLU-0001-BEI-M" },
+    { varianteId: "2", productoId: "p1", referencia: "Blusa Emma", color: "Negro", colorHex: null, fotoUrl: null, talla: "S", sku: "BLU-0001-NEG-S" },
+    { varianteId: "3", productoId: "p2", referencia: "Camisón Lino", color: "Blanco", colorHex: null, fotoUrl: null, talla: "L", sku: "CAM-0002-BLA-L" },
+  ];
+  const ids = (t: string) => filtrarConteo(filas, t).map((x) => x.varianteId);
+
+  it("por producto, color, talla o código, sin tildes ni mayúsculas", () => {
+    expect(ids("emma")).toEqual(["1", "2"]);
+    expect(ids("CAMISON")).toEqual(["3"]);
+    expect(ids("negro")).toEqual(["2"]);
+    expect(ids("blu-0001-bei")).toEqual(["1"]);
+    expect(ids("0002")).toEqual(["3"]);
   });
 
-  it("el botón − nunca baja de 0", () => {
-    expect(nuevaCantidad(0, { tipo: "suma", paso: -1 })).toBe(0);
-    expect(nuevaCantidad(undefined, { tipo: "suma", paso: -1 })).toBe(0);
+  it("varias palabras a la vez: todas deben coincidir, en cualquier orden", () => {
+    expect(ids("emma beige")).toEqual(["1"]);
+    expect(ids("beige emma m")).toEqual(["1"]);
+    expect(ids("emma lino")).toEqual([]);
   });
 
-  it("escribir reemplaza; solo enteros ≥ 0", () => {
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: "12" })).toBe(12);
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: 0 })).toBe(0);
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: "" })).toBeNull();
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: "-1" })).toBeNull();
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: "2.5" })).toBeNull();
-    expect(nuevaCantidad(4, { tipo: "fijar", valor: "abc" })).toBeNull();
+  it("la talla se compara entera: «m» es la talla M, no cualquier nombre con una «m» adentro (Emma, Camisón)", () => {
+    expect(ids("m")).toEqual(["1"]);
+    expect(ids("s")).toEqual(["2"]);
+    // «l» es la talla L y también el comienzo de «Lino»; no aparece por estar dentro de «Blusa» ni de «Blanco».
+    expect(ids("l")).toEqual(["3"]);
+  });
+
+  it("el producto y el color se buscan por el comienzo de sus palabras", () => {
+    expect(ids("bei")).toEqual(["1"]);
+    expect(ids("lin")).toEqual(["3"]);
+    // Un pedazo del medio de la palabra no cuenta.
+    expect(ids("mma")).toEqual([]);
+  });
+
+  it("una sola letra no se busca dentro de los códigos: coincidiría con casi todo", () => {
+    expect(ids("u")).toEqual([]);
+  });
+
+  it("sin texto no filtra nada, y no toca el arreglo de entrada", () => {
+    expect(filtrarConteo(filas, "   ")).toHaveLength(3);
+    expect(filtrarConteo(filas, "")).not.toBe(filas);
   });
 });
 
-describe("modoConteoValido y tocar", () => {
-  it("cualquier valor guardado raro vuelve a «suma»", () => {
-    expect(modoConteoValido("escribir")).toBe("escribir");
-    expect(modoConteoValido("suma")).toBe("suma");
-    expect(modoConteoValido(null)).toBe("suma");
-    expect(modoConteoValido("otra-cosa")).toBe("suma");
+describe("acotarALista (ADR-0241: «Contar esta prenda» desde Movimientos)", () => {
+  const p = (varianteId: string) => ({ varianteId });
+  it("acota a las prendas pedidas y, sin lista, deja todo", () => {
+    const todos = [p("a"), p("b"), p("c")];
+    expect(acotarALista(todos, ["b"]).map((x) => x.varianteId)).toEqual(["b"]);
+    expect(acotarALista(todos, [])).toHaveLength(3);
+    expect(acotarALista(todos, ["z"])).toEqual([]);
+  });
+});
+
+describe("cantidadEscrita — vacío NO es cero", () => {
+  it("vacío (o solo espacios) es null: la variante sigue pendiente, jamás 0", () => {
+    expect(cantidadEscrita("")).toBeNull();
+    expect(cantidadEscrita("   ")).toBeNull();
   });
 
-  it("lo último tocado va al final (se pinta arriba), sin duplicarse", () => {
-    expect(tocar(["a", "b", "c"], "a")).toEqual(["b", "c", "a"]);
-    expect(tocar(["a"], "z")).toEqual(["a", "z"]);
+  it("el 0 escrito es 0 de verdad: verifica en cero", () => {
+    expect(cantidadEscrita("0")).toBe(0);
+    expect(cantidadEscrita(" 0 ")).toBe(0);
+  });
+
+  it("enteros ≥ 0", () => {
+    expect(cantidadEscrita("12")).toBe(12);
+    expect(cantidadEscrita(" 7 ")).toBe(7);
+    expect(cantidadEscrita("007")).toBe(7);
+  });
+
+  it("negativos, decimales, letras y notación científica son inválidos (undefined)", () => {
+    for (const malo of ["-1", "2.5", "2,5", "abc", "12a", "1e2", "+3", "--", "3 4", "٣"]) expect(cantidadEscrita(malo), malo).toBeUndefined();
+  });
+
+  it("un número más grande de lo que guarda la base también es inválido", () => {
+    expect(cantidadEscrita("2147483647")).toBe(2147483647);
+    expect(cantidadEscrita("2147483648")).toBeUndefined();
+    expect(cantidadEscrita("99999999999999999999")).toBeUndefined();
+  });
+});
+
+describe("sumarLectura", () => {
+  it("un escaneo suma 1 al total; una variante pendiente arranca en 1, no en NaN ni en 0", () => {
+    expect(sumarLectura(null)).toBe(1);
+    expect(sumarLectura(0)).toBe(1);
+    expect(sumarLectura(4)).toBe(5);
+  });
+});
+
+describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella", () => {
+  const jsonLinea = (p: Record<string, unknown> = {}) => ({
+    variante_id: "v1",
+    debe_haber: 11,
+    foto: 11,
+    contada: 9,
+    anterior: null,
+    verificado_en: AHORA,
+    confirmada_en: null,
+    actual: 10,
+    diferencia: -2,
+    ajuste_movimiento_id: null,
+    estado: "con_diferencia",
+    ...p,
+  });
+  const jsonConteo = (p: Record<string, unknown> = {}) => ({
+    id: "c1",
+    numero: 7,
+    estado: "abierto",
+    ubicacion_id: "u1",
+    sububicacion_id: "s1",
+    sububicacion_tipo: "piso_venta",
+    sububicacion_nombre: "Piso de venta",
+    alcance: "todo",
+    alcance_categoria_id: null,
+    alcance_categoria_nombre: null,
+    abierto_por: "p1",
+    abierto_por_nombre: "Micaela",
+    cerrado_por: null,
+    cerrado_en: null,
+    created_at: "2026-09-29T14:00:00Z",
+    foto_en: "2026-09-29T14:00:01Z",
+    es_prueba: false,
+    ...p,
+  });
+
+  it("pasa la línea a camelCase", () => {
+    expect(lineaDesdeJson(jsonLinea())).toEqual({
+      varianteId: "v1",
+      debeHaber: 11,
+      foto: 11,
+      contada: 9,
+      anterior: null,
+      verificadoEn: AHORA,
+      confirmadaEn: null,
+      actual: 10,
+      diferencia: -2,
+      ajusteMovimientoId: null,
+      estado: "con_diferencia",
+    });
+  });
+
+  it("el estado y la diferencia salen de los números, no del texto de la base: lo que se ve no se contradice", () => {
+    // La base dice «correcta» pero 9 ≠ 11: manda la regla, que es la misma que la de la base.
+    expect(lineaDesdeJson(jsonLinea({ estado: "correcta", diferencia: 0 }))).toMatchObject({ estado: "con_diferencia", diferencia: -2 });
+  });
+
+  it("una línea pendiente: contada null, sin diferencia, estado pendiente", () => {
+    expect(lineaDesdeJson(jsonLinea({ contada: null, diferencia: null, verificado_en: null, estado: "pendiente" }))).toMatchObject({ contada: null, diferencia: null, estado: "pendiente" });
+  });
+
+  it("una línea ignorada (variante inesperada sin cantidad y nunca recontada) devuelve null", () => {
+    expect(lineaDesdeJson(jsonLinea({ debe_haber: 0, foto: 0, contada: null, diferencia: null }))).toBeNull();
+  });
+
+  it("una inesperada mandada a recontar (foto 0, sin cantidad, con anterior) NO se ignora: llega «en reconteo»", () => {
+    expect(lineaDesdeJson(jsonLinea({ debe_haber: 0, foto: 0, contada: null, anterior: 2, diferencia: null, verificado_en: null, estado: "en_reconteo" }))).toMatchObject({
+      contada: null,
+      anterior: 2,
+      foto: 0,
+      debeHaber: 0,
+      diferencia: null,
+      estado: "en_reconteo",
+    });
+  });
+
+  it("sin `foto` cae al «debe haber»", () => {
+    expect(lineaDesdeJson(jsonLinea({ foto: null }))?.foto).toBe(11);
+  });
+
+  it("sin línea (la base devuelve null cuando la variante quedó ignorada) es null, no un error", () => {
+    expect(lineaDesdeJson(null)).toBeNull();
+    expect(lineaDesdeJson(undefined)).toBeNull();
+  });
+
+  it("algo que no es una línea, o una mal formada, lanza en vez de dibujar algo falso", () => {
+    expect(() => lineaDesdeJson("hola")).toThrow(/mal formado/);
+    expect(() => lineaDesdeJson([])).toThrow(/mal formado/);
+    expect(() => lineaDesdeJson(jsonLinea({ debe_haber: "11" }))).toThrow(/debe_haber/);
+    expect(() => lineaDesdeJson(jsonLinea({ variante_id: undefined }))).toThrow(/variante_id/);
+  });
+
+  it("el detalle: cabecera, líneas sin las ignoradas, y el resumen calculado de las líneas", () => {
+    const d = detalleDesdeJson({
+      conteo: jsonConteo(),
+      resumen: { variantes: 999 },
+      lineas: [
+        jsonLinea({ variante_id: "a", debe_haber: 5, foto: 5, contada: 5, diferencia: 0, estado: "correcta" }),
+        jsonLinea({ variante_id: "b" }),
+        jsonLinea({ variante_id: "c", contada: null, diferencia: null, estado: "pendiente" }),
+        jsonLinea({ variante_id: "fantasma", debe_haber: 0, foto: 0, contada: null, diferencia: null }),
+      ],
+    });
+    expect(d?.conteo).toMatchObject({
+      id: "c1",
+      numero: 7,
+      estado: "abierto",
+      sububicacionTipo: "piso_venta",
+      alcance: "todo",
+      abiertoPorNombre: "Micaela",
+      cerradoPor: null,
+      cerradoPorNombre: null,
+      fotoEn: "2026-09-29T14:00:01Z",
+      esPrueba: false,
+    });
+    expect(d?.lineas.map((l) => l.varianteId)).toEqual(["a", "b", "c"]);
+    expect(d?.resumen).toMatchObject({ variantes: 3, verificadas: 2, pendientes: 1, correctas: 1, conDiferencia: 1 });
+  });
+
+  it("una inesperada en reconteo se ve en el detalle, cuenta como pendiente y como «en reconteo», y bloquea el cierre sin parcial", () => {
+    const d = detalleDesdeJson({
+      conteo: jsonConteo(),
+      lineas: [
+        jsonLinea({ variante_id: "a", debe_haber: 5, foto: 5, contada: 5, diferencia: 0, estado: "correcta" }),
+        // Inesperada: CAYLA no la esperaba (foto 0), se encontraron 2, se mandó a recontar y aún no hay cifra nueva.
+        jsonLinea({ variante_id: "inesperada", debe_haber: 0, foto: 0, contada: null, anterior: 2, diferencia: null, verificado_en: null, estado: "en_reconteo" }),
+        // Inesperada a la que solo se le borró la cantidad (sin recontar): sigue ignorada.
+        jsonLinea({ variante_id: "borrada", debe_haber: 0, foto: 0, contada: null, anterior: null, diferencia: null, verificado_en: null, estado: "pendiente" }),
+      ],
+    });
+    expect(d?.lineas.map((l) => l.varianteId)).toEqual(["a", "inesperada"]);
+    expect(d?.resumen).toMatchObject({ variantes: 2, verificadas: 1, pendientes: 1, enReconteo: 1, correctas: 1, conDiferencia: 0 });
+    expect(d && bloqueoDeCierre(d.resumen, false)).toBe("conteo_pendientes");
+    expect(d && bloqueoDeCierre(d.resumen, true)).toBeNull();
+  });
+
+  it("un conteo por categoría trae el nombre y el id de su categoría", () => {
+    const d = detalleDesdeJson({ conteo: jsonConteo({ alcance: "categoria", alcance_categoria_id: "k1", alcance_categoria_nombre: "Blusas" }), lineas: [] });
+    expect(d?.conteo).toMatchObject({ alcance: "categoria", alcanceCategoriaId: "k1", alcanceCategoriaNombre: "Blusas" });
+  });
+
+  it("vacío, null o sin `conteo` es «no existe o no es de tu sede»: null, no un error", () => {
+    expect(detalleDesdeJson(null)).toBeNull();
+    expect(detalleDesdeJson(undefined)).toBeNull();
+    expect(detalleDesdeJson({})).toBeNull();
+    expect(detalleDesdeJson({ conteo: null, lineas: [] })).toBeNull();
+  });
+
+  it("un detalle mal formado lanza: estado desconocido, alcance raro o sin líneas", () => {
+    expect(() => detalleDesdeJson({ conteo: jsonConteo({ estado: "en_revision" }), lineas: [] })).toThrow(/estado/);
+    expect(() => detalleDesdeJson({ conteo: jsonConteo({ alcance: "familia" }), lineas: [] })).toThrow(/alcance/);
+    expect(() => detalleDesdeJson({ conteo: jsonConteo() })).toThrow(/líneas/);
+    expect(() => detalleDesdeJson("hola")).toThrow(/mal formado/);
+  });
+
+  it("sin nombre de quien abrió dice «—»", () => {
+    expect(detalleDesdeJson({ conteo: jsonConteo({ abierto_por_nombre: null }), lineas: [] })?.conteo.abiertoPorNombre).toBe("—");
+  });
+});
+
+// El código de la etiqueta (2026-09-26). En producción 128 de 130 variantes tienen `sku` NULL (ADR-0058) pero
+// `variantes.codigo` existe en 129: las pantallas del conteo que leían solo `sku` mostraban un hueco justo donde la
+// colaboradora busca qué talla y color es, y la caja de escanear no encontraba «POL-0004» aunque la prenda existiera.
+describe("codigosDeConteo y coincidenciasPorCodigo", () => {
+  const sinSku = { varianteId: "v1", sku: "", codigo: "POL-0004-VIO-L", codigosBarras: ["POL-0004-VIO-L", "7750000000012"] };
+  const conSkuLegado = { varianteId: "v2", sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M", codigosBarras: ["VES-0002-NEG-M"] };
+  const soloSku = { varianteId: "v3", sku: "LEGADO-1", codigo: null, codigosBarras: ["LEGADO-1"] };
+  const catalogo = [sinSku, conSkuLegado, soloSku].map((v) => ({ varianteId: v.varianteId, referencia: "x", ...codigosDeConteo(v) }));
+
+  it("una variante sin sku y con código: el campo `sku` es el código y se puede buscar por él", () => {
+    expect(catalogo[0].sku).toBe("POL-0004-VIO-L");
+    // Tecleado a medias: antes no encontraba nada y la pantalla ofrecía «Dar de alta esta prenda» para una que sí existía.
+    expect(coincidenciasPorCodigo("pol-0004", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
+  });
+
+  it("con sku y sin código cae al sku, y no lo duplica entre los códigos de barras", () => {
+    expect(catalogo[2].sku).toBe("LEGADO-1");
+    expect(catalogo[2].codigosBarras).toEqual(["LEGADO-1"]);
+  });
+
+  it("con código y con sku legado: se muestra el código, pero el sku de siempre sigue resolviendo al escanear", () => {
+    expect(catalogo[1].sku).toBe("VES-0002-NEG-M");
+    expect(catalogo[1].codigosBarras).toEqual(["VES-0002-NEG-M", "VES-SOFI-NEG-M"]);
+    expect(coincidenciasPorCodigo("ves-sofi-neg-m", catalogo).map((v) => v.varianteId)).toEqual(["v2"]);
+  });
+
+  it("el código de barras se acepta solo exacto; texto vacío no devuelve nada", () => {
+    expect(coincidenciasPorCodigo("7750000000012", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
+    expect(coincidenciasPorCodigo("775000", catalogo)).toEqual([]);
+    expect(coincidenciasPorCodigo("   ", catalogo)).toEqual([]);
+  });
+});
+
+describe("codigoDePrendaNueva", () => {
+  it("una prenda dada de alta al vuelo (nace sin sku) muestra el código de barras que se escaneó, no un hueco", () => {
+    expect(codigoDePrendaNueva({ sku: null, codigo_barras: "7750000000099" })).toBe("7750000000099");
+  });
+
+  it("si la base devuelve el código de la etiqueta, gana ese; el sku legado va detrás", () => {
+    expect(codigoDePrendaNueva({ sku: null, codigo: "POL-0009-NEG-M", codigo_barras: "7750000000099" })).toBe("POL-0009-NEG-M");
+    expect(codigoDePrendaNueva({ sku: "VIEJO-1", codigo: null, codigo_barras: "7750000000099" })).toBe("VIEJO-1");
+  });
+});
+
+describe("mensajeMezclaEnCenso — el alta al vuelo cae en «Sin color o con colores» (ADR-0263 T5)", () => {
+  const mezcla = { hint: "mezcla_sin_color", message: "Esta prenda quedaría con variantes «Sin color» junto a otras con color." };
+  it("con un color elegido: la prenda es «Sin color», y dice dónde se arregla", () => {
+    expect(mensajeMezclaEnCenso(mezcla, " Body Amir ", true)).toBe(
+      "«Body Amir» está registrada «Sin color», y una prenda no puede tener variantes «Sin color» y de color a la vez. Para sumarle este color, primero hay que ponerle su color a las que ya tiene, desde su ficha en Productos.",
+    );
+  });
+  it("sin color: la prenda tiene colores, que elija el suyo", () => {
+    expect(mensajeMezclaEnCenso(mezcla, "Body Amir", false)).toBe("«Body Amir» tiene colores: una variante «Sin color» no va junto a ellas. Elige el color de esta prenda.");
+  });
+  it("otro error (o ninguno): null, lo traduce traducirError", () => {
+    expect(mensajeMezclaEnCenso({ hint: "variante_ya_existe" }, "Body Amir", true)).toBeNull();
+    expect(mensajeMezclaEnCenso(null, "Body Amir", true)).toBeNull();
   });
 });
 
@@ -186,133 +871,70 @@ describe("crearColaEnSerie", () => {
   });
 });
 
-describe("pendientesEnAlcance y avanceEnVivo", () => {
-  const p = (id: string) => ({ varianteId: id, sku: id, referencia: id, talla: null, color: null });
-  const categoriaDe = new Map<string, string | null>([
-    ["b1", "Camisas y Blusas"],
-    ["b2", "Camisas y Blusas"],
-    ["v1", "Vestidos"],
-  ]);
-
-  it("un conteo «Solo Camisas y Blusas» solo lista blusas; «todo el catálogo» no filtra", () => {
-    expect(pendientesEnAlcance([p("b1"), p("v1"), p("b2")], categoriaDe, "Camisas y Blusas").map((x) => x.varianteId)).toEqual(["b1", "b2"]);
-    expect(pendientesEnAlcance([p("b1"), p("v1")], categoriaDe, null)).toHaveLength(2);
+describe("crearAgrupadorDeGuardado — una ráfaga es un solo guardado", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it("al contar una prenda sale de pendientes y suma a contadas; el total no cambia", () => {
-    const antes = avanceEnVivo(new Set(), [p("b1"), p("b2")]);
-    const despues = avanceEnVivo(new Set(["b1"]), [p("b1"), p("b2")]);
-    expect(antes).toMatchObject({ contadas: 0, total: 2, porcentaje: 0 });
-    expect(despues).toMatchObject({ contadas: 1, total: 2, porcentaje: 50 });
-    expect(despues.pendientes.map((x) => x.varianteId)).toEqual(["b2"]);
+  it("12 lecturas seguidas de la misma variante disparan UN guardado, con el último total", () => {
+    const disparos: [string, number][] = [];
+    const g = crearAgrupadorDeGuardado<number>((id, n) => disparos.push([id, n]));
+    for (let n = 1; n <= 12; n++) {
+      g.programar("v1", n);
+      vi.advanceTimersByTime(100);
+    }
+    expect(disparos).toEqual([]);
+    expect(g.pendientes).toBe(1);
+    vi.advanceTimersByTime(ESPERA_GUARDADO_MS);
+    expect(disparos).toEqual([["v1", 12]]);
+    expect(g.pendientes).toBe(0);
   });
 
-  it("una prenda contada fuera de la lista (sin stock en el sistema) suma al total", () => {
-    expect(avanceEnVivo(new Set(["nueva"]), [p("b1")])).toMatchObject({ contadas: 1, total: 2, porcentaje: 50 });
+  it("cada variante espera por su cuenta: escanear otra no retrasa ni pisa a la primera", () => {
+    const disparos: [string, number][] = [];
+    const g = crearAgrupadorDeGuardado<number>((id, n) => disparos.push([id, n]));
+    g.programar("a", 3);
+    vi.advanceTimersByTime(400);
+    g.programar("b", 1);
+    vi.advanceTimersByTime(200);
+    expect(disparos).toEqual([["a", 3]]);
+    vi.advanceTimersByTime(400);
+    expect(disparos).toEqual([["a", 3], ["b", 1]]);
   });
 
-  it("sin nada que contar, 0 % y no NaN", () => {
-    expect(avanceEnVivo(new Set(), [])).toMatchObject({ contadas: 0, total: 0, porcentaje: 0 });
-  });
-});
-
-// El código de la etiqueta (2026-09-26). En producción 128 de 130 variantes tienen `sku` NULL (ADR-0058) pero
-// `variantes.codigo` existe en 129: las pantallas del conteo que leían solo `sku` mostraban un hueco justo donde la
-// colaboradora busca qué talla y color es, y la caja de escanear no encontraba «POL-0004» aunque la prenda existiera.
-describe("prioridadDesdeFila", () => {
-  const fila = { variante_id: "v1", sku: null, referencia: "Polo Basic", talla: "L", color: "Violeta", sububicacion_id: "s1", dias_sin_contar: null, valor_en_riesgo: "120.5" };
-
-  it("una variante sin sku y con código en la etiqueta muestra el código", () => {
-    const p = prioridadDesdeFila(fila, { colorHex: "#6d3fa0", fotoUrl: null, codigo: "POL-0004-VIO-L" });
-    expect(p.sku).toBe("POL-0004-VIO-L");
-    expect(p.valorEnRiesgo).toBe(120.5);
-    expect(p.apariencia?.colorHex).toBe("#6d3fa0");
+  it("soltarTodo dispara YA lo que espera (al revisar): la última lectura no se pierde", () => {
+    const disparos: [string, number][] = [];
+    const g = crearAgrupadorDeGuardado<number>((id, n) => disparos.push([id, n]));
+    g.programar("a", 2);
+    g.programar("b", 5);
+    g.soltarTodo();
+    expect(disparos).toEqual([["a", 2], ["b", 5]]);
+    expect(g.pendientes).toBe(0);
+    // Y no vuelve a disparar cuando vence la espera.
+    vi.advanceTimersByTime(ESPERA_GUARDADO_MS * 2);
+    expect(disparos).toHaveLength(2);
   });
 
-  it("sin código pero con el sku legado que trajo la función, cae al sku", () => {
-    expect(prioridadDesdeFila({ ...fila, sku: "POL-BASIC-VIO-L" }, { colorHex: null, fotoUrl: null, codigo: "" }).sku).toBe("POL-BASIC-VIO-L");
+  it("un 0 escrito y un borrado (null) se guardan como lo que son", () => {
+    const disparos: [string, number | null][] = [];
+    const g = crearAgrupadorDeGuardado<number | null>((id, n) => disparos.push([id, n]));
+    g.programar("a", 0);
+    g.programar("b", null);
+    vi.advanceTimersByTime(ESPERA_GUARDADO_MS);
+    expect(disparos).toEqual([["a", 0], ["b", null]]);
   });
 
-  it("si la lectura decorativa falló (sin apariencia), no inventa: sku de la función o vacío", () => {
-    expect(prioridadDesdeFila({ ...fila, sku: "POL-BASIC-VIO-L" }).sku).toBe("POL-BASIC-VIO-L");
-    expect(prioridadDesdeFila(fila).sku).toBe("");
-  });
-});
-
-describe("codigosDeConteo y coincidenciasPorCodigo", () => {
-  const sinSku = { varianteId: "v1", sku: "", codigo: "POL-0004-VIO-L", codigosBarras: ["POL-0004-VIO-L", "7750000000012"] };
-  const conSkuLegado = { varianteId: "v2", sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M", codigosBarras: ["VES-0002-NEG-M"] };
-  const soloSku = { varianteId: "v3", sku: "LEGADO-1", codigo: null, codigosBarras: ["LEGADO-1"] };
-  const catalogo = [sinSku, conSkuLegado, soloSku].map((v) => ({ varianteId: v.varianteId, referencia: "x", ...codigosDeConteo(v) }));
-
-  it("una variante sin sku y con código: el campo `sku` es el código y se puede buscar por él", () => {
-    expect(catalogo[0].sku).toBe("POL-0004-VIO-L");
-    // Tecleado a medias: antes no encontraba nada y la pantalla ofrecía «Dar de alta esta prenda» para una que sí existía.
-    expect(coincidenciasPorCodigo("pol-0004", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
-  });
-
-  it("con sku y sin código cae al sku, y no lo duplica entre los códigos de barras", () => {
-    expect(catalogo[2].sku).toBe("LEGADO-1");
-    expect(catalogo[2].codigosBarras).toEqual(["LEGADO-1"]);
-  });
-
-  it("con código y con sku legado: se muestra el código, pero el sku de siempre sigue resolviendo al escanear", () => {
-    expect(catalogo[1].sku).toBe("VES-0002-NEG-M");
-    expect(catalogo[1].codigosBarras).toEqual(["VES-0002-NEG-M", "VES-SOFI-NEG-M"]);
-    expect(coincidenciasPorCodigo("ves-sofi-neg-m", catalogo).map((v) => v.varianteId)).toEqual(["v2"]);
-  });
-
-  it("el código de barras se acepta solo exacto; texto vacío no devuelve nada", () => {
-    expect(coincidenciasPorCodigo("7750000000012", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
-    expect(coincidenciasPorCodigo("775000", catalogo)).toEqual([]);
-    expect(coincidenciasPorCodigo("   ", catalogo)).toEqual([]);
-  });
-});
-
-describe("codigoDePrendaNueva y pendientesConCodigo", () => {
-  it("una prenda dada de alta al vuelo (nace sin sku) muestra el código de barras que se escaneó, no un hueco", () => {
-    expect(codigoDePrendaNueva({ sku: null, codigo_barras: "7750000000099" })).toBe("7750000000099");
-  });
-
-  it("si la base devuelve el código de la etiqueta, gana ese; el sku legado va detrás", () => {
-    expect(codigoDePrendaNueva({ sku: null, codigo: "POL-0009-NEG-M", codigo_barras: "7750000000099" })).toBe("POL-0009-NEG-M");
-    expect(codigoDePrendaNueva({ sku: "VIEJO-1", codigo: null, codigo_barras: "7750000000099" })).toBe("VIEJO-1");
-  });
-
-  it("«Faltan por contar» dice el código de la etiqueta del catálogo; sin él se queda el de la función", () => {
-    const pendientes = [
-      { varianteId: "a", sku: "7750000000001", referencia: "A", talla: "M", color: null },
-      { varianteId: "b", sku: "BLU-0002-NEG-S", referencia: "B", talla: "S", color: null },
-    ];
-    const r = pendientesConCodigo(pendientes, new Map([["a", "BLU-0001-NEG-M"]]));
-    expect(r.map((p) => p.sku)).toEqual(["BLU-0001-NEG-M", "BLU-0002-NEG-S"]);
-    // No toca el arreglo de entrada.
-    expect(pendientes[0].sku).toBe("7750000000001");
-  });
-});
-
-describe("pendientesDeLista (ADR-0241: «Contar esta prenda» desde Movimientos)", () => {
-  const p = (varianteId: string) => ({ varianteId }) as Parameters<typeof pendientesDeLista>[0][number];
-  it("acota a las prendas pedidas y, sin lista, deja todo", () => {
-    const todos = [p("a"), p("b"), p("c")];
-    expect(pendientesDeLista(todos, ["b"]).map((x) => x.varianteId)).toEqual(["b"]);
-    expect(pendientesDeLista(todos, [])).toHaveLength(3);
-    expect(pendientesDeLista(todos, ["z"])).toEqual([]);
-  });
-});
-
-describe("mensajeMezclaEnCenso — el alta al vuelo cae en «Sin color o con colores» (ADR-0263 T5)", () => {
-  const mezcla = { hint: "mezcla_sin_color", message: "Esta prenda quedaría con variantes «Sin color» junto a otras con color." };
-  it("con un color elegido: la prenda es «Sin color», y dice dónde se arregla", () => {
-    expect(mensajeMezclaEnCenso(mezcla, " Body Amir ", true)).toBe(
-      "«Body Amir» está registrada «Sin color», y una prenda no puede tener variantes «Sin color» y de color a la vez. Para sumarle este color, primero hay que ponerle su color a las que ya tiene, desde su ficha en Productos.",
-    );
-  });
-  it("sin color: la prenda tiene colores, que elija el suyo", () => {
-    expect(mensajeMezclaEnCenso(mezcla, "Body Amir", false)).toBe("«Body Amir» tiene colores: una variante «Sin color» no va junto a ellas. Elige el color de esta prenda.");
-  });
-  it("otro error (o ninguno): null, lo traduce traducirError", () => {
-    expect(mensajeMezclaEnCenso({ hint: "variante_ya_existe" }, "Body Amir", true)).toBeNull();
-    expect(mensajeMezclaEnCenso(null, "Body Amir", true)).toBeNull();
+  it("espera el tiempo pedido, con 600 ms por defecto", () => {
+    expect(ESPERA_GUARDADO_MS).toBe(600);
+    const disparos: number[] = [];
+    const g = crearAgrupadorDeGuardado<number>((_, n) => disparos.push(n), 50);
+    g.programar("a", 1);
+    vi.advanceTimersByTime(49);
+    expect(disparos).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(disparos).toEqual([1]);
   });
 });
