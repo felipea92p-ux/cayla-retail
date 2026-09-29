@@ -129,6 +129,10 @@ export type TallaFrescuraCruda = {
   almacenHoy: number;
   /** Lo apartado para clientas en esta sede (piso y almacén): la pantalla lo dice, y no cuenta como colgado. */
   apartadasHoy: number;
+  /** De lo apartado, lo que está en el PISO (paso 4, `apartadas_piso_hoy`). La pantalla lo necesita para saber si una
+   *  prenda sin nada libre colgado está «apartada» (lo apartado es del piso) o «guardada» (está en el almacén): Apartar
+   *  toma del almacén cuando el piso está vacío. Con una lectura de antes del paso 4, sale de `apartados` (−Σ delta). */
+  apartadasPisoHoy: number;
 };
 
 export type TardiaCruda = { oid: string; varianteId: string; bajadaEn: string; unidadesTardias: number };
@@ -274,7 +278,13 @@ export function leerEventosFrescura(v: unknown): EventoPiso[] {
 
 const ORIGENES = ["color", "producto", "categoria"] as const;
 
-function leerTalla(v: unknown): TallaFrescuraCruda | null {
+/** Lo apartado en el piso de una talla según sus puntos de `apartados`: el saldo al empezar la ventana más lo de adentro,
+ *  con el signo de lo libre (apartar resta), así que lo apartado de hoy es −Σ delta. Es lo que devuelve
+ *  `apartadas_piso_hoy` (lo prueba T2i de frescura_lectura); sirve mientras producción no tenga la clave. */
+const apartadasPisoSegun = (puntos: readonly PuntoApartado[] | undefined, apartadasHoy: number): number =>
+  Math.max(0, Math.min(apartadasHoy, -(puntos ?? []).reduce((s, p) => s + p.delta, 0)));
+
+function leerTalla(v: unknown, apartados: Readonly<Record<string, PuntoApartado[]>>): TallaFrescuraCruda | null {
   if (!esObjeto(v)) return null;
   const varianteId = texto(v.variante_id);
   const productoId = texto(v.producto_id);
@@ -301,6 +311,10 @@ function leerTalla(v: unknown): TallaFrescuraCruda | null {
     pisoHoy: numero(v.piso_hoy),
     almacenHoy: numero(v.almacen_hoy),
     apartadasHoy: numero(v.apartadas_hoy),
+    apartadasPisoHoy:
+      v.apartadas_piso_hoy === undefined || v.apartadas_piso_hoy === null
+        ? apartadasPisoSegun(apartados[varianteId], numero(v.apartadas_hoy))
+        : numero(v.apartadas_piso_hoy),
   };
 }
 
@@ -324,11 +338,11 @@ export function leerFrescuraSede(v: unknown): LecturaFrescuraSede | null {
   if (!esObjeto(v)) return null;
   if (v.separa_piso === false) return { separaPiso: false };
   if (v.separa_piso !== true || !esFecha(v.desde) || !esFecha(v.ahora) || !Array.isArray(v.prendas)) return null;
-  const tallas = v.prendas.map(leerTalla).filter((t): t is TallaFrescuraCruda => t !== null);
-  const eventos: Record<string, EventoPiso[]> = {};
-  if (esObjeto(v.eventos)) for (const [id, lista] of Object.entries(v.eventos)) eventos[id] = leerEventosFrescura(lista);
   const apartados: Record<string, PuntoApartado[]> = {};
   if (esObjeto(v.apartados)) for (const [id, lista] of Object.entries(v.apartados)) apartados[id] = leerApartados(lista);
+  const tallas = v.prendas.map((p) => leerTalla(p, apartados)).filter((t): t is TallaFrescuraCruda => t !== null);
+  const eventos: Record<string, EventoPiso[]> = {};
+  if (esObjeto(v.eventos)) for (const [id, lista] of Object.entries(v.eventos)) eventos[id] = leerEventosFrescura(lista);
   const tardias: TardiaCruda[] = [];
   if (Array.isArray(v.tardias)) {
     for (const t of v.tardias) {
@@ -1053,9 +1067,10 @@ export function esPilar(r: Rapidez | null, recientes: Recientes): boolean {
 
 /**
  * `Recientes` a partir de las ventas del modelo+color en sus últimos `DIAS_CALLADA` días en el piso y sus segundos
- * colgada en la lectura: sin ventas, «dejó de vender» solo si la lectura la tiene colgada esos días (R7-2).
+ * colgada en la lectura: sin ventas, «dejó de vender» solo si la lectura la tiene colgada esos días (R7-2). Exportada
+ * para la pantalla (paso 4): «dejó de venderse» y «30 días sin vender» se dicen con ESTA definición, no con otra.
  */
-function recientesDe(ventasRecientes: number | null, segundosColgada: number): Recientes {
+export function recientesDe(ventasRecientes: number | null, segundosColgada: number): Recientes {
   if (ventasRecientes === null) return "no_se_sabe";
   if (ventasRecientes > 0) return "vendio";
   return segundosColgada >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS ? "dejo_de_vender" : "no_se_sabe";
@@ -1238,13 +1253,16 @@ export type FrescuraPrenda = {
   colorNombre: string | null;
   categoriaId: string;
   categoriaNombre: string;
-  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number }[];
+  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number; apartadasPisoHoy: number }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
   almacenHoy: number;
   /** Lo apartado para clientas (piso y almacén). Con el piso entero apartado, `pisoHoy` es 0: no envejece ni recibe
    *  sugerencias, y la pantalla la muestra como apartada. */
   apartadasHoy: number;
+  /** De lo apartado, lo del PISO (paso 4): «apartada» solo si hay algo aquí; si todo lo apartado está en el almacén, la
+   *  prenda está guardada. */
+  apartadasPisoHoy: number;
   reloj: RelojNovedad;
   primeraExhibicion: string | null;
   /** La última llegada de cualquiera de sus tallas a ESTA sede (incluye la recepción de un traslado). */
@@ -1412,6 +1430,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     const pisoHoy = tallas.reduce((s, t) => s + t.pisoHoy, 0);
     const almacenHoy = tallas.reduce((s, t) => s + t.almacenHoy, 0);
     const apartadasHoy = tallas.reduce((s, t) => s + t.apartadasHoy, 0);
+    const apartadasPisoHoy = tallas.reduce((s, t) => s + t.apartadasPisoHoy, 0);
     const eventosPorTalla = tallas.map((t) => l.eventos[t.varianteId] ?? []);
     const entradaReloj: EntradaReloj = {
       eventosPorTalla,
@@ -1478,10 +1497,18 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       colorNombre: f.colorNombre,
       categoriaId: cat,
       categoriaNombre,
-      tallas: tallas.map((t) => ({ varianteId: t.varianteId, talla: t.talla, pisoHoy: t.pisoHoy, almacenHoy: t.almacenHoy, apartadasHoy: t.apartadasHoy })),
+      tallas: tallas.map((t) => ({
+        varianteId: t.varianteId,
+        talla: t.talla,
+        pisoHoy: t.pisoHoy,
+        almacenHoy: t.almacenHoy,
+        apartadasHoy: t.apartadasHoy,
+        apartadasPisoHoy: t.apartadasPisoHoy,
+      })),
       pisoHoy,
       almacenHoy,
       apartadasHoy,
+      apartadasPisoHoy,
       reloj,
       primeraExhibicion: primeras[0] ?? null,
       ultimaLlegada: llegadas[llegadas.length - 1] ?? null,
@@ -1637,6 +1664,15 @@ async function leerConfianzaFrescura(rpc: LlamarRpcFrescura): Promise<Tolerado<F
     console.error(`No se pudo leer ${que}:`, e);
     return { datos: null, fallo: avisoFrescura(que, null) };
   }
+}
+
+/**
+ * Frescura del piso de UNA tienda, para quien tiene el módulo sin ser líder (paso 4, ADR-0253): lee solo su sede, sin el
+ * registro al colgar ni la referencia de CAYLA (las dos necesitan leer las otras tiendas, y quien no es líder no las
+ * opera). Mismo camino y mismos avisos que cada tienda de la vuelta del líder.
+ */
+export async function armarFrescuraSede(tienda: { id: string; nombre: string }, rpc: LlamarRpcFrescura, dias: number): Promise<FrescuraDeSede> {
+  return (await leerSedeFrescura(rpc, tienda, dias)).fila;
 }
 
 /**

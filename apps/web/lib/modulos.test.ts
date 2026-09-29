@@ -129,7 +129,7 @@ const CUENTAS_DE_HOY: Cuenta[] = [
 
 const RUTAS = [
   "/", "/vender", "/caja", "/vender/historial", "/cambios", "/devoluciones", "/vender/comprobantes", "/inventario", "/inventario/movimientos",
-  "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", "/recibir", "/productos", "/productos/categorias", "/compras",
+  "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", "/inventario/frescura", "/recibir", "/productos", "/productos/categorias", "/compras",
   "/compras/proveedores", "/produccion", "/produccion/ordenes", "/produccion/recibir",
 ];
 
@@ -150,15 +150,22 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
-// ÚNICAS diferencias buscadas con el menú de antes: dos módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
+// ÚNICAS diferencias buscadas con el menú de antes: tres módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
 // congelara a propósito (es la foto de lo que YA HABÍA cuando se escribió, no se actualiza con cada módulo nuevo).
 // (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su propio módulo y nació sin rol. (20260925220000,
-// 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. Con los dos sumados, el menú
-// vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas dos pantallas.
+// 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. (ADR-0208 paso 4, 2026-09-28):
+// Frescura del piso nació sin rol; la fotografía del menú la trae porque sus perfiles no traen módulos (una fila que solo
+// depende de su módulo sale siempre ahí). Con los tres sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo
+// único que falta son esas tres pantallas.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
-    : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }, { clave: "inicio" as const, completo: false }];
+    : [
+        ...modulosDeHoy(c.rol),
+        { clave: "apartados" as const, completo: false },
+        { clave: "inicio" as const, completo: false },
+        { clave: "frescura" as const, completo: false },
+      ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
 
@@ -172,11 +179,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196) ni «inicio» (20260925220000) le faltan exactamente esas dos`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000) ni «frescura» (ADR-0208 paso 4) le faltan exactamente esas tres`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados"].filter((h) => deAntes.includes(h)).sort();
+      const esperado = ["/", "/vender/apartados", "/inventario/frescura"].filter((h) => deAntes.includes(h)).sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
       expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
     });

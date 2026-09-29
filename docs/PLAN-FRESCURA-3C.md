@@ -16,6 +16,15 @@
 > escrito el 27-sep; donde choque con las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización
 > 2026-09-27 — diseño 3c»).
 
+> **Paso 4 (2026-09-28): la pantalla está construida** en la rama `claude/frescura-paso4-pantalla`. El paso 3 ya está en
+> producción (los cuatro archivos). La migración nueva, `20260929100000_frescura_modulo_y_candado.sql`, está **sin
+> pegar** y va antes que la web. Tres cosas cambian respecto de lo escrito abajo; detalle en ADR-0208, «Actualización
+> 2026-09-28 — paso 4»:
+> - el módulo `frescura` va en el grupo **Inventario, orden 115**, no en Gestión 215;
+> - el candado es «el líder, **o** el módulo, en una sede que opera» (ADR-0253: ningún módulo es solo del líder);
+> - quien no es líder ve su sede entera, pero no la referencia de CAYLA, el registro al colgar ni «Las N tiendas».
+> «Por decidir» todavía no baja: anotar lo que ya se decidió queda para Felipe.
+
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)
 
 1. **Menú: Frescura directo en Inventario** (6.ª fila), no el subgrupo «Diagnóstico». Excepción escrita al tope:
