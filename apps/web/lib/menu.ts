@@ -387,6 +387,10 @@ export const ARBOL: readonly Nodo[] = [
   // acta (Avisos, Análisis) le sumen hermanas, ESE cambio hace el refactor a Grupo (Kent Beck:
   // primero el terreno, después el cambio), no antes.
   { id: "clientas", modulo: "clientas", etiqueta: "Clientas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
+  // Rendimiento (ADR-0219, respuesta 20): «al final del menú lateral», después de Finanzas. Nace sin rol
+  // (ADR-0161): solo la ve el líder hasta que Felipe se la da al rol de las encargadas. HOJA de primer nivel,
+  // no un grupo: hoy solo tiene la pantalla del equipo (la ficha de cada persona cuelga de su ruta, no del menú).
+  { id: "rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila" },
   {
     id: "configuracion", etiqueta: "Configuración", estado: "futura", pajaro: "01 Ganso", exige: "administrar",
     nota: "Módulo nuevo. Los nombres de las hijas son provisionales.",

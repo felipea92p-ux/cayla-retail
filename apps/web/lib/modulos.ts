@@ -22,6 +22,7 @@ export const CLAVES_MODULO = [
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
   "actividad",
   "cayla_global",
+  "rendimiento",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -110,6 +111,11 @@ export const MODULOS: readonly Modulo[] = [
   // módulo nuevo nace visible para el líder»: nace QUITADO al Líder de equipo (`lider_modulos_ocultos`), así que al nacer
   // solo la ve el Admin, y solo un Admin la da (`fn_exigir_modulos_dentro_de_lo_mio`). Qué se usa ahí: `lib/vista-global.ts`.
   { clave: "cayla_global", grupo: "Gestión", nombre: "CAYLA Global", incluye: "Ver CAYLA como una sola empresa: las tiendas, el Taller y la empresa juntos, qué tan sano está el negocio y qué conviene decidir; desde el selector de sede" },
+  // ADR-0219 (20260929160000, las 20 decisiones de Felipe del 2026-09-26): las ventas de cada persona del
+  // mes, para reconocer y acompañar — sin comisión ni bono (D-65, D-112). Nace sin rol (ADR-0161): solo la ve
+  // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
+  // una terminal compartida no revisa el desempeño de nadie.
+  { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -140,7 +146,7 @@ export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
  *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
  *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global"];
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);

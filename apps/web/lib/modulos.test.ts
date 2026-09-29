@@ -150,13 +150,13 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
-// ÚNICAS diferencias buscadas con el menú de antes: tres módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
+// ÚNICAS diferencias buscadas con el menú de antes: los módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
 // congelara a propósito (es la foto de lo que YA HABÍA cuando se escribió, no se actualiza con cada módulo nuevo).
 // (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su propio módulo y nació sin rol. (20260925220000,
 // 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. (ADR-0208 paso 4, 2026-09-28):
 // Frescura del piso nació sin rol; la fotografía del menú la trae porque sus perfiles no traen módulos (una fila que solo
-// depende de su módulo sale siempre ahí). Con los tres sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo
-// único que falta son esas tres pantallas.
+// depende de su módulo sale siempre ahí). (ADR-0219, 2026-09-29): Rendimiento, igual: nace sin rol. Con los cuatro
+// sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas cuatro pantallas.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
@@ -165,6 +165,7 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "apartados" as const, completo: false },
         { clave: "inicio" as const, completo: false },
         { clave: "frescura" as const, completo: false },
+        { clave: "rendimiento" as const, completo: false },
       ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
@@ -179,11 +180,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000) ni «frescura» (ADR-0208 paso 4) le faltan exactamente esas tres`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4) ni «rendimiento» (ADR-0219) le faltan exactamente esas cuatro`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/inventario/frescura"].filter((h) => deAntes.includes(h)).sort();
+      const esperado = ["/", "/vender/apartados", "/inventario/frescura", "/rendimiento"].filter((h) => deAntes.includes(h)).sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
       expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
     });
