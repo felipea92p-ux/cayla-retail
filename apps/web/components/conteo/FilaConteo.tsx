@@ -18,7 +18,8 @@ import type { ControlConteo } from "@/components/conteo/control-conteo";
    solo aparece como nota discreta bajo el estado, cuando difiere: «Al abrir: 11 · salieron 1 durante el conteo» — es lo
    que explica por qué una venta a media cuenta NO es un faltante.
 
-   El alto de la fila es el mismo en todos los estados: 60 px = 8 + input de 44 + 8. El estado y su nota caben dentro.
+   Fila compacta (33 px con puntero fino: 3 + control de 26 + 3 + línea; con dedo, el control sube a 36). El estado no reserva la línea
+   de «Confirmado»: en Contar casi nunca aparece, y la nota solo estira la fila cuando hay algo que explicar.
    ==================================================================== */
 
 export const FilaConteo = memo(function FilaConteo({
@@ -53,19 +54,19 @@ export const FilaConteo = memo(function FilaConteo({
     <tr hidden={oculta} className={`transition-colors duration-300 ${tinte}`}>
       <th
         scope="row"
-        // «Estándar» (8 letras) en 13 px mide ~56 px y la columna angosta le deja 48: en el celular baja a 11 px para leerse entera.
-        className={`py-2 pl-3 pr-1 text-left align-middle font-semibold text-tinta @[36rem]:pl-5 @[36rem]:text-sm ${talla.length > 5 ? "text-[11px] @[36rem]:text-sm" : "text-[13px]"}`}
+        // «Estándar» (8 letras) mide ~56 px y la columna angosta le deja 44: en una tarjeta angosta baja a 11 px para leerse entera.
+        className={`py-[3px] pl-[18px] pr-1 text-left align-middle font-semibold text-tinta ${talla.length > 5 ? "text-[11px] @[26rem]:text-sm" : "text-sm"}`}
       >
         <span className="block truncate" title={talla}>
           {talla}
         </span>
       </th>
-      <td className="px-1 py-2 text-center align-middle text-sm tabular-nums text-tinta/85 @[36rem]:px-3">{linea.debeHaber}</td>
-      <td className="px-1 py-2 align-middle @[36rem]:px-3">
+      <td className="px-1 py-[3px] text-center align-middle text-sm tabular-nums text-tinta/65">{linea.debeHaber}</td>
+      <td className="px-1 py-[3px] align-middle">
         <CampoContaste varianteId={id} contada={linea.contada} etiqueta={etiqueta} alConfirmar={alConfirmar} alInvalido={alInvalido} alEnter={alEnter} />
       </td>
-      <td className="py-2 pl-1.5 pr-3 align-middle @[36rem]:pr-5">
-        <EstadoLinea estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
+      <td className="py-[3px] pl-2 pr-3 align-middle">
+        <EstadoLinea sinReserva estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
         {nota && <p className="mt-0.5 text-[11px] leading-[15px] text-taupe">{nota}</p>}
       </td>
     </tr>

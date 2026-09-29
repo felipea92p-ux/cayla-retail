@@ -65,3 +65,7 @@ Las migraciones **eliminan** funciones que la web vieja llama (`previsualizar_ci
 - **Rojo para «Hay N de más»** (decisión del usuario, igual que «Faltan N»): con inventario cargado a mano una primera cuenta puede traer más de la mitad de diferencias y una lista casi toda roja deja de avisar. La salida, si pasa, es una línea en `etiquetaDeLinea` (ámbar o tinta para el sobrante). Traslados y Recibir pintan el sobrante en ámbar: hoy conviven dos convenciones.
 - **Traslados sigue a ciegas** (ADR-0239): dos pantallas de conteo con reglas opuestas.
 - `getHistorial` trae 20 conteos: si un lugar lleva más de 20 sin contarse, «Último conteo» dice «Sin conteo reciente».
+
+## Actualización 2026-09-29 (b): Contar en tarjetas y «Completar todo»
+
+La lista de Contar es una tarjeta por producto y color (columnas independientes, sin filas de igual alto), con «Completar todo» por tarjeta: cuenta con `debe_haber` solo las tallas que siguen con `contada IS NULL`; una talla con número (incluido un 0) no se toca. Es un atajo de la web, no una regla nueva de la base: cada talla sube por el mismo `conteo_contar` de siempre, así que el modelo, el «debe haber» congelado y el cierre no cambian. Se descartó una acción de servidor «completar producto»: sería otra puerta que escribe conteos y habría que blindarla igual. Se rompe si una persona pulsa «Completar todo» sin haber mirado la percha: es responsabilidad de quien cuenta, igual que teclear el número.

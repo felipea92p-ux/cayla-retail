@@ -3,4 +3,11 @@ Qué hice: rediseñé Inventario ▸ Conteo de punta a punta (Inicio → Abrir �
 Por qué así: contar sin ver lo que se espera obligaba a adivinar y «Conviene contar primero» hablaba de plata a quien cuenta prendas; y sin «pendiente» real una prenda nunca vista terminaba como falta. La cifra que manda es el stock leído al verificar (no una ventana por fecha: `created_at` es el inicio de la transacción y una venta en vuelo daba un falso faltante); el cierre aplica la diferencia como delta sobre el stock actual.
 Qué se rompería sin esto: un falso faltante es además una falsa merma contable (`fn_es_merma` → cuenta 659) y una variante pendiente convertida en 0 se descontaba del stock sin haberla mirado.
 Cómo verificas tú: en localhost:3020, Inventario ▸ Conteo, abre uno del almacén, escribe 5, 3 y 6 (Correcto / Faltan 2 / Hay 1 de más), deja una vacía y recarga; en Revisar confirma o recuenta; cierra y mira Existencias y Movimientos («Ver movimientos del conteo»). Base: `pnpm pruebas:conteo-rediseno` (45 casos, con controles que muerden).
-Pendiente: las migraciones `20260930010000/010100` NO están en producción; van junto con la web nueva (ver ADR-0282, «Cómo se despliega»).
+Producción: las migraciones `20260930010000/010100` se pegaron en producción el 2026-09-29 (schema `retail`; huellas `md5(prosrc)` iguales a las de local) y #615 se fusionó ese día.
+
+## 2026-09-29 (b) (Contar en tarjetas por producto, con «Completar todo» — ADR-0282, actualización)
+Qué hice: la pantalla Contar pasó a tarjetas de producto en dos columnas independientes (miniatura, nombre, color, número de tallas, «Completar todo» y una tabla Talla · Debe haber · Contaste · Estado), con una barra de escaneo, una barra Responsable · Progreso · Inicio del conteo y el contador `[−] n [+]`. «Completar todo» cuenta con lo que debe haber cada talla de la tarjeta que sigue pendiente.
+Por qué así: es una acción por producto porque quien encuentra toda una percha como CAYLA la esperaba no debería teclear talla por talla; solo toca las pendientes porque un número escrito (o un 0) es una verificación real y pisarlo borraría lo que alguien vio.
+Qué se rompería sin esto: contar 800 variantes una por una a mano, o un botón que sobrescribe y hace que una colaboradora que ya contó 2 vea aparecer 6 sin darse cuenta.
+Cómo verificas tú: abre un conteo, pulsa «Completar todo» en una tarjeta (sus tallas pasan a Correcto y el progreso sube), escribe un 2 en otra talla y pulsa «Completar todo» en esa tarjeta: el 2 se queda; en celular (375 px) la lista es una columna.
+

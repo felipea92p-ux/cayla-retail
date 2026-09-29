@@ -50,10 +50,12 @@ type Props = {
    * coincide. Solo rescata al llamador que armó `estado` sin mirar la confirmación y pasa `con_diferencia` + `true`.
    */
   confirmada?: boolean;
+  /** No reservar la línea invisible de «Confirmado» mientras hay diferencia: la fila compacta de Contar (Revisar y Confirmar sí la reservan). */
+  sinReserva?: boolean;
   className?: string;
 };
 
-export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada, className = "" }: Props) {
+export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada, sinReserva = false, className = "" }: Props) {
   // La transición Pendiente → Correcto: se guarda el estado anterior EN el estado del componente y se compara al
   // renderizar (patrón de React para «derivar de la render anterior»; sin efecto ni ref). `asienta` queda en `true`
   // hasta el siguiente cambio de estado, así que la animación corre una sola vez, justo cuando la línea se verifica.
@@ -79,7 +81,7 @@ export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada
           {etiqueta.texto}
         </Chip>
       </span>
-      {conDiferencia && (
+      {conDiferencia && (!sinReserva || etiqueta.confirmada) && (
         <span
           aria-hidden={etiqueta.confirmada ? undefined : true}
           className={`inline-flex items-center gap-1 text-[11px] leading-4 text-taupe ${etiqueta.confirmada ? "" : "invisible"}`}

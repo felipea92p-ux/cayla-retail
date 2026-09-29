@@ -1,13 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CanceladoConteo } from "@/components/conteo/CanceladoConteo";
-import { BotonCancelarConteo } from "@/components/conteo/BotonCancelarConteo";
 import { ContarConteo } from "@/components/conteo/ContarConteo";
-import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResultadoConteo } from "@/components/conteo/ResultadoConteo";
-import { Chip } from "@/components/ui/Chip";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Volver } from "@/components/ui/Volver";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
@@ -71,30 +66,6 @@ export default async function ConteoPage({
     // La barra fija de abajo (`BarraFija`) mide ~110–135 px en el celular y crece ~80 mientras hay un aviso (prenda fuera de
     // alcance, guardado que falló), más el área segura del iPhone: sin este aire tapa la última fila.
     <div className="space-y-6 pb-56 sm:pb-32">
-      <EncabezadoPagina
-        sede={persona.ubicacionEtiqueta}
-        titulo={`Conteo ${conteo.numero}`}
-        subtitulo={`${textoLugar(conteo)} · ${textoAlcance(conteo)}`}
-        pie={
-          <>
-            <Volver forma="boton" href={volverA ?? "/inventario/conteo"} a={volverA ? "Movimientos" : "Conteo"} />
-            <Chip tono="pizarra">En curso</Chip>
-          </>
-        }
-        acciones={<BotonCancelarConteo conteoId={conteo.id} numero={conteo.numero} />}
-      />
-      <PasosConteo actual="contar" />
-      {soloPrendas.length > 0 && (
-        <p className="nota-cayla flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <span>
-            Contando solo: <b>{soloPrendas.slice(0, 4).join(", ")}</b>
-            {soloPrendas.length > 4 && ` y ${soloPrendas.length - 4} más`}
-          </span>
-          <Link href={hrefTodo} className="btn-cayla btn-enlace text-xs">
-            Contar todo
-          </Link>
-        </p>
-      )}
       <ContarConteo
         // Un identificador de ESTA carga: si el navegador devuelve una copia vieja de la página (botón «atrás»), la pantalla lo nota y se relee.
         key={`${conteo.id}-${generadoEn}`}
@@ -107,6 +78,22 @@ export default async function ConteoPage({
         tallasPorCategoria={ejes.tallas}
         marcas={marcas}
         puedeCrearMarcas={puede(persona, "editarCatalogo")}
+        sede={persona.ubicacionEtiqueta}
+        lugar={`${textoLugar(conteo)} · ${textoAlcance(conteo)}`}
+        volver={{ href: volverA ?? "/inventario/conteo", a: volverA ? "Movimientos" : "Conteo" }}
+        notaAcotada={
+          soloPrendas.length > 0 ? (
+            <p className="nota-cayla flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                      <span>
+                        Contando solo: <b>{soloPrendas.slice(0, 4).join(", ")}</b>
+                        {soloPrendas.length > 4 && ` y ${soloPrendas.length - 4} más`}
+                      </span>
+                      <Link href={hrefTodo} className="btn-cayla btn-enlace text-xs">
+                        Contar todo
+                      </Link>
+                    </p>
+          ) : null
+        }
       />
     </div>
   );
