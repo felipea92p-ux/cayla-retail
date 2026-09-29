@@ -58,6 +58,7 @@ import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/components/VentasDeHoy";
 import {
+  avisoAgregada,
   avisoCortas,
   avisoQuedaronEnAlmacen,
   avisoSinPiso,
@@ -486,7 +487,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
         return;
       }
-      agregar(v);
+      agregar(v, { confirmar: true });
     };
   });
   useEffect(() => {
@@ -686,8 +687,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
   /** `silencioso`: la cámara (`EscanerCamara`) ya dice qué pasó en su tarjeta y su bandeja; el aviso de arriba a la derecha
-   *  repetiría lo mismo tapándole la ✕. */
-  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+   *  repetiría lo mismo tapándole la ✕.
+   *  `confirmar`: lo que entra por el campo de escaneo (lector o teclado) dice «Agregada al ticket», como la cámara del
+   *  teléfono; una tarjeta o una fila tocadas no lo piden: ahí la prenda se ve entrar donde se tocó. */
+  function agregar(v: VarianteBusqueda, { silencioso = false, confirmar = false }: { silencioso?: boolean; confirmar?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
@@ -744,6 +747,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         if (ya.cantidad >= v.stockAqui) return actual;
         return actual.map((it) => (it.claveLinea === v.varianteId ? { ...it, cantidad: it.cantidad + 1 } : it));
       });
+    }
+    if (!tope && confirmar) {
+      const { titulo, detalle } = avisoAgregada({ nombre: [v.referencia, v.color, v.talla].filter(Boolean).join(" · "), cantidad: (existente?.cantidad ?? 0) + 1 });
+      avisar.exito(titulo, { detalle });
     }
     if (tope) {
       resaltarTope(v.varianteId);
@@ -967,7 +974,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         return;
       }
       // Entra al ticket solo si hay en el piso: `agregar` lo decide (`motivoNoCobrable`) y, si no, avisa por qué.
-      return agregar(accion.variante);
+      return agregar(accion.variante, { confirmar: true });
     }
     if (e.key === "ArrowDown" && resultados.length > 0) {
       e.preventDefault();
