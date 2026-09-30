@@ -19,6 +19,7 @@ import {
   lineaDesdeJson,
   mensajeMezclaEnCenso,
   notaAjuste,
+  textoHallazgoDeLinea,
   notaDeLinea,
   resultadoConteo,
   resumirLineas,
@@ -51,6 +52,9 @@ function linea(p: Partial<LineaConteo> & { debeHaber: number; contada: number | 
     confirmadaEn: null,
     actual: null,
     ajusteMovimientoId: null,
+    ajustadoTotal: 0,
+    ajustadoAntes: 0,
+    hallazgos: 0,
     ...p,
   };
   const estado = estadoDeLinea(base);
@@ -169,6 +173,28 @@ describe("notaDeLinea y notaAjuste", () => {
     expect(notaDeLinea({ foto: 0, debeHaber: 0, contada: 0 })).toBeNull();
   });
 
+  // Caso Conteo 13: la camisa tenía 1, no se encontró, el cierre restó 1 (stock 0). Al editar el conteo y encontrarla, el «debe haber»
+  // es 0 y la foto 1: la diferencia no la causó una venta sino el propio cierre, y la nota tiene que decirlo.
+  it("al editar un conteo cerrado, el ajuste del propio cierre no se presenta como «salió durante el conteo»", () => {
+    expect(notaDeLinea({ foto: 1, debeHaber: 0, contada: 1, ajustadoAntes: -1 })).toBe("Al abrir: 1 · el cierre de este conteo restó 1");
+    expect(notaDeLinea({ foto: 6, debeHaber: 3, contada: 4, ajustadoAntes: -3 })).toBe("Al abrir: 6 · el cierre de este conteo restó 3");
+    expect(notaDeLinea({ foto: 4, debeHaber: 5, contada: 5, ajustadoAntes: 1 })).toBe("Al abrir: 4 · el cierre de este conteo sumó 1");
+    // Una prenda encontrada que no estaba registrada y el cierre dio de alta: ya no es «Encontraste…», es lo que el cierre sumó.
+    expect(notaDeLinea({ foto: 0, debeHaber: 1, contada: 1, ajustadoAntes: 1 })).toBe("Al abrir: 0 · el cierre de este conteo sumó 1");
+  });
+
+  it("lo de otros y lo del cierre se reparten: cada uno con lo suyo", () => {
+    // Al abrir 5; una venta sacó 1 (debe haber 4); contó 3 → el cierre restó 1 (stock 3). Se reabre y se vuelve a contar: debe haber 3.
+    expect(notaDeLinea({ foto: 5, debeHaber: 3, contada: 4, ajustadoAntes: -1 })).toBe("Al abrir: 5 · salió 1 durante el conteo · el cierre de este conteo restó 1");
+    // Al abrir 1; el cierre restó 1 (0); después entró 1 por una compra: debe haber 1, nada de otros en el total pero sí un «entró 1».
+    expect(notaDeLinea({ foto: 1, debeHaber: 1, contada: 1, ajustadoAntes: -1 })).toBe("Al abrir: 1 · entró 1 durante el conteo · el cierre de este conteo restó 1");
+  });
+
+  it("sin ajuste previo (o sin el dato) la nota es la de siempre", () => {
+    expect(notaDeLinea({ foto: 1, debeHaber: 0, contada: 1, ajustadoAntes: 0 })).toBe("Al abrir: 1 · salió 1 durante el conteo");
+    expect(notaDeLinea({ foto: 1, debeHaber: 1, contada: 1, ajustadoAntes: 0 })).toBeNull();
+  });
+
   it("notaAjuste: si el stock se movió tras verificar, dice cuánto hay hoy y en cuánto quedará", () => {
     expect(notaAjuste({ actual: 10, debeHaber: 11, diferencia: -2 })).toBe("Hoy hay 10 por movimientos posteriores; quedará en 8.");
   });
@@ -182,6 +208,16 @@ describe("notaDeLinea y notaAjuste", () => {
 });
 
 describe("contarLinea — lo que se pinta antes de que responda la base", () => {
+  it("conteo reabierto: al volver a contar, el ajuste del cierre anterior se explica al instante (sin pasar por «salió»)", () => {
+    // Cerrado con 1 → contó 0 → restó 1. Reabierto: la línea trae debe haber 1 (leído antes del ajuste), ya ajustado −1, hoy hay 0.
+    const reabierta = linea({ debeHaber: 1, foto: 1, contada: 0, actual: 0, ajustadoTotal: -1, ajustadoAntes: 0 });
+    const r = contarLinea(reabierta, 1, AHORA);
+    expect(r).toMatchObject({ debeHaber: 0, contada: 1, diferencia: 1, ajustadoAntes: -1 });
+    expect(notaDeLinea(r!)).toBe("Al abrir: 1 · el cierre de este conteo restó 1");
+    // Des-contarla la devuelve a la foto, y el ajuste vuelve a quedar por fuera del «debe haber».
+    expect(contarLinea(r!, null, AHORA)).toMatchObject({ debeHaber: 1, ajustadoAntes: 0, ajustadoTotal: -1 });
+  });
+
   it("escribir 11 sobre 13 → Faltan 2; escribir 13 → Correcto", () => {
     const l = linea({ debeHaber: 13, contada: null });
     expect(contarLinea(l, 11, AHORA)).toMatchObject({ contada: 11, diferencia: -2, estado: "con_diferencia", verificadoEn: AHORA, confirmadaEn: null });
@@ -618,6 +654,9 @@ describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella
     actual: 10,
     diferencia: -2,
     ajuste_movimiento_id: null,
+    ajustado_total: 0,
+    ajustado_antes: 0,
+    hallazgos: 0,
     estado: "con_diferencia",
     ...p,
   });
@@ -654,6 +693,9 @@ describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella
       actual: 10,
       diferencia: -2,
       ajusteMovimientoId: null,
+      ajustadoTotal: 0,
+      ajustadoAntes: 0,
+      hallazgos: 0,
       estado: "con_diferencia",
     });
   });
@@ -936,5 +978,21 @@ describe("crearAgrupadorDeGuardado — una ráfaga es un solo guardado", () => {
     expect(disparos).toEqual([]);
     vi.advanceTimersByTime(1);
     expect(disparos).toEqual([1]);
+  });
+});
+
+
+describe("textoHallazgoDeLinea — la prenda que faltó y apareció después (ADR-0291)", () => {
+  it("dice que ya se recuperó cuando lo encontrado cubre lo que faltó", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 1 })).toBe("La encontraron después: 1 recuperada");
+    expect(textoHallazgoDeLinea({ diferencia: -3, hallazgos: 3 })).toBe("La encontraron después: 3 recuperadas");
+  });
+  it("si solo apareció una parte, dice cuánto", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -3, hallazgos: 1 })).toBe("Ya aparecieron 1 de 3");
+  });
+  it("sin nada recuperado, o en una línea que no faltó, no dice nada", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 0 })).toBeNull();
+    expect(textoHallazgoDeLinea({ diferencia: 1, hallazgos: 1 })).toBeNull();
+    expect(textoHallazgoDeLinea({ diferencia: null, hallazgos: 1 })).toBeNull();
   });
 });

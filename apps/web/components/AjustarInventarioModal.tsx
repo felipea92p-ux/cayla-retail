@@ -13,6 +13,12 @@ import {
   apartadoEn,
   argumentosDeAjuste,
   armarVariantesAjuste,
+  candidatasDeHallazgo,
+  faltantesDesdeJson,
+  resolverHallazgos,
+  textoFaltanteConteo,
+  textoHallazgoConExceso,
+  textoHallazgoSinResponder,
   cargaInicialAlPiso,
   leerResultadoAjuste,
   etiquetaCantidad,
@@ -33,6 +39,8 @@ import {
   textoNegativas,
   textoPrendaNueva,
   textoTotalAjuste,
+  type EleccionHallazgo,
+  type FaltanteConteo,
   type MotivoAjuste,
   type PrendaAjuste,
   type VarianteAjuste,
@@ -101,6 +109,10 @@ export function AjustarInventarioModal({
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // La prenda que faltó en un conteo cerrado y todavía no se recupera (ADR-0291): por prenda, el conteo más reciente. Si sumas
+  // una de ellas, el modal pregunta «¿es la que faltó?»; con «sí», el ajuste queda enlazado a ese conteo.
+  const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
+  const [elecciones, setElecciones] = useState<Record<string, EleccionHallazgo | undefined>>({});
   // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
   const responsable = useResponsable();
   // La marca de este intento (ADR-0240): la base la anota con el ajuste, y el mismo intento enviado otra vez (un reintento
@@ -152,6 +164,21 @@ export function AjustarInventarioModal({
     };
   }, [productoId, hayPrenda, colorPrenda, ubicacionId, sububicacionPiso?.id, sububicacionAlmacen?.id]);
 
+  // Lo que faltó en conteos cerrados de esta tienda, de estas prendas. Es una lectura opcional: si la función no existe todavía en
+  // la base (la web salió antes que el SQL) o falla, no se pregunta nada y el ajuste sigue como siempre.
+  useEffect(() => {
+    if (variantes.length === 0) return;
+    let vigente = true;
+    createClient()
+      .rpc("fn_faltantes_de_conteo", { p_ubicacion_id: ubicacionId, p_variante_ids: variantes.map((v) => v.varianteId) })
+      .then(({ data, error: errFaltantes }) => {
+        if (vigente) setFaltantes(errFaltantes ? new Map() : faltantesDesdeJson(data));
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [variantes, ubicacionId]);
+
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
 
   const modo = modoDeAjuste(motivo);
@@ -165,6 +192,11 @@ export function AjustarInventarioModal({
   const bajoApartado = lineas.filter((l) => l.resultado >= 0 && l.resultado < l.apartado);
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
   const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
+  // Las sumas de prendas que faltaron en un conteo: a cada una se le pregunta «¿es la que faltó?».
+  const candidatas = candidatasDeHallazgo(ajustes, faltantes);
+  const candidataDe = new Map(candidatas.map((c) => [c.linea.variante.varianteId, c]));
+  const hallazgos = resolverHallazgos(candidatas, elecciones);
+  const nombreDe = (v: VarianteAjuste) => [v.talla, v.color].filter(Boolean).join(" / ") || "Única";
 
   // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
@@ -221,6 +253,17 @@ export function AjustarInventarioModal({
       setError("Ingresa al menos un ajuste distinto de cero.");
       return;
     }
+    // Sumar una prenda que faltó en un conteo: se responde si es esa (el ajuste queda enlazado al conteo) o no. No se adivina.
+    if (!congelado && hallazgos.sinResponder.length > 0) {
+      const c = hallazgos.sinResponder[0];
+      setError(textoHallazgoSinResponder(nombreDe(c.linea.variante), c.faltante));
+      return;
+    }
+    if (!congelado && hallazgos.conExceso.length > 0) {
+      const c = hallazgos.conExceso[0];
+      setError(textoHallazgoConExceso(nombreDe(c.linea.variante), c.faltante));
+      return;
+    }
     // Reenviar lo congelado no es un ajuste nuevo sino la pregunta «¿se guardó?»: el stock de la pantalla puede ya
     // incluir ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
     if (!congelado && negativas.length > 0) {
@@ -247,7 +290,7 @@ export function AjustarInventarioModal({
           argumentosDeAjuste({
             ubicacionId,
             sububicacionId: separaPisoAlmacen ? (ubicado === "piso" ? sububicacionPiso!.id : sububicacionAlmacen!.id) : null,
-            ajustes,
+            ajustes: ajustes.map((l) => ({ ...l, conteoItemId: hallazgos.enlaces.get(l.variante.varianteId) ?? null })),
             cargaInicial,
             motivo,
             alPiso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, puedeBajarAlPiso),
@@ -275,7 +318,7 @@ export function AjustarInventarioModal({
       if (!esFalloDeRed(errorRpc)) router.refresh();
       return;
     }
-    const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, ya_registrado: false };
+    const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, enlazados: hallazgos.enlaces.size, ya_registrado: false };
     avisar.exito(textoExitoAjuste(r), { detalle: referencia });
     router.refresh();
     onClose();
@@ -336,9 +379,12 @@ export function AjustarInventarioModal({
                 {variantes.map((v) => {
                   const actual = stockEn(v, lugar);
                   const linea = lineaDe.get(v.varianteId);
-                  const nombre = [v.talla, v.color].filter(Boolean).join(" / ") || "Única";
+                  const nombre = nombreDe(v);
+                  const candidata = candidataDe.get(v.varianteId);
+                  const eleccion = elecciones[v.varianteId];
                   return (
-                    <div key={v.varianteId} className="flex items-center gap-3 border-b border-tinta/10 pb-2">
+                    <div key={v.varianteId} className="border-b border-tinta/10 pb-2">
+                      <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-tinta">{nombre}</p>
                         <p className="font-mono text-[11px] text-tinta/55">
@@ -361,6 +407,34 @@ export function AjustarInventarioModal({
                         onChange={(e) => setCantidades((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
                         className="w-20 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-right text-sm text-tinta outline-none focus:border-rojo"
                       />
+                      </div>
+                      {/* La prenda que faltó en un conteo cerrado y hoy se suma: se pregunta si es esa (el ajuste queda enlazado a ese conteo). */}
+                      {candidata && (
+                        <div className="mt-2 space-y-1.5 rounded-lg bg-hueso px-3 py-2.5" role="group" aria-label={`Faltante de conteo · ${nombre}`}>
+                          <p className="text-xs text-tinta">
+                            {textoFaltanteConteo(candidata.faltante)} <b className="font-medium">¿Es la que se encontró?</b>
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(
+                              [
+                                { valor: "si", texto: `Sí, es la del Conteo ${candidata.faltante.conteoNumero}` },
+                                { valor: "no", texto: "No, es otra cosa" },
+                              ] as const
+                            ).map((o) => (
+                              <button
+                                key={o.valor}
+                                type="button"
+                                aria-pressed={eleccion === o.valor}
+                                disabled={congelado}
+                                onClick={() => setElecciones((prev) => ({ ...prev, [v.varianteId]: o.valor }))}
+                                className={`btn-cayla h-8 text-xs ${eleccion === o.valor ? "btn-primario" : "btn-secundario"}`}
+                              >
+                                {o.texto}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

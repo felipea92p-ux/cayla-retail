@@ -14,6 +14,7 @@
 // ya no estaba y solo lo supo la base, en vivo.
 
 import { compararTallas } from "./tallas";
+import { diaMes } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 
 /** Lo mínimo que el modal lee de cada variante. La talla llega anidada porque la columna
@@ -298,7 +299,7 @@ export type ArgumentosDeAjuste = {
   p_token: string;
 };
 
-type LineaParaEnviar = { variante: Pick<VarianteAjuste, "varianteId">; delta: number };
+type LineaParaEnviar = { variante: Pick<VarianteAjuste, "varianteId">; delta: number; /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */ conteoItemId?: string | null };
 
 /** Arma la llamada con las dos listas del modal (`repartirLineasAjuste`). El motivo solo viaja si hay ajustes (las prendas
  *  nuevas entran como stock inicial y no lo llevan) y la nota vacía viaja como null: así el reintento con lo mismo da la
@@ -313,7 +314,9 @@ export function argumentosDeAjuste(o: {
   nota: string;
   token: string;
 }): ArgumentosDeAjuste {
-  const aItems = (ls: readonly LineaParaEnviar[]) => ls.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta }));
+  // `conteo_item_id` solo viaja cuando hay enlace: sin él el envío es idéntico al de siempre (misma huella del reintento).
+  const aItems = (ls: readonly LineaParaEnviar[]) =>
+    ls.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta, ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}) }));
   return {
     p_ubicacion_id: o.ubicacionId,
     p_sububicacion_id: o.sububicacionId,
@@ -332,18 +335,120 @@ export const TEXTO_AJUSTE_INCIERTO =
   "Se cortó la conexión y no sabemos si el ajuste llegó a guardarse. Vuelve a tocar «Confirmar»: con la misma marca, si ya se guardó no se repite.";
 
 /** El aviso de éxito: «2 variantes ajustadas · 1 cargada como stock inicial»; si era un reintento de algo ya guardado, lo dice. */
-export function textoExitoAjuste(r: { ajustes: number; cargas: number; ya_registrado?: boolean }): string {
+export function textoExitoAjuste(r: { ajustes: number; cargas: number; enlazados?: number; ya_registrado?: boolean }): string {
   const partes = [
     r.ajustes > 0 && `${r.ajustes} ${r.ajustes === 1 ? "variante ajustada" : "variantes ajustadas"}`,
+    (r.enlazados ?? 0) > 0 && `${r.enlazados} ${r.enlazados === 1 ? "enlazada" : "enlazadas"} al conteo donde faltaba`,
     r.cargas > 0 && `${r.cargas} ${r.cargas === 1 ? "cargada" : "cargadas"} como stock inicial`,
   ].filter(Boolean);
   return `${r.ya_registrado ? "Ya estaba guardado: " : ""}${partes.join(" · ")}`;
 }
 
 /** Lee el jsonb que devuelve `ajustar_inventario`; si no calza, null (y el modal usa lo que envió). */
-export function leerResultadoAjuste(data: unknown): { ajustes: number; cargas: number; ya_registrado: boolean } | null {
+export function leerResultadoAjuste(data: unknown): { ajustes: number; cargas: number; enlazados: number; ya_registrado: boolean } | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
   if (!Number.isInteger(d.ajustes) || !Number.isInteger(d.cargas) || typeof d.ya_registrado !== "boolean") return null;
-  return { ajustes: d.ajustes as number, cargas: d.cargas as number, ya_registrado: d.ya_registrado };
+  return { ajustes: d.ajustes as number, cargas: d.cargas as number, enlazados: Number.isInteger(d.enlazados) ? (d.enlazados as number) : 0, ya_registrado: d.ya_registrado };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// La prenda que faltó en un conteo y apareció (ADR-0291, Felipe 2026-09-30)
+// ---------------------------------------------------------------------------------------------------------------
+//
+// Contrato — PROMETE: dado lo que la base dice que faltó en conteos cerrados (`fn_faltantes_de_conteo`) y las líneas de
+// suma del modal, decide a cuáles hay que preguntarles «¿es la que faltó?», y con lo respondido arma los enlaces que
+// viajan a `ajustar_inventario`. ASUME: la base vuelve a validar todo (`registrar_hallazgo_de_conteo`); esto solo evita
+// el viaje para enterarse. NO decide qué es una falta: eso lo dijo el cierre del conteo.
+
+/** Lo que faltó en un conteo cerrado y todavía no se recupera: una fila de `fn_faltantes_de_conteo`. */
+export type FaltanteConteo = {
+  varianteId: string;
+  conteoItemId: string;
+  conteoNumero: number;
+  /** Cuándo se cerró ese conteo (ISO). */
+  cerradoEn: string | null;
+  faltaron: number;
+  encontradas: number;
+  /** Lo que aún se puede enlazar: faltaron − encontradas. */
+  pendientes: number;
+};
+
+/** Lee lo que devuelve `fn_faltantes_de_conteo` (más reciente primero) y se queda con UN faltante por prenda: el del conteo
+ *  más reciente. Una fila mal armada se ignora: sin pregunta, el ajuste sigue como cualquier otro. */
+export function faltantesDesdeJson(data: unknown): Map<string, FaltanteConteo> {
+  const salida = new Map<string, FaltanteConteo>();
+  if (!Array.isArray(data)) return salida;
+  for (const fila of data) {
+    if (!fila || typeof fila !== "object") continue;
+    const f = fila as Record<string, unknown>;
+    if (typeof f.variante_id !== "string" || typeof f.conteo_item_id !== "string") continue;
+    if (!Number.isInteger(f.conteo_numero) || !Number.isInteger(f.faltaron) || !Number.isInteger(f.pendientes)) continue;
+    if ((f.pendientes as number) < 1 || salida.has(f.variante_id)) continue;
+    salida.set(f.variante_id, {
+      varianteId: f.variante_id,
+      conteoItemId: f.conteo_item_id,
+      conteoNumero: f.conteo_numero as number,
+      cerradoEn: typeof f.cerrado_en === "string" ? f.cerrado_en : null,
+      faltaron: f.faltaron as number,
+      encontradas: Number.isInteger(f.encontradas) ? (f.encontradas as number) : 0,
+      pendientes: f.pendientes as number,
+    });
+  }
+  return salida;
+}
+
+export type EleccionHallazgo = "si" | "no";
+
+/** Una línea que SUMA una prenda que faltó en un conteo: a ella se le pregunta. */
+export type CandidataHallazgo<L> = { linea: L; faltante: FaltanteConteo };
+
+/** Las líneas de suma cuya prenda faltó en un conteo cerrado. Una resta, una carga inicial o una prenda sin falta no preguntan. */
+export function candidatasDeHallazgo<L extends { variante: Pick<VarianteAjuste, "varianteId">; delta: number }>(
+  lineas: readonly L[],
+  faltantes: ReadonlyMap<string, FaltanteConteo>
+): CandidataHallazgo<L>[] {
+  const salida: CandidataHallazgo<L>[] = [];
+  for (const linea of lineas) {
+    const faltante = faltantes.get(linea.variante.varianteId);
+    if (faltante && linea.delta > 0) salida.push({ linea, faltante });
+  }
+  return salida;
+}
+
+/** Con lo respondido: qué líneas quedan enlazadas (y a qué línea de conteo), cuáles siguen sin respuesta y cuáles dijeron
+ *  «sí» pero suman más de lo que faltó (la base no deja recuperar más de lo que faltó). */
+export function resolverHallazgos<L extends { variante: Pick<VarianteAjuste, "varianteId">; delta: number }>(
+  candidatas: readonly CandidataHallazgo<L>[],
+  elecciones: Readonly<Record<string, EleccionHallazgo | undefined>>
+): { enlaces: Map<string, string>; sinResponder: CandidataHallazgo<L>[]; conExceso: CandidataHallazgo<L>[] } {
+  const enlaces = new Map<string, string>();
+  const sinResponder: CandidataHallazgo<L>[] = [];
+  const conExceso: CandidataHallazgo<L>[] = [];
+  for (const c of candidatas) {
+    const e = elecciones[c.linea.variante.varianteId];
+    if (e === undefined) sinResponder.push(c);
+    else if (e === "si") {
+      if (c.linea.delta > c.faltante.pendientes) conExceso.push(c);
+      else enlaces.set(c.linea.variante.varianteId, c.faltante.conteoItemId);
+    }
+  }
+  return { enlaces, sinResponder, conExceso };
+}
+
+/** «Faltó 1 en el Conteo 13 (30/09).» — y, si ya se recuperó parte, cuánto queda. */
+export function textoFaltanteConteo(f: Pick<FaltanteConteo, "conteoNumero" | "cerradoEn" | "faltaron" | "encontradas" | "pendientes">): string {
+  const cuando = f.cerradoEn ? ` (${diaMes(f.cerradoEn)})` : "";
+  const ya = f.encontradas > 0 ? ` Ya se encontró ${f.encontradas}: quedan ${f.pendientes} por encontrar.` : "";
+  return `Faltó ${f.faltaron} en el Conteo ${f.conteoNumero}${cuando}.${ya}`;
+}
+
+/** El aviso al confirmar con una pregunta sin responder: nombra la prenda para que se encuentre en la lista. */
+export function textoHallazgoSinResponder(nombre: string, f: Pick<FaltanteConteo, "conteoNumero">): string {
+  return `Indica si ${nombre} es la prenda que faltó en el Conteo ${f.conteoNumero}.`;
+}
+
+/** El aviso cuando se enlaza más de lo que faltó. */
+export function textoHallazgoConExceso(nombre: string, f: Pick<FaltanteConteo, "conteoNumero" | "pendientes">): string {
+  return `En el Conteo ${f.conteoNumero} solo faltaron ${f.pendientes} de ${nombre}: suma ${f.pendientes} para enlazarla y registra el resto en otro ajuste.`;
 }

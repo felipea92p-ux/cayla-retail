@@ -16,7 +16,7 @@ import {
 // falla no puede mentir sobre si las existencias se movieron.
 
 function linea(p: Partial<LineaConteo> & { varianteId: string; debeHaber: number; contada: number | null }): LineaConteo {
-  const base = { foto: p.debeHaber, anterior: null, verificadoEn: null, confirmadaEn: null, actual: null, ajusteMovimientoId: null, ...p };
+  const base = { foto: p.debeHaber, anterior: null, verificadoEn: null, confirmadaEn: null, actual: null, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, hallazgos: 0, ...p };
   const estado = estadoDeLinea(base);
   if (estado === null) throw new Error("la línea de prueba está ignorada");
   return { ...base, diferencia: base.contada === null ? null : base.contada - base.debeHaber, estado };

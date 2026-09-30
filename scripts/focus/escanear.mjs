@@ -213,7 +213,7 @@ export function analizar({ archivos, cambiados = new Set(), registro = new Map()
 // Lectura del disco y de git
 // ---------------------------------------------------------------------------------------------------------------------------
 
-function leerWeb(raiz) {
+export function leerWeb(raiz) {
   const archivos = new Map();
   const recorrer = (dir) => {
     for (const e of readdirSync(join(raiz, dir), { withFileTypes: true })) {
