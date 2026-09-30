@@ -88,6 +88,8 @@ import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClien
 import { CLUB_APAGADO, clubEnElTicket, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
+import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
+import { descripcionDePrenda, prendaQuitadaDeLinea, type PrendaQuitada } from "@/lib/se-probo-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 
 /**
@@ -354,6 +356,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [clienteNumDoc, setClienteNumDoc] = useState(proforma?.clienteDoc ?? "");
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
+  // La prenda recién quitada del ticket, para «¿Se la probó y no la llevó?» (ADR-0288 D-6, spike del club): `clave` es la
+  // línea quitada, así la pregunta vuelve a empezar si se quita otra.
+  const [quitada, setQuitada] = useState<{ clave: string; prenda: PrendaQuitada } | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -844,6 +849,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   function quitar(claveLinea: string) {
     capturarFlip();
+    const linea = carrito.find((it) => it.claveLinea === claveLinea);
+    const prenda = linea ? prendaQuitadaDeLinea(linea, detallesDelTicket.get(linea.varianteId)) : null;
+    setQuitada(prenda ? { clave: claveLinea, prenda } : null);
     setCarrito((actual) => actual.filter((it) => it.claveLinea !== claveLinea));
     setAviso(null);
   }
@@ -906,6 +914,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   }
   function limpiarTicket() {
     setCarrito([]);
+    setQuitada(null);
     quitarClienta();
     setNota("");
     setCodigoDescuento("");
@@ -959,6 +968,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
     responsable.limpiar();
     setPagos([]);
+    setQuitada(null);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
@@ -1393,7 +1403,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => setMomento("cobrar")}
+            onIrACobrar={() => {
+              // Al pasar a cobrar, la pregunta de la prenda quitada se va sin anotar (como en el spike).
+              setQuitada(null);
+              setMomento("cobrar");
+            }}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
@@ -1414,6 +1428,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                 clubDeLaClienta={clubDeLaClienta}
                 ubicacionId={ubicacionId}
               />
+              {quitada && (
+                <SeProboNoLlevo
+                  key={quitada.clave}
+                  prenda={quitada.prenda}
+                  ubicacionId={ubicacionId}
+                  clientaId={clienta?.id ?? null}
+                  responsable={responsable}
+                  onCerrar={() => setQuitada(null)}
+                />
+              )}
             </>
           }
         />
@@ -1650,7 +1674,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
               <AnotarNoHabia
                 key={grupoElegido.clave}
                 ubicacionId={ubicacionId}
-                descripcion={[grupoElegido.referencia, grupoElegido.color].filter(Boolean).join(" · ")}
+                descripcion={descripcionDePrenda(grupoElegido.referencia, grupoElegido.color)}
                 tallas={grupoElegido.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
                 clientaId={clienta?.id ?? null}
                 responsable={responsable}
