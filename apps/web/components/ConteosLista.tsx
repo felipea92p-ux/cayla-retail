@@ -13,7 +13,7 @@ import type { ConteoResumen } from "@/lib/conteos";
    abierto también: allí se continúa). El RESULTADO se lee de un vistazo y nunca dice «Cerrado · Vacío»:
      · En curso                → pizarra (informativo)
      · Todo correcto           → verde
-     · 3 diferencias corregidas → neutro: ya se corrigieron. En rojo, cada conteo del historial pintaría una pared roja
+     · 3 diferencias encontradas → neutro: el conteo ya las ajustó. En rojo, cada conteo del historial pintaría una pared roja
                                  y el rojo dejaría de avisar lo que hoy hay que mirar.
      · Conteo parcial          → ámbar: quedó a medias
      · Cancelado               → apagado, sin tachar (no es una anulación de dinero; se canceló un conteo)

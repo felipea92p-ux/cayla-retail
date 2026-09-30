@@ -426,6 +426,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-lectura
 
+      # La libreta de «Ya decidí» de Frescura del piso (paso 4b, ADR-0208): frescura_decisiones rechaza en la BASE cada estado
+      # imposible (dos decisiones actuales, anular lo que no es una decisión, editar o borrar) y cada candado tiene su
+      # mutante; anotar y anular firman, se protegen del reintento y de la carrera; la lectura por sede; y eliminar un
+      # producto con historia conoce la libreta. Cada caso termina en ROLLBACK salvo las carreras, que limpian lo suyo.
+      - name: pruebas:frescura-decisiones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-decisiones
+
       # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
       # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
       # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de
@@ -852,14 +860,26 @@ jobs:
       # funciones rechazan con 42501 `clientas_sin_modulo` a la cuenta cuyo rol no lo tiene (antes de pedir «Responsable») y la
       # política de la tabla le devuelve 0 filas; líder, persona y terminal con el módulo pasan. Registrar con el DNI de una
       # ficha archivada la reactiva (mismo id, historial, version+1). Anonimizar no deja el DNI, el nombre ni el celular en
-      # clientas, clientas_fusiones ni en la actividad (Clientas y Apartados). Control con el cambio deshecho (el ataque pasa),
-      # los archivos pegados sobre el estado de producción, dos veces y en el orden equivocado, candado de versión y
+      # clientas, clientas_fusiones ni en la actividad (Clientas y Apartados). Control sin el candado del módulo (el ataque
+      # pasa), la PARTE 2 pegada una y dos veces, la PARTE 1 que hoy aborta sin pisar nada (la tanda 1a del club la superó) y
       # vigilantes que muerden; las cinco ramas de la actividad de un apartado; y dos cajas a la vez con el mismo DNI (dos
       # conexiones: la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK (la carrera con COMMIT solo
       # corre con BASE_DESECHABLE=1, no aquí).
       - name: pruebas:clientas-modulo
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas-modulo
+
+      # Club de clientas, tanda 1a (ADR-0288 D-1, D-2 y CL-27): la venta se liga a la ficha que manda Cobrar (a la que quedó si
+      # se unió; rechazo `clienta_anonimizada` o `clienta_no_existe` sin guardar nada), y sin clienta sigue igual; el documento
+      # con tipo (DNI, carné, pasaporte), su formato y su único por (tipo, número); al registrar o corregir el documento se
+      # ligan sus compras anteriores con boleta a ese documento, sin mover las de otra ficha; una sola firma de las RPC,
+      # ayudantes sin EXECUTE, nada lee `clientas.dni`, md5 «después» = vivas; pegarla dos veces deja lo mismo y con una
+      # función cambiada en vivo aborta sin pisar; y dos cajas a la vez, en dos conexiones: el mismo DNI (la segunda espera en
+      # el alta) y una venta mientras otra caja une esa ficha (espera en la lectura de la ficha, antes de elegir a cuál se
+      # liga). Cada caso termina en ROLLBACK (las carreras con COMMIT solo corren con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-venta-ligada
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-venta-ligada
 
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien

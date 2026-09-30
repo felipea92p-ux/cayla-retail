@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 72;
+export const PENDIENTES_HOY = 71;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -91,7 +91,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/conteo/[id]": PENDIENTE,
   "/inventario/conteo/[id]/confirmar": PENDIENTE,
   "/inventario/conteo/[id]/revisar": PENDIENTE,
-  "/inventario/frescura": PENDIENTE,
+  // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
+  // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
+  "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
   "/inventario/mover": PENDIENTE,
   "/inventario/movimientos": PENDIENTE,
   "/inventario/recibir": PENDIENTE,
@@ -150,7 +152,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 74;
+export const MODALES_PENDIENTES_HOY = 73;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -241,6 +243,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
-  "components/punto-de-venta/ClientaDelTicket.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta (tipo de documento, número, nombre, celular, quién atiende).
+  "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
 };

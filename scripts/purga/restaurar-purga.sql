@@ -40,7 +40,7 @@ create function pg_temp.tablas_en_orden() returns text[] language sql immutable 
                'stock', 'compras', 'compra_items', 'compra_item_destinos', 'compra_reasignaciones', 'compra_item_cierres',
                'envios', 'lotes', 'ventas', 'venta_items', 'venta_pagos', 'separaciones', 'separacion_items', 'separacion_pagos',
                'comprobantes', 'comprobante_anticipos', 'movimientos', 'costo_historial', 'conteo_items', 'bajada_piso_items',
-               'apartados', 'pedidos_no_atendidos', 'movimientos_internos_intentos']
+               'apartados', 'pedidos_no_atendidos', 'movimientos_internos_intentos', 'frescura_decisiones']
 $f$;
 
 do $$

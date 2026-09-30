@@ -7,9 +7,13 @@
 // alta (D-76/D-77), la ficha ahora se edita, se archiva/anonimiza y se une con otra (D-99). Las
 // columnas nuevas de `retail.clientas` — `version` (ADR-0193 reusado), `archivada_en`,
 // `archivada_por`, `motivo_archivo`, `anonimizada`, `fusionada_en_id` — entran acá.
+import { tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
+
 export type Clienta = {
   id: string;
-  dni: string | null;
+  /** ADR-0288 D-2: el documento tiene tipo (DNI por defecto, carné de extranjería o pasaporte). Antes, `dni`. */
+  documentoTipo: TipoDocumentoClienta;
+  documentoNumero: string | null;
   nombre: string | null;
   telefonoWhatsapp: string | null;
   /** true si la clienta dio su permiso de contacto por WhatsApp — dato aparte del teléfono. */
@@ -33,7 +37,8 @@ export type Clienta = {
 // columna jsonb, sin acoplar este archivo a ese tipo) y se valida al mapear a `Clienta`.
 export type FilaClienta = {
   id: string;
-  dni: string | null;
+  documento_tipo: string;
+  documento_numero: string | null;
   nombre: string | null;
   telefono_whatsapp: string | null;
   whatsapp_consentimiento_en: string | null;
@@ -56,7 +61,8 @@ function comoTallas(valor: unknown): Record<string, string> | null {
 export function aClienta(fila: FilaClienta): Clienta {
   return {
     id: fila.id,
-    dni: fila.dni,
+    documentoTipo: tipoDocumentoDe(fila.documento_tipo),
+    documentoNumero: fila.documento_numero,
     nombre: fila.nombre,
     telefonoWhatsapp: fila.telefono_whatsapp,
     tienePermisoWhatsapp: fila.whatsapp_consentimiento_en !== null,

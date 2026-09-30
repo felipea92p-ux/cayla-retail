@@ -218,12 +218,13 @@ insert into retail.colores (codigo, nombre, hex) values
   ('ROS', 'Rosa', '#e8a5b0')
   on conflict (codigo) do nothing;
 
--- `retail.clientas` (ficha de clienta v1, D-76/D-77, 20260922140000): un solo
--- campo de documento, sin distinguir dni/ruc/sin_documento (la tabla vieja
--- `retail.clientes` que esto reemplazaba sí lo hacía; la nueva no, a
--- propósito — decisión de Felipe de no ser invasivos). Sin consentimiento de
--- WhatsApp sembrado: sería inventar un permiso que nadie dio.
-insert into retail.clientas (dni, nombre, telefono_whatsapp) values
+-- `retail.clientas` (ficha de clienta v1, D-76/D-77, 20260922140000): desde el
+-- ADR-0288 (tanda 1a) el documento tiene tipo (`documento_tipo`, DNI por
+-- defecto) y número (`documento_numero`, antes `dni`). Una ficha es de una
+-- PERSONA (DNI, carné o pasaporte): una empresa con RUC no es una clienta, su
+-- RUC va en la factura. Sin consentimiento de WhatsApp sembrado: sería inventar
+-- un permiso que nadie dio.
+insert into retail.clientas (documento_numero, nombre, telefono_whatsapp) values
   ('45612378', 'Valeria Chávez', '987111222'),
   ('41278965', 'Camila Torres', '987222333'),
   ('47891234', 'Daniela Ríos', '987333444'),
@@ -231,8 +232,7 @@ insert into retail.clientas (dni, nombre, telefono_whatsapp) values
   ('48765123', 'Gabriela Salas', '987555666'),
   ('42987654', 'Andrea Cárdenas', '987666777'),
   ('46123789', 'Paola Mendoza', '987777888'),
-  ('43219876', 'Rosa Delgado', '987888999'),
-  ('20601234567', 'Boutique Mía SAC', '014567890');
+  ('43219876', 'Rosa Delgado', '987888999');
 
 -- ---------- tallas (vocabulario cerrado desde 20260917100000/100500) ----------
 -- Nacen 'aprobado' directo, igual que los 30 colores de 20260912235500: son

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { Info } from "lucide-react";
-import type { CSSProperties, ReactNode, RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
-import type { Tramo } from "@/lib/frescura-reglas";
+import type { TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
+import type { BloqueDeDecision } from "@/lib/frescura-decisiones-pantalla";
+import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type AccesoFrescura, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
+import type { FrescuraPrenda, Tramo, VaraCategoria } from "@/lib/frescura-reglas";
+import { FrescuraDecidir, FrescuraQuitar } from "./FrescuraDecidir";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip, TextoConNegritas } from "./piezas";
 
 // La hoja de detalle de una prenda de Frescura del piso (ADR-0208, paso 4): el porqué de su estado en palabras de tienda,
@@ -70,6 +73,43 @@ function Regla({ regla }: { regla: ReglaVista }) {
   );
 }
 
+/** Todo lo que la hoja necesita para anotar lo decidido (paso 4b). Se arma en el panel, que ya tiene la sede y el contexto. */
+export type ContextoDecision = {
+  prenda: FrescuraPrenda;
+  sede: { id: string; nombre: string };
+  esLider: boolean;
+  ahora: string;
+  categoria: VaraCategoria | undefined;
+  cayla: VaraCategoria | undefined;
+  recientes: readonly TrasladoReciente[];
+  acceso: AccesoFrescura;
+  /** ¿Se pudo leer lo ya decidido? Sin eso no se sabe cuál es la última línea y «Ya decidí» chocaría: se esconde. */
+  lecturaOk: boolean;
+  bloque: BloqueDeDecision;
+  /** La última línea de la libreta (a la que responde lo que se anote) y, si es una decisión vigente, la que «Quitar» quita. */
+  anteriorId: string | null;
+  vigenteId: string | null;
+};
+
+/** La barra «día 3 de 7»: se llena al abrir (200–500 ms, sin rebote; sin movimiento con `prefers-reduced-motion`). */
+function BarraDias({ dia, de }: { dia: number; de: number }) {
+  const [lleno, setLleno] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setLleno(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <div className="mt-2.5 flex items-center gap-2.5">
+      <div role="progressbar" aria-valuemin={1} aria-valuemax={de} aria-valuenow={dia} aria-label={`Día ${dia} de ${de}`} className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
+        <div className="h-full rounded-full bg-tinta/55 transition-[width] duration-500 ease-cayla motion-reduce:transition-none" style={{ width: lleno ? `${(dia / de) * 100}%` : "0%" }} />
+      </div>
+      <span className="text-[12px] tabular-nums text-taupe">
+        día {dia} de {de}
+      </span>
+    </div>
+  );
+}
+
 function Bloque({ titulo, children, primero = false }: { titulo?: string; children: ReactNode; primero?: boolean }) {
   return (
     <div className={primero ? "pb-4" : "border-t border-sand py-4"}>
@@ -84,13 +124,23 @@ export function FrescuraDetalle({
   sede,
   volverA,
   onClose,
+  decision,
 }: {
   detalle: DetalleVista;
   sede: string;
   /** La fila que la abrió: al cerrar, el foco vuelve ahí. */
   volverA?: RefObject<HTMLElement | null>;
   onClose: () => void;
+  decision: ContextoDecision;
 }) {
+  // La MISMA hoja cambia de contenido (ADR-0136: no se abre un modal encima): el detalle, «Ya decidí» o «Quitar lo anotado».
+  // El modo pedido vale SOLO para la última línea que se vio al pedirlo: si la lectura se refresca y esa línea cambió (otra
+  // persona anotó, o se anotó aquí), se vuelve al detalle sin un efecto que lo corrija después de pintar.
+  const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: "detalle", para: decision.anteriorId });
+  const modo = pedido.para === decision.anteriorId ? pedido.modo : "detalle";
+  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
+  const puedeDecidir = decision.lecturaOk && decision.prenda.pisoHoy > 0;
+  const { bloque } = decision;
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (
       <>
@@ -109,7 +159,7 @@ export function FrescuraDetalle({
 
   return (
     <Modal
-      titulo={detalle.titulo}
+      titulo={modo === "decidir" ? `¿Qué hiciste con ${detalle.titulo}?` : detalle.titulo}
       subtitulo={
         <>
           {detalle.bajada}
@@ -121,7 +171,21 @@ export function FrescuraDetalle({
       ancho="sm:max-w-[40rem]"
       alCerrarEnfocar={volverA}
     >
-      {(cerrar) => (
+      {(cerrar) => modo === "decidir" ? (
+        <FrescuraDecidir
+          prenda={decision.prenda}
+          sede={decision.sede}
+          esLider={decision.esLider}
+          ahora={decision.ahora}
+          categoria={decision.categoria}
+          cayla={decision.cayla}
+          recientes={decision.recientes}
+          acceso={decision.acceso}
+          anteriorId={decision.anteriorId}
+          onVolver={() => setModo("detalle")}
+          onListo={cerrar}
+        />
+      ) : (
         <>
           <Bloque primero>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -152,6 +216,72 @@ export function FrescuraDetalle({
                     </>
                   )}
                 </span>
+              </div>
+            )}
+          </Bloque>
+
+          <Bloque titulo={bloque.estado === "vigente" ? "Ya decidido" : bloque.estado === "volvio" ? "Volvió a «Por decidir»" : "Lo decidido"}>
+            {bloque.estado !== "ninguna" ? (
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed">{bloque.linea}</p>
+                {bloque.revisa && <p className="text-sm font-semibold">{bloque.revisa}</p>}
+                {bloque.progreso && <BarraDias dia={bloque.progreso.dia} de={bloque.progreso.de} />}
+                {bloque.nota && <p className="rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug">«{bloque.nota}»</p>}
+                {bloque.resultado && (
+                  <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[13.5px] leading-relaxed">
+                    {bloque.resultado.chip && (
+                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[11.5px] !leading-[18px]">
+                        {bloque.resultado.chip.texto}
+                      </Chip>
+                    )}
+                    <span>{bloque.resultado.texto}</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[13.5px] leading-relaxed text-taupe">Todavía no se anotó nada de esta prenda.</p>
+            )}
+            {modo === "quitar" && decision.vigenteId ? (
+              <div className="mt-3">
+                <FrescuraQuitar decisionId={decision.vigenteId} sede={decision.sede} onNo={() => setModo("detalle")} onListo={cerrar} />
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                {puedeDecidir && bloque.estado === "vigente" && (
+                  <button type="button" className="btn-cayla btn-secundario" onClick={() => setModo("decidir")}>
+                    Anotar otra decisión
+                  </button>
+                )}
+                {puedeDecidir && bloque.estado !== "vigente" && (
+                  <button type="button" className={decision.prenda.porDecidir ? "btn-cayla btn-primario" : "btn-cayla btn-sutil"} onClick={() => setModo("decidir")}>
+                    {decision.prenda.porDecidir ? "Ya decidí" : "Anotar lo que hice"}
+                  </button>
+                )}
+                {bloque.estado === "vigente" && decision.vigenteId && decision.lecturaOk && (
+                  <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => setModo("quitar")}>
+                    Quitar lo anotado
+                  </button>
+                )}
+                {!decision.lecturaOk && <span className="text-[12.5px] text-taupe">No se pudo leer lo ya decidido: por ahora no se puede anotar. Vuelve a intentar en un momento.</span>}
+              </div>
+            )}
+            {bloque.historial.length > 0 && (
+              <div className="mt-4 border-t border-sand pt-3">
+                <span className="label-cayla mb-2 block text-[11px] text-taupe">Lo que se decidió antes</span>
+                <ul className="space-y-1.5 text-[13px] leading-snug">
+                  {bloque.historial.map((h) => (
+                    <li key={h.id}>
+                      <span className="tabular-nums text-taupe">{h.cuando}</span> · {h.texto}
+                      {h.chip && (
+                        <>
+                          {" · "}
+                          <b className="font-semibold">{h.chip.texto}</b>
+                        </>
+                      )}
+                      {h.resultado && <span className="block text-[12.5px] text-taupe">{h.resultado}</span>}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </Bloque>
@@ -215,7 +345,7 @@ export function FrescuraDetalle({
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada.</p>
+                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Ya decidí».</p>
               </>
             ) : (
               <p className="text-sm">{detalle.sinAcciones}</p>

@@ -170,6 +170,8 @@ insert into zz_hoja values
   ('producto_color_temporadas', 'producto_id', 'productos'),
   -- En qué sede se registró el producto (ADR-0292): nace con la ficha y se va con ella.
   ('producto_origen', 'producto_id', 'productos'),
+  -- La libreta de «Ya decidí» de Frescura del piso (ADR-0208, paso 4b): lo que la tienda anotó sobre su propio piso.
+  ('frescura_decisiones', 'producto_id', 'productos'),
   ('bajada_piso_items', 'movimiento_id', 'movimientos'),
   ('movimientos_internos_intentos', 'movimiento_id', 'movimientos'),
   ('compra_item_destinos', 'compra_item_id', 'compra_items'),
@@ -469,7 +471,8 @@ insert into zz_candado (orden, tabla, disparador) values
   (3, 'movimientos_internos_intentos', 'movimientos_internos_intentos_inmutables'),
   (4, 'costo_historial', 'costo_historial_sin_update'),
   (5, 'compra_reasignaciones', 'compra_reasignaciones_inmutables'),
-  (6, 'compra_item_cierres', 'compra_item_cierres_inmutables');
+  (6, 'compra_item_cierres', 'compra_item_cierres_inmutables'),
+  (7, 'frescura_decisiones', 'frescura_decisiones_inmutable');
 do $$
 declare r record; v_modo "char";
 begin
@@ -520,6 +523,7 @@ delete from venta_pagos where id in (select id from zz_borrar where tabla = 'ven
 delete from venta_items where id in (select id from zz_borrar where tabla = 'venta_items');
 delete from ventas where id in (select id from zz_borrar where tabla = 'ventas');
 delete from pedidos_no_atendidos where id in (select id from zz_borrar where tabla = 'pedidos_no_atendidos');
+delete from frescura_decisiones where producto_id in (select id from zz_prod);
 delete from stock where variante_id in (select id from zz_var);
 delete from codigos_barras where id in (select id from zz_borrar where tabla = 'codigos_barras');
 delete from variante_etiquetas where variante_id in (select id from zz_var);
@@ -620,7 +624,8 @@ create temp table zz_resumen on commit drop as
   union all select 20, 'líneas de bajada al piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'bajada_piso_items')
   union all select 21, 'pedidos no atendidos', (select count(*) from zz_borrar where tabla = 'pedidos_no_atendidos')
   union all select 22, 'traslados', (select count(*) from zz_traslado)
-  union all select 23, 'proformas', (select count(*) from zz_proforma);
+  union all select 23, 'proformas', (select count(*) from zz_proforma)
+  union all select 24, 'decisiones de Frescura', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'frescura_decisiones');
 
 do $$
 declare r record; v_n bigint; v_resumen text; v_libro bigint;

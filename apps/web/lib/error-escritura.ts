@@ -117,10 +117,11 @@ const HUELLAS: Huella[] = [
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
   {
-    // 20260922140000_ficha_de_clienta_v1_backend.sql — un DNI, una clienta. `registrar_clienta`
-    // hace upsert por DNI (no debería chocar); esto es la red si algún camino inserta directo.
-    marca: "clientas_dni_unico",
-    frase: "Ya hay una clienta con ese DNI. Búscala arriba en vez de crearla de nuevo.",
+    // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
+    // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo
+    // avisa con su propio hint (`documento_de_otra_ficha`); esto es la red si algún camino inserta directo.
+    marca: "clientas_documento_unico",
+    frase: "Ya hay una clienta con ese documento. Búscala arriba en vez de crearla de nuevo.",
   },
   {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
@@ -436,6 +437,22 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * `hint` del documento de la clienta y de la venta ligada a su ficha (ADR-0288, `20260930160000`). Su mensaje ya viene en
+ * castellano de CAYLA y dice qué hacer, pero dos no llegan como `P0001`: `documento_invalido` trae `22023` («El DNI tiene 8
+ * dígitos.») y `documento_de_otra_ficha` trae `23505` («Ese documento ya es de otra ficha…»); sin esto caerían al genérico
+ * con «Código:». Van ANTES que las huellas, como los de variante: el hint es nuestro y exacto. La frase de acá es solo el
+ * respaldo por si el mensaje no llega.
+ *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
+ *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
+ */
+const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
+  ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
+  ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son la misma clienta, únelas desde su ficha."],
+  ["clienta_anonimizada", "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta."],
+  ["clienta_no_existe", "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla."],
+]);
+
+/**
  * `hint` de las reglas del Conteo (rediseño 2026-09-29, `20260930010100_conteo_rediseno_funciones.sql`): `abrir_conteo`,
  * `conteo_contar`, `conteo_recontar`, `conteo_confirmar_diferencia` y `cerrar_conteo` levantan `P0001` con un `hint` estable
  * por cada regla. Cada uno tiene su frase acá —dicha desde quien cuenta, con qué hacer— y se mira ANTES que el `P0001`
@@ -568,6 +585,10 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   if (esVersionCambiada(error)) return error.message || "Otra persona cambió esto mientras lo editabas. Recarga para ver sus cambios.";
 
   if (error.hint && HINTS_VARIANTE.has(error.hint) && error.message) return error.message;
+
+  // El documento de la clienta y la venta ligada a su ficha (ADR-0288): el mensaje de la base, o su respaldo.
+  const deClienta = error.hint ? HINTS_CLIENTA.get(error.hint) : undefined;
+  if (deClienta !== undefined) return error.message || deClienta;
 
   // Las reglas del Conteo: su frase, no la del mensaje crudo (salvo las dos que traen la cuenta, ver arriba).
   const deConteo = error.hint ? HINTS_CONTEO.get(error.hint) : undefined;

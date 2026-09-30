@@ -287,8 +287,14 @@ export function etiquetaDeLinea(l: { estado: EstadoLinea; diferencia: number | n
  *  · una variante que no estaba registrada aquí y se encontró: «Encontraste 1 que no estaba registrada aquí».
  * `ajustadoAntes` es opcional para quien todavía no lo trae (vale 0: la nota de siempre).
  */
-export function notaDeLinea(l: { foto: number; debeHaber: number; contada: number | null; ajustadoAntes?: number }): string | null {
+export function notaDeLinea(l: { foto: number; debeHaber: number; contada: number | null; ajustadoAntes?: number; ajustadoTotal?: number }): string | null {
   const delCierre = l.ajustadoAntes ?? 0;
+  // Conteo reabierto para corregir y línea todavía sin volver a contar: el «debe haber» que se ve (3) es el de ANTES del cierre
+  // y el stock ya pasó a 2 por este conteo. Se dice de entrada, para que el 3 → 2 que aparece al contar de nuevo no sorprenda.
+  const delUltimoCierre = l.ajustadoTotal ?? 0;
+  if (l.contada !== null && delUltimoCierre !== 0 && delCierre !== delUltimoCierre) {
+    return `Había ${l.debeHaber} · por este conteo pasó a ${l.debeHaber + delUltimoCierre}. Ahora estás corrigiendo.`;
+  }
   const deOtros = l.debeHaber - l.foto - delCierre;
   if (deOtros !== 0 || delCierre !== 0) {
     const partes = [`Al abrir: ${l.foto}`];
@@ -439,14 +445,15 @@ export function textoQuedanSinVerificar(n: number): string {
 }
 
 /**
- * «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas», y en un cierre parcial suma cuántas quedaron sin
- * verificar. Es el resultado de un conteo terminado: las «corregidas» son las diferencias que se confirmaron y ajustaron.
+ * «37 variantes verificadas · 34 coincidieron · 3 con diferencia», y en un cierre parcial suma cuántas quedaron sin
+ * verificar. Es el resultado de un conteo terminado: dice que se ENCONTRÓ una diferencia, no que se «corrigió» (Felipe,
+ * 2026-09-30): corregir es lo que se hace después, con «Corregir conteo» o con un ajuste enlazado a ese conteo.
  */
 export function textoTerminado(r: Pick<ResumenConteo, "verificadas" | "correctas" | "conDiferencia" | "pendientes">, parcial: boolean): string {
   const partes = [
     `${r.verificadas} ${r.verificadas === 1 ? "variante verificada" : "variantes verificadas"}`,
     `${r.correctas} ${r.correctas === 1 ? "coincidió" : "coincidieron"}`,
-    `${r.conDiferencia} ${r.conDiferencia === 1 ? "fue corregida" : "fueron corregidas"}`,
+    `${r.conDiferencia} con diferencia`,
   ];
   if (parcial && r.pendientes > 0) partes.push(`${r.pendientes} ${r.pendientes === 1 ? "quedó sin verificar" : "quedaron sin verificar"} (conteo parcial)`);
   return partes.join(" · ");
@@ -473,7 +480,7 @@ export function resultadoConteo(c: DatosDeResultado): ResultadoConteo {
   return c.lineasConDiferencia === 0 ? "todo_correcto" : "con_diferencias";
 }
 
-/** «Todo correcto» / «3 diferencias corregidas» / «Conteo parcial» / «Cancelado» / «En curso». Nunca «Cerrado · Vacío». */
+/** «Todo correcto» / «3 diferencias encontradas» / «Conteo parcial» / «Cancelado» / «En curso». Nunca «Cerrado · Vacío». */
 export function textoResultadoConteo(c: DatosDeResultado): string {
   switch (resultadoConteo(c)) {
     case "en_curso":
@@ -485,7 +492,8 @@ export function textoResultadoConteo(c: DatosDeResultado): string {
     case "todo_correcto":
       return "Todo correcto";
     case "con_diferencias":
-      return c.lineasConDiferencia === 1 ? "1 diferencia corregida" : `${c.lineasConDiferencia} diferencias corregidas`;
+      // «Encontrada», no «corregida»: el conteo encontró la diferencia y ajustó el stock; corregirla (la prenda apareció, se contó mal) es otro paso.
+      return c.lineasConDiferencia === 1 ? "1 diferencia encontrada" : `${c.lineasConDiferencia} diferencias encontradas`;
   }
 }
 

@@ -356,7 +356,12 @@ export function ApartarVista({
     const { clientas, error } = await buscarClienta(t);
     setBuscandoClienta(false);
     if (error) return avisar.error(traducirError(error, "buscar la clienta"));
-    const c = clientas[0];
+    // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
+    // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
+    const exacta = clientas.find((x) =>
+      t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
+    );
+    const c = exacta ?? clientas[0];
     if (!c) {
       setClientaId(null);
       setSinFicha(true);
@@ -372,7 +377,8 @@ export function ApartarVista({
       nombres: nombres || x.nombres,
       apellidos: resto.join(" ") || x.apellidos,
       celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
-      dni: c.dni ?? x.dni,
+      // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
+      dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
     }));
   }
 

@@ -8,6 +8,7 @@ import {
   type LlamarRpcFrescura,
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
+import type { ResumenDecisiones } from "@/lib/frescura-decisiones-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
@@ -31,19 +32,25 @@ export const FRESCURA_DIAS_LECTURA = 120;
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Las dos lecturas, cada una por su NOMBRE LITERAL (no `supabase.rpc(fn, …)` con el nombre en una variable):
+ * Las tres lecturas, cada una por su NOMBRE LITERAL (no `supabase.rpc(fn, …)` con el nombre en una variable):
  * `scripts/pruebas/roles_cobertura_modulos.mjs` lee del código de la web qué funciones llama la pantalla, y así sabe que el
- * módulo «frescura» tiene su guardián en la base (`fn_frescura_sede` y `fn_confianza_registro` preguntan por él).
+ * módulo «frescura» tiene su guardián en la base (`fn_frescura_sede`, `fn_confianza_registro` y, desde el paso 4b,
+ * `fn_frescura_decisiones` preguntan por él).
  */
 function rpcFrescura(supabase: Supabase): LlamarRpcFrescura {
   return (fn, args) =>
     fn === "fn_frescura_sede"
       ? supabase.rpc("fn_frescura_sede", args as { p_ubicacion_id: string; p_dias: number })
-      : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
+      : fn === "fn_frescura_decisiones"
+        ? supabase.rpc("fn_frescura_decisiones", args as { p_ubicacion_id: string; p_dias: number })
+        : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
 }
 
-/** Las cifras de una tienda para «Las N tiendas», o `{ separaPiso: false }` si no separa piso y almacén. */
-export type CifrasDeTienda = FrescuraSede["cifras"] | { separaPiso: false };
+/**
+ * Las cifras de una tienda para «Las N tiendas» —con la suma de lo decidido este mes (paso 4b), null si no se pudo leer—, o
+ * `{ separaPiso: false }` si no separa piso y almacén.
+ */
+export type CifrasDeTienda = (FrescuraSede["cifras"] & { resumen: ResumenDecisiones | null }) | { separaPiso: false };
 
 /** Lo que la pantalla necesita, en una vuelta. Todo es serializable: viaja del servidor al navegador tal cual. */
 export type DatosFrescura = {
@@ -110,7 +117,12 @@ export async function getFrescuraPantalla(
       id: s.ubicacionId,
       nombre: s.nombre,
       lectura: s.lectura.datos
-        ? { datos: s.lectura.datos.separaPiso ? s.lectura.datos.cifras : { separaPiso: false as const }, fallo: null }
+        ? {
+            datos: s.lectura.datos.separaPiso
+              ? { ...s.lectura.datos.cifras, resumen: s.lectura.datos.decisiones.estado === "ok" ? s.lectura.datos.decisiones.resumen : null }
+              : { separaPiso: false as const },
+            fallo: null,
+          }
         : { datos: null, fallo: s.lectura.fallo },
     })),
     temporadas,

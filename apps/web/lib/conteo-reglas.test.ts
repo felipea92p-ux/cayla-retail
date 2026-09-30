@@ -190,6 +190,22 @@ describe("notaDeLinea y notaAjuste", () => {
     expect(notaDeLinea({ foto: 1, debeHaber: 1, contada: 1, ajustadoAntes: -1 })).toBe("Al abrir: 1 · entró 1 durante el conteo · el cierre de este conteo restó 1");
   });
 
+  // Conteo 25 (Felipe, 2026-09-30): Adelle Wide Leg tenía 3, se contó 2 y el cierre restó 1. Al «Corregir conteo» la fila decía
+  // «Debe haber 3» sin más y, al contar de nuevo, el 3 pasaba a 2 sin explicación.
+  it("al reabrir para corregir, antes de volver a contar, dice lo que había y en qué quedó por ese conteo", () => {
+    expect(notaDeLinea({ foto: 3, debeHaber: 3, contada: 2, ajustadoAntes: 0, ajustadoTotal: -1 })).toBe("Había 3 · por este conteo pasó a 2. Ahora estás corrigiendo.");
+    expect(notaDeLinea({ foto: 4, debeHaber: 4, contada: 7, ajustadoAntes: 0, ajustadoTotal: 3 })).toBe("Había 4 · por este conteo pasó a 7. Ahora estás corrigiendo.");
+  });
+
+  it("al volver a contar la nota cambia a «Al abrir…»: el «debe haber» ya es el de hoy", () => {
+    expect(notaDeLinea({ foto: 3, debeHaber: 2, contada: 3, ajustadoAntes: -1, ajustadoTotal: -1 })).toBe("Al abrir: 3 · el cierre de este conteo restó 1");
+  });
+
+  it("una línea sin ajuste de cierre (conteo que nunca se cerró, o la cifra coincidió) no dice «corrigiendo»", () => {
+    expect(notaDeLinea({ foto: 3, debeHaber: 3, contada: 3, ajustadoAntes: 0, ajustadoTotal: 0 })).toBeNull();
+    expect(notaDeLinea({ foto: 3, debeHaber: 3, contada: null, ajustadoAntes: 0, ajustadoTotal: -1 })).toBeNull();
+  });
+
   it("sin ajuste previo (o sin el dato) la nota es la de siempre", () => {
     expect(notaDeLinea({ foto: 1, debeHaber: 0, contada: 1, ajustadoAntes: 0 })).toBe("Al abrir: 1 · salió 1 durante el conteo");
     expect(notaDeLinea({ foto: 1, debeHaber: 1, contada: 1, ajustadoAntes: 0 })).toBeNull();
@@ -330,11 +346,11 @@ describe("resumirLineas, bloqueoDeCierre y los textos del resumen", () => {
     expect(textoQuedanSinVerificar(1)).toBe("Queda 1 variante sin verificar; no cambiará.");
   });
 
-  it("el conteo terminado: «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas»", () => {
-    expect(textoTerminado({ verificadas: 37, correctas: 34, conDiferencia: 3, pendientes: 0 }, false)).toBe("37 variantes verificadas · 34 coincidieron · 3 fueron corregidas");
-    expect(textoTerminado({ verificadas: 1, correctas: 1, conDiferencia: 0, pendientes: 0 }, false)).toBe("1 variante verificada · 1 coincidió · 0 fueron corregidas");
+  it("el conteo terminado: «37 variantes verificadas · 34 coincidieron · 3 con diferencia»", () => {
+    expect(textoTerminado({ verificadas: 37, correctas: 34, conDiferencia: 3, pendientes: 0 }, false)).toBe("37 variantes verificadas · 34 coincidieron · 3 con diferencia");
+    expect(textoTerminado({ verificadas: 1, correctas: 1, conDiferencia: 0, pendientes: 0 }, false)).toBe("1 variante verificada · 1 coincidió · 0 con diferencia");
     expect(textoTerminado({ verificadas: 18, correctas: 16, conDiferencia: 2, pendientes: 19 }, true)).toBe(
-      "18 variantes verificadas · 16 coincidieron · 2 fueron corregidas · 19 quedaron sin verificar (conteo parcial)"
+      "18 variantes verificadas · 16 coincidieron · 2 con diferencia · 19 quedaron sin verificar (conteo parcial)"
     );
     expect(textoTerminado({ verificadas: 2, correctas: 2, conDiferencia: 0, pendientes: 1 }, true)).toContain("1 quedó sin verificar (conteo parcial)");
     // Sin ser parcial no se menciona lo pendiente.
@@ -373,10 +389,10 @@ describe("resumirLineas, bloqueoDeCierre y los textos del resumen", () => {
 describe("resultadoConteo y su texto en el historial", () => {
   const c = (p: Partial<Parameters<typeof resultadoConteo>[0]>) => ({ estado: "cerrado", lineas: 10, lineasConDiferencia: 0, parcial: false, ...p });
 
-  it("«Todo correcto» / «N diferencias corregidas» / «Conteo parcial» / «Cancelado» / «En curso»", () => {
+  it("«Todo correcto» / «N diferencias encontradas» / «Conteo parcial» / «Cancelado» / «En curso»", () => {
     expect(textoResultadoConteo(c({}))).toBe("Todo correcto");
-    expect(textoResultadoConteo(c({ lineasConDiferencia: 3 }))).toBe("3 diferencias corregidas");
-    expect(textoResultadoConteo(c({ lineasConDiferencia: 1 }))).toBe("1 diferencia corregida");
+    expect(textoResultadoConteo(c({ lineasConDiferencia: 3 }))).toBe("3 diferencias encontradas");
+    expect(textoResultadoConteo(c({ lineasConDiferencia: 1 }))).toBe("1 diferencia encontrada");
     expect(textoResultadoConteo(c({ parcial: true }))).toBe("Conteo parcial");
     expect(textoResultadoConteo(c({ estado: "anulado" }))).toBe("Cancelado");
     expect(textoResultadoConteo(c({ estado: "abierto" }))).toBe("En curso");
@@ -388,7 +404,7 @@ describe("resultadoConteo y su texto en el historial", () => {
     expect(resultadoConteo(c({ estado: "anulado", lineas: 12 }))).toBe("cancelado");
   });
 
-  it("un parcial es «Conteo parcial» aunque tenga diferencias corregidas", () => {
+  it("un parcial es «Conteo parcial» aunque tenga diferencias encontradas", () => {
     expect(resultadoConteo(c({ parcial: true, lineasConDiferencia: 2 }))).toBe("parcial");
   });
 

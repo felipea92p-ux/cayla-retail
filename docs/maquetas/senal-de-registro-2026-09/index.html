@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Señal de registro — maqueta</title>
+<style>
+  /* Tokens de apps/web/app/globals.css (ADR-0169). Solo estos colores; ningún rojo en una tarjeta que no sea un error del sistema. */
+  :root{--crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--sand:#e8e0d0;--taupe:#805c4c;--hueso:#eae1d2;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--rojo:#b8412d;--tinta60:#5b544c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:15px/1.5 "DM Sans",system-ui,sans-serif}
+  main{max-width:1180px;margin:0 auto;padding:32px 16px 64px}
+  h1{font:600 38px/1.1 "EB Garamond",Georgia,serif;margin:0 0 6px}
+  .sub{color:var(--tinta60);max-width:70ch;margin:0 0 28px}
+  h2{font:600 22px/1.2 "EB Garamond",Georgia,serif;margin:36px 0 4px}
+  .nota{color:var(--tinta60);font-size:13.5px;margin:0 0 16px;max-width:80ch}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;align-items:start}
+  figure{margin:0}
+  figcaption{font-size:12.5px;color:var(--tinta60);margin:8px 2px 0}
+  figcaption b{color:var(--tinta)}
+  .tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:18px 18px 16px}
+  .tarjeta .etq{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--taupe);margin:0 0 8px;display:flex;justify-content:space-between;gap:8px}
+  .grande{font:600 21px/1.25 "EB Garamond",Georgia,serif;margin:0 0 8px}
+  .chico{font-size:13.5px;color:var(--tinta60);margin:0 0 6px}
+  .chip{display:inline-block;border-radius:11px;padding:1px 9px;font-size:11.5px;line-height:18px;font-weight:600;margin:0 0 8px}
+  .chip.verde{background:color-mix(in oklab,var(--verde) 14%,transparent);color:var(--verde)}
+  .chip.pizarra{background:color-mix(in oklab,var(--pizarra) 14%,transparent);color:var(--pizarra)}
+  .chip.ambar{background:color-mix(in oklab,var(--ambar) 14%,transparent);color:var(--ambar)}
+  ul.lista{list-style:none;margin:8px 0;padding:0;font-size:13.5px}
+  ul.lista li{padding:6px 10px;background:var(--hueso);border-radius:9px;margin:0 0 5px;display:flex;justify-content:space-between;gap:10px}
+  ul.lista li span{color:var(--tinta60);white-space:nowrap}
+  .pie{border-top:1px solid var(--sand);margin-top:12px;padding-top:9px;font-size:12px;color:var(--tinta60)}
+  .botones{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+  .btn{font:600 13px/1 "DM Sans",sans-serif;border:1px solid var(--tinta);background:var(--papel);color:var(--tinta);border-radius:999px;padding:10px 14px;min-height:40px}
+  .btn.sutil{border-color:var(--sand);font-weight:500;color:var(--tinta60)}
+  .no{border-color:color-mix(in oklab,var(--rojo) 40%,var(--sand));background:color-mix(in oklab,var(--rojo) 6%,var(--papel))}
+  .no .grande{color:var(--rojo)}
+  .no .flecha{color:var(--rojo);font-weight:600}
+  .tachado{position:relative}
+  .sello{position:absolute;top:-10px;right:12px;background:var(--rojo);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:3px 10px;letter-spacing:.06em}
+  table{border-collapse:collapse;font-size:13px;margin:8px 0 0;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+  th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--sand)}
+  th:first-child,td:first-child{text-align:left}
+  th{background:var(--hueso);font-weight:600}
+  .peor td{color:var(--rojo);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <h1>La señal de registro al colgar</h1>
+  <p class="sub">Maqueta del 29-sep-2026 (no es una pantalla construida). Para la <b>Terminal de ventas</b>, en Caja junto a los botones de la caja («La traje del almacén» / «Ya estaba colgada»). De la <b>tienda entera</b>, nunca de una persona; solo contra <b>su propio mes anterior</b>, nunca contra otras tiendas. Sin porcentajes semanales, sin rojo, sin ranking.</p>
+
+  <h2>Los estados que sí</h2>
+  <p class="nota">Cada uno se ve al ancho de un celular. El bueno va en silencio: si todo está normal, la tarjeta es una frase tranquila y nada más.</p>
+  <div class="rejilla">
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <p class="grande">Esta semana se bajaron 3 prendas al piso.</p>
+        <p class="chico">Cuando haya unas semanas de historia, aquí verás cómo va la tienda contra su mes anterior. Por ahora no hay nada que revisar.</p>
+        <p class="pie">La ve solo tu equipo. No se compara con otras tiendas ni con personas.</p>
+      </div>
+      <figcaption><b>1 · Hoy en Trujillo.</b> Producción tiene 3 bajadas en toda su historia: no hay porcentaje que calcular ni pasado con qué comparar. Se dice tal cual.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <p class="grande">Este mes se bajaron 118 prendas al piso; 112 antes de venderse.</p>
+        <p class="chico">Igual que el mes pasado.</p>
+        <p class="pie">La ve solo tu equipo. No se compara con otras tiendas ni con personas.</p>
+      </div>
+      <figcaption><b>2 · Un mes normal.</b> Cuentas, no porcentajes. «Igual que el mes pasado» solo aparece si de verdad se pueden comparar y no hay un cambio real.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <span class="chip verde">Mejor que el mes pasado</span>
+        <p class="grande">Este mes, 116 de 118 se bajaron antes de venderse.</p>
+        <p class="chico">El mes pasado fueron 88 de 121. Es una diferencia que el azar no explica.</p>
+        <p class="pie">La ve solo tu equipo. No se compara con otras tiendas ni con personas.</p>
+      </div>
+      <figcaption><b>3 · Una mejora real.</b> Solo se dice «mejor» cuando la diferencia es más grande que el azar: con ~120 bajadas al mes eso exige un salto de unos 18 puntos o más (tabla de abajo). Es lo único que lleva chip verde.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <p class="grande">Esta semana se bajaron 8 prendas al piso.</p>
+        <p class="chico">Son pocas para decir algo. Cuando haya más, aquí verás cómo va.</p>
+        <p class="pie">La ve solo tu equipo. No se compara con otras tiendas ni con personas.</p>
+      </div>
+      <figcaption><b>4 · Una semana con pocas bajadas.</b> Debajo del mínimo no hay comparación de ningún tipo, ni «bien» ni «mal».</figcaption>
+    </figure>
+  </div>
+
+  <h2>Los días malos — sin asustar a nadie por un problema del sistema</h2>
+  <p class="nota">Un día malo <b>nunca</b> mueve una cifra grande: la tarjeta cuenta 28 días, así que un solo día no la cambia mucho. Y cuando algo se ve raro, la tarjeta primero pregunta si hubo un problema, antes de sugerir que fue costumbre.</p>
+  <div class="rejilla">
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <span class="chip pizarra">Un día pesó mucho</span>
+        <p class="grande">Casi todo lo que se vendió antes de bajarse (9 de 11) fue el martes 22.</p>
+        <p class="chico">Un solo día así casi nunca es costumbre. ¿Ese día hubo un problema? Por ejemplo: sin internet, la pistola no leía o el sistema iba lento.</p>
+        <div class="botones"><span class="btn">Sí, hubo un problema</span><span class="btn sutil">No, fue un día normal</span></div>
+        <p class="pie">Si dices que sí, ese día no cuenta para esta tarjeta. La líder igual lo ve, con el día marcado.</p>
+      </div>
+      <figcaption><b>5 · DÍA MALO por caída del sistema.</b> Una tienda sin internet un día registra las bajadas tarde y parece «tardía» toda esa jornada. El sistema hoy <b>no guarda</b> la hora real de una operación sin conexión, así que no puede saberlo solo: lo <b>detecta por concentración</b> (casi todo en un día) y lo <b>pregunta</b>, sin acusar. Lo que responda el equipo no le esconde nada a la líder.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <span class="chip pizarra">Para revisar</span>
+        <p class="grande">3 prendas se vendieron antes de que se bajaran al piso esta semana.</p>
+        <ul class="lista">
+          <li>Blusa Wayra · M <span>lun 28 · 11:04</span></li>
+          <li>Polo Lima · L <span>lun 28 · 11:09</span></li>
+          <li>Falda Inti · S <span>mar 29 · 15:22</span></li>
+        </ul>
+        <p class="chico">Suele pasar cuando llega un fardo y se vende enseguida: si las colgaste y se vendieron en pocos minutos, no pasó nada raro; el sistema no siempre puede distinguirlo.</p>
+        <p class="chico"><b>Para que no se cuente así:</b> escanea al colgar. Si la clienta ya está esperando, en la caja toca «Ya estaba colgada» o «La traje del almacén».</p>
+        <p class="pie">Son prendas, no personas. Una prenda que marcaste en la caja con esos botones no sale aquí: decir la verdad nunca suma a esta lista.</p>
+      </div>
+      <figcaption><b>6 · DÍA MALO por un fardo que se vende enseguida.</b> El sistema llama «tardía» a una bajada seguida de una venta en menos de 10 minutos: no distingue «la registré al cobrar» de «llegó el fardo, la colgué y se vendió al toque». La tarjeta lo dice y da <b>una</b> cosa que hacer. Aparece solo si son 3 o más en la semana. <b>Depende del paso 3b</b> (los dos botones de la caja), que todavía no está construido: hasta entonces la tarjeta solo puede pedir «escanea al colgar».</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <p class="grande">No se pudo cargar esta tarjeta.</p>
+        <p class="chico">Lo demás de la pantalla sí está al día. Vuelve a intentar en un momento.</p>
+        <div class="botones"><span class="btn sutil">Volver a intentar</span></div>
+      </div>
+      <figcaption><b>7 · La lectura no responde.</b> Nunca se muestra el último número guardado como si fuera de hoy: se dice que falta y se sigue. No es un problema de nadie.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tarjeta">
+        <p class="etq"><span>Bajadas al piso</span><span>Tienda Trujillo</span></p>
+        <span class="chip pizarra">Distinto al mes pasado</span>
+        <p class="grande">Este mes, 84 de 120 se bajaron antes de venderse.</p>
+        <p class="chico">El mes pasado fueron 112 de 118. Es una diferencia que el azar no explica.</p>
+        <ul class="lista">
+          <li>Semana del 7 <span>9 de 30</span></li>
+          <li>Semana del 14 <span>10 de 30</span></li>
+          <li>Semana del 21 <span>9 de 30</span></li>
+          <li>Semana del 28 <span>8 de 30</span></li>
+        </ul>
+        <p class="chico">Son las que se vendieron antes de bajarse, repartidas en las cuatro semanas: no es un día ni una prenda. ¿Cambió algo este mes (turnos, gente nueva, llegó mucha mercadería)?</p>
+        <p class="pie">La ve solo tu equipo. Es informativo: no hay nada que tocar para «arreglarlo».</p>
+      </div>
+      <figcaption><b>8 · Un cambio REAL a peor.</b> Solo si la diferencia supera al azar en las dos ventanas. Sigue sin rojo ni alarma: ámbar/pizarra, una pregunta abierta y las semanas para orientarse. Nunca «tú».</figcaption>
+    </figure>
+  </div>
+
+  <h2>Lo que NO se hace</h2>
+  <p class="nota">La propuesta original —«esta semana registraste el 80 % de tus bajadas a tiempo», con flecha y contra la semana anterior— tal como se vería, y por qué no.</p>
+  <div class="rejilla">
+    <figure class="tachado">
+      <span class="sello">NO</span>
+      <div class="tarjeta no">
+        <p class="etq"><span>Tu registro esta semana</span><span>Tienda Trujillo</span></p>
+        <p class="grande">Esta semana registraste el 80 % de tus bajadas a tiempo.</p>
+        <p class="chico"><span class="flecha">▼ 10 puntos</span> que la semana pasada (90 %)</p>
+      </div>
+      <figcaption>Con 30 a 100 unidades por semana y disciplina <b>idéntica</b> todas las semanas, este cartel aparece por puro azar entre 5 y 12 veces al año (tabla de al lado). Y cada vez la persona lee «lo hice peor».</figcaption>
+    </figure>
+    <div>
+      <table>
+        <tr><th>Unidades bajadas por semana</th><th>Ventana</th><th>Sustos por puro azar (fardos)</th><th>Sin fardos</th></tr>
+        <tr class="peor"><td>30</td><td>1 semana</td><td>24 % de las semanas · ~12 al año</td><td>2 %</td></tr>
+        <tr class="peor"><td>100</td><td>1 semana</td><td>10 % de las semanas · ~5 al año</td><td>0,1 %</td></tr>
+        <tr><td>300</td><td>1 semana</td><td>2 % · ~1 al año</td><td>0 %</td></tr>
+        <tr><td>30</td><td>28 días</td><td>10 % de las ventanas</td><td>0,1 %</td></tr>
+        <tr><td>100</td><td>28 días</td><td>1 %</td><td>0 %</td></tr>
+      </table>
+      <p class="nota" style="margin-top:10px">Disciplina <b>idéntica</b> todas las semanas: 90 % a tiempo, y «susto» = mostrar menos de 80 %. «Fardos» = las tardías llegan en filas enteras de 1 a 10 unidades (un fardo que se vende de golpe), que es como las produce el mostrador. El «10 % de tardías» es un supuesto: hoy en Trujillo hay 3 bajadas en toda la historia. Reproducible: <code>python3 ruido.py</code>.</p>
+    </div>
+  </div>
+</main>
+</body>
+</html>
