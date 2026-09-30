@@ -202,6 +202,11 @@ describe("notaDeLinea y notaAjuste", () => {
     expect(notaDeLinea({ foto: 3, debeHaber: 2, contada: 3, ajustadoAntes: -1, ajustadoTotal: -1 })).toBe("Al abrir: 3 · el cierre de este conteo restó 1");
   });
 
+  // Conteo 25 corregido dos veces (Adelle Wide Leg: 3 → 2 → 3): el neto es 0, pero la línea se vuelve a corregir.
+  it("un conteo ya corregido una vez (neto 0) vuelve a decir de dónde viene al corregirlo otra vez", () => {
+    expect(notaDeLinea({ foto: 3, debeHaber: 2, contada: 3, ajustadoAntes: -1, ajustadoTotal: 0 })).toBe("Había 2 · por este conteo pasó a 3. Ahora estás corrigiendo.");
+  });
+
   it("una línea sin ajuste de cierre (conteo que nunca se cerró, o la cifra coincidió) no dice «corrigiendo»", () => {
     expect(notaDeLinea({ foto: 3, debeHaber: 3, contada: 3, ajustadoAntes: 0, ajustadoTotal: 0 })).toBeNull();
     expect(notaDeLinea({ foto: 3, debeHaber: 3, contada: null, ajustadoAntes: 0, ajustadoTotal: -1 })).toBeNull();
@@ -1024,6 +1029,9 @@ describe("textoHabiaAntes — la marca fija bajo «Debe haber» al corregir un c
     // Y con un ajuste que sumó: había 4, el cierre sumó 3 (hoy 7).
     expect(textoHabiaAntes({ debeHaber: 4, ajustadoAntes: 0, ajustadoTotal: 3 })).toBe("Había 4");
     expect(textoHabiaAntes({ debeHaber: 7, ajustadoAntes: 3, ajustadoTotal: 3 })).toBe("Había 4");
+  });
+  it("con dos cierres que se compensan (3 → 2 → 3, neto 0) sigue recordando el punto de partida", () => {
+    expect(textoHabiaAntes({ debeHaber: 2, ajustadoAntes: -1, ajustadoTotal: 0 })).toBe("Había 3");
   });
   it("sin ajuste de cierre en la línea (conteo normal, o la cifra coincidió) no pone nada", () => {
     expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: 0 })).toBeNull();
