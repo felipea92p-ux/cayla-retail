@@ -87,3 +87,19 @@ que hacía falta para la pantalla; no toqué nada más.
 Felipe se lleva: la sigla de sede ya funciona en producción para los productos que se registren desde ahora (los 12 actuales salen sin sigla, a propósito), pero la
 web de esta rama aún no está desplegada ni hay commit. Pendiente: probar un alta real de TRU y otra de AQP con el despliegue, y refrescar el diccionario de datos (el
 volcado es del 28 de setiembre; `pnpm datos:comparar` seguirá marcando `fn_producto_origen` hasta entonces). No se probó una alta real desde la web.
+
+## 2026-09-30 (CI del PR: la purga y `eliminar_producto` no conocían `producto_origen`)
+
+Qué hice: el check obligatorio «Pruebas de RPC contra Postgres» falló en dos pasos, `pruebas:purgar-producto` (88 pruebas, todas por lo mismo) y `pruebas:eliminar-producto`
+(una). Causa: dos candados del repo recorren el esquema y se niegan a seguir ante una tabla con llave a `productos` que no conocen, y `producto_origen` era nueva.
+Arreglo en tres archivos: `scripts/purga/purgar-producto-de-prueba.sql` (la tabla entra como hoja del producto y se borra con él), `scripts/purga/restaurar-purga.sql`
+(se devuelve justo después de `productos`) y `scripts/pruebas/eliminar_producto.mjs` (clasificada como «suya»: se va con la ficha por su cascada). No toca producción ni la
+migración: la purga es un script, no una función viva.
+
+Por qué así: la purga respalda cada fila antes de borrar y restaura fila por fila, así que `producto_origen` tenía que estar en las dos puntas, no solo en el borrado; `eliminar_producto`
+no necesita cambio en la base porque la llave ya cascadea. Dos cosas que aprendí: mi base local iba **33 migraciones** atrás de `main` y por eso no pude ver este fallo antes (solo
+corrí mis pruebas y las de pantalla); y `supabase migration up --db-url … --include-all` la dejó al día sin errores (`--include-all` porque una migración vieja, `20260928120330`, nunca se había aplicado).
+
+Felipe se lleva: con la base local al día y el conteo abierto de Tienda Lima apartado un momento (lo devolví a «abierto»), `purgar-producto` pasa 88 de 88, `eliminar-producto` 35 de 35,
+`eliminar-producto-con-historia` 52 de 52 y `producto-origen` 14 de 14. Mi base local quedó sin migraciones pendientes (última `20261001120000`), con mis datos de prueba intactos; antes de migrar
+guardé un respaldo del schema `retail` en el scratchpad de la sesión. Ojo para quien corra la purga en local: la escena necesita que Tienda Lima no tenga un conteo abierto.

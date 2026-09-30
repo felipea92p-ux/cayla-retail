@@ -168,6 +168,8 @@ insert into zz_hoja values
   ('stock', 'variante_id', 'variantes'),
   ('variante_etiquetas', 'variante_id', 'variantes'),
   ('producto_color_temporadas', 'producto_id', 'productos'),
+  -- En qué sede se registró el producto (ADR-0292): nace con la ficha y se va con ella.
+  ('producto_origen', 'producto_id', 'productos'),
   ('bajada_piso_items', 'movimiento_id', 'movimientos'),
   ('movimientos_internos_intentos', 'movimiento_id', 'movimientos'),
   ('compra_item_destinos', 'compra_item_id', 'compra_items'),
@@ -523,6 +525,7 @@ delete from codigos_barras where id in (select id from zz_borrar where tabla = '
 delete from variante_etiquetas where variante_id in (select id from zz_var);
 delete from producto_fotos where id in (select id from zz_borrar where tabla = 'producto_fotos');
 delete from producto_color_temporadas where producto_id in (select id from zz_prod);
+delete from producto_origen where producto_id in (select id from zz_prod);
 delete from variantes where id in (select id from zz_var);
 delete from productos where id in (select id from zz_prod);
 

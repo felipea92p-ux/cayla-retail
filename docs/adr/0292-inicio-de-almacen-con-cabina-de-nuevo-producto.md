@@ -80,6 +80,15 @@ Verificado después de aplicar: RLS encendido y 0 políticas, disparador activo,
 tabla, `anon` no lee nada, 0 filas (sin historia). Lo vigila `pnpm pruebas:producto-origen` (14 comprobaciones, en el CI).
 **Lo que queda:** el diccionario de `docs/datos/generado/` no la trae todavía (el volcado es del 2026-09-28: refrescarlo es una tarea aparte).
 
+**Una tabla que cuelga de `productos` tiene que enseñárseles a dos guardias (aprendido en el CI del PR, 2026-09-30).** `producto_origen` nació con
+`on delete cascade`, pero el repo tiene dos candados que recorren el esquema y se niegan a seguir ante una tabla que no conocen: la **purga de productos de
+prueba** (`scripts/purga/purgar-producto-de-prueba.sql`: «NO SE BORRA NADA… citan a productos que se borrarían») y la clasificación de `eliminar_producto`
+(`scripts/pruebas/eliminar_producto.mjs`: «SIN CLASIFICAR»). Se resolvió así: en la purga, `producto_origen` es una **hoja** de `productos` (`zz_hoja`, su
+`delete` explícito antes del de `productos`, y respaldada y restaurada como las demás: `restaurar-purga.sql` la devuelve justo después de `productos`); en
+`eliminar_producto`, es **suya** (nace con la ficha y se va con ella por la cascada; no es historia y no frena el borrado). **Por qué no lo vi antes:** corrí solo
+mi prueba y las de pantalla; la base local iba 33 migraciones atrás de `main` y no podía correr la purga. Regla para la próxima tabla con llave a `productos` o
+`variantes`: correr `pnpm pruebas:purgar-producto` y `pnpm pruebas:eliminar-producto` contra una base local al día antes de abrir el PR.
+
 **5. Movimiento completo, con un solo bucle decorativo aislado.** Entrada escalonada (55 ms de desfase, una vez), aros y trazos que se llenan
 al llegar a la vista, cifras que cuentan, foco de luz que sigue al mouse, inclinación de la tarjeta de producto, imán del botón
 principal, un brillo que barre el botón al llegar, barrido de luz sobre cada foto, filtros que reacomodan las tarjetas con una

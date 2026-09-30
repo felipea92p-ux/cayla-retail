@@ -284,7 +284,9 @@ select pg_temp.huella(:'va');`);
 // nació una tabla nueva: decide si es SUYA (se borra con la ficha: agrégala a `eliminar_producto`) o HISTORIA (frena el
 // borrado: agrégala a `fn_producto_se_puede_eliminar` y a la lista de abajo).
 {
-  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas"];
+  // `producto_origen` (ADR-0292) es SUYA: es un dato que nace con la ficha (en qué sede se registró) y se va con ella por su
+  // `on delete cascade`; no es historia y no frena el borrado.
+  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
