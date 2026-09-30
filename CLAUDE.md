@@ -178,6 +178,13 @@ lo vigila `lib/vista-rapida-reglas.test.ts`), nunca con un `e.key === "ArrowDown
 puede tener un modal adentro ignora el clic cuyo destino no está en su DOM (`!e.currentTarget.contains(e.target as Node)`,
 como la fila de Por pagar).
 
+**Botones a la vista en una hoja larga (2026-09-30, `/multi-view-responsive`):** la hoja de `<Modal>` es la que scrollea, y en un
+laptop de 768 px de alto el botón principal de un formulario largo quedaba bajo el pliegue. La fila de acciones de una hoja con
+formulario lleva la clase **`pie-hoja-fijo`** (`app/globals.css`): se pega al borde de abajo mientras el contenido pasa por detrás, y
+si todo cabe no se nota. Va como hija directa del `<form>`; si la fila lleva una línea arriba (`border-t`), esa línea va en una caja
+de adentro, o se correría hasta el borde de la hoja. Hoy la usan Ajustar inventario y Registrar nota de crédito; las demás hojas
+largas la piden cuando se toquen.
+
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
 props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se

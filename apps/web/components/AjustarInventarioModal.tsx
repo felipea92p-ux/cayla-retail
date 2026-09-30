@@ -473,7 +473,8 @@ export function AjustarInventarioModal({
 
           <ComboResponsable control={responsable} deshabilitado={enviando} />
 
-          <div className="flex gap-2 pt-1">
+          {/* `pie-hoja-fijo`: Cancelar y Confirmar no se van bajo el pliegue en un laptop de 768 px de alto (globals.css). */}
+          <div className="pie-hoja-fijo flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
               Cancelar
             </Boton>
