@@ -1177,7 +1177,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           2026-09-14). El resto de la app sigue centrado en la columna
           angosta de siempre. */}
       <main className="ease-cayla px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24 sm:transition-[margin-left] sm:duration-300">
-        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl"}>{children}</div>
+        {/* `has-[[data-ancho-completo]]`: una pantalla que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
+            Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
+        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
       </main>
     </div>
   );

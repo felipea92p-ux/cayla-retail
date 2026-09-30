@@ -988,7 +988,7 @@ export function PuntoDeVentaTicket({
                       )}
                       <Receipt className={ICONO_CHICO} aria-hidden />
                       Comprobante
-                      {paso === "comprobante" && <PastillaPaso>Opcional</PastillaPaso>}
+                      {paso === "comprobante" && <PastillaPaso>Opcional: ya está en {ETIQUETA_TIPO[tipoComprobante]}</PastillaPaso>}
                     </span>
                   </legend>
                   <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
@@ -1017,6 +1017,11 @@ export function PuntoDeVentaTicket({
                       onNumero={onClienteNumDoc}
                       nombre={clienteNombre}
                       onNombre={onClienteNombre}
+                      sinNumero={
+                        tipoComprobante === "boleta" ? "Sin DNI, la boleta sale a nombre de «Cliente varios»."
+                        : tipoComprobante === "nota_venta" ? "Sin DNI, la nota de venta sale a nombre de «Cliente varios»."
+                        : undefined
+                      }
                     />
                   </fieldset>
                   {tipoComprobante === "nota_venta" && (

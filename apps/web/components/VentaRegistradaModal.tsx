@@ -106,6 +106,12 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   </span>
                   <span className="text-[11px] text-tinta/60">{ok.estado ? ESTADO_ETIQUETA[ok.estado] : "Emitida"}</span>
                 </div>
+                {/* «Pendiente de enviar» no le dice nada a quien cobra (pasada ciega, 2026-09-30): qué es y qué no es. */}
+                {(ok.estado === "pendiente" || ok.estado === "pendiente_reintento") && (
+                  <p className="text-[11.5px] leading-snug text-tinta/65">
+                    La venta ya quedó guardada y {`la ${ETIQUETA_TIPO[r.tipo].toLowerCase()}`} tiene su número. Todavía no llegó a SUNAT: el sistema la envía solo y, si SUNAT no responde, la reintenta.
+                  </p>
+                )}
                 {/* La nota de venta no desglosa IGV (ADR-0164). */}
                 {r.tipo !== "nota_venta" && <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/70">
                   <p className="flex justify-between tabular-nums">
