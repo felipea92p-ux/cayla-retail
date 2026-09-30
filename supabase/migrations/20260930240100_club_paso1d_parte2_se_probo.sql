@@ -1,8 +1,8 @@
 -- ============================================================================
--- 20260930240000_club_paso1d_regalo_y_se_probo.sql — CAYLA V2 · Club de clientas · paso 1, tanda 1d
+-- 20260930240100_club_paso1d_parte2_se_probo.sql — CAYLA V2 · Club de clientas · paso 1, tanda 1d · PARTE 2 de 4
 -- ADR-0288 (DECISIÓN 6, DECISIÓN 7 y «Actualización 2026-09-30 (e): tanda 1d»); acta
--- docs/datos/DECISIONES-2026-09-29-club-clientas.md (CL-7, CL-14) y D-101. UNA SOLA PARTE: sin políticas ni `drop trigger`
--- (CLAUDE.md, «Políticas y deadlocks»). Va DESPUÉS de la tanda 1c (20260930230000/230100).
+-- docs/datos/DECISIONES-2026-09-29-club-clientas.md (CL-7, CL-14) y D-101. CUATRO PARTES, sin políticas ni `drop trigger`
+-- (CLAUDE.md, «Políticas y deadlocks»). Van DESPUÉS de la tanda 1c (20260930230000 a 20260930230200).
 --
 -- EL PROBLEMA. Dos señales de la clienta se perdían o mentían:
 --   · «Se la probó y no la llevó» no quedaba en ningún lado. Compras solo veía «buscó y no había» (`pedidos_no_atendidos`,
@@ -11,20 +11,19 @@
 --     (apps/web/lib/clienta-actividad-reglas.ts) no tenía cómo saber que esa prenda no era para ella («LÍMITE CONOCIDO
 --     (v1)» de ese archivo).
 --
--- QUÉ HACE
---   1. `pedidos_no_atendidos` suma `motivo` (`no_habia_talla` por defecto, así que TODO lo de hoy queda como «buscó y no
+-- QUÉ HACE (cada punto dice en qué parte va)
+--   1. (PARTE 1) `pedidos_no_atendidos` suma `motivo` (`no_habia_talla` por defecto, así que TODO lo de hoy queda como «buscó y no
 --      había»; o `se_probo_no_llevo`) y `razon` (opcional, solo con `se_probo_no_llevo`: `no_le_quedo`, `precio`, `color` o
 --      `lo_piensa`). Candados en el esquema: el motivo es uno de los dos, y una razón sin «se la probó» es imposible.
---   2. `registrar_pedido_no_atendido` recibe `p_motivo` y `p_razon` al final, con los defaults de hoy: la llamada vieja
+--   2. (PARTE 2, este archivo) `registrar_pedido_no_atendido` recibe `p_motivo` y `p_razon` al final, con los defaults de hoy: la llamada vieja
 --      (5 parámetros: «Anotar que no había» del modal de talla y de Cambios) sigue igual. Cambia de firma: `drop` de la
 --      vieja y `create` de la nueva, partiendo de su definición viva (la de 20260923100000, que firma con
 --      `fn_actor_persona_id(true)`). Se conservan quién firma, el candado de ubicación y que NO exige módulo (cualquiera que
 --      opera la sede anota). Rechazos nuevos, con hint estable: `pedido_motivo_invalido`, `pedido_razon_sin_se_probo` y
 --      `pedido_razon_invalida`.
---   3. `venta_items.es_regalo boolean not null default false` (D-7): la marca por prenda vendida. Toda venta de hoy queda
---      como «no es regalo». Quién la escribe: `registrar_venta`, en la FASE B de esta tanda (cuando la 1c esté en su lugar;
---      ver «Lo que falta» abajo). Mientras tanto la columna existe y vale false: nada cambia para nadie.
---   4. `fn_clienta_compras` devuelve `es_regalo`. Cambia su tipo de retorno: `drop` y `create`, con la misma lectura, el
+--   3. (PARTE 3, EN ESPERA) `venta_items.es_regalo boolean not null default false` (D-7): la marca por prenda vendida.
+--      Toda venta de hoy queda como «no es regalo», y nada la escribe todavía (ver «EN ESPERA» abajo).
+--   4. (PARTE 4, EN ESPERA) `fn_clienta_compras` devuelve `es_regalo`. Cambia su tipo de retorno: `drop` y `create`, con la misma lectura, el
 --      mismo candado del módulo «Clientas» y los mismos permisos (EXECUTE solo para `authenticated`).
 --
 -- REGLA DE NEGOCIO QUE ESTO DEJA ESCRITA (ADR-0288 D-6, «SE ROMPE SI»): «Llegó tu talla» (paso 3, todavía no existe)
@@ -49,23 +48,32 @@
 --   `pedidos_no_atendidos` sin pasar por `registrar_pedido_no_atendido` (el esquema igual rechaza motivo y razón fuera de la
 --   lista). Lo vigila scripts/pruebas/club_regalo_y_se_probo.mjs.
 --
--- LO QUE FALTA (FASE B de la tanda 1d): que `registrar_venta` guarde `es_regalo` desde `p_items`
---   (`(v_item ->> 'es_regalo')::boolean`), sin cambiar su firma. Espera a la 1c, que reescribe `registrar_venta` con
---   `p_canjear_cumpleanos` y `descuento_club_unitario`: se hace sobre ESA definición, con un reemplazo anclado y su md5.
 --
--- CANDADO DE VERSIÓN. La sección 0 compara el md5 NORMALIZADO (sin comentarios ni espacios) del cuerpo vivo de las dos
--- funciones que reescribe con el de producción (el que dejaron 20260923100000 y 20260928190000; comprobado en una base
--- armada con todas las migraciones del repo) o con el de después de este archivo. Con cualquier otro, aborta sin tocar nada.
+-- «ES PARA REGALO» ESTÁ EN ESPERA (2026-09-30). El spike aprobado del club (docs/maquetas/club-clientas-spike-2026-09,
+--   README, punto 8) sacó «¿Es para regalo?» de la línea del ticket, y Felipe decide si la marca se queda. Por eso todo lo de
+--   `es_regalo` vive en las PARTES 3 y 4, que se pueden pegar o no sin tocar las PARTES 1 y 2: la 3 solo agrega la columna
+--   (false para todo) y la 4 solo hace que la ficha la lea. Nada escribe `es_regalo` todavía: `registrar_venta` (la de la
+--   1c) no la conoce y la deja en false. Si la marca se queda, una migración nueva le enseña a `registrar_venta` a leer
+--   `(v_item ->> 'es_regalo')::boolean` de `p_items`, sin cambiar su firma (con un reemplazo anclado sobre la definición de
+--   la 1c, md5 normalizado `2b55a94a754e7708f5b133008f30469f`). Si sale, se borran las PARTES 3 y 4 antes de pegarlas.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Este archivo, solo, en el SQL Editor (corre en UNA transacción), DESPUÉS de las de la 1c. Se
---   puede pegar dos veces (idempotente). Espera como mucho 3 s un candado (`lock_timeout`): si la tienda está vendiendo en
---   ese instante (toma `venta_items`), falla limpio y se vuelve a pegar. No mezcla `alter` con políticas: no hay políticas.
---   Orden de las tablas: primero `venta_items`, después `pedidos_no_atendidos`, y recién después las funciones. Así nada
---   espera en cruz: lo único que lee las dos es `fn_producto_historia` (la historia de un producto), y las lee en ESE orden;
---   ninguna venta toca `pedidos_no_atendidos`, y quien anota un pedido no toca `venta_items`. Al revés, una historia abierta
---   justo al pegar podía quedar esperando `pedidos_no_atendidos` con `venta_items` tomado, y Postgres cortaba una de las dos
---   (40P01).
---   Fusionar el PR DESPUÉS de pegar: la web nueva lee `es_regalo` y `motivo`.
+-- CANDADO DE VERSIÓN. La sección 0 de esta parte (y la de la PARTE 4) compara el md5 NORMALIZADO (sin comentarios ni
+-- espacios) del cuerpo vivo de la función que reescribe con el de producción (medido en producción el 2026-09-30) o con
+-- el de después de este archivo. Con cualquier otro, aborta sin tocar nada. También aborta si falta la parte anterior.
+--
+-- CÓMO SE PEGA EN PRODUCCIÓN — CUATRO ARCHIVOS, CADA UNO SOLO EN EL SQL EDITOR, EN ORDEN (el SQL Editor corre todo lo
+-- pegado en UNA transacción), DESPUÉS de las tres partes de la 1c:
+--   · PARTE 1 = 20260930240000_club_paso1d_parte1_pedidos.sql: solo `pedidos_no_atendidos` (el `alter`).
+--   · PARTE 2 = este archivo: `registrar_pedido_no_atendido` con motivo y razón. No toma ninguna tabla en exclusiva.
+--   · PARTE 3 = 20260930240200_club_paso1d_parte3_regalo_venta_items.sql: solo `venta_items` (el `alter`). EN ESPERA.
+--   · PARTE 4 = 20260930240300_club_paso1d_parte4_regalo_ficha.sql: `fn_clienta_compras` con `es_regalo`. EN ESPERA.
+--   Por qué partes: toda venta escribe en `venta_items`, y una transacción que la tomara junto con `pedidos_no_atendidos`
+--   podía quedar en cruz con algo que lee las dos (`fn_producto_historia`, la historia de un producto) y cortarse con
+--   40P01. Cada parte toma una sola tabla en uso (o ninguna) y no puede trabarse con nadie; las funciones van después de
+--   sus columnas. Cada parte espera como mucho 3 s un candado (`lock_timeout`): si la tienda está usando esa tabla, falla
+--   limpio y se vuelve a pegar ESA parte. Las cuatro se pueden pegar dos veces (idempotentes). En local y en el CI corren
+--   seguidas. Entre las partes, vender y anotar funcionan igual. Fusionar el PR de la web DESPUÉS de pegar las partes
+--   1 y 2 (y la 3 y la 4 si «es para regalo» se queda: la ficha lee `es_regalo` y, sin la columna, la toma como false).
 --
 -- VERIFICACIÓN (solo lectura, después de pegar):
 --   select p.oid::regprocedure, md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'),
@@ -74,16 +82,17 @@
 --    where p.pronamespace = 'retail'::regnamespace
 --      and p.proname in ('registrar_pedido_no_atendido', 'fn_clienta_compras')
 --    order by 1;
---   → exactamente 2 filas (una sola firma de registrar_pedido_no_atendido, la de 7 parámetros), con su md5 «después»; y
+--   → una sola firma de registrar_pedido_no_atendido (la de 7 parámetros) con su md5 «después» de esta parte, y
+--     fn_clienta_compras con el «después» de la PARTE 4 si se pegó (si no, el «antes»); y
 --   select count(*) from retail.pedidos_no_atendidos where motivo <> 'no_habia_talla';   → 0 (lo de antes quedó igual)
---   select column_default from information_schema.columns
---    where table_schema = 'retail' and table_name = 'venta_items' and column_name = 'es_regalo';   → false
 --
 -- CONCURRENCIA. Anotar no bloquea nada: es un insert suelto, sin leer otras filas. Dos cajas que anotan la misma prenda a
 --   la vez dejan dos filas, y está bien: son dos señales de demanda.
--- CAÍDA EXTERNA. Nada de esto llama a SUNAT/Lucode, al padrón ni a WhatsApp.
+-- CAÍDA EXTERNA. Nada de esto llama a SUNAT/Lucode, al padrón ni a WhatsApp. Sin conexión, anotar falla con el mensaje de
+--   siempre y el ticket sigue igual: la pregunta es opcional y no frena la venta.
 -- ============================================================================
 
+-- ============================== PARTE 2 · «se la probó y no la llevó» ==============================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
@@ -93,12 +102,15 @@ declare
   r record;
   v_md5 text;
 begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'retail' and table_name = 'pedidos_no_atendidos' and column_name = 'motivo') then
+    raise exception 'Falta la PARTE 1 de esta migración (pedidos_no_atendidos.motivo): pégala antes que esta.';
+  end if;
   for r in
     select * from (values
-      -- firma                                                                   antes (producción)                  despues (este archivo)
+      -- firma                                                                   antes (producción, 2026-09-30)      despues (este archivo)
       ('retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)',           '750b65e98c09826228ba5f72b7800391', null),
-      ('retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)', null,                               'b48f006fb8336ea27fb9e2929343d10d'),
-      ('retail.fn_clienta_compras(uuid)',                                         '4e70112f67b81461aad1fc813bdd057e', 'dbe1a8808f4c1d4fef7ed7bc7d5e4344')
+      ('retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)', null,                               'b48f006fb8336ea27fb9e2929343d10d')
     ) as t(firma, antes, despues)
   loop
     select md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\s+', '', 'g'))
@@ -118,34 +130,7 @@ begin
 end
 $guarda$;
 
--- ---------- 1. la prenda para regalo (D-7) ----------
--- PRIMERO `venta_items`, después `pedidos_no_atendidos` (ver «Cómo se pega»): toda venta toma `venta_items`, y el candado
--- corto no la hace esperar más que el instante del `alter`.
-alter table retail.venta_items add column if not exists es_regalo boolean not null default false;
-
-comment on column retail.venta_items.es_regalo is
-  'ADR-0288 D-7 (D-101): esta prenda es para regalar, no para la clienta del ticket. La ficha no deduce su talla de ella (deducirTallas la salta). Se marca por línea solo si hay clienta elegida; la guarda registrar_venta desde p_items.';
-
--- ---------- 2. «buscó y no había» y «se probó y no llevó»: la misma tabla (D-6) ----------
--- `add column ... default` con una constante no reescribe la tabla (Postgres 11+): toda fila de hoy queda `no_habia_talla`.
-alter table retail.pedidos_no_atendidos add column if not exists motivo text not null default 'no_habia_talla';
-alter table retail.pedidos_no_atendidos add column if not exists razon text;
-
-alter table retail.pedidos_no_atendidos drop constraint if exists pedidos_no_atendidos_motivo_valido;
-alter table retail.pedidos_no_atendidos add constraint pedidos_no_atendidos_motivo_valido
-  check (motivo in ('no_habia_talla', 'se_probo_no_llevo'));
-
--- La razón solo existe cuando se la probó y no la llevó, y es una de cuatro (se cuentan en el informe CL-14).
-alter table retail.pedidos_no_atendidos drop constraint if exists pedidos_no_atendidos_razon_solo_si_se_probo;
-alter table retail.pedidos_no_atendidos add constraint pedidos_no_atendidos_razon_solo_si_se_probo
-  check (razon is null or (motivo = 'se_probo_no_llevo' and razon in ('no_le_quedo', 'precio', 'color', 'lo_piensa')));
-
-comment on column retail.pedidos_no_atendidos.motivo is
-  'ADR-0288 D-6: no_habia_talla = pidió y esta sede no la tenía (todo lo anotado antes de la tanda 1d); se_probo_no_llevo = la prenda estaba, se la probó y no la llevó. «Llegó tu talla» (paso 3) avisa SOLO por no_habia_talla.';
-comment on column retail.pedidos_no_atendidos.razon is
-  'Solo con se_probo_no_llevo, opcional: no_le_quedo, precio, color o lo_piensa (CL-14: «Tallas y prendas que faltaron» las cuenta).';
-
--- ---------- 3. registrar_pedido_no_atendido con motivo y razón ----------
+-- ---------- 1. registrar_pedido_no_atendido con motivo y razón ----------
 -- La firma cambia: se suelta la vieja (5 parámetros) y se crea la nueva. Un `create or replace` con otros parámetros
 -- crearía una SOBRECARGA, y una llamada con 5 argumentos no sabría a cuál ir.
 drop function if exists retail.registrar_pedido_no_atendido(uuid, uuid, text, text, uuid);
@@ -216,38 +201,6 @@ comment on function retail.registrar_pedido_no_atendido(uuid, uuid, text, text, 
 revoke all on function retail.registrar_pedido_no_atendido(uuid, uuid, text, text, uuid, text, text) from public, anon;
 grant execute on function retail.registrar_pedido_no_atendido(uuid, uuid, text, text, uuid, text, text) to authenticated;
 
--- ---------- 4. fn_clienta_compras devuelve es_regalo ----------
--- Cambia el tipo de retorno: Postgres no deja hacerlo con `create or replace`, así que se suelta y se crea. La lectura es la
--- de 20260928190000 más `vi.es_regalo`: el mismo candado del módulo, las mismas ventas (completadas, en cualquier sede).
-drop function if exists retail.fn_clienta_compras(uuid);
-
-create or replace function retail.fn_clienta_compras(p_id uuid)
-returns table (
-  venta_id uuid, fecha timestamptz, ubicacion text, categoria text, talla text,
-  cantidad integer, subtotal numeric, es_regalo boolean
-)
-language sql
-stable
-security definer
-set search_path = retail, public, extensions
-as $$
-  -- Solo con el módulo «Clientas» (42501 clientas_sin_modulo). Va primero: si falla, no se lee nada.
-  select retail.fn_exigir_modulo('clientas');
-
-  select v.id, v.created_at, u.nombre, cat.nombre, ta.valor, vi.cantidad, vi.subtotal, vi.es_regalo
-  from retail.ventas v
-  join retail.ubicaciones u on u.id = v.ubicacion_id
-  join retail.venta_items vi on vi.venta_id = v.id
-  join retail.variantes va on va.id = vi.variante_id
-  join retail.productos pr on pr.id = va.producto_id
-  left join retail.categorias cat on cat.id = pr.categoria_id
-  left join retail.tallas ta on ta.id = va.talla_id
-  where v.cliente_id = p_id and v.estado = 'completada'
-  order by v.created_at desc;
-$$;
-
-comment on function retail.fn_clienta_compras(uuid) is
-  'Una fila por prenda comprada por esta clienta, en cualquier sede (security definer, ver cabecera de 20260928180000). Base de "talla deducida por tipo de prenda" (D-101, que salta las prendas con es_regalo: ADR-0288 D-7) y "te falta N para frecuente" (D-103) — el cálculo vive en TypeScript, esta función solo entrega los hechos.';
-
-revoke execute on function retail.fn_clienta_compras(uuid) from public, anon;
-grant execute on function retail.fn_clienta_compras(uuid) to authenticated;
+reset lock_timeout;
+notify pgrst, 'reload schema';
+-- ============================== FIN DE LA PARTE 2 ==============================

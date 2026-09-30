@@ -22,12 +22,12 @@ export const TEXTO_MOTIVO: Record<MotivoPedido, string> = {
   se_probo_no_llevo: "Se la probó y no la llevó",
 };
 
-/** Cómo se lee cada razón en un chip: la asesora toca una (o ninguna). */
+/** Cómo se lee cada razón en su botón, como en el spike aprobado (club-clientas-spike-2026-09): la asesora toca una. */
 export const TEXTO_RAZON: Record<RazonSeProbo, string> = {
   no_le_quedo: "No le quedó",
-  precio: "Por el precio",
-  color: "Por el color",
-  lo_piensa: "Lo va a pensar",
+  precio: "Precio",
+  color: "Color",
+  lo_piensa: "Lo piensa",
 };
 
 /** El toque opcional que aparece en Cobrar al quitar una prenda del ticket (ADR-0288 D-6). */
@@ -130,10 +130,55 @@ export function argsRegistrarPedido(d: DatosPedidoNoAtendido): ArgsRegistrarPedi
   return args;
 }
 
-/** El aviso de éxito al anotar: título y detalle, en las palabras de la asesora. */
+/**
+ * El aviso de éxito al anotar: título y detalle, en las palabras de la asesora. El de «se la probó» es el del spike, con el
+ * lugar real donde se ve (el spike decía «Clientas ▸ Resumen», una pantalla que todavía no existe).
+ */
 export function avisoAnotado(motivo: MotivoPedido, descripcion: string, talla: string | null | undefined): { titulo: string; detalle: string } {
   const que = `${descripcion}${talla ? ` · talla ${talla}` : ""}`;
   return motivo === "se_probo_no_llevo"
-    ? { titulo: "Anotado: se la probó", detalle: `${que}. Compras lo verá en Pedidos no atendidos.` }
+    ? { titulo: "Anotado: se la probó y no la llevó", detalle: `${que}. Compras y el Taller lo ven en Pedidos no atendidos.` }
     : { titulo: "Anotado: no había", detalle: `${que}. Compras lo verá en Pedidos no atendidos.` };
+}
+
+/* ------------------------------------------------------------------
+   «¿Se la probó y no la llevó?» en Cobrar (spike del club, 2026-09-30): al quitar una prenda del ticket aparece, justo bajo
+   la clienta, una pregunta opcional con las cuatro razones y «No anotar». Tocar una razón la anota (con o sin clienta, con o
+   sin venta después) y la pregunta se va; se va también con «No anotar», al pasar a cobrar, al dejar el ticket en espera o
+   al retomar otro. Quitar otra prenda la reemplaza por la nueva.
+   ------------------------------------------------------------------ */
+
+/** La prenda que se acaba de quitar del ticket: su nombre, y su color y talla si se saben. */
+export type PrendaQuitada = { referencia: string; color: string | null; talla: string | null };
+
+/**
+ * De la línea quitada del ticket (y lo que el catálogo de la caja sabe de su variante), la prenda de la pregunta. `null` si
+ * no hay nombre que anotar. Una «Prenda sin registrar» (ADR-0179) no tiene variante en el catálogo: va con su descripción,
+ * sin color ni talla.
+ */
+export function prendaQuitadaDeLinea(
+  linea: { referencia: string; prendaLibre?: unknown },
+  detalle?: { color: string | null; talla: string | null } | null
+): PrendaQuitada | null {
+  const referencia = linea.referencia.trim();
+  if (!referencia) return null;
+  if (linea.prendaLibre) return { referencia, color: null, talla: null };
+  return { referencia, color: detalle?.color?.trim() || null, talla: detalle?.talla?.trim() || null };
+}
+
+/** El texto de la pregunta, después de «¿Se la probó y no la llevó?»: «Quitaste «Blusa Carlita» (M). Anótalo para Compras: es opcional.» */
+export function textoPrendaQuitada(p: PrendaQuitada): string {
+  return `Quitaste «${p.referencia}»${p.talla ? ` (${p.talla})` : ""}. Anótalo para Compras: es opcional.`;
+}
+
+/** Lo que se anota al tocar una razón: «se la probó y no la llevó», con la prenda (nombre · color), su talla y la clienta si hay. */
+export function datosSeProbo(p: PrendaQuitada, razon: RazonSeProbo, ubicacionId: string, clientaId: string | null | undefined): DatosPedidoNoAtendido {
+  return {
+    ubicacionId,
+    motivo: "se_probo_no_llevo",
+    razon,
+    descripcion: descripcionDePrenda(p.referencia, p.color),
+    talla: p.talla,
+    clientaId: clientaId ?? null,
+  };
 }

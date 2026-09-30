@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la tanda 1d del club de clientas (ADR-0288 D-6 y D-7; acta CL-7, CL-14 y D-101; migración
- * `20260930240000_club_paso1d_regalo_y_se_probo.sql`).
+ * Pruebas de la tanda 1d del club de clientas (ADR-0288 D-6 y D-7; acta CL-7, CL-14 y D-101; migración en cuatro partes:
+ * `20260930240000_club_paso1d_parte1_pedidos.sql`, `20260930240100_club_paso1d_parte2_se_probo.sql` y, EN ESPERA hasta que
+ * Felipe decida si «es para regalo» se queda, `20260930240200_club_paso1d_parte3_regalo_venta_items.sql` y
+ * `20260930240300_club_paso1d_parte4_regalo_ficha.sql`).
  *
  * EL PROBLEMA. «Se la probó y no la llevó» no quedaba en ningún lado, y una prenda comprada para regalar se volvía «su
  * talla» en la ficha. La base tiene que hacer cumplir, no la pantalla:
@@ -18,15 +20,18 @@
  *      (`pedido_razon_sin_se_probo`, `pedido_motivo_invalido`, `pedido_razon_invalida`) no dejan fila; el candado de
  *      ubicación sigue; `anon` no la ejecuta.
  *   b. El esquema, sin la función: un insert directo con razón y sin «se la probó», con un motivo inventado o sin motivo.
- *   c. Lo de antes: filas anotadas antes de la tanda 1d quedan `no_habia_talla` al correr la sección 2 de la migración.
- *   d. `venta_items.es_regalo` (not null, default false); una venta de hoy guarda false; `fn_clienta_compras` trae
- *      `es_regalo` (una prenda de regalo y una suya), sigue exigiendo el módulo «Clientas» y sigue sin EXECUTE para `anon`.
- *   e. Estructura y pegado: una sola firma de cada función, los md5 «después» de la sección 0 son los de las funciones
- *      vivas, pegarla dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, y el archivo no tiene
- *      políticas, `drop trigger` ni `select … into` en un texto entre comillas (CLAUDE.md, ADR-0195 y ADR-0288).
+ *   c. Lo de antes: filas anotadas antes de la tanda 1d quedan `no_habia_talla` al correr la PARTE 1.
+ *   d. (PARTES 3 y 4, en espera) `venta_items.es_regalo` (not null, default false); una venta de hoy guarda false;
+ *      `fn_clienta_compras` trae `es_regalo` (una prenda de regalo y una suya), sigue exigiendo el módulo «Clientas» y sigue
+ *      sin EXECUTE para `anon`.
+ *   e. Estructura y pegado: una sola firma de cada función, los md5 «después» de cada sección 0 son los de las funciones
+ *      vivas, pegar las cuatro partes dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, cada parte
+ *      aborta si falta la anterior, cada parte toma a lo más UNA tabla con `alter` (así no se traba en cruz con una venta,
+ *      como encontró la 1c), sin la PARTE 3 una venta funciona igual (la marca de regalo puede salir entera), y ningún
+ *      archivo tiene políticas, `drop trigger` ni `select … into` en un texto entre comillas (CLAUDE.md, ADR-0195, ADR-0288).
  *
- * FUERA A PROPÓSITO (FASE B de la tanda 1d, espera a la 1c): que `registrar_venta` guarde `es_regalo` desde `p_items`.
- * Y la pantalla de Cobrar («¿Se la probó y no la llevó?» al quitar una prenda; «Es para regalo» en la línea).
+ * FUERA A PROPÓSITO: que `registrar_venta` guarde `es_regalo` desde `p_items` (en espera de Felipe). La pregunta «¿Se la
+ * probó y no la llevó?» de Cobrar es web: su regla pura la prueba apps/web/lib/se-probo-reglas.test.ts.
  *
  * USO
  *   pnpm pruebas:club-regalo-y-se-probo                  → contra la base `postgres` del stack local (la del CI)
@@ -43,8 +48,15 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 
-const NOMBRE_MIGRACION = "20260930240000_club_paso1d_regalo_y_se_probo.sql";
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", NOMBRE_MIGRACION), "utf8");
+const PARTES = [
+  "20260930240000_club_paso1d_parte1_pedidos.sql",
+  "20260930240100_club_paso1d_parte2_se_probo.sql",
+  "20260930240200_club_paso1d_parte3_regalo_venta_items.sql",
+  "20260930240300_club_paso1d_parte4_regalo_ficha.sql",
+].map((nombre) => ({ nombre, sql: readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8") }));
+const [PARTE_1, PARTE_2, PARTE_3, PARTE_4] = PARTES.map((p) => p.sql);
+/** Las cuatro partes seguidas, como corren en local y en el CI. */
+const MIGRACION = PARTES.map((p) => p.sql).join("\n");
 
 // La tabla del candado de versión de la sección 0: firma → md5 normalizado «antes» (producción) y «después» (null = la firma
 // no existe de ese lado).
@@ -59,15 +71,6 @@ const FIRMA_PEDIDO = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uu
 const FIRMA_PEDIDO_VIEJA = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)";
 const FIRMA_COMPRAS = "retail.fn_clienta_compras(uuid)";
 
-/** La sección 2 de la migración (`motivo`, `razon` y sus candados), tal cual: la usa el caso (c). */
-const SECCION_PEDIDOS = (() => {
-  const ini = MIGRACION.indexOf("-- ---------- 2.");
-  const fin = MIGRACION.indexOf("-- ---------- 3.");
-  if (ini < 0 || fin < ini || !MIGRACION.slice(ini, fin).includes("pedidos_no_atendidos add column if not exists motivo")) {
-    throw new Error("No encontré la sección 2 de la migración (las columnas de pedidos_no_atendidos)");
-  }
-  return MIGRACION.slice(ini, fin);
-})();
 
 // Seed local: Felipe (líder y Admin), Micaela (integrante de Trujillo).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -389,12 +392,12 @@ caso(
 // c. Lo anotado antes de la tanda 1d queda «buscó y no había»
 // =====================================================================================================================
 caso(
-  "(c) filas de antes (la tabla sin motivo ni razón) quedan «buscó y no había» y sin razón al correr la sección 2 de la migración (sus columnas)",
+  "(c) filas de antes (la tabla sin motivo ni razón) quedan «buscó y no había» y sin razón al pegar la PARTE 1",
   `reset role;
 alter table retail.pedidos_no_atendidos drop column motivo, drop column razon;
 insert into retail.pedidos_no_atendidos (ubicacion_id, descripcion_libre, talla) values (:'lima', 'Vieja uno', 'M');
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id, resuelto, resuelto_en) values (:'lima', :'prod', true, now());
-${SECCION_PEDIDOS}
+${PARTE_1}
 select count(*), count(*) filter (where motivo = 'no_habia_talla' and razon is null)
   from retail.pedidos_no_atendidos where descripcion_libre = 'Vieja uno' or (producto_id = :'prod' and resuelto);
 select column_default, is_nullable from information_schema.columns
@@ -464,14 +467,14 @@ select to_regprocedure('${FIRMA_PEDIDO_VIEJA}') is null;
 `,
   "1|t\nt"
 );
-caso("(e) los md5 «después» de la sección 0 son los de las funciones vivas", `reset role;\n${MD5_VIVOS}`, MD5_ESPERADOS);
+caso("(e) los md5 «después» de las secciones 0 (PARTES 2 y 4) son los de las funciones vivas", `reset role;\n${MD5_VIVOS}`, MD5_ESPERADOS);
 caso(
-  "(e) pegar la migración otra vez deja lo mismo (idempotente)",
+  "(e) pegar las cuatro partes otra vez deja lo mismo (idempotente)",
   `reset role;\n${MIGRACION}\nreset role;\n${MD5_VIVOS}select count(*) from pg_constraint where conrelid = 'retail.pedidos_no_atendidos'::regclass and conname in ('pedidos_no_atendidos_motivo_valido', 'pedidos_no_atendidos_razon_solo_si_se_probo');\n`,
   `${MD5_ESPERADOS}\n2`
 );
 casoQueAborta(
-  "(e) con fn_clienta_compras cambiada en vivo, pegar la migración aborta sin pisar",
+  "(e) con fn_clienta_compras cambiada en vivo, la PARTE 4 aborta sin pisar",
   `reset role;
 create or replace function retail.fn_clienta_compras(p_id uuid)
 returns table (venta_id uuid, fecha timestamptz, ubicacion text, categoria text, talla text, cantidad integer, subtotal numeric, es_regalo boolean)
@@ -481,7 +484,40 @@ ${MIGRACION}`,
   "retail.fn_clienta_compras(uuid) cambió desde que se escribió esta migración"
 );
 
-// El archivo se pega a mano en el SQL Editor (CLAUDE.md): nada que choque con el Asesor de seguridad ni que el Editor
+casoQueAborta(
+  "(e) la PARTE 2 sin la PARTE 1 aborta y no toca la función",
+  `reset role;\nalter table retail.pedidos_no_atendidos drop column motivo, drop column razon;\n${PARTE_2}`,
+  "Falta la PARTE 1 de esta migración"
+);
+casoQueAborta(
+  "(e) la PARTE 4 sin la PARTE 3 aborta y no toca la función",
+  `reset role;\nalter table retail.venta_items drop column es_regalo;\n${PARTE_4}`,
+  "Falta la PARTE 3 de esta migración"
+);
+caso(
+  "(e) «es para regalo» puede salir entera: sin la columna de la PARTE 3, una venta (la registrar_venta de la 1c) y «se la probó» funcionan igual",
+  SEDE() +
+    `alter table retail.venta_items drop column es_regalo;\n` +
+    como(FELIPE) +
+    VENDER("venta", [ITEM("v1", "v1_precio")], ":'v1_precio'") +
+    `select retail.registrar_pedido_no_atendido(p_ubicacion_id => :'lima', p_descripcion_libre => 'Blusa', p_motivo => 'se_probo_no_llevo', p_razon => 'precio') as p \\gset
+reset role;
+select (select count(*) from retail.ventas where id::text = :'venta'), (select motivo || '|' || razon from retail.pedidos_no_atendidos where id = :'p');
+`,
+  "1|se_probo_no_llevo|precio"
+);
+
+// Cada parte toma a lo más UNA tabla con `alter` (la 1c encontró el cruce: una venta que ya leyó una tabla y espera
+// `venta_items`, contra una migración que tiene `venta_items` y espera la otra, se traban con 40P01). Las funciones van en
+// su propia parte, después de sus columnas.
+const tablasAlteradas = (sql) => [...new Set([...sql.replace(/--[^\n]*/g, "").matchAll(/\balter\s+table\s+retail\.(\w+)/gi)].map((m) => m[1]))];
+estatico(
+  "(e) cada parte toma a lo más una tabla con `alter`: PARTE 1 pedidos_no_atendidos, PARTE 2 ninguna, PARTE 3 venta_items, PARTE 4 ninguna",
+  JSON.stringify(PARTES.map((p) => tablasAlteradas(p.sql))) === JSON.stringify([["pedidos_no_atendidos"], [], ["venta_items"], []]),
+  JSON.stringify(PARTES.map((p) => [p.nombre, tablasAlteradas(p.sql)]))
+);
+
+// Los archivos se pegan a mano en el SQL Editor (CLAUDE.md): nada que choque con el Asesor de seguridad ni que el Editor
 // confunda con un SELECT INTO que crea una tabla.
 const sinCuerposNiComentarios = MIGRACION.replace(/\$([a-z_]*)\$[\s\S]*?\$\1\$/g, "").replace(/--[^\n]*/g, "");
 estatico(

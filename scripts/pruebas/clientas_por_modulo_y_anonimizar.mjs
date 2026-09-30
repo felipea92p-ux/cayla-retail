@@ -32,7 +32,7 @@
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
  *      escritos en la PARTE 1 son los de las funciones vivas (las cinco que la tanda 1a del club volvió a cambiar —ADR-0288,
  *      20260930160000—, con los «después» de la 1a; las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
- *      de la 1b; y `fn_clienta_compras`, que la 1d cambió para devolver `es_regalo` —20260930240000—, con el de la 1d). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
+ *      de la 1b; y `fn_clienta_compras`, que la 1d cambió para devolver `es_regalo` —20260930240300—, con el de la 1d). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
  *      candado del módulo; y la persona de la sección 4 es socia con publicidad: anonimizar tampoco deja rastro en
  *      `club_permisos` y escribe sus dos `revoca`.
  *   6. CONTROL y pegado: a las 11 funciones vivas se les quita su primera línea (el candado del módulo) y la tabla vuelve a
@@ -118,9 +118,10 @@ const DESPUES_1B = VERSIONES.map((v) => {
   const w = VERSIONES_1A.find((x) => x.firma === v.firma);
   return w ? (w.despues ?? "NO_EXISTE") : v.despues;
 });
-// La tanda 1d del club (ADR-0288 D-7, 20260930240000) volvió a cambiar UNA de las 14: `fn_clienta_compras` devuelve
-// `es_regalo` (misma firma, otro tipo de retorno). Su tabla: firma → «antes» y «después» (null = que la firma no exista).
-const PASO_1D = leer("20260930240000_club_paso1d_regalo_y_se_probo.sql");
+// La tanda 1d del club (ADR-0288 D-7, PARTE 4: 20260930240300) volvió a cambiar UNA de las 14: `fn_clienta_compras`
+// devuelve `es_regalo` (misma firma, otro tipo de retorno). Su tabla: firma → «antes» y «después» (null = que la firma no
+// exista). «Es para regalo» está EN ESPERA de Felipe: si sale, se borra esa parte y este bloque vuelve a lo de la 1b.
+const PASO_1D = leer("20260930240300_club_paso1d_parte4_regalo_ficha.sql");
 const VERSIONES_1D = [
   ...PASO_1D.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
 ].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
