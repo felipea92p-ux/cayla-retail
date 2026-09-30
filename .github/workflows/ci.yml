@@ -1067,6 +1067,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
+      # La regla del «costo atípico» (20260930120000, Felipe 2026-09-30): función pura que dice si un costo por prenda merece
+      # una segunda mirada (sin costo, mayor que el precio, sube a más de 2× o baja a menos de 2/3 del vigente). Fronteras
+      # exactas, sin referencia no hay opinión relativa, el orden de los motivos, interna (sin execute para la API) y
+      # llamable desde una SECURITY DEFINER; se puede pegar dos veces. Ninguna escritura.
+      - name: pruebas:costo-fuera-de-banda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-fuera-de-banda
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en
