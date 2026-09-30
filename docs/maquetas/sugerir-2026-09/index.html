@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sugerir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Concepto: una sola columna de lectura; cada sección es un juego que se toca, con datos y funciones REALES del repo.
+   Paleta y tipografías: las de CAYLA Dynamic (apps/web/app/globals.css): crema, papel, tinta, taupe, rojo (acento, poco), verde. */
+:root {
+  --bg: #f5f0e8; --panel: #fbf8f2; --sunken: #eae1d2; --line: #e8e0d0; --line-strong: #d3c7b1;
+  --ink: #1a1a18; --muted: #805c4c; --accent: #b8412d; --accent-ink: #8b2a1f; --accent-soft: #f1ddd6;
+  --ok: #48603f; --ok-soft: #e1e8da; --warn: #74501a; --info: #4c5d6e; --bar: #c9bda6;
+  --f-display: "EB Garamond", Georgia, "Times New Roman", serif;
+  --f-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 14px;
+  --code-bg: #1b1915; --code-fg: #eadfcc; --code-btn: #2c2821; --code-est: #f08d76; --code-ok: #a9c79a; --code-dim: #9c8f7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15130f; --panel: #1d1a15; --sunken: #2a261f; --line: #37312a; --line-strong: #4a4237;
+    --ink: #efe8db; --muted: #c9ab9a; --accent: #e77f68; --accent-ink: #f2a08d; --accent-soft: #3a211b;
+    --ok: #93b384; --ok-soft: #232c1f; --warn: #d6a862; --info: #93a9bf; --bar: #5b5142;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15130f; --panel: #1d1a15; --sunken: #2a261f; --line: #37312a; --line-strong: #4a4237;
+  --ink: #efe8db; --muted: #c9ab9a; --accent: #e77f68; --accent-ink: #f2a08d; --accent-soft: #3a211b;
+  --ok: #93b384; --ok-soft: #232c1f; --warn: #d6a862; --info: #93a9bf; --bar: #5b5142;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--f-body); padding-inline: 20px; padding-block: 0 96px; }
+.wrap { max-width: 1040px; margin-inline: auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 500; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+p { margin: 0; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- cabecera ---------- */
+header.top { padding-block: 56px 28px; }
+.kicker { font: 600 .72rem/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(3.4rem, 10vw, 6.4rem); line-height: .95; margin-block: 14px 18px; }
+.lede { max-width: 62ch; font-size: 1.12rem; color: var(--ink); }
+.lede b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .92rem; }
+.facts b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+nav.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-block: 1px solid var(--line); margin-inline: -20px; padding-inline: 20px; }
+nav.nav .wrap { display: flex; gap: 4px 22px; flex-wrap: wrap; padding-block: 10px; }
+nav.nav a { color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500; padding: 2px 0; border-bottom: 2px solid transparent; }
+nav.nav a:hover { color: var(--ink); border-color: var(--accent); }
+
+section { padding-block: 64px 8px; scroll-margin-top: 56px; }
+section > h2 { font-size: clamp(1.9rem, 4.6vw, 2.7rem); line-height: 1.05; }
+section > .intro { color: var(--muted); max-width: 66ch; margin-top: 10px; }
+
+/* ---------- piezas ---------- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 24px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; margin-bottom: -1px; color: var(--muted); font-weight: 500; }
+.tab[aria-selected="true"] { color: var(--ink); border-color: var(--accent); }
+.tabpanel { margin-top: 20px; }
+.label { font: 600 .7rem/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 6px 13px; font-size: .9rem; color: var(--ink); }
+.chip:hover { background: var(--sunken); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.chip.ghost { border-style: dashed; color: var(--muted); }
+.chip.ghost[aria-pressed="true"] { color: var(--panel); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.grid-mocks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+.mock { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.mock header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.mock h3 { font-size: 1.35rem; }
+.pill { font: 600 .68rem/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.bad { background: var(--accent-soft); color: var(--accent-ink); }
+.pill.good { background: var(--ok-soft); color: var(--ok); }
+.pill.mute { background: var(--sunken); color: var(--muted); }
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+.entrada { width: 100%; background: var(--sunken); color: var(--ink); border: 1px solid transparent; border-radius: 10px; padding: 12px 16px; font: 400 15px/1.3 var(--f-body); }
+.entrada::placeholder { color: color-mix(in srgb, var(--ink) 52%, transparent); text-overflow: clip; }
+.entrada:focus { background: var(--panel); border-color: var(--line-strong); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 22%, transparent); }
+.movil .mock { max-width: 343px; }
+.nota { font-size: .86rem; margin-top: 12px; color: var(--muted); }
+.nota.bad { color: var(--accent-ink); }
+.nota.good { color: var(--ok); }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--muted); }
+.switch input { accent-color: var(--ink); width: 16px; height: 16px; }
+.hint { font-size: .85rem; color: var(--muted); margin-top: 12px; }
+
+.cands { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+.cands li { display: flex; align-items: center; gap: 10px; font-size: .92rem; padding: 8px 12px; border-radius: 10px; background: var(--sunken); }
+.cands li .why { margin-left: auto; font-size: .78rem; color: var(--muted); text-align: right; }
+.cands li.skip .name { text-decoration: line-through; color: var(--muted); }
+.cands li.pick { background: var(--ok-soft); outline: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); }
+.cands li.pick .why { color: var(--ok); font-weight: 600; }
+.cands li.rest { opacity: .55; }
+.cands code { font-size: .8rem; color: var(--muted); }
+.universo { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.universo span { font-size: .78rem; padding: 3px 8px; border-radius: 6px; background: var(--sunken); color: var(--muted); }
+.universo span.hit { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.verif { display: inline-flex; gap: 6px; align-items: center; font-size: .8rem; color: var(--ok); margin-top: 12px; }
+
+/* ---------- pasos ---------- */
+.pasos { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 8fr); gap: 20px; margin-top: 26px; align-items: start; }
+@media (max-width: 820px) { .pasos { grid-template-columns: minmax(0, 1fr); } }
+.paso-lista { display: grid; gap: 4px; list-style: none; padding: 0; margin: 0; }
+.paso-lista button { width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; display: flex; gap: 12px; align-items: baseline; color: var(--muted); }
+.paso-lista button b { font: 500 .8rem var(--f-mono); color: var(--muted); }
+.paso-lista button[aria-selected="true"] { background: var(--panel); border-color: var(--line); color: var(--ink); font-weight: 600; }
+.paso-lista button[aria-selected="true"] b { color: var(--accent); }
+.paso h3 { font-size: 1.7rem; margin-bottom: 8px; }
+.paso p { max-width: 62ch; }
+.paso .ev { margin-top: 16px; }
+pre.term { margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 12px; padding: 16px; overflow-x: auto; font: 400 .8rem/1.6 var(--f-mono); }
+pre.term .est { color: var(--code-est); }
+pre.term .der { color: var(--code-ok); }
+pre.term .dim { color: var(--code-dim); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line-strong); border-radius: 18px; padding: 3px; gap: 2px; margin-bottom: 10px; }
+.seg button { background: none; border: 0; padding: 5px 12px; border-radius: 999px; font-size: .85rem; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+table.t { width: 100%; border-collapse: collapse; font-size: .88rem; }
+table.t th { text-align: left; font: 600 .68rem var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line-strong); }
+table.t td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.scroll-x { overflow-x: auto; }
+ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+ul.checks li { display: flex; gap: 10px; font-size: .92rem; }
+ul.checks li::before { content: "✓"; color: var(--ok); font-weight: 700; }
+ul.checks.bad li::before { content: "✗"; color: var(--accent); }
+
+/* ---------- CI ---------- */
+textarea.codigo { width: 100%; min-height: 132px; resize: vertical; background: var(--code-bg); color: var(--code-fg); border: 1px solid transparent; border-radius: 12px; padding: 14px 16px; font: 400 .84rem/1.6 var(--f-mono); }
+.veredicto { border-radius: var(--r); padding: 16px 18px; border: 1px solid var(--line); background: var(--panel); }
+.veredicto.fail { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: var(--accent-soft); }
+.veredicto.pass { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: var(--ok-soft); }
+.veredicto h3 { font-size: 1.3rem; margin-bottom: 4px; }
+.veredicto .msg { font-size: .86rem; margin-top: 8px; color: var(--ink); opacity: .82; }
+.surf { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; font: 400 .8rem/1.4 var(--f-mono); }
+.tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+@media (max-width: 820px) { .tres { grid-template-columns: minmax(0, 1fr); } }
+.tres .panel h3 { font-size: 1.25rem; margin-bottom: 6px; }
+.tres .panel p { font-size: .9rem; color: var(--muted); }
+
+/* ---------- gráfico ---------- */
+.chart { width: 100%; height: auto; display: block; }
+.chart text { font: 400 11px var(--f-body); fill: var(--muted); }
+.chart .lim { stroke: var(--info); stroke-dasharray: 5 4; stroke-width: 1.4; }
+.chart .limt { fill: var(--info); font-weight: 600; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart rect.b { transition: y .5s cubic-bezier(.2,.7,.2,1), height .5s cubic-bezier(.2,.7,.2,1), fill .3s; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .chart rect.b { transition: none; } }
+.tip { min-height: 1.6em; font-size: .9rem; margin-top: 8px; }
+.kpis { display: flex; gap: 8px 28px; flex-wrap: wrap; margin-top: 12px; font-size: .95rem; }
+.kpis b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(26px, 1fr)); gap: 4px; margin-top: 12px; }
+.tiles i { display: block; height: 26px; border-radius: 6px; background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); position: relative; }
+.tiles i::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: .7rem; color: var(--ok); font-style: normal; }
+.deuda { display: grid; gap: 6px; margin-top: 12px; }
+.deuda button { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 34px; gap: 10px; align-items: center; background: none; border: 0; padding: 4px 0; text-align: left; }
+.deuda .bar { height: 12px; border-radius: 6px; background: var(--bar); }
+.deuda button[aria-expanded="true"] .bar { background: var(--accent); }
+.deuda .n { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.deuda-files { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 10px; }
+.deuda-files span { font: 400 .74rem var(--f-mono); padding: 3px 8px; background: var(--sunken); border-radius: 6px; color: var(--muted); }
+.cmd { display: flex; align-items: center; gap: 10px; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 10px 12px 10px 16px; font: 400 .88rem var(--f-mono); }
+.cmd span { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; }
+.cmd button { flex: none; }
+.cmd button { background: var(--code-btn); border: 0; color: var(--code-fg); border-radius: 8px; padding: 5px 10px; font-size: .78rem; }
+.cmds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 18px; }
+footer.pie { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="kicker">CAYLA · skill del equipo</span>
+    <h1>Sugerir</h1>
+    <p class="lede">Elegiste <b>Casacas</b> y la caja de nombre seguía diciendo «Blusa Aurora». <b>/sugerir</b> hace que cada ejemplo del sistema escuche lo que la persona ya eligió, lo prueba tocando cada botón y filtro, y se hace cumplir solo en el CI.</p>
+    <ul class="facts">
+      <li><b>42</b> categorías tocadas una por una</li>
+      <li><b>0</b> ejemplos fijos en Nuevo producto (antes <b>10</b>)</li>
+      <li><b>24 → 0</b> descripciones que no cabían en un celular</li>
+      <li><b id="deudaTotal">69</b> archivos en la deuda, que solo baja</li>
+    </ul>
+  </header>
+</div>
+
+<nav class="nav" aria-label="Secciones"><div class="wrap">
+  <a href="#caja">La caja que escucha</a><a href="#pasos">Cómo trabaja</a><a href="#ci">Por qué es obligatoria</a><a href="#prueba">Lo que se comprobó</a>
+</div></nav>
+
+<div class="wrap">
+<!-- ============ La caja que escucha ============ -->
+<section id="caja">
+  <h2>La caja que escucha</h2>
+  <p class="intro">Elige como lo haría quien crea un producto. A la izquierda, lo que decía el sistema; a la derecha, lo que dice ahora. Son las funciones y los datos reales de la base de CAYLA, no una maqueta.</p>
+
+  <div class="tabs" role="tablist" aria-label="Qué caja mirar">
+    <button class="tab" role="tab" id="t-nombre" aria-selected="true" aria-controls="p-nombre">Nombre y descripción</button>
+    <button class="tab" role="tab" id="t-valor" aria-selected="false" aria-controls="p-valor">Talla, tejido, patrón</button>
+    <button class="tab" role="tab" id="t-color" aria-selected="false" aria-controls="p-color">Color nuevo</button>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-nombre" aria-labelledby="t-nombre">
+    <div class="grid2">
+      <div class="panel">
+        <span class="label">Paso 1 · ¿A qué categoría pertenece?</span>
+        <div class="row" id="famChips" role="group" aria-label="Familia"></div>
+        <span class="label" style="margin-top:16px">Categoría</span>
+        <div class="row" id="catChips" role="group" aria-label="Categoría"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="chip ghost" id="chipNinguna" aria-pressed="false">Ninguna aún</button>
+          <button class="chip ghost" id="chipNueva" aria-pressed="false" title="Una categoría que un Líder crea sin deploy">Categoría nueva de un Líder</button>
+        </div>
+        <label class="switch" style="margin-top:18px"><input type="checkbox" id="movil"> Ver con el ancho de un celular (375 px)</label>
+        <p class="hint">Escribe algo en «Nombre» y cambia la categoría: lo escrito se queda, solo cambia el ejemplo.</p>
+      </div>
+      <div class="grid-mocks" id="mocks">
+        <div class="mock" id="mockAntes">
+          <header><h3>Antes</h3><span class="pill bad">escrito a mano</span></header>
+          <div class="field"><label for="a-nombre">Nombre</label><input class="entrada" id="a-nombre" placeholder="Blusa Aurora" autocomplete="off"></div>
+          <div class="field"><label for="a-desc">Descripción</label><input class="entrada" id="a-desc" placeholder="Manga globo, botones forrados…" autocomplete="off"></div>
+          <p class="nota" id="notaAntes"></p>
+        </div>
+        <div class="mock" id="mockAhora">
+          <header><h3>Ahora</h3><span class="pill good" id="pillOrigen">de la categoría</span></header>
+          <div class="field"><label for="n-nombre">Nombre</label><input class="entrada" id="n-nombre" autocomplete="off"></div>
+          <div class="field"><label for="n-desc">Descripción</label><input class="entrada" id="n-desc" autocomplete="off"></div>
+          <p class="nota" id="notaAhora"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-valor" aria-labelledby="t-valor" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <span class="label">Qué se agrega</span>
+        <div class="row" id="tipoChips" role="group" aria-label="Tipo"></div>
+        <span class="label" style="margin-top:16px">Familia de la categoría</span>
+        <div class="row" id="famValorChips" role="group" aria-label="Familia"></div>
+        <p class="hint">El ejemplo es el primer candidato de la familia que <b>no existe</b> en el catálogo. Lo que el catálogo ya tiene sale abajo, tal cual está en la base.</p>
+      </div>
+      <div>
+        <div class="mock">
+          <header><h3 id="valorTitulo">+ Nueva talla</h3><span class="pill good" id="valorOrigen">de la familia</span></header>
+          <div class="field"><label for="v-input">Nombre de la talla nueva</label><input class="entrada" id="v-input" autocomplete="off"></div>
+          <p class="nota" id="valorAntes"></p>
+          <ul class="cands" id="valorCands"></ul>
+          <span class="label" style="margin-top:16px" id="valorUniversoT">Ya existe en el catálogo</span>
+          <div class="universo" id="valorUniverso"></div>
+          <div class="verif" id="valorVerif"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-color" aria-labelledby="t-color" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <span class="label">Familia de color (elegida, o la que sale del tono)</span>
+        <div class="row" id="famColorChips" role="group" aria-label="Familia de color"></div>
+        <div class="row" style="margin-top:14px"><button class="chip ghost" id="chipSinFamilia" aria-pressed="false">Sin tono ni familia todavía</button></div>
+        <p class="hint">«Palo de rosa» y «Verde botella» eran los ejemplos de antes. Los dos <b>ya existían</b> en el catálogo: quien los escribía tal cual veía «ya existe».</p>
+      </div>
+      <div>
+        <div class="mock">
+          <header><h3>+ Nuevo color</h3><span class="pill good" id="colorOrigen">de la familia</span></header>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:12px">
+            <div class="field"><label for="c-nombre">Nombre del color</label><input class="entrada" id="c-nombre" autocomplete="off"></div>
+            <div class="field"><label for="c-codigo">Código</label><input class="entrada mono" id="c-codigo" autocomplete="off" maxlength="3" style="text-transform:uppercase;letter-spacing:.08em"></div>
+          </div>
+          <ul class="cands" id="colorCands"></ul>
+          <p class="nota">El código de ejemplo es el que el sistema propondría para <b>ese mismo nombre</b>, sin chocar con los {N} colores del catálogo. Los dos ejemplos siempre cuentan la misma historia.</p>
+          <div class="verif" id="colorVerif"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Cómo trabaja ============ -->
+<section id="pasos">
+  <h2>Cómo trabaja</h2>
+  <p class="intro">Siete pasos, siempre en este orden. Lo que se ve de paso y no es de esta pantalla no se toca: se deja escrito.</p>
+  <div class="pasos">
+    <ol class="paso-lista" id="pasoLista" role="tablist" aria-orientation="vertical"></ol>
+    <div class="paso panel" id="pasoDetalle" role="tabpanel" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ============ Obligatoria ============ -->
+<section id="ci">
+  <h2>Por qué es obligatoria</h2>
+  <p class="intro">Una regla que depende de acordarse se olvida. <code>lib/sugerir.test.ts</code> corre en el CI con el mismo escáner de <code>pnpm sugerir</code>: pega aquí el código de un campo y mira si el CI lo dejaría pasar. Es la misma detección, línea por línea.</p>
+  <div class="grid2" style="margin-top:24px">
+    <div>
+      <div class="seg" id="presets" role="group" aria-label="Ejemplos"></div>
+      <label for="codigo" class="label">Un componente nuevo</label>
+      <textarea class="codigo" id="codigo" spellcheck="false"></textarea>
+    </div>
+    <div>
+      <span class="label">Lo que dice el CI</span>
+      <div class="veredicto" id="veredicto" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="tres">
+    <div class="panel"><h3>1 · Derivarlo</h3><p>Una función pura en <code>lib/sugerencias-&lt;pantalla&gt;.ts</code> con su prueba. El componente solo la llama. Es lo que se hizo en Nuevo producto.</p></div>
+    <div class="panel"><h3>2 · Marcarlo fijo</h3><p>Si de verdad no depende de nada elegido antes (el formato de un RUC), se marca en su línea con <code>// sugerir-fijo: porqué</code>. El motivo vive junto al código.</p></div>
+    <div class="panel"><h3>3 · La deuda</h3><p>Los <span id="deudaN">69</span> archivos de antes de la regla. <b>Un archivo nuevo no puede entrar</b>, y arreglar uno obliga a bajar el contador: la lista solo baja.</p></div>
+  </div>
+</section>
+
+<!-- ============ Lo que se comprobó ============ -->
+<section id="prueba">
+  <h2>Lo que se comprobó</h2>
+  <p class="intro">Tocando la interfaz real (escritorio y 375 px), no solo corriendo la función. El recorrido a 375 px encontró lo que el escritorio no podía ver.</p>
+
+  <div class="panel" style="margin-top:24px">
+    <span class="label">Ancho de la descripción de ejemplo a 375 px, por categoría</span>
+    <div class="seg" id="segAncho" role="group" aria-label="Versión"><button aria-pressed="false" data-v="antes">Primera versión</button><button aria-pressed="true" data-v="ahora">Versión final</button></div>
+    <svg class="chart" id="chart" viewBox="0 0 760 300" role="img" aria-label="Ancho en píxeles de la descripción de cada una de las 42 categorías frente al límite de 279 píxeles"></svg>
+    <div class="tip" id="tip" aria-live="polite">Toca una barra para ver su categoría.</div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+
+  <div class="grid2" style="margin-top:20px">
+    <div class="panel">
+      <span class="label">Las 42 categorías, una por una en la interfaz real</span>
+      <p><b>42 de 42</b> coinciden con lo que dice la función, en escritorio y a 375 px.</p>
+      <div class="tiles" id="tiles" aria-hidden="true"></div>
+      <ul class="checks" style="margin-top:16px">
+        <li>Con texto ya escrito, cambiar de categoría no lo toca.</li>
+        <li>Calzado sugiere «Ej. 44»; ropa «Ej. XXS» (XXL ya existe y se saltó).</li>
+        <li>Color azul → «Azul acero» (AZA); tierra → «Barro» (Ocre es sinónimo de Mostaza).</li>
+        <li>Consola sin errores. 255 suites web (153.282 pruebas) en verde.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="label">La deuda, por carpeta (toca una barra)</span>
+      <div class="deuda" id="deuda"></div>
+      <p class="hint">Se arregla de a una pantalla: <code>/sugerir &lt;ruta&gt;</code>. Al terminar un archivo se borra de la lista y baja el contador.</p>
+    </div>
+  </div>
+
+  <div class="cmds" id="cmds"></div>
+</section>
+
+<footer class="pie">Datos del 2026-09-30, sacados de la base local de CAYLA y de las funciones reales de <code>apps/web/lib/sugerencias-alta-producto.ts</code>. Los textos de ejemplo de las 42 categorías los propuso Claude y están en un solo archivo para que Felipe los vete.</footer>
+</div>
+
+<script>
+const D = {"datos":{"categorias":[{"familia":"accesorios","prefijo":"CAR","nombre":"Bolsos y Carteras","prenda":"Cartera","nombreEj":"Cartera Aurora","descEj":"Asa regulable, cierre de imán…"},{"familia":"accesorios","prefijo":"CIN","nombre":"Cinturones","prenda":"Cinturón","nombreEj":"Cinturón Canela","descEj":"Hebilla dorada, ancho 3 cm, cuero…"},{"familia":"accesorios","prefijo":"GOR","nombre":"Gorros y Sombreros","prenda":"Sombrero","nombreEj":"Sombrero Playa","descEj":"Ala ancha, cinta a tono, talla única…"},{"familia":"accesorios","prefijo":"LSO","nombre":"Lentes de sol","prenda":"Lentes","nombreEj":"Lentes Espejo","descEj":"Filtro UV400, montura ligera…"},{"familia":"accesorios","prefijo":"MOC","nombre":"Mochilas","prenda":"Mochila","nombreEj":"Mochila Ruta","descEj":"Dos bolsillos, correas acolchadas…"},{"familia":"accesorios","prefijo":"BUF","nombre":"Pañuelos y Pañoletas","prenda":"Pañoleta","nombreEj":"Pañoleta Jardín","descEj":"Estampado floral, seda, 90 x 90 cm…"},{"familia":"accesorios","prefijo":"REL","nombre":"Relojes","prenda":"Reloj","nombreEj":"Reloj Clásico","descEj":"Correa de cuero, caja de acero…"},{"familia":"accesorios","prefijo":"RIN","nombre":"Riñoneras","prenda":"Riñonera","nombreEj":"Riñonera Sendero","descEj":"Correa ajustable, dos bolsillos…"},{"familia":"belleza","prefijo":"MAQ","nombre":"Maquillaje","prenda":"Labial","nombreEj":"Labial Rubí","descEj":"Larga duración, acabado mate…"},{"familia":"bisuteria","prefijo":"ANL","nombre":"Anillos","prenda":"Anillo","nombreEj":"Anillo Estrella","descEj":"Baño de oro, talla ajustable…"},{"familia":"bisuteria","prefijo":"ARE","nombre":"Aretes","prenda":"Aretes","nombreEj":"Aretes Gota","descEj":"Aro pequeño, baño de plata…"},{"familia":"bisuteria","prefijo":"COL","nombre":"Collares","prenda":"Collar","nombreEj":"Collar Perla","descEj":"Cadena fina, dije pequeño, 45 cm…"},{"familia":"bisuteria","prefijo":"PUL","nombre":"Pulseras","prenda":"Pulsera","nombreEj":"Pulsera Dijes","descEj":"Cadena regulable, tres dijes…"},{"familia":"calzado","prefijo":"BAI","nombre":"Bailarinas","prenda":"Bailarina","nombreEj":"Bailarina Perla","descEj":"Punta redonda, cierre elástico…"},{"familia":"calzado","prefijo":"BOT","nombre":"Botas","prenda":"Bota","nombreEj":"Bota Cumbre","descEj":"Caña alta, cierre lateral, taco bajo…"},{"familia":"calzado","prefijo":"BOI","nombre":"Botines","prenda":"Botín","nombreEj":"Botín Ceniza","descEj":"Taco cuadrado, cierre lateral, cuero…"},{"familia":"calzado","prefijo":"MSN","nombre":"Mocasines","prenda":"Mocasín","nombreEj":"Mocasín Oliva","descEj":"Suela flexible, plantilla, cuero…"},{"familia":"calzado","prefijo":"SAN","nombre":"Sandalias","prenda":"Sandalia","nombreEj":"Sandalia Marea","descEj":"Tiras cruzadas, hebilla, taco bajo…"},{"familia":"calzado","prefijo":"ZAP","nombre":"Zapatillas","prenda":"Zapatilla","nombreEj":"Zapatilla Nube","descEj":"Suela de goma, cordones planos…"},{"familia":"calzado","prefijo":"ZFO","nombre":"Zapatos formales","prenda":"Zapato","nombreEj":"Zapato Gala","descEj":"Punta fina, taco medio, cuero…"},{"familia":"indumentaria","prefijo":"ABR","nombre":"Abrigos","prenda":"Abrigo","nombreEj":"Abrigo Alba","descEj":"Paño grueso, cuello solapa, cinturón…"},{"familia":"indumentaria","prefijo":"BLZ","nombre":"Blazers","prenda":"Blazer","nombreEj":"Blazer Luna","descEj":"Corte recto, un botón, forro…"},{"familia":"indumentaria","prefijo":"BOD","nombre":"Bodys","prenda":"Body","nombreEj":"Body Coral","descEj":"Tirantes finos, escote cuadrado…"},{"familia":"indumentaria","prefijo":"CMS","nombre":"Camisas y Blusas","prenda":"Blusa","nombreEj":"Blusa Aurora","descEj":"Manga globo, botones forrados…"},{"familia":"indumentaria","prefijo":"CAS","nombre":"Casacas","prenda":"Casaca","nombreEj":"Casaca Río","descEj":"Cierre frontal, bolsillos, forro…"},{"familia":"indumentaria","prefijo":"CHA","nombre":"Chalecos","prenda":"Chaleco","nombreEj":"Chaleco Bruma","descEj":"Sin mangas, botones, acolchado…"},{"familia":"indumentaria","prefijo":"CMP","nombre":"Chompas","prenda":"Chompa","nombreEj":"Chompa Nube","descEj":"Cuello redondo, punto trenzado…"},{"familia":"indumentaria","prefijo":"CON","nombre":"Conjuntos","prenda":"Conjunto","nombreEj":"Conjunto Brisa","descEj":"Dos piezas, cintura elástica…"},{"familia":"indumentaria","prefijo":"ENT","nombre":"Enterizos","prenda":"Enterizo","nombreEj":"Enterizo Sol","descEj":"Tirantes ajustables, pierna ancha…"},{"familia":"indumentaria","prefijo":"FAL","nombre":"Faldas","prenda":"Falda","nombreEj":"Falda Mar","descEj":"Corte en A, largo midi…"},{"familia":"indumentaria","prefijo":"JEA","nombre":"Jeans","prenda":"Jean","nombreEj":"Jean Olivo","descEj":"Tiro alto, pierna recta, claro…"},{"familia":"indumentaria","prefijo":"PAN","nombre":"Pantalones","prenda":"Pantalón","nombreEj":"Pantalón Ámbar","descEj":"Pierna ancha, pretina con pinzas…"},{"familia":"indumentaria","prefijo":"SUD","nombre":"Poleras","prenda":"Polera","nombreEj":"Polera Otoño","descEj":"Capucha, bolsillo canguro, afelpada…"},{"familia":"indumentaria","prefijo":"POL","nombre":"Polos","prenda":"Polo","nombreEj":"Polo Luna","descEj":"Cuello redondo, algodón pima…"},{"familia":"indumentaria","prefijo":"LEN","nombre":"Ropa interior/Lencería","prenda":"Bralette","nombreEj":"Bralette Seda","descEj":"Encaje, sin costuras, copa suave…"},{"familia":"indumentaria","prefijo":"SHO","nombre":"Shorts","prenda":"Short","nombreEj":"Short Playa","descEj":"Cintura elástica, largo medio muslo…"},{"familia":"indumentaria","prefijo":"TOP","nombre":"Tops","prenda":"Top","nombreEj":"Top Estrella","descEj":"Tirantes, escote corazón, ajustado…"},{"familia":"indumentaria","prefijo":"VES","nombre":"Vestidos","prenda":"Vestido","nombreEj":"Vestido Lima","descEj":"Largo midi, cuello en V, cinturón…"},{"familia":"papeleria","prefijo":"UTC","nombre":"Colores","prenda":"Colores","nombreEj":"Colores Arcoíris","descEj":"Caja de 12, punta suave…"},{"familia":"papeleria","prefijo":"LAP","nombre":"Lapiceros","prenda":"Lapicero","nombreEj":"Lapicero Gel","descEj":"Tinta gel, punta 0.5, metálico…"},{"familia":"papeleria","prefijo":"LIB","nombre":"Libretas/Cuadernos","prenda":"Libreta","nombreEj":"Libreta Bosque","descEj":"Tapa dura, 100 hojas, hojas rayadas…"},{"familia":"papeleria","prefijo":"UOF","nombre":"Útiles de oficina","prenda":"Set","nombreEj":"Set Escritorio","descEj":"Pack de tres, uso diario…"}],"neutroFamilia":{"indumentaria":{"nombre":"Nombre de la prenda","desc":"Corte, largo, detalles…"},"calzado":{"nombre":"Nombre del modelo","desc":"Taco, suela, cierre…"},"accesorios":{"nombre":"Nombre del accesorio","desc":"Material, medidas, cierre…"},"bisuteria":{"nombre":"Nombre de la joya","desc":"Baño, medidas, cierre…"},"belleza":{"nombre":"Nombre del producto","desc":"Acabado, tono, duración…"},"papeleria":{"nombre":"Nombre del artículo","desc":"Tamaño, cantidad, material…"}},"neutroGeneral":{"nombre":"Nombre del producto","desc":"Lo que no dice el nombre…"},"universos":{"tallas":["26","28","30","32","34","35","36","37","38","39","40","41","42","6","7","8","9","Estándar","L","M","S","Única","XL","XS","XXL"],"tejidos":["Algodón","Algodón pima","Alpaca","Denim","Drill","Gabardina","Jersey","Licra","Lino","Pana","Piqué","Polar","Poliéster","Popelina","Rib","Seda","Viscosa"],"patrones":["Animal print","Cuadros","Estampado","Floral","Liso","Lunares","Rayas"]},"candidatosValor":{"tallas":{"indumentaria":["XXL","XXS","3XL"],"calzado":["44","36","45"],"accesorios":["Única","S/M"],"bisuteria":["16","18"],"belleza":["30 ml","15 ml"],"papeleria":["A5","A4"]},"tejidos":{"indumentaria":["Lana merino","Lino","Seda"],"calzado":["Cuero","Gamuza","Charol"],"accesorios":["Cuero","Lona","Acero inoxidable"],"bisuteria":["Acero quirúrgico","Plata 925","Latón"],"belleza":[],"papeleria":["Papel bond","Cartulina"]},"patrones":{"indumentaria":["Pata de gallo","Lunares","Cuadros vichy"],"calzado":["Trenzado","Animal print"],"accesorios":["Rayas","Cuadros"],"bisuteria":[],"belleza":[],"papeleria":["Rayado","Cuadriculado"]}},"resultadoValor":{"tallas":{"indumentaria":"Ej. XXS","calzado":"Ej. 44","accesorios":"Ej. S/M","bisuteria":"Ej. 16","belleza":"Ej. 30 ml","papeleria":"Ej. A5"},"tejidos":{"indumentaria":"Ej. Lana merino","calzado":"Ej. Cuero","accesorios":"Ej. Cuero","bisuteria":"Ej. Acero quirúrgico","belleza":"Nombre del tejido","papeleria":"Ej. Papel bond"},"patrones":{"indumentaria":"Ej. Pata de gallo","calzado":"Ej. Trenzado","accesorios":"Nombre del patrón","bisuteria":"Nombre del patrón","belleza":"Nombre del patrón","papeleria":"Ej. Rayado"}},"neutroValor":{"tallas":"Nombre de la talla","tejidos":"Nombre del tejido","patrones":"Nombre del patrón"},"candidatosColor":{"neutro":[{"nombre":"Marfil","codigo":"MAF"},{"nombre":"Gris humo","codigo":"GRH"},{"nombre":"Ostra","codigo":"OST"}],"azul":[{"nombre":"Azul acero","codigo":"AZA"},{"nombre":"Azul noche","codigo":"AZN"},{"nombre":"Azul rey","codigo":"AZR"}],"rojo":[{"nombre":"Rojo ladrillo","codigo":"ROL"},{"nombre":"Granate","codigo":"GRN"},{"nombre":"Rosa pastel","codigo":"ROP"}],"amarillo":[{"nombre":"Girasol","codigo":"GIR"},{"nombre":"Maíz","codigo":"MAI"},{"nombre":"Amarillo pollito","codigo":"AMP"}],"verde":[{"nombre":"Verde bosque","codigo":"VBO"},{"nombre":"Menta","codigo":"MEN"},{"nombre":"Jade","codigo":"JAD"}],"morado":[{"nombre":"Uva","codigo":"UVA"},{"nombre":"Glicina","codigo":"GLI"},{"nombre":"Morado royal","codigo":"MRO"}],"tierra":[{"nombre":"Ocre","codigo":"OCR"},{"nombre":"Barro","codigo":"BAR"},{"nombre":"Café","codigo":"CAF"}],"metalico":[{"nombre":"Latón","codigo":"LAT"},{"nombre":"Acero","codigo":"ACE"},{"nombre":"Grafito","codigo":"GRF"}],"estampado":[{"nombre":"Rayas","codigo":"RAY"},{"nombre":"Floral","codigo":"FLO"},{"nombre":"Cuadros","codigo":"CUA"}]},"resultadoColor":{"neutro":{"nombre":"Gris humo","codigo":"GRH"},"azul":{"nombre":"Azul acero","codigo":"AZA"},"rojo":{"nombre":"Rojo ladrillo","codigo":"ROL"},"amarillo":{"nombre":"Girasol","codigo":"GIR"},"verde":{"nombre":"Verde bosque","codigo":"VBO"},"morado":{"nombre":"Glicina","codigo":"GLI"},"tierra":{"nombre":"Barro","codigo":"BAR"},"metalico":{"nombre":"Latón","codigo":"LAT"},"estampado":{"nombre":"Rayas","codigo":"RAY"}},"neutroColor":{"nombre":"Nombre del color","codigo":"3 letras"},"colores":[{"n":"Amarillo","f":"amarillo","s":[],"c":"AMA"},{"n":"Amarillo limón","f":"amarillo","s":[],"c":"AML"},{"n":"Animal print","f":"estampado","s":[],"c":"ANI"},{"n":"Arena","f":"tierra","s":["café con leche","latte","capuchino"],"c":"ARN"},{"n":"Azul claro","f":"azul","s":[],"c":"AZC"},{"n":"Azul denim","f":"azul","s":[],"c":"AZD"},{"n":"Azul eléctrico","f":"azul","s":[],"c":"AZE"},{"n":"Azul marino","f":"azul","s":["azul noche","navy","azul oscuro"],"c":"AZM"},{"n":"Azul petróleo","f":"azul","s":["teal"],"c":"AZP"},{"n":"Beige","f":"neutro","s":[],"c":"BEI"},{"n":"Berenjena","f":"morado","s":[],"c":"BER"},{"n":"Blanco","f":"neutro","s":[],"c":"BLA"},{"n":"Bronce","f":"metalico","s":[],"c":"BRO"},{"n":"Camel","f":"tierra","s":[],"c":"CAM"},{"n":"Caqui","f":"tierra","s":["khaki","kaki"],"c":"CAQ"},{"n":"Celeste","f":"azul","s":["azul bebé","azul cielo","azul hielo"],"c":"CEL"},{"n":"Cereza","f":"rojo","s":[],"c":"CER"},{"n":"Champán","f":"metalico","s":[],"c":"CHA"},{"n":"Chocolate","f":"tierra","s":[],"c":"CHO"},{"n":"Ciruela","f":"morado","s":[],"c":"CIR"},{"n":"Cobalto","f":"azul","s":["azul rey","azul francia"],"c":"COB"},{"n":"Cobre","f":"metalico","s":[],"c":"COE"},{"n":"Coral","f":"rojo","s":[],"c":"COR"},{"n":"Crudo","f":"neutro","s":["blanco roto","hueso","marfil","ecru","crema"],"c":"CRU"},{"n":"Dorado","f":"metalico","s":["oro"],"c":"DOR"},{"n":"Durazno","f":"amarillo","s":["melocotón","peach"],"c":"DUR"},{"n":"Esmeralda","f":"verde","s":[],"c":"ESM"},{"n":"Estampado","f":"estampado","s":[],"c":"EST"},{"n":"Frambuesa","f":"rojo","s":[],"c":"FRA"},{"n":"Fucsia","f":"rojo","s":["magenta"],"c":"FUC"},{"n":"Gris","f":"neutro","s":["plomo"],"c":"GRI"},{"n":"Gris antracita","f":"neutro","s":["carbón","grafito","marengo"],"c":"GRA"},{"n":"Gris melange","f":"neutro","s":["jaspeado"],"c":"GRM"},{"n":"Gris perla","f":"neutro","s":[],"c":"GRP"},{"n":"Gris piedra","f":"neutro","s":["piedra","greige claro","stone"],"c":"GPI"},{"n":"Índigo","f":"azul","s":["azul índigo"],"c":"IND"},{"n":"Lavanda","f":"morado","s":[],"c":"LAV"},{"n":"Lila","f":"morado","s":[],"c":"LIL"},{"n":"Malva","f":"morado","s":[],"c":"MAL"},{"n":"Mandarina","f":"amarillo","s":[],"c":"MAN"},{"n":"Marrón","f":"tierra","s":["café","castaño"],"c":"MAR"},{"n":"Moka","f":"tierra","s":["mocha","moca"],"c":"MOK"},{"n":"Mora","f":"morado","s":["amaranto"],"c":"MOA"},{"n":"Morado","f":"morado","s":["púrpura","uva"],"c":"MOR"},{"n":"Mostaza","f":"amarillo","s":["ocre"],"c":"MOS"},{"n":"Multicolor","f":"estampado","s":[],"c":"MUL"},{"n":"Naranja","f":"amarillo","s":[],"c":"NAR"},{"n":"Negro","f":"neutro","s":[],"c":"NEG"},{"n":"Nude","f":"neutro","s":["color piel","piel","beige rosado"],"c":"NUD"},{"n":"Oro rosa","f":"metalico","s":[],"c":"ORR"},{"n":"Oro viejo","f":"metalico","s":[],"c":"ORV"},{"n":"Orquídea","f":"morado","s":[],"c":"ORQ"},{"n":"Palo rosa","f":"rojo","s":["rosa viejo","rosa empolvado"],"c":"PAL"},{"n":"Pistacho","f":"verde","s":[],"c":"PIS"},{"n":"Plata vieja","f":"metalico","s":[],"c":"PLV"},{"n":"Plateado","f":"metalico","s":["plata"],"c":"PLA"},{"n":"Rojo","f":"rojo","s":[],"c":"ROJ"},{"n":"Rosado","f":"rojo","s":["rosa","rosa bebé"],"c":"ROS"},{"n":"Salmón","f":"rojo","s":[],"c":"SAL"},{"n":"Salvia","f":"verde","s":[],"c":"SAV"},{"n":"Terracota","f":"tierra","s":[],"c":"TER"},{"n":"Topo","f":"neutro","s":["taupe","visón","greige"],"c":"TOP"},{"n":"Tostado","f":"tierra","s":["tabaco"],"c":"TOS"},{"n":"Turquesa","f":"azul","s":[],"c":"TUR"},{"n":"Vainilla","f":"amarillo","s":[],"c":"VAI"},{"n":"Verde","f":"verde","s":[],"c":"VER"},{"n":"Verde agua","f":"verde","s":[],"c":"VEA"},{"n":"Verde botella","f":"verde","s":[],"c":"VEB"},{"n":"Verde limón","f":"verde","s":[],"c":"VEL"},{"n":"Verde militar","f":"verde","s":[],"c":"VEM"},{"n":"Verde oliva","f":"verde","s":["oliva"],"c":"VOL"},{"n":"Vino","f":"rojo","s":["guinda","burdeos","borgoña","granate"],"c":"VIN"},{"n":"Violeta","f":"morado","s":[],"c":"VIO"}],"familiasColor":[{"valor":"neutro","texto":"Neutro"},{"valor":"azul","texto":"Azul"},{"valor":"rojo","texto":"Rojo"},{"valor":"amarillo","texto":"Amarillo"},{"valor":"verde","texto":"Verde"},{"valor":"morado","texto":"Morado"},{"valor":"tierra","texto":"Tierra"},{"valor":"metalico","texto":"Metálico"},{"valor":"estampado","texto":"Estampado"}]},"extra":{"antes":"# Sugerir — pantalla /productos/nuevo\n\n## apps/web/components/NuevoProductoForm.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): categoriaId, marcaId, proveedorId, marcaNombre, proveedorNombre, temporada\n   L762  ✎ ESTÁTICA  placeholder: Blusa Aurora\n   L778  ✎ ESTÁTICA  placeholder: Manga globo, botones forrados…\n   L783  · lista     lista: sugerencias={false}\n\n## apps/web/components/SelectorColor.tsx\n   pantallas: /productos/[id]/editar, /productos/atributos, /productos/nuevo\n   posibles causas (estados de selección): ninguna en este archivo (puede llegar por props)\n   L85  ✎ ESTÁTICA  placeholder: #c9b79c\n\n## apps/web/components/alta-producto/ElegirMarcaProveedor.tsx\n   pantallas: /inventario/conteo/[id], /productos/[id]/editar, /productos/nuevo\n   posibles causas (estados de selección): marcas, proveedores\n   L73  · lista     lista: sugerencias = true,\n\n## apps/web/components/alta-producto/MatrizCantidades.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): modo\n   L201  ≈ derivada  placeholder: base\n\n## apps/web/components/alta-producto/NuevaMarcaForm.tsx\n   pantallas: /inventario/conteo/[id], /productos/[id]/editar, /productos/marcas\n   posibles causas (estados de selección): marcaSel, proveedorId\n   L361  ✎ ESTÁTICA  placeholder: Textil Andina SAC\n   L377  ✎ ESTÁTICA  placeholder: 11 dígitos\n\n## apps/web/components/alta-producto/NuevoColorAlta.tsx\n   pantallas: /productos/[id]/editar, /productos/nuevo\n   posibles causas (estados de selección): familiaElegida\n   L161  ✎ ESTÁTICA  placeholder: Palo de rosa\n   L199  ✎ ESTÁTICA  placeholder: PAR\n\n## apps/web/components/alta-producto/ProponerValor.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): ninguna en este archivo (puede llegar por props)\n   L36  ✎ ESTÁTICA  ejemplo-en-texto: Ej. 44\n   L37  ✎ ESTÁTICA  ejemplo-en-texto: Ej. Lana merino\n   L38  ✎ ESTÁTICA  ejemplo-en-texto: Ej. Pata de gallo\n   L132  ≈ derivada  placeholder: t.placeholder\n\nTotal: 10 ejemplo(s) estático(s) por revisar en 7 archivo(s) · 9 placeholder(s) que son instrucción o número (no cuentan).\n","despues":"# Sugerir — pantalla /productos/nuevo\n\n## apps/web/components/NuevoProductoForm.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): categoriaId, marcaId, proveedorId, marcaNombre, proveedorNombre, temporada\n   L765  ≈ derivada  placeholder: sugerirNombre(contextoSugerencia).texto\n   L781  ≈ derivada  placeholder: sugerirDescripcion(contextoSugerencia).texto\n   L786  · lista     lista: sugerencias={false}\n\n## apps/web/components/SelectorColor.tsx\n   pantallas: /productos/[id]/editar, /productos/atributos, /productos/nuevo\n   posibles causas (estados de selección): ninguna en este archivo (puede llegar por props)\n   L85  ✓ fijo      placeholder: #c9b79c  — ejemplo del FORMATO #hex, no de un color; sirve igual con cualquier familia\n\n## apps/web/components/alta-producto/ElegirMarcaProveedor.tsx\n   pantallas: /inventario/conteo/[id], /productos/[id]/editar, /productos/nuevo\n   posibles causas (estados de selección): marcas, proveedores\n   L73  · lista     lista: sugerencias = true,\n\n## apps/web/components/alta-producto/MatrizCantidades.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): modo\n   L201  ≈ derivada  placeholder: base\n\n## apps/web/components/alta-producto/NuevaMarcaForm.tsx\n   pantallas: /inventario/conteo/[id], /productos/[id]/editar, /productos/marcas\n   posibles causas (estados de selección): marcaSel, proveedorId\n   L361  ✓ fijo      placeholder: Textil Andina SAC  — razón social de un proveedor nuevo; no depende de nada elegido antes\n   L377  ✓ fijo      placeholder: 11 dígitos  — formato del RUC; es el mismo para cualquier proveedor\n\n## apps/web/components/alta-producto/NuevoColorAlta.tsx\n   pantallas: /productos/[id]/editar, /productos/nuevo\n   posibles causas (estados de selección): familiaElegida\n   L164  ≈ derivada  placeholder: ejemplo.nombre.texto\n   L202  ≈ derivada  placeholder: ejemplo.codigo.texto\n\n## apps/web/components/alta-producto/ProponerValor.tsx\n   pantallas: /productos/nuevo\n   posibles causas (estados de selección): ninguna en este archivo (puede llegar por props)\n   L137  ≈ derivada  placeholder: sugerirValorNuevo(tipo, familia, universo).texto\n\nTotal: 0 ejemplo(s) estático(s) por revisar en 7 archivo(s) · 9 placeholder(s) que son instrucción o número (no cuentan).\n","deuda":{"total":69,"pendientes":69,"grupos":{"app/(app)/buscar":["page.tsx"],"components":["AbrirCajaFormV2.tsx","ApartarModal.tsx","BuscadorGlobal.tsx","BuscadorHistorial.tsx","CategoriasLista.tsx","ClientaFichaModal.tsx","ClientasPanel.tsx","ColaboradoresModales.tsx","ColoresLista.tsx","CompraDetallePanel.tsx","CompraFormV2.tsx","ComprobanteProduccionForm.tsx","ComprobantesPanel.tsx","ComprobantesProduccionPanel.tsx","CotizacionesMaquilaPanel.tsx","EditarMarcaModal.tsx","EtiquetasLista.tsx","FamiliasLista.tsx","FiltrosCompras.tsx","FiltrosMovimientos.tsx","FiltrosProductos.tsx","FiltrosRecibidas.tsx","GastosFijosYActivos.tsx","GastosPanel.tsx","InsumoModales.tsx","MarcasLista.tsx","MediosDePago.tsx","MovimientoCajaModal.tsx","MovimientosLista.tsx","NotasCreditoPanel.tsx","NuevaOrdenProduccionForm.tsx","NuevaProformaModal.tsx","PagoPiezas.tsx","PatronesLista.tsx","PedirAOtraSedeModal.tsx","PrendasDeEtiquetaModal.tsx","ProductoForm.tsx","ProveedorModal.tsx","ProveedorProduccionModal.tsx","ProveedoresProduccionPanel.tsx","PuntoDeVentaTicket.tsx","ReasignarReparto.tsx","RecepcionEnvio.tsx","RecepcionFormV2.tsx","RecibirComprobanteModal.tsx","RegistrarGastoModal.tsx","RegistrarNotaCreditoModal.tsx","RolesModales.tsx","SaldoFavorAcciones.tsx","SaldoFavorProveedor.tsx","SalidasDeCaja.tsx","SeriesPanel.tsx","TallasLista.tsx","TejidosLista.tsx","TemporadasLista.tsx","TerminalesModales.tsx","TrasladoAnularModal.tsx"],"components/apartados":["ApartarVista.tsx","EntregarVista.tsx","ModalesApartado.tsx","TodosVista.tsx"],"components/finanzas":["ConfiguracionCuentas.tsx","CuentasDinero.tsx","EditarCuentaModal.tsx","SaldosArranqueModal.tsx"],"components/frescura":["FrescuraPanel.tsx"],"components/punto-de-venta":["ClientaDelTicket.tsx","Esperas.tsx"]}},"anchos":{"antes":[{"c":"Bolsos y Carteras","w":301},{"c":"Cinturones","w":244},{"c":"Gorros y Sombreros","w":243},{"c":"Lentes de sol","w":295},{"c":"Mochilas","w":328},{"c":"Pañuelos y Pañoletas","w":295},{"c":"Relojes","w":351},{"c":"Riñoneras","w":262},{"c":"Maquillaje","w":310},{"c":"Anillos","w":264},{"c":"Aretes","w":325},{"c":"Collares","w":278},{"c":"Pulseras","w":291},{"c":"Bailarinas","w":311},{"c":"Botas","w":239},{"c":"Botines","w":252},{"c":"Mocasines","w":282},{"c":"Sandalias","w":299},{"c":"Zapatillas","w":369},{"c":"Zapatos formales","w":210},{"c":"Abrigos","w":304},{"c":"Blazers","w":251},{"c":"Bodys","w":356},{"c":"Camisas y Blusas","w":224},{"c":"Casacas","w":319},{"c":"Chalecos","w":336},{"c":"Chompas","w":331},{"c":"Conjuntos","w":294},{"c":"Enterizos","w":356},{"c":"Faldas","w":264},{"c":"Jeans","w":246},{"c":"Pantalones","w":357},{"c":"Poleras","w":308},{"c":"Polos","w":310},{"c":"Ropa interior/Lencería","w":231},{"c":"Shorts","w":326},{"c":"Tops","w":245},{"c":"Vestidos","w":308},{"c":"Colores","w":279},{"c":"Lapiceros","w":261},{"c":"Libretas/Cuadernos","w":252},{"c":"Útiles de oficina","w":276}],"ahora":[{"c":"Bolsos y Carteras","w":208},{"c":"Cinturones","w":244},{"c":"Gorros y Sombreros","w":243},{"c":"Lentes de sol","w":202},{"c":"Mochilas","w":238},{"c":"Pañuelos y Pañoletas","w":254},{"c":"Relojes","w":222},{"c":"Riñoneras","w":215},{"c":"Maquillaje","w":219},{"c":"Anillos","w":195},{"c":"Aretes","w":201},{"c":"Collares","w":240},{"c":"Pulseras","w":200},{"c":"Bailarinas","w":216},{"c":"Botas","w":239},{"c":"Botines","w":252},{"c":"Mocasines","w":206},{"c":"Sandalias","w":233},{"c":"Zapatillas","w":233},{"c":"Zapatos formales","w":210},{"c":"Abrigos","w":256},{"c":"Blazers","w":198},{"c":"Bodys","w":227},{"c":"Camisas y Blusas","w":224},{"c":"Casacas","w":203},{"c":"Chalecos","w":231},{"c":"Chompas","w":228},{"c":"Conjuntos","w":196},{"c":"Enterizos","w":236},{"c":"Faldas","w":157},{"c":"Jeans","w":196},{"c":"Pantalones","w":232},{"c":"Poleras","w":253},{"c":"Polos","w":216},{"c":"Ropa interior/Lencería","w":231},{"c":"Shorts","w":251},{"c":"Tops","w":245},{"c":"Vestidos","w":228},{"c":"Colores","w":170},{"c":"Lapiceros","w":207},{"c":"Libretas/Cuadernos","w":252},{"c":"Útiles de oficina","w":169}],"util":279}}};
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const FAM = [["indumentaria","Indumentaria"],["calzado","Calzado"],["accesorios","Accesorios y Complementos"],["bisuteria","Bisutería"],["belleza","Belleza"],["papeleria","Papelería"]];
+const clave = (t) => (t ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const chips = (el, items, activo, onPick) => {
+  el.innerHTML = items.map(([k, t]) => `<button class="chip" aria-pressed="${k === activo}" data-k="${esc(k)}">${esc(t)}</button>`).join("");
+  $$("button", el).forEach((b) => b.addEventListener("click", () => onPick(b.dataset.k)));
+};
+$("#deudaTotal").textContent = D.extra.deuda.total; $("#deudaN").textContent = D.extra.deuda.total;
+
+/* ---------- pestañas ---------- */
+$$(".tab").forEach((t) => t.addEventListener("click", () => {
+  $$(".tab").forEach((x) => { const on = x === t; x.setAttribute("aria-selected", on); $("#" + x.getAttribute("aria-controls")).hidden = !on; });
+}));
+
+/* ---------- Nombre y descripción ---------- */
+const S1 = { fam: "indumentaria", prefijo: "CAS", modo: "cat" }; // modo: cat | ninguna | nueva
+function sugerirTexto(ctx) { // la misma cadena de decisión que lib/sugerencias-alta-producto.ts
+  const c = ctx.prefijo && D.datos.categorias.find((x) => x.prefijo === ctx.prefijo);
+  if (c) return { nombre: c.nombreEj, desc: c.descEj, origen: "categoria", cat: c };
+  const f = ctx.familia && D.datos.neutroFamilia[ctx.familia];
+  if (f) return { nombre: f.nombre, desc: f.desc, origen: "familia" };
+  return { nombre: D.datos.neutroGeneral.nombre, desc: D.datos.neutroGeneral.desc, origen: "neutro" };
+}
+function renderCaja() {
+  chips($("#famChips"), FAM, S1.fam, (k) => { S1.fam = k; if (S1.modo === "cat") S1.prefijo = D.datos.categorias.find((c) => c.familia === k).prefijo; renderCaja(); });
+  const cats = D.datos.categorias.filter((c) => c.familia === S1.fam);
+  chips($("#catChips"), cats.map((c) => [c.prefijo, c.nombre]), S1.modo === "cat" ? S1.prefijo : null, (k) => { S1.modo = "cat"; S1.prefijo = k; renderCaja(); });
+  $("#chipNinguna").setAttribute("aria-pressed", S1.modo === "ninguna");
+  $("#chipNueva").setAttribute("aria-pressed", S1.modo === "nueva");
+  const ctx = S1.modo === "ninguna" ? {} : S1.modo === "nueva" ? { familia: S1.fam, prefijo: "ZZZ" } : { familia: S1.fam, prefijo: S1.prefijo };
+  const r = sugerirTexto(ctx);
+  $("#n-nombre").placeholder = r.nombre; $("#n-desc").placeholder = r.desc;
+  const pill = $("#pillOrigen");
+  pill.textContent = r.origen === "categoria" ? "de la categoría" : r.origen === "familia" ? "neutro de la familia" : "neutro";
+  pill.className = "pill " + (r.origen === "categoria" ? "good" : "mute");
+  const catSel = r.cat;
+  $("#notaAhora").className = "nota good";
+  $("#notaAhora").textContent = r.origen === "categoria" ? `Ficha «${catSel.prefijo}»: empieza con su prenda («${catSel.prenda}»).` : r.origen === "familia" ? "La categoría no tiene ficha todavía: usa el vocabulario de su familia y no nombra ninguna prenda." : "Aún no eligió categoría: no promete nada.";
+  const na = $("#notaAntes");
+  if (S1.modo === "cat" && S1.prefijo === "CMS") { na.className = "nota good"; na.textContent = "Aquí sí coincidía: es una blusa."; }
+  else { na.className = "nota bad"; na.textContent = S1.modo === "ninguna" ? "Sin categoría, igual sugería una blusa." : `Dice «Blusa» y elegiste ${S1.modo === "nueva" ? "una categoría de " + FAM.find((f) => f[0] === S1.fam)[1] : catSel.nombre}.`; }
+}
+$("#chipNinguna").addEventListener("click", () => { S1.modo = "ninguna"; renderCaja(); });
+$("#chipNueva").addEventListener("click", () => { S1.modo = "nueva"; renderCaja(); });
+$("#movil").addEventListener("change", (e) => $("#mocks").classList.toggle("movil", e.target.checked));
+
+/* ---------- Talla, tejido, patrón ---------- */
+const S2 = { tipo: "tallas", fam: "indumentaria" };
+const TIPOS = [["tallas","+ Nueva talla"],["tejidos","+ Nuevo tejido"],["patrones","+ Nuevo patrón"]];
+const ANTES_VALOR = { tallas: "Ej. 44", tejidos: "Ej. Lana merino", patrones: "Ej. Pata de gallo" };
+function valorNuevo(tipo, fam) {
+  const usados = new Set(D.datos.universos[tipo].map(clave));
+  const filas = (D.datos.candidatosValor[tipo][fam] || []).map((c) => ({ c, existe: usados.has(clave(c)) }));
+  const libre = filas.find((f) => !f.existe);
+  return { filas, libre, texto: libre ? "Ej. " + libre.c : D.datos.neutroValor[tipo] };
+}
+function renderValor() {
+  chips($("#tipoChips"), TIPOS, S2.tipo, (k) => { S2.tipo = k; renderValor(); });
+  chips($("#famValorChips"), FAM, S2.fam, (k) => { S2.fam = k; renderValor(); });
+  const r = valorNuevo(S2.tipo, S2.fam);
+  $("#valorTitulo").textContent = TIPOS.find((t) => t[0] === S2.tipo)[1];
+  $("#v-input").placeholder = r.texto;
+  $("#valorOrigen").textContent = r.libre ? "de la familia" : "neutro";
+  $("#valorOrigen").className = "pill " + (r.libre ? "good" : "mute");
+  $("label[for=v-input]").textContent = "Nombre " + { tallas: "de la talla nueva", tejidos: "del tejido nuevo", patrones: "del patrón nuevo" }[S2.tipo];
+  const nota = $("#valorAntes");
+  nota.className = "nota bad"; nota.innerHTML = `Antes decía siempre <b>${esc(ANTES_VALOR[S2.tipo])}</b>${S2.tipo === "tallas" && S2.fam !== "calzado" ? ", talla de zapato para cualquier prenda" : ""}.`;
+  const lista = $("#valorCands");
+  if (!r.filas.length) lista.innerHTML = `<li class="rest"><span class="name">Esta familia no tiene candidatos para ${S2.tipo}</span><span class="why">→ dice qué escribir</span></li>`;
+  else lista.innerHTML = r.filas.map((f) => {
+    const pick = r.libre && f.c === r.libre.c;
+    const cls = f.existe ? "skip" : pick ? "pick" : "rest";
+    return `<li class="${cls}"><span class="name">${esc(f.c)}</span><span class="why">${f.existe ? "ya existe: se salta" : pick ? "se muestra" : "reserva"}</span></li>`;
+  }).join("") + (r.libre ? "" : `<li class="pick"><span class="name">Todos existen</span><span class="why">→ ${esc(D.datos.neutroValor[S2.tipo])}</span></li>`);
+  const cand = new Set((D.datos.candidatosValor[S2.tipo][S2.fam] || []).map(clave));
+  $("#valorUniversoT").textContent = `Ya existe en el catálogo (${D.datos.universos[S2.tipo].length})`;
+  $("#valorUniverso").innerHTML = D.datos.universos[S2.tipo].map((u) => `<span class="${cand.has(clave(u)) ? "hit" : ""}">${esc(u)}</span>`).join("");
+  const real = D.datos.resultadoValor[S2.tipo][S2.fam];
+  $("#valorVerif").textContent = r.texto === real ? "✓ igual que la función real de la app" : "✗ difiere de la función real: " + real;
+}
+
+/* ---------- Color nuevo ---------- */
+const S3 = { fam: "azul" };
+function colorNuevo(fam) {
+  const filas = (D.datos.candidatosColor[fam] || []).map((c) => {
+    const k = clave(c.nombre);
+    const dir = D.datos.colores.find((x) => clave(x.n) === k);
+    const sin = !dir && D.datos.colores.find((x) => x.s.some((s) => clave(s) === k));
+    return { ...c, estado: dir ? "existe" : sin ? "sinonimo" : "libre", de: dir ? dir.n : sin ? sin.n : null };
+  });
+  const libre = filas.find((f) => f.estado === "libre");
+  return { filas, libre, nombre: libre ? libre.nombre : D.datos.neutroColor.nombre, codigo: libre ? libre.codigo : D.datos.neutroColor.codigo };
+}
+function renderColor() {
+  chips($("#famColorChips"), D.datos.familiasColor.map((f) => [f.valor, f.texto]), S3.fam, (k) => { S3.fam = k; renderColor(); });
+  $("#chipSinFamilia").setAttribute("aria-pressed", S3.fam === null);
+  $("#colorCands").previousElementSibling;
+  const r = S3.fam ? colorNuevo(S3.fam) : { filas: [], libre: null, nombre: D.datos.neutroColor.nombre, codigo: D.datos.neutroColor.codigo };
+  $("#c-nombre").placeholder = r.nombre; $("#c-codigo").placeholder = r.codigo;
+  $("#colorOrigen").textContent = r.libre ? "de la familia" : "neutro"; $("#colorOrigen").className = "pill " + (r.libre ? "good" : "mute");
+  $("#colorCands").innerHTML = S3.fam ? r.filas.map((f) => {
+    const pick = r.libre && f.nombre === r.libre.nombre;
+    const why = f.estado === "existe" ? "ya existe: se salta" : f.estado === "sinonimo" ? `sinónimo de «${esc(f.de)}»: se salta` : pick ? "se muestra" : "reserva";
+    return `<li class="${f.estado !== "libre" ? "skip" : pick ? "pick" : "rest"}"><span class="name">${esc(f.nombre)}</span><code>${esc(f.codigo)}</code><span class="why">${why}</span></li>`;
+  }).join("") : `<li class="rest"><span class="name">Sin familia todavía</span><span class="why">→ neutro</span></li>`;
+  const real = S3.fam ? D.datos.resultadoColor[S3.fam] : { nombre: D.datos.neutroColor.nombre, codigo: D.datos.neutroColor.codigo };
+  $("#colorVerif").textContent = r.nombre === real.nombre && r.codigo === real.codigo ? "✓ igual que la función real de la app" : "✗ difiere de la función real";
+}
+$("#chipSinFamilia").addEventListener("click", () => { S3.fam = null; renderColor(); });
+$$("p.nota").forEach((p) => { if (p.textContent.includes("{N}")) p.innerHTML = p.innerHTML.replace("{N}", D.datos.colores.length); });
+
+/* ---------- Pasos ---------- */
+const term = (txt) => "<pre class=\"term\">" + esc(txt).replace(/(✎ ESTÁTICA)/g, "<span class=\"est\">$1</span>").replace(/(≈ derivada|✓ fijo)/g, "<span class=\"der\">$1</span>").replace(/(^#.*$|Total:.*$)/gm, "<span class=\"dim\">$1</span>") + "</pre>";
+const PASOS = [
+  { t: "Recorre", p: "El escáner (pnpm sugerir) lista cada placeholder, «Ej. …» y lista de la pantalla, y dice cuáles están escritos a mano y qué estado de selección podría decidirlos. Es por texto: ayuda a no olvidarse, no juzga.", ev: () => `<div class="seg" id="segTerm"><button aria-pressed="true" data-v="antes">Antes</button><button aria-pressed="false" data-v="despues">Después</button></div><div id="termOut"></div>` },
+  { t: "Mapea", p: "Para cada caja fija, escribe qué control la debería decidir y con qué valores. Esa tabla es lo que se prueba después. También anota los casos que rompen sugerencias sin que nadie lo note: cambiar lo elegido más tarde, y el texto que la persona ya escribió.", ev: () => `<div class="scroll-x"><table class="t"><thead><tr><th>Caja</th><th>La decide</th><th>Valores</th><th>Decía</th></tr></thead><tbody>
+    <tr><td>Nombre, Descripción</td><td>la categoría del paso 1</td><td>42 + «ninguna»</td><td>«Blusa Aurora» siempre</td></tr>
+    <tr><td>+ Nueva talla, tejido, patrón</td><td>la familia de la categoría</td><td>6 familias × 3 tipos</td><td>«Ej. 44» siempre</td></tr>
+    <tr><td>+ Nuevo color</td><td>la familia de color</td><td>9 + «ninguna»</td><td>«Palo de rosa», que ya existía</td></tr>
+    <tr><td>Razón social, RUC, #hex</td><td>nada</td><td>—</td><td>se marcan <code>sugerir-fijo</code></td></tr></tbody></table></div>` },
+  { t: "Avisa", p: "Un mensaje corto antes de tocar código: cuántas sugerencias fijas hay, qué las decide, cuáles ya reaccionan, cuáles alguien apagó a propósito y cuáles otra sesión tiene tomadas. Sigue sin esperar respuesta, salvo en las paradas.", ev: () => term("Sugerir: 10 sugerencias estáticas en /productos/nuevo\n- Nombre (NuevoProductoForm.tsx:762) — hoy «Blusa Aurora» · lo decide: categoría\n- Descripción (NuevoProductoForm.tsx:778) — hoy «Manga globo…» · lo decide: categoría\nApagadas a propósito: sugerencias={false} en Marca y proveedor (ADR-0260)\nOcupadas por otra sesión: ProductoForm.tsx\nVoy a adaptarlas con una tabla por familia/categoría.") },
+  { t: "Implementa", p: "Una función pura y sin red en lib/sugerencias-<pantalla>.ts. La clave es el prefijo de la categoría, nunca su nombre (se renombra). Y una prueba que recorre todos los valores del control:", ev: () => `<ul class="checks"><li><b>Totalidad</b>: cada categoría tiene su ejemplo o cae a un neutro declarado.</li><li><b>Sin contradicción</b>: el ejemplo de Útiles de oficina no menciona «colores», que es otra categoría.</li><li><b>Sin contexto → neutro</b>; una categoría nueva cae al neutro de su familia, nunca al de otra.</li><li><b>Sigue al control</b>: A → B → A.</li><li><b>Estable</b>: sin azar ni red.</li><li><b>Cabe en un celular</b>: máximo 36 caracteres.</li></ul>` },
+  { t: "Prueba", p: "Aquí se toca cada botón. Se recorren las 42 categorías por la interfaz real y se lee lo que dice cada caja; se prueba con texto ya escrito, cambiando y volviendo, y a 375 px midiendo cada placeholder contra el ancho de su caja. Nunca se guarda nada.", ev: () => `<ul class="checks bad"><li>Un texto en mayúsculas por CSS se lee en mayúsculas: buscar con <code>/…/i</code>.</li><li>Un campo rellenado antes de hidratar se vacía solo.</li><li>Dos bucles a la vez se pisan; el tope de la herramienta es 45 s.</li><li>El puerto 3010 puede ser de otra sesión, con otro código.</li></ul><p class="hint">Las trampas que ocurrieron de verdad al probar Nuevo producto.</p>` },
+  { t: "Registra", p: "Si se arregló un archivo de la deuda, se borra de la lista y baja el contador. Si un ejemplo no depende de nada, se marca en su línea. Un archivo nuevo nunca entra a la deuda.", ev: () => term("placeholder=\"11 dígitos\" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor\n\nexport const PENDIENTES_HOY = " + D.extra.deuda.pendientes + ";  // solo baja") },
+  { t: "Cierra", p: "Vuelve a correr el escáner (nada que debiera reaccionar puede quedar fijo) y entrega un informe corto: antes y después, la tabla de lo que dijo cada caja, los textos que Claude inventó para que Felipe los vete y lo que no se pudo verificar. No hace commit sin que se lo pidan.", ev: () => "" },
+];
+let pasoActual = 0, termVer = "antes";
+function renderPasos() {
+  $("#pasoLista").innerHTML = PASOS.map((s, i) => `<li><button role="tab" aria-selected="${i === pasoActual}" data-i="${i}"><b>${i + 1}</b>${esc(s.t)}</button></li>`).join("");
+  $$("#pasoLista button").forEach((b) => b.addEventListener("click", () => { pasoActual = +b.dataset.i; renderPasos(); }));
+  const s = PASOS[pasoActual];
+  $("#pasoDetalle").innerHTML = `<h3>${esc(s.t)}</h3><p>${esc(s.p)}</p><div class="ev">${s.ev()}</div>`;
+  if (pasoActual === 0) {
+    const pinta = () => { $("#termOut").innerHTML = term(D.extra[termVer]); $$("#segTerm button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === termVer)); };
+    $$("#segTerm button").forEach((b) => b.addEventListener("click", () => { termVer = b.dataset.v; pinta(); }));
+    pinta();
+  }
+}
+
+/* ---------- El CI: el mismo escáner ---------- */
+/** Sensible a mayúsculas a propósito: `ejemplo && (` es una variable, «Ej. 44» y «Por ejemplo …» son texto para la persona. */
+const EJEMPLO_EN_TEXTO = /(?:\bEj\.|\bEjemplos?:|\b[Pp]or ejemplo\b|\bp\. ?ej\.)\s*[^"'`<>{}\n]{1,80}/;
+const LISTA = /<datalist\b|\bsugerencias?\s*=/;
+/** Empieza como una orden o una etiqueta genérica: es una instrucción, no un ejemplo de contenido. */
+const INSTRUCCION = /^\s*(¿?por qu[eé]|buscar?|escribe|escribir|escanea|apunta|describe|detalle|elige|elegir|selecciona|seleccionar|toca|filtrar?|agrega|añade|ingresa|pega|todos?|todas?|ninguno|ninguna|sin\b|cualquier|opcional|obligatorio|nombre$|descripci[oó]n$|fecha$|cantidad$|monto$)/i;
+const NUMERICO = /^[\s\d.,:/+\-–—%$S]*$/;
+/** Un ejemplo que de verdad no depende de nada elegido antes lo dice en el lugar: `sugerir-fijo: <por qué>` en su línea o en la de arriba. */
+const FIJO = /sugerir-fijo:\s*(\S[^*}\n]{9,})/;
+
+const esComentario = (linea) => /^\s*(\/\/|\/\*|\*)/.test(linea);
+
+/** Lee lo que sigue a `placeholder=`: un literal («…» / '…' / {"…"} / {`…`} sin `${}`) es estático; toda otra expresión, derivada. */
+function leerValor(texto, desde) {
+  const c = texto[desde];
+  if (c === '"' || c === "'") {
+    const fin = texto.indexOf(c, desde + 1);
+    return fin < 0 ? null : { texto: texto.slice(desde + 1, fin), estatica: true };
+  }
+  if (c !== "{") return null;
+  let prof = 0;
+  let fin = -1;
+  for (let i = desde; i < texto.length; i++) {
+    if (texto[i] === "{") prof++;
+    else if (texto[i] === "}" && --prof === 0) {
+      fin = i;
+      break;
+    }
+  }
+  if (fin < 0) return null;
+  const dentro = texto.slice(desde + 1, fin).trim();
+  const literal = /^(["'])(.*)\1$/s.exec(dentro) ?? /^`([^`$]*)`$/s.exec(dentro);
+  if (literal) return { texto: literal[literal.length - 1], estatica: true };
+  return { texto: null, estatica: false, expresion: dentro.replace(/\s+/g, " ").slice(0, 60) };
+}
+
+const lineaDe = (texto, indice) => texto.slice(0, indice).split("\n").length;
+
+/** «ejemplo» = contenido que la persona podría copiar; «instruccion» y «numerico» no dependen de lo elegido. */
+function clasificar(texto) {
+  const t = texto.trim();
+  if (t === "" || NUMERICO.test(t)) return "numerico";
+  return INSTRUCCION.test(t) ? "instruccion" : "ejemplo";
+}
+
+/** Las superficies de sugerencia de UN archivo: `{ linea, tipo, texto, estatica, clase }`, en orden de aparición. */
+function superficies(texto) {
+  const out = [];
+  const lineas = texto.split("\n");
+  for (const m of texto.matchAll(/\bplaceholder\s*=\s*/g)) {
+    const v = leerValor(texto, m.index + m[0].length);
+    if (!v) continue;
+    out.push({ linea: lineaDe(texto, m.index), tipo: "placeholder", texto: v.texto ?? v.expresion, estatica: v.estatica, clase: v.estatica ? clasificar(v.texto) : "derivada" });
+  }
+  const conPlaceholder = new Set(out.map((s) => s.linea));
+  lineas.forEach((l, i) => {
+    if (esComentario(l) || conPlaceholder.has(i + 1)) return;
+    const ej = EJEMPLO_EN_TEXTO.exec(l);
+    if (ej) out.push({ linea: i + 1, tipo: "ejemplo-en-texto", texto: ej[0].trim(), estatica: !/\$\{/.test(l.slice(ej.index)), clase: "ejemplo" });
+    else if (LISTA.test(l)) out.push({ linea: i + 1, tipo: "lista", texto: l.trim().slice(0, 70), estatica: !/\bsugerencias?\s*=\s*\{(?!\s*(true|false)\b)/.test(l), clase: "lista" });
+  });
+  for (const s of out) {
+    const marca = FIJO.exec(lineas[s.linea - 1]) ?? FIJO.exec(lineas[s.linea - 2] ?? "");
+    if (marca && s.clase === "ejemplo") Object.assign(s, { clase: "fijo", motivo: marca[1].trim() });
+  }
+  return out.sort((a, b) => a.linea - b.linea);
+}
+
+
+const PRESETS = [
+  ["A mano", '<input placeholder="Blusa Aurora" />'],
+  ["Derivado", '<input placeholder={sugerirNombre(contexto).texto} />'],
+  ["Fijo con motivo", '<input\n  placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor\n/>'],
+  ["Fijo sin motivo", '<input\n  placeholder="11 dígitos" // sugerir-fijo: ok\n/>'],
+  ["Instrucción", '<input placeholder="Buscar por nombre…" />'],
+];
+function renderCI() {
+  const src = $("#codigo").value;
+  const s = superficies(src);
+  const malas = s.filter((x) => x.estatica && x.clase === "ejemplo");
+  const ok = malas.length === 0;
+  const fila = (x) => { const c = x.clase === "fijo" ? "✓ fijo" : x.clase === "derivada" ? "≈ derivada" : x.clase === "instruccion" || x.clase === "numerico" ? "· no cuenta" : x.clase === "lista" ? "· lista" : "✎ ESTÁTICA"; return `<li>L${x.linea} <b>${c}</b> ${esc(String(x.texto).slice(0, 60))}${x.motivo ? ` <span style="opacity:.7">— ${esc(x.motivo)}</span>` : ""}</li>`; };
+  const v = $("#veredicto");
+  v.className = "veredicto " + (ok ? "pass" : "fail");
+  v.innerHTML = ok
+    ? `<h3>El CI pasa</h3><p>${s.length ? "Ningún ejemplo escrito a mano sin resolver." : "No hay ningún ejemplo en este código."}</p>${s.length ? `<ul class="surf">${s.map(fila).join("")}</ul>` : ""}`
+    : `<h3>El CI falla</h3><p>Ejemplo escrito a mano en <code>components/TuArchivo.tsx</code>.</p><ul class="surf">${s.map(fila).join("")}</ul><p class="msg">«Un ejemplo que no sigue lo que la persona eligió puede decirle algo falso (elige Casacas y el nombre sugiere Blusa Aurora). Córrele /sugerir: derívalo con lógica pura, o márcalo <code>// sugerir-fijo: &lt;por qué&gt;</code>. No lo agregues a lib/sugerir-archivos.ts: esa lista es deuda de antes de la regla.»</p>`;
+}
+$("#presets").innerHTML = PRESETS.map((p, i) => `<button aria-pressed="${i === 0}" data-i="${i}">${esc(p[0])}</button>`).join("");
+$$("#presets button").forEach((b) => b.addEventListener("click", () => { $$("#presets button").forEach((x) => x.setAttribute("aria-pressed", x === b)); $("#codigo").value = PRESETS[+b.dataset.i][1]; renderCI(); }));
+$("#codigo").addEventListener("input", () => { $$("#presets button").forEach((x) => x.setAttribute("aria-pressed", "false")); renderCI(); });
+$("#codigo").value = PRESETS[0][1];
+
+/* ---------- Gráfico de anchos ---------- */
+const W = { x0: 46, x1: 752, y0: 262, ymax: 400, alto: 232 };
+let versionAncho = "ahora";
+const yPx = (v) => W.y0 - (v / W.ymax) * W.alto;
+function renderChart() {
+  const A = D.extra.anchos, n = A.ahora.length, paso = (W.x1 - W.x0) / n, bw = Math.max(6, paso - 4);
+  let svg = "";
+  for (const v of [0, 100, 200, 300, 400]) svg += `<line class="grid" x1="${W.x0}" x2="${W.x1}" y1="${yPx(v)}" y2="${yPx(v)}"/><text x="${W.x0 - 8}" y="${yPx(v) + 4}" text-anchor="end">${v}</text>`;
+  svg += `<line class="lim" x1="${W.x0}" x2="${W.x1}" y1="${yPx(A.util)}" y2="${yPx(A.util)}"/>`;
+  svg += `<line class="lim" x1="${W.x0}" x2="${W.x0 + 26}" y1="12" y2="12"/><text class="limt" x="${W.x0 + 32}" y="16">${A.util} px: lo que cabe a 375 px</text>`;
+  svg += `<rect x="${W.x1 - 178}" y="7" width="10" height="10" rx="2" fill="var(--accent)"/><text x="${W.x1 - 162}" y="16">se corta</text><rect x="${W.x1 - 92}" y="7" width="10" height="10" rx="2" fill="var(--bar)"/><text x="${W.x1 - 76}" y="16">cabe</text>`;
+  A.ahora.forEach((it, i) => { const w = A[versionAncho][i].w; svg += `<rect class="b" tabindex="0" data-i="${i}" x="${W.x0 + i * paso + 2}" width="${bw}" rx="2" y="${yPx(w)}" height="${W.y0 - yPx(w)}" fill="${w > A.util ? "var(--accent)" : "var(--bar)"}"><title>${esc(it.c)}</title></rect>`; });
+  svg += `<text x="${W.x0}" y="${W.y0 + 16}">${esc(A.ahora[0].c.split(" ")[0])} …</text><text x="${W.x1}" y="${W.y0 + 16}" text-anchor="end">… ${esc(A.ahora[n - 1].c.split(" ")[0])}</text><text x="${(W.x0 + W.x1) / 2}" y="${W.y0 + 32}" text-anchor="middle">42 categorías, en orden de familia</text>`;
+  $("#chart").innerHTML = svg;
+  const pinta = () => {
+    const datos = A[versionAncho];
+    $$("#chart rect.b").forEach((r, i) => { const w = datos[i].w, over = w > A.util; r.setAttribute("y", yPx(w)); r.setAttribute("height", W.y0 - yPx(w)); r.setAttribute("fill", over ? "var(--accent)" : "var(--bar)"); });
+    const cortan = datos.filter((x) => x.w > A.util).length, max = Math.max(...datos.map((x) => x.w));
+    $("#kpis").innerHTML = `<span><b>${cortan} de 42</b> se cortan a media palabra</span><span>la más larga: <b>${max} px</b> de ${A.util}</span>`;
+    $$("#segAncho button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === versionAncho));
+  };
+  const dice = (i) => { const it = A[versionAncho][i], over = it.w > A.util; $("#tip").innerHTML = `<b>${esc(it.c)}</b>: ${it.w} px ${over ? `<span style="color:var(--accent-ink)">— se corta (${it.w - A.util} px de más)</span>` : `<span style="color:var(--ok)">— cabe (${A.util - it.w} px de margen)</span>`}`; };
+  $$("#chart rect.b").forEach((r) => { const i = +r.dataset.i; ["click", "focus", "mouseenter"].forEach((e) => r.addEventListener(e, () => dice(i))); });
+  $$("#segAncho button").forEach((b) => b.addEventListener("click", () => { versionAncho = b.dataset.v; pinta(); }));
+  pinta();
+}
+
+/* ---------- Deuda, 42 fichas y comandos ---------- */
+function renderDeuda() {
+  const g = Object.entries(D.extra.deuda.grupos).sort((a, b) => b[1].length - a[1].length), max = g[0][1].length;
+  const nombre = (k) => k === "." ? "components/ (sueltos)" : k;
+  $("#deuda").innerHTML = g.map(([k, a], i) => `<button aria-expanded="false" data-i="${i}"><span class="mono">${esc(nombre(k))}</span><span class="bar" style="width:${Math.max(4, (a.length / max) * 100)}%"></span><span class="n">${a.length}</span></button><div class="deuda-files" data-f="${i}" hidden>${a.map((f) => `<span>${esc(f)}</span>`).join("")}</div>`).join("");
+  $$("#deuda button").forEach((b) => b.addEventListener("click", () => { const open = b.getAttribute("aria-expanded") === "true"; b.setAttribute("aria-expanded", !open); $(`#deuda [data-f="${b.dataset.i}"]`).hidden = open; }));
+}
+$("#tiles").innerHTML = D.datos.categorias.map((c) => `<i title="${esc(c.nombre)}"></i>`).join("");
+const CMDS = ["/sugerir /productos/nuevo", "pnpm sugerir --todo", "pnpm sugerir --ruta /productos/nuevo"];
+$("#cmds").innerHTML = CMDS.map((c) => `<div class="cmd"><span>${esc(c)}</span><button data-c="${esc(c)}">Copiar</button></div>`).join("");
+$$("#cmds button").forEach((b) => b.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(b.dataset.c); b.textContent = "Copiado"; } catch { const s = b.previousElementSibling; const r = document.createRange(); r.selectNodeContents(s); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = "Selecciónalo y copia"; }
+  setTimeout(() => (b.textContent = "Copiar"), 1600);
+}));
+
+renderCaja(); renderValor(); renderColor(); renderPasos(); renderCI(); renderChart(); renderDeuda();
+</script>
+
+</body>
+</html>

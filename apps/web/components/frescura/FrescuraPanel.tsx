@@ -37,9 +37,10 @@ import {
 } from "@/lib/frescura-pantalla";
 import type { FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
+import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
 import { NivelChip, TextoConNegritas } from "./piezas";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
-import { FrescuraDetalle } from "./FrescuraDetalle";
+import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
@@ -131,7 +132,30 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [prendaAbierta]);
 
   const registro = datos.registro?.datos ? textoRegistro(datos.registro.datos, datos.sede.id) : null;
-  const porDecidirOtras = enTabla.filter((p) => !p.estado.quieta && p.estado.sugerencias.length > 0).length;
+  // Las que no están «por decidir» pero traen una pregunta más chica en «Qué hacer»; las que ya tienen una decisión vigente no
+  // preguntan nada: ya se contestó.
+  const porDecidirOtras = enTabla.filter((p) => !p.porDecidir && !(p.decision?.vigente ?? false) && p.estado.sugerencias.length > 0).length;
+  // Lo decidido (paso 4b): si no se pudo leer, «Por decidir» es «quieta» y la sede lo dice; sin eso no se sabe cuál es la última
+  // línea de cada libreta, así que «Ya decidí» se esconde.
+  const decisionesOk = sede?.decisiones.estado === "ok";
+  const notasDelMes = sede && sede.decisiones.estado === "ok" ? notaDelMes(sede.decisiones.resumen, datos.sede.nombre) : [];
+  const contextoDecision: ContextoDecision | null =
+    abierta && sede && ctx
+      ? {
+          prenda: abierta,
+          sede: { id: datos.sede.id, nombre: datos.sede.nombre },
+          esLider: datos.esLider,
+          ahora: sede.ahora,
+          categoria: ctx.categorias.get(abierta.categoriaId),
+          cayla: ctx.cayla?.get(abierta.categoriaId),
+          recientes: sede.decisiones.estado === "ok" ? sede.decisiones.trasladosRecientes : [],
+          acceso,
+          lecturaOk: decisionesOk,
+          bloque: bloqueDeDecision(abierta.decision, abierta.categoriaNombre, datos.sede.nombre, sede.ahora),
+          anteriorId: abierta.decision?.actual.id ?? null,
+          vigenteId: abierta.decision?.vigente ? abierta.decision.actual.id : null,
+        }
+      : null;
 
   // ---- La cabecera ----
   const pieCabecera = datos.esLider ? (
@@ -179,12 +203,13 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         },
         {
           valor: cifras.porDecidir,
+          nota: cifras.decididas > 0 ? `${cifras.decididas} ya ${cifras.decididas === 1 ? "decidida" : "decididas"}` : undefined,
           etiqueta: "por decidir",
           icono: CircleHelp,
           // Ámbar solo si hay algo esperando a alguien (el contrato de ResumenSede, como Devoluciones y Apartados): un
           // «0 por decidir» en ámbar llevaba la vista a la única cifra que no pide nada.
           alerta: cifras.porDecidir > 0,
-          alTocar: () => cambiar({ porDecidir: !filtros.porDecidir }),
+          alTocar: () => cambiar({ porDecidir: !filtros.porDecidir, decididas: false }),
           presionada: filtros.porDecidir,
           titulo: "Filtrar las que están por decidir",
         },
@@ -247,9 +272,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 etiquetaAccesible="Estado"
                 className="w-full min-[480px]:w-56"
               />
-              <button type="button" className="pildora-cayla" aria-pressed={filtros.porDecidir} onClick={() => cambiar({ porDecidir: !filtros.porDecidir })}>
+              <button type="button" className="pildora-cayla" aria-pressed={filtros.porDecidir} onClick={() => cambiar({ porDecidir: !filtros.porDecidir, decididas: false })}>
                 Por decidir <span className="font-medium tabular-nums">{cifras?.porDecidir ?? 0}</span>
               </button>
+              {decisionesOk && (
+                <button type="button" className="pildora-cayla" aria-pressed={filtros.decididas} onClick={() => cambiar({ decididas: !filtros.decididas, porDecidir: false })}>
+                  Decididas <span className="font-medium tabular-nums">{cifras?.decididas ?? 0}</span>
+                </button>
+              )}
               {hayFiltros(filtros) && (
                 <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => quitarFiltros(prendaAbierta)}>
                   Quitar filtros
@@ -262,6 +292,12 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> Los días cuentan solo el tiempo con alguna talla libre colgada.
               </span>
             </p>
+            {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
+              <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
+                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{sede.decisiones.aviso}</span>
+              </p>
+            )}
             {muchasSin && (
               <p className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -347,7 +383,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                         </div>
                         <div>
                           {g.prendas.map((p) => (
-                            <FrescuraFila key={p.clave} fila={filaVista(p, ctx!)} muchasSinTemporada={muchasSin} onAbrir={() => abrir(p.clave)} />
+                            <FrescuraFila key={p.clave} fila={filaVista(p, ctx!)} muchasSinTemporada={muchasSin} onAbrir={() => abrir(p.clave)} decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)} />
                           ))}
                         </div>
                       </div>
@@ -408,9 +444,15 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           </p>
         )}
         <p>
-          <b>«Por decidir»</b> son las que llevan tiempo sin venderse o ya pasó su temporada; otras pueden tener una pregunta más chica en «Qué
-          hacer». Todavía no hay dónde anotar lo que ya decidiste: la prenda sigue aquí mientras siga colgada.
+          <b>«Por decidir»</b> son las que llevan tiempo sin venderse o ya pasó su temporada, y nadie anotó todavía qué hizo con ellas. Cuando
+          decides, lo anotas con «Ya decidí»: la prenda sale de esta lista los días que dice su fecha y vuelve si para entonces sigue sin
+          venderse, con cómo le fue. Otras pueden tener una pregunta más chica en «Qué hacer».
         </p>
+        {notasDelMes.map((n) => (
+          <p key={n}>
+            <b>Lo que ya decidiste.</b> {n} Comparadas con las demás de su categoría, en esos mismos días.
+          </p>
+        ))}
         <p>
           <b>Lo apartado para una clienta no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que llegó sin fecha (carga
           inicial, un ajuste) nunca es «Nueva»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.
@@ -422,7 +464,9 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         </p>
       </div>
 
-      {abierta && ctx && <FrescuraDetalle detalle={detalleVista(abierta, ctx)} sede={datos.sede.nombre} volverA={volverA} onClose={() => abrir(null)} />}
+      {abierta && ctx && contextoDecision && (
+        <FrescuraDetalle detalle={detalleVista(abierta, ctx)} sede={datos.sede.nombre} volverA={volverA} onClose={() => abrir(null)} decision={contextoDecision} />
+      )}
       {verTiendas && datos.tiendas && datos.registro && (
         <FrescuraTiendas tiendas={datos.tiendas} registro={datos.registro} actual={datos.sede.id} volverA={botonTiendas} onClose={() => setVerTiendas(false)} />
       )}

@@ -5,6 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
+import { sugerirValorNuevo } from "@/lib/sugerencias-alta-producto";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
@@ -32,15 +33,19 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 // Agregar un valor es un guardado aparte del producto; lo firma quien inició el alta (`useFirmaDeMitad`), sin combo
 // propio desde 2026-09-29. Vive dentro de las hojas de tallas y muestras, de ahí el aviso `enHoja`.
 
-const TEXTOS: Record<TipoVocabulario, { boton: string; placeholder: string; singular: string }> = {
-  tallas: { boton: "+ Nueva talla", placeholder: "Ej. 44", singular: "talla" },
-  tejidos: { boton: "+ Nuevo tejido", placeholder: "Ej. Lana merino", singular: "tejido" },
-  patrones: { boton: "+ Nuevo patrón", placeholder: "Ej. Pata de gallo", singular: "patrón" },
+// El ejemplo de la caja ya no vive aquí: sigue a la familia de la categoría y evita lo que ya existe
+// (`lib/sugerencias-alta-producto.ts`, skill `/sugerir`). «Ej. 44» le decía «talla de zapato» a quien armaba una casaca.
+const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string }> = {
+  tallas: { boton: "+ Nueva talla", singular: "talla" },
+  tejidos: { boton: "+ Nuevo tejido", singular: "tejido" },
+  patrones: { boton: "+ Nuevo patrón", singular: "patrón" },
 };
 
 type Props = {
   tipo: TipoVocabulario;
   categoriaId: string;
+  /** `familias.codigo` de la categoría: de ella sale el ejemplo de la caja. Sin ella (Editar producto aún no la pasa), texto neutro. */
+  familia?: string | null;
   /** Lo que la categoría ofrece HOY en los tres ejes: la RPC reemplaza, así que hay que devolverlo entero + el valor nuevo. */
   ejesActuales: EjeIds;
   /** Todo el vocabulario aprobado de este tipo (no solo lo que la categoría ofrece): para reconocer un valor que ya existe. */
@@ -60,7 +65,7 @@ export function ProponerValor(props: Props) {
   return <ProponerValorAbierto {...props} onCerrar={() => setAbierto(false)} />;
 }
 
-function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCreado, onCerrar }: Props & { onCerrar: () => void }) {
+function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, universo, onCreado, onCerrar }: Props & { onCerrar: () => void }) {
   const [texto, setTexto] = useState("");
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +134,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
             }
             if (e.key === "Escape") onCerrar();
           }}
-          placeholder={t.placeholder}
+          placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
           disabled={trabajando}
           className="h-9 w-44 border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-tinta"
         />

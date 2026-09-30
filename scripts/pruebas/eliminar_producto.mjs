@@ -288,7 +288,7 @@ select pg_temp.huella(:'va');`);
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
-    "pedidos_no_atendidos", "separacion_pedidos",
+    "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

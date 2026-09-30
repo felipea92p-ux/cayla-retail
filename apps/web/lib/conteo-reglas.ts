@@ -55,6 +55,23 @@ export type LineaConteo = {
   diferencia: number | null;
   /** El movimiento de ajuste que dejó el cierre, si esta línea se ajustó. */
   ajusteMovimientoId: string | null;
+  /**
+   * Lo que los cierres de ESTE conteo le han sumado (+) o restado (−) a la variante, en total (del libro de movimientos).
+   * Solo es distinto de 0 en un conteo reabierto para editarlo.
+   */
+  ajustadoTotal: number;
+  /**
+   * La parte de `ajustadoTotal` que YA estaba hecha cuando se leyó el «debe haber» actual: 0 mientras la línea no se
+   * vuelva a contar (su «debe haber» se leyó antes del ajuste), `ajustadoTotal` después. Es lo que explica por qué el
+   * «debe haber» ya no es la foto sin que nadie haya vendido nada: «el cierre de este conteo restó 1».
+   */
+  ajustadoAntes: number;
+  /**
+   * Lo que se recuperó DESPUÉS del cierre: la prenda que faltó y apareció, registrada con un ajuste enlazado a esta línea
+   * (motivo `hallazgo_conteo`). La línea sigue diciendo lo que se contó ese día («faltó 1»); esto dice cuánto de esa falta ya
+   * se encontró. Del libro de movimientos; 0 si la base no lo trae.
+   */
+  hallazgos: number;
   estado: EstadoLinea;
 };
 
@@ -259,20 +276,67 @@ export function etiquetaDeLinea(l: { estado: EstadoLinea; diferencia: number | n
 }
 
 /**
- * La nota discreta bajo una fila, si hace falta:
- *  · foto ≠ debe haber → entre abrir y contar se movió stock (una venta, una recepción): «Al abrir: 11 · salió 1
- *    durante el conteo». La foto NO es el «debe haber»; es la referencia que explica por qué cambió.
+ * La nota discreta bajo una fila, si hace falta. Lo que cambió entre la foto y el «debe haber» actual se parte en dos, porque
+ * tienen dueños distintos y la persona que cuenta tiene que poder distinguirlos:
+ *  · lo de OTROS (una venta, una recepción entre abrir y contar): «Al abrir: 11 · salió 1 durante el conteo».
+ *  · lo del PROPIO conteo: al editar un conteo ya cerrado, su cierre anterior ajustó el stock (encontró 0 de 1 → restó 1);
+ *    si ahora se vuelve a contar, el «debe haber» ya trae ese ajuste y sin explicarlo parecería que la prenda «salió sola»:
+ *    «Al abrir: 1 · el cierre de este conteo restó 1».
+ *  Las dos pueden ir juntas («Al abrir: 5 · salió 1 durante el conteo · el cierre de este conteo restó 1»). La foto NO es el
+ *  «debe haber»; es la referencia que explica por qué cambió.
  *  · una variante que no estaba registrada aquí y se encontró: «Encontraste 1 que no estaba registrada aquí».
+ * `ajustadoAntes` es opcional para quien todavía no lo trae (vale 0: la nota de siempre).
  */
-export function notaDeLinea(l: { foto: number; debeHaber: number; contada: number | null }): string | null {
-  if (l.foto !== l.debeHaber) {
-    const movido = l.debeHaber - l.foto;
-    const n = Math.abs(movido);
-    const verbo = movido < 0 ? (n === 1 ? "salió" : "salieron") : n === 1 ? "entró" : "entraron";
-    return `Al abrir: ${l.foto} · ${verbo} ${n} durante el conteo`;
+export function notaDeLinea(l: { foto: number; debeHaber: number; contada: number | null; ajustadoAntes?: number; ajustadoTotal?: number }): string | null {
+  const delCierre = l.ajustadoAntes ?? 0;
+  // Conteo reabierto para corregir y línea todavía sin volver a contar: el «debe haber» que se ve (3) es el de ANTES del cierre
+  // y el stock ya pasó a 2 por este conteo. Se dice de entrada, para que el 3 → 2 que aparece al contar de nuevo no sorprenda.
+  // Lo que el ÚLTIMO cierre ajustó y el «debe haber» todavía no incluye (`ajustadoTotal − ajustadoAntes`). No el total neto: un conteo
+  // corregido dos veces (3 → 2 → 3) suma 0 y aun así la línea se está corrigiendo de nuevo.
+  // Solo si el total viene informado (la base lo trae siempre): sin él no se sabe cuánto ajustó el último cierre.
+  const delUltimoCierre = l.ajustadoTotal === undefined ? 0 : l.ajustadoTotal - delCierre;
+  if (l.contada !== null && delUltimoCierre !== 0) {
+    return `Había ${l.debeHaber} · por este conteo pasó a ${l.debeHaber + delUltimoCierre}. Ahora estás corrigiendo.`;
+  }
+  const deOtros = l.debeHaber - l.foto - delCierre;
+  if (deOtros !== 0 || delCierre !== 0) {
+    const partes = [`Al abrir: ${l.foto}`];
+    if (deOtros !== 0) {
+      const n = Math.abs(deOtros);
+      const verbo = deOtros < 0 ? (n === 1 ? "salió" : "salieron") : n === 1 ? "entró" : "entraron";
+      partes.push(`${verbo} ${n} durante el conteo`);
+    }
+    if (delCierre !== 0) partes.push(`el cierre de este conteo ${delCierre < 0 ? "restó" : "sumó"} ${Math.abs(delCierre)}`);
+    return partes.join(" · ");
   }
   if (l.foto === 0 && l.contada !== null && l.contada > 0) return `Encontraste ${l.contada} que no estaba registrada aquí`;
   return null;
+}
+
+/**
+ * Lo que dice el resultado de un conteo cerrado de una variante que faltó y después apareció (ADR-0291): el conteo conserva
+ * lo que se contó ese día («faltó 1») y esta línea dice cuánto de esa falta ya se recuperó, por un ajuste enlazado a la
+ * línea. `null` si no se recuperó nada (o si la línea no tuvo falta).
+ */
+export function textoHallazgoDeLinea(l: { diferencia: number | null; hallazgos: number }): string | null {
+  if (l.hallazgos <= 0 || l.diferencia === null || l.diferencia >= 0) return null;
+  const faltaron = -l.diferencia;
+  if (l.hallazgos >= faltaron) return faltaron === 1 ? "La encontraron después: 1 recuperada" : `La encontraron después: ${faltaron} recuperadas`;
+  return `Ya aparecieron ${l.hallazgos} de ${faltaron}`;
+}
+
+/**
+ * La marca fija «Había 3» bajo el «Debe haber» de una línea que se está CORRIGIENDO (conteo reabierto; Felipe, 2026-09-30).
+ * Al contar de nuevo el «Debe haber» salta (3 → 2) tan rápido que no da tiempo de recordar con cuánto se empezó, y con varias
+ * prendas es peor: esta marca no cambia mientras se cuenta. Es el «debe haber» de cuando se contó, sin el ajuste del cierre
+ * (`debeHaber − ajustadoAntes`: antes de volver a contar vale `debeHaber`; después, el «debe haber» de hoy menos lo que el
+ * cierre ajustó). `null` si el cierre no ajustó esta línea: no hay nada que recordar.
+ */
+export function textoHabiaAntes(l: { debeHaber: number; ajustadoAntes?: number; ajustadoTotal?: number }): string | null {
+  const antes = l.ajustadoAntes ?? 0;
+  // «Algún cierre la ajustó» (no el neto: 3 → 2 → 3 suma 0 y la línea sigue teniendo historia que recordar).
+  if ((l.ajustadoTotal ?? 0) === 0 && antes === 0) return null;
+  return `Había ${l.debeHaber - antes}`;
 }
 
 /**
@@ -298,11 +362,12 @@ export function notaAjuste(l: { actual: number | null; debeHaber: number; difere
 export function contarLinea(l: LineaConteo, cantidad: number | null, ahora: string): LineaConteo | null {
   let base: Omit<LineaConteo, "diferencia" | "estado">;
   if (cantidad === null) {
-    base = { ...l, contada: null, verificadoEn: null, confirmadaEn: null, debeHaber: l.foto };
+    base = { ...l, contada: null, verificadoEn: null, confirmadaEn: null, debeHaber: l.foto, ajustadoAntes: 0 };
   } else {
     const debeHaber = l.actual ?? l.debeHaber;
     const reconfirmada = l.anterior !== null && cantidad === l.anterior && cantidad !== debeHaber;
-    base = { ...l, contada: cantidad, debeHaber, verificadoEn: ahora, confirmadaEn: reconfirmada ? ahora : null };
+    // Al volver a verificar, lo que un cierre anterior de este conteo ya ajustó pasa a formar parte del «debe haber» (la base lo lee del stock vivo).
+    base = { ...l, contada: cantidad, debeHaber, verificadoEn: ahora, confirmadaEn: reconfirmada ? ahora : null, ajustadoAntes: l.ajustadoTotal };
   }
   const estado = estadoDeLinea(base);
   if (estado === null) return null;
@@ -397,14 +462,15 @@ export function textoQuedanSinVerificar(n: number): string {
 }
 
 /**
- * «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas», y en un cierre parcial suma cuántas quedaron sin
- * verificar. Es el resultado de un conteo terminado: las «corregidas» son las diferencias que se confirmaron y ajustaron.
+ * «37 variantes verificadas · 34 coincidieron · 3 con diferencia», y en un cierre parcial suma cuántas quedaron sin
+ * verificar. Es el resultado de un conteo terminado: dice que se ENCONTRÓ una diferencia, no que se «corrigió» (Felipe,
+ * 2026-09-30): corregir es lo que se hace después, con «Corregir conteo» o con un ajuste enlazado a ese conteo.
  */
 export function textoTerminado(r: Pick<ResumenConteo, "verificadas" | "correctas" | "conDiferencia" | "pendientes">, parcial: boolean): string {
   const partes = [
     `${r.verificadas} ${r.verificadas === 1 ? "variante verificada" : "variantes verificadas"}`,
     `${r.correctas} ${r.correctas === 1 ? "coincidió" : "coincidieron"}`,
-    `${r.conDiferencia} ${r.conDiferencia === 1 ? "fue corregida" : "fueron corregidas"}`,
+    `${r.conDiferencia} con diferencia`,
   ];
   if (parcial && r.pendientes > 0) partes.push(`${r.pendientes} ${r.pendientes === 1 ? "quedó sin verificar" : "quedaron sin verificar"} (conteo parcial)`);
   return partes.join(" · ");
@@ -431,7 +497,7 @@ export function resultadoConteo(c: DatosDeResultado): ResultadoConteo {
   return c.lineasConDiferencia === 0 ? "todo_correcto" : "con_diferencias";
 }
 
-/** «Todo correcto» / «3 diferencias corregidas» / «Conteo parcial» / «Cancelado» / «En curso». Nunca «Cerrado · Vacío». */
+/** «Todo correcto» / «3 diferencias encontradas» / «Conteo parcial» / «Cancelado» / «En curso». Nunca «Cerrado · Vacío». */
 export function textoResultadoConteo(c: DatosDeResultado): string {
   switch (resultadoConteo(c)) {
     case "en_curso":
@@ -443,7 +509,8 @@ export function textoResultadoConteo(c: DatosDeResultado): string {
     case "todo_correcto":
       return "Todo correcto";
     case "con_diferencias":
-      return c.lineasConDiferencia === 1 ? "1 diferencia corregida" : `${c.lineasConDiferencia} diferencias corregidas`;
+      // «Encontrada», no «corregida»: el conteo encontró la diferencia y ajustó el stock; corregirla (la prenda apareció, se contó mal) es otro paso.
+      return c.lineasConDiferencia === 1 ? "1 diferencia encontrada" : `${c.lineasConDiferencia} diferencias encontradas`;
   }
 }
 
@@ -752,6 +819,10 @@ export function lineaDesdeJson(json: unknown): LineaConteo | null {
     confirmadaEn: textoONulo(o, "confirmada_en"),
     actual: enteroONulo(o, "actual"),
     ajusteMovimientoId: textoONulo(o, "ajuste_movimiento_id"),
+    // Faltan si la web sale antes que el SQL (`20260930050100`): valen 0 y la nota es la de siempre.
+    ajustadoTotal: enteroONulo(o, "ajustado_total") ?? 0,
+    ajustadoAntes: enteroONulo(o, "ajustado_antes") ?? 0,
+    hallazgos: enteroONulo(o, "hallazgos") ?? 0,
   };
   const estado = estadoDeLinea(base);
   if (estado === null) return null;

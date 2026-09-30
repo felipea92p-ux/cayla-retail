@@ -6,10 +6,12 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import {
   BarraAtributos,
   BotonesPendiente,
@@ -321,22 +323,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
       )}
 
       {agregando && (
-        <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." ancho="max-w-sm" onClose={() => setAgregando(false)}>
-          {(cerrar) => (
-            <div className="mt-5 space-y-4">
-              <CampoTexto etiqueta="Valor de la talla" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ej. M, 38, XSS" autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
-                  Cancelar
-                </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valor.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
-                  Guardar
-                </Boton>
-              </div>
-            </div>
-          )}
-        </Modal>
+        <NuevaTallaModal valor={valor} onValor={setValor} responsable={responsable} guardando={guardando} onGuardar={guardar} onClose={() => setAgregando(false)} />
       )}
 
       {aprobandoTalla && (
@@ -393,5 +380,60 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
+  );
+}
+
+/**
+ * La ventana de agregar una talla. Su guía de foco (CLAUDE.md «Guía de foco») sale de lo que ya apaga el botón: el valor y alguien
+ * que firma. Vive en su propio componente para que la guía nazca y muera con la ventana.
+ */
+function NuevaTallaModal({
+  valor,
+  onValor,
+  responsable,
+  guardando,
+  onGuardar,
+  onClose,
+}: {
+  valor: string;
+  onValor: (v: string) => void;
+  responsable: ControlResponsable;
+  guardando: boolean;
+  onGuardar: () => void;
+  onClose: () => void;
+}) {
+  const guia = useGuiaCampos([
+    { id: "valor", nombre: "Valor de la talla", requerido: true, hecho: valor.trim() !== "", pendiente: "Escribe la talla: M, 38, XSS…" },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+  return (
+    <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." ancho="max-w-sm" onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-4">
+          <CampoGuiado id="valor" guia={guia}>
+            <CampoTexto etiqueta={guia.etiqueta("valor", "Valor de la talla")} value={valor} onChange={(e) => onValor(e.target.value)} placeholder="Ej. M, 38, XSS" autoFocus />
+          </CampoGuiado>
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
+          <div className="flex gap-2">
+            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton
+              peso="primario"
+              onClick={onGuardar}
+              cargando={guardando}
+              disabled={!valor.trim() || !responsable.listo}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={`flex-1 ${guia.claseConfirmar}`}
+            >
+              Guardar
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

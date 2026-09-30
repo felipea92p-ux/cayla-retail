@@ -862,6 +862,7 @@ describe("analizarSede", () => {
       unidadesConTramo: 4,
       pctNuevas: 0,
       porDecidir: 1,
+      decididas: 0,
     });
   });
 

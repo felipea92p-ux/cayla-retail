@@ -1,4 +1,6 @@
-node_modules/
+# Sin «/» al final: también ignora el node_modules que un worktree enlaza (symlink) al checkout principal; con «/»
+# solo ignoraba carpetas, y el 2026-09-30 dos enlaces entraron a un commit y rompieron `pnpm install` en el CI.
+node_modules
 .next/
 .turbo/
 .vercel/

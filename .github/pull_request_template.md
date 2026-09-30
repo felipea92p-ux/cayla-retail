@@ -10,6 +10,11 @@
   hecho, qué sigue y qué falta; CLAUDE.md «Guía de foco», ADR-0284) y, si es una pantalla nueva, está declarada en
   `lib/guia-de-foco-pantallas.ts`; o el cuerpo dice por qué no aplica. Una pantalla nueva no nace «pendiente».
 
+- [ ] Si agrega o cambia un campo que muestra un ejemplo o texto de ayuda (placeholder, «Ej. …», chips o listas sugeridas): **el ejemplo
+  sigue lo que la persona ya eligió** (`/sugerir`; CLAUDE.md «Sugerencias coherentes», ADR-0290), probado en el navegador tocando cada
+  control que lo mueve, y a 375 px que no se corte. Si no depende de nada elegido antes, va marcado `// sugerir-fijo: <por qué>`.
+  Un archivo nuevo no entra a `lib/sugerir-archivos.ts` (`pnpm sugerir` lo dice).
+
 ## SQL para producción
 
 <!-- Si el PR agrega archivos en `supabase/migrations/`: cada uno en orden, en cuántas partes se pega y la consulta que

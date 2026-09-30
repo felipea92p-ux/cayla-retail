@@ -104,6 +104,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   reposicion: "Ajuste · reposición",
   merma: "Ajuste · merma",
   conteo_fisico: "Ajuste · conteo físico",
+  // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.
+  hallazgo_conteo: "Ajuste · encontrada tras un conteo",
   otro: "Ajuste · otro",
   // ADR-0212: lo que ya estaba en la tienda al pasarla al sistema. «Stock inicial», como lo dice Nuevo producto.
   carga_inicial: "Stock inicial",
@@ -128,7 +130,7 @@ export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
-  ajuste: ["conteo", "conteo_fisico", "merma", "reposicion", "otro"],
+  ajuste: ["conteo", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
 };
 
 /** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
@@ -873,6 +875,8 @@ export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" |
       return "Recibió";
     case "conteo":
       return "Cerró el conteo";
+    case "hallazgo_conteo":
+      return "Registró el hallazgo";
     case "carga_inicial":
       return "Cargó";
     case "apartado":

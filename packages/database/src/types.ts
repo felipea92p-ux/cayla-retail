@@ -585,7 +585,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -603,7 +604,8 @@ export type Database = {
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
-          dni?: string | null
+          documento_numero?: string | null
+          documento_tipo?: string
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -621,7 +623,8 @@ export type Database = {
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
-          dni?: string | null
+          documento_numero?: string | null
+          documento_tipo?: string
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -4777,6 +4780,103 @@ export type Database = {
           },
         ]
       }
+      frescura_decisiones: {
+        Row: {
+          accion: string
+          anterior_accion: string | null
+          anterior_id: string | null
+          color_clave: string | null
+          color_codigo: string | null
+          creado_en: string
+          id: string
+          nota: string | null
+          persona_id: string
+          plazo_dias: number | null
+          producto_id: string
+          terminal_id: string | null
+          token_cliente: string
+          transferencia_id: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          accion: string
+          anterior_accion?: string | null
+          anterior_id?: string | null
+          color_clave?: string | null
+          color_codigo?: string | null
+          creado_en?: string
+          id?: string
+          nota?: string | null
+          persona_id: string
+          plazo_dias?: number | null
+          producto_id: string
+          terminal_id?: string | null
+          token_cliente: string
+          transferencia_id?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          accion?: string
+          anterior_accion?: string | null
+          anterior_id?: string | null
+          color_clave?: string | null
+          color_codigo?: string | null
+          creado_en?: string
+          id?: string
+          nota?: string | null
+          persona_id?: string
+          plazo_dias?: number | null
+          producto_id?: string
+          terminal_id?: string | null
+          token_cliente?: string
+          transferencia_id?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frescura_decisiones_color_codigo_fkey"
+            columns: ["color_codigo"]
+            isOneToOne: false
+            referencedRelation: "colores"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_misma_prenda"
+            columns: ["anterior_id", "ubicacion_id", "producto_id", "color_clave", "anterior_accion"]
+            isOneToOne: false
+            referencedRelation: "frescura_decisiones"
+            referencedColumns: ["id", "ubicacion_id", "producto_id", "color_clave", "accion"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "terminales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       abrir_caja: {
@@ -5191,7 +5291,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5205,7 +5306,8 @@ export type Database = {
       editar_clienta: {
         Args: {
           p_id: string
-          p_dni?: string
+          p_documento_tipo?: string
+          p_documento_numero?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
           p_acepta_whatsapp?: boolean
@@ -5240,7 +5342,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5261,7 +5364,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5905,6 +6009,20 @@ export type Database = {
           sububicacion_id: string
           sububicacion_nombre: string
           sububicacion_tipo: string
+        }[]
+      }
+      // ADR-0291 (20261001120000): lo que faltó en conteos cerrados y aún no se recupera, por prenda.
+      fn_faltantes_de_conteo: {
+        Args: { p_ubicacion_id: string; p_variante_ids: string[] }
+        Returns: {
+          cerrado_en: string
+          conteo_id: string
+          conteo_item_id: string
+          conteo_numero: number
+          encontradas: number
+          faltaron: number
+          pendientes: number
+          variante_id: string
         }[]
       }
       fn_costo_historial: {
@@ -6714,6 +6832,32 @@ export type Database = {
           unidades: number
         }[]
       }
+      // Frescura del piso, paso 4b (ADR-0208, 20261001100100): «Ya decidí». Escritos a mano con la forma que da `supabase gen types`:
+      // regenerar al pegar la migración en producción.
+      fn_frescura_decisiones: {
+        Args: { p_dias?: number; p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_puede_frescura: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_puede_decidir_frescura: { Args: { p_accion: string; p_ubicacion_id: string }; Returns: boolean }
+      anotar_decision_frescura: {
+        Args: {
+          p_accion: string
+          p_anterior_id: string | null
+          p_color_codigo: string | null
+          p_nota?: string | null
+          p_plazo_dias: number
+          p_producto_id: string
+          p_token: string
+          p_transferencia_id?: string | null
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      anular_decision_frescura: {
+        Args: { p_decision_id: string; p_nota?: string | null; p_token: string }
+        Returns: Json
+      }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
       fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
@@ -7368,7 +7512,8 @@ export type Database = {
           p_acepta_whatsapp?: boolean
           p_cumple_dia?: number
           p_cumple_mes?: number
-          p_dni?: string
+          p_documento_numero?: string
+          p_documento_tipo?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
         }
