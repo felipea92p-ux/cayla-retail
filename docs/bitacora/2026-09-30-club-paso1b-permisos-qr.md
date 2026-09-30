@@ -17,3 +17,13 @@ prueba más fuerte, y queda en la base con la versión del texto. Varios agentes
 
 Felipe se lleva: pegar las dos partes en orden, cada una sola, y fusionar después. El detalle, la verificación y el
 recorrido a 375 px van en el PR.
+
+**Actualización (tarde):**
+- El camino B quedó probado de punta a punta en el navegador a 375 px, contra una copia aislada de la base: invitar a una
+  clienta → su QR → su página (`/club/[token]`) → ella marca la casilla y confirma → la caja pasa sola a «Listo» y el chip
+  a «Publicidad».
+- En la base: el permiso del club con su texto v2 y quien lo registró, y el de publicidad con medio `qr_web`, el texto de
+  la página v1 y sin persona («ella misma»).
+- El ticket muestra cada prenda en una fila compacta (de ~166 a ~60 px), como el spike. El descuento por prenda se
+  mantiene tocando el precio.
+- Integrado con `main`: 272 archivos y 153 675 pruebas en verde.
