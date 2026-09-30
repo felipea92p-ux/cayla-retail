@@ -55,7 +55,7 @@ test("renombrar una migración sin tocar su contenido (choque de versiones) se p
   assert.equal(revisarSqlPegado([{ ...renombrada, changes: 3 }], "").editadas.length, 1);
 });
 
-// Caso real (2026-09-30): el renombre de 20260930050000 a 20260930050100 corrige el nombre de la línea 2 y deja la nota
+// El parche que deja el renombre del 2026-09-30 (20260930050000 → 20260930050100) si se corrige el nombre de la línea 2 y se deja la nota
 // «RENOMBRADA desde …» en la cabecera; el SQL no cambia.
 const renombreConNota = {
   filename: "supabase/migrations/20260930050100_conteo_ajuste_previo_en_la_nota.sql",

@@ -1,11 +1,7 @@
 -- ============================================================================
--- 20260930050100_conteo_ajuste_previo_en_la_nota.sql — CAYLA V2 · Inventario > Conteo: al editar un conteo cerrado, la nota
+-- 20260930050000_conteo_ajuste_previo_en_la_nota.sql — CAYLA V2 · Inventario > Conteo: al editar un conteo cerrado, la nota
 -- «Al abrir: N» explica también lo que el PROPIO cierre ajustó (2026-09-30)
 -- UNA sola parte (un índice y una función reescrita; sin políticas ni `drop trigger`; idempotente).
--- RENOMBRADA el 2026-09-30 desde `20260930050000_conteo_ajuste_previo_en_la_nota.sql`: esa versión la tomó también
--- `20260930050000_terminales_pasan_la_puerta_de_lectura.sql` (PR #642, ya pegada en producción como `20260930143821`), y
--- dos archivos con la misma versión rompen `supabase start` desde cero (llave duplicada en `schema_migrations`). Esta aún
--- no estaba en producción, por eso se movió esta y no la otra. El SQL de abajo es el mismo: solo cambió el nombre.
 --
 -- EL PROBLEMA PRIMERO. Conteo 13: la camisa tenía 1, no se encontró, se contó 0 y el cierre descontó 1 (stock 0). Después la
 -- encuentran, el líder pulsa «Editar conteo» y cuenta 1. La pantalla decía «Debe haber 0 · Contaste 1 · Hay 1 de más» y, debajo,

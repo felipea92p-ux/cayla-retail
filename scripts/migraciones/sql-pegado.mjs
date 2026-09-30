@@ -12,7 +12,8 @@
  *     («SQL pegado en producción» o «El SQL se pega después de fusionar»);
  *   - edita o borra una migración que ya estaba en la rama base. Renombrar sin cambiar el contenido sí se puede (así se
  *     arregla un choque de versiones, ver `versiones.mjs`), y también renombrar tocando SOLO la cabecera de comentarios:
- *     la convención es dejar ahí «RENOMBRADA desde …» y corregir el nombre de la línea 2 (2026-09-30, `20260930050100`).
+ *     la convención es dejar ahí «RENOMBRADA desde …» y corregir el nombre de la línea 2 (así lo hace
+ *     `20260919141804_resumen_inventario_v2.sql`).
  *     «Solo la cabecera» se prueba con el parche: un único tramo que empieza en la línea 1 y es todo comentario `--` o
  *     línea vacía. Un `--` más abajo no basta: dentro de un cuerpo `$$ … $$` el comentario es parte de la función
  *     guardada (cambia su huella en `deriva.mjs`), y dentro de un texto entre comillas ni siquiera es comentario.
