@@ -1096,6 +1096,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:lote-costo-atipico
 
+      # Registrar una factura pide confirmación si el costo de una línea es atípico (20260930123000, Felipe 2026-09-30): el costo se
+      # compara con el de la variante que la línea nombra (o la mediana de las del producto, y el precio más bajo); el aviso numera
+      # las líneas que faltan por confirmar y no se escribe nada (sin compra, sin líneas, sin token); la confirmación viaja EN CADA
+      # LÍNEA (`confirma_costo`), sin cambiar la firma de 15 parámetros; la constancia sale SIN montos en la nota; registrar NO mueve
+      # `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
+      # de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
+      - name: pruebas:factura-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:factura-costo-atipico
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en
