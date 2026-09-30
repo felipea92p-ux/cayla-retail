@@ -323,6 +323,18 @@ export function textoHallazgoDeLinea(l: { diferencia: number | null; hallazgos: 
 }
 
 /**
+ * La marca fija «Había 3» bajo el «Debe haber» de una línea que se está CORRIGIENDO (conteo reabierto; Felipe, 2026-09-30).
+ * Al contar de nuevo el «Debe haber» salta (3 → 2) tan rápido que no da tiempo de recordar con cuánto se empezó, y con varias
+ * prendas es peor: esta marca no cambia mientras se cuenta. Es el «debe haber» de cuando se contó, sin el ajuste del cierre
+ * (`debeHaber − ajustadoAntes`: antes de volver a contar vale `debeHaber`; después, el «debe haber» de hoy menos lo que el
+ * cierre ajustó). `null` si el cierre no ajustó esta línea: no hay nada que recordar.
+ */
+export function textoHabiaAntes(l: { debeHaber: number; ajustadoAntes?: number; ajustadoTotal?: number }): string | null {
+  if ((l.ajustadoTotal ?? 0) === 0) return null;
+  return `Había ${l.debeHaber - (l.ajustadoAntes ?? 0)}`;
+}
+
+/**
  * En la pantalla de confirmar: si desde que se verificó la línea el stock se movió, el ajuste se aplica sobre lo que
  * hay HOY (nunca «fijar el stock = lo contado»), y la persona debe verlo antes de cerrar: «Hoy hay 10 por movimientos
  * posteriores; quedará en 8.» Sin nota cuando no hay nada que ajustar o no hubo movimientos.

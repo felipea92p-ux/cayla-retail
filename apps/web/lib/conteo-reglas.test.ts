@@ -19,6 +19,7 @@ import {
   lineaDesdeJson,
   mensajeMezclaEnCenso,
   notaAjuste,
+  textoHabiaAntes,
   textoHallazgoDeLinea,
   notaDeLinea,
   resultadoConteo,
@@ -1010,5 +1011,22 @@ describe("textoHallazgoDeLinea — la prenda que faltó y apareció después (AD
     expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 0 })).toBeNull();
     expect(textoHallazgoDeLinea({ diferencia: 1, hallazgos: 1 })).toBeNull();
     expect(textoHallazgoDeLinea({ diferencia: null, hallazgos: 1 })).toBeNull();
+  });
+});
+
+
+describe("textoHabiaAntes — la marca fija bajo «Debe haber» al corregir un conteo", () => {
+  it("antes de volver a contar dice con cuánto se había contado (el «debe haber» de entonces)", () => {
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: -1 })).toBe("Había 3");
+  });
+  it("NO cambia cuando se cuenta de nuevo y el «debe haber» salta de 3 a 2: sigue diciendo 3", () => {
+    expect(textoHabiaAntes({ debeHaber: 2, ajustadoAntes: -1, ajustadoTotal: -1 })).toBe("Había 3");
+    // Y con un ajuste que sumó: había 4, el cierre sumó 3 (hoy 7).
+    expect(textoHabiaAntes({ debeHaber: 4, ajustadoAntes: 0, ajustadoTotal: 3 })).toBe("Había 4");
+    expect(textoHabiaAntes({ debeHaber: 7, ajustadoAntes: 3, ajustadoTotal: 3 })).toBe("Había 4");
+  });
+  it("sin ajuste de cierre en la línea (conteo normal, o la cifra coincidió) no pone nada", () => {
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: 0 })).toBeNull();
+    expect(textoHabiaAntes({ debeHaber: 3 })).toBeNull();
   });
 });
