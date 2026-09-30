@@ -3,7 +3,7 @@
 Qué hice: en Nuevo producto, elegir «Casacas» dejaba el nombre sugerido en «Blusa Aurora» y la descripción en «Manga globo…»: los ejemplos
 estaban escritos a mano en el JSX y no miraban la categoría. Creé la skill `/sugerir` (`.claude/skills/sugerir/SKILL.md`) con su escáner
 `pnpm sugerir` (`scripts/sugerir/escanear.mjs`, con pruebas), la corrí sobre `/productos/nuevo` y la volví obligatoria como la Guía de foco
-(ADR-0289). Nombre y Descripción ahora salen de una ficha por categoría (`lib/sugerencias-alta-producto.ts`, 42 categorías en 6 familias);
+(ADR-0290). Nombre y Descripción ahora salen de una ficha por categoría (`lib/sugerencias-alta-producto.ts`, 42 categorías en 6 familias);
 «+ Nueva talla / tejido / patrón» sigue a la familia; «+ Nuevo color» sigue a la familia de color, con el código coherente con el nombre.
 Ninguno repite lo que el catálogo ya tiene (los ejemplos de antes, «Palo de rosa» y «Verde botella», ya existían). La regla: `lib/sugerir.test.ts`
 falla si un archivo nuevo trae un ejemplo escrito a mano sin derivarlo ni marcarlo `// sugerir-fijo: <por qué>`; los 69 archivos de antes

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { superficies } from "../../../scripts/sugerir/escanear.mjs";
 import { ARCHIVOS_PENDIENTES, PENDIENTES_HOY } from "./sugerir-archivos";
 
-// REGLA (Felipe, 2026-09-30 — CLAUDE.md «Sugerencias coherentes», ADR-0289): un ejemplo o texto de ayuda en un campo tiene que ser
+// REGLA (Felipe, 2026-09-30 — CLAUDE.md «Sugerencias coherentes», ADR-0290): un ejemplo o texto de ayuda en un campo tiene que ser
 // coherente con lo que la persona ya eligió. Esta prueba es la parte que no depende de que alguien se acuerde: un archivo NUEVO con un
 // ejemplo escrito a mano falla aquí, y la deuda de antes (`lib/sugerir-archivos.ts`) solo puede bajar. Misma idea que
 // `lib/guia-de-foco.test.ts` y `lib/modulos.test.ts`.

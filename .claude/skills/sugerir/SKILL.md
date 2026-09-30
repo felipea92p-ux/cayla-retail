@@ -1,6 +1,6 @@
 ---
 name: sugerir
-description: Hace que las sugerencias de la web (placeholders de las cajas de texto, «Ej. …», textos de ayuda, listas y chips sugeridos) digan algo coherente con lo que la persona ya eligió antes. Es OBLIGATORIA (CLAUDE.md «Sugerencias coherentes», ADR-0289). Recorre la pantalla o el modal, encuentra cada sugerencia escrita a mano, averigua qué botón, filtro o combo la debería decidir (categoría, familia, sede, medio de pago…), la adapta con lógica pura y probada contra todos los valores del control, y después prueba en el navegador cada control que la afecta, también a 375 px. Úsala cuando una sugerencia no calce con lo elegido (elegiste «Casacas» y el nombre sugiere «Blusa Aurora»), al construir o editar una pantalla o modal con campos que traen ejemplos, cuando `lib/sugerir.test.ts` falle, y cuando alguien diga «sugerir», «el ejemplo no tiene que ver» o «el placeholder está mal».
+description: Hace que las sugerencias de la web (placeholders de las cajas de texto, «Ej. …», textos de ayuda, listas y chips sugeridos) digan algo coherente con lo que la persona ya eligió antes. Es OBLIGATORIA (CLAUDE.md «Sugerencias coherentes», ADR-0290). Recorre la pantalla o el modal, encuentra cada sugerencia escrita a mano, averigua qué botón, filtro o combo la debería decidir (categoría, familia, sede, medio de pago…), la adapta con lógica pura y probada contra todos los valores del control, y después prueba en el navegador cada control que la afecta, también a 375 px. Úsala cuando una sugerencia no calce con lo elegido (elegiste «Casacas» y el nombre sugiere «Blusa Aurora»), al construir o editar una pantalla o modal con campos que traen ejemplos, cuando `lib/sugerir.test.ts` falle, y cuando alguien diga «sugerir», «el ejemplo no tiene que ver» o «el placeholder está mal».
 ---
 
 Adapta las sugerencias al contexto elegido en: $ARGUMENTS
@@ -114,7 +114,7 @@ Aquí se cumple lo que pidió Felipe: no basta con que la función pase, hay que
 
 - `pnpm typecheck`, eslint de lo tocado, `pnpm --filter web test`, `node --test scripts/sugerir/escanear.test.mjs`, y `pnpm sugerir --ruta <ruta>`: lo que dejaste tiene que salir **derivado o fijo**, no estático.
 - **Registro:** si arreglaste un archivo de la deuda, **bórralo de `ARCHIVOS_PENDIENTES` y baja `PENDIENTES_HOY`** en `lib/sugerir-archivos.ts` (la prueba exige la cuenta exacta). **Nunca agregues un archivo nuevo a esa lista**: es la deuda de antes de la regla.
-- Una entrada de bitácora y de backlog, **un archivo por entrada** (ADR-0259). ADR solo si hubo una decisión estructural (la de la regla es el 0289).
+- Una entrada de bitácora y de backlog, **un archivo por entrada** (ADR-0259). ADR solo si hubo una decisión estructural (la de la regla es el 0290).
 - Si tocaste una ficha de categoría real, la prueba de «totalidad» tiene una foto del catálogo de la base: refréscala con la consulta que trae escrita.
 - **No hagas commit ni push** salvo que Felipe lo pida.
 

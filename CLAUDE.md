@@ -342,7 +342,7 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
   (una decisión de negocio de Felipe, no tuya: en Editar producto solo cuentan fotos, tejido y patrón). Detalle y decisiones:
   `docs/adr/0284-nuevo-producto-que-guia-a-quien-lo-llena.md`.
 
-## Sugerencias coherentes: el ejemplo sigue lo que la persona eligió (regla — ADR-0289, Felipe 2026-09-30)
+## Sugerencias coherentes: el ejemplo sigue lo que la persona eligió (regla — ADR-0290, Felipe 2026-09-30)
 
 **Todo ejemplo o texto de ayuda que la persona lee en un campo (placeholder, «Ej. …», chips y listas sugeridas) tiene que ser
 coherente con lo que ya eligió antes. Es OBLIGATORIO en toda interfaz nueva o editada.** Nació de Nuevo producto: con «Casacas» elegida,
@@ -368,7 +368,7 @@ estático») falla si un archivo de `components/` o `app/(app)/` tiene un ejempl
 `pnpm sugerir`:** recorre lo que estás construyendo, mapea qué control decide qué caja, avisa, lo implementa y **prueba cada botón y
 filtro en el navegador**; `pnpm sugerir --todo` es el tablero. Correla antes de dar por terminada cualquier pantalla o modal con campos.
 Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`. Detalle y decisiones:
-`docs/adr/0289-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
+`docs/adr/0290-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
 `docs/maquetas/sugerir-2026-09/index.html`.
 
 ## Vocabulario obligatorio

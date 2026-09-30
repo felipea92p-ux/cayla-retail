@@ -1,4 +1,4 @@
-// Registro de deuda de SUGERENCIAS (regla — CLAUDE.md «Sugerencias coherentes», ADR-0289, Felipe 2026-09-30).
+// Registro de deuda de SUGERENCIAS (regla — CLAUDE.md «Sugerencias coherentes», ADR-0290, Felipe 2026-09-30).
 //
 // La regla: un ejemplo o texto de ayuda que la persona lee en un campo (placeholder, «Ej. …») tiene que ser coherente con lo que ya
 // eligió antes. Uno escrito a mano en el JSX dice lo mismo elija lo que elija: si eligió «Casacas» y la caja de nombre le dice

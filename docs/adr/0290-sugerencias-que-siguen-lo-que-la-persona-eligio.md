@@ -1,4 +1,4 @@
-# ADR-0289 · Las sugerencias siguen lo que la persona ya eligió (skill `/sugerir`)
+# ADR-0290 · Las sugerencias siguen lo que la persona ya eligió (skill `/sugerir`)
 
 - **Fecha:** 2026-09-30 · **Estado:** implementado y verificado en local (escritorio y 375 px). Solo web, sin migración.
 - **Pedido:** Felipe, 2026-09-30, mirando Nuevo producto: eligió «Casacas» y la caja de nombre seguía diciendo «Blusa Aurora», y la
