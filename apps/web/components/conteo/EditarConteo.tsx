@@ -6,7 +6,7 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 /* ====================================================================
-   EditarConteo · «Editar conteo» en el resultado de un conteo cerrado (Inventario ▸ Conteo, 2026-09-29)
+   EditarConteo · «Corregir conteo» (antes «Editar conteo») en el resultado de un conteo cerrado (Inventario ▸ Conteo, 2026-09-29)
 
    Reabre el conteo (`reabrir_conteo`): vuelve a Contar con todas sus variantes y lo que se contó. Se corrige lo que
    hizo falta y se cierra como siempre; el cierre ajusta SOLO lo que se volvió a contar, como diferencia sobre el stock
@@ -34,7 +34,7 @@ export function EditarConteo({ conteoId, puedeEditar, variantesCorregidas = [] }
     try {
       const { error } = await createClient().rpc("reabrir_conteo", { p_conteo_id: conteoId });
       if (error) {
-        setFallo(error.message || "No se pudo abrir el conteo para editarlo.");
+        setFallo(error.message || "No se pudo abrir el conteo para corregirlo.");
         setAbriendo(false);
         return;
       }
@@ -42,8 +42,8 @@ export function EditarConteo({ conteoId, puedeEditar, variantesCorregidas = [] }
       if (variantesCorregidas.length > 0 && variantesCorregidas.length <= MAX_VARIANTES_EN_URL) router.push(`/inventario/conteo/${conteoId}?variantes=${variantesCorregidas.join(",")}`);
       else router.refresh();
     } catch (e) {
-      console.error("Editar conteo:", e);
-      setFallo("No se pudo abrir el conteo para editarlo: no llegó una respuesta. Vuelve a intentarlo.");
+      console.error("Corregir conteo:", e);
+      setFallo("No se pudo abrir el conteo para corregirlo: no llegó una respuesta. Vuelve a intentarlo.");
       setAbriendo(false);
     }
   }
@@ -52,9 +52,9 @@ export function EditarConteo({ conteoId, puedeEditar, variantesCorregidas = [] }
     <div className="flex flex-col gap-1.5">
       <button type="button" onClick={editar} disabled={abriendo || !puedeEditar} className="btn-cayla btn-secundario h-11 gap-2 self-start disabled:opacity-50">
         <Pencil aria-hidden className="h-4 w-4" />
-        {abriendo ? "Abriendo…" : "Editar conteo"}
+        {abriendo ? "Abriendo…" : "Corregir conteo"}
       </button>
-      {!puedeEditar && <p className="text-xs text-taupe">Solo quien ajusta inventario puede editar un conteo cerrado.</p>}
+      {!puedeEditar && <p className="text-xs text-taupe">Solo quien ajusta inventario puede corregir un conteo cerrado.</p>}
       {fallo && (
         <p role="alert" className="text-sm text-rojo-profundo">
           {fallo}
