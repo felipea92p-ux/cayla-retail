@@ -471,6 +471,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-oculta-ventas-de-prueba
 
+      # Dónde se registró cada producto (ADR-0292): un disparador en productos anota la sede (terminal, x-ubicacion o sede de
+      # partida), nunca frena un alta, y la web solo lee por fn_producto_origen (la tabla no tiene políticas). Cada caso: ROLLBACK.
+      - name: pruebas:producto-origen
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:producto-origen
+
       # Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
       # desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
       - name: pruebas:cuarentena-no-se-vende
