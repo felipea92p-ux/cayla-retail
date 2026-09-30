@@ -40,8 +40,22 @@ function colocar(r: DOMRect, alto: number): Posicion {
  * abría hacia abajo y «Desactivar» quedaba fuera de la pantalla del celular (revisión 2026-09-28). Se cierra con Escape,
  * con un clic afuera, al desplazarse la página (no el propio menú) o al cambiar el tamaño de la ventana, y devuelve el
  * foco al botón. Flechas arriba y abajo recorren las opciones. Sin animación de entrada a propósito: es un menú, no un modal.
+ *
+ * `texto` (Clientas, 2026-09-30): el mismo menú detrás de un botón secundario con palabra («Más ▾») en vez del «⋯», para la
+ * cabecera de una pantalla, donde las acciones de vez en cuando no deben ocupar una fila entera cada una.
  */
-export function MenuAcciones({ etiqueta, items, deshabilitado = false }: { etiqueta: string; items: ItemMenu[]; deshabilitado?: boolean }) {
+export function MenuAcciones({
+  etiqueta,
+  items,
+  deshabilitado = false,
+  texto,
+}: {
+  etiqueta: string;
+  items: ItemMenu[];
+  deshabilitado?: boolean;
+  /** Si viene, el botón dice esto (con la forma de un botón secundario) en vez de «⋯». */
+  texto?: string;
+}) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
   const boton = useRef<HTMLButtonElement>(null);
@@ -122,9 +136,22 @@ export function MenuAcciones({ etiqueta, items, deshabilitado = false }: { etiqu
         aria-expanded={abierto}
         disabled={deshabilitado}
         onClick={() => setAbierto((a) => !a)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-tinta/20 text-lg leading-none text-tinta/75 transition-colors hover:border-tinta/40 hover:text-tinta disabled:opacity-40"
+        className={
+          texto
+            ? "label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 max-sm:px-3 text-[11px] text-tinta outline-none transition-colors ease-cayla hover:border-rojo hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 disabled:opacity-40 aria-expanded:border-rojo aria-expanded:text-rojo"
+            : "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-tinta/20 text-lg leading-none text-tinta/75 transition-colors hover:border-tinta/40 hover:text-tinta disabled:opacity-40"
+        }
       >
-        <span aria-hidden>⋯</span>
+        {texto ? (
+          <>
+            {texto}
+            <svg aria-hidden viewBox="0 0 10 6" className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}>
+              <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+            </svg>
+          </>
+        ) : (
+          <span aria-hidden>⋯</span>
+        )}
       </button>
       {abierto &&
         pos &&

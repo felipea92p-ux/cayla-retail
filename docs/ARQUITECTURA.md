@@ -713,6 +713,17 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (nunca guardadas). Reglas puras en `lib/clientas-reglas.ts`, mismo criterio de
   separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`. El
   paso 1 del acta (Caja liga la venta a la ficha) sigue sin fusionar.
+  **Tanda 1f del club (ADR-0288 act. (f), `20260930210000`, sin pegar):** la lista ya no es
+  `getClientas` (las últimas 50) sino `lib/clientas.ts:getListaClientas` → RPC `fn_clientas_lista`
+  (filtro, término como `buscar_clienta`, 50 por página; su sede, última compra, frecuente con
+  compra neta y `baja_en`) + `getCifrasClientas` → RPC `fn_cifras_clientas`; `?q=&filtro=&pagina=`
+  en la URL (`lib/clientas-lista-reglas.ts`, puro; `components/clientas/BuscadorClientas.tsx` con
+  `useBusquedaEnUrl`). «Más» de la cabecera = `MenuAcciones` con `texto`. La ficha suma su sede y
+  frecuente de `fn_clienta_su_sede` (en `cargarFichaClienta`), `components/clientas/PreferenciasClienta.tsx`
+  (RPC `fn_club_etiquetas`, `guardar_preferencias_clienta`; `lib/preferencias-clienta-reglas.ts`) y
+  `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
+  vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
+  `fn_club_compras_netas`, `fn_club_resumen_compras`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC

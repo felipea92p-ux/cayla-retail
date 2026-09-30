@@ -18,6 +18,7 @@ import {
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { ajustarCelular } from "@/lib/club-reglas";
+import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
@@ -172,10 +173,12 @@ export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura
 /** La ficha completa (clienta + su actividad), leída DESDE EL NAVEGADOR — para abrirla al hacer
  *  clic en una fila y para refrescarla tras editar/archivar/unir, sin depender de un Server
  *  Component. Mismas cinco lecturas que `lib/clientas.ts` (`getFichaClienta`, usada al aterrizar
- *  en `/clientas` la primera vez); esta es su gemela del lado del cliente. */
+ *  en `/clientas` la primera vez); esta es su gemela del lado del cliente.
+ *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta
+ *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue. */
 export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
   const supabase = createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones] = await Promise.all([
+  const [clienta, compras, cambios, devoluciones, separaciones, resumen] = await Promise.all([
     supabase
       .from("clientas")
       .select(COLUMNAS_CLIENTA)
@@ -185,9 +188,11 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
     supabase.rpc("fn_clienta_cambios", { p_id: id }),
     supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
     supabase.rpc("fn_clienta_separaciones", { p_id: id }),
+    supabase.rpc("fn_clienta_su_sede", { p_clienta_id: id }),
   ]);
 
   const error = clienta.error ?? compras.error ?? cambios.error ?? devoluciones.error ?? separaciones.error;
+  const filaResumen = resumen.error ? null : ((resumen.data ?? [])[0] as FilaResumenCompras | undefined);
   if (error || !clienta.data) return { ficha: null, error: error ?? null };
 
   return {
@@ -197,6 +202,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
       cambios: ((cambios.data ?? []) as FilaCambio[]).map(aCambio),
       devoluciones: ((devoluciones.data ?? []) as FilaDevolucion[]).map(aDevolucion),
       separaciones: ((separaciones.data ?? []) as FilaSeparacion[]).map(aSeparacion),
+      resumenCompras: filaResumen ? aResumenCompras(filaResumen) : null,
     },
     error: null,
   };

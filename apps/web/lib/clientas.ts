@@ -16,26 +16,43 @@ import {
   type FilaSeparacion,
 } from "@/lib/clientas-reglas";
 import type { TextoClub, TipoTextoClub } from "@/lib/club-reglas";
+import {
+  aCifrasClientas,
+  aClientaDeLista,
+  desdeDePagina,
+  POR_PAGINA,
+  type CifrasClientas,
+  type ClientaDeLista,
+  type FilaCifrasClientas,
+  type FilaListaClienta,
+  type ParamsLista,
+} from "@/lib/clientas-lista-reglas";
 
 // Ficha de clienta — lista y ficha completa (D-76/D-77 y el paso 2 del acta,
 // docs/datos/DECISIONES-2026-09-26-clientas.md sección H). Página (server) importa este archivo;
 // el panel cliente SOLO `clientas-reglas.ts` y `clientas-acciones.ts` (un Server Component nunca
 // llama código de un archivo "use client", y viceversa nunca debería hacer falta).
-export type { Clienta };
+export type { Clienta, CifrasClientas };
 
-/** Las últimas `limite` clientas ACTIVAS (sin archivar), para la lista antes de buscar. Con
- *  `incluirArchivadas` trae también las archivadas/anonimizadas/fusionadas — para reactivar una,
- *  o para revisar el historial de una fusión. */
-export async function getClientas(limite = 50, incluirArchivadas = false): Promise<Clienta[]> {
+export type ListaClientas = { filas: ClientaDeLista[]; total: number; falla: string | null };
+
+/**
+ * La lista de /clientas (ADR-0288 tanda 1f, `fn_clientas_lista`): una página del filtro y la búsqueda de la URL, con su sede,
+ * su última compra y si es frecuente, calculados por la base sobre TODAS las fichas (no sobre las 50 de la vista). Si la base
+ * todavía no tiene la función (migración 20260930210000 sin pegar), devuelve `falla` en vez de tumbar la pantalla
+ * (principio 9): la pantalla lo dice y sigue con «+ Nueva clienta».
+ */
+export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
   const supabase = await createClient();
-  let query = supabase
-    .from("clientas")
-    .select(COLUMNAS_CLIENTA)
-    .order("created_at", { ascending: false })
-    .limit(limite);
-  if (!incluirArchivadas) query = query.is("archivada_en", null);
-  const filas = exigir(await query, "las clientas");
-  return filas.map(aClienta);
+  const { data, error } = await supabase.rpc("fn_clientas_lista", {
+    p_termino: p.termino || undefined,
+    p_filtro: p.filtro,
+    p_limite: POR_PAGINA,
+    p_desde: desdeDePagina(p.pagina),
+  });
+  if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientas: ${error.message}` };
+  const filas = (data ?? []) as FilaListaClienta[];
+  return { filas: filas.map(aClientaDeLista), total: filas[0]?.total ?? 0, falla: null };
 }
 
 /** La ficha completa: la clienta más su actividad, LEÍDA de ventas/cambios/devoluciones/
@@ -97,19 +114,13 @@ export async function getTextosClub(): Promise<TextoClub[]> {
   return (data ?? []).map((t) => ({ tipo: t.tipo as TipoTextoClub, version: t.version, texto: t.texto }));
 }
 
-/** Las cifras de la cabecera de /clientas (como el spike del club, `fichasHTML`): cuántas fichas activas, cuántas socias y
- *  cuántas con publicidad, contadas por la base (no sobre las 50 de la lista). `null` si la base todavía no tiene las
- *  columnas del club (tanda 1b sin pegar): la pantalla sigue sin cifras. */
-export type CifrasClientas = { identificadas: number; socias: number; conPublicidad: number };
-
+/** Las cifras de la cabecera de /clientas y la cuenta de cada píldora (como el spike del club, `fichasHTML`), contadas por la
+ *  base sobre todas las fichas (`fn_cifras_clientas`, tanda 1f): identificadas, socias, con publicidad, frecuentes (compra
+ *  neta)… `null` si la base todavía no la tiene: la pantalla sigue sin cifras. */
 export async function getCifrasClientas(): Promise<CifrasClientas | null> {
   const supabase = await createClient();
-  const activas = () => supabase.from("clientas").select("id", { count: "exact", head: true }).is("archivada_en", null);
-  const [todas, socias, conPublicidad] = await Promise.all([
-    activas(),
-    activas().not("club_desde", "is", null),
-    activas().not("publicidad_desde", "is", null),
-  ]);
-  if (todas.error || socias.error || conPublicidad.error) return null;
-  return { identificadas: todas.count ?? 0, socias: socias.count ?? 0, conPublicidad: conPublicidad.count ?? 0 };
+  const { data, error } = await supabase.rpc("fn_cifras_clientas");
+  const fila = (data ?? [])[0] as FilaCifrasClientas | undefined;
+  if (error || !fila) return null;
+  return aCifrasClientas(fila);
 }

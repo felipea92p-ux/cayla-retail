@@ -1,80 +1,97 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Clienta } from "@/lib/clientas-reglas";
-import type { CifrasClientas } from "@/lib/clientas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { buscarClienta, exportarClientas } from "@/lib/clientas-acciones";
+import { exportarClientas } from "@/lib/clientas-acciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { NuevaClientaModal } from "@/components/NuevaClientaModal";
 import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { LlegoMensajeWhatsappModal } from "@/components/clientas/LlegoMensajeWhatsappModal";
+import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
-import { Encabezado, TABLA, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
-import { estadoClub } from "@/lib/club-reglas";
-import { FILTROS_CLUB, cumpleLegible, pasaFiltroClub, type FiltroClub } from "@/lib/club-clientas-reglas";
+import { TABLA, Tabla } from "@/components/ui/Tabla";
+import { cumpleLegible } from "@/lib/club-clientas-reglas";
+import { celularLegible } from "@/lib/club-caja-reglas";
+import {
+  FILTROS_LISTA,
+  POR_PAGINA,
+  cuentaDelFiltro,
+  detalleFrecuentes,
+  detallePublicidad,
+  detalleSocias,
+  estadoDeLaFila,
+  hrefLista,
+  pieLista,
+  publicidadDeLaFila,
+  suSedeLegible,
+  ultimaCompraLegible,
+  type CifrasClientas,
+  type ClientaDeLista,
+  type ParamsLista,
+} from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clienta-reglas";
 
-// Clientas, paso 2 del acta (D-92 a D-111, docs/datos/DECISIONES-2026-09-26-clientas.md sección
-// H): de la pantalla mínima de verificación (D-76/D-77) a la de verdad — buscar por documento
-// (DNI, carné de extranjería o pasaporte, ADR-0288 D-2) o celular, abrir la ficha (compras,
-// cambios, devoluciones y apartados LEÍDOS de sus tablas, nunca copiados), editar con candado
-// optimista, archivar/anonimizar y unir dos fichas (D-99).
-// D-109: cualquier cuenta con el módulo ve a TODAS las clientas, sin distinguir sede — por eso
-// la cabecera dice «Todas las sedes» en vez de mostrar la sede activa (Felipe, 2026-09-27).
-// ADR-0288 tanda 1b: cada fila dice si es socia (con su código) y si recibe novedades por WhatsApp; la cabecera suma
-// «Llegó un mensaje de WhatsApp» (registrar su permiso, registrarla desde el cartel o su BAJA) y el cartel del mostrador.
-const PLANTILLA = "sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.8fr)]";
-const COLUMNAS: Columna[] = [
-  { titulo: "Clienta" },
-  { titulo: "Celular" },
-  { titulo: "Estado", ayuda: "Identificada: tiene ficha y sus compras se ligan. Socia: dijo que sí al club (beneficios y avisos informativos)." },
-  { titulo: "Publicidad", ayuda: "Novedades, rebajas y su saludo por WhatsApp: solo si ella se lo pidió a la tienda desde su QR." },
-  { titulo: "Cumpleaños" },
-];
+// Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
+// «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nueva clienta» en una fila; cuatro cifras (identificadas,
+// socias, con publicidad, frecuentes); el buscador y los filtros en píldoras, y la tabla, en UNA tarjeta (CLAUDE.md, ADR-0169);
+// la nota de «su sede» al pie. La lista, sus cuentas y cada columna calculada (su sede, última compra, frecuente con compra
+// neta) las da la base sobre TODAS las fichas (`fn_clientas_lista`, `fn_cifras_clientas`): la pantalla solo las pinta y
+// pagina. Búsqueda, filtro y página viven en la URL (`?q=&filtro=&pagina=`).
+// D-109: cualquier cuenta con el módulo ve a TODAS las clientas, sin distinguir sede — por eso la cabecera dice «Todas las
+// sedes» en vez de la sede activa (Felipe, 2026-09-27).
+//
+// La tabla decide su forma por el ancho de la TARJETA (`@container`), no por el de la ventana: con el lateral abierto, una
+// ventana de 800 px deja ~450 px a la tabla, y las seis columnas del spike cortaban el chip de estado y el celular.
+//   · 800 px o más: las seis columnas del spike, con un mínimo que deja entero cada chip, el celular y la última compra;
+//   · de 560 a 800: cuatro (el celular va bajo el documento y la publicidad bajo el estado);
+//   · menos de 560 (celular, o una ventana angosta con el lateral): cada fila apila sus datos.
+// El spike tiene su propio error aquí (los chips se montan sobre la columna de al lado): no se copió.
+const PLANTILLA =
+  "grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1.5 " +
+  "@min-[560px]:grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1fr)_minmax(7.5rem,0.9fr)] @min-[560px]:items-center " +
+  "@min-[800px]:grid-cols-[minmax(8rem,1.7fr)_minmax(6.5rem,0.9fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1.1fr)_minmax(7.5rem,1fr)_minmax(7.5rem,1.2fr)]";
+const SOLO_ANCHA = "hidden @min-[800px]:block";
+const DESDE_MEDIA = "hidden @min-[560px]:block";
 
 export function ClientasPanel({
-  clientasIniciales,
-  busquedaInicial = "",
-  whatsappPorTienda = {},
+  filas,
+  total,
+  falla = null,
+  params,
   cifras = null,
-  mesActual,
+  hoy,
+  whatsappPorTienda = {},
 }: {
-  clientasIniciales: Clienta[];
-  busquedaInicial?: string;
+  /** La página de la lista que pidió la URL (`fn_clientas_lista`). */
+  filas: ClientaDeLista[];
+  /** Cuántas pasan el filtro y la búsqueda (para el pie y la paginación). */
+  total: number;
+  /** Si la base no pudo dar la lista (la migración de la tanda 1f sin pegar): la pantalla lo dice y sigue. */
+  falla?: string | null;
+  params: ParamsLista;
+  /** Las cifras y las cuentas de las píldoras, de toda la base; `null` = sin cifras. */
+  cifras?: CifrasClientas | null;
+  /** Hoy en Lima (`aaaa-mm-dd`), para «hace N d»: lo decide el servidor, no el reloj del navegador. */
+  hoy: string;
   /** El WhatsApp de cada tienda (id → número), para el QR de una socia en su ficha. */
   whatsappPorTienda?: Record<string, string | null>;
-  /** Las cifras de la cabecera, contadas por la base; `null` = sin cifras (la base aún no tiene el club). */
-  cifras?: CifrasClientas | null;
-  /** 1–12, el mes de hoy en Lima. */
-  mesActual: number;
 }) {
-  const [termino, setTermino] = useState(busquedaInicial);
-  const [incluirArchivadas, setIncluirArchivadas] = useState(false);
-  const [resultados, setResultados] = useState<Clienta[] | null>(null);
-  const [buscando, setBuscando] = useState(false);
-  const [recientes, setRecientes] = useState(clientasIniciales);
-  // Tras un cambio, `router.refresh()` trae la lista de nuevo del servidor: la de «Últimas registradas» la toma.
-  const [recientesDelServidor, setRecientesDelServidor] = useState(clientasIniciales);
-  if (clientasIniciales !== recientesDelServidor) {
-    setRecientesDelServidor(clientasIniciales);
-    setRecientes(clientasIniciales);
-  }
   const router = useRouter();
   const [abriendoAlta, setAbriendoAlta] = useState(false);
   const [abriendoMensaje, setAbriendoMensaje] = useState(false);
   const [fichaAbiertaId, setFichaAbiertaId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [filtro, setFiltro] = useState<FiltroClub>("todas");
 
-  // D-109/G.4: exportar la lista completa es solo de Admin — la base lo exige de nuevo y deja
-  // rastro en `retail.actividad` de quién exportó y cuándo. El botón lo intenta cualquier cuenta;
-  // quien no es Admin recibe el mensaje de la base, sin necesidad de ocultarlo a medias en la UI.
+  // D-109/G.4 (CL-28): exportar la lista completa es solo de Admin — la base lo exige de nuevo y deja rastro en
+  // `retail.actividad` de quién exportó y cuándo. El botón lo intenta cualquier cuenta; quien no es Admin recibe el mensaje
+  // de la base, sin necesidad de ocultarlo a medias en la UI.
   async function onExportar() {
     setExportando(true);
     const { clientas, error } = await exportarClientas();
@@ -102,43 +119,17 @@ export function ClientasPanel({
     avisar.exito("Lista exportada", { detalle: `${clientas.length} clienta${clientas.length === 1 ? "" : "s"}` });
   }
 
-  async function buscar(termino: string, incluirArchivadas: boolean) {
-    if (termino.trim() === "") {
-      setResultados(null);
-      return;
-    }
-    setBuscando(true);
-    const { clientas, error } = await buscarClienta(termino, incluirArchivadas);
-    setBuscando(false);
-    if (error) {
-      avisar.error(traducirError(error, "buscar la clienta"));
-      return;
-    }
-    setResultados(clientas);
-  }
-
-  async function onBuscar(e: React.FormEvent) {
-    e.preventDefault();
-    await buscar(termino, incluirArchivadas);
-  }
-
-  // «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con `?q=<nombre>`: se busca una vez al abrir.
-  const yaBuscoInicial = useRef(false);
-  useEffect(() => {
-    if (!busquedaInicial.trim() || yaBuscoInicial.current) return;
-    yaBuscoInicial.current = true;
-    void buscar(busquedaInicial, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
-  }, []);
-
-  const lista = resultados ?? recientes;
-  const filtradas = lista.filter((c) => pasaFiltroClub(c, filtro, mesActual));
-
-  /** Tras cualquier cambio (ficha, club, mensaje): la lista vuelve a leerse, sin perder la búsqueda activa. */
+  /** Tras cualquier cambio (ficha, club, mensaje, alta): la página vuelve a leerse del servidor, con la misma URL. */
   function refrescar() {
     router.refresh();
-    if (resultados !== null) void buscar(termino, incluirArchivadas);
   }
+
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const vacio = params.termino
+    ? `Sin coincidencias con «${params.termino}». Busca por el documento completo, el celular, el código de socia o parte del nombre.`
+    : params.filtro === "todas"
+      ? "Todavía no hay clientas registradas."
+      : "Ninguna con ese filtro.";
 
   return (
     <div className="space-y-8">
@@ -148,155 +139,141 @@ export function ClientasPanel({
         subtitulo="El club de CAYLA: la tienda la recuerda y le escribe solo cuando tiene algo que le sirve."
         acciones={
           <>
-            <Boton onClick={onExportar} cargando={exportando} title="Solo un Admin puede exportar la lista completa">
+            {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nueva clienta» bajaba). */}
+            <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa">
               Exportar
             </Boton>
-            <Boton onClick={() => router.push("/clientas/cartel")} title="El QR del club para el mostrador de cada tienda">
-              Imprimir cartel
-            </Boton>
-            <Boton onClick={() => setAbriendoMensaje(true)} title="Registrar su permiso de novedades, su alta desde el cartel o su BAJA">
-              Llegó un mensaje de WhatsApp
-            </Boton>
-            <Boton peso="primario" onClick={() => setAbriendoAlta(true)}>
+            {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px. */}
+            <MenuAcciones
+              etiqueta="Más acciones de Clientas"
+              texto="Más"
+              items={[
+                { clave: "mensaje", etiqueta: "Llegó un mensaje de WhatsApp", onSelect: () => setAbriendoMensaje(true) },
+                { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
+              ]}
+            />
+            <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)}>
               + Nueva clienta
             </Boton>
           </>
         }
       />
 
-      {/* Las cifras del spike del club (`fichasHTML`), contadas por la base. Sin «Frecuentes»: necesita las compras de cada
-          clienta y hoy solo la ficha las lee (fn_clienta_compras). */}
       {cifras && (
-        <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-3" style={{ "--i": 1 } as React.CSSProperties}>
+        <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties}>
           <TarjetaCifra etiqueta="Identificadas" valor={cifras.identificadas}>
             Con ficha: sus compras se ligan
           </TarjetaCifra>
           <TarjetaCifra etiqueta="Socias del club" valor={cifras.socias}>
-            {cifras.identificadas > 0 ? `${Math.round((cifras.socias / cifras.identificadas) * 100)} % de las identificadas` : "Todavía ninguna"}
+            {detalleSocias(cifras)}
           </TarjetaCifra>
           <TarjetaCifra etiqueta="Con publicidad" valor={cifras.conPublicidad} punto="verde">
-            {cifras.socias - cifras.conPublicidad} socia{cifras.socias - cifras.conPublicidad === 1 ? "" : "s"} sin publicidad
+            {detallePublicidad(cifras)}
+          </TarjetaCifra>
+          <TarjetaCifra etiqueta="Frecuentes" valor={cifras.frecuentes}>
+            {detalleFrecuentes()}
           </TarjetaCifra>
         </div>
       )}
 
-      <div className="card-cayla space-y-4 p-5">
-        <form onSubmit={onBuscar} className="flex flex-wrap items-end gap-3">
-          <div className="max-w-sm flex-1">
-            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ caja />
+      <div className="anim-sube space-y-4" style={{ "--i": 2 } as React.CSSProperties}>
+        <Tabla className="@container">
+          <div className="space-y-3 p-4">
+            <BuscadorClientas params={params} />
+            {/* Un filtro por clic es una acción decidida: navega con el loader de siempre (ADR-0149). «Archivadas» es una
+                píldora más, al final: mira solo las fichas fuera de la libreta (para reactivar una o revisar una fusión). */}
+            <nav className="flex flex-wrap gap-2" aria-label="Filtrar la lista">
+              {FILTROS_LISTA.map((f) => (
+                <Link
+                  key={f.valor}
+                  href={hrefLista(params, { filtro: f.valor })}
+                  scroll={false}
+                  className="pildora-cayla"
+                  aria-current={params.filtro === f.valor ? "page" : undefined}
+                >
+                  {f.texto}
+                  {cifras && <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60">{cuentaDelFiltro(cifras, f.valor)}</span>}
+                </Link>
+              ))}
+            </nav>
           </div>
-          <Boton type="submit" peso="primario" cargando={buscando}>
-            Buscar
-          </Boton>
-          {resultados !== null && (
-            <Boton
-              type="button"
-              onClick={() => {
-                setTermino("");
-                setResultados(null);
-              }}
-            >
-              Limpiar
-            </Boton>
-          )}
-          <div className="ml-auto">
-            <Interruptor
-              activo={incluirArchivadas}
-              onActivo={(v) => {
-                setIncluirArchivadas(v);
-                if (resultados !== null) void buscar(termino, v);
-              }}
-              etiqueta="Incluir archivadas"
-            />
-          </div>
-        </form>
 
-        {/* Como el spike del club (`fichasHTML`): filtros en píldoras y la lista en una tabla con «Estado» y «Publicidad». */}
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar la lista">
-          {FILTROS_CLUB.map((f) => (
-            <button key={f.valor} type="button" className="pildora-cayla" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
-              {f.texto}
-              <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60">{lista.filter((c) => pasaFiltroClub(c, f.valor, mesActual)).length}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="label-cayla text-[11px] text-tinta/65">
-          {resultados !== null ? `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}` : "Últimas registradas"}
-          {filtro !== "todas" && ` · ${filtradas.length} con «${FILTROS_CLUB.find((f) => f.valor === filtro)?.texto}»`}
-        </p>
-        {filtradas.length === 0 ? (
-          <p className="card-cayla p-5 text-sm text-tinta/75">
-            {lista.length === 0 ? (resultados !== null ? "Sin coincidencias." : "Todavía no hay clientas registradas.") : "Ninguna con ese filtro."}
-          </p>
-        ) : (
-          <Tabla>
-            <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
-            {filtradas.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setFichaAbiertaId(c.id)}
-                className={`${fila(PLANTILLA, "w-full cursor-pointer text-left")} ${c.archivadaEn ? "opacity-60" : ""}`}
-              >
-                <span className={celda()}>
-                  <span className="block truncate text-sm font-medium text-tinta">{c.nombre ?? "Sin nombre"}</span>
-                  <span className="block truncate text-xs text-tinta/65">
-                    {[documentoLegible(c.documentoTipo, c.documentoNumero, false), c.codigoClub].filter(Boolean).join(" · ") || "Sin documento"}
+          <div data-resultados>
+            {falla ? (
+              <p className={`${TABLA.vacio} text-rojo-profundo`}>{falla}</p>
+            ) : filas.length === 0 ? (
+              <p className={TABLA.vacio}>{vacio}</p>
+            ) : (
+              <>
+                <div className={`encabezado-tabla-cayla hidden px-5 py-2 @min-[560px]:grid ${PLANTILLA.replace("grid ", "")}`} role="row">
+                  <span className={TABLA.titulo} role="columnheader">
+                    Clienta
                   </span>
-                </span>
-                <span className={celda("izq", "text-sm text-tinta/80")}>{c.telefonoWhatsapp ?? "—"}</span>
-                <span className={celda()}>
-                  {c.archivadaEn ? (
-                    <Chip tono="apagado" tachado={false}>
-                      {c.anonimizada ? "Anonimizada" : c.fusionadaEnId ? "Unida a otra" : "Archivada"}
-                    </Chip>
-                  ) : estadoClub(c) === "no_socia" ? (
-                    <Chip tono="pizarra">Identificada</Chip>
-                  ) : (
-                    <Chip tono="neutro">Socia</Chip>
-                  )}
-                </span>
-                <span className={celda()}>
-                  {c.archivadaEn || estadoClub(c) === "no_socia" ? (
-                    <span className="text-sm text-tinta/50">—</span>
-                  ) : c.publicidadDesde ? (
-                    <Chip tono="verde">Publicidad</Chip>
-                  ) : (
-                    <Chip tono="neutro">Sin publicidad</Chip>
-                  )}
-                </span>
-                <span className={celda("izq", "text-sm text-tinta/80")}>{c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "—"}</span>
-              </button>
-            ))}
-            <div className={TABLA.pie}>
-              {filtradas.length} de {lista.length} · el filtro mira lo que está a la vista (las últimas registradas o el resultado de la búsqueda) · todas las
-              cuentas con el módulo ven a todas
+                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader">
+                    Celular
+                  </span>
+                  <span className={TABLA.titulo} role="columnheader" title="Donde más compró en los últimos 12 meses">
+                    Su sede
+                  </span>
+                  <span className={TABLA.titulo} role="columnheader" title="Identificada: tiene ficha y sus compras se ligan. Socia: dijo que sí al club.">
+                    Estado
+                  </span>
+                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader" title="Novedades, rebajas y su saludo por WhatsApp: solo si ella lo pidió.">
+                    Publicidad
+                  </span>
+                  <span className={TABLA.titulo} role="columnheader">
+                    Última compra
+                  </span>
+                </div>
+                {filas.map((c) => (
+                  <FilaClienta key={c.id} c={c} hoy={hoy} onAbrir={() => setFichaAbiertaId(c.id)} />
+                ))}
+              </>
+            )}
+          </div>
+
+          {!falla && (
+            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-2`}>
+              <span>{pieLista(total, params.filtro, cifras)}</span>
+              {paginas > 1 && (
+                <nav className="flex items-center gap-3" aria-label="Páginas">
+                  {params.pagina > 1 ? (
+                    <Link href={hrefLista(params, { pagina: params.pagina - 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
+                      ‹ Anterior
+                    </Link>
+                  ) : null}
+                  <span className="tabular-nums">
+                    Página {Math.min(params.pagina, paginas)} de {paginas}
+                  </span>
+                  {params.pagina < paginas ? (
+                    <Link href={hrefLista(params, { pagina: params.pagina + 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
+                      Siguiente ›
+                    </Link>
+                  ) : null}
+                </nav>
+              )}
             </div>
-          </Tabla>
-        )}
-        <p className="nota-cayla">«Sin publicidad» son socias que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.</p>
+          )}
+        </Tabla>
       </div>
+
+      <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties}>
+        La <b>sede</b> de cada clienta es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «Sin publicidad» son socias
+        que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
+      </p>
 
       {abriendoAlta && (
         <NuevaClientaModal
           onClose={() => setAbriendoAlta(false)}
-          onCreada={(clienta) => {
+          onCreada={() => {
             setAbriendoAlta(false);
-            setRecientes((prev) => [clienta, ...prev.filter((c) => c.id !== clienta.id)]);
+            refrescar();
           }}
         />
       )}
 
       {fichaAbiertaId && (
-        <ClientaFichaModal
-          id={fichaAbiertaId}
-          onClose={() => setFichaAbiertaId(null)}
-          onCambiada={refrescar}
-          whatsappPorTienda={whatsappPorTienda}
-        />
+        <ClientaFichaModal id={fichaAbiertaId} onClose={() => setFichaAbiertaId(null)} onCambiada={refrescar} whatsappPorTienda={whatsappPorTienda} />
       )}
 
       {abriendoMensaje && (
@@ -311,5 +288,56 @@ export function ClientasPanel({
         />
       )}
     </div>
+  );
+}
+
+/** Una fila: las seis columnas del spike cuando la tarjeta es ancha; más angosta, lo mismo apilado (ver PLANTILLA). */
+function FilaClienta({ c, hoy, onAbrir }: { c: ClientaDeLista; hoy: string; onAbrir: () => void }) {
+  const estado = estadoDeLaFila(c);
+  const publicidad = publicidadDeLaFila(c);
+  const ultima = ultimaCompraLegible(c.ultimaCompra, hoy);
+  // Como el spike: bajo el nombre, solo el documento (el código de socia se busca igual en el buscador).
+  const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false) ?? "Sin documento";
+  const celular = c.telefonoWhatsapp ? celularLegible(c.telefonoWhatsapp) : null;
+  const chipPublicidad = publicidad ? (
+    <Chip tono={publicidad.tono} tachado={false}>
+      {publicidad.texto}
+    </Chip>
+  ) : null;
+  return (
+    <button type="button" onClick={onAbrir} className={`fila-cayla w-full cursor-pointer px-5 py-3 text-left ${PLANTILLA} ${c.archivadaEn ? "opacity-60" : ""}`}>
+      <span className="min-w-0">
+        <span className="block break-words text-sm font-medium text-tinta @min-[560px]:truncate">{c.nombre ?? "Sin nombre"}</span>
+        <span className="block truncate text-xs text-tinta/65">
+          {documento}
+          {celular && <span className="hidden @min-[560px]:inline @min-[800px]:hidden"> · {celular}</span>}
+        </span>
+      </span>
+      <span className={`min-w-0 truncate text-sm tabular-nums text-tinta/80 ${SOLO_ANCHA}`}>{celular ?? "—"}</span>
+      <span className={`min-w-0 truncate text-sm text-tinta/80 ${DESDE_MEDIA}`}>{suSedeLegible(c.suSede)}</span>
+      <span className="flex min-w-0 flex-col items-end gap-1 @min-[560px]:items-start">
+        <Chip tono={estado.tono} tachado={false}>
+          {estado.texto}
+        </Chip>
+        {chipPublicidad && <span className="@min-[800px]:hidden">{chipPublicidad}</span>}
+      </span>
+      <span className={`min-w-0 ${SOLO_ANCHA}`}>{chipPublicidad ?? <span className="text-sm text-tinta/50">—</span>}</span>
+      <span className={`min-w-0 text-sm text-tinta/80 ${DESDE_MEDIA}`}>
+        {ultima ? (
+          <>
+            <span className="whitespace-nowrap">{ultima.fecha}</span> <span className="whitespace-nowrap text-xs text-tinta/55">· {ultima.hace}</span>
+          </>
+        ) : (
+          "—"
+        )}
+      </span>
+      {/* Menos de 560 px: su celular, su sede y su última compra en una línea bajo lo demás (se parte si no cabe: nada se
+          corta a la mitad). */}
+      <span className="col-span-2 min-w-0 text-xs text-tinta/65 @min-[560px]:hidden">
+        {[celular, c.suSede ? `sede ${suSedeLegible(c.suSede)}` : null, ultima ? `última compra ${ultima.fecha} · ${ultima.hace}` : "sin compras todavía"]
+          .filter(Boolean)
+          .join(" · ")}
+      </span>
+    </button>
   );
 }
