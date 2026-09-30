@@ -138,13 +138,10 @@ const TITULOS: Record<NumeroPaso, string> = {
 export function NuevoProductoForm({
   contexto,
   destino,
-  esLider,
   puedeAprobarEtiquetas,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
-  /** Un líder: puede dar etiquetas con descuento (a los demás no se les ofrecen). */
-  esLider: boolean;
   /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
   puedeAprobarEtiquetas: boolean;
 }) {
@@ -470,7 +467,7 @@ export function NuevoProductoForm({
 
   // Las etiquetas de campaña que ya rigen sobre esta categoría se aplican solas: elegirlas a mano sería redundante y las
   // dejaría duplicadas en cada variante. Si la persona eligió una y DESPUÉS cambió a una categoría que la cubre, no se manda.
-  const { cubiertas: campanasQueAplican } = repartirEtiquetas(vocabEtiquetas, { categoriaId, daDescuentos: esLider });
+  const { cubiertas: campanasQueAplican } = repartirEtiquetas(vocabEtiquetas, { categoriaId });
   const etiquetasAManda = etiquetasElegidas.filter((id) => {
     const et = vocabEtiquetas.find((x) => x.id === id);
     return et ? !campanasQueAplican.some((c) => c.id === et.id) : false;
@@ -901,7 +898,6 @@ export function NuevoProductoForm({
                 categoriaId={categoriaId}
                 elegidas={etiquetasElegidas}
                 onElegidas={setEtiquetasElegidas}
-                esLider={esLider}
                 puedeAprobar={puedeAprobarEtiquetas}
                 enLinea={enLinea}
                 onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}

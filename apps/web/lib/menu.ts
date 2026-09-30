@@ -62,7 +62,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
  *                            fn_puede_ver_dinero_de_compras / fn_puede_registrar_compras, 20260923130000). Hasta el
  *                            2026-09-22 era `verDinero` y solo del líder (ADR-0126).
- *  - editarEtiquetas:        crear, editar y archivar etiquetas SIN descuento  (fn_puede_editar_etiquetas)
+ *  - editarEtiquetas:        crear, editar y archivar etiquetas, con o sin descuento (fn_puede_editar_etiquetas, ADR-0293)
  *  - analizar:               Análisis de inventario de su sede                  (fn_puede_analizar)
  *  - registrarGastos:        ver y registrar los gastos de SU tienda (Finanzas ▸ Gastos, ADR-0195 F2; fn_gastos_ubicaciones)
  *  - verCuentasDinero:       Finanzas ▸ Cuentas y dinero de SU tienda (ADR-0195 F3/F4)
