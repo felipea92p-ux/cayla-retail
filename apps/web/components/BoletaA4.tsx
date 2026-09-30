@@ -1,5 +1,6 @@
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
+import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
 import { desglosaIgv, fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
@@ -32,7 +33,6 @@ export function BoletaA4({
 }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const esFactura = recibo.tipo === "factura";
   // La nota de venta (ADR-0164) no separa IGV: sus líneas van al precio cobrado y el pie no lleva nada de SUNAT.
   const fiscal = desglosaIgv(recibo.tipo);
@@ -74,8 +74,9 @@ export function BoletaA4({
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           <dt className="font-semibold uppercase">Señor(es)</dt>
           <dd>{cli.nombre?.trim() || "Cliente general"}</dd>
-          <dt className="font-semibold uppercase">{cli.tipoDoc === "ruc" ? "RUC" : "DNI"}</dt>
-          <dd>{tieneDoc ? cli.numDoc : "—"}</dd>
+          {/* DNI, RUC, CE (carné de extranjería) o Pasaporte (ADR-0288 D-3). Sin documento, la fila dice «DNI —», como siempre. */}
+          <dt className="font-semibold uppercase">{llevaDocumento(cli.tipoDoc, cli.numDoc) ? ETIQUETA_DOCUMENTO_COMPROBANTE[cli.tipoDoc] : "DNI"}</dt>
+          <dd>{llevaDocumento(cli.tipoDoc, cli.numDoc) ? cli.numDoc : "—"}</dd>
           {esFactura && (
             <>
               <dt className="font-semibold uppercase">Dirección</dt>

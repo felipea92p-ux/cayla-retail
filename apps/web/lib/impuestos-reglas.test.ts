@@ -202,6 +202,16 @@ describe("registros para el contador", () => {
     expect(csv.filas[2]!.slice(8, 17)).toEqual(["-50.00", "-9.00", "-59.00", "PEN", "1", "15/01/2024", "01", "F981", 1]);
   });
 
+  it("registro de ventas: una boleta a un carné de extranjería va con «4» y una a un pasaporte con «7» (tabla 2; ADR-0288 D-3)", () => {
+    const filas = [
+      { fecha: "2024-01-10", tipo: "boleta", serie: "B981", numero: 7, cliente_tipo_doc: "carne_extranjeria", cliente_num_doc: "001234567", cliente_nombre: "Ana", base: 100, igv: 18, total: 118, estado: "aceptado", anulado: false },
+      { fecha: "2024-01-11", tipo: "boleta", serie: "B981", numero: 8, cliente_tipo_doc: "pasaporte", cliente_num_doc: "AB123456", cliente_nombre: "Eva", base: 100, igv: 18, total: 118, estado: "aceptado", anulado: false },
+      { fecha: "2024-01-12", tipo: "boleta", serie: "B981", numero: 9, cliente_tipo_doc: "dni", cliente_num_doc: "71234482", cliente_nombre: "Luz", base: 100, igv: 18, total: 118, estado: "aceptado", anulado: false },
+    ].map(leerFilaVentas);
+    const csv = csvRegistroVentas(filas, "2024-01");
+    expect(csv.filas.map((f) => [f[5], f[6]])).toEqual([["4", "001234567"], ["7", "AB123456"], ["1", "71234482"]]);
+  });
+
   it("registro de compras: 21 columnas; la boleta va como no gravada y sin crédito; dice qué es", () => {
     const filas = [
       { origen: "compra", naturaleza: "gasto", fecha: "2024-01-09", vencimiento: "2024-02-09", tipo: "boleta", serie: "B300", numero: "1", proveedor_ruc: "10987650982", proveedor: "Bodega", base: 0, igv: 0, no_gravado: 100, total: 100, da_credito: false, tienda: "Tienda Trujillo" },

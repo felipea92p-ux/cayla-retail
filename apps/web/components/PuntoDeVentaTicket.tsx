@@ -42,7 +42,8 @@ import { Ayuda } from "@/components/Ayuda";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { BilleteRapido } from "@/components/BilleteRapido";
-import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
+import type { TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -223,6 +224,9 @@ type Props = {
   onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
   clienteNumDoc: string;
   onClienteNumDoc: (v: string) => void;
+  /** DNI, carné de extranjería o pasaporte de una boleta o nota de venta (ADR-0288 D-3). */
+  clienteDocIdentidad: TipoDocumentoClienta;
+  onClienteDocIdentidad: (t: TipoDocumentoClienta) => void;
   clienteNombre: string;
   onClienteNombre: (v: string) => void;
   /** Derivado en el padre: lo usa `cobrar()` para frenar y acá para encender el (!). */
@@ -292,6 +296,8 @@ export function PuntoDeVentaTicket({
   onTipoComprobante,
   clienteNumDoc,
   onClienteNumDoc,
+  clienteDocIdentidad,
+  onClienteDocIdentidad,
   clienteNombre,
   onClienteNombre,
   facturaSinRuc,
@@ -1003,9 +1009,10 @@ export function PuntoDeVentaTicket({
                     ))}
                   </div>
                   <fieldset disabled={bloqueado}>
-                    <ConsultaDocumento
-                      tipo={tipoComprobante === "factura" ? "ruc" : "dni"}
-                      obligatorio={tipoComprobante === "factura"}
+                    <DocumentoDelComprobante
+                      tipoComprobante={tipoComprobante}
+                      identidad={clienteDocIdentidad}
+                      onIdentidad={onClienteDocIdentidad}
                       numero={clienteNumDoc}
                       onNumero={onClienteNumDoc}
                       nombre={clienteNombre}

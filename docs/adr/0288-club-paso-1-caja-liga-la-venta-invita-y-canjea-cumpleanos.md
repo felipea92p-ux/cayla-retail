@@ -398,3 +398,47 @@ de arriba, y por qué:
     `registrar_venta` pasa a `703928f5…`.
   - La regla quedó en CLAUDE.md («El SQL Editor agrega líneas por su cuenta»).
 
+
+## Actualización 2026-09-30 (d): tanda 1e (el comprobante con carné y pasaporte)
+
+Migración `supabase/migrations/20260930250000_club_paso1e_comprobante_carne_pasaporte.sql` (una sola parte, sin
+políticas ni `drop trigger`). Es la PARTE 4 de la tabla de arriba y la DECISIÓN 3, con el OK de Felipe del 2026-09-29.
+Se probó en un Postgres desechable propio con todas las migraciones y el seed. Lo que se decidió al construirla:
+
+- **La base.** El candado de tipos de `comprobantes` suma `carne_extranjeria` y `pasaporte`, y un candado nuevo
+  (`comprobantes_carne_pasaporte_formato`) les exige número de 6 a 12 letras o dígitos en mayúsculas, la misma regla
+  que la ficha. Una factura sigue exigiendo RUC (`comprobantes_factura_requiere_ruc`, sin tocar).
+- **Una sola función cambia: `emitir_comprobante`.** Con un reemplazo anclado sobre su cuerpo vivo y candado de
+  versión por md5 normalizado (antes `392971c9…`, después `a3f15c5b…`), limpia y valida el carné o el pasaporte con
+  `fn_documento_clienta` (los mismos mensajes que la ficha, hint `documento_invalido`) antes de reservar el correlativo.
+  - Por qué ahí: es el único lugar por donde nace un comprobante con documento. La llaman `registrar_venta`,
+    `convertir_proforma_a_comprobante` y los apartados.
+  - Se revisaron en su definición viva todas las que usan `cliente_tipo_doc`: `registrar_venta` y la conversión de
+    proformas lo pasan tal cual; `emitir_nota` (notas de crédito y débito), `abonar_separacion` y `entregar_separacion`
+    lo copian del comprobante anterior. Ninguna rechaza ni traduce estos tipos.
+  - `fn_ligar_ventas_por_documento` (1a) no cambia: ya compara por tipo, así que un carné liga en cuanto el comprobante
+    lo guarda.
+- **Apartados, fuera.** `separar_prendas` arma `dni` o `sin_documento` desde su parámetro `p_clienta_dni` (solo dígitos),
+  y `separaciones.clienta_dni` es solo de DNI. Llevar el carné a los apartados es otra tabla, dos firmas y el formulario
+  de Apartar: queda en el backlog. Mientras tanto, ese apartado sale «sin documento» con su nombre, como hoy.
+- **Una sola parte, con los `alter` al final.** La regla de partes (ADR-0195) es por las políticas, y aquí no hay. La
+  transacción toma en exclusiva solo `comprobantes`, al final y con `lock_timeout` de 3 s: sin ciclo con una venta.
+- **El orden de despliegue es al revés que en la 1a: primero la migración, después la web.** Con la web nueva y el
+  candado viejo, la boleta a un carné se rechaza y con ella la venta ENTERA. Con la migración pegada y la web vieja no
+  cambia nada.
+- **La web.** Una sola tabla, `lib/documento-comprobante-reglas.ts`, con el catálogo 06 (1 DNI, 4 carné, 6 RUC,
+  7 pasaporte) y cómo se lee (DNI, CE, RUC, Pasaporte).
+  - La leen el envío a Lucode (`lib/lucode.ts`), el QR del papel (`recibo-reglas.ts`), la térmica, el A4, el modal de
+    venta registrada, Cambios/Devoluciones (`ventas-v2.ts`) y el registro de ventas de Impuestos. Antes cada uno decía
+    `ruc ? "6" : "1"` por su cuenta, y un carné habría salido como DNI en el envío y en el QR, y como «0» en el registro.
+  - `documentoParaComprobante` deja pasar los tres tipos, con su tipo; una ficha vieja fuera de formato sale «sin
+    documento» en vez de frenar la venta.
+  - En Cobrar, el paso «Comprobante» de una boleta o nota de venta tiene el combo «Tipo de documento» (DNI por defecto,
+    `CampoTipoDocumento`). Carné y pasaporte llevan el nombre a mano, porque no tienen padrón. Vive en
+    `components/punto-de-venta/DocumentoDelComprobante.tsx`, para tocar `PuntoDeVenta*.tsx` lo mínimo.
+  - Un carné o un pasaporte mal escrito no deja cobrar (`motivoBloqueoCobro`), con el mensaje de la ficha.
+- **Lucode, sin confirmar.** «4» y «7» son los códigos del catálogo 06 de SUNAT, el mismo del que ya salen «1» y «6».
+  Pero ninguna boleta a un carné o a un pasaporte se transmitió todavía, ni al sandbox. Como decidió Felipe (punto 1
+  de arriba), la tanda no se cierra hasta que una boleta de prueba REAL a un carné sea aceptada con tipo «4». Si SUNAT
+  la rechazara, la boleta queda `rechazado` (la venta no se pierde), y se vuelve atrás en la web
+  (`documentoParaComprobante` otra vez solo DNI); la migración puede quedar.
