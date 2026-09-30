@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { agruparConteo, codigosDeConteo, textoAlcance, textoLugar, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
+import { agruparConteo, codigosDeConteo, textoAlcance, textoLugar, textoHallazgoDeLinea, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -121,6 +121,8 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                   </span>
                   <EstadoLinea estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
                 </div>
+                {/* La prenda que faltó y apareció después: el conteo conserva lo que se contó, y aquí se ve que ya se recuperó. */}
+                {textoHallazgoDeLinea(linea) && <p className="col-start-2 text-xs text-verde @[36rem]:col-span-full @[36rem]:col-start-2">✓ {textoHallazgoDeLinea(linea)}</p>}
               </li>
             ))}
           </ul>

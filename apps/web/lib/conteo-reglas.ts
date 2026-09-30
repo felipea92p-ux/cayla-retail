@@ -66,6 +66,12 @@ export type LineaConteo = {
    * «debe haber» ya no es la foto sin que nadie haya vendido nada: «el cierre de este conteo restó 1».
    */
   ajustadoAntes: number;
+  /**
+   * Lo que se recuperó DESPUÉS del cierre: la prenda que faltó y apareció, registrada con un ajuste enlazado a esta línea
+   * (motivo `hallazgo_conteo`). La línea sigue diciendo lo que se contó ese día («faltó 1»); esto dice cuánto de esa falta ya
+   * se encontró. Del libro de movimientos; 0 si la base no lo trae.
+   */
+  hallazgos: number;
   estado: EstadoLinea;
 };
 
@@ -296,6 +302,18 @@ export function notaDeLinea(l: { foto: number; debeHaber: number; contada: numbe
   }
   if (l.foto === 0 && l.contada !== null && l.contada > 0) return `Encontraste ${l.contada} que no estaba registrada aquí`;
   return null;
+}
+
+/**
+ * Lo que dice el resultado de un conteo cerrado de una variante que faltó y después apareció (ADR-0291): el conteo conserva
+ * lo que se contó ese día («faltó 1») y esta línea dice cuánto de esa falta ya se recuperó, por un ajuste enlazado a la
+ * línea. `null` si no se recuperó nada (o si la línea no tuvo falta).
+ */
+export function textoHallazgoDeLinea(l: { diferencia: number | null; hallazgos: number }): string | null {
+  if (l.hallazgos <= 0 || l.diferencia === null || l.diferencia >= 0) return null;
+  const faltaron = -l.diferencia;
+  if (l.hallazgos >= faltaron) return faltaron === 1 ? "La encontraron después: 1 recuperada" : `La encontraron después: ${faltaron} recuperadas`;
+  return `Ya aparecieron ${l.hallazgos} de ${faltaron}`;
 }
 
 /**
@@ -779,6 +797,7 @@ export function lineaDesdeJson(json: unknown): LineaConteo | null {
     // Faltan si la web sale antes que el SQL (`20260930050100`): valen 0 y la nota es la de siempre.
     ajustadoTotal: enteroONulo(o, "ajustado_total") ?? 0,
     ajustadoAntes: enteroONulo(o, "ajustado_antes") ?? 0,
+    hallazgos: enteroONulo(o, "hallazgos") ?? 0,
   };
   const estado = estadoDeLinea(base);
   if (estado === null) return null;
