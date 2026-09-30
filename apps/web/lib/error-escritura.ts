@@ -273,9 +273,12 @@ const HUELLAS: Huella[] = [
   },
   {
     // 0010_facturacion.sql — el correlativo no se repite jamás.
+    // Texto de 2026-09-30 (caso «boleta sin DNI con Yape», pasada ciega): el anterior mandaba a «Facturación» (ya no existe: hoy se llama
+    // Comprobantes y el comprobante se emite DENTRO de la venta) y no decía si lo que se intentaba guardar se guardó. No se guardó: la
+    // venta y su comprobante son una sola transacción, así que un número repetido la deshace entera.
     marca: "comprobantes_tipo_serie_numero",
     frase:
-      "Ese número de comprobante ya está usado. Vuelve a Facturación y emite de nuevo: el sistema tomará el siguiente correlativo.",
+      "No se pudo emitir el comprobante: ese número ya estaba usado, y lo que intentabas guardar NO se guardó. Avisa a tu líder de equipo para que revise las series en Ventas ▸ Comprobantes ▸ Series.",
   },
   {
     // 20260914160000_igv_solo_en_factura.sql — boleta y nota de venta no discriminan IGV.
