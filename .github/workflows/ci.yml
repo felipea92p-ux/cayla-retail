@@ -398,6 +398,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-lectura
 
+      # La libreta de «Ya decidí» de Frescura del piso (paso 4b, ADR-0208): frescura_decisiones rechaza en la BASE cada estado
+      # imposible (dos decisiones actuales, anular lo que no es una decisión, editar o borrar) y cada candado tiene su
+      # mutante; anotar y anular firman, se protegen del reintento y de la carrera; la lectura por sede; y eliminar un
+      # producto con historia conoce la libreta. Cada caso termina en ROLLBACK salvo las carreras, que limpian lo suyo.
+      - name: pruebas:frescura-decisiones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-decisiones
+
       # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
       # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
       # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de
