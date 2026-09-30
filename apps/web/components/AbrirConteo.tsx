@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { claveResponsableConteo, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
 import { TODA_LA_UBICACION, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
@@ -119,6 +120,8 @@ export function AbrirConteo({
 
   async function abrir() {
     if (!listo || abriendo) return;
+    // Quien abre el conteo lo firma de principio a fin: se toma ANTES de `despues`, que reinicia el combo al guardar.
+    const quienAbre = responsable.elegidoId;
     setAbriendo(true);
     setError(null);
     const { data, error: fallo } = await firmar(
@@ -142,6 +145,8 @@ export function AbrirConteo({
       }
       return;
     }
+    // Contar, Revisar y Cancelar reutilizan esta elección: el responsable se elige una sola vez, al abrir (2026-09-30).
+    if (quienAbre && typeof data === "string") recordarResponsableGuardar(claveResponsableConteo(data), quienAbre);
     avisar.exito("Conteo abierto", { detalle: "Ya puedes escanear." });
     // Se queda «Abriendo…» hasta que la pantalla de contar reemplaza a esta: soltar el botón dejaría abrir dos veces.
     router.push(`/inventario/conteo/${data}${sufijoVariantes(variantes)}`);

@@ -81,7 +81,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
             Ver movimientos del conteo
           </Link>
           {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
-          {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} />}
+          {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} variantesCorregidas={corregidas.map((l) => l.varianteId)} />}
         </div>
       </section>
 
