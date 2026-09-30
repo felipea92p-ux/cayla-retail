@@ -5449,6 +5449,7 @@ export type Database = {
           cumple_disponible: boolean
           cumple_pct: number
           cumple_canjeado_este_anio: boolean
+          cumple_canjeado_el: string | null
         }[]
       }
       fn_club_textos_vigentes: {

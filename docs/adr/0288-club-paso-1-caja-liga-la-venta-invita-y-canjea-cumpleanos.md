@@ -616,8 +616,9 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
   (`pegar-en-produccion-anular-venta-*.sql`). Una devolución NO lo libera (decisión de Felipe, 2026-09-29).
 - **Sin conexión, la web apaga el botón.** Una venta en cola que llega con el canje ya usado se rechaza entera y la cola
   la muestra como rechazo (ADR-0036).
-- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric` y `cumple_canjeado_este_anio boolean`.
-  Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
+- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric`, `cumple_canjeado_este_anio boolean` y
+  (al conectar la web) `cumple_canjeado_el date`, el día de Lima del canje vivo: la caja dice «Cumpleaños canjeado el 12 sep»,
+  como el spike. Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
 
 **Web:**
 - En la caja de la clienta de Cobrar, el botón «Canjear 10 %» del spike: solo aparece si `cumple_disponible` y hay
