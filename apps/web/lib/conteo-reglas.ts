@@ -291,8 +291,11 @@ export function notaDeLinea(l: { foto: number; debeHaber: number; contada: numbe
   const delCierre = l.ajustadoAntes ?? 0;
   // Conteo reabierto para corregir y línea todavía sin volver a contar: el «debe haber» que se ve (3) es el de ANTES del cierre
   // y el stock ya pasó a 2 por este conteo. Se dice de entrada, para que el 3 → 2 que aparece al contar de nuevo no sorprenda.
-  const delUltimoCierre = l.ajustadoTotal ?? 0;
-  if (l.contada !== null && delUltimoCierre !== 0 && delCierre !== delUltimoCierre) {
+  // Lo que el ÚLTIMO cierre ajustó y el «debe haber» todavía no incluye (`ajustadoTotal − ajustadoAntes`). No el total neto: un conteo
+  // corregido dos veces (3 → 2 → 3) suma 0 y aun así la línea se está corrigiendo de nuevo.
+  // Solo si el total viene informado (la base lo trae siempre): sin él no se sabe cuánto ajustó el último cierre.
+  const delUltimoCierre = l.ajustadoTotal === undefined ? 0 : l.ajustadoTotal - delCierre;
+  if (l.contada !== null && delUltimoCierre !== 0) {
     return `Había ${l.debeHaber} · por este conteo pasó a ${l.debeHaber + delUltimoCierre}. Ahora estás corrigiendo.`;
   }
   const deOtros = l.debeHaber - l.foto - delCierre;
@@ -320,6 +323,20 @@ export function textoHallazgoDeLinea(l: { diferencia: number | null; hallazgos: 
   const faltaron = -l.diferencia;
   if (l.hallazgos >= faltaron) return faltaron === 1 ? "La encontraron después: 1 recuperada" : `La encontraron después: ${faltaron} recuperadas`;
   return `Ya aparecieron ${l.hallazgos} de ${faltaron}`;
+}
+
+/**
+ * La marca fija «Había 3» bajo el «Debe haber» de una línea que se está CORRIGIENDO (conteo reabierto; Felipe, 2026-09-30).
+ * Al contar de nuevo el «Debe haber» salta (3 → 2) tan rápido que no da tiempo de recordar con cuánto se empezó, y con varias
+ * prendas es peor: esta marca no cambia mientras se cuenta. Es el «debe haber» de cuando se contó, sin el ajuste del cierre
+ * (`debeHaber − ajustadoAntes`: antes de volver a contar vale `debeHaber`; después, el «debe haber» de hoy menos lo que el
+ * cierre ajustó). `null` si el cierre no ajustó esta línea: no hay nada que recordar.
+ */
+export function textoHabiaAntes(l: { debeHaber: number; ajustadoAntes?: number; ajustadoTotal?: number }): string | null {
+  const antes = l.ajustadoAntes ?? 0;
+  // «Algún cierre la ajustó» (no el neto: 3 → 2 → 3 suma 0 y la línea sigue teniendo historia que recordar).
+  if ((l.ajustadoTotal ?? 0) === 0 && antes === 0) return null;
+  return `Había ${l.debeHaber - antes}`;
 }
 
 /**
