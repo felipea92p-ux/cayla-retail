@@ -585,7 +585,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -603,7 +604,8 @@ export type Database = {
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
-          dni?: string | null
+          documento_numero?: string | null
+          documento_tipo?: string
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -621,7 +623,8 @@ export type Database = {
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
-          dni?: string | null
+          documento_numero?: string | null
+          documento_tipo?: string
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -5191,7 +5194,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5205,7 +5209,8 @@ export type Database = {
       editar_clienta: {
         Args: {
           p_id: string
-          p_dni?: string
+          p_documento_tipo?: string
+          p_documento_numero?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
           p_acepta_whatsapp?: boolean
@@ -5240,7 +5245,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5261,7 +5267,8 @@ export type Database = {
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
-          dni: string | null
+          documento_numero: string | null
+          documento_tipo: string
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -7367,7 +7374,8 @@ export type Database = {
           p_acepta_whatsapp?: boolean
           p_cumple_dia?: number
           p_cumple_mes?: number
-          p_dni?: string
+          p_documento_numero?: string
+          p_documento_tipo?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
         }

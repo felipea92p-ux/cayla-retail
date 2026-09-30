@@ -29,7 +29,7 @@ export async function getClientas(limite = 50, incluirArchivadas = false): Promi
   let query = supabase
     .from("clientas")
     .select(
-      "id, dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
+      "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
     )
     .order("created_at", { ascending: false })
     .limit(limite);
@@ -48,7 +48,7 @@ export async function getFichaClienta(id: string): Promise<FichaClienta | null> 
     supabase
       .from("clientas")
       .select(
-        "id, dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
+        "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
       )
       .eq("id", id)
       .maybeSingle(),

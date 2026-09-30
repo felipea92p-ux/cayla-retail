@@ -58,9 +58,9 @@ export type ItemRegistrarVenta = {
   color_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (16 parámetros, hoy; la caja usa los 12 primeros). Se guarda entero en la
- *  cola y se reenvía sin cambios al subir — el `p_token` adentro es el mismo que dejó el
- *  envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
+/** El payload completo de `registrar_venta` (16 parámetros, hoy; la caja manda los 12 de abajo: `p_cliente_id` se sumó
+ *  en la tanda 1a del club, ADR-0288). Se guarda entero en la cola y se reenvía sin cambios al subir — el `p_token`
+ *  adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
@@ -70,6 +70,10 @@ export type ParamsRegistrarVenta = {
   p_cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
   p_cliente_num_doc?: string;
   p_cliente_nombre?: string;
+  /** La ficha de la clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Viaja también en la cola sin conexión;
+   *  si al subir la ficha ya se unió a otra, la base la liga a la que quedó, y si se anonimizó, la rechaza
+   *  (`clienta_anonimizada`) y la cola la muestra como rechazo, igual que una caja cerrada (ADR-0036). */
+  p_cliente_id?: string;
   p_codigo_descuento?: string;
   p_nota?: string;
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que

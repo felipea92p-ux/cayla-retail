@@ -285,7 +285,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
             </>
           ) : (
             <p className="text-xs leading-snug text-tinta/70">
-              {MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón."} Escribe el nombre a
+              {conPunto(MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón.")} Escribe el nombre a
               mano y confírmalo con la clienta antes de emitir.
             </p>
           )}
@@ -313,4 +313,11 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
     </div>
   );
 
+}
+
+/** El motivo que llega del padrón a veces viene sin punto final («El padrón respondió algo inesperado»): sin él, la frase
+ *  siguiente («Escribe el nombre…») se pega a la anterior. */
+function conPunto(texto: string): string {
+  const t = texto.trim();
+  return /[.!?…]$/.test(t) ? t : `${t}.`;
 }

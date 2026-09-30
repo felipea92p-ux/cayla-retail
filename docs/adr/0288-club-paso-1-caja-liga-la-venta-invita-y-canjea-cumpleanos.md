@@ -291,3 +291,30 @@ Cada tanda:
 - El aniversario (paso 5; `club_canjes.tipo` ya lo admite).
 - El ticket de regalo sin precios (idea, no pedida).
 - El % del cumpleaños contra el tope del 2% (paso 4).
+
+## Actualización 2026-09-30 (b): tanda 1a construida
+
+Migración `supabase/migrations/20260930160000_club_paso1a_venta_ligada_y_documento.sql` (una sola parte, sin
+políticas). Se probó en un Postgres desechable propio, con las 372 migraciones y el seed. Lo que se aparta del diseño
+de arriba, y por qué:
+
+- **`registrar_venta` no se reescribe entera.** Un solo reemplazo anclado agrega un bloque anidado después de
+  `fn_actor_persona_id(true)`: resuelve la ficha y reasigna el propio `p_cliente_id`, que en PL/pgSQL es asignable y es
+  lo que el `insert into ventas` ya guarda.
+  - Por qué: el texto vivo difiere entre bases solo en comentarios. Producción, main y el local tienen el mismo md5
+    normalizado, pero un ancla sobre la declaración no calzaba en la base armada desde el repo.
+  - Las 5 anclas se comprobaron en producción (en solo lectura): cada una aparece exactamente una vez.
+- **La venta con clienta NO exige el módulo «Clientas».** El id solo sale de `buscar_clienta`, que sí lo exige. Exigirlo
+  en `registrar_venta` haría fallar una venta ENTERA que esperaba en la cola sin conexión, si al rol le quitaron el módulo
+  en el camino.
+- **Dos ayudantes internos**, sin EXECUTE para la API:
+  - `fn_documento_clienta`: normaliza y valida; es el único lugar de los mensajes.
+  - `fn_ligar_ventas_por_documento` (CL-27): liga solo ventas sin clienta y nunca mueve una que ya es de otra ficha.
+    También la usa `editar_clienta` cuando cambia el documento. Hoy liga por DNI; la tanda 1e la extiende sin cambiarla,
+    porque compara `comprobantes.cliente_tipo_doc` con el mismo nombre de tipo.
+- **`editar_clienta` traduce el único:** poner un documento que ya es de otra ficha da 23505 con el hint
+  `documento_de_otra_ficha` y el mensaje «únelas con Unir fichas», en vez del error crudo.
+- **El seed ya no trae la empresa con RUC como clienta.** Una ficha es de una persona (DNI, carné o pasaporte), y el RUC
+  va en la factura.
+- **Orden de despliegue:** pegar la migración y fusionar el PR enseguida. Entre los dos, la pantalla vieja no puede
+  registrar ni editar fichas (la venta sigue sin clienta); leer y buscar funcionan igual.
