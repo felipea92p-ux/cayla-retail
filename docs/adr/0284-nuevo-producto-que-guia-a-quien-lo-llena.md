@@ -212,6 +212,60 @@ Felipe (2026-09-30): recorrer el módulo Catálogo con `/focus`, pantalla por pa
 - **Falta (por choque con otras sesiones):** `CategoriasLista`, `ProductosGrilla`, `ProductosTabla`, `FiltrosProductos` y `FotosPorColor`.
 - **Cuentas:** `PENDIENTES_HOY` 79 → 73; `MODALES_PENDIENTES_HOY` 89 → 74.
 
+## Actualización 2026-09-30 (h) — la luz espera a quien escribe, y un valor de fábrica también pasa por la guía
+
+**Lo que se vio (Felipe, probando «Nuevo color del vocabulario»):** con escribir UNA letra en Nombre la luz «Sigue aquí» saltaba a Código;
+al completarse el código sugerido saltaba a Color, sin pasar por Familia. La guía apuraba a quien todavía tecleaba y se saltaba un combo.
+
+**Dos causas, dos arreglos** (los dos generales, no de esta pantalla):
+1. **`hecho` es instantáneo, escribir no.** Con una letra el nombre ya era «hecho», así que la luz se iba a mitad de palabra. Ahora el campo de
+   TEXTO donde la persona está escribiendo conserva la luz hasta que sale de él (`siguienteDe(campos, enFoco)` en `lib/guia-campos.ts`; lo informa
+   `CampoGuiado` con `onFocus`/`onBlur`, solo si el control es una caja de texto). **Un combo, una casilla o un chip no retienen nada:** elegir es
+   el «terminé» y la luz avanza en ese instante. Solo retiene un campo guiado (requerido o sugerido): entrar a una nota opcional no le quita la luz
+   a lo que sigue.
+2. **Un valor de fábrica cuenta como «lleno».** «Familia» viene en «Neutro»; como no bloquea y ya tiene valor, no estaba en la guía y la luz
+   nunca pasaba por ella (un color nuevo casi nunca es neutro; la familia lo ordena en la lista y alimenta el aviso «se ve casi igual que…»). Un
+   combo con valor de fábrica que importa entra a la guía como **sugerido con `hecho` = «la persona eligió»** (aunque sea el mismo valor):
+   el pie dice «Sin elegir: Familia · puedes seguir así» y **nunca bloquea** `Guardar`.
+
+**Dos trampas que costaron la prueba en el navegador** (quedan escritas en el código de `CampoGuiado`):
+- Soltar la luz DENTRO del `blur` movía nodos del DOM cuando el foco aún no llegaba al siguiente control (`document.activeElement` = `<body>`);
+  el `FocusScope` de Radix lo leía como «se perdió el foco», lo devolvía al contenedor del modal y **Tab nunca llegaba al campo de al lado**.
+  Ahora el «soltar» va un tick después (`setTimeout 0`).
+- La limpieza al desmontar soltaba el registro también en el desmontaje simulado de React StrictMode (bloque aún en pantalla, foco puesto por
+  `autoFocus`): borraba justo lo recién registrado. Solo suelta si el bloque ya salió del DOM (`isConnected`).
+
+**Verificado:** `lib/guia-campos.test.ts` y `lib/alta-producto-guia.test.ts` (+9 y +8 casos: una letra no mueve la luz, el que sigue tras salir, Familia antes de Color, opcional con foco no
+roba luz, id desconocido, el foco no cambia qué falta ni qué se confirma), vitest completo (259 archivos), `tsc` y eslint limpios, y recorrido
+en el navegador: escritorio (una letra → nombre completo → Tab → Tab → combo por teclado y por clic → Color) y 375 px, más «Editar color».
+No se cambió qué se puede guardar en ningún modal.
+
+**Nuevo producto tenía el mismo defecto** (Felipe, mismo día): con una letra en «Nombre» —apenas terminaba la comprobación de que no exista—
+«Sigue aquí» saltaba a «Tejido»; igual con un dígito del precio o de una cantidad. El alta no usa `CampoGuiado` sino `FilaAlta` +
+`lib/alta-producto-guia.ts`, así que se le puso lo mismo: `campoAhora` y `estadosDeCampos` reciben `enFoco` (y reusan `siguienteDe`, una sola
+definición), el formulario guarda `escribiendoEn` y cada `FilaAlta` lo informa por el foco. La mitad que mira a la persona quedó en una pieza
+compartida, `components/guia-de-foco/useRetenerLuz.ts` (la usan `CampoGuiado` y `FilaAlta`; el formulario la provee por
+`RetencionLuzContexto`). Solo retiene el campo del paso abierto que es requerido o sugerido; la descripción y la marca (opcionales) no.
+
+**Por qué el foco y no el movimiento del mouse** (idea de Felipe: «cuando escribe no suele mover el mouse»). Comparten la intuición —mientras se teclea,
+la luz espera— pero el foco es la señal más fiable de «el cursor sigue en esta caja»: sirve igual con Tab y con lector de pantalla, y en el celular
+(Vender, Cambios y Devoluciones se usan en un teléfono) no hay mouse que mover; y un mouse que se roza a media palabra adelantaría la luz antes de tiempo.
+Si se quisiera que la luz avance apenas la mano va al mouse (antes de hacer clic en otro campo), se suma como una segunda señal sobre esta, sin cambiar lo demás.
+
+**Tallas y Colores también esperan** (Felipe, mismo día: «que también esperen»). Son campos de VARIAS opciones, y con la primera elegida ya eran «hechos»:
+la luz saltaba aunque la persona quisiera marcar más. Ahí ningún campo de texto avisa, y en Safari un botón ni siquiera toma el foco al hacer clic,
+así que `useRetenerLuz` tiene un segundo modo, `"fila"` (`FilaAlta retiene="fila"` y `CampoGuiado retiene="fila"`): la luz se queda mientras la persona
+siga tocando algo DENTRO del bloque (foco o clic; cuenta también el de una hoja que el bloque abrió, porque React lo sube por su árbol) y se suelta cuando
+toca o enfoca cualquier otra cosa de la página. Lo hace un oyente de `document` dentro del propio hook, que compara cada evento con el último que React
+vio dentro del bloque: **no pide cableado a quien lo usa** (un primer intento con un manejador en el `<form>` de Nuevo producto no servía a los modales y se descartó).
+Combos de una sola opción (tejido, patrón, familia) no cambian: elegir ahí es «terminé». Una consecuencia a la vista: si la persona toca una talla, la luz
+se va a Tallas aunque ya estuviera «hecha» (la luz acompaña a donde se trabaja).
+
+**La skill `/focus` se reescribió con todo esto** (`.claude/skills/focus/SKILL.md`): una «segunda regla madre» (la guía acompaña, no apura), una tabla de qué hace la
+luz con cada tipo de control, una «mirada de tolerancia» en el Paso 1 (buscar controles de varias opciones y valores de fábrica que la guía no mira) y un Paso 4 de
+verificación con el recorrido «una letra → Tab → combo», las dos trampas de foco y el entorno (puerto libre, `.env.local`, base local atrasada, panel oculto). El
+escáner reconoce `useRetenerLuz` como pieza de la guía.
+
 ## Lo que queda a decisión de Felipe
 
 1. **¿Cuánto se debe notar?** Está en «sutil pero claro»: tinte + etiqueta + marca. Si en tienda sigue pasando desapercibido, el
