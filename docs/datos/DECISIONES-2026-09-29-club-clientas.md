@@ -200,3 +200,45 @@ precio pleno de las socias antes y después, para que Felipe lo revise con datos
   queda pendiente y no se pierde.
 - *Persona sin contexto:* la asesora hace una pregunta, escribe dos números y toca un botón; la clienta
   responde «SÍ» desde su celular.
+
+---
+
+## Actualización 2026-09-30: sin bot, y la publicidad solo cuando ella escribe primero
+
+Felipe, en dos tandas más, tras las investigaciones de
+[`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`](../investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md).
+El detalle técnico está en el ADR-0288 (D-4 reescrita y «Actualización 2026-09-30»).
+
+**CL-29 · Sin bot** → no habrá envío automático. **Cada tienda envía desde su propio número** (confirma D-106).
+Queda descartada la API de Meta: costaba unos US$130 al mes de mensajes más €49 por número para conservar el número
+de cada tienda.
+
+**CL-30 · El sistema recomienda** → la bandeja del paso 3 sugiere **qué mensaje mandar a cada clienta** y arma
+**mensajes para todas** (o para un grupo). La tienda los envía a mano.
+
+**CL-31 · Dos permisos** → **CORRIGE D-108** (el «SÍ» que responde a la bienvenida de la tienda). La Ley 32323
+(9-may-2025) solo permite publicidad a quien contacta a la empresa por iniciativa propia, e Indecopi dio por
+derogado el «primer contacto para pedir permiso».
+- **Club** (beneficios y avisos informativos: su apartado, la talla que pidió, su boleta): su «sí» de palabra en caja,
+  registrado por la asesora con el texto del club.
+- **Publicidad por WhatsApp** (novedades, rebajas, «Te extrañamos», saludo de cumpleaños): **solo si ella escribe
+  primero** desde un QR que abre el WhatsApp de la tienda con el texto listo. La base no deja marcarla de otra forma.
+- Es como lo hacen Plaza Vea, Promart y Oechsle (publicidad como finalidad aparte y opcional) y Mifarma (la
+  aceptación ocurre en el celular de la clienta).
+
+**CL-32 · Dónde está el QR** → en la pantalla de caja al invitarla y en su ticket (personalizados con su código de
+socia `C-0142`), y en un cartel del mostrador y en el ticket de una venta sin clienta (genéricos).
+- Si el QR genérico llega de un número que no está en el sistema, la tienda le pide su DNI en ese chat y la registra
+  con «Registrar desde WhatsApp». Sin DNI no hay ficha.
+
+**CL-33 · Sin pantalla táctil ni tablet** → CAYLA no tiene ninguna. Por eso se descartó que ella toque una casilla.
+
+**CL-34 · Sin abogado** → Felipe activa el club con este diseño **sin validación legal**, y asume el riesgo. Quedan
+sin confirmar dos puntos:
+- que invitar en caja cuente como «iniciativa propia»;
+- que los avisos informativos queden fuera del art. 58.1.e.
+
+**Consecuencias en esta acta:**
+- CL-19 («Llegó tu talla» sin el «SÍ» general) sigue en pie: es un aviso informativo del club.
+- El saludo de cumpleaños por WhatsApp pasa a ser publicidad; **el 10% en caja (CL-10) vale para toda socia**.
+- Los topes de CL-21 y el grupo testigo de CL-20 se aplican solo sobre quienes tienen publicidad.

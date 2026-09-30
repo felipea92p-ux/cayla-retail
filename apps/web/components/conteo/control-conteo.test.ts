@@ -7,7 +7,7 @@ const AHORA = "2026-09-29T15:00:00.000Z";
 
 /** Una línea como la deja la base al abrir el conteo: pendiente, con lo congelado en `foto`. */
 function pendiente(varianteId: string, debeHaber: number): LineaConteo {
-  return { varianteId, debeHaber, foto: debeHaber, contada: null, anterior: null, verificadoEn: null, confirmadaEn: null, actual: debeHaber, ajusteMovimientoId: null, diferencia: null, estado: "pendiente" };
+  return { varianteId, debeHaber, foto: debeHaber, contada: null, anterior: null, verificadoEn: null, confirmadaEn: null, actual: debeHaber, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, diferencia: null, estado: "pendiente" };
 }
 
 /** La línea tal como la devuelve `conteo_contar` (jsonb). */
