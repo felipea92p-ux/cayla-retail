@@ -17,6 +17,8 @@ export type CostoAtipico = {
   costoVigente: number | null;
   precio: number | null;
   sku: string | null;
+  /** La prenda a la que se refiere (las recepciones y facturas lo mandan para saber qué línea corregir). */
+  varianteId: string | null;
 };
 
 type ErrorConDetalle = { message?: string | null; details?: string | null } | null | undefined;
@@ -35,17 +37,44 @@ const numeroONulo = (v: unknown): number | null => {
 export function leerCostoAtipico(error: ErrorConDetalle): CostoAtipico | null {
   if (!error || error.message !== "costo_atipico" || !error.details) return null;
   try {
-    const d = JSON.parse(error.details) as Record<string, unknown>;
-    const motivo = MOTIVOS_COSTO_ATIPICO.find((m) => m === d.motivo);
-    const costoUnitario = numeroONulo(d.costo_unitario);
-    if (!motivo || costoUnitario === null) return null;
-    return {
-      motivo,
-      costoUnitario,
-      costoVigente: numeroONulo(d.costo_vigente),
-      precio: numeroONulo(d.precio),
-      sku: typeof d.sku === "string" && d.sku ? d.sku : null,
-    };
+    return leerLinea(JSON.parse(error.details));
+  } catch {
+    return null;
+  }
+}
+
+/** Una línea del JSON de la base, o `null` si le falta el motivo o el costo. */
+function leerLinea(d: unknown): CostoAtipico | null {
+  if (!d || typeof d !== "object") return null;
+  const o = d as Record<string, unknown>;
+  const motivo = MOTIVOS_COSTO_ATIPICO.find((m) => m === o.motivo);
+  const costoUnitario = numeroONulo(o.costo_unitario);
+  if (!motivo || costoUnitario === null) return null;
+  return {
+    motivo,
+    costoUnitario,
+    costoVigente: numeroONulo(o.costo_vigente),
+    precio: numeroONulo(o.precio),
+    sku: typeof o.sku === "string" && o.sku ? o.sku : null,
+    varianteId: typeof o.variante_id === "string" && o.variante_id ? o.variante_id : null,
+  };
+}
+
+/**
+ * Lo mismo para las pantallas con VARIAS líneas (recepción de un lote, factura, envío): la base junta todas las atípicas en
+ * `{"items":[…]}`. Acepta también el formato de una sola línea (Producción), que devuelve como lista de una. Una línea rota se
+ * descarta; si no queda ninguna, `null`. Nunca lanza.
+ */
+export function leerCostosAtipicos(error: ErrorConDetalle): CostoAtipico[] | null {
+  if (!error || error.message !== "costo_atipico" || !error.details) return null;
+  try {
+    const d = JSON.parse(error.details) as { items?: unknown };
+    if (Array.isArray(d?.items)) {
+      const lineas = d.items.map(leerLinea).filter((l): l is CostoAtipico => l !== null);
+      return lineas.length > 0 ? lineas : null;
+    }
+    const una = leerLinea(d);
+    return una ? [una] : null;
   } catch {
     return null;
   }
@@ -60,7 +89,7 @@ export function fraseCostoAtipico(d: CostoAtipico): { titulo: string; detalle: s
   switch (d.motivo) {
     case "sin_costo":
       return {
-        titulo: "Esta orden no tiene costo",
+        titulo: "El costo por prenda es cero",
         detalle: `Cada prenda${prenda} saldría a ${soles(0)}: quedaría sin costo y con un margen de 100 %.`,
       };
     case "mayor_que_precio":

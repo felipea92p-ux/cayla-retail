@@ -7285,6 +7285,7 @@ export type Database = {
       }
       recibir_lote: {
         Args: {
+          p_confirma_costo_atipico?: boolean
           p_items: Json
           p_nota?: string
           p_numero_guia?: string

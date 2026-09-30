@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fraseCostoAtipico, fraseCostosAtipicos, leerCostoAtipico, MOTIVOS_COSTO_ATIPICO, type CostoAtipico } from "./costo-atipico-reglas";
+import { fraseCostoAtipico, fraseCostosAtipicos, leerCostoAtipico, leerCostosAtipicos, MOTIVOS_COSTO_ATIPICO, type CostoAtipico } from "./costo-atipico-reglas";
 import { soles } from "./compras-reglas";
 
 const detalle = (o: Record<string, unknown>) => JSON.stringify(o);
@@ -13,6 +13,7 @@ describe("leerCostoAtipico", () => {
       costoVigente: 32,
       precio: 79.9,
       sku: "BLU-EMMA-NEG-M",
+      varianteId: null,
     });
   });
 
@@ -23,6 +24,7 @@ describe("leerCostoAtipico", () => {
       costoVigente: null,
       precio: 79.9,
       sku: null,
+      varianteId: null,
     });
   });
 
@@ -49,7 +51,7 @@ describe("leerCostoAtipico", () => {
   });
 });
 
-const base: CostoAtipico = { motivo: "sube", costoUnitario: 70, costoVigente: 32, precio: 79.9, sku: "BLU-EMMA-NEG-M" };
+const base: CostoAtipico = { motivo: "sube", costoUnitario: 70, costoVigente: 32, precio: 79.9, sku: "BLU-EMMA-NEG-M", varianteId: null };
 
 describe("fraseCostoAtipico", () => {
   it("sube: dice cuánto saldría cada prenda y cuántas veces su costo actual", () => {
@@ -70,7 +72,7 @@ describe("fraseCostoAtipico", () => {
 
   it("sin costo: avisa del margen de 100 %", () => {
     const f = fraseCostoAtipico({ ...base, motivo: "sin_costo", costoUnitario: 0, costoVigente: null });
-    expect(f.titulo).toBe("Esta orden no tiene costo");
+    expect(f.titulo).toBe("El costo por prenda es cero");
     expect(f.detalle).toContain("margen de 100 %");
   });
 
@@ -82,11 +84,11 @@ describe("fraseCostoAtipico", () => {
   });
 
   it("sin costo vigente ni talla no se rompe ni inventa cifras", () => {
-    const sube = fraseCostoAtipico({ motivo: "sube", costoUnitario: 70, costoVigente: null, precio: null, sku: null });
+    const sube = fraseCostoAtipico({ motivo: "sube", costoUnitario: 70, costoVigente: null, precio: null, sku: null, varianteId: null });
     expect(sube.detalle).toBe(`Cada prenda saldría a ${soles(70)}, más del doble de su costo actual.`);
-    const baja = fraseCostoAtipico({ motivo: "baja", costoUnitario: 5, costoVigente: 0, precio: null, sku: null });
+    const baja = fraseCostoAtipico({ motivo: "baja", costoUnitario: 5, costoVigente: 0, precio: null, sku: null, varianteId: null });
     expect(baja.detalle).toBe(`Cada prenda saldría a ${soles(5)}, menos de dos tercios de su costo actual.`);
-    const pierde = fraseCostoAtipico({ motivo: "mayor_que_precio", costoUnitario: 85, costoVigente: null, precio: null, sku: null });
+    const pierde = fraseCostoAtipico({ motivo: "mayor_que_precio", costoUnitario: 85, costoVigente: null, precio: null, sku: null, varianteId: null });
     expect(pierde.detalle).toBe(`Cada prenda saldría a ${soles(85)}: se vendería con pérdida.`);
   });
 
@@ -103,11 +105,49 @@ describe("fraseCostosAtipicos", () => {
   });
 
   it("con varias, un título con la cuenta y un detalle por línea, cada uno con su prenda", () => {
-    const otra: CostoAtipico = { motivo: "baja", costoUnitario: 5, costoVigente: 40, precio: 99, sku: "BLU-EMMA-NEG-S" };
+    const otra: CostoAtipico = { motivo: "baja", costoUnitario: 5, costoVigente: 40, precio: 99, sku: "BLU-EMMA-NEG-S", varianteId: null };
     const f = fraseCostosAtipicos([base, otra]);
     expect(f.titulo).toBe("2 líneas tienen un costo fuera de lo normal");
     expect(f.detalles).toHaveLength(2);
     expect(f.detalles[0]).toContain("BLU-EMMA-NEG-M");
     expect(f.detalles[1]).toContain("BLU-EMMA-NEG-S");
+  });
+});
+
+describe("leerCostosAtipicos", () => {
+  const items = (lista: Record<string, unknown>[]) => ({ message: "costo_atipico", details: JSON.stringify({ items: lista }) });
+
+  it("lee todas las líneas atípicas de una recepción, en orden, con la prenda de cada una", () => {
+    const r = leerCostosAtipicos(
+      items([
+        { variante_id: "v-1", sku: "BLU-EMMA-NEG-M", motivo: "sube", costo_unitario: 70, costo_vigente: 32, precio: 79.9 },
+        { variante_id: "v-2", sku: "BLU-EMMA-NEG-S", motivo: "baja", costo_unitario: "15.00", costo_vigente: "32.00", precio: "79.90" },
+      ]),
+    );
+    expect(r?.map((l) => [l.varianteId, l.sku, l.motivo, l.costoUnitario])).toEqual([
+      ["v-1", "BLU-EMMA-NEG-M", "sube", 70],
+      ["v-2", "BLU-EMMA-NEG-S", "baja", 15],
+    ]);
+  });
+
+  it("acepta también el formato de una sola línea (Producción) como una lista de una", () => {
+    const r = leerCostosAtipicos({ message: "costo_atipico", details: JSON.stringify({ motivo: "sube", costo_unitario: 70, sku: "X" }) });
+    expect(r).toHaveLength(1);
+    expect(r?.[0].sku).toBe("X");
+  });
+
+  it("descarta la línea rota y conserva las buenas; si no queda ninguna, null", () => {
+    const r = leerCostosAtipicos(items([{ motivo: "sube" }, { motivo: "baja", costo_unitario: 5 }, null as unknown as Record<string, unknown>, { motivo: "otro", costo_unitario: 1 }]));
+    expect(r?.map((l) => l.motivo)).toEqual(["baja"]);
+    expect(leerCostosAtipicos(items([{ motivo: "sube" }]))).toBeNull();
+    expect(leerCostosAtipicos(items([]))).toBeNull();
+  });
+
+  it("sin líder, otro error, sin detalle o JSON roto: null y nunca lanza", () => {
+    expect(leerCostosAtipicos({ message: "costo_atipico_sin_lider", details: null })).toBeNull();
+    expect(leerCostosAtipicos({ message: "otra cosa", details: "{}" })).toBeNull();
+    expect(leerCostosAtipicos({ message: "costo_atipico", details: null })).toBeNull();
+    expect(leerCostosAtipicos({ message: "costo_atipico", details: "{roto" })).toBeNull();
+    expect(leerCostosAtipicos(null)).toBeNull();
   });
 });

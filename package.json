@@ -130,6 +130,7 @@
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",
     "pruebas:costo-fuera-de-banda": "node scripts/pruebas/costo_fuera_de_banda.mjs",
     "pruebas:produccion-costo-atipico": "node scripts/pruebas/produccion_costo_atipico.mjs",
+    "pruebas:lote-costo-atipico": "node scripts/pruebas/lote_costo_atipico.mjs",
     "pruebas:corregir-variantes": "node scripts/pruebas/corregir_variantes.mjs",
     "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",

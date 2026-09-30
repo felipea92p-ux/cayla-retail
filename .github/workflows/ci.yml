@@ -1085,6 +1085,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:produccion-costo-atipico
 
+      # Recibir un lote sin factura pide confirmación si el costo de una línea es atípico (20260930122000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con TODAS las líneas raras en `detail.items` (las normales no) y no se escribe nada (sin lote,
+      # sin movimientos, sin historial); el rechazo no consume el token (el reintento con la confirmación es un solo lote); con la
+      # confirmación entra al promedio ponderado exacto y el lote deja constancia SIN montos; un integrante recibe
+      # `costo_atipico_sin_lider` sin cifras y no puede forzarlo por la API; sin costo y costo 0 (obsequio) no se juzgan; una sola función; `anon` no la
+      # ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:lote-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:lote-costo-atipico
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en

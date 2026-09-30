@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
+import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 import { CampoSelect, Desplegable } from "@/components/ui/campos";
@@ -21,6 +23,12 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 // `ordenes_compra` y `producciones_pendientes`, ninguno con equivalente V2
 // todavía. Mismo patrón de escritura que `RegistrarVentaModal.tsx`: RPC
 // directa desde el cliente + `traducirError()`, sin backend propio.
+//
+// Costo atípico (20260930122000, Felipe 2026-09-30): el costo de una línea es opcional y lo teclea quien recibe. Si alguno sale
+// fuera de lo normal, la base NO recibe nada y contesta `costo_atipico` con TODAS las líneas raras. Al líder se le muestra
+// aquí, en línea, con dos salidas (corregir los costos o confirmarlos), y confirmar reenvía el MISMO intento (mismo token: el
+// rechazo no guardó nada) con `p_confirma_costo_atipico`. A quien no es líder la base le dice, sin cifras, que un líder debe
+// confirmarlo; su salida es recibir esa línea sin costo. La regla vive en la base; esta pantalla no la repite.
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
 
@@ -42,6 +50,9 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
+  // Las líneas cuyo costo la base marcó como atípico (solo las ve el líder); mientras haya algo, la pregunta está abierta.
+  const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
+  const formulario = useRef<HTMLFormElement>(null);
   // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0210).
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
   const colaOffline = useColaRecibir();
@@ -53,19 +64,40 @@ export function RecepcionFormV2({
   const token = useRef<string>(crypto.randomUUID());
 
   function agregarLinea() {
+    setAtipicos(null);
     setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   }
 
   function quitarLinea(i: number) {
+    setAtipicos(null);
     setLineas((actual) => actual.filter((_, n) => n !== i));
   }
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
+    // Cambiar cualquier línea borra la pregunta: lo que se le mostró ya no es lo que se va a recibir.
+    setAtipicos(null);
     setLineas((actual) => actual.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
+  }
+
+  // La primera línea con costo cuya prenda la base marcó como atípica (o, sin saber cuál, la primera con costo).
+  function lineaDelCostoAtipico(marcadas: CostoAtipico[] | null): number {
+    const conCosto = lineas.map((l, i) => ({ l, i })).filter(({ l }) => l.costoUnitario);
+    const marcada = marcadas ? conCosto.find(({ l }) => marcadas.some((a) => a.varianteId === l.varianteId)) : undefined;
+    return (marcada ?? conCosto[0])?.i ?? 0;
+  }
+
+  function corregirCostos() {
+    const i = lineaDelCostoAtipico(atipicos);
+    setAtipicos(null);
+    formulario.current?.querySelector<HTMLInputElement>(`[data-campo="recepcion-costo-${i}"]`)?.focus();
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await enviar(false);
+  }
+
+  async function enviar(confirmaCostoAtipico: boolean) {
     const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
     if (validas.length === 0) {
       avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "recepcion-linea-0" });
@@ -92,6 +124,9 @@ export function RecepcionFormV2({
       })),
       p_numero_guia: numeroGuia || undefined,
       p_token: token.current,
+      // Solo en el reintento tras `costo_atipico`: el primer intento no manda el parámetro, así la pantalla nueva funciona
+      // igual contra una base que todavía no lo conoce.
+      ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}),
     };
     const firma = responsable.firma();
     const { data: loteId, error, status } = await firmar(supabase.rpc("recibir_lote", params), firma);
@@ -119,9 +154,22 @@ export function RecepcionFormV2({
     }
     responsable.despues(error);
     if (error) {
+      const marcadas = leerCostosAtipicos(error);
+      if (marcadas) {
+        setAtipicos(marcadas);
+        return;
+      }
+      if (error.message === "costo_atipico_sin_lider") {
+        avisar.error(
+          "El costo que escribiste está fuera de lo normal y solo un líder puede confirmarlo. Bórralo (el costo es opcional) y recibe el lote sin costo, o pídele a un líder que lo confirme.",
+          { enfocar: `recepcion-linea-${lineaDelCostoAtipico(null)}` },
+        );
+        return;
+      }
       avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
+    setAtipicos(null);
     token.current = crypto.randomUUID();
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
     setOk({ unidades, loteId: loteId ?? null });
@@ -160,7 +208,7 @@ export function RecepcionFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form ref={formulario} onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSelect
           etiqueta="Proveedor"
@@ -210,6 +258,7 @@ export function RecepcionFormV2({
               step="0.10"
               placeholder="Costo (opc.)"
               aria-label="Costo unitario"
+              data-campo={`recepcion-costo-${i}`}
               value={l.costoUnitario}
               onChange={(e) => {
                 const v = e.target.value;
@@ -234,9 +283,23 @@ export function RecepcionFormV2({
 
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button type="submit" disabled={loading} className={botonPrimario}>
-        {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
-      </button>
+      {atipicos ? (
+        <AvisoCostoAtipico
+          costos={atipicos}
+          pie="Revisa los costos que escribiste. Si son correctos, confírmalos: entran al costo de esas prendas en todas las sedes."
+          textoCorregir="Corregir los costos"
+          textoConfirmar="Sí, son correctos — recibir con estos costos"
+          cargando={loading}
+          listo={responsable.listo}
+          motivoNoListo={responsable.motivo}
+          onCorregir={corregirCostos}
+          onConfirmar={() => enviar(true)}
+        />
+      ) : (
+        <button type="submit" disabled={loading} className={botonPrimario}>
+          {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
+        </button>
+      )}
     </form>
   );
 }
