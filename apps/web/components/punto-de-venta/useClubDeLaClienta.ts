@@ -16,6 +16,9 @@ export type ClubDeLaClienta = {
    *  porque la caja se desmonta al pasar a cobrar y, en el celular, al cerrar la hoja del ticket. */
   abierta: boolean;
   alternarAbierta: () => void;
+  /** Vuelve a leer su resumen: la cara de su QR vio llegar la publicidad (camino B, ADR-0288 act. c) o se registró «Llegó
+   *  su mensaje». El chip pasa a «Publicidad» y el ticket impreso deja de llevar su QR. */
+  recargar: () => void;
 };
 
 /**
@@ -30,6 +33,7 @@ export function useClubDeLaClienta(clientaId: string | null, activo: boolean): C
   const [leido, setLeido] = useState<{ clientaId: string; resumen: ResumenClientaCaja | null } | null>(null);
   const [calladaPara, setCalladaPara] = useState<string | null>(null);
   const [abiertaPara, setAbiertaPara] = useState<string | null>(null);
+  const [vuelta, setVuelta] = useState(0);
 
   // Sin clienta en el ticket es una venta nueva (se cobró, se vació, quedó en espera): «Ahora no» se olvida (CL-8). Otra
   // clienta, o ninguna, vuelve a plegar lo del club (spike: nace plegado en cada venta). Se ajusta durante el render, no en
@@ -44,18 +48,22 @@ export function useClubDeLaClienta(clientaId: string | null, activo: boolean): C
   useEffect(() => {
     if (!clientaId || !activo) return;
     let vigente = true;
-    // Se vuelve a leer cada vez que la clienta entra al ticket: pudo unirse en otra caja o en su ficha.
+    // Una relectura que falla no borra lo que ya se sabía de ELLA: la caja no se vacía (ni se cierra su QR) por un corte de
+    // conexión justo después de que confirmó. Con otra clienta, un fallo deja la caja como antes del club (principio 9).
+    const guardar = (resumen: ResumenClientaCaja | null) =>
+      setLeido((l) => (!resumen && l?.clientaId === clientaId && l.resumen ? l : { clientaId, resumen }));
+    // Se vuelve a leer cada vez que la clienta entra al ticket (pudo unirse en otra caja o en su ficha) y con `recargar`.
     resumenClientaCaja(clientaId)
       .then(({ resumen, error }) => {
-        if (vigente) setLeido({ clientaId, resumen: error ? null : resumen });
+        if (vigente) guardar(error ? null : resumen);
       })
       .catch(() => {
-        if (vigente) setLeido({ clientaId, resumen: null });
+        if (vigente) guardar(null);
       });
     return () => {
       vigente = false;
     };
-  }, [clientaId, activo]);
+  }, [clientaId, activo, vuelta]);
 
   const lectura: LecturaClub =
     !clientaId || !activo
@@ -72,6 +80,7 @@ export function useClubDeLaClienta(clientaId: string | null, activo: boolean): C
     callarEnEstaVenta: () => setCalladaPara(clientaId),
     abierta: clientaId !== null && abiertaPara === clientaId,
     alternarAbierta: () => setAbiertaPara((a) => (a === clientaId ? null : clientaId)),
+    recargar: () => setVuelta((n) => n + 1),
     unida: (d) =>
       setLeido((l) =>
         l && l.clientaId === clientaId && l.resumen

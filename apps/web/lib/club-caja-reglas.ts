@@ -1,6 +1,7 @@
 // El club en la CAJA (ADR-0288, tanda 1b): qué muestra la caja de la clienta en Cobrar, qué piden «Registrar clienta» e
-// «Invitar», y qué QR sale en el ticket impreso. Lógica pura, sin React ni red: la usan la página de Vender (servidor),
-// `PuntoDeVenta`, `ClientaDelTicket`, `InvitarAlClub` y `CamposDelClub`.
+// «Invitar», qué dice la cara de su QR y qué QR sale en el ticket impreso. Lógica pura, sin React ni red: la usan la página
+// de Vender (servidor), `PuntoDeVenta`, `ClientaDelTicket`, `InvitarAlClub` y la cara del QR que comparten Cobrar y la ficha
+// de /clientas (`components/clientas/CaraDelQrClub.tsx`). El cumpleaños tiene su propia regla: `lib/club-cumple-reglas.ts`.
 //
 // El dibujo sigue el spike visual del club (rama `claude/spyke-club-clientas-visual-631f7a`,
 // `docs/maquetas/club-clientas-spike-2026-09/fuente/src/45-club-caja.js` y `47-club-qr.js`): lo del club va DENTRO de la
@@ -9,12 +10,13 @@
 // CONTRATO
 //   PROMETE: decir qué se ofrece en caja según lo que la base contestó (`resumen_clienta_caja`, `fn_club_textos_vigentes`,
 //            `ubicaciones.whatsapp_numero`), validar lo que la asesora escribe al registrarla o invitarla (y la guía de foco
-//            de esas dos hojas, que sale de la MISMA validación), y armar el QR del ticket.
+//            de esas hojas, que sale de la MISMA validación), decir qué muestra la cara del QR en cada momento (camino B, con
+//            el camino A de respaldo) y armar el QR del ticket.
 //   ASUME:   quien decide si alguien PUEDE ser socia es la base (`unirse_al_club`: celular, documento y nombre, texto `club`
 //            vigente, ficha activa). Esto solo evita ofrecer lo que la base rechazaría y dice por qué.
-//   NO HACE: no registra la publicidad. Ese permiso solo nace cuando ELLA escribe desde el QR (D-4, Ley 32323), y lo marca
-//            la tienda en /clientas («Llegó su mensaje»). Tampoco el camino B del spike (página pública con casilla): el ADR
-//            no lo admite.
+//   NO HACE: no registra la publicidad. Ese permiso solo nace de un acto de ELLA (D-4, Ley 32323): marcar la casilla en la
+//            página de CAYLA que abre su QR (camino B, ADR-0288 act. c; lo registra `confirmar_invitacion_club`) o escribirle
+//            a la tienda (camino A, «Llegó su mensaje», de respaldo). El ticket impreso sigue con el QR del camino A.
 
 import {
   ajustarCelular,
@@ -26,7 +28,9 @@ import {
   type TextoClub,
   type TipoTextoClub,
 } from "./club-reglas";
+import { enlacePaginaClub } from "./club-reglas";
 import type { ResumenClientaCaja } from "./club-acciones";
+import { CUMPLE_VACIO, MESES_DEL_ANIO, cumpleCompleto, cumpleVacio, problemaCumple, type CumpleEscrito } from "./club-cumple-reglas";
 import { lineaDeClienta, type ClientaDelTicket } from "./clienta-ticket-reglas";
 import { normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -70,11 +74,13 @@ export type LecturaClub =
 
 /**
  * La publicidad de una socia, como la dice su chip (spike, `chipPub`):
- *   · `activa`: ya escribió desde el QR — «Publicidad», en verde;
- *   · `qr`: todavía no, y la tienda tiene su QR — «Sin publicidad · QR», tocable: abre su QR para que lo escanee ahora;
- *   · `sin_qr`: todavía no, y no hay QR (la tienda sin su WhatsApp cargado, o sin mensaje vigente) — «Sin publicidad», quieto.
+ *   · `activa`: ya la pidió — «Publicidad», en verde;
+ *   · `qr`: todavía no — «Sin publicidad · QR», tocable: abre su QR para que lo escanee ahora. Con el camino B (ADR-0288
+ *     act. c) su QR es la página de CAYLA y no depende del WhatsApp de la tienda: siempre hay algo que mostrarle (si la
+ *     página no se puede preparar, el QR del WhatsApp de la tienda; si tampoco hay, la hoja lo dice y queda «Llegó su
+ *     mensaje»).
  */
-export type PublicidadEnCaja = "activa" | "qr" | "sin_qr";
+export type PublicidadEnCaja = "activa" | "qr";
 
 /** Qué le falta a una clienta para que «Invitar» termine bien en caja. */
 export type FaltaParaInvitar =
@@ -112,7 +118,7 @@ export function cajaDelClub(v: {
   const r = v.lectura.resumen;
   if (r.esSocia) {
     const codigo = codigoClubLegible(r.codigoClub);
-    const publicidad: PublicidadEnCaja = r.conPublicidad ? "activa" : codigo && qrDeLaSocia(v.club, codigo).tipo === "qr" ? "qr" : "sin_qr";
+    const publicidad: PublicidadEnCaja = r.conPublicidad ? "activa" : "qr";
     return { tipo: "socia", codigo, publicidad, cumple: textoCumple(r.cumpleDia, r.cumpleMes) };
   }
   if (!v.puedeInvitar || !textoVigente(v.club.textos, "club")) return { tipo: "identificada", invitar: null };
@@ -174,84 +180,12 @@ export function destinoDelQr(club: ClubDeLaCaja): string | null {
   return club.whatsappTienda ? `wa.me/51${club.whatsappTienda}` : null;
 }
 
-/* ------------------------------------------------------------------ El cumpleaños */
-
-export const MESES_DEL_ANIO = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Setiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-] as const;
-
-/**
- * El combo del mes (la forma de `Opcion` de `components/ui/campos`). Abreviado como el spike (`MESES`): día, mes y año van
- * en tres cajas iguales y a 375 px cada una mide ~100 px; «Setiembre» entero no cabría en la del medio.
- */
-export const OPCIONES_MES_CUMPLE = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"].map((texto, i) => ({
-  valor: String(i + 1),
-  texto,
-}));
-
-/** El cumpleaños tal como está en la hoja: textos, vacíos si no se eligió. */
-export type CumpleEscrito = { dia: string; mes: string; anio: string };
-export const CUMPLE_VACIO: CumpleEscrito = { dia: "", mes: "", anio: "" };
-
-/** Lo que queda en la caja del día al tipear: solo dígitos, hasta 2. */
-export const ajustarDia = (texto: string) => texto.replace(/\D/g, "").slice(0, 2);
-/** Lo que queda en la caja del año al tipear: solo dígitos, hasta 4. */
-export const ajustarAnio = (texto: string) => texto.replace(/\D/g, "").slice(0, 4);
-
-/** No escribió nada del cumpleaños (ni día, ni mes, ni año). */
-export const cumpleVacio = (c: CumpleEscrito) => c.dia.trim() === "" && c.mes.trim() === "" && c.anio.trim() === "";
+/* ------------------------------------------------------------------ El cumpleaños (la regla: lib/club-cumple-reglas.ts) */
 
 /** El que ya tenía la ficha (el año no viaja en el resumen: si lo tenía, la base lo conserva al unirse sin él). */
 export function cumpleDelResumen(resumen: Pick<ResumenClientaCaja, "cumpleDia" | "cumpleMes"> | null): CumpleEscrito {
   if (!resumen?.cumpleDia || !resumen.cumpleMes) return CUMPLE_VACIO;
   return { dia: String(resumen.cumpleDia), mes: String(resumen.cumpleMes), anio: "" };
-}
-
-const DIAS_DEL_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const esBisiesto = (a: number) => (a % 4 === 0 && a % 100 !== 0) || a % 400 === 0;
-/** Nadie del club nació hace más de esto: un año más viejo es un error de tipeo. */
-const EDAD_MAXIMA = 110;
-
-/**
- * Por qué el cumpleaños escrito no sirve, o null. Vacío sirve: no es obligatorio para entrar al club, aunque sin él no hay
- * beneficio de cumpleaños (CL-3). Día y mes van juntos; el año es opcional y solo con ellos.
- */
-export function problemaCumple(c: CumpleEscrito, anioActual: number): string | null {
-  const dia = c.dia.trim();
-  const mes = c.mes.trim();
-  const anio = c.anio.trim();
-  if (!dia && !mes) return anio ? "Con el año, elige también el día y el mes." : null;
-  if (!dia) return "Falta el día de su cumpleaños.";
-  if (!mes) return "Falta el mes de su cumpleaños.";
-  const d = Number(dia);
-  const m = Number(mes);
-  if (!Number.isInteger(m) || m < 1 || m > 12) return "Elige el mes de la lista.";
-  if (!Number.isInteger(d) || d < 1 || d > DIAS_DEL_MES[m - 1]!) return `${MESES_DEL_ANIO[m - 1]} no tiene día ${dia}.`;
-  if (!anio) return null;
-  if (!/^[0-9]{4}$/.test(anio)) return "El año va con sus 4 cifras (o déjalo vacío).";
-  const a = Number(anio);
-  if (a > anioActual || a < anioActual - EDAD_MAXIMA) return `El año ${anio} no puede ser el de su nacimiento.`;
-  if (m === 2 && d === 29 && !esBisiesto(a)) return `En ${anio} febrero tuvo 28 días.`;
-  return null;
-}
-
-/** Lo que viaja a `unirse_al_club`, una vez que `problemaCumple` dio null. */
-export function cumpleParaGuardar(c: CumpleEscrito): { cumpleDia: number | null; cumpleMes: number | null; cumpleAnio: number | null } {
-  const n = (t: string) => (t.trim() === "" ? null : Number(t.trim()));
-  const dia = n(c.dia);
-  const mes = n(c.mes);
-  return { cumpleDia: dia, cumpleMes: mes, cumpleAnio: dia !== null && mes !== null ? n(c.anio) : null };
 }
 
 /* ------------------------------------------------------------------ La guía de foco de las dos hojas */
@@ -278,7 +212,7 @@ export type HojaInvitar = {
 export function camposDeInvitar(h: HojaInvitar, anioActual: number): CampoDeGuia[] {
   const pCelular = problemaCelular(h.celular);
   const pCumple = problemaCumple(h.cumple, anioActual);
-  const completo = h.cumple.dia.trim() !== "" && h.cumple.mes.trim() !== "" && pCumple === null;
+  const completo = cumpleCompleto(h.cumple, anioActual);
   return [
     { id: "celular", nombre: "Celular", requerido: true, hecho: pCelular === null, pendiente: pCelular ?? "" },
     {
@@ -343,16 +277,19 @@ export function camposDeRegistrar(h: HojaRegistrar, anioActual: number): CampoDe
       nombre: "Cumpleaños",
       requerido: pCumple !== null,
       sugerido: true,
-      hecho: h.cumple.dia.trim() !== "" && h.cumple.mes.trim() !== "" && pCumple === null,
+      hecho: cumpleCompleto(h.cumple, anioActual),
       pendiente: pCumple ?? "Sin él no hay beneficio de cumpleaños.",
     },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién registra." },
   ];
 }
 
-/* ------------------------------------------------------------------ El QR */
+/* ------------------------------------------------------------------ El QR del camino A */
 
-/** El QR que la hoja muestra al terminar: el mensaje personal con su código, al WhatsApp de la tienda. */
+/**
+ * El QR del camino A: el WhatsApp de la tienda con su mensaje personal y su código. Es el del ticket impreso y, en la hoja,
+ * el RESPALDO del camino B (sale cuando la página de CAYLA no se pudo preparar).
+ */
 export type QrDeLaSocia =
   | { tipo: "qr"; enlace: string }
   /** La tienda no tiene su número cargado (Configuración ▸ Tiendas y caja): es socia igual, pero sin QR. */
@@ -366,6 +303,152 @@ export function qrDeLaSocia(club: ClubDeLaCaja, codigoClub: string): QrDeLaSocia
   if (!plantilla) return { tipo: "sin_mensaje" };
   const enlace = enlaceQrClub(club.whatsappTienda, mensajePersonal(plantilla.texto, codigoClub));
   return enlace ? { tipo: "qr", enlace } : { tipo: "sin_numero" };
+}
+
+/* ------------------------------------------------------------------ La cara del QR: camino B (ADR-0288, act. c) */
+//
+// «Mostrar su QR» (Cobrar y la ficha de /clientas) crea una invitación de un solo uso (`crear_invitacion_club`, con la firma
+// del responsable) y dibuja el QR de la página pública `/club/{token}`: ella marca la casilla en SU celular y la hoja se
+// entera sola, preguntando `resumen_clienta_caja` cada 3 s mientras está a la vista. Si la invitación no se puede crear (sin
+// conexión, la base sin la función, cualquier error), sale el QR del camino A: nunca se queda sin salida (principio 9).
+// Dibujo: spike del club, `47-club-qr.js` (`modalQR`), sin el punto que late (regla de movimiento, ADR-0136).
+
+/** Cada cuánto se le pregunta a la base si ya confirmó. */
+export const CONSULTA_QR_CADA_MS = 3_000;
+/** Hasta cuándo: después queda «¿Ya lo hizo? Actualizar» (una hoja olvidada abierta no pregunta toda la tarde). */
+export const CONSULTA_QR_HASTA_MS = 10 * 60_000;
+
+/** La invitación de la página, tal como va. `detalle`: por qué falló, en castellano, o null si fue la conexión. */
+export type InvitacionDelQr = { estado: "sin_pedir" } | { estado: "lista"; token: string } | { estado: "fallo"; detalle: string | null };
+
+/** Cómo llegó su publicidad, para decirlo en «Listo». */
+export type ComoLlegoLaPublicidad =
+  /** La hoja la vio llegar sola: ella marcó la casilla en la página (o alguien la registró en otra caja). */
+  | "pagina"
+  /** «Llegó su mensaje (respaldo)»: ella le escribió a la tienda. */
+  | "mensaje"
+  /** La base ya la tenía (`ya_tiene_publicidad` al crear la invitación). */
+  | "ya_tenia";
+
+/**
+ * Si la hoja sigue preguntando:
+ *   · `esperando`: sí, cada 3 s;
+ *   · `pausada`: la pestaña está oculta (nadie la mira): deja de preguntar y sigue sola al volver;
+ *   · `vencida`: pasaron 10 minutos desde que empezó a esperar: deja de preguntar y ofrece «Actualizar».
+ */
+export type EsperaDelQr = "esperando" | "pausada" | "vencida";
+
+export function esperaDelQr(v: { visible: boolean; desdeMs: number; ahoraMs: number }): EsperaDelQr {
+  if (v.ahoraMs - v.desdeMs >= CONSULTA_QR_HASTA_MS) return "vencida";
+  return v.visible ? "esperando" : "pausada";
+}
+
+export type CaraDelQr =
+  /** Sin responsable no se crea la invitación (la base exige quién): la hoja lo pide antes que nada. */
+  | { tipo: "pide_responsable"; pendiente: string }
+  /** Pidiendo la invitación a la base. */
+  | { tipo: "preparando" }
+  /** Camino B: el QR de su página. `consultar`: la hoja pregunta sola. `pie`: la nota de abajo (`pieDelQr`). */
+  | { tipo: "pagina"; enlace: string; destino: string; espera: EsperaDelQr; consultar: boolean; pie: string }
+  /** Camino A de respaldo: la página no se pudo preparar. `enlace` null: tampoco hay QR de WhatsApp (`como` dice por qué). */
+  | { tipo: "respaldo"; enlace: string | null; destino: string | null; aviso: string; detalle: string | null; como: string; pie: string }
+  /** Ya recibe novedades. */
+  | { tipo: "listo"; etiqueta: string; titulo: string; detalle: string };
+
+/** «cayla.pe/club/…»: la dirección de la página sin el protocolo, para que la asesora vea adónde lleva (spike, `URL_CLUB`). */
+export function destinoDePagina(enlace: string): string {
+  return enlace.replace(/^https?:\/\//, "");
+}
+
+/** ¿Hay que pedirle la invitación a la base ahora? Solo una vez, con alguien que firme y si todavía no tiene publicidad. */
+export function debePedirInvitacion(v: { invitacion: InvitacionDelQr; publicidad: ComoLlegoLaPublicidad | null; responsableListo: boolean }): boolean {
+  return v.invitacion.estado === "sin_pedir" && v.publicidad === null && v.responsableListo;
+}
+
+const SI_TE_ESCRIBE = "Si te escribe por WhatsApp por su cuenta, toca «Llegó su mensaje». Es socia igual.";
+
+/**
+ * La nota de abajo de la cara (spike: «El mismo QR sale impreso en su ticket…»). El ticket sigue con el QR del camino A, así
+ * que solo se promete si de verdad sale: con el WhatsApp de la tienda, su mensaje y su código (lo mismo que `clubEnElTicket`).
+ */
+export function pieDelQr(club: ClubDeLaCaja, codigo: string | null): string {
+  const sinQr = "Sin QR no pasa nada: sigue siendo del club, solo que sin publicidad.";
+  return codigo && qrDeLaSocia(club, codigo).tipo === "qr" ? `En su ticket también sale un QR: puede hacerlo en casa. ${sinQr}` : sinQr;
+}
+
+/**
+ * Qué muestra la cara del QR (spike, `modalQR`). Manda, en este orden: que ya tenga la publicidad; la invitación (lista →
+ * su página; falló → el camino A); y, sin pedirla todavía, que haya quién la firme.
+ * `origen`: el del navegador (`window.location.origin`): la página vive en el mismo dominio que el ERP.
+ */
+export function caraDelQr(v: {
+  nombre: string;
+  codigo: string | null;
+  club: ClubDeLaCaja;
+  origen: string;
+  invitacion: InvitacionDelQr;
+  publicidad: ComoLlegoLaPublicidad | null;
+  responsableListo: boolean;
+  responsableMotivo: string | null;
+  espera: EsperaDelQr;
+}): CaraDelQr {
+  if (v.publicidad === "ya_tenia") {
+    return { tipo: "listo", etiqueta: "Ya estaba", titulo: "Ya recibe novedades", detalle: `${v.nombre} ya las había pedido: no hace falta su QR.` };
+  }
+  if (v.publicidad) {
+    return {
+      tipo: "listo",
+      etiqueta: v.publicidad === "pagina" ? "Confirmó" : "Registrado",
+      titulo: `Listo: ${v.nombre} recibe novedades por WhatsApp`,
+      detalle:
+        v.publicidad === "pagina"
+          ? "Lo confirmó ella, en su celular: queda en su historia con la hora y el texto que vio. Se da de baja escribiendo BAJA a la tienda."
+          : "Con su mensaje a la tienda: el chat es la prueba. Se da de baja escribiendo BAJA a la tienda.",
+    };
+  }
+  const inv = v.invitacion;
+  if (inv.estado === "lista") {
+    const enlace = enlacePaginaClub(v.origen, inv.token);
+    return { tipo: "pagina", enlace, destino: destinoDePagina(enlace), espera: v.espera, consultar: v.espera === "esperando", pie: pieDelQr(v.club, v.codigo) };
+  }
+  if (inv.estado === "fallo") {
+    const qr: QrDeLaSocia | null = v.codigo ? qrDeLaSocia(v.club, v.codigo) : null;
+    const base = { tipo: "respaldo" as const, aviso: "No se pudo preparar su página de CAYLA.", detalle: inv.detalle, pie: pieDelQr(v.club, v.codigo) };
+    if (qr?.tipo === "qr") {
+      return {
+        ...base,
+        enlace: qr.enlace,
+        destino: destinoDelQr(v.club),
+        como: "Si no se abre la página, que te escriba por WhatsApp: este QR abre el chat de la tienda con su mensaje y su código. Cuando llegue, toca «Llegó su mensaje».",
+      };
+    }
+    const porQue = !qr
+      ? "Sin su código de socia tampoco se arma el QR del WhatsApp de la tienda."
+      : qr.tipo === "sin_numero"
+        ? "La tienda tampoco tiene su WhatsApp cargado (Configuración ▸ Tiendas y caja): hoy no hay QR."
+        : "Tampoco hay mensaje del club para el QR del WhatsApp de la tienda: hoy no hay QR.";
+    return { ...base, enlace: null, destino: null, como: `${porQue} ${SI_TE_ESCRIBE}` };
+  }
+  if (!v.responsableListo) return { tipo: "pide_responsable", pendiente: v.responsableMotivo ?? "Elige quién le muestra el QR." };
+  return { tipo: "preparando" };
+}
+
+/**
+ * «Llegó su mensaje (respaldo)» en Cobrar: el número desde el que escribió (viene con el de su ficha) y quién lo registra.
+ * Es la MISMA regla que apaga «Registrar su permiso» (la base vuelve a exigir el celular, `celular_invalido`).
+ */
+export function camposDeLlegoSuMensaje(h: { numero: string; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
+  const p = problemaCelular(h.numero);
+  return [
+    {
+      id: "numero",
+      nombre: "Número que escribió",
+      requerido: true,
+      hecho: p === null,
+      pendiente: h.numero.trim() === "" ? "El número desde el que le escribió a la tienda." : (p ?? ""),
+    },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién registra." },
+  ];
 }
 
 /** Lo que el ticket impreso lleva al pie para el club. */

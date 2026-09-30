@@ -711,8 +711,23 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
   (nunca guardadas). Reglas puras en `lib/clientas-reglas.ts`, mismo criterio de
-  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`. El
-  paso 1 del acta (Caja liga la venta a la ficha) sigue sin fusionar.
+  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
+  **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**
+  - la ficha lee `club_desde`, `publicidad_desde` y `codigo_club`;
+  - las acciones viven en `lib/club-acciones.ts`: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»),
+    `registrar_desde_whatsapp` (cartel), `registrar_baja_whatsapp`, `crear_invitacion_club` (camino B) y
+    `fn_club_textos_vigentes`;
+  - «Llegó un mensaje de WhatsApp» → `components/clientas/LlegoMensajeWhatsappModal.tsx`;
+  - cartel imprimible → `/clientas/cartel` (`components/clientas/CartelClub.tsx`);
+  - reglas puras en `lib/club-reglas.ts` y `lib/club-clientas-reglas.ts`.
+- `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
+  confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
+  `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
+- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada) +
+  `InvitarAlClub.tsx` + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader), `unirse_al_club`,
+  `crear_invitacion_club`. La página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero`. El
+  ticket impreso lleva el QR del club (camino A: el WhatsApp de la tienda). Reglas en `lib/club-caja-reglas.ts`.
+- Configuración ▸ Tiendas y caja ▸ «WhatsApp de cada tienda» → RPC `guardar_whatsapp_tienda`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC

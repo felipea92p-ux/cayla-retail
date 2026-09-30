@@ -452,6 +452,12 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Tiendas y caja) no es un celular.
  *   · `socia_sin_documento`: para ser socia hacen falta documento y nombre, además del celular (CL-1).
  *   · `club_texto_cambio`: el texto `club` cambió desde que la asesora lo leyó; el permiso guarda exactamente lo leído.
+ * Camino B (ADR-0288, «Actualización 2026-09-30 (c)»):
+ *   · `ya_tiene_publicidad`: «Mostrar su QR» de una socia que ya recibe novedades (`crear_invitacion_club`). La cara del QR
+ *     no lo muestra como error: pasa a «Ya recibe novedades» y actualiza la caja o la ficha.
+ *   · `celular_con_publicidad`: el celular de una socia con novedades se cambió por un camino que no se las quita (el
+ *     disparador `clientas_celular_con_publicidad`). `editar_clienta` se las quita sola; la ficha lo avisa ANTES de guardar
+ *     (`avisoCambioDeCelular`, lib/club-clientas-reglas.ts).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
@@ -465,6 +471,8 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["whatsapp_tienda_invalido", "El WhatsApp de la tienda tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío."],
   ["socia_sin_documento", "Para unirla al club, su ficha necesita documento y nombre: complétalos primero."],
   ["club_texto_cambio", "El texto del club cambió mientras la invitabas: vuelve a leérselo."],
+  ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
+  ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
 ]);
 
 /**

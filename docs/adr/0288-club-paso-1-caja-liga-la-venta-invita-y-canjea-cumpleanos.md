@@ -545,3 +545,7 @@ reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento v�
   - Debajo, «Llegó su mensaje (respaldo)».
 - **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
   invitación en la base, y ese QR también le sirve desde casa.
+- **Anonimizar y unir (decisión del arquitecto, 2026-09-30):** archivar una ficha (con o sin anonimizar) vence en ese
+  momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
+  ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
+  otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.
