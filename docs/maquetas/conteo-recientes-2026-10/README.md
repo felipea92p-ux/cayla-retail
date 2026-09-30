@@ -1,5 +1,7 @@
 # Conteos recientes por día — maqueta (2026-10-01)
 
+> **Construida** (ADR-0293, rama `claude/conteo-recientes-por-dia`). Decidido por Felipe: hora de **apertura** y entrada en **«Todos»**. Diferencia con la maqueta: la fecha exacta es el `CampoFecha` de siempre (con su etiqueta «Otra fecha» y los días con conteos marcados), no una píldora; «Todos» no lleva cifra (muestra los más recientes, no todos).
+
 **Pedido (Felipe):** en Inventario ▸ Conteo, la tabla «Conteos recientes» agrupada por día como apartados, con la primera columna solo con la hora; y una barra de filtro con botones «Hoy», «Ayer» y un calendario para una fecha exacta.
 
 **Cómo verla:** abrir `index.html` en el navegador (sin servidor). Arriba, «Escritorio / Celular» cambia el ancho; «Reiniciar» vuelve al inicio. «Hoy» en la demo es el miércoles 30 de setiembre de 2026. Los datos son los Conteos 1 a 27 del historial real de TRU; **las horas son inventadas**.
