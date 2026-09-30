@@ -57,28 +57,13 @@ begin
   end if;
 end $$;
 
--- Herramienta temporal (vive en pg_temp, desaparece al cerrar la sesión): reemplaza un texto EXACTO en la definición real de
--- una función, exigiendo `p_veces` ocurrencias. Si ya tiene el texto nuevo, no hace nada (re-ejecución).
-create or replace function pg_temp.reemplazar_vivo(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
-returns void
-language plpgsql
-as $f$
-declare
-  v_def text;
-  v_n integer;
-begin
-  v_def := pg_get_functiondef(p_firma::regprocedure);
-  if position(p_nuevo in v_def) > 0 then
-    return; -- ya aplicada
-  end if;
-  v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
-  if v_n <> p_veces then
-    raise exception '% cambió desde que se escribió esta migración: se esperaban % ocurrencia(s) de «%» y hay %. Alguien la parchó en vivo: regenera el reemplazo desde su definición real y no pegues esto tal cual.',
-      p_firma, p_veces, p_viejo, v_n;
-  end if;
-  execute replace(v_def, p_viejo, p_nuevo);
-end;
-$f$;
+-- `pg_temp.reemplazar_vivo` NO se vuelve a definir aquí: 20260923130000_abrir_modulos_a_los_roles.sql ya la crea con la
+-- misma firma más un `p_opcional` (default false) para las 4 posiciones que esta migración usa — definirla dos veces con
+-- aridad distinta en la misma sesión deja DOS sobrecargas y "function pg_temp.reemplazar_vivo(...) is not unique" (SQLSTATE
+-- 42725, como lo encontró CI en la #641). Esa migración corre antes por orden de fecha (23-sep < 1-oct) en cualquier
+-- contexto ordenado (local, CI, SQL Editor de producción). Con 4 argumentos, `p_opcional` cae en su default `false`: mismo
+-- comportamiento que tenía esta versión (aborta si el texto vivo no coincide, nunca omite en silencio) — el `do $$ ... $$`
+-- de arriba ya comprueba que ambas funciones existen antes de llegar aquí.
 
 -- ==================== 1. La historia de un producto: un renglón más ====================
 select pg_temp.reemplazar_vivo(
