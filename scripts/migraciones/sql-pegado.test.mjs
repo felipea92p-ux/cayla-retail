@@ -55,6 +55,51 @@ test("renombrar una migración sin tocar su contenido (choque de versiones) se p
   assert.equal(revisarSqlPegado([{ ...renombrada, changes: 3 }], "").editadas.length, 1);
 });
 
+// El parche que deja el renombre del 2026-09-30 (20260930050000 → 20260930050100) si se corrige el nombre de la línea 2 y se deja la nota
+// «RENOMBRADA desde …» en la cabecera; el SQL no cambia.
+const renombreConNota = {
+  filename: "supabase/migrations/20260930050100_conteo_ajuste_previo_en_la_nota.sql",
+  previous_filename: "supabase/migrations/20260930050000_conteo_ajuste_previo_en_la_nota.sql",
+  status: "renamed",
+  changes: 6,
+  patch: [
+    "@@ -1,7 +1,11 @@",
+    " -- ============================================================================",
+    "--- 20260930050000_conteo_ajuste_previo_en_la_nota.sql — CAYLA V2 · Inventario > Conteo",
+    "+-- 20260930050100_conteo_ajuste_previo_en_la_nota.sql — CAYLA V2 · Inventario > Conteo",
+    " -- «Al abrir: N» explica también lo que el PROPIO cierre ajustó (2026-09-30)",
+    " -- UNA sola parte (un índice y una función reescrita; sin políticas ni `drop trigger`; idempotente).",
+    "+-- RENOMBRADA el 2026-09-30 desde `20260930050000_conteo_ajuste_previo_en_la_nota.sql`: esa versión la tomó también",
+    "+-- `20260930050000_terminales_pasan_la_puerta_de_lectura.sql` (PR #642, ya pegada en producción como `20260930143821`), y",
+    "+-- dos archivos con la misma versión rompen `supabase start` desde cero (llave duplicada en `schema_migrations`). Esta aún",
+    "+-- no estaba en producción, por eso se movió esta y no la otra. El SQL de abajo es el mismo: solo cambió el nombre.",
+    " --",
+    " -- EL PROBLEMA PRIMERO. Conteo 13: la camisa tenía 1, no se encontró, se contó 0 y el cierre descontó 1 (stock 0).",
+    " -- encuentran, el líder pulsa «Editar conteo» y cuenta 1.",
+  ].join("\n"),
+};
+
+test("renombrar tocando solo la cabecera de comentarios (la nota «RENOMBRADA desde …») se permite", () => {
+  assert.deepEqual(revisarSqlPegado([renombreConNota], "").motivos, []);
+  // Cabecera corta: lo que sigue al último cambio es contexto y puede ser SQL.
+  const corta = "@@ -1,4 +1,5 @@\n--- 20260101000000_x.sql\n+-- 20260101000100_x.sql\n+-- RENOMBRADA desde 20260101000000.\n \n set search_path = retail, public, extensions;";
+  assert.deepEqual(revisarSqlPegado([{ ...renombreConNota, patch: corta }], "").motivos, []);
+});
+
+test("renombrar con cualquier cambio fuera de la cabecera cuenta como edición", () => {
+  const editada = (patch) => revisarSqlPegado([{ ...renombreConNota, patch }], "- [x] SQL pegado en producción").editadas.length;
+  // SQL cambiado, aunque esté en el primer tramo.
+  assert.equal(editada("@@ -1,3 +1,3 @@\n -- cabecera\n-set lock_timeout = '3s';\n+set lock_timeout = '5s';"), 1);
+  // Un comentario agregado DEBAJO de una línea de SQL (podría estar dentro de un cuerpo $$ … $$ y cambiar la función).
+  assert.equal(editada("@@ -1,3 +1,4 @@\n -- cabecera\n set search_path = retail, public, extensions;\n+-- nota nueva\n --"), 1);
+  // Un comentario más abajo en el archivo: el tramo no empieza en la línea 1.
+  assert.equal(editada("@@ -40,3 +40,4 @@\n begin\n+  -- aclaración\n   perform 1;"), 1);
+  // Dos tramos: la cabecera y otro más abajo.
+  assert.equal(editada(`${renombreConNota.patch}\n@@ -80,2 +84,3 @@\n begin\n+-- otra cosa\n end;`), 1);
+  // Sin parche (la API lo omite si el cambio es muy grande): ante la duda, edición.
+  assert.equal(editada(undefined), 1);
+});
+
 test("renombrar un archivo HACIA supabase/migrations es agregar una migración: pide la casilla", () => {
   const entra = { filename: "supabase/migrations/20260929100000_algo.sql", previous_filename: "docs/borradores/algo.sql", status: "renamed", changes: 0 };
   const r = revisarSqlPegado([entra], "");
