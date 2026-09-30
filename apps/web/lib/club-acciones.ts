@@ -21,6 +21,9 @@ export async function unirseAlClub(
     medio: "caja_palabra" | "ficha";
     ubicacionId: string | null;
     ventaId?: string | null;
+    /** La versión del texto `club` que la asesora LEYÓ: si cambió mientras la invitaba, la base rechaza
+     *  (`club_texto_cambio`) para que el permiso guarde exactamente lo que se le leyó. */
+    textoVersion: number | null;
   },
   firma: Firma | null
 ): Promise<ResultadoUnirse> {
@@ -34,6 +37,7 @@ export async function unirseAlClub(
       p_medio: datos.medio,
       p_ubicacion_id: datos.ubicacionId ?? undefined,
       p_venta_id: datos.ventaId ?? undefined,
+      p_texto_version: datos.textoVersion ?? undefined,
     }),
     firma
   );

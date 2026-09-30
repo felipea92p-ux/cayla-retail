@@ -30,7 +30,10 @@
  *      función security definer nueva que toque la ficha sin él; otro vigilante nombra toda función que anota actividad
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
  *      escritos en la PARTE 1 son los de las funciones vivas (las cinco que la tanda 1a del club volvió a cambiar —ADR-0288,
- *      20260930160000—, con los «después» de la 1a).
+ *      20260930160000—, con los «después» de la 1a; y las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
+ *      de la 1b). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
+ *      candado del módulo; y la persona de la sección 4 es socia con publicidad: anonimizar tampoco deja rastro en
+ *      `club_permisos` y escribe sus dos `revoca`.
  *   6. CONTROL y pegado: a las 11 funciones vivas se les quita su primera línea (el candado del módulo) y la tabla vuelve a
  *      la política de antes: el ataque PASA (los casos de 1 y 2 muerden); la PARTE 2 pegada, una o dos veces, cierra la
  *      lectura directa y deja las funciones como estaban; con la actividad de Apartados de antes, el vigilante y las cinco
@@ -92,11 +95,35 @@ if (VERSIONES_1A.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).lengt
   );
   process.exit(1);
 }
-/** El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1a si la 1a la tocó, si no el de la PARTE 1. */
+// La tanda 1b del club (ADR-0288, 20260930200000) volvió a cambiar tres de esas cinco (buscar, archivar y unir, de cuerpo)
+// y soltó las dos firmas de registrar_clienta y editar_clienta que había creado la 1a. Su tabla: firma → «antes» (null = la
+// firma todavía no existía) y «después» (null = la firma deja de existir).
+const PASO_1B = leer("20260930200000_club_paso1b_parte1_whatsapp_tienda.sql") + "\n" + leer("20260930200100_club_paso1b_parte2_permisos_y_qr.sql");
+const VERSIONES_1B = [
+  ...PASO_1B.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+// Tampoco se corta aquí: cada una de las 14 que la 1b tocó partió de lo que dejó la 1a.
+const cortadas1b = VERSIONES_1B.filter((w) => VERSIONES_1A.some((v) => v.firma === w.firma && v.despues !== w.antes));
+if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).length !== 3 || cortadas1b.length) {
+  console.error(
+    `✗ La tabla de versiones de la 1b debería repetir 3 firmas de la PARTE 1 con el «después» de la 1a como «antes»; no calzan: ${cortadas1b.map((v) => v.firma).join(", ") || "(faltan firmas)"}.`
+  );
+  process.exit(1);
+}
+/**
+ * El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1b si la 1b la tocó; si no, el de la 1a si la 1a la
+ * tocó; si no, el de la PARTE 1.
+ */
 const DESPUES_HOY = VERSIONES.map((v) => {
+  const b = VERSIONES_1B.find((x) => x.firma === v.firma);
+  if (b) return b.despues ?? "NO_EXISTE";
   const w = VERSIONES_1A.find((x) => x.firma === v.firma);
   return w ? (w.despues ?? "NO_EXISTE") : v.despues;
 });
+/** La firma de registrar_clienta que vive hoy (la de la 1b). */
+const REGISTRAR_HOY = "registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
+// Las funciones del club de la 1b que tocan la ficha: security definer y con el candado del módulo, como las 11.
+const DEL_CLUB = ["registrar_baja_whatsapp", "registrar_desde_whatsapp", "registrar_mensaje_publicidad", "resumen_clienta_caja", "unirse_al_club"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -215,9 +242,9 @@ const intento = (sql) => `select pg_temp.intento($q$${sql}$q$);\n`;
 
 // Las 11, en un orden que deja pasar a quien tiene el módulo (archivar va al final: después la ficha ya no se edita).
 const LLAMADAS = {
-  registrar_clienta: `select retail.registrar_clienta('dni', '90777010', 'Alta Prueba Modulo', null, false, null, null)`,
+  registrar_clienta: `select retail.registrar_clienta('dni', '90777010', 'Alta Prueba Modulo', null, null, null)`,
   buscar_clienta: `select * from retail.buscar_clienta('90777001')`,
-  editar_clienta: `select retail.editar_clienta('${FICHA}', 'dni', '90777001', 'Ficha Protegida Prueba', '987777001', false, false, null, null, null, null)`,
+  editar_clienta: `select retail.editar_clienta('${FICHA}', 'dni', '90777001', 'Ficha Protegida Prueba', '987777001', null, null, null, null, null)`,
   fn_clienta_compras: `select * from retail.fn_clienta_compras('${FICHA}')`,
   fn_clienta_cambios: `select * from retail.fn_clienta_cambios('${FICHA}')`,
   fn_clienta_devoluciones: `select * from retail.fn_clienta_devoluciones('${FICHA}')`,
@@ -407,11 +434,11 @@ caso(
 caso(
   "(3) registrar con el DNI de una ficha archivada la REACTIVA: mismo id, sin archivo, version+1, completa lo nuevo, conserva su venta y vuelve al buscador",
   como(FELIPE) +
-    `select retail.registrar_clienta('dni', '90777600', 'Rebeca Vuelve Prueba', null, false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777600', 'Rebeca Vuelve Prueba', null, null, null) as id1 \\gset
 reset role;
 insert into retail.ventas (id, ubicacion_id, cliente_id, estado, es_prueba) values (gen_random_uuid(), :'tru', :'id1', 'completada', true) returning id as venta \\gset
 ${como(FELIPE)}select retail.archivar_clienta(:'id1', 'ya no compra', false, null) as v_archivada \\gset
-select retail.registrar_clienta('dni', '90777600', null, '987776000', false, null, null) as id2 \\gset
+select retail.registrar_clienta('dni', '90777600', null, '987776000', null, null) as id2 \\gset
 reset role;
 select :'id1' = :'id2',
        archivada_en is null and archivada_por is null and motivo_archivo is null,
@@ -426,10 +453,10 @@ ${como(FELIPE)}select count(*) from retail.buscar_clienta('90777600');
 caso(
   "(3) la reactivación deja UNA línea de actividad, sin nombre ni DNI; registrarla otra vez (ya activa) no deja otra",
   como(FELIPE) +
-    `select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', '987776001', false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', '987776001', null, null) as id1 \\gset
 select retail.archivar_clienta(:'id1', 'ya no compra', false, null) as _v \\gset
-select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, false, null, null) as _r1 \\gset
-select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, false, null, null) as _r2 \\gset
+select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, null, null) as _r1 \\gset
+select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, null, null) as _r2 \\gset
 reset role;
 select count(*), string_agg(descripcion, ','), bool_and(a::text !~* '(rebeca|90777601|987776001)')
   from retail.actividad a where a.modulo = 'clientas' and a.accion = 'reactivar' and a.registro_id = :'id1';
@@ -439,9 +466,9 @@ select count(*), string_agg(descripcion, ','), bool_and(a::text !~* '(rebeca|907
 caso(
   "(3) la anonimizada que vuelve con su DNI es una ficha NUEVA (pidió que la olvidaran)",
   como(FELIPE) +
-    `select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, null, null) as id1 \\gset
 select retail.archivar_clienta(:'id1', 'pedido de la clienta', true, null) as _v \\gset
-select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, false, null, null) as id2 \\gset
+select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, null, null) as id2 \\gset
 reset role;
 select :'id1' <> :'id2', (select anonimizada from retail.clientas where id = :'id1'), (select archivada_en is null from retail.clientas where id = :'id2');
 `,
@@ -450,11 +477,11 @@ select :'id1' <> :'id2', (select anonimizada from retail.clientas where id = :'i
 caso(
   "(3) la que se unió a otra: su DNI la lleva a la ficha que se CONSERVÓ, y si esa estaba archivada, la reactiva",
   como(FELIPE) +
-    `select retail.registrar_clienta('dni', null, 'Unida Celular Prueba', '987776100', false, null, null) as queda \\gset
-select retail.registrar_clienta('dni', '90777603', 'Unida DNI Prueba', null, false, null, null) as se_va \\gset
+    `select retail.registrar_clienta('dni', null, 'Unida Celular Prueba', '987776100', null, null) as queda \\gset
+select retail.registrar_clienta('dni', '90777603', 'Unida DNI Prueba', null, null, null) as se_va \\gset
 select (retail.unir_clientas(:'queda', :'se_va', null, null)).documento_numero as dni_que_queda \\gset
 select retail.archivar_clienta(:'queda', 'se fue de viaje', false, null) as _v \\gset
-select retail.registrar_clienta('dni', '90777603', null, null, false, null, null) as vuelve \\gset
+select retail.registrar_clienta('dni', '90777603', null, null, null, null) as vuelve \\gset
 reset role;
 select :'dni_que_queda', :'vuelve' = :'queda', (select archivada_en is null from retail.clientas where id = :'queda');
 `,
@@ -463,8 +490,8 @@ select :'dni_que_queda', :'vuelve' = :'queda', (select archivada_en is null from
 caso(
   "(3) estado imposible: una ficha unida a otra que deja de estar anonimizada viola clientas_fusionada_implica_anonimizada",
   como(FELIPE) +
-    `select retail.registrar_clienta('dni', null, 'Imposible Uno', '987776200', false, null, null) as a \\gset
-select retail.registrar_clienta('dni', null, 'Imposible Dos', '987776201', false, null, null) as b \\gset
+    `select retail.registrar_clienta('dni', null, 'Imposible Uno', '987776200', null, null) as a \\gset
+select retail.registrar_clienta('dni', null, 'Imposible Dos', '987776201', null, null) as b \\gset
 select (retail.unir_clientas(:'a', :'b', null, null)).id as _u \\gset
 reset role;
 ` + intento(`update retail.clientas set anonimizada = false, nombre = 'Imposible Dos' where fusionada_en_id is not null and nombre = 'Clienta anonimizada' and id <> '${FICHA}'`),
@@ -480,16 +507,21 @@ reset role;
 const RASTRO = ["90777555", "zorayda", "pruebaclientas", "huamanchumo", "987770001", "987770002", "987770003"];
 const cuentaRastro = (tabla) =>
   `(select count(*) from retail.${tabla} x where x::text ~* '(${RASTRO.join("|")})')`;
-/** Las tres fichas de la misma persona: Z se une a Y, e Y a X (la que se conserva). Corre igual con las funciones de hoy y con las de producción. */
-const TRES_FICHAS = `${como(FELIPE)}select retail.registrar_clienta('dni', null, 'Zorayda Q', '987770003', false, null, null) as z \\gset
-select retail.registrar_clienta('dni', null, 'Zorayda Pruebaclientas', '987770002', true, 12::smallint, 5::smallint) as y \\gset
+/**
+ * Las tres fichas de la misma persona: Z se une a Y, e Y a X (la que se conserva). X es socia del club con publicidad (ADR-0288
+ * tanda 1b; antes de la 1b, X e Y tenían el permiso de WhatsApp marcado al registrarlas).
+ */
+const TRES_FICHAS = `${como(FELIPE)}select retail.registrar_clienta('dni', null, 'Zorayda Q', '987770003', null, null) as z \\gset
+select retail.registrar_clienta('dni', null, 'Zorayda Pruebaclientas', '987770002', 12::smallint, 5::smallint) as y \\gset
 select (retail.unir_clientas(:'y', :'z', null, null)).id as _u1 \\gset
-select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', true, 12::smallint, 5::smallint) as x \\gset
+select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', 12::smallint, 5::smallint) as x \\gset
+select codigo_club as _cx from retail.unirse_al_club(:'x', '987770001') \\gset
+select retail.registrar_mensaje_publicidad(:'x', '987770001') as _px \\gset
 select (retail.unir_clientas(:'x', :'y', null, null)).id as _u2 \\gset
 `;
-const RECORRIDO = `${TRES_FICHAS}select retail.editar_clienta(:'x', 'dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', false, false, 12::smallint, 5::smallint, '{"superior": "M"}'::jsonb, null) as _e \\gset
+const RECORRIDO = `${TRES_FICHAS}select retail.editar_clienta(:'x', 'dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', 12::smallint, 5::smallint, null, '{"superior": "M"}'::jsonb, null) as _e \\gset
 select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas se mudó a Arequipa (DNI 90777555)', false, null) as _a \\gset
-select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', null, false, null, null) as _r \\gset
+select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', null, null, null) as _r \\gset
 ${APARTADO({ codigo: "APT-TRU-9955", clienta: ":'x'", nombres: "Zorayda", apellidos: "Pruebaclientas Huamanchumo", celular: "987770001" })}reset role;
 `;
 caso(
@@ -505,20 +537,21 @@ caso(
   "t|t|4|0|0"
 );
 caso(
-  "(4) anonimizar deja CERO rastro del DNI, del nombre y de los tres celulares en clientas, clientas_fusiones y actividad (y el motivo escrito no se guarda)",
+  "(4) anonimizar deja CERO rastro del DNI, del nombre y de los tres celulares en clientas, clientas_fusiones, actividad y club_permisos (y el motivo escrito no se guarda); escribe los dos `revoca` del club",
   RECORRIDO +
     `${como(FELIPE)}select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas pidió que la borren, DNI 90777555', true, null) as _anon \\gset
 reset role;
-select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")},
+select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")}, ${cuentaRastro("club_permisos")},
+       (select count(*) from retail.club_permisos where clienta_id = :'x' and accion = 'revoca' and medio = 'anonimizar'),
        (select motivo_archivo from retail.clientas where id = :'x'),
        (select count(*) from retail.clientas_fusiones where clienta_mantiene_id in (:'x', :'y') and ficha_fusionada ? 'anonimizada_en'),
        (select detalle ->> 'fusiones_limpiadas' from retail.actividad where modulo = 'clientas' and accion = 'anonimizar' and registro_id = :'x'),
        (select count(*) from retail.actividad a where ${DEL_APARTADO()});
 `,
-  "0|0|0|Anonimizada (Ley 29733)|2|2|4"
+  "0|0|0|0|2|Anonimizada (Ley 29733)|2|2|4"
 );
 caso(
-  "(4) las frases de la actividad de Clientas dicen «una clienta» (editar, archivar, reactivar, unir, anonimizar)",
+  "(4) las frases de la actividad de Clientas dicen «una clienta» (editar, archivar, reactivar, unir, anonimizar, y las del club: unirse y su publicidad)",
   RECORRIDO +
     `${como(FELIPE)}select retail.archivar_clienta(:'x', 'pedido', true, null) as _anon \\gset
 reset role;
@@ -527,7 +560,9 @@ select string_agg(distinct accion || '=' || descripcion, ' ; ' order by accion |
 select count(*) from retail.actividad where modulo = 'clientas' and registro_id in (:'x', :'y') and accion = 'unir'
    and descripcion ~ '^unió dos fichas de una misma clienta: ';
 `,
-  "anonimizar=anonimizó la ficha de una clienta (Ley 29733) ; archivar=archivó la ficha de una clienta ; editar=editó la ficha de una clienta ; reactivar=reactivó una clienta archivada al volver a registrarla\n2"
+  "anonimizar=anonimizó la ficha de una clienta (Ley 29733) ; archivar=archivó la ficha de una clienta ; editar=editó la ficha de una clienta ; " +
+    "publicidad_whatsapp=registró que una clienta escribió a la tienda pidiendo publicidad por WhatsApp ; reactivar=reactivó una clienta archivada al volver a registrarla ; " +
+    "unirse_club=unió a una clienta al club (su «sí» en caja)\n2"
 );
 // Las cinco ramas de fn_actividad_separacion, una por una: apartó, entregó, liberó (sola y a mano), devolvió el adelanto
 // y extendió. El recorrido de arriba solo pasa por apartar, abonar, avisar y editar; aquí se llama a la función directo
@@ -585,9 +620,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, y todas llevan el candado del módulo",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11 y las 5 del club (tanda 1b), y todas llevan el candado del módulo",
   VIGILANTE("true") + VIGILANTE(`x.src !~ 'fn_exigir_modulo\\(''clientas''\\)'`),
-  `${[...LAS_11].sort().join(",")}\nninguna`
+  `${[...LAS_11, ...DEL_CLUB].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
@@ -642,7 +677,7 @@ caso(
   "f|f\nTu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y accesos."
 );
 caso(
-  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las cinco que la tanda 1a del club volvió a cambiar, con los «después» de la 1a (si alguien edita una sin actualizar su tabla, esto lo dice)",
+  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
   MD5_VIVOS,
   DESPUES_HOY.join("\n")
 );
@@ -714,14 +749,14 @@ caso(
     o.includes("retail.registrar_clienta(text,text,text,boolean,smallint,smallint) no existe en esta base")
 );
 caso(
-  "(6) …y no pisa NADA: las 14 siguen con los md5 de hoy, y la registrar_clienta de la 1a sigue siendo la única",
+  "(6) …y no pisa NADA: las 14 siguen con los md5 de hoy, y la registrar_clienta de hoy (la de la 1b) sigue siendo la única",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y las funciones ya reemplazadas lo delatan.
   `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
     MD5_VIVOS +
     `select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_clienta';\n`,
-  `${DESPUES_HOY.join("\n")}\nregistrar_clienta(text,text,text,text,boolean,smallint,smallint)`
+  `${DESPUES_HOY.join("\n")}\n${REGISTRAR_HOY}`
 );
 caso(
   "(6) CONTROL del vigilante de la actividad: con las funciones de Apartados de antes de la PARTE 1 nombra las dos",
@@ -748,7 +783,7 @@ const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const cajaA = (app, dni, fin) => `set application_name = '${app}';
 begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, false, null, null);
+${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, null, null);
 select pg_sleep(3);
 ${fin};
 `;
@@ -799,7 +834,7 @@ exception when others then
 end $f$;
 grant execute on function pg_temp.donde_espera(text) to authenticated;
 set local lock_timeout = '1s';
-${como(FELIPE)}select pg_temp.donde_espera($q$select retail.registrar_clienta('dni', '${dni.salida}', null, null, false, null, null)$q$);
+${como(FELIPE)}select pg_temp.donde_espera($q$select retail.registrar_clienta('dni', '${dni.salida}', null, null, null, null)$q$);
 rollback;
 `);
     const ra = await a;
@@ -827,7 +862,7 @@ insert into retail.clientas (documento_numero, nombre, archivada_en, motivo_arch
       await dormir(100);
       const b = await psqlEnParalelo(`${esperarA(app)}begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, false, null, null);
+${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, null, null);
 commit;
 `);
       const ra = await a;

@@ -482,3 +482,11 @@ la tienda.
   - el cartel imprimible en `/clientas/cartel`, con el QR genérico de cada tienda;
   - `NuevaClientaModal` pierde el interruptor «acepta WhatsApp».
 - **Configuración ▸ Tiendas y caja:** el número de WhatsApp de cada tienda.
+- **Ajustes al contrato (2026-09-30, a pedido del agente de Cobrar, aprobados por el arquitecto):**
+  - `fn_club_textos_vigentes()` no exige el módulo «Clientas»: la usa también el ticket impreso de una cajera sin él, para
+    el QR genérico. Los textos no son datos personales.
+  - `unirse_al_club` exige documento y nombre, además del celular (CL-1), con el hint `socia_sin_documento`.
+  - `unirse_al_club` suma `p_texto_version`: rechaza con `club_texto_cambio` si el texto `club` cambió desde que la
+    asesora lo leyó. Así el permiso guarda exactamente lo que se le leyó.
+- **Cambio de celular (decisión del arquitecto, 2026-09-30, a pedido de Felipe; Felipe puede revertirla):** el celular de una socia se cambia siempre, pero si tenía publicidad, `editar_clienta` y `registrar_clienta` se la quitan en la misma transacción (evento `revoca`, medio nuevo `cambio_celular`, con `registrado_por`), porque la prueba del permiso es el chat desde el número viejo; sigue socia y la recupera cuando escriba desde el número nuevo («Llegó su mensaje»). «Llegó su mensaje» y el cartel sí cambian el celular conservándola (ella escribió desde el nuevo), y el disparador `clientas_celular_con_publicidad` rechaza (`celular_con_publicidad`) cualquier otro cambio de celular que la conserve.
+

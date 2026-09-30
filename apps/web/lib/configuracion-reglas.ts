@@ -155,6 +155,9 @@ export type TiendaConfig = {
   metaMes: number | null;
   /** A qué hora cierra («21:00»); null = no se proyecta la venta del día en Caja. */
   horaCierre: string | null;
+  /** El WhatsApp de la tienda (ADR-0288 tanda 1b), para el QR del club; null = sin QR. No viene de
+   *  `fn_configuracion_tiendas`: lo suma `getConfiguracionTiendas` leyendo `ubicaciones.whatsapp_numero`. */
+  whatsappNumero: string | null;
 };
 
 export type EfectoCampana = { meta_pct: number; fondo: number | null };
@@ -187,6 +190,7 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
       metaRespaldo: num(t.meta_respaldo),
       metaMes: num(t.meta_mes),
       horaCierre: typeof t.hora_cierre === "string" && t.hora_cierre ? t.hora_cierre : null,
+      whatsappNumero: null,
     })),
     campanas: (d.campanas ?? []).map((c) => ({
       id: String(c.id),

@@ -836,8 +836,8 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:edicion-simultanea
 
-      # Ficha de clienta v1 (D-76/D-77): el consentimiento de WhatsApp es un dato aparte del teléfono (Ley 29733) y guardar de nuevo
-      # sin volver a preguntarlo NUNCA revoca uno ya dado; buscar y registrar clienta por DNI. Cada caso termina en ROLLBACK.
+      # Ficha de clienta v1 (D-76/D-77): registrar y editar no dan ni quitan ningún permiso de WhatsApp (desde ADR-0288 tanda 1b)
+      # y guardar de nuevo NUNCA revoca uno ya dado; buscar y registrar clienta por DNI. Cada caso termina en ROLLBACK.
       - name: pruebas:clientas
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas
@@ -866,6 +866,20 @@ jobs:
       - name: pruebas:club-venta-ligada
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-venta-ligada
+
+      # Club de clientas, tanda 1b (ADR-0288 D-4 reescrita, Ley 32323): dos permisos. Socia = su «sí» de palabra
+      # (`unirse_al_club`: celular válido, documento y nombre, texto `club` vigente y la versión que se leyó; código C-0001
+      # correlativo; idempotente); publicidad SOLO si ella escribió (`registrar_mensaje_publicidad`, `registrar_desde_whatsapp`;
+      # un insert directo con otro medio lo frena el candado de la ley); la BAJA revoca en toda ficha con ese número y deja el
+      # club. `club_permisos` y `club_textos` sin update, delete ni truncate (tampoco postgres) y sin API; candados de la
+      # ficha; anonimizar escribe los `revoca`; unir pasa lo más antiguo y el código; registrar/editar sin el permiso de
+      # WhatsApp; los textos v2 exactos; el WhatsApp de la tienda; el legado; md5 «después» = vivas, pegarla dos veces (entera
+      # y por partes) deja lo mismo, con una función cambiada en vivo aborta sin pisar, ningún `into` en un texto que el SQL
+      # Editor pueda confundir; y dos cajas invitan a la vez (la segunda espera en la lectura de la ficha). Cada caso termina
+      # en ROLLBACK (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-permisos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-permisos
 
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien

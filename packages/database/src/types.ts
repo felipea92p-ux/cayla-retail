@@ -5254,6 +5254,7 @@ export type Database = {
           p_medio?: string
           p_ubicacion_id?: string
           p_venta_id?: string
+          p_texto_version?: number
         }
         Returns: { codigo_club: string; club_desde: string }[]
       }

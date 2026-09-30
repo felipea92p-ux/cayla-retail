@@ -63,6 +63,12 @@ export type FilaClienta = {
   fusionada_en_id: string | null;
 };
 
+/** Las columnas de `clientas` que arman una `FilaClienta`: la MISMA lista para la lectura del servidor (`clientas.ts`) y la
+ *  del navegador (`clientas-acciones.ts`). Antes cada una escribía la suya, y la tanda 1b (ADR-0288) habría tenido que
+ *  acordarse de sumar las del club en tres lugares. */
+export const COLUMNAS_CLIENTA =
+  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, club_desde, publicidad_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id";
+
 function comoTallas(valor: unknown): Record<string, string> | null {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
   return valor as Record<string, string>;

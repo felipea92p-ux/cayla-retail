@@ -84,6 +84,8 @@ import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
+import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { CLUB_APAGADO, clubEnElTicket, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { ChevronUp, ShoppingBag } from "lucide-react";
@@ -244,6 +246,9 @@ type Props = {
   puedeApartar: boolean;
   /** La fila «Clienta» del ticket: su rol ve Clientas (la base rechaza la búsqueda sin el módulo, ADR-0249 2026-09-28). */
   puedeBuscarClienta: boolean;
+  /** El club (ADR-0288, tanda 1b): los textos vigentes y el WhatsApp de esta tienda, leídos por el servidor. Sin ellos
+   *  (`CLUB_APAGADO`) no se invita ni sale QR, y la venta sigue igual (principio 9). */
+  club?: ClubDeLaCaja;
   /** «Cobrar» desde Proformas (`/vender?proforma=<id>`, ADR-0167): el carrito arranca con sus prendas. */
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
@@ -270,7 +275,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -314,6 +319,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [clienta, setClienta] = useState<Clienta | null>(null);
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
+  // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
+  // al pasar a cobrar, y el ticket impreso necesita saberlo para su QR.
+  const clubDeLaClienta = useClubDeLaClienta(clienta?.id ?? null, puedeBuscarClienta);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
@@ -1302,6 +1310,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           pagos,
           tasaIgv: 0.18,
           atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
+          // El QR del club al pie: el personal si es socia (con su código), el genérico si no. Sin número de tienda, nada.
+          club: clubEnElTicket(club, clubDeLaClienta.lectura.estado === "listo" ? clubDeLaClienta.lectura.resumen : null),
         });
       }
     }
@@ -1396,6 +1406,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                 puedeBuscar={puedeBuscarClienta}
                 responsable={responsable}
                 onHojaAbierta={setHojaClientaAbierta}
+                club={club}
+                clubDeLaClienta={clubDeLaClienta}
+                ubicacionId={ubicacionId}
               />
             </>
           }
