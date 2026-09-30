@@ -2,25 +2,30 @@
  * La clienta del ticket del Punto de venta (spike 2026-09-26, hallazgo 4). Se busca en la libreta (`buscar_clienta`:
  * DNI, celular o nombre) y, elegida, sus datos pasan solos al comprobante y a la proforma o el apartado.
  *
- * Lo que NO hace todavía, a propósito: la pregunta del club y «es para regalo» (paso 1 del acta de clientas,
- * `docs/datos/DECISIONES-2026-09-26-clientas.md`). Necesitan el historial de permisos (G.2) que la base aún no tiene.
+ * Desde la tanda 1a del club (ADR-0288), la venta queda ligada a su ficha (`p_cliente_id`) y el documento tiene tipo.
+ * Lo que NO hace todavía, a propósito: la pregunta del club (tanda 1b) y «es para regalo» (tanda 1d).
  */
-export type ClientaDelTicket = { id: string; nombre: string | null; dni: string | null; celular: string | null };
+import { documentoLegible, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
-/** El DNI a medias en pantalla (71•••482): el mostrador lo ve la clienta de al lado. Completo viaja al comprobante. */
-export function dniEnmascarado(dni: string | null): string | null {
-  if (!dni) return null;
-  const d = dni.trim();
-  if (d.length < 6) return d;
-  return `${d.slice(0, 2)}•••${d.slice(-3)}`;
-}
+/** ADR-0288 D-2: el documento con su tipo (antes, `dni`). */
+export type ClientaDelTicket = {
+  id: string;
+  nombre: string | null;
+  documentoTipo: TipoDocumentoClienta;
+  documentoNumero: string | null;
+  celular: string | null;
+};
+
+/** El número a medias en pantalla (71•••482): el mostrador lo ve la clienta de al lado. Completo viaja al comprobante.
+ *  Se conserva el nombre por quienes ya lo importan; la regla vive en `documento-clienta-reglas.ts`. */
+export { numeroEnmascarado as dniEnmascarado } from "./documento-clienta-reglas";
 
 /** Lo que se lee de ella en la fila del ticket: nombre (o, si la ficha no lo tiene, el documento) y un dato para
- *  confirmar que es ella. */
+ *  confirmar que es ella. El documento sale con su tipo: «DNI 71•••482», «CE 00•••567», «Pasaporte AB•••456». */
 export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: string } {
-  const dni = dniEnmascarado(c.dni);
-  const titulo = c.nombre?.trim() || (dni ? `DNI ${dni}` : c.celular ? `Cel. ${c.celular}` : "Clienta sin nombre");
-  const partes = [dni && c.nombre ? `DNI ${dni}` : null, c.celular ? `Cel. ${c.celular}` : null].filter(Boolean);
+  const documento = documentoLegible(c.documentoTipo, c.documentoNumero);
+  const titulo = c.nombre?.trim() || documento || (c.celular ? `Cel. ${c.celular}` : "Clienta sin nombre");
+  const partes = [documento && c.nombre?.trim() ? documento : null, c.celular ? `Cel. ${c.celular}` : null].filter(Boolean);
   return { titulo, detalle: partes.join(" · ") };
 }
 
@@ -45,4 +50,42 @@ export function filaDeClienta(clienta: ClientaDelTicket | null, puedeBuscar: boo
 export function terminoBuscable(texto: string): string | null {
   const t = texto.trim();
   return t.length >= 3 ? t : null;
+}
+
+/** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9). Sin cumpleaños ni permiso de WhatsApp: eso es del
+ *  club (tanda 1b). */
+export type AltaEnTicket = { documentoTipo: TipoDocumentoClienta; documentoNumero: string; nombre: string; celular: string };
+export const ALTA_VACIA: AltaEnTicket = { documentoTipo: "dni", documentoNumero: "", nombre: "", celular: "" };
+
+/**
+ * Lo escrito en el buscador no se escribe dos veces al registrarla: 8 dígitos son un DNI, 9 que empiezan en 9 son un
+ * celular, y letras sin números son un nombre. Lo demás (un carné, un pasaporte) no se adivina: se escribe.
+ */
+export function altaDesdeBusqueda(texto: string): AltaEnTicket {
+  const t = texto.trim();
+  const junto = t.replace(/\s/g, "");
+  if (/^[0-9]{8}$/.test(junto)) return { ...ALTA_VACIA, documentoNumero: junto };
+  if (/^9[0-9]{8}$/.test(junto)) return { ...ALTA_VACIA, celular: junto };
+  if (/\p{L}/u.test(t) && !/[0-9]/.test(t)) return { ...ALTA_VACIA, nombre: t };
+  return ALTA_VACIA;
+}
+
+/**
+ * La clienta de un ticket en espera tal como vuelve de localStorage (ADR-0288 D-2). Lo guardado no se reescribe: se lee
+ * con tolerancia, y la próxima vez que ese ticket se deje en espera ya sale con la forma nueva. Un `dni` viejo es un DNI
+ * (era lo único que la ficha guardaba); lo que no tiene ni `id` es basura de otra versión y el ticket vuelve sin clienta.
+ */
+export function clientaDeTicketGuardado(valor: unknown): ClientaDelTicket | null {
+  if (!valor || typeof valor !== "object") return null;
+  const c = valor as Record<string, unknown>;
+  const texto = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v : null);
+  const id = texto(c.id);
+  if (!id) return null;
+  return {
+    id,
+    nombre: texto(c.nombre),
+    documentoTipo: tipoDocumentoDe(texto(c.documentoTipo)),
+    documentoNumero: texto(c.documentoNumero) ?? texto(c.dni),
+    celular: texto(c.celular),
+  };
 }

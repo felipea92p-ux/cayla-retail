@@ -79,6 +79,8 @@ import { conCambio, lecturaDePistola, PAUSA_FIN_LECTURA_MS, type Rafaga } from "
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
+import { documentoParaComprobante } from "@/lib/documento-clienta-reglas";
+import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
@@ -181,7 +183,8 @@ export type TicketEnEspera = {
   vendedoraId?: string | null;
   /** Cómo se reconoce al volver («Probador 2»; spike 2026-09-26). Tickets viejos no lo traen: se muestran como «Ticket N». */
   nombre?: string;
-  /** La clienta que ya se había puesto en el ticket, para que vuelva con él. */
+  /** La clienta que ya se había puesto en el ticket, para que vuelva con él. Uno guardado antes de la tanda 1a del club
+   *  (ADR-0288) la trae con la forma vieja `{ id, nombre, dni, celular }`: se lee con `clientaDeTicketGuardado`. */
   clienta?: Clienta | null;
 };
 
@@ -309,6 +312,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [hojaTicket, setHojaTicket] = useState(false);
   // La clienta del ticket (spike 2026-09-26): elegida, llena el documento y el nombre del comprobante.
   const [clienta, setClienta] = useState<Clienta | null>(null);
+  // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
+  const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
@@ -436,8 +441,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const modalAbrirVisible = modalCaja === "abrir" && bloqueado;
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
-  // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta;
+  // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
+  // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
+  const hayModal =
+    manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -504,8 +511,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // marca igual. Misma decisión que el BACKLOG registró el 2026-09-10 para la cola.
     // Mira la caja: si se cerró desde /caja y hoy se abre Vender con la caja aún cerrada,
     // el efecto de abajo borra la llave pero este ya había cargado los tickets de ayer.
+    // La clienta de cada uno se lee con tolerancia: los guardados antes de ADR-0288 la traen con `dni`.
+    const guardados = esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, []));
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnEspera(esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, [])));
+    setEnEspera(guardados.map((t) => ({ ...t, clienta: clientaDeTicketGuardado(t.clienta) })));
   }, [bloqueado, claveEspera]);
 
   useEffect(() => {
@@ -1099,15 +1108,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setClienta(null);
   }
 
-  // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después.
+  // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después. El documento
+  // pasa solo si el comprobante lo acepta (`documentoParaComprobante`: hoy solo el DNI; un carné o un pasaporte salen
+  // «sin documento» con su nombre hasta la tanda 1e, ADR-0288 D-3). La venta igual queda en su ficha: `p_cliente_id`.
+  function documentoDeClienta(c: Clienta) {
+    return documentoParaComprobante(c.documentoTipo, c.documentoNumero) ?? "";
+  }
   function elegirClienta(c: Clienta) {
     setClienta(c);
-    setClienteNumDoc(c.dni ?? "");
+    setClienteNumDoc(documentoDeClienta(c));
     setClienteNombre(c.nombre ?? "");
   }
   function quitarClienta() {
     if (clienta) {
-      if (clienteNumDoc === (clienta.dni ?? "")) setClienteNumDoc("");
+      if (clienteNumDoc === documentoDeClienta(clienta)) setClienteNumDoc("");
       if (clienteNombre === (clienta.nombre ?? "")) setClienteNombre("");
     }
     setClienta(null);
@@ -1165,6 +1179,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
+      // La clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Va dentro de `params`, así que también viaja
+      // en la cola sin conexión.
+      p_cliente_id: clienta?.id ?? undefined,
       p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
       // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
@@ -1371,7 +1388,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           arriba={
             <>
               <TiraDeEsperas enEspera={enEspera} onRetomar={retomar} bloqueado={bloqueado} />
-              <ClientaDelTicket clienta={clienta} onElegir={elegirClienta} onQuitar={quitarClienta} bloqueado={bloqueado} puedeBuscar={puedeBuscarClienta} />
+              <ClientaDelTicket
+                clienta={clienta}
+                onElegir={elegirClienta}
+                onQuitar={quitarClienta}
+                bloqueado={bloqueado}
+                puedeBuscar={puedeBuscarClienta}
+                responsable={responsable}
+                onHojaAbierta={setHojaClientaAbierta}
+              />
             </>
           }
         />

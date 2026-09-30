@@ -652,7 +652,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
-  página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`); «no había» → `punto-de-venta/AnotarNoHabia`
+  página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
   (RPC `registrar_pedido_no_atendido`, firmada con el responsable); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
   buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
@@ -713,7 +713,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `getFichaClienta` (lectura server) → `ClientasPanel.tsx` (lista + buscador + alta) +
   `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
   `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
-  `registrar_clienta`, `editar_clienta` (candado optimista `version`, ADR-0193 reusado),
+  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),
   `archivar_clienta`/`reactivar_clienta`, `unir_clientas` (D-99), `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
