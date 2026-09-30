@@ -410,7 +410,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               </p>
               <form onSubmit={onBuscarParaUnir} className="flex items-end gap-3">
                 <div className="max-w-sm flex-1">
-                  <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="Documento, WhatsApp o nombre…" />
+                  <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ />
                 </div>
                 <Boton type="submit">Buscar</Boton>
               </form>

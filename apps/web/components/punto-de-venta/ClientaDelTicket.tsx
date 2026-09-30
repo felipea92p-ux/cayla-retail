@@ -229,7 +229,7 @@ function BuscarClientaModal({
               autoFocus
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder="Documento, celular o nombre"
+              placeholder="Documento, celular o nombre" // sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes
               inputMode="search"
               autoComplete="off"
               className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/40"

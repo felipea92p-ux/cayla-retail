@@ -109,7 +109,7 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
       <div className="card-cayla space-y-4 p-5">
         <form onSubmit={onBuscar} className="flex flex-wrap items-end gap-3">
           <div className="max-w-sm flex-1">
-            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="Documento, WhatsApp o nombre…" caja />
+            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ caja />
           </div>
           <Boton type="submit" peso="primario" cargando={buscando}>
             Buscar
