@@ -82,7 +82,7 @@ export function SelectorColor({
                 ? `RGB ${rgbDeHex(hex)} · acepta #hex o R, G, B`
                 : "Toca el cuadro o escribe #hex o R, G, B"
           }
-          placeholder="#c9b79c"
+          placeholder="#c9b79c" // sugerir-fijo: ejemplo del FORMATO #hex, no de un color; sirve igual con cualquier familia
           autoComplete="off"
           spellCheck={false}
         />
