@@ -1018,8 +1018,8 @@ export function PuntoDeVentaTicket({
                       nombre={clienteNombre}
                       onNombre={onClienteNombre}
                       sinNumero={
-                        tipoComprobante === "boleta" ? "Sin DNI, la boleta sale a nombre de «Cliente varios»."
-                        : tipoComprobante === "nota_venta" ? "Sin DNI, la nota de venta sale a nombre de «Cliente varios»."
+                        tipoComprobante === "boleta" ? "Sin documento, la boleta sale a nombre de «Cliente varios»."
+                        : tipoComprobante === "nota_venta" ? "Sin documento, la nota de venta sale a nombre de «Cliente varios»."
                         : undefined
                       }
                     />

@@ -27,6 +27,7 @@ export function DocumentoDelComprobante({
   onNumero,
   nombre,
   onNombre,
+  sinNumero,
 }: {
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
   /** El documento de identidad de una boleta o nota de venta. En una factura no se usa: siempre es RUC. */
@@ -36,6 +37,8 @@ export function DocumentoDelComprobante({
   onNumero: (v: string) => void;
   nombre: string;
   onNombre: (v: string) => void;
+  /** Qué pasa si se deja sin número (boleta y nota de venta: salen a «Cliente varios»). Lo mismo que `ConsultaDocumento`. */
+  sinNumero?: string;
 }) {
   if (tipoComprobante === "factura") {
     return <ConsultaDocumento tipo="ruc" obligatorio numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} />;
@@ -53,7 +56,7 @@ export function DocumentoDelComprobante({
         }}
       />
       {identidad === "dni" ? (
-        <ConsultaDocumento tipo="dni" obligatorio={false} numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} />
+        <ConsultaDocumento tipo="dni" obligatorio={false} numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} sinNumero={sinNumero} />
       ) : (
         <>
           <CampoTexto
@@ -70,7 +73,7 @@ export function DocumentoDelComprobante({
             maxLength={largoMaximoDocumento(identidad)}
             value={numero}
             onChange={(e) => onNumero(ajustarNumeroAlTipo(identidad, e.target.value))}
-            pie={problema ?? "Sin guiones ni espacios. Solo el DNI consulta el padrón: el nombre va a mano."}
+            pie={problema ?? (!numero && sinNumero ? sinNumero : "Sin guiones ni espacios. Solo el DNI consulta el padrón: el nombre va a mano.")}
             tono={problema ? "error" : "neutro"}
           />
           <CampoTexto id="comprobante-documento-nombre" etiqueta="Nombre de la clienta" value={nombre} onChange={(e) => onNombre(e.target.value)} />
