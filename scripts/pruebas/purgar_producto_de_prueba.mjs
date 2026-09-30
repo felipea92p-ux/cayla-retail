@@ -231,6 +231,12 @@ update retail.conteo_items set movimiento_id = :'m5' where id = :'ci';
 insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada) values (:'conteo', :'o1', 5, 5) returning id as ci_otro \\gset
 -- Un pedido que no se pudo atender.
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'ubic', :'prod');
+-- Dos renglones de la libreta de «Ya decidí» (Frescura del piso, ADR-0208 paso 4b): la purga la conoce, la respalda y la
+-- devuelve; sin esto, un producto decidido pararía la purga («otra parte del sistema todavía lo usa»).
+insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, plazo_dias, persona_id, token_cliente)
+  values (:'ubic', :'prod', :'c1', 'cambie_lugar', 7, :'yo', gen_random_uuid()) returning id as fd1 \\gset
+insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, anterior_id, anterior_accion, plazo_dias, persona_id, token_cliente)
+  values (:'ubic', :'prod', :'c1', 'hasta_agotar', :'fd1', 'cambie_lugar', 12, :'yo', gen_random_uuid());
 -- Venta 1: nota interna, el producto mezclado con otra prenda (esas 2 prendas vuelven a su stock).
 select retail.registrar_venta(:'ubic', jsonb_build_array(
     jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50, 'descuento_unitario', 0),

@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 73;
+export const PENDIENTES_HOY = 72;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -91,7 +91,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/conteo/[id]": PENDIENTE,
   "/inventario/conteo/[id]/confirmar": PENDIENTE,
   "/inventario/conteo/[id]/revisar": PENDIENTE,
-  "/inventario/frescura": PENDIENTE,
+  // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
+  // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
+  "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
   "/inventario/mover": PENDIENTE,
   "/inventario/movimientos": PENDIENTE,
   "/inventario/recibir": PENDIENTE,
