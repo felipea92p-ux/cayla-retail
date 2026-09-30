@@ -89,6 +89,8 @@ function lineaNueva(varianteId: string): LineaConteo {
     confirmadaEn: null,
     actual: 0,
     ajusteMovimientoId: null,
+    ajustadoTotal: 0,
+    ajustadoAntes: 0,
     diferencia: null,
     estado: "pendiente",
   };
@@ -102,6 +104,7 @@ function seVenIguales(a: LineaConteo, b: LineaConteo): boolean {
     a.contada === b.contada &&
     a.anterior === b.anterior &&
     a.actual === b.actual &&
+    a.ajustadoAntes === b.ajustadoAntes &&
     a.estado === b.estado &&
     a.confirmadaEn === b.confirmadaEn &&
     a.diferencia === b.diferencia
