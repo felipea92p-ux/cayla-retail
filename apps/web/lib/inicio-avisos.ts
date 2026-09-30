@@ -23,13 +23,20 @@ export type ClaveAviso =
   | "traslados"
   | "conteo"
   | "regularizar"
-  | "porPagar";
+  | "porPagar"
+  | "recibir"
+  | "reponer"
+  | "fotos"
+  | "completar";
 
 export type Aviso = {
   clave: ClaveAviso;
-  grupo: "Ventas y posventa" | "Inventario" | "Compras";
+  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Catálogo";
   titulo: string;
   detalle: string;
+  /** La frase de «Sigue ahora» (Inicio de Almacén): lo mismo que el aviso, dicho como tarea («Atiende 2 traslados»).
+   *  Vacía si no hay nada que hacer o no se pudo leer. */
+  ahora: string;
   /** null = no se pudo leer. Nunca se dibuja como 0: una cola que no se lee no está «al día». */
   cantidad: number | null;
   nivel: NivelAviso;
@@ -56,6 +63,14 @@ export type FuentesAvisos = {
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
+  /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
+  porRecibir?: { facturas: number; primera: string | null } | null;
+  /** Modelos que el piso de venta pide (la regla de «Acción hoy»: `calcularAccionHoy`). */
+  reponer?: number | null;
+  /** Productos activos sin ninguna foto. */
+  fotosQueFaltan?: number | null;
+  /** Productos activos sin marca o sin proveedor (ADR-0283). */
+  porCompletar?: number | null;
 };
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
@@ -81,6 +96,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Comprobantes sin llegar a SUNAT",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Manda a SUNAT ${n} ${plural(n, "comprobante atascado", "comprobantes atascados")}` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? "Todos llegaron o se están reintentando solos."
           : `${n} ${plural(n, "lleva", "llevan")} más de ${HORAS_REINTENTO_AUTOMATICO} horas: ya no se reintenta solo.`,
@@ -97,6 +113,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Aperturas de caja con diferencia",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Revisa ${n} ${plural(n, "apertura de caja con diferencia", "aperturas de caja con diferencia")}` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? "Todas coinciden con su cierre."
           : `${n} ${plural(n, "abrió", "abrieron")} con un monto distinto del último cierre.`,
@@ -116,6 +133,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Apartados que vencen",
       cantidad: n,
       nivel: n === null ? "sinleer" : urgentes > 0 ? "urgente" : nivelDe(n, "toca"),
+      ahora: n ? `Atiende ${n} ${plural(n, "apartado que vence", "apartados que vencen")}` : "",
       detalle:
         a === null ? SIN_LEER
           : urgentes > 0
@@ -134,6 +152,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Devoluciones por resolver",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
+      ahora: n ? `Resuelve ${n} ${plural(n, "devolución", "devoluciones")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna espera respuesta." : `${n} ${plural(n, "espera", "esperan")} que se aprueben o rechacen.`,
       href: "/devoluciones",
       ocultable: true,
@@ -147,6 +166,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Pedidos no atendidos",
       cantidad: n,
       nivel: nivelDe(n, "info"),
+      ahora: n ? `Mira ${n} ${plural(n, "pedido no atendido", "pedidos no atendidos")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna clienta pidió algo que no había." : "Clientas que pidieron una talla o un color que no había.",
       href: "/pedidos-no-atendidos",
       ocultable: true,
@@ -160,6 +180,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Traslados por atender",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
+      ahora: n ? `Atiende ${n} ${plural(n, "traslado", "traslados")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} tu confirmación.`,
       href: "/inventario/traslados",
       ocultable: true,
@@ -174,6 +195,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Conteo abierto",
       cantidad: n,
       nivel: nivelDe(n, "info"),
+      ahora: c ? "Cierra el conteo que está abierto" : "",
       detalle: c === null ? SIN_LEER : c ? "Hay un conteo sin cerrar en esta sede." : "No hay conteos abiertos.",
       href: "/inventario/conteo",
       ocultable: true,
@@ -189,6 +211,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Prendas por regularizar",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Regulariza ${n} ${plural(n, "prenda que se vendió", "prendas que se vendieron")} sin registrar` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? `Ninguna lleva más de ${DIAS_PARA_VENCER} días.`
           : `${n} ${plural(n, "lleva", "llevan")} más de ${DIAS_PARA_VENCER} días sin regularizar.`,
@@ -207,6 +230,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: p && p.vencidas > 0 ? "Facturas de proveedor vencidas" : "Facturas que vencen esta semana",
       cantidad: n,
       nivel: p === null ? "sinleer" : p.vencidas > 0 ? "urgente" : nivelDe(p.semana, "toca"),
+      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "factura vencida", "facturas vencidas")}` : `Revisa ${n} ${plural(n, "factura que vence", "facturas que vencen")} esta semana`,
       detalle:
         p === null ? SIN_LEER
           : p.vencidas > 0 ? `${soles(p.montoVencido)} ya vencido${p.semana > 0 ? ` · y ${p.semana} más vencen esta semana` : ""}.`
@@ -214,6 +238,67 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/compras/por-pagar",
       ocultable: true,
       urgenteSi: "Cuando ya venció",
+    });
+  }
+  // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.
+  if (f.porRecibir !== undefined) {
+    const r = f.porRecibir;
+    const n = r === null ? null : r.facturas;
+    avisos.push({
+      clave: "recibir",
+      grupo: "Inventario",
+      titulo: "Mercadería por recibir",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Recibe ${n} ${plural(n, "factura de mercadería", "facturas de mercadería")}` : "",
+      detalle:
+        r === null ? SIN_LEER : r.facturas === 0 ? "No falta recibir ninguna factura."
+          : `${r.primera ?? "Una factura"}${r.facturas > 1 ? ` y ${r.facturas - 1} más` : ""} ${plural(r.facturas, "espera", "esperan")} su recepción.`,
+      href: "/recibir",
+      ocultable: true,
+    });
+  }
+  // «Acción hoy» de Existencias, contada por modelos: lo que el piso de venta pide subir desde el almacén.
+  if (f.reponer !== undefined) {
+    const n = f.reponer;
+    avisos.push({
+      clave: "reponer",
+      grupo: "Inventario",
+      titulo: "Reponer a piso",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Sube ${n} ${plural(n, "modelo", "modelos")} al piso de venta` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "El piso de venta está al día." : `${n} ${plural(n, "modelo pide", "modelos piden")} tallas en el piso.`,
+      href: "/inventario",
+      ocultable: true,
+    });
+  }
+  if (f.fotosQueFaltan !== undefined) {
+    const n = f.fotosQueFaltan;
+    avisos.push({
+      clave: "fotos",
+      grupo: "Catálogo",
+      titulo: "Fotos que faltan",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Toma la foto de ${n} ${plural(n, "modelo", "modelos")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Todos los modelos tienen foto." : `${n} ${plural(n, "modelo sin foto", "modelos sin foto")}: sin ella no se reconoce la prenda entre sedes.`,
+      href: "/productos",
+      ocultable: true,
+    });
+  }
+  if (f.porCompletar !== undefined) {
+    const n = f.porCompletar;
+    avisos.push({
+      clave: "completar",
+      grupo: "Catálogo",
+      titulo: "Productos por completar",
+      cantidad: n,
+      nivel: nivelDe(n, "info"),
+      ahora: n ? `Completa ${n} ${plural(n, "producto", "productos")} sin marca o proveedor` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Todos tienen marca y proveedor." : `${n} ${plural(n, "producto sin marca o proveedor", "productos sin marca o proveedor")}.`,
+      href: "/productos?marca=sin",
+      ocultable: true,
     });
   }
   return avisos;

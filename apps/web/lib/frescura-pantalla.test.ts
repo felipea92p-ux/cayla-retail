@@ -141,6 +141,9 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     ventasRecientes: 0,
     categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 36 },
     estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["cambiar_lugar", "trasladar"] },
+    // Quieta y sin nada anotado: «Por decidir» (paso 4b: el campo lo decide `aplicarDecisiones`).
+    porDecidir: true,
+    decision: null,
     ...p,
   };
 }
@@ -363,9 +366,9 @@ describe("los filtros viven en la URL", () => {
     };
     expect(leer("")).toEqual(SIN_FILTROS);
     expect(leer("estado=inventado&pordecidir=si")).toEqual(SIN_FILTROS);
-    expect(leer("cat=blu&estado=critica&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "critica", porDecidir: true, q: "wayra" });
+    expect(leer("cat=blu&estado=critica&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: "wayra" });
     expect(consultaDe(SIN_FILTROS, null)).toBe("");
-    expect(consultaDe({ cat: "blu", estado: "critica", porDecidir: true, q: " wayra " }, "prod-1|NEG")).toBe("cat=blu&estado=critica&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
+    expect(consultaDe({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: " wayra " }, "prod-1|NEG")).toBe("cat=blu&estado=critica&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
     expect(hayFiltros(SIN_FILTROS)).toBe(false);
     expect(hayFiltros({ ...SIN_FILTROS, q: "x" })).toBe(true);
   });
@@ -391,7 +394,7 @@ describe("los filtros viven en la URL", () => {
     expect(pasaFiltros(p, { ...SIN_FILTROS, q: "bLu-0087" })).toBe(true);
     expect(pasaFiltros(p, { ...SIN_FILTROS, cat: "otra" })).toBe(false);
     expect(pasaFiltros(p, { ...SIN_FILTROS, porDecidir: true })).toBe(true);
-    expect(pasaFiltros(prenda({ estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "nueva", alMenos: false } }), { ...SIN_FILTROS, porDecidir: true })).toBe(false);
+    expect(pasaFiltros(prenda({ porDecidir: false, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "nueva", alMenos: false } }), { ...SIN_FILTROS, porDecidir: true })).toBe(false);
   });
 });
 
@@ -447,8 +450,8 @@ describe("el registro al colgar (solo el líder) y «Las N tiendas»", () => {
   });
   it("las cifras de cabecera se redondean a días y a porcentaje entero", () => {
     expect(
-      cifrasVista({ unidadesEnPiso: 45, edadDelPisoDias: 23.6, edadDelPisoAlMenos: true, unidadesNuevas: 7, unidadesConTramo: 29, pctNuevas: 24.1, porDecidir: 6 }),
-    ).toEqual({ edad: 24, edadQuizaMas: true, pctNuevas: 24, nuevas: 7, conTramo: 29, porDecidir: 6, unidades: 45 });
+      cifrasVista({ unidadesEnPiso: 45, edadDelPisoDias: 23.6, edadDelPisoAlMenos: true, unidadesNuevas: 7, unidadesConTramo: 29, pctNuevas: 24.1, porDecidir: 6, decididas: 0 }),
+    ).toEqual({ edad: 24, edadQuizaMas: true, pctNuevas: 24, nuevas: 7, conTramo: 29, porDecidir: 6, decididas: 0, unidades: 45 });
   });
 });
 
@@ -570,7 +573,7 @@ describe("corrección del paso 4 · la cabecera no dice más de lo que se sabe",
     expect(porcentajeEntero(0.4, 1, 250)).toBe(1);
     expect(porcentajeEntero(100, 250, 250)).toBe(100);
     expect(porcentajeEntero(0, 0, 250)).toBe(0);
-    expect(cifrasVista({ unidadesEnPiso: 250, edadDelPisoDias: 3, edadDelPisoAlMenos: false, unidadesNuevas: 249, unidadesConTramo: 250, pctNuevas: 99.6, porDecidir: 0 }).pctNuevas).toBe(99);
+    expect(cifrasVista({ unidadesEnPiso: 250, edadDelPisoDias: 3, edadDelPisoAlMenos: false, unidadesNuevas: 249, unidadesConTramo: 250, pctNuevas: 99.6, porDecidir: 0, decididas: 0 }).pctNuevas).toBe(99);
   });
 });
 

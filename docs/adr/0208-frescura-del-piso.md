@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final. Su corrector corrigió dos cosas más en el mismo `20260928120330` (la separación de antes liberada sin entregar ya no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera): su `fn_frescura_sede` es `33970c94…`. *2026-09-28 (paso 4):* el paso 3 ya está en producción (los cuatro archivos) y la **pantalla** `/inventario/frescura` está construida con los colores A y las frases C que Felipe eligió en la maqueta; su migración (`20260929100000`: el módulo `frescura` y el candado nuevo de las tres lecturas) está **sin pegar**: «Actualización 2026-09-28 — paso 4», al final.
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final. *2026-09-27 (revisión 7, noche):* Felipe decidió la pregunta 7 (la carga inicial no le reinicia la temporada a lo que llegó por lote) y R7-1 (lo apartado para una clienta no está colgado); van en un tercer archivo, `20260928120320`, porque el PR #544 ya se había fusionado. El paso 3 se pega en tres archivos: «Revisión 7 del paso 3», al final. *2026-09-28 (revisión 9):* el PR #545 (revisiones 7 y 8) se fusionó con esta revisión corriendo; sus hallazgos van en un cuarto archivo, `20260928120330` (lo apartado junto a una bajada tardía, la orden del Taller revertida, lo que nunca se colgó y el desempate del mismo instante), y Felipe decidió la pregunta 8 («sigue vendiendo» también sin dato de rapidez) y que una separación abierta es venta desde que se aparta. **El paso 3 se pega en cuatro archivos** y sigue sin nada en producción: «Revisión 9 del paso 3», al final. Su corrector corrigió dos cosas más en el mismo `20260928120330` (la separación de antes liberada sin entregar ya no resta en las tardías, y el pedido que la clienta no recogió se exhibe desde que se libera): su `fn_frescura_sede` es `33970c94…`. *2026-09-28 (paso 4):* el paso 3 ya está en producción (los cuatro archivos) y la **pantalla** `/inventario/frescura` está construida con los colores A y las frases C que Felipe eligió en la maqueta; su migración (`20260929100000`: el módulo `frescura` y el candado nuevo de las tres lecturas) está **sin pegar**: «Actualización 2026-09-28 — paso 4», al final. *2026-09-29 (paso 4b):* el botón «Ya decidí» y la libreta `retail.frescura_decisiones` están construidos (migraciones `20261001100000`, `…100`, `…200`, **sin pegar**): «Actualización 2026-09-29 — paso 4b: «Ya decidí»», al final, que también deja pendiente de decisión de Felipe la señal de disciplina de registro.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -3155,3 +3155,138 @@ md5 de `fn_frescura_sede` (`473f5d98…` → `a22655be615d72555032a7df98258876`)
 - **Navegador**, con la página de prueba (ya borrada) a 1280 y 375 px: el buscador con teclas reales, un `?cat=` que no
   existe, la hoja del clásico de verano, «1 día», la guardada con una apartada en el almacén, «0 por decidir» sin
   ámbar. Sin desplazamiento lateral.
+
+## Actualización 2026-09-29 — paso 4b: «Ya decidí»
+
+**El problema.** El paso 4 dice qué prendas están quietas y qué sugiere hacer, pero no recuerda qué se hizo. Una prenda que
+la encargada ya cambió de lugar seguía en «Por decidir» al día siguiente; nadie sabía si el cambio sirvió, y la sugerencia
+siguiente («trasladarla») no podía apoyarse en lo que ya se probó. El paso 4b le da a la pantalla **memoria de las
+decisiones y una forma de medirlas**, sin automatizar ninguna.
+
+**Lo que se construyó** (cuatro commits; migraciones `20261001100000`, `…100`, `…200`, **sin pegar en producción**):
+1. **`retail.frescura_decisiones`**: la libreta de lo decidido, una fila por cosa que se hizo con una prenda (modelo+color)
+   en una sede. De solo agregar: no se edita ni se borra; para quitar una decisión se agrega una fila `anulacion`.
+2. **Tres funciones que guardan y leen**: `anotar_decision_frescura`, `anular_decision_frescura`, `fn_frescura_decisiones`
+   (más los candados `fn_puede_frescura` y `fn_puede_decidir_frescura`).
+3. **`eliminar_producto_con_historia`** entiende la tabla nueva (la cuenta como historia borrable, respaldada y en el orden
+   de bloqueo correcto), por parche con ancla.
+4. **La pantalla**: el botón «Ya decidí» y su hoja (`FrescuraDecidir.tsx`), el bloque «Lo que se decidió» del detalle, la
+   píldora «Decididas», y `lib/frescura-decisiones-reglas.ts` (todas las cuentas, puras) y `lib/frescura-decisiones-pantalla.ts`
+   (todas las palabras).
+
+**Respuestas de Felipe que gobiernan esto (2026-09-28):**
+- **P1 · el plazo de un compromiso** («la dejo hasta agotar», «la rebajé») es la rotación de su categoría en su sede
+  (percentil 50), con tope de 30 días. Sin comparación sólida en la sede, la de CAYLA; sin ninguna, 15 días. **Se congela en
+  la fila al decidir** (`plazo_dias`).
+- **P2 · la rebaja chica** solo es un texto sugerido («también podrías…»); nunca se decide sola ni se guarda como acción propia.
+- **P3 · «La rebajé» y «La saqué del piso» son cosas distintas**: «La rebajé» se anota (y solo la anota el líder: es dinero);
+  «La saqué del piso» no se anota aquí, abre el flujo de Retirar del piso, que ya existe.
+
+### Decisiones estructurales
+
+**1. La libreta es una cadena de solo agregar, no un estado que se edita**
+- **DECIDÍ:** cada decisión es una fila nueva que apunta a la anterior de esa prenda (`anterior_id`); la vigente es la
+  cabeza de la cadena; deshacer es agregar una `anulacion`. Los estados imposibles los impide el esquema, no la pantalla:
+  un solo índice único parcial (`frescura_decisiones_una_cabeza`) garantiza una sola cabeza por prenda y sede; `unique
+  (anterior_id)` una sola respuesta a cada fila; una FK compuesta obliga a que la anterior sea de la misma prenda y sede;
+  el CHECK `anula_una_decision` (que termina en `is true`, porque un CHECK que da NULL *pasa*) obliga a que toda
+  anulación tenga anterior y ninguna otra acción la tenga sin plazo; un disparador rechaza `update`, `delete` y `truncate`.
+- **DESCARTÉ:** una columna «estado de decisión» en la bajada o en la prenda, editable, porque el historial (qué se probó
+  antes de trasladar) es justo lo que la sugerencia siguiente necesita, y un estado que se pisa lo destruye. Y guardar el
+  resultado («sirvió») en la fila: mentiría en cuanto una venta se anulara después, y haría falta un proceso que corriera
+  solo. El resultado se **calcula al leer**.
+- **SE ROMPE SI:** dos encargadas de la misma sede deciden sobre la misma prenda en el mismo segundo. Por diseño una gana y
+  la otra recibe `PT409 version_cambiada` («otra persona acaba de decidir; mira cómo quedó»); el índice único es lo único
+  que lo decide, sin que la función tenga que acordarse de revisar. La prueba T5 lo corre con dos conexiones reales.
+
+**2. El plazo se congela en la fila**
+- **DECIDÍ:** `plazo_dias` (1 a 30) se calcula en la pantalla con la regla P1 y se guarda; la lectura nunca lo recalcula. El
+  fin del plazo cuenta desde las 00:00 de Lima, y el día de la decisión es el día 1.
+- **DESCARTÉ:** recalcular el plazo al leer con la rotación de hoy, porque entonces «la dejé 12 días» cambiaría de 12 a 9 la
+  semana que otra prenda de la categoría se vendiera, y el veredicto de ayer se reescribiría solo.
+- **SE ROMPE SI:** la rotación de la categoría era ruido cuando se decidió (pocas ventas): el plazo queda fijo con un número
+  malo. Se acepta: el tope de 30 y el piso de 15 sin referencia lo acotan, y la fila dice de dónde salió (`origenDelPlazo`).
+
+**3. ¿Sirvió? Se mide sobre cuánto tiempo estuvo la prenda realmente en el piso, no sobre su edad**
+- **DECIDÍ:** el veredicto compara la rapidez de venta de la prenda *durante la ventana medida* con la de su categoría,
+  integrando el nivel libre del piso en el tiempo (`exposicionDeEventos`: unidades·día realmente expuestas; solo cuenta
+  como venta lo que `esVenta` y sale del stock). El veredicto es una multiplicación cruzada, `V(P)·ud(C) ≥ V(C)·ud(P)`,
+  con evidencia mínima de 1 (la misma regla y el mismo número que la rapidez de la pantalla; una prueba los compara).
+- **DESCARTÉ:** medirlo por «días desde la decisión», porque una prenda que se decidió con 2 unidades en el piso y se
+  repuso a los 3 días no está en la misma situación que la que quedó con 2 hasta el final; la edad del lote no se conoce
+  y se dejaría de lado la reposición.
+- **SE ROMPE SI:** el piso se mueve sin dejar evento (una unidad que se lleva a otra parte sin registrar). El nivel medido
+  sería falso. Es el mismo riesgo del resto de Frescura (ver «disciplina de registro» abajo) y no se agrava.
+
+**4. Un solo mecanismo para la carrera, no dos**
+- **DECIDÍ:** el único juez de «quién llegó primero» es el índice único de la cabeza. Se quitó la comprobación de versión que
+  la función tenía por su cuenta (`fn_frescura_aviso_version` queda como el *mensaje*, no como el candado).
+- **DESCARTÉ:** dejar las dos (revisar la versión y además confiar en el índice), porque dos reglas para lo mismo se
+  contradicen algún día: la que gana en una prueba pierde en otra (Brooks: una sola mente).
+- **SE ROMPE SI:** alguien quita el índice `una_cabeza` pensando que sobra. La prueba T1 tiene un mutante que lo hace y
+  debe fallar.
+
+**5. `eliminar_producto_con_historia`: parche con ancla, en el orden de bloqueo**
+- **DECIDÍ:** cinco parches con ancla (`pg_temp.reemplazar_vivo`) sobre la función viva, no reescribirla entera: la
+  producción tiene parches vivos que el repo no ve, y recrear la función los pierde (le pasó al PR 397 con Análisis). La tabla nueva se
+  bloquea en el mismo lugar que las demás para no producir un deadlock con quien elimina; borra antes que
+  `bajada_piso_items`.
+- **DESCARTÉ:** recrear la función completa desde el repo, porque puede revertir un parche que solo está en producción.
+- **SE ROMPE SI:** otra migración cambia el texto de una de las anclas: el parche aborta con un mensaje que nombra cuál, y
+  no toca nada.
+
+### Lo que la base promete (contrato en tres líneas por función)
+- `anotar_decision_frescura(token, sede, producto, color, anterior, acción, plazo, traslado?, nota?)`: quien puede ver
+  Frescura de esa sede anota una decisión sobre una prenda con stock en su piso; devuelve `{id, creado_en, repetida}`. Si el
+  mismo `token` llega otra vez (doble clic, red que se cae y reintenta) devuelve la misma fila con `repetida = true` y **no
+  agrega otra**. Supone que `anterior` es la cabeza que la persona vio; si ya no lo es, `PT409`.
+- `anular_decision_frescura(token, decisión, nota?)`: agrega una anulación de la cabeza; nunca borra. No se anula una
+  anulación («Eso ya está quitado»), y si la decisión ya tiene otra línea encima, `PT409` como al anotar.
+- `fn_frescura_decisiones(sede, días = 120)`: devuelve las libretas de la sede (con el traslado enlazado y las ventas
+  desde una rebaja) y los traslados recientes elegibles. Solo lee.
+
+Pistas de error (las traduce `textoErrorDecision`): `frescura_sin_permiso`, `frescura_rebaja_solo_lider`,
+`frescura_nada_colgado`, `frescura_traslado_no_calza`, `frescura_token_reusado`, `frescura_no_anulable`,
+`frescura_anterior_invalido`, `frescura_decision_inexistente`, `frescura_producto_invalido`, `frescura_sede_sin_piso`,
+`frescura_accion_invalida`, `frescura_plazo_invalido`, `frescura_nota_larga`, `frescura_token_requerido`,
+`version_cambiada` (PT409).
+
+### Qué pasa cuando algo falla (principio 9)
+- **La lectura de decisiones no responde:** la pantalla se pinta igual con lo de siempre, sin decisiones, y avisa «No se
+  pudo leer lo decidido» (`sin_lectura`); nunca inventa que no se decidió nada como si fuera un dato. Verificado en un
+  servidor real, con la función forzada a fallar.
+- **Guardar no responde:** la hoja espera hasta 20 s (`TOPE_ESPERA_MS`) y dice «no sabemos si se guardó, mira el detalle»
+  en vez de reintentar a ciegas; el reintento reutiliza el mismo `token`, así que no duplica.
+
+### Cómo se verificó
+- **SQL** (`pnpm pruebas:frescura-decisiones`, base nueva con todas las migraciones): **156 verificaciones**: forma,
+  esquema con mutantes (cada constraint y el hueco del NULL), permisos, firma, marca, **carreras con dos conexiones
+  reales**, validaciones, lectura contra un archivo de contrato con salida real, y eliminar/restaurar. Regresión en verde:
+  `frescura_lectura` 258, `frescura_bajadas` 183, `eliminar_producto` 35, `purgar_producto_de_prueba` 88,
+  `roles_cobertura_modulos` 32.
+- **Web:** `tsc` limpio; 374 pruebas en 5 archivos de `lib/frescura*` (`frescura-decisiones-reglas` 122,
+  `frescura-decisiones-pantalla` 41). Se corrió mutación sobre las reglas: los mutantes que sobrevivieron (T12, T21, T32,
+  T33, T34; una condición redundante) se cerraron con pruebas o borrando la condición.
+- **Navegador**, con una página temporal (ya borrada) sobre la base local y un servidor real: la hoja, el bloque del detalle,
+  la ruta `sin_lectura`, a 1280 y a 375 px.
+
+### Cómo se pega en producción
+Tres archivos, **cada uno por separado** en el SQL Editor y en este orden (regla de «Políticas y deadlocks»: la parte 1
+tiene el `create table` y sus disparadores; la 2 son funciones; la 3 son los parches de `eliminar_producto_con_historia`):
+1. `20261001100000_frescura_decisiones_tabla.sql`
+2. `20261001100100_frescura_decisiones_funciones.sql`
+3. `20261001100200_frescura_decisiones_en_eliminar.sql`
+
+Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`. Los tipos de `packages/database/src/types.ts` para estas
+tres funciones están escritos a mano; regenerar tras pegar. **La web no funciona sin las migraciones** (la lectura degrada
+como se dijo arriba, pero el botón «Ya decidí» fallaría al guardar).
+
+### Sigue sin decidir — la señal de disciplina de registro
+Felipe pidió diseñar una señal directa y no punitiva para la Terminal de ventas («esta semana registraste el 80 % a
+tiempo»). **No está construida.** El diseño, el análisis con `/rigor` y cómo se vería un día malo están en
+`docs/maquetas/senal-de-registro-2026-09/` y su pendiente en `docs/backlog/2026-09-29-frescura-registro-discipline-signal-0cd4b5.md`.
+En corto: un porcentaje semanal es ruido (con 30–100 unidades por semana y disciplina *idéntica*, aparece un «menos de
+80 %» por puro azar entre 5 y 12 veces al año), así que la propuesta es una tarjeta de 28 días, en silencio cuando todo
+es normal, que compara la tienda contra su propio mes anterior solo si la diferencia supera al azar, y que ante una
+concentración en un día pregunta «¿hubo un problema?» antes de decir cualquier cosa sobre costumbre. Depende del paso 3b
+para ser completa.

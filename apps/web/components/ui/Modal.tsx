@@ -118,7 +118,8 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
                     `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
                   : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
-                    variante === "papel" || variante === "hoja" ? "bg-papel" : "bg-crema shadow-xl"
+                    // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
+                    variante === "papel" || variante === "hoja" ? "bg-papel [--fondo-hoja:var(--color-papel)]" : "bg-crema shadow-xl [--fondo-hoja:var(--color-crema)]"
                   } ${ancho}`
             } ${
               cerrando ? "anim-modal-sale" : "anim-modal-entra"

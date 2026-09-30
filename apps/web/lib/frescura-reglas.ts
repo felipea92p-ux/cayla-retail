@@ -1,6 +1,16 @@
 import { compararInstantes, historiaDeCohortes, type EventoPiso } from "./inventario-exposicion";
 import { clavePrendaDe } from "./prenda-clave";
 import type { Tolerado } from "./resultado";
+import {
+  aplicarDecisiones,
+  completarTraslados,
+  exposicionDeEventos,
+  leerDecisiones,
+  type DecisionDePrenda,
+  type DecisionesDeSede,
+  type ExposicionDe,
+  type LecturaDecisiones,
+} from "./frescura-decisiones-reglas";
 
 // Frescura del piso, paso 3 del 3c (ADR-0208 «Actualización 2026-09-27 — diseño 3c», ADR-0248, plan
 // `docs/PLAN-FRESCURA-3C.md`): las reglas puras que convierten la lectura de una sede (`retail.fn_frescura_sede`) en el
@@ -84,7 +94,16 @@ export type Tramo = "nueva" | "vigente" | "envejecida" | "critica";
  * sus últimos 30 días en el piso (pregunta 8, Felipe 2026-09-28); es una pregunta, no una orden, y nunca trae
  * «trasladar».
  */
-export type Sugerencia = "revisar_ventas" | "cambiar_lugar" | "trasladar" | "retirar" | "sigue_vendiendo" | "guardar_hasta_su_estacion";
+export type Sugerencia =
+  | "revisar_ventas"
+  | "cambiar_lugar"
+  | "trasladar"
+  | "retirar"
+  | "sigue_vendiendo"
+  | "guardar_hasta_su_estacion"
+  // Paso 4b (`sugerenciasConHistoria`): salen del RESULTADO de lo que ya se decidió, no de la lectura del piso.
+  | "dejar_hasta_agotar"
+  | "rebaja_chica";
 /**
  * Lo que dicen sus ventas de sus últimos `DIAS_CALLADA` días EN EL PISO (revisión 6; R7-2): `vendio` (vendió algo en
  * ellos), `dejo_de_vender` (la lectura tiene esos días colgada y no vendió nada) o `no_se_sabe` (no vendió, pero la
@@ -1288,6 +1307,14 @@ export type FrescuraPrenda = {
    */
   categoriaSinElla: { cortes: Cortes; tMax: number; vendidas: number } | null;
   estado: EstadoFrescura;
+  /**
+   * «Por decidir» (paso 4b): quieta Y sin decisión vigente. ES EL ÚNICO LUGAR que lo dice: la cifra, el filete, el filtro y
+   * «Las N tiendas» leen este campo y ninguno vuelve a mirar `estado.quieta` (lo vigila una prueba). `analizarSede` lo deja
+   * igual a `quieta`; `aplicarDecisiones` lo corrige con la libreta.
+   */
+  porDecidir: boolean;
+  /** Lo que la tienda anotó de esta prenda (la libreta, con cómo le fue a cada línea). Null: nada anotado. */
+  decision: DecisionDePrenda | null;
 };
 
 export type CifrasSede = {
@@ -1301,6 +1328,8 @@ export type CifrasSede = {
   unidadesConTramo: number;
   pctNuevas: number | null;
   porDecidir: number;
+  /** Prendas con una decisión vigente (paso 4b): las que ya no piden nada por ahora. */
+  decididas: number;
 };
 
 export type FrescuraSede = {
@@ -1310,6 +1339,8 @@ export type FrescuraSede = {
   categorias: VaraCategoria[];
   prendas: FrescuraPrenda[];
   cifras: CifrasSede;
+  /** Lo decidido en la sede (paso 4b) o el aviso de que no se pudo leer. `analizarSede` la deja «sin lectura»; la llena `aplicarDecisiones`. */
+  decisiones: DecisionesDeSede;
 };
 
 /** Lo que una sede aporta a la referencia de CAYLA: por categoría, sus unidades con edad conocida en cada ventana (se
@@ -1356,7 +1387,7 @@ type UnidadesDeTalla = { enVentana: (dias: number) => UnidadesTalla; todas: () =
  * tramo y rapidez de cada prenda contra su categoría SIN ella → estado. `observaciones` sirve para la referencia de
  * CAYLA (`referenciaCayla`).
  */
-export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; observaciones: ObservacionesSede } {
+export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; observaciones: ObservacionesSede; exposicion: ExposicionDe } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
   const dudosas = new Set(l.dudosas);
@@ -1367,6 +1398,9 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
   // Unidades de cada talla en cada ventana (solo lo que entra a la vara de su categoría) y en toda la lectura (lo que
   // mide su rapidez), calculadas al pedirlas. Si la ventana empieza antes que la lectura, es la lectura entera.
   const unidadesDeTalla = new Map<string, UnidadesDeTalla>();
+  // Los eventos del piso de cada talla ya limpios (sin bajadas tardías, con lo apartado adentro): los mismos que leen la vara y
+  // la rapidez. Los reusa la medición de «¿sirvió?» de las decisiones (paso 4b): una sola preparación de los eventos.
+  const limpiosPorVariante = new Map<string, readonly EventoPiso[]>();
   const tallasDeCategoria = new Map<string, { nombre: string; ids: string[] }>();
   for (const talla of l.tallas) {
     const cat = talla.categoriaId ?? SIN_CATEGORIA;
@@ -1381,6 +1415,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     // separación dentro de la ventana dejaba una unidad fantasma (se borraba su venta y la liberación quedaba como pausa).
     // `fn_frescura_sede` cuenta lo apartado en la ventana para las tardías de la lectura (20260928120330).
     const limpios = excluirTardias(eventosConApartados(l.eventos[talla.varianteId] ?? [], apartados[talla.varianteId]), tardiasPorOid);
+    limpiosPorVariante.set(talla.varianteId, limpios);
     const todas = unaVez(() => unidadesParaVara(limpios, l.ahora));
     unidadesDeTalla.set(talla.varianteId, {
       todas,
@@ -1521,6 +1556,8 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       ventasRecientes,
       categoriaSinElla: resto === null ? null : { cortes: resto.cortes, tMax: resto.tMax, vendidas: resto.vendidas },
       estado,
+      porDecidir: estado.quieta,
+      decision: null,
     });
   }
   prendas.sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es") || b.reloj.segundos - a.reloj.segundos || a.clave.localeCompare(b.clave));
@@ -1529,9 +1566,36 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     .map(([id, { nombre, vara }]) => aVaraCategoria(id, nombre, vara))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 
+  // Cuánto vendió y cuánto estuvo colgada (libre en el piso) una prenda entre dos instantes: null si no se mide (clásica,
+  // que no cuadra, o no está en la sede). Es la medida de «¿sirvió?» de una decisión.
+  const exposicion: ExposicionDe = (clave, desde, hasta) => {
+    const tallas = porPrenda.get(clave);
+    if (!tallas) return null;
+    let unidadSegundos = 0;
+    let vendidas = 0;
+    for (const t of tallas) {
+      const eventos = limpiosPorVariante.get(t.varianteId);
+      if (eventos === undefined) return null;
+      const e = exposicionDeEventos(eventos, desde, hasta);
+      unidadSegundos += e.unidadSegundos;
+      vendidas += e.vendidas;
+    }
+    return { unidadSegundos, vendidas };
+  };
+
   return {
-    sede: { separaPiso: true, desde: l.desde, ahora: l.ahora, categorias, prendas, cifras: cifrasSede(prendas) },
+    sede: {
+      separaPiso: true,
+      desde: l.desde,
+      ahora: l.ahora,
+      categorias,
+      prendas,
+      cifras: cifrasSede(prendas),
+      // Hasta que `aplicarDecisiones` lea la libreta, no se sabe nada de lo decidido.
+      decisiones: { estado: "sin_lectura", aviso: "" },
+    },
     observaciones,
+    exposicion,
   };
 }
 
@@ -1565,6 +1629,7 @@ export function cifrasSede(prendas: readonly FrescuraPrenda[]): CifrasSede {
     unidadesConTramo,
     pctNuevas: unidadesConTramo > 0 ? Math.round((unidadesNuevas / unidadesConTramo) * 1000) / 10 : null,
     porDecidir,
+    decididas: 0,
   };
 }
 
@@ -1611,9 +1676,9 @@ export type FrescuraLider = {
 
 /** Lo que devuelve una RPC de supabase-js, sin acoplarse a su tipo. */
 export type RespuestaRpc = { data: unknown; error: { message: string; hint?: string | null } | null };
-/** Las dos lecturas de Frescura. En el servidor: `(fn, args) => supabase.rpc(fn, args)`. */
+/** Las tres lecturas de Frescura. En el servidor: `(fn, args) => supabase.rpc(fn, args)`. */
 export type LlamarRpcFrescura = (
-  fn: "fn_frescura_sede" | "fn_confianza_registro",
+  fn: "fn_frescura_sede" | "fn_confianza_registro" | "fn_frescura_decisiones",
   args: { p_ubicacion_id: string; p_dias: number } | Record<string, never>,
 ) => PromiseLike<RespuestaRpc>;
 
@@ -1623,14 +1688,39 @@ function avisoFrescura(que: string, error: RespuestaRpc["error"]): string {
   return `No se pudo cargar ${que}. Lo demás de esta pantalla sí está al día.`;
 }
 
-async function leerSedeFrescura(
-  rpc: LlamarRpcFrescura,
-  u: { id: string; nombre: string },
-  dias: number,
-): Promise<{ fila: FrescuraDeSede; observaciones: ObservacionesSede | null }> {
+/**
+ * Lo decidido en una sede (paso 4b), aparte de la lectura del piso: si `fn_frescura_decisiones` no responde, la pantalla se
+ * dibuja igual —«Por decidir» vuelve a ser «quieta», más prendas de las debidas y nunca menos— y lo dice. Nunca lanza.
+ */
+async function leerDecisionesDeSede(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number): Promise<LecturaDecisiones | null> {
+  try {
+    const { data, error } = await rpc("fn_frescura_decisiones", { p_ubicacion_id: u.id, p_dias: dias });
+    if (error) {
+      console.error(`No se pudo leer lo decidido en ${u.nombre}:`, error.message);
+      return null;
+    }
+    const lectura = leerDecisiones(data);
+    if (lectura === null) console.error(`No se pudo leer lo decidido en ${u.nombre}: la respuesta no tiene la forma de fn_frescura_decisiones.`);
+    return lectura;
+  } catch (e) {
+    console.error(`No se pudo leer lo decidido en ${u.nombre}:`, e);
+    return null;
+  }
+}
+
+/** Una sede ya leída y analizada, con lo que hace falta para medir «La trasladé» en la tienda destino (solo el líder). */
+type SedeLeida = {
+  fila: FrescuraDeSede;
+  observaciones: ObservacionesSede | null;
+  medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe } | null;
+};
+
+async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number): Promise<SedeLeida> {
   const que = `la frescura de ${u.nombre}`;
   const fila = (lectura: FrescuraDeSede["lectura"]): FrescuraDeSede => ({ ubicacionId: u.id, nombre: u.nombre, lectura });
-  const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null });
+  const fallo = (mensaje: string) => ({ fila: fila({ datos: null, fallo: mensaje }), observaciones: null, medicion: null });
+  // Las dos lecturas salen a la vez: la de decisiones no espera a la del piso.
+  const enCurso = leerDecisionesDeSede(rpc, u, dias);
   try {
     const { data, error } = await rpc("fn_frescura_sede", { p_ubicacion_id: u.id, p_dias: dias });
     if (error) {
@@ -1642,9 +1732,11 @@ async function leerSedeFrescura(
       console.error(`No se pudo leer ${que}: la respuesta no tiene la forma de fn_frescura_sede.`);
       return fallo(avisoFrescura(que, null));
     }
-    if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {} };
-    const { sede, observaciones } = analizarSede(lectura);
-    return { fila: fila({ datos: sede, fallo: null }), observaciones };
+    if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
+    const { sede, observaciones, exposicion } = analizarSede(lectura);
+    const decisiones = await enCurso;
+    sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora);
+    return { fila: fila({ datos: sede, fallo: null }), observaciones, medicion: { sede, lectura: decisiones, exposicion } };
   } catch (e) {
     console.error(`No se pudo leer ${que}:`, e);
     return fallo(avisoFrescura(que, null));
@@ -1686,6 +1778,14 @@ export async function armarFrescuraLider(
   dias: number,
 ): Promise<FrescuraLider> {
   const [lecturas, confianza] = await Promise.all([Promise.all(tiendas.map((t) => leerSedeFrescura(rpc, t, dias))), leerConfianzaFrescura(rpc)]);
+
+  // «La trasladé» se mide en la tienda destino con SU lectura: solo el líder, que las lee todas, puede.
+  completarTraslados(
+    lecturas
+      .filter((l): l is SedeLeida & { medicion: NonNullable<SedeLeida["medicion"]> } => l.medicion !== null)
+      .map((l) => ({ id: l.fila.ubicacionId, nombre: l.fila.nombre, sede: l.medicion.sede, decisiones: l.medicion.sede.decisiones, lectura: l.medicion.lectura, exposicion: l.medicion.exposicion })),
+    lecturas.find((l) => l.medicion !== null)?.medicion?.sede.ahora ?? new Date().toISOString(),
+  );
 
   const caidas = lecturas.filter((l) => l.observaciones === null).map((l) => l.fila.nombre);
   const cayla: Tolerado<VaraCategoria[]> =
