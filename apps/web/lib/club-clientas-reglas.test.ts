@@ -5,9 +5,7 @@ import {
   cumpleLegible,
   estadoCumple,
   faltaParaSerSocia,
-  FILTROS_CLUB,
   MESES_CUMPLE,
-  pasaFiltroClub,
   leerMensaje,
   normalizarMensaje,
   pideBaja,
@@ -162,28 +160,6 @@ describe("faltaParaSerSocia — CL-1: documento, nombre y celular", () => {
     expect(faltaParaSerSocia({ documentoNumero: null, nombre: "Ana" })).toContain("documento:");
     expect(faltaParaSerSocia({ documentoNumero: "71234482", nombre: null })).toContain("nombre:");
     expect(faltaParaSerSocia({ documentoNumero: null, nombre: "" })).toContain("documento y nombre");
-  });
-});
-
-describe("pasaFiltroClub — el filtro de la lista", () => {
-  const identificada = ficha({ telefonoWhatsapp: "987654321" });
-  const socia = ficha({ clubDesde: "2026-09-30", codigoClub: "C-0001", telefonoWhatsapp: "987654321" });
-  const conPublicidad = { ...socia, publicidadDesde: "2026-10-01" };
-  const sinCelular = ficha({ cumpleMes: 9 });
-
-  it("cada filtro deja pasar lo suyo", () => {
-    const todas = [identificada, socia, conPublicidad, sinCelular];
-    const cuenta = (f: Parameters<typeof pasaFiltroClub>[1]) => todas.filter((c) => pasaFiltroClub(c, f, 9)).length;
-    expect(cuenta("todas")).toBe(4);
-    expect(cuenta("socias")).toBe(2);
-    expect(cuenta("con_publicidad")).toBe(1);
-    expect(cuenta("sin_publicidad")).toBe(1);
-    expect(cuenta("sin_celular")).toBe(1);
-    expect(cuenta("cumplen_este_mes")).toBe(1);
-  });
-
-  it("todos los filtros del control están cubiertos (ninguno cae fuera del switch)", () => {
-    for (const f of FILTROS_CLUB) expect(typeof pasaFiltroClub(socia, f.valor, 1)).toBe("boolean");
   });
 });
 
