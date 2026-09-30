@@ -707,6 +707,63 @@ export type Database = {
           },
         ]
       }
+      club_canjes: {
+        Row: {
+          anio: number
+          anulado_en: string | null
+          anulado_por: string | null
+          clienta_id: string
+          created_at: string
+          id: string
+          monto: number
+          pct: number
+          registrado_por: string | null
+          tipo: string
+          venta_id: string
+        }
+        Insert: {
+          anio: number
+          anulado_en?: string | null
+          anulado_por?: string | null
+          clienta_id: string
+          created_at?: string
+          id?: string
+          monto: number
+          pct: number
+          registrado_por?: string | null
+          tipo: string
+          venta_id: string
+        }
+        Update: {
+          anio?: number
+          anulado_en?: string | null
+          anulado_por?: string | null
+          clienta_id?: string
+          created_at?: string
+          id?: string
+          monto?: number
+          pct?: number
+          registrado_por?: string | null
+          tipo?: string
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_canjes_clienta_id_fkey"
+            columns: ["clienta_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_canjes_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       codigos_barras: {
         Row: {
           codigo: string
@@ -1520,6 +1577,7 @@ export type Database = {
       }
       configuracion_empresa: {
         Row: {
+          club_cumple_pct: number
           email: string | null
           id: boolean
           nombre_comercial: string | null
@@ -1531,6 +1589,7 @@ export type Database = {
           web: string | null
         }
         Insert: {
+          club_cumple_pct?: number
           email?: string | null
           id?: boolean
           nombre_comercial?: string | null
@@ -1542,6 +1601,7 @@ export type Database = {
           web?: string | null
         }
         Update: {
+          club_cumple_pct?: number
           email?: string | null
           id?: boolean
           nombre_comercial?: string | null
@@ -4408,6 +4468,7 @@ export type Database = {
           argumento_descuento: string | null
           cantidad: number
           costo_unitario: number
+          descuento_club_unitario: number
           descuento_etiqueta_id: string | null
           descuento_unitario: number
           id: string
@@ -4422,6 +4483,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad: number
           costo_unitario: number
+          descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
@@ -4436,6 +4498,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad?: number
           costo_unitario?: number
+          descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
@@ -5286,6 +5349,9 @@ export type Database = {
           celular: string | null
           cumple_dia: number | null
           cumple_mes: number | null
+          cumple_disponible: boolean
+          cumple_pct: number
+          cumple_canjeado_este_anio: boolean
         }[]
       }
       fn_club_textos_vigentes: {
@@ -7673,6 +7739,7 @@ export type Database = {
         Args: {
           p_asesora_id?: string
           p_autorizado_por?: string
+          p_canjear_cumpleanos?: boolean
           p_cliente_id?: string
           p_cliente_nombre?: string
           p_cliente_num_doc?: string

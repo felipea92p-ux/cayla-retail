@@ -51,6 +51,10 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
+  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del cumpleaños de la socia (ADR-0288 D-5). Solo con
+   *  `p_canjear_cumpleanos: true`; la base la recalcula y rechaza si no coincide (`cumple_descuento_distinto`). Se arma con
+   *  `descuentosParaRegistrar` de `lib/club-cumple-canje-reglas.ts`. */
+  descuento_club_unitario?: number;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;
@@ -79,6 +83,10 @@ export type ParamsRegistrarVenta = {
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que
    *  viaja en `x-responsable`: la venta queda a nombre de quien la hizo, no de la cuenta. */
   p_asesora_id?: string;
+  /** Canjear el cumpleaños de la socia del ticket (ADR-0288 D-5): la base exige socia, su mes de Lima y un canje por año, y
+   *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión; si igual llega en la cola con el canje ya
+   *  usado, la venta se rechaza entera y la cola la muestra como rechazo (ADR-0036). */
+  p_canjear_cumpleanos?: boolean;
 };
 
 export type VentaEncolada = {
