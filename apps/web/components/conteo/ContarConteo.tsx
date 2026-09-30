@@ -32,6 +32,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
+import { claveResponsableConteo } from "@/lib/responsable-conteo";
 
 /* ====================================================================
    ContarConteo · la pantalla donde se cuenta (Inventario ▸ Conteo ▸ Contar, rediseño 2026-09-29)
@@ -110,7 +111,8 @@ export type PropsContarConteo = {
 export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, categorias, colores, tallasPorCategoria, marcas, puedeCrearMarcas, sede, lugar, volver, notaAcotada }: PropsContarConteo) {
   const router = useRouter();
   const conteo = detalle.conteo;
-  const responsable = useResponsable();
+  // El responsable se eligió al abrir el conteo: aquí solo se reutiliza (`recordarEn`); el combo vuelve solo si esa persona ya no está de turno.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteo.id) });
 
   // `useResponsable()` devuelve un objeto NUEVO en cada render: los guardados (que salen segundos después) leen el más reciente de aquí.
   const responsableRef = useRef(responsable);
@@ -691,17 +693,15 @@ function Anillo({ porcentaje }: { porcentaje: number }) {
 
 /**
  * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
- * están arriba a la derecha). El responsable es el mismo control de siempre: con Admin (o con quien ya está de turno) se
- * ve su nombre; si falta elegir quién cuenta, aquí mismo aparece el combo (el candado de asistencia no se pierde), y
- * quien no es Admin puede cambiarlo con «Cambiar».
+ * están arriba a la derecha). El responsable se eligió al abrir el conteo: aquí solo se ve su nombre, sin «Cambiar». Solo si
+ * no hay responsable vigente (otro navegador, o ya no está de turno) aparece el combo: el candado de asistencia no se pierde.
  */
 function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo; responsable: ControlResponsable; creadoEn: string }) {
   const r = useResumen(control);
   const porcentaje = r.variantes > 0 ? Math.min(100, Math.round((r.verificadas / r.variantes) * 100)) : 0;
-  const [cambiando, setCambiando] = useState(false);
-  const admin = responsable.estado === "admin";
   const nombre = responsable.lista.elegibles.find((e) => e.personaId === responsable.elegidoId)?.nombre ?? null;
-  const mostrarCombo = !responsable.listo || !nombre || (cambiando && !admin);
+  // Solo se pregunta si NO hay responsable vigente (nadie lo eligió en este navegador o ya no está de turno): sin él la base no deja guardar.
+  const mostrarCombo = !responsable.listo || !nombre;
   const bloque = "flex min-w-0 items-center gap-3 px-5 py-3";
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -712,14 +712,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
           {mostrarCombo ? (
             <ComboResponsable control={responsable} className="mt-1 w-full" />
           ) : (
-            <p className="flex items-baseline gap-2 text-base font-medium text-tinta">
-              <span className="truncate">{nombre}</span>
-              {!admin && (
-                <button type="button" onClick={() => setCambiando(true)} className="btn-cayla btn-enlace min-h-0 shrink-0 p-0 text-xs font-normal">
-                  Cambiar
-                </button>
-              )}
-            </p>
+            <p className="truncate text-base font-medium text-tinta">{nombre}</p>
           )}
         </div>
       </div>

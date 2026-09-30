@@ -195,6 +195,23 @@ camino; no solo los textbox, también los **combos** o demás componentes que se
 - **Decisión de Felipe:** ¿un modal de un solo control (un motivo, una confirmación) debe llevar la luz o basta con `no-aplica`? Hoy la
   skill los propone `no-aplica` con motivo y los deja en la lista del cierre para que los revises.
 
+## Actualización 2026-09-30 (g) — Catálogo, módulo por módulo
+
+Felipe (2026-09-30): recorrer el módulo Catálogo con `/focus`, pantalla por pantalla y modal por modal.
+
+- **Con guía:** `FamiliasLista`, `ColoresLista` (nuevo y editar), `PatronesLista`, `TejidosLista`, `TallasLista`, `EtiquetasLista` (nueva etiqueta y
+  campaña), `TemporadasLista` (`ModalFecha` y `ModalAnio`), `PrendasDeEtiquetaModal`, `EditarMarcaModal` y `alta-producto/NuevaMarcaForm.tsx` (la pantalla
+  `/productos/marcas`, y el mismo formulario dentro de Nuevo producto). Cada ventana vive en su propio componente o, si su estado vive en la lista,
+  lleva el `useGuiaCampos` ahí mismo; ninguna cambió qué se puede guardar.
+- **Lógica pura con prueba de coherencia:** `lib/etiqueta-campana-guia.ts` (la campaña es toda opcional: un campo solo es «requerido» cuando ya se
+  escribió algo en él), `lib/marcas-guia.ts` (`problemaEdicionMarca`) y `lib/marca-registro-guia.ts` (`registroListo`).
+- **`no-aplica` con motivo:** `DetalleMuestraModal`, `EliminarProductoModal`, `ConfirmarConResponsable` (un solo control o acciones opcionales),
+  `ElegirTallas`, `ElegirEtiquetas` y `ElegirMuestra` (hojas que sirven a filas de Nuevo producto, que ya tienen su guía); pantallas `/productos/familias`,
+  `/productos/atributos`, `/productos/[id]/historial` y `/etiquetas-de-precio`. El escáner sigue marcando `/productos/atributos` como «sin guía» porque
+  ve `GeneradorDibujo.tsx` (un campo opcional dentro de una ventana de detalle): es un falso positivo de texto, con su motivo en el registro.
+- **Falta (por choque con otras sesiones):** `CategoriasLista`, `ProductosGrilla`, `ProductosTabla`, `FiltrosProductos` y `FotosPorColor`.
+- **Cuentas:** `PENDIENTES_HOY` 79 → 73; `MODALES_PENDIENTES_HOY` 89 → 74.
+
 ## Lo que queda a decisión de Felipe
 
 1. **¿Cuánto se debe notar?** Está en «sutil pero claro»: tinte + etiqueta + marca. Si en tienda sigue pasando desapercibido, el

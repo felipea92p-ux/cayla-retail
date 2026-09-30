@@ -12,6 +12,7 @@ import { coloresParecidos } from "@/lib/color-parecido";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
+import { sugerirColor } from "@/lib/sugerencias-alta-producto";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
@@ -87,6 +88,8 @@ export function NuevoColorAlta({
 
   const familia = familiaElegida ?? familiaSugerida(hex, colores);
   const codigo = codigoEscrito ?? sugerirCodigoColor(nombre, new Set(ocupados.keys()));
+  // Los ejemplos de las dos cajas siguen a la familia (elegida, o la que sale del tono) y no repiten un color que ya existe.
+  const ejemplo = sugerirColor(familia || null, colores, new Set(ocupados.keys()));
   const duenoDelCodigo = codigo.length === 3 ? ocupados.get(codigo) : undefined;
   const existente = colorConEseNombre(nombre, colores);
   // Mismo nombre: la base lo rechazaría (`colores_clave_unica`). Por sinónimo: solo se ofrece, puede ser otro color.
@@ -158,7 +161,7 @@ export function NuevoColorAlta({
             onChange={(e) => setNombre(e.target.value)}
             onBlur={() => setNombre((n) => nombreDeColor(n))}
             onKeyDown={teclas}
-            placeholder="Palo de rosa"
+            placeholder={ejemplo.nombre.texto}
             disabled={guardando}
             className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
           />
@@ -196,7 +199,7 @@ export function NuevoColorAlta({
             maxLength={3}
             onChange={(e) => setCodigoEscrito(normalizarCodigo(e.target.value))}
             onKeyDown={teclas}
-            placeholder="PAR"
+            placeholder={ejemplo.codigo.texto}
             disabled={guardando}
             aria-describedby={`${id}-codigo-ayuda`}
             className="caja-cayla h-10 w-[5.5rem] px-3 font-mono text-sm uppercase tracking-wider text-tinta tabular-nums outline-none placeholder:text-tinta/45"

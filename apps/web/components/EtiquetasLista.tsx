@@ -7,11 +7,14 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import {
   AccionTarjeta,
   BarraAtributos,
@@ -501,22 +504,7 @@ export function EtiquetasLista({
       )}
 
       {agregando && (
-        <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={() => setAgregando(false)}>
-          {(cerrar) => (
-            <div className="mt-5 space-y-4">
-              <CampoTexto etiqueta="Nombre de la etiqueta" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
-                  Cancelar
-                </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
-                  Guardar etiqueta
-                </Boton>
-              </div>
-            </div>
-          )}
-        </Modal>
+        <NuevaEtiquetaModal nombre={nombre} onNombre={setNombre} responsable={responsable} guardando={guardando} onGuardar={guardar} onClose={() => setAgregando(false)} />
       )}
 
       {etiquetando && (
@@ -634,6 +622,9 @@ function CampanaModal({
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
 
+  // Guía de foco: sale de la misma regla que apaga «Guardar» (`valido`); todo es opcional, así que solo «sigue» lo mal escrito.
+  const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
+
   const pct = parsearDescuento(descuento);
   const fDesde = parsearFecha(desde);
   const fHasta = parsearFecha(hasta);
@@ -685,8 +676,9 @@ function CampanaModal({
     <Modal titulo={`Campaña «${etiqueta.nombre}»`} ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-5">
+          <CampoGuiado id="descuento" guia={guia}>
           <CampoTexto
-            etiqueta="Descuento (%)"
+            etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
             mono
             inputMode="decimal"
             value={descuento}
@@ -707,8 +699,9 @@ function CampanaModal({
             }
             autoComplete="off"
           />
+          </CampoGuiado>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <CampoGuiado id="vigencia" guia={guia} titulo="Fechas" ayuda="Opcional: sin fechas, la etiqueta es permanente" className="grid gap-4 sm:grid-cols-2">
             <CampoTexto etiqueta="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} tono={fDesde.ok ? undefined : "error"} />
             <CampoTexto
               etiqueta="Hasta"
@@ -718,12 +711,12 @@ function CampanaModal({
               tono={fHasta.ok && !objecion ? undefined : "error"}
               pie={objecion ?? undefined}
             />
-          </div>
+          </CampoGuiado>
 
-          <div>
+          <CampoGuiado id="categorias" guia={guia}>
             <div className="flex items-baseline justify-between gap-3">
               <p className="label-cayla text-[11px] text-tinta/65">
-                Categorías <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
               </p>
               {elegidas.size > 0 && (
                 <button type="button" onClick={() => setElegidas(new Set())} className="text-xs text-rojo hover:underline">
@@ -761,7 +754,7 @@ function CampanaModal({
                 </div>
               ))}
             </div>
-          </div>
+          </CampoGuiado>
 
           <p className="rounded-md bg-tinta/[0.04] px-3 py-2 text-xs text-tinta/65">
             {DESCUENTO_YA_SE_APLICA
@@ -769,12 +762,68 @@ function CampanaModal({
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
 
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
           <div className="flex gap-2 pt-1">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido}>
+            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
               Guardar
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * La ventana de agregar una etiqueta. Su guía de foco (CLAUDE.md «Guía de foco») sale de lo que ya apaga el botón: un nombre y
+ * alguien que firma. Vive en su propio componente para que la guía nazca y muera con la ventana.
+ */
+function NuevaEtiquetaModal({
+  nombre,
+  onNombre,
+  responsable,
+  guardando,
+  onGuardar,
+  onClose,
+}: {
+  nombre: string;
+  onNombre: (v: string) => void;
+  responsable: ControlResponsable;
+  guardando: boolean;
+  onGuardar: () => void;
+  onClose: () => void;
+}) {
+  const guia = useGuiaCampos([
+    { id: "nombre", nombre: "Nombre de la etiqueta", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre de la etiqueta." },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+  return (
+    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-4">
+          <CampoGuiado id="nombre" guia={guia}>
+            <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre de la etiqueta")} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
+          </CampoGuiado>
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
+          <div className="flex gap-2">
+            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton
+              peso="primario"
+              onClick={onGuardar}
+              cargando={guardando}
+              disabled={!nombre.trim() || !responsable.listo}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={`flex-1 ${guia.claseConfirmar}`}
+            >
+              Guardar etiqueta
             </Boton>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { useDeTurno } from "@/lib/useDeTurno";
 import {
@@ -18,6 +18,7 @@ import {
   type ListaResponsable,
   type ModoResponsable,
 } from "@/lib/responsable-reglas";
+import { recordarResponsableGuardar, recordarResponsableLeer, recordarResponsableOlvidar, suscribirRecordado } from "@/lib/responsable-conteo";
 
 /**
  * Todo lo que una pantalla necesita del combo «Responsable» (ADR-0161): se crea con `useResponsable()`, se pinta con
@@ -61,10 +62,14 @@ export type ControlResponsable = {
  * @param opciones.modo — `"operacion"` (por defecto): «¿Quién hace esta operación?» y viene elegido con quien inició
  *   sesión, si es una persona presente. Punto de venta (venta y apartados), Cambios y Devoluciones pasan
  *   `"atencion"`: «¿Quién está atendiendo?» y siempre vacío (ver «Dos modos» en `responsable-reglas.ts`).
+ * @param opciones.recordarEn — una clave (`claveResponsableConteo(id)`): el elegido se guarda en el navegador y se
+ *   recupera en la pantalla siguiente, y un guardado exitoso NO lo reinicia. Es el Conteo (2026-09-30): el responsable se
+ *   elige al abrirlo y no se vuelve a preguntar. Solo un rechazo de la base por el responsable (ya no está de turno, sin
+ *   asistencia) lo borra y trae el combo de vuelta. Sin esta opción todo sigue como antes.
  */
 export function useResponsable(
   ubicacion?: { ubicacionId: string; etiqueta: string },
-  { modo = "operacion" }: { modo?: ModoResponsable } = {},
+  { modo = "operacion", recordarEn }: { modo?: ModoResponsable; recordarEn?: string } = {},
 ): ControlResponsable {
   const activa = useSedeActiva();
   const ubicacionId = ubicacion?.ubicacionId ?? activa?.ubicacionId ?? null;
@@ -76,7 +81,13 @@ export function useResponsable(
   const deTurno = useDeTurno(adminId ? null : ubicacionId);
   // Lo que se tocó en el combo; `undefined` = nadie lo tocó todavía y vale el propuesto.
   const [tocado, setTocado] = useState<string | undefined>(undefined);
-  const elegido = adminId ?? responsableInicial(tocado, propuesto);
+  // Lo recordado (el responsable que abrió el conteo): el servidor dibuja sin él (`null`) y el navegador lo lee del almacenamiento.
+  const recordado = useSyncExternalStore(
+    suscribirRecordado,
+    () => (recordarEn ? recordarResponsableLeer(recordarEn) : null),
+    () => null,
+  );
+  const elegido = adminId ?? responsableInicial(tocado ?? recordado ?? undefined, propuesto);
 
   // Con Admin, la lista es solo él: así las pantallas que buscan el nombre del elegido («Atendió», «Cerró») lo encuentran.
   const lista = useMemo(
@@ -92,6 +103,13 @@ export function useResponsable(
 
   // «Limpiar» (venta nueva, cancelar) vuelve a como vino al abrir: la persona de la sesión, o vacío.
   const limpiar = useCallback(() => setTocado(undefined), []);
+  const elegir = useCallback(
+    (personaId: string) => {
+      setTocado(personaId);
+      if (recordarEn) recordarResponsableGuardar(recordarEn, personaId);
+    },
+    [recordarEn],
+  );
   const { recargar } = deTurno;
 
   const firma = useCallback(
@@ -103,15 +121,17 @@ export function useResponsable(
   const despues = useCallback<ControlResponsable["despues"]>(
     (error) => {
       if (!error) {
-        setTocado(undefined);
+        // Con `recordarEn` el éxito no reinicia: quien abrió el conteo firma todos sus pasos.
+        if (!recordarEn) setTocado(undefined);
         return;
       }
       if (esErrorDeResponsable(error)) {
         setTocado(undefined);
+        if (recordarEn) recordarResponsableOlvidar(recordarEn);
         void recargar();
       }
     },
-    [recargar],
+    [recargar, recordarEn],
   );
 
   return {
@@ -121,7 +141,7 @@ export function useResponsable(
     estado,
     pregunta: preguntaResponsable(modo),
     elegidoId,
-    elegir: setTocado,
+    elegir,
     limpiar,
     recargar,
     recargando: deTurno.recargando,

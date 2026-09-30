@@ -188,7 +188,14 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
         <>
           <CampoGuiado id="nota" guia={guia}>
             {notaAbierta ? (
-              <CampoTexto etiqueta={guia.etiqueta("nota", "Nota (opcional)")} value={nota} maxLength={280} caja onChange={(e) => setNota(e.target.value)} placeholder="Ej.: la puse en la entrada, junto a la caja" />
+              <CampoTexto
+                etiqueta={guia.etiqueta("nota", "Nota (opcional)")}
+                value={nota}
+                maxLength={280}
+                caja
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Ej.: la puse en la entrada, junto a la caja" // sugerir-fijo: ejemplo de dónde se movió la prenda; no depende de la acción, el producto ni la sede elegidos
+              />
             ) : (
               <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => setNotaAbierta(true)}>
                 + Agregar una nota

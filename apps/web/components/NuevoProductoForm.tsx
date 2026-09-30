@@ -82,6 +82,7 @@ import {
 } from "@/lib/alta-producto";
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
+import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
@@ -240,6 +241,8 @@ export function NuevoProductoForm({
   const categoria = contexto.categorias.find((c) => c.id === categoriaId) ?? null;
   const familia = categoria ? (contexto.familias.find((f) => f.codigo === categoria.familia) ?? null) : null;
   const exige = Boolean(familia?.exigeTejidoPatron);
+  // Lo que decide los ejemplos de esta pantalla (skill `/sugerir`): la categoría elegida en el paso 1 y su familia.
+  const contextoSugerencia = { familia: categoria?.familia ?? null, prefijo: categoria?.prefijo ?? null };
 
   const tallasCategoria = useMemo(
     () => [...(ejes.tallas[categoriaId] ?? [])].sort((a, b) => compararTallas(a.texto, b.texto)),
@@ -759,7 +762,7 @@ export function NuevoProductoForm({
                 etiqueta="Nombre"
                 caja
                 className="!h-12 text-base"
-                placeholder="Blusa Aurora"
+                placeholder={sugerirNombre(contextoSugerencia).texto}
                 value={referencia}
                 onChange={(e) => setReferencia(e.target.value)}
                 autoComplete="off"
@@ -775,7 +778,7 @@ export function NuevoProductoForm({
             </div>
           </FilaAlta>
           <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja placeholder="Manga globo, botones forrados…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+            <CampoTexto etiqueta="Descripción" caja placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
           <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae · opcional" campo="marca" estado={est.marca}>
             <ElegirMarcaProveedor
@@ -824,6 +827,7 @@ export function NuevoProductoForm({
                   onElegir={setTejidoId}
                   categoriaId={categoriaId}
                   categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                  familia={categoria?.familia}
                   ejesActuales={ejesActuales()}
                   onOfrecido={(v) => ofrecerValor("tejidos", v)}
                 />
@@ -854,6 +858,7 @@ export function NuevoProductoForm({
                   onElegir={setPatronId}
                   categoriaId={categoriaId}
                   categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                  familia={categoria?.familia}
                   ejesActuales={ejesActuales()}
                   onOfrecido={(v) => ofrecerValor("patrones", v)}
                 />
@@ -929,6 +934,7 @@ export function NuevoProductoForm({
                 habituales={habituales}
                 categoriaId={categoriaId}
                 categoriaNombre={categoria?.nombre ?? "esta categoría"}
+                familia={categoria?.familia}
                 ejesActuales={ejesActuales()}
                 onOfrecido={(v) => ofrecerValor("tallas", v)}
                 sinAtajos
