@@ -1,4 +1,4 @@
-## 🚪 Las terminales pasan la puerta de lectura de retail (2026-09-30, ADR-0289) — migración `20260930050000` **NO está en producción**; rama `claude/analisis-proveedores-89cd50`
+## 🚪 Las terminales pasan la puerta de lectura de retail (2026-09-30, ADR-0289) — migración `20260930050000` **EN PRODUCCIÓN (2026-09-30, versión `20260930143821`)**; rama `claude/analisis-proveedores-89cd50`
 
 Compras ▸ Proveedores le mostraba «Esta pantalla no está mostrando datos» a la terminal administrativa de Tienda TRU: la base le
 devolvía `[]` porque `fn_tiene_acceso_retail()` solo reconocía personas con colaborador, y `getProveedoresResumen()` lanza si no
@@ -7,10 +7,10 @@ llega la fila del resumen. Mismo hueco en `fn_existencias` / `fn_existencias_pro
 - [x] **Base:** la puerta reconoce una terminal activa de una sede activa (`fn_terminal_actual()`); guardia por md5 y se pega dos veces.
 - [x] **Prueba:** `pnpm pruebas:terminales-lecturas`, 27 casos en el CI (puerta, pantalla completa, dinero por tienda, existencias,
   barrido de toda lectura sin argumentos que use la puerta, migración). Sin el arreglo: 10 rojos; con él: 27/27. Vecinas en verde.
-- [ ] **Pegar en producción** (Felipe): una sola pegada, sin la web, sin partes (no crea políticas). Después verificar como la
-  terminal con el `select` del ADR-0289 (proveedores = total, resumen = 1) y recargar Proveedores con esa cuenta.
-- [ ] **Sin verificar en producción:** que el stock y la deuda por tienda se vean bien con la terminal real (hoy no hay compras;
-  la prueba local cubre la lógica con dos comprobantes creados dentro del escenario).
+- [x] **Pegada en producción el 2026-09-30** (conector MCP, con el «sí» de Felipe): una sola pegada, sin la web. Verificado como la
+  terminal y como el líder (78 proveedores / 1 resumen / 30 existencias ambos); md5 `709e7723…`, una firma, ACL intacto.
+- [ ] **Falta recargar Proveedores con la sesión real de la terminal** y mirar Existencias con ella. La deuda por tienda sigue sin
+  verse en producción (hoy no hay compras; la prueba local cubre la lógica con dos comprobantes creados dentro del escenario).
 - [ ] **Después de pegar:** `pnpm datos:generar:produccion` (refresca el diccionario) y `pnpm datos:comparar`.
 - [ ] **Decisión de Felipe:** ¿el directorio de proveedores (banco, cuenta, CCI, billetera) debe depender del módulo `proveedores`
   y no solo de la puerta? Hoy lo lee cualquier cuenta que la pase; con este cambio se suman las terminales (la web no se lo muestra

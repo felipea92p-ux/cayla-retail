@@ -1,6 +1,7 @@
 # ADR-0289 · Las terminales pasan la puerta de lectura de retail
 
-- **Fecha:** 2026-09-30 · **Estado:** aceptado en código; **el SQL NO está pegado en producción** (ver «Cómo se pega»).
+- **Fecha:** 2026-09-30 · **Estado:** aceptado. **SQL pegado en producción el 2026-09-30** (por el conector MCP, con el «sí» de Felipe;
+  versión `20260930143821`) y verificado (ver «Cómo se pegó»).
 - **Pedido:** Felipe, 2026-09-30, con la captura de Compras ▸ Proveedores en «Esta pantalla no está mostrando datos»:
   «analiza por qué pasa eso con los proveedores» y, con el análisis hecho, «escribe la migración y la prueba».
 - **Migración:** `supabase/migrations/20260930050000_terminales_pasan_la_puerta_de_lectura.sql` (una sola función, sin
@@ -88,11 +89,19 @@ el de producción y con el suyo) y se puede pegar dos veces.
   `proveedores-cuentas` 28/28, `proveedores-rubros` 15/15, `fn-existencias` 15/15, `roles` 70/70, `roles-cobertura` 32/32.
 - `migraciones:sin-drop-trigger` y `migraciones:versiones` en verde.
 
-## Cómo se pega (pendiente, de Felipe)
+## Cómo se pegó (2026-09-30)
 
-Va **sola, sin la web**: es un `create or replace function`, sin políticas ni `alter` (no toma los bloqueos de `auth`/`storage`,
-ADR-0195), así que va en una sola pegada. La web de `main` no cambia. Después de pegar, verificar como la terminal (reemplazar
-el `sub` por el `auth_user_id` de la terminal de Tienda TRU):
+Sola, sin la web: es un `create or replace function`, sin políticas ni `alter` (no toma los bloqueos de `auth`/`storage`,
+ADR-0195), así que fue una sola pegada. La web de `main` no cambia. Antes de pegar, la puerta tenía el md5 que la guardia espera
+(`403086e4…`, una sola firma). Se verificó en producción como cada cuenta, en una transacción con `ROLLBACK`:
+
+| | antes | después |
+|---|---|---|
+| terminal de Tienda TRU: `fn_proveedores()` / `fn_proveedores_resumen()` / `fn_existencias()` | 0 / 0 / 0 | **78 / 1 / 30** |
+| líder: las mismas tres | 78 / 1 / 30 | 78 / 1 / 30 |
+| md5 de la puerta | `403086e4…` | `709e7723…` (el de este archivo), una sola firma, ACL intacto |
+
+La consulta, por si hay que repetirla (reemplazar el `sub` por el `auth_user_id` de la terminal):
 
 ```sql
 begin;
@@ -103,7 +112,8 @@ select (select count(*) from retail.fn_proveedores()) as proveedores,      -- de
 rollback;
 ```
 
-Luego recargar Compras ▸ Proveedores con esa cuenta, y `pnpm datos:generar:produccion` para refrescar el diccionario.
+**Falta** (no lo pudo hacer Claude): recargar Compras ▸ Proveedores con la sesión real de la terminal, y `pnpm datos:generar:produccion`
+para refrescar el diccionario.
 
 ## Pendiente
 
