@@ -1,8 +1,8 @@
-## 🌸 Club, tanda 1a · venta ligada y documento con tipo (ADR-0288) — rama `claude/club-paso1a-venta-ligada`; migración `20260930160000` **SIN pegar**
+## 🌸 Club, tanda 1a · venta ligada y documento con tipo (ADR-0288) — rama `claude/club-paso1a-venta-ligada`; migración `20260930160000` **EN PRODUCCIÓN** (2026-09-30)
 
-- [ ] **Felipe:** pegar `supabase/migrations/20260930160000_club_paso1a_venta_ligada_y_documento.sql` SOLA en el SQL Editor y
-      fusionar el PR enseguida. Después, en solo lectura: una sola firma de `registrar_clienta`, `editar_clienta` y
-      `registrar_venta`, y los md5 «después» de su sección 0.
+- [x] **Pegada en producción por Felipe (2026-09-30)** y verificada en solo lectura: md5 «después», una sola firma,
+      candados validados. El primer intento lo rechazó el SQL Editor sin aplicar nada (`select … into` en un texto; ver
+      CLAUDE.md «El SQL Editor agrega líneas por su cuenta»).
 - [ ] Después de pegar: `pnpm datos:generar:produccion` con el volcado fresco (el diccionario todavía dice `dni`).
 - [ ] Base local compartida: la fila «Boutique Mía SAC» del seed viejo no cumple el formato. La migración no aborta
       (deja el candado sin validar y avisa); corregirla o archivarla en `/clientas` y validar el candado.
