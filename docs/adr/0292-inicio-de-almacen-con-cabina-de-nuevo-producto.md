@@ -61,6 +61,14 @@ parte; se anota así:
   toma en exclusiva las 21 tablas de `auth` y `storage`: ADR-0195).
 - **Sin historia:** los productos que ya existen no tienen origen y **no se les pone sigla** (no se adivina). Solo los que se registren después
   de aplicar la migración la tendrán.
+- **Relleno de los recientes (aplicado en producción el 2026-09-30, con el OK de Felipe: 11 filas, todas Tienda TRU).** La pantalla muestra «hoy y ayer», que son justo los productos
+  anteriores a la migración: el 2026-09-30, con datos reales, ninguno salía con sigla. Hay evidencia objetiva para reconstruirla sin adivinar: el alta con stock
+  (`crear_producto_con_stock_inicial`) escribe la entrada `carga_inicial` en la MISMA transacción que el producto, y esa entrada lleva la sede desde la que se
+  registró. Los 11 productos de los últimos 3 días tienen esa entrada en el instante exacto del alta y en una sola sede (Tienda TRU). No se usa la sede de la persona
+  (una líder puede operar en otra distinta de la suya). Regla estricta: sin fila previa, carga inicial dentro de 5 segundos del alta y **una sola sede**; ambigua,
+  tardía o ausente queda sin sigla. Script: `supabase/migrations/pegar-en-produccion-producto-origen-desde-la-carga-inicial-2026-09-30.sql` (primero se ensayó en
+  producción con un error a propósito: 11 filas, todas TRU; después se aplicó; el único sin sede es «Prenda sin Registrar», una pieza del sistema). Las filas del relleno
+  se reconocen por `registrado_at` anterior a 2026-09-30 16:35:39 UTC. Probado en `pnpm pruebas:producto-origen` (dos casos nuevos).
 - **Se degrada con gracia:** si la función no responde o todavía no está en la base, la pantalla se arma igual, sin siglas ni chips de
   sede (probado quitando la función en la base local).
 

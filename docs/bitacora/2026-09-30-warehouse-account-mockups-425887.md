@@ -103,3 +103,27 @@ corrí mis pruebas y las de pantalla); y `supabase migration up --db-url … --i
 Felipe se lleva: con la base local al día y el conteo abierto de Tienda Lima apartado un momento (lo devolví a «abierto»), `purgar-producto` pasa 88 de 88, `eliminar-producto` 35 de 35,
 `eliminar-producto-con-historia` 52 de 52 y `producto-origen` 14 de 14. Mi base local quedó sin migraciones pendientes (última `20261001120000`), con mis datos de prueba intactos; antes de migrar
 guardé un respaldo del schema `retail` en el scratchpad de la sesión. Ojo para quien corra la purga en local: la escena necesita que Tienda Lima no tenga un conteo abierto.
+
+## 2026-09-30 (Con datos reales los productos recientes no traían sigla: relleno preparado, sin aplicar)
+
+Qué hice: Felipe abrió la pantalla con datos reales y ningún producto mostraba TRU o AQP. No era un fallo de código: todos se registraron **antes** de que aplicara la migración (`BOD-0008` a las
+16:22 UTC, `BOD-0007` a las 16:17, `CON-0004` a las 15:17; la migración entró a las 16:35 y `producto_origen` tiene 0 filas). Como la pantalla muestra «hoy y ayer», justo los productos anteriores a la
+tabla son los que se ven. Miré producción (solo lectura) y hay evidencia objetiva para reconstruir la sede: el alta con stock escribe la entrada `carga_inicial` en la misma transacción que el producto, y los
+11 productos de los últimos 3 días la tienen en el instante exacto del alta, en una sola sede (TRU). Escribí `supabase/migrations/pegar-en-produccion-producto-origen-desde-la-carga-inicial-2026-09-30.sql`
+con una regla estricta (una sola sede, dentro de 5 segundos del alta; ante la duda, sin sigla), la probé en local (`pnpm pruebas:producto-origen`: sede reconstruida, ambigua, tardía, sin carga, sin pisar una fila
+existente, dos corridas) y la ensayé en producción con un error a propósito: insertaría 11 filas, todas Tienda TRU.
+
+Por qué así: no usé la sede de la persona porque una líder puede operar en otra distinta de la suya; la carga inicial es el registro de dónde se hizo la operación. **No lo apliqué:** escribir datos en producción es una
+acción distinta de aplicar la migración y no estaba autorizada; queda como «POR PEGAR» con el OK de Felipe.
+
+Felipe se lleva: decir «sí» y lo pego (una sola parte, solo inserta 11 filas en `producto_origen`; al instante la pantalla muestra TRU en los 11, sin desplegar). Los productos que se registren desde ahora traen su sede por el
+disparador; el primer alta real lo confirma (la web manda `x-ubicacion` en cada operación firmada). Un admin que registre sin elegir responsable puede quedar «sin sede»: no es un error, se sabe que se registró y no dónde.
+
+## 2026-09-30 (Relleno pegado en producción)
+
+Qué hice: Felipe dijo «sí, pégalo». Antes de escribir comprobé que producción seguía como en el ensayo (0 filas, 12 productos, ninguno nuevo desde las 16:22 UTC) y apliqué el script de relleno. Quedaron **11 filas,
+todas Tienda TRU**, cada una con la hora del alta del producto y sin terminal; «Prenda sin Registrar» sigue sin sede. `fn_producto_origen` (lo que lee la web) devuelve las 11, la tabla sigue sin políticas y su comentario
+ya explica qué filas se reconstruyeron. Dónde quedó: `producto_origen` es la única tabla que el script toca; no comparé movimientos ni stock antes y después (hoy 91 y 72 unidades), porque por construcción no los toca.
+
+Felipe se lleva: recargar el Inicio de la cuenta de almacén: los 11 productos ya muestran TRU y el filtro «TRU · tu sede». El primer producto que se registre desde la web confirmará que el disparador anota la sede (AQP si se
+registra desde AQP).

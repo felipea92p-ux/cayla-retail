@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = "20260930170000_producto_anota_donde_se_registro.sql";
+const RELLENO = "pegar-en-produccion-producto-origen-desde-la-carga-inicial-2026-09-30.sql";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed): parte en Tienda Lima
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -211,6 +212,35 @@ select (select count(*) from retail.producto_origen where producto_id = :'p1')
   const r = correr(`${sql}\n${sql}\nselect (select count(*) from pg_trigger where tgrelid = 'retail.productos'::regclass and tgname = 'trg_producto_anota_origen') || '|' ||
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_producto_origen', 'fn_ubicacion_de_la_operacion', 'fn_producto_anota_origen'));`);
   esperar("la migración se pega dos veces sin error y no duplica nada", r.ok && ultima(r) === "1|3", r);
+}
+
+// 13. RELLENO de los productos anteriores a la tabla (ADR-0292): la sede sale de la entrada `carga_inicial` del alta (misma
+// transacción, una sola sede); con dos sedes, con la carga horas después o sin carga, NO se inventa una.
+{
+  const relleno = readFileSync(join(RAIZ, "supabase", "migrations", RELLENO), "utf8");
+  // Un producto «de antes de la tabla»: se da de alta y se le quita la fila que anotó el disparador; con su variante y, si se pide, cargas.
+  const DE_ANTES = (id, cargas) => `${ALTA(id, null)}delete from retail.producto_origen where producto_id = :'${id}';
+insert into retail.variantes (id, producto_id, precio) values (gen_random_uuid(), :'${id}', 10) returning id as v_${id} \\gset
+${cargas.map(([sede, desfase]) => `insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, created_at)
+  values (:'v_${id}', :'${sede}', 'entrada', 3, 'carga_inicial', now() + interval '${desfase}');`).join("\n")}
+`;
+  const r = correr(`${IDS}${SIN_SESION}
+select gen_random_uuid() as p4 \\gset
+select gen_random_uuid() as p5 \\gset
+${DE_ANTES("p1", [["lima", "0 seconds"]])}${DE_ANTES("p2", [["lima", "0 seconds"], ["tru", "0 seconds"]])}${DE_ANTES("p3", [["lima", "2 hours"]])}${ALTA("p4", null)}delete from retail.producto_origen where producto_id = :'p4';
+${ALTA("p5", null)}update retail.producto_origen set ubicacion_id = :'tru' where producto_id = :'p5';
+insert into retail.variantes (id, producto_id, precio) values (gen_random_uuid(), :'p5', 10) returning id as v_p5 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo) values (:'v_p5', :'lima', 'entrada', 1, 'carga_inicial');
+${relleno}
+${relleno}
+select string_agg(x.p || '=' || coalesce((select case o.ubicacion_id when :'lima' then 'lima' when :'tru' then 'tru' else 'otra' end from retail.producto_origen o where o.producto_id = x.id), 'sin fila'), ',' order by x.p)
+  from (values ('p1', :'p1'::uuid), ('p2', :'p2'::uuid), ('p3', :'p3'::uuid), ('p4', :'p4'::uuid), ('p5', :'p5'::uuid)) x(p, id);`);
+  esperar("el relleno toma la sede de la carga inicial del alta; ambigua, tardía o sin carga NO se inventa; y no pisa una fila que ya existe (dos corridas, igual)",
+    r.ok && ultima(r) === "p1=lima,p2=sin fila,p3=sin fila,p4=sin fila,p5=tru", r);
+  const conFila = correr(`${IDS}${SIN_SESION}${DE_ANTES("p1", [["lima", "0 seconds"]])}${relleno}
+select (o.persona_id is null) || '|' || (o.terminal_id is null) || '|' || (o.registrado_at = p.created_at)
+  from retail.producto_origen o join retail.productos p on p.id = o.producto_id where o.producto_id = :'p1';`);
+  esperar("la fila reconstruida lleva la hora del alta, sin terminal", conFila.ok && ultima(conFila) === "true|true|true", conFila);
 }
 
 console.log(fallos === 0 ? "\nTodo en orden." : `\n${fallos} prueba(s) fallaron.`);
