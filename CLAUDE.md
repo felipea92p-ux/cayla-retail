@@ -159,7 +159,8 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 55 ms de desfase) → salida corta.** No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
-`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, ambas señales y no adorno: el punto que late en el chip «Vencida» y el giro del botón mientras la base responde), y todo se apaga con
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el giro del botón mientras la base responde y las rayas
+del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -177,6 +178,13 @@ hace con `useFlechasDelCajon` (ignora la flecha que no nació en su DOM, que otr
 lo vigila `lib/vista-rapida-reglas.test.ts`), nunca con un `e.key === "ArrowDown"` propio; y un contenedor clicable que
 puede tener un modal adentro ignora el clic cuyo destino no está en su DOM (`!e.currentTarget.contains(e.target as Node)`,
 como la fila de Por pagar).
+
+**Botones a la vista en una hoja larga (2026-09-30, `/multi-view-responsive`):** la hoja de `<Modal>` es la que scrollea, y en un
+laptop de 768 px de alto el botón principal de un formulario largo quedaba bajo el pliegue. La fila de acciones de una hoja con
+formulario lleva la clase **`pie-hoja-fijo`** (`app/globals.css`): se pega al borde de abajo mientras el contenido pasa por detrás, y
+si todo cabe no se nota. Va como hija directa del `<form>`; si la fila lleva una línea arriba (`border-t`), esa línea va en una caja
+de adentro, o se correría hasta el borde de la hoja. Hoy la usan Ajustar inventario y Registrar nota de crédito; las demás hojas
+largas la piden cuando se toquen.
 
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
 props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
@@ -329,7 +337,9 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
 5. **La lógica es pura, en `lib/<pantalla>-guia.ts`, con su prueba, y NO agrega reglas de negocio**: sale de lo que la validación real
    ya bloquea, y una prueba exige que coincidan (modelo: `lib/alta-producto-guia.test.ts`, que recorre 19 escenarios contra
    `problemasAlta`). Lo opcional de verdad no se lista como «falta»; lo recomendado que no bloquea es «sugerido» y **nunca un candado**.
-6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; solo se mueve lo que no se ve; sin animación con
+6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; **la luz tampoco se va del campo donde la persona está
+   escribiendo hasta que sale de él** (una letra no la manda al siguiente; `CampoGuiado` ya lo hace) y un combo con valor de fábrica que
+   importa entra a la guía como «sugerido» (ADR-0284 act. h); solo se mueve lo que no se ve; sin animación con
    `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); **sin rojo** (aquí nada es un error, es un camino) y solo
    tokens (`app/estilos/alta-guia.css`, clases `hilo-*`). Verificado en escritorio y a 375 px (el pie del paso no se pega bajo `lg`).
 
@@ -479,11 +489,11 @@ sin que nada avisara.
 **Antes de empezar algo grande en este repo**, mirar si alguien más ya lo está
 haciendo: `git status --short` y los archivos tocados en las últimas horas. El
 2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
-Skills de este repo: `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco y la implementa; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
+Skills de este repo: `/focus` (recorre las pantallas y los modales en construcción, avisa cuáles no tienen la guía de foco, la implementa cuidando que no apure a quien escribe y la verifica en el navegador; ver «Guía de foco»), `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
-resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores).
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores). `/multi-view-responsive` (revisa el responsive de escritorio de un módulo, una ruta o `todo`, solo en local: recorre pantallas, pestañas, modales y hojas a siete tamaños de 1024×768 a 1920×1080, mide el DOM y captura cada vista; reporta en el chat hallazgos numerados con severidad y archivo probable. Solo mide y reporta, no toca código, y no cubre celular).
 
 ## graphify
 

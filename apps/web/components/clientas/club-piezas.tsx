@@ -2,11 +2,24 @@
 
 import { CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
-import { ajustarCelular, celularValido, type TextoClub } from "@/lib/club-reglas";
-import { MESES_CUMPLE, ajustarAnio, estadoCumple } from "@/lib/club-clientas-reglas";
+import { ajustarCelular } from "@/lib/club-reglas";
+import { celularLegible, problemaCelularOpcional } from "@/lib/club-caja-reglas";
+import {
+  CUMPLE_VACIO,
+  OPCIONES_MES_CUMPLE,
+  ajustarAnio,
+  ajustarDia,
+  cumpleCompleto,
+  cumpleVacio,
+  problemaCumple,
+  type CumpleEscrito,
+} from "@/lib/club-cumple-reglas";
 
-// Las piezas del club que comparten las hojas de /clientas (ADR-0288 tanda 1b): el alta con «Se une al club», la ficha
-// («Unirse al club», «Llegó su mensaje») y «Llegó un mensaje de WhatsApp». Solo dibujan; la regla vive en `lib/club-*`.
+// Las piezas del club que comparten TODAS las hojas que lo tocan (ADR-0288 tanda 1b): en Cobrar, «Registrar clienta» e
+// «Invitar al club»; en /clientas, el alta, la ficha («Editar», «Unirse al club», «Llegó su mensaje») y «Llegó un mensaje
+// de WhatsApp». Una sola versión, dibujada como el spike del club (`45-club-caja.js`: `modalRegistrar` y `modalInvitar`):
+// cajas hundidas (`caja-cayla`), celular de a tres cifras, cumpleaños en tres cajas iguales. Solo dibujan: la regla vive en
+// `lib/club-cumple-reglas.ts` (el cumpleaños, UNA para las dos pantallas) y `lib/club-caja-reglas.ts` (el celular).
 
 /** El id de la caja del celular, para `avisar.error(…, { enfocar })`. */
 export const ID_CELULAR_CLUB = "club-celular";
@@ -16,109 +29,158 @@ export const ID_ANIO_CLUB = "club-cumple-anio";
 export const ID_DIA_CLUB = "club-cumple-dia";
 
 /**
- * La caja del celular: solo deja los 9 dígitos (pegar «+51 987 654 321» deja «987654321»). Sin `maxLength` a propósito:
- * el navegador cortaría lo pegado ANTES de que `ajustarCelular` le quite el +51. Con `caja`, la caja hundida del spike del
- * club (la etiqueta queda para el lector de pantalla: el título lo pone el bloque guiado de afuera).
+ * El celular de WhatsApp: se lee «987 654 321» y a la base viajan los 9 dígitos (pegar «+51 987 654 321» también sirve).
+ * Sin `maxLength` a propósito: el navegador cortaría lo pegado ANTES de que `ajustarCelular` le quite el +51.
+ * `caja`: la caja hundida del spike (la etiqueta queda para el lector de pantalla: el título lo pone el bloque guiado de
+ * afuera); sin ella, la etiqueta se ve (la ficha la usa para la marca de la guía). `problema`: lo que va debajo; si no se
+ * pasa, avisa solo de un celular a medio escribir.
  */
 export function CampoCelular({
   valor,
   onValor,
-  etiqueta,
+  etiqueta = "Celular de WhatsApp",
   obligatorio = false,
   caja = false,
   id = ID_CELULAR_CLUB,
+  problema,
+  deshabilitado = false,
 }: {
   valor: string;
   onValor: (v: string) => void;
-  etiqueta: React.ReactNode;
+  etiqueta?: React.ReactNode;
   /** Obligatorio (el club lo pide, CL-1): va como `required` del campo; lo que falta lo dice la guía de foco. */
   obligatorio?: boolean;
   caja?: boolean;
   id?: string;
+  problema?: string | null;
+  deshabilitado?: boolean;
 }) {
-  const aMedias = valor !== "" && !celularValido(valor);
+  const pie = problema === undefined ? problemaCelularOpcional(valor) : problema;
   return (
     <CampoTexto
       id={id}
       etiqueta={etiqueta}
-      pie={aMedias ? "Tiene 9 dígitos y empieza en 9." : null}
-      tono={aMedias ? "error" : "neutro"}
-      mono
       caja={caja}
-      inputMode="tel"
+      mono
+      inputMode="numeric"
       placeholder="9xx xxx xxx" // sugerir-fijo: formato del celular peruano; es el mismo para cualquier clienta
       required={obligatorio}
-      value={valor}
+      value={celularLegible(valor)}
+      disabled={deshabilitado}
       onChange={(e) => onValor(ajustarCelular(e.target.value))}
+      pie={pie}
+      tono={pie ? "error" : "neutro"}
     />
   );
 }
 
 /**
- * Día, mes y año del cumpleaños, como el spike del club (`modalNueva`): tres cajas en fila —el día, el mes en un combo, el
- * año opcional (CL-3)— y, si quedó a medias, qué falta. `anioActual` llega de afuera para no leer el reloj al dibujar.
+ * Día, mes y año en tres cajas iguales (spike: `grid grid-cols-3 gap-3`). El año es opcional (CL-3) y su caja dice solo «Año»:
+ * «Año (opcional)» se cortaba a 375 px (spike, commit b1c605e7); que es opcional lo dice la ayuda del título.
+ * `omitible`: «Omitir por ahora · se puede agregar después en su ficha.» (Invitar). Sin él, el enlace solo aparece con el
+ * cumpleaños a medias, para poder vaciarlo: el mes, una vez elegido, no tiene opción vacía. `despues`: dónde se agrega
+ * después (dentro de la ficha no se dice «en su ficha»).
  */
 export function CamposCumpleanos({
-  dia,
-  mes,
-  anio,
-  onDia,
-  onMes,
-  onAnio,
+  cumple,
+  onCumple,
   anioActual,
+  idDia = ID_DIA_CLUB,
+  idAnio = ID_ANIO_CLUB,
+  omitible = false,
+  omitido = false,
+  onOmitir,
+  despues = "se puede agregar después en su ficha.",
+  deshabilitado = false,
 }: {
-  dia: string;
-  mes: string;
-  anio: string;
-  onDia: (v: string) => void;
-  onMes: (v: string) => void;
-  onAnio: (v: string) => void;
+  cumple: CumpleEscrito;
+  onCumple: (c: CumpleEscrito) => void;
   anioActual: number;
+  idDia?: string;
+  idAnio?: string;
+  omitible?: boolean;
+  omitido?: boolean;
+  onOmitir?: () => void;
+  despues?: string;
+  deshabilitado?: boolean;
 }) {
-  const { problema } = estadoCumple(dia, mes, anio, anioActual);
+  const problema = problemaCumple(cumple, anioActual);
+  const vacio = cumpleVacio(cumple);
+  const mostrarOmitir = !cumpleCompleto(cumple, anioActual) && !(omitido && vacio) && (omitible || !vacio);
   return (
     <div>
       <div className="grid grid-cols-3 gap-3">
         <CampoTexto
-          id={ID_DIA_CLUB}
+          id={idDia}
           etiqueta="Día del cumpleaños"
           caja
           mono
           inputMode="numeric"
           maxLength={2}
-          placeholder="Día" // sugerir-fijo: nombre de la casilla (el día del cumpleaños); no depende de nada elegido antes
-          value={dia}
-          onChange={(e) => onDia(e.target.value.replace(/\D/g, "").slice(0, 2))}
+          placeholder="Día" // sugerir-fijo: nombre de la caja (el día del cumpleaños); no depende de nada elegido antes
+          value={cumple.dia}
+          disabled={deshabilitado}
+          onChange={(e) => onCumple({ ...cumple, dia: ajustarDia(e.target.value) })}
         />
-        <CampoSelect etiqueta="Mes del cumpleaños" caja valor={mes} onValor={onMes} opciones={MESES_CUMPLE} marcador="Mes" />
+        <CampoSelect
+          etiqueta="Mes del cumpleaños"
+          caja
+          valor={cumple.mes}
+          onValor={(mes) => onCumple({ ...cumple, mes })}
+          opciones={OPCIONES_MES_CUMPLE}
+          marcador="Mes"
+          deshabilitado={deshabilitado}
+        />
         <CampoTexto
-          id={ID_ANIO_CLUB}
+          id={idAnio}
           etiqueta="Año del cumpleaños (opcional)"
           caja
           mono
           inputMode="numeric"
           maxLength={4}
-          placeholder="Año" // sugerir-fijo: nombre de la casilla (el año, opcional); no depende de nada elegido antes
-          value={anio}
-          onChange={(e) => onAnio(ajustarAnio(e.target.value))}
+          placeholder="Año" // sugerir-fijo: nombre de la caja (el año, opcional); no depende de nada elegido antes
+          value={cumple.anio}
+          disabled={deshabilitado}
+          onChange={(e) => onCumple({ ...cumple, anio: ajustarAnio(e.target.value) })}
         />
       </div>
       {problema && <p className="mt-1 text-xs text-rojo-profundo">{problema}</p>}
+      {mostrarOmitir && (
+        <p className="mt-1.5 text-xs text-tinta/60">
+          <button
+            type="button"
+            onClick={() => {
+              onCumple(CUMPLE_VACIO);
+              onOmitir?.();
+            }}
+            disabled={deshabilitado}
+            className="font-semibold text-tinta underline underline-offset-2 hover:text-rojo"
+          >
+            Omitir por ahora
+          </button>{" "}
+          · {despues}
+        </p>
+      )}
+      {omitido && vacio && <p className="mt-1.5 text-xs text-tinta/60">Omitido: {despues}</p>}
     </div>
   );
 }
 
 /**
- * El texto `club` vigente, para que la asesora se lo LEA antes de registrar su «sí» (D-4: el club es su sí de palabra), y la
- * casilla con la que confirma que lo leyó y ella dijo que sí (como el spike del club, `modalNueva`). La versión que se leyó
- * es la que viaja a `unirse_al_club` (`p_texto_version`) y queda en el registro del permiso.
+ * El texto `club` vigente que la asesora LEE en voz alta antes de registrar su «sí» (D-4: el club es su sí de palabra), y la
+ * casilla con que confirma que lo leyó y ella dijo que sí (spike, `modalInvitar`). La versión leída es la que viaja a
+ * `unirse_al_club` (`p_texto_version`) y queda en el registro del permiso.
  */
-export function TextoDelClub({ texto, leido, onLeido }: { texto: TextoClub; leido: boolean; onLeido: (v: boolean) => void }) {
+export function TextoDelClub({ texto, leido, onLeido, deshabilitado = false }: { texto: string; leido: boolean; onLeido: (v: boolean) => void; deshabilitado?: boolean }) {
   return (
     <div>
-      <div className="rounded-lg bg-hueso px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{texto.texto}</div>
-      <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta">
-        <Casilla marcada={leido} onCambio={() => onLeido(!leido)} etiqueta="Se lo leí y la clienta dijo que sí" className="mt-0.5" />
+      <div className="rounded-lg bg-hueso px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{texto}</div>
+      <p className="mt-1.5 text-xs text-tinta/60">
+        Queda guardado con la versión del texto: nunca hay un «sí» sin su texto. La publicidad por WhatsApp es aparte y la pide ella después,
+        desde su QR.
+      </p>
+      <label className={`mt-3 flex items-start gap-2.5 text-[13px] text-tinta ${deshabilitado ? "opacity-60" : "cursor-pointer"}`}>
+        <Casilla marcada={leido} onCambio={() => !deshabilitado && onLeido(!leido)} etiqueta="Se lo leí y la clienta dijo que sí" className="mt-0.5" />
         <span>Se lo leí y la clienta dijo que sí.</span>
       </label>
     </div>

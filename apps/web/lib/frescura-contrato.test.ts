@@ -14,6 +14,7 @@ import {
   type LlamarRpcFrescura,
   type RespuestaRpc,
 } from "./frescura-reglas";
+import { leerDecisiones } from "./frescura-decisiones-reglas";
 
 // EL CONTRATO SQL ↔ WEB DE FRESCURA (ADR-0208, paso 3 del 3c), probado con la salida REAL de la base.
 //
@@ -48,6 +49,8 @@ type Crudo = {
 const CRUDO = JSON.parse(readFileSync(new URL("./__fixtures__/frescura-sede.json", import.meta.url), "utf8")) as Crudo;
 const SEDE = CRUDO.fn_frescura_sede;
 const CONF = CRUDO.fn_confianza_registro;
+// La salida REAL de `fn_frescura_decisiones` (paso 4b), que arma T7 de `scripts/pruebas/frescura_decisiones.mjs`.
+const DECISIONES = JSON.parse(readFileSync(new URL("./__fixtures__/frescura-decisiones.json", import.meta.url), "utf8")) as unknown;
 const idDe = (codigo: string) => {
   const p = SEDE.prendas.find((x) => x.codigo === codigo);
   if (!p) throw new Error(`el archivo no trae ${codigo}`);
@@ -59,7 +62,10 @@ function rpcDesde(respuestas: Record<string, (args: unknown) => RespuestaRpc | P
   const llamadas: { fn: string; args: unknown }[] = [];
   const rpc: LlamarRpcFrescura = (fn, args) => {
     llamadas.push({ fn, args });
-    return Promise.resolve().then(() => respuestas[fn === "fn_frescura_sede" ? `${fn}:${(args as { p_ubicacion_id: string }).p_ubicacion_id}` : fn](args));
+    // Lo decidido (paso 4b) responde con la salida real salvo que el caso diga otra cosa.
+    const clave = fn === "fn_confianza_registro" ? fn : `${fn}:${(args as { p_ubicacion_id: string }).p_ubicacion_id}`;
+    const respuesta = respuestas[clave] ?? (fn === "fn_frescura_decisiones" ? () => ok(DECISIONES) : undefined);
+    return Promise.resolve().then(() => (respuesta ? respuesta(args) : Promise.reject(new Error(`la prueba no define ${clave}`))));
   };
   return { rpc, llamadas };
 }
@@ -239,6 +245,8 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const { rpc, llamadas } = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), fn_confianza_registro: () => ok(CONF) });
     const r = await armarFrescuraLider([TIENDA], rpc, 90);
     expect(llamadas).toEqual([
+      // Lo decidido sale a la vez que la lectura del piso, y aparte (si cae, la pantalla se dibuja igual).
+      { fn: "fn_frescura_decisiones", args: { p_ubicacion_id: TIENDA.id, p_dias: 90 } },
       { fn: "fn_frescura_sede", args: { p_ubicacion_id: TIENDA.id, p_dias: 90 } },
       { fn: "fn_confianza_registro", args: {} },
     ]);
@@ -404,7 +412,10 @@ describe("paso 4: quien tiene el módulo sin ser líder lee SOLO su sede (armarF
   it("una lectura de su tienda, ninguna del registro al colgar ni de otra tienda; lo mismo que esa tienda en la vuelta del líder", async () => {
     const { rpc, llamadas } = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), fn_confianza_registro: () => ok(CONF) });
     const suya = await armarFrescuraSede(TIENDA, rpc, 120);
-    expect(llamadas).toEqual([{ fn: "fn_frescura_sede", args: { p_ubicacion_id: TIENDA.id, p_dias: 120 } }]);
+    expect(llamadas).toEqual([
+      { fn: "fn_frescura_decisiones", args: { p_ubicacion_id: TIENDA.id, p_dias: 120 } },
+      { fn: "fn_frescura_sede", args: { p_ubicacion_id: TIENDA.id, p_dias: 120 } },
+    ]);
     expect(suya.lectura.fallo).toBeNull();
     const delLider = await armarFrescuraLider([TIENDA], rpc, 120);
     expect(suya).toEqual(delLider.sedes[0]);
@@ -459,5 +470,57 @@ describe("caída externa: cada bloque falla por su cuenta, la referencia de CAYL
     expect(r.sedes[1].lectura).toEqual({ datos: { separaPiso: false }, fallo: null });
     expect(r.referenciaCayla.fallo).toBeNull();
     expect(r.referenciaCayla.datos?.length).toBeGreaterThan(0);
+  });
+});
+
+describe("paso 4b: la salida real de fn_frescura_decisiones (el contrato con la libreta)", () => {
+  const lectura = leerDecisiones(DECISIONES);
+
+  it("la web la lee ENTERA: ningún renglón se descarta por un nombre de campo distinto", () => {
+    const crudos = (DECISIONES as { decisiones: unknown[] }).decisiones;
+    expect(lectura).not.toBeNull();
+    expect(lectura!.renglones).toHaveLength(crudos.length);
+    expect(lectura!.renglones.length).toBeGreaterThanOrEqual(3);
+    expect(lectura!.trasladosRecientes).toHaveLength((DECISIONES as { traslados_recientes: unknown[] }).traslados_recientes.length);
+  });
+
+  it("cada acción trae lo suyo: «La rebajé», sus ventas con el motivo; «La trasladé», el traslado con cuándo entró", () => {
+    const rebaje = lectura!.renglones.find((r) => r.accion === "rebaje")!;
+    expect(rebaje.plazoDias).toBe(15);
+    expect(rebaje.ventas?.map((v) => v.motivo)).toEqual([null, "campana", "liquidacion_temporada"]);
+    const traslade = lectura!.renglones.find((r) => r.accion === "traslade")!;
+    expect(traslade.traslado).toMatchObject({ destino: "Tienda Lima", unidades: 3, anulado: false });
+    expect(traslade.traslado?.recibidoEn).not.toBeNull();
+    expect(traslade.transferenciaId).not.toBeNull();
+    expect(lectura!.renglones.find((r) => r.accion === "hasta_agotar")).toMatchObject({ plazoDias: 15, persona: expect.stringMatching(/^Felipe /) });
+    expect(lectura!.trasladosRecientes[0]).toMatchObject({ destino: "Tienda Lima", prendas: [expect.objectContaining({ unidades: 3 })] });
+  });
+
+  it("una respuesta con otra forma no es una lectura (la pantalla lo dice y sigue)", () => {
+    expect(leerDecisiones(null)).toBeNull();
+    expect(leerDecisiones({ ahora: "no es fecha", decisiones: [] })).toBeNull();
+    expect(leerDecisiones({ ahora: "2026-09-29T10:00:00Z" })).toBeNull();
+  });
+
+  it("caída externa: sin lo decidido la pantalla se dibuja igual, «Por decidir» vuelve a ser «quieta» y lo dice", async () => {
+    const { rpc } = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), [`fn_frescura_decisiones:${TIENDA.id}`]: () => Promise.reject(new Error("timeout")) });
+    const f = await armarFrescuraSede(TIENDA, rpc, 120);
+    const sede = f.lectura.datos as FrescuraSede;
+    expect(f.lectura.fallo).toBeNull();
+    expect(sede.decisiones.estado).toBe("sin_lectura");
+    expect(sede.prendas.every((p) => p.porDecidir === p.estado.quieta && p.decision === null)).toBe(true);
+    expect(sede.cifras.porDecidir).toBe(sede.prendas.filter((p) => p.estado.quieta).length);
+    expect(sede.cifras.decididas).toBe(0);
+    // Una respuesta con otra forma, o con error de la base, es lo mismo.
+    for (const mala of [() => ok({ ahora: "hoy" }), () => ({ data: null, error: { message: "caída" } })]) {
+      const g = rpcDesde({ [`fn_frescura_sede:${TIENDA.id}`]: () => ok(SEDE), [`fn_frescura_decisiones:${TIENDA.id}`]: mala });
+      expect(((await armarFrescuraSede(TIENDA, g.rpc, 120)).lectura.datos as FrescuraSede).decisiones.estado).toBe("sin_lectura");
+    }
+  });
+
+  it("las decisiones de OTRAS prendas no tocan a las de esta sede sembrada: nada cambia si no hay libreta de ellas", async () => {
+    const sede = await laSede();
+    expect(sede.decisiones.estado).toBe("ok");
+    expect(sede.prendas.every((p) => p.decision === null && p.porDecidir === p.estado.quieta)).toBe(true);
   });
 });

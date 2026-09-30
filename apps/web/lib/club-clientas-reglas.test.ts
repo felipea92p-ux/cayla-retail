@@ -1,17 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  ajustarAnio,
+  AVISO_CAMBIO_CELULAR,
+  avisoCambioDeCelular,
   cambiaDeCelular,
   cumpleLegible,
-  estadoCumple,
   faltaParaSerSocia,
   FILTROS_CLUB,
-  MESES_CUMPLE,
   pasaFiltroClub,
   leerMensaje,
   normalizarMensaje,
   pideBaja,
-  problemaAnio,
   queHacerConElMensaje,
   textoEstadoClub,
 } from "./club-clientas-reglas";
@@ -74,17 +72,22 @@ describe("cumpleaños con año opcional (CL-3)", () => {
     expect(cumpleLegible(null, 3, 1990)).toBe("—");
   });
 
-  it("la caja del año solo guarda 4 cifras", () => {
-    expect(ajustarAnio("19a90x5")).toBe("1990");
+});
+
+describe("avisoCambioDeCelular — antes de guardar, lo que pierde una socia con novedades", () => {
+  const conNovedades = { publicidadDesde: "2026-10-01T10:00:00Z", telefonoWhatsapp: "987654321" };
+
+  it("con publicidad y otro número: el aviso", () => {
+    expect(avisoCambioDeCelular(conNovedades, "911222333")).toBe(AVISO_CAMBIO_CELULAR);
+    expect(AVISO_CAMBIO_CELULAR).toBe("Si cambias su celular, deja de recibir novedades hasta que las vuelva a pedir desde el número nuevo.");
+    // A medio escribir también: es otro número hasta que vuelva a ser el de antes.
+    expect(avisoCambioDeCelular(conNovedades, "98765")).toBe(AVISO_CAMBIO_CELULAR);
   });
 
-  it("vacío está bien; si se escribe, 4 cifras entre 1900 y hoy", () => {
-    expect(problemaAnio("", 2026)).toBeNull();
-    expect(problemaAnio("1990", 2026)).toBeNull();
-    expect(problemaAnio("2026", 2026)).toBeNull();
-    expect(problemaAnio("199", 2026)).not.toBeNull();
-    expect(problemaAnio("1899", 2026)).not.toBeNull();
-    expect(problemaAnio("2027", 2026)).not.toBeNull();
+  it("el mismo número (escrito con espacios o +51), vacío o sin publicidad: nada", () => {
+    expect(avisoCambioDeCelular(conNovedades, "+51 987 654 321")).toBeNull();
+    expect(avisoCambioDeCelular(conNovedades, "")).toBeNull();
+    expect(avisoCambioDeCelular({ ...conNovedades, publicidadDesde: null }, "911222333")).toBeNull();
   });
 });
 
@@ -184,28 +187,5 @@ describe("pasaFiltroClub — el filtro de la lista", () => {
 
   it("todos los filtros del control están cubiertos (ninguno cae fuera del switch)", () => {
     for (const f of FILTROS_CLUB) expect(typeof pasaFiltroClub(socia, f.valor, 1)).toBe("boolean");
-  });
-});
-
-describe("estadoCumple — opcional, pero si se empieza, completo", () => {
-  it("vacío del todo: ni completo ni problema", () => {
-    expect(estadoCumple("", "", "", 2026)).toEqual({ completo: false, problema: null });
-  });
-
-  it("día y mes: completo; con año válido también", () => {
-    expect(estadoCumple("12", "3", "", 2026)).toEqual({ completo: true, problema: null });
-    expect(estadoCumple("12", "3", "1990", 2026)).toEqual({ completo: true, problema: null });
-  });
-
-  it("a medias o fuera de rango: dice qué falta", () => {
-    expect(estadoCumple("12", "", "", 2026).problema).toBe("Falta el día o el mes.");
-    expect(estadoCumple("", "3", "", 2026).problema).toBe("Falta el día o el mes.");
-    expect(estadoCumple("32", "3", "", 2026).problema).toBe("El día va del 1 al 31.");
-    expect(estadoCumple("", "", "1990", 2026).problema).toBe("Falta el día y el mes.");
-    expect(estadoCumple("12", "3", "2030", 2026).completo).toBe(false);
-  });
-
-  it("el combo del mes tiene los 12, del 1 al 12", () => {
-    expect(MESES_CUMPLE.map((m) => m.valor)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
   });
 });

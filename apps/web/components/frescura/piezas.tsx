@@ -1,4 +1,4 @@
-import { Info, MoveRight, Package, ScanSearch, CircleHelp, Truck, ArrowDownToLine, ClipboardCheck, type LucideIcon } from "lucide-react";
+import { Info, MoveRight, Package, ScanSearch, CircleHelp, Truck, ArrowDownToLine, ClipboardCheck, PackageCheck, Tag, type LucideIcon } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { trozosRicos, type EstadoVista, type TextoRico } from "@/lib/frescura-pantalla";
 import type { NivelConfianza, Sugerencia } from "@/lib/frescura-reglas";
@@ -66,5 +66,7 @@ export const ICONO_SUGERENCIA: Record<Sugerencia | "contar", LucideIcon> = {
   retirar: ArrowDownToLine,
   sigue_vendiendo: CircleHelp,
   guardar_hasta_su_estacion: Package,
+  dejar_hasta_agotar: PackageCheck,
+  rebaja_chica: Tag,
   contar: ClipboardCheck,
 };

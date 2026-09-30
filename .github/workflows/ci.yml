@@ -426,6 +426,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-lectura
 
+      # La libreta de «Ya decidí» de Frescura del piso (paso 4b, ADR-0208): frescura_decisiones rechaza en la BASE cada estado
+      # imposible (dos decisiones actuales, anular lo que no es una decisión, editar o borrar) y cada candado tiene su
+      # mutante; anotar y anular firman, se protegen del reintento y de la carrera; la lectura por sede; y eliminar un
+      # producto con historia conoce la libreta. Cada caso termina en ROLLBACK salvo las carreras, que limpian lo suyo.
+      - name: pruebas:frescura-decisiones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-decisiones
+
       # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
       # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
       # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de
@@ -480,6 +488,12 @@ jobs:
       - name: pruebas:actividad-oculta-ventas-de-prueba
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-oculta-ventas-de-prueba
+
+      # Dónde se registró cada producto (ADR-0292): un disparador en productos anota la sede (terminal, x-ubicacion o sede de
+      # partida), nunca frena un alta, y la web solo lee por fn_producto_origen (la tabla no tiene políticas). Cada caso: ROLLBACK.
+      - name: pruebas:producto-origen
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:producto-origen
 
       # Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
       # desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
@@ -880,6 +894,19 @@ jobs:
       - name: pruebas:club-permisos
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-permisos
+
+      # Club de clientas, tanda 1c (ADR-0288 D-5): el cumpleaños con un canje por año. `registrar_venta` con
+      # `p_canjear_cumpleanos` recalcula la parte del club de cada línea (`round((precio − descuento_sin_club) × pct / 100, 2)`,
+      # en cascada: 20 % → 28 %; la misma tabla de paridad que la regla de la web) y rechaza un monto distinto, un canje fuera
+      # de su mes, de una no socia o sin clienta, y el segundo del año (único parcial de `club_canjes`); la parte del club no
+      # cuenta para el costo, el tope D-67, el código, el 35 % ni el argumento; anular libera el canje y una devolución no;
+      # `resumen_clienta_caja` dice disponible, % y canjeado; una sola firma, md5 «después» = vivas, pegar las tres partes
+      # dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, ningún `into` en un texto que el SQL
+      # Editor pueda confundir; y dos cajas canjean a la vez (la segunda espera en la lectura de la ficha). Cada caso termina
+      # en ROLLBACK (las carreras con COMMIT solo corren con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-cumpleanos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-cumpleanos
 
       # Club de clientas, tanda 1d (ADR-0288 D-6 y D-7): «buscó y no había» y «se la probó y no la llevó» son la misma tabla
       # (`pedidos_no_atendidos.motivo`, con `razon` solo para «se la probó»; la llamada vieja de 5 parámetros sigue anotando

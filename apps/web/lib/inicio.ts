@@ -30,7 +30,7 @@ export type HoyDeLaSede = {
   nombreDia: string;
 };
 
-async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Promise<T | null> {
+export async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Promise<T | null> {
   try {
     return await leer();
   } catch (e) {
@@ -78,7 +78,7 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /** Cuenta filas sin traerlas. `null` si falla. */
-async function contar(que: string, consulta: PromiseLike<{ count: number | null; error: { message: string } | null }>): Promise<number | null> {
+export async function contar(que: string, consulta: PromiseLike<{ count: number | null; error: { message: string } | null }>): Promise<number | null> {
   return tolerarLectura(que, async () => {
     const { count, error } = await consulta;
     if (error) throw new Error(error.message);

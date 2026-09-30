@@ -15,7 +15,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
 import { textosClub, unirseAlClub } from "@/lib/club-acciones";
 import { celularValido, textoVigente, type TextoClub } from "@/lib/club-reglas";
-import { estadoCumple } from "@/lib/club-clientas-reglas";
+import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import type { Clienta } from "@/lib/clientas-reglas";
 import { ajustarNumeroAlTipo, documentoLegible, normalizarNumeroDocumento, problemaDocumento } from "@/lib/documento-clienta-reglas";
 
@@ -76,7 +76,9 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
   const nombreBien = alta.nombre.trim().length >= 3;
   const celularAMedias = alta.telefonoWhatsapp !== "" && !celularValido(alta.telefonoWhatsapp);
   const celularBien = celularValido(alta.telefonoWhatsapp);
-  const cumple = estadoCumple(alta.cumpleDia, alta.cumpleMes, alta.cumpleAnio, anioActual);
+  // La MISMA regla del cumpleaños que Cobrar (lib/club-cumple-reglas.ts): un día que el mes no tiene no pasa en ninguna.
+  const cumpleEscrito: CumpleEscrito = { dia: alta.cumpleDia, mes: alta.cumpleMes, anio: alta.cumpleAnio };
+  const cumple = { problema: problemaCumple(cumpleEscrito, anioActual), completo: cumpleCompleto(cumpleEscrito, anioActual) };
   const guia = useGuiaCampos([
     {
       id: "documento",
@@ -116,7 +118,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
       return;
     }
     if (cumple.problema) {
-      avisar.error(cumple.problema, { enfocar: alta.cumpleDia === "" ? ID_DIA_CLUB : ID_ANIO_CLUB });
+      avisar.error(cumple.problema, { enfocar: cajaDelProblemaCumple(cumpleEscrito, anioActual) === "anio" ? ID_ANIO_CLUB : ID_DIA_CLUB });
       return;
     }
     if (conClub && !leido) {
@@ -232,12 +234,8 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
           </CampoGuiado>
           <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Sin él no hay beneficio · el año es opcional">
             <CamposCumpleanos
-              dia={alta.cumpleDia}
-              mes={alta.cumpleMes}
-              anio={alta.cumpleAnio}
-              onDia={(v) => setAlta((a) => ({ ...a, cumpleDia: v }))}
-              onMes={(v) => setAlta((a) => ({ ...a, cumpleMes: v }))}
-              onAnio={(v) => setAlta((a) => ({ ...a, cumpleAnio: v }))}
+              cumple={cumpleEscrito}
+              onCumple={(nuevo) => setAlta((a) => ({ ...a, cumpleDia: nuevo.dia, cumpleMes: nuevo.mes, cumpleAnio: nuevo.anio }))}
               anioActual={anioActual}
             />
           </CampoGuiado>
@@ -256,7 +254,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
           )}
           {conClub && textoClub && (
             <CampoGuiado id="leido" guia={guia} titulo="Texto del club que se le lee" ayuda={`versión ${textoClub.version}`}>
-              <TextoDelClub texto={textoClub} leido={leido} onLeido={setLeido} />
+              <TextoDelClub texto={textoClub.texto} leido={leido} onLeido={setLeido} />
             </CampoGuiado>
           )}
           <CampoGuiado id="responsable" guia={guia}>

@@ -91,6 +91,7 @@ function lineaNueva(varianteId: string): LineaConteo {
     ajusteMovimientoId: null,
     ajustadoTotal: 0,
     ajustadoAntes: 0,
+    hallazgos: 0,
     diferencia: null,
     estado: "pendiente",
   };

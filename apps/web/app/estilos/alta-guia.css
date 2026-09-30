@@ -1,8 +1,9 @@
 /* «EL HILO» DEL ALTA DE PRODUCTO (ADR-0284)
    Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue aquí, falta, opcional), un tinte
    suave en el campo que sigue y una etiqueta «Sigue aquí». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
-   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle, sin
-   rebote, con `--ease-cayla`, y todo se apaga con `prefers-reduced-motion`. Los colores salen solo de los tokens de
+   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle —salvo
+   las rayas del círculo punteado de un campo opcional, que giran—, sin rebote, con `--ease-cayla`, y todo se apaga con
+   `prefers-reduced-motion`. Los colores salen solo de los tokens de
    globals.css (ADR-0169); el rojo no se usa: aquí nada es un error, es un camino. */
 
 /* ---- La marca de un campo: 18 px, a la izquierda de su título ---- */
@@ -45,6 +46,10 @@
 }
 .hilo-marca[data-estado="opcional"] {
   border: 1.5px dashed color-mix(in srgb, var(--color-tinta) 26%, transparent);
+  /* Las rayas dan la vuelta, despacio y sin parar: un círculo punteado quieto pasaba por «decoración» y nadie lo leía como «esto es
+     opcional, puedes saltarlo». Es un borde, sin contenido: girar el propio círculo hace correr las rayas. Única marca en bucle de la guía
+     (Felipe, 2026-09-30; excepción a «nunca en bucle», ADR-0136 act. c); con movimiento reducido queda quieto. */
+  animation: hilo-gira 8s linear infinite;
 }
 /* El ✓ se dibuja una vez, al pasar a «hecho» (la marca se vuelve a montar con su estado). */
 .hilo-tilde {
@@ -52,6 +57,9 @@
   animation: hilo-trazo 320ms var(--ease-cayla) 60ms backwards;
 }
 
+@keyframes hilo-gira {
+  to { transform: rotate(360deg); }
+}
 @keyframes hilo-pulso {
   from { transform: scale(1); opacity: 0.6; }
   to { transform: scale(2.2); opacity: 0; }
@@ -174,6 +182,7 @@
     transition: none;
   }
   .hilo-marca[data-estado="ahora"]::after,
+  .hilo-marca[data-estado="opcional"],
   .hilo-tilde,
   .hilo-etiqueta,
   [data-campo][data-llamado],

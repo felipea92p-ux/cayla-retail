@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useSyncExternalStore } from "react";
-import { notaDeLinea, type PrendaConteo } from "@/lib/conteo-reglas";
+import { notaDeLinea, textoHabiaAntes, type PrendaConteo } from "@/lib/conteo-reglas";
 import { CampoContaste } from "@/components/conteo/CampoContaste";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import type { ControlConteo } from "@/components/conteo/control-conteo";
@@ -46,6 +46,7 @@ export const FilaConteo = memo(function FilaConteo({
   if (!linea) return null;
 
   const nota = notaDeLinea(linea);
+  const habiaAntes = textoHabiaAntes(linea);
   const tinte = linea.estado === "correcta" ? "bg-verde/[0.045]" : linea.estado === "en_reconteo" ? "bg-ambar/[0.05]" : "";
   const talla = prenda.talla ?? "Única";
   const etiqueta = `Contaste de ${prenda.referencia} ${prenda.color ?? ""} talla ${talla}`.replace(/\s+/g, " ");
@@ -61,7 +62,11 @@ export const FilaConteo = memo(function FilaConteo({
           {talla}
         </span>
       </th>
-      <td className="px-1 py-[3px] text-center align-middle text-sm tabular-nums text-tinta/65">{linea.debeHaber}</td>
+      <td className="px-1 py-[3px] text-center align-middle text-sm tabular-nums text-tinta/65">
+        {linea.debeHaber}
+        {/* Al corregir un conteo cerrado el «debe haber» salta al contar de nuevo (3 → 2): esta marca fija dice con cuánto se empezó. */}
+        {habiaAntes && <span className="block text-[10px] leading-[12px] text-taupe">{habiaAntes}</span>}
+      </td>
       <td className="px-1 py-[3px] align-middle">
         <CampoContaste varianteId={id} contada={linea.contada} sugerida={linea.contada === null ? linea.anterior : null} etiqueta={etiqueta} alConfirmar={alConfirmar} alInvalido={alInvalido} alEnter={alEnter} />
       </td>

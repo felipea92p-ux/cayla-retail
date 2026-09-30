@@ -40,6 +40,13 @@
 --   7. Legado: las fichas con `whatsapp_consentimiento_en` pasan a socias SIN publicidad (evento `club`/`legado`), solo
 --      si tienen un celular válido, documento y nombre. Producción tenía 0 el 2026-09-30; imprime cuántas tocó y cuántas
 --      quedaron fuera (y por qué).
+--   8. Camino B (ADR-0288, «Actualización 2026-09-30 (c)»): el QR personal abre una página pública de CAYLA donde ELLA marca
+--      una casilla. `club_invitaciones` (un enlace de un solo uso por clienta, token de 16 caracteres, 7 días; RLS sin
+--      políticas y sin permisos para la API); el medio `qr_web` en `club_permisos` (un otorga de publicidad SIN
+--      `registrado_por`: lo registró ella); el texto `pagina_publicidad` v1; y tres funciones: `crear_invitacion_club`
+--      (la caja o la ficha; módulo «Clientas» y responsable), `fn_invitacion_club` y `confirmar_invitacion_club` (las dos
+--      de la página: EXECUTE para `anon`). `archivar_clienta` y `unir_clientas` vencen las invitaciones sin usar de la
+--      ficha que se va (ver DECIDÍ).
 --
 -- AJUSTES AL CONTRATO (Felipe como arquitecto, 2026-09-30, a pedido de Cobrar):
 --   a. `fn_club_textos_vigentes` no exige el módulo «Clientas» (ver DECIDÍ abajo).
@@ -71,6 +78,25 @@
 --   (`club_permisos` con `created_at = now()`, que es la hora de la transacción). Es la condición de la ley escrita en el
 --   esquema, y cierra la carrera de `registrar_clienta`: si el cartel crea la misma ficha a la vez con otro celular, el
 --   upsert cae sobre una ficha con publicidad que no vio y el disparador lo rechaza en vez de dejarla en un número sin prueba.
+-- DECIDÍ (camino B): `qr_web` es el único medio que da la publicidad sin una persona de la tienda (`registrado_por` nulo
+--   solo en `qr_web` y `legado`, y `qr_web` lo exige nulo): la prueba es la invitación usada (`usada_en` = la hora del
+--   evento, `texto_version` = la que ella aceptó) y el evento la nombra en su `nota` (el id, nunca el token: es una llave).
+--   `qr_web` no vale como prueba de un número nuevo para el disparador `clientas_celular_con_publicidad`: la página no
+--   cambia el celular, solo muestra a medias el que ya tiene la ficha.
+-- DECIDÍ (camino B): la página no le cuenta a nadie qué le pasó a la ficha. Anonimizada, archivada, unida a otra o sin
+--   club → `vencida`, igual que un enlace viejo (quien tenga el enlace no se entera de que ella pidió borrar sus datos);
+--   con la publicidad ya dada por otro camino → `usada`. Solo `vigente` devuelve datos, y solo el nombre de pila, el
+--   celular a medias, su código, el texto y la tienda. Un token sin la forma de uno (16 caracteres de [A-Za-z0-9_-]) es
+--   `no_existe` sin mirar la tabla. `confirmar_invitacion_club` devuelve el estado en que queda: `usada` (recién
+--   confirmada o ya lo estaba), `vencida` o `no_existe`; solo un texto que cambió es un error (`club_texto_cambio`).
+-- DECIDÍ (camino B, anonimizar y unir): `archivar_clienta` (con o sin anonimizar) vence ahora (`vence_en = now()`) las
+--   invitaciones sin usar de esa ficha: el enlace muere; si vuelve, la tienda le muestra un QR nuevo. `unir_clientas` vence
+--   las de la ficha que se va; las de la que queda siguen. Nada se borra y ninguna invitación cambia de clienta.
+-- DESCARTÉ (camino B): pasar las invitaciones de la ficha unida a la que queda (un enlace pensado para un número terminaría
+--   dando la publicidad en otro, y la publicidad es del número); marcarlas `usada` al anonimizar (la página diría que ella
+--   confirmó, y no es cierto); borrarlas (nunca se borra); un único parcial «una vigente por clienta» (la vigencia depende
+--   de now() y un índice no puede usarla: lo cierra el `for update` de la ficha); devolver un error con la ficha
+--   anonimizada (le diría a quien tenga el enlace que ella pidió borrar sus datos); guardar el token en el evento.
 -- DESCARTÉ: no dejar cambiar el celular a una socia con publicidad (Felipe quiere poder cambiarlo); conservarle la
 --   publicidad al cambiarlo (quedaría en un número que no la pidió); una marca de transacción (`set_config`) que solo
 --   pusieran las funciones «legítimas» (es una promesa de la función: cualquiera la pone sin el mensaje de ella, y hay que
@@ -84,6 +110,11 @@
 --   con `celular_con_publicidad`. Límite conocido: DENTRO de una transacción que ya registró su mensaje, el disparador deja
 --   pasar otro cambio de celular de esa ficha; por la API cada llamada es su propia transacción. Lo vigila
 --   scripts/pruebas/club_permisos.mjs (sección n).
+--   Camino B: se rompe si alguien le da EXECUTE a `anon` sobre `crear_invitacion_club` (cualquiera crearía enlaces), si una
+--   función nueva escribe un `qr_web` sin usar una invitación, o si una función toma la invitación ANTES que la ficha (el
+--   orden es ficha → invitación en las cinco que las tocan; al revés, `archivar_clienta` y `confirmar_invitacion_club` a
+--   la vez podrían trabarse). La página pública depende de que `anon` tenga USAGE sobre el schema `retail`
+--   (0005_grants.sql en local; en producción ya lo tiene, consultado el 2026-09-30). Lo vigila club_permisos.mjs (sección o).
 --
 -- CANDADO DE VERSIÓN. Antes de tocar nada, la sección 0 compara el md5 NORMALIZADO (sin comentarios ni espacios) del
 -- cuerpo vivo de las funciones que reescribe con el de producción el 2026-09-30 (el «después» de la tanda 1a, que está en
@@ -113,13 +144,25 @@
 --   → exactamente 5 filas, cada una con su md5 «después» de la sección 0 (una sola firma de registrar y de editar); y
 --   select count(*) from retail.club_textos where version = 2;   → 3
 --   select count(*) from pg_trigger where tgrelid = 'retail.clientas'::regclass and tgname = 'clientas_celular_con_publicidad';   → 1
---   select pg_get_constraintdef(oid) ~ 'cambio_celular' from pg_constraint where conname = 'club_permisos_medio_valido';   → t
+--   select pg_get_constraintdef(oid) ~ 'cambio_celular' and pg_get_constraintdef(oid) ~ 'qr_web' from pg_constraint where conname = 'club_permisos_medio_valido';   → t
+--   select tipo, version from retail.club_textos where tipo = 'pagina_publicidad';   → pagina_publicidad | 1
+--   select relrowsecurity, (select count(*) from pg_policy where polrelid = 'retail.club_invitaciones'::regclass)
+--     from pg_class where oid = 'retail.club_invitaciones'::regclass;   → t | 0
+--   select has_function_privilege('anon', 'retail.fn_invitacion_club(text)', 'execute'),
+--          has_function_privilege('anon', 'retail.confirmar_invitacion_club(text,integer)', 'execute'),
+--          has_function_privilege('anon', 'retail.crear_invitacion_club(uuid,uuid)', 'execute'),
+--          has_schema_privilege('anon', 'retail', 'usage');   → t | t | f | t
 --
 -- CONCURRENCIA. Dos cajas invitan a la misma clienta a la vez: `unirse_al_club` toma la ficha con `for update`; la
 -- segunda espera, la encuentra socia y devuelve el mismo código sin otro evento. Lo mismo «Llegó su mensaje», el cartel y
 -- la BAJA (esta toma sus fichas en orden de id, para que dos BAJAs a la vez no se crucen), y el cambio de celular:
 -- `editar_clienta` y `registrar_clienta` deciden si quitar la publicidad con la ficha ya tomada. El código sale de una
 -- secuencia: dos socias nuevas a la vez nunca comparten número (y el único de `codigo_club` lo garantiza igual).
+-- Camino B: dos cajas que muestran su QR a la vez toman la ficha con `for update` y la segunda recibe la MISMA invitación.
+-- Dos confirmaciones del mismo enlace a la vez (dos pestañas, o un doble toque): `confirmar_invitacion_club` toma la ficha y
+-- después la invitación con `for update`; la segunda espera, la encuentra usada y devuelve `usada` sin otro evento. Las
+-- cinco funciones que tocan invitaciones (crear, confirmar, archivar, unir y la lectura, que no toma nada) van en el mismo
+-- orden, ficha → invitación: nunca se esperan en cruz.
 -- CAÍDA EXTERNA. Nada de esto llama a WhatsApp, al padrón ni a Lucode: la asesora mira el chat de la tienda y lo registra.
 -- Sin número de la tienda no hay QR; sin texto vigente, la base rechaza con `club_sin_texto` y la caja no ofrece «Invitar».
 -- ============================================================================
@@ -144,8 +187,8 @@ begin
       ('retail.registrar_clienta(text,text,text,text,boolean,smallint,smallint)',                  '08af40374c65d9aebf1e266783bd65d1', null),
       ('retail.editar_clienta(uuid,text,text,text,text,boolean,boolean,smallint,smallint,jsonb,integer)', '6978f91f9bdad2461223545be2a65c4d', null),
       ('retail.buscar_clienta(text,boolean)',                                                      '398706b77a9fdc51f70eec76a0cc23ae', 'ef22a7c5fd32697698ef260f8ff53586'),
-      ('retail.archivar_clienta(uuid,text,boolean,integer)',                                       'a3fa06de786fb5adcfc511e0eb66ec37', '5999f3545b05cbd9b3084e8d3a10e262'),
-      ('retail.unir_clientas(uuid,uuid,integer,integer)',                                          '39a5f804607137727b9b396dfa168995', '03fcb1c598de56c8a05b6ef904e0450e'),
+      ('retail.archivar_clienta(uuid,text,boolean,integer)',                                       'a3fa06de786fb5adcfc511e0eb66ec37', '5e20213a48c0b617ea92f7394d40eec9'),
+      ('retail.unir_clientas(uuid,uuid,integer,integer)',                                          '39a5f804607137727b9b396dfa168995', '575bfff00b96a24f838d3f0f1959d29c'),
       ('retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)',                 null,                               '88228c6b292c078ef462fa7c7f11e8fe'),
       ('retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)',   null,                               'e00a9edb0e8781417504abb7c361a226')
     ) as t(firma, antes, despues)
@@ -177,7 +220,7 @@ alter table retail.clientas add column if not exists cumple_anio smallint;
 comment on column retail.clientas.club_desde is
   'Socia del club desde (su «sí» de palabra en caja o en la ficha, o su mensaje por WhatsApp). Foto derivada de club_permisos en la misma transacción (ADR-0288 D-4). Null = no es socia.';
 comment on column retail.clientas.publicidad_desde is
-  'Con permiso de publicidad por WhatsApp desde: SOLO nace de un mensaje que ella escribió a la tienda (Ley 32323; club_permisos, medio whatsapp_propio). Es del número: si su celular cambia, se pierde (medio cambio_celular) y vuelve cuando escriba desde el nuevo. Null = sin publicidad (sí avisos informativos si es socia).';
+  'Con permiso de publicidad por WhatsApp desde: SOLO nace de algo que hizo ella, un mensaje que escribió a la tienda o la casilla que marcó en la página de su QR (Ley 32323; club_permisos, medio whatsapp_propio o qr_web). Es del número: si su celular cambia, se pierde (medio cambio_celular) y vuelve cuando escriba desde el nuevo. Null = sin publicidad (sí avisos informativos si es socia).';
 comment on column retail.clientas.codigo_club is
   'Su código de socia (C-0001, correlativo y único): va en su QR y en el mensaje que envía, y es lo que la asesora busca cuando llega. Existe si y solo si es socia.';
 comment on column retail.clientas.cumple_anio is
@@ -228,13 +271,20 @@ create table if not exists retail.club_textos (
   vigente_desde timestamptz not null default now(),
   creado_por    uuid references public.personas (id),
   constraint club_textos_pkey primary key (tipo, version),
-  constraint club_textos_tipo_valido check (tipo in ('club', 'mensaje_personal', 'mensaje_generico')),
+  -- (los tipos, abajo: fuera del `create table`, para que pegar otra vez los rehaga)
   constraint club_textos_version_positiva check (version >= 1),
   constraint club_textos_no_vacio check (btrim(texto) <> ''),
   constraint club_textos_personal_con_codigo check (tipo <> 'mensaje_personal' or position('{codigo}' in texto) > 0)
 );
 comment on table retail.club_textos is
-  'Los textos del club (ADR-0288): club = lo que la asesora le lee al invitarla; mensaje_personal = lo que ELLA envía desde su QR ({codigo} = su código); mensaje_generico = lo que envía desde el cartel o un ticket sin clienta. El vigente de cada tipo es su versión más alta. Nunca se editan ni se borran: hay permisos que citan cada versión.';
+  'Los textos del club (ADR-0288): club = lo que la asesora le lee al invitarla; mensaje_personal = lo que ELLA envía desde su QR ({codigo} = su código); mensaje_generico = lo que envía desde el cartel o un ticket sin clienta; pagina_publicidad = lo que ELLA acepta con una casilla en la página de su QR (camino B; {celular} = su celular a medias, lo reemplaza la web). El vigente de cada tipo es su versión más alta. Nunca se editan ni se borran: hay permisos que citan cada versión.';
+alter table retail.club_textos drop constraint if exists club_textos_tipo_valido;
+alter table retail.club_textos add constraint club_textos_tipo_valido
+  check (tipo in ('club', 'mensaje_personal', 'mensaje_generico', 'pagina_publicidad'));
+-- La página tiene que decirle a QUÉ número le van a escribir: el texto que ella acepta nombra su celular.
+alter table retail.club_textos drop constraint if exists club_textos_pagina_con_celular;
+alter table retail.club_textos add constraint club_textos_pagina_con_celular
+  check (tipo <> 'pagina_publicidad' or position('{celular}' in texto) > 0);
 
 -- ---------- 3. los permisos: la historia, de solo agregar ----------
 create table if not exists retail.club_permisos (
@@ -252,38 +302,53 @@ create table if not exists retail.club_permisos (
   created_at     timestamptz not null default now(),
   constraint club_permisos_finalidad_valida check (finalidad in ('club', 'publicidad_whatsapp')),
   constraint club_permisos_accion_valida check (accion in ('otorga', 'revoca')),
-  -- (los medios y lo que puede cada uno, abajo: fuera del `create table`, para que pegar otra vez los rehaga)
-  -- La ley (Ley 32323, art. 58.1.e): la publicidad SOLO nace de un mensaje que ella escribió. Nadie la marca de palabra.
-  constraint club_permisos_publicidad_solo_por_su_mensaje
-    check (not (finalidad = 'publicidad_whatsapp' and accion = 'otorga') or medio = 'whatsapp_propio'),
+  -- (los medios, lo que puede cada uno, el candado de la ley, el texto de cada medio y quién registra, abajo: fuera del
+  -- `create table`, para que pegar otra vez los rehaga)
   constraint club_permisos_otorga_con_texto check (accion <> 'otorga' or medio = 'legado' or texto_version is not null),
   constraint club_permisos_texto_completo check ((texto_tipo is null) = (texto_version is null)),
-  constraint club_permisos_texto_del_medio check (
-       texto_tipo is null
-    or (medio in ('caja_palabra', 'ficha') and texto_tipo = 'club')
-    or (medio = 'whatsapp_propio' and texto_tipo in ('mensaje_personal', 'mensaje_generico'))
-  ),
-  constraint club_permisos_con_quien_registra check (medio = 'legado' or registrado_por is not null),
   constraint club_permisos_legado_con_nota check (medio <> 'legado' or nullif(btrim(nota), '') is not null),
   constraint club_permisos_texto_existe foreign key (texto_tipo, texto_version) references retail.club_textos (tipo, version)
 );
 comment on table retail.club_permisos is
-  'La historia de los dos permisos del club (ADR-0288 D-4): club (su «sí») y publicidad por WhatsApp (solo si ella escribió). De solo agregar, como movimientos: un disparador rechaza update, delete y truncate. Sin teléfono: anonimizar tiene que poder borrar a la clienta, y la prueba del número es el chat de la tienda (por eso un cambio de celular quita la publicidad: medio cambio_celular). clientas.club_desde y publicidad_desde son su foto. Los eventos de una ficha unida se quedan con ella (clientas_fusiones lleva a la que quedó).';
+  'La historia de los dos permisos del club (ADR-0288 D-4): club (su «sí») y publicidad por WhatsApp (solo si ella escribió a la tienda, medio whatsapp_propio, o marcó la casilla en la página de su QR, medio qr_web: el único evento sin registrado_por, porque lo registró ella). De solo agregar, como movimientos: un disparador rechaza update, delete y truncate. Sin teléfono: anonimizar tiene que poder borrar a la clienta, y la prueba del número es el chat de la tienda o la invitación usada (por eso un cambio de celular quita la publicidad: medio cambio_celular). clientas.club_desde y publicidad_desde son su foto. Los eventos de una ficha unida se quedan con ella (clientas_fusiones lleva a la que quedó).';
 
 -- Cada medio, con lo que puede hacer: el «sí» de palabra solo da el club; la BAJA y el cambio de celular solo quitan
--- publicidad; anonimizar solo quita; el legado solo es el club marcado en caja antes de este archivo. Fuera del `create
--- table` (drop + add, como los candados de `clientas`): pegar otra vez rehace la versión de este archivo.
+-- publicidad; anonimizar solo quita; el legado solo es el club marcado en caja antes de este archivo; la página del QR
+-- (qr_web) solo da la publicidad. Fuera del `create table` (drop + add, como los candados de `clientas`): pegar otra vez
+-- rehace la versión de este archivo.
 alter table retail.club_permisos drop constraint if exists club_permisos_medio_valido;
 alter table retail.club_permisos add constraint club_permisos_medio_valido
-  check (medio in ('caja_palabra', 'ficha', 'whatsapp_propio', 'baja_whatsapp', 'cambio_celular', 'anonimizar', 'legado'));
+  check (medio in ('caja_palabra', 'ficha', 'whatsapp_propio', 'qr_web', 'baja_whatsapp', 'cambio_celular', 'anonimizar', 'legado'));
 alter table retail.club_permisos drop constraint if exists club_permisos_medio_coherente;
 alter table retail.club_permisos add constraint club_permisos_medio_coherente check (
      (medio in ('caja_palabra', 'ficha') and finalidad = 'club' and accion = 'otorga')
   or (medio = 'whatsapp_propio' and accion = 'otorga')
+  or (medio = 'qr_web' and finalidad = 'publicidad_whatsapp' and accion = 'otorga')
   or (medio in ('baja_whatsapp', 'cambio_celular') and finalidad = 'publicidad_whatsapp' and accion = 'revoca')
   or (medio = 'anonimizar' and accion = 'revoca')
   or (medio = 'legado' and finalidad = 'club' and accion = 'otorga')
 );
+-- La ley (Ley 32323, art. 58.1.e): la publicidad SOLO nace de algo que hizo ELLA: un mensaje que escribió a la tienda o la
+-- casilla que marcó en la página de su QR. Nadie la marca de palabra. Con nombre propio aunque club_permisos_medio_coherente
+-- también lo cubra: el día que alguien afloje la coherencia de los medios, la ley sigue en pie.
+alter table retail.club_permisos drop constraint if exists club_permisos_publicidad_solo_por_su_mensaje;
+alter table retail.club_permisos add constraint club_permisos_publicidad_solo_por_su_mensaje
+  check (not (finalidad = 'publicidad_whatsapp' and accion = 'otorga') or medio in ('whatsapp_propio', 'qr_web'));
+alter table retail.club_permisos drop constraint if exists club_permisos_texto_del_medio;
+alter table retail.club_permisos add constraint club_permisos_texto_del_medio check (
+     texto_tipo is null
+  or (medio in ('caja_palabra', 'ficha') and texto_tipo = 'club')
+  or (medio = 'whatsapp_propio' and texto_tipo in ('mensaje_personal', 'mensaje_generico'))
+  or (medio = 'qr_web' and texto_tipo = 'pagina_publicidad')
+);
+-- Quién registra: una persona de la tienda, salvo el legado (nadie sabe quién lo marcó) y la página del QR (lo registró
+-- ELLA; y ahí NO puede haber una persona: si una función de la tienda lo escribiera, sería la tienda marcándolo por ella).
+alter table retail.club_permisos drop constraint if exists club_permisos_con_quien_registra;
+alter table retail.club_permisos add constraint club_permisos_con_quien_registra
+  check (medio in ('legado', 'qr_web') or registrado_por is not null);
+alter table retail.club_permisos drop constraint if exists club_permisos_qr_web_lo_registra_ella;
+alter table retail.club_permisos add constraint club_permisos_qr_web_lo_registra_ella
+  check (medio <> 'qr_web' or registrado_por is null);
 
 create index if not exists club_permisos_clienta_idx on retail.club_permisos (clienta_id, created_at);
 
@@ -319,6 +384,38 @@ alter table retail.club_permisos enable row level security;
 revoke all on retail.club_textos, retail.club_permisos from public, anon, authenticated;
 revoke update, delete, truncate on retail.club_textos, retail.club_permisos from service_role;
 
+-- ---------- 4b. camino B: las invitaciones de la página del QR (ADR-0288, «Actualización 2026-09-30 (c)») ----------
+-- Un enlace de un solo uso por clienta: la caja o la ficha lo crean («Mostrar su QR»), ella lo abre en su celular y marca
+-- la casilla. RLS encendido y SIN políticas, sin permisos para la API: solo lo leen y escriben las tres funciones del
+-- camino B (y archivar_clienta y unir_clientas, que vencen las de la ficha que se va). Nunca se borra una fila.
+create table if not exists retail.club_invitaciones (
+  id            uuid primary key default gen_random_uuid(),
+  clienta_id    uuid not null references retail.clientas (id),
+  token         text not null,
+  ubicacion_id  uuid references retail.ubicaciones (id),
+  creada_por    uuid not null references public.personas (id),
+  creada_en     timestamptz not null default now(),
+  vence_en      timestamptz not null,
+  usada_en      timestamptz,
+  texto_version integer,
+  -- 16 caracteres de base64 para URL: 12 bytes aleatorios (gen_random_bytes), unos 96 bits.
+  constraint club_invitaciones_token_formato check (token ~ '^[A-Za-z0-9_-]{16}$'),
+  -- Vence a los 7 días como mucho (el mismo QR le sirve desde casa); vencerla antes (archivar, unir) la deja en now().
+  constraint club_invitaciones_vigencia check (vence_en >= creada_en and vence_en <= creada_en + interval '7 days'),
+  -- Usada ⇔ con la versión del texto que ella aceptó, y antes de vencer.
+  constraint club_invitaciones_usada_con_texto check ((usada_en is null) = (texto_version is null)),
+  constraint club_invitaciones_usada_antes_de_vencer check (usada_en is null or usada_en <= vence_en)
+);
+comment on table retail.club_invitaciones is
+  'Camino B del club (ADR-0288, act. c): el enlace de un solo uso que abre la página pública donde la clienta marca la casilla de publicidad. token = 16 caracteres aleatorios (la llave del enlace); vence a los 7 días; usada_en y texto_version = cuándo confirmó y qué versión de pagina_publicidad aceptó (el evento qr_web de club_permisos lleva la misma hora). Archivar o unir una ficha vence las suyas sin usar (vence_en = el momento). Solo la leen y escriben funciones: RLS sin políticas.';
+create unique index if not exists club_invitaciones_token_unico on retail.club_invitaciones (token);
+-- La vigente sin usar de una clienta (crear_invitacion_club la devuelve en vez de crear otra).
+create index if not exists club_invitaciones_pendientes_idx on retail.club_invitaciones (clienta_id, vence_en desc)
+  where usada_en is null;
+alter table retail.club_invitaciones enable row level security;
+revoke all on retail.club_invitaciones from public, anon, authenticated;
+revoke delete, truncate on retail.club_invitaciones from service_role;
+
 -- ---------- 5. los textos v2 (Actualización 2026-09-30 del ADR). El v1 nunca se sembró. ----------
 insert into retail.club_textos (tipo, version, texto, creado_por) values
   ('club', 2,
@@ -329,6 +426,14 @@ insert into retail.club_textos (tipo, version, texto, creado_por) values
    null),
   ('mensaje_generico', 2,
    'Hola CAYLA, quiero unirme al Club CAYLA y recibir por WhatsApp novedades, rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA.',
+   null)
+on conflict (tipo, version) do nothing;
+
+-- El texto de la página del QR (camino B, «Actualización 2026-09-30 (c)»), v1: es un tipo nuevo. {celular} = su celular a
+-- medias («98•••333»), lo reemplaza la web.
+insert into retail.club_textos (tipo, version, texto, creado_por) values
+  ('pagina_publicidad', 1,
+   'Quiero recibir por WhatsApp de CAYLA novedades, rebajas y mi saludo de cumpleaños al {celular}. Sé que puedo darme de baja cuando quiera escribiendo BAJA.',
    null)
 on conflict (tipo, version) do nothing;
 
@@ -785,6 +890,12 @@ begin
     codigo_club = case when p_anonimizar then null else codigo_club end
   where id = p_id;
 
+  -- ADR-0288 (camino B): una ficha archivada, y más aún una anonimizada, no confirma nada desde un QR que le mostraron
+  -- antes. Sus invitaciones sin usar vencen ahora: el enlace muere (la página dice «vencida», sin contar por qué) y, si
+  -- vuelve, la tienda le muestra uno nuevo. Nada se borra. La ficha ya está tomada: el mismo orden que la página.
+  update retail.club_invitaciones i set vence_en = now()
+   where i.clienta_id = p_id and i.usada_en is null and i.vence_en > now();
+
   if p_anonimizar then
     -- (b) La foto que `unir_clientas` guardó de cada ficha que se le unió a ésta, o a una que se le unió (son la misma
     -- persona), pierde todo dato personal: queda solo cuándo se anonimizó. Se mira el lado que sea de cada fusión.
@@ -875,6 +986,11 @@ begin
 
   update retail.pedidos_no_atendidos set clienta_id = p_mantener_id where clienta_id = p_fusionar_id;
   get diagnostics v_pedidos = row_count;
+
+  -- ADR-0288 (camino B): las invitaciones sin usar de la ficha que se va vencen ahora; NO pasan a la que queda (un enlace
+  -- pensado para su número podría terminar dando la publicidad en otro). Las de la que queda siguen. Nada se borra.
+  update retail.club_invitaciones i set vence_en = now()
+   where i.clienta_id = p_fusionar_id and i.usada_en is null and i.vence_en > now();
 
   -- ADR-0288: el celular sigue al permiso. Si la que se va tiene publicidad (escribió desde ESE número) y la que queda no,
   -- o si solo la que se va es socia, queda el celular de la que se va; si no, el de la que queda (o el de la otra si no
@@ -1405,6 +1521,290 @@ $$;
 comment on function retail.guardar_whatsapp_tienda(uuid, text) is
   'El WhatsApp de una tienda para el QR del club (9 dígitos que empiezan en 9: whatsapp_tienda_invalido). Vacío lo quita. Mismo permiso que guardar_metas_tienda (Configuración ▸ Tiendas y caja). Deja rastro en configuracion_historial.';
 
+-- ---------- 16b. camino B: la página del QR (ADR-0288, «Actualización 2026-09-30 (c)») ----------
+-- PROMETE: el enlace de la página donde ELLA confirma su publicidad: una socia sin publicidad, viva (ni archivada, ni
+--   anonimizada, ni unida a otra). Si ya tiene uno vigente sin usar, devuelve ESE (el QR que ya vio sigue sirviendo); si
+--   no, crea uno nuevo que vence a los 7 días. `for update` de la ficha: dos cajas a la vez reciben la misma. Exige el texto
+--   pagina_publicidad (club_sin_texto): nunca hay un enlace a una página sin texto. Módulo «Clientas»; firma con el
+--   responsable del combo.
+create or replace function retail.crear_invitacion_club(p_clienta_id uuid, p_ubicacion_id uuid default null)
+returns table (token text, vence_en timestamptz)
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+#variable_conflict use_column
+declare
+  v_persona uuid;
+  v_texto integer;
+  v_archivada boolean;
+  v_anonimizada boolean;
+  v_unida boolean;
+  v_club_desde timestamptz;
+  v_publicidad_desde timestamptz;
+  v_token text;
+  v_vence timestamptz;
+begin
+  perform retail.fn_exigir_modulo('clientas');
+  v_persona := retail.fn_actor_persona_id(true);
+  if v_persona is null then
+    raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  v_texto := (select max(t.version) from retail.club_textos t where t.tipo = 'pagina_publicidad');
+  if v_texto is null then
+    raise exception 'Todavía no hay un texto para la página del QR: usa «Llegó su mensaje».' using errcode = 'P0001', hint = 'club_sin_texto';
+  end if;
+
+  -- `for update`: dos cajas que muestran su QR a la vez no crean dos; la segunda espera y recibe la misma.
+  select c.archivada_en is not null, c.anonimizada, c.fusionada_en_id is not null, c.club_desde, c.publicidad_desde
+    into v_archivada, v_anonimizada, v_unida, v_club_desde, v_publicidad_desde
+    from retail.clientas c
+   where c.id = p_clienta_id
+     for update;
+  if not found then
+    raise exception 'Esa clienta ya no existe — actualiza la pantalla.' using errcode = 'P0001', hint = 'clienta_no_existe';
+  end if;
+  if v_unida then
+    raise exception 'Esta ficha se unió a otra: búscala otra vez y usa la que quedó.' using errcode = 'P0001', hint = 'clienta_unida';
+  end if;
+  if v_anonimizada then
+    raise exception 'Esta clienta pidió borrar sus datos: esta ficha no puede recibir publicidad.'
+      using errcode = 'P0001', hint = 'clienta_anonimizada';
+  end if;
+  if v_archivada then
+    raise exception 'Esta ficha está archivada — reactívala antes de mostrarle su QR.' using errcode = 'P0001', hint = 'clienta_archivada';
+  end if;
+  if v_club_desde is null then
+    raise exception 'Todavía no es socia del club: únela primero (su «sí» en caja o en la ficha). La publicidad es solo para socias.'
+      using errcode = 'P0001', hint = 'no_es_socia';
+  end if;
+  if v_publicidad_desde is not null then
+    raise exception 'Ya recibe publicidad por WhatsApp: no hace falta su QR.' using errcode = 'P0001', hint = 'ya_tiene_publicidad';
+  end if;
+
+  -- La vigente sin usar, si hay: el QR que ya vio (o que se llevó a casa) sigue sirviendo hasta que venza.
+  select i.token, i.vence_en into v_token, v_vence
+    from retail.club_invitaciones i
+   where i.clienta_id = p_clienta_id and i.usada_en is null and i.vence_en > now()
+   order by i.vence_en desc
+   limit 1;
+  if v_token is not null then
+    return query select v_token, v_vence;
+    return;
+  end if;
+
+  -- Una nueva: 12 bytes aleatorios en base64 para URL (16 caracteres, unos 96 bits). Que dos coincidan es imposible en la
+  -- práctica, pero el único de `token` lo cierra igual: si chocara, se sortea otro.
+  v_vence := now() + interval '7 days';
+  for v_intento in 1..5 loop
+    v_token := translate(encode(gen_random_bytes(12), 'base64'), '+/', '-_');
+    insert into retail.club_invitaciones (clienta_id, token, ubicacion_id, creada_por, vence_en)
+    values (p_clienta_id, v_token, p_ubicacion_id, v_persona, v_vence)
+    on conflict (token) do nothing;
+    exit when found;
+    v_token := null;
+  end loop;
+  if v_token is null then
+    raise exception 'No se pudo crear su QR: inténtalo otra vez.' using errcode = 'P0001';
+  end if;
+
+  perform retail.fn_actividad_anotar(
+    'clientas', 'invitacion_club', 'creó el QR para que una clienta confirme su publicidad por WhatsApp',
+    v_persona, null, p_ubicacion_id, null, 'clientas', p_clienta_id::text, now(),
+    jsonb_build_object('vence_en', v_vence), 'vivo'
+  );
+
+  return query select v_token, v_vence;
+end;
+$$;
+
+comment on function retail.crear_invitacion_club(uuid, uuid) is
+  'Camino B (ADR-0288 act. c): «Mostrar su QR». Devuelve el enlace vigente sin usar de una socia sin publicidad o crea uno (token de 16, vence a los 7 días). Rechaza: no_es_socia, ya_tiene_publicidad, clienta_archivada, clienta_anonimizada, clienta_unida, clienta_no_existe, club_sin_texto. Módulo «Clientas»; firma con el responsable del combo.';
+
+-- PROMETE (para `anon`: la página es pública): el estado del enlace y, SOLO si está vigente, lo que la página muestra: su
+--   nombre de pila, su celular a medias, su código, el texto pagina_publicidad vigente (con {celular} sin reemplazar: lo
+--   hace la web) y su versión, la tienda y la razón social y el RUC de CAYLA. Un token sin la forma de uno es no_existe sin
+--   mirar la tabla. No toma nada ni escribe nada.
+create or replace function retail.fn_invitacion_club(p_token text)
+returns table (
+  estado text,
+  nombre_corto text,
+  celular_enmascarado text,
+  codigo_club text,
+  texto text,
+  texto_version integer,
+  tienda text,
+  razon_social text,
+  ruc text
+)
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+#variable_conflict use_column
+declare
+  v_encontrada boolean;
+  v_vence timestamptz;
+  v_usada timestamptz;
+  v_ubicacion uuid;
+  v_nombre text;
+  v_telefono text;
+  v_codigo text;
+  v_club_desde timestamptz;
+  v_publicidad_desde timestamptz;
+  v_viva boolean;
+  v_estado text;
+  v_pila text;
+  v_version integer;
+  v_texto text;
+  v_tienda text;
+  v_razon_social text;
+  v_ruc text;
+begin
+  -- Sin la forma de un token (16 caracteres de base64 para URL), ni se mira la tabla.
+  if p_token is null or p_token !~ '^[A-Za-z0-9_-]{16}$' then
+    return query select 'no_existe'::text, null::text, null::text, null::text, null::text, null::integer, null::text, null::text, null::text;
+    return;
+  end if;
+
+  select true, i.vence_en, i.usada_en, i.ubicacion_id, c.nombre, c.telefono_whatsapp, c.codigo_club, c.club_desde,
+         c.publicidad_desde, not c.anonimizada and c.archivada_en is null and c.fusionada_en_id is null
+    into v_encontrada, v_vence, v_usada, v_ubicacion, v_nombre, v_telefono, v_codigo, v_club_desde,
+         v_publicidad_desde, v_viva
+    from retail.club_invitaciones i
+    join retail.clientas c on c.id = i.clienta_id
+   where i.token = p_token;
+
+  -- El mismo orden que confirmar_invitacion_club. Una ficha que ya no está (o que ya no es socia) es «vencida», como un
+  -- enlace viejo: la página no cuenta qué le pasó.
+  v_estado := case
+    when v_encontrada is null then 'no_existe'
+    when v_usada is not null then 'usada'
+    when not v_viva or v_club_desde is null then 'vencida'
+    when v_publicidad_desde is not null then 'usada'
+    when v_vence <= now() then 'vencida'
+    else 'vigente'
+  end;
+  if v_estado <> 'vigente' then
+    return query select v_estado, null::text, null::text, null::text, null::text, null::integer, null::text, null::text, null::text;
+    return;
+  end if;
+
+  select t.version, t.texto into v_version, v_texto
+    from retail.club_textos t
+   where t.tipo = 'pagina_publicidad'
+   order by t.version desc
+   limit 1;
+  if v_version is null then
+    raise exception 'Todavía no hay un texto para la página del QR.' using errcode = 'P0001', hint = 'club_sin_texto';
+  end if;
+  v_tienda := (select u.nombre from retail.ubicaciones u where u.id = v_ubicacion);
+  select e.razon_social, e.ruc into v_razon_social, v_ruc from retail.configuracion_empresa e limit 1;
+
+  -- Su nombre de pila: la primera palabra, y si viene toda en mayúsculas (del padrón), con mayúscula inicial.
+  v_pila := (regexp_split_to_array(btrim(v_nombre), '\s+'))[1];
+  if v_pila = upper(v_pila) then
+    v_pila := initcap(lower(v_pila));
+  end if;
+
+  return query select 'vigente'::text, v_pila, left(v_telefono, 2) || '•••' || right(v_telefono, 3), v_codigo, v_texto,
+                      v_version, v_tienda, v_razon_social, v_ruc;
+end;
+$$;
+
+comment on function retail.fn_invitacion_club(text) is
+  'Camino B (ADR-0288 act. c), para anon: la página pública del QR. estado = vigente, usada, vencida o no_existe; solo vigente devuelve datos (nombre de pila, celular a medias, código, texto pagina_publicidad con {celular} y su versión, tienda, razón social y RUC). Una ficha archivada, anonimizada, unida o sin club es vencida; con la publicidad ya dada, usada. Lectura (prefijo fn_).';
+
+-- PROMETE (para `anon`): ELLA marcó la casilla y confirmó. Con la invitación vigente y sin usar, la ficha socia y viva, y la
+--   versión del texto que leyó (la vigente; si cambió, club_texto_cambio): escribe el otorga de publicidad con medio qr_web,
+--   sin registrado_por (lo registró ella), con el texto pagina_publicidad y la tienda de la invitación; marca
+--   publicidad_desde y la invitación usada; y anota la actividad sin persona. Toda en una transacción, con la ficha y la
+--   invitación tomadas (`for update`, en ese orden). Devuelve el estado en que queda: usada (recién confirmada o ya lo
+--   estaba: una segunda llamada no escribe nada), vencida o no_existe. No cambia el celular.
+create or replace function retail.confirmar_invitacion_club(p_token text, p_texto_version integer)
+returns text
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_clienta uuid;
+  v_invitacion uuid;
+  v_ubicacion uuid;
+  v_vence timestamptz;
+  v_usada timestamptz;
+  v_club_desde timestamptz;
+  v_publicidad_desde timestamptz;
+  v_viva boolean;
+  v_texto integer;
+begin
+  if p_token is null or p_token !~ '^[A-Za-z0-9_-]{16}$' then
+    return 'no_existe';
+  end if;
+  -- De quién es, sin tomar nada todavía (una invitación nunca cambia de clienta).
+  v_clienta := (select i.clienta_id from retail.club_invitaciones i where i.token = p_token);
+  if v_clienta is null then
+    return 'no_existe';
+  end if;
+
+  -- Primero la ficha y después la invitación, el mismo orden que crear_invitacion_club, archivar_clienta y unir_clientas:
+  -- dos confirmaciones a la vez se ponen en fila (la segunda la encuentra usada), y nadie se espera en cruz.
+  select c.club_desde, c.publicidad_desde, not c.anonimizada and c.archivada_en is null and c.fusionada_en_id is null
+    into v_club_desde, v_publicidad_desde, v_viva
+    from retail.clientas c
+   where c.id = v_clienta
+     for update;
+  select i.id, i.ubicacion_id, i.vence_en, i.usada_en
+    into v_invitacion, v_ubicacion, v_vence, v_usada
+    from retail.club_invitaciones i
+   where i.token = p_token
+     for update;
+
+  -- El mismo orden que fn_invitacion_club: lo que la página mostró es lo que aquí se decide.
+  if v_usada is not null then
+    return 'usada';
+  end if;
+  if not v_viva or v_club_desde is null then
+    return 'vencida';
+  end if;
+  if v_publicidad_desde is not null then
+    return 'usada';
+  end if;
+  if v_vence <= now() then
+    return 'vencida';
+  end if;
+
+  -- El evento cita el texto que ELLA leyó: si cambió mientras lo leía, la página se lo vuelve a mostrar.
+  v_texto := (select max(t.version) from retail.club_textos t where t.tipo = 'pagina_publicidad');
+  if v_texto is null then
+    raise exception 'Todavía no hay un texto para la página del QR.' using errcode = 'P0001', hint = 'club_sin_texto';
+  end if;
+  if p_texto_version is distinct from v_texto then
+    raise exception 'El texto cambió mientras lo leías: léelo otra vez antes de confirmar.'
+      using errcode = 'P0001', hint = 'club_texto_cambio';
+  end if;
+
+  insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version, ubicacion_id, registrado_por, nota)
+  values (v_clienta, 'publicidad_whatsapp', 'otorga', 'qr_web', 'pagina_publicidad', v_texto, v_ubicacion, null,
+          'marcó la casilla en la página de su QR (invitación ' || v_invitacion || ')');
+
+  update retail.clientas c set publicidad_desde = now() where c.id = v_clienta;
+  update retail.club_invitaciones i set usada_en = now(), texto_version = v_texto where i.id = v_invitacion;
+
+  perform retail.fn_actividad_anotar(
+    'clientas', 'publicidad_qr_web', 'la clienta confirmó su publicidad por WhatsApp desde su QR',
+    null, null, v_ubicacion, null, 'clientas', v_clienta::text, now(),
+    jsonb_build_object('medio', 'qr_web', 'texto_version', v_texto, 'invitacion_id', v_invitacion), 'vivo'
+  );
+
+  return 'usada';
+end;
+$$;
+
+comment on function retail.confirmar_invitacion_club(text, integer) is
+  'Camino B (ADR-0288 act. c), para anon: ella marcó la casilla. Da la publicidad por WhatsApp (medio qr_web, sin registrado_por, texto pagina_publicidad) si la invitación está vigente y sin usar y la ficha es socia y viva; club_texto_cambio si la versión que leyó ya no es la vigente. Devuelve el estado en que queda: usada (una segunda llamada no escribe), vencida o no_existe.';
+
 -- ---------- 17. permisos de las funciones ----------
 revoke execute on function
   retail.unirse_al_club(uuid, text, smallint, smallint, smallint, text, uuid, uuid, integer),
@@ -1425,6 +1825,20 @@ grant execute on function
   retail.fn_club_textos_vigentes(),
   retail.guardar_whatsapp_tienda(uuid, text)
 to authenticated;
+
+-- Camino B: crear el enlace es de la tienda (solo authenticated); leerlo y confirmarlo, de la página pública (anon, y
+-- authenticated por si lo abre un celular con la sesión del ERP abierta). `anon` necesita además USAGE sobre `retail`:
+-- lo da 0005_grants.sql en local y producción ya lo tiene (consultado el 2026-09-30).
+revoke all on function
+  retail.crear_invitacion_club(uuid, uuid),
+  retail.fn_invitacion_club(text),
+  retail.confirmar_invitacion_club(text, integer)
+from public, anon, authenticated;
+grant execute on function retail.crear_invitacion_club(uuid, uuid) to authenticated;
+grant execute on function
+  retail.fn_invitacion_club(text),
+  retail.confirmar_invitacion_club(text, integer)
+to anon, authenticated;
 
 -- ---------- 18. legado: el permiso marcado en caja antes de este archivo pasa a socia SIN publicidad ----------
 -- Solo con un celular válido, documento y nombre (CL-1: lo que una socia necesita). club_desde = cuando se marcó, y el

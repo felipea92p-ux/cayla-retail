@@ -27,7 +27,8 @@
  *      actividad (Clientas ni Apartados) los lleva; y las cinco ramas de la actividad de un apartado (apartó, entregó,
  *      liberó, devolvió, extendió) dicen «la clienta» sin su nombre, celular ni DNI.
  *   5. Estructura: las 11 empiezan por `fn_exigir_modulo('clientas')` (lo primero que corre); el vigilante nombra toda
- *      función security definer nueva que toque la ficha sin él; otro vigilante nombra toda función que anota actividad
+ *      función security definer nueva que toque la ficha sin él (salvo las dos de la página pública del club, declaradas en
+ *      DE_LA_PAGINA con su razón); otro vigilante nombra toda función que anota actividad
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
  *      escritos en la PARTE 1 son los de las funciones vivas (las cinco que la tanda 1a del club volvió a cambiar —ADR-0288,
  *      20260930160000—, con los «después» de la 1a; las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
@@ -140,8 +141,15 @@ const DESPUES_HOY = VERSIONES.map((v, n) => {
 });
 /** La firma de registrar_clienta que vive hoy (la de la 1b). */
 const REGISTRAR_HOY = "registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
-// Las funciones del club de la 1b que tocan la ficha: security definer y con el candado del módulo, como las 11.
-const DEL_CLUB = ["registrar_baja_whatsapp", "registrar_desde_whatsapp", "registrar_mensaje_publicidad", "resumen_clienta_caja", "unirse_al_club"];
+// Las funciones del club de la 1b que tocan la ficha: security definer y con el candado del módulo, como las 11 (con la de
+// la caja del camino B, crear_invitacion_club).
+const DEL_CLUB = ["crear_invitacion_club", "registrar_baja_whatsapp", "registrar_desde_whatsapp", "registrar_mensaje_publicidad", "resumen_clienta_caja", "unirse_al_club"];
+// La página pública del club (camino B, ADR-0288 «Actualización 2026-09-30 (c)»): tocan la ficha SIN el módulo A PROPÓSITO,
+// porque las llama `anon` desde el celular de la clienta con un enlace de un solo uso (el token es la llave).
+// fn_invitacion_club devuelve solo su nombre de pila, el celular a medias y el código, y solo con el enlace vigente;
+// confirmar_invitacion_club solo le da la publicidad (medio qr_web). Las prueba club_permisos.mjs, sección (o). El vigilante
+// las cuenta entre las que tocan la ficha y deja pasar sin el candado SOLO a estas dos.
+const DE_LA_PAGINA = ["confirmar_invitacion_club", "fn_invitacion_club"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -630,6 +638,8 @@ caso(
 // «DECIDÍ»): el id solo sale de buscar_clienta, que sí lo exige, y exigirlo aquí haría fallar una venta entera encolada sin
 // conexión si al rol le quitaron el módulo en el camino.
 const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
+/** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
+const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${DE_LA_PAGINA.map((n) => `'${n}'`).join(", ")})`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
   from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
@@ -638,9 +648,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11 y las 5 del club (tanda 1b), y todas llevan el candado del módulo",
-  VIGILANTE("true") + VIGILANTE(`x.src !~ 'fn_exigir_modulo\\(''clientas''\\)'`),
-  `${[...LAS_11, ...DEL_CLUB].sort().join(",")}\nninguna`
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b) y las 2 de la página pública (camino B), y todas llevan el candado del módulo salvo esas 2",
+  VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
+  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
@@ -655,7 +665,7 @@ begin
   perform retail.fn_exigir_modulo('clientas');
   return (select documento_numero from retail.clientas limit 1);
 end; $fn$;
-` + VIGILANTE(`x.src !~ 'fn_exigir_modulo\\(''clientas''\\)'`),
+` + VIGILANTE(SIN_EL_CANDADO),
   "zz_vigilante_comentario,zz_vigilante_sin_candado"
 );
 // Toda función que anota actividad (llama a fn_actividad_anotar) y lee las columnas de la clienta que un apartado copió al

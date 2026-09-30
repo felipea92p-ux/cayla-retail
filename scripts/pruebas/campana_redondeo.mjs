@@ -154,10 +154,21 @@ rollback;`);
   );
 
   // ---- 5. La migración se puede pegar dos veces (el segundo paso no toca nada) ----
+  // Desde la tanda 1c del club (20260930230200, ADR-0288 D-5) registrar_venta tiene otra firma (17 parámetros): esta
+  // migración, que reescribe la de 16, ya no se puede volver a pegar (no encuentra su función y no toca nada). Lo que
+  // queda por vigilar es lo que dejó: la regla está 2 veces en la registrar_venta viva, no 4.
   const migracion = readFileSync(MIGRACION, "utf8");
-  const r5 = correr(`begin;\n${migracion}\n${migracion}\nselect 'veces|' || (length(d) - length(replace(d, 'retail.fn_descuento_campana(', ''))) / length('retail.fn_descuento_campana(')
-  from (select pg_get_functiondef('retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text)'::regprocedure) d) x;\nrollback;`);
-  esperar("la migración es re-ejecutable (dos veces seguidas, la regla queda 2 veces, no 4)", r5.ok && r5.salida.includes("veces|2"), r5.ok ? r5.salida : r5.mensaje);
+  const VIEJA = "retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text)";
+  const hayVieja = correr(`select to_regprocedure('${VIEJA}') is not null;`);
+  const cuentaRegla = (firma) => `select 'veces|' || (length(d) - length(replace(d, 'retail.fn_descuento_campana(', ''))) / length('retail.fn_descuento_campana(')
+  from (select pg_get_functiondef(${firma}) d) x;`;
+  if (hayVieja.ok && hayVieja.salida === "t") {
+    const r5 = correr(`begin;\n${migracion}\n${migracion}\n${cuentaRegla(`'${VIEJA}'::regprocedure`)}\nrollback;`);
+    esperar("la migración es re-ejecutable (dos veces seguidas, la regla queda 2 veces, no 4)", r5.ok && r5.salida.includes("veces|2"), r5.ok ? r5.salida : r5.mensaje);
+  } else {
+    const r5 = correr(cuentaRegla("'retail.registrar_venta'::regproc"));
+    esperar("la regla queda 2 veces (no 4) en la registrar_venta viva (la de la tanda 1c: esta migración ya no se re-pega)", r5.ok && r5.salida.includes("veces|2"), r5.ok ? r5.salida : r5.mensaje);
+  }
 
   // ---- 6. Separaciones: la misma regla ----
   const r6 = correr(`${FIXTURE}

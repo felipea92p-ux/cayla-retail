@@ -545,10 +545,18 @@ reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento v�
   - Debajo, «Llegó su mensaje (respaldo)».
 - **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
   invitación en la base, y ese QR también le sirve desde casa.
+- **Anonimizar y unir (decisión del arquitecto, 2026-09-30):** archivar una ficha (con o sin anonimizar) vence en ese
+  momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
+  ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
+  otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.
 
 ## Contrato de la tanda 1c (2026-09-30): el cumpleaños con un canje por año
 
-Se construye sobre la D-5, CL-10 y CL-11. Migración `20260930230000_club_paso1c_cumpleanos.sql` (va después de la 1b).
+Se construye sobre la D-5, CL-10 y CL-11. Migración en TRES partes (van después de la 1b; cada una sola en el SQL Editor,
+en orden): `20260930230000_club_paso1c_parte1_venta_items.sql` (solo `venta_items`), `…230100_…parte2_configuracion.sql`
+(solo `configuracion_empresa`) y `…230200_…parte3_cumpleanos.sql` (`club_canjes` y las funciones). Toda venta lee la
+configuración y después escribe `venta_items`: tomadas en una misma transacción, una venta a medio camino y la migración
+se esperarían en cruz (deadlock). La cabecera de la PARTE 3 tiene el porqué, el orden y la verificación con los md5.
 
 **Decisión de Felipe (2026-09-30): el 10 % de cumpleaños se aplica completo aunque deje una prenda bajo su costo.** Es un
 regalo del club. El candado de «no vender bajo costo» sigue valiendo para el resto de los descuentos: se mide sin la
@@ -571,18 +579,30 @@ parte del club.
 
 **`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
 de la nueva, partiendo de la definición viva de producción (la de la 1a).
-- **Con `p_canjear_cumpleanos = true` exige**, con `for update` sobre la ficha ya resuelta (la 1a sigue las uniones):
+- **Con `p_canjear_cumpleanos = true` exige**, con la ficha ya resuelta tomada `for no key update` en la MISMA lectura de
+  la 1a (la que sigue las uniones; al construir: dos canjes a la misma socia hacen fila ahí, y una venta sin canje a esa
+  clienta no espera, porque su `for key share` no choca; tomarla primero `for key share` y subirla después trabaría a dos
+  canjes entre sí):
   - que sea socia (`club_desde`), sin anonimizar ni archivar;
   - que el mes actual en `America/Lima` sea su `cumple_mes`;
   - que no haya un canje vivo este año (el único parcial lo hace imposible igual).
-  - Los hints: `cumple_no_socia`, `cumple_fuera_de_mes`, `cumple_ya_canjeado` y `cumple_sin_clienta`.
+  - Los hints: `cumple_no_socia`, `cumple_fuera_de_mes`, `cumple_ya_canjeado` y `cumple_sin_clienta` (una anonimizada ya
+    la frena la 1a con `clienta_anonimizada`). Al construir se sumó `cumple_sin_monto`: un canje que no descuenta nada
+    (todo redondea a 0.00) gastaría el cumpleaños del año por nada.
+  - Un reintento de la MISMA venta (mismo `p_token`) que esperó en la ficha mientras la primera se guardaba devuelve esa
+    venta, no `cumple_ya_canjeado`.
 - **Sin canjear**, todo `descuento_club_unitario` tiene que ser 0 (hint `cumple_sin_canje`).
+- **El motivo de la línea describe el descuento SIN el club** (candado `venta_items_motivo_coherente_con_descuento`, que
+  sigue `not valid`): una prenda cuyo único descuento es el cumpleaños no lleva motivo; con campaña o descuento a mano,
+  el suyo.
 - **Los candados de la venta miden el descuento SIN la parte del club:**
   - el costo;
   - el tope de la asesora (D-67);
   - el 35 % del líder;
   - el argumento sobre el 15 %;
   - el código de descuento.
+  - (Al construir: la campaña también se verifica sobre el descuento sin club. El tope D-67 no necesita nada: mide
+    `p_descuento_pct`, que la caja declara aparte y no sale de las líneas.)
 - **Al canjear**, escribe en `retail.club_canjes` (`id`, `clienta_id`, `tipo` = `'cumpleanos'`, `anio`, `venta_id`,
   `pct`, `monto`, `registrado_por`, `created_at`, `anulado_en`, `anulado_por`).
   - Candado: único parcial `(clienta_id, tipo, anio) where anulado_en is null`.
@@ -590,8 +610,10 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
   - Anota la actividad sin datos de la clienta.
 - `configuracion_empresa.club_cumple_pct numeric not null default 10`, con candado entre 1 y 50: Felipe lo ajusta sin
   migrar.
-- **`anular_venta`** libera el canje (`anulado_en`, `anulado_por`): la venta nunca existió. Una devolución NO lo libera
-  (decisión de Felipe, 2026-09-29).
+- **Anular la venta** libera el canje (`anulado_en`, `anulado_por`, los de la venta): la venta nunca existió. Al
+  construir se hizo con un disparador sobre `ventas` (`trg_club_canje_libera_al_anular`, como el de la prenda por
+  regularizar) y no dentro de `anular_venta`, que no cambia: así libera TODA anulación, también la del SQL a mano
+  (`pegar-en-produccion-anular-venta-*.sql`). Una devolución NO lo libera (decisión de Felipe, 2026-09-29).
 - **Sin conexión, la web apaga el botón.** Una venta en cola que llega con el canje ya usado se rechaza entera y la cola
   la muestra como rechazo (ADR-0036).
 - **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric` y `cumple_canjeado_este_anio boolean`.
@@ -602,7 +624,9 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
   conexión; si ya lo usó, dice «Cumpleaños ya canjeado».
 - Al tocarlo, cada prenda muestra su «−10 % cumpleaños» y el total baja.
 - Quitar a la clienta del ticket, o que deje de estar disponible, lo apaga.
-- La regla pura vive en `lib/club-cumple-reglas.ts`, con su prueba.
+- La regla pura vive en `lib/club-cumple-canje-reglas.ts`, con su prueba (el nombre `club-cumple-reglas.ts` ya lo usa la
+  tanda 1b para ESCRIBIR el cumpleaños en la hoja): `descuentoClubLinea`, `descuentosParaRegistrar`, `ticketConCumple`,
+  `cumpleEnCaja`, `pctDelCanje` y los textos.
 
 ## Actualización 2026-09-30 (e): tanda 1d
 
