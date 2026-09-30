@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CampoTexto } from "@/components/ui/campos";
 import { parsearColor, rgbDeHex } from "@/lib/color-entrada";
 
@@ -41,7 +41,7 @@ export function SelectorColor({
   hex: string | null;
   onHex: (hex: string) => void;
   /** El título del campo de texto. */
-  etiqueta?: string;
+  etiqueta?: ReactNode;
   /** Campo con caja hueso (Nuevo producto), en vez de sobre el hilo (Atributos). */
   caja?: boolean;
   deshabilitado?: boolean;

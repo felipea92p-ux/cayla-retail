@@ -10,6 +10,9 @@ import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { firmar } from "@/lib/responsable-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { AvisoInline } from "@/components/alta-producto/piezas";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeRegistroMarca } from "@/lib/marca-registro-guia";
 import {
   ordenarPorNombre,
   parejaYaExiste,
@@ -137,6 +140,8 @@ export function NuevaMarcaForm({
       : null;
   const repetida = parejaYaExiste(marcaForm, provForm);
   const listo = registroListo(marcaForm, provForm, porResponder.length + provPorResponder.length + (provPregunta.igual ? 1 : 0));
+  // Guía de foco (CLAUDE.md «Guía de foco»): sale de la misma regla que habilita «Registrar» (`registroListo`).
+  const guia = useGuiaCampos(camposDeRegistroMarca(marcaForm, provForm, { marca: porResponder.length, proveedor: provPorResponder.length, proveedorIgual: !!provPregunta.igual }));
 
   // Qué marcas trae cada proveedor, para que «¿es este?» se conteste sabiendo de quién se habla.
   const marcasDe = (nombreProv: string) => {
@@ -274,9 +279,9 @@ export function NuevaMarcaForm({
       </div>
 
       {/* ---------- la marca: una que existe o una nueva, en el mismo campo ---------- */}
-      <div>
+      <CampoGuiado id="marca" guia={guia}>
         <label htmlFor={marcaSel ? undefined : "nm-marca"} className={`mb-1.5 block ${etiqueta}`}>
-          Marca
+          {guia.etiqueta("marca", "Marca")}
         </label>
         {marcaSel ? (
           <div className={elegida}>
@@ -309,7 +314,7 @@ export function NuevaMarcaForm({
             }}
           />
         )}
-      </div>
+      </CampoGuiado>
 
       {porResponder.length > 0 && (
         <PreguntaParecido
@@ -327,10 +332,10 @@ export function NuevaMarcaForm({
       )}
 
       {/* ---------- quién la trae: uno que existe o uno nuevo ---------- */}
-      <div>
+      <CampoGuiado id="proveedor" guia={guia}>
         <div className="mb-1.5 flex items-baseline justify-between gap-2.5">
           <label htmlFor={provElegido || provNuevo ? undefined : "nm-prov"} className={etiqueta}>
-            ¿Quién te la trae?
+            {guia.etiqueta("proveedor", "¿Quién te la trae?")}
           </label>
           {!provElegido && !provNuevo && (
             <button type="button" onClick={() => proveedorNuevo()} className="btn-cayla btn-enlace text-[12.5px]">
@@ -405,7 +410,7 @@ export function NuevaMarcaForm({
             crear={{ etiqueta: (q) => (q ? `+ Proveedor nuevo «${q}»` : "+ Proveedor nuevo"), onCrear: (q) => proveedorNuevo(q) }}
           />
         )}
-      </div>
+      </CampoGuiado>
 
       {provPregunta.igual && (
         <PreguntaParecido
@@ -439,6 +444,7 @@ export function NuevaMarcaForm({
         </p>
       )}
       <AvisoSinIdentidad firma={firma} />
+      <PieGuia guia={guia} listo="Todo listo para registrar." />
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
@@ -447,8 +453,8 @@ export function NuevaMarcaForm({
           type="button"
           onClick={() => void guardar()}
           disabled={guardando || !listo || !firma.listo}
-          title={firma.motivo ?? undefined}
-          className="btn-cayla btn-primario"
+          title={firma.motivo ?? guia.frase ?? undefined}
+          className={`btn-cayla btn-primario ${guia.claseConfirmar}`}
         >
           {guardando ? "Guardando…" : textoGuardar}
         </button>
