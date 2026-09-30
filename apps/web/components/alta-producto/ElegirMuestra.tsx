@@ -51,13 +51,15 @@ type Props = {
   onElegir: (id: string) => void;
   categoriaId: string;
   categoriaNombre: string;
+  /** `familias.codigo` de la categoría: el ejemplo de «+ Nuevo tejido / patrón» sigue a la familia (skill `/sugerir`). Sin ella, texto neutro. */
+  familia?: string | null;
   /** Lo que la categoría ofrece HOY en los tres ejes: la RPC reemplaza, así que se le devuelve entero + el valor nuevo. */
   ejesActuales: EjeIds;
   /** El valor ya quedó ofrecido en la categoría (desde la hoja o propuesto): quien llama lo suma a la fila. */
   onOfrecido: (v: ValorVocabulario) => void;
 };
 
-export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegidoId, onElegir, categoriaId, categoriaNombre, ejesActuales, onOfrecido }: Props) {
+export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegidoId, onElegir, categoriaId, categoriaNombre, familia, ejesActuales, onOfrecido }: Props) {
   const [hoja, setHoja] = useState(false);
   const todos = unirSinRepetir(deLaCategoria, universo);
   const elegido = elegidoId ? (todos.find((v) => v.id === elegidoId) ?? null) : null;
@@ -98,6 +100,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
               elegidoId={elegidoId}
               categoriaId={categoriaId}
               categoriaNombre={categoriaNombre}
+              familia={familia}
               ejesActuales={ejesActuales}
               onElegir={(id) => {
                 onElegir(id);
@@ -167,6 +170,7 @@ function HojaMuestras({
   elegidoId,
   categoriaId,
   categoriaNombre,
+  familia,
   ejesActuales,
   onElegir,
   onOfrecido,
@@ -178,6 +182,7 @@ function HojaMuestras({
   elegidoId: string;
   categoriaId: string;
   categoriaNombre: string;
+  familia?: string | null;
   ejesActuales: EjeIds;
   onElegir: (id: string) => void;
   onOfrecido: (v: ValorVocabulario) => void;
@@ -297,7 +302,7 @@ function HojaMuestras({
         }}
       >
         <p className="text-[12.5px] text-taupe">¿No está? Propón uno. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe.</p>
-        <ProponerValor tipo={tipo} categoriaId={categoriaId} ejesActuales={ejesActuales} universo={universo} onCreado={onOfrecido} />
+        <ProponerValor tipo={tipo} categoriaId={categoriaId} familia={familia} ejesActuales={ejesActuales} universo={universo} onCreado={onOfrecido} />
       </div>
     </>
   );

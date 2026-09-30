@@ -166,6 +166,13 @@ jobs:
           node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs
           node scripts/docs/entradas-por-archivo.mjs
 
+      # El escáner de sugerencias (skill `/sugerir`, ADR-0290): `apps/web/lib/sugerir.test.ts` lo importa como la única definición
+      # de «ejemplo estático», así que si el escáner se rompe, esa prueba dejaría de ver los placeholders sin avisar. Va con
+      # el de la Guía de foco, que le presta el grafo de imports. Solo leen archivos; no necesitan node_modules.
+      - name: Escáner de sugerencias y de la guía de foco
+        if: ${{ !cancelled() }}
+        run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
+
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
       # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
@@ -959,6 +966,16 @@ jobs:
       - name: pruebas:terminales-sin-persona
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:terminales-sin-persona
+
+      # La puerta de lectura de retail y las terminales (ADR-0289): `fn_tiene_acceso_retail()` solo reconocía personas, así que
+      # una terminal con el módulo Proveedores recibía `[]` de fn_proveedores/fn_proveedores_resumen/fn_existencias y la pantalla
+      # lanzaba («Esta pantalla no está mostrando datos», 2026-09-30). Pasan las terminales activas, no las desactivadas ni
+      # las de una sede apagada ni una persona de Dynamic sin colaborador; el dinero sigue por rol y por tienda; el BARRIDO exige
+      # que toda lectura sin argumentos que use la puerta le dé filas a la terminal cuando se las da al líder. La migración se
+      # puede pegar dos veces y su guardia se detiene si alguien cambió la puerta en vivo. ROLLBACK siempre.
+      - name: pruebas:terminales-lecturas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales-lecturas
 
       # Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
       # fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

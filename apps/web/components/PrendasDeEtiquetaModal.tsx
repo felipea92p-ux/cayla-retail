@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
@@ -145,6 +147,20 @@ export function PrendasDeEtiquetaModal({
     ? prendasBajoCosto(etiqueta.descuentoPct, prendasConCosto, new Set(), new Set(cambio.agregar))
     : [];
 
+  // Guía de foco (CLAUDE.md «Guía de foco»): sale de lo que ya apaga el botón. Sin cambio no hay qué aplicar; y quien firma se pide en
+  // el paso donde está el combo: junto al botón «Aplicar» (sin pantalla de confirmación) o en «Sí, aplicar».
+  const enConfirmacion = confirmando && !!vista;
+  const guia = useGuiaCampos(
+    enConfirmacion
+      ? [{ id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." }]
+      : [
+          { id: "prendas", nombre: "Prendas", requerido: true, hecho: hayCambio, pendiente: "Marca (o suelta) al menos una prenda." },
+          ...(!vista && hayCambio
+            ? [{ id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." }]
+            : []),
+        ],
+  );
+
   async function aplicar() {
     if (!responsable.listo) return;
     setGuardando(true);
@@ -197,12 +213,15 @@ export function PrendasDeEtiquetaModal({
               )}
               {cambio.quitar.length > 0 && <p className="mt-2 text-xs text-tinta/65">Además liberarás {cambio.quitar.length} {cambio.quitar.length === 1 ? "prenda" : "prendas"}.</p>}
             </div>
-            <ComboResponsable control={responsable} deshabilitado={guardando} />
+            <CampoGuiado id="responsable" guia={guia}>
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
+            </CampoGuiado>
+            <PieGuia guia={guia} listo="Todo listo para aplicar." />
             <div className="flex gap-2">
               <Boton peso="fantasma" className="flex-1" onClick={() => setConfirmando(false)} disabled={guardando}>
                 Volver
               </Boton>
-              <Boton peso="primario" className="flex-1" onClick={aplicar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+              <Boton peso="primario" onClick={aplicar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={`flex-1 ${guia.claseConfirmar}`}>
                 Sí, aplicar
               </Boton>
             </div>
@@ -225,7 +244,7 @@ export function PrendasDeEtiquetaModal({
             )}
 
             {carga.estado === "listo" && (
-              <>
+              <CampoGuiado id="prendas" guia={guia} titulo="Prendas que llevan esta etiqueta" className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-tinta/65">
                   <span className="tabular-nums">
                     {visibles.length} {visibles.length === 1 ? "producto" : "productos"} · {marcadas.size} {marcadas.size === 1 ? "prenda marcada" : "prendas marcadas"}
@@ -307,21 +326,26 @@ export function PrendasDeEtiquetaModal({
                 {porCategoria.size > 0 && (
                   <p className="text-xs text-tinta/60">Los productos «Por categoría» ya reciben esta etiqueta por la regla de la campaña; no hace falta marcarlos.</p>
                 )}
-              </>
+              </CampoGuiado>
             )}
 
             <div className="space-y-3 border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta/75" aria-live="polite">{textoCambio(cambio, productos)}</p>
-              {!vista && hayCambio && <ComboResponsable control={responsable} deshabilitado={guardando} />}
+              {!vista && hayCambio && (
+                <CampoGuiado id="responsable" guia={guia}>
+                  <ComboResponsable control={responsable} deshabilitado={guardando} />
+                </CampoGuiado>
+              )}
+              <PieGuia guia={guia} listo="Todo listo para aplicar." />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                  className={`flex-1 ${guia.claseConfirmar}`}
                   disabled={!hayCambio || carga.estado !== "listo" || (!vista && !responsable.listo)}
-                  title={!vista ? (responsable.motivo ?? undefined) : undefined}
+                  title={!vista ? (responsable.motivo ?? guia.frase ?? undefined) : (guia.frase ?? undefined)}
                   cargando={guardando}
                   onClick={() => (vista ? setConfirmando(true) : aplicar())}
                 >

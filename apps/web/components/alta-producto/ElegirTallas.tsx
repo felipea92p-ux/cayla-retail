@@ -40,6 +40,8 @@ type Props = {
   habituales: string[];
   categoriaId: string;
   categoriaNombre: string;
+  /** `familias.codigo` de la categoría: el ejemplo de «+ Nueva talla» sigue a la familia (skill `/sugerir`). Sin ella, texto neutro. */
+  familia?: string | null;
   /** Lo que la categoría ofrece HOY en los tres ejes: la RPC reemplaza, así que se le devuelve entero + las tallas nuevas. */
   ejesActuales: EjeIds;
   /** La talla ya quedó ofrecida en la categoría (desde la hoja o propuesta): quien llama la suma a la fila. */
@@ -75,7 +77,7 @@ export function AtajosTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
   );
 }
 
-export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, habituales, categoriaId, categoriaNombre, ejesActuales, onOfrecido, sinAtajos = false }: Props) {
+export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, habituales, categoriaId, categoriaNombre, familia, ejesActuales, onOfrecido, sinAtajos = false }: Props) {
   const [hoja, setHoja] = useState(false);
   const todas = unirSinRepetir(deLaCategoria, universo);
   const porId = (id: string) => todas.find((t) => t.id === id);
@@ -128,6 +130,7 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
               elegidas={elegidas}
               categoriaId={categoriaId}
               categoriaNombre={categoriaNombre}
+              familia={familia}
               ejesActuales={ejesActuales}
               onOfrecido={onOfrecido}
               onListo={(ids) => {
@@ -150,6 +153,7 @@ function HojaTallas({
   elegidas,
   categoriaId,
   categoriaNombre,
+  familia,
   ejesActuales,
   onOfrecido,
   onListo,
@@ -161,6 +165,7 @@ function HojaTallas({
   elegidas: string[];
   categoriaId: string;
   categoriaNombre: string;
+  familia?: string | null;
   ejesActuales: EjeIds;
   onOfrecido: (v: ValorVocabulario) => void;
   onListo: (ids: string[]) => void;
@@ -258,6 +263,7 @@ function HojaTallas({
           <ProponerValor
             tipo="tallas"
             categoriaId={categoriaId}
+            familia={familia}
             ejesActuales={ejesActuales}
             universo={universo}
             onCreado={(v) => {
