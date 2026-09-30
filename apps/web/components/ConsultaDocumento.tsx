@@ -33,6 +33,10 @@ type Props = {
       registra puede preferir escribir la razón social a mano (decidido con
       Felipe, 2026-09-14). */
   disparo?: "automatico" | "boton";
+  /** Qué pasa si el campo se deja vacío, dicho en una frase (p. ej. «Sin DNI, la boleta sale a nombre de «Cliente varios»»). Se ve debajo del
+      campo mientras está vacío y se repite en su ayuda. Solo lo pasa quien sabe a nombre de quién sale el documento (el ticket de Vender):
+      en un alta de clienta o de proveedor «Cliente varios» no significa nada. Sin él, el campo se ve como siempre. */
+  sinNumero?: string;
   /** Muestra «n/11» junto a la etiqueta y, con el número válido, el hilo en verde y un ✓ en el pie (alta de
       proveedor, 2026-09-19). Vender y Facturación no lo piden: su campo se ve como siempre. */
   contador?: boolean;
@@ -64,7 +68,7 @@ const MOTIVO_LEGIBLE: Record<string, string> = {
   "El padrón no respondió a tiempo": "El padrón no respondió.",
 };
 
-export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno }: Props) {
+export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno, sinNumero }: Props) {
   const [consulta, setConsulta] = useState<Consulta | null>(null);
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
@@ -172,7 +176,9 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
               }
           : disparo === "boton" && !actual
             ? { pie: `Con los ${largoDocumento(tipo)} dígitos, «Buscar» trae el nombre desde ${etiqueta.padron}. También puedes escribirlo a mano.`, tono: "neutro" }
-            : { pie: null, tono: "neutro" };
+            : vacio && sinNumero
+              ? { pie: sinNumero, tono: "neutro" }
+              : { pie: null, tono: "neutro" };
 
   const campoNumero = (
     <CampoTexto
@@ -197,7 +203,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
         <Ayuda titulo={`Consulta de ${tipo.toUpperCase()}`}>
           {disparo === "boton"
             ? `Con el número completo, «Buscar» le pregunta a ${etiqueta.padron} de quién es y trae el nombre oficial. Si prefieres, o si la consulta no está disponible, el nombre se escribe a mano y se guarda igual.`
-            : `Al escribir el número completo, el sistema le pregunta a ${etiqueta.padron} de quién es y muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y la venta sigue igual.`}
+            : `Al escribir el número completo, el sistema le pregunta a ${etiqueta.padron} de quién es y muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y la venta sigue igual.${sinNumero ? ` ${sinNumero}` : ""}`}
         </Ayuda>
       }
       pie={estado.pie}
