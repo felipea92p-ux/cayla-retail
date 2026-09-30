@@ -161,3 +161,15 @@ gasto» tardaba 1 s en verse entero, contra 0,33 s del selector de sede. Detalle
 **Sin resolver (decisión de Felipe):** la cascada también retrasa lo que aparece DESPUÉS de abrir el modal (hasta ~0,6 s
 de espera y 500 ms de entrada). Hoy se esquiva a mano con `data-sin-cascada`, en 14 bloques. Propuesta en el BACKLOG:
 limitar la cascada a la entrada de la hoja.
+
+## Actualización 2026-09-30 (c) — una tercera excepción a «nunca en bucle»: el círculo punteado de lo opcional
+
+Felipe pidió que las rayas del círculo punteado que marca un campo **opcional** (la guía de foco, ADR-0284) se muevan en círculo «para que se
+note»: quieto, un círculo de rayas se leía como adorno y no como «esto puedes saltarlo». Es la tercera excepción y, como las otras dos, es una
+**señal y no un adorno**: dice el estado de un campo. Los límites que no cambian:
+- **Solo esa marca** (`.hilo-marca[data-estado="opcional"]`, `app/estilos/alta-guia.css`): una vuelta cada 8 s, lineal, sin rebote, sin
+  desfase ni brillo. Nada más de la guía entra en bucle (el pulso de «sigue aquí», el ✓ y el destello siguen siendo de una sola vez).
+- **Con `prefers-reduced-motion` queda quieto.**
+- Al pasar el campo a «hecho», «sigue aquí» o «falta», la marca se vuelve a montar con su estado y deja de girar.
+- Se anima con `transform`, que no repinta ni recalcula el layout: decenas de marcas a la vez (un alta con muchos campos opcionales) no pesan.
+Si en una pantalla con muchos opcionales el movimiento cansa, lo siguiente es bajar la velocidad o girar solo el campo que sigue, no quitarlo.

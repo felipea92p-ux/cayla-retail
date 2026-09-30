@@ -21,7 +21,7 @@ export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "teji
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
-import type { EstadoCampo } from "./guia-campos";
+import { siguienteDe, type EstadoCampo } from "./guia-campos";
 
 export type CampoGuia = {
   id: CampoAlta;
@@ -120,18 +120,26 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
 /** Lo que aún le falta a un campo para dejar de estar pendiente: requerido o sugerido, y sin hacer. */
 const porHacer = (c: CampoGuia) => !c.hecho && (c.requerido || c.sugerido);
 
-/** El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente. */
-export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): CampoAlta | null {
-  return campos.find((c) => c.paso === pasoAbierto && porHacer(c))?.id ?? null;
+/**
+ * El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente.
+ *
+ * `enFoco` es el campo donde la persona está escribiendo AHORA (una caja de texto: nombre, precio, una cantidad). Mientras siga ahí
+ * conserva la luz aunque ya cuente como hecho: con una letra el nombre ya lo es, y con un dígito el precio, y una luz que salta al
+ * siguiente campo a media palabra estorba. La regla es la de los modales (`siguienteDe`, lib/guia-campos.ts).
+ */
+export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): CampoAlta | null {
+  const ahora = siguienteDe(campos.filter((c) => c.paso === pasoAbierto), enFoco);
+  return ahora ? (ahora.id as CampoAlta) : null;
 }
 
 /** El estado de cada campo del paso ABIERTO: el primero por hacer es «ahora» (Sigue aquí), los demás por hacer «falta». Un campo
- *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. */
-export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): Record<CampoAlta, EstadoCampo> {
-  const ahora = campoAhora(campos, pasoAbierto);
+ *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. El que se está escribiendo (`enFoco`)
+ *  sigue siendo «ahora», sin ✓ todavía. */
+export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): Record<CampoAlta, EstadoCampo> {
+  const ahora = campoAhora(campos, pasoAbierto, enFoco);
   const out = {} as Record<CampoAlta, EstadoCampo>;
   for (const c of campos) {
-    out[c.id] = c.hecho ? "hecho" : c.id === ahora ? "ahora" : c.requerido || c.sugerido ? "falta" : "opcional";
+    out[c.id] = c.id === ahora ? "ahora" : c.hecho ? "hecho" : c.requerido || c.sugerido ? "falta" : "opcional";
   }
   return out;
 }
