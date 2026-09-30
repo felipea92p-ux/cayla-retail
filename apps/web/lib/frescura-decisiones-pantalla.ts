@@ -112,6 +112,10 @@ const POR_QUE_VOLVIO: Record<FinDecision, string> = {
 // El resultado
 // ---------------------------------------------------------------------------
 
+/** Una prueba que sigue corriendo no afirma nada todavía: «En prueba». */
+const CHIP_EN_CURSO = { texto: "En prueba", tono: "pizarra" as TonoChip };
+const chipDe = (r: Resultado | null): { texto: string; tono: TonoChip } | null => (r === null ? null : r.enCurso ? CHIP_EN_CURSO : (CHIP_DEL_VEREDICTO[r.veredicto] ?? null));
+
 const CHIP_DEL_VEREDICTO: Partial<Record<Veredicto, { texto: string; tono: TonoChip }>> = {
   sirvio: { texto: "Sirvió", tono: "verde" },
   // Nunca rojo: no es un error de nadie, es cómo le fue a la prenda.
@@ -124,9 +128,12 @@ const CHIP_DEL_VEREDICTO: Partial<Record<Veredicto, { texto: string; tono: TonoC
 const unidades = (n: number) => `${decimal(n)} ${n === 1 ? "vendida" : "vendidas"}`;
 const seEsperaban = (esperadas: number) => (decimal(esperadas) === "1" ? `se esperaba ${decimal(esperadas)}` : `se esperaban ${decimal(esperadas)}`);
 
-/** El lapso realmente medido, en días de calendario de Lima (mínimo 1). */
+/**
+ * El lapso realmente medido, en días de CALENDARIO de Lima (mínimo 1): una prueba de 7 días decidida el martes a las 14:00 corre
+ * hasta las 00:00 del martes siguiente, que son 6.4 días de reloj pero 7 días para quien la anotó.
+ */
 function diasMedidos(r: Pick<Resultado, "desde" | "hasta">): number {
-  return Math.max(1, Math.round((Date.parse(r.hasta) - Date.parse(r.desde)) / 86_400_000));
+  return Math.max(1, diasDeLimaEntre(r.desde, r.hasta));
 }
 
 const NOTA_CORTE: Record<NonNullable<Resultado["cortadaPor"]>, (r: Resultado) => string> = {
@@ -160,7 +167,7 @@ export function textoResultado(r: Resultado, l: Pick<LineaDecision, "accion" | "
   const rebaje = textoRebaje(r);
   if (r.enCurso) {
     const hasta = l.vence ? `En prueba hasta el ${diaYNumero(l.vence)} · ` : "En prueba · ";
-    return `${hasta}va ${unidades(r.suyas)} (al ritmo de ${demas}, ${decimal(r.esperadas)}).${rebaje}`;
+    return `${hasta}va ${unidades(r.suyas)}; al ritmo de ${demas} ${seEsperaban(r.esperadas)} hasta hoy.${rebaje}`;
   }
   switch (r.veredicto) {
     case "sirvio":
@@ -195,11 +202,12 @@ export function filaDeDecision(d: DecisionDePrenda | null, categoria: string, se
     const revisa = a.vence ? ` · se revisa el ${diaYNumero(a.vence)}` : "";
     return { chip: { texto: "Decidida", tono: "pizarra" }, frase: `${queSeHizo(a)}${revisa}`, vigente: true };
   }
-  const chip = a.resultado ? CHIP_DEL_VEREDICTO[a.resultado.veredicto] : undefined;
-  const cuando = fechaCorta(a.creadoEn);
+  const chip = chipDe(a.resultado) ?? undefined;
   const res = a.resultado && !a.resultado.enCurso ? textoResultado(a.resultado, a, categoria, sede) : "";
-  const corta = chip ? `${queSeHizo(a)} el ${cuando}: ${chip.texto.toLowerCase()}` : `${queSeHizo(a)} el ${cuando}. ${a.fin ? POR_QUE_VOLVIO[a.fin] : ""}`.trim();
-  return { chip: chip ?? { texto: "Volvió", tono: "pizarra" }, frase: res ? `${corta}. ${res}` : corta, vigente: false };
+  // El chip ya dice la palabra del veredicto («Sirvió»): la frase dice QUÉ se hizo y CUÁNDO, y después la explicación con los
+  // números; sin resultado que contar, por qué volvió. Nunca el mismo dato dos veces.
+  const explicacion = res || (a.fin ? `${POR_QUE_VOLVIO[a.fin]}.` : "");
+  return { chip: chip ?? { texto: "Volvió", tono: "pizarra" }, frase: `${queSeHizo(a)} el ${fechaCorta(a.creadoEn)}. ${explicacion}`.trim(), vigente: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +231,7 @@ export type BloqueDeDecision = {
 /** Cuántas líneas de historial se muestran en la hoja: «Lo que se decidió» (120 días). */
 export function bloqueDeDecision(d: DecisionDePrenda | null, categoria: string, sede: string, ahora: string): BloqueDeDecision {
   const historial = (d?.historia ?? []).map((l): LineaDeHistorial => {
-    const chip = l.resultado ? (CHIP_DEL_VEREDICTO[l.resultado.veredicto] ?? null) : null;
+    const chip = chipDe(l.resultado);
     const texto = l.accion === "anulacion" ? `${queHizoQuien(l)}` : queHizoQuien(l);
     return {
       id: l.id,
@@ -237,7 +245,7 @@ export function bloqueDeDecision(d: DecisionDePrenda | null, categoria: string, 
   if (d === null) return vacio;
   const a = d.actual;
   if (a.accion === "anulacion") return { ...vacio, historial: [{ id: a.id, cuando: diaCorto(a.creadoEn), texto: queHizoQuien(a), resultado: null, chip: null }, ...historial] };
-  const res = a.resultado ? { texto: textoResultado(a.resultado, a, categoria, sede), chip: CHIP_DEL_VEREDICTO[a.resultado.veredicto] ?? null } : null;
+  const res = a.resultado ? { texto: textoResultado(a.resultado, a, categoria, sede), chip: chipDe(a.resultado) } : null;
   if (d.vigente) {
     const de = a.plazoDias ?? PLAZO_CAMBIE_LUGAR_DIAS;
     return {
@@ -310,7 +318,7 @@ export function opcionesDeDecision(p: Pick<FrescuraPrenda, "almacenHoy" | "categ
   const revisa = (dias: number) => diaYNumero(finDePlazo(o.ahora, dias));
   const compromiso = o.diasCompromiso.sePuedeCalcular
     ? `${textoDias(o.diasCompromiso.dias)}, lo que tardan en venderse la mitad de las prendas de ${p.categoriaNombre} en ${o.sede}`
-    : `${textoDias(o.diasCompromiso.dias)}: todavía no hay ventas suficientes para calcular otro plazo`;
+    : `${textoDias(o.diasCompromiso.dias)}: todavía no hay ventas suficientes para calcular otro número de días`;
   const sinTraslado = o.traslados.length === 0;
   return [
     {
@@ -372,7 +380,10 @@ type ErrorRpc = { code?: string | null; hint?: string | null; message?: string |
  * Con `version_cambiada` (otra persona anotó primero) el texto ya viene de la base, con el nombre y la hora de quien fue.
  */
 export function textoErrorDecision(e: ErrorRpc, sede: string): { texto: string; conVer: boolean; nuevaMarca: boolean } {
-  if (e && esRespuestaIncierta(e as never)) return { texto: "No se pudo anotar: revisa la conexión y vuelve a tocar «Anotar». No se va a anotar dos veces.", conVer: false, nuevaMarca: false };
+  // Una pista nuestra es la base diciendo que NO (nada se guardó), aunque el error no traiga código; solo lo que no dice nada,
+  // o un corte de red, es una respuesta incierta: ahí la marca se conserva y reintentar no anota dos veces.
+  const pistaNuestra = typeof e?.hint === "string" && (e.hint === "version_cambiada" || e.hint.startsWith("frescura_"));
+  if (e && !pistaNuestra && esRespuestaIncierta(e as never)) return { texto: "No se pudo anotar: revisa la conexión y vuelve a tocar «Anotar». No se va a anotar dos veces.", conVer: false, nuevaMarca: false };
   switch (e?.hint) {
     case "version_cambiada":
       return { texto: e.message?.trim() || "Otra persona acaba de anotar una decisión sobre esta prenda. Mírala antes de anotar la tuya.", conVer: true, nuevaMarca: true };

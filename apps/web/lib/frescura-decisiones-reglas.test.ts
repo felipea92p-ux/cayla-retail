@@ -20,6 +20,7 @@ import {
   plazoDeAccion,
   plazoDeCompromiso,
   sugerenciasConHistoria,
+  sumarAlResumen,
   terminaLinea,
   ventanaDeLinea,
   type ContextoDeMedicion,
@@ -182,6 +183,12 @@ describe("las libretas", () => {
   it("una línea vieja que quedó fuera de la lectura no rompe la libreta: empieza donde hay datos", () => {
     const x = r({ id: "x", anteriorId: "fuera-de-la-lectura", anteriorAccion: "cambie_lugar" });
     expect(armarLibretas([x]).get("prod-1|NEG")!.lineas.map((l) => l.id)).toEqual(["x"]);
+  });
+
+  it("si una libreta trae dos puntos de partida (una línea vieja quedó fuera de la lectura), va primero el más viejo", () => {
+    const nueva = r({ id: "n", anteriorId: "fuera-2", anteriorAccion: "cambie_lugar", creadoEn: lima("2026-10-05T10:00:00") });
+    const vieja = r({ id: "v", anteriorId: "fuera-1", anteriorAccion: "cambie_lugar", creadoEn: lima("2026-09-01T10:00:00") });
+    expect(armarLibretas([nueva, vieja]).get("prod-1|NEG")!.lineas.map((l) => l.id)).toEqual(["v", "n"]);
   });
 
   it("un color nulo y uno vacío son la misma prenda (la clave que usa Frescura)", () => {
@@ -354,6 +361,12 @@ describe("«¿sirvió?»: ventas por unidad·día colgada contra las demás de s
     expect(m.suyas + m.esperadas).toBeLessThan(EVIDENCIA_MINIMA);
   });
 
+  it("vender EXACTAMENTE al ritmo de las demás cuenta como «sirvió» (igual o mejor, no solo mejor)", () => {
+    // 28 unidad·días y 2 ventas; las demás, 140 y 10: la misma tasa (1 cada 14).
+    const c = contexto({ "prod-1|NEG": { u: 28, v: 2 }, "otra-0|NEG": { u: 140, v: 10 } }, resto(1));
+    expect(medirVentana(P, V, c)).toMatchObject({ veredicto: "sirvio", suyas: 2, esperadas: 2 });
+  });
+
   it("la categoría no vendió NADA y ella sí → sirvió, sin caso especial", () => {
     const c = contexto({ "prod-1|NEG": { u: 28, v: 1 }, "otra-0|NEG": { u: 100, v: 0 } }, resto(1));
     expect(medirVentana(P, V, c)).toMatchObject({ veredicto: "sirvio", esperadas: 0 });
@@ -448,9 +461,12 @@ describe("el nivel del piso a lo largo del tiempo (exposicionDeEventos)", () => 
     expect(exposicionDeEventos(e, lima("2026-10-05T00:00:00"), lima("2026-10-05T00:00:00"))).toEqual({ unidadSegundos: 0, vendidas: 0 });
   });
 
-  it("un nivel negativo (un libro que no cuadra) nunca resta exposición", () => {
+  it("un nivel negativo (un libro que no cuadra) nunca resta exposición, ni antes ni dentro de la ventana", () => {
     const x = exposicionDeEventos([ev("2026-09-30T00:00:00", -2, true)], lima("2026-10-01T00:00:00"), lima("2026-10-02T00:00:00"));
     expect(x.unidadSegundos).toBe(0);
+    // Dentro de la ventana: llega 1 con el nivel en −2 (queda en −1, sin nada colgado) y dos días después llegan 3 (queda en 2).
+    const y = exposicionDeEventos([ev("2026-09-30T00:00:00", -2, true), ev("2026-10-01T00:00:00", 1), ev("2026-10-03T00:00:00", 3)], lima("2026-10-01T00:00:00"), lima("2026-10-05T00:00:00"));
+    expect(y.unidadSegundos / DIA).toBeCloseTo(2 * 2, 6);
   });
 
   it("no depende del orden en que llegan", () => {
@@ -605,6 +621,30 @@ describe("el resumen del mes por acción", () => {
     expect(est.resumen.cambie_lugar.esperadas).toBeCloseTo(0.47 * 2, 1);
   });
 
+  it("una decisión que terminó hace más de 30 días ya no es «este mes»", () => {
+    const sede = sedeCon([prenda({ clave: "prod-1|NEG" }), prenda({ clave: "otra|NEG" })]);
+    const vieja = r({ id: "a", creadoEn: lima("2026-08-20T10:00:00") }); // terminó el 27 de agosto
+    const est = aplicarDecisiones(sede, lecturaCon([vieja]), fija({ "prod-1|NEG": { u: 28, v: 2 }, "otra|NEG": { u: 180, v: 3 } }), AHORA);
+    if (est.estado === "ok") expect(est.resumen.cambie_lugar.terminadas).toBe(0);
+    // Una que terminó hace poco sí cuenta.
+    const sede2 = sedeCon([prenda({ clave: "prod-1|NEG" }), prenda({ clave: "otra|NEG" })]);
+    const reciente = r({ id: "a", creadoEn: lima("2026-09-20T10:00:00") }); // terminó el 27 de setiembre
+    const est2 = aplicarDecisiones(sede2, lecturaCon([reciente]), fija({ "prod-1|NEG": { u: 28, v: 2 }, "otra|NEG": { u: 180, v: 3 } }), AHORA);
+    if (est2.estado === "ok") expect(est2.resumen.cambie_lugar.terminadas).toBe(1);
+  });
+
+  it("sumarAlResumen no cuenta lo que sigue en curso, ni una anulación, ni un veredicto sin cifra", () => {
+    const cero = { terminadas: 0, sirvieron: 0, noAlcanzaron: 0, aunNoSeSabe: 0, suyas: 0, esperadas: 0 };
+    const resumen = { cambie_lugar: { ...cero }, hasta_agotar: { ...cero }, traslade: { ...cero }, rebaje: { ...cero } };
+    const base: Resultado = { veredicto: "sirvio", desde: CREADA, hasta: AHORA, enCurso: false, cortadaPor: null, suyas: 2, esperadas: 1, ventasDelControl: 3, prendasDeControl: 2, rebaje: null, enSede: null };
+    sumarAlResumen(resumen, "cambie_lugar", { ...base, enCurso: true });
+    sumarAlResumen(resumen, "anulacion", base);
+    sumarAlResumen(resumen, "cambie_lugar", { ...base, veredicto: "sin_control" });
+    expect(resumen.cambie_lugar.terminadas).toBe(0);
+    sumarAlResumen(resumen, "cambie_lugar", base);
+    expect(resumen.cambie_lugar).toMatchObject({ terminadas: 1, sirvieron: 1, suyas: 2, esperadas: 1 });
+  });
+
   it("lo que sigue en curso no se suma", () => {
     const sede = sedeCon([prenda({ clave: "prod-1|NEG" }), prenda({ clave: "otra|NEG" })]);
     const est = aplicarDecisiones(sede, lecturaCon([r({ id: "a", creadoEn: lima("2026-10-09T10:00:00") })]), fija({ "prod-1|NEG": { u: 2, v: 0 }, "otra|NEG": { u: 10, v: 3 } }), AHORA);
@@ -693,5 +733,53 @@ describe("UN solo lugar dice «Por decidir»", () => {
   it("frescura-reglas.ts la usa solo para armar la base de la cifra y `porDecidir` inicial (el resto lo decide aplicarDecisiones)", () => {
     const codigo = leer("lib/frescura-reglas.ts").split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
     expect((codigo.match(/estado\.quieta/g) ?? []).length).toBeLessThanOrEqual(2);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+describe("la pantalla llama a las funciones SQL con sus nombres exactos", () => {
+  // PostgREST resuelve los argumentos por NOMBRE: un `p_plazo` en vez de `p_plazo_dias` no lo detecta ni el compilador ni
+  // ninguna prueba de SQL, y en producción daría «no existe la función». Se compara la firma de la migración, lo que manda
+  // cada llamada de la pantalla y los tipos escritos a mano de `packages/database`.
+  const raiz = join(__dirname, "..");
+  const sql = readFileSync(join(raiz, "../../supabase/migrations/20261001100100_frescura_decisiones_funciones.sql"), "utf8");
+  const tipos = readFileSync(join(raiz, "../../packages/database/src/types.ts"), "utf8");
+  const componentes = ["FrescuraDecidir.tsx"].map((f) => readFileSync(join(raiz, "components/frescura", f), "utf8")).join("\n");
+
+  /** Los argumentos de la firma SQL: los obligatorios y los que tienen valor por defecto. */
+  function firma(fn: string) {
+    const m = new RegExp(`function retail\\.${fn}\\(([\\s\\S]*?)\\)\\s*returns`).exec(sql);
+    if (!m) throw new Error(`la migración no define ${fn}`);
+    const todos = m[1].split(",").map((x) => x.trim()).filter(Boolean);
+    return { obligatorios: todos.filter((x) => !/\bdefault\b/i.test(x)).map((x) => x.split(/\s+/)[0]), todos: todos.map((x) => x.split(/\s+/)[0]) };
+  }
+  /** Las claves de cada `.rpc("fn", { … })` de la pantalla. */
+  function llamadas(fn: string): string[][] {
+    return [...componentes.matchAll(new RegExp(`\\.rpc\\(\\s*"${fn}",\\s*\\{([\\s\\S]*?)\\n?\\s*\\}\\)`, "g"))].map((m) => [...m[1].matchAll(/\b(p_[a-z_]+)\s*[:,]/g)].map((k) => k[1]));
+  }
+  /** Los argumentos de `types.ts` para esa función. */
+  function enTipos(fn: string): string[] {
+    const m = new RegExp(`\\b${fn}: \\{\\s*Args: \\{([\\s\\S]*?)\\}\\s*(?:Returns|\\n)`).exec(tipos);
+    if (!m) throw new Error(`types.ts no trae ${fn}`);
+    return [...m[1].matchAll(/\b(p_[a-z_]+)\??:/g)].map((k) => k[1]);
+  }
+
+  for (const fn of ["anotar_decision_frescura", "anular_decision_frescura"]) {
+    it(`${fn}: cada llamada manda todos los obligatorios y ninguno que la función no tenga; los tipos dicen lo mismo`, () => {
+      const f = firma(fn);
+      const l = llamadas(fn);
+      expect(l.length, `no encontré ninguna llamada a ${fn} en la pantalla`).toBeGreaterThan(0);
+      for (const claves of l) {
+        expect(claves.filter((c) => !f.todos.includes(c)), "argumentos que la función no tiene").toEqual([]);
+        expect(f.obligatorios.filter((c) => !claves.includes(c)), "obligatorios que la pantalla no manda").toEqual([]);
+      }
+      expect(enTipos(fn).sort()).toEqual([...f.todos].sort());
+    });
+  }
+
+  it("fn_frescura_decisiones: la web pide con p_ubicacion_id y p_dias, y los tipos coinciden", () => {
+    const f = firma("fn_frescura_decisiones");
+    expect(f.todos.sort()).toEqual(["p_dias", "p_ubicacion_id"]);
+    expect(enTipos("fn_frescura_decisiones").sort()).toEqual(["p_dias", "p_ubicacion_id"]);
   });
 });

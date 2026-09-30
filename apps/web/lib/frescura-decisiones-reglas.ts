@@ -689,7 +689,8 @@ export function aplicarDecisiones(sede: FrescuraSede, lectura: LecturaDecisiones
       };
     });
     const actual = lineas[lineas.length - 1];
-    const vigente = actual.fin === null && actual.accion !== "anulacion";
+    // `terminaLinea` ya devuelve «anulada» para una anulación: una condición aparte diría dos veces lo mismo.
+    const vigente = actual.fin === null;
     p.decision = { actual, vigente, historia: lineas.slice(0, -1).reverse().slice(0, LINEAS_DE_HISTORIA) };
     p.porDecidir = p.estado.quieta && !vigente;
     p.estado = { ...p.estado, sugerencias: sugerenciasConHistoria(p.estado.sugerencias, p.estado.quieta, vigente ? null : { accion: actual.accion, resultado: actual.resultado, finEl: actual.finEl }, ahora) };
