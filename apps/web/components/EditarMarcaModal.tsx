@@ -8,6 +8,9 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeEdicionMarca } from "@/lib/marcas-guia";
 import { firmar } from "@/lib/responsable-reglas";
 import { borradorCambia, problemaEdicionMarca, sePuedeQuitar, sinTildes, type BorradorMarca, type ProveedorOpcion } from "@/lib/marcas";
 import type { MarcaFila } from "@/components/MarcasLista";
@@ -46,6 +49,8 @@ export function EditarMarcaModal({
   const responsable = useResponsable();
 
   const borrador: BorradorMarca = { nombre, quitar, sumar, nuevos };
+  // Guía de foco (CLAUDE.md «Guía de foco»): sale de `problemaEdicionMarca`, la regla que ya rechaza al guardar.
+  const guia = useGuiaCampos(camposDeEdicionMarca(marca.proveedores, borrador, responsable.listo));
   const nombreDe = new Map(proveedores.map((p) => [p.id, p.nombre]));
   const opciones = proveedores
     .filter((p) => !marca.proveedores.some((x) => x.id === p.id) && !sumar.includes(p.id))
@@ -103,16 +108,17 @@ export function EditarMarcaModal({
     <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} ancho="max-w-lg">
       {(cerrar) => (
         <div className="mt-4 space-y-4">
-          <CampoTexto
-            etiqueta="Nombre de la marca"
-            value={nombre}
-            onChange={(e) => cambiar(() => setNombre(e.target.value))}
-            disabled={guardando}
-            pie={nombreCambia ? "Cambia en todos sus productos a la vez: ninguno guarda el texto, todos apuntan a la marca." : undefined}
-          />
+          <CampoGuiado id="nombre" guia={guia}>
+            <CampoTexto
+              etiqueta={guia.etiqueta("nombre", "Nombre de la marca")}
+              value={nombre}
+              onChange={(e) => cambiar(() => setNombre(e.target.value))}
+              disabled={guardando}
+              pie={nombreCambia ? "Cambia en todos sus productos a la vez: ninguno guarda el texto, todos apuntan a la marca." : undefined}
+            />
+          </CampoGuiado>
 
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">¿Quién la trae?</p>
+          <CampoGuiado id="proveedores" guia={guia} titulo="¿Quién la trae?">
             <ul className="mt-1.5 divide-y divide-tinta/10 rounded-md border border-tinta/15">
               {marca.proveedores.map((p) => {
                 const quitado = quitar.includes(p.id);
@@ -202,16 +208,19 @@ export function EditarMarcaModal({
             {hayConProductos && (
               <p className="mt-2 text-xs text-tinta/55">Un proveedor con productos no se quita aquí: cámbiales el proveedor en Productos primero.</p>
             )}
-          </div>
+          </CampoGuiado>
 
           {error && (
             <p role="alert" className="text-xs text-rojo-profundo">
               {error}
             </p>
           )}
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
           <div className="flex items-center gap-3">
-            <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+            <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
               {guardando ? "Guardando…" : "Guardar"}
             </Boton>
             <button type="button" onClick={cerrar} disabled={guardando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
