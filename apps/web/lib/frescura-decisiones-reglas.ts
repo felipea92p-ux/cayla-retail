@@ -2,7 +2,7 @@ import { compararInstantes, type EventoPiso } from "./inventario-exposicion";
 import { clavePrendaDe } from "./prenda-clave";
 import type { FrescuraPrenda, FrescuraSede, Sugerencia, VaraCategoria } from "./frescura-reglas";
 
-// Frescura del piso, paso 4b (ADR-0208, «Actualización 2026-10-01 — Ya decidí»): LO QUE PASA DESPUÉS DE DECIDIR. La base
+// Frescura del piso, paso 4b (ADR-0208, «Actualización 2026-09-29 — Ya decidí»): LO QUE PASA DESPUÉS DE DECIDIR. La base
 // guarda solo el HECHO (`retail.frescura_decisiones`: qué, quién, cuándo, por cuántos días, sobre qué traslado; de solo
 // agregar). Todo lo demás se calcula aquí, al leer, con la misma lectura del piso que ya tiene la pantalla:
 //   · si la decisión SIGUE vigente (`terminaLinea`),
