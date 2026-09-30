@@ -776,7 +776,7 @@ export function lineaDesdeJson(json: unknown): LineaConteo | null {
     confirmadaEn: textoONulo(o, "confirmada_en"),
     actual: enteroONulo(o, "actual"),
     ajusteMovimientoId: textoONulo(o, "ajuste_movimiento_id"),
-    // Faltan si la web sale antes que el SQL (`20260930050000`): valen 0 y la nota es la de siempre.
+    // Faltan si la web sale antes que el SQL (`20260930050100`): valen 0 y la nota es la de siempre.
     ajustadoTotal: enteroONulo(o, "ajustado_total") ?? 0,
     ajustadoAntes: enteroONulo(o, "ajustado_antes") ?? 0,
   };
