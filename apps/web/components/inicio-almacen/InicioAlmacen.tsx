@@ -15,6 +15,9 @@ import { TeTocaAlmacen } from "./TeTocaAlmacen";
  * en otras sedes»; y, a la derecha desde ~940 px, el pulso, lo que viene en camino, el piso que pide reposición y los accesos.
  * Cada bloque falla por separado y dice que falló.
  *
+ * Usa TODO el ancho de la pantalla (Felipe, 2026-09-30: «a cualquier resolución o zoom»): el marcador `data-ancho-completo` le quita el
+ * tope de 64 rem al <main> solo a esta cuenta, y las reglas por contenedor del CSS (≥1100 y ≥1500 px) hacen crecer título, tarjetas y columnas.
+ *
  * El botón fijo de celular (`DockAlmacen`) va FUERA de `.ia`: un contenedor de consulta es el bloque contenedor de lo que
  * lleva `position: fixed`, y el botón se quedaría pegado al final del bloque en vez del de la pantalla.
  */
@@ -39,6 +42,8 @@ export function InicioAlmacen({
     <>
       <EfectosInicio atajoNuevo="/productos/nuevo" />
       <div className="ia">
+        {/* Pide todo el ancho del <main> (`AppShell`: `has-[[data-ancho-completo]]`): a cualquier resolución o zoom el Inicio llena la pantalla. */}
+        <span hidden data-ancho-completo />
         <CabinaAlmacen
           nuevos={datos.nuevos}
           tituloLista={TITULO_NUEVOS.lista}

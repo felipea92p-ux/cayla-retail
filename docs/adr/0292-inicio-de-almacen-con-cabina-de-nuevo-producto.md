@@ -116,8 +116,14 @@ accesos, y un degradado de luz sobre las fotos. Todo con tokens; ningún hex sue
 - **«Sincronizado hace N s»** de la maqueta: era de adorno (no hay sincronización en vivo que medir).
 - **«Etiquetas por imprimir»** como aviso: no existe «pendientes de imprimir» en ninguna fuente. El acceso a Etiquetas de precio sí está.
 - **Minigráfica de entradas** y **«Por preparar»** de En camino: sin datos reales (un traslado no tiene estado «por preparar»).
-- **Ancho:** el Inicio sigue en `max-w-5xl` (64 rem) porque «/» no está en `SIN_TOPE_DE_ANCHO` del `AppShell`; se dibuja bien a ese ancho y
-  se acomoda por contenedor (`@container`) hacia abajo. Quitar el tope para «/» afectaría a todas las cuentas: no se hizo.
+- **Ancho (actualización 2026-09-30, Felipe: «debería ocupar toda la pantalla en cualquier resolución o zoom»):** el Inicio de almacén **usa todo el ancho**.
+  Al principio se quedó en `max-w-5xl` (64 rem) porque «/» no estaba en `SIN_TOPE_DE_ANCHO` del `AppShell` y agregarlo estiraría el Inicio de TODAS las cuentas,
+  que no se pensaron para eso. Se resolvió sin tocar esa lista: el Inicio de almacén escribe un marcador (`<span hidden data-ancho-completo />`) y el `<main>` lo lee con
+  `has-[[data-ancho-completo]]:max-w-none`, así que solo esta pantalla pierde el tope. Para que a más ancho no sobre espacio: la tarjeta de producto crece de 250 a 360 px
+  (`flex: 0 0 min(clamp(250px, 15cqi, 360px), 74cqi)`); desde 1100 px de contenedor el título de la cabina crece de 56 hasta 104 px; y desde 1500 px la cabina y la
+  columna derecha crecen con el ancho con tope (`clamp(420px, 30cqi, 720px)` y `clamp(380px, 26cqi, 600px)`) y el resto es para lo principal. Medido en el navegador: a
+  3840, 2560, 1920, 1280, 1024, 768 y 375 px el contenido ocupa entre 96 % y 100 % del ancho útil y no hay desborde horizontal. `lib/ancho-completo.test.ts` vigila que
+  «/» no entre a `SIN_TOPE_DE_ANCHO`, que `AppShell` conserve la regla y que solo el Inicio de almacén escriba el marcador.
 - **Cuatro posibles avisos** que ADR-0225 lista «sin lectura todavía» (efectivo sin depositar, cierre de mes, impuestos, órdenes del taller,
   insumos bajo mínimo) siguen sin lectura: no son de almacén.
 
