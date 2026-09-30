@@ -25,10 +25,11 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 // directa desde el cliente + `traducirError()`, sin backend propio.
 //
 // Costo atípico (20260930122000, Felipe 2026-09-30): el costo de una línea es opcional y lo teclea quien recibe. Si alguno sale
-// fuera de lo normal, la base NO recibe nada y contesta `costo_atipico` con TODAS las líneas raras. Al líder se le muestra
-// aquí, en línea, con dos salidas (corregir los costos o confirmarlos), y confirmar reenvía el MISMO intento (mismo token: el
-// rechazo no guardó nada) con `p_confirma_costo_atipico`. A quien no es líder la base le dice, sin cifras, que un líder debe
-// confirmarlo; su salida es recibir esa línea sin costo. La regla vive en la base; esta pantalla no la repite.
+// fuera de lo normal, la base NO recibe nada y contesta `costo_atipico` con las líneas raras que faltan por confirmar. Al líder
+// se le muestra aquí, en línea, con dos salidas (corregir los costos o confirmarlos), y confirmar reenvía el MISMO intento
+// (mismo token: el rechazo no guardó nada) con la marca `confirma_costo: true` en CADA línea que se le mostró: la base acepta
+// exactamente esas, no «todo lo que venga». A quien no es líder la base le dice, sin cifras, que un líder debe confirmarlo; su
+// salida es recibir esa línea sin costo. La regla vive en la base; esta pantalla no la repite.
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
 
@@ -79,11 +80,16 @@ export function RecepcionFormV2({
     setLineas((actual) => actual.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
   }
 
-  // La primera línea con costo cuya prenda la base marcó como atípica (o, sin saber cuál, la primera con costo).
+  // Las líneas que de verdad se mandan (con prenda y cantidad), como posiciones del formulario: la base numera las suyas
+  // (`linea`, desde 1) sobre esta misma lista.
+  const indicesEnviados = () => lineas.flatMap((l, i) => (l.varianteId && l.cantidad > 0 ? [i] : []));
+
+  // La línea del formulario que la base marcó como atípica (o, sin saber cuál, la primera con costo).
   function lineaDelCostoAtipico(marcadas: CostoAtipico[] | null): number {
-    const conCosto = lineas.map((l, i) => ({ l, i })).filter(({ l }) => l.costoUnitario);
-    const marcada = marcadas ? conCosto.find(({ l }) => marcadas.some((a) => a.varianteId === l.varianteId)) : undefined;
-    return (marcada ?? conCosto[0])?.i ?? 0;
+    const enviados = indicesEnviados();
+    const primera = marcadas?.find((a) => a.linea !== null)?.linea;
+    if (primera) return enviados[primera - 1] ?? 0;
+    return enviados.find((i) => lineas[i].costoUnitario) ?? 0;
   }
 
   function corregirCostos() {
@@ -94,10 +100,11 @@ export function RecepcionFormV2({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await enviar(false);
+    await enviar(null);
   }
 
-  async function enviar(confirmaCostoAtipico: boolean) {
+  /** `confirmadas`: las líneas (posición desde 1, las de la base) que el líder confirmó; `null` en el primer intento. */
+  async function enviar(confirmadas: number[] | null) {
     const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
     if (validas.length === 0) {
       avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "recepcion-linea-0" });
@@ -117,16 +124,16 @@ export function RecepcionFormV2({
     const params = {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
-      p_items: validas.map((l) => ({
+      p_items: validas.map((l, n) => ({
         variante_id: l.varianteId,
         cantidad: l.cantidad,
         ...(l.costoUnitario ? { costo_unitario: Number(l.costoUnitario) } : {}),
+        // Solo en el reintento tras `costo_atipico`, y solo en las líneas que se le mostraron al líder: el primer intento no
+        // manda la marca, así la pantalla nueva funciona igual contra una base que todavía no la conoce.
+        ...(confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
       })),
       p_numero_guia: numeroGuia || undefined,
       p_token: token.current,
-      // Solo en el reintento tras `costo_atipico`: el primer intento no manda el parámetro, así la pantalla nueva funciona
-      // igual contra una base que todavía no lo conoce.
-      ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}),
     };
     const firma = responsable.firma();
     const { data: loteId, error, status } = await firmar(supabase.rpc("recibir_lote", params), firma);
@@ -293,7 +300,7 @@ export function RecepcionFormV2({
           listo={responsable.listo}
           motivoNoListo={responsable.motivo}
           onCorregir={corregirCostos}
-          onConfirmar={() => enviar(true)}
+          onConfirmar={() => enviar(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
         />
       ) : (
         <button type="submit" disabled={loading} className={botonPrimario}>

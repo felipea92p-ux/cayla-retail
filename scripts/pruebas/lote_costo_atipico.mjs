@@ -13,13 +13,15 @@
  *      (`{"items":[…]}`, en el orden del lote) y ninguna de las normales; con un motivo por línea.
  *   3. TODO O NADA: tras el rechazo no hay lote, ni movimientos (tampoco de las líneas normales), ni filas de historial de
  *      costo, ni stock nuevo, y el costo de las prendas queda intacto.
- *   4. El token (ADR-0190): el rechazo no lo consume; el reintento con el MISMO token y la confirmación es el mismo intento
+ *   4. El token (ADR-0190): el rechazo no lo consume; el reintento con el MISMO token y las marcas es el mismo intento
  *      (un solo lote), y repetirlo devuelve ese lote, no uno nuevo.
- *   5. Con `p_confirma_costo_atipico` el líder recibe: los costos entran al promedio ponderado exacto y el lote deja constancia
- *      en su nota SIN montos (conservando la nota que ya traía).
+ *   5. La confirmación viaja EN CADA LÍNEA (`"confirma_costo": true`): con la marca el líder recibe, los costos entran al
+ *      promedio ponderado exacto y el lote deja constancia en su nota SIN montos (conservando la nota que ya traía). Si solo
+ *      marca una de dos atípicas, vuelve a preguntar solo por la otra y no se escribe nada; marcar una línea normal no hace nada.
  *   6. Un integrante (no ve montos) con un costo atípico NO puede recibir esa línea: `costo_atipico_sin_lider`, sin cifras,
  *      y mandar la confirmación por la API directa no cambia nada. Sin costo, o con uno normal, sí recibe.
- *   7. Una sola función `recibir_lote` (sin sobrecargas), sin `execute` para `anon`, y la migración se puede pegar dos veces.
+ *   7. Una sola función `recibir_lote` (la firma de seis parámetros no cambió), `authenticated` la sigue ejecutando, y la
+ *      migración se puede pegar dos veces.
  *
  * USO
  *   pnpm pruebas:lote-costo-atipico   → con las migraciones ya aplicadas en el Postgres local
@@ -90,15 +92,15 @@ select gen_random_uuid() as tok \\gset
 
 /**
  * Corre una escena y devuelve el estado final. `lineas`: [{ prenda: 'M'|'S', cantidad, costo }] (costo null = sin costo).
- * `como`: 'lider' | 'integrante'. `confirma`: null = llamada de seis parámetros; true/false = séptimo. `intentos`: cuántas veces
- * se llama (mismo token). `nota`: la nota que trae el lote.
+ * `como`: 'lider' | 'integrante'. `confirma: true` pone la marca `confirma_costo` en TODAS las líneas (cada línea puede traer
+ * la suya: `{ …, confirma: true }`). `intentos`: cuántas veces se llama (mismo token). `nota`: la nota que trae el lote.
  */
-function escena({ lineas, como = "lider", confirma = null, intentos = 1, nota = null }) {
+function escena({ lineas, como = "lider", confirma = false, intentos = 1, nota = null }) {
   const items = JSON.stringify(
-    lineas.map((l) => ({ prenda: l.prenda, cantidad: l.cantidad, costo: l.costo })),
+    lineas.map((l) => ({ prenda: l.prenda, cantidad: l.cantidad, costo: l.costo, confirma: l.confirma ?? confirma })),
   );
   const llamada = `select pg_temp.intento(format(
-  'select retail.recibir_lote(p_ubicacion_id => %L, p_proveedor_id => %L, p_items => %L::jsonb, p_numero_guia => %L, p_nota => %L, p_token => %L${confirma === null ? "" : `, p_confirma_costo_atipico => ${confirma}`})',
+  'select retail.recibir_lote(p_ubicacion_id => %L, p_proveedor_id => %L, p_items => %L::jsonb, p_numero_guia => %L, p_nota => %L, p_token => %L)',
   :'tru', :'prov', current_setting('prueba.items'), 'GZ-CA-1', ${nota === null ? "null::text" : `'${nota}'`}, :'tok'))`;
   const salida = psql(`begin;
 set local request.jwt.claim.sub = '${FELIPE}';
@@ -108,7 +110,8 @@ select set_config('prueba.items', (
   select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
     'variante_id', case l ->> 'prenda' when 'M' then :'vm'::text else :'vs'::text end,
     'cantidad', (l ->> 'cantidad')::int,
-    'costo_unitario', l -> 'costo')))
+    'costo_unitario', l -> 'costo',
+    'confirma_costo', case when (l ->> 'confirma')::boolean then to_jsonb(true) end)))
   from jsonb_array_elements('${items}'::jsonb) l)::text, true) as _i \\gset
 ${sesion(como === "lider" ? FELIPE : MICAELA)}
 ${Array.from({ length: intentos }, (_, n) => `${llamada} as r${n} \\gset`).join("\n")}
@@ -141,8 +144,8 @@ const intacto = (s) =>
     ? null
     : `no quedó intacto: ${JSON.stringify({ lotes: s.lotes_nuevos, movs: s.movs, stock_m: s.stock_m, stock_s: s.stock_s, hist_m: s.hist_m, hist_s: s.hist_s, costo_m: s.costo_m, costo_s: s.costo_s })}`;
 
-const M = (cantidad, costo) => ({ prenda: "M", cantidad, costo });
-const S = (cantidad, costo) => ({ prenda: "S", cantidad, costo });
+const M = (cantidad, costo, confirma) => ({ prenda: "M", cantidad, costo, confirma });
+const S = (cantidad, costo, confirma) => ({ prenda: "S", cantidad, costo, confirma });
 
 caso("un lote con costo normal (32) entra sin preguntar, con los seis parámetros de siempre", () => {
   const s = escena({ lineas: [M(5, 32)] });
@@ -198,17 +201,37 @@ caso("un costo de 0 es un OBSEQUIO (decisión explícita en Compras): entra sin 
 });
 
 caso("el rechazo no consume el token: el reintento con el MISMO token y la confirmación es un solo lote", () => {
-  const s = escena({ lineas: [M(5, 70)], confirma: false, intentos: 1 });
+  const s = escena({ lineas: [M(5, 70)] });
   if (s.r.ok || s.lotes_con_token !== 0) return `tras el rechazo: ${JSON.stringify({ r: s.r, tok: s.lotes_con_token })}`;
 });
-caso("…con la confirmación entra UN lote con ese token; repetir el intento devuelve el mismo lote, no otro", () => {
+caso("…con la marca entra UN lote con ese token; repetir el intento devuelve el mismo lote, no otro", () => {
   const s = escena({ lineas: [M(5, 70)], confirma: true, intentos: 2 });
   if (!s.r.ok || !s.r_ultimo.ok) return JSON.stringify([s.r, s.r_ultimo]);
   if (s.r.res !== s.r_ultimo.res) return `dos lotes distintos: ${s.r.res} y ${s.r_ultimo.res}`;
   if (s.lotes_nuevos !== 1 || s.lotes_con_token !== 1 || s.movs !== 1) return JSON.stringify(s);
 });
 
-caso("líder con confirmación: recibe y los costos entran al promedio ponderado exacto", () => {
+caso("confirmación PARCIAL: marca solo una de dos atípicas → vuelve a preguntar solo por la otra, y no se escribe nada", () => {
+  const s = escena({ lineas: [M(5, 70, true), S(3, 15)] });
+  if (s.r.ok || s.r.msg !== "costo_atipico") return JSON.stringify(s.r);
+  const items = JSON.parse(s.r.detail).items;
+  if (items.length !== 1 || items[0].sku !== "BLU-EMMA-NEG-S" || items[0].linea !== 2) return s.r.detail;
+  return intacto(s);
+});
+
+caso("una marca en una línea que NO es atípica no hace nada: sin constancia, entra como siempre", () => {
+  const s = escena({ lineas: [M(5, 32, true)] });
+  if (!s.r.ok) return JSON.stringify(s.r);
+  if (s.nota || s.hist_m !== 1 || s.stock_m !== 5) return JSON.stringify(s);
+});
+
+caso("el detalle numera las líneas (linea, desde 1, en el orden del lote)", () => {
+  const s = escena({ lineas: [M(5, 32), S(3, 70)] });
+  const items = JSON.parse(s.r.detail).items;
+  if (items.length !== 1 || items[0].linea !== 2) return s.r.detail;
+});
+
+caso("líder con la marca en cada línea: recibe y los costos entran al promedio ponderado exacto", () => {
   const s = escena({ lineas: [M(5, 70), S(3, 15)], confirma: true });
   if (!s.r.ok) return JSON.stringify(s.r);
   if (s.lotes_nuevos !== 1 || s.movs !== 2 || s.hist_m !== 1 || s.hist_s !== 1) return JSON.stringify(s);
@@ -230,7 +253,7 @@ caso("un integrante con un costo atípico NO puede recibir: costo_atipico_sin_li
 });
 caso("…y no quedó nada escrito", () => intacto(escena({ lineas: [M(5, 70)], como: "integrante" })));
 
-caso("un integrante que manda la confirmación por la API directa recibe lo mismo (lo exige el servidor)", () => {
+caso("un integrante que manda las marcas por la API directa recibe lo mismo (lo exige el servidor, no la marca)", () => {
   const s = escena({ lineas: [M(5, 70)], como: "integrante", confirma: true });
   if (s.r.ok || s.r.msg !== "costo_atipico_sin_lider") return JSON.stringify(s.r);
   return intacto(s);
@@ -248,16 +271,17 @@ caso("una sola función recibir_lote (sin sobrecargas que confundan a PostgREST)
   if (salida !== "1") return `funciones: ${salida}`;
 });
 
-caso("anon no la ejecuta; authenticated sí", () => {
-  const f = "retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid)";
-  const salida = psql(`select has_function_privilege('anon', '${f}', 'execute')::text || ',' || has_function_privilege('authenticated', '${f}', 'execute')::text;`);
-  if (salida !== "false,true") return salida;
+caso("la firma de seis parámetros no cambió (p_token al final) y authenticated la sigue ejecutando", () => {
+  const f = "retail.recibir_lote(uuid, uuid, jsonb, text, text, uuid)";
+  const salida = psql(`select has_function_privilege('authenticated', '${f}', 'execute')::text;
+select (p.proargnames[array_upper(p.proargnames, 1)] = 'p_token')::text from pg_proc p where p.oid = '${f}'::regprocedure;`);
+  if (salida !== "true\ntrue") return salida;
 });
 
 caso("la migración se puede pegar dos veces (una sola función, con la lógica nueva)", () => {
   const salida = psql(`begin;\n${MIGRACION}\n${MIGRACION}
 select count(*) from pg_proc where proname = 'recibir_lote' and pronamespace = 'retail'::regnamespace;
-select (pg_get_functiondef('retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid)'::regprocedure) like '%costo_atipico_sin_lider%')::text;
+select (pg_get_functiondef('retail.recibir_lote(uuid, uuid, jsonb, text, text, uuid)'::regprocedure) like '%costo_atipico_sin_lider%')::text;
 rollback;`);
   const [n, tiene] = salida.split("\n").filter(Boolean);
   if (n !== "1" || tiene !== "true") return `funciones ${n}, lógica nueva ${tiene}`;

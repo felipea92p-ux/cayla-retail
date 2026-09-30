@@ -19,6 +19,8 @@ export type CostoAtipico = {
   sku: string | null;
   /** La prenda a la que se refiere (las recepciones y facturas lo mandan para saber qué línea corregir). */
   varianteId: string | null;
+  /** La posición de la línea en lo que se mandó (desde 1): con ella la pantalla pone la marca y lleva el foco a SU línea. */
+  linea: number | null;
 };
 
 type ErrorConDetalle = { message?: string | null; details?: string | null } | null | undefined;
@@ -57,6 +59,7 @@ function leerLinea(d: unknown): CostoAtipico | null {
     precio: numeroONulo(o.precio),
     sku: typeof o.sku === "string" && o.sku ? o.sku : null,
     varianteId: typeof o.variante_id === "string" && o.variante_id ? o.variante_id : null,
+    linea: Number.isInteger(o.linea) && (o.linea as number) > 0 ? (o.linea as number) : null,
   };
 }
 

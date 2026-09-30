@@ -14,6 +14,7 @@ describe("leerCostoAtipico", () => {
       precio: 79.9,
       sku: "BLU-EMMA-NEG-M",
       varianteId: null,
+      linea: null,
     });
   });
 
@@ -25,6 +26,7 @@ describe("leerCostoAtipico", () => {
       precio: 79.9,
       sku: null,
       varianteId: null,
+      linea: null,
     });
   });
 
@@ -51,7 +53,7 @@ describe("leerCostoAtipico", () => {
   });
 });
 
-const base: CostoAtipico = { motivo: "sube", costoUnitario: 70, costoVigente: 32, precio: 79.9, sku: "BLU-EMMA-NEG-M", varianteId: null };
+const base: CostoAtipico = { motivo: "sube", costoUnitario: 70, costoVigente: 32, precio: 79.9, sku: "BLU-EMMA-NEG-M", varianteId: null, linea: null };
 
 describe("fraseCostoAtipico", () => {
   it("sube: dice cuánto saldría cada prenda y cuántas veces su costo actual", () => {
@@ -84,11 +86,11 @@ describe("fraseCostoAtipico", () => {
   });
 
   it("sin costo vigente ni talla no se rompe ni inventa cifras", () => {
-    const sube = fraseCostoAtipico({ motivo: "sube", costoUnitario: 70, costoVigente: null, precio: null, sku: null, varianteId: null });
+    const sube = fraseCostoAtipico({ motivo: "sube", costoUnitario: 70, costoVigente: null, precio: null, sku: null, varianteId: null, linea: null });
     expect(sube.detalle).toBe(`Cada prenda saldría a ${soles(70)}, más del doble de su costo actual.`);
-    const baja = fraseCostoAtipico({ motivo: "baja", costoUnitario: 5, costoVigente: 0, precio: null, sku: null, varianteId: null });
+    const baja = fraseCostoAtipico({ motivo: "baja", costoUnitario: 5, costoVigente: 0, precio: null, sku: null, varianteId: null, linea: null });
     expect(baja.detalle).toBe(`Cada prenda saldría a ${soles(5)}, menos de dos tercios de su costo actual.`);
-    const pierde = fraseCostoAtipico({ motivo: "mayor_que_precio", costoUnitario: 85, costoVigente: null, precio: null, sku: null, varianteId: null });
+    const pierde = fraseCostoAtipico({ motivo: "mayor_que_precio", costoUnitario: 85, costoVigente: null, precio: null, sku: null, varianteId: null, linea: null });
     expect(pierde.detalle).toBe(`Cada prenda saldría a ${soles(85)}: se vendería con pérdida.`);
   });
 
@@ -105,7 +107,7 @@ describe("fraseCostosAtipicos", () => {
   });
 
   it("con varias, un título con la cuenta y un detalle por línea, cada uno con su prenda", () => {
-    const otra: CostoAtipico = { motivo: "baja", costoUnitario: 5, costoVigente: 40, precio: 99, sku: "BLU-EMMA-NEG-S", varianteId: null };
+    const otra: CostoAtipico = { motivo: "baja", costoUnitario: 5, costoVigente: 40, precio: 99, sku: "BLU-EMMA-NEG-S", varianteId: null, linea: null };
     const f = fraseCostosAtipicos([base, otra]);
     expect(f.titulo).toBe("2 líneas tienen un costo fuera de lo normal");
     expect(f.detalles).toHaveLength(2);
@@ -128,6 +130,18 @@ describe("leerCostosAtipicos", () => {
       ["v-1", "BLU-EMMA-NEG-M", "sube", 70],
       ["v-2", "BLU-EMMA-NEG-S", "baja", 15],
     ]);
+  });
+
+  it("lee el número de línea (desde 1) para poner la marca y llevar el foco; uno inválido es null", () => {
+    const r = leerCostosAtipicos(
+      items([
+        { linea: 2, motivo: "sube", costo_unitario: 70 },
+        { linea: 0, motivo: "sube", costo_unitario: 70 },
+        { linea: "3", motivo: "sube", costo_unitario: 70 },
+        { motivo: "sube", costo_unitario: 70 },
+      ]),
+    );
+    expect(r?.map((l) => l.linea)).toEqual([2, null, null, null]);
   });
 
   it("acepta también el formato de una sola línea (Producción) como una lista de una", () => {

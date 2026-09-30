@@ -105,11 +105,10 @@ select bool_and(n = 1 and ultimo = 'p_token') from (
   );
   caso(
     // apartar_stock es pieza interna desde ADR-0240: el navegador aparta por `apartar_prenda` (con el módulo «Apartados»).
-    // recibir_lote traía PUBLIC en el Postgres local (residuo de las migraciones viejas; producción ya no): 20260930122000 la alinea con producción.
-    "las 5 conservan sus permisos: authenticated sí (salvo apartar_stock, interna desde ADR-0240); anon solo donde ya estaba (registrar_movimiento_caja viene con PUBLIC; recibir_lote ya no, desde 20260930122000)",
+    "las 5 conservan sus permisos: authenticated sí (salvo apartar_stock, interna desde ADR-0240); anon solo donde ya estaba (recibir_lote y registrar_movimiento_caja vienen con PUBLIC)",
     `begin;
 select bool_and(has_function_privilege('authenticated', p.oid, 'execute') = (p.proname <> 'apartar_stock')
-  and has_function_privilege('anon', p.oid, 'execute') = (p.proname in ('registrar_movimiento_caja')))
+  and has_function_privilege('anon', p.oid, 'execute') = (p.proname in ('recibir_lote', 'registrar_movimiento_caja')))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = any(array['${CON_TOKEN.join("','")}']);`,
     "t"
   );
@@ -185,8 +184,8 @@ select concat_ws(',', :'t1' <> :'t2', :'t3' <> :'t4', :antes - ${stockLima});`,
     "recibir_lote: el mismo token dos veces → el mismo lote y el stock sube UNA vez",
     `${LIDER}${ESCENA}
 select ${stockLima} as antes \\gset
-select retail.recibir_lote(:'lima', :'prov', ${ITEMS}, null, null, p_token => :'tok') as l1 \\gset
-select retail.recibir_lote(:'lima', :'prov', ${ITEMS}, null, null, p_token => :'tok') as l2 \\gset
+select retail.recibir_lote(:'lima', :'prov', ${ITEMS}, null, null, :'tok') as l1 \\gset
+select retail.recibir_lote(:'lima', :'prov', ${ITEMS}, null, null, :'tok') as l2 \\gset
 select concat_ws(',', :'l1' = :'l2', ${stockLima} - :antes, (select count(*) from retail.lotes where token_cliente = :'tok'));`,
     "t,2,1"
   );

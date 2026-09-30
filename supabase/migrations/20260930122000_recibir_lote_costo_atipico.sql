@@ -8,41 +8,41 @@
 -- 20260927190000 impide corregirlo a mano una vez que hay historial). Es el mismo hueco que tenía cerrar una orden del
 -- Taller (20260930121000); acá lo tapa la misma regla (`fn_costo_fuera_de_banda`, 20260930120000).
 --
+-- CÓMO VIAJA LA CONFIRMACIÓN (decisión de Felipe, 2026-09-30: «decide tú»). Donde hay UNA sola cosa que confirmar (una orden
+-- del Taller) va un parámetro; donde hay VARIAS líneas, la confirmación viaja en CADA línea: `"confirma_costo": true` dentro
+-- del ítem. Así la base acepta exactamente las líneas que el líder vio, no «todo lo que venga», y no cambia la firma de la
+-- función (ni de `registrar_compra` y `recibir_envio`, que muchas migraciones nombran por su firma exacta).
+--
 -- QUÉ PROMETE. Después de los candados y de comprobar el permiso, y ANTES de crear el lote, se revisa cada línea que trae
--- costo contra el costo vigente y el precio de su prenda. Se juntan TODAS las atípicas (el líder las confirma juntas):
---   - Quien NO es líder no puede recibirlas con ese costo: `costo_atipico_sin_lider`, sin cifras. Su salida es recibir esa
---     línea sin costo (el costo es opcional) o pedirle a un líder que lo confirme.
---   - Un líder recibe `costo_atipico` con el dato en `detail`: JSON `{"items":[{variante_id, sku, motivo, costo_unitario,
---     costo_vigente, precio}, …]}`, en el orden del lote. Nada se escribe (todo o nada). Reintenta con
---     `p_confirma_costo_atipico => true` y el lote deja constancia en su nota, sin montos.
---   - El servidor lo exige (el permiso se pregunta a la cuenta con `fn_es_lider`, ADR-0161): un integrante que mande `true`
---     por la API directa recibe lo mismo que sin él.
+-- costo POSITIVO contra el costo vigente y el precio de su prenda:
+--   - Quien NO es líder no puede recibir una línea atípica con ese costo: `costo_atipico_sin_lider`, sin cifras, marque lo que
+--     marque. Su salida es recibir esa línea sin costo (el costo es opcional) o pedirle a un líder que lo confirme.
+--   - Un líder recibe `costo_atipico` con el dato en `detail`: JSON `{"items":[{linea, variante_id, sku, motivo,
+--     costo_unitario, costo_vigente, precio}, …]}` con las líneas atípicas que NO traen la marca, en el orden del lote. Nada
+--     se escribe (todo o nada). Reintenta con `"confirma_costo": true` en esas líneas y el lote deja constancia en su nota,
+--     sin montos. Marcar una línea que no es atípica no hace nada.
+--   - El servidor lo exige: el permiso se pregunta a la cuenta con `fn_es_lider` (ADR-0161), no a la marca.
 -- Una línea SIN costo no se juzga (es opcional): entra al stock y el costo de la prenda no se toca. Un costo de 0 tampoco: en
--- Compras es un OBSEQUIO, una decisión explícita (por eso `fn_costo_fuera_de_banda` lo llama «sin_costo» pero este camino no
--- lo pregunta). En el cierre del Taller, en cambio, el 0 sí se pregunta: ahí significa que nadie tecleó el costo.
--- El rechazo ocurre antes de crear el lote y antes de marcar el token (ADR-0190): el reintento con el MISMO token y la
--- confirmación es el mismo intento, no un lote nuevo; y el reintento de un lote ya guardado sigue devolviendo ese lote.
+-- Compras es un OBSEQUIO, una decisión explícita, «no una omisión» (indicadores de Compras, 20260918213000); por eso
+-- `fn_costo_fuera_de_banda` lo llama «sin_costo» pero este camino no lo pregunta. En el cierre del Taller, en cambio, el 0 sí
+-- se pregunta: ahí significa que nadie tecleó el costo. Un costo negativo sigue con su error de siempre.
+-- El rechazo ocurre antes de crear el lote y antes de marcar el token (ADR-0190): el reintento con el MISMO token y las
+-- marcas es el mismo intento, no un lote nuevo; y el reintento de un lote ya guardado sigue devolviendo ese lote.
 --
--- QUÉ CAMBIA DE LA FIRMA. Parámetro nuevo con valor por defecto, ANTES de `p_token`: la convención de ADR-0190 (vigilada por
--- `pnpm pruebas:concurrencia-orden`) es que `p_token` sea siempre el último. Se elimina la firma vieja de seis parámetros
--- (PostgREST rechazaría por ambigua una llamada con los seis). Toda llamada SQL con el token va por nombre (`p_token => …`):
--- por posición, el sexto ya no es el token. Las de la web ya son por nombre. `drop function` no toma los bloqueos de `auth`/`storage`
--- que sí toman las políticas (ADR-0195): va en una sola parte.
+-- QUÉ NO CAMBIA. La firma (seis parámetros, `p_token` al final, convención de ADR-0190), los permisos y a quién llama.
+-- Nadie más llama a `recibir_lote` desde SQL. Sin `drop`: es un `create or replace` sobre la misma firma.
 --
--- ORDEN PARA PRODUCCIÓN: SQL y web en cualquier orden (la web NO manda el parámetro en el primer intento, solo en el
--- reintento tras `costo_atipico`). Requiere antes 20260930120000. PARA PEGAR: trae `set search_path`.
+-- ORDEN PARA PRODUCCIÓN: SQL y web en cualquier orden (la web NO manda la marca en el primer intento, solo en el reintento
+-- tras `costo_atipico`, que la base vieja nunca levanta). Requiere antes 20260930120000. PARA PEGAR: trae `set search_path`.
 --
--- BASE DEL CUERPO. El cuerpo vivo de producción (2026-09-30, huella md5 b43aa7662e81f4c199ee5e91bcbc9d0b, con los comentarios
--- recortados; la lógica es idéntica a 20260916090000 + el token de ADR-0190 + `fn_actor_persona_id(true)` de ADR-0162). Nada
--- más cambia que lo marcado con «COSTO ATÍPICO». Nadie más llama a `recibir_lote` desde SQL.
+-- BASE DEL CUERPO. El cuerpo vivo de producción (2026-09-30; huella normalizada —sin comentarios ni espacios— comparada con
+-- la local): la lógica es idéntica a 20260916090000 + el token de ADR-0190 + `fn_actor_persona_id(true)` de ADR-0162. Nada
+-- más cambia que lo marcado con «COSTO ATÍPICO».
 --
--- CÓMO SE DESHACE. drop function retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid); y volver a crear la de seis
--- parámetros con su cuerpo anterior, con `grant execute … to authenticated` y sin `public` ni `anon`.
+-- CÓMO SE DESHACE. Volver a crear `retail.recibir_lote` con su cuerpo anterior (20260916090000 + ADR-0190), misma firma.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
-
-drop function if exists retail.recibir_lote(uuid, uuid, jsonb, text, text, uuid);
 
 create or replace function retail.recibir_lote(
   p_ubicacion_id uuid,
@@ -50,7 +50,6 @@ create or replace function retail.recibir_lote(
   p_items jsonb,
   p_numero_guia text default null,
   p_nota text default null,
-  p_confirma_costo_atipico boolean default false,
   p_token uuid default null
 )
 returns uuid
@@ -61,7 +60,7 @@ as $$
 declare
   v_lote_id uuid; v_item jsonb; v_mov_id uuid; v_persona uuid; v_sub uuid;
   -- COSTO ATÍPICO
-  v_atipicos jsonb;
+  v_atipicos jsonb; v_sin_marca jsonb;
 begin
   -- ADR-0190: doble clic. El segundo intento con el mismo token espera al primero y devuelve SU resultado.
   if p_token is not null then
@@ -81,11 +80,11 @@ begin
 
   -- COSTO ATÍPICO. Las variantes ya están bloqueadas arriba (fn_bloquear_en_orden), así que el costo vigente no cambia
   -- mientras se compara. Solo se juzgan las líneas con un costo POSITIVO: sin costo, la línea entra al stock y no toca el costo;
-  -- un costo de 0 es un obsequio, «una decisión explícita, no una omisión» (indicadores de Compras, 20260918213000), y un
-  -- negativo sigue con su error de siempre (fn_recalcular_costo_variante).
+  -- un costo de 0 es un obsequio (decisión explícita) y un negativo sigue con su error de siempre (fn_recalcular_costo_variante).
   select jsonb_agg(jsonb_build_object(
-           'variante_id', vr.id, 'sku', vr.sku, 'motivo', x.motivo,
-           'costo_unitario', (e.item ->> 'costo_unitario')::numeric, 'costo_vigente', vr.costo, 'precio', vr.precio
+           'linea', e.pos, 'variante_id', vr.id, 'sku', vr.sku, 'motivo', x.motivo,
+           'costo_unitario', (e.item ->> 'costo_unitario')::numeric, 'costo_vigente', vr.costo, 'precio', vr.precio,
+           'confirmada', coalesce((e.item -> 'confirma_costo') = 'true'::jsonb, false)
          ) order by e.pos)
     into v_atipicos
     from jsonb_array_elements(p_items) with ordinality as e(item, pos)
@@ -101,8 +100,11 @@ begin
     if not retail.fn_es_lider() then
       raise exception 'costo_atipico_sin_lider';
     end if;
-    if not coalesce(p_confirma_costo_atipico, false) then
-      raise exception 'costo_atipico' using detail = jsonb_build_object('items', v_atipicos)::text;
+    select jsonb_agg(a - 'confirmada') into v_sin_marca
+      from jsonb_array_elements(v_atipicos) a
+     where not (a ->> 'confirmada')::boolean;
+    if v_sin_marca is not null then
+      raise exception 'costo_atipico' using detail = jsonb_build_object('items', v_sin_marca)::text;
     end if;
   end if;
 
@@ -148,10 +150,5 @@ begin
 end;
 $$;
 
--- Los permisos de producción (2026-09-30): dueño y la API, sin public ni anon. En el Postgres local esta función traía PUBLIC
--- (un residuo de las migraciones viejas; producción ya no lo tiene): aquí se alinea con producción.
-revoke all on function retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid) from public, anon;
-grant execute on function retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid) to authenticated;
-
-comment on function retail.recibir_lote(uuid, uuid, jsonb, text, text, boolean, uuid) is
-  'Recibe un lote sin factura: entrada al stock y, si la línea trae costo, promedio ponderado. Si el costo de alguna línea es atípico (fn_costo_fuera_de_banda) un líder debe confirmarlo con p_confirma_costo_atipico; quien no es líder no puede recibirla con ese costo.';
+comment on function retail.recibir_lote(uuid, uuid, jsonb, text, text, uuid) is
+  'Recibe un lote sin factura: entrada al stock y, si la línea trae costo, promedio ponderado. Si el costo de alguna línea es atípico (fn_costo_fuera_de_banda) un líder debe confirmarlo con "confirma_costo": true en esa línea; quien no es líder no puede recibirla con ese costo.';
