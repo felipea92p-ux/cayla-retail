@@ -133,3 +133,18 @@ export async function textosClub(): Promise<{ textos: TextoClub[]; error: ErrorE
     error,
   };
 }
+
+/** Camino B (ADR-0288 act. c): la invitación de un solo uso que abre la página pública. La devuelve vigente si ya había. */
+export async function crearInvitacionClub(
+  clientaId: string,
+  ubicacionId: string | null,
+  firma: Firma | null
+): Promise<{ token: string | null; venceEn: string | null; error: ErrorEscritura }> {
+  const { data, error } = await firmar(
+    createClient().rpc("crear_invitacion_club", { p_clienta_id: clientaId, p_ubicacion_id: ubicacionId ?? undefined }),
+    firma
+  );
+  const fila = Array.isArray(data) ? data[0] : null;
+  return { token: fila?.token ?? null, venceEn: fila?.vence_en ?? null, error };
+}
+

@@ -490,3 +490,58 @@ la tienda.
     asesora lo leyó. Así el permiso guarda exactamente lo que se le leyó.
 - **Cambio de celular (decisión del arquitecto, 2026-09-30, a pedido de Felipe; Felipe puede revertirla):** el celular de una socia se cambia siempre, pero si tenía publicidad, `editar_clienta` y `registrar_clienta` se la quitan en la misma transacción (evento `revoca`, medio nuevo `cambio_celular`, con `registrado_por`), porque la prueba del permiso es el chat desde el número viejo; sigue socia y la recupera cuando escriba desde el número nuevo («Llegó su mensaje»). «Llegó su mensaje» y el cartel sí cambian el celular conservándola (ella escribió desde el nuevo), y el disparador `clientas_celular_con_publicidad` rechaza (`celular_con_publicidad`) cualquier otro cambio de celular que la conserve.
 
+
+## Actualización 2026-09-30 (c): camino B, ella confirma su publicidad en una página de CAYLA
+
+**Decisión de Felipe (2026-09-30), «Directo al camino B».** Viene del spike del club (rama
+`claude/spyke-club-clientas-visual-631f7a`). El QR personal ya no abre el WhatsApp de la tienda: abre una **página pública
+de CAYLA** con el texto y una **casilla sin marcar**. Cuando ella la marca y confirma, el permiso de publicidad queda
+registrado solo, y la caja y la ficha se actualizan sin que nadie marque nada.
+- «Llegó su mensaje» se queda como **respaldo** (camino A).
+- El QR genérico (cartel y ticket sin clienta) sigue abriendo el WhatsApp de la tienda: registrar a alguien nuevo desde
+  una página pública pediría su documento en internet, y eso no se decidió.
+
+**Por qué cumple la Ley 32323.** El consentimiento es de ella, en su propio celular, con una casilla que ella marca. Es la
+«iniciativa propia» más clara posible, y deja prueba en la base: la versión del texto, la hora y el enlace usado. El
+reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento válido.
+
+**Contrato (lo decide el arquitecto; Felipe puede revertir cualquier punto):**
+- **Tabla `retail.club_invitaciones`:** `id`, `clienta_id` (FK), `token` (único), `ubicacion_id`, `creada_por` (el
+  responsable), `creada_en`, `vence_en`, `usada_en`, `texto_version` (la que ella aceptó).
+  - RLS sin políticas: solo la leen y la escriben funciones.
+- **El token:** 16 caracteres aleatorios seguros para una URL (`gen_random_bytes`, unos 96 bits).
+  - **Vence a los 7 días:** el mismo QR le sirve desde casa si hoy no lo escanea.
+  - **Se usa una sola vez.** Adivinarlo no es viable, y aunque se adivinara solo daría un permiso de publicidad, nunca
+    datos: la página muestra su nombre de pila y el celular a medias.
+- **Medio nuevo `qr_web` en `club_permisos`:** es un otorga de publicidad **sin `registrado_por`**, porque lo registró
+  ella y no una persona de la tienda; lleva la versión del texto de la página. `registrado_por` nulo solo se admite en
+  `qr_web` y en `legado`.
+- **Texto nuevo `pagina_publicidad`**, v1, sembrado; `{celular}` se reemplaza por su celular a medias:
+  > Quiero recibir por WhatsApp de CAYLA novedades, rebajas y mi saludo de cumpleaños al {celular}. Sé que puedo darme de
+  > baja cuando quiera escribiendo BAJA.
+- **Funciones:**
+  - `crear_invitacion_club(p_clienta_id uuid, p_ubicacion_id uuid)` → `table(token text, vence_en timestamptz)`.
+    - Exige el módulo «Clientas» y el responsable.
+    - Exige que sea socia y que no tenga publicidad (hint `ya_tiene_publicidad`).
+    - Si ya tiene una invitación vigente sin usar, la devuelve; si no, crea una nueva.
+  - `fn_invitacion_club(p_token text)` → `table(estado text, nombre_corto text, celular_enmascarado text, codigo_club text,
+    texto text, texto_version integer, tienda text, razon_social text, ruc text)`.
+    - **Es para `anon`**: la página es pública.
+    - `estado`: `vigente`, `usada`, `vencida` o `no_existe`.
+    - Solo devuelve datos con `vigente`.
+  - `confirmar_invitacion_club(p_token text, p_texto_version integer)` → `text` (el estado final). **Es para `anon`.**
+    - Solo con una invitación vigente, sin usar, y con la clienta todavía socia y sin anonimizar.
+    - Rechaza con `club_texto_cambio` si el texto cambió.
+    - Escribe el otorga con medio `qr_web` y marca `publicidad_desde` y `usada_en`, todo en una transacción con
+      `for update` de la invitación.
+    - Una segunda llamada devuelve `usada` sin escribir nada.
+- **Web:**
+  - Ruta pública `/club/[token]`, fuera de `(app)` y permitida en `proxy.ts`. Mobile first, con la marca CAYLA y el diseño
+    del spike («Demo: página completa»).
+  - En Cobrar y en la ficha, «Mostrar su QR» crea la invitación, dibuja el QR de `${origen}/club/${token}` y dice
+    «Esperando su confirmación» sin animación en bucle (regla de movimiento, ADR-0136).
+  - La caja consulta `resumen_clienta_caja` cada 3 s mientras la hoja está abierta; cuando llega la publicidad, cambia a
+    «Listo».
+  - Debajo, «Llegó su mensaje (respaldo)».
+- **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
+  invitación en la base, y ese QR también le sirve desde casa.

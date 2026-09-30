@@ -9,7 +9,8 @@
 
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
 
-export type TipoTextoClub = "club" | "mensaje_personal" | "mensaje_generico";
+/** `pagina_publicidad` (camino B, ADR-0288 act. c): el texto que ella acepta en la página pública del QR. */
+export type TipoTextoClub = "club" | "mensaje_personal" | "mensaje_generico" | "pagina_publicidad";
 export type TextoClub = { tipo: TipoTextoClub; version: number; texto: string };
 
 /** Cómo está una ficha frente al club. */
@@ -63,3 +64,29 @@ export function codigoEnTexto(texto: string): string | null {
   const m = texto.toUpperCase().match(/\bC-?\s?(\d{1,6})\b/);
   return m ? `C-${m[1]!.padStart(4, "0")}` : null;
 }
+
+/**
+ * Camino B (ADR-0288, act. c): el QR personal abre la página pública de CAYLA donde ELLA marca la casilla. `origen` es el
+ * del navegador de la caja (`window.location.origin`): la página vive en el mismo dominio que el ERP.
+ */
+export function enlacePaginaClub(origen: string, token: string): string {
+  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(token)}`;
+}
+
+/** Estados de una invitación tal como los devuelve `fn_invitacion_club`. */
+export type EstadoInvitacion = "vigente" | "usada" | "vencida" | "no_existe";
+
+export function estadoInvitacion(valor: string | null | undefined): EstadoInvitacion {
+  return valor === "vigente" || valor === "usada" || valor === "vencida" ? valor : "no_existe";
+}
+
+/** El texto de la página con su celular a medias en lugar de `{celular}`. */
+export function textoPaginaPublicidad(plantilla: string, celularEnmascarado: string | null): string {
+  return plantilla.split("{celular}").join(celularEnmascarado ?? "tu celular");
+}
+
+/** Un token con forma válida (16 caracteres seguros para URL): la página no consulta la base con cualquier cosa. */
+export function tokenValido(token: string): boolean {
+  return /^[A-Za-z0-9_-]{16}$/.test(token);
+}
+

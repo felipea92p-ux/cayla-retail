@@ -5292,6 +5292,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: { tipo: string; version: number; texto: string }[]
       }
+      crear_invitacion_club: {
+        Args: { p_clienta_id: string; p_ubicacion_id?: string }
+        Returns: { token: string; vence_en: string }[]
+      }
+      fn_invitacion_club: {
+        Args: { p_token: string }
+        Returns: {
+          estado: string
+          nombre_corto: string | null
+          celular_enmascarado: string | null
+          codigo_club: string | null
+          texto: string | null
+          texto_version: number | null
+          tienda: string | null
+          razon_social: string | null
+          ruc: string | null
+        }[]
+      }
+      confirmar_invitacion_club: {
+        Args: { p_token: string; p_texto_version: number }
+        Returns: string
+      }
       guardar_whatsapp_tienda: {
         Args: { p_ubicacion_id: string; p_numero?: string }
         Returns: undefined
