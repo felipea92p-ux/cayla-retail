@@ -16,15 +16,16 @@ export type TallaDeducida = { categoria: string; talla: string };
  * de más reciente a más antigua (así la sale `fn_clienta_compras`) — se toma la primera aparición
  * de cada categoría.
  *
- * LÍMITE CONOCIDO (v1): D-101 excluye de este cálculo la prenda marcada «es para regalo» en caja,
- * pero esa marca todavía no existe (paso 1 del acta, sin fusionar) — hasta entonces, un regalo
- * cuenta como si fuera su talla. Se corrige solo filtrando esa columna nueva cuando exista.
+ * La prenda marcada «es para regalo» en caja (`venta_items.es_regalo`, ADR-0288 D-7) NO cuenta: la
+ * talla de la hermana no es la suya (D-101). Se salta sin más, así que la talla sale de la compra
+ * anterior en que sí compró para ella. (Cerró el «límite conocido v1» de este archivo, tanda 1d.)
  */
 export function deducirTallas(compras: readonly Compra[]): TallaDeducida[] {
   const vistas = new Set<string>();
   const resultado: TallaDeducida[] = [];
   for (const compra of compras) {
     for (const item of compra.items) {
+      if (item.esRegalo) continue;
       if (!item.categoria || !item.talla || vistas.has(item.categoria)) continue;
       vistas.add(item.categoria);
       resultado.push({ categoria: item.categoria, talla: item.talla });

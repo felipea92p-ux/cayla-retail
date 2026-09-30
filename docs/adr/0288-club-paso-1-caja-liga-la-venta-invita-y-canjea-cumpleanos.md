@@ -603,3 +603,67 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
 - Al tocarlo, cada prenda muestra su «−10 % cumpleaños» y el total baja.
 - Quitar a la clienta del ticket, o que deje de estar disponible, lo apaga.
 - La regla pura vive en `lib/club-cumple-reglas.ts`, con su prueba.
+
+## Actualización 2026-09-30 (e): tanda 1d
+
+Se construye sobre la D-6, la D-7, CL-7, CL-14 y D-101. Migración `20260930240000_club_paso1d_regalo_y_se_probo.sql`, una
+sola parte (sin políticas ni `drop trigger`), que va después de la 1c. Se hace en dos fases, porque la 1c reescribe
+`registrar_venta` y la 1d tiene que tocarla después:
+- **Fase A (hecha):** todo lo que no toca `registrar_venta`.
+- **Fase B (pendiente de la 1c):** que `registrar_venta` guarde `es_regalo`.
+
+**Esquema y funciones (fase A)**
+- `pedidos_no_atendidos` suma dos columnas:
+  - `motivo text not null default 'no_habia_talla'`: todo lo anotado antes queda «buscó y no había»;
+  - `razon text`, con dos candados: `pedidos_no_atendidos_motivo_valido` y `pedidos_no_atendidos_razon_solo_si_se_probo`
+    (una razón solo existe con `se_probo_no_llevo`, y es una de `no_le_quedo`, `precio`, `color` o `lo_piensa`).
+- `registrar_pedido_no_atendido` suma `p_motivo` (default `no_habia_talla`) y `p_razon` **al final**:
+  - la llamada vieja de 5 parámetros sigue funcionando, así que no hay hueco entre el pegado y el despliegue;
+  - cambia la firma: se hace `drop` de la vieja y `create` de la nueva sobre su definición viva;
+  - sigue firmando con `fn_actor_persona_id(true)`, sigue sin exigir módulo (basta poder operar la sede) y conserva los
+    mismos permisos;
+  - rechazos nuevos (P0001, con hint): `pedido_motivo_invalido`, `pedido_razon_sin_se_probo` y `pedido_razon_invalida`.
+- `venta_items.es_regalo boolean not null default false`.
+- `fn_clienta_compras` devuelve `es_regalo` al final. Cambia su tipo de retorno: `drop` y `create`, con la misma lectura, el
+  mismo candado del módulo y los mismos permisos.
+
+**Lo que se decidió al construir**
+- **«Llegó tu talla» (paso 3) avisa SOLO por `motivo = 'no_habia_talla'`.** Queda escrito en la cabecera de la migración y
+  en el comentario de la columna.
+  - Por la misma razón, la tarjeta de pedidos pendientes de Inicio y la de Análisis siguen contando solo «buscó y no
+    había». «Se la probó y no la llevó» es demanda para Compras, no un pedido que alguien espera.
+  - La regla es `esPedidoDeTalla` (`lib/se-probo-reglas.ts`). Inicio filtra con `.eq("motivo", "no_habia_talla")`.
+- **Orden de las tablas en la transacción: primero `venta_items`, después `pedidos_no_atendidos`.**
+  - La única función que lee las dos es `fn_producto_historia`, y las lee en ese orden.
+  - Al revés, una historia de producto abierta justo al pegar podía cruzarse con la migración (40P01).
+  - Ninguna venta toca `pedidos_no_atendidos`.
+- **La ficha de la clienta dice «· regalo»** junto a la prenda comprada (`detallePrendaComprada`, `lib/regalo-reglas.ts`).
+  Así Felipe puede verificar el paso: «marca un regalo y la talla de la ficha no cambia».
+- **La lista de Pedidos no atendidos** muestra el motivo y la razón de cada fila («Se la probó y no la llevó · por el
+  precio»).
+- **ADR-0234 («probado = en pantalla») manda sobre «dejar lista la lógica de Cobrar».** Una función de reglas que solo usa su
+  prueba hace fallar `lib/reglas-sin-uso.test.ts`. Por eso:
+  - de «se la probó» se escribió lo que ya usan pantallas (`argsRegistrarPedido`, `avisoAnotado`, `describirMotivo`,
+    `descripcionDePrenda`, `leerMotivo`/`leerRazon`) y las constantes que usará Cobrar (`PREGUNTA_SE_PROBO`,
+    `OPCIONES_RAZON`, `TEXTO_RAZON`);
+  - la regla de la marca de regalo en el ticket quedó escrita en la cabecera de `lib/regalo-reglas.ts`, y la función se
+    escribe con la pantalla: se ofrece solo con clienta elegida y viaja como `es_regalo: marcada && hay clienta`.
+
+**Qué necesita la pantalla de Cobrar (cuando se integre)**
+- **«¿Se la probó y no la llevó?» al quitar una prenda:** es opcional y funciona con o sin clienta. Llama a
+  `registrarPedidoNoAtendido({ ubicacionId, motivo: "se_probo_no_llevo", razon, productoId?, descripcion, talla, clientaId },
+  responsable.firma())` (`lib/pedidos-no-atendidos-acciones.ts`). Arma el texto con `descripcionDePrenda(referencia,
+  color)`, los chips con `OPCIONES_RAZON` y la pregunta con `PREGUNTA_SE_PROBO`, y avisa con `avisoAnotado`.
+- **«Es para regalo» en la línea:** solo con clienta elegida (`TEXTO_REGALO`), y se manda en `p_items[].es_regalo` (fase B).
+
+**Cómo se pega:** después de las migraciones de la 1c. Se pega este archivo solo; se puede pegar dos veces, y espera un
+candado 3 s como mucho. Fusionar el PR después de pegar. md5 normalizados, antes → después:
+- `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)`: `750b65e9…` → deja de existir;
+- `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)`: no existía → `b48f006f…`;
+- `fn_clienta_compras(uuid)`: `4e70112f…` → `dbe1a880…`.
+
+El «antes» salió de una base armada con todas las migraciones del repo. Si producción tiene otro, la sección 0 aborta sin
+tocar nada.
+
+**Pruebas:** `pnpm pruebas:club-regalo-y-se-probo` (23 casos, en el CI). `clientas_por_modulo_y_anonimizar.mjs` suma la 1d a
+su cadena de md5.

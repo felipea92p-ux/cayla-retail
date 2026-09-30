@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
+import { esPedidoDeTalla } from "@/lib/se-probo-reglas";
 import type { AccesoAnalisis } from "@/lib/analisis-que-hacer";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
@@ -65,8 +66,9 @@ export default async function ResumenInventarioPage({
     ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} claveGuardado={claveGuardado} /> }))
     : await Promise.all([
         getDesempenoInventario(ubicacionActiva, params),
-        // «Pidieron y no había» es un dato secundario: si falla, su tarjeta no sale y lo demás sigue (principio 9).
-        getPedidosNoAtendidos(ubicacionActiva.id).then((p) => p.filter((x) => !x.resuelto).length).catch(() => null),
+        // «Pidieron y no había» es un dato secundario: si falla, su tarjeta no sale y lo demás sigue (principio 9). Solo
+        // cuenta «buscó y no había»: «se la probó y no la llevó» vive en la misma tabla, pero no es un pedido (ADR-0288 D-6).
+        getPedidosNoAtendidos(ubicacionActiva.id).then((p) => p.filter((x) => !x.resuelto && esPedidoDeTalla(x.motivo)).length).catch(() => null),
       ]).then(([datos, pedidosNoAtendidos]) => ({
         exactitud: datos.exactitud,
         panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} acceso={acceso} esLider={persona.rol === "lider"} pedidosNoAtendidos={pedidosNoAtendidos} claveGuardado={claveGuardado} />,

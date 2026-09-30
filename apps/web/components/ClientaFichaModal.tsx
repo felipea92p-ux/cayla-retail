@@ -15,6 +15,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
+import { detallePrendaComprada } from "@/lib/regalo-reglas";
 import { ajustarNumeroAlTipo, documentoLegible, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { ajustarCelular, celularValido, enlaceQrClub, estadoClub, mensajePersonal, textoVigente, type TextoClub } from "@/lib/club-reglas";
 import { NIVEL_QR } from "@/lib/qr";
@@ -560,7 +561,7 @@ export function ClientaFichaModal({
                     key={compra.ventaId}
                     fecha={fecha(compra.fecha)}
                     texto={compra.ubicacion}
-                    detalle={compra.items.map((i) => `${i.cantidad}× ${i.categoria ?? "prenda"}${i.talla ? ` (${i.talla})` : ""}`).join(", ")}
+                    detalle={compra.items.map(detallePrendaComprada).join(", ")}
                     monto={soles(compra.total)}
                   />
                 ))}

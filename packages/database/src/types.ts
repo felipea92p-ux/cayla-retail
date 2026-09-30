@@ -2723,7 +2723,9 @@ export type Database = {
           created_at: string
           descripcion_libre: string | null
           id: string
+          motivo: string
           producto_id: string | null
+          razon: string | null
           resuelto: boolean
           resuelto_en: string | null
           talla: string | null
@@ -2735,7 +2737,9 @@ export type Database = {
           created_at?: string
           descripcion_libre?: string | null
           id?: string
+          motivo?: string
           producto_id?: string | null
+          razon?: string | null
           resuelto?: boolean
           resuelto_en?: string | null
           talla?: string | null
@@ -2747,7 +2751,9 @@ export type Database = {
           created_at?: string
           descripcion_libre?: string | null
           id?: string
+          motivo?: string
           producto_id?: string | null
+          razon?: string | null
           resuelto?: boolean
           resuelto_en?: string | null
           talla?: string | null
@@ -4410,6 +4416,7 @@ export type Database = {
           costo_unitario: number
           descuento_etiqueta_id: string | null
           descuento_unitario: number
+          es_regalo: boolean
           id: string
           motivo_descuento: string | null
           motivo_descuento_detalle: string | null
@@ -4424,6 +4431,7 @@ export type Database = {
           costo_unitario: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
+          es_regalo?: boolean
           id?: string
           motivo_descuento?: string | null
           motivo_descuento_detalle?: string | null
@@ -4438,6 +4446,7 @@ export type Database = {
           costo_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
+          es_regalo?: boolean
           id?: string
           motivo_descuento?: string | null
           motivo_descuento_detalle?: string | null
@@ -5389,6 +5398,7 @@ export type Database = {
           talla: string | null
           cantidad: number
           subtotal: number
+          es_regalo: boolean
         }[]
       }
       fn_clienta_cambios: {
@@ -7621,7 +7631,9 @@ export type Database = {
         Args: {
           p_clienta_id?: string
           p_descripcion_libre?: string
+          p_motivo?: string
           p_producto_id?: string
+          p_razon?: string
           p_talla?: string
           p_ubicacion_id: string
         }
