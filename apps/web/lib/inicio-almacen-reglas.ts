@@ -202,6 +202,17 @@ export function chipsNuevos(items: readonly NuevoProducto[]): { clave: FiltroNue
   ];
 }
 
+/** La ficha de un producto: la pantalla que lo muestra y lo edita (`/productos/[id]/editar`). NO existe `/productos/[id]` a secas: la
+ *  primera versión del Inicio de almacén enlazaba ahí y cada «Ver» caía en un 404 (Felipe, 2026-09-30). */
+export function hrefFichaProducto(productoId: string): string {
+  return `/productos/${productoId}/editar`;
+}
+
+/** La misma ficha, parada en su sección de fotos (`#fotos`, la misma que usa «Agregar fotos» al crear un producto). */
+export function hrefFotosProducto(productoId: string): string {
+  return `${hrefFichaProducto(productoId)}#fotos`;
+}
+
 /** «Ya hay 6 en tu sede» / «Aún sin stock en tu sede»; `null` (no se pudo leer) no dice nada. */
 export function notaEnMiSede(unidades: number | null): string | null {
   if (unidades === null) return null;

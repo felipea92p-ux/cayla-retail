@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Aviso, NivelAviso } from "@/lib/inicio-avisos";
-import type { NuevoProducto } from "@/lib/inicio-almacen-reglas";
+import { hrefFichaProducto, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
 import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
@@ -82,7 +82,7 @@ export function CabinaAlmacen({
 
 function FilaReciente({ p }: { p: NuevoProducto }) {
   return (
-    <Link href={`/productos/${p.id}`} className="ia-rs">
+    <Link href={hrefFichaProducto(p.id)} className="ia-rs">
       <span className="ia-th">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="44px" unoptimized /> : <PrendaSinFoto />}</span>
       <div className="ia-mtx">
         <p className="ia-nm">{p.referencia}</p>
