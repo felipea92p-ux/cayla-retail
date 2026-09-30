@@ -5,3 +5,10 @@
 - [x] **Renombrada (2026-09-30):** nació como `20260930050000_conteo_ajuste_previo_en_la_nota.sql`, la misma versión que `20260930050000_terminales_pasan_la_puerta_de_lectura.sql` (ADR-0289), que SÍ corrió en producción (consultado en solo lectura: `schema_migrations` la tiene como `20260930143821`; esta no está y `fn_conteo_lineas_json` aún no trae `ajustado_total`). Dos archivos con una versión rompían `versiones.mjs` y `supabase start`. Se renombró la que no corrió, sin tocar su contenido (por eso el comentario de su encabezado aún dice el prefijo viejo: el check «SQL pegado» no admite editar una migración de `main`). No hay nada que repegar por el cambio de nombre: el SQL Editor registra su propia versión al pegar.
 - [ ] **Sin verlo en pantalla:** la base local no tiene aplicado el rediseño del conteo, así que no se recorrió en el navegador. Al aplicarla, repetir Conteo 13: cerrar con 0 → «Editar conteo» → contar 1 y mirar la nota en Contar y en Revisar.
 - [ ] **Sin decidir (Felipe):** en Confirmar y en Resultado la línea sigue diciendo `0 → 1` sin el «antes» del cierre (1 → 0 → 1); y la fila reabierta sin tocar muestra «Falta 1 · Confirmado» con el «debe haber» de entonces, aunque el stock ya es 0. No se tocó: no era lo pedido.
+
+## 🧑 Responsable solo al abrir el conteo (2026-09-30, ADR-0282 actualización b) — solo web, sin migración
+
+- [x] Contar, Revisar, Cancelar y alta al vuelo reutilizan el responsable elegido al abrir; «Editar conteo» va directo a las variantes ajustadas. Suite web completa y `tsc` en verde.
+- [ ] **Sin probar en producción** (se publica al fusionar): repetir los 3 casos con la cuenta de Almacén Trujillo y capturas.
+- [ ] **Conteo 17 abierto en producción** (Almacén de tienda, solo Camisas y Blusas, vacío, abrió Angie): cancelarlo tras probar.
+- [ ] **Sin decidir (Felipe):** el historial dice «Cerró —» en los conteos cerrados con la cuenta de tienda (15 y 16) porque «Cerrar» va sin responsable (ADR-0280): el cierre, que es lo que ajusta el stock, no queda a nombre de nadie.
