@@ -48,6 +48,7 @@ test("tieneGuia: cuenta el USO de las piezas, no clases ni nombres parecidos", (
   assert.equal(tieneGuia("<EtiquetaAhora />"), true);
   assert.equal(tieneGuia("const g = useGuiaAlta();"), true);
   assert.equal(tieneGuia("irAlIdCampo(id)"), true);
+  assert.equal(tieneGuia("const retener = useRetenerLuz(id, guia);"), true);
   assert.equal(tieneGuia('import { x } from "@/lib/compra-guia";'), true);
   // las piezas de los modales
   assert.equal(tieneGuia("const guia = useGuiaCampos([]);"), true);
@@ -218,6 +219,7 @@ test("modales: un modal que no se tocó no aparece en el alcance «tocadas» per
 test("modales: los archivos que definen las piezas no cuentan como modales ni como «tener guía»", () => {
   assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/CampoGuiado.tsx`));
   assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/useGuiaCampos.tsx`));
+  assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/useRetenerLuz.ts`));
 });
 
 test("informe: lista los modales sin guía y dice cuántos controles trae cada uno", () => {
