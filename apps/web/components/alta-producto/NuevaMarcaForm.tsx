@@ -358,7 +358,7 @@ export function NuevaMarcaForm({
                   value={provNombre}
                   onChange={(e) => setProvNombre(e.target.value)}
                   onKeyDown={enter}
-                  placeholder="Textil Andina SAC"
+                  placeholder="Textil Andina SAC" // sugerir-fijo: razón social de un proveedor nuevo; no depende de nada elegido antes
                   autoComplete="off"
                   className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
                 />
@@ -374,7 +374,7 @@ export function NuevaMarcaForm({
                   value={provRuc}
                   onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
                   onKeyDown={enter}
-                  placeholder="11 dígitos"
+                  placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor
                   autoComplete="off"
                   className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/45"
                 />
