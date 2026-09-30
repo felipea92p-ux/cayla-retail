@@ -166,6 +166,13 @@ jobs:
           node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs
           node scripts/docs/entradas-por-archivo.mjs
 
+      # El escáner de sugerencias (skill `/sugerir`, ADR-0289): `apps/web/lib/sugerir.test.ts` lo importa como la única definición
+      # de «ejemplo estático», así que si el escáner se rompe, esa prueba dejaría de ver los placeholders sin avisar. Va con
+      # el de la Guía de foco, que le presta el grafo de imports. Solo leen archivos; no necesitan node_modules.
+      - name: Escáner de sugerencias y de la guía de foco
+        if: ${{ !cancelled() }}
+        run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
+
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
       # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de

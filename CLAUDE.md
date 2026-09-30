@@ -342,6 +342,35 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
   (una decisión de negocio de Felipe, no tuya: en Editar producto solo cuentan fotos, tejido y patrón). Detalle y decisiones:
   `docs/adr/0284-nuevo-producto-que-guia-a-quien-lo-llena.md`.
 
+## Sugerencias coherentes: el ejemplo sigue lo que la persona eligió (regla — ADR-0289, Felipe 2026-09-30)
+
+**Todo ejemplo o texto de ayuda que la persona lee en un campo (placeholder, «Ej. …», chips y listas sugeridas) tiene que ser
+coherente con lo que ya eligió antes. Es OBLIGATORIO en toda interfaz nueva o editada.** Nació de Nuevo producto: con «Casacas» elegida,
+la caja de nombre decía «Blusa Aurora» y la de descripción «Manga globo…». Un ejemplo es una afirmación sobre lo que la persona está
+haciendo; uno equivocado es peor que uno genérico. Cómo se hace bien:
+1. **Lógica pura en `lib/sugerencias-<pantalla>.ts`, con su prueba** (modelo: `lib/sugerencias-alta-producto.ts`): el componente solo la
+   llama (`placeholder={sugerirNombre(ctx).texto}`), no decide dentro del JSX. Fuente, en este orden: la categoría (por
+   `categorias.prefijo`, **nunca por el nombre visible**, que se renombra), la familia (`familias.codigo`, con un texto neutro de su
+   vocabulario) y, si no hay contexto, un texto que no promete nada. Lo que un Líder crea sin deploy cae al neutro, **nunca al ejemplo de otra
+   familia**.
+2. **La prueba recorre TODOS los valores del control** y exige: totalidad, sin contradicción entre categorías, neutro sin contexto,
+   que siga al control (A→B→A) y que sea estable (sin azar, sin red).
+3. **Colores y valores nuevos evitan lo que ya existe** (sinónimos incluidos): un ejemplo que ya está en el catálogo lleva a un «ya existe».
+   Nombre y descripción salen de una tabla curada, no de un producto real (un dato real invita a copiarlo).
+4. **Cabe a 375 px:** un placeholder que no cabe se corta a media palabra (`MAX_DESCRIPCION`). Se prueba en el navegador.
+5. **Si de verdad no depende de nada elegido antes** (el formato de un RUC, un #hex), se marca en su línea:
+   `// sugerir-fijo: <por qué>` (10 caracteres mínimo). El motivo vive junto al código.
+
+**Cómo se hace cumplir:** `lib/sugerir.test.ts` (con el escáner `scripts/sugerir/escanear.mjs` como única definición de «ejemplo
+estático») falla si un archivo de `components/` o `app/(app)/` tiene un ejemplo escrito a mano que ni está derivado ni marcado
+`sugerir-fijo`. **Un archivo nuevo no puede entrar a `lib/sugerir-archivos.ts`**: esa lista es la deuda de antes de la regla
+(`PENDIENTES_HOY`, cuenta exacta: solo baja, y un archivo listado que ya no tiene el problema también falla). **`/sugerir` (skill) +
+`pnpm sugerir`:** recorre lo que estás construyendo, mapea qué control decide qué caja, avisa, lo implementa y **prueba cada botón y
+filtro en el navegador**; `pnpm sugerir --todo` es el tablero. Correla antes de dar por terminada cualquier pantalla o modal con campos.
+Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`. Detalle y decisiones:
+`docs/adr/0289-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
+`docs/maquetas/sugerir-2026-09/index.html`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
@@ -446,7 +475,7 @@ Skills de este repo: `/focus` (recorre las pantallas y los modales en construcci
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
-resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código).
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores).
 
 ## graphify
 
