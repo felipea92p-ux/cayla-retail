@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
+import { fraseCostoAtipico, leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
@@ -22,6 +23,11 @@ import { firmar } from "@/lib/responsable-reglas";
 // Quien no es líder cierra SIN ver ni tocar montos: manda `null` y la base conserva los que la orden ya tenía
 // (`coalesce(p_costo_*, costo_*)` en `cerrar_produccion`). Hasta F3 esos costos se teclean al abrir la orden;
 // después salen del consumo de insumos.
+//
+// Costo atípico (20260930121000, Felipe 2026-09-30): si el costo por prenda sale fuera de lo normal, la base NO cierra la
+// orden y contesta `costo_atipico` con el dato. Al líder se le muestra acá, en línea, con dos salidas —corregir los
+// montos o confirmarlos— y confirmar reenvía el cierre con `p_confirma_costo_atipico`. La regla vive en la base; esta
+// pantalla no la repite. A quien no ve montos la base le contesta sin cifras y el aviso normal le dice que un líder lo cierra.
 
 // El generador de tipos de Supabase marca los montos como `number`, pero la función acepta `null` y lo usa para
 // «conservar el de la orden»: se declara acá una sola vez para no repartir `as` por el archivo.
@@ -46,6 +52,10 @@ export function OrdenCierre({
   const [avios, setAvios] = useState(String(orden.costoAvios));
   const [maquila, setMaquila] = useState(String(orden.costoMaquila));
   const [cargando, setCargando] = useState(false);
+  // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
+  const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
+  const seccion = useRef<HTMLElement>(null);
+  const aviso = useRef<HTMLDivElement>(null);
   // Responsable (ADR-0161/0162): el cierre firma con quien se elige en el combo (la lista sale del Taller, la sede activa).
   const responsable = useResponsable();
 
@@ -54,7 +64,23 @@ export function OrdenCierre({
   const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
   const unitario = costoUnitario(Number(tela) || 0, Number(avios) || 0, Number(maquila) || 0, total);
 
-  async function confirmar() {
+  // Cambiar cualquier monto o cantidad borra la pregunta: lo que se le mostró ya no es lo que se va a cerrar.
+  const cambiaMonto = (poner: (v: string) => void) => (e: { target: { value: string } }) => {
+    poner(e.target.value);
+    setAtipico(null);
+  };
+
+  // Que el aviso quede a la vista si apareció fuera de pantalla (solo se mueve lo que no se ve).
+  useEffect(() => {
+    if (atipico) aviso.current?.scrollIntoView({ block: "nearest" });
+  }, [atipico]);
+
+  function corregirMontos() {
+    setAtipico(null);
+    seccion.current?.querySelector<HTMLInputElement>('[data-campo="cierre-tela"]')?.focus();
+  }
+
+  async function confirmar(confirmaCostoAtipico = false) {
     if (total <= 0) {
       avisar.error("No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla.");
       return;
@@ -70,13 +96,22 @@ export function OrdenCierre({
       p_costo_tela: esLider ? Number(tela) || 0 : CONSERVAR,
       p_costo_avios: esLider ? Number(avios) || 0 : CONSERVAR,
       p_costo_maquila: esLider ? Number(maquila) || 0 : CONSERVAR,
+      // Solo en el reintento tras `costo_atipico`: el primer intento no manda el parámetro, así la pantalla nueva
+      // funciona igual contra una base que todavía no lo conoce.
+      ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}),
     }), responsable.firma());
     responsable.despues(error);
     setCargando(false);
     if (error) {
+      const pregunta = leerCostoAtipico(error);
+      if (pregunta) {
+        setAtipico(pregunta);
+        return;
+      }
       avisar.error(traducirError(error, "cerrar la orden"));
       return;
     }
+    setAtipico(null);
     // F8: «Siguiente paso: llevarlas a las tiendas». El aviso trae el botón directo al traslado con el origen y las líneas ya puestas (solo para producción, no muestras).
     const llevar = orden.esMuestra ? null : urlLlevarATiendas(tallerId, orden.lineas.map((l) => ({ varianteId: l.varianteId, cantidadBuenas: Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0)) })));
     avisar.exito(orden.esMuestra ? `Muestra ${orden.referencia} terminada` : `${total} prendas de ${orden.referencia} entraron al stock del Taller`, {
@@ -89,10 +124,18 @@ export function OrdenCierre({
   }
 
   return (
-    <section aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
+    <section ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
       <h3 className="label-cayla text-[11px] text-verde-profundo">Cuántas salieron buenas · talla × color</h3>
       <div className="mt-3">
-        <MatrizOrdenTabla matriz={matriz} modo="cierre" buenas={buenas} onCambio={(id, v) => setBuenas((b) => ({ ...b, [id]: v }))} />
+        <MatrizOrdenTabla
+          matriz={matriz}
+          modo="cierre"
+          buenas={buenas}
+          onCambio={(id, v) => {
+            setBuenas((b) => ({ ...b, [id]: v }));
+            setAtipico(null);
+          }}
+        />
       </div>
       <p className="mt-2 text-xs text-tinta/75">
         {total} buenas de {orden.cantidadPlan}
@@ -110,9 +153,9 @@ export function OrdenCierre({
       {esLider && (
         <>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <CampoMonto etiqueta="Tela (real)" inputMode="decimal" value={tela} onChange={(e) => setTela(e.target.value)} />
-            <CampoMonto etiqueta="Avíos (real)" inputMode="decimal" value={avios} onChange={(e) => setAvios(e.target.value)} />
-            <CampoMonto etiqueta="Maquila (real)" inputMode="decimal" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
+            <CampoMonto etiqueta="Tela (real)" inputMode="decimal" data-campo="cierre-tela" value={tela} onChange={cambiaMonto(setTela)} />
+            <CampoMonto etiqueta="Avíos (real)" inputMode="decimal" value={avios} onChange={cambiaMonto(setAvios)} />
+            <CampoMonto etiqueta="Maquila (real)" inputMode="decimal" value={maquila} onChange={cambiaMonto(setMaquila)} />
           </div>
           <div className="mt-3 flex items-baseline justify-between rounded-md bg-papel px-3 py-2 text-sm">
             <span className="text-tinta/70">
@@ -126,16 +169,36 @@ export function OrdenCierre({
 
       {!orden.esMuestra && (
         <p className="mt-3 text-xs text-tinta/65">
-          Al confirmar, cada talla entra al stock del Taller y queda registrada en Movimientos. Si algo sale mal, la orden se puede revertir.
+          Al confirmar, cada talla entra al stock del Taller y queda registrada en Movimientos.{" "}
+          {esLider
+            ? "Revertir la orden devuelve el stock, pero no deshace el costo de la prenda: revisa el costo antes de confirmar."
+            : "Si algo sale mal, la orden se puede revertir."}
         </p>
       )}
 
       <div className="mt-4">
         <ComboResponsable control={responsable} deshabilitado={cargando} />
       </div>
-      <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={confirmar}>
-        {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
-      </Boton>
+
+      {atipico ? (
+        <div ref={aviso} role="alert" className="anim-revelar mt-4 rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
+          <p className="font-medium">{fraseCostoAtipico(atipico).titulo}</p>
+          <p className="mt-1">{fraseCostoAtipico(atipico).detalle}</p>
+          <p className="mt-2 text-xs">Revisa tela, avíos, maquila y cuántas salieron buenas. Si el costo es correcto, confírmalo: entra al costo de esta prenda en todas las sedes.</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Boton peso="fantasma" disabled={cargando} className="sm:flex-1" onClick={corregirMontos}>
+              Corregir los montos
+            </Boton>
+            <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:flex-1" onClick={() => confirmar(true)}>
+              {cargando ? "Cerrando…" : "Sí, es correcto — cerrar con este costo"}
+            </Boton>
+          </div>
+        </div>
+      ) : (
+        <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
+          {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
+        </Boton>
+      )}
     </section>
   );
 }

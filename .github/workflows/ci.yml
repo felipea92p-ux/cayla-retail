@@ -1075,6 +1075,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-fuera-de-banda
 
+      # Cerrar una orden del Taller pide confirmación si el costo por prenda es atípico (20260930121000, Felipe 2026-09-30): un
+      # líder recibe `costo_atipico` con el dato en `detail` y la orden queda intacta (todo o nada: sin buenas, sin
+      # movimientos, sin historial de costo); confirma con `p_confirma_costo_atipico` y el costo entra al promedio ponderado
+      # exacto con constancia SIN montos en la nota; un integrante (no ve montos) recibe `costo_atipico_sin_lider` sin cifras
+      # y mandar la confirmación por la API directa no cambia nada; una talla con cero buenas no cuenta; una muestra no
+      # pregunta; una sola función (sin sobrecargas); `anon` no la ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:produccion-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-costo-atipico
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en

@@ -5414,6 +5414,7 @@ export type Database = {
       cerrar_produccion: {
         Args: {
           p_buenas: Json
+          p_confirma_costo_atipico?: boolean
           p_costo_avios: number
           p_costo_maquila: number
           p_costo_tela: number

@@ -55,6 +55,19 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
+  // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
+  // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
+  // está dentro de la primera. Sin cifras a propósito: quien recibe este aviso no ve montos.
+  {
+    marca: "costo_atipico_sin_lider",
+    frase: "El costo de esta operación está fuera de lo normal y solo un líder puede confirmarlo. Avísale a un líder: debe revisar el costo y hacer esta operación.",
+  },
+  // Lo que ve el líder si su pantalla no armó la confirmación (una pantalla vieja): el dato exacto se pide en la pantalla nueva.
+  {
+    marca: "costo_atipico",
+    frase: "El costo por prenda está fuera de lo normal. Revisa los montos y las cantidades, y vuelve a intentar.",
+  },
   // Prendas sin registrar (ADR-0179): 20260923161700 y 20260923162300.
   {
     marca: "prenda_sin_registrar_incompleta",

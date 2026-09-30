@@ -540,3 +540,30 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
     expect(esSinModulo(null)).toBe(false);
   });
 });
+
+// ---- Costo atípico (2026-09-30, 20260930120000 y siguientes). La base rechaza un costo por prenda fuera de lo normal con el
+// nombre estable `costo_atipico`; a quien no es líder (no ve montos) le dice `costo_atipico_sin_lider`, sin cifras. La
+// segunda marca CONTIENE a la primera: si alguien reordena las huellas, el integrante lee el aviso del líder (o al revés).
+
+describe("traduce el costo atípico", () => {
+  it("un integrante lee que un líder debe confirmarlo, sin cifras", () => {
+    const salida = traducirError({ message: "costo_atipico_sin_lider", details: null, code: "P0001" }, "cerrar la orden");
+    expect(salida).toContain("solo un líder puede confirmarlo");
+    expect(salida).not.toContain("costo_atipico");
+    expect(salida).not.toMatch(/S\/|[0-9]/);
+  });
+
+  it("el orden de las huellas importa: `costo_atipico_sin_lider` NO cae en la frase de `costo_atipico`", () => {
+    const sinLider = traducirError({ message: "costo_atipico_sin_lider", code: "P0001" }, "cerrar la orden");
+    const lider = traducirError({ message: "costo_atipico", details: '{"motivo":"sube"}', code: "P0001" }, "cerrar la orden");
+    expect(sinLider).not.toBe(lider);
+    expect(lider).toContain("fuera de lo normal");
+    expect(lider).not.toContain("solo un líder puede confirmarlo");
+  });
+
+  it("si el líder llega aquí (una pantalla que no armó la confirmación), no ve el JSON crudo", () => {
+    const salida = traducirError({ message: "costo_atipico", details: '{"motivo":"sube","costo_unitario":70}', code: "P0001" }, "cerrar la orden");
+    expect(salida).not.toContain("{");
+    expect(salida).not.toContain("costo_atipico");
+  });
+});
