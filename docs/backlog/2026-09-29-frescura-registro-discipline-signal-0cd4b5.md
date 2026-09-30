@@ -1,4 +1,4 @@
-## 🌿 Frescura del piso · paso 4b «Ya decidí» y la señal de disciplina de registro (2026-09-29, ADR-0208) — migraciones `20261001100000`, `…100`, `…200` **SIN PEGAR**; rama `claude/frescura-registro-discipline-signal-0cd4b5`
+## 🌿 Frescura del piso · paso 4b «Ya decidí» y la señal de disciplina de registro (2026-09-29/30, ADR-0208) — migraciones `20261001100000`, `…100`, `…200` **EN PRODUCCIÓN** (pegadas y verificadas, 2026-09-30); PR #641 **FUSIONADO**; rama `claude/frescura-registro-discipline-signal-0cd4b5`
 
 - [x] **Tabla `retail.frescura_decisiones`** (de solo agregar, con el esquema haciendo imposibles los estados malos: una
       cabeza por prenda y sede, una respuesta por fila, FK compuesta a la misma prenda, CHECK de anulación que cierra el
@@ -13,9 +13,16 @@
       URL (`?decididas=1`), «Por decidir» = quieta y sin decisión vigente (un solo lugar: `aplicarDecisiones`). 374 pruebas
       en `lib/frescura*`; `tsc` limpio. Verificado en un servidor real a 1280 y 375 px, incluida la ruta donde la lectura
       de decisiones falla (la pantalla se pinta igual y lo dice).
-- [ ] **PEGAR en producción** (Felipe): los tres archivos, cada uno por separado, en ese orden; luego
-      `pnpm datos:generar:produccion` y `pnpm datos:comparar`. Los tipos de `packages/database/src/types.ts` para las tres
-      funciones están escritos a mano: regenerar tras pegar.
+- [x] **PEGADO en producción** (Felipe, 2026-09-30): los tres archivos, cada uno por separado, en ese orden; verificado en
+      vivo antes (las 5 anclas de la migración 3 coincidían exactamente) y después (`conoce_la_libreta: true` en las dos
+      funciones). `packages/database/src/types.ts` ya tipa la tabla `frescura_decisiones` (las tres funciones ya estaban
+      tipadas a mano); PR #641 fusionado a `main` (merge con 2 conflictos reales resueltos: `PENDIENTES_HOY` de la guía de
+      foco recalculado a 72 con la prueba, y la regla nueva `/sugerir` marcó un placeholder mío — `sugerir-fijo` puesto).
+- [ ] **`docs/datos/generado/` quedó desactualizado — y no solo por esta rama.** Al cerrar el PR, producción tenía 683
+      funciones/144 tablas; el diccionario decía 655/141 (foto del 28-sep) — una deriva de +28 funciones que no es de
+      Frescura, es de otro trabajo pegado entre el 28 y el 30 de septiembre por otras sesiones. `pnpm datos:generar:producción`
+      completo trae ~600 KB en una sola consulta: mejor con `pnpm datos:refrescar` (por diferencia) o una sesión dedicada,
+      no colado dentro del cierre de otro PR. `pnpm datos:comparar` después, para confirmar que nada quedó roto.
 - [ ] **Sin probar con datos reales:** hoy Trujillo tiene 3 bajadas en toda su historia; el veredicto «¿sirvió?» se probó con
       datos sintéticos, no con un mes de piso real. La primera lectura honesta será cuando haya semanas de historia.
 - [ ] **La señal de disciplina de registro NO está construida — espera decisión de Felipe.** Análisis con `/rigor`,
