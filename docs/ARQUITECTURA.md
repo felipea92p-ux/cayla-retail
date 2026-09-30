@@ -101,6 +101,14 @@ flowchart TB
 
 ### 3.1 Mapa por dominio (ruta → lib → componentes → RPC/tablas)
 
+**Inicio (`/`)**
+- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
+  (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
+  puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
+  catálogo», pulso, en camino, reponer a piso y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
+  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, existencias, movimientos de hoy, en camino), cada una tolerante.
+  Reglas puras con pruebas: `lib/inicio-almacen-reglas.ts`. La sigla de la sede donde se registró cada producto sale de `fn_producto_origen` (tabla `producto_origen` + disparador en `productos`, migración `20260930170000`; `components/inicio-almacen/ChipSede.tsx`). Estilos: `app/estilos/inicio-almacen.css` (clases `ia-*`, bloque «AMBIENTE» aislado). ADR-0292.
+
 **Identidad y sede**
 - `lib/persona.ts` (`requirePersonaActual`, cacheado) resuelve rol
   (`lider`/`integrante`) y sede activa desde `personas` + cookie

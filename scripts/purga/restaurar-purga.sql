@@ -36,7 +36,7 @@ set local search_path to retail, public, extensions;
 -- Padres antes que hijos: el orden en que se devuelven las tablas. Lo que no esté aquí (ni sea `stock_antes` o
 -- `series_comprobantes`, que se aplican aparte) frena la restauración.
 create function pg_temp.tablas_en_orden() returns text[] language sql immutable as $f$
-  select array['productos', 'variantes', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'producto_color_temporadas',
+  select array['productos', 'producto_origen', 'variantes', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'producto_color_temporadas',
                'stock', 'compras', 'compra_items', 'compra_item_destinos', 'compra_reasignaciones', 'compra_item_cierres',
                'envios', 'lotes', 'ventas', 'venta_items', 'venta_pagos', 'separaciones', 'separacion_items', 'separacion_pagos',
                'comprobantes', 'comprobante_anticipos', 'movimientos', 'costo_historial', 'conteo_items', 'bajada_piso_items',
