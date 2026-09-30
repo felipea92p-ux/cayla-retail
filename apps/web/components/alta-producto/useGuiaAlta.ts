@@ -38,8 +38,12 @@ function fila(id: IdCampo): HTMLElement | null {
 /** ¿La persona está escribiendo ahora (foco en una caja de texto)? Entonces la guía mueve su luz pero NUNCA la página: al teclear el
  *  precio no puede saltar. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil. */
 export function estaEscribiendo(): boolean {
-  const activo = document.activeElement;
-  return activo instanceof HTMLTextAreaElement || (activo instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(activo.type));
+  return esCajaDeTexto(document.activeElement);
+}
+
+/** ¿Es una caja donde se teclea (texto, número, buscador…)? No lo son las casillas, los botones ni los combos que no escriben. */
+export function esCajaDeTexto(el: EventTarget | null): el is HTMLInputElement | HTMLTextAreaElement {
+  return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(el.type));
 }
 
 /** Deja el campo a la vista con el menor movimiento posible. Dentro de un modal el que se desplaza es el modal, no la ventana:

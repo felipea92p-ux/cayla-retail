@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { EtiquetaAhora, MarcaCampo, VozDelEstado } from "@/components/alta-producto/guia";
+import { RetencionLuzContexto, useRetenerLuz, type ModoRetencion } from "@/components/guia-de-foco/useRetenerLuz";
 import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 
 // Piezas compartidas del formulario "Nuevo producto" (ADR-0109).
@@ -231,6 +232,7 @@ export function FilaAlta({
   accion,
   campo,
   estado,
+  retiene,
   children,
 }: {
   etiqueta: string;
@@ -239,8 +241,14 @@ export function FilaAlta({
   accion?: ReactNode;
   campo?: CampoAlta;
   estado?: EstadoCampo;
+  /** «texto» (por defecto): la luz espera mientras se teclea en la fila. «fila»: para tallas y colores, donde se eligen VARIAS
+   *  opciones: espera mientras se siga eligiendo dentro de ella. */
+  retiene?: ModoRetencion;
   children: ReactNode;
 }) {
+  // La luz se queda en esta fila mientras la persona la está llenando; ver `useRetenerLuz`. El formulario provee quién escucha; fuera
+  // de él (o sin `campo`) no hace nada.
+  const retener = useRetenerLuz(campo, useContext(RetencionLuzContexto), retiene);
   const titulo = (
     <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
       {campo && estado && (
@@ -266,7 +274,7 @@ export function FilaAlta({
     );
   }
   return (
-    <div data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
+    <div {...retener} data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
       <div className="hilo-fila-in">
         {titulo}
         <div className="min-w-0">{children}</div>
