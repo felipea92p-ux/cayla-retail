@@ -545,3 +545,61 @@ reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento v�
   - Debajo, «Llegó su mensaje (respaldo)».
 - **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
   invitación en la base, y ese QR también le sirve desde casa.
+
+## Contrato de la tanda 1c (2026-09-30): el cumpleaños con un canje por año
+
+Se construye sobre la D-5, CL-10 y CL-11. Migración `20260930230000_club_paso1c_cumpleanos.sql` (va después de la 1b).
+
+**Decisión de Felipe (2026-09-30): el 10 % de cumpleaños se aplica completo aunque deje una prenda bajo su costo.** Es un
+regalo del club. El candado de «no vender bajo costo» sigue valiendo para el resto de los descuentos: se mide sin la
+parte del club.
+
+**Cómo viaja:**
+- `venta_items.descuento_unitario` sigue siendo el descuento TOTAL por unidad, así que el comprobante, los pagos y los
+  reportes no cambian.
+- La columna nueva `venta_items.descuento_club_unitario` (default 0) dice cuánto de ese total es del cumpleaños.
+  Candado: `0 <= descuento_club_unitario <= descuento_unitario`.
+- Cobrar calcula con la misma regla pura y manda en cada ítem `descuento_club_unitario`, con `p_canjear_cumpleanos =
+  true`. **La base lo recalcula y rechaza si no coincide** (hint `cumple_descuento_distinto`, tolerancia de 1 céntimo),
+  así que la pantalla nunca decide el monto.
+
+**Regla del cálculo** (CL-11, en cascada, a toda la compra, prenda sin registrar incluida):
+`descuento_club_unitario = round((precio_unitario − descuento_sin_club) × pct / 100, 2)`
+- `descuento_sin_club = descuento_unitario − descuento_club_unitario`.
+- Una prenda al 20 % queda en 28 %.
+- El redondeo es el de Postgres (medio céntimo hacia arriba); la regla de la web lo replica, con prueba.
+
+**`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
+de la nueva, partiendo de la definición viva de producción (la de la 1a).
+- **Con `p_canjear_cumpleanos = true` exige**, con `for update` sobre la ficha ya resuelta (la 1a sigue las uniones):
+  - que sea socia (`club_desde`), sin anonimizar ni archivar;
+  - que el mes actual en `America/Lima` sea su `cumple_mes`;
+  - que no haya un canje vivo este año (el único parcial lo hace imposible igual).
+  - Los hints: `cumple_no_socia`, `cumple_fuera_de_mes`, `cumple_ya_canjeado` y `cumple_sin_clienta`.
+- **Sin canjear**, todo `descuento_club_unitario` tiene que ser 0 (hint `cumple_sin_canje`).
+- **Los candados de la venta miden el descuento SIN la parte del club:**
+  - el costo;
+  - el tope de la asesora (D-67);
+  - el 35 % del líder;
+  - el argumento sobre el 15 %;
+  - el código de descuento.
+- **Al canjear**, escribe en `retail.club_canjes` (`id`, `clienta_id`, `tipo` = `'cumpleanos'`, `anio`, `venta_id`,
+  `pct`, `monto`, `registrado_por`, `created_at`, `anulado_en`, `anulado_por`).
+  - Candado: único parcial `(clienta_id, tipo, anio) where anulado_en is null`.
+  - RLS sin políticas.
+  - Anota la actividad sin datos de la clienta.
+- `configuracion_empresa.club_cumple_pct numeric not null default 10`, con candado entre 1 y 50: Felipe lo ajusta sin
+  migrar.
+- **`anular_venta`** libera el canje (`anulado_en`, `anulado_por`): la venta nunca existió. Una devolución NO lo libera
+  (decisión de Felipe, 2026-09-29).
+- **Sin conexión, la web apaga el botón.** Una venta en cola que llega con el canje ya usado se rechaza entera y la cola
+  la muestra como rechazo (ADR-0036).
+- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric` y `cumple_canjeado_este_anio boolean`.
+  Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
+
+**Web:**
+- En la caja de la clienta de Cobrar, el botón «Canjear 10 %» del spike: solo aparece si `cumple_disponible` y hay
+  conexión; si ya lo usó, dice «Cumpleaños ya canjeado».
+- Al tocarlo, cada prenda muestra su «−10 % cumpleaños» y el total baja.
+- Quitar a la clienta del ticket, o que deje de estar disponible, lo apaga.
+- La regla pura vive en `lib/club-cumple-reglas.ts`, con su prueba.
