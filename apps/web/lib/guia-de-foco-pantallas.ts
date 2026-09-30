@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 79;
+export const PENDIENTES_HOY = 73;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -64,7 +64,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- devoluciones ----
   "/devoluciones": PENDIENTE,
   // ---- etiquetas-de-precio ----
-  "/etiquetas-de-precio": PENDIENTE,
+  "/etiquetas-de-precio": { estado: "no-aplica", motivo: "Hoja de impresión de etiquetas de precio: se revisa y se imprime; no hay campos que completar ni pasos." },
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,
@@ -114,14 +114,14 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/recibir": PENDIENTE,
   // ---- productos ----
   "/productos": PENDIENTE,
-  "/productos/@modal/(.)[id]/historial": PENDIENTE,
+  "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "El mismo historial de solo lectura abierto como ventana; el único control es el filtro de sede." },
   "/productos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/productos/[id]/editar": { estado: "aplicada", evidencia: ["components/ProductoForm.tsx"] },
-  "/productos/[id]/historial": PENDIENTE,
-  "/productos/atributos": PENDIENTE,
+  "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de un producto; el único control es el filtro de sede." },
+  "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas, etiquetas), cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
-  "/productos/familias": PENDIENTE,
-  "/productos/marcas": PENDIENTE,
+  "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
+  "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   // ---- recibir ----
   "/recibir": PENDIENTE,
@@ -150,7 +150,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 88;
+export const MODALES_PENDIENTES_HOY = 73;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -165,21 +165,21 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ClientaFichaModal.tsx": PENDIENTE, // 16 controles
   "components/ColaboradoresModales.tsx": PENDIENTE, // 14 controles
   "components/ColaboradoresPanel.tsx": PENDIENTE, // 3 controles
-  "components/ColoresLista.tsx": PENDIENTE, // 17 controles
+  "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
   "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
   "components/ConfiguracionImpuestos.tsx": PENDIENTE, // 6 controles
-  "components/ConfirmarConResponsable.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/ConfirmarConResponsable.tsx": { estado: "no-aplica", motivo: "Confirmación corta de una acción de un clic (aprobar, desactivar, reactivar), hoy sin responsable: un solo botón, no hay camino que indicar." },
   "components/ConfirmarTransmision.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CotizacionesMaquilaPanel.tsx": PENDIENTE, // 6 controles
-  "components/DetalleMuestraModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/EditarMarcaModal.tsx": PENDIENTE, // 5 controles
-  "components/EliminarProductoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/EtiquetasLista.tsx": PENDIENTE, // 7 controles
-  "components/FamiliasLista.tsx": PENDIENTE, // 2 controles
+  "components/DetalleMuestraModal.tsx": { estado: "no-aplica", motivo: "Es el detalle de un tejido o patrón: se mira la foto y las prendas que lo usan, y subir una foto, generar un dibujo o quitar la imagen son acciones opcionales de un clic; no hay campo obligatorio ni pasos." },
+  "components/EditarMarcaModal.tsx": { estado: "aplicada", evidencia: ["components/EditarMarcaModal.tsx"] },
+  "components/EliminarProductoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el texto ya dice qué se borra y por qué; no hay camino que indicar." },
+  "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
+  "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
   "components/FiltrosMovimientos.tsx": PENDIENTE, // 3 controles
   "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
@@ -193,13 +193,13 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
-  "components/PatronesLista.tsx": PENDIENTE, // 4 controles
+  "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
   "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
   "components/PedirAOtraSedeModal.tsx": PENDIENTE, // 2 controles
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": PENDIENTE, // 8 controles
-  "components/PrendasDeEtiquetaModal.tsx": PENDIENTE, // 6 controles
+  "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProductosGrilla.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
@@ -218,17 +218,17 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
   "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
   "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
-  "components/TallasLista.tsx": PENDIENTE, // 4 controles
-  "components/TejidosLista.tsx": PENDIENTE, // 4 controles
-  "components/TemporadasLista.tsx": PENDIENTE, // 12 controles
+  "components/TallasLista.tsx": { estado: "aplicada", evidencia: ["components/TallasLista.tsx"] },
+  "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
+  "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
   "components/TrasladoAnularModal.tsx": PENDIENTE, // 2 controles
   "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/alta-producto/ElegirEtiquetas.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/alta-producto/ElegirMuestra.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/alta-producto/ElegirTallas.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
+  "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
+  "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica

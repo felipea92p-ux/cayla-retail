@@ -15,6 +15,8 @@ import { Volver } from "@/components/ui/Volver";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Boton, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import type { Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos, type ClaveSinResponsable } from "@/lib/responsable-omitido";
@@ -539,6 +541,14 @@ function ModalFecha({
   const [revision] = revisarFechas([f], new Date(), limites);
   const nombre = `${NOMBRE_ESTACION[evento.estacion]} ${evento.anio}`;
 
+  // Guía de foco (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar fecha» (la fecha revisada y quién firma). La fuente
+  // siempre tiene una elegida: solo cuenta como «hecha» cuando la persona la eligió a mano.
+  const guia = useGuiaCampos([
+    { id: "fecha", nombre: "Fecha y hora", requerido: true, hecho: !!revision.instante, pendiente: revision.error ?? "Escribe la fecha y la hora." },
+    { id: "fuente", nombre: "De dónde sale la fecha", requerido: false, hecho: fuenteElegida, pendiente: "" },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+
   function cambiarFecha(nueva: FechaEnEdicion) {
     setF(nueva);
     if (!fuenteElegida) setFuente("ajustada");
@@ -569,32 +579,39 @@ function ModalFecha({
     >
       {(cerrar) => (
         <div className="mt-5 space-y-4">
-          <CamposFecha f={f} revision={revision} deshabilitado={guardando} onCambio={cambiarFecha} etiqueta={NOMBRE_ESTACION[evento.estacion]} />
-          <Segmentado
-            etiqueta="¿De dónde sale esta fecha?"
-            valor={fuente}
-            onValor={(v) => {
-              setFuente(v);
-              setFuenteElegida(true);
-            }}
-            opciones={OPCIONES_FUENTE}
-            pie={PIE_FUENTE[fuente]}
-          />
+          <CampoGuiado id="fecha" guia={guia} titulo="Fecha y hora de inicio">
+            <CamposFecha f={f} revision={revision} deshabilitado={guardando} onCambio={cambiarFecha} etiqueta={NOMBRE_ESTACION[evento.estacion]} />
+          </CampoGuiado>
+          <CampoGuiado id="fuente" guia={guia}>
+            <Segmentado
+              etiqueta={guia.etiqueta("fuente", "¿De dónde sale esta fecha?")}
+              valor={fuente}
+              onValor={(v) => {
+                setFuente(v);
+                setFuenteElegida(true);
+              }}
+              opciones={OPCIONES_FUENTE}
+              pie={PIE_FUENTE[fuente]}
+            />
+          </CampoGuiado>
           <p className="text-xs text-taupe">
             Tiene que quedar entre {limites.antes ? `el inicio de ${NOMBRE_ESTACION[limites.antes.estacion].toLowerCase()} (${textoInstanteLima(limites.antes.inicio)})` : "hoy"}
             {limites.despues ? ` y el de ${NOMBRE_ESTACION[limites.despues.estacion].toLowerCase()} (${textoInstanteLima(limites.despues.inicio)})` : ""}.
           </p>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
           <div className="flex gap-2">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
               peso="primario"
-              className="flex-1"
+              className={`flex-1 ${guia.claseConfirmar}`}
               cargando={guardando}
               disabled={!responsable.listo || !revision.instante}
-              title={responsable.motivo ?? revision.error ?? undefined}
+              title={responsable.motivo ?? revision.error ?? guia.frase ?? undefined}
               onClick={() => guardar(cerrar)}
             >
               Guardar fecha
@@ -628,6 +645,19 @@ function ModalAnio({
   const ultima = useMemo(() => [...calendario].sort((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio)).at(-1) ?? null, [calendario]);
   const revision = revisarFechas(filas, new Date(), { antes: ultima, despues: null });
   const hayError = revision.some((r) => !r.instante);
+
+  // Guía de foco: las fechas llegan prellenadas (aproximadas), así que lo único que puede bloquear es una fecha mal escrita o fuera
+  // de orden (`hayError`). Las filas son UN campo de grupo; la fuente es opcional (por defecto «La ajusto yo»).
+  const guia = useGuiaCampos([
+    {
+      id: "fechas",
+      nombre: "Fechas de las estaciones",
+      requerido: true,
+      hecho: filas.length > 0 && !hayError,
+      pendiente: revision.find((r) => !r.instante)?.error ?? "Revisa las fechas.",
+    },
+    { id: "fuente", nombre: "De dónde salen las fechas", requerido: false, hecho: fuente !== "ajustada", pendiente: "" },
+  ]);
 
   async function guardar(cerrar: () => void) {
     if (hayError) return;
@@ -666,17 +696,22 @@ function ModalAnio({
             <p className="nota-cayla">Ese año ya está completo.</p>
           ) : (
             <>
-              {filas.map((f, i) => (
-                <CamposFecha
-                  key={f.estacion}
-                  f={f}
-                  revision={revision[i]}
-                  deshabilitado={guardando}
-                  etiqueta={NOMBRE_ESTACION[f.estacion]}
-                  onCambio={(nueva) => setEscritas((actual) => ({ ...actual, [nueva.estacion]: nueva }))}
-                />
-              ))}
-              <Segmentado etiqueta="¿De dónde salen estas fechas?" valor={fuente} onValor={setFuente} opciones={OPCIONES_FUENTE} pie={PIE_FUENTE[fuente]} />
+              <CampoGuiado id="fechas" guia={guia} titulo="Fechas de inicio de cada estación" className="space-y-4">
+                {filas.map((f, i) => (
+                  <CamposFecha
+                    key={f.estacion}
+                    f={f}
+                    revision={revision[i]}
+                    deshabilitado={guardando}
+                    etiqueta={NOMBRE_ESTACION[f.estacion]}
+                    onCambio={(nueva) => setEscritas((actual) => ({ ...actual, [nueva.estacion]: nueva }))}
+                  />
+                ))}
+              </CampoGuiado>
+              <CampoGuiado id="fuente" guia={guia}>
+                <Segmentado etiqueta={guia.etiqueta("fuente", "¿De dónde salen estas fechas?")} valor={fuente} onValor={setFuente} opciones={OPCIONES_FUENTE} pie={PIE_FUENTE[fuente]} />
+              </CampoGuiado>
+              <PieGuia guia={guia} listo="Todo listo para agregar." />
             </>
           )}
           <div className="flex gap-2">
@@ -685,9 +720,10 @@ function ModalAnio({
             </Boton>
             <Boton
               peso="primario"
-              className="flex-1"
+              className={`flex-1 ${guia.claseConfirmar}`}
               cargando={guardando}
               disabled={hayError || filas.length === 0}
+              title={guia.frase ?? undefined}
               onClick={() => guardar(cerrar)}
             >
               Agregar {anio}

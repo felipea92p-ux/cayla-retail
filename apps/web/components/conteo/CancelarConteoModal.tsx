@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -30,7 +31,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
    ==================================================================== */
 export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: string; numero: number; onClose: () => void }) {
   const router = useRouter();
-  const responsable = useResponsable();
+  // El responsable se eligió al abrir el conteo: cancelar lo reutiliza y solo pregunta si ya no hay uno vigente.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
   const [cancelando, setCancelando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +60,7 @@ export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: s
     <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." ancho="max-w-md" bloqueado={cancelando} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
-          <ComboResponsable control={responsable} deshabilitado={cancelando} />
+          {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={cancelando} />}
           {error && (
             <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
               {error}

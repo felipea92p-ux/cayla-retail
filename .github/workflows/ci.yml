@@ -124,11 +124,14 @@ jobs:
 
       # Versiones de migración únicas: Supabase usa el prefijo numérico como llave del
       # historial, y dos archivos con el mismo prefijo rompen `supabase start` y `db reset`
-      # (2026-09-17 x2, 2026-09-18). Solo lee nombres de archivo; no necesita node_modules.
-      # Corre también en `pull_request`: el choque entre dos ramas se ve en la segunda.
+      # (2026-09-17 x2, 2026-09-18, 2026-09-30). Solo lee nombres de archivo; no necesita node_modules.
+      # Corre también en `pull_request`: el choque entre dos ramas se ve en la segunda, si su CI corre DESPUÉS de que la
+      # primera entró a main. El 2026-09-30 no fue así (#643 pasó antes de que se fusionara #642): ver versiones.mjs.
       - name: Versiones de migración
         if: ${{ !cancelled() }}
-        run: node scripts/migraciones/versiones.mjs
+        run: |
+          node --test scripts/migraciones/versiones.test.mjs
+          node scripts/migraciones/versiones.mjs
 
       # Ninguna migración nueva usa `drop trigger`: en Supabase toma en exclusiva auth y storage hasta el final de la
       # pegada y choca con el Asesor de seguridad (40P01, ADR-0195). Pasó el 2026-09-27 (`20260927190000`, #538).
@@ -165,6 +168,13 @@ jobs:
         run: |
           node --test scripts/docs/entradas-por-archivo.test.mjs scripts/ci/alcance.test.mjs
           node scripts/docs/entradas-por-archivo.mjs
+
+      # El escáner de sugerencias (skill `/sugerir`, ADR-0290): `apps/web/lib/sugerir.test.ts` lo importa como la única definición
+      # de «ejemplo estático», así que si el escáner se rompe, esa prueba dejaría de ver los placeholders sin avisar. Va con
+      # el de la Guía de foco, que le presta el grafo de imports. Solo leen archivos; no necesitan node_modules.
+      - name: Escáner de sugerencias y de la guía de foco
+        if: ${{ !cancelled() }}
+        run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto

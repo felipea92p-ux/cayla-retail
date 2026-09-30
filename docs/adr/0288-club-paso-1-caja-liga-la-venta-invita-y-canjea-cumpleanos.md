@@ -11,7 +11,10 @@ Todavía no hay migración ni código: se construye por tandas (1a → 1e).
   `retail.pedidos_no_atendidos` (`motivo`, `razon`); `retail.comprobantes` (tipos de documento, **con el OK de Felipe**).
 - **Funciones:** `registrar_venta` (se reescribe desde su definición de producción); `registrar_clienta`,
   `editar_clienta`, `buscar_clienta`, `unir_clientas` y `archivar_clienta` (se ajustan al documento con tipo).
-  Nuevas: `unirse_al_club`, `resumen_clienta_caja` y `registrar_pedido_no_atendido` con motivo.
+  Nuevas: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»), `registrar_desde_whatsapp`
+  (cartel), `registrar_baja_whatsapp`, `resumen_clienta_caja` y `registrar_pedido_no_atendido` con motivo.
+- **Tablas (actualización 2026-09-30):** `retail.ubicaciones.whatsapp_numero`; en `clientas`, `publicidad_desde` y
+  `codigo_club`.
 - **Web:** `PuntoDeVenta.tsx` (la fila «Clienta» del ticket y el cobro), `lib/clienta-ticket-reglas.ts`,
   `lib/clienta-actividad-reglas.ts`, `lib/ventas-offline.ts`, `lib/lucode.ts`, `NuevaClientaModal.tsx`.
 
@@ -81,43 +84,61 @@ integraciones que dan validez legal a un comprobante).
 hoy sale la de una extranjera: `sin_documento` con su nombre. Se degrada con gracia (principio 9) y no bloquea el
 resto del paso.
 
-## DECISIÓN 4: socia es una fecha, y el permiso de WhatsApp es una historia que no se edita
+## DECISIÓN 4: dos permisos distintos, y el de publicidad solo nace de un mensaje que ella escribe (reescrita el 2026-09-30)
+
+*La versión del 2026-09-29 (un solo permiso, «respondió SÍ a la bienvenida», D-108) queda reemplazada. El porqué está
+en la «Actualización 2026-09-30» al final.*
 
 Hay tres estados que la pantalla debe distinguir:
 
-| Estado | Qué significa | Cómo se sabe |
-|---|---|---|
-| **Identificada** | Tiene ficha; sus compras se ligan | `clientas` activa |
-| **Socia** | Dijo «sí» al club en caja; tiene celular | `clientas.club_desde is not null` |
-| **Con permiso de WhatsApp** | Respondió «SÍ» a la bienvenida (D-108) | `clientas.whatsapp_consentimiento_en is not null` |
+| Estado | Qué significa | Cómo lo da | Cómo se sabe |
+|---|---|---|---|
+| **Identificada** | Tiene ficha; sus compras se ligan | Da su documento | `clientas` activa |
+| **Socia** | Beneficios del club y avisos **informativos** (su apartado, la talla que pidió, su boleta) | Su «sí» de palabra en caja, que registra la asesora con el texto del club | `clientas.club_desde is not null` |
+| **Con publicidad** | Novedades, rebajas, «Te extrañamos» y el saludo de cumpleaños por WhatsApp | **Solo escribiéndole ella a la tienda** desde el QR | `clientas.publicidad_desde is not null` |
 
 **DECIDÍ:**
-- **`retail.club_permisos`** es append-only, como `movimientos`: `clienta_id`, `evento`, `texto_version`,
-  `ubicacion_id`, `origen` (`caja`, `ficha`, `bandeja` o `bot`), `registrado_por` (el responsable del combo,
-  ADR-0161; nulo solo si `origen = 'bot'`) y `created_at`. El `origen` existe desde ya porque Felipe pidió un bot de
-  WhatsApp (ver «Lo que queda fuera»): el «SÍ» que llegue por webhook se guarda sin persona, pero con su origen.
-  - `evento` es `unio_al_club`, `respondio_si`, `baja_whatsapp` o `salio_del_club`.
+- **`retail.club_permisos`** es append-only, como `movimientos`. Guarda:
+  - `clienta_id`;
+  - `finalidad`: `club` o `publicidad_whatsapp`;
+  - `accion`: `otorga` o `revoca`;
+  - `medio`: `caja_palabra`, `whatsapp_propio` (ella escribió), `ficha` o `baja_whatsapp`;
+  - `telefono`: el número que escribió, o el de la ficha al registrarse;
+  - `texto_version`, `ubicacion_id`, `venta_id` (si fue en una venta), `registrado_por` (el responsable del combo,
+    ADR-0161; siempre obligatorio, porque no hay bot) y `created_at`.
   - Sin `update` ni `delete` para nadie. RLS encendido **sin políticas**: solo la escriben y la leen funciones
     `security definer`.
-- `club_desde` y `whatsapp_consentimiento_en` pasan a ser la **foto** que la misma transacción deriva de esa
-  historia (principio 4). Checks:
+- **Candado de la ley en el esquema:** un check hace imposible `finalidad = 'publicidad_whatsapp' and accion =
+  'otorga'` con un medio que no sea `whatsapp_propio`. **Nadie puede marcar la publicidad «de palabra»**, ni desde
+  caja ni desde la ficha.
+- `club_desde` y `publicidad_desde` son la **foto** que la misma transacción deriva de esa historia (principio 4).
+  Checks:
   - `club_desde` exige celular;
-  - `whatsapp_consentimiento_en` exige `club_desde`.
-- **`retail.club_textos`** (`version`, `texto`, `vigente_desde`) guarda el texto que se le lee a la clienta.
-  `unirse_al_club` exige una versión vigente y la guarda en el evento. **Sin texto vigente, Cobrar no muestra
-  «Invitar»** (texto v1 aprobado por Felipe, abajo). Así nunca hay un «sí» sin su texto, que es lo que la Ley 29733 pide
-  demostrar.
-- **En este paso solo existe `unio_al_club`.** `respondio_si` y `baja_whatsapp` los escribe la bandeja de avisos
-  (paso 3). La tabla nace completa para que el paso 3 no la altere.
+  - `publicidad_desde` exige `club_desde`.
+- `whatsapp_consentimiento_en` (ADR-0154) queda como estaba, sin escrituras nuevas. Una migración posterior la retira
+  cuando ninguna lectura la use.
+- **`clientas.codigo_club`** (`C-0001`, correlativo y único) se asigna al unirse. Va en el QR personalizado y es lo
+  que la asesora busca cuando llega el mensaje.
+- **`ubicaciones.whatsapp_numero`**: el número de cada tienda, para armar el enlace `wa.me`. **Sin número no se
+  muestra el QR** y el club sigue funcionando sin publicidad (principio 9).
+- **La baja entra en este paso, no en el 3:** desde que existe el primer permiso de publicidad, su «BAJA» debe
+  registrarse ese mismo día (la ley pide efecto inmediato). `registrar_baja_whatsapp` busca por número, escribe
+  `revoca` y vacía `publicidad_desde`; la baja vale para las 3 tiendas.
+- **`retail.club_textos`** (`version`, `tipo` — `club` o `mensaje_publicidad` —, `texto`, `vigente_desde`): el texto
+  que la asesora lee al invitarla y el mensaje que ella envía. Nunca se editan; cada cambio es una versión nueva.
+  **Sin un texto `club` vigente, Cobrar no muestra «Invitar».**
 
-**Lo que cambia de hoy:** `registrar_clienta(p_acepta_whatsapp := true)` hoy marca el permiso en caja, contra
-D-108. **Deja de hacerlo**: el parámetro desaparece de la firma nueva. A las fichas que hoy tienen
-`whatsapp_consentimiento_en` marcado en caja, la migración les escribe un evento `unio_al_club` (con
-`texto_version` nulo y la nota «marcado en caja antes de ADR-0288») y les **vacía** el permiso: quedan socias
-pendientes de «SÍ». Es lo conservador ante la ley. Producción tenía 0 clientas el 2026-09-26; la migración cuenta
-cuántas toca y lo imprime.
+**Lo que cambia de hoy:** `registrar_clienta(p_acepta_whatsapp := true)` hoy marca el permiso en caja. **Deja de
+hacerlo**: el parámetro desaparece de la firma nueva. Las fichas que hoy tienen `whatsapp_consentimiento_en`
+marcado en caja pasan a **socias** (un evento `club` de medio `caja_palabra`, con `texto_version` nulo y la nota
+«marcado en caja antes de ADR-0288»), **sin publicidad**: les falta su mensaje. Producción tenía 0 clientas el
+2026-09-26; la migración cuenta cuántas toca y lo imprime.
 
-**DESCARTÉ:** un booleano `es_socia`. No dice desde cuándo, y el aniversario (CL-17) necesita la fecha.
+**DESCARTÉ:**
+- Un booleano `es_socia`: no dice desde cuándo, y el aniversario (CL-17) necesita la fecha.
+- Que la tienda mande el primer mensaje pidiendo el «SÍ» (el D-108 original): es el primer contacto que la Ley
+  32323 dejó sin efecto.
+- La casilla que ella toca en una pantalla: CAYLA no tiene pantallas táctiles ni tablets (Felipe, 2026-09-30).
 
 ## DECISIÓN 5: el cumpleaños lo calcula la base, con un canje único por año
 
@@ -194,13 +215,16 @@ Es el flujo del spike (`docs/maquetas/punto-venta-spike-2026-09/`, la captura de
    no se guarda). «Invitar» pide:
    - el celular (obligatorio, CL-1);
    - el cumpleaños (día y mes; año opcional, CL-3);
-   - la lectura del texto vigente → `unirse_al_club`.
+   - que la asesora lea el texto `club` vigente → `unirse_al_club` (evento `club`, medio `caja_palabra`) → se
+     asigna su `codigo_club`.
+   - **Al terminar, la tarjeta muestra el QR personalizado de publicidad** y el mismo QR sale impreso en su ticket
+     (ver «Actualización 2026-09-30»). Ella decide si lo escanea ahora, en casa o nunca.
 5. Al registrarse (con cualquier documento), `registrar_clienta` **liga sus ventas anteriores sin clienta** cuyo
    comprobante tiene ese mismo tipo y número (CL-27). El padrón usado para la boleta no crea la ficha: la crea el
    registro.
 
 La ficha de `/clientas` (`NuevaClientaModal.tsx`) cambia igual: el interruptor «acepta WhatsApp» se vuelve «se
-une al club», con el texto vigente. **Se conserva la guía de foco** (`CampoGuiado`, `PieGuia`; ADR-0284 y el aviso
+une al club», con el texto `club` vigente. **La ficha no puede marcar la publicidad** (candado de la D-4). **Se conserva la guía de foco** (`CampoGuiado`, `PieGuia`; ADR-0284 y el aviso
 del PR #631).
 
 ## Permisos y módulos
@@ -217,11 +241,15 @@ cumpleaños: `registrar_venta` rechaza `p_canjear_cumpleanos` sin el módulo.
 - Dos canjes vivos del mismo tipo y año para la misma clienta (único parcial en `club_canjes`).
 - Dos fichas con el mismo `(documento_tipo, documento_numero)`.
 - Un DNI que no tenga 8 dígitos.
-- Una socia sin celular; un permiso de WhatsApp sin `club_desde`.
+- Una socia sin celular.
 - Un evento del club borrado o editado (sin permisos de escritura; solo funciones `security definer`).
-- Un `unio_al_club` nuevo sin versión de texto (check: `texto_version` nulo solo en los eventos migrados, marcados
-  `legado`).
-- Una anonimizada con documento, celular o cumpleaños (el check de ADR-0249, reescrito).
+- Un evento `club` u `otorga` nuevo sin versión de texto (check: `texto_version` nulo solo en los eventos migrados,
+  con medio `caja_palabra` y la nota de legado).
+- **Un permiso de publicidad que no venga de un mensaje de ella** (`otorga` + `publicidad_whatsapp` exige
+  `whatsapp_propio`).
+- Publicidad sin club (`publicidad_desde` exige `club_desde`).
+- Una anonimizada con documento, celular, cumpleaños, `club_desde` o `publicidad_desde` (el check de ADR-0249,
+  reescrito; anonimizar escribe antes los eventos `revoca` de los dos permisos).
 
 **Lo que queda del lado de la función, no del esquema** (y lo cubren las pruebas):
 - que el canje sea en su mes;
@@ -233,7 +261,7 @@ cumpleaños: `registrar_venta` rechaza `p_canjear_cumpleanos` sin el módulo.
 |---|---|---|
 | 1 | `alter` de `clientas`, `venta_items`, `pedidos_no_atendidos`; tablas nuevas con RLS y sin políticas; `configuracion_empresa.club_cumple_pct` | `lock_timeout 3s`, idempotente |
 | 2 | Funciones: `registrar_venta`, las 7 de Clientas, `unirse_al_club`, `resumen_clienta_caja`, `registrar_pedido_no_atendido`; y el guardia que falla si algo sigue nombrando `clientas.dni` | Aborta sin tocar nada si el md5 «antes» de una función cambió en vivo |
-| 3 | Migra los permisos marcados en caja a `unio_al_club` (legado) y los vacía | Imprime cuántas filas tocó |
+| 3 | Migra los permisos marcados en caja a eventos `club` de legado (socias sin publicidad) | Imprime cuántas filas tocó |
 | 4 | **Comprobantes: carné y pasaporte** | OK de Felipe (2026-09-29); se verifica con una boleta real en Lucode |
 
 No hay parte de políticas: las tablas nuevas solo se leen por funciones.
@@ -243,7 +271,7 @@ No hay parte de políticas: las tablas nuevas solo se leen por funciones.
 | Paso | Qué | Cómo lo verifica Felipe |
 |---|---|---|
 | 1a | Venta ligada + documento con tipo + ventas anteriores que se ligan | Vende a una clienta registrada y la venta aparece en su ficha; registra un DNI que ya tenía una boleta sin ficha, y esa compra aparece |
-| 1b | Invitar + historia del permiso + texto versionado + tarjeta de socia | La invita en caja y en su ficha ve «Socia desde…» y el evento con la versión del texto; sin texto vigente, «Invitar» no aparece |
+| 1b | Invitar + los dos permisos + textos versionados + código de socia + QR (caja, ticket, cartel) + «Llegó su mensaje» + «Registrar desde WhatsApp» + tarjeta de socia | La invita en caja y ve «Socia desde…» sin publicidad; escanea el QR con su celular, envía el mensaje, la asesora marca «Llegó su mensaje» con el código y la ficha pasa a «Con publicidad»; desde la ficha no hay forma de marcarla a mano |
 | 1c | Cumpleaños | Vende a una socia en su mes, toca «10%» y ve la cascada (20% → 28%); en otra venta el botón ya no está; anula la primera y vuelve |
 | 1d | «Es para regalo» + «se probó y no llevó» | Marca un regalo y la talla de la ficha no cambia; quita una prenda del ticket, anota «se la probó» y la ve en la lista |
 | 1e | Boleta con carné o pasaporte | Emite una boleta de prueba con carné y Lucode la acepta con tipo «4» |
@@ -269,7 +297,8 @@ Cada tanda:
 
 1. **La parte 4 (comprobantes con carné y pasaporte): sí**, en su parte aparte. Antes de dar la tanda 1e por
    terminada, una boleta de prueba real tiene que ser aceptada por Lucode con el tipo «4».
-2. **El texto v1 del consentimiento** es el borrador. La PARTE 1 lo siembra como `club_textos.version = 1`:
+2. **El texto v1 del consentimiento** es el borrador. *(Descartado el 2026-09-30 por la Ley 32323 y
+   reemplazado por los textos v2: ver la actualización al final.)* La PARTE 1 lo siembra como `club_textos.version = 1`:
 
    > Te unes al Club CAYLA. Te escribiremos por WhatsApp desde el número de la tienda para avisarte cuando llegue
    > tu talla, en tu cumpleaños y con novedades (máximo 2 promociones al mes). Te llegará un mensaje: respóndelo SÍ
@@ -284,13 +313,56 @@ Cada tanda:
 ## Lo que queda fuera de este paso
 
 - «Respondió SÍ», las bajas y la bandeja de avisos (paso 3).
-- **El bot de envío automático por WhatsApp** (Felipe, 2026-09-29). Reemplaza el «botón que arma el mensaje» de
-  D-106 y va en su propio ADR con el paso 3, porque es una integración externa con costo por mensaje. A este paso
-  solo le pide dos cosas, que ya trae: el `origen` en `club_permisos` y el texto v1, que ya anuncia «te llegará un
-  mensaje».
+- La bandeja que recomienda qué mensaje mandar a cada clienta y los mensajes para todas (paso 3; ver la
+  «Actualización 2026-09-30»).
 - El aniversario (paso 5; `club_canjes.tipo` ya lo admite).
 - El ticket de regalo sin precios (idea, no pedida).
 - El % del cumpleaños contra el tope del 2% (paso 4).
+
+## Actualización 2026-09-30: sin bot, y la publicidad solo cuando ella escribe primero (Ley 32323)
+
+**Qué cambió.** El 2026-09-29 Felipe pidió un bot de envío automático, y se investigó la API oficial de Meta
+(`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`). Con los costos y las reglas a la vista, Felipe
+decidió el 2026-09-30:
+- **No habrá bot.** Cada tienda envía los mensajes a mano desde su propio número. Se confirma D-106.
+- **El sistema recomienda** qué mensaje mandar a cada clienta y arma los mensajes para todas; la tienda los envía.
+  Es el diseño del paso 3, no de este paso.
+
+**Lo que toca a este paso** (Felipe, 2026-09-30):
+- `club_permisos.origen` pasa a ser `medio` (`caja_palabra`, `whatsapp_propio`, `ficha`, `baja_whatsapp`), sin `bot`, y
+  `registrado_por` es siempre obligatorio.
+- **El texto v1 del 2026-09-29 queda descartado.** Decía «te llegará un mensaje: respóndelo SÍ», y la **Ley 32323**
+  (9-may-2025, art. 58.1.e del Código del Consumidor) solo permite publicidad a quien «por iniciativa propia» contacta
+  a la empresa. Indecopi habló de «derogación tácita» del primer contacto para pedir permiso
+  (`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`).
+- **Sin pantalla táctil ni tablet**, el consentimiento queda así (D-4 reescrita):
+  - **Club** (beneficios y avisos informativos): su «sí» de palabra en caja, registrado por la asesora.
+  - **Publicidad:** solo si ella escribe primero, desde un QR que abre el WhatsApp de la tienda con el texto listo.
+- **Dónde está el QR y cómo se sabe de quién es:**
+
+| Dónde | Qué dice el mensaje | Cómo se liga a su ficha |
+|---|---|---|
+| Pantalla de caja, al invitarla | Quiere recibir publicidad + su código `C-0142` | La asesora busca el código (o el número) y marca «Llegó su mensaje». Si escribió desde otro número, el ERP lo avisa y su celular pasa a ser el que escribió |
+| Ticket de una venta con clienta | Igual, con su código | Igual; puede hacerlo en casa |
+| Ticket de una venta sin clienta y cartel del mostrador | Quiere unirse al club y recibir publicidad (sin código) | Como ella escribió primero, la tienda responde en ese chat pidiendo su DNI. Con el DNI, «Registrar desde WhatsApp» la crea socia con publicidad (padrón para el nombre, el número que escribió como celular). Sin DNI no hay ficha y el ERP no le escribe |
+
+- **Textos v2** (reemplazan el v1; se siembran en `club_textos`):
+  - **Club, que la asesora lee:** «Te unes al Club CAYLA: guardamos tu nombre, documento, celular y cumpleaños para
+    tus beneficios y para avisarte por WhatsApp de tus apartados y de las tallas que nos pidas. Puedes salir cuando
+    quieras.»
+  - **Mensaje personalizado, que ella envía:** «Hola CAYLA, quiero recibir por WhatsApp novedades, rebajas y mi saludo
+    de cumpleaños. Sé que me doy de baja escribiendo BAJA. (Club C-0142)»
+  - **Mensaje genérico, que ella envía:** «Hola CAYLA, quiero unirme al Club CAYLA y recibir por WhatsApp novedades,
+    rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA.»
+- **Riesgo aceptado:** Felipe decidió activar el club **sin validación de un abogado** (2026-09-30). Quedan sin
+  confirmar dos puntos: que invitar en caja cuente como «iniciativa propia» y que los avisos informativos queden fuera
+  del 58.1.e.
+- **Condiciones para activar en una tienda:**
+  - que su `whatsapp_numero` esté cargado;
+  - que el respaldo de WhatsApp de su celular esté encendido: la prueba del permiso es el chat.
+- **La tanda 1b vuelve a estar lista para construirse.** El paso 3 (la bandeja que recomienda qué mensaje mandar y
+  los mensajes para todas) solo ofrece publicidad a quien tiene `publicidad_desde`, y avisos informativos a toda
+  socia.
 
 ## Actualización 2026-09-30 (b): tanda 1a construida
 
