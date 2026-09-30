@@ -958,7 +958,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    flex: 0 0 min(250px, 74cqi);
+    /* 250 px en lo angosto; crece con el ancho (hasta 360 px) para que en pantalla grande no sobre el espacio. */
+    flex: 0 0 min(clamp(250px, 15cqi, 360px), 74cqi);
     border: 1px solid var(--color-sand);
     border-radius: 18px;
     background: var(--color-papel);
@@ -1431,6 +1432,22 @@
   @container ia (min-width: 940px) {
     .ia-gA {
       grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
+    }
+  }
+  /* ── ancho completo (Felipe, 2026-09-30): a más ancho, más grande y no más vacío ──
+     El Inicio de almacén ya no se topa en 64 rem (AppShell: el marcador de ancho completo). Por encima de ~1100 px de contenedor crece el título de la
+     cabina; por encima de ~1500 px, la columna derecha y «Sigue ahora» crecen con el ancho (con tope) y el resto es para lo principal. */
+  @container ia (min-width: 1100px) {
+    .ia-hl h2 {
+      font-size: clamp(56px, 4.4cqi, 104px);
+    }
+  }
+  @container ia (min-width: 1500px) {
+    .ia-hero {
+      grid-template-columns: minmax(0, 1fr) clamp(420px, 30cqi, 720px);
+    }
+    .ia-gA {
+      grid-template-columns: minmax(0, 1fr) clamp(380px, 26cqi, 600px);
     }
   }
   @container ia (max-width: 639px) {
