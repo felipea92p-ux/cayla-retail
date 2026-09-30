@@ -1106,6 +1106,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:factura-costo-atipico
 
+      # Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se
+      # escribe nada (ni el envío, ni la línea de comprobante, ni el token); la confirmación viaja EN CADA EXTRA (`confirma_costo`),
+      # sin cambiar la firma de 9 parámetros; un integrante recibe `costo_atipico_sin_lider` sin cifras y no puede forzarlo; regalo,
+      # sin costo y costo 0 (obsequio) no se juzgan; las líneas DE comprobante no se vuelven a preguntar; se puede pegar dos veces.
+      - name: pruebas:envio-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:envio-costo-atipico
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en

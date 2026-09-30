@@ -132,6 +132,7 @@
     "pruebas:produccion-costo-atipico": "node scripts/pruebas/produccion_costo_atipico.mjs",
     "pruebas:lote-costo-atipico": "node scripts/pruebas/lote_costo_atipico.mjs",
     "pruebas:factura-costo-atipico": "node scripts/pruebas/factura_costo_atipico.mjs",
+    "pruebas:envio-costo-atipico": "node scripts/pruebas/envio_costo_atipico.mjs",
     "pruebas:corregir-variantes": "node scripts/pruebas/corregir_variantes.mjs",
     "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
