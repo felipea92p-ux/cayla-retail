@@ -540,3 +540,51 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
     expect(esSinModulo(null)).toBe(false);
   });
 });
+
+// ADR-0288 (20260930160000): el documento de la clienta tiene tipo, y la venta se liga a su ficha. Dos de los rechazos no
+// llegan como P0001 (22023 el formato, 23505 el documento de otra ficha): sin su hint caerían al genérico con «Código:».
+describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
+  it("los rechazos con hint pasan tal cual, también los que no son P0001", () => {
+    const casos = [
+      { message: "El DNI tiene 8 dígitos.", code: "22023", hint: "documento_invalido" },
+      { message: "El pasaporte tiene de 6 a 12 letras o números, sin guiones.", code: "22023", hint: "documento_invalido" },
+      {
+        message: "Ese documento ya es de otra ficha. Si son la misma clienta, únelas con «Unir con otra ficha».",
+        code: "23505",
+        hint: "documento_de_otra_ficha",
+      },
+      {
+        message: "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta.",
+        code: "P0001",
+        hint: "clienta_anonimizada",
+      },
+      { message: "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla.", code: "P0001", hint: "clienta_no_existe" },
+    ];
+    for (const c of casos) {
+      const salida = traducirError(c, "guardar la clienta");
+      expect(salida).toBe(c.message);
+      expect(salida).not.toContain("Código:");
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo (nunca el genérico)", () => {
+    for (const hint of ["documento_invalido", "documento_de_otra_ficha", "clienta_anonimizada", "clienta_no_existe"]) {
+      const salida = traducirError({ message: "", code: "22023", hint }, "registrar la venta");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida.length, hint).toBeGreaterThan(20);
+    }
+  });
+
+  it("el único por documento, si algún camino inserta directo, se explica sin citar el índice", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "clientas_documento_unico"', code: "23505" },
+      "registrar la clienta",
+    );
+    expect(salida).toContain("Ya hay una clienta con ese documento");
+    expect(salida).not.toContain("clientas_documento_unico");
+  });
+
+  it("un 23505 cualquiera con otro hint no se hace pasar por documento repetido", () => {
+    expect(traducirError({ message: "duplicate key value", code: "23505", hint: "otra_cosa" }, "registrar la clienta")).toContain("Código:");
+  });
+});

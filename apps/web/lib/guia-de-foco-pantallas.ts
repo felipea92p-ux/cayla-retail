@@ -150,7 +150,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 74;
+export const MODALES_PENDIENTES_HOY = 73;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -241,6 +241,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
-  "components/punto-de-venta/ClientaDelTicket.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta (tipo de documento, número, nombre, celular, quién atiende).
+  "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
 };

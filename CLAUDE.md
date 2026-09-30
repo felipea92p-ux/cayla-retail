@@ -125,6 +125,14 @@ separado (cada una con `set lock_timeout = '3s'`, idempotente), con las polític
 solo se lee por funciones `security definer`, deja RLS encendido sin políticas. Ejemplo:
 `supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`.
 
+**El SQL Editor agrega líneas por su cuenta (aprendido 2026-09-30, ADR-0288):** si ve `select … into <nombre>` en el texto
+pegado, lo toma por un `SELECT INTO` que crea una tabla y agrega al final `alter table <nombre> enable row level security`.
+Dentro de un cuerpo `$$ … $$` no lo mira, pero sí dentro de un texto entre comillas simples, como el que un reemplazo
+anclado (`pg_temp.reemplazar_*`) le inserta a una función viva. El pegado falla con `42P01 relation "<nombre>" does not exist`
+y no se aplica nada, porque todo va en una transacción. Regla: dentro de un texto entre comillas, nunca `select … into`;
+lee la fila con `for v_a, v_b in select … loop exit; end loop;` (o una asignación `v := (select …)`). Si un pegado falla
+raro, el log de Postgres (`query_logs`, `source = 'postgres_logs'`) muestra el texto que Supabase ejecutó de verdad.
+
 ## Convenciones de código (adaptadas a este repo)
 
 - Base de datos: tablas en `snake_case`, español, plural donde aplica (`ubicaciones`,
