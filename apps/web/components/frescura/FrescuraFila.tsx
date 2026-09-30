@@ -3,6 +3,7 @@
 import { Shirt } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { Chip } from "@/components/ui/Chip";
+import type { FilaDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { QUIZA_MAS, palabraDias, type FilaVista, type RapidezVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip } from "./piezas";
 
@@ -74,10 +75,27 @@ function Rapidez({ r, vendio }: { r: RapidezVista; vendio?: string | null }) {
   );
 }
 
-function Sugerencias({ fila }: { fila: FilaVista }) {
-  if (fila.sugerencias.length === 0) return <span className="text-[12.5px] text-taupe">{fila.nada}</span>;
+/**
+ * Lo que se decidió (paso 4b): con una decisión vigente reemplaza a las preguntas («Decidida · se cambió de lugar · se revisa el
+ * mar 6»); cuando ya terminó, cuenta cómo le fue y las preguntas de abajo salen de ESE resultado. Nunca rojo.
+ */
+function Decision({ d }: { d: FilaDeDecision }) {
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Chip tono={d.chip.tono} className="!px-2 !text-[11.5px] !leading-[18px]">
+        {d.chip.texto}
+      </Chip>
+      <span className="text-[12.5px] leading-snug text-tinta/80">{d.frase}</span>
+    </div>
+  );
+}
+
+function Sugerencias({ fila, decision }: { fila: FilaVista; decision: FilaDeDecision | null }) {
+  if (decision?.vigente) return <Decision d={decision} />;
+  if (fila.sugerencias.length === 0) return decision ? <Decision d={decision} /> : <span className="text-[12.5px] text-taupe">{fila.nada}</span>;
   return (
     <div className="flex flex-col items-start gap-1.5">
+      {decision && <Decision d={decision} />}
       {fila.sugerencias.map((s) => {
         const Icono = ICONO_SUGERENCIA[s.clave];
         return (
@@ -126,7 +144,7 @@ function Prenda({ fila, muchasSinTemporada }: { fila: FilaVista; muchasSinTempor
 /** El filete gris a la izquierda de lo que está «Por decidir». */
 const FILETE = "before:pointer-events-none before:absolute before:bottom-3 before:left-0 before:top-3 before:w-0.5 before:rounded-sm before:bg-tinta/35";
 
-export function FrescuraFila({ fila, muchasSinTemporada, onAbrir }: { fila: FilaVista; muchasSinTemporada: boolean; onAbrir: () => void }) {
+export function FrescuraFila({ fila, muchasSinTemporada, onAbrir, decision }: { fila: FilaVista; muchasSinTemporada: boolean; onAbrir: () => void; decision: FilaDeDecision | null }) {
   const alTeclado = (e: KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -141,7 +159,7 @@ export function FrescuraFila({ fila, muchasSinTemporada, onAbrir }: { fila: Fila
       onKeyDown={alTeclado}
       aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
       data-prenda={fila.clave}
-      className={`fila-cayla relative cursor-pointer border-t border-sand outline-none focus-visible:bg-crema/60 focus-visible:shadow-[inset_0_0_0_2px_color-mix(in_oklab,var(--color-rojo)_45%,transparent)] ${fila.quieta ? FILETE : ""}`}
+      className={`fila-cayla relative cursor-pointer border-t border-sand outline-none focus-visible:bg-crema/60 focus-visible:shadow-[inset_0_0_0_2px_color-mix(in_oklab,var(--color-rojo)_45%,transparent)] ${fila.porDecidir ? FILETE : ""}`}
     >
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-start gap-x-3 px-5 py-3 md:grid ${PLANTILLA_FRESCURA}`}>
@@ -151,7 +169,7 @@ export function FrescuraFila({ fila, muchasSinTemporada, onAbrir }: { fila: Fila
         <EstadoChip estado={fila.estado} />
         <Rapidez r={fila.rapidez} />
         <span className="text-right text-sm tabular-nums">{fila.vendio ?? "—"}</span>
-        <Sugerencias fila={fila} />
+        <Sugerencias fila={fila} decision={decision} />
       </div>
 
       {/* Celular: una tarjeta, con la leyenda de las tallas y lo vendido dentro de la rapidez. */}
@@ -163,7 +181,7 @@ export function FrescuraFila({ fila, muchasSinTemporada, onAbrir }: { fila: Fila
         <EstadoChip estado={fila.estado} apilado={false} />
         <Rapidez r={fila.rapidez} vendio={fila.vendioTexto} />
         <Tallas fila={fila} leyenda />
-        <Sugerencias fila={fila} />
+        <Sugerencias fila={fila} decision={decision} />
       </div>
     </div>
   );

@@ -6713,6 +6713,32 @@ export type Database = {
           unidades: number
         }[]
       }
+      // Frescura del piso, paso 4b (ADR-0208, 20261001100100): «Ya decidí». Escritos a mano con la forma que da `supabase gen types`:
+      // regenerar al pegar la migración en producción.
+      fn_frescura_decisiones: {
+        Args: { p_dias?: number; p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_puede_frescura: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_puede_decidir_frescura: { Args: { p_accion: string; p_ubicacion_id: string }; Returns: boolean }
+      anotar_decision_frescura: {
+        Args: {
+          p_accion: string
+          p_anterior_id: string | null
+          p_color_codigo: string | null
+          p_nota?: string | null
+          p_plazo_dias: number
+          p_producto_id: string
+          p_token: string
+          p_transferencia_id?: string | null
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      anular_decision_frescura: {
+        Args: { p_decision_id: string; p_nota?: string | null; p_token: string }
+        Returns: Json
+      }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
       fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }

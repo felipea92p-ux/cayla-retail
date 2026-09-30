@@ -25,7 +25,7 @@
  */
 
 import { execFileSync, spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -705,6 +705,36 @@ rollback;`,
 );
 
 // ---------------------------------------------------------------------------------------------------------------------
+// El CONTRATO con la web: `apps/web/lib/__fixtures__/frescura-decisiones.json` es la salida de `fn_frescura_decisiones` que
+// arma T7, guardada tal cual. La web (`frescura-contrato.test.ts`) exige leerla ENTERA; esta prueba exige que la salida de hoy
+// tenga la misma FORMA que el archivo: si alguien renombra un campo del SQL, se pone roja aquí y no en silencio en la
+// pantalla (`leerDecisiones` descarta lo que no entiende, a propósito). Se rehace con
+// `FRESCURA_DECISIONES_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-decisiones`; no se edita a mano.
+// ---------------------------------------------------------------------------------------------------------------------
+const ARCHIVO_CONTRATO = join(RAIZ, "apps/web/lib/__fixtures__/frescura-decisiones.json");
+/** Las rutas de claves de un jsonb (los arreglos se recorren por la unión de sus elementos): su forma, sin valores. */
+function formaDe(v, ruta = "") {
+  if (Array.isArray(v)) return [...new Set(v.flatMap((x) => formaDe(x, `${ruta}[]`)))];
+  if (v !== null && typeof v === "object") return Object.entries(v).flatMap(([k, x]) => [`${ruta}.${k}`, ...formaDe(x, `${ruta}.${k}`)]);
+  return [];
+}
+function contratoConLaWeb(lecturaJson) {
+  const hoy = JSON.parse(lecturaJson);
+  if (process.env.FRESCURA_DECISIONES_FIXTURE_ESCRIBIR === "1") {
+    writeFileSync(ARCHIVO_CONTRATO, `${JSON.stringify(hoy, null, 1)}\n`);
+    console.log(`  (archivo de contrato reescrito)`);
+  }
+  const guardado = JSON.parse(readFileSync(ARCHIVO_CONTRATO, "utf8"));
+  const a = [...new Set(formaDe(hoy))].sort();
+  const b = [...new Set(formaDe(guardado))].sort();
+  afirmar(
+    "la salida de hoy de fn_frescura_decisiones tiene la MISMA forma que el archivo de contrato con la web",
+    JSON.stringify(a) === JSON.stringify(b),
+    `solo hoy: ${a.filter((x) => !b.includes(x)).join(", ") || "—"} · solo el archivo: ${b.filter((x) => !a.includes(x)).join(", ") || "—"}`,
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 correr(
   "T7 · lectura: la última línea de cada libreta aunque sea vieja; las ventas de «La rebajé» con su motivo; cuándo entró el traslado; los traslados recientes",
   `${PRELUDIO_F}
@@ -769,6 +799,8 @@ insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, es
 ${como(FELIPE, { sede: false })}
 select ${rpc("fn_frescura_decisiones", ":'ubic'", "30")} as lec \\gset
 select 'OK|' || pg_temp.res(:'lec'::jsonb);
+-- La salida REAL, tal cual: es el archivo de contrato con la web (apps/web/lib/__fixtures__/frescura-decisiones.json).
+select 'LECTURA_JSON|' || ((:'lec'::jsonb) -> 'r')::text;
 select (:'lec'::jsonb) -> 'r' -> 'decisiones' as dec, (:'lec'::jsonb) -> 'r' -> 'traslados_recientes' as tras \\gset
 -- A: solo la última línea (la de hace 100 días); la cabeza de hace 200 no.
 select 'A_LINEAS|' || (select count(*) from jsonb_array_elements(:'dec'::jsonb) e where e ->> 'producto_id' = :'prod_a')
@@ -802,6 +834,7 @@ select 'LIMA_VACIA|' || (select (r -> 'r' -> 'decisiones')::text || ',' || (r ->
 rollback;`,
   (o) => {
     afirmar("Felipe lee la sede", o.OK === "ok", `=${o.OK}`);
+    contratoConLaWeb(o.LECTURA_JSON);
     afirmar("de la libreta A sale SOLO su última línea aunque tenga 100 días (y no la cabeza de 200): la pantalla responde a ella", o.A_LINEAS === "1,hasta_agotar", `=${o.A_LINEAS}`);
     afirmar("cada renglón trae quién firmó, con nombre y apellido", (o.A_FIRMA ?? "").startsWith("Felipe "), `=${o.A_FIRMA}`);
     afirmar("«La rebajé»: cuenta las ventas de esa prenda desde ese día (sin descuento, campaña y liquidación) y no la anulada, ni la anterior, ni la de otra prenda",
