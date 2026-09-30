@@ -390,3 +390,11 @@ de arriba, y por qué:
   va en la factura.
 - **Orden de despliegue:** pegar la migración y fusionar el PR enseguida. Entre los dos, la pantalla vieja no puede
   registrar ni editar fichas (la venta sigue sin clienta); leer y buscar funcionan igual.
+- **Primer pegado en producción (2026-09-30), fallido sin daño.** El SQL Editor vio `select … into v_ficha_id` dentro
+  del texto que el reemplazo anclado inserta en `registrar_venta`, lo tomó por un `SELECT INTO` que crea una tabla y
+  agregó al final `alter table v_ficha_id enable row level security` (se ve en el log de Postgres). Falló con 42P01 y
+  todo se deshizo; se verificó en producción, en solo lectura, que siguen `dni` y las funciones de antes.
+  - Arreglo: la ficha se lee con `for … in select … for key share loop exit; end loop;`. El md5 «después» de
+    `registrar_venta` pasa a `703928f5…`.
+  - La regla quedó en CLAUDE.md («El SQL Editor agrega líneas por su cuenta»).
+

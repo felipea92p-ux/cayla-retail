@@ -731,8 +731,14 @@ begin
   return 'SIN_ESPERA';
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_contexto = pg_exception_context;
-  return v_estado || '|' || case when v_contexto ~* 'from retail\\.clientas c where c\\.id = p_cliente_id' then 'en la lectura de la ficha'
-                                 when v_contexto ~* 'insert into ventas' then 'al guardar la venta, con la ficha de antes de la unión'
+  -- La lectura de la ficha es un \`for … in select … for key share\` (sin \`select … into\`: el SQL Editor de Supabase lo confunde
+  -- con un SELECT INTO que crea tabla), así que el contexto ya no trae su texto: dice qué fila de \`clientas\` esperaba.
+  -- Primero «al guardar»: la llave foránea de ventas.cliente_id también bloquea la fila de \`clientas\`, y esa espera tardía
+  -- es justo el defecto que esta prueba vigila.
+  return v_estado || '|' || case when v_contexto ~* 'insert into ventas' then 'al guardar la venta, con la ficha de antes de la unión'
+                                 when v_contexto ~* 'from retail\\.clientas c where c\\.id = p_cliente_id'
+                                   or (v_contexto ~* 'locking tuple .* in relation "clientas"' and v_contexto ~* 'at FOR over SELECT rows')
+                                   then 'en la lectura de la ficha'
                                  else 'en otra sentencia: ' || regexp_replace(v_contexto, '\\s+', ' ', 'g') end;
 end $f$;
 grant execute on function pg_temp.donde_espera_venta(uuid, uuid, numeric, uuid) to authenticated;

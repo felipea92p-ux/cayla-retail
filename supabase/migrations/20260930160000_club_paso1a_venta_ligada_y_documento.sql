@@ -63,7 +63,7 @@ begin
       ('retail.buscar_clienta(text,boolean)',                                                            '889b7dc1d697156d480fe21c59ddae0d', '398706b77a9fdc51f70eec76a0cc23ae'),
       ('retail.archivar_clienta(uuid,text,boolean,integer)',                                             'eedd3fcb06a98a0984433cf1eaf7fc13', 'a3fa06de786fb5adcfc511e0eb66ec37'),
       ('retail.unir_clientas(uuid,uuid,integer,integer)',                                                '26d5a7986bea76e20f6e71017900e817', '39a5f804607137727b9b396dfa168995'),
-      ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text)', '5981c7c4b863ae9ad511c1919dec770c', 'ff37a1e177ad7e0edf4411924751954b')
+      ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text)', '5981c7c4b863ae9ad511c1919dec770c', '703928f528c805117648d43c6fea3b76')
     ) as t(firma, antes, despues)
   loop
     select md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\s+', '', 'g'))
@@ -465,8 +465,17 @@ select pg_temp.reemplazar_club1a_20260930(
     v_saltos_union integer := 0;
   begin
     while p_cliente_id is not null loop
-      select c.id, c.anonimizada, c.fusionada_en_id into v_ficha_id, v_ficha_anonimizada, v_ficha_fusionada_en
-        from retail.clientas c where c.id = p_cliente_id for key share;
+      -- Sin `select … into` a propósito: el SQL Editor de Supabase lo confunde, dentro de este texto, con un
+      -- `SELECT INTO` que crea una tabla y agrega al final un `alter table v_ficha_id enable row level security` que
+      -- rompe el pegado (pasó el 2026-09-30). El `for` lee la misma fila; si no hay, las variables quedan en null.
+      v_ficha_id := null;
+      v_ficha_anonimizada := null;
+      v_ficha_fusionada_en := null;
+      for v_ficha_id, v_ficha_anonimizada, v_ficha_fusionada_en in
+        select c.id, c.anonimizada, c.fusionada_en_id from retail.clientas c where c.id = p_cliente_id for key share
+      loop
+        exit;
+      end loop;
       if v_ficha_id is null then
         raise exception ''Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla.''
           using hint = ''clienta_no_existe'';
