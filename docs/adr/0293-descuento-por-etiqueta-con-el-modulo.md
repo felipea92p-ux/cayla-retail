@@ -1,7 +1,8 @@
 # ADR-0293 · El descuento por etiqueta deja de ser solo del líder
 
 - **Fecha:** 2026-09-30 · **Estado:** implementado y probado en local (base de copia: `pruebas:roles`, `pruebas:terminales` y `pruebas:etiquetas-aprobar`
-  en verde; suite web y `tsc` en verde). Migraciones `20261001130000` (funciones y catálogo) y `20261001130100` (política).
+  en verde; suite web y `tsc` en verde). Migraciones `20261001130000` (funciones y catálogo) y `20261001130100` (política), **aplicadas en
+  producción el 2026-09-30** (cada una en su llamada, verificadas después); **la web falta por fusionar**.
 - **Decide:** Felipe, 2026-09-30, al ver que «Para liquidar» y «Últimas unidades» no aparecían al crear un producto desde la cuenta
   «Almacén Trujillo»: *«que aparezca para todos; también las configuraciones tienen que aparecer para todos los que tengan el módulo».*
 - **Reemplaza en parte:** ADR-0160 (etiquetas con descuento «solo del líder», `fn_puede_dar_descuento_por_etiqueta`) y la excepción B2b del
@@ -65,6 +66,14 @@ Una etiqueta con descuento baja el precio **en caja** de las prendas que la llev
 crea una prenda (marcándola «Para liquidar») y quien tiene Etiquetas (configurándola). Lo que sigue acotándolo es la **vigencia** de la campaña
 (fechas y categorías) y el tope de descuento que ya aplica la caja; este ADR no agrega otro candado. Si en tienda aparece un descuento que nadie
 esperaba, el rastro es `variante_etiquetas` + el historial de la prenda.
+
+## Quién tiene el módulo Etiquetas HOY en producción (consultado el 2026-09-30, después de aplicar)
+
+Los tres roles con cuentas —**Integrante, Terminal administrativa y Terminal de ventas**— traen el módulo Etiquetas encendido; el líder lo ve
+todo. Con esta decisión eso significa que **toda cuenta de esos tres roles** (las seis terminales: Almacén y Caja de Lima, Arequipa y Trujillo,
+y todo Integrante) puede configurar un descuento por etiqueta, no solo la cuenta de almacén. Es lo que pidió la regla («todos los que tengan
+el módulo»), pero el alcance real es ese. Si se quiere acotar, se hace en Roles y accesos quitando Etiquetas a los roles que no deban
+(p. ej. a la Terminal de ventas); no requiere código.
 
 ## Descartado
 
