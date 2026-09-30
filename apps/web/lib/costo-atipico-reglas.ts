@@ -84,3 +84,16 @@ export function fraseCostoAtipico(d: CostoAtipico): { titulo: string; detalle: s
       };
   }
 }
+
+/**
+ * El aviso para UNA o VARIAS líneas a la vez: una recepción o una factura puede traer varias prendas con costo raro y el
+ * líder las confirma juntas. Con una sola, el título y el detalle de siempre; con varias, un título con la cuenta y un
+ * detalle por línea (cada uno ya nombra su prenda).
+ */
+export function fraseCostosAtipicos(costos: CostoAtipico[]): { titulo: string; detalles: string[] } {
+  if (costos.length === 1) {
+    const f = fraseCostoAtipico(costos[0]);
+    return { titulo: f.titulo, detalles: [f.detalle] };
+  }
+  return { titulo: `${costos.length} líneas tienen un costo fuera de lo normal`, detalles: costos.map((c) => fraseCostoAtipico(c).detalle) };
+}

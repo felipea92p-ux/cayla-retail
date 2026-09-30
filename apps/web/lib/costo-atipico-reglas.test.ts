@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fraseCostoAtipico, leerCostoAtipico, MOTIVOS_COSTO_ATIPICO, type CostoAtipico } from "./costo-atipico-reglas";
+import { fraseCostoAtipico, fraseCostosAtipicos, leerCostoAtipico, MOTIVOS_COSTO_ATIPICO, type CostoAtipico } from "./costo-atipico-reglas";
 import { soles } from "./compras-reglas";
 
 const detalle = (o: Record<string, unknown>) => JSON.stringify(o);
@@ -92,5 +92,22 @@ describe("fraseCostoAtipico", () => {
 
   it("un costo negativo se muestra como S/ 0, no como una cifra rara", () => {
     expect(fraseCostoAtipico({ ...base, motivo: "sin_costo", costoUnitario: -3 }).detalle).toContain(soles(0));
+  });
+});
+
+describe("fraseCostosAtipicos", () => {
+  it("con una sola línea es exactamente el aviso de siempre", () => {
+    const f = fraseCostosAtipicos([base]);
+    expect(f.titulo).toBe(fraseCostoAtipico(base).titulo);
+    expect(f.detalles).toEqual([fraseCostoAtipico(base).detalle]);
+  });
+
+  it("con varias, un título con la cuenta y un detalle por línea, cada uno con su prenda", () => {
+    const otra: CostoAtipico = { motivo: "baja", costoUnitario: 5, costoVigente: 40, precio: 99, sku: "BLU-EMMA-NEG-S" };
+    const f = fraseCostosAtipicos([base, otra]);
+    expect(f.titulo).toBe("2 líneas tienen un costo fuera de lo normal");
+    expect(f.detalles).toHaveLength(2);
+    expect(f.detalles[0]).toContain("BLU-EMMA-NEG-M");
+    expect(f.detalles[1]).toContain("BLU-EMMA-NEG-S");
   });
 });

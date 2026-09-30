@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
-import { fraseCostoAtipico, leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
@@ -55,7 +56,6 @@ export function OrdenCierre({
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const seccion = useRef<HTMLElement>(null);
-  const aviso = useRef<HTMLDivElement>(null);
   // Responsable (ADR-0161/0162): el cierre firma con quien se elige en el combo (la lista sale del Taller, la sede activa).
   const responsable = useResponsable();
 
@@ -69,11 +69,6 @@ export function OrdenCierre({
     poner(e.target.value);
     setAtipico(null);
   };
-
-  // Que el aviso quede a la vista si apareció fuera de pantalla (solo se mueve lo que no se ve).
-  useEffect(() => {
-    if (atipico) aviso.current?.scrollIntoView({ block: "nearest" });
-  }, [atipico]);
 
   function corregirMontos() {
     setAtipico(null);
@@ -181,19 +176,18 @@ export function OrdenCierre({
       </div>
 
       {atipico ? (
-        <div ref={aviso} role="alert" className="anim-revelar mt-4 rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-          <p className="font-medium">{fraseCostoAtipico(atipico).titulo}</p>
-          <p className="mt-1">{fraseCostoAtipico(atipico).detalle}</p>
-          <p className="mt-2 text-xs">Revisa tela, avíos, maquila y cuántas salieron buenas. Si el costo es correcto, confírmalo: entra al costo de esta prenda en todas las sedes.</p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Boton peso="fantasma" disabled={cargando} className="sm:flex-1" onClick={corregirMontos}>
-              Corregir los montos
-            </Boton>
-            <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:flex-1" onClick={() => confirmar(true)}>
-              {cargando ? "Cerrando…" : "Sí, es correcto — cerrar con este costo"}
-            </Boton>
-          </div>
-        </div>
+        <AvisoCostoAtipico
+          costos={[atipico]}
+          pie="Revisa tela, avíos, maquila y cuántas salieron buenas. Si el costo es correcto, confírmalo: entra al costo de esta prenda en todas las sedes."
+          textoCorregir="Corregir los montos"
+          textoConfirmar="Sí, es correcto — cerrar con este costo"
+          textoCargando="Cerrando…"
+          cargando={cargando}
+          listo={responsable.listo}
+          motivoNoListo={responsable.motivo}
+          onCorregir={corregirMontos}
+          onConfirmar={() => confirmar(true)}
+        />
       ) : (
         <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
           {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
