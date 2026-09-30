@@ -436,7 +436,9 @@ Se probó en un Postgres desechable propio con todas las migraciones y el seed. 
   - En Cobrar, el paso «Comprobante» de una boleta o nota de venta tiene el combo «Tipo de documento» (DNI por defecto,
     `CampoTipoDocumento`). Carné y pasaporte llevan el nombre a mano, porque no tienen padrón. Vive en
     `components/punto-de-venta/DocumentoDelComprobante.tsx`, para tocar `PuntoDeVenta*.tsx` lo mínimo.
-  - Un carné o un pasaporte mal escrito no deja cobrar (`motivoBloqueoCobro`), con el mensaje de la ficha.
+  - Un carné o un pasaporte mal escrito no deja cobrar (`motivoBloqueoCobro`), con el mensaje de la ficha. Tampoco una
+    factura con letras en el número: pasa si se cambia de boleta a factura con un carné ya escrito (visto en el navegador
+    a 375 px), y saldría a SUNAT como un RUC que no existe.
 - **Lucode, sin confirmar.** «4» y «7» son los códigos del catálogo 06 de SUNAT, el mismo del que ya salen «1» y «6».
   Pero ninguna boleta a un carné o a un pasaporte se transmitió todavía, ni al sandbox. Como decidió Felipe (punto 1
   de arriba), la tanda no se cierra hasta que una boleta de prueba REAL a un carné sea aceptada con tipo «4». Si SUNAT

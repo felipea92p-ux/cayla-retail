@@ -77,9 +77,15 @@ describe("problemaDocumentoComprobante — lo que frena el cobro (la base rechaz
     expect(problemaDocumentoComprobante("boleta", "carne_extranjeria", "001234567")).toBeNull();
     expect(problemaDocumentoComprobante("boleta", "pasaporte", "ab 123 456")).toBeNull();
   });
-  it("vacío no frena (sale sin documento); el DNI y la factura siguen como antes", () => {
+  it("vacío no frena (sale sin documento); el DNI y la factura con dígitos siguen como antes", () => {
     expect(problemaDocumentoComprobante("boleta", "pasaporte", "")).toBeNull();
     expect(problemaDocumentoComprobante("boleta", "dni", "123")).toBeNull();
     expect(problemaDocumentoComprobante("factura", "pasaporte", "12")).toBeNull();
+    expect(problemaDocumentoComprobante("factura", "dni", "20100070970")).toBeNull();
+  });
+  it("una factura con letras (un carné que quedó escrito al pasar de boleta a factura) no se cobra: saldría como un RUC que no existe", () => {
+    expect(problemaDocumentoComprobante("factura", "carne_extranjeria", "CE12A3456")).toBe(
+      "El RUC lleva solo dígitos: corrígelo, o vuelve a boleta para el carné o el pasaporte."
+    );
   });
 });

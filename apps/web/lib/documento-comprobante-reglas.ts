@@ -67,12 +67,18 @@ export function tipoDocDelComprobante(
 }
 
 /**
- * Qué está mal del documento de una boleta o nota de venta, en palabras de la tienda, o null. Solo carné y pasaporte: la
- * base los rechaza fuera de formato (y con ellos, la venta ENTERA), así que la caja no deja cobrar hasta corregirlos. El DNI
- * sigue como siempre (la base no le pone candado en el comprobante, y el campo ya avisa si le faltan dígitos), y el RUC de la
- * factura lo cuida `facturaSinRuc`.
+ * Qué está mal del documento del comprobante, en palabras de la tienda, o null. Frena el cobro (`motivoBloqueoCobro`):
+ *   - carné o pasaporte fuera de formato: la base los rechaza (y con ellos, la venta ENTERA);
+ *   - una factura con letras en el número: solo pasa si se cambió de boleta a factura con un carné o un pasaporte escrito
+ *     (el campo del RUC solo deja tipear dígitos). Saldría a SUNAT como un RUC que no existe.
+ * El DNI sigue como siempre (la base no le pone candado en el comprobante, y el campo ya avisa si le faltan dígitos), y la
+ * factura sin RUC la cuida `facturaSinRuc`.
  */
 export function problemaDocumentoComprobante(tipoComprobante: string, identidad: TipoDocumentoClienta, numero: string): string | null {
-  if (tipoComprobante === "factura" || identidad === "dni" || !numero.trim()) return null;
+  if (!numero.trim()) return null;
+  if (tipoComprobante === "factura") {
+    return /\D/.test(numero) ? "El RUC lleva solo dígitos: corrígelo, o vuelve a boleta para el carné o el pasaporte." : null;
+  }
+  if (identidad === "dni") return null;
   return problemaDocumento(identidad, numero);
 }
