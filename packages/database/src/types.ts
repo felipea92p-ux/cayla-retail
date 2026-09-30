@@ -4777,6 +4777,103 @@ export type Database = {
           },
         ]
       }
+      frescura_decisiones: {
+        Row: {
+          accion: string
+          anterior_accion: string | null
+          anterior_id: string | null
+          color_clave: string | null
+          color_codigo: string | null
+          creado_en: string
+          id: string
+          nota: string | null
+          persona_id: string
+          plazo_dias: number | null
+          producto_id: string
+          terminal_id: string | null
+          token_cliente: string
+          transferencia_id: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          accion: string
+          anterior_accion?: string | null
+          anterior_id?: string | null
+          color_clave?: string | null
+          color_codigo?: string | null
+          creado_en?: string
+          id?: string
+          nota?: string | null
+          persona_id: string
+          plazo_dias?: number | null
+          producto_id: string
+          terminal_id?: string | null
+          token_cliente: string
+          transferencia_id?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          accion?: string
+          anterior_accion?: string | null
+          anterior_id?: string | null
+          color_clave?: string | null
+          color_codigo?: string | null
+          creado_en?: string
+          id?: string
+          nota?: string | null
+          persona_id?: string
+          plazo_dias?: number | null
+          producto_id?: string
+          terminal_id?: string | null
+          token_cliente?: string
+          transferencia_id?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frescura_decisiones_color_codigo_fkey"
+            columns: ["color_codigo"]
+            isOneToOne: false
+            referencedRelation: "colores"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_misma_prenda"
+            columns: ["anterior_id", "ubicacion_id", "producto_id", "color_clave", "anterior_accion"]
+            isOneToOne: false
+            referencedRelation: "frescura_decisiones"
+            referencedColumns: ["id", "ubicacion_id", "producto_id", "color_clave", "accion"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "terminales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frescura_decisiones_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       abrir_caja: {
