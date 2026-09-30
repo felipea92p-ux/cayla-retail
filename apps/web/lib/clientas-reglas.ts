@@ -16,8 +16,14 @@ export type Clienta = {
   documentoNumero: string | null;
   nombre: string | null;
   telefonoWhatsapp: string | null;
-  /** true si la clienta dio su permiso de contacto por WhatsApp — dato aparte del teléfono. */
+  /** true si la clienta tiene el permiso de PUBLICIDAD por WhatsApp (lo dio escribiendo ella primero, ADR-0288 D-4).
+   *  Desde la tanda 1b sale de `publicidad_desde`, no de `whatsapp_consentimiento_en`. */
   tienePermisoWhatsapp: boolean;
+  /** ADR-0288 tanda 1b: socia desde (su «sí» al club), con publicidad desde, y su código («C-0142»). */
+  clubDesde: string | null;
+  publicidadDesde: string | null;
+  codigoClub: string | null;
+  cumpleAnio: number | null;
   cumpleDia: number | null;
   cumpleMes: number | null;
   tallas: Record<string, string> | null;
@@ -42,6 +48,10 @@ export type FilaClienta = {
   nombre: string | null;
   telefono_whatsapp: string | null;
   whatsapp_consentimiento_en: string | null;
+  club_desde: string | null;
+  publicidad_desde: string | null;
+  codigo_club: string | null;
+  cumple_anio: number | null;
   cumple_dia: number | null;
   cumple_mes: number | null;
   tallas: unknown;
@@ -65,7 +75,11 @@ export function aClienta(fila: FilaClienta): Clienta {
     documentoNumero: fila.documento_numero,
     nombre: fila.nombre,
     telefonoWhatsapp: fila.telefono_whatsapp,
-    tienePermisoWhatsapp: fila.whatsapp_consentimiento_en !== null,
+    tienePermisoWhatsapp: fila.publicidad_desde !== null,
+    clubDesde: fila.club_desde,
+    publicidadDesde: fila.publicidad_desde,
+    codigoClub: fila.codigo_club,
+    cumpleAnio: fila.cumple_anio,
     cumpleDia: fila.cumple_dia,
     cumpleMes: fila.cumple_mes,
     tallas: comoTallas(fila.tallas),

@@ -398,3 +398,87 @@ de arriba, y por qué:
     `registrar_venta` pasa a `703928f5…`.
   - La regla quedó en CLAUDE.md («El SQL Editor agrega líneas por su cuenta»).
 
+
+## Contrato de la tanda 1b (2026-09-30): socia, dos permisos, código y QR
+
+Se construye sobre la D-4 reescrita y la «Actualización 2026-09-30». Migración `20260930200000_club_paso1b_permisos_y_qr.sql`,
+en partes si hace falta: sin políticas, triggers con `create or replace trigger`, y ningún `select … into` dentro de un texto
+entre comillas.
+
+**Esquema**
+- `retail.clientas` suma estas columnas:
+  - `club_desde timestamptz`, `publicidad_desde timestamptz`;
+  - `codigo_club text unique`, con formato `C-0001` y secuencia `retail.clientas_codigo_club_seq`;
+  - `cumple_anio smallint` (opcional, CL-3).
+  - Candados:
+    - `club_desde` exige celular;
+    - `publicidad_desde` exige `club_desde`;
+    - `codigo_club` está presente si y solo si hay `club_desde`;
+    - una anonimizada no tiene `club_desde`, `publicidad_desde`, `codigo_club` ni `cumple_anio`.
+- `retail.ubicaciones.whatsapp_numero text`: 9 dígitos que empiezan en 9. Sin número no hay QR.
+- `retail.club_textos (tipo, version, texto, vigente_desde, creado_por)`, con único `(tipo, version)`.
+  - `tipo`: `club` (lo lee la asesora), `mensaje_personal` (lo envía ella; lleva `{codigo}`) o `mensaje_generico`.
+  - El vigente de cada tipo es su versión más alta. Se siembran los textos v2 de la actualización como `version = 2`.
+    El v1 nunca se sembró.
+- `retail.club_permisos`, de solo agregar (un disparador rechaza `update` y `delete`; RLS sin políticas y sin permisos
+  para la API):
+  - columnas: `id`, `clienta_id`, `finalidad` (`club` o `publicidad_whatsapp`), `accion` (`otorga` o `revoca`), `medio`,
+    `texto_tipo`, `texto_version`, `ubicacion_id`, `venta_id`, `registrado_por`, `nota` y `created_at`;
+  - `medio`: `caja_palabra`, `ficha`, `whatsapp_propio`, `baja_whatsapp`, `anonimizar` o `legado`.
+  - Candados:
+    - una publicidad que se otorga exige `medio = 'whatsapp_propio'`;
+    - `otorga` exige `texto_version`, salvo en `legado`;
+    - `registrado_por` es obligatorio salvo en `legado`.
+  - **Sin teléfono en el evento.** Anonimizar tiene que poder borrar a la clienta (Ley 29733) y un registro de solo
+    agregar no se edita. La prueba del número es el chat de la tienda.
+
+**Funciones.** Todas empiezan con `fn_exigir_modulo('clientas')` y firman con `fn_actor_persona_id(true)`, salvo la de
+la tienda.
+- `unirse_al_club(p_clienta_id uuid, p_telefono_whatsapp text, p_cumple_dia smallint, p_cumple_mes smallint,
+  p_cumple_anio smallint, p_medio text default 'caja_palabra', p_ubicacion_id uuid, p_venta_id uuid)`
+  → `table(codigo_club text, club_desde timestamptz)`.
+  - `p_medio` es `caja_palabra` o `ficha`. El celular es obligatorio.
+  - Exige texto `club` vigente (hint `club_sin_texto`); rechaza una ficha archivada o anonimizada.
+  - Si ya es socia, completa los datos y devuelve su código sin un evento nuevo.
+- `registrar_mensaje_publicidad(p_clienta_id uuid, p_telefono_que_escribio text, p_ubicacion_id uuid)` → `timestamptz`
+  («Llegó su mensaje»).
+  - Exige que sea socia.
+  - Escribe una publicidad que se otorga con medio `whatsapp_propio` y el texto `mensaje_personal` vigente.
+  - Si el número que escribió difiere del de la ficha, ese pasa a ser su celular.
+- `registrar_desde_whatsapp(p_documento_tipo text, p_documento_numero text, p_nombre text, p_telefono_que_escribio text,
+  p_ubicacion_id uuid)` → `table(clienta_id uuid, codigo_club text)` (cartel).
+  - El documento es obligatorio (CL-1).
+  - Completa o crea la ficha, como `registrar_clienta`.
+  - Escribe `club` y publicidad, las dos con medio `whatsapp_propio` y el texto `mensaje_generico`.
+- `registrar_baja_whatsapp(p_telefono text, p_ubicacion_id uuid)` → `integer` (fichas afectadas).
+  - Revoca la publicidad (medio `baja_whatsapp`) de toda ficha con ese celular y vacía `publicidad_desde`.
+  - Su club sigue: los avisos informativos no son publicidad.
+- `resumen_clienta_caja(p_clienta_id uuid)` → `table(es_socia boolean, codigo_club text, club_desde timestamptz,
+  con_publicidad boolean, celular text, cumple_dia smallint, cumple_mes smallint)`. Es de lectura (prefijo `resumen_`).
+- `fn_club_textos_vigentes()` → `table(tipo text, version integer, texto text)`. Es de lectura; la llama la web.
+- `guardar_whatsapp_tienda(p_ubicacion_id uuid, p_numero text)`.
+  - Con el mismo permiso que `guardar_metas_tienda` (Configuración ▸ Tiendas y caja).
+  - Un número vacío lo quita.
+- `registrar_clienta(p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp, p_cumple_dia, p_cumple_mes,
+  p_cumple_anio)` y `editar_clienta(p_id, p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp,
+  p_cumple_dia, p_cumple_mes, p_cumple_anio, p_tallas, p_version_esperada)` **pierden `p_acepta_whatsapp` y
+  `p_revoca_whatsapp`**. El permiso ya no se marca ahí (D-4). A una socia no se le puede borrar el celular.
+- `archivar_clienta` con anonimizar: primero escribe `revoca` (medio `anonimizar`) de los permisos vigentes, después vacía
+  los campos del club.
+- `unir_clientas`: la que queda toma el `club_desde` y el `publicidad_desde` más antiguos, y el código si no tenía. Los
+  eventos de la ficha unida se quedan con ella; `clientas_fusiones` lleva de una a la otra.
+- Legado: las fichas con `whatsapp_consentimiento_en` pasan a socias SIN publicidad (evento `club`/`legado`), solo si
+  tienen celular. Producción tenía 0 el 2026-09-30.
+
+**Web**
+- **Cobrar:** la fila de la clienta muestra «Socia C-0142» o la tarjeta «No es del club todavía — Invitar / Ahora no»
+  (CL-8).
+  - «Invitar» pide celular y cumpleaños, lee el texto `club` y llama a `unirse_al_club`.
+  - Al terminar muestra el QR personalizado: `wa.me/51<número de la tienda>?text=<mensaje_personal con su código>`.
+  - El ticket impreso lleva el QR personalizado (socia) o el genérico.
+- **`/clientas`:**
+  - la ficha muestra socia, publicidad y código, con «Unirse al club» (medio `ficha`), «Llegó su mensaje» y «Pidió BAJA»;
+  - «Registrar desde WhatsApp» y «Registrar una BAJA» en el panel;
+  - el cartel imprimible en `/clientas/cartel`, con el QR genérico de cada tienda;
+  - `NuevaClientaModal` pierde el interruptor «acepta WhatsApp».
+- **Configuración ▸ Tiendas y caja:** el número de WhatsApp de cada tienda.
