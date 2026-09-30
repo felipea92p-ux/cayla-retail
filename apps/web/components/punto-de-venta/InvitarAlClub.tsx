@@ -1,33 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { unirseAlClub } from "@/lib/club-acciones";
-import { codigoClubLegible, textoVigente } from "@/lib/club-reglas";
+import { CampoCelular, CamposCumpleanos, TextoDelClub } from "@/components/clientas/club-piezas";
+import { CaraDelQrClub } from "@/components/clientas/CaraDelQrClub";
+import { registrarMensajePublicidad, unirseAlClub } from "@/lib/club-acciones";
+import { ajustarCelular, celularValido, codigoClubLegible, textoVigente } from "@/lib/club-reglas";
 import {
   camposDeInvitar,
-  cumpleParaGuardar,
-  destinoDelQr,
+  camposDeLlegoSuMensaje,
+  celularLegible,
   problemaCelular,
-  problemaCumple,
-  qrDeLaSocia,
   type ClubDeLaCaja,
-  type CumpleEscrito,
+  type ComoLlegoLaPublicidad,
 } from "@/lib/club-caja-reglas";
+import { cajaDelProblemaCumple, cumpleParaGuardar, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
+import { cambiaDeCelular } from "@/lib/club-clientas-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import { traducirError } from "@/lib/error-escritura";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { ClubDeLaClienta } from "./useClubDeLaClienta";
-import { CampoCelularClub, CumpleanosClub, TextoDelClubLeido } from "./CamposDelClub";
 
 const ID_CELULAR = "club-celular";
 const ID_DIA = "club-cumple-dia";
+const ID_ANIO = "club-cumple-anio";
+const ID_NUMERO = "club-mensaje-numero";
 
 /**
  * «Invitar a … al Club CAYLA» desde Cobrar (ADR-0288 D-9 y tanda 1b), dibujada como el spike del club (`modalInvitar`, rama
@@ -37,9 +39,9 @@ const ID_DIA = "club-cumple-dia";
  *      asesora LEE, con la casilla «Se lo leí y la clienta dijo que sí». Firma quien atiende, con el combo del ticket.
  *      «Unir al club» → `unirse_al_club` (medio `caja_palabra`). Registra su «sí» al CLUB: beneficios y avisos
  *      informativos. No es permiso de publicidad.
- *   2. La MISMA hoja muestra su QR (`CaraDelQr`, spike `modalQR`): abre el WhatsApp de la tienda con su mensaje y su código.
- *      La publicidad solo nace si ella lo envía (Ley 32323, D-4). Sin número de la tienda no hay QR, y se dice.
- * Nada se guarda en la venta: la invitación ocurre antes de cobrar, y el ticket impreso lleva el mismo QR.
+ *   2. La MISMA hoja muestra su QR (`PublicidadDeLaSocia`): el camino B (ADR-0288 act. c) — la página de CAYLA donde ELLA
+ *      marca la casilla; la hoja se actualiza sola —, con el camino A de respaldo y «Llegó su mensaje (respaldo)».
+ * Nada se guarda en la venta: la invitación ocurre antes de cobrar. El ticket impreso lleva el QR del camino A.
  */
 export function InvitarAlClub({
   clientaId,
@@ -50,6 +52,7 @@ export function InvitarAlClub({
   ubicacionId,
   responsable,
   onUnida,
+  onPublicidad,
   onClose,
 }: {
   clientaId: string;
@@ -62,6 +65,8 @@ export function InvitarAlClub({
   /** El combo «Responsable» del ticket (el mismo de la venta): unirse al club firma con quien atiende (ADR-0161). */
   responsable: ControlResponsable;
   onUnida: ClubDeLaClienta["unida"];
+  /** Llegó su publicidad (o ya la tenía): la caja relee su resumen. */
+  onPublicidad: () => void;
   onClose: () => void;
 }) {
   const [celular, setCelular] = useState(celularInicial);
@@ -91,7 +96,7 @@ export function InvitarAlClub({
     if (!sePuedeConfirmar(campos)) {
       const pCumple = problemaCumple(cumple, anioActual);
       if (pCelular) return void avisar.error(pCelular, { enfocar: ID_CELULAR });
-      if (pCumple) return void avisar.error(pCumple, { enfocar: ID_DIA });
+      if (pCumple) return void avisar.error(pCumple, { enfocar: cajaDelProblemaCumple(cumple, anioActual) === "anio" ? ID_ANIO : ID_DIA });
       if (!leido) return void avisar.error("Léele el texto del club y marca que dijo que sí.");
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
@@ -121,7 +126,7 @@ export function InvitarAlClub({
     <Modal
       // Una sola hoja: al unirse cambia de cara (su QR) sin cerrarse ni volver a entrar, como el spike (`unir-club` → `qr`).
       titulo={unida ? `Publicidad por WhatsApp · ${nombre}` : `Invitar a ${nombre} al Club CAYLA`}
-      subtitulo={unida ? subtituloDelQr(nombre, codigo) : "Son tres datos y leerle el texto del club. Después ella decide si quiere publicidad."}
+      subtitulo={unida ? subtituloDelQr(nombre, codigo || null) : "Son tres datos y leerle el texto del club. Después ella decide si quiere publicidad."}
       variante="hoja"
       ancho={unida ? "max-w-xl" : "max-w-lg"}
       onClose={onClose}
@@ -130,7 +135,18 @@ export function InvitarAlClub({
     >
       {(cerrar) =>
         codigo !== null ? (
-          <CaraDelQr club={club} codigo={codigo} onListo={cerrar} />
+          <PublicidadDeLaSocia
+            clientaId={clientaId}
+            nombre={nombre}
+            codigo={codigo || null}
+            celular={celular}
+            club={club}
+            ubicacionId={ubicacionId}
+            responsable={responsable}
+            onPublicidad={onPublicidad}
+            onGuardando={setGuardando}
+            onListo={cerrar}
+          />
         ) : !textoClub ? (
           // «Invitar» no aparece sin texto vigente (`cajaDelClub`): esto es solo la red si la hoja se abriera sin él.
           <p className="nota-cayla">No hay un texto del club vigente para leerle. Sin él no se la puede unir.</p>
@@ -144,12 +160,13 @@ export function InvitarAlClub({
             className="space-y-6"
           >
             <CampoGuiado id="celular" guia={guia} titulo="Celular de WhatsApp" ayuda="Obligatorio: el club son avisos">
-              <CampoCelularClub id={ID_CELULAR} valor={celular} onValor={setCelular} problema={celular !== "" ? pCelular : null} />
+              <CampoCelular id={ID_CELULAR} caja valor={celular} onValor={setCelular} problema={celular !== "" ? pCelular : null} deshabilitado={guardando} />
             </CampoGuiado>
 
             <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Sin él no hay beneficio · el año es opcional">
-              <CumpleanosClub
+              <CamposCumpleanos
                 idDia={ID_DIA}
+                idAnio={ID_ANIO}
                 cumple={cumple}
                 onCumple={setCumple}
                 anioActual={anioActual}
@@ -161,7 +178,7 @@ export function InvitarAlClub({
             </CampoGuiado>
 
             <CampoGuiado id="leido" guia={guia} titulo="Texto del club que se le lee">
-              <TextoDelClubLeido texto={textoClub.texto} leido={leido} onLeido={setLeido} deshabilitado={guardando} />
+              <TextoDelClub texto={textoClub.texto} leido={leido} onLeido={setLeido} deshabilitado={guardando} />
             </CampoGuiado>
 
             <CampoGuiado id="responsable" guia={guia}>
@@ -205,70 +222,216 @@ function subtituloDelQr(nombre: string, codigo: string | null) {
  * Su QR, para una socia que todavía no pidió la publicidad: se abre desde el chip «Sin publicidad · QR» de su caja en el
  * ticket (spike, `chipPub` → `modalQR`). Misma cara que la de «Invitar» al terminar.
  */
-export function QrDeLaSociaHoja({ nombre, codigo, club, onClose }: { nombre: string; codigo: string; club: ClubDeLaCaja; onClose: () => void }) {
+export function QrDeLaSociaHoja({
+  clientaId,
+  nombre,
+  codigo,
+  celular,
+  club,
+  ubicacionId,
+  responsable,
+  onPublicidad,
+  onClose,
+}: {
+  clientaId: string;
+  nombre: string;
+  codigo: string | null;
+  /** El de su ficha (el más fresco): «Llegó su mensaje» viene con él. */
+  celular: string | null;
+  club: ClubDeLaCaja;
+  ubicacionId: string;
+  responsable: ControlResponsable;
+  onPublicidad: () => void;
+  onClose: () => void;
+}) {
+  const [guardando, setGuardando] = useState(false);
   return (
-    <Modal titulo={`Publicidad por WhatsApp · ${nombre}`} subtitulo={subtituloDelQr(nombre, codigo)} variante="hoja" ancho="max-w-xl" onClose={onClose}>
-      {(cerrar) => <CaraDelQr club={club} codigo={codigo} onListo={cerrar} />}
+    <Modal
+      titulo={`Publicidad por WhatsApp · ${nombre}`}
+      subtitulo={subtituloDelQr(nombre, codigo)}
+      variante="hoja"
+      ancho="max-w-xl"
+      onClose={onClose}
+      bloqueado={guardando}
+    >
+      {(cerrar) => (
+        <PublicidadDeLaSocia
+          clientaId={clientaId}
+          nombre={nombre}
+          codigo={codigo}
+          celular={celular}
+          club={club}
+          ubicacionId={ubicacionId}
+          responsable={responsable}
+          onPublicidad={onPublicidad}
+          onGuardando={setGuardando}
+          onListo={cerrar}
+        />
+      )}
     </Modal>
   );
 }
 
 /**
- * La cara del QR (spike, `modalQR` sin publicidad): el QR a la izquierda y qué hacer a la derecha; en celular, uno sobre
- * otro. Del spike NO va lo del camino B (página de CAYLA con casilla, «Esperando su confirmación…» que se actualiza solo,
- * «Cada enlace sirve una sola vez», los botones de demo): el ADR solo admite que ella escriba primero desde el QR, y eso lo
- * marca la tienda en su ficha de Clientas con «Llegó su mensaje».
+ * Lo de la publicidad dentro de la hoja de Cobrar: la cara de su QR (`CaraDelQrClub`, la misma de la ficha) y, si la
+ * página no le carga y te escribe por WhatsApp, «Llegó su mensaje (respaldo)» en la misma hoja, con su número precargado.
  */
-function CaraDelQr({ club, codigo, onListo }: { club: ClubDeLaCaja; codigo: string; onListo: () => void }) {
-  const qr = codigo ? qrDeLaSocia(club, codigo) : null;
-  const destino = destinoDelQr(club);
+function PublicidadDeLaSocia({
+  clientaId,
+  nombre,
+  codigo,
+  celular,
+  club,
+  ubicacionId,
+  responsable,
+  onPublicidad,
+  onGuardando,
+  onListo,
+}: {
+  clientaId: string;
+  nombre: string;
+  codigo: string | null;
+  celular: string | null;
+  club: ClubDeLaCaja;
+  ubicacionId: string;
+  responsable: ControlResponsable;
+  onPublicidad: () => void;
+  onGuardando: (v: boolean) => void;
+  onListo: () => void;
+}) {
+  const [enMensaje, setEnMensaje] = useState(false);
+  const [llego, setLlego] = useState<ComoLlegoLaPublicidad | null>(null);
+  if (enMensaje) {
+    return (
+      <LlegoSuMensajeEnCaja
+        clientaId={clientaId}
+        nombre={nombre}
+        celularDeLaFicha={celular}
+        ubicacionId={ubicacionId}
+        responsable={responsable}
+        onGuardando={onGuardando}
+        onVolver={() => setEnMensaje(false)}
+        onRegistrado={(como) => {
+          setLlego(como);
+          setEnMensaje(false);
+          onPublicidad();
+        }}
+      />
+    );
+  }
   return (
-    // Entra como respuesta a «Unir al club» (ADR-0136: dentro del contenido, corto y sin rebote).
-    <div className="anim-revelar space-y-4">
-      {qr?.tipo === "qr" ? (
-        <>
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-sand bg-crema p-5 sm:flex-row sm:gap-6">
-            <div className="shrink-0 rounded-xl bg-papel p-3 ring-1 ring-tinta/10">
-              {/* Nivel L: el enlace con el mensaje pesa ~230–245 bytes; con menos módulos, cada uno es más grande y el celular de
-                  la clienta lo lee de la pantalla sin acercarse. Sin fondo propio: el blanco lo pone la caja `papel`. */}
-              <QRCodeSVG
-                value={qr.enlace}
-                size={176}
-                level="L"
-                marginSize={0}
-                bgColor="transparent"
-                fgColor="currentColor"
-                className="h-44 w-44 text-tinta"
-                title={`WhatsApp de la tienda con el mensaje de ${codigo}`}
-              />
-            </div>
-            <div className="min-w-0 space-y-2 text-center sm:text-left">
-              <p className="label-cayla text-[11px] text-taupe-profundo">Su QR · código {codigo}</p>
-              <p className="font-display text-xl leading-snug text-tinta">Pídele que lo escanee con la cámara de su celular.</p>
-              <p className="text-[13px] leading-snug text-tinta/70">
-                Se abre el WhatsApp de la tienda con su mensaje listo. Cuando lo envíe, márcalo en su ficha de Clientas con «Llegó su mensaje».
-              </p>
-              {destino && <p className="break-all font-mono text-[11px] text-tinta/45">{destino}</p>}
-            </div>
-          </div>
-          <p className="text-xs leading-relaxed text-tinta/60">
-            El mismo QR sale impreso en su ticket: puede enviarlo desde su casa. Sin QR no pasa nada: sigue siendo del club, solo que sin publicidad.
+    <CaraDelQrClub
+      clientaId={clientaId}
+      nombre={nombre}
+      codigo={codigo}
+      club={club}
+      ubicacionId={ubicacionId}
+      responsable={responsable}
+      llego={llego}
+      onPublicidad={onPublicidad}
+      onLlegoSuMensaje={() => setEnMensaje(true)}
+      onListo={onListo}
+    />
+  );
+}
+
+/**
+ * «Llegó su mensaje (respaldo)» en Cobrar (spike, `modalQR` → `llego-mensaje`): ella te escribió por WhatsApp (desde el QR
+ * del ticket, el de respaldo o por su cuenta) y el chat de la tienda es la prueba. El número viene con el de su ficha; si
+ * escribió desde otro, ese pasa a ser su celular (lo dice antes de guardar). `registrar_mensaje_publicidad`, con la firma
+ * del combo del ticket. Qué bloquea lo dice `camposDeLlegoSuMensaje` (lib/club-caja-reglas.ts, con pruebas).
+ */
+function LlegoSuMensajeEnCaja({
+  clientaId,
+  nombre,
+  celularDeLaFicha,
+  ubicacionId,
+  responsable,
+  onGuardando,
+  onVolver,
+  onRegistrado,
+}: {
+  clientaId: string;
+  nombre: string;
+  celularDeLaFicha: string | null;
+  ubicacionId: string;
+  responsable: ControlResponsable;
+  onGuardando: (v: boolean) => void;
+  onVolver: () => void;
+  onRegistrado: (como: ComoLlegoLaPublicidad) => void;
+}) {
+  const [numero, setNumero] = useState(() => ajustarCelular(celularDeLaFicha ?? ""));
+  const [guardando, setGuardando] = useState(false);
+  const campos = camposDeLlegoSuMensaje({ numero, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
+  const guia = useGuiaCampos(campos);
+  const cambia = celularValido(numero) && cambiaDeCelular(celularDeLaFicha, numero);
+
+  async function registrar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Mismo cuidado que «Unir al club»: el `submit` del portal no debe llegar al formulario del ticket (ADR-0128).
+    e.stopPropagation();
+    if (guardando) return;
+    if (!sePuedeConfirmar(campos)) {
+      const pNumero = problemaCelular(numero);
+      if (pNumero) return void avisar.error(numero === "" ? "Escribe el número desde el que le escribió a la tienda." : pNumero, { enfocar: ID_NUMERO });
+      return void avisar.error(responsable.motivo ?? "Elige quién registra.");
+    }
+    setGuardando(true);
+    onGuardando(true);
+    const { error } = await registrarMensajePublicidad(clientaId, numero, ubicacionId, responsable.firma());
+    setGuardando(false);
+    onGuardando(false);
+    if (error?.hint === "ya_tiene_publicidad") return onRegistrado("ya_tenia");
+    if (error) {
+      // Solo ante un rechazo: con éxito, `despues` vaciaría el combo y soltaría a quien atiende la venta en curso.
+      responsable.despues(error);
+      return void avisar.error(traducirError(error, "registrar su mensaje"), error.hint === "celular_invalido" ? { enfocar: ID_NUMERO } : undefined);
+    }
+    avisar.exito(`${nombre} ya recibe novedades por WhatsApp`, { detalle: cambia ? `Su celular ahora es ${celularLegible(numero)}.` : undefined });
+    onRegistrado("mensaje");
+  }
+
+  return (
+    <form
+      onSubmit={registrar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
+      }}
+      className="anim-revelar space-y-6"
+    >
+      <p className="text-sm text-tinta/75">
+        Solo si <strong className="font-semibold text-tinta">ella</strong> le escribió primero a la tienda por WhatsApp: su mensaje en el chat de la tienda
+        es la prueba de que quiere novedades. Búscalo antes de registrar.
+      </p>
+      <CampoGuiado id="numero" guia={guia} titulo="Número desde el que escribió" ayuda="Viene con el de su ficha">
+        <CampoCelular
+          id={ID_NUMERO}
+          caja
+          etiqueta="Número desde el que escribió"
+          valor={numero}
+          onValor={setNumero}
+          problema={numero !== "" ? problemaCelular(numero) : null}
+          deshabilitado={guardando}
+        />
+        {cambia && (
+          <p className="nota-cayla mt-2">
+            Escribió desde otro número: al registrar, el <b className="font-semibold">{celularLegible(numero)}</b> pasa a ser su celular
+            {celularDeLaFicha ? ` (hoy es ${celularLegible(celularDeLaFicha)})` : ""}.
           </p>
-        </>
-      ) : (
-        <p className="nota-cayla">
-          {qr?.tipo === "sin_numero"
-            ? "La tienda no tiene su WhatsApp cargado en Configuración: sin él no hay QR para las novedades. Es socia igual."
-            : qr?.tipo === "sin_mensaje"
-              ? "Falta el mensaje del club para el QR: sin él no hay QR para las novedades. Es socia igual."
-              : "No se pudo leer su código de socia: búscalo en su ficha de Clientas. Es socia igual."}
-        </p>
-      )}
-      <div className="flex justify-end pt-1">
-        <Boton type="button" peso="fantasma" autoFocus onClick={onListo}>
-          {qr?.tipo === "qr" ? "Listo, por ahora no" : "Listo"}
+        )}
+      </CampoGuiado>
+      <CampoGuiado id="responsable" guia={guia}>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+      </CampoGuiado>
+      <PieGuia guia={guia} listo="Todo listo para registrar su permiso." />
+      <div className="flex justify-end gap-3 pt-2">
+        <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
+          Volver a su QR
+        </Boton>
+        <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+          {guardando ? "Registrando…" : "Registrar su permiso"}
         </Boton>
       </div>
-    </div>
+    </form>
   );
 }

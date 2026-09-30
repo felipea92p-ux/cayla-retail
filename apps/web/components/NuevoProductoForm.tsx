@@ -22,6 +22,7 @@ import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
 import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
@@ -36,6 +37,7 @@ import {
   pasoConfirmado,
   resumenFaltan,
   siguienteDelHilo,
+  type CampoAlta,
   type CampoGuia,
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
@@ -168,6 +170,16 @@ export function NuevoProductoForm({
   // problemas, y el 3 salía «Listo» sin abrirlo, con las tallas marcadas de antemano y cero colores.
   const [vistos, setVistos] = useState<Set<NumeroPaso>>(() => new Set([1]));
   const guia = useGuiaAlta();
+  // El campo donde la persona está escribiendo ahora: conserva «Sigue aquí» hasta que sale de él (una letra del nombre ya lo da por
+  // «hecho», pero la luz no puede saltar a media palabra). Lo informa cada `FilaAlta` por el foco; ver `useRetenerLuz`.
+  const [escribiendoEn, setEscribiendoEn] = useState<CampoAlta | null>(null);
+  const retencionLuz = useMemo(
+    () => ({
+      enfocar: (id: string) => setEscribiendoEn(id as CampoAlta),
+      soltar: (id: string) => setEscribiendoEn((actual) => (actual === id ? null : actual)),
+    }),
+    []
+  );
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [proveedorId, setProveedorId] = useState("");
@@ -402,8 +414,8 @@ export function NuevoProductoForm({
     marcaElegida: Boolean(marcaId && proveedorId),
     responsableListo: responsable.listo,
   });
-  const est = estadosDeCampos(campos, paso);
-  const ahoraCampo = campoAhora(campos, paso);
+  const est = estadosDeCampos(campos, paso, escribiendoEn);
+  const ahoraCampo = campoAhora(campos, paso, escribiendoEn);
   const hilo = siguienteDelHilo(campos);
 
   // Lleva a la persona a un campo, sea de este paso o de otro (abre el paso y, cuando lo pinta, la lleva).
@@ -908,6 +920,7 @@ export function NuevoProductoForm({
             etiqueta="Tallas"
             campo="tallas"
             estado={est.tallas}
+            retiene="fila"
             ayuda={categoria && tallasCategoria.length > 0 ? `${categoria.nombre} ofrece ${plural(tallasCategoria.length, "talla", "tallas")}` : undefined}
             accion={
               tallasCategoria.length > 0 ? (
@@ -946,6 +959,7 @@ export function NuevoProductoForm({
             etiqueta="Colores"
             campo="colores"
             estado={est.colores}
+            retiene="fila"
             ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
           >
             <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
@@ -1100,67 +1114,69 @@ export function NuevoProductoForm({
 
   return (
     <IdentidadAltaProveedor control={responsable}>
-      <form
-        onSubmit={onSubmit}
-        // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
-        // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-        }}
-        className="space-y-4"
-      >
-        {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-          <div className="min-w-0 space-y-2.5">
-            <QuienRegistra control={responsable} deshabilitado={cargando} />
-            <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
-            {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
-                operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
-            {!enLinea && (
-              <AvisoInline tono="ambar">
-                <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
-                marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
-                revisar al subir).
-              </AvisoInline>
-            )}
-            {copiadoDe && (
-              <AvisoInline tono="neutro">
-                Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
-                temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
-              </AvisoInline>
-            )}
-            {PASOS_ALTA.map((n) => (
-              <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
-                {cuerpo(n)}
-              </PasoAlta>
-            ))}
-          </div>
+      <RetencionLuzContexto.Provider value={retencionLuz}>
+        <form
+          onSubmit={onSubmit}
+          // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
+          // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+          }}
+          className="space-y-4"
+        >
+          {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+            <div className="min-w-0 space-y-2.5">
+              <QuienRegistra control={responsable} deshabilitado={cargando} />
+              <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
+              {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
+                  operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
+              {!enLinea && (
+                <AvisoInline tono="ambar">
+                  <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
+                  marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
+                  revisar al subir).
+                </AvisoInline>
+              )}
+              {copiadoDe && (
+                <AvisoInline tono="neutro">
+                  Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
+                  temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
+                </AvisoInline>
+              )}
+              {PASOS_ALTA.map((n) => (
+                <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
+                  {cuerpo(n)}
+                </PasoAlta>
+              ))}
+            </div>
 
-          <FichaPrevia
-            datos={{
-              nombre: nombreFinal,
-              codigo: categoria ? base : null,
-              categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
-              marca: marcaId ? marcaNombre || null : null,
-              tejido: tejidoTexto,
-              variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
-              hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
-              precio: precioNum > 0 ? precioNum : null,
-              margen,
-              colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
-              foto: fotosOrdenadas[0]?.vista ?? null,
-              fotos: fotos.length,
-              avance,
-              siguiente: siguienteDelAlta(problemas, responsableAlta),
-              guia: hilo ? { texto: hilo.campo.pendiente, nombre: hilo.campo.nombre, bloquea: hilo.bloquea, onIr: () => irACampo(hilo.campo) } : null,
-            }}
-            cargando={cargando}
-            onCancelar={() => salida.pedirSalir("/productos")}
-            onAbrirPaso={irAPaso}
-          />
-        </div>
-        {salida.aviso}
-      </form>
+            <FichaPrevia
+              datos={{
+                nombre: nombreFinal,
+                codigo: categoria ? base : null,
+                categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
+                marca: marcaId ? marcaNombre || null : null,
+                tejido: tejidoTexto,
+                variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
+                hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
+                precio: precioNum > 0 ? precioNum : null,
+                margen,
+                colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
+                foto: fotosOrdenadas[0]?.vista ?? null,
+                fotos: fotos.length,
+                avance,
+                siguiente: siguienteDelAlta(problemas, responsableAlta),
+                guia: hilo ? { texto: hilo.campo.pendiente, nombre: hilo.campo.nombre, bloquea: hilo.bloquea, onIr: () => irACampo(hilo.campo) } : null,
+              }}
+              cargando={cargando}
+              onCancelar={() => salida.pedirSalir("/productos")}
+              onAbrirPaso={irAPaso}
+            />
+          </div>
+          {salida.aviso}
+        </form>
+      </RetencionLuzContexto.Provider>
     </IdentidadAltaProveedor>
   );
 }

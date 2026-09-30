@@ -26,6 +26,10 @@ import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { AjustarInicio } from "@/components/inicio/AjustarInicio";
+import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
+import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
+import { getInicioAlmacen } from "@/lib/inicio-almacen";
+import { getUbicaciones } from "@/lib/ubicaciones";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -38,6 +42,10 @@ import { AjustarInicio } from "@/components/inicio/AjustarInicio";
 // `lib/inicio-reglas.ts` (cifras) y `lib/inicio-avisos.ts` (avisos, filtro, accesos, equipo), ambos con pruebas.
 //
 // Cada bloque falla por separado: un dato que no se pudo leer se dice, nunca se dibuja como 0.
+//
+// La cuenta de ALMACÉN (la que recibe y registra mercadería y no vende: `esPerfilAlmacen`) tiene su propio Inicio, con la
+// cabina «Nuevo producto» (Felipe, 2026-09-30, ADR-0292; maqueta docs/maquetas/inicio-almacen-2026-09/). Usa los mismos
+// avisos, el mismo filtro «Ajustar» y las mismas reglas de arriba: solo cambia cómo se dibuja y qué más lee.
 
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
@@ -51,8 +59,10 @@ export default async function InicioPage() {
   const ve = (m: (typeof modulos)[number]) => modulos.includes(m);
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
   const vende = persona.ubicacionTipo === "tienda" && ve("vender") && !persona.terminal;
+  const puedeEditarCatalogo = puede(persona, "editarCatalogo");
+  const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
-  const [hoy, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo] = await Promise.all([
+  const [hoy, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Total (nunca lanza): la misma cifra del número del menú.
     ve("traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
@@ -61,6 +71,15 @@ export default async function InicioPage() {
     esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
     esLider ? contarComprobantesAtascados() : Promise.resolve(undefined),
     persona.ubicacionTipo === "tienda" && !persona.terminal ? getEquipoDeHoy(persona.ubicacionId, ve("actividad")) : Promise.resolve(undefined),
+    // Lo que solo lee la cuenta de almacén. La lista de sedes es para el «dónde más hay» de Existencias: si falla, sigue sin ella.
+    esAlmacen
+      ? getUbicaciones()
+          .catch((e) => {
+            console.error("Inicio · no se pudieron leer las sedes:", e);
+            return [];
+          })
+          .then((ubicaciones) => getInicioAlmacen({ ubicacionId: persona.ubicacionId, ubicaciones, ve }))
+      : Promise.resolve(null),
   ]);
   const fuentes = await getFuentesAvisos(
     { ubicacionId: persona.ubicacionId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
@@ -71,7 +90,7 @@ export default async function InicioPage() {
       comprobantesAtascados,
     }
   );
-  const avisos = avisosInicio(fuentes);
+  const avisos = avisosInicio(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes);
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
   const visibles = avisosVisibles(avisos, eleccion, esLider);
@@ -90,6 +109,33 @@ export default async function InicioPage() {
           ? "Taller"
           : "Integrante";
   const fecha = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date());
+
+  const ajustar =
+    avisos.length > 0 ? (
+      <AjustarInicio
+        avisos={avisos.map(({ clave, grupo, titulo, ocultable, urgenteSi }) => ({ clave, grupo, titulo, ocultable, urgenteSi }))}
+        eleccionInicial={eleccion}
+        esLider={esLider}
+        etiquetaRol={etiquetaRol.toLowerCase()}
+      />
+    ) : null;
+
+  // La cuenta de almacén: su cabina, su «Te toca» y sus bloques (el botón fijo de celular es el suyo, `DockAlmacen`).
+  if (datosAlmacen) {
+    return (
+      <div className="space-y-6 pb-24 sm:pb-0">
+        <CabeceraPantalla sobretitulo={fecha} titulo={saludo} bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`} />
+        <InicioAlmacen
+          datos={datosAlmacen}
+          visibles={visibles}
+          ajustar={ajustar}
+          accesos={accesosAlmacen(modulos)}
+          veRecibir={ve("recibir")}
+          puedeEditarCatalogo={puedeEditarCatalogo}
+        />
+      </div>
+    );
+  }
 
   // El botón fijo del celular: vender en una tienda; recibir en el almacén. Nadie más lo necesita.
   const fijo = vende
@@ -116,19 +162,7 @@ export default async function InicioPage() {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {hoy && <SeccionHoy hoy={hoy} esLider={esLider} />}
-          <TeToca
-            visibles={visibles}
-            ajustar={
-              avisos.length > 0 ? (
-                <AjustarInicio
-                  avisos={avisos.map(({ clave, grupo, titulo, ocultable, urgenteSi }) => ({ clave, grupo, titulo, ocultable, urgenteSi }))}
-                  eleccionInicial={eleccion}
-                  esLider={esLider}
-                  etiquetaRol={etiquetaRol.toLowerCase()}
-                />
-              ) : null
-            }
-          />
+          <TeToca visibles={visibles} ajustar={ajustar} />
         </div>
         <div className="space-y-6">
           {accesos.length > 0 && <Accesos accesos={accesos} />}

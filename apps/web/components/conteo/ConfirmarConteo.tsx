@@ -45,6 +45,7 @@ export function ConfirmarConteo({
   conteoId,
   filas,
   correctas,
+  yaAjustadas = 0,
   pendientes,
   parcial,
   puedeCerrar,
@@ -54,6 +55,8 @@ export function ConfirmarConteo({
   filas: FilaConteoVista[];
   /** Las verificadas que coincidieron: no cambian. */
   correctas: number;
+  /** Las que el cierre anterior ya ajustó y nadie volvió a contar (conteo reabierto para corregir): tampoco cambian. */
+  yaAjustadas?: number;
   /** Las que siguen sin verificar: solo cuentan en un cierre parcial. */
   pendientes: number;
   parcial: boolean;
@@ -92,7 +95,8 @@ export function ConfirmarConteo({
   }
 
   const cambian = filas.length === 0 ? "Ninguna variante cambia" : filas.length === 1 ? "1 variante cambia" : `${filas.length} variantes cambian`;
-  const noCambian = correctas === 1 ? "1 no cambia" : `${correctas} no cambian`;
+  const sinCambio = correctas + yaAjustadas;
+  const noCambian = sinCambio === 1 ? "1 no cambia" : `${sinCambio} no cambian`;
   const resumenPie = [cambian, noCambian, ...(parcial ? [`${pendientes} sin verificar`] : [])].join(" · ");
 
   // Lo que dice el pie: si el botón está apagado, la razón —no un botón mudo—.
@@ -183,7 +187,12 @@ export function ConfirmarConteo({
           {textoQuedanSinVerificar(pendientes)}
         </p>
       )}
-      {correctas > 0 && <p className="nota-cayla">{filas.length === 0 ? "Todas las variantes verificadas coinciden y no cambiarán." : "Las demás variantes coinciden y no cambiarán."}</p>}
+      {correctas > 0 && <p className="nota-cayla">{filas.length === 0 && yaAjustadas === 0 ? "Todas las variantes verificadas coinciden y no cambiarán." : "Las demás variantes coinciden y no cambiarán."}</p>}
+      {yaAjustadas > 0 && (
+        <p className="nota-cayla">
+          {yaAjustadas === 1 ? "1 variante ya se ajustó en el cierre anterior y no cambia al cerrar de nuevo." : `${yaAjustadas} variantes ya se ajustaron en el cierre anterior y no cambian al cerrar de nuevo.`}
+        </p>
+      )}
       {/* Con un error la barra crece (el aviso suma hasta 4 renglones en un celular): sin este aire, taparía la última nota. */}
       {fallo && <div aria-hidden className="h-24" />}
 

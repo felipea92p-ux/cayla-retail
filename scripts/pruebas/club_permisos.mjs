@@ -52,6 +52,14 @@
  *      rechaza un update directo que cambia el celular y conserva la publicidad, salvo que esta transacción haya
  *      registrado su mensaje. Para que el mensaje de la preparación no cuente como «de esta transacción», su evento se
  *      corre un día (con el disparador de solo agregar apagado dentro de la transacción, que termina en ROLLBACK).
+ *   o. Camino B (ADR-0288, «Actualización 2026-09-30 (c)»): la página pública del QR. crear_invitacion_club (token de 16,
+ *      7 días, reusa la vigente, una fila; módulo, responsable y sus rechazos); fn_invitacion_club como `anon` (vigente con
+ *      nombre de pila, celular a medias, código, texto con {celular} sin reemplazar, tienda, razón social y RUC; no_existe,
+ *      vencida y usada sin datos); confirmar_invitacion_club como `anon` (evento qr_web sin registrado_por, foto, invitación
+ *      usada, actividad sin persona; la segunda vez `usada` sin otro evento; club_texto_cambio; vencida; anonimizada,
+ *      archivada o unida → vencida); `anon` sin acceso directo a las tablas; los candados de qr_web y de la tabla; el orden
+ *      de los candados (ficha → invitación); y, con BASE_DESECHABLE=1, dos confirmaciones del mismo enlace a la vez en dos
+ *      conexiones reales (un solo evento).
  *
  * USO
  *   pnpm pruebas:club-permisos                   → contra la base `postgres` del stack local (la del CI)
@@ -92,6 +100,10 @@ if (VERSIONES.length !== 7) {
 const REGISTRAR = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
 const EDITAR = "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)";
 const UNIRSE = "retail.unirse_al_club(uuid,text,smallint,smallint,smallint,text,uuid,uuid,integer)";
+// Camino B: crear el enlace es de la tienda; leerlo y confirmarlo, de la página pública (anon).
+const CREAR_INVITACION = "retail.crear_invitacion_club(uuid,uuid)";
+const LEER_INVITACION = "retail.fn_invitacion_club(text)";
+const CONFIRMAR_INVITACION = "retail.confirmar_invitacion_club(text,integer)";
 
 // Las funciones que crea el archivo (cuerpo entre `$$` y `$$`), para comparar con las vivas.
 const CREADAS = [...MIGRACION.matchAll(/create or replace function (retail\.[a-z_]+)\(/g)].map((m) => m[1]);
@@ -122,7 +134,10 @@ const DE_LA_WEB = [
   "retail.guardar_whatsapp_tienda(uuid,text)",
   REGISTRAR,
   EDITAR,
+  CREAR_INVITACION,
 ];
+// Las de la página pública: EXECUTE para anon y authenticated, nunca PUBLIC.
+const DE_LA_PAGINA = [LEER_INVITACION, CONFIRMAR_INVITACION];
 const AYUDANTES = [
   "retail.fn_celular_normalizado(text)",
   "retail.fn_exigir_celular(text,boolean)",
@@ -140,6 +155,9 @@ const TEXTO_PERSONAL =
   "Hola CAYLA, quiero recibir por WhatsApp novedades, rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA. (Club {codigo})";
 const TEXTO_GENERICO =
   "Hola CAYLA, quiero unirme al Club CAYLA y recibir por WhatsApp novedades, rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA.";
+// El v1 EXACTO de la página del QR («Actualización 2026-09-30 (c)»), con {celular} sin reemplazar.
+const TEXTO_PAGINA =
+  "Quiero recibir por WhatsApp de CAYLA novedades, rebajas y mi saludo de cumpleaños al {celular}. Sé que puedo darme de baja cuando quiera escribiendo BAJA.";
 
 // Seed local: Felipe (líder y Admin), Micaela (integrante de Trujillo; con Clientas, sin Configuración).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -317,8 +335,9 @@ caso(
   "P0001|club_texto_cambio\n3"
 );
 caso(
-  "(a) sin un texto club vigente → club_sin_texto (se simula sin el texto, con su disparador apagado dentro de la transacción)",
+  "(a) sin un texto club vigente → club_sin_texto (se simula sin el texto, con su disparador apagado dentro de la transacción; sin la llave foránea, por si la base ya tiene eventos que lo citan, como tras una carrera con COMMIT)",
   `alter table retail.club_textos disable trigger club_textos_solo_agregar;
+alter table retail.club_permisos drop constraint club_permisos_texto_existe;
 delete from retail.club_textos where tipo = 'club';
 ` + como(FELIPE) + ALTA("f", { numero: "90660111", nombre: "Sin Texto Prueba" }) +
     intentoCon(`select * from retail.unirse_al_club(%L, '966010111')`, ":'f'"),
@@ -534,7 +553,7 @@ caso(
   `select bool_or(has_function_privilege('anon', f::regprocedure, 'execute') or has_function_privilege('authenticated', f::regprocedure, 'execute'))
   from unnest(array[${AYUDANTES.map((f) => `'${f}'`).join(", ")}]) f;
 select bool_or(a.grantee = 0) from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
- where p.oid in (${[...AYUDANTES, ...DE_LA_WEB].map((f) => `'${f}'::regprocedure`).join(", ")}) and a.privilege_type = 'EXECUTE';
+ where p.oid in (${[...AYUDANTES, ...DE_LA_WEB, ...DE_LA_PAGINA].map((f) => `'${f}'::regprocedure`).join(", ")}) and a.privilege_type = 'EXECUTE';
 select bool_and(has_function_privilege('authenticated', f::regprocedure, 'execute')), bool_or(has_function_privilege('anon', f::regprocedure, 'execute'))
   from unnest(array[${DE_LA_WEB.map((f) => `'${f}'`).join(", ")}]) f;
 select bool_and(prosecdef) from pg_proc where oid in (${AYUDANTES.map((f) => `'${f}'::regprocedure`).join(", ")});
@@ -734,15 +753,18 @@ caso(
   (s) => s.split("\n")[0] === "42501|clientas_sin_modulo" && /^42501\|permission denied for (function|schema)/.test(s.split("\n")[1] ?? "")
 );
 caso(
-  "(i) fn_club_textos_vigentes: los tres textos v2 EXACTOS del ADR, también para una cuenta SIN el módulo (el ticket de una cajera); anon no",
+  "(i) fn_club_textos_vigentes: los tres textos v2 y el de la página v1, EXACTOS del ADR, también para una cuenta SIN el módulo (el ticket de una cajera); anon no",
   `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
     como(MICAELA) +
-    `select tipo || '|' || version || '|' || (texto = case tipo when 'club' then $t$${TEXTO_CLUB}$t$ when 'mensaje_personal' then $t$${TEXTO_PERSONAL}$t$ else $t$${TEXTO_GENERICO}$t$ end)
+    `select tipo || '|' || version || '|' || (texto = case tipo when 'club' then $t$${TEXTO_CLUB}$t$ when 'mensaje_personal' then $t$${TEXTO_PERSONAL}$t$ when 'pagina_publicidad' then $t$${TEXTO_PAGINA}$t$ else $t$${TEXTO_GENERICO}$t$ end)
   from retail.fn_club_textos_vigentes() order by tipo;
 ` + comoAnon + intento(`select * from retail.fn_club_textos_vigentes()`),
   (s) => {
     const l = s.split("\n");
-    return l.slice(0, 3).join("\n") === "club|2|true\nmensaje_generico|2|true\nmensaje_personal|2|true" && /^42501\|permission denied/.test(l[3] ?? "");
+    return (
+      l.slice(0, 4).join("\n") === "club|2|true\nmensaje_generico|2|true\nmensaje_personal|2|true\npagina_publicidad|1|true" &&
+      /^42501\|permission denied/.test(l[4] ?? "")
+    );
   }
 );
 caso(
@@ -984,6 +1006,269 @@ caso(
 );
 
 // =====================================================================================================================
+// o. Camino B: la página pública del QR (ADR-0288, «Actualización 2026-09-30 (c)»)
+// =====================================================================================================================
+/** Su invitación (la cuenta ya elegida, con la tienda de Lima): deja :<alias>_token. */
+const INVITAR = (alias) => `select token as ${alias}_token from retail.crear_invitacion_club(:'${alias}', :'ubic') \\gset\n`;
+/** Lo que la página ve de un enlace (con la cuenta de ahora): «estado|¿sin ningún dato?». */
+const VE_LA_PAGINA = (token) =>
+  `select estado || '|' || (num_nulls(nombre_corto, celular_enmascarado, codigo_club, texto, texto_version, tienda, razon_social, ruc) = 8) from retail.fn_invitacion_club(${token});\n`;
+/** La página confirma (con la cuenta de ahora). */
+const CONFIRMA = (token, version = 1) => `select retail.confirmar_invitacion_club(${token}, ${version});\n`;
+/** Cuántos otorgas por la página tiene una ficha (como postgres). */
+const QR_WEB = (alias) => `(select count(*) from retail.club_permisos where clienta_id = :'${alias}' and medio = 'qr_web')`;
+/** Corre su invitación 8 días atrás (vencida desde ayer), respetando el candado de vigencia. Deja la cuenta en postgres. */
+const VENCER = (alias) =>
+  `reset role;\nupdate retail.club_invitaciones set creada_en = creada_en - interval '8 days', vence_en = vence_en - interval '8 days' where clienta_id = :'${alias}';\n`;
+/** La razón social y el RUC que muestra la página (el seed local no trae la fila). Deja la cuenta en postgres. */
+const EMPRESA = `reset role;
+insert into retail.configuracion_empresa (id, ruc, razon_social) values (true, '20601234567', 'CAYLA PRUEBA S.A.C.')
+  on conflict (id) do update set ruc = excluded.ruc, razon_social = excluded.razon_social;
+`;
+const CREAR_CON = (alias) => intentoCon(`select * from retail.crear_invitacion_club(%L)`, `:'${alias}'`);
+
+caso(
+  "(o) crear_invitacion_club: un token de 16 caracteres seguros para URL que vence en 7 días; la segunda vez (y desde otra caja, otra tienda) devuelve la MISMA; una sola fila, firmada por el responsable, con la tienda y sin usar; la actividad lo cuenta una vez",
+  como(FELIPE) + SOCIA("f", "90662001", "Invitada Uno Prueba", "966200101") +
+    `select token ~ '^[A-Za-z0-9_-]{16}$', vence_en = now() + interval '7 days' from retail.crear_invitacion_club(:'f', :'ubic');
+select token as t1 from retail.crear_invitacion_club(:'f', :'ubic') \\gset
+${como(MICAELA)}select token = :'t1' from retail.crear_invitacion_club(:'f', :'tru');
+reset role;
+select count(*), bool_and(creada_por = :'persona_felipe'), bool_and(ubicacion_id = :'ubic'), bool_and(usada_en is null and texto_version is null and creada_en = now())
+  from retail.club_invitaciones where clienta_id = :'f';
+select count(*), max(descripcion), bool_and(persona_id = :'persona_felipe') from retail.actividad where accion = 'invitacion_club' and registro_id = :'f';
+`,
+  "t|t\nt\n1|t|t|t\n1|creó el QR para que una clienta confirme su publicidad por WhatsApp|t"
+);
+caso(
+  "(o) con su invitación vencida, crear da una NUEVA (otro token) y la vieja queda como estaba",
+  como(FELIPE) + SOCIA("f", "90662002", "Invitada Vencida Prueba", "966200201") + INVITAR("f") + VENCER("f") + como(FELIPE) +
+    `select token <> :'f_token', token ~ '^[A-Za-z0-9_-]{16}$' from retail.crear_invitacion_club(:'f', :'ubic');
+reset role;
+select count(*), count(*) filter (where vence_en > now()) from retail.club_invitaciones where clienta_id = :'f';
+`,
+  "t|t\n2|1"
+);
+caso(
+  "(o) crear_invitacion_club rechaza: no socia (no_es_socia), con publicidad (ya_tiene_publicidad), archivada, anonimizada, unida a otra, inexistente; sin el módulo, clientas_sin_modulo; anon no la ejecuta; y no queda ninguna invitación",
+  como(FELIPE) + ALTA("nosocia", { numero: "90662101", nombre: "No Socia Invitada Prueba", celular: "966210101" }) +
+    SOCIA("conpub", "90662102", "Con Publicidad Invitada Prueba", "966210201") + MENSAJE("conpub", "966210201") +
+    SOCIA("arch", "90662103", "Archivada Invitada Prueba", "966210301") + SOCIA("anonim", "90662104", "Anonimizada Invitada Prueba", "966210401") +
+    SOCIA("queda", "90662105", "Queda Invitada Prueba", "966210501") + SOCIA("se_va", "90662106", "Se Va Invitada Prueba", "966210601") +
+    `select retail.archivar_clienta(:'arch', 'prueba', false, null) as _a \\gset
+select retail.archivar_clienta(:'anonim', 'prueba', true, null) as _b \\gset
+select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset
+` +
+    CREAR_CON("nosocia") + CREAR_CON("conpub") + CREAR_CON("arch") + CREAR_CON("anonim") + CREAR_CON("se_va") +
+    intento(`select * from retail.crear_invitacion_club(gen_random_uuid())`) +
+    `reset role;\ndelete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
+    como(MICAELA) + CREAR_CON("queda") + comoAnon + CREAR_CON("queda") +
+    `reset role;\nselect count(*) from retail.club_invitaciones where clienta_id in (:'nosocia', :'conpub', :'arch', :'anonim', :'queda', :'se_va');\n`,
+  "P0001|no_es_socia\nP0001|ya_tiene_publicidad\nP0001|clienta_archivada\nP0001|clienta_anonimizada\nP0001|clienta_unida\nP0001|clienta_no_existe\n" +
+    "42501|clientas_sin_modulo\n42501|permission denied for function crear_invitacion_club\n0"
+);
+caso(
+  "(o) la página (anon) con un enlace vigente: su nombre de pila (con mayúscula inicial si venía todo en mayúsculas), el celular a medias, su código, el texto v1 EXACTO con {celular} SIN reemplazar, la versión, la tienda de la invitación (ninguna si no la tenía) y la razón social y el RUC de CAYLA",
+  EMPRESA + como(FELIPE) + SOCIA("f", "90662201", "MARÍA José Prueba", "966220133") + SOCIA("g", "90662202", "Valeria  Díaz Prueba", "966220244") +
+    INVITAR("f") + `select token as g_token from retail.crear_invitacion_club(:'g', null) \\gset\n` + comoAnon +
+    `select estado, nombre_corto, celular_enmascarado, codigo_club = :'f_codigo', texto = $t$${TEXTO_PAGINA}$t$, texto_version, tienda, razon_social, ruc
+  from retail.fn_invitacion_club(:'f_token');
+select estado, nombre_corto, celular_enmascarado, tienda is null from retail.fn_invitacion_club(:'g_token');
+`,
+  "vigente|María|96•••133|t|t|1|Tienda Lima|CAYLA PRUEBA S.A.C.|20601234567\nvigente|Valeria|96•••244|t"
+);
+{
+  const tokens = ["'abc'", "'AAAAAAAAAAAAAAAAA'", "'AAAAAAAA+AAAAAA/'", "' AAAAAAAAAAAAAAA'", "''", "null", "'AAAAAAAAAAAAAAAA'"];
+  caso(
+    "(o) la página con un token que no tiene la forma de uno (corto, largo, con «+» o «/», con un espacio, vacío o nulo) o que no existe: no_existe sin ningún dato, y confirmarlo tampoco escribe nada",
+    comoAnon + tokens.map((t) => VE_LA_PAGINA(t) + CONFIRMA(t)).join("") +
+      `reset role;\nselect count(*) from retail.club_permisos where medio = 'qr_web' and created_at = now();\n`,
+    [...tokens.map(() => "no_existe|true\nno_existe"), "0"].join("\n")
+  );
+}
+caso(
+  "(o) las dos funciones de la página miran la forma del token ANTES de leer la tabla (sin forma, ni se consulta)",
+  `select string_agg(proname || ':' || (position('^[A-Za-z0-9_-]{16}$' in prosrc) between 1 and position('retail.club_invitaciones' in prosrc)), ',' order by proname)
+  from pg_proc where oid in ('${LEER_INVITACION}'::regprocedure, '${CONFIRMAR_INVITACION}'::regprocedure);
+`,
+  "confirmar_invitacion_club:true,fn_invitacion_club:true"
+);
+caso(
+  "(o) un enlace vencido: la página dice «vencida» sin datos, confirmar devuelve «vencida» y no escribe nada (sin evento, sin publicidad, la invitación sin usar)",
+  como(FELIPE) + SOCIA("f", "90662301", "Enlace Vencido Prueba", "966230101") + INVITAR("f") + VENCER("f") +
+    comoAnon + VE_LA_PAGINA(":'f_token'") + CONFIRMA(":'f_token'") +
+    `reset role;\nselect ${QR_WEB("f")}, (select publicidad_desde is null from retail.clientas where id = :'f'), (select usada_en is null from retail.club_invitaciones where token = :'f_token');\n`,
+  "vencida|true\nvencida\n0|t|t"
+);
+caso(
+  "(o) ella confirma (anon): el otorga de publicidad con medio qr_web, SIN registrado_por, el texto pagina_publicidad v1, la tienda de la invitación y la invitación en la nota; publicidad_desde = ahora (sigue socia, mismo código y mismo celular); la invitación usada con su versión; la actividad sin persona; devuelve «usada», y la caja lo ve",
+  como(FELIPE) + SOCIA("f", "90662401", "Confirma Prueba", "966240101") + INVITAR("f") + comoAnon + CONFIRMA(":'f_token'") +
+    `reset role;
+select publicidad_desde = now(), club_desde is not null, codigo_club = :'f_codigo', telefono_whatsapp from retail.clientas where id = :'f';
+select finalidad || ':' || accion || ':' || medio || ':' || texto_tipo || ':' || texto_version, registrado_por is null, ubicacion_id = :'ubic', created_at = now(),
+       nota = 'marcó la casilla en la página de su QR (invitación ' || (select id from retail.club_invitaciones where token = :'f_token') || ')'
+  from retail.club_permisos where clienta_id = :'f' and medio = 'qr_web';
+select usada_en = now(), texto_version from retail.club_invitaciones where token = :'f_token';
+select persona_id is null and terminal_id is null, ubicacion_id = :'ubic', descripcion, detalle ->> 'medio', detalle ->> 'texto_version'
+  from retail.actividad where modulo = 'clientas' and accion = 'publicidad_qr_web' and registro_id = :'f';
+${como(FELIPE)}select con_publicidad from retail.resumen_clienta_caja(:'f');
+`,
+  "usada\nt|t|t|966240101\npublicidad_whatsapp:otorga:qr_web:pagina_publicidad:1|t|t|t|t\nt|1\n" +
+    "t|t|la clienta confirmó su publicidad por WhatsApp desde su QR|qr_web|1\nt"
+);
+caso(
+  "(o) la segunda confirmación del mismo enlace (otra pestaña, un doble toque) devuelve «usada» sin otro evento ni otra actividad; la página ya dice «usada» sin datos; y la caja ya no crea otro (ya_tiene_publicidad)",
+  como(FELIPE) + SOCIA("f", "90662501", "Doble Toque Prueba", "966250101") + INVITAR("f") +
+    comoAnon + CONFIRMA(":'f_token'") + CONFIRMA(":'f_token'") + VE_LA_PAGINA(":'f_token'") +
+    `reset role;\nselect ${QR_WEB("f")}, (select count(*) from retail.actividad where accion = 'publicidad_qr_web' and registro_id = :'f');\n` +
+    como(FELIPE) + CREAR_CON("f"),
+  "usada\nusada\nusada|true\n1|1\nP0001|ya_tiene_publicidad"
+);
+caso(
+  "(o) la versión que ella leyó: otra (0, 2 o ninguna) → club_texto_cambio sin escribir; con un texto v2 nuevo, la v1 ya no vale, la página muestra la 2 y confirmar con la 2 la cita",
+  como(FELIPE) + SOCIA("f", "90662601", "Texto Pagina Prueba", "966260101") + INVITAR("f") + comoAnon +
+    intentoCon(`select retail.confirmar_invitacion_club(%L, 0)`, ":'f_token'") +
+    intentoCon(`select retail.confirmar_invitacion_club(%L, 2)`, ":'f_token'") +
+    intentoCon(`select retail.confirmar_invitacion_club(%L, null)`, ":'f_token'") +
+    `reset role;
+select ${QR_WEB("f")};
+insert into retail.club_textos (tipo, version, texto) values ('pagina_publicidad', 2, 'Texto de prueba v2 de la página al {celular}.');
+` +
+    comoAnon + intentoCon(`select retail.confirmar_invitacion_club(%L, 1)`, ":'f_token'") +
+    `select texto_version, texto from retail.fn_invitacion_club(:'f_token');\n` + CONFIRMA(":'f_token'", 2) +
+    `reset role;
+select string_agg(texto_version::text, ',') from retail.club_permisos where clienta_id = :'f' and medio = 'qr_web';
+select texto_version from retail.club_invitaciones where token = :'f_token';
+`,
+  "P0001|club_texto_cambio\nP0001|club_texto_cambio\nP0001|club_texto_cambio\n0\nP0001|club_texto_cambio\n" +
+    "2|Texto de prueba v2 de la página al {celular}.\nusada\n2\n2"
+);
+caso(
+  "(o) anonimizar o archivar la ficha vence ahora sus invitaciones sin usar: la página dice «vencida» (sin contar por qué) y confirmar no escribe; aunque la invitación volviera a estar en fecha, una ficha archivada no confirma",
+  como(FELIPE) + SOCIA("a", "90662701", "Anonimiza Enlace Prueba", "966270101") + SOCIA("b", "90662702", "Archiva Enlace Prueba", "966270201") +
+    INVITAR("a") + INVITAR("b") +
+    `select retail.archivar_clienta(:'a', 'lo pidió', true, null) as _a \\gset
+select retail.archivar_clienta(:'b', 'se mudó', false, null) as _b \\gset
+reset role;
+select string_agg((vence_en = now() and usada_en is null)::text, ',') from retail.club_invitaciones where clienta_id in (:'a', :'b');
+` +
+    comoAnon + VE_LA_PAGINA(":'a_token'") + CONFIRMA(":'a_token'") + VE_LA_PAGINA(":'b_token'") + CONFIRMA(":'b_token'") +
+    // La defensa: con la invitación de nuevo en fecha (a mano, como postgres), la ficha archivada igual no confirma.
+    `reset role;\nupdate retail.club_invitaciones set vence_en = creada_en + interval '7 days' where clienta_id = :'b';\n` +
+    comoAnon + VE_LA_PAGINA(":'b_token'") + CONFIRMA(":'b_token'") +
+    `reset role;\nselect ${QR_WEB("a")} + ${QR_WEB("b")}, (select count(*) from retail.clientas where id in (:'a', :'b') and publicidad_desde is null);\n`,
+  "true,true\nvencida|true\nvencida\nvencida|true\nvencida\nvencida|true\nvencida\n0|2"
+);
+caso(
+  "(o) unir: la invitación sin usar de la ficha que se va vence ahora (NO pasa a la que queda); la de la que queda sigue vigente y sirve",
+  como(FELIPE) + SOCIA("queda", "90662801", "Unir Enlace Queda Prueba", "966280101") + SOCIA("se_va", "90662802", "Unir Enlace Se Va Prueba", "966280201") +
+    INVITAR("queda") + INVITAR("se_va") +
+    `select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset
+reset role;
+select string_agg(case when clienta_id = :'queda' then 'queda' else 'se_va' end || ':' || (vence_en > now()), ',' order by clienta_id = :'queda' desc)
+  from retail.club_invitaciones where clienta_id in (:'queda', :'se_va');
+` +
+    comoAnon + VE_LA_PAGINA(":'se_va_token'") + CONFIRMA(":'se_va_token'") +
+    `select estado from retail.fn_invitacion_club(:'queda_token');\n` + CONFIRMA(":'queda_token'") +
+    `reset role;\nselect ${QR_WEB("queda")}, ${QR_WEB("se_va")};\n`,
+  "queda:true,se_va:false\nvencida|true\nvencida\nvigente\nusada\n1|0"
+);
+caso(
+  "(o) si mientras tanto llegó su mensaje (camino A), el enlace ya no hace falta: la página dice «usada» y confirmar no escribe otro evento ni gasta la invitación",
+  como(FELIPE) + SOCIA("f", "90662901", "Camino A Primero Prueba", "966290101") + INVITAR("f") + MENSAJE("f", "966290101") +
+    comoAnon + VE_LA_PAGINA(":'f_token'") + CONFIRMA(":'f_token'") +
+    `reset role;\nselect ${QR_WEB("f")}, (select usada_en is null from retail.club_invitaciones where token = :'f_token');\n`,
+  "usada|true\nusada\n0|t"
+);
+caso(
+  "(o) anon (ni authenticated) no lee ni escribe club_invitaciones ni club_permisos directo; club_invitaciones con RLS y sin políticas; la página: EXECUTE para anon y authenticated, crear solo authenticated; las tres security definer con su search_path, la lectura stable; y anon entra al schema retail",
+  `select ${["club_invitaciones", "club_permisos"]
+    .flatMap((t) => ["anon", "authenticated"].flatMap((r) => ["select", "insert", "update", "delete"].map((p) => `has_table_privilege('${r}', 'retail.${t}', '${p}')`)))
+    .map((e) => `(${e})::int`)
+    .join(" + ")};
+select relrowsecurity, (select count(*) from pg_policy where polrelid = 'retail.club_invitaciones'::regclass) from pg_class where oid = 'retail.club_invitaciones'::regclass;
+select string_agg(r || ':' || has_function_privilege(r, f::regprocedure, 'execute'), ',' order by f, r)
+  from unnest(array['${CREAR_INVITACION}', '${LEER_INVITACION}', '${CONFIRMAR_INVITACION}']) f, unnest(array['anon', 'authenticated']) r;
+select bool_and(prosecdef and array_to_string(proconfig, ',') = 'search_path=retail, public, extensions'),
+       string_agg(proname || ':' || provolatile::text, ',' order by proname)
+  from pg_proc where oid in ('${CREAR_INVITACION}'::regprocedure, '${LEER_INVITACION}'::regprocedure, '${CONFIRMAR_INVITACION}'::regprocedure);
+select has_schema_privilege('anon', 'retail', 'usage');
+` +
+    como(FELIPE) + SOCIA("f", "90663001", "Acceso Directo Prueba", "966300101") + INVITAR("f") + comoAnon +
+    intento(`select count(*) from retail.club_invitaciones`) +
+    intento(`select count(*) from retail.club_permisos`) +
+    intentoCon(`update retail.club_invitaciones set usada_en = now(), texto_version = 1 where token = %L`, ":'f_token'") +
+    intentoCon(`insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version) values (%L, 'publicidad_whatsapp', 'otorga', 'qr_web', 'pagina_publicidad', 1)`, ":'f'") +
+    como(FELIPE) + intento(`select count(*) from retail.club_invitaciones`),
+  "0\nt|0\nanon:true,authenticated:true,anon:false,authenticated:true,anon:true,authenticated:true\n" +
+    "t|confirmar_invitacion_club:v,crear_invitacion_club:v,fn_invitacion_club:s\nt\n" +
+    "42501|permission denied for table club_invitaciones\n42501|permission denied for table club_permisos\n" +
+    "42501|permission denied for table club_invitaciones\n42501|permission denied for table club_permisos\n" +
+    "42501|permission denied for table club_invitaciones"
+);
+{
+  const QR = (cols, vals) => `insert into retail.club_permisos (clienta_id, finalidad, accion, medio${cols}) values (%L, ${vals})`;
+  caso(
+    "(o) los candados de qr_web (insert directo, como postgres): con registrado_por, con otro texto, para el club o sin texto → rechazados; una publicidad de palabra (caja_palabra) sigue rechazada, y un «sí» de caja sin persona también; el qr_web bien hecho pasa",
+    como(FELIPE) + SOCIA("f", "90663101", "Candado Qr Prueba", "966310101") + `reset role;\n` +
+      intentoCon(QR(", texto_tipo, texto_version, registrado_por", "'publicidad_whatsapp', 'otorga', 'qr_web', 'pagina_publicidad', 1, %L"), ":'f'", ":'persona_felipe'") +
+      intentoCon(QR(", texto_tipo, texto_version", "'publicidad_whatsapp', 'otorga', 'qr_web', 'mensaje_personal', 2"), ":'f'") +
+      intentoCon(QR(", texto_tipo, texto_version", "'club', 'otorga', 'qr_web', 'pagina_publicidad', 1"), ":'f'") +
+      intentoCon(QR("", "'publicidad_whatsapp', 'otorga', 'qr_web'"), ":'f'") +
+      intentoCon(QR(", texto_tipo, texto_version, registrado_por", "'publicidad_whatsapp', 'otorga', 'caja_palabra', 'club', 2, %L"), ":'f'", ":'persona_felipe'") +
+      intentoCon(QR(", texto_tipo, texto_version", "'club', 'otorga', 'caja_palabra', 'club', 2"), ":'f'") +
+      intentoCon(QR(", texto_tipo, texto_version", "'publicidad_whatsapp', 'otorga', 'qr_web', 'pagina_publicidad', 1"), ":'f'"),
+    (s) => {
+      const l = s.split("\n");
+      return (
+        l.length === 7 &&
+        l.slice(0, 6).every((x) => x.startsWith("23514|")) &&
+        l[0].includes("club_permisos_qr_web_lo_registra_ella") &&
+        l[1].includes("club_permisos_texto_del_medio") &&
+        l[2].includes("club_permisos_medio_coherente") &&
+        l[3].includes("club_permisos_otorga_con_texto") &&
+        l[5].includes("club_permisos_con_quien_registra") &&
+        l[6] === "SIN_ERROR"
+      );
+    }
+  );
+}
+caso(
+  "(o) los candados de club_invitaciones (como postgres): token fuera de forma, más de 7 días, usada sin versión, usada después de vencer, token repetido; y el texto de la página sin {celular}",
+  como(FELIPE) + SOCIA("f", "90663201", "Candado Invitacion Prueba", "966320101") + INVITAR("f") + `reset role;\n` +
+    intentoCon(`insert into retail.club_invitaciones (clienta_id, token, creada_por, vence_en) values (%L, 'corto', %L, now() + interval '1 day')`, ":'f'", ":'persona_felipe'") +
+    intentoCon(`insert into retail.club_invitaciones (clienta_id, token, creada_por, vence_en) values (%L, 'BBBBBBBBBBBBBBBB', %L, now() + interval '8 days')`, ":'f'", ":'persona_felipe'") +
+    intentoCon(`update retail.club_invitaciones set usada_en = now() where token = %L`, ":'f_token'") +
+    intentoCon(`update retail.club_invitaciones set usada_en = vence_en + interval '1 minute', texto_version = 1 where token = %L`, ":'f_token'") +
+    intentoCon(`insert into retail.club_invitaciones (clienta_id, token, creada_por, vence_en) values (%L, %L, %L, now() + interval '1 day')`, ":'f'", ":'f_token'", ":'persona_felipe'") +
+    intento(`insert into retail.club_textos (tipo, version, texto) values ('pagina_publicidad', 9, 'Sin el celular.')`),
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l.length === 6 &&
+      l[0].startsWith("23514|") && l[0].includes("club_invitaciones_token_formato") &&
+      l[1].startsWith("23514|") && l[1].includes("club_invitaciones_vigencia") &&
+      l[2].startsWith("23514|") && l[2].includes("club_invitaciones_usada_con_texto") &&
+      l[3].startsWith("23514|") && l[3].includes("club_invitaciones_usada_antes_de_vencer") &&
+      l[4].startsWith("23505|") && l[4].includes("club_invitaciones_token_unico") &&
+      l[5].startsWith("23514|") && l[5].includes("club_textos_pagina_con_celular")
+    );
+  }
+);
+caso(
+  "(o) el orden de los candados es ficha → invitación en las cuatro funciones que toman invitaciones (crear, confirmar, archivar, unir): nunca se esperan en cruz",
+  `select string_agg(proname || ':' || (regexp_replace(prosrc, '\\s+', ' ', 'g') ~ case proname
+    when 'crear_invitacion_club' then 'from retail\\.clientas c where c\\.id = p_clienta_id for update;.*insert into retail\\.club_invitaciones'
+    when 'confirmar_invitacion_club' then 'from retail\\.clientas c where c\\.id = v_clienta for update;.*from retail\\.club_invitaciones i where i\\.token = p_token for update;'
+    when 'archivar_clienta' then 'from retail\\.clientas where id = p_id for update;.*update retail\\.club_invitaciones'
+    else 'from retail\\.clientas where id = p_fusionar_id for update;.*update retail\\.club_invitaciones' end), ',' order by proname)
+  from pg_proc where oid in ('${CREAR_INVITACION}'::regprocedure, '${CONFIRMAR_INVITACION}'::regprocedure,
+                             'retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure, 'retail.unir_clientas(uuid,uuid,integer,integer)'::regprocedure);
+`,
+  "archivar_clienta:true,confirmar_invitacion_club:true,crear_invitacion_club:true,unir_clientas:true"
+);
+
+// =====================================================================================================================
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
@@ -1011,21 +1296,23 @@ select md5(string_agg(x, '|' order by x)) from (
   select 'col:' || a.attrelid::regclass || ':' || a.attname || ':' || format_type(a.atttypid, a.atttypmod) || ':' || a.attnotnull || ':'
          || coalesce(pg_get_expr(d.adbin, d.adrelid), '') || ':' || coalesce(col_description(a.attrelid, a.attnum), '')
     from pg_attribute a left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
-   where a.attrelid in ('retail.clientas'::regclass, 'retail.ubicaciones'::regclass, 'retail.club_permisos'::regclass, 'retail.club_textos'::regclass)
+   where a.attrelid in ('retail.clientas'::regclass, 'retail.ubicaciones'::regclass, 'retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.club_invitaciones'::regclass)
      and a.attnum > 0 and not a.attisdropped
   union all
   select 'con:' || conrelid::regclass || ':' || conname || ':' || pg_get_constraintdef(oid) || ':' || convalidated from pg_constraint
-   where conrelid in ('retail.clientas'::regclass, 'retail.ubicaciones'::regclass, 'retail.club_permisos'::regclass, 'retail.club_textos'::regclass)
+   where conrelid in ('retail.clientas'::regclass, 'retail.ubicaciones'::regclass, 'retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.club_invitaciones'::regclass)
   union all
-  select 'idx:' || indexdef from pg_indexes where schemaname = 'retail' and tablename in ('clientas', 'ubicaciones', 'club_permisos', 'club_textos')
+  select 'idx:' || indexdef from pg_indexes where schemaname = 'retail' and tablename in ('clientas', 'ubicaciones', 'club_permisos', 'club_textos', 'club_invitaciones')
   union all
   select 'trg:' || pg_get_triggerdef(t.oid) || ':' || t.tgenabled::text from pg_trigger t
    where not t.tgisinternal and t.tgrelid in ('retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.clientas'::regclass)
   union all
   select 'rel:' || relname || ':' || relrowsecurity::text || ':' || coalesce(array_to_string(relacl, ','), '') from pg_class
-   where oid in ('retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.clientas_codigo_club_seq'::regclass)
+   where oid in ('retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.club_invitaciones'::regclass, 'retail.clientas_codigo_club_seq'::regclass)
   union all
   select 'txt:' || tipo || ':' || version || ':' || texto from retail.club_textos
+  union all
+  select 'pol:' || polname from pg_policy where polrelid in ('retail.club_permisos'::regclass, 'retail.club_textos'::regclass, 'retail.club_invitaciones'::regclass)
 ) f(x);
 `;
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
@@ -1082,11 +1369,11 @@ caso(
   `select string_agg(p.proname || ':' || (regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
             ~ '^(#variable_conflictuse_column)?declare.*?beginperformretail\\.fn_exigir_modulo\\(''clientas''\\);v_persona:=retail\\.fn_actor_persona_id\\(true\\);'), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace
-   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_baja_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'unir_clientas');
+   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_baja_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'unir_clientas', 'crear_invitacion_club');
 select prosrc ~ 'if not retail\\.fn_puede_configurar\\(\\) then' and prosrc ~ 'fn_actor_persona_id\\(true\\)' from pg_proc where oid = 'retail.guardar_whatsapp_tienda(uuid,text)'::regprocedure;
 select prosrc !~ 'fn_exigir_modulo' from pg_proc where oid = 'retail.fn_club_textos_vigentes()'::regprocedure;
 `,
-  "archivar_clienta:true,editar_clienta:true,registrar_baja_whatsapp:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unir_clientas:true,unirse_al_club:true\nt\nt"
+  "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_baja_whatsapp:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unir_clientas:true,unirse_al_club:true\nt\nt"
 );
 
 // Sin base de datos: lo que el SQL Editor ve del archivo. Fuera de los cuerpos `$…$` y de los comentarios: los textos entre
@@ -1273,6 +1560,51 @@ commit;
   );
 } else {
   console.log("· (m2), la carrera con COMMIT, no corrió: solo corre con BASE_DESECHABLE=1 (deja una socia de prueba)");
+}
+
+// (o) La carrera de la página, con COMMIT: deja una socia de prueba con su evento (que no se borra), así que solo corre
+// contra un Postgres desechable, como (m2). En el CI la vigilan los casos (o) del orden de los candados y del doble toque.
+if (process.env.BASE_DESECHABLE === "1") {
+  await carrera(
+    "(o) con COMMIT: dos confirmaciones del mismo enlace a la vez, en dos conexiones anon reales → la segunda ESPERA a la primera, las dos dicen «usada», y quedan UN evento qr_web, UNA actividad, la invitación usada y la publicidad puesta",
+    async () => {
+      const doc = `7${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}`;
+      const cel = `9${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+      const prep = correr(`begin;
+set local search_path = retail, public, extensions;
+update retail.configuracion_empresa set exige_responsable = false;
+${como(FELIPE)}select retail.registrar_clienta('dni', '${doc}', 'Prueba Carrera Pagina Socia', '${cel}') as f \\gset
+select codigo_club as c from retail.unirse_al_club(:'f', '${cel}') \\gset
+select :'f' || '|' || token from retail.crear_invitacion_club(:'f', null);
+commit;`);
+      if (!prep.ok) return [false, prep.mensaje];
+      const [id, token] = prep.salida.split("\n").pop().split("|");
+      const app = `club_pagina_a_${Date.now()}`;
+      const a = psqlEnParalelo(`set application_name = '${app}';
+begin;
+${comoAnon}select retail.confirmar_invitacion_club('${token}', 1);
+select pg_sleep(3);
+commit;
+`);
+      await dormir(100);
+      const b = await psqlEnParalelo(`${esperarA(app)}begin;
+${comoAnon}select clock_timestamp() as t0 \\gset
+select retail.confirmar_invitacion_club('${token}', 1);
+select extract(epoch from clock_timestamp() - :'t0'::timestamptz) > 1;
+commit;
+`);
+      const ra = await a;
+      const fin = correr(`select (select count(*) from retail.club_permisos where clienta_id = '${id}' and medio = 'qr_web') || '|' ||
+       (select count(*) from retail.actividad where accion = 'publicidad_qr_web' and registro_id = '${id}') || '|' ||
+       (select (usada_en is not null)::text from retail.club_invitaciones where token = '${token}') || '|' ||
+       (select (publicidad_desde is not null)::text from retail.clientas where id = '${id}');`);
+      if (!ra.ok || !b.ok || !fin.ok) return [false, [ra.mensaje, b.mensaje, fin.mensaje].filter(Boolean).join("\n")];
+      const obtenido = `A: ${ra.salida.split("\n").filter(Boolean).join(",")}\nB (vio a A dormida, respuesta, esperó): ${b.salida.split("\n").filter(Boolean).join(",")}\neventos|actividad|usada|publicidad: ${fin.salida}`;
+      return [obtenido === "A: usada\nB (vio a A dormida, respuesta, esperó): t,usada,t\neventos|actividad|usada|publicidad: 1|1|true|true", obtenido];
+    }
+  );
+} else {
+  console.log("· (o), la carrera de la página con COMMIT, no corrió: solo corre con BASE_DESECHABLE=1 (deja una socia de prueba)");
 }
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE})`);

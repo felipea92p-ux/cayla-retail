@@ -17,7 +17,7 @@ import { textoProgreso, textoResumen, textoRevision, textoTerminado, type Resume
      · «progreso»  — solo «18 de 37…» y la barra. El pie fijo de Contar (`lateral` va a la derecha del texto: el «Guardado»).
      · «cifras»    — solo la línea de cifras. El encabezado de la lista de Contar, donde la barra ya va en el pie.
      · «revision»  — «37 variantes» y «34 correctas · 3 con diferencia · 0 pendientes» (Revisar conteo).
-     · «resultado» — «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas» (Conteo terminado).
+     · «resultado» — «37 variantes verificadas · 34 coincidieron · 3 con diferencia» (Conteo terminado).
                      `parcial` suma cuántas quedaron sin verificar.
 
    Una pantalla tiene UNA barra de progreso (`role="progressbar"`): por eso «completo» y «progreso» no se combinan en

@@ -13,23 +13,21 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Chip } from "@/components/ui/Chip";
 import { InvitarAlClub, QrDeLaSociaHoja } from "@/components/punto-de-venta/InvitarAlClub";
-import { CampoCelularClub, CumpleanosClub } from "@/components/punto-de-venta/CamposDelClub";
+import { CampoCelular, CamposCumpleanos } from "@/components/clientas/club-piezas";
 import type { ClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
 import {
-  CUMPLE_VACIO,
   cajaDelClub,
   camposDeRegistrar,
   celularParaInvitar,
   cumpleDelResumen,
-  cumpleParaGuardar,
   estadoEnLaLibreta,
   lineaDeLaClientaEnCaja,
   problemaCelularOpcional,
-  problemaCumple,
   type CajaDelClub,
   type ClubDeLaCaja,
-  type CumpleEscrito,
+  type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
+import { CUMPLE_VACIO, cajaDelProblemaCumple, cumpleParaGuardar, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import {
   altaDesdeBusqueda,
   filaDeClienta,
@@ -70,7 +68,8 @@ const BOTON_CHICO_SECUNDARIO =
  * El club (ADR-0288, tanda 1b), dibujado como el spike del club (`clientaDelTicketHTML` de `45-club-caja.js`, rama
  * `claude/spyke-club-clientas-visual-631f7a`): UNA sola caja con el nombre, el documento y el estado arriba («Identificada»
  * o «Socia» y su publicidad), y lo del club DENTRO de la misma caja:
- *   · socia: su cumpleaños, plegado por defecto (la flecha lo abre). Sin publicidad y con QR, su chip abre su QR;
+ *   · socia: su cumpleaños, plegado por defecto (la flecha lo abre). Sin publicidad, su chip abre su QR (camino B: la
+ *     página de CAYLA donde ella la pide; la hoja se actualiza sola y el chip pasa a «Publicidad», ADR-0288 act. c);
  *   · no socia: «No es del club todavía — Invitar / Ahora no», en cada compra (CL-8); «Ahora no» deja solo el enlace
  *     «Invitar al club» en esta venta.
  * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas); lo que se sabe de ella vive en
@@ -116,7 +115,8 @@ export function ClientaDelTicket({
   // La hoja de invitar no depende de `caja`: al unirse, la caja pasa a «Socia» y la MISMA hoja tiene que seguir abierta
   // para mostrar su QR.
   const invitandoA = invitando && clienta ? clienta : null;
-  const qrDe = viendoQr && clienta && caja.tipo === "socia" && caja.codigo ? { clienta, codigo: caja.codigo } : null;
+  // Tampoco depende de su publicidad: cuando ella confirma, el chip pasa a «Publicidad» y la hoja sigue abierta en «Listo».
+  const qrDe = viendoQr && clienta && caja.tipo === "socia" ? { clienta, codigo: caja.codigo } : null;
   const buscando = abierto && (fila === "agregar" || fila === "elegida");
   const hojaVisible = buscando || invitandoA !== null || qrDe !== null;
 
@@ -229,25 +229,37 @@ export function ClientaDelTicket({
           ubicacionId={ubicacionId}
           responsable={responsable}
           onUnida={clubDeLaClienta.unida}
+          onPublicidad={clubDeLaClienta.recargar}
           onClose={() => setInvitando(false)}
         />
       )}
 
-      {qrDe && <QrDeLaSociaHoja nombre={lineaDeClienta(qrDe.clienta).titulo} codigo={qrDe.codigo} club={club} onClose={() => setViendoQr(false)} />}
+      {qrDe && (
+        <QrDeLaSociaHoja
+          clientaId={qrDe.clienta.id}
+          nombre={lineaDeClienta(qrDe.clienta).titulo}
+          codigo={qrDe.codigo}
+          celular={resumen?.celular ?? qrDe.clienta.celular}
+          club={club}
+          ubicacionId={ubicacionId}
+          responsable={responsable}
+          onPublicidad={clubDeLaClienta.recargar}
+          onClose={() => setViendoQr(false)}
+        />
+      )}
     </div>
   );
 }
 
-/** El chip de su publicidad (spike, `chipPub`): verde si ya la pidió; si no y hay QR, tocable para mostrárselo. */
-function ChipPublicidad({ publicidad, onQr, bloqueado }: { publicidad: "activa" | "qr" | "sin_qr"; onQr: () => void; bloqueado: boolean }) {
+/** El chip de su publicidad (spike, `chipPub`): verde si ya la pidió; si no, tocable para mostrarle su QR. */
+function ChipPublicidad({ publicidad, onQr, bloqueado }: { publicidad: PublicidadEnCaja; onQr: () => void; bloqueado: boolean }) {
   if (publicidad === "activa") return <Chip tono="verde">Publicidad</Chip>;
-  if (publicidad === "sin_qr") return <Chip tono="neutro">Sin publicidad</Chip>;
   return (
     <button
       type="button"
       onClick={onQr}
       disabled={bloqueado}
-      title="Mostrar su QR. Solo ella puede pedir la publicidad: escribiéndole a la tienda desde él."
+      title="Mostrar su QR. Solo ella puede pedir la publicidad: en la página de CAYLA que abre, marcando la casilla."
       className="rounded-full transition-opacity hover:opacity-75"
     >
       <Chip tono="neutro">Sin publicidad · QR</Chip>
@@ -578,7 +590,7 @@ function RegistrarClientaEnTicket({
       if (numero === "" || problema) return void avisar.error(problema ?? "Elige el tipo y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
       if (!alta.nombre.trim()) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
       if (pCelular) return void avisar.error(pCelular, { enfocar: ID_CELULAR });
-      if (pCumple) return void avisar.error(pCumple, { enfocar: ID_DIA });
+      if (pCumple) return void avisar.error(pCumple, { enfocar: cajaDelProblemaCumple(cumple, anioActual) === "anio" ? ID_ANIO : ID_DIA });
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
 
@@ -664,11 +676,11 @@ function RegistrarClientaEnTicket({
       )}
 
       <CampoGuiado id="celular" guia={guia} titulo="Celular de WhatsApp" ayuda="Sin él queda identificada, no socia">
-        <CampoCelularClub id={ID_CELULAR} valor={alta.celular} onValor={(celular) => onCambiar({ celular })} problema={pCelular} />
+        <CampoCelular id={ID_CELULAR} caja valor={alta.celular} onValor={(celular) => onCambiar({ celular })} problema={pCelular} deshabilitado={guardando} />
       </CampoGuiado>
 
       <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Sin él no hay beneficio · el año es opcional">
-        <CumpleanosClub idDia={ID_DIA} cumple={cumple} onCumple={onCumple} anioActual={anioActual} deshabilitado={guardando} />
+        <CamposCumpleanos idDia={ID_DIA} idAnio={ID_ANIO} cumple={cumple} onCumple={onCumple} anioActual={anioActual} deshabilitado={guardando} />
       </CampoGuiado>
 
       <CampoGuiado id="responsable" guia={guia}>
@@ -695,3 +707,4 @@ function RegistrarClientaEnTicket({
 const ID_NOMBRE = "ticket-clienta-nombre";
 const ID_CELULAR = "ticket-clienta-celular";
 const ID_DIA = "ticket-clienta-cumple-dia";
+const ID_ANIO = "ticket-clienta-cumple-anio";
