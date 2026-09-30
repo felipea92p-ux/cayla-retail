@@ -118,3 +118,12 @@ acción distinta de aplicar la migración y no estaba autorizada; queda como «P
 
 Felipe se lleva: decir «sí» y lo pego (una sola parte, solo inserta 11 filas en `producto_origen`; al instante la pantalla muestra TRU en los 11, sin desplegar). Los productos que se registren desde ahora traen su sede por el
 disparador; el primer alta real lo confirma (la web manda `x-ubicacion` en cada operación firmada). Un admin que registre sin elegir responsable puede quedar «sin sede»: no es un error, se sabe que se registró y no dónde.
+
+## 2026-09-30 (Relleno pegado en producción)
+
+Qué hice: Felipe dijo «sí, pégalo». Antes de escribir comprobé que producción seguía como en el ensayo (0 filas, 12 productos, ninguno nuevo desde las 16:22 UTC) y apliqué el script de relleno. Quedaron **11 filas,
+todas Tienda TRU**, cada una con la hora del alta del producto y sin terminal; «Prenda sin Registrar» sigue sin sede. `fn_producto_origen` (lo que lee la web) devuelve las 11, la tabla sigue sin políticas y su comentario
+ya explica qué filas se reconstruyeron. Dónde quedó: `producto_origen` es la única tabla que el script toca; no comparé movimientos ni stock antes y después (hoy 91 y 72 unidades), porque por construcción no los toca.
+
+Felipe se lleva: recargar el Inicio de la cuenta de almacén: los 11 productos ya muestran TRU y el filtro «TRU · tu sede». El primer producto que se registre desde la web confirmará que el disparador anota la sede (AQP si se
+registra desde AQP).
