@@ -15,6 +15,7 @@ import {
   type FilaSeparacion,
 } from "@/lib/clientas-reglas";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
@@ -27,7 +28,9 @@ import { firmar, type Firma } from "@/lib/responsable-reglas";
 // Candado optimista (ADR-0193 reusado): cada acción que edita manda `version`, y si la base
 // devuelve PT409, `error-escritura.ts` ya lo traduce sin que esta capa haga nada especial.
 export type DatosAlta = {
-  dni: string;
+  /** ADR-0288 D-2: DNI por defecto, carné de extranjería o pasaporte. */
+  documentoTipo: TipoDocumentoClienta;
+  documentoNumero: string;
   nombre: string;
   telefonoWhatsapp: string;
   aceptaWhatsapp: boolean;
@@ -59,7 +62,8 @@ export async function buscarClienta(termino: string, incluirArchivadas = false):
 export async function registrarClienta(datos: DatosAlta, firma: Firma | null): Promise<ResultadoAlta> {
   const { data, error } = await firmar(
     createClient().rpc("registrar_clienta", {
-      p_dni: datos.dni.trim() || undefined,
+      p_documento_tipo: datos.documentoTipo,
+      p_documento_numero: normalizarNumeroDocumento(datos.documentoNumero) || undefined,
       p_nombre: datos.nombre.trim() || undefined,
       p_telefono_whatsapp: datos.telefonoWhatsapp.trim() || undefined,
       p_acepta_whatsapp: datos.aceptaWhatsapp,
@@ -80,7 +84,8 @@ export async function editarClienta(id: string, datos: DatosEdicion, version: nu
   const { data, error } = await firmar(
     createClient().rpc("editar_clienta", {
       p_id: id,
-      p_dni: datos.dni.trim() || undefined,
+      p_documento_tipo: datos.documentoTipo,
+      p_documento_numero: normalizarNumeroDocumento(datos.documentoNumero) || undefined,
       p_nombre: datos.nombre.trim() || undefined,
       p_telefono_whatsapp: datos.telefonoWhatsapp.trim() || undefined,
       p_acepta_whatsapp: datos.aceptaWhatsapp,
@@ -115,7 +120,7 @@ export async function reactivarClienta(id: string, version: number, firma: Firma
   return { version: data ?? null, error };
 }
 
-/** D-99: junta dos fichas (celular primero, DNI después) en una sola transacción — mueve sus
+/** D-99: junta dos fichas (celular primero, documento después) en una sola transacción — mueve sus
  *  ventas/separaciones/pedidos y anonimiza a la perdedora. No hay deshacer: el rastro completo
  *  queda en `retail.clientas_fusiones`. */
 export async function unirClientas(
@@ -149,7 +154,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
     supabase
       .from("clientas")
       .select(
-        "id, dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
+        "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
       )
       .eq("id", id)
       .maybeSingle(),

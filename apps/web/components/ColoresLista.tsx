@@ -12,6 +12,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
   AccionTarjeta,
@@ -206,6 +208,29 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   // aunque el color ya no se elija (cada SKU apunta a él).
   const codigosUsados = new Set(colores.map((c) => c.codigo));
   const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
+
+  // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Familia, notas y sinónimos
+  // son opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea).
+  const pantoneEscrito = pantone.trim() !== "";
+  const guia = useGuiaCampos([
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
+    {
+      id: "codigo",
+      nombre: "Código",
+      requerido: true,
+      hecho: codigo.length === 3 && !dueñoDelCodigo,
+      pendiente: dueñoDelCodigo ? `Ese código ya lo usa «${dueñoDelCodigo.nombre}»: cambia una letra.` : "Escribe las 3 letras del código.",
+    },
+    {
+      id: "pantone",
+      nombre: "Pantone",
+      requerido: pantoneEscrito,
+      hecho: pantoneEscrito && !pantoneInvalido(pantone, vocabularioPantone),
+      pendiente: "Corrige el Pantone (19-1557 TCX) o bórralo.",
+    },
+    { id: "color", nombre: "Tono del color", requerido: true, hecho: !!hex, pendiente: "Elige el tono del color." },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
   const rechazandoColor = colores.find((c) => c.codigo === rechazandoAbierto) ?? null;
 
   function abrir() {
@@ -429,17 +454,21 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               {/* Mismo agrupado que el modal de edición: cada campo ya reserva su línea de pie. */}
               <div className="space-y-1">
                 <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                  <CampoGuiado id="nombre" guia={guia}>
                   <CampoTexto
-                    etiqueta="Nombre"
+                    etiqueta={guia.etiqueta("nombre", "Nombre")}
                     value={nombre}
                     onChange={(e) => {
                       setNombre(e.target.value);
                       if (!codigoTocado) setCodigo(sugerirCodigoColor(e.target.value, codigosUsados));
                     }}
                     placeholder="Ej. Verde botella"
+                    autoFocus
                   />
+                  </CampoGuiado>
+                  <CampoGuiado id="codigo" guia={guia}>
                   <CampoTexto
-                    etiqueta="Código (3 letras)"
+                    etiqueta={guia.etiqueta("codigo", "Código (3 letras)")}
                     mono
                     value={codigo}
                     maxLength={3}
@@ -452,11 +481,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     pie={dueñoDelCodigo ? `Ya lo usa «${dueñoDelCodigo.nombre}».` : codigo.length === 3 && !codigoTocado ? "Sugerido del nombre" : undefined}
                     placeholder="VEB"
                   />
+                  </CampoGuiado>
                 </div>
                 <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+                <CampoGuiado id="pantone" guia={guia}>
                 <CampoTexto
-                  etiqueta="Pantone (TCX)"
+                  etiqueta={guia.etiqueta("pantone", "Pantone (TCX)")}
                   mono
                   pie={pieDePantone(pantone, vocabularioPantone)}
                   tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
@@ -465,6 +496,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   placeholder="19-1557 TCX"
                   autoComplete="off"
                 />
+                </CampoGuiado>
                 <CampoTexto
                   etiqueta="Sinónimos"
                   pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
@@ -473,10 +505,15 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   placeholder="plomo, gris medio"
                 />
               </div>
-              <SelectorColor hex={hex} onHex={setHex} />
+              <CampoGuiado id="color" guia={guia}>
+                <SelectorColor hex={hex} onHex={setHex} etiqueta={guia.etiqueta("color", "Color")} />
+              </CampoGuiado>
               <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={activos} />
 
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
+              <CampoGuiado id="responsable" guia={guia}>
+                <ComboResponsable control={responsable} deshabilitado={guardando} />
+              </CampoGuiado>
+              <PieGuia guia={guia} listo="Todo listo para guardar." />
               <div className="flex gap-2 pt-3">
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
@@ -484,11 +521,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <Boton
                   type="button"
                   peso="primario"
-                  className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
                   disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || !responsable.listo}
-                  title={responsable.motivo ?? undefined}
+                  title={responsable.motivo ?? guia.frase ?? undefined}
+                  className={`flex-1 ${guia.claseConfirmar}`}
                 >
                   Guardar color
                 </Boton>
@@ -624,6 +661,21 @@ function ColorEditarModal({
   const ordenNumero = Number(orden);
   const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
 
+  // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, orden, Pantone) y quién firma. El color ya viene elegido.
+  const pantoneEscrito = pantone.trim() !== "";
+  const guia = useGuiaCampos([
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
+    { id: "orden", nombre: "Orden", requerido: true, hecho: ordenValido, pendiente: "El orden es un número entero de 0 para arriba." },
+    {
+      id: "pantone",
+      nombre: "Pantone",
+      requerido: pantoneEscrito,
+      hecho: pantoneEscrito && !pantoneInvalido(pantone, vocabularioPantone),
+      pendiente: "Corrige el Pantone (19-1557 TCX) o bórralo.",
+    },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+
   async function guardar() {
     if (!nombre.trim() || !ordenValido) return;
     setGuardando(true);
@@ -695,9 +747,12 @@ function ColorEditarModal({
               quedaban el doble de grandes que los de Notas hacia abajo. */}
           <div className="space-y-1">
             <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-              <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoGuiado id="nombre" guia={guia}>
+                <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              </CampoGuiado>
+              <CampoGuiado id="orden" guia={guia}>
               <CampoTexto
-                etiqueta="Orden"
+                etiqueta={guia.etiqueta("orden", "Orden")}
                 mono
                 inputMode="numeric"
                 value={orden}
@@ -705,11 +760,13 @@ function ColorEditarModal({
                 tono={ordenValido ? undefined : "error"}
                 pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
               />
+              </CampoGuiado>
             </div>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+            <CampoGuiado id="pantone" guia={guia}>
             <CampoTexto
-              etiqueta="Pantone (TCX)"
+              etiqueta={guia.etiqueta("pantone", "Pantone (TCX)")}
               mono
               pie={pieDePantone(pantone, vocabularioPantone)}
               tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
@@ -718,6 +775,7 @@ function ColorEditarModal({
               placeholder="19-1557 TCX"
               autoComplete="off"
             />
+            </CampoGuiado>
             <CampoTexto
               etiqueta="Sinónimos"
               pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
@@ -746,7 +804,10 @@ function ColorEditarModal({
           </div>
           <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
 
-          <ComboResponsable control={responsable} deshabilitado={ocupado} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={ocupado} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
               Cancelar
@@ -754,11 +815,11 @@ function ColorEditarModal({
             <Boton
               type="button"
               peso="primario"
-              className="flex-1"
               onClick={guardar}
               cargando={guardando}
               disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
-              title={responsable.motivo ?? undefined}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
               Guardar
             </Boton>

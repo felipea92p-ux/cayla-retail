@@ -2,6 +2,7 @@
 
 import type { RefObject } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { resumenCorto } from "@/lib/frescura-decisiones-pantalla";
 import { QUIZA_MAS, cifrasVista, palabraDias, registroCorto } from "@/lib/frescura-pantalla";
 import type { FilaConfianza } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
@@ -57,6 +58,11 @@ export function FrescuraTiendas({
                     </p>
                   ) : (
                     <p className="mt-1 text-[13px] text-taupe">No separa piso y almacén: Frescura no la mide.</p>
+                  )}
+                  {c && "resumen" in t.lectura.datos! && t.lectura.datos.resumen && resumenCorto(t.lectura.datos.resumen) && (
+                    <p className="mt-1 text-[12.5px] text-taupe">
+                      Lo decidido este mes: <span className="text-tinta">{resumenCorto(t.lectura.datos.resumen)}</span>
+                    </p>
                   )}
                   {registro.fallo ? null : reg.length > 0 ? (
                     <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-taupe">

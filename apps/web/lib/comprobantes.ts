@@ -247,14 +247,18 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
   const notasDelMes = filas.filter((c) => c.tipo === "nota_credito").map((c) => c.id);
 
   const [resClientas, resNotas, resOriginales, resDevoluciones] = await Promise.all([
-    dnis.length ? supabase.from("clientas").select("dni, telefono_whatsapp").in("dni", dnis) : Promise.resolve(null),
+    // El comprobante solo guarda DNI (y RUC), así que solo una ficha con DNI puede ser su dueña: un carné o un pasaporte
+    // con los mismos dígitos es otra persona (ADR-0288 D-2).
+    dnis.length
+      ? supabase.from("clientas").select("documento_numero, telefono_whatsapp").eq("documento_tipo", "dni").in("documento_numero", dnis)
+      : Promise.resolve(null),
     supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", ids),
     originales.length ? supabase.from("comprobantes").select("id, serie, numero").in("id", originales) : Promise.resolve(null),
     supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", [...notasDelMes, ...ids]),
   ]);
   const telefonos = new Map<string, string>();
   for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de las clientas").datos : null) ?? []) {
-    if (cl.dni && cl.telefono_whatsapp) telefonos.set(cl.dni, cl.telefono_whatsapp);
+    if (cl.documento_numero && cl.telefono_whatsapp) telefonos.set(cl.documento_numero, cl.telefono_whatsapp);
   }
   const notaDe = new Map<string, { id: string; numero: string }>();
   for (const n of (tolerar(resNotas, "las notas de crédito").datos ?? []) as { id: string; serie: string; numero: number; comprobante_original_id: string | null }[]) {

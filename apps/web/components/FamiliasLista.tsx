@@ -6,9 +6,11 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
 /**
  * Familias del negocio (Indumentaria, Calzado, Accesorios y Complementos...).
@@ -152,47 +154,15 @@ export function FamiliasLista({
       </div>
 
       {borrador && (
-        <Modal
-          titulo={editando ? "Editar familia" : "Nueva familia"}
-          subtitulo={
-            editando
-              ? "El código interno no cambia — solo lo que ve la persona."
-              : "Queda disponible de inmediato al crear o editar una categoría."
-          }
+        <FamiliaModal
+          borrador={borrador}
+          editando={editando}
+          responsable={responsable}
+          guardando={guardando}
+          onCambio={setBorrador}
+          onGuardar={guardar}
           onClose={() => setBorrador(null)}
-        >
-          {(cerrar) => (
-            <>
-              <div className="mt-5 space-y-4">
-                <CampoTexto
-                  etiqueta="Nombre"
-                  value={borrador.nombre}
-                  onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                  placeholder="Ej. Hogar y Decoración"
-                  autoFocus
-                />
-              </div>
-              <ComboResponsable control={responsable} deshabilitado={guardando} className="mt-5" />
-              <div className="mt-6 flex justify-end gap-2">
-                <Boton peso="fantasma" onClick={cerrar}>
-                  Cancelar
-                </Boton>
-                <Boton
-                  peso="primario"
-                  cargando={guardando}
-                  disabled={!borrador.nombre.trim() || !responsable.listo}
-                  title={responsable.motivo ?? undefined}
-                  onClick={async () => {
-                    await guardar();
-                    cerrar();
-                  }}
-                >
-                  {editando ? "Guardar cambios" : "Agregar familia"}
-                </Boton>
-              </div>
-            </>
-          )}
-        </Modal>
+        />
       )}
 
       {desactivadas.length > 0 && (
@@ -223,5 +193,83 @@ export function FamiliasLista({
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
+  );
+}
+
+/**
+ * La ventana de agregar o editar una familia. Su guía de foco (CLAUDE.md «Guía de foco») sale de lo que ya apaga el botón:
+ * un nombre y alguien que firma. Vive en su propio componente para que la guía nazca y muera con la ventana.
+ */
+function FamiliaModal({
+  borrador,
+  editando,
+  responsable,
+  guardando,
+  onCambio,
+  onGuardar,
+  onClose,
+}: {
+  borrador: Borrador;
+  editando: boolean;
+  responsable: ControlResponsable;
+  guardando: boolean;
+  onCambio: (b: Borrador) => void;
+  onGuardar: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const guia = useGuiaCampos([
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: borrador.nombre.trim() !== "", pendiente: "Escribe el nombre de la familia." },
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+  return (
+    <Modal
+      titulo={editando ? "Editar familia" : "Nueva familia"}
+      subtitulo={
+        editando
+          ? "El código interno no cambia — solo lo que ve la persona."
+          : "Queda disponible de inmediato al crear o editar una categoría."
+      }
+      onClose={onClose}
+    >
+      {(cerrar) => (
+        <>
+          <div className="mt-5 space-y-4">
+            <CampoGuiado id="nombre" guia={guia}>
+              <CampoTexto
+                etiqueta={guia.etiqueta("nombre", "Nombre")}
+                value={borrador.nombre}
+                onChange={(e) => onCambio({ ...borrador, nombre: e.target.value })}
+                placeholder="Ej. Hogar y Decoración"
+                autoFocus
+              />
+            </CampoGuiado>
+          </div>
+          <CampoGuiado id="responsable" guia={guia} className="mt-5">
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <div className="mt-4">
+            <PieGuia guia={guia} listo="Todo listo para guardar." />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Boton peso="fantasma" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              peso="primario"
+              cargando={guardando}
+              disabled={!borrador.nombre.trim() || !responsable.listo}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={guia.claseConfirmar}
+              onClick={async () => {
+                await onGuardar();
+                cerrar();
+              }}
+            >
+              {editando ? "Guardar cambios" : "Agregar familia"}
+            </Boton>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

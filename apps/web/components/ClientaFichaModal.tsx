@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
+import { ajustarNumeroAlTipo, documentoLegible, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import {
   archivarClienta,
   buscarClienta,
@@ -31,7 +33,8 @@ function soles(n: number): string {
 
 function datosDeEdicion(c: Clienta): DatosEdicion {
   return {
-    dni: c.dni ?? "",
+    documentoTipo: c.documentoTipo,
+    documentoNumero: c.documentoNumero ?? "",
     nombre: c.nombre ?? "",
     telefonoWhatsapp: c.telefonoWhatsapp ?? "",
     aceptaWhatsapp: c.tienePermisoWhatsapp,
@@ -92,10 +95,19 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
   const activa = estaActiva(c);
   const tallas = deducirTallas(ficha.compras);
   const frecuente = estadoFrecuente(ficha.compras, new Date());
+  // Dentro de la ficha el documento se ve completo, con su tipo («DNI 71234482», «CE 001234567»): quien la abre ya la
+  // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
+  const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
 
   async function onEditar(e: React.FormEvent) {
     e.preventDefault();
     if (!edicion) return;
+    // El documento es opcional, pero si se escribe tiene que estar completo: la base rechaza uno a medias (ADR-0288 D-2).
+    const problema = problemaDocumento(edicion.documentoTipo, edicion.documentoNumero);
+    if (problema) {
+      avisar.error(problema, { enfocar: ID_NUMERO_DOCUMENTO });
+      return;
+    }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -191,7 +203,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
   return (
     <Modal
-      titulo={c.nombre ?? c.dni ?? "Sin nombre"}
+      titulo={c.nombre ?? documento ?? "Sin nombre"}
       subtitulo={
         !activa
           ? c.anonimizada
@@ -199,7 +211,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
               : `Archivada: ${c.motivoArchivo}`
-          : [c.dni ? `DNI ${c.dni}` : null, c.telefonoWhatsapp].filter(Boolean).join(" · ") || "Sin DNI ni WhatsApp"
+          : [documento, c.telefonoWhatsapp].filter(Boolean).join(" · ") || "Sin documento ni WhatsApp"
       }
       onClose={onClose}
       variante="hoja"
@@ -305,7 +317,17 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
           {modo === "editar" && edicion && (
             <form onSubmit={onEditar} className="space-y-4">
-              <CampoTexto etiqueta="DNI" value={edicion.dni} onChange={(e) => setEdicion((d) => d && { ...d, dni: e.target.value })} mono inputMode="numeric" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CampoTipoDocumento
+                  tipo={edicion.documentoTipo}
+                  onTipo={(t) => setEdicion((d) => d && { ...d, documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, d.documentoNumero) })}
+                />
+                <CampoNumeroDocumento
+                  tipo={edicion.documentoTipo}
+                  numero={edicion.documentoNumero}
+                  onNumero={(v) => setEdicion((d) => d && { ...d, documentoNumero: v })}
+                />
+              </div>
               <CampoTexto etiqueta="Nombre" value={edicion.nombre} onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })} />
               <CampoTexto
                 etiqueta="WhatsApp"
@@ -366,7 +388,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 activo={anonimizar}
                 onActivo={setAnonimizar}
                 etiqueta="Anonimizar sus datos personales (Ley 29733)"
-                pie="Borra DNI, WhatsApp, cumpleaños y tallas de esta ficha. Sus compras y apartados NO se tocan — solo desaparece quién es. No se puede deshacer."
+                pie="Borra documento, WhatsApp, cumpleaños y tallas de esta ficha. Sus compras y apartados NO se tocan — solo desaparece quién es. No se puede deshacer."
               />
               <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex justify-end gap-3 pt-2">
@@ -388,7 +410,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               </p>
               <form onSubmit={onBuscarParaUnir} className="flex items-end gap-3">
                 <div className="max-w-sm flex-1">
-                  <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="DNI, WhatsApp o nombre…" />
+                  <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ />
                 </div>
                 <Boton type="submit">Buscar</Boton>
               </form>
@@ -405,7 +427,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                         className={`card-cayla flex w-full items-center justify-between gap-4 p-3 text-left ${aFusionar?.id === otra.id ? "ring-2 ring-rojo" : ""}`}
                       >
                         <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
-                        <span className="text-xs text-tinta/65">{[otra.dni, otra.telefonoWhatsapp].filter(Boolean).join(" · ")}</span>
+                        <span className="text-xs text-tinta/65">{[documentoLegible(otra.documentoTipo, otra.documentoNumero, false), otra.telefonoWhatsapp].filter(Boolean).join(" · ")}</span>
                       </button>
                     ))
                   )}

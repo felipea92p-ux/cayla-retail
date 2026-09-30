@@ -19,10 +19,19 @@
  * una versión distinta-pero-igual-a-la-otra NO chocan aquí; chocan al fusionar la segunda,
  * y es en ese PR (ya con la primera en `main`) donde este candado se pone rojo. Por eso
  * corre también en `pull_request`.
+ * Pero solo si el CI de ese PR corre DESPUÉS de que la primera entró a `main`. El ruleset
+ * `main-protegida` tiene `strict_required_status_checks_policy: false` (CONTRIBUTING.md §2):
+ * acepta el verde de una corrida vieja. El 2026-09-30 el CI de #643 (Conteo) corrió a las
+ * 14:58 UTC, #642 (Terminales) entró a `main` a las 15:04 con la misma versión
+ * `20260930050000`, y #643 se fusionó a las 15:12 con su verde de antes. Este candado se
+ * puso rojo recién en el push a `main`. Ninguna regla dentro del repo lo evita: lo cierra
+ * `strict: true` en el ruleset (o una cola de fusión), y eso lo decide Felipe.
  *
  * QUÉ HACER SI SALE ROJO. Renombra la que AÚN NO corrió en producción a un timestamp libre
  * justo después. Nunca la que ya se pegó allá: su nombre puede estar en el historial de
  * producción. Y actualiza toda referencia al nombre viejo (`git grep '<nombre viejo>'`).
+ * Deja en su cabecera «RENOMBRADA el … desde `<nombre viejo>`» (el check «SQL pegado»
+ * acepta un renombre que solo toca la cabecera de comentarios, ver `sql-pegado.mjs`).
  *
  * USO
  *   pnpm migraciones:versiones               → revisa supabase/migrations/

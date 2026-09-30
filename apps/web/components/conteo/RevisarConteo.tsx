@@ -17,6 +17,7 @@ import { paginar } from "@/lib/paginacion";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
+import { claveResponsableConteo } from "@/lib/responsable-conteo";
 
 /* ====================================================================
    Revisar conteo · lo que no coincide, antes de tocar las existencias
@@ -38,9 +39,9 @@ import { useResponsable } from "@/lib/useResponsable";
    `x-espera: no`: son gestos de una fila entre muchas y la fila dice «Confirmando…» por sí sola; un loader a pantalla
    completa por cada clic haría imposible revisar 30 diferencias seguidas.
 
-   Firman con el combo «Responsable» de esta pantalla (ADR-0161/0162). Un éxito NO reinicia el combo (`despues` solo se
-   llama en un rechazo): quien elige a otra persona y confirma 20 diferencias no debe volver a firmar como él mismo
-   entre una y otra.
+   Firman con el responsable que se eligió al ABRIR el conteo (ADR-0161/0162; 2026-09-30): esta pantalla no lo vuelve a
+   preguntar. El combo solo aparece si no hay responsable vigente (otro navegador, o esa persona ya no está de turno).
+   Un éxito NO lo reinicia: quien confirma 20 diferencias no debe volver a firmar como otra persona entre una y otra.
    ==================================================================== */
 
 const POR_PAGINA_DIFERENCIAS = 20;
@@ -95,7 +96,8 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
     }
   }, [conteoId, generadoEn, router]);
 
-  const responsable = useResponsable();
+  // El responsable se eligió al abrir el conteo (`recordarEn`): aquí solo se reutiliza. El combo vuelve solo si esa persona ya no está de turno.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
   const [filas, setFilas] = useState(filasIniciales);
   const [ocupadas, setOcupadas] = useState<Record<string, Accion>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -199,7 +201,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
     <>
       <section id="revisar-resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
         <ResumenConteo resumen={resumen} variante="revision" />
-        <ComboResponsable control={responsable} deshabilitado={alguienOcupado} className="w-full sm:w-72" />
+        {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={alguienOcupado} className="w-full sm:w-72" />}
       </section>
 
       {conPendientes && (

@@ -6,9 +6,11 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
   BarraAtributos,
@@ -332,32 +334,17 @@ export function TejidosLista({
       </div>
 
       {agregando && (
-        <Modal titulo="Nuevo tejido" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." ancho="max-w-sm" onClose={() => setAgregando(false)}>
-          {(cerrar) => (
-            <div className="mt-5 space-y-4">
-              <CampoTexto etiqueta="Nombre del tejido" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Algodón" autoFocus />
-              {puedeEditar && (
-                <CampoTexto
-                  etiqueta="Cómo se ve (opcional)"
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Ej. denim azul claro, grueso"
-                  maxLength={120}
-                  pie="Si lo describes, te proponemos un dibujo con los colores del catálogo. Lo usas solo si te gusta."
-                />
-              )}
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
-                  Cancelar
-                </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
-                  Guardar
-                </Boton>
-              </div>
-            </div>
-          )}
-        </Modal>
+        <NuevoTejidoModal
+          nombre={nombre}
+          onNombre={setNombre}
+          descripcion={descripcion}
+          onDescripcion={setDescripcion}
+          conDescripcion={puedeEditar}
+          responsable={responsable}
+          guardando={guardando}
+          onGuardar={guardar}
+          onClose={() => setAgregando(false)}
+        />
       )}
 
       {rechazandoTejido && (
@@ -429,5 +416,80 @@ export function TejidosLista({
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
     </div>
+  );
+}
+
+/**
+ * La ventana de agregar tejido. Su guía de foco (CLAUDE.md «Guía de foco») sale de lo que ya apaga el botón: un nombre y alguien
+ * que firma; la descripción del dibujo es opcional. Vive en su propio componente para que la guía nazca y muera con la ventana.
+ */
+function NuevoTejidoModal({
+  nombre,
+  onNombre,
+  descripcion,
+  onDescripcion,
+  conDescripcion,
+  responsable,
+  guardando,
+  onGuardar,
+  onClose,
+}: {
+  nombre: string;
+  onNombre: (v: string) => void;
+  descripcion: string;
+  onDescripcion: (v: string) => void;
+  /** Solo quien puede editar propone un dibujo desde una frase. */
+  conDescripcion: boolean;
+  responsable: ControlResponsable;
+  guardando: boolean;
+  onGuardar: () => void;
+  onClose: () => void;
+}) {
+  const guia = useGuiaCampos([
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del tejido." },
+    ...(conDescripcion ? [{ id: "descripcion", nombre: "Cómo se ve", requerido: false, hecho: descripcion.trim() !== "", pendiente: "" }] : []),
+    { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
+  ]);
+  return (
+    <Modal titulo="Nuevo tejido" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." ancho="max-w-sm" onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-4">
+          <CampoGuiado id="nombre" guia={guia}>
+            <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre del tejido")} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder="Ej. Algodón" autoFocus />
+          </CampoGuiado>
+          {conDescripcion && (
+            <CampoGuiado id="descripcion" guia={guia}>
+              <CampoTexto
+                etiqueta={guia.etiqueta("descripcion", "Cómo se ve (opcional)")}
+                value={descripcion}
+                onChange={(e) => onDescripcion(e.target.value)}
+                placeholder="Ej. denim azul claro, grueso"
+                maxLength={120}
+                pie="Si lo describes, te proponemos un dibujo con los colores del catálogo. Lo usas solo si te gusta."
+              />
+            </CampoGuiado>
+          )}
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para guardar." />
+          <div className="flex gap-2">
+            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton
+              peso="primario"
+              onClick={onGuardar}
+              cargando={guardando}
+              disabled={!nombre.trim() || !responsable.listo}
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={`flex-1 ${guia.claseConfirmar}`}
+            >
+              Guardar
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

@@ -10,11 +10,13 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { NuevaClientaModal } from "@/components/NuevaClientaModal";
 import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { descargarCsv } from "@/lib/exportar-csv";
+import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clienta-reglas";
 
 // Clientas, paso 2 del acta (D-92 a D-111, docs/datos/DECISIONES-2026-09-26-clientas.md sección
-// H): de la pantalla mínima de verificación (D-76/D-77) a la de verdad — buscar por DNI o
-// celular, abrir la ficha (compras, cambios, devoluciones y apartados LEÍDOS de sus tablas,
-// nunca copiados), editar con candado optimista, archivar/anonimizar y unir dos fichas (D-99).
+// H): de la pantalla mínima de verificación (D-76/D-77) a la de verdad — buscar por documento
+// (DNI, carné de extranjería o pasaporte, ADR-0288 D-2) o celular, abrir la ficha (compras,
+// cambios, devoluciones y apartados LEÍDOS de sus tablas, nunca copiados), editar con candado
+// optimista, archivar/anonimizar y unir dos fichas (D-99).
 // D-109: cualquier cuenta con el módulo ve a TODAS las clientas, sin distinguir sede — por eso
 // la cabecera dice «Todas las sedes» en vez de mostrar la sede activa (Felipe, 2026-09-27).
 export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { clientasIniciales: Clienta[]; busquedaInicial?: string }) {
@@ -40,9 +42,10 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
     }
     descargarCsv(
       `clientas-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["DNI", "Nombre", "WhatsApp", "Permiso WhatsApp", "Cumpleaños", "Registrada", "Estado"],
+      ["Tipo de documento", "Número de documento", "Nombre", "WhatsApp", "Permiso WhatsApp", "Cumpleaños", "Registrada", "Estado"],
       clientas.map((c) => [
-        c.dni ?? "",
+        c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
+        c.documentoNumero ?? "",
         c.nombre ?? "",
         c.telefonoWhatsapp ?? "",
         c.tienePermisoWhatsapp ? "sí" : "no",
@@ -90,7 +93,7 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Clientas"
-        subtitulo="El club de CAYLA: identifícala por DNI o celular y la tienda la recuerda."
+        subtitulo="El club de CAYLA: identifícala por su documento o celular y la tienda la recuerda."
         acciones={
           <>
             <Boton onClick={onExportar} cargando={exportando} title="Solo un Admin puede exportar la lista completa">
@@ -106,7 +109,7 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
       <div className="card-cayla space-y-4 p-5">
         <form onSubmit={onBuscar} className="flex flex-wrap items-end gap-3">
           <div className="max-w-sm flex-1">
-            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="DNI, WhatsApp o nombre…" caja />
+            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ caja />
           </div>
           <Boton type="submit" peso="primario" cargando={buscando}>
             Buscar
@@ -152,7 +155,8 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-tinta">{c.nombre ?? "Sin nombre"}</p>
                     <p className="mt-0.5 truncate text-xs text-tinta/65">
-                      {[c.dni ? `DNI ${c.dni}` : null, c.telefonoWhatsapp].filter(Boolean).join(" · ") || "Sin DNI ni WhatsApp"}
+                      {[documentoLegible(c.documentoTipo, c.documentoNumero, false), c.telefonoWhatsapp].filter(Boolean).join(" · ") ||
+                        "Sin documento ni WhatsApp"}
                       {c.cumpleDia && c.cumpleMes ? ` · cumple ${c.cumpleDia}/${c.cumpleMes}` : ""}
                     </p>
                   </div>

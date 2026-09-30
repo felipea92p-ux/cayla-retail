@@ -210,7 +210,7 @@ export function AltaAlVuelo({
             opciones={[{ valor: "", texto: "Sin color" }, ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre }))]}
           />
           <p className="text-xs text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando} />}
           {error && (
             <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
               {error}
