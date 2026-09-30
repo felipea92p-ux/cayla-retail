@@ -4,6 +4,7 @@ import {
   carritoPasaElUmbral,
   conStockComprometidoDescontado,
   firmaDeVentaEncolada,
+  llevaCanje,
   pasaElUmbralDeSobra,
   stockComprometido,
   totalEfectivoEncolado,
@@ -166,5 +167,19 @@ describe("firmaDeVentaEncolada — el responsable viaja con la venta sin conexi�
 
   it("una venta encolada antes del combo (sin responsable) sube sin firma, como antes", () => {
     expect(firmaDeVentaEncolada(venta({ items: [] }))).toBeNull();
+  });
+});
+
+// ADR-0288 D-5: una venta con el canje del cumpleaños no se encola nunca. Basta cualquiera de las dos señales.
+describe("llevaCanje: la venta con el cumpleaños no va a la cola", () => {
+  const item = { variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 0 };
+  it("sin canje, se puede encolar como siempre", () => {
+    expect(llevaCanje({ p_items: [item] })).toBe(false);
+    expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: false })).toBe(false);
+    expect(llevaCanje({ p_items: [{ ...item, descuento_club_unitario: 0 }] })).toBe(false);
+  });
+  it("con el parámetro o con la parte del club en un ítem, no", () => {
+    expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: true })).toBe(true);
+    expect(llevaCanje({ p_items: [{ ...item, descuento_unitario: 7.99, descuento_club_unitario: 7.99 }] })).toBe(true);
   });
 });

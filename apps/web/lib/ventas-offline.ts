@@ -62,9 +62,10 @@ export type ItemRegistrarVenta = {
   color_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (16 parámetros, hoy; la caja manda los 12 de abajo: `p_cliente_id` se sumó
- *  en la tanda 1a del club, ADR-0288). Se guarda entero en la cola y se reenvía sin cambios al subir — el `p_token`
- *  adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
+/** El payload completo de `registrar_venta` (17 parámetros, hoy; la caja manda los 13 de abajo: `p_cliente_id` se sumó
+ *  en la tanda 1a del club y `p_canjear_cumpleanos` en la 1c, ADR-0288). Se guarda entero en la cola y se reenvía sin
+ *  cambios al subir — el `p_token` adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta
+ *  pestaña o desde otra) no duplica. Una venta con el canje del cumpleaños NUNCA entra a la cola (`llevaCanje`). */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
@@ -84,8 +85,8 @@ export type ParamsRegistrarVenta = {
    *  viaja en `x-responsable`: la venta queda a nombre de quien la hizo, no de la cuenta. */
   p_asesora_id?: string;
   /** Canjear el cumpleaños de la socia del ticket (ADR-0288 D-5): la base exige socia, su mes de Lima y un canje por año, y
-   *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión; si igual llega en la cola con el canje ya
-   *  usado, la venta se rechaza entera y la cola la muestra como rechazo (ADR-0036). */
+   *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión, y una venta con canje no se encola
+   *  (`llevaCanje`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (esperar, o quitarlo). */
   p_canjear_cumpleanos?: boolean;
 };
 
@@ -164,6 +165,13 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
     if (!pasaElUmbralDeSobra(stockPisoOverlay.get(varianteId) ?? 0, cantidad)) return false;
   }
   return true;
+}
+
+/** ¿Esta venta canjea el cumpleaños? Entonces NO se encola (ADR-0288 D-5): sin conexión otra tienda podría canjearlo a la
+ *  vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el precio rebajado. Mira las dos
+ *  señales (el parámetro y la parte del club de cada ítem): la base exige que vayan juntas (`cumple_sin_canje`). */
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_items">): boolean {
+  return params.p_canjear_cumpleanos === true || params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0);
 }
 
 /** Cuánto de lo encolado sin subir es en EFECTIVO. Importa porque `retail.cerrar_caja`

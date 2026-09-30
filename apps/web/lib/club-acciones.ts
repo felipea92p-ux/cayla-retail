@@ -103,6 +103,14 @@ export type ResumenClientaCaja = {
   celular: string | null;
   cumpleDia: number | null;
   cumpleMes: number | null;
+  /** El canje del cumpleaños (tanda 1c, ADR-0288 D-5): socia activa, en su mes de Lima y sin canje vivo este año. Lo decide
+   *  la base; la caja lo muestra con `cumpleEnCaja` (lib/club-cumple-canje-reglas.ts). */
+  cumpleDisponible: boolean;
+  /** El % de `configuracion_empresa.club_cumple_pct` (10 por defecto): nunca escrito a mano en la pantalla. */
+  cumplePct: number | null;
+  cumpleCanjeadoEsteAnio: boolean;
+  /** El día de Lima (`aaaa-mm-dd`) en que lo canjeó este año, o null: «Cumpleaños canjeado el 12 sep». */
+  cumpleCanjeadoEl: string | null;
 };
 
 /** Lo que la tarjeta de la clienta necesita en Cobrar (lectura: `resumen_` no abre el loader). */
@@ -119,6 +127,11 @@ export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: 
           celular: f.celular,
           cumpleDia: f.cumple_dia,
           cumpleMes: f.cumple_mes,
+          // Una base sin la tanda 1c no trae estas columnas: sin ellas no se ofrece el canje (principio 9).
+          cumpleDisponible: f.cumple_disponible === true,
+          cumplePct: f.cumple_pct == null ? null : Number(f.cumple_pct),
+          cumpleCanjeadoEsteAnio: f.cumple_canjeado_este_anio === true,
+          cumpleCanjeadoEl: f.cumple_canjeado_el ?? null,
         }
       : null,
     error,

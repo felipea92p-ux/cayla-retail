@@ -1,16 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   anioLima,
+  avisoCumpleApagado,
+  ayudaCumpleFueraDeMes,
+  ayudaPieCumple,
+  canjeSinConexion,
   cumpleEnCaja,
   descuentoClubLinea,
   descuentosParaRegistrar,
+  diaYMesCorto,
+  filaDelCumple,
+  finDelMesLima,
   mesLima,
   PCT_CUMPLE_POR_DEFECTO,
   pctDelCanje,
+  rechazoDelCanje,
   textoBotonCumple,
-  textoLineaCumple,
+  textoCumpleCobrado,
+  textoCumpleEnElRecibo,
+  textoPieCumple,
   ticketConCumple,
-  TEXTO_CUMPLE_CANJEADO,
   type ResumenCumple,
 } from "./club-cumple-canje-reglas";
 
@@ -184,13 +193,128 @@ describe("pctDelCanje: se apaga solo", () => {
 });
 
 describe("los textos", () => {
-  it("«−10 % cumpleaños» en cada prenda y «Canjear 10 %» en el botón", () => {
-    expect(textoLineaCumple(10)).toBe("−10 % cumpleaños");
+  it("«Canjear 10 %» en el botón, con el % de la base y sin ceros de más", () => {
     expect(textoBotonCumple(10)).toBe("Canjear 10 %");
-    expect(TEXTO_CUMPLE_CANJEADO).toBe("Cumpleaños ya canjeado");
-  });
-  it("un % con decimales, sin ceros de más", () => {
-    expect(textoLineaCumple(12.5)).toBe("−12.5 % cumpleaños");
     expect(textoBotonCumple(15.0)).toBe("Canjear 15 %");
+    expect(textoBotonCumple(12.5)).toBe("Canjear 12.5 %");
+  });
+  it("el pie del ticket es UNA línea de toda la compra (spike, punto 9), con su ayuda", () => {
+    expect(textoPieCumple(10)).toBe("Cumpleaños del club · 10 % de la compra");
+    expect(ayudaPieCumple(10, 461.2)).toBe("10 % de toda la compra (S/461.20), sobre lo ya rebajado");
+    expect(textoPieCumple(12.5)).toBe("Cumpleaños del club · 12.5 % de la compra");
+  });
+  it("después de cobrar y en el papel", () => {
+    expect(textoCumpleCobrado(46.12)).toBe(
+      "Cumpleaños canjeado (−S/46.12). No puede usarlo otra vez hasta el año que viene; devolver la compra tampoco lo devuelve."
+    );
+    expect(textoCumpleEnElRecibo(10, 46.12)).toBe("Incluye 10 % de cumpleaños del club: -46.12");
+  });
+  it("fuera de su mes, la ayuda dice el % de la base (o el de por defecto)", () => {
+    expect(ayudaCumpleFueraDeMes(10)).toBe("El 10 % se abre solo en su mes.");
+    expect(ayudaCumpleFueraDeMes(12.5)).toBe("El 12.5 % se abre solo en su mes.");
+    expect(ayudaCumpleFueraDeMes(null)).toBe(`El ${PCT_CUMPLE_POR_DEFECTO} % se abre solo en su mes.`);
+  });
+});
+
+describe("las fechas de la fila", () => {
+  it("«12 sep» del día del canje; null si no llega una fecha", () => {
+    expect(diaYMesCorto("2026-09-12")).toBe("12 sep");
+    expect(diaYMesCorto("2026-01-05")).toBe("5 ene");
+    expect(diaYMesCorto(null)).toBeNull();
+    expect(diaYMesCorto("")).toBeNull();
+    expect(diaYMesCorto("2026-13-01")).toBeNull();
+  });
+  it("hasta el último día del mes de LIMA (a las 23:30 del 30 de setiembre en Lima, en UTC ya es octubre)", () => {
+    expect(finDelMesLima(new Date("2026-09-15T15:00:00Z"))).toBe("30 sep");
+    expect(finDelMesLima(new Date("2026-10-01T04:30:00Z"))).toBe("30 sep");
+    expect(finDelMesLima(new Date("2026-10-01T05:00:00Z"))).toBe("31 oct");
+    expect(finDelMesLima(new Date("2028-02-10T15:00:00Z"))).toBe("29 feb"); // bisiesto
+    expect(finDelMesLima(new Date("2027-02-10T15:00:00Z"))).toBe("28 feb");
+    expect(finDelMesLima(new Date("2026-12-31T20:00:00Z"))).toBe("31 dic");
+  });
+});
+
+describe("filaDelCumple: lo que dibuja la caja de la clienta (spike, `partesClub`)", () => {
+  const SETIEMBRE = new Date("2026-09-15T15:00:00Z");
+
+  it("disponible: «Cumple este mes · 10 % disponible», hasta el fin de su mes, con «Canjear 10 %» (primario)", () => {
+    const f = filaDelCumple({ tipo: "disponible", pct: 10 }, false, null, SETIEMBRE);
+    expect(f).toMatchObject({
+      tipo: "canje",
+      destacado: "Cumple este mes",
+      resto: "10 % disponible",
+      bajada: "10 % de toda la compra, sobre lo ya rebajado · hasta el 30 sep",
+      boton: { texto: "Canjear 10 %", primario: true, accion: "canjear" },
+      pildora: { texto: "Canjear 10 %", accion: "canjear" },
+    });
+  });
+  it("aplicado: «Quitar» en la fila (secundario) y «Quitar 10 %» en la píldora", () => {
+    const f = filaDelCumple({ tipo: "disponible", pct: 10 }, true, null, SETIEMBRE);
+    expect(f).toMatchObject({ boton: { texto: "Quitar", primario: false, accion: "quitar" }, pildora: { texto: "Quitar 10 %", accion: "quitar" } });
+  });
+  it("sin conexión: el botón se apaga (sin acción) y la bajada lo dice", () => {
+    const f = filaDelCumple({ tipo: "sin_conexion", pct: 10 }, false, null, SETIEMBRE);
+    expect(f).toMatchObject({
+      tipo: "canje",
+      bajada: "Sin conexión el botón se apaga",
+      boton: { texto: "Sin conexión", accion: null },
+      pildora: { texto: "Sin conexión", accion: null },
+    });
+  });
+  it("el % sale de la base: 12.5 dice 12.5 en todo", () => {
+    const f = filaDelCumple({ tipo: "disponible", pct: 12.5 }, false, null, SETIEMBRE);
+    expect(f).toMatchObject({ resto: "12.5 % disponible", boton: { texto: "Canjear 12.5 %" } });
+    expect(f?.tipo === "canje" && f.bajada.startsWith("12.5 % de toda la compra")).toBe(true);
+  });
+  it("ya canjeado: el candado con el día, o «este año» si la base no lo trae", () => {
+    expect(filaDelCumple({ tipo: "canjeado" }, false, "2026-09-12", SETIEMBRE)).toMatchObject({
+      tipo: "canjeado",
+      destacado: "Cumpleaños canjeado",
+      resto: "el 12 sep",
+      bajada: "Una vez al año",
+    });
+    expect(filaDelCumple({ tipo: "canjeado" }, false, null, SETIEMBRE)).toMatchObject({ resto: "este año" });
+  });
+  it("nada: la caja sigue con lo de la tanda 1b (su fecha o «Sin cumpleaños»)", () => {
+    expect(filaDelCumple({ tipo: "nada" }, false, null, SETIEMBRE)).toBeNull();
+    expect(filaDelCumple({ tipo: "nada" }, true, null, SETIEMBRE)).toBeNull();
+  });
+});
+
+describe("cuando algo lo apaga", () => {
+  it("el aviso cuando se apaga solo dice por qué", () => {
+    expect(avisoCumpleApagado("sin_conexion", 10).titulo).toBe("Se quitó el 10 % de cumpleaños");
+    expect(avisoCumpleApagado("sin_conexion", 10).detalle).toMatch(/^Sin conexión no se canjea/);
+    expect(avisoCumpleApagado("no_disponible", 10).detalle).toMatch(/^Ya no está disponible/);
+  });
+
+  const LOS_SIETE = [
+    "cumple_sin_clienta",
+    "cumple_no_socia",
+    "cumple_fuera_de_mes",
+    "cumple_ya_canjeado",
+    "cumple_descuento_distinto",
+    "cumple_sin_canje",
+    "cumple_sin_monto",
+  ];
+  it.each(LOS_SIETE)("%s apaga el canje y dice que la venta no se guardó (nunca se vuelve a mandar sola sin el descuento)", (hint) => {
+    const r = rechazoDelCanje(hint, 10);
+    expect(r).not.toBeNull();
+    expect(r?.detalle).toMatch(/^La venta no se guardó\. /);
+    expect(r?.detalle).toContain("Quité el 10 %");
+  });
+  it("vuelve a leer su resumen cuando la base sabe algo que la caja no (ya canjeado, fuera de mes, no socia, % distinto)", () => {
+    const releen = LOS_SIETE.filter((h) => rechazoDelCanje(h, 10)?.releer);
+    expect(releen.sort()).toEqual(["cumple_descuento_distinto", "cumple_fuera_de_mes", "cumple_no_socia", "cumple_ya_canjeado"]);
+  });
+  it("un rechazo que no es del canje no lo toca (clienta_anonimizada lo traduce error-escritura y se quita a la clienta)", () => {
+    expect(rechazoDelCanje("clienta_anonimizada", 10)).toBeNull();
+    expect(rechazoDelCanje("stock_insuficiente", 10)).toBeNull();
+    expect(rechazoDelCanje(null, 10)).toBeNull();
+    expect(rechazoDelCanje(undefined, 10)).toBeNull();
+  });
+  it("sin conexión con el canje: no va a la cola, y lo dice", () => {
+    expect(canjeSinConexion(10).titulo).toBe("Se cortó la conexión: el 10 % de cumpleaños no se guarda sin internet");
+    expect(canjeSinConexion(10).detalle).toContain("no la duplica");
   });
 });
