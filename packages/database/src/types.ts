@@ -5906,6 +5906,20 @@ export type Database = {
           sububicacion_tipo: string
         }[]
       }
+      // ADR-0291 (20261001120000): lo que faltó en conteos cerrados y aún no se recupera, por prenda.
+      fn_faltantes_de_conteo: {
+        Args: { p_ubicacion_id: string; p_variante_ids: string[] }
+        Returns: {
+          cerrado_en: string
+          conteo_id: string
+          conteo_item_id: string
+          conteo_numero: number
+          encontradas: number
+          faltaron: number
+          pendientes: number
+          variante_id: string
+        }[]
+      }
       fn_costo_historial: {
         Args: { p_variante_id: string }
         Returns: {

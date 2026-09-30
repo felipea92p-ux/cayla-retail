@@ -19,6 +19,7 @@ import {
   lineaDesdeJson,
   mensajeMezclaEnCenso,
   notaAjuste,
+  textoHallazgoDeLinea,
   notaDeLinea,
   resultadoConteo,
   resumirLineas,
@@ -53,6 +54,7 @@ function linea(p: Partial<LineaConteo> & { debeHaber: number; contada: number | 
     ajusteMovimientoId: null,
     ajustadoTotal: 0,
     ajustadoAntes: 0,
+    hallazgos: 0,
     ...p,
   };
   const estado = estadoDeLinea(base);
@@ -654,6 +656,7 @@ describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella
     ajuste_movimiento_id: null,
     ajustado_total: 0,
     ajustado_antes: 0,
+    hallazgos: 0,
     estado: "con_diferencia",
     ...p,
   });
@@ -692,6 +695,7 @@ describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella
       ajusteMovimientoId: null,
       ajustadoTotal: 0,
       ajustadoAntes: 0,
+      hallazgos: 0,
       estado: "con_diferencia",
     });
   });
@@ -974,5 +978,21 @@ describe("crearAgrupadorDeGuardado — una ráfaga es un solo guardado", () => {
     expect(disparos).toEqual([]);
     vi.advanceTimersByTime(1);
     expect(disparos).toEqual([1]);
+  });
+});
+
+
+describe("textoHallazgoDeLinea — la prenda que faltó y apareció después (ADR-0291)", () => {
+  it("dice que ya se recuperó cuando lo encontrado cubre lo que faltó", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 1 })).toBe("La encontraron después: 1 recuperada");
+    expect(textoHallazgoDeLinea({ diferencia: -3, hallazgos: 3 })).toBe("La encontraron después: 3 recuperadas");
+  });
+  it("si solo apareció una parte, dice cuánto", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -3, hallazgos: 1 })).toBe("Ya aparecieron 1 de 3");
+  });
+  it("sin nada recuperado, o en una línea que no faltó, no dice nada", () => {
+    expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 0 })).toBeNull();
+    expect(textoHallazgoDeLinea({ diferencia: 1, hallazgos: 1 })).toBeNull();
+    expect(textoHallazgoDeLinea({ diferencia: null, hallazgos: 1 })).toBeNull();
   });
 });

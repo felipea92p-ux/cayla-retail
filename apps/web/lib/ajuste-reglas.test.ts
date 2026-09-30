@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   argumentosDeAjuste,
+  candidatasDeHallazgo,
+  faltantesDesdeJson,
+  resolverHallazgos,
+  textoFaltanteConteo,
+  textoHallazgoConExceso,
+  textoHallazgoSinResponder,
   armarVariantesAjuste,
   cargaInicialAlPiso,
   etiquetaCantidad,
@@ -455,12 +461,92 @@ describe("«Ajustar» de una vez, con marca (ADR-0240)", () => {
   });
 
   it("lee la respuesta de la base, y no inventa nada si no calza", () => {
-    expect(leerResultadoAjuste({ ajustes: 2, cargas: 0, unidades_cargadas: 0, ya_registrado: false })).toEqual({ ajustes: 2, cargas: 0, ya_registrado: false });
+    expect(leerResultadoAjuste({ ajustes: 2, cargas: 0, unidades_cargadas: 0, ya_registrado: false })).toEqual({ ajustes: 2, cargas: 0, enlazados: 0, ya_registrado: false });
     expect(leerResultadoAjuste({ ajustes: "2" })).toBeNull();
     expect(leerResultadoAjuste(null)).toBeNull();
   });
 
   it("el mensaje de respuesta incierta manda a reenviar lo mismo, no a rehacer", () => {
     expect(TEXTO_AJUSTE_INCIERTO).toMatch(/no se repite/);
+  });
+});
+
+
+describe("la prenda que faltó en un conteo y apareció (ADR-0291)", () => {
+  const fila = (p: Record<string, unknown> = {}) => ({
+    variante_id: "v1",
+    conteo_item_id: "item-13",
+    conteo_id: "c13",
+    conteo_numero: 13,
+    cerrado_en: "2026-09-30T14:31:00+00:00",
+    faltaron: 1,
+    encontradas: 0,
+    pendientes: 1,
+    ...p,
+  });
+  const linea = (varianteId: string, delta: number) => ({ variante: { varianteId }, delta });
+
+  it("lee lo que devuelve la base y se queda con UN faltante por prenda: el del conteo más reciente (llegan más recientes primero)", () => {
+    const m = faltantesDesdeJson([fila(), fila({ conteo_item_id: "item-9", conteo_numero: 9 }), fila({ variante_id: "v2", conteo_item_id: "item-x", conteo_numero: 5 })]);
+    expect(m.size).toBe(2);
+    expect(m.get("v1")).toMatchObject({ conteoItemId: "item-13", conteoNumero: 13, faltaron: 1, pendientes: 1 });
+    expect(m.get("v2")?.conteoNumero).toBe(5);
+  });
+
+  it("una respuesta rota, vacía o sin pendientes no pregunta nada (el ajuste sigue como cualquier otro)", () => {
+    expect(faltantesDesdeJson(null).size).toBe(0);
+    expect(faltantesDesdeJson({}).size).toBe(0);
+    expect(faltantesDesdeJson([fila({ conteo_numero: "13" })]).size).toBe(0);
+    expect(faltantesDesdeJson([fila({ pendientes: 0 })]).size).toBe(0);
+    expect(faltantesDesdeJson([null, 3, "x"]).size).toBe(0);
+  });
+
+  it("solo pregunta a las líneas que SUMAN una prenda con falta: una resta o una prenda sin falta no preguntan", () => {
+    const faltantes = faltantesDesdeJson([fila()]);
+    const c = candidatasDeHallazgo([linea("v1", 1), linea("v1b", 1)], faltantes);
+    expect(c.map((x) => x.linea.variante.varianteId)).toEqual(["v1"]);
+    expect(candidatasDeHallazgo([linea("v1", -1)], faltantes)).toHaveLength(0);
+    expect(candidatasDeHallazgo([linea("v1", 1)], new Map())).toHaveLength(0);
+  });
+
+  it("«Sí» enlaza a la línea del conteo; «No» no enlaza; sin responder queda pendiente de responder", () => {
+    const faltantes = faltantesDesdeJson([fila(), fila({ variante_id: "v2", conteo_item_id: "item-v2" }), fila({ variante_id: "v3", conteo_item_id: "item-v3" })]);
+    const c = candidatasDeHallazgo([linea("v1", 1), linea("v2", 1), linea("v3", 1)], faltantes);
+    const r = resolverHallazgos(c, { v1: "si", v2: "no" });
+    expect([...r.enlaces]).toEqual([["v1", "item-13"]]);
+    expect(r.sinResponder.map((x) => x.linea.variante.varianteId)).toEqual(["v3"]);
+    expect(r.conExceso).toHaveLength(0);
+  });
+
+  it("enlazar más de lo que faltó no se deja: dice cuánto se puede", () => {
+    const faltantes = faltantesDesdeJson([fila({ faltaron: 2, encontradas: 1, pendientes: 1 })]);
+    const c = candidatasDeHallazgo([linea("v1", 2)], faltantes);
+    const r = resolverHallazgos(c, { v1: "si" });
+    expect(r.enlaces.size).toBe(0);
+    expect(r.conExceso).toHaveLength(1);
+    expect(textoHallazgoConExceso("Camisa Lara Gris / Estándar", c[0].faltante)).toBe(
+      "En el Conteo 13 solo faltaron 1 de Camisa Lara Gris / Estándar: suma 1 para enlazarla y registra el resto en otro ajuste."
+    );
+    // «No, es otra cosa» sí deja sumar lo que sea.
+    expect(resolverHallazgos(c, { v1: "no" }).conExceso).toHaveLength(0);
+  });
+
+  it("los textos: el faltante dice el conteo y la fecha; el aviso nombra la prenda", () => {
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-09-30T14:31:00+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (30/09).");
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: null, faltaron: 3, encontradas: 1, pendientes: 2 })).toBe("Faltó 3 en el Conteo 13. Ya se encontró 1: quedan 2 por encontrar.");
+    expect(textoHallazgoSinResponder("Gris antracita / Estándar", { conteoNumero: 13 })).toBe("Indica si Gris antracita / Estándar es la prenda que faltó en el Conteo 13.");
+  });
+
+  it("al enviar, el enlace viaja solo en la línea enlazada; sin enlaces el envío es idéntico al de siempre", () => {
+    const base = { ubicacionId: "u", sububicacionId: null, cargaInicial: [], motivo: "otro", alPiso: false, nota: "", token: "t" };
+    const con = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: 1, conteoItemId: "item-13" }, { variante: { varianteId: "v2" }, delta: 2 }] });
+    expect(con.p_ajustes).toEqual([{ variante_id: "v1", cantidad: 1, conteo_item_id: "item-13" }, { variante_id: "v2", cantidad: 2 }]);
+    const sin = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: 1, conteoItemId: null }] });
+    expect(sin.p_ajustes).toEqual([{ variante_id: "v1", cantidad: 1 }]);
+  });
+
+  it("el aviso de éxito cuenta lo enlazado", () => {
+    expect(textoExitoAjuste({ ajustes: 1, cargas: 0, enlazados: 1 })).toBe("1 variante ajustada · 1 enlazada al conteo donde faltaba");
+    expect(leerResultadoAjuste({ ajustes: 1, cargas: 0, enlazados: 1, ya_registrado: false })?.enlazados).toBe(1);
   });
 });
