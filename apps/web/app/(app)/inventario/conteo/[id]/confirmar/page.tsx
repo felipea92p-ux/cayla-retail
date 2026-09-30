@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
-import { bloqueoDeCierre, textoLugar } from "@/lib/conteo-reglas";
+import { bloqueoDeCierre, textoLugar, yaAjustadaSinTocar } from "@/lib/conteo-reglas";
 import { diferenciasEnOrden, unirLineasConPrendas } from "@/lib/conteo-revision";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -28,8 +28,11 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
   const parcial = (Array.isArray(pedidoParcial) ? pedidoParcial[0] : pedidoParcial) === "1" && r.pendientes > 0;
   if (bloqueoDeCierre(r, parcial) !== null) redirect(`/inventario/conteo/${c.id}/revisar`);
 
-  // Al navegador solo viajan las variantes que cambian: son las que esta pantalla lista.
-  const aActualizar = diferenciasEnOrden(unirLineasConPrendas(detalle.lineas, prendas));
+  // Al navegador solo viajan las variantes que cambian: son las que esta pantalla lista. Una línea que el cierre anterior ya ajustó
+  // y nadie volvió a contar (conteo reabierto para corregir) NO cambia: cerrar no la toca, y anunciarla con «quedará en N» era falso.
+  const conDiferencia = diferenciasEnOrden(unirLineasConPrendas(detalle.lineas, prendas));
+  const aActualizar = conDiferencia.filter((f) => !yaAjustadaSinTocar(f));
+  const yaAjustadas = conDiferencia.length - aActualizar.length;
 
   return (
     <div className="space-y-6 pb-56 sm:pb-28">
@@ -44,6 +47,7 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         conteoId={c.id}
         filas={aActualizar}
         correctas={r.correctas}
+        yaAjustadas={yaAjustadas}
         pendientes={r.pendientes}
         parcial={parcial}
         puedeCerrar={puede(persona, "ajustarInventario")}

@@ -19,6 +19,9 @@ import {
   lineaDesdeJson,
   mensajeMezclaEnCenso,
   notaAjuste,
+  textoHabiaAntes,
+  ajusteDelUltimoCierre,
+  yaAjustadaSinTocar,
   textoHallazgoDeLinea,
   notaDeLinea,
   resultadoConteo,
@@ -199,6 +202,12 @@ describe("notaDeLinea y notaAjuste", () => {
 
   it("al volver a contar la nota cambia a «Al abrir…»: el «debe haber» ya es el de hoy", () => {
     expect(notaDeLinea({ foto: 3, debeHaber: 2, contada: 3, ajustadoAntes: -1, ajustadoTotal: -1 })).toBe("Al abrir: 3 · el cierre de este conteo restó 1");
+  });
+
+  // Conteo 25 corregido dos veces (Adelle Wide Leg: 3 → 2 → 3): el neto es 0, pero la línea se vuelve a corregir.
+  it("un conteo ya corregido una vez (neto 0) vuelve a decir de dónde viene al corregirlo otra vez", () => {
+    // El «Había» es el de la marca fija (3), no el «debe haber» de la fila (2): un solo número para toda la corrección.
+    expect(notaDeLinea({ foto: 3, debeHaber: 2, contada: 3, ajustadoAntes: -1, ajustadoTotal: 0 })).toBe("Había 3 · este conteo ya se corrigió antes y volvió a 3. Ahora estás corrigiendo.");
   });
 
   it("una línea sin ajuste de cierre (conteo que nunca se cerró, o la cifra coincidió) no dice «corrigiendo»", () => {
@@ -1010,5 +1019,47 @@ describe("textoHallazgoDeLinea — la prenda que faltó y apareció después (AD
     expect(textoHallazgoDeLinea({ diferencia: -1, hallazgos: 0 })).toBeNull();
     expect(textoHallazgoDeLinea({ diferencia: 1, hallazgos: 1 })).toBeNull();
     expect(textoHallazgoDeLinea({ diferencia: null, hallazgos: 1 })).toBeNull();
+  });
+});
+
+
+describe("textoHabiaAntes — la marca fija bajo «Debe haber» al corregir un conteo", () => {
+  it("antes de volver a contar dice con cuánto se había contado (el «debe haber» de entonces)", () => {
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: -1 })).toBe("Había 3");
+  });
+  it("NO cambia cuando se cuenta de nuevo y el «debe haber» salta de 3 a 2: sigue diciendo 3", () => {
+    expect(textoHabiaAntes({ debeHaber: 2, ajustadoAntes: -1, ajustadoTotal: -1 })).toBe("Había 3");
+    // Y con un ajuste que sumó: había 4, el cierre sumó 3 (hoy 7).
+    expect(textoHabiaAntes({ debeHaber: 4, ajustadoAntes: 0, ajustadoTotal: 3 })).toBe("Había 4");
+    expect(textoHabiaAntes({ debeHaber: 7, ajustadoAntes: 3, ajustadoTotal: 3 })).toBe("Había 4");
+  });
+  it("con dos cierres que se compensan (3 → 2 → 3, neto 0) sigue recordando el punto de partida", () => {
+    expect(textoHabiaAntes({ debeHaber: 2, ajustadoAntes: -1, ajustadoTotal: 0 })).toBe("Había 3");
+    // Ya vuelta a contar (antes = total = 0): el neto no dice que hubo cierres; lo dice el último ajuste anotado.
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: 0, ajusteMovimientoId: "mov-2" })).toBe("Había 3");
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: 0, ajusteMovimientoId: null })).toBeNull();
+  });
+  it("sin ajuste de cierre en la línea (conteo normal, o la cifra coincidió) no pone nada", () => {
+    expect(textoHabiaAntes({ debeHaber: 3, ajustadoAntes: 0, ajustadoTotal: 0 })).toBeNull();
+    expect(textoHabiaAntes({ debeHaber: 3 })).toBeNull();
+  });
+});
+
+
+describe("línea ya ajustada y sin volver a contar (Confirmar no la anuncia como cambio)", () => {
+  it("el ajuste del último cierre que el «debe haber» todavía no incluye", () => {
+    expect(ajusteDelUltimoCierre({ ajustadoTotal: -1, ajustadoAntes: 0 })).toBe(-1);
+    expect(ajusteDelUltimoCierre({ ajustadoTotal: 0, ajustadoAntes: -1 })).toBe(1); // 3 → 2 → 3: el neto es 0, el último fue +1
+    expect(ajusteDelUltimoCierre({ ajustadoTotal: -1, ajustadoAntes: -1 })).toBe(0); // ya se volvió a contar
+    expect(ajusteDelUltimoCierre({})).toBe(0);
+  });
+  it("solo una línea contada, ajustada por el cierre anterior y sin tocar, cuenta como «ya ajustada»", () => {
+    expect(yaAjustadaSinTocar({ contada: 2, ajustadoTotal: -1, ajustadoAntes: 0 })).toBe(true);
+    expect(yaAjustadaSinTocar({ contada: 3, ajustadoTotal: 0, ajustadoAntes: -1 })).toBe(true);
+    // Volvió a contarse en este conteo reabierto: sí cambia al cerrar.
+    expect(yaAjustadaSinTocar({ contada: 3, ajustadoTotal: -1, ajustadoAntes: -1 })).toBe(false);
+    // Conteo que nunca se cerró, o pendiente: nada que excluir.
+    expect(yaAjustadaSinTocar({ contada: 2, ajustadoTotal: 0, ajustadoAntes: 0 })).toBe(false);
+    expect(yaAjustadaSinTocar({ contada: null, ajustadoTotal: -1, ajustadoAntes: 0 })).toBe(false);
   });
 });
