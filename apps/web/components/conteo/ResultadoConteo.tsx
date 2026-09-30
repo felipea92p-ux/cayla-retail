@@ -13,11 +13,11 @@ import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 /* ====================================================================
    ResultadoConteo · «Conteo terminado» (Inventario ▸ Conteo, rediseño 2026-09-29)
 
-   Lo que se ve al abrir un conteo ya cerrado: cómo salió (todo correcto, N diferencias corregidas, parcial), cuántas
+   Lo que se ve al abrir un conteo ya cerrado: cómo salió (todo correcto, N diferencias encontradas, parcial), cuántas
    variantes se verificaron, y tres salidas —Existencias para ver cómo quedó el stock, Movimientos para ver cada ajuste,
-   y la vuelta a Conteo— más «Editar conteo», que lo reabre para corregirlo (`EditarConteo`). Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
+   y la vuelta a Conteo— más «Corregir conteo», que lo reabre para corregirlo (`EditarConteo`). Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
 
-   «Variantes corregidas» da el rastro sin ir a Movimientos: cada variante que se ajustó, con lo que CAYLA esperaba y lo
+   «Variantes con diferencia» da el rastro sin ir a Movimientos: cada variante que se ajustó, con lo que CAYLA esperaba y lo
    que se contó («11 → 9»). Solo las que tienen su movimiento de ajuste (`ajusteMovimientoId`): lo que el cierre de verdad
    escribió. Con muchas (la primera cuenta de una tienda puede traer cientos) se muestran las primeras y el resto se
    dice con su número y el camino a Movimientos, para no dibujar cientos de fotos.
@@ -86,10 +86,10 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
       </section>
 
       {visibles.length > 0 && (
-        <section className="card-cayla @container overflow-hidden" aria-labelledby="variantes-corregidas">
+        <section className="card-cayla @container overflow-hidden" aria-labelledby="variantes-con-diferencia">
           <div className="space-y-0.5 px-4 py-3.5 @[36rem]:px-5">
-            <h2 id="variantes-corregidas" className="font-display text-lg text-tinta">
-              Variantes corregidas
+            <h2 id="variantes-con-diferencia" className="font-display text-lg text-tinta">
+              Variantes con diferencia
             </h2>
             <p className="text-sm text-taupe">Lo que CAYLA esperaba y lo que se contó. El stock quedó ajustado.</p>
           </div>
