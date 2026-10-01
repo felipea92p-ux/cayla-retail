@@ -1,8 +1,8 @@
 # ADR-0300 · «Subir a almacén» por prenda: todas sus tallas en una ventana, y una función que no deja la subida a medias
 
 - **Fecha:** 2026-10-01 · **Estado:** construido en la rama `claude/subir-a-almacen-por-prenda`, PR abierto. **Producción: la migración
-  `20261001150000_retirar_del_piso.sql` NO está pegada** y va **ANTES** de fusionar (ver «Cómo se despliega»): una web nueva contra una base sin esa
-  función falla con «Could not find the function».
+  `20261001150000_retirar_del_piso.sql` se pegó el 2026-10-01** (con el ok de Felipe, ensayada antes en una transacción que se revierte sola y
+  verificada después: ver «Aplicación en producción»). La web que la llama **todavía no está fusionada**: nadie ve el botón hasta fusionar.
 - **Pedido:** Felipe, 2026-10-01: un botón **«Subir a almacén»** entre «Reponer» y «Ajustar» en la tarjeta de Existencias; y que «Ver detalle» quede
   **solo con su icono, chico**, y diga «Ver detalle» al pasar el mouse.
 - **Complementa:** ADR-0295 (Reponer por prenda), ADR-0208 (bajada y retiro del piso, marca de reintento), ADR-0240 (una puerta, un candado),
@@ -76,6 +76,23 @@ cosa que la fila. Por eso el aviso pregunta a esa función y no tiene umbrales p
    p.proname = 'retirar_del_piso';` → una fila, «p_ubicacion_id uuid, p_items jsonb, p_nota text, p_token uuid».
 3. Marcar la casilla «SQL pegado» del PR y **recién entonces** fusionar (publicar la web).
 4. Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
+
+## Aplicación en producción (2026-10-01, Felipe: «sí, pégala en producción»)
+
+1. **Antes (solo lectura):** la función no existía; sí existían `mover_interno` con `p_token` (una sola firma), `fn_bloquear_en_orden`,
+   `fn_prenda_corta`, `fn_actor_persona_id(boolean)`, `fn_ve_modulo`, `fn_puede_operar_ubicacion`, la tabla `movimientos_internos_intentos` y el
+   módulo `bajada_piso`; tres tiendas separan piso y almacén.
+2. **Ensayo** en una transacción que termina en error a propósito (todo se revirtió: la función siguió sin existir y ninguna fila llevó la nota
+   del ensayo), con la sesión de un **Admin** —producción exige responsable, `fn_exige_responsable()`; un líder que no es Admin recibe «Elige quién
+   hace esta operación», como corresponde— y datos reales de Tienda TRU: sin marca → `retiro_sin_token`; una línea que alcanza más otra que pide
+   99 → `retiro_sin_alcance` y **0 movimientos nuevos**; el caso bueno movió 2 tallas piso → almacén (piso 2→1 y 2→1, almacén +1 y +1) con 2 filas
+   `traslado`/`movimiento_interno` y su nota; el reintento con la misma marca (otro orden) → `ya_registrada = true` sin mover nada.
+3. **Aplicada** con el texto exacto del archivo (`apply_migration`, nombre `retirar_del_piso`).
+4. **Verificada en el catálogo:** una sola firma `p_ubicacion_id uuid, p_items jsonb, p_nota text, p_token uuid`; `md5(prosrc)` =
+   `2cab85b29c32d45f511e27f33b5eea25`, **idéntico al calculado del archivo**; `anon` no ejecuta y `authenticated` sí; `security definer`;
+   `search_path = retail, public, extensions`; comentario puesto. No se llamó a la función de verdad en producción: ningún cambio real de stock.
+5. **Lo que sigue (no hecho aquí):** fusionar el PR (publica la web) y refrescar el volcado `docs/datos/generado/` (la función entra al diccionario
+   cuando se refresque) con `pnpm datos:comparar`.
 
 ## Cómo se verificó
 
