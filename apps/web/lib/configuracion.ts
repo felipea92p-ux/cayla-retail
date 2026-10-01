@@ -17,9 +17,16 @@ export type { CampanaConfig, ConfiguracionTiendas, EfectoCampana, TiendaConfig }
 
 export async function getConfiguracionTiendas(): Promise<ConfiguracionTiendas> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_configuracion_tiendas" as never);
+  const [{ data, error }, whatsapp] = await Promise.all([
+    supabase.rpc("fn_configuracion_tiendas" as never),
+    // El WhatsApp de cada tienda (ADR-0288 tanda 1b), leído directo de `ubicaciones`: `fn_configuracion_tiendas` no lo
+    // trae. Si la base todavía no tiene la columna, la pantalla sigue sin él (principio 9) en vez de caerse.
+    supabase.from("ubicaciones").select("id, whatsapp_numero").eq("tipo", "tienda"),
+  ]);
   if (error) throw new Error(`No se pudo leer la configuración: ${error.message}`);
-  return leerConfiguracion(data);
+  const numeros = new Map((whatsapp.data ?? []).map((u) => [u.id, u.whatsapp_numero ?? null]));
+  const config = leerConfiguracion(data);
+  return { ...config, tiendas: config.tiendas.map((t) => ({ ...t, whatsappNumero: numeros.get(t.id) ?? null })) };
 }
 
 /** Lo que rige hoy (o en `fecha`) en una sede: meta del día, fondo y campañas. `null` si la base todavía no tiene la

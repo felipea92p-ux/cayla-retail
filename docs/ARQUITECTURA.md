@@ -338,7 +338,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`HINTS_CONTEO`); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`, la usa Análisis). Kit compartido en `components/conteo/` (`EstadoLinea`,
   `ResumenConteo`, `PasosConteo`). **Sin** prioridad por valor, sin conteo a ciegas y sin costos. `cerrar_conteo` exige, en este orden: permiso, `conteo_vacio` (nada
   verificado), `conteo_pendientes` (salvo cierre parcial) y `diferencias_sin_confirmar`.
-  - **«Conteos recientes» por día** (ADR-0293, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa en bandas por día (primera columna = hora) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
+  - **«Conteos recientes» por día** (ADR-0296, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa en bandas por día (primera columna = hora) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
   `layout.tsx` con `exigirModulo("frescura")`; sexta fila de Inventario en `lib/menu.ts`) → `page.tsx` →
   `lib/frescura.ts:getFrescuraPantalla` (el líder: `armarFrescuraLider` = RPC `fn_frescura_sede` por cada tienda en
@@ -682,7 +682,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
   página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
-  (RPC `registrar_pedido_no_atendido`, firmada con el responsable); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
+  (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
   buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
@@ -748,8 +748,34 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
   (nunca guardadas). Reglas puras en `lib/clientas-reglas.ts`, mismo criterio de
-  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`. El
-  paso 1 del acta (Caja liga la venta a la ficha) sigue sin fusionar.
+  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
+  **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**
+  - la ficha lee `club_desde`, `publicidad_desde` y `codigo_club`;
+  - las acciones viven en `lib/club-acciones.ts`: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»),
+    `registrar_desde_whatsapp` (cartel), `registrar_baja_whatsapp`, `crear_invitacion_club` (camino B) y
+    `fn_club_textos_vigentes`;
+  - «Llegó un mensaje de WhatsApp» → `components/clientas/LlegoMensajeWhatsappModal.tsx`;
+  - cartel imprimible → `/clientas/cartel` (`components/clientas/CartelClub.tsx`);
+  - reglas puras en `lib/club-reglas.ts` y `lib/club-clientas-reglas.ts`.
+  **Tanda 1f del club (ADR-0288 act. (f), `20260930210000`, sin pegar):** la lista ya no es
+  `getClientas` (las últimas 50) sino `lib/clientas.ts:getListaClientas` → RPC `fn_clientas_lista`
+  (filtro, término como `buscar_clienta`, 50 por página; su sede, última compra, frecuente con
+  compra neta y `baja_en`) + `getCifrasClientas` → RPC `fn_cifras_clientas`; `?q=&filtro=&pagina=`
+  en la URL (`lib/clientas-lista-reglas.ts`, puro; `components/clientas/BuscadorClientas.tsx` con
+  `useBusquedaEnUrl`). «Más» de la cabecera = `MenuAcciones` con `texto`. La ficha suma su sede y
+  frecuente de `fn_clienta_su_sede` (en `cargarFichaClienta`), `components/clientas/PreferenciasClienta.tsx`
+  (RPC `fn_club_etiquetas`, `guardar_preferencias_clienta`; `lib/preferencias-clienta-reglas.ts`) y
+  `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
+  vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
+  `fn_club_compras_netas`, `fn_club_resumen_compras`.
+- `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
+  confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
+  `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
+- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada) +
+  `InvitarAlClub.tsx` + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader), `unirse_al_club`,
+  `crear_invitacion_club`. La página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero`. El
+  ticket impreso lleva el QR del club (camino A: el WhatsApp de la tienda). Reglas en `lib/club-caja-reglas.ts`.
+- Configuración ▸ Tiendas y caja ▸ «WhatsApp de cada tienda» → RPC `guardar_whatsapp_tienda`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC

@@ -36,7 +36,7 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
-import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal } from "@/components/ui/Modal";
@@ -84,8 +84,19 @@ import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
+import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { CLUB_APAGADO, clubEnElTicket, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
+import {
+  avisoCumpleApagado,
+  canjeSinConexion,
+  descuentosParaRegistrar,
+  rechazoDelCanje,
+  ticketConCumple,
+} from "@/lib/club-cumple-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
+import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
+import { descripcionDePrenda, prendaQuitadaDeLinea, type PrendaQuitada } from "@/lib/se-probo-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 
 /**
@@ -204,6 +215,9 @@ export type VentaOk = {
   /** Se cobró sin red y quedó guardada en este equipo — todavía no es una venta real en
    *  el servidor (ver `lib/ventas-offline.ts`). Sin comprobante posible hasta que suba. */
   offline: boolean;
+  /** El cumpleaños que canjeó esta venta (ADR-0288 D-5): «Cumpleaños canjeado (−S/46.12)…». Nunca en una venta sin
+   *  conexión (no se encola con canje). */
+  cumple?: { pct: number; monto: number } | null;
 };
 
 const MAX_RESULTADOS = 6;
@@ -244,6 +258,9 @@ type Props = {
   puedeApartar: boolean;
   /** La fila «Clienta» del ticket: su rol ve Clientas (la base rechaza la búsqueda sin el módulo, ADR-0249 2026-09-28). */
   puedeBuscarClienta: boolean;
+  /** El club (ADR-0288, tanda 1b): los textos vigentes y el WhatsApp de esta tienda, leídos por el servidor. Sin ellos
+   *  (`CLUB_APAGADO`) no se invita ni sale QR, y la venta sigue igual (principio 9). */
+  club?: ClubDeLaCaja;
   /** «Cobrar» desde Proformas (`/vender?proforma=<id>`, ADR-0167): el carrito arranca con sus prendas. */
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
@@ -270,7 +287,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -314,6 +331,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [clienta, setClienta] = useState<Clienta | null>(null);
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
+  // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
+  // al pasar a cobrar, y el ticket impreso necesita saberlo para su QR.
+  const clubDeLaClienta = useClubDeLaClienta(clienta?.id ?? null, puedeBuscarClienta);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
@@ -346,6 +366,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [clienteNumDoc, setClienteNumDoc] = useState(proforma?.clienteDoc ?? "");
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
+  // La prenda recién quitada del ticket, para «¿Se la probó y no la llevó?» (ADR-0288 D-6, spike del club): `clave` es la
+  // línea quitada, así la pregunta vuelve a empezar si se quita otra.
+  const [quitada, setQuitada] = useState<{ clave: string; prenda: PrendaQuitada } | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -396,6 +419,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
   const carritoConPiso = useMemo(() => conPisoAlDia(carrito, variantesVisibles), [carrito, variantesVisibles]);
+  // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
+  // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
+  const detallesDelTicket = useMemo(() => new Map(variantes.map((v) => [v.varianteId, { color: v.color, talla: v.talla }])), [variantes]);
 
   const categorias = useMemo(() => {
     const vistas = new Set<string>();
@@ -833,6 +859,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   function quitar(claveLinea: string) {
     capturarFlip();
+    const linea = carrito.find((it) => it.claveLinea === claveLinea);
+    const prenda = linea ? prendaQuitadaDeLinea(linea, detallesDelTicket.get(linea.varianteId)) : null;
+    setQuitada(prenda ? { clave: claveLinea, prenda } : null);
     setCarrito((actual) => actual.filter((it) => it.claveLinea !== claveLinea));
     setAviso(null);
   }
@@ -895,6 +924,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   }
   function limpiarTicket() {
     setCarrito([]);
+    setQuitada(null);
     quitarClienta();
     setNota("");
     setCodigoDescuento("");
@@ -948,6 +978,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
     responsable.limpiar();
     setPagos([]);
+    setQuitada(null);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
@@ -1003,8 +1034,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     }
   }
 
-  const total = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
+  // El canje del cumpleaños (tanda 1c, ADR-0288 D-5): UN descuento de toda la compra, en cascada sobre lo ya rebajado
+  // (CL-11), repartido por prenda con la misma cuenta que `registrar_venta` (céntimos exactos, `ticketConCumple`). El
+  // carrito no cambia: cada línea sigue con su descuento SIN el club, y la parte del club se suma solo al cobrar y en el
+  // total. Lo apagan solos quitar o cambiar la clienta, perder la conexión o que su resumen deje de decir disponible
+  // (`useClubDeLaClienta`).
+  const pctCumple = clubDeLaClienta.pctCumple;
+  const conCumple = useMemo(() => ticketConCumple(carrito, pctCumple), [carrito, pctCumple]);
+  // Un canje que no regala nada (todo a S/ 0) no se manda: la base lo rechazaría (`cumple_sin_monto`) y gastaría su año.
+  const cumpleDelTicket =
+    pctCumple !== null && conCumple.totalCumple > 0 ? { pct: pctCumple, monto: conCumple.totalCumple, totalSinCumple: conCumple.totalSinCumple } : null;
+  const total = cumpleDelTicket ? conCumple.total : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
+
+  // Se apagó SOLO (sin conexión, o su resumen ya no lo da por disponible): el total subió sin que nadie tocara «Quitar», y
+  // quien cobra tiene que saberlo antes de decirle el monto a la clienta.
+  const cumpleSeApago = clubDeLaClienta.cumpleSeApago;
+  useEffect(() => {
+    if (!cumpleSeApago) return;
+    const { titulo, detalle } = avisoCumpleApagado(cumpleSeApago.motivo, cumpleSeApago.pct);
+    avisar.aviso(titulo, { detalle });
+  }, [cumpleSeApago]);
 
   // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
@@ -1153,13 +1203,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
     const params: ParamsRegistrarVenta = {
       p_ubicacion_id: ubicacionId,
-      p_items: carrito.map((it) => ({
+      p_items: conCumple.lineas.map((it) => ({
         variante_id: it.varianteId,
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
-        descuento_unitario: it.descuentoUnitario,
+        // Con el cumpleaños, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al céntimo) y
+        // `descuento_club_unitario` la parte del club, que la base recalcula. Sin canje, el ítem va como siempre.
+        ...(cumpleDelTicket ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario) : { descuento_unitario: it.descuentoUnitario }),
         // Sin descuento viajan como `undefined` (la clave ni aparece en el jsonb) — la
-        // RPC los lee con `coalesce(..., '')` y no le importa la diferencia.
+        // RPC los lee con `coalesce(..., '')` y no le importa la diferencia. El motivo describe el descuento SIN el club:
+        // una prenda cuyo único descuento es el cumpleaños no lleva motivo (ADR-0288, «Contrato de la tanda 1c»).
         motivo_descuento: it.razonDescuento || undefined,
         motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
         argumento_descuento: it.argumentoDescuento || undefined,
@@ -1186,6 +1239,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       p_nota: nota.trim() || undefined,
       // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
       p_asesora_id: responsable.elegidoId ?? undefined,
+      // El canje del cumpleaños (ADR-0288 D-5). Sin canje no viaja: la base lo toma como `false`.
+      p_canjear_cumpleanos: cumpleDelTicket ? true : undefined,
     };
 
     const supabase = createClient();
@@ -1196,6 +1251,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       // encolar (BACKLOG "resiliencia sin internet", ADR-0036 adaptado) antes de
       // mostrarlo como un fallo cualquiera — la clienta sigue en el mostrador.
       if (esFalloDeRed(error)) {
+        // Con el cumpleaños NO se encola (D-5): otra tienda podría canjearlo a la vez, y la clienta ya se habría ido con el
+        // precio rebajado cuando la base la rechazara. Se queda el mismo `p_token`: si la venta alcanzó a guardarse y solo
+        // se perdió la respuesta, volver a confirmar devuelve ESA venta en vez de duplicarla.
+        if (cumpleDelTicket && llevaCanje(params)) {
+          setLoading(false);
+          const { titulo, detalle } = canjeSinConexion(cumpleDelTicket.pct);
+          avisar.error(titulo, { detalle });
+          return;
+        }
         const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
         const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
         if (!carritoPasaElUmbral(items, stockOverlay)) {
@@ -1231,6 +1295,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       }
 
       setLoading(false);
+      // La base rechazó el canje del cumpleaños (ya canjeado en otra tienda, fuera de su mes, ya no es socia, % distinto…):
+      // se apaga, se vuelve a leer su resumen si la base sabe algo que la caja no, y se dice. La venta NO se vuelve a mandar
+      // sola sin el descuento: el total subió y la clienta tiene que saberlo (los pagos ya no cuadran hasta que se revisen).
+      const rechazoCumple = cumpleDelTicket ? rechazoDelCanje(error.hint, cumpleDelTicket.pct) : null;
+      if (rechazoCumple) {
+        clubDeLaClienta.apagarCumpleTrasRechazo(rechazoCumple.releer);
+        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoCumple.detalle });
+        responsable.despues(error);
+        return;
+      }
       // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
       // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
       // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
@@ -1292,16 +1366,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           comprobante: { tipo: comp.tipo, serie: comp.serie, numero: comp.numero, created_at: comp.created_at },
           sede: ubicacionEtiqueta,
           cliente: { tipoDoc: clienteTipoDoc, numDoc: clienteNumDoc || null, nombre: clienteNombre.trim() || null },
-          lineas: carrito.map((it) => ({
+          // Con el cumpleaños, cada prenda con su descuento TOTAL (el de `venta_items`): el papel dice lo que se cobró.
+          lineas: conCumple.lineas.map((it) => ({
             cantidad: it.cantidad,
             referencia: it.referencia,
             codigo: codigoPrenda(it),
             precioUnitario: it.precioUnitario,
-            descuentoUnitario: it.descuentoUnitario,
+            descuentoUnitario: cumpleDelTicket
+              ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario).descuento_unitario
+              : it.descuentoUnitario,
           })),
           pagos,
           tasaIgv: 0.18,
           atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
+          // El QR del club al pie: el personal si es socia (con su código), el genérico si no. Sin número de tienda, nada.
+          club: clubEnElTicket(club, clubDeLaClienta.lectura.estado === "listo" ? clubDeLaClienta.lectura.resumen : null),
+          // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
+          cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
         });
       }
     }
@@ -1311,7 +1392,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     responsable.despues(null);
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
-    setOk({ total, prendas, recibo, estado, offline: false });
+    setOk({ total, prendas, recibo, estado, offline: false, cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null });
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
     limpiarComprobante();
@@ -1342,6 +1423,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             id="ticket-pos"
             bloqueado={bloqueado}
             carrito={carritoConPiso}
+            detalles={detallesDelTicket}
             listaRef={listaTicket}
             onQuitar={quitar}
             onCantidad={cambiarCantidad}
@@ -1361,6 +1443,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             onIrAEspera={() => setMomento("espera")}
             total={total}
             prendas={prendas}
+            cumple={cumpleDelTicket}
             pagos={pagos}
             restante={restante}
             vuelto={vuelto}
@@ -1379,7 +1462,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => setMomento("cobrar")}
+            onIrACobrar={() => {
+              // Al pasar a cobrar, la pregunta de la prenda quitada se va sin anotar (como en el spike).
+              setQuitada(null);
+              setMomento("cobrar");
+            }}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
@@ -1396,7 +1483,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                 puedeBuscar={puedeBuscarClienta}
                 responsable={responsable}
                 onHojaAbierta={setHojaClientaAbierta}
+                club={club}
+                clubDeLaClienta={clubDeLaClienta}
+                ubicacionId={ubicacionId}
               />
+              {quitada && (
+                <SeProboNoLlevo
+                  key={quitada.clave}
+                  prenda={quitada.prenda}
+                  ubicacionId={ubicacionId}
+                  clientaId={clienta?.id ?? null}
+                  responsable={responsable}
+                  onCerrar={() => setQuitada(null)}
+                />
+              )}
             </>
           }
         />
@@ -1633,7 +1733,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
               <AnotarNoHabia
                 key={grupoElegido.clave}
                 ubicacionId={ubicacionId}
-                descripcion={[grupoElegido.referencia, grupoElegido.color].filter(Boolean).join(" · ")}
+                descripcion={descripcionDePrenda(grupoElegido.referencia, grupoElegido.color)}
                 tallas={grupoElegido.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
                 clientaId={clienta?.id ?? null}
                 responsable={responsable}

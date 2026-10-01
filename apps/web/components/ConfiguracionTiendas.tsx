@@ -13,11 +13,14 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
+import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
 // SOLA al salir de ella si cambió, firmada con el responsable. Sin botones «Guardar»: la base vuelve a validar todo.
+// ADR-0288 tanda 1b suma una tercera, con el mismo patrón: el WhatsApp de cada tienda para el QR del club
+// (`guardar_whatsapp_tienda`, con el permiso de `guardar_metas_tienda`).
 
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
@@ -75,6 +78,68 @@ function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: 
       }}
       className="fin-control fin-num inline-block w-[7.6rem]"
     />
+  );
+}
+
+/** El WhatsApp de la tienda (ADR-0288 tanda 1b): se guarda al salir si cambió. Solo deja los 9 dígitos (pegar «+51 987…» los
+ *  deja limpios); vacío lo quita (la tienda queda sin QR del club). */
+function CasillaCelular({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (numero: string) => Promise<boolean> }) {
+  const [t, setT] = useState(valor);
+  const [antes, setAntes] = useState(valor);
+  if (valor !== antes) {
+    setAntes(valor);
+    setT(valor);
+  }
+  return (
+    <input
+      aria-label={etiqueta}
+      inputMode="tel"
+      value={t}
+      placeholder="—"
+      onChange={(e) => setT(ajustarCelular(e.target.value))}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") setT(valor);
+      }}
+      onBlur={async () => {
+        if (t === valor) return;
+        if (t !== "" && !celularValido(t)) {
+          avisar.error(`${etiqueta}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
+          setT(valor);
+          return;
+        }
+        const ok = await alGuardar(t);
+        if (!ok) setT(valor);
+      }}
+      className="fin-control fin-num inline-block w-[7.6rem]"
+    />
+  );
+}
+
+function FilaWhatsapp({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guardar }) {
+  const conQr = celularValido(tienda.whatsappNumero);
+  return (
+    <tr>
+      <td className="fin-ancha" data-l="Tienda">
+        <b>{tienda.nombre}</b>
+      </td>
+      <td className="fin-num" data-l="WhatsApp">
+        <CasillaCelular
+          valor={tienda.whatsappNumero ?? ""}
+          etiqueta={`WhatsApp de ${tienda.nombre}`}
+          alGuardar={(numero) =>
+            guardar(
+              () => createClient().rpc("guardar_whatsapp_tienda", { p_ubicacion_id: tienda.id, p_numero: numero || undefined }),
+              "guardar el WhatsApp de la tienda",
+              numero ? `${tienda.nombre}: WhatsApp ${numero}. Su QR del club ya se puede imprimir.` : `${tienda.nombre}: sin WhatsApp. No muestra QR del club.`,
+            )
+          }
+        />
+      </td>
+      <td data-l="QR del club">
+        <Chip tono={conQr ? "verde" : "neutro"}>{conQr ? "Con QR" : "Sin QR"}</Chip>
+      </td>
+    </tr>
   );
 }
 
@@ -265,6 +330,39 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
         </div>
         <PieTabla>
           <span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Vacío = sin meta ese día.</span>
+        </PieTabla>
+      </Superficie>
+
+      <Superficie className="anim-sube">
+        <TituloDeTarjeta
+          titulo="WhatsApp de cada tienda"
+          bajada="El número al que las clientas le escriben desde el QR del club (el cartel, el ticket y la caja). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+        >
+          <Link href="/clientas/cartel" className="btn-cayla btn-secundario btn-chico">
+            Ver el cartel del club
+          </Link>
+        </TituloDeTarjeta>
+        <div className="fin-tabla-wrap">
+          <table className="fin-tabla fin-tabla-apretada">
+            <thead>
+              <tr>
+                <th>Tienda</th>
+                <th className="fin-num">WhatsApp</th>
+                <th>QR del club</th>
+              </tr>
+            </thead>
+            <tbody>
+              {datos.tiendas.map((t) => (
+                <FilaWhatsapp key={t.id} tienda={t} guardar={guardar} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <PieTabla>
+          <span>
+            9 dígitos que empiezan en 9, sin +51. Vacío = sin QR. Antes de cargarlo, que el celular de la tienda tenga encendido el respaldo
+            de WhatsApp: su chat es la prueba de que la clienta pidió las novedades.
+          </span>
         </PieTabla>
       </Superficie>
 

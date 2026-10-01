@@ -7,6 +7,7 @@ import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { hrefPedirTraslado, sedesDeOrigen, type SedeConId } from "@/lib/cambios-atajos-reglas";
 import type { SedeConStock } from "@/lib/stock-por-sede";
+import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 
 /* ====================================================================
    CambioSalidas · qué hacer cuando la talla elegida no está en esta sede (spike 2026-09-26,
@@ -122,7 +123,7 @@ export function CambioSalidas({
 
       <AnotarNoHabia
         ubicacionId={ubicacionId}
-        descripcion={[referencia, color].filter(Boolean).join(" · ")}
+        descripcion={descripcionDePrenda(referencia, color)}
         tallas={talla ? [talla] : []}
         clientaId={null}
         responsable={responsable}

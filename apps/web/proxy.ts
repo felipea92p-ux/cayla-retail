@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
+import { esRutaPublica } from "@/lib/rutas-publicas";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -25,6 +26,14 @@ export async function proxy(request: NextRequest) {
   // para SU ruta: la clave no abre ninguna otra pantalla ni API.
   const cron = process.env.CRON_SECRET;
   if (cron && request.nextUrl.pathname === "/api/lucode/reintentar" && request.headers.get("authorization") === `Bearer ${cron}`) {
+    return NextResponse.next();
+  }
+
+  // La página pública del QR de una socia (`/club/<token>`, ADR-0288 act. c): la abre una clienta sin cuenta. Pasa
+  // antes de tocar la sesión —ni la pide ni la refresca— y antes de la barrera de CAYLA Global (un aparato de la
+  // tienda con la cookie «global» la abriría igual). También su acción de servidor, que viaja como POST a esa misma
+  // ruta y se valida sola (`app/actions/club.ts`). Solo `/club/<token>`: ver `lib/rutas-publicas.ts`.
+  if (esRutaPublica(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

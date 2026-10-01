@@ -850,8 +850,8 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:edicion-simultanea
 
-      # Ficha de clienta v1 (D-76/D-77): el consentimiento de WhatsApp es un dato aparte del teléfono (Ley 29733) y guardar de nuevo
-      # sin volver a preguntarlo NUNCA revoca uno ya dado; buscar y registrar clienta por DNI. Cada caso termina en ROLLBACK.
+      # Ficha de clienta v1 (D-76/D-77): registrar y editar no dan ni quitan ningún permiso de WhatsApp (desde ADR-0288 tanda 1b)
+      # y guardar de nuevo NUNCA revoca uno ya dado; buscar y registrar clienta por DNI. Cada caso termina en ROLLBACK.
       - name: pruebas:clientas
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas
@@ -880,6 +880,55 @@ jobs:
       - name: pruebas:club-venta-ligada
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-venta-ligada
+
+      # Club de clientas, tanda 1b (ADR-0288 D-4 reescrita, Ley 32323): dos permisos. Socia = su «sí» de palabra
+      # (`unirse_al_club`: celular válido, documento y nombre, texto `club` vigente y la versión que se leyó; código C-0001
+      # correlativo; idempotente); publicidad SOLO si ella escribió (`registrar_mensaje_publicidad`, `registrar_desde_whatsapp`;
+      # un insert directo con otro medio lo frena el candado de la ley); la BAJA revoca en toda ficha con ese número y deja el
+      # club. `club_permisos` y `club_textos` sin update, delete ni truncate (tampoco postgres) y sin API; candados de la
+      # ficha; anonimizar escribe los `revoca`; unir pasa lo más antiguo y el código; registrar/editar sin el permiso de
+      # WhatsApp; los textos v2 exactos; el WhatsApp de la tienda; el legado; md5 «después» = vivas, pegarla dos veces (entera
+      # y por partes) deja lo mismo, con una función cambiada en vivo aborta sin pisar, ningún `into` en un texto que el SQL
+      # Editor pueda confundir; y dos cajas invitan a la vez (la segunda espera en la lectura de la ficha). Cada caso termina
+      # en ROLLBACK (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-permisos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-permisos
+
+      # Club de clientas, tanda 1c (ADR-0288 D-5): el cumpleaños con un canje por año. `registrar_venta` con
+      # `p_canjear_cumpleanos` recalcula la parte del club de cada línea (`round((precio − descuento_sin_club) × pct / 100, 2)`,
+      # en cascada: 20 % → 28 %; la misma tabla de paridad que la regla de la web) y rechaza un monto distinto, un canje fuera
+      # de su mes, de una no socia o sin clienta, y el segundo del año (único parcial de `club_canjes`); la parte del club no
+      # cuenta para el costo, el tope D-67, el código, el 35 % ni el argumento; anular libera el canje y una devolución no;
+      # `resumen_clienta_caja` dice disponible, % y canjeado; una sola firma, md5 «después» = vivas, pegar las tres partes
+      # dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, ningún `into` en un texto que el SQL
+      # Editor pueda confundir; y dos cajas canjean a la vez (la segunda espera en la lectura de la ficha). Cada caso termina
+      # en ROLLBACK (las carreras con COMMIT solo corren con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-cumpleanos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-cumpleanos
+
+      # Club de clientas, tanda 1d (ADR-0288 D-6): «buscó y no había» y «se la probó y no la llevó» son la misma tabla
+      # (`pedidos_no_atendidos.motivo`, con `razon` solo para «se la probó»; la llamada vieja de 5 parámetros sigue anotando
+      # `no_habia_talla`; los rechazos no dejan fila; el esquema lo exige igual sin la función; lo de antes queda
+      # `no_habia_talla`). Sin «es para regalo» (Felipe, 2026-09-30): la 1d no toca la venta ni la ficha. Una sola firma,
+      # md5 «después» = viva, pegar las dos partes dos veces deja lo mismo, con la función cambiada en vivo aborta, la PARTE 2
+      # aborta sin la 1, cada parte toma a lo más una tabla con `alter`, sin políticas ni `drop trigger` ni `select … into`
+      # en un texto. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-se-probo
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-se-probo
+
+      # Club de clientas, tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): la lista y la ficha de /clientas. Su sede (la de
+      # más compras NETAS en 12 meses; empate: la de su compra más reciente), última compra y frecuente (3 en 6 meses) con compra
+      # neta (CL-25: una venta devuelta entera no cuenta, un cambio sí); cada filtro, el paginado y el término como
+      # buscar_clienta; las cifras = el total de la lista; sin el módulo, clientas_sin_modulo; preferencias solo de una socia,
+      # del catálogo y con candado de versión (anonimizar y unir las vacían); la historia del permiso en orden; md5 «después» =
+      # vivas, pegarla dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar y ningún `into` en un texto
+      # que el SQL Editor pueda confundir. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-lista-y-ficha
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-lista-y-ficha
 
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
