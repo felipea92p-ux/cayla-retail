@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { TABLA } from "@/components/ui/Tabla";
-import { diaYHoraLima } from "@/lib/fechas-lima";
 import { resultadoConteo, textoAlcance, textoLugar, textoResultadoConteo, type ResultadoConteo } from "@/lib/conteo-reglas";
 import { textoAvanceHistorial } from "@/lib/conteo-inicio-reglas";
-import type { ConteoResumen } from "@/lib/conteos";
+import { horaLimaDe, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
 
 /* ====================================================================
    ConteosLista · «Conteos recientes» del inicio (Inventario ▸ Conteo, rediseño 2026-09-29)
 
-   Fecha · Ubicación · Qué se contó · Resultado · Responsable · Acción. Cada fila es un enlace al conteo (el que sigue
-   abierto también: allí se continúa). El RESULTADO se lee de un vistazo y nunca dice «Cerrado · Vacío»:
+   Hora · Ubicación · Qué se contó · Resultado · Responsable · Acción, en APARTADOS POR DÍA (Felipe, 2026-10-01): una banda con
+   el día («HOY · miércoles 30 de setiembre») y, debajo, sus conteos, cada uno con la hora a la que se abrió. La fecha ya no
+   se repite en cada fila: el día es la banda. Cada fila es un enlace al conteo (el que sigue abierto también: allí se continúa). El RESULTADO se lee de un vistazo y nunca dice «Cerrado · Vacío»:
      · En curso                → pizarra (informativo)
      · Todo correcto           → verde
      · 3 diferencias encontradas → neutro: el conteo ya las ajustó. En rojo, cada conteo del historial pintaría una pared roja
@@ -36,6 +36,7 @@ const TONO_RESULTADO: Record<ResultadoConteo, TonoChip> = {
 // Las seis columnas, de ~830 px de tarjeta hacia arriba (5,5 + 8 + 7 + 11 + 7 + 6 rem, más aire) — `@[52rem]` = 832 px. Las clases
 // van ESCRITAS enteras, no armadas con un `${}`: Tailwind solo genera lo que encuentra literal en el código.
 const PLANTILLA = "@[52rem]:grid-cols-[5.5rem_minmax(8rem,1fr)_minmax(7rem,1fr)_11rem_minmax(7rem,1fr)_6rem]";
+const plural = (n: number) => `${n} ${n === 1 ? "conteo" : "conteos"}`;
 
 // Sin espacio para las seis columnas la fila es una FICHA que se acomoda sola (`flex-wrap`), en dos tamaños:
 //  · angosta (celular, < 36 rem): fecha y resultado arriba —si el resultado no cabe al lado de la fecha («3 diferencias
@@ -54,31 +55,40 @@ const CELDA = {
   accion: "order-5 shrink-0 @[36rem]:order-4 @[52rem]:order-none",
 } as const;
 
-export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
+export function ConteosLista({ grupos }: { grupos: GrupoDia[] }) {
   return (
-    <div className="divide-y divide-sand border-t border-sand">
-      <div className={`${TABLA.encabezado} hidden @[52rem]:grid ${PLANTILLA}`} role="row">
-        {["Fecha", "Ubicación", "Qué se contó", "Resultado", "Responsable", "Acción"].map((titulo) => (
+    <div className="border-t border-sand">
+      <div className={`${TABLA.encabezado} hidden border-b border-sand @[52rem]:grid ${PLANTILLA}`} role="row">
+        {["Hora", "Ubicación", "Qué se contó", "Resultado", "Responsable", "Acción"].map((titulo) => (
           <span key={titulo} className={TABLA.titulo} role="columnheader">
             {titulo}
           </span>
         ))}
       </div>
-      {conteos.map((c) => {
+      {grupos.map((g) => (
+        <section key={g.dia} aria-label={g.titulo} className="border-t border-sand first-of-type:border-t-0">
+          {/* El apartado del día: la banda en hueso, con «HOY»/«AYER» cuando toca y cuántos conteos trae. */}
+          <h3 className="flex items-baseline gap-2.5 bg-hueso px-4 py-2.5 @[36rem]:px-5">
+            {g.rotulo && <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-taupe">{g.rotulo}</span>}
+            <span className="font-display text-base text-tinta">{g.titulo}</span>
+            <span className="ml-auto whitespace-nowrap text-xs font-normal text-taupe">{plural(g.conteos.length)}</span>
+          </h3>
+          <div className="divide-y divide-sand">{g.conteos.map((c) => {
         const resultado = resultadoConteo(c);
         const abierto = resultado === "en_curso";
         const avance = textoAvanceHistorial(c);
-        // La fecha en que se terminó (o, mientras sigue abierto o si se canceló, en que se abrió): la misma del «Último conteo» de Abrir.
-        const fecha = diaYHoraLima(c.cerradoEn ?? c.creadoEn).dia;
+        // La HORA a la que se abrió (la del día ya está en la banda); al pasar el mouse, también la de cierre.
+        const hora = horaLimaDe(c.creadoEn);
         return (
           <Link
             key={c.id}
+            title={textoAperturaCierre(c)}
             href={`/inventario/conteo/${c.id}`}
             className={`fila-cayla flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 focus-visible:bg-crema/60 focus-visible:outline-none @[36rem]:px-5 @[52rem]:grid @[52rem]:gap-x-4 ${PLANTILLA}`}
           >
             <span className={CELDA.fecha}>
-              {/* Angosta, en una línea («29/09 · Conteo 592»); en su columna o en la ficha media, en dos. */}
-              <span className="text-sm tabular-nums text-tinta @[36rem]:block">{fecha}</span>
+              {/* Angosta, en una línea («11:58 · Conteo 27»); en su columna o en la ficha media, en dos. */}
+              <span className="text-sm tabular-nums text-tinta @[36rem]:block">{hora}</span>
               <span className="text-xs text-taupe @[36rem]:block">
                 <span aria-hidden className="@[36rem]:hidden">
                   {" "}
@@ -111,7 +121,9 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
             </span>
           </Link>
         );
-      })}
+      })}</div>
+        </section>
+      ))}
     </div>
   );
 }

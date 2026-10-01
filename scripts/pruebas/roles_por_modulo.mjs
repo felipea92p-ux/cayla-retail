@@ -12,7 +12,8 @@
  *   · `fn_ve_modulo` para una persona y para una terminal, y `fn_mis_modulos`.
  *   · EL PUNTO DE ENCHUFE: las capacidades `fn_puede_*()` dan al líder y a las dos terminales sembradas lo mismo que las
  *     definiciones fijas del ADR-0160. La integrante es la ÚNICA que cambia, a propósito (B2d): cierra caja, ajusta stock
- *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor ni etiquetas con descuento.
+ *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor. El descuento por etiqueta lo da quien
+ *     ve el módulo Etiquetas (ADR-0293, 20261001130000; antes solo el líder): el rol sembrado de Integrante no lo ve.
  *   · Terminales sin tipo (20260923040000): se crean con tienda + nombre + rol; el tipo es legado.
  *   · Suspender y reactivar conservan el rol.
  *
@@ -342,7 +343,7 @@ caso(
   "f,t,f,t"
 );
 caso(
-  "la etiqueta con descuento sigue siendo solo del líder, aunque el rol vea Productos y Etiquetas",
+  "el descuento por etiqueta lo da quien ve el módulo Etiquetas (ADR-0293): la terminal administrativa sembrada no lo ve, y por eso no lo da",
   como(T_ADMIN_AUTH) + `select fn_puede_dar_descuento_por_etiqueta()::text;`,
   "false"
 );
@@ -387,7 +388,7 @@ caso(
   }
 );
 caso(
-  "Etiquetas: el rol crea (aprobada), edita y etiqueta prendas con una etiqueta SIN descuento; nada de lo que lleva descuento",
+  "Etiquetas (ADR-0293): el rol crea (aprobada), edita, configura la campaña CON descuento y etiqueta prendas, con o sin descuento",
   conRol("Etiquetas", ["etiquetas"]) +
     `insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ con descuento', 20) returning id as etq_desc \\gset\n` +
     como(MICAELA_AUTH) +
@@ -409,17 +410,17 @@ caso(
   (s) => {
     const l = s.split("\n");
     return (
-      l[0] === "t,f" && // edita etiquetas, no da descuentos
+      l[0] === "t,t" && // edita etiquetas y da descuentos: es lo mismo (ADR-0293)
       l[1] === "aprobado" && // nace aprobada, como la de un líder
-      l[2].startsWith("42501|") && // no crea una con descuento
+      l[2] === "SIN_ERROR" && // crea una ya con descuento
       l[3] === "1" && // edita la suya
-      l[4] === "0" && // la de descuento ni la ve para editar
-      l[5].startsWith("42501|") && // no le pone descuento
-      l[6].startsWith("42501|") && // campaña con descuento: no
+      l[4] === "1" && // y la de descuento también
+      l[5] === "SIN_ERROR" && // le pone descuento a una sin descuento
+      l[6] === "SIN_ERROR" && // campaña con descuento: sí
       l[7] === "SIN_ERROR" && // campaña sin descuento: sí
       l[8] === "SIN_ERROR" && // etiqueta prendas con la suya
-      l[9].startsWith("42501|") && l[9].includes("descuento") && // no con la de descuento
-      l[10].startsWith("42501|") // ni desde la ficha de la prenda
+      l[9] === "SIN_ERROR" && // y con la de descuento
+      l[10] === "SIN_ERROR" // y desde la ficha de la prenda
     );
   }
 );
@@ -462,11 +463,11 @@ grant select on rango to authenticated;\n` +
   "t,t,t,t,f,t,t\nt,t\nf,f,t,f"
 );
 caso(
-  "con los 5 módulos encendidos sigue sin dar descuento por etiqueta, sin ser líder y sin Colaboradores ni Roles",
+  "con los 5 módulos encendidos da descuento por etiqueta (incluye Etiquetas, ADR-0293), pero no es líder ni tiene Colaboradores ni Roles",
   conRol("Todo lo abierto", ["etiquetas", "facturas_compra", "por_pagar", "notas_credito", "analisis", "productos"]) +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_puede_dar_descuento_por_etiqueta(), fn_es_lider(), fn_ve_modulo('colaboradores'), fn_ve_modulo('roles'));`,
-  "f,f,f,f"
+  "t,f,f,f"
 );
 
 // ---------------- Colaboradores y Roles y accesos abiertos (20260923131000, Felipe 2026-09-22) ----------------
@@ -878,7 +879,7 @@ const ETIQUETAS_DE = (extra) =>
      coalesce((select jsonb_agg(ve.etiqueta_id) from retail.variante_etiquetas ve where ve.variante_id = v.id), '[]'::jsonb) || jsonb_build_array(${extra})))))
      from retail.variantes v where v.sku = 'BLU-EMMA-NEG-M';\n`;
 caso(
-  "P4 · Productos (sin Etiquetas) cambia etiquetas SIN descuento desde la ficha de la prenda; con descuento, no; sin Productos, nada",
+  "P4 · Productos (sin Etiquetas) cambia etiquetas, con descuento o sin él, desde la ficha de la prenda (ADR-0293); sin Productos, nada",
   conRol("Catálogo", ["productos"]) +
     // Las crea el líder (la sesión que deja `conRol`): así nacen aprobadas, y la de descuento puede tenerlo.
     `insert into retail.etiquetas (nombre) values ('ZZ P4 sin descuento') returning id as e_sin \\gset\n` +
@@ -895,7 +896,7 @@ caso(
     const l = s.split("\n");
     return (
       l[0] === "f,t" && l[1] === "SIN_ERROR" && l[2] === "1" &&
-      l[3].startsWith("42501|") && l[3].includes("descuento") &&
+      l[3] === "SIN_ERROR" && // con descuento también: ya no es solo del líder
       l[4].startsWith("42501|") && l[4].includes("Productos")
     );
   }

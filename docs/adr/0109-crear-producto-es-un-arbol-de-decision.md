@@ -542,7 +542,7 @@ DECIDÍ: el campo «Etiquetas» es una fila del PASO 2, a la vista, junto a nomb
   rol la deja PENDIENTE (dice «Propuesta enviada») y no se agrega hasta que un líder la apruebe. La ficha de la derecha y la
   línea del paso 2 plegado muestran las etiquetas elegidas, así se sabe que el campo existe aunque no se haya abierto.
   Las campañas que ya rigen sobre la categoría siguen en línea punteada «ya aplica por campaña» (no se eligen ni se mandan).
-  Quien no es líder no ve las etiquetas con descuento (la base las rechazaría: «Solo un líder puede asignar una etiqueta con
+  Quien no es líder no ve las etiquetas con descuento (la base las rechazaría: «Solo un líder puede asignar una etiqueta con *(Actualizado 2026-09-30, ADR-0293: ya no es solo del líder.)*
   descuento»), y el campo dice cuántas quedaron fuera.
 DESCARTÉ: (a) dejarlo en el paso 4 pero siempre desplegado — el paso 4 es plata y variantes; el problema no era solo el enlace,
   era el lugar; (b) texto libre sin vocabulario, el tag de Shopify a secas — aquí una etiqueta puede llevar descuento de campaña

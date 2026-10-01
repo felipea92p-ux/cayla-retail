@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%%TITULO%%</title>
+<!-- Práctica interactiva. Todo va dentro de este archivo: no pide nada por internet y no envía nada a ningún lado. -->
+<style>
+%%FUENTES_CSS%%
+</style>
+<style>
+%%MOTOR_CSS%%
+</style>
+</head>
+<body>
+
+<div id="g-barra" hidden>
+  <span class="g-marca">CAYLA · Práctica</span>
+  <div class="g-tarea" id="g-tarea"></div>
+  <button type="button" class="g-btn g-ayuda" id="g-no-se"></button>
+  <button type="button" class="g-btn g-sec" id="g-abrir-coment"><span aria-hidden="true">✎</span> <span id="g-lbl-coment"></span> <span class="g-num" id="g-n-coment" hidden>0</span></button>
+</div>
+
+<iframe id="g-erp" title="Copia de práctica del sistema CAYLA"></iframe>
+
+<div id="g-guia" class="g-tarjeta g-flota" hidden aria-live="polite"></div>
+
+<div id="g-coment" class="g-tarjeta g-flota" hidden role="dialog" aria-labelledby="g-coment-titulo">
+  <h3 id="g-coment-titulo"></h3>
+  <p class="g-sub" id="g-coment-sub"></p>
+  <div class="g-lista" id="g-lista-coment"></div>
+  <p class="g-sub" id="g-vacio-coment"></p>
+  <p class="g-sub" style="margin:0 0 6px"><b id="g-ctx"></b></p>
+  <textarea id="g-texto-coment" aria-label="Escribe tu comentario"></textarea>
+  <div class="g-fila-btn" style="margin-top:10px">
+    <button type="button" class="g-btn" id="g-coment-guardar"></button>
+    <button type="button" class="g-btn g-sec" id="g-coment-copiar"></button>
+    <button type="button" class="g-btn g-sec" id="g-coment-cerrar"></button>
+  </div>
+</div>
+
+<div id="g-intro" class="g-velo">
+  <div class="g-tarjeta">
+    <span class="g-etiqueta">CAYLA · Práctica</span>
+    <h1 id="g-intro-titulo"></h1>
+    <div id="g-intro-cuerpo"></div>
+    <button type="button" class="g-btn" id="g-intro-empezar"></button>
+  </div>
+</div>
+
+<div id="g-fin" class="g-velo" hidden><div class="g-tarjeta"></div></div>
+
+<div id="g-angosta" class="g-velo"><div class="g-tarjeta"><span class="g-etiqueta">CAYLA · Práctica</span><h1>Ábrelo en una pantalla más grande</h1><p id="g-angosta-txt"></p></div></div>
+
+<script type="application/json" id="g-datos">%%DATOS%%</script>
+<script type="application/json" id="g-guion">%%GUION%%</script>
+<script>
+%%REPLICA%%
+</script>
+<script>
+%%MOTOR_JS%%
+</script>
+</body>
+</html>
