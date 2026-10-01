@@ -1,0 +1,662 @@
+/* «PRENDAS PARECIDAS» DEL ALTA DE PRODUCTO (Fase 1; maqueta docs/maquetas/producto-buscar-primero-2026-09/)
+   Cómo se ven la alerta del resumen, la tira del celular y la hoja «Ver y comparar» de «Nuevo producto». Nada de esto decide nada: dibuja lo
+   que entrega `lib/parecidas-alta-vista.ts`. Los colores salen SOLO de los tokens de globals.css (ADR-0169), salvo la cápsula de cada color de la
+   prenda, que es un color de DATO y llega por `style`. Sin sombras en superficies pegadas al fondo. El movimiento es de RESPUESTA (ADR-0136): un
+   solo aro cuando la alerta cambia de nivel (un anillo que se abre y se apaga, como el de «Seguir»), sin bucles, con `--ease-cayla` y apagado con movimiento reducido.
+
+   ALTURA DE LA TARJETA DEL RESUMEN. A propósito es más baja que la de la maqueta (218 px contra 254: fila de 40 px con mouse y 44 con el dedo, miniatura de
+   36, botón de 32, hueco de 6, relleno de 10/12; README, «Falta confirmar» 9). Aun así el resumen (`lg:sticky lg:top-6`) sigue siendo más alto que una
+   pantalla de 800 px y «Crear producto» queda fuera de la vista: NO se resuelve achicando la alerta (medido: en 11 de 14 estados a 800 px). Lo resuelve quien
+   integra, en el `<aside>` de `FichaPrevia.tsx`: el aside tiene `lg:max-h-[calc(100dvh-3rem)]`, la ficha + la alerta + «Avance» corren por su cuenta
+   (`overflow-y-auto`) y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo (`shrink-0`): el botón nunca se esconde. */
+
+/* ---- La región que se anuncia (aria-live) ----
+   Siempre está montada: un lector de pantalla solo anuncia lo que cambia DENTRO de una región que ya existía. Sin alerta, no ocupa lugar ni mete
+   su margen en la columna (`space-y-3` del resumen). */
+.parecidas-region:not([data-activa]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* La región (y la de la tira) también es el destino de foco de respaldo de la hoja: solo se enfoca por código (`tabindex -1`), así que no lleva aro con el mouse. */
+.parecidas-region:focus,
+.parecidas-tira-region:focus {
+  outline: none;
+}
+.parecidas-region[data-activa]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-rojo) 60%, transparent);
+  outline-offset: 3px;
+  border-radius: var(--radius-xl);
+}
+
+/* El foco de teclado de todo lo que se toca aquí es el del sistema (rojo al 60 %), no el azul del navegador. */
+.parecidas-fila:focus-visible,
+.parecidas-tira-fila:focus-visible,
+.parecidas-enlace:focus-visible,
+.parecidas-boton:focus-visible,
+.parecidas-acc .btn-cayla:focus-visible,
+.parecidas-hoja-pie .btn-cayla:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-rojo) 60%, transparent);
+  outline-offset: 2px;
+}
+/* La tira va de borde a borde: el aro por dentro, que por fuera lo cortaría la pantalla. */
+.parecidas-tira-fila:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ---- La tarjeta del resumen: entre la ficha y «Avance» ---- */
+/* La receta de tonos (borde al 40 %, fondo al 6 %, tinta) es la de `AvisoInline` (`piezas.tsx`), a propósito repetida aquí: es una tarjeta propia de la maqueta, y
+   `AvisoInline` no tiene el tono pizarra (informativa). Si algún día `AvisoInline` lo trae, esta tarjeta puede usarlo. */
+.parecidas-alerta {
+  --tono: var(--color-pizarra);
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--tono) 40%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--tono) 6%, var(--color-papel));
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-tinta);
+  transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+}
+.parecidas-alerta[data-tono="ambar"] {
+  --tono: var(--color-ambar);
+}
+.parecidas-alerta[data-tono="roja"] {
+  --tono: var(--color-rojo);
+}
+.parecidas-alerta[data-tono="neutra"] {
+  --tono: var(--color-tinta);
+  border-color: var(--color-sand);
+  background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+}
+/* El aro de UN solo pulso: se abre y se apaga, una vez; vuelve a montarse (y a pulsar) solo cuando cambia la `clave` de la alerta.
+   Es un anillo de `box-shadow` y no el `transform: scale` de `hilo-aro`: un `scale` suma alcance de desplazamiento (medido: 23 px) y, si el resumen lleva
+   `overflow-y-auto` (lo que se le pide a `FichaPrevia`), le salía una barra horizontal durante el pulso. La sombra solo se pinta, no se desplaza. */
+.parecidas-aro {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+  animation: parecidas-aro 900ms var(--ease-cayla) 1 both;
+}
+@keyframes parecidas-aro {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--tono) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--tono) 0%, transparent);
+  }
+}
+.parecidas-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+/* El chip del título: en un panel de 340 px un nombre largo tiene que poder pasar a dos líneas. */
+.parecidas-chip {
+  white-space: normal;
+  align-items: flex-start;
+  max-width: 100%;
+  padding-block: 3px;
+  line-height: 1.35;
+  text-align: left;
+}
+.parecidas-chip::before {
+  margin-top: 0.4rem;
+}
+.parecidas-txt {
+  font-size: 13px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+}
+.parecidas-codigo-texto {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.parecidas-gris {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-taupe);
+}
+.parecidas-gris b {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+
+/* ---- Las mini filas (máximo 2): miniatura, nombre y «Disp. 2 · hace 21 h». Tocarlas abre la hoja en esa prenda ---- */
+.parecidas-filas {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.parecidas-fila {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: calc(100% + 12px);
+  min-height: 40px;
+  margin-inline: -6px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-align: left;
+  transition: background-color 150ms;
+}
+/* El resumen mide lo que mide la ficha MÁS la alerta: con un mouse las filas son de 40 px y el botón de 32; con el dedo, de 44 (PL-105). */
+@media (pointer: coarse) {
+  .parecidas-fila {
+    min-height: 44px;
+    padding-block: 4px;
+  }
+}
+.parecidas-fila:hover {
+  background: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+}
+.parecidas-fila[data-destacada] {
+  background: var(--color-hueso);
+}
+/* Un nombre largo pasa a dos renglones: lo que distingue a una prenda de otra suele estar al final («… Verano Tiro Alto»). */
+.parecidas-fila b {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.parecidas-fila small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--color-taupe);
+  font-variant-numeric: tabular-nums;
+}
+/* «Descontinuada» en la fila del resumen: el mismo chip que en la tarjeta, más chico (12 px, 18 de alto) para que la fila no crezca de 40 a 48 px. */
+.parecidas-fila small .parecidas-chip-mini {
+  padding-block: 0;
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.parecidas-mas {
+  font-size: 12px;
+  color: var(--color-taupe);
+}
+/* El botón de la alerta: compacto con mouse (32 px), de 44 px con el dedo. Reemplaza a `btn-chico` (44 px siempre) para no engordar el resumen. */
+.parecidas-boton {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 12.5px;
+}
+@media (pointer: coarse) {
+  .parecidas-boton {
+    min-height: 2.75rem;
+  }
+}
+.parecidas-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+/* Un enlace que se toca con el dedo llega a 44 px (PL-105), también en la alerta y en la tarjeta. */
+.parecidas-enlace {
+  display: inline-flex;
+  align-items: center;
+  /* 24 px es el piso con mouse (WCAG 2.5.8): «No, es otro diseño» es la respuesta más común y no puede ser un enlace de 19 px. */
+  min-height: 24px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+@media (pointer: coarse) {
+  .parecidas-enlace {
+    min-height: 44px;
+    padding: 10px 4px;
+  }
+  /* Los dos botones de la hoja, con el dedo: 44 px también en una tablet (el contenedor de 470 px solo cubre el celular). */
+  .parecidas-acc .btn-cayla,
+  .parecidas-hoja-pie .btn-cayla {
+    min-height: 2.75rem;
+  }
+}
+
+/* ---- El esqueleto parcial mientras la base responde (no el loader de pantalla completa) ---- */
+.parecidas-esqueleto {
+  display: grid;
+  gap: 8px;
+}
+.parecidas-esqueleto i {
+  display: block;
+  height: 40px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+}
+.parecidas-esqueleto i:first-child {
+  width: 60%;
+  height: 16px;
+}
+
+/* ---- La tira del celular y de la tablet: pegada SOBRE la barra de abajo de la ficha ----
+   Va de primer hijo de la barra (`data-barra-ficha`), que tiene 16 px a los lados y 10 px arriba: los márgenes negativos la llevan de borde a borde. */
+.parecidas-tira {
+  --tono: var(--color-pizarra);
+  display: block;
+  width: calc(100% + 2rem);
+  margin: -0.625rem -1rem 0.625rem;
+  color: var(--tono);
+  background: color-mix(in srgb, var(--tono) 10%, var(--color-papel));
+  border-bottom: 1px solid color-mix(in srgb, var(--tono) 30%, transparent);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.parecidas-tira[data-tono="ambar"] {
+  --tono: var(--color-ambar-profundo);
+}
+.parecidas-tira[data-tono="roja"] {
+  --tono: var(--color-rojo-profundo);
+}
+.parecidas-tira[data-tono="neutra"] {
+  --tono: var(--color-taupe);
+}
+.parecidas-tira-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 1rem;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.parecidas-tira-texto {
+  flex: 1;
+  min-width: 0;
+}
+/* Lo que FRENA «Crear» lo dice también la letra: quien no distingue el ámbar del rojo (o mira la pantalla al sol) igual lo nota. */
+.parecidas-tira[data-frena] .parecidas-tira-texto {
+  font-weight: 700;
+}
+.parecidas-tira-ver {
+  flex: none;
+  margin-left: auto;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- La hoja «Ver y comparar» (el <Modal variante="hoja"> del ERP) ----
+   El contenedor de consulta es la propia hoja: la tarjeta se aprieta por el ancho de la HOJA, no por el de la pantalla. */
+.parecidas-hoja {
+  container: parecidas-hoja / inline-size;
+}
+/* Con menos de 1024 px no hay panel a la derecha (la tira de abajo la llama): la hoja abre a pantalla completa. */
+@media (max-width: 1023px) {
+  .parecidas-hoja {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    /* Columna: con pocas prendas el pie se queda abajo de la pantalla y no pegado a la última tarjeta (margin-top: auto en `.parecidas-hoja-pie`). */
+    display: flex;
+    flex-direction: column;
+  }
+  .parecidas-hoja > * {
+    flex-shrink: 0;
+  }
+}
+/* En el celular el título de la hoja baja a 22 px (el del sistema es de 24): «Prendas parecidas de Jirish en Jeans» cabe en una línea. */
+@media (max-width: 660px) {
+  .parecidas-hoja h2 {
+    font-size: 22px;
+  }
+}
+/* El buscador y el contador se quedan arriba mientras se baja por la lista. */
+/* `top: -1.5rem`: un `sticky` se mide desde el borde del CONTENIDO de la hoja (que tiene 24 px de relleno), no desde su borde: con `top: 0` se pegaba 24 px
+   más abajo y dejaba ver las tarjetas pasar por encima. Con el relleno devuelto por dentro, queda pegado al borde de la hoja. */
+.parecidas-busqueda {
+  position: sticky;
+  top: -1.5rem;
+  z-index: 5;
+  /* El margen de arriba cancela el de la bajada (18 px) y el relleno lo devuelve: en reposo la caja queda donde estaba; pegada, a 18 px del borde. */
+  margin: -1.125rem -1.5rem 0;
+  padding: 1.125rem 1.5rem 0.5rem;
+  background: var(--color-papel);
+}
+.parecidas-caja {
+  max-width: 448px;
+}
+.parecidas-caja input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--color-tinta);
+  font-size: 16px;
+  outline: none;
+}
+.parecidas-caja input::placeholder {
+  color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  opacity: 1;
+}
+.parecidas-caja:focus-within {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 1px;
+}
+.parecidas-cuenta {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--color-taupe);
+}
+.parecidas-avisos {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.parecidas-lista {
+  display: grid;
+  gap: 16px;
+  margin-top: 6px;
+  padding: 10px 0 12px;
+  align-content: start;
+}
+.parecidas-nada {
+  padding: 18px 4px;
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+/* El pie se queda abajo: «Ninguna es mi prenda» siempre a mano. Se estira sobre el relleno de la hoja (24 px) para tapar lo que pasa por debajo. */
+.parecidas-hoja-pie {
+  position: sticky;
+  bottom: -1.5rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin: auto -1.5rem -1.5rem;
+  padding: 12px 1.5rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-sand);
+  background: var(--color-papel);
+}
+.parecidas-hoja-pie p {
+  max-width: 340px;
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+
+/* ---- La tarjeta completa de una prenda: SOLO vive dentro de la hoja ---- */
+.parecidas-tarjeta {
+  position: relative;
+}
+.parecidas-tarjeta-in {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px 14px;
+  padding: 12px;
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: 14px;
+}
+.parecidas-tarjeta[data-exacto] .parecidas-tarjeta-in {
+  border-color: var(--color-tinta);
+}
+/* Un destello cuando la persona llega a esta prenda desde una mini fila del resumen. */
+.parecidas-tarjeta[data-llamado] .parecidas-tarjeta-in {
+  animation: hilo-llamado 1100ms var(--ease-cayla) 1;
+}
+.parecidas-foto {
+  position: relative;
+  width: 116px;
+  height: 164px;
+  margin: 0;
+}
+.parecidas-foto img.parecidas-foto-img {
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  object-fit: cover;
+}
+.parecidas-foto figcaption {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 7px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-taupe);
+}
+.parecidas-info {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  /* Un nombre, una descripción o un color largo SIN espacios no se sale de la tarjeta ni le da scroll horizontal a la hoja. */
+  overflow-wrap: anywhere;
+}
+.parecidas-l1 {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.parecidas-ev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.parecidas-ev:empty {
+  display: none;
+}
+.parecidas-info h3 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.parecidas-mc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+.parecidas-cod {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.parecidas-coincide {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-taupe);
+}
+.parecidas-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.parecidas-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.parecidas-tags .parecidas-chip {
+  font-weight: 400;
+}
+.parecidas-dato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+}
+.parecidas-k {
+  color: var(--color-taupe);
+}
+.parecidas-sepa::before {
+  content: "·";
+  margin-right: 10px;
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+}
+.parecidas-colores {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 5px;
+}
+.parecidas-nombres {
+  margin-left: 3px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+}
+/* Como `MuestraColor`: cápsula de 18×14 con borde tenue (para que un blanco no desaparezca sobre el papel) y brillo adentro. */
+.parecidas-capsula {
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-papel) 35%, transparent);
+}
+/* Un color sin hex (Estampado, Multicolor, Animal print) es de VARIOS colores: rueda de tonos de la paleta, como `MuestraColor`, no un aro vacío. */
+.parecidas-capsula[data-varios] {
+  background: conic-gradient(from 20deg, var(--color-rojo), var(--color-ambar), var(--color-verde), var(--color-pizarra), var(--color-taupe), var(--color-rojo));
+}
+.parecidas-stock {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.parecidas-cero {
+  color: var(--color-taupe);
+}
+.parecidas-stock b {
+  font-weight: 700;
+  color: var(--color-tinta);
+}
+.parecidas-sep {
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+}
+.parecidas-cargada {
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+.parecidas-acc {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.parecidas-acc .btn-cayla {
+  white-space: normal;
+}
+.parecidas-linea {
+  order: 5;
+  flex-basis: 100%;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+/* Una prenda que la persona ya dijo que es otro diseño: se pliega a una línea, con «Deshacer». */
+.parecidas-revisada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 11px 16px;
+  border: 1px dashed var(--color-sand);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+.parecidas-ok {
+  color: var(--color-verde);
+  font-weight: 700;
+}
+
+/* Con una hoja de menos de 470 px (celular): la foto se achica y los botones ocupan el ancho. */
+@container parecidas-hoja (max-width: 470px) {
+  .parecidas-tarjeta-in {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+  .parecidas-foto {
+    width: 88px;
+    height: 128px;
+  }
+  /* El campo se queda en 16 px: con menos, Safari en el iPhone agranda la página al enfocarlo y la hoja queda descuadrada. */
+  .parecidas-caja input {
+    padding-inline: 10px;
+  }
+  .parecidas-acc .btn-cayla {
+    flex: 1 1 100%;
+    min-height: 2.75rem;
+  }
+  /* Colores y tallas, cada uno en su línea: así el «·» que los separaba no queda solo al inicio del renglón de abajo. */
+  .parecidas-sepa {
+    flex-basis: 100%;
+  }
+  .parecidas-sepa::before {
+    content: none;
+  }
+  .parecidas-enlace {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 4px;
+  }
+  .parecidas-hoja-pie {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .parecidas-hoja-pie .btn-cayla {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parecidas-aro,
+  .parecidas-tarjeta[data-llamado] .parecidas-tarjeta-in {
+    animation: none;
+  }
+  .parecidas-alerta,
+  .parecidas-fila {
+    transition: none;
+  }
+}
