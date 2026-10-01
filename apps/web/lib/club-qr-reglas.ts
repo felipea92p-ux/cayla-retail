@@ -10,7 +10,8 @@ import { celularValido, codigoClubLegible, enlacePaginaClub } from "./club-regla
 import { esUuid } from "./club-registro-reglas";
 import type { ResumenClientaCaja } from "./club-acciones";
 
-/** Lo que dice el cartel arriba del QR (y el ticket, en una línea): «Únete al Club CAYLA: escanea y regístrate». */
+/** Lo que dice el ticket junto al QR, en una línea: «Únete al Club CAYLA: escanea y regístrate». El cartel del mostrador dice lo
+ *  suyo (diseño C, «Estás invitada»): `club-cartel-reglas.ts`. */
 export const UNETE_AL_CLUB = { titulo: "Únete al Club CAYLA", bajada: "Escanea y regístrate" } as const;
 
 /** El origen tiene que ser una dirección web completa: un QR con una ruta suelta no abre nada en el celular de ella. */
