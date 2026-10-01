@@ -111,6 +111,8 @@ export function CampoFecha({
   id: idPropio,
   estricto = false,
   revelarError = false,
+  diasMarcados,
+  descripcionMarcado = "con datos",
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -128,6 +130,11 @@ export function CampoFecha({
   estricto?: boolean;
   /** Solo con `estricto`: mostrar el aviso ya, sin esperar a que se salga del campo (al intentar aplicar). */
   revelarError?: boolean;
+  /** Días (ISO `aaaa-mm-dd`) que el calendario marca con un punto: «aquí hay algo» (los días con conteos, en Conteo). Opt-in:
+   *  sin esta propiedad el calendario es el de siempre. El punto de «hoy» manda si coinciden. */
+  diasMarcados?: readonly string[];
+  /** Cómo se dice un día marcado al lector de pantalla: «… de setiembre de 2026, con conteos». */
+  descripcionMarcado?: string;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -244,6 +251,7 @@ export function CampoFecha({
 
   const elHoy = hoy();
   const celdas = celdasDelMes(cursor.a, cursor.m);
+  const marcados = diasMarcados ? new Set(diasMarcados) : null;
 
   // Solo `estricto`: sin fecha válida (vacío en un campo obligatorio, a medias o imposible) y ya sea
   // porque se salió del campo o porque el llamador lo pide. Mientras se escribe, sin avisos.
@@ -343,6 +351,7 @@ export function CampoFecha({
                 const esElegido = mismoDia(dia, elegido);
                 const esHoy = mismoDia(dia, elHoy);
                 const conCursor = mismoDia(dia, cursor);
+                const marcado = !!marcados?.has(aIso(dia));
                 return (
                   <button
                     key={aIso(dia)}
@@ -351,7 +360,7 @@ export function CampoFecha({
                     role="gridcell"
                     tabIndex={-1}
                     aria-selected={esElegido}
-                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}`}
+                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}`}
                     // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
                     // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
                     onMouseEnter={() => delMes && setCursor(dia)}
@@ -368,6 +377,7 @@ export function CampoFecha({
                   >
                     {dia.d}
                     {esHoy && !esElegido && <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-rojo" />}
+                    {marcado && !(esHoy && !esElegido) && <span aria-hidden className={`absolute bottom-1 h-1 w-1 rounded-full ${esElegido ? "bg-crema" : "bg-taupe"}`} />}
                   </button>
                 );
               })}
@@ -377,6 +387,12 @@ export function CampoFecha({
               <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
                 Hoy
               </button>
+              {marcados && (
+                <span className="flex items-center gap-1.5 text-[11px] text-tinta/55">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-taupe" />
+                  {descripcionMarcado}
+                </span>
+              )}
               {!required && elegido && (
                 <button
                   type="button"
