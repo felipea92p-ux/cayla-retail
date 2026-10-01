@@ -1,25 +1,26 @@
 import { describe, expect, it } from "vitest";
 import {
   CLUB_APAGADO,
-  CUMPLE_VACIO,
-  ajustarAnio,
-  ajustarDia,
+  CONSULTA_QR_HASTA_MS,
   cajaDelClub,
   camposDeInvitar,
+  camposDeLlegoSuMensaje,
   camposDeRegistrar,
+  caraDelQr,
   celularLegible,
   celularParaInvitar,
   clubDeLaCaja,
   clubEnElTicket,
   cumpleDelResumen,
-  cumpleParaGuardar,
+  debePedirInvitacion,
+  destinoDePagina,
   destinoDelQr,
+  esperaDelQr,
   estadoEnLaLibreta,
   lineaDeLaClientaEnCaja,
-  OPCIONES_MES_CUMPLE,
+  pieDelQr,
   problemaCelular,
   problemaCelularOpcional,
-  problemaCumple,
   qrDeLaSocia,
   textoCumple,
   type ClubDeLaCaja,
@@ -27,6 +28,7 @@ import {
   type HojaRegistrar,
   type LecturaClub,
 } from "./club-caja-reglas";
+import { CUMPLE_VACIO } from "./club-cumple-reglas";
 import { estadosDe, sePuedeConfirmar } from "./guia-campos";
 import type { ResumenClientaCaja } from "./club-acciones";
 
@@ -83,12 +85,12 @@ describe("la caja de la clienta en Cobrar (spike del club, `clientaDelTicketHTML
     expect(conPublicidad).toMatchObject({ publicidad: "activa", cumple: null });
   });
 
-  it("sin QR (la tienda sin su WhatsApp o sin mensaje), el chip de publicidad no se puede tocar", () => {
+  it("con el camino B el chip «Sin publicidad · QR» se toca aunque la tienda no tenga WhatsApp: su QR es la página de CAYLA", () => {
     const socia = listo({ esSocia: true, codigoClub: "C-0142" });
-    expect(cajaDelClub({ ...base, club: { ...CLUB, whatsappTienda: null }, lectura: socia })).toMatchObject({ publicidad: "sin_qr" });
-    expect(cajaDelClub({ ...base, club: { ...CLUB, textos: TEXTOS.filter((t) => t.tipo !== "mensaje_personal") }, lectura: socia })).toMatchObject({
-      publicidad: "sin_qr",
-    });
+    expect(cajaDelClub({ ...base, club: { ...CLUB, whatsappTienda: null }, lectura: socia })).toMatchObject({ publicidad: "qr" });
+    expect(cajaDelClub({ ...base, club: CLUB_APAGADO, lectura: socia })).toMatchObject({ publicidad: "qr" });
+    // Una socia de legado sin código también: la página no lo necesita.
+    expect(cajaDelClub({ ...base, lectura: listo({ esSocia: true }) })).toMatchObject({ codigo: null, publicidad: "qr" });
   });
 
   it("a quien no es socia se la invita en cada compra (CL-8); «Ahora no» deja solo el enlace, en esta venta", () => {
@@ -156,40 +158,6 @@ describe("lo que pide «Invitar»", () => {
     expect(celularLegible("")).toBe("");
   });
 
-  it("el día y el año solo aceptan cifras; el mes, abreviado como el spike para caber a 375 px", () => {
-    expect(ajustarDia("1a2b3")).toBe("12");
-    expect(ajustarAnio("19x905")).toBe("1990");
-    expect(OPCIONES_MES_CUMPLE).toHaveLength(12);
-    expect(OPCIONES_MES_CUMPLE[8]).toEqual({ valor: "9", texto: "sep" });
-  });
-
-  it("el cumpleaños no es obligatorio; día y mes van juntos; el año, opcional (CL-3)", () => {
-    expect(problemaCumple(CUMPLE_VACIO, 2026)).toBeNull();
-    expect(problemaCumple({ dia: "14", mes: "", anio: "" }, 2026)).toMatch(/mes/);
-    expect(problemaCumple({ dia: "", mes: "3", anio: "" }, 2026)).toMatch(/día/);
-    expect(problemaCumple({ dia: "", mes: "", anio: "1990" }, 2026)).toMatch(/día y el mes/);
-    expect(problemaCumple({ dia: "14", mes: "3", anio: "" }, 2026)).toBeNull();
-    expect(problemaCumple({ dia: "14", mes: "3", anio: "1990" }, 2026)).toBeNull();
-  });
-
-  it("no deja un día que el mes no tiene, ni un año imposible", () => {
-    expect(problemaCumple({ dia: "31", mes: "4", anio: "" }, 2026)).toBe("Abril no tiene día 31.");
-    expect(problemaCumple({ dia: "30", mes: "2", anio: "" }, 2026)).toBe("Febrero no tiene día 30.");
-    // El 29 de febrero sin año vale; con un año que no fue bisiesto, no.
-    expect(problemaCumple({ dia: "29", mes: "2", anio: "" }, 2026)).toBeNull();
-    expect(problemaCumple({ dia: "29", mes: "2", anio: "1992" }, 2026)).toBeNull();
-    expect(problemaCumple({ dia: "29", mes: "2", anio: "1990" }, 2026)).toMatch(/28 días/);
-    expect(problemaCumple({ dia: "1", mes: "1", anio: "90" }, 2026)).toMatch(/4 cifras/);
-    expect(problemaCumple({ dia: "1", mes: "1", anio: "2031" }, 2026)).toMatch(/no puede ser/);
-    expect(problemaCumple({ dia: "1", mes: "1", anio: "1900" }, 2026)).toMatch(/no puede ser/);
-  });
-
-  it("lo que viaja a la base: números o null, y el año solo con día y mes", () => {
-    expect(cumpleParaGuardar({ dia: "14", mes: "3", anio: "1990" })).toEqual({ cumpleDia: 14, cumpleMes: 3, cumpleAnio: 1990 });
-    expect(cumpleParaGuardar({ dia: "14", mes: "3", anio: "" })).toEqual({ cumpleDia: 14, cumpleMes: 3, cumpleAnio: null });
-    expect(cumpleParaGuardar(CUMPLE_VACIO)).toEqual({ cumpleDia: null, cumpleMes: null, cumpleAnio: null });
-  });
-
   it("si la ficha ya tenía el cumpleaños, la hoja lo trae", () => {
     expect(cumpleDelResumen(resumen({ cumpleDia: 14, cumpleMes: 3 }))).toEqual({ dia: "14", mes: "3", anio: "" });
     expect(cumpleDelResumen(resumen({ cumpleDia: 14 }))).toEqual(CUMPLE_VACIO);
@@ -221,6 +189,12 @@ describe("la guía de foco de «Invitar» sale de la misma regla que apaga «Uni
     const sinCumple = camposDeInvitar({ ...lista, cumple: CUMPLE_VACIO }, 2026);
     expect(sePuedeConfirmar(sinCumple)).toBe(true);
     expect(estadosDe(sinCumple).cumple).toBe("ahora");
+  });
+
+  it("un día que el mes no tiene bloquea igual que en /clientas (una sola regla del cumpleaños)", () => {
+    const abril31 = camposDeInvitar({ ...lista, cumple: { dia: "31", mes: "4", anio: "" } }, 2026);
+    expect(sePuedeConfirmar(abril31)).toBe(false);
+    expect(abril31.find((c) => c.id === "cumple")?.pendiente).toBe("Abril no tiene día 31.");
   });
 
   it("«Omitir por ahora» da el cumpleaños por visto; a medias, bloquea aunque se haya omitido", () => {
@@ -295,6 +269,130 @@ describe("el QR de la socia (al terminar de invitarla)", () => {
   it("sin número de la tienda no hay QR, y se dice por qué", () => {
     expect(qrDeLaSocia({ ...CLUB, whatsappTienda: null }, "C-0142")).toEqual({ tipo: "sin_numero" });
     expect(qrDeLaSocia({ ...CLUB, textos: [] }, "C-0142")).toEqual({ tipo: "sin_mensaje" });
+  });
+});
+
+describe("la cara del QR: camino B, con el camino A de respaldo (ADR-0288 act. c)", () => {
+  const base = {
+    nombre: "María",
+    codigo: "C-0142",
+    club: CLUB,
+    origen: "https://erp.cayla.pe/",
+    invitacion: { estado: "sin_pedir" } as const,
+    publicidad: null,
+    responsableListo: true,
+    responsableMotivo: null,
+    espera: "esperando" as const,
+  };
+  const TOKEN = "Ab12_cd34-EF56gh";
+
+  it("sin quién firme, la pide antes de crear la invitación (y no la pide)", () => {
+    expect(caraDelQr({ ...base, responsableListo: false, responsableMotivo: "¿Quién está atendiendo?" })).toEqual({
+      tipo: "pide_responsable",
+      pendiente: "¿Quién está atendiendo?",
+    });
+    expect(caraDelQr({ ...base, responsableListo: false }).tipo).toBe("pide_responsable");
+    expect(debePedirInvitacion({ invitacion: { estado: "sin_pedir" }, publicidad: null, responsableListo: false })).toBe(false);
+  });
+
+  it("con quién firme, la pide una sola vez: después ya no está «sin pedir»", () => {
+    expect(caraDelQr(base)).toEqual({ tipo: "preparando" });
+    expect(debePedirInvitacion({ invitacion: { estado: "sin_pedir" }, publicidad: null, responsableListo: true })).toBe(true);
+    expect(debePedirInvitacion({ invitacion: { estado: "lista", token: TOKEN }, publicidad: null, responsableListo: true })).toBe(false);
+    expect(debePedirInvitacion({ invitacion: { estado: "fallo", detalle: null }, publicidad: null, responsableListo: true })).toBe(false);
+    expect(debePedirInvitacion({ invitacion: { estado: "sin_pedir" }, publicidad: "mensaje", responsableListo: true })).toBe(false);
+  });
+
+  it("con la invitación, el QR es su página en el mismo dominio del ERP, y se ve adónde lleva", () => {
+    const cara = caraDelQr({ ...base, invitacion: { estado: "lista", token: TOKEN } });
+    expect(cara).toMatchObject({
+      tipo: "pagina",
+      enlace: `https://erp.cayla.pe/club/${TOKEN}`,
+      destino: `erp.cayla.pe/club/${TOKEN}`,
+      espera: "esperando",
+      consultar: true,
+    });
+    expect(destinoDePagina("http://localhost:3000/club/x")).toBe("localhost:3000/club/x");
+  });
+
+  it("pregunta sola solo a la vista y hasta los 10 minutos; después, «¿Ya lo hizo? Actualizar»", () => {
+    expect(esperaDelQr({ visible: true, desdeMs: 0, ahoraMs: 3_000 })).toBe("esperando");
+    expect(esperaDelQr({ visible: false, desdeMs: 0, ahoraMs: 3_000 })).toBe("pausada");
+    expect(esperaDelQr({ visible: true, desdeMs: 0, ahoraMs: CONSULTA_QR_HASTA_MS - 1 })).toBe("esperando");
+    expect(esperaDelQr({ visible: true, desdeMs: 0, ahoraMs: CONSULTA_QR_HASTA_MS })).toBe("vencida");
+    expect(esperaDelQr({ visible: false, desdeMs: 0, ahoraMs: CONSULTA_QR_HASTA_MS })).toBe("vencida");
+    for (const espera of ["pausada", "vencida"] as const) {
+      expect(caraDelQr({ ...base, espera, invitacion: { estado: "lista", token: TOKEN } })).toMatchObject({ tipo: "pagina", espera, consultar: false });
+    }
+  });
+
+  it("al llegar la publicidad: «Listo: María recibe novedades por WhatsApp», diga cómo llegó", () => {
+    const porPagina = caraDelQr({ ...base, publicidad: "pagina", invitacion: { estado: "lista", token: TOKEN } });
+    expect(porPagina).toMatchObject({ tipo: "listo", etiqueta: "Confirmó", titulo: "Listo: María recibe novedades por WhatsApp" });
+    expect(caraDelQr({ ...base, publicidad: "mensaje", invitacion: { estado: "fallo", detalle: null } })).toMatchObject({
+      tipo: "listo",
+      etiqueta: "Registrado",
+      titulo: "Listo: María recibe novedades por WhatsApp",
+    });
+    // `ya_tiene_publicidad` al crear la invitación.
+    expect(caraDelQr({ ...base, publicidad: "ya_tenia" })).toMatchObject({ tipo: "listo", titulo: "Ya recibe novedades" });
+    // La publicidad manda aunque falte quién firme: no hay nada más que pedirle.
+    expect(caraDelQr({ ...base, publicidad: "pagina", responsableListo: false }).tipo).toBe("listo");
+  });
+
+  it("si la invitación falla (sin conexión, cualquier error), sale el QR del WhatsApp de la tienda con «Llegó su mensaje»", () => {
+    const cara = caraDelQr({ ...base, invitacion: { estado: "fallo", detalle: "No hay conexión." } });
+    expect(cara).toMatchObject({ tipo: "respaldo", destino: "wa.me/51987654321", detalle: "No hay conexión.", aviso: "No se pudo preparar su página de CAYLA." });
+    if (cara.tipo === "respaldo") {
+      expect(cara.enlace).toBe((qrDeLaSocia(CLUB, "C-0142") as { enlace: string }).enlace);
+      expect(cara.como).toContain("Si no se abre la página, que te escriba por WhatsApp");
+      expect(cara.como).toContain("Llegó su mensaje");
+    }
+  });
+
+  it("sin página y sin QR de WhatsApp tampoco se queda sin salida: dice por qué y deja «Llegó su mensaje»", () => {
+    const fallo = { estado: "fallo" as const, detalle: null };
+    for (const [club, codigo, dice] of [
+      [{ ...CLUB, whatsappTienda: null }, "C-0142", /WhatsApp cargado/],
+      [{ ...CLUB, textos: TEXTOS.filter((t) => t.tipo !== "mensaje_personal") }, "C-0142", /mensaje del club/],
+      [CLUB, null, /código de socia/],
+    ] as const) {
+      const cara = caraDelQr({ ...base, club, codigo, invitacion: fallo });
+      expect(cara).toMatchObject({ tipo: "respaldo", enlace: null, destino: null });
+      if (cara.tipo === "respaldo") {
+        expect(cara.como).toMatch(dice);
+        expect(cara.como).toContain("Llegó su mensaje");
+      }
+    }
+  });
+});
+
+describe("la nota de abajo solo promete el QR del ticket si de verdad sale", () => {
+  it("con el WhatsApp de la tienda, su mensaje y su código: «En su ticket también sale un QR»", () => {
+    expect(pieDelQr(CLUB, "C-0142")).toMatch(/^En su ticket también sale un QR: puede hacerlo en casa\./);
+    expect(clubEnElTicket(CLUB, resumen({ esSocia: true, codigoClub: "C-0142" }))).not.toBeNull();
+  });
+
+  it("sin número de la tienda, sin mensaje o sin código, el ticket no lo lleva: no se dice", () => {
+    for (const [club, codigo] of [
+      [{ ...CLUB, whatsappTienda: null }, "C-0142"],
+      [{ ...CLUB, textos: TEXTOS.filter((t) => t.tipo !== "mensaje_personal") }, "C-0142"],
+      [CLUB, null],
+    ] as const) {
+      expect(pieDelQr(club, codigo)).toBe("Sin QR no pasa nada: sigue siendo del club, solo que sin publicidad.");
+    }
+  });
+});
+
+describe("«Llegó su mensaje (respaldo)» en Cobrar", () => {
+  it("el número (viene con el de su ficha) y quién registra bloquean; es la misma regla del celular", () => {
+    const lista = { numero: "987654321", responsableListo: true, responsableMotivo: null };
+    expect(sePuedeConfirmar(camposDeLlegoSuMensaje(lista))).toBe(true);
+    expect(sePuedeConfirmar(camposDeLlegoSuMensaje({ ...lista, numero: "98765" }))).toBe(false);
+    expect(sePuedeConfirmar(camposDeLlegoSuMensaje({ ...lista, responsableListo: false }))).toBe(false);
+    expect(camposDeLlegoSuMensaje({ ...lista, numero: "" })[0]!.pendiente).toMatch(/desde el que le escribió/);
+    expect(camposDeLlegoSuMensaje({ ...lista, numero: "98765" })[0]!.pendiente).toMatch(/9 dígitos/);
+    expect(estadosDe(camposDeLlegoSuMensaje({ ...lista, numero: "" }))).toMatchObject({ numero: "ahora", responsable: "hecho" });
   });
 });
 

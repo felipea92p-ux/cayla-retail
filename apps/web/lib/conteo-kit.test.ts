@@ -146,9 +146,9 @@ describe("ResumenConteo", () => {
 
   it("«resultado»: lo verificado, lo que coincidió y lo corregido; el cierre parcial suma lo que quedó sin verificar", () => {
     const completo = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 37, pendientes: 0, conDiferencia: 3 }, variante: "resultado" }));
-    expect(LIMPIO(completo)).toBe("37 variantes verificadas · 34 coincidieron · 3 fueron corregidas");
+    expect(LIMPIO(completo)).toBe("37 variantes verificadas · 34 coincidieron · 3 con diferencia");
     const parcial = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 25, pendientes: 12, conDiferencia: 3 }, variante: "resultado", parcial: true }));
-    expect(LIMPIO(parcial)).toBe("25 variantes verificadas · 22 coincidieron · 3 fueron corregidas · 12 quedaron sin verificar (conteo parcial)");
+    expect(LIMPIO(parcial)).toBe("25 variantes verificadas · 22 coincidieron · 3 con diferencia · 12 quedaron sin verificar (conteo parcial)");
     // Sin `parcial`, aunque queden pendientes, no se dice «parcial».
     const noParcial = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 25, pendientes: 12, conDiferencia: 3 }, variante: "resultado" }));
     expect(LIMPIO(noParcial)).not.toContain("parcial");

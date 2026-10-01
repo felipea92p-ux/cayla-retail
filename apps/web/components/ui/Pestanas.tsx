@@ -50,7 +50,11 @@ export function Pestanas({
   idIndicador?: string;
 }) {
   return (
-    <nav aria-label={etiquetaAccesible} className={`flex gap-1 overflow-x-auto border-b border-tinta/10 ${deslizante ? "relative" : ""} ${className}`} style={style}>
+    // Sin barra de scroll visible: `overflow-x-auto` vuelve `auto` también el eje vertical y el `-mb-px` de cada pestaña lo
+    // desborda 1 px, así que Windows dibujaba una barra vertical fija junto a las pestañas (medido a 1280, 1366 y 1536 px
+    // en Recibir y Facturas de proveedor). Misma causa y misma salida que `ResumenCabecera` (2026-09-26): si no caben a lo
+    // ancho, se siguen desplazando con el dedo o la rueda.
+    <nav aria-label={etiquetaAccesible} className={`flex gap-1 overflow-x-auto border-b border-tinta/10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${deslizante ? "relative" : ""} ${className}`} style={style}>
       {items.map((p) => {
         const esActiva = p.clave === activa;
         // Deslizante: la activa NO lleva `border-rojo` (lo pondría todo de golpe); su marca estática

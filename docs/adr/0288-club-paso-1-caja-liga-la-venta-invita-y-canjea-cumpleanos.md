@@ -545,6 +545,10 @@ reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento v�
   - Debajo, «Llegó su mensaje (respaldo)».
 - **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
   invitación en la base, y ese QR también le sirve desde casa.
+- **Anonimizar y unir (decisión del arquitecto, 2026-09-30):** archivar una ficha (con o sin anonimizar) vence en ese
+  momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
+  ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
+  otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.
 
 ## Actualización 2026-09-30 (f): tanda 1f, la lista y la ficha de /clientas como el spike
 
@@ -616,16 +620,18 @@ del spike en celular (aquí, nombre e insignias arriba y una línea con celular,
 última compra (aquí se parte en dos líneas) y los chips montados del spike en anchos medianos. El buscador ocupa todo el ancho
 de la tarjeta (el del spike tiene `max-w-sm`), como pidió el encargo.
 
-**La ficha se tocó lo mínimo** (`ClientaFichaModal.tsx`, para integrarla con la 1b): tres imports; «Frecuente» con compra neta;
-«Registrada» pasa a «Su sede» (`Dato` suma un `detalle`); y dos líneas que montan `PreferenciasClienta` y `HistoriaPermisos`
-después de «Talla deducida». En el spike el orden es talla → preferencias → permisos → historia; aquí la tarjeta de permisos (de
-la 1b) quedó arriba de la talla: moverla es de la integración.
+**La ficha se tocó lo mínimo** (`ClientaFichaModal.tsx`): tres imports; «Frecuente» con compra neta; «Registrada» pasa a «Su
+sede» (`Dato` suma un `detalle`); y las piezas aparte `PreferenciasClienta` y `HistoriaPermisos`. Ya junta con la 1b final (el
+camino B), queda en el orden del spike (`modalFicha`, l. 133-146): datos → insignias → talla → preferencias → permisos (de la
+1b) → historia → compras.
 
 **Pendiente (fuera de esta tanda):**
 - `fn_clienta_compras` todavía cuenta las ventas devueltas enteras (D-8, CL-25). Quien la reescriba (la 1d le suma
   `es_regalo`) filtra con `retail.fn_venta_devuelta_entera(v.id)` y la caja deja de diferir de la ficha.
 - El texto `club` v2 que se le lee no nombra las preferencias. Si Felipe quiere que su «sí» las cubra, es una versión 3 del texto.
-- «Ella misma» en la historia es el `qr_web` del camino B (1b); la prueba de esta tanda lo cubre del lado de la web.
+- (Resuelto al juntarla con la 1b final.) «Ella misma» en la historia es el `qr_web` del camino B: la prueba de la base confirma
+  una invitación como `anon` y la historia dice «Pidió la publicidad por WhatsApp · desde la página de su QR · ella misma · texto
+  v1», con la tienda de la invitación.
 
 **Cómo se pega:** después de la 1b, `20260930210000_club_paso1f_lista_y_ficha.sql` solo en el SQL Editor (una parte). Fusionar
 la web después. **Cómo lo verifica Felipe:** abre Clientas: cuatro cifras con Frecuentes, el buscador que busca al escribir, las

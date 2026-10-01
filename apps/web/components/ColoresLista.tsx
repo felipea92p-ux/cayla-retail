@@ -184,6 +184,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   // deja de pisarlo; si lo borra por completo, vuelve a seguir al nombre.
   const [codigoTocado, setCodigoTocado] = useState(false);
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
+  // «Neutro» viene de fábrica: sin esto la guía nunca pasaría por el combo (un valor de fábrica ya cuenta como «lleno») y la
+  // familia quedaría en Neutro sin que nadie la mirara. Elegir en el combo —aunque sea Neutro otra vez— es «ya la miré».
+  const [familiaElegida, setFamiliaElegida] = useState(false);
   const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
   const [pantone, setPantone] = useState("");
@@ -209,8 +212,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const codigosUsados = new Set(colores.map((c) => c.codigo));
   const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
 
-  // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Familia, notas y sinónimos
-  // son opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea).
+  // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Notas y sinónimos son
+  // opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea). La familia
+  // es SUGERIDA, nunca un candado: ordena el color en la lista y en «Se ve casi igual que…», y «Neutro» de fábrica casi nunca es la
+  // correcta para un color nuevo, así que la luz pasa por ella antes del tono.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
@@ -221,6 +226,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       hecho: codigo.length === 3 && !dueñoDelCodigo,
       pendiente: dueñoDelCodigo ? `Ese código ya lo usa «${dueñoDelCodigo.nombre}»: cambia una letra.` : "Escribe las 3 letras del código.",
     },
+    { id: "familia", nombre: "Familia", requerido: false, sugerido: true, hecho: familiaElegida, pendiente: "Elige la familia del color (ahora dice Neutro)." },
     {
       id: "pantone",
       nombre: "Pantone",
@@ -239,6 +245,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setCodigo("");
     setCodigoTocado(false);
     setFamiliaColor("neutro");
+    setFamiliaElegida(false);
     setHex(null);
     setNotas("");
     setPantone("");
@@ -483,7 +490,17 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   />
                   </CampoGuiado>
                 </div>
-                <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+                <CampoGuiado id="familia" guia={guia}>
+                  <CampoSelect
+                    etiqueta={guia.etiqueta("familia", "Familia")}
+                    valor={familiaColor}
+                    onValor={(v) => {
+                      setFamiliaColor(v);
+                      setFamiliaElegida(true);
+                    }}
+                    opciones={FAMILIAS_COLOR}
+                  />
+                </CampoGuiado>
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
                 <CampoGuiado id="pantone" guia={guia}>
                 <CampoTexto

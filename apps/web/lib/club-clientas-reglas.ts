@@ -1,6 +1,6 @@
 // Lo que /clientas necesita del club (ADR-0288, D-4 reescrita y tanda 1b), sin React ni red: el estado de una ficha en
-// palabras, el cumpleaños con su año opcional y, sobre todo, «Llegó un mensaje de WhatsApp»: leer lo que ella escribió y
-// decidir qué se registra. Las reglas de verdad (quién puede ser socia, que la publicidad solo nace de un mensaje de ella)
+// palabras, cómo se lee su cumpleaños, el aviso al cambiarle el celular a una socia con novedades y, sobre todo, «Llegó un
+// mensaje de WhatsApp»: leer lo que ella escribió y decidir qué se registra. Las reglas de verdad (quién puede ser socia, que la publicidad solo nace de un mensaje de ella)
 // las hace cumplir la base; esto solo elige cuál de sus funciones llamar y qué decirle a la asesora.
 //
 // CONTRATO
@@ -35,7 +35,7 @@ export function textoEstadoClub(c: FichaDelClub, fecha: (iso: string) => string)
     case "socia":
       return {
         titulo: ["Socia desde " + fecha(c.clubDesde!), codigo].filter(Boolean).join(" · "),
-        detalle: "Sin novedades por WhatsApp: le llegan solo si ella le escribe a la tienda (desde el QR o por su cuenta).",
+        detalle: "Sin novedades por WhatsApp: le llegan solo si ella las pide desde su QR (o le escribe a la tienda).",
         corto: [codigo, "Socia"].filter(Boolean).join(" · "),
       };
     case "socia_con_publicidad":
@@ -48,7 +48,8 @@ export function textoEstadoClub(c: FichaDelClub, fecha: (iso: string) => string)
 }
 
 /* ------------------------------------------------------------------
-   El cumpleaños (CL-3: día y mes; el año es opcional)
+   El cumpleaños (CL-3: día y mes; el año es opcional). La regla que valida lo escrito es UNA para Cobrar y /clientas:
+   `lib/club-cumple-reglas.ts`. Aquí solo cómo se lee en la ficha.
    ------------------------------------------------------------------ */
 
 /** «12/3», «12/3/1990» o «—». */
@@ -57,43 +58,21 @@ export function cumpleLegible(dia: number | null, mes: number | null, anio: numb
   return anio ? `${dia}/${mes}/${anio}` : `${dia}/${mes}`;
 }
 
-/** Lo que queda en la caja del año al tipear: solo cifras, hasta 4. */
-export function ajustarAnio(texto: string): string {
-  return texto.replace(/\D/g, "").slice(0, 4);
-}
+/* ------------------------------------------------------------------
+   Cambiar el celular de una socia con publicidad
+   ------------------------------------------------------------------ */
 
-/** El año es opcional; si se escribe, son 4 cifras entre 1900 y el año en curso. `null` = está bien (o vacío). */
-export function problemaAnio(texto: string, anioActual: number): string | null {
-  const t = texto.trim();
-  if (t === "") return null;
-  const n = Number(t);
-  if (!/^\d{4}$/.test(t) || n < 1900 || n > anioActual) return `El año tiene 4 cifras, entre 1900 y ${anioActual}. Si no lo dijo, déjalo vacío.`;
-  return null;
-}
+export const AVISO_CAMBIO_CELULAR = "Si cambias su celular, deja de recibir novedades hasta que las vuelva a pedir desde el número nuevo.";
 
-/** Los meses como los muestra el combo del cumpleaños (como el spike del club). El valor es su número, «1» a «12». */
-export const MESES_CUMPLE: readonly { valor: string; texto: string }[] = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"].map(
-  (texto, i) => ({ valor: String(i + 1), texto }),
-);
-
-export type EstadoCumple = {
-  /** Día y mes válidos (el año, si está, también). */
-  completo: boolean;
-  /** Lo que impide guardar (día sin mes, un día fuera de 1–31, un año mal), o null. Vacío del todo no es problema: es opcional. */
-  problema: string | null;
-};
-
-/** El cumpleaños que se escribe en un formulario (como `cumpleForm` del spike del club): opcional, pero si se empieza, completo. */
-export function estadoCumple(dia: string, mes: string, anio: string, anioActual: number): EstadoCumple {
-  const d = dia.trim();
-  const m = mes.trim();
-  const diaBien = /^\d{1,2}$/.test(d) && Number(d) >= 1 && Number(d) <= 31;
-  const mesBien = /^\d{1,2}$/.test(m) && Number(m) >= 1 && Number(m) <= 12;
-  const delAnio = problemaAnio(anio, anioActual);
-  if (d === "" && m === "") return { completo: false, problema: anio.trim() === "" ? null : "Falta el día y el mes." };
-  if (d !== "" && !diaBien) return { completo: false, problema: "El día va del 1 al 31." };
-  if (!diaBien || !mesBien) return { completo: false, problema: "Falta el día o el mes." };
-  return { completo: delAnio === null, problema: delAnio };
+/**
+ * El aviso ANTES de guardar un celular nuevo en la ficha de una socia que recibe novedades: la base se las quita sola al
+ * cambiarlo (`editar_clienta` escribe el `revoca` con medio `cambio_celular`, y el disparador `clientas_celular_con_publicidad`
+ * no deja hacerlo por otro camino). null si no pierde nada: sin publicidad, el mismo número, o vacío (eso lo frena otra
+ * regla: a una socia no se le borra el celular, `socia_sin_celular`).
+ */
+export function avisoCambioDeCelular(c: { publicidadDesde: string | null; telefonoWhatsapp: string | null }, celularNuevo: string): string | null {
+  if (!c.publicidadDesde || ajustarCelular(celularNuevo) === "") return null;
+  return cambiaDeCelular(c.telefonoWhatsapp, celularNuevo) ? AVISO_CAMBIO_CELULAR : null;
 }
 
 /* ------------------------------------------------------------------

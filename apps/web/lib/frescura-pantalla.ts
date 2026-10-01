@@ -348,6 +348,11 @@ export function textoSugerencia(s: Sugerencia, p: FrescuraPrenda, ctx: ContextoF
       const e = estacionDelClasico(ctx, p.temporada);
       return e?.tipo === "estacion" ? `Es de ${e.nombre}: ¿la guardas hasta su estación?` : "¿La guardas hasta su estación?";
     }
+    // Las dos salen del RESULTADO de lo que ya se decidió (paso 4b, `sugerenciasConHistoria`).
+    case "dejar_hasta_agotar":
+      return "Se vendió mejor en su lugar nuevo: ¿la dejas ahí hasta agotar?";
+    case "rebaja_chica":
+      return `Cambiarla de lugar no alcanzó. Lo que sigue es una rebaja chica solo en ${ctx.sede}, que decide el líder`;
   }
 }
 
@@ -396,8 +401,8 @@ export type FilaVista = {
   sugerencias: { clave: Sugerencia; texto: string }[];
   /** Lo que dice «Qué hacer» sin sugerencias. */
   nada: string;
-  /** «Por decidir». */
-  quieta: boolean;
+  /** «Por decidir»: quieta y sin decisión vigente (`FrescuraPrenda.porDecidir`). */
+  porDecidir: boolean;
 };
 
 export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
@@ -423,7 +428,7 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     vendioTexto: dudosa ? null : `vendió ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}`,
     sugerencias: p.estado.sugerencias.map((s) => ({ clave: s, texto: textoSugerencia(s, p, ctx) })),
     nada: apartada ? "Nada: tiene dueña" : dudosa ? "Revisa su stock primero" : "Nada por ahora",
-    quieta: p.estado.quieta,
+    porDecidir: p.porDecidir,
   };
 }
 
@@ -449,8 +454,8 @@ const ES_FILTRO_ESTADO = new Set<string>(FILTROS_ESTADO.map((f) => f.valor));
 
 export const TODAS_LAS_CATEGORIAS = "todas";
 
-export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; q: string };
-export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, q: "" };
+export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; decididas: boolean; q: string };
+export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, decididas: false, q: "" };
 
 /**
  * Los filtros de la URL (`?cat=`, `?estado=`, `?pordecidir=1`, `?q=`). Lo que no se entiende se ignora. `cat=` vacío es
@@ -463,6 +468,7 @@ export function filtrosDeUrl(leer: (clave: string) => string | null | undefined)
     cat: leer("cat") ?? TODAS_LAS_CATEGORIAS,
     estado: estado && ES_FILTRO_ESTADO.has(estado) ? (estado as FiltroEstado) : "todos",
     porDecidir: leer("pordecidir") === "1",
+    decididas: leer("decididas") === "1",
     q: (leer("q") ?? "").slice(0, 80),
   };
 }
@@ -473,12 +479,13 @@ export function consultaDe(f: Filtros, prenda: string | null): string {
   if (f.cat !== TODAS_LAS_CATEGORIAS) q.set("cat", f.cat);
   if (f.estado !== "todos") q.set("estado", f.estado);
   if (f.porDecidir) q.set("pordecidir", "1");
+  if (f.decididas) q.set("decididas", "1");
   if (f.q.trim()) q.set("q", f.q.trim());
   if (prenda) q.set("prenda", prenda);
   return q.toString();
 }
 
-export const hayFiltros = (f: Filtros) => f.cat !== TODAS_LAS_CATEGORIAS || f.estado !== "todos" || f.porDecidir || f.q.trim() !== "";
+export const hayFiltros = (f: Filtros) => f.cat !== TODAS_LAS_CATEGORIAS || f.estado !== "todos" || f.porDecidir || f.decididas || f.q.trim() !== "";
 
 /** ¿La prenda entra en este estado del filtro? «Temporada» se cruza con los de arriba (una prenda puede estar en los dos). */
 export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {
@@ -507,7 +514,8 @@ export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {
 export function pasaFiltros(p: FrescuraPrenda, f: Filtros): boolean {
   if (f.cat !== TODAS_LAS_CATEGORIAS && p.categoriaId !== f.cat) return false;
   if (!pasaEstado(p, f.estado)) return false;
-  if (f.porDecidir && !p.estado.quieta) return false;
+  if (f.porDecidir && !p.porDecidir) return false;
+  if (f.decididas && !(p.decision?.vigente ?? false)) return false;
   const q = claveBusqueda(f.q);
   if (q && !claveBusqueda(`${p.productoNombre} ${p.colorNombre ?? ""} ${p.codigo ?? ""}`).includes(q)) return false;
   return true;
@@ -610,6 +618,8 @@ export type CifrasVista = {
   nuevas: number;
   conTramo: number;
   porDecidir: number;
+  /** Prendas con una decisión vigente (paso 4b): «3 ya decididas, en prueba». */
+  decididas: number;
   unidades: number;
 };
 
@@ -621,6 +631,7 @@ export function cifrasVista(c: CifrasSede): CifrasVista {
     nuevas: c.unidadesNuevas,
     conTramo: c.unidadesConTramo,
     porDecidir: c.porDecidir,
+    decididas: c.decididas,
     unidades: c.unidadesEnPiso,
   };
 }
@@ -897,6 +908,18 @@ const lineasTraslado = (p: FrescuraPrenda) =>
 /** La talla con que se abre la prenda en Existencias (`?variante=`): la primera con algo en el piso, o la primera. */
 const varianteParaExistencias = (p: FrescuraPrenda) => (p.tallas.find((t) => t.pisoHoy > 0) ?? p.tallas[0])?.varianteId ?? null;
 
+/** El enlace a Existencias para retirar la prenda del piso, o null si no tiene ninguna talla. */
+export function hrefExistencias(p: FrescuraPrenda): string | null {
+  const v = varianteParaExistencias(p);
+  return v ? `/inventario?variante=${encodeURIComponent(v)}` : null;
+}
+
+/** El enlace que arma un traslado con lo que hay de la prenda en el almacén, o null si no hay nada que trasladar. */
+export function hrefArmarTraslado(p: FrescuraPrenda): string | null {
+  const lineas = lineasTraslado(p);
+  return lineas ? `/inventario/mover?lineas=${lineas}` : null;
+}
+
 function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
   const a = ctx.acceso;
   const variante = varianteParaExistencias(p);
@@ -946,7 +969,7 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}. Tú decides si la dejas hasta que se agote o la retiras. Mientras siga colgada, sigue en «Por decidir»: todavía no hay dónde anotar lo que decidiste.`,
+          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}. Tú decides si la dejas hasta que se agote o la retiras. Cuando decidas, anótalo con «Ya decidí»: sale de «Por decidir» hasta que toque volver a mirarla.`,
           botones: retirar,
         };
       case "guardar_hasta_su_estacion":
@@ -955,6 +978,20 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
           titulo,
           texto: `Es un clásico${deClasico(estacionDelClasico(ctx, p.temporada))}: no envejece, pero fuera de su estación ocupa percha. Guárdala hasta que empiece su estación: se retira del piso desde Existencias.`,
           botones: retirar,
+        };
+      case "dejar_hasta_agotar":
+        return {
+          clave: s,
+          titulo,
+          texto: "Cambiarla de lugar funcionó: esa semana vendió mejor que las demás de su categoría. Déjala donde está hasta que se agote; si dejara de venderse, vuelve a esta lista. Anótalo con «Ya decidí».",
+          botones: [],
+        };
+      case "rebaja_chica":
+        return {
+          clave: s,
+          titulo,
+          texto: "Moverla no bastó. El escalón que sigue es una rebaja chica, solo en esta tienda y por tramos. La decide el líder: aquí no se rebaja nada. Cuando el líder la rebaje, se anota con «Ya decidí» → «La rebajé».",
+          botones: [],
         };
     }
   });
