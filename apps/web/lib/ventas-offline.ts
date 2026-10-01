@@ -92,8 +92,7 @@ export type ParamsRegistrarVenta = {
    *  (`llevaCanje`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (esperar, o quitarlo). */
   p_canjear_cumpleanos?: boolean;
   /** Usar el vale de aniversario de la socia del ticket (tanda 1g, G-13): la base exige que esté disponible y una sola ventaja
-   *  del club por venta (`club_un_cupon_por_compra`). Igual que el cumpleaños, nunca va a la cola (`llevaCanje`).
-   *  TODO tipos: lo trae el agente de base (`registrar_venta` con 18 parámetros); hasta entonces `Args` no lo nombra. */
+   *  del club por venta (`club_un_cupon_por_compra`). Igual que el cumpleaños, nunca va a la cola (`llevaCanje`). */
   p_canjear_aniversario?: boolean;
 };
 

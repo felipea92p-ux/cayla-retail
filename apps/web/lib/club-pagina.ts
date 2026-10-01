@@ -14,8 +14,7 @@ import { esUuid, lecturaDePagina, type LecturaPagina } from "@/lib/club-registro
 export async function leerPaginaClub(ubicacionId: string): Promise<LecturaPagina> {
   if (!esUuid(ubicacionId)) return { estado: "no_es_tienda" };
   try {
-    // TODO tipos: lo trae el agente de base (`fn_club_pagina` todavía no está en packages/database).
-    const { data, error } = await crearClienteAnonimo().rpc("fn_club_pagina" as never, { p_ubicacion_id: ubicacionId } as never);
+    const { data, error } = await crearClienteAnonimo().rpc("fn_club_pagina", { p_ubicacion_id: ubicacionId });
     if (error) {
       console.error("[club] fn_club_pagina falló", error.code, error.message);
       return { estado: "no_disponible" };

@@ -49,15 +49,12 @@ export type ResumenClientaCaja = {
   aniversarioVence: string | null;
 };
 
-// TODO tipos: lo trae el agente de base (`resumen_clienta_caja` suma `aniversario_disponible`, `aniversario_monto` y
-// `aniversario_vence` en la tanda 1g). Mientras `packages/database` no los tenga, se leen con este tipo.
-type FilaAniversarioResumen = { aniversario_disponible?: boolean | null; aniversario_monto?: number | string | null; aniversario_vence?: string | null };
 
 /** Lo que la tarjeta de la clienta necesita en Cobrar (lectura: `resumen_` no abre el loader). */
 export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: ResumenClientaCaja | null; error: ErrorEscritura }> {
   const { data, error } = await createClient().rpc("resumen_clienta_caja", { p_clienta_id: clientaId });
   const f = Array.isArray(data) ? data[0] : null;
-  const aniversario = (f ?? {}) as FilaAniversarioResumen;
+  const aniversario = f ?? { aniversario_disponible: false, aniversario_monto: null, aniversario_vence: null };
   return {
     resumen: f
       ? {

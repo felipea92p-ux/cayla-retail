@@ -13,16 +13,19 @@
 //   NO HACE: no inventa textos legales: los de la página son los aprobados en `docs/club/texto-legal-registro-v1.md`; la
 //            política, los términos, la casilla de WhatsApp y el saludo vienen de `club_textos` con su versión.
 
+import type { Database } from "@cayla-retail/database";
 import { celularValido, enlaceQrClub } from "./club-reglas";
 import { MESES_DEL_ANIO, type CumpleEscrito } from "./club-cumple-reglas";
 import { esTipoDocumentoClienta, normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
+/** Los argumentos exactos de `registrarse_en_el_club`, como los genera la base. */
+export type ArgsRegistro = Database["retail"]["Functions"]["registrarse_en_el_club"]["Args"];
+
 /* ------------------------------------------------------------------ Lo que contesta la base */
 
-// TODO tipos: lo trae el agente de base. `fn_club_pagina(p_ubicacion_id uuid) returns jsonb` (contrato de la tanda 1g):
-// `{tienda, whatsapp, pct, escala:[{anio, monto}], compras, monto_minimo, dias, textos:{terminos, privacidad,
-// casilla_publicidad, saludo: {version, texto}}}`, o `null` si no es una tienda. `vigente_desde` de cada texto NO está en el
-// contrato: si la base lo agrega, la política y los términos lo muestran; si no, solo su versión.
+// `fn_club_pagina(p_ubicacion_id uuid) returns jsonb` (contrato de la tanda 1g): `{tienda, whatsapp, pct, escala:[{anio, monto}],
+// compras, monto_minimo, dias, textos:{terminos, privacidad, casilla_publicidad, saludo: {version, texto, vigente_desde}}}`, o
+// `null` si no es una tienda. Como es `jsonb`, la forma se valida aquí (`lecturaDePagina`), no en los tipos generados.
 
 /** Un texto del club como lo muestra la página: la versión que ella acepta y, si la base la da, desde cuándo vale. */
 export type TextoDelClub = { version: number; texto: string; vigenteDesde: string | null };
@@ -467,7 +470,7 @@ export function leerDatosRegistro(x: unknown): DatosRegistro | null {
  * `nombrePadron`: con DNI, el nombre que el SERVIDOR volvió a leer del padrón (nunca el que dice el navegador); con carné o
  * pasaporte, null (va el que ella escribió).
  */
-export function argumentosRegistro(d: DatosRegistro, nombrePadron: string | null): Record<string, unknown> {
+export function argumentosRegistro(d: DatosRegistro, nombrePadron: string | null): ArgsRegistro {
   const delPadron = d.documentoTipo === "dni" && nombrePadron !== null;
   return {
     p_ubicacion_id: d.ubicacionId,
@@ -475,7 +478,8 @@ export function argumentosRegistro(d: DatosRegistro, nombrePadron: string | null
     p_documento_numero: normalizarNumeroDocumento(d.documentoNumero),
     p_nombre: delPadron ? nombrePadron : d.nombre.replace(/\s+/g, " ").trim(),
     p_telefono: soloDigitos(d.celular),
-    p_nacimiento: nacimientoIso(d.nacimiento),
+    // `registrarme` ya rechazó una fecha inválida (`problemasRegistro`); el `?? ""` solo satisface el tipo y la base lo rechazaría.
+    p_nacimiento: nacimientoIso(d.nacimiento) ?? "",
     p_correo: d.correo.trim() === "" ? null : d.correo.trim(),
     p_mayor_de_edad: d.mayorDeEdad,
     p_acepta_terminos: d.aceptaTerminos,

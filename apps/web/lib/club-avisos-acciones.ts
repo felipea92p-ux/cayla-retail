@@ -8,10 +8,6 @@ import { escalaParaGuardar, type BeneficiosClub } from "@/lib/club-beneficios-re
 // funciones 8 y 9). Todas firman con el responsable del combo (ADR-0161); la base exige el módulo «avisos_club» para anotar y
 // deshacer, y ser líder para los beneficios. Ninguna decide reglas: solo pasa lo que eligió la pantalla.
 
-// TODO tipos: lo trae el agente de base (`packages/database/src/types.ts`, tanda 1g). Al integrar se quitan estos casts.
-type ConsultaSuelta<T> = PromiseLike<{ data: T | null; error: ErrorEscritura }> & { setHeader(nombre: string, valor: string): ConsultaSuelta<T> };
-type RpcSuelta<T> = (fn: string, args: Record<string, unknown>) => ConsultaSuelta<T>;
-
 /** «Enviar»: WhatsApp Web ya se abrió con el texto; queda anotado quién lo mandó, a quién, qué texto y desde qué tienda. Devuelve el
  *  id del envío, que es lo que pide «Deshacer». */
 export async function registrarAvisoEnviado(
@@ -20,7 +16,7 @@ export async function registrarAvisoEnviado(
 ): Promise<{ id: string | null; error: ErrorEscritura }> {
   const supabase = createClient();
   const { data, error } = await firmar(
-    (supabase.rpc as unknown as RpcSuelta<string>)("registrar_aviso_enviado", {
+    supabase.rpc("registrar_aviso_enviado", {
       p_clienta_id: aviso.clientaId,
       p_tipo: aviso.tipo,
       p_referencia: aviso.referencia,
@@ -35,7 +31,7 @@ export async function registrarAvisoEnviado(
 /** «Deshacer» (dentro de 10 minutos): el aviso vuelve a la lista de por mandar. La base rechaza pasado el plazo. */
 export async function deshacerAvisoEnviado(id: string, firma: Firma | null): Promise<{ error: ErrorEscritura }> {
   const supabase = createClient();
-  const { error } = await firmar((supabase.rpc as unknown as RpcSuelta<null>)("deshacer_aviso_enviado", { p_id: id }), firma);
+  const { error } = await firmar(supabase.rpc("deshacer_aviso_enviado", { p_id: id }), firma);
   return { error };
 }
 
@@ -43,7 +39,7 @@ export async function deshacerAvisoEnviado(id: string, firma: Firma | null): Pro
 export async function guardarBeneficiosClub(b: BeneficiosClub, firma: Firma | null): Promise<{ error: ErrorEscritura }> {
   const supabase = createClient();
   const { error } = await firmar(
-    (supabase.rpc as unknown as RpcSuelta<null>)("guardar_beneficios_club", {
+    supabase.rpc("guardar_beneficios_club", {
       p_pct: b.pct,
       p_compras: b.compras,
       p_monto: b.monto,

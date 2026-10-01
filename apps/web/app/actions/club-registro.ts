@@ -35,10 +35,9 @@ const ERROR_GENERAL: RespuestaRegistro = { estado: "error", mensaje: MENSAJE.noD
 
 /** Anota el intento y dice si está dentro del límite. null si la base no respondió (la acción no sigue a ciegas). */
 async function dentroDelLimite(tipo: "consulta" | "registro", documentoHash: string, celular: string | null): Promise<boolean | null> {
-  // TODO tipos: lo trae el agente de base (`club_intento` todavía no está en packages/database).
   const { data, error } = await crearClienteAdmin().rpc(
-    "club_intento" as never,
-    { p_tipo: tipo, p_ip_hash: await huellaDeLaIp(), p_documento_hash: documentoHash, p_celular: celular } as never,
+    "club_intento",
+    { p_tipo: tipo, p_ip_hash: await huellaDeLaIp(), p_documento_hash: documentoHash, p_celular: celular },
   );
   if (error) {
     console.error("[club] club_intento falló", error.code, error.hint);
@@ -95,8 +94,7 @@ export async function registrarme(entrada: DatosRegistro): Promise<RespuestaRegi
       nombrePadron = r.datos.nombre;
     }
 
-    // TODO tipos: lo trae el agente de base (`registrarse_en_el_club` todavía no está en packages/database).
-    const { data, error } = await crearClienteAdmin().rpc("registrarse_en_el_club" as never, argumentosRegistro(d, nombrePadron) as never);
+    const { data, error } = await crearClienteAdmin().rpc("registrarse_en_el_club", argumentosRegistro(d, nombrePadron));
     if (error) {
       const e = errorDeLaBase(error.hint);
       if (e === "texto_cambio") {

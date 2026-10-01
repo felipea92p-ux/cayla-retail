@@ -11,9 +11,6 @@ import { capturarError } from "@/lib/errores";
 // `proxy.ts` también lo haga). No trae sesión de persona: entra con la llave de servicio, y la función es solo del servidor (ni `anon`
 // ni `authenticated` la pueden llamar).
 
-// TODO tipos: lo trae el agente de base (`packages/database/src/types.ts`, tanda 1g). Al integrar se quita el cast.
-type RpcSuelta = (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: number | null; error: { message: string; code?: string } | null }>;
-
 export async function GET(request: Request) {
   if (!cronAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
@@ -28,7 +25,7 @@ export async function GET(request: Request) {
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }
 
-  const { data, error } = await (supabase.rpc as unknown as RpcSuelta)("fn_club_anonimizar_inactivas", {});
+  const { data, error } = await supabase.rpc("fn_club_anonimizar_inactivas");
   if (error) {
     capturarError("club/conservacion (cron): fn_club_anonimizar_inactivas falló", error);
     return Response.json({ error: error.message }, { status: 500 });

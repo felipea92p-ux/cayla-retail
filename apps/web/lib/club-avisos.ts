@@ -9,16 +9,12 @@ import { leerBeneficios, type BeneficiosClub } from "@/lib/club-beneficios-regla
 // `club-avisos-acciones.ts`. Si la base todavía no tiene la tanda 1g, cada lectura devuelve `falla` en vez de tumbar la pantalla
 // (principio 9): la pantalla lo dice y sigue.
 
-// TODO tipos: lo trae el agente de base (`packages/database/src/types.ts`, tanda 1g). Al integrar se quitan estos casts.
-type RespuestaSuelta<T> = PromiseLike<{ data: T | null; error: { message: string; code?: string } | null }>;
-type RpcSuelta<T> = (fn: string, args: Record<string, unknown>) => RespuestaSuelta<T>;
-
 export type LecturaAvisos = { avisos: AvisoPendiente[]; falla: string | null };
 
 /** Los avisos por mandar desde esta tienda (`fn_club_avisos_pendientes`, módulo «avisos_club»). Quién entra lo decide la base. */
 export async function getAvisosPendientes(ubicacionId: string): Promise<LecturaAvisos> {
   const supabase = await createClient();
-  const { data, error } = await (supabase.rpc as unknown as RpcSuelta<FilaAvisoPendiente[]>)("fn_club_avisos_pendientes", { p_ubicacion_id: ubicacionId });
+  const { data, error } = await supabase.rpc("fn_club_avisos_pendientes", { p_ubicacion_id: ubicacionId });
   if (error) return { avisos: [], falla: `No se pudo leer la lista de avisos: ${error.message}` };
   return { avisos: leerAvisos(data ?? []), falla: null };
 }
@@ -36,7 +32,7 @@ export async function getBeneficiosClub(ubicacionId: string): Promise<LecturaBen
   const tienda = tiendas.find((t) => t.id === ubicacionId) ?? tiendas[0];
   if (!tienda) return { valores: null, falla: falla ?? "No hay ninguna tienda activa de la cual leer los beneficios del club." };
   try {
-    const { data, error } = await (crearClienteAnonimo().rpc as unknown as RpcSuelta<unknown>)("fn_club_pagina", { p_ubicacion_id: tienda.id });
+    const { data, error } = await crearClienteAnonimo().rpc("fn_club_pagina", { p_ubicacion_id: tienda.id });
     if (error) return { valores: null, falla: `No se pudieron leer los beneficios del club: ${error.message}` };
     const valores = leerBeneficios(data);
     return valores ? { valores, falla: null } : { valores: null, falla: "La base todavía no da los beneficios completos del club (falta la tanda 1g)." };
