@@ -4,6 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -46,6 +47,8 @@ export type PrendaParaReponer = {
   referencia: string;
   color: string | null;
   colorHex: string | null;
+  /** La foto de la prenda: va a la izquierda de la ventana. */
+  fotoUrl?: string | null;
   tallas: readonly FilaDeTalla[];
 };
 
@@ -225,7 +228,14 @@ export function ReponerPrendaModal({
   }
 
   return (
-    <Modal titulo="Reponer piso" subtitulo="Del almacén al piso de venta" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
+    <Modal
+      titulo="Reponer piso"
+      subtitulo="Del almacén al piso de venta"
+      onClose={onClose}
+      bloqueado={loading}
+      alCerrarEnfocar={alCerrarEnfocar}
+      lateral={<FotoDePrenda fotoUrl={prenda.fotoUrl ?? null} colorHex={prenda.colorHex} />}
+    >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>

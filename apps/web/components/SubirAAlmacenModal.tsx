@@ -4,6 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -194,7 +195,14 @@ export function SubirAAlmacenModal({
   }
 
   return (
-    <Modal titulo="Subir a almacén" subtitulo="Del piso de venta al almacén" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
+    <Modal
+      titulo="Subir a almacén"
+      subtitulo="Del piso de venta al almacén"
+      onClose={onClose}
+      bloqueado={loading}
+      alCerrarEnfocar={alCerrarEnfocar}
+      lateral={<FotoDePrenda fotoUrl={prenda.fotoUrl ?? null} colorHex={prenda.colorHex} />}
+    >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
