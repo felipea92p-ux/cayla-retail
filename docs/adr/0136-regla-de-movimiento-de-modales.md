@@ -201,3 +201,14 @@ bajada y contenido quedan a su derecha, igual que antes).
 - **La pieza:** `components/ui/FotoDePrenda.tsx` (3:4, recortada con `object-cover`; sin foto, el isotipo y un punto con el color).
 - **Ajustar sin foto cuando quien lo abre no la tiene:** la ficha del producto en edición (`AjusteDeStock`) no sabe la foto del color, así
   que ahí la ventana va como antes (`PrendaAjuste.fotoUrl` indefinido = sin costado).
+
+## Actualización 2026-10-01 (f) — la página pública del Club CAYLA tiene su propio movimiento
+
+**Alcance:** esta regla gobierna el ERP (lo que usa el equipo). La página a la que llega una clienta al escanear el cartel del
+club (`/club/<tienda>`, ADR-0288 act. g e i) es una pieza de marca para clientas, y Felipe aprobó el 2026-10-01 un movimiento
+más vistoso: el colibrí que entra volando y queda flotando, el hilo rojo que se dibuja, tarjetas que suben en cascada, un
+destello y un latido en el botón principal, pétalos que caen una vez y la tarjeta de socia que entra girando.
+- **Lo que se mantiene:** sin rebotes exagerados; cada efecto pasa una o dos veces y se detiene; el único bucle es el colibrí
+  flotando; colores solo con tokens; con `prefers-reduced-motion` todo se apaga y cada pieza queda en su estado final.
+- **Dónde vive:** `apps/web/app/estilos/club-publico.css` (sus `@keyframes`), sin tocar la «REGLA DE MODALES» de
+  `globals.css`. No se copia a pantallas del ERP.

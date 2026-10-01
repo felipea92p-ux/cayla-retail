@@ -1006,3 +1006,16 @@ Construida sobre el contrato, con estas decisiones donde el contrato no alcanzab
 - Conservación: `fn_clienta_anonimizar` (la misma rutina que `archivar_clienta`); no anonimiza una ficha con apartado abierto.
 - La consulta del «¿Eres …?» va por `POST /api/club/nombre` con `x-espera: no` (una acción de servidor siempre abre el
   loader, ADR-0149); el DNI viaja en el cuerpo.
+
+## Actualización 2026-10-01 (i): el cartel «Invitación» y la página de la clienta, rediseñados
+
+Felipe pidió un cartel más llamativo y una página mejor, con animaciones, y eligió entre propuestas de un lienzo de diseño
+(`https://claude.ai/artifact/MKC9Z7w3pAQBnWYojUBKXM`, privado de Felipe):
+- **Cartel C «Invitación»** (de tres: Tinta, «El 10 % manda» e Invitación): A4 a sangre en rojo profundo, marco doble crema,
+  «*Estás invitada*», los tres beneficios con puntos guía y el QR real de cada tienda. El %, la escala de vales y el umbral
+  salen de la base, nunca escritos a mano.
+- **La página `/club/<tienda>` en tres pasos** (al escanear → sus datos → ya es socia), aprobada tal cual: el inicio vende los
+  beneficios; los datos conservan toda la lógica de la 1g (padrón, guía de foco, textos legales versionados, WhatsApp
+  opcional) con una barra de avance; el final entrega una **tarjeta de socia digital** (nombre, código, desde cuándo) y, si es
+  su mes, el aviso del cupón de cumpleaños.
+- **Movimiento:** propio de esta página, documentado en ADR-0136 act. (f).

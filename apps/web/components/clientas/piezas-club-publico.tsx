@@ -4,30 +4,46 @@ import type { Bloque, Trozo } from "@/lib/club-registro-reglas";
 
 // Las piezas que comparten las páginas PÚBLICAS del Club CAYLA (ADR-0288 act. g): el registro (`/club/<tienda>`), la política
 // de privacidad y los términos. Solo dibujan; sin estado ni red, así sirven en el servidor y en el navegador. Fuera de
-// `app/(app)`: sin menú ni cabecera del ERP, una columna angosta pensada primero para el celular de ella (375 px).
+// `app/(app)`: sin menú ni cabecera del ERP, una columna angosta pensada primero para el celular de ella (375 px). Su aspecto
+// (el del diseño aprobado el 2026-10-01) vive en `app/estilos/club-publico.css`.
 
-/** El colibrí y «CAYLA · Club», arriba a la izquierda (como el spike del club). */
-export function CabezaClub() {
+/** El colibrí y «CAYLA · CLUB» arriba a la izquierda y, si se sabe, la tienda del cartel a la derecha. */
+export function CabezaClub({ tienda }: { tienda?: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <IsotipoCayla className="h-7 w-auto" />
-      <span className="flex flex-col leading-none">
-        <span className="label-cayla text-sm tracking-[0.26em] text-tinta">CAYLA</span>
-        <span className="label-cayla mt-1 text-[10px] tracking-[0.2em] text-taupe-profundo">Club</span>
-      </span>
+    <div className="club-cabeza">
+      <div className="club-marca">
+        <IsotipoCayla className="club-marca-colibri" color="currentColor" />
+        <span className="club-marca-texto">
+          <span className="club-marca-cayla">CAYLA</span>
+          <span className="club-marca-club">CLUB</span>
+        </span>
+      </div>
+      {tienda && <span className="club-cabeza-tienda">{tienda}</span>}
     </div>
   );
 }
 
-/** El fondo y la columna de todas las páginas públicas del club. */
-export function HojaClub({ children }: { children: ReactNode }) {
+/**
+ * El fondo y la columna de todas las páginas públicas del club. `cabeza`: la del colibrí arriba (la política, los términos y los
+ * avisos la llevan; los pasos del registro dibujan la suya, o ninguna, como el diseño).
+ */
+export function HojaClub({ children, cabeza = true }: { children: ReactNode; cabeza?: boolean }) {
   return (
-    <main className="min-h-dvh bg-crema text-tinta">
-      <div className="mx-auto w-full max-w-md px-5 pb-12 pt-7 sm:max-w-lg sm:pt-10">
-        <CabezaClub />
+    <main className="club-pagina">
+      <div className="club-hoja">
+        {cabeza && <CabezaClub />}
         {children}
       </div>
     </main>
+  );
+}
+
+/** Un enlace a la política o a los términos: se abre en otra pestaña, para que lo que ya llenó no se pierda. */
+export function EnlaceLegalClub({ href, amplio = false, children }: { href: string; amplio?: boolean; children: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener" className={`club-enlace ${amplio ? "club-enlace-amplio" : ""}`}>
+      {children}
+    </a>
   );
 }
 
