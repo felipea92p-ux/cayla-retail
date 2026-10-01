@@ -219,48 +219,50 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
       sububicacionDestino: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" },
       ...parcial,
     });
-  const ctx: ContextoCajon = { ...CTX_BASE, saldos: { b1: 2, b2: 1, b3: 0 } };
   const ops = (filas: Movimiento[]) => agruparPorOperacion(filas);
 
-  it("dice qué fue, entre qué horas y las cifras del día, con la más reciente primero", () => {
-    const d = construirDetalleBajadas("bajadas-2026-09-28", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2", { cantidad: 2 }), bajada("b3", "10:04", "v1")]), ctx, "2026-09-28");
+  it("dice en una frase qué pasó, cuándo y cuántas, con la más reciente primero", () => {
+    const d = construirDetalleBajadas("bajadas-2026-09-28", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2", { cantidad: 2 }), bajada("b3", "10:04", "v1")]), CTX_BASE, "2026-09-28");
     expect(d.titulo).toBe("Bajadas al piso");
-    expect(d.subtitulo).toBe("Hoy · 10:04 – 10:41");
-    expect(d.resumen).toEqual([
-      { valor: "4", etiqueta: "unidades" },
-      { valor: "3", etiqueta: "veces" },
-      { valor: "2", etiqueta: "tallas" },
-    ]);
-    expect(d.filas.map((f) => [f.hora, f.unidades])).toEqual([["10:41", 1], ["10:30", 2], ["10:04", 1]]);
+    expect(d.cuando).toBe("Hoy, de 10:04 a 10:41");
+    expect(d.cifra).toBe("4");
+    expect(d.frase).toBe("prendas pasaron del almacén al piso de venta");
+    expect(d.filas.map((f) => [f.hora, f.cantidad])).toEqual([["10:41", "1 prenda"], ["10:30", "2 prendas"], ["10:04", "1 prenda"]]);
   });
 
-  it("una fila por prenda, con su variante, su foto y lo que quedó (sin saldo, nada)", () => {
-    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2"), bajada("b3", "10:04", "v1")]), { ...ctx, saldos: { b1: 2, b2: 1 } }, "2026-09-28");
-    expect(d.filas[0]).toMatchObject({ id: "b1", referencia: "Blusa Emma", variante: "M · Negro", fotoUrl: "https://cdn/foto.jpg", quedan: "quedan 2" });
-    expect(d.filas[1]).toMatchObject({ fotoUrl: null, quedan: "queda 1" });
-    expect(d.filas[2].quedan).toBeNull();
+  it("una fila por prenda, con su variante y su foto; sin dirección porque todas son bajadas", () => {
+    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2")]), CTX_BASE, "2026-09-28");
+    expect(d.filas[0]).toMatchObject({ id: "b1", referencia: "Blusa Emma", variante: "M · Negro", fotoUrl: "https://cdn/foto.jpg", sentido: null });
+    expect(d.filas[1]).toMatchObject({ fotoUrl: null, sentido: null });
   });
 
   it("una operación de varias prendas guardadas juntas da una fila por prenda, todas con su hora", () => {
-    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:41", "v2"), bajada("b3", "10:04", "v1")]), ctx, "2026-09-28");
+    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:41", "v2"), bajada("b3", "10:04", "v1")]), CTX_BASE, "2026-09-28");
     expect(d.filas.map((f) => f.hora)).toEqual(["10:41", "10:41", "10:04"]);
-    expect(d.resumen[1]).toEqual({ valor: "2", etiqueta: "veces" });
+    expect(d.cifra).toBe("3");
   });
 
-  it("con todas a la misma hora, la hora va sola (sin rango); de otro día, dice «Ayer»", () => {
-    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:41", "v2")]), ctx, "2026-09-29");
-    expect(d.subtitulo).toBe("Ayer · 10:41");
+  it("con todas a la misma hora, dice «a las»; de otro día, dice «Ayer»; con una sola prenda, en singular", () => {
+    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1")]), CTX_BASE, "2026-09-29");
+    expect(d.cuando).toBe("Ayer, a las 10:41");
+    expect(d.cifra).toBe("1");
+    expect(d.frase).toBe("prenda pasó del almacén al piso de venta");
   });
 
-  it("si alguna no fue una bajada al piso, el título lo dice con el nombre general", () => {
+  it("si alguna no fue una bajada al piso, la frase y cada fila dicen hacia dónde fue", () => {
     const retiro = bajada("b2", "10:30", "v2", { sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" }, sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" } });
-    expect(construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), retiro]), ctx, "2026-09-28").titulo).toBe("Movido dentro de la sede");
+    const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), retiro]), CTX_BASE, "2026-09-28");
+    expect(d.titulo).toBe("Movido dentro de la sede");
+    expect(d.frase).toBe("prendas cambiaron de lugar dentro de la tienda");
+    expect(d.filas.map((f) => f.sentido)).toEqual(["Almacén → Piso", "Piso → Almacén"]);
   });
 
-  it("quién las hizo: los nombres distintos, y nada si todas son carga de sistema", () => {
-    const quienes = ops([bajada("b1", "10:41", "v1", { usuario: "Carla" }), bajada("b2", "10:30", "v2", { usuario: "Luis" }), bajada("b3", "10:04", "v1", { usuario: "Carla" })]);
-    expect(construirDetalleBajadas("b", quienes, ctx, "2026-09-28").realizadoPor).toBe("Carla, Luis");
+  it("quién las hizo: los nombres distintos juntos con «y», y nada si todas son carga de sistema", () => {
+    const dos = ops([bajada("b1", "10:41", "v1", { usuario: "Carla" }), bajada("b2", "10:30", "v2", { usuario: "Luis" }), bajada("b3", "10:04", "v1", { usuario: "Carla" })]);
+    expect(construirDetalleBajadas("b", dos, CTX_BASE, "2026-09-28").quien).toBe("Carla y Luis");
+    const tres = ops([bajada("b1", "10:41", "v1", { usuario: "Carla" }), bajada("b2", "10:30", "v2", { usuario: "Luis" }), bajada("b3", "10:04", "v1", { usuario: "Ana" })]);
+    expect(construirDetalleBajadas("b", tres, CTX_BASE, "2026-09-28").quien).toBe("Carla, Luis y Ana");
     const sistema = ops([bajada("b1", "10:41", "v1", { esSistema: true, usuario: null }), bajada("b2", "10:30", "v2", { esSistema: true, usuario: null })]);
-    expect(construirDetalleBajadas("b", sistema, ctx, "2026-09-28").realizadoPor).toBeNull();
+    expect(construirDetalleBajadas("b", sistema, CTX_BASE, "2026-09-28").quien).toBeNull();
   });
 });
