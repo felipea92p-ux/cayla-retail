@@ -988,3 +988,21 @@ Funciones («servidor» = solo la llama el servidor de la web con la llave de se
 - **Avisos y configuración:** Clientas ▸ Avisos (módulo `avisos_club`): la lista por tipo; «Enviar» abre
   `https://web.whatsapp.com/send?phone=51…&text=…` y anota el envío, con «Deshacer»; BAJA. «Beneficios del club» (líder): %,
   umbral, días y escala. Cron diario `/api/club/conservacion` (con `CRON_SECRET`) que llama `fn_club_anonimizar_inactivas`.
+
+## Actualización 2026-10-01 (h): tanda 1g construida
+
+Construida sobre el contrato, con estas decisiones donde el contrato no alcanzaba (detalle en las cabeceras de
+`20261001210000`–`210700`):
+- El vale de aniversario se reparte por prenda con la misma regla que `repartirVale` de la web, al céntimo; si no coincide,
+  `aniversario_descuento_distinto`. `club_canjes.monto` guarda lo aplicado. **Un vale que cubre toda la compra se rechaza**
+  (`aniversario_cubre_todo`): pendiente de Felipe.
+- Con DNI, la página exige el nombre del padrón (G-10); con carné o pasaporte no pisa un nombre que ya existía. Un documento
+  archivado sin anonimizar no se reactiva desde la página (`club_documento_archivado`); uno anonimizado crea ficha nueva.
+- Cambiar el celular desde la página revoca la publicidad del número anterior y, si marcó la casilla, la otorga al nuevo.
+- `guardar_beneficios_club` publica una versión nueva de `terminos` cada vez que cambia algo (el % y la escala son parte de
+  lo que ella acepta) y no deja bajar la escala.
+- Avisos: grupo testigo fijo por clienta (1 de 5), tope del mes calendario de Lima, novedades con `fn_es_llegada` (sin la
+  carga inicial) a lo más cada 7 días, rebaja por `campanas_vigentes()` en la talla de su última compra de esa categoría.
+- Conservación: `fn_clienta_anonimizar` (la misma rutina que `archivar_clienta`); no anonimiza una ficha con apartado abierto.
+- La consulta del «¿Eres …?» va por `POST /api/club/nombre` con `x-espera: no` (una acción de servidor siempre abre el
+  loader, ADR-0149); el DNI viaja en el cuerpo.
