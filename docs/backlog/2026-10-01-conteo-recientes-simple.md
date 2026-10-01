@@ -1,0 +1,8 @@
+## 🧹 Conteo ▸ «Conteos recientes» simple (2026-10-01, ADR-0296 act. b) — solo web, sin migración; rama `claude/conteo-recientes-simple`
+
+- [x] **Lista de una fila por conteo** (`components/ConteosLista.tsx`): qué y dónde · resultado · quién (iniciales) · flecha; el día es un título liviano; «Seguir» solo en el conteo en curso. Tres anchos: una línea (tarjeta ≥ 50 rem), tres renglones (< 50 rem) y celular (375 px).
+- [x] **Filtro en una fila** (`FiltroConteosRecientes.tsx`, título y filtro en la misma línea en `ConteoVista.tsx`). `CampoFecha` gana la variante `caja` (opt-in) y ancla el calendario por la derecha si no cabe (`haciaIzquierda`, se mide al abrir).
+- [x] `responsablesDeConteo` e `inicialesDe` (`lib/conteo-recientes-reglas.ts`) con prueba: «Cerró X» solo si se sabe y es otra persona.
+- [x] Verificado en el navegador: datos inventados con los cinco resultados (en curso, todo correcto, diferencias, parcial, cancelado), nombre largo y sin nombre, a 1280 / 720 / 375 px; pantalla real con Hoy, un día sin conteos y el calendario. Suite completa (288 archivos), `tsc`, `eslint`, `/sugerir` y `/focus` en verde.
+- [ ] **Sin probar en producción** (la rama no se ha subido). En una sede con muchos conteos el título se corta con «…» (el completo está en el detalle).
+- [ ] **Decisión de Felipe, sin resolver — «Cerró —» (objeción 1 de Conteo):** los conteos cerrados con la cuenta de tienda no guardan quién los cerró (`cerrar_conteo` va sin responsable, ADR-0280), y es lo que ajusta el stock. La lista ya no lo grita, pero el hueco sigue: en la captura de producción eran 4 de las 9 filas visibles.

@@ -5,6 +5,8 @@ import {
   diaValido,
   horaLimaDe,
   hrefRecientes,
+  inicialesDe,
+  responsablesDeConteo,
   textoAperturaCierre,
   rotuloDelDia,
   textoDiaLargo,
@@ -195,5 +197,44 @@ describe("textoAperturaCierre", () => {
   it("en curso o cancelado: solo la hora de apertura", () => {
     expect(textoAperturaCierre({ estado: "abierto", creadoEn: "2026-09-30T16:43:00Z", cerradoEn: null })).toBe("Abierto 11:43");
     expect(textoAperturaCierre({ estado: "anulado", creadoEn: "2026-09-30T16:43:00Z", cerradoEn: null })).toBe("Abierto 11:43");
+  });
+});
+
+describe("responsablesDeConteo: la fila dice un nombre, y el de quien cerró solo si se sabe y es otra persona", () => {
+  const base = { estado: "cerrado", abiertoPorNombre: "Angie Chavez", cerradoPorNombre: "—" };
+
+  it("cerrado con la cuenta de tienda (sin nombre de quien cerró): solo quien abrió, nada de «Cerró —»", () => {
+    expect(responsablesDeConteo(base)).toEqual({ abrio: "Angie Chavez", cerro: null });
+  });
+  it("cerrado por otra persona con nombre: se dicen las dos", () => {
+    expect(responsablesDeConteo({ ...base, cerradoPorNombre: "Diana Palacios" })).toEqual({ abrio: "Angie Chavez", cerro: "Diana Palacios" });
+  });
+  it("cerrado por la misma persona: una sola vez", () => {
+    expect(responsablesDeConteo({ ...base, cerradoPorNombre: "Angie Chavez" })).toEqual({ abrio: "Angie Chavez", cerro: null });
+  });
+  it("en curso o cancelado: nunca hay quien cerró, aunque el dato traiga un nombre", () => {
+    expect(responsablesDeConteo({ ...base, estado: "abierto", cerradoPorNombre: "Diana Palacios" }).cerro).toBeNull();
+    expect(responsablesDeConteo({ ...base, estado: "anulado", cerradoPorNombre: "Diana Palacios" }).cerro).toBeNull();
+  });
+  it("sin nombre de quien abrió («—» o vacío): null, no un guion", () => {
+    expect(responsablesDeConteo({ ...base, abiertoPorNombre: "—" }).abrio).toBeNull();
+    expect(responsablesDeConteo({ ...base, abiertoPorNombre: "  " }).abrio).toBeNull();
+  });
+});
+
+describe("inicialesDe", () => {
+  it("dos letras con nombre y apellido, una con un solo nombre", () => {
+    expect(inicialesDe("Angie Chavez")).toBe("AC");
+    expect(inicialesDe("Diana")).toBe("D");
+  });
+  it("con más de dos palabras toma las dos primeras; con tildes y minúsculas, en mayúscula", () => {
+    expect(inicialesDe("María del Pilar Ñañez")).toBe("MD");
+    expect(inicialesDe("ñusta quispe")).toBe("ÑQ");
+  });
+  it("sin nombre o sin letras: «?»", () => {
+    expect(inicialesDe("—")).toBe("?");
+    expect(inicialesDe("")).toBe("?");
+    expect(inicialesDe(null)).toBe("?");
+    expect(inicialesDe("12 34")).toBe("?");
   });
 });

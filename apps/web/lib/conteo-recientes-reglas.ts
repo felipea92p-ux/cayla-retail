@@ -155,3 +155,30 @@ export function textoAperturaCierre(c: Pick<ConteoResumen, "creadoEn" | "cerrado
   const [, m, d] = diaLimaDe(c.cerradoEn).split("-");
   return `${abierto} · cerrado ${mismoDia ? "" : `${d}/${m} `}${horaLimaDe(c.cerradoEn)}`;
 }
+
+/** «—» es lo que la lectura pone cuando no sabe el nombre (`conteoResumenDesdeFila`): para esta pantalla es «no hay nombre». */
+const sinNombre = (n: string | null | undefined): boolean => !n || n.trim() === "" || n.trim() === "—";
+
+/**
+ * Quién aparece en la fila del historial. `abrio` es la persona responsable del conteo (la que lo abrió y firma). `cerro` solo
+ * viene cuando un conteo CERRADO tiene el nombre de quien lo cerró y es otra persona: si no se sabe, o es la misma, la fila
+ * dice una sola vez el nombre y no repite «Cerró —». El conteo cerrado con la cuenta de tienda no guarda quién lo cerró
+ * (ADR-0280): eso sigue siendo un hueco de la base, no se «arregla» escondiéndolo aquí; el detalle del conteo lo muestra.
+ */
+export function responsablesDeConteo(c: Pick<ConteoResumen, "estado" | "abiertoPorNombre" | "cerradoPorNombre">): { abrio: string | null; cerro: string | null } {
+  const abrio = sinNombre(c.abiertoPorNombre) ? null : c.abiertoPorNombre.trim();
+  const cerro = c.estado === "cerrado" && !sinNombre(c.cerradoPorNombre) && c.cerradoPorNombre.trim() !== abrio ? c.cerradoPorNombre.trim() : null;
+  return { abrio, cerro };
+}
+
+/** Las iniciales para el círculo de una persona: «Angie Chavez» → «AC», «Diana» → «D»; sin nombre, «?». */
+export function inicialesDe(nombre: string | null | undefined): string {
+  if (sinNombre(nombre)) return "?";
+  const letras = (nombre as string)
+    .trim()
+    .split(/\s+/)
+    .map((p) => Array.from(p)[0])
+    .filter((l) => /\p{L}/u.test(l));
+  if (letras.length === 0) return "?";
+  return (letras.length === 1 ? letras[0] : letras[0] + letras[1]).toLocaleUpperCase("es-PE");
+}
