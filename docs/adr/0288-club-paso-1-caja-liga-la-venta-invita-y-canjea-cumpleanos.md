@@ -186,6 +186,8 @@ aviso filtra `motivo = 'no_habia_talla'`.
 
 ## DECISIÓN 7: «es para regalo» es una marca por prenda vendida (D-101)
 
+*Superada el 2026-09-30: Felipe decidió seguir el spike, sin la marca. Ver «Actualización 2026-09-30 (e)».*
+
 **DECIDÍ:** `venta_items.es_regalo boolean not null default false`, que se marca por línea en el ticket solo si hay
 clienta elegida. `fn_clienta_compras` lo devuelve, y `deducirTallas` (`lib/clienta-actividad-reglas.ts`) lo salta:
 se cierra el «LÍMITE CONOCIDO (v1)» de ese archivo.
@@ -645,3 +647,73 @@ guiarse con el spike visual», Felipe):
 - La regla pura vive en `lib/club-cumple-canje-reglas.ts`, con su prueba (el nombre `club-cumple-reglas.ts` ya lo usa la
   tanda 1b para ESCRIBIR el cumpleaños en la hoja): `descuentoClubLinea`, `descuentosParaRegistrar`, `ticketConCumple`,
   `cumpleEnCaja`, `pctDelCanje` y los textos.
+
+## Actualización 2026-09-30 (e): tanda 1d
+
+Se construye sobre la D-6, CL-7 y CL-14. Va después de la 1c.
+
+**Decisión de Felipe (2026-09-30): sin «es para regalo».**
+- Felipe decidió el 2026-09-30 seguir el spike aprobado del club (`docs/maquetas/club-clientas-spike-2026-09/`, README,
+  punto 8), que no lleva la marca «¿Es para regalo?» en la línea del ticket.
+- **La D-7 y la D-101 quedan superadas en ese punto.** Un regalo cuenta para la talla deducida. Lo corrige la talla que ella
+  dice en su ficha (preferencias, tanda 1f), que manda sobre la deducida.
+- Esta tanda no toca `venta_items`, `fn_clienta_compras` ni `registrar_venta`. El «LÍMITE CONOCIDO (v1)» de
+  `lib/clienta-actividad-reglas.ts` lo dice igual.
+- Lo que se había construido para la marca se sacó entero antes de pegarlo en ningún lado:
+  - las partes 3 y 4 de la migración;
+  - la lectura en la ficha;
+  - el salto en `deducirTallas`.
+
+**Migración en dos partes** (cada una se pega sola, en orden; sin políticas ni `drop trigger`):
+
+| Parte | Archivo | Qué |
+|---|---|---|
+| 1 | `20260930240000_club_paso1d_parte1_pedidos.sql` | `alter` de `pedidos_no_atendidos`: `motivo` y `razon`, con sus candados |
+| 2 | `20260930240100_club_paso1d_parte2_se_probo.sql` | `registrar_pedido_no_atendido` con `p_motivo` y `p_razon`; la cabecera completa |
+
+- **Por qué partes:** el `alter` va solo, como en la 1c, para que la transacción tenga una sola tabla en uso y no pueda
+  trabarse en cruz con nadie (40P01). La función va después de sus columnas. La parte 2 aborta si falta la 1.
+- **Parte 1:** `motivo text not null default 'no_habia_talla'`, así que todo lo anotado antes queda «buscó y no había».
+  - `razon` solo existe con `se_probo_no_llevo`, y es una de `no_le_quedo`, `precio`, `color` o `lo_piensa`.
+  - Candados: `pedidos_no_atendidos_motivo_valido` y `pedidos_no_atendidos_razon_solo_si_se_probo`.
+- **Parte 2:** `p_motivo` (default `no_habia_talla`) y `p_razon` van **al final**, así que la llamada vieja de 5 parámetros
+  sigue funcionando.
+  - Cambia la firma: se hace `drop` de la vieja y `create` de la nueva sobre su definición viva.
+  - Sigue firmando con `fn_actor_persona_id(true)`, sin exigir módulo (basta poder operar la sede), y con los mismos
+    permisos.
+  - Rechazos nuevos (P0001 con hint): `pedido_motivo_invalido`, `pedido_razon_sin_se_probo` y `pedido_razon_invalida`.
+
+**md5 normalizados, antes → después** (el «antes» coincide con lo medido en producción el 2026-09-30):
+
+| Función | antes | después |
+|---|---|---|
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)` | `750b65e98c09826228ba5f72b7800391` | deja de existir |
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)` | no existía | `b48f006fb8336ea27fb9e2929343d10d` |
+
+**Cobrar: «¿Se la probó y no la llevó?»**, como en el spike (`quitadaHTML` y el `quitar` de su motor):
+- **Cuándo:** al quitar una prenda del ticket aparece, justo bajo la clienta, la pregunta: «¿Se la probó y no la llevó?
+  Quitaste «Blusa Carlita» (M). Anótalo para Compras: es opcional.» Sale también si el ticket quedó vacío.
+- **Botones:** «No le quedó», «Precio», «Color» y «Lo piensa», y «No anotar».
+  - Las razones se apagan sin responsable, y el combo sale ahí mismo, como en «Anotar que no había».
+  - Tocar una anota `se_probo_no_llevo` con su razón, con o sin clienta, firmada por el responsable, y la pregunta se va.
+- **Aviso:** «Anotado: se la probó y no la llevó · Blusa Carlita · talla M». El spike decía que se ve en «Clientas ▸
+  Resumen», una pantalla que no existe; el aviso dice «Pedidos no atendidos».
+- **Se va sin anotar:** con «No anotar», al pasar a cobrar, al dejar el ticket en espera o al retomar otro. Quitar otra
+  prenda la reemplaza.
+- **Dónde está el código:**
+  - la pregunta vive en `components/punto-de-venta/SeProboNoLlevo.tsx`;
+  - `PuntoDeVenta.tsx` solo guarda la prenda quitada y la pone en el `arriba` del ticket;
+  - la lógica es pura, en `lib/se-probo-reglas.ts` (`prendaQuitadaDeLinea`, `textoPrendaQuitada`, `datosSeProbo`,
+    `avisoAnotado`), con su prueba.
+- **Qué se guarda:** la prenda se anota como «nombre · color», con su talla. Una «Prenda sin registrar» va con su
+  descripción, sin talla.
+
+**Lo que se decidió al construir**
+- **«Llegó tu talla» (paso 3) avisa SOLO por `motivo = 'no_habia_talla'`.** Queda escrito en la cabecera de la parte 2 y
+  en el comentario de la columna.
+  - Por la misma razón, Inicio y Análisis siguen contando solo «buscó y no había» (`esPedidoDeTalla`).
+  - La lista de Pedidos no atendidos muestra el motivo y la razón de cada fila.
+
+**Pruebas:**
+- `pnpm pruebas:club-se-probo`, en el CI: comprueba también que la 1d no toca la venta ni la ficha.
+- La lógica de la pregunta, en `lib/se-probo-reglas.test.ts`.

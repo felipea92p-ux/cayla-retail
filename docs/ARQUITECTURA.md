@@ -680,7 +680,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
   página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
-  (RPC `registrar_pedido_no_atendido`, firmada con el responsable); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
+  (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
   buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`

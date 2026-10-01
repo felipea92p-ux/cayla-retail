@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Check, Flag } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { traducirError } from "@/lib/error-escritura";
-import { firmar } from "@/lib/responsable-reglas";
+import { registrarPedidoNoAtendido } from "@/lib/pedidos-no-atendidos-acciones";
+import { avisoAnotado } from "@/lib/se-probo-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 
@@ -17,6 +17,9 @@ import { ComboResponsable } from "@/components/ComboResponsable";
  * Firma el responsable del combo del ticket (la función usa `fn_actor_persona_id(true)`, que con el responsable
  * obligatorio rechaza una anotación sin él). Es el MISMO control que el del ticket: si aún no se eligió, el combo sale
  * aquí mismo y lo elegido vale también para la venta.
+ *
+ * Anota con el motivo «buscó y no había» (`no_habia_talla`, ADR-0288 D-6): es el único que avisará «Llegó tu talla». El
+ * otro motivo de la misma tabla, «se la probó y no la llevó», nace en Cobrar al quitar una prenda del ticket.
  */
 export function AnotarNoHabia({
   ubicacionId,
@@ -39,13 +42,8 @@ export function AnotarNoHabia({
   async function anotar() {
     if (!responsable.listo || (tallas.length > 1 && !talla)) return;
     setEstado("guardando");
-    const { error } = await firmar(
-      createClient().rpc("registrar_pedido_no_atendido", {
-        p_ubicacion_id: ubicacionId,
-        p_descripcion_libre: descripcion,
-        p_talla: talla ?? undefined,
-        p_clienta_id: clientaId ?? undefined,
-      }),
+    const { error } = await registrarPedidoNoAtendido(
+      { ubicacionId, motivo: "no_habia_talla", descripcion, talla, clientaId },
       responsable.firma(),
     );
     if (error) {
@@ -55,7 +53,8 @@ export function AnotarNoHabia({
       return void avisar.error(traducirError(error, "anotar el pedido"));
     }
     setEstado("anotado");
-    avisar.exito("Anotado: no había", { detalle: `${descripcion}${talla ? ` · talla ${talla}` : ""}. Compras lo verá en Pedidos no atendidos.` });
+    const aviso = avisoAnotado("no_habia_talla", descripcion, talla);
+    avisar.exito(aviso.titulo, { detalle: aviso.detalle });
   }
 
   return (
