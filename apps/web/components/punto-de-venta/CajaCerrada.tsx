@@ -37,7 +37,9 @@ function sinMovimiento(): boolean {
  *
  * Cubre todo lo que está bajo la cabecera y a la derecha del menú lateral: la cabecera (con el selector de sede) y el
  * menú quedan nítidos y se pueden usar, para cambiar de sede o ir a otra pantalla. Va por portal a `body` porque un
- * ancestro con `transform` (las entradas de pantalla) volvería relativo su `position: fixed`. Lo de atrás lo apaga
+ * ancestro con `transform` (las entradas de pantalla) volvería relativo su `position: fixed`. Por eso mismo no puede leer
+ * `--spacing-lateral`: `AppShell` lo cambia solo dentro de su contenedor, y con el menú plegado la capa quedaba corrida y
+ * dejaba una franja del POS a la vista (Felipe 2026-10-01). Se mide la cabecera, que siempre empieza donde termina el menú. Lo de atrás lo apaga
  * `PuntoDeVenta` con `inert`: esto solo dibuja, no decide nada. El estilo vive en `app/estilos/caja-cerrada.css`.
  */
 export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbrir, botonRef, alAbrirEnfocar, aviso }: Props) {
@@ -78,17 +80,24 @@ export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbri
   // El portal necesita `document`: en el servidor (y al hidratar) no hay capa; en el navegador, sí.
   const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
 
-  // La capa empieza donde termina la cabecera fija de AppShell, que mide distinto en celular y en escritorio.
-  const [arriba, setArriba] = useState<number | null>(null);
+  // La capa ocupa exactamente lo que deja la cabecera fija de AppShell: empieza donde ella termina (abajo) y donde ella
+  // empieza (a la izquierda, que es donde termina el menú lateral). La cabecera mide distinto en celular y en escritorio,
+  // y al plegar o desplegar el menú su borde izquierdo se corre con una transición: su ancho cambia en cada cuadro, así
+  // que ResizeObserver avisa en cada uno y la capa la sigue sin dejar ninguna franja a la vista.
+  const visible = montado && fase !== "oculta";
+  const [marco, setMarco] = useState<{ arriba: number; izquierda: number } | null>(null);
   useLayoutEffect(() => {
-    if (!montado || fase === "oculta") return;
+    if (!visible) return;
     const cabecera = document.querySelector("header");
     if (!cabecera) return;
     // ResizeObserver avisa una vez al empezar a observar: esa es la primera medida.
-    const obs = new ResizeObserver(() => setArriba(cabecera.getBoundingClientRect().bottom));
+    const obs = new ResizeObserver(() => {
+      const r = cabecera.getBoundingClientRect();
+      setMarco({ arriba: r.bottom, izquierda: r.left });
+    });
     obs.observe(cabecera);
     return () => obs.disconnect();
-  }, [montado, fase]);
+  }, [visible]);
 
   // Al llegar, el foco va al botón: Enter abre la caja (el escáner no tiene dónde escribir con la caja cerrada).
   useEffect(() => {
@@ -103,8 +112,9 @@ export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbri
       aria-labelledby="caja-cerrada-titulo"
       // `por-abrir` se ve como `cerrada` (el cartel todavía dice «Cerrado»), pero ya no se toca.
       data-fase={fase === "por-abrir" ? "cerrada" : fase}
-      style={{ top: arriba ?? undefined }}
-      className={`caja-cerrada ease-cayla fixed inset-x-0 bottom-0 top-16 z-[25] sm:left-lateral sm:transition-[left] sm:duration-300 ${
+      // Sin medida todavía (el primer cuadro), las clases dan la posición de siempre: menú desplegado.
+      style={marco ? { top: marco.arriba, left: marco.izquierda } : undefined}
+      className={`caja-cerrada fixed inset-x-0 bottom-0 top-16 z-[25] sm:left-lateral ${
         fase === "cerrada" ? "" : "pointer-events-none"
       }`}
     >

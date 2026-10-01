@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
-import { CajonMovimiento } from "@/components/CajonMovimiento";
+import { CajonMovimiento, type VistaCajon } from "@/components/CajonMovimiento";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import type { ContextoCajon } from "@/lib/movimientos-cajon";
+import { construirDetalleBajadas, type ContextoCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
 // La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0234): lo que se guardó de una sola
 // vez —un traslado de 16 variantes, una venta de dos prendas, una bajada al piso escaneada de una vez— es una fila que
-// dice qué pasó y cuánto, y que al tocarla se despliega en sus prendas. Así el día se lee como lo que pasó en la tienda
+// dice qué pasó y cuánto, y que al tocarla abre el cajón con sus prendas. Así el día se lee como lo que pasó en la tienda
 // y un envío grande no tapa todo lo demás (antes, el Traslado 2 ocupaba 16 de 18 filas).
 //
 // Muestra el EFECTO sobre el stock de la sede que se mira (qué prenda, cuánto, de dónde a dónde) y el proceso que lo
@@ -55,7 +55,9 @@ export function MovimientosLista({
   const params = useSearchParams();
   const pathname = usePathname();
   const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
-  const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(() => new Set());
+  // Las bajadas plegadas de un día abren su propio contenido en el MISMO cajón (clave `bajadas-<fecha>`): no tienen id de
+  // movimiento ni van en la URL (no son un movimiento que se mande por WhatsApp: la agrupación depende de los filtros).
+  const [bajadasAbiertas, setBajadasAbiertas] = useState<string | null>(null);
   const [venta, setVenta] = useState<Movimiento | null>(null);
   // La operación abierta se reconstruye a partir de UN id de sus filas (`abiertoId`, la misma URL `?mov=` de
   // siempre): así una fila suelta y una operación de muchas prendas comparten el mismo estado, sin uno nuevo — abrir
@@ -74,20 +76,19 @@ export function MovimientosLista({
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }
   function abrir(m: Movimiento) {
+    setBajadasAbiertas(null);
     setAbiertoId(m.id);
     sincronizarUrl(m.id);
   }
-  function cerrar() {
+  function abrirBajadas(clave: string) {
     setAbiertoId(null);
     sincronizarUrl(null);
+    setBajadasAbiertas(clave);
   }
-  function alternar(clave: string) {
-    setDesplegadas((previas) => {
-      const nuevas = new Set(previas);
-      if (nuevas.has(clave)) nuevas.delete(clave);
-      else nuevas.add(clave);
-      return nuevas;
-    });
+  function cerrar() {
+    setAbiertoId(null);
+    setBajadasAbiertas(null);
+    sincronizarUrl(null);
   }
 
   // Sin `mov`: la vuelta desde un traslado reabre la lista, no el detalle que se estaba mirando.
@@ -125,6 +126,14 @@ export function MovimientosLista({
     if (ultimo && ultimo.fecha === op.fecha) ultimo.operaciones.push(op);
     else dias.push({ fecha: op.fecha, operaciones: [op] });
   }
+  const itemsPorDia = dias.map((dia) => ({ ...dia, items: plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op })) }));
+  // Lo que muestra el cajón: la operación abierta, o las bajadas plegadas de un día (si siguen plegadas con estos filtros).
+  const grupoBajadas = bajadasAbiertas ? itemsPorDia.flatMap((d) => d.items).find((i) => i.tipo === "bajadas" && i.clave === bajadasAbiertas) : undefined;
+  const vistaCajon: VistaCajon | null = operacionAbierta
+    ? { tipo: "operacion", operacion: operacionAbierta }
+    : grupoBajadas?.tipo === "bajadas"
+      ? { tipo: "bajadas", detalle: construirDetalleBajadas(grupoBajadas.clave, grupoBajadas.operaciones, ctxCajon, hoyLima) }
+      : null;
 
   return (
     <>
@@ -144,7 +153,7 @@ export function MovimientosLista({
 
       {/* Sin caja propia: comparte la tarjeta con los filtros (la pone la página). */}
       <div className="px-4 pb-2 sm:px-5">
-        {dias.map((dia) => (
+        {itemsPorDia.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
             <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
               <span className="label-cayla text-[11px] font-bold text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
@@ -153,9 +162,9 @@ export function MovimientosLista({
               </span>
             </h3>
             <ul className="divide-y divide-sand">
-              {(plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op }))).map((item) =>
+              {dia.items.map((item) =>
                 item.tipo === "bajadas" ? (
-                  <FilaBajadas key={item.clave} clave={item.clave} operaciones={item.operaciones} prendas={prendas} ctx={ctx} abierta={desplegadas.has(item.clave)} onAlternar={() => alternar(item.clave)} />
+                  <FilaBajadas key={item.clave} operaciones={item.operaciones} prendas={prendas} abierta={bajadasAbiertas === item.clave} onAbrir={() => abrirBajadas(item.clave)} />
                 ) : item.op.filas.length === 1 ? (
                   <FilaMovimiento key={item.op.clave} m={item.op.filas[0]} prenda={prendas[item.op.filas[0].varianteId]} ctx={ctx} />
                 ) : (
@@ -167,9 +176,9 @@ export function MovimientosLista({
         ))}
       </div>
 
-      {operacionAbierta && (
+      {vistaCajon && (
         <CajonMovimiento
-          operacion={operacionAbierta}
+          vista={vistaCajon}
           contexto={ctxCajon}
           onVerVenta={
             enlaceVentas && abierto
