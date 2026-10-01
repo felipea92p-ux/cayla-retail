@@ -1,4 +1,6 @@
-# ADR-0299 · Vender con la caja cerrada: la persiana y el cartel «Cerrado»
+# ADR-0301 · Vender con la caja cerrada: la persiana y el cartel «Cerrado»
+
+> **Renumerado el 2026-10-01 (antes 0298 y luego 0299).** El 0298 ya era el del costo atípico (#661) y el 0299 quedó repetido con «Recibir mercadería es de proveedores» (que lo cita una migración y no se puede renumerar). Las menciones «ADR-0301» en el código y los documentos son las de este.
 
 - **Fecha:** 2026-10-01 · **Estado:** construido y probado en local (escritorio 1440 × 900 y 1366 × 768, celular 375 px). Solo web, **sin migración**.
 - **Pedido:** Felipe, 2026-10-01: con la caja cerrada, que el POS no solo pierda opacidad. Quiere que todo el fondo se desenfoque y

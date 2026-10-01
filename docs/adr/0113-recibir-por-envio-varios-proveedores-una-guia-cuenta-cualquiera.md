@@ -10,6 +10,9 @@
   «cualquier persona cuenta en la puerta», indicadores bajo «¿Qué llegó?»). Arquitectura: este documento.
 - **Diseño:** `docs/maquetas/recibir-envio-2026-09/` (adaptada del diseño que Felipe eligió, con la
   identidad de CAYLA; su README dice en qué manda la pantalla construida) y la pantalla en `/recibir`.
+- **Actualización 2026-10-01 (ADR-0299):** lo de «otra sede de CAYLA» (los traslados dentro del envío, `envio_traslados`) **ya no
+  entra por esta puerta**: Recibir mercadería es de proveedores y un traslado se recibe en Traslados, donde se elige piso o almacén.
+  `recibir_envio` lo rechaza antes de escribir nada. Todo lo demás de este ADR sigue igual.
 
 ## Contexto
 
