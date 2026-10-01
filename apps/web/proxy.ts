@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 import { esRutaPublica } from "@/lib/rutas-publicas";
+import { pasaComoCron } from "@/lib/rutas-cron";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -21,11 +22,10 @@ import { esRutaPublica } from "@/lib/rutas-publicas";
 // archivo la haya cubierto. Toda escritura real de stock pasa además por RPC con
 // fn_puede_operar_sede (0012), que es la barrera que de verdad protege los datos.
 export async function proxy(request: NextRequest) {
-  // El trabajo programado de Vercel (PL-113) no trae sesión: trae `Bearer $CRON_SECRET`. Pasa sin tocar cookies y
-  // la ruta vuelve a comprobar la clave (esta barrera puede dejar de cubrirla si alguien cambia el matcher). Solo
-  // para SU ruta: la clave no abre ninguna otra pantalla ni API.
-  const cron = process.env.CRON_SECRET;
-  if (cron && request.nextUrl.pathname === "/api/lucode/reintentar" && request.headers.get("authorization") === `Bearer ${cron}`) {
+  // Los trabajos programados de Vercel (PL-113, la cola de SUNAT; ADR-0288 G-15, la conservación del club) no traen sesión:
+  // traen `Bearer $CRON_SECRET`. Pasan sin tocar cookies y cada ruta vuelve a comprobar la clave (esta barrera puede dejar de
+  // cubrirla si alguien cambia el matcher). Solo SUS rutas (`RUTAS_DE_CRON`): la clave no abre ninguna otra pantalla ni API.
+  if (pasaComoCron(request.nextUrl.pathname, request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.next();
   }
 

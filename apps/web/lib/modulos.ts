@@ -12,7 +12,7 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "inicio",
-  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
   "existencias", "bajada_piso", "ajustar_stock", "conteos", "traslados", "movimientos", "frescura",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
@@ -58,6 +58,11 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir y exportar" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
+  // Avisos del club (ADR-0288 act. g, G-8; tanda 1g): Clientas ▸ Avisos, los mensajes por mandar a cada socia desde el WhatsApp de su
+  // tienda. Orden 75: justo después de Clientas. Nace sin rol (solo lo ve el líder) y delegable: `fn_club_avisos_pendientes`,
+  // `registrar_aviso_enviado` y `deshacer_aviso_enviado` preguntan por este módulo, no por el líder. La BAJA desde la fila
+  // (`registrar_baja_whatsapp`) sigue pidiendo el módulo «Clientas».
+  { clave: "avisos_club", grupo: "Ventas", nombre: "Avisos del club", incluye: "Ver los mensajes por mandar a cada socia de su tienda (cumpleaños, aniversario, novedades y rebajas) y enviarlos por WhatsApp Web desde el número de la tienda" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Ajustar stock» SALIÓ de este texto el 2026-09-27 (ADR-0250): ahora es su propio módulo, ver más abajo.
   { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, apartar prendas" },

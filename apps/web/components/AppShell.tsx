@@ -232,6 +232,11 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
+  // Escarapela: el CLUB, la cabecera del grupo Clientas (ADR-0288 act. g, 2026-10-01). El corazón se queda en «Fichas», su hija,
+  // para que quien solo ve las fichas siga viendo la misma fila con el mismo ícono.
+  club: "M12 14a6 6 0 100-12 6 6 0 000 12z M8.5 12.9L7 22l5-3 5 3-1.5-9.1",
+  // Globo de conversación: Clientas ▸ Avisos, los mensajes por WhatsApp que la tienda le manda a cada socia.
+  avisos: "M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z",
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",
