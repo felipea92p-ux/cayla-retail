@@ -111,9 +111,12 @@ ese rol no podrá recibir un traslado por ninguna puerta: el aviso lo dice sin e
 
 ## Lo que queda abierto
 
-- **PR #661 (costo atípico) toca los mismos archivos** (`RecepcionEnvio.tsx`, `ResumenPrevioEnvio.tsx`, `envio-reglas.ts` y su prueba).
-  Hoy los dos son fusionables; el segundo en entrar a `main` tendrá que resolver 3 o 4 choques en esos archivos. En la base no chocan:
-  la migración de #661 va antes (`20260930124000`) y esta es un reemplazo anclado que va después.
+- **PR #661 (costo atípico) tocaba los mismos archivos y se fusionó antes** (`RecepcionEnvio.tsx`, `ResumenPrevioEnvio.tsx`,
+  `envio-reglas.ts` y su prueba). La fusión automática de `main` a esta rama resolvió mal un conflicto real en `envio-reglas.ts` (se quedó
+  con mi `p_extras` y perdió `confirma_costo`), y el typecheck del CI falló: se corrigió hacia adelante, dos líneas. **Lección:** un commit
+  «Merge branch 'main' into …» que no hizo uno mismo se revisa con `tsc` y la suite, porque un texto que se fusiona sin avisar puede no compilar.
+  En la base no chocan: la migración de #661 (`20260930124000`) recrea `recibir_envio` completa y esta es un reemplazo anclado que va después;
+  se comprobó sobre el archivo de #661 que las 7 anclas aparecen una vez y que la huella del bloque es la misma.
 - `scripts/migraciones/verificar.mjs` cuenta las funciones `pg_temp` de una migración como «falta» (ya pasaba con otras): falso positivo.
 - Los envíos guardados sin conexión **antes** del despliegue que lleven un traslado subirán rechazados. No hay evidencia de que exista
   alguno (0 filas en `envio_traslados`); si apareciera, se rehace en Traslados.

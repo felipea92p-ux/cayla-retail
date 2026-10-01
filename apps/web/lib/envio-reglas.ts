@@ -363,7 +363,8 @@ export type CierreElegido = { lineaId: string; faltan: number; motivo: string };
 export type PedidoEnvio = {
   p_ubicacion_id: string;
   p_items: { compra_item_id: string; variante_id: string; cantidad: number }[];
-  p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number }[];
+  /** `confirma_costo`: solo en el reintento tras `costo_atipico`, en los extras que se le mostraron al líder (`confirmarExtras`). */
+  p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number; confirma_costo?: true }[];
   p_cierres: { compra_item_id: string; cantidad: number; motivo: string }[];
   /** Siempre vacío desde 2026-09-19: la nota de crédito se registra en `/compras/notas-credito`, no acá.
    *  Viaja igual porque `recibir_envio` sigue aceptando el parámetro (la base no se tocó). */

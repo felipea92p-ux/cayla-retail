@@ -501,7 +501,6 @@ describe("confirmarExtras (costo atípico, 20260930124000)", () => {
       { proveedor_id: "p", variante_id: "v2", cantidad: 1, es_regalo: false, costo_unitario: 32 },
       { proveedor_id: "p", variante_id: "v3", cantidad: 1, es_regalo: true },
     ],
-    p_traslados: [],
     p_cierres: [],
     p_notas_credito: [],
     p_token: "t",
