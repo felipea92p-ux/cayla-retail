@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Printer } from "lucide-react";
+import { Cake, Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { money, type VentaOk } from "@/components/PuntoDeVenta";
@@ -11,6 +11,7 @@ import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
 import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas";
 import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
+import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
 
 type Props = {
   ok: VentaOk;
@@ -165,6 +166,15 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                 </p>
               )}
             </>
+          )}
+
+          {/* El cumpleaños del club (ADR-0288 D-5; spike, «Venta registrada»): se gastó el del año, y devolver no lo trae
+              de vuelta (solo anular). Con o sin comprobante leído: la venta ya quedó. */}
+          {ok.cumple && ok.cumple.monto > 0 && (
+            <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
+              <Cake className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>{textoCumpleCobrado(ok.cumple.monto)}</span>
+            </p>
           )}
 
           {!ok.offline && !r && (

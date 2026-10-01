@@ -19,7 +19,7 @@ export default async function PedidosNoAtendidosPage() {
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Pedidos no atendidos"
-        subtitulo="Verificación (D-79): lo que una clienta pidió y esta sede no tenía."
+        subtitulo="Verificación (D-79): lo que una clienta pidió y esta sede no tenía, y lo que se probó y no llevó."
         // Se llega desde el aviso de Inicio (no está en el lateral).
         pie={<Volver forma="boton" href="/" a="Inicio" />}
       />
