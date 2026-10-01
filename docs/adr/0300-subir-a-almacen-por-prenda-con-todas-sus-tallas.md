@@ -113,3 +113,23 @@ cosa que la fila. Por eso el aviso pregunta a esa función y no tiene umbrales p
   cuenta en `stock`): se declaró en su lista blanca junto a `bajar_al_piso`, que está por la misma razón. La función de producción no cambió.
 - **No probado:** con una cuenta no administradora (en local se vio «Eres admin»); el corte de red de esta ventana en el navegador (la lógica es la de
   «Reponer», que sí se probó, y la idempotencia de la base está en las pruebas SQL); en producción hasta pegar el SQL y fusionar.
+
+## Actualización 2026-10-01 (b): «Ajustar» con el mismo lenguaje
+
+- **Pedido (Felipe):** que la ventana de «Ajustar» se vea como las de «Reponer» y «Subir a almacén». Solo cambia lo que se ve: la lógica de ajuste
+  (`ajustar_inventario`, una llamada, todo o nada, con marca), el motivo, las prendas nuevas como stock inicial, las apartadas y la pregunta
+  «¿es la que faltó en el conteo?» siguen exactamente igual.
+- **Qué se ve ahora:** la prenda con su puntito de color; «¿Dónde ajustas?»; «¿Por qué ajustas?» (el motivo va antes porque decide qué significa el
+  número); y una fila por talla, «2 en el almacén · Quedará en 1», con el mismo control − 0 + (`SelectorDeAjuste`). Con «Conteo físico» la pregunta es
+  «¿Cuántas contaste en el piso de cada talla?»: vacío es «no la conté» y el primer toque parte de lo que dice el sistema; con los demás motivos es
+  «¿Cuántas sumas o restas…?». Los botones «−» se detienen donde la base rechazaría (stock negativo, por debajo de lo apartado, prenda nueva bajo
+  cero).
+- **Sin códigos:** desaparecen el SKU y el «stock N» de las filas, y los dos candados (negativo y por debajo de lo apartado) se dicen en la fila de la
+  talla (`textoProblemaTalla`) en vez de un error general con códigos; mientras haya uno, el botón no confirma. Con guía de foco (`aplicada`).
+- **Un texto viejo corregido:** la nota del piso mandaba a «⋯ ▸ Retirar del piso», un menú que ya no existe; ahora dice «Subir a almacén». Y solo se
+  muestra cuando aplica (antes reservaba un hueco invisible: la hoja va anclada arriba, ADR-0185).
+- Lógica pura nueva en `lib/ajuste-reglas.ts` (con pruebas): `textoQuedara`, `textoProblemaTalla`, `preguntaCantidades`, `minimoDeAjuste`,
+  `textoTrasPaso`, `limpiarTextoAjuste`, `textoStockTalla`, `detalleDeTalla`; salen `textoNegativas`, `textoBajoApartado` y `textoCambioTalla`.
+- Verificado en el navegador (local, base restaurada al final): Merma con S −1 y M +1 → «2 variantes ajustadas» y la tarjeta cambió sola; y el modo
+  «Conteo físico» en el piso. No se revisó el celular, a pedido.
+

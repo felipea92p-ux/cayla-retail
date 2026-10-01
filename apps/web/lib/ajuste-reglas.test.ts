@@ -27,10 +27,15 @@ import {
   soloDeLaPrenda,
   stockEn,
   textoApartadoTalla,
-  textoBajoApartado,
-  textoCambioTalla,
-  textoNegativas,
   textoTotalAjuste,
+  textoQuedara,
+  textoProblemaTalla,
+  preguntaCantidades,
+  minimoDeAjuste,
+  textoTrasPaso,
+  limpiarTextoAjuste,
+  textoStockTalla,
+  detalleDeTalla,
   type FilaAjuste,
 } from "./ajuste-reglas";
 
@@ -98,9 +103,10 @@ describe("las líneas del ajuste: qué de lo escrito se guarda", () => {
     expect(lineasDeAjuste([s], { "1": "1.5" }, "piso", "diferencia")).toEqual([]);
   });
 
-  it("el negativo nombra las tallas y da los números de la primera", () => {
-    const negativas = lineasDeAjuste([s, m], { "1": "-5", "2": "-3" }, "piso", "diferencia");
-    expect(textoNegativas(negativas, "diferencia")).toBe("SKU-1, SKU-2: el ajuste dejaría el stock en negativo — hay 4 y se pide -5.");
+  it("el negativo se dice en la fila de la talla, con los números y sin códigos", () => {
+    const [ls, lm] = lineasDeAjuste([s, m], { "1": "-5", "2": "-3" }, "piso", "diferencia");
+    expect(textoProblemaTalla(ls, "diferencia")).toBe("Solo hay 4: no se pueden restar 5.");
+    expect(textoProblemaTalla(lm, "diferencia")).toBe("Solo hay 2: no se pueden restar 3.");
   });
 });
 
@@ -169,23 +175,24 @@ describe("«Conteo físico» pregunta cuántas hay, no cuánto cambia (Felipe, 2
   it("al contar, la talla muestra también la diferencia, que es lo que queda en Movimientos", () => {
     const [menos] = lineasDeAjuste([s], { "1": "3" }, "piso", "contado");
     const [mas] = lineasDeAjuste([s], { "1": "6" }, "piso", "contado");
-    expect(textoCambioTalla(menos, "contado")).toBe(" → 3 (−1)");
-    expect(textoCambioTalla(mas, "contado")).toBe(" → 6 (+2)");
-    expect(textoCambioTalla(menos, "diferencia")).toBe(" → 3");
-    expect(textoCambioTalla(undefined, "contado")).toBe("");
+    expect(textoQuedara(menos, "contado")).toBe("Quedará en 3 (−1)");
+    expect(textoQuedara(mas, "contado")).toBe("Quedará en 6 (+2)");
+    expect(textoQuedara(menos, "diferencia")).toBe("Quedará en 3");
+    expect(textoQuedara(undefined, "contado")).toBe("");
   });
 
   it("las apartadas se cuentan: siguen en la tienda y en el stock (ADR-0141)", () => {
     expect(textoApartadoTalla(1, "contado")).toBe(" · 1 apartada (cuéntala)");
     expect(textoApartadoTalla(2, "contado")).toBe(" · 2 apartadas (cuéntalas)");
     const [bajo] = lineasDeAjuste([m], { "2": "0" }, "piso", "contado");
-    expect(textoBajoApartado(bajo, "contado")).toBe(
-      "SKU-2: contaste 0 y hay 1 apartada para clientas. Las apartadas siguen en la tienda: cuéntalas también; si de verdad falta, libera ese apartado primero."
+    expect(textoProblemaTalla(bajo, "contado")).toBe(
+      "Contaste 0 y hay 1 apartada para clientas. Cuéntalas también; si de verdad falta, libera ese apartado primero."
     );
   });
 
   it("lo contado negativo se frena con su propio mensaje", () => {
-    expect(textoNegativas(lineasDeAjuste([s], { "1": "-1" }, "piso", "contado"), "contado")).toBe("SKU-1: lo contado no puede ser negativo.");
+    const [neg] = lineasDeAjuste([s], { "1": "-1" }, "piso", "contado");
+    expect(textoProblemaTalla(neg, "contado")).toBe("Lo contado no puede ser negativo.");
   });
 });
 
@@ -221,10 +228,9 @@ describe("lo apartado: la fila de Existencias muestra lo libre, el modal lo fís
     expect(textoApartadoTalla(0, "diferencia")).toBe("");
   });
 
-  it("el ajuste que deja menos que lo apartado se frena con el código de la etiqueta", () => {
-    expect(textoBajoApartado({ variante: { sku: "POL-0005-GRI-M" }, resultado: 0, apartado: 1 }, "diferencia")).toBe(
-      "POL-0005-GRI-M: quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero."
-    );
+  it("el ajuste que deja menos que lo apartado se frena en la fila, sin el código de la etiqueta", () => {
+    const linea = { variante: {} as never, delta: -1, actual: 1, resultado: 0, apartado: 1 };
+    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero.");
   });
 
   it("sin la columna de apartados (filas viejas de las pruebas), cuenta 0", () => {
@@ -369,17 +375,19 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
     expect(reposicionCerrada("piso", false)).toBe(false);
   });
 
-  it("la nota nombra los dos caminos que sí sacan del almacén y el motivo para lo encontrado de más", () => {
-    expect(NOTA_REPOSICION_CERRADA).toContain("«Bajar al piso»");
+  it("la nota nombra los dos caminos que mueven prendas entre piso y almacén y el motivo para lo encontrado de más", () => {
     expect(NOTA_REPOSICION_CERRADA).toContain("«Reponer»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Subir a almacén»");
     expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });
 
-  it("y el camino de vuelta: guardar prendas del piso en el almacén es «Retirar del piso», y dice dónde está", () => {
+  it("y el camino de vuelta es «Subir a almacén», en Existencias, y dice quién lo ve; ya no manda al menú «⋯» que no existe", () => {
     // Sin esta frase, quien quiere guardar entra a Ajustar y arma a mano «Otro» −N en el piso y «Reposición» +N en el
     // almacén: un retiro sin rastro ni nota (revisión del bloque 2 de ADR-0208).
-    expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «⋯» ▸ «Retirar del piso».");
-    expect(NOTA_REPOSICION_CERRADA).toContain("Todo en Existencias");
+    expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «Subir a almacén».");
+    expect(NOTA_REPOSICION_CERRADA).toContain("en Existencias");
+    expect(NOTA_REPOSICION_CERRADA).toContain("módulo «Bajada al piso»");
+    expect(NOTA_REPOSICION_CERRADA).not.toContain("Retirar del piso");
     // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
     expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);
   });
@@ -548,5 +556,80 @@ describe("la prenda que faltó en un conteo y apareció (ADR-0291)", () => {
   it("el aviso de éxito cuenta lo enlazado", () => {
     expect(textoExitoAjuste({ ajustes: 1, cargas: 0, enlazados: 1 })).toBe("1 variante ajustada · 1 enlazada al conteo donde faltaba");
     expect(leerResultadoAjuste({ ajustes: 1, cargas: 0, enlazados: 1, ya_registrado: false })?.enlazados).toBe(1);
+  });
+});
+
+describe("las filas del modal, en voz de tienda y sin códigos (Felipe, 2026-10-01)", () => {
+  const [s, m, l] = armarVariantesAjuste(
+    [
+      fila("1", "S", { stock: [{ cantidad: 2, cantidad_apartada: 0, sububicacion_id: ALMACEN }] }),
+      fila("2", "M", { stock: [{ cantidad: 5, cantidad_apartada: 2, sububicacion_id: ALMACEN }] }),
+      fila("3", "L"), // nunca estuvo en la tienda
+    ],
+    PISO,
+    ALMACEN
+  );
+
+  it("la pregunta sobre las tallas cambia con el motivo y, al contar, nombra el lugar", () => {
+    expect(preguntaCantidades("diferencia", "almacen")).toBe("¿Cuántas sumas o restas de cada talla?");
+    expect(preguntaCantidades("contado", "piso")).toBe("¿Cuántas contaste en el piso de cada talla?");
+    expect(preguntaCantidades("contado", "almacen")).toBe("¿Cuántas contaste en el almacén de cada talla?");
+    expect(preguntaCantidades("contado", "sede")).toBe("¿Cuántas contaste de cada talla?");
+  });
+
+  it("la primera línea dice cuánto hay en el lugar; con varios colores a la vez, el color va delante", () => {
+    expect(textoStockTalla(s, "almacen", false)).toBe("2 en el almacén");
+    expect(textoStockTalla(l, "almacen", false)).toBe("Nada en el almacén");
+    expect(textoStockTalla(s, "piso", false)).toBe("Nada en el piso");
+    expect(textoStockTalla({ ...s, color: "Blanco" }, "sede", true)).toBe("Blanco · 2 en la sede");
+    expect(textoStockTalla({ ...s, color: null }, "almacen", true)).toBe("2 en el almacén");
+  });
+
+  it("el tope de los botones «−»: no baja del stock libre, ni de lo apartado al contar, ni de cero en una prenda nueva", () => {
+    expect(minimoDeAjuste(s, "almacen", "diferencia")).toBe(-2);
+    expect(minimoDeAjuste(m, "almacen", "diferencia")).toBe(-3); // 5 en el almacén, 2 apartadas: se pueden restar 3
+    expect(minimoDeAjuste(m, "almacen", "contado")).toBe(2);
+    expect(minimoDeAjuste(s, "almacen", "contado")).toBe(0);
+    expect(minimoDeAjuste(l, "almacen", "diferencia")).toBe(0);
+    expect(minimoDeAjuste(l, "almacen", "contado")).toBe(0);
+  });
+
+  it("«+» y «−» al sumar o restar: parten de cero, vuelven a vacío en cero y se detienen en el tope", () => {
+    expect(textoTrasPaso("", 1, "diferencia", 2, -2)).toBe("1");
+    expect(textoTrasPaso("1", -1, "diferencia", 2, -2)).toBe(""); // volver a 0 deja la talla sin ajuste
+    expect(textoTrasPaso("", -1, "diferencia", 2, -2)).toBe("-1");
+    expect(textoTrasPaso("-2", -1, "diferencia", 2, -2)).toBeNull();
+    expect(textoTrasPaso("-", 1, "diferencia", 2, -2)).toBe("1"); // un «−» a medio escribir no es un número
+  });
+
+  it("«+» y «−» al contar: el primer toque parte de lo que dice el sistema, y no baja de lo apartado", () => {
+    expect(textoTrasPaso("", 1, "contado", 5, 2)).toBe("6");
+    expect(textoTrasPaso("", -1, "contado", 5, 2)).toBe("4");
+    expect(textoTrasPaso("2", -1, "contado", 5, 2)).toBeNull();
+    expect(textoTrasPaso("0", 1, "contado", 5, 0)).toBe("1");
+  });
+
+  it("al teclear: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos", () => {
+    expect(limpiarTextoAjuste("a4b", "contado")).toBe("4");
+    expect(limpiarTextoAjuste("-4", "contado")).toBe("4");
+    expect(limpiarTextoAjuste("-12", "diferencia")).toBe("-12");
+    expect(limpiarTextoAjuste("−3", "diferencia")).toBe("-3"); // el menos tipográfico que escribe un teclado en español
+    expect(limpiarTextoAjuste("+2", "diferencia")).toBe("2");
+    expect(limpiarTextoAjuste("1-2", "diferencia")).toBe("12");
+    expect(limpiarTextoAjuste("-", "diferencia")).toBe("-");
+  });
+
+  it("la segunda línea junta cómo queda, lo apartado y, en una prenda nueva, dónde entra; sin nada que decir, queda vacía", () => {
+    const base = { ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true, lugar: "almacen" } as const;
+    const [linea] = lineasDeAjuste([m], { "2": "-1" }, "almacen", "diferencia");
+    expect(detalleDeTalla({ ...base, variante: m, linea, texto: "-1", modo: "diferencia" })).toBe("Quedará en 4 · 2 apartadas");
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "", modo: "diferencia" })).toBe("");
+    expect(detalleDeTalla({ ...base, variante: l, linea: undefined, texto: "", modo: "diferencia" })).toBe("Nueva en esta tienda · entra como stock inicial");
+  });
+
+  it("al contar lo mismo que dice el sistema, la talla dice que coincide (y no queda como «no la conté»)", () => {
+    const base = { ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true, lugar: "almacen" } as const;
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "2", modo: "contado" })).toBe("Coincide con el sistema");
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "", modo: "contado" })).toBe("");
   });
 });
