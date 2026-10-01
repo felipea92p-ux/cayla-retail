@@ -83,6 +83,9 @@ export type DetalleCajon = {
   /** El número grande y la frase que lo sigue: «3» + «prendas llegaron desde Tienda Lima». */
   cifra: string;
   frase: string;
+  /** En qué parte de la tienda pasó: «Almacén», «Piso de venta». Sin esto, «había 1 · ahora hay 2» (que es el total de piso
+   *  y almacén juntos) no dice si se contó, se vendió o llegó en el piso o en el almacén. Null si la fila no trae lugar. */
+  donde: string | null;
   /** Quién lo hizo: «Carla Ruiz y Luis Soto»; null si es carga de sistema. */
   quien: string | null;
   /** «En la tienda había 6 y ahora hay 5» (piso + almacén), derivado del saldo real y del cambio. Null si la base no
@@ -139,6 +142,21 @@ function quienes(filas: readonly Movimiento[]): string | null {
   return nombres.length > 0 ? unirNombres(nombres) : null;
 }
 
+/** El lugar de la tienda donde pasó, en palabras de tienda: «Almacén», «Piso de venta»; cualquier otra sububicación
+ *  (cuarentena, un rack del Taller) va con su nombre. Con varias filas en lugares distintos, todos: «Almacén y Piso de
+ *  venta». Null si ninguna fila trae lugar: la línea se omite en vez de inventarlo. */
+function dondeDe(filas: readonly Movimiento[]): string | null {
+  const lugares = [...new Set(filas.map((m) => (m.sububicacion ? (m.sububicacion.tipo === "piso_venta" ? "Piso de venta" : m.sububicacion.tipo === "almacen_tienda" ? "Almacén" : m.sububicacion.nombre) : null)).filter((l): l is string => l !== null))];
+  return lugares.length > 0 ? unirNombres(lugares) : null;
+}
+
+/** El lugar de una fila para una frase («1 prenda más en el almacén»): «el piso», «el almacén», o el nombre de otra
+ *  sububicación. Null si la fila no trae lugar. */
+function lugarEnFrase(m: Pick<Movimiento, "sububicacion">): string | null {
+  if (!m.sububicacion) return null;
+  return m.sububicacion.tipo === "piso_venta" ? "el piso" : m.sububicacion.tipo === "almacen_tienda" ? "el almacén" : m.sububicacion.nombre;
+}
+
 /** Lo que dice la frase grande de un movimiento que suma o resta stock (o aparta), desde la tienda que se mira:
  *  «prendas llegaron desde Tienda Lima», «prenda vendida». El número va aparte, en grande, delante. Un motivo sin frase
  *  propia dice, al menos, hacia dónde fue el stock. */
@@ -181,10 +199,11 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
   return m.delta > 0 ? `${prenda} ${una ? "entró" : "entraron"} a la tienda` : `${prenda} ${una ? "salió" : "salieron"} de la tienda`;
 }
 
-/** «1 prenda más en el stock» · «5 prendas menos en el stock»: lo que hizo un ajuste, sin signos. */
-export function fraseDeAjuste(delta: number): string {
+/** «1 prenda más en el almacén» · «5 prendas menos en el piso»: lo que hizo un ajuste, sin signos y diciendo DÓNDE (un
+ *  ajuste corrige el piso o el almacén, no «la tienda»). Sin lugar, «en la tienda». */
+export function fraseDeAjuste(delta: number, lugar: string | null = null): string {
   const n = Math.abs(delta);
-  return `${n === 1 ? "prenda" : "prendas"} ${delta > 0 ? "más" : "menos"} en el stock`;
+  return `${n === 1 ? "prenda" : "prendas"} ${delta > 0 ? "más" : "menos"} en ${lugar ?? "la tienda"}`;
 }
 
 /** «Hoy, a las 10:59» · «Ayer, a las 18:35» · «Lunes 28 de septiembre, a las 10:59». */
@@ -245,6 +264,7 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
     forma,
     clave: op.clave,
     cuando: cuandoDe(op, ctx),
+    donde: dondeDe(op.filas),
     quien: quienes(op.filas),
     prenda: null,
     enTienda: null,
@@ -277,7 +297,7 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
       titulo: esConteo ? "Ajuste por conteo" : etiquetaProceso(primera.motivo),
       prenda: una ? { referencia: primera.referencia, variante: [primera.talla, primera.color].filter(Boolean).join(" · ") || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null } : null,
       cifra: una ? `${Math.abs(primera.delta)}` : `${op.filas.length}`,
-      frase: una ? fraseDeAjuste(primera.delta) : "prendas se corrigieron",
+      frase: una ? fraseDeAjuste(primera.delta, lugarEnFrase(primera)) : "prendas se corrigieron",
       enTienda: una && saldo !== null ? { antes: saldo - primera.delta, despues: saldo } : null,
       motivo: esConteo ? "Diferencia detectada en conteo físico" : (primera.nota ?? etiquetaProceso(primera.motivo)),
       items: una ? null : op.filas.map((m) => itemDeFila(m, ctx, `${Math.abs(m.delta)} ${m.delta > 0 ? "más" : "menos"}`, m.delta > 0 ? "verde" : "rojo")),

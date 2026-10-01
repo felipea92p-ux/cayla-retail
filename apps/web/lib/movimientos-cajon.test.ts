@@ -135,9 +135,10 @@ describe("fraseDeMovimiento — la frase grande de cada movimiento, en palabras 
 });
 
 describe("fraseDeAjuste", () => {
-  it("dice más o menos en el stock, sin signos", () => {
-    expect(fraseDeAjuste(1)).toBe("prenda más en el stock");
-    expect(fraseDeAjuste(-5)).toBe("prendas menos en el stock");
+  it("dice más o menos y DÓNDE (el piso o el almacén), sin signos; sin lugar, «en la tienda»", () => {
+    expect(fraseDeAjuste(1, "el almacén")).toBe("prenda más en el almacén");
+    expect(fraseDeAjuste(-5, "el piso")).toBe("prendas menos en el piso");
+    expect(fraseDeAjuste(-1)).toBe("prenda menos en la tienda");
   });
 });
 
@@ -219,7 +220,7 @@ describe("construirDetalleCajon — Ajuste", () => {
 
   it("un ajuste por conteo dice cuántas prendas menos hay en el stock, con la prenda y el motivo", () => {
     expect(d.titulo).toBe("Ajuste por conteo");
-    expect([d.cifra, d.frase]).toEqual(["1", "prenda menos en el stock"]);
+    expect([d.cifra, d.frase]).toEqual(["1", "prenda menos en la tienda"]);
     expect(d.prenda).toEqual(expect.objectContaining({ referencia: "Blusa Emma" }));
     expect(d.motivo).toBe("Diferencia detectada en conteo físico");
     expect(d.enTienda).toEqual({ antes: 6, despues: 5 });
@@ -246,6 +247,32 @@ describe("construirDetalleCajon — Ajuste", () => {
       expect.objectContaining({ referencia: "Casaca Luciana", cantidad: "1 más", tono: "verde" }),
       expect.objectContaining({ referencia: "Blusa Emma", cantidad: "5 menos", tono: "rojo" }),
     ]);
+  });
+});
+
+describe("construirDetalleCajon — Dónde pasó (piso o almacén)", () => {
+  const piso = { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" };
+  const almacen = { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" };
+
+  it("un ajuste dice en qué parte se hizo, en la frase y en la línea «Dónde» (el «había/ahora hay» es de toda la tienda)", () => {
+    const enAlmacen = construirDetalleCajon(operacion([movimiento({ id: "m1", categoria: "ajuste", motivo: "conteo_fisico", delta: 1, cantidad: 1, sububicacion: almacen })]), CTX_BASE);
+    expect(enAlmacen.frase).toBe("prenda más en el almacén");
+    expect(enAlmacen.donde).toBe("Almacén");
+    const enPiso = construirDetalleCajon(operacion([movimiento({ id: "m1", categoria: "ajuste", motivo: "merma", delta: -2, cantidad: 2, sububicacion: piso })]), CTX_BASE);
+    expect(enPiso.frase).toBe("prendas menos en el piso");
+    expect(enPiso.donde).toBe("Piso de venta");
+  });
+
+  it("una venta dice de dónde salió y un traslado recibido, dónde llegó", () => {
+    expect(construirDetalleCajon(operacion([movimiento({ categoria: "salida", motivo: "venta", delta: -1, cantidad: -1, sububicacion: piso })]), CTX_BASE).donde).toBe("Piso de venta");
+    expect(construirDetalleCajon(operacion([movimiento({ categoria: "transferencia", motivo: "traslado_entrada", delta: 3, cantidad: 3, sububicacion: almacen })]), CTX_BASE).donde).toBe("Almacén");
+  });
+
+  it("otra sububicación va con su nombre, varias lugares los dice todos, y sin lugar la línea se omite", () => {
+    expect(construirDetalleCajon(operacion([movimiento({ sububicacion: { id: "sc", nombre: "Cuarentena", tipo: "cuarentena" } })]), CTX_BASE).donde).toBe("Cuarentena");
+    const dos = construirDetalleCajon(operacion([movimiento({ id: "a", varianteId: "v1", sububicacion: piso }), movimiento({ id: "b", varianteId: "v2", sububicacion: almacen })]), CTX_BASE);
+    expect(dos.donde).toBe("Piso de venta y Almacén");
+    expect(construirDetalleCajon(operacion([movimiento({ sububicacion: null })]), CTX_BASE).donde).toBeNull();
   });
 });
 

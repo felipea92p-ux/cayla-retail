@@ -48,18 +48,29 @@ function Encabezado({ titulo, cuando }: { titulo: string; cuando: string }) {
   );
 }
 
-/** Lo que pasó, en una frase con el número grande, y quién lo hizo. */
-function Hero({ cifra, frase, quien }: { cifra: string; frase: string; quien: string | null }) {
+/** Lo que pasó, en una frase con el número grande, y debajo dónde (en qué parte de la tienda) y quién lo hizo. */
+function Hero({ cifra, frase, donde, quien }: { cifra: string; frase: string; donde?: string | null; quien: string | null }) {
   return (
     <div className="mt-6 rounded-xl border border-sand px-5 py-4">
       <p className="flex items-center gap-4">
         <span className="font-display text-[44px] leading-none tabular-nums text-tinta">{cifra}</span>
         <span className="text-balance text-[16px] leading-snug text-tinta">{frase}</span>
       </p>
-      {quien && (
-        <p className="mt-3 border-t border-sand pt-3 text-[14px] text-taupe">
-          Por <span className="text-tinta">{quien}</span>
-        </p>
+      {(donde || quien) && (
+        <dl className="mt-3 grid grid-cols-[4rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t border-sand pt-3 text-[14px]">
+          {donde && (
+            <>
+              <dt className="text-taupe">Dónde</dt>
+              <dd className="text-tinta">{donde}</dd>
+            </>
+          )}
+          {quien && (
+            <>
+              <dt className="text-taupe">Quién</dt>
+              <dd className="text-tinta">{quien}</dd>
+            </>
+          )}
+        </dl>
       )}
     </div>
   );
@@ -205,11 +216,14 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
     <>
       <Encabezado titulo={d.titulo} cuando={d.cuando} />
       {d.prenda && <BloquePrenda prenda={d.prenda} />}
-      <Hero cifra={d.cifra} frase={d.frase} quien={d.quien} />
+      <Hero cifra={d.cifra} frase={d.frase} donde={d.donde} quien={d.quien} />
 
       {d.enTienda && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-sand px-5 py-3 text-[14px]">
-          <span className="text-taupe">En la tienda</span>
+          <span className="text-taupe">
+            En toda la tienda
+            <span className="block text-[12.5px] leading-tight">piso y almacén juntos</span>
+          </span>
           <span className="tabular-nums text-tinta">
             Había <b>{d.enTienda.antes}</b> · ahora hay <b>{d.enTienda.despues}</b>
           </span>

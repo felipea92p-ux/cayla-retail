@@ -100,7 +100,7 @@ el celular había que pasar la cabecera, la franja, dos filas de píldoras y una
 La fila plegada «Bajadas al piso» (punto 3) dejó de desplegarse hacia abajo —empujaba la lista y, abierta, ocupaba media
 pantalla— y ahora abre el **mismo cajón lateral** que el resto de las operaciones (`CajonMovimiento`, `vista.tipo ===
 "bajadas"`): el mismo nombre de la fila, «Hoy, de 10:04 a 11:29», UNA frase con el número grande («10 prendas pasaron del
-almacén al piso de venta»), quién las hizo («Por Carla Ruiz y Luis Soto») y la lista de prendas con su hora, su variante y
+almacén al piso de venta»), quién las hizo («Quién: Carla Ruiz y Luis Soto») y la lista de prendas con su hora, su variante y
 cuántas. Si el día mezcla bajadas con otros movimientos (un retiro del piso), la frase dice «cambiaron de lugar dentro de
 la tienda» y cada fila dice «Almacén → Piso» o «Piso → Almacén». Se simplificó el mismo día tras leerlo como alguien sin
 contexto: «veces», «tallas» (un bolso es talla única), «⇄» y «quedan N» no se entendían —ese N era el total de la tienda,
@@ -127,3 +127,10 @@ en vez de romper. Una bajada o un retiro suelto (movimiento interno) usa el caj�
 **Dos correcciones de fondo:** un conteo (o cualquier ajuste) de varias prendas ahora las lista TODAS, con «1 más» /
 «5 menos» (antes solo se veía la primera); y el historial solo se ofrece si todas las filas son del mismo producto (antes,
 con varios, llevaba al del primero). Se quitó el botón «Copiar» de la referencia de un cambio.
+
+**Dónde (2026-10-01, c):** al simplificar se había quitado de los cajones en qué parte de la tienda pasó cada cosa, y el
+«había 6 · ahora hay 5» es el total de piso y almacén juntos: en un ajuste por conteo no se entendía si se corrigió el
+piso o el almacén. Ahora, bajo la frase, cada cajón dice **Dónde** («Almacén», «Piso de venta», o el nombre de otra
+sububicación) y **Quién**; un ajuste de una prenda lo dice también en la frase («1 prenda más en el almacén») y la línea del
+total se llama «En toda la tienda · piso y almacén juntos». No hay saldo por piso ni por almacén (`fn_movimientos_saldos`
+es del total de la tienda): no se inventa.
