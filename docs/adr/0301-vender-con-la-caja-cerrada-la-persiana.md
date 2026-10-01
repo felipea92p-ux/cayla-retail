@@ -69,3 +69,17 @@ devuelve el foco al botón; al abrir, las fases medidas fueron `cerrada` → `po
 desmontada (~2,3 s después de que el loader se fue), con el foco en «Escanea la etiqueta…». La caja de prueba se abrió y se
 cerró dos veces, cuadrando con el mismo fondo (S/ 219.90): la base local quedó como estaba. Se verificó a 1440 × 900,
 1366 × 768 (el botón queda a 589 px) y 375 × 812, sin nada fuera del ancho.
+
+## Actualización 2026-10-01 (b) — el menú plegado y una hoja más ancha (Felipe, con captura)
+- **Con el menú lateral plegado quedaba una franja del POS sin cubrir.** La capa usaba `sm:left-lateral`, pero va por portal
+  a `body` y el token `--spacing-lateral` solo cambia dentro del contenedor de `AppShell` (`data-lateral="plegado"`): plegada,
+  la capa seguía empezando a 272 px. Ahora mide la cabecera fija (su borde izquierdo es donde termina el menú; su borde de
+  abajo, donde empieza el contenido) con `ResizeObserver`. Al plegar, el ancho de la cabecera cambia en cada cuadro y la
+  capa la sigue durante toda la transición (medido: 272 → 220 → 140 → 93 → 76 px, siempre igual a la cabecera).
+- **Pantalla grande:** desde 1800 × 1000 el cartel, el título y el botón crecen un escalón, para leerse de lejos.
+- **La hoja «Abrir caja» era angosta y larga** (384 px; con «Nadie de turno» llegaba a ~840 px de alto). En Vender pasa a
+  `max-w-xl` (576 px) y `AbrirCajaFormV2` recibe `enHoja`: sin tarjeta dentro de la hoja, sin repetir «Abrir caja» sobre
+  el título, y las dos opciones lado a lado. Medido a 1366 × 768: ~440 px de alto, y ~650 px con «Nadie de turno» (termina
+  a 709 px, a la vista). En `/caja` el formulario no cambia.
+- Verificado a 2560 × 1440, 1920 × 1000 (plegando el menú), 1366 × 768, 1280 × 640, 1024 × 768, 768 × 1024, 640 × 800 y
+  375 × 812: la capa calza con la cabecera y con los bordes, el botón queda a la vista y nada se sale de lado.
