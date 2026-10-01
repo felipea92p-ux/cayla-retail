@@ -186,7 +186,23 @@ movimiento fuera de esta regla. Quedan como excepciones **solo de esa pieza** (`
 Por qué se acepta aquí: no es un modal ni una respuesta a una acción. Es un estado de la tienda que tiene que leerse de lejos y
 sin leer («la tienda está cerrada»), y que dura lo que tarda alguien en abrir la caja.
 
-## Actualización 2026-10-01 (e) — la página pública del Club CAYLA tiene su propio movimiento
+## Actualización 2026-10-01 (e) — `<Modal lateral>`: la foto de la prenda a la izquierda de la hoja
+
+Felipe pidió que Reponer, Subir a almacén y Ajustar inventario muestren la **foto de la prenda** a un costado: más intuitivo, y no deja
+duda de sobre cuál prenda se está operando. El `Modal` gana una opción, `lateral`, que pone algo a la izquierda de toda la hoja (título,
+bajada y contenido quedan a su derecha, igual que antes).
+- **La hoja crece justo lo que ocupa el costado y el resto no se mueve:** `.hoja-con-lateral` (`app/globals.css`) suma al máximo de la hoja
+  el ancho del costado (11 rem) y su separación (1,25 rem), y el relleno izquierdo lo absorbe. Medido en el navegador: la columna de la
+  derecha queda en 334 px en Reponer y Subir (antes 336) y en 400 px en Ajustar (como `max-w-md`). Va en **`@layer utilities`** (no en `components`, ADR-0105): tiene que ganarle a `p-6` y
+  `max-w-*`, y lo hace por especificidad (dos clases por selector). Funciona con `ancho` = `max-w-sm | md | lg`.
+- **Movimiento:** ninguno propio. El costado va con `data-sin-cascada`, llega con la hoja y se coloca con `position: absolute`, así que no
+  corre el orden de la cascada. La hoja nunca es más baja que la foto (`min-height`).
+- **Solo escritorio (≥ 640 px):** en celular, donde la hoja sube desde abajo, el costado no se muestra (no se probó ahí, a pedido).
+- **La pieza:** `components/ui/FotoDePrenda.tsx` (3:4, recortada con `object-cover`; sin foto, el isotipo y un punto con el color).
+- **Ajustar sin foto cuando quien lo abre no la tiene:** la ficha del producto en edición (`AjusteDeStock`) no sabe la foto del color, así
+  que ahí la ventana va como antes (`PrendaAjuste.fotoUrl` indefinido = sin costado).
+
+## Actualización 2026-10-01 (f) — la página pública del Club CAYLA tiene su propio movimiento
 
 **Alcance:** esta regla gobierna el ERP (lo que usa el equipo). La página a la que llega una clienta al escanear el cartel del
 club (`/club/<tienda>`, ADR-0288 act. g e i) es una pieza de marca para clientas, y Felipe aprobó el 2026-10-01 un movimiento

@@ -1018,4 +1018,4 @@ Felipe pidió un cartel más llamativo y una página mejor, con animaciones, y e
   beneficios; los datos conservan toda la lógica de la 1g (padrón, guía de foco, textos legales versionados, WhatsApp
   opcional) con una barra de avance; el final entrega una **tarjeta de socia digital** (nombre, código, desde cuándo) y, si es
   su mes, el aviso del cupón de cumpleaños.
-- **Movimiento:** propio de esta página, documentado en ADR-0136 act. (e).
+- **Movimiento:** propio de esta página, documentado en ADR-0136 act. (f).

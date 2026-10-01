@@ -28,6 +28,11 @@ type Props = {
       un combo (`ComboBuscable`) abre su lista al recibir el foco y, en el celular, la abre hacia arriba tapando esa línea
       («Corregir color», ADR-0263). El foco sigue atrapado en la hoja y Tab entra al primer campo. */
   focoEnLaHoja?: boolean;
+  /** Algo a la IZQUIERDA de toda la hoja (título, bajada y contenido quedan a su derecha, exactamente como sin él): hoy la foto de la
+      prenda en Reponer, Subir a almacén y Ajustar (2026-10-01). La hoja se ensancha justo lo que ocupa (`.hoja-con-lateral`,
+      globals.css) y el resto no se mueve. Solo escritorio: en celular, donde la hoja sube desde abajo, no se muestra. Funciona con
+      `ancho` = max-w-sm | max-w-md | max-w-lg. No entra a la cascada: llega con la hoja. */
+  lateral?: ReactNode;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
@@ -51,7 +56,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
 
@@ -123,7 +128,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                   } ${ancho}`
             } ${
               cerrando ? "anim-modal-sale" : "anim-modal-entra"
-            } cascada-modal`}
+            } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
             onEscapeKeyDown={alEscape}
             // Radix enfoca el primer control al abrir; con `focoEnLaHoja`, la hoja misma (Radix le da tabIndex -1).
             onOpenAutoFocus={
@@ -168,6 +173,13 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             <Dialog.Description className="sr-only">{titulo}</Dialog.Description>
           )}
           {typeof children === "function" ? children(pedirCierre) : children}
+          {/* Va DESPUÉS del contenido para no correr el orden de la cascada (`nth-child`), y fuera de ella (`data-sin-cascada`): se coloca
+              a la izquierda con `position: absolute` (globals.css, `.hoja-con-lateral`), así que su lugar en el DOM no importa. */}
+          {lateral && (
+            <div data-lateral data-sin-cascada>
+              {lateral}
+            </div>
+          )}
           {/* La capa de las listas flotantes (2026-09-26): aquí cuelga `useDestinoFlotante` la lista de todo combo de esta
               hoja. Colgada como hija DIRECTA de la hoja, la cascada de arriba (`.cascada-modal > *`, globals.css) la tomaba
               por una pieza más del contenido: invisible hasta medio segundo y entrando en otro medio. Abrir un combo en

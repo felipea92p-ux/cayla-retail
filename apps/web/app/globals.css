@@ -2471,3 +2471,44 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   display: none !important;
   pointer-events: none;
 }
+
+/* ---- Hoja con algo a la izquierda: la foto de la prenda (Felipe, 2026-10-01) ----
+   `<Modal lateral={…}>` la usa en Reponer, Subir a almacén y Ajustar inventario. La hoja crece EXACTAMENTE lo que ocupa el costado
+   (ancho + separación): el máximo de la hoja suma esa cifra al de su `ancho` y el relleno izquierdo la absorbe, así que título,
+   campos y botones conservan el ancho de siempre. El costado va con `position: absolute` en el relleno (arriba a la izquierda).
+   Va en `@layer utilities` y NO en `components` (ADR-0105): tiene que ganarle a `p-6` y a `max-w-*`, que son utilidades, y una regla de
+   la capa `components` perdería contra ellas. Les gana por especificidad: cada selector lleva dos clases (`.hoja-con-lateral` +
+   `.cascada-modal`, que el `<Modal>` pone siempre en la misma hoja), contra la una de la utilidad.
+   Solo escritorio (≥ 640 px): en celular la hoja sube desde abajo y el costado no se muestra. */
+@layer utilities {
+  .hoja-con-lateral.cascada-modal {
+    --ancho-lateral: 11rem;
+    --separacion-lateral: 1.25rem;
+  }
+  .hoja-con-lateral.cascada-modal > [data-lateral] {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .hoja-con-lateral.cascada-modal {
+      padding-left: calc(1.5rem + var(--ancho-lateral) + var(--separacion-lateral));
+      /* La hoja nunca es más baja que la foto (3:4) con su relleno: una hoja de pocas filas no la recorta. */
+      min-height: calc(var(--ancho-lateral) * 4 / 3 + 3rem);
+    }
+    .hoja-con-lateral.cascada-modal.max-w-sm {
+      max-width: calc(24rem + var(--ancho-lateral) + var(--separacion-lateral));
+    }
+    .hoja-con-lateral.cascada-modal.max-w-md {
+      max-width: calc(28rem + var(--ancho-lateral) + var(--separacion-lateral));
+    }
+    .hoja-con-lateral.cascada-modal.max-w-lg {
+      max-width: calc(32rem + var(--ancho-lateral) + var(--separacion-lateral));
+    }
+    .hoja-con-lateral.cascada-modal > [data-lateral] {
+      display: block;
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      width: var(--ancho-lateral);
+    }
+  }
+}
