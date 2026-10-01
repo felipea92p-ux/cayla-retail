@@ -266,6 +266,20 @@ luz con cada tipo de control, una «mirada de tolerancia» en el Paso 1 (buscar 
 verificación con el recorrido «una letra → Tab → combo», las dos trampas de foco y el entorno (puerto libre, `.env.local`, base local atrasada, panel oculto). El
 escáner reconoce `useRetenerLuz` como pieza de la guía.
 
+## Actualización 2026-10-01 (i) — Ventas: empieza por «Prenda sin registrar»
+
+Felipe (2026-10-01): `/focus` en todo Ventas, empezando por el Punto de venta y, dentro, por el botón «Prenda sin registrar».
+
+- **`components/PrendaSinRegistrarModal.tsx` pasa a `aplicada`** (`MODALES_PENDIENTES_HOY` baja en uno respecto de `main`; al 2026-10-01, 70). Lógica en
+  `lib/prenda-sin-registrar-guia.ts`: los cinco campos (categoría, talla, color, descripción, precio), todos requeridos porque los cinco
+  ya apagaban «Agregar al ticket»; `hecho` se le pregunta a `pasoSiguiente` (la regla de siempre), sin copiarla. La prueba recorre las
+  64 combinaciones de datos vacíos y exige que «falta algo» ⇔ el botón apagado, y que una letra en la descripción no mueva la luz.
+- **Se va el rojo.** El modal marcaba «el paso que toca» con la etiqueta en rojo (2026-09-25); lo reemplaza la luz de la guía.
+- La talla pasa de desplegable a botones de **una** opción: elegir es «terminé» y la luz avanza en el acto (sin `retiene`). Ningún
+  campo trae valor de fábrica que importe: «Única» se pone sola solo cuando la categoría tiene una sola talla, y ahí no hay elección.
+- Pendiente en `/vender`: la pantalla, `PuntoDeVentaTicket` (12 controles), `CerrarCajaModalV2` (10), `Esperas` (2); `PuntoDeVenta`
+  (1 control) es candidato a `no-aplica`.
+
 ## Lo que queda a decisión de Felipe
 
 1. **¿Cuánto se debe notar?** Está en «sutil pero claro»: tinte + etiqueta + marca. Si en tienda sigue pasando desapercibido, el

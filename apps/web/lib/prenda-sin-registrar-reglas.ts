@@ -17,7 +17,7 @@ export const FALTA_DESCRIPCION = "Escribe una descripción corta";
 /** Los pasos del modal, en el orden en que se ven en pantalla. */
 export type PasoPrenda = "categoria" | "talla" | "color" | "descripcion" | "precio";
 
-const FALTA: Record<PasoPrenda, string> = {
+export const FALTA_POR_PASO: Record<PasoPrenda, string> = {
   categoria: "Elige la categoría",
   talla: "Elige la talla",
   color: "Elige el color",
@@ -41,28 +41,60 @@ export function pasoSiguiente(d: Partial<DatosPrendaSinRegistrar>, { sinDescripc
 /** El primer dato que falta, dicho a la colaboradora; `null` si ya se puede agregar al ticket. */
 export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>, opciones: { sinDescripcion?: boolean } = {}): string | null {
   const paso = pasoSiguiente(d, opciones);
-  return paso ? FALTA[paso] : null;
+  return paso ? FALTA_POR_PASO[paso] : null;
 }
 
-type Talla = { id: string; valor: string };
+export type Talla = { id: string; valor: string };
 
 /** Lo que el modal «Prenda sin registrar» necesita para elegir (lo arma `vender/page.tsx` en el servidor). */
 export type ListasPrendaLibre = {
-  categorias: { id: string; nombre: string }[];
-  /** Todas las tallas aprobadas: la reserva para una categoría sin tallas configuradas. */
+  /** `prefijo` y `familia` dibujan el ícono de la categoría (`IconoCategoria`, por prefijo, nunca por nombre). */
+  categorias: { id: string; nombre: string; prefijo: string | null; familia: string | null }[];
+  /** Todas las tallas aprobadas: la reserva si `categoria_tallas` no cargó, y de donde sale «Única». */
   tallas: Talla[];
-  /** `categoria_tallas` por id de categoría (`getEjesPorCategoria().tallas`). */
-  tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
+  /** `categoria_tallas` por id de categoría (`getEjesPorCategoria().tallas`); `null` si no cargó. */
+  tallasPorCategoria: Record<string, { id: string; texto: string }[]> | null;
+  /** Las tallas «habituales» de cada categoría (`categoria_tallas.habitual`, la curva de siempre: S M L, 28 30 32…). */
+  habitualesPorCategoria: Record<string, string[]>;
   colores: ColorAlta[];
   /** Cuántas prendas del catálogo hay de cada color en cada categoría (`usoDeColores`). */
   usoColores: Record<string, Record<string, number>>;
 };
 
+export const TALLA_UNICA = "Única";
+export const TALLA_ESTANDAR = "Estándar";
+
 /** Las tallas que ofrece la categoría (`categoria_tallas`, vía `getEjesPorCategoria`), en el orden de la grilla.
- *  Una categoría todavía sin tallas configuradas ofrece todas: la venta no se traba por una configuración pendiente. */
-export function tallasDeCategoria(deLaCategoria: readonly { id: string; texto: string }[] | undefined, todas: readonly Talla[]): Talla[] {
-  const lista = deLaCategoria && deLaCategoria.length > 0 ? deLaCategoria.map((t) => ({ id: t.id, valor: t.texto })) : [...todas];
+ *  Una categoría sin tallas configuradas ofrece solo «Única»: nunca una talla ajena a la categoría (una blusa con talla 38
+ *  de zapato), y la venta no se traba; almacén la corrige al regularizar (Felipe, 2026-10-01). Si `categoria_tallas` ni
+ *  siquiera cargó (`cargo = false`), se ofrecen todas: la caja no se cae por una lista secundaria (principio 9). */
+export function tallasDeCategoria(deLaCategoria: readonly { id: string; texto: string }[] | undefined, todas: readonly Talla[], cargo = true): Talla[] {
+  const lista =
+    deLaCategoria && deLaCategoria.length > 0
+      ? deLaCategoria.map((t) => ({ id: t.id, valor: t.texto }))
+      : cargo
+        ? todas.filter((t) => t.valor === TALLA_UNICA)
+        : [...todas];
   return lista.sort((a, b) => ordenTalla(a.valor, b.valor));
+}
+
+/** Las tallas de una categoría como las dibuja el modal: la que se pone sola si es la única, las habituales (la curva de
+ *  siempre) adelante, las otras de la categoría después, y «Estándar» aparte para que no se lea como una talla de letra. */
+export type GruposDeTallas = { unica: Talla | null; habituales: Talla[]; otras: Talla[]; estandar: Talla | null };
+
+export function gruposDeTallas(tallas: readonly Talla[], habituales: readonly string[] | undefined): GruposDeTallas {
+  if (tallas.length === 1) return { unica: tallas[0]!, habituales: [], otras: [], estandar: null };
+  const estandar = tallas.find((t) => t.valor === TALLA_ESTANDAR) ?? null;
+  const resto = tallas.filter((t) => t !== estandar);
+  // Sin curva habitual configurada, todas van adelante: no hay a cuál bajarle el tono.
+  const hab = new Set(habituales ?? []);
+  const sinCurva = !resto.some((t) => hab.has(t.id));
+  return {
+    unica: null,
+    habituales: sinCurva ? resto : resto.filter((t) => hab.has(t.id)),
+    otras: sinCurva ? [] : resto.filter((t) => !hab.has(t.id)),
+    estandar,
+  };
 }
 
 /** Cuántas prendas del catálogo hay de cada color en cada categoría (por id de categoría y código de color).
