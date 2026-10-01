@@ -186,6 +186,8 @@ aviso filtra `motivo = 'no_habia_talla'`.
 
 ## DECISIÓN 7: «es para regalo» es una marca por prenda vendida (D-101)
 
+*Superada el 2026-09-30: Felipe decidió seguir el spike, sin la marca. Ver «Actualización 2026-09-30 (e)».*
+
 **DECIDÍ:** `venta_items.es_regalo boolean not null default false`, que se marca por línea en el ticket solo si hay
 clienta elegida. `fn_clienta_compras` lo devuelve, y `deducirTallas` (`lib/clienta-actividad-reglas.ts`) lo salta:
 se cierra el «LÍMITE CONOCIDO (v1)» de ese archivo.
@@ -398,3 +400,455 @@ de arriba, y por qué:
     `registrar_venta` pasa a `703928f5…`.
   - La regla quedó en CLAUDE.md («El SQL Editor agrega líneas por su cuenta»).
 
+
+## Contrato de la tanda 1b (2026-09-30): socia, dos permisos, código y QR
+
+Se construye sobre la D-4 reescrita y la «Actualización 2026-09-30». Migración `20260930200000_club_paso1b_permisos_y_qr.sql`,
+en partes si hace falta: sin políticas, triggers con `create or replace trigger`, y ningún `select … into` dentro de un texto
+entre comillas.
+
+**Esquema**
+- `retail.clientas` suma estas columnas:
+  - `club_desde timestamptz`, `publicidad_desde timestamptz`;
+  - `codigo_club text unique`, con formato `C-0001` y secuencia `retail.clientas_codigo_club_seq`;
+  - `cumple_anio smallint` (opcional, CL-3).
+  - Candados:
+    - `club_desde` exige celular;
+    - `publicidad_desde` exige `club_desde`;
+    - `codigo_club` está presente si y solo si hay `club_desde`;
+    - una anonimizada no tiene `club_desde`, `publicidad_desde`, `codigo_club` ni `cumple_anio`.
+- `retail.ubicaciones.whatsapp_numero text`: 9 dígitos que empiezan en 9. Sin número no hay QR.
+- `retail.club_textos (tipo, version, texto, vigente_desde, creado_por)`, con único `(tipo, version)`.
+  - `tipo`: `club` (lo lee la asesora), `mensaje_personal` (lo envía ella; lleva `{codigo}`) o `mensaje_generico`.
+  - El vigente de cada tipo es su versión más alta. Se siembran los textos v2 de la actualización como `version = 2`.
+    El v1 nunca se sembró.
+- `retail.club_permisos`, de solo agregar (un disparador rechaza `update` y `delete`; RLS sin políticas y sin permisos
+  para la API):
+  - columnas: `id`, `clienta_id`, `finalidad` (`club` o `publicidad_whatsapp`), `accion` (`otorga` o `revoca`), `medio`,
+    `texto_tipo`, `texto_version`, `ubicacion_id`, `venta_id`, `registrado_por`, `nota` y `created_at`;
+  - `medio`: `caja_palabra`, `ficha`, `whatsapp_propio`, `baja_whatsapp`, `anonimizar` o `legado`.
+  - Candados:
+    - una publicidad que se otorga exige `medio = 'whatsapp_propio'`;
+    - `otorga` exige `texto_version`, salvo en `legado`;
+    - `registrado_por` es obligatorio salvo en `legado`.
+  - **Sin teléfono en el evento.** Anonimizar tiene que poder borrar a la clienta (Ley 29733) y un registro de solo
+    agregar no se edita. La prueba del número es el chat de la tienda.
+
+**Funciones.** Todas empiezan con `fn_exigir_modulo('clientas')` y firman con `fn_actor_persona_id(true)`, salvo la de
+la tienda.
+- `unirse_al_club(p_clienta_id uuid, p_telefono_whatsapp text, p_cumple_dia smallint, p_cumple_mes smallint,
+  p_cumple_anio smallint, p_medio text default 'caja_palabra', p_ubicacion_id uuid, p_venta_id uuid)`
+  → `table(codigo_club text, club_desde timestamptz)`.
+  - `p_medio` es `caja_palabra` o `ficha`. El celular es obligatorio.
+  - Exige texto `club` vigente (hint `club_sin_texto`); rechaza una ficha archivada o anonimizada.
+  - Si ya es socia, completa los datos y devuelve su código sin un evento nuevo.
+- `registrar_mensaje_publicidad(p_clienta_id uuid, p_telefono_que_escribio text, p_ubicacion_id uuid)` → `timestamptz`
+  («Llegó su mensaje»).
+  - Exige que sea socia.
+  - Escribe una publicidad que se otorga con medio `whatsapp_propio` y el texto `mensaje_personal` vigente.
+  - Si el número que escribió difiere del de la ficha, ese pasa a ser su celular.
+- `registrar_desde_whatsapp(p_documento_tipo text, p_documento_numero text, p_nombre text, p_telefono_que_escribio text,
+  p_ubicacion_id uuid)` → `table(clienta_id uuid, codigo_club text)` (cartel).
+  - El documento es obligatorio (CL-1).
+  - Completa o crea la ficha, como `registrar_clienta`.
+  - Escribe `club` y publicidad, las dos con medio `whatsapp_propio` y el texto `mensaje_generico`.
+- `registrar_baja_whatsapp(p_telefono text, p_ubicacion_id uuid)` → `integer` (fichas afectadas).
+  - Revoca la publicidad (medio `baja_whatsapp`) de toda ficha con ese celular y vacía `publicidad_desde`.
+  - Su club sigue: los avisos informativos no son publicidad.
+- `resumen_clienta_caja(p_clienta_id uuid)` → `table(es_socia boolean, codigo_club text, club_desde timestamptz,
+  con_publicidad boolean, celular text, cumple_dia smallint, cumple_mes smallint)`. Es de lectura (prefijo `resumen_`).
+- `fn_club_textos_vigentes()` → `table(tipo text, version integer, texto text)`. Es de lectura; la llama la web.
+- `guardar_whatsapp_tienda(p_ubicacion_id uuid, p_numero text)`.
+  - Con el mismo permiso que `guardar_metas_tienda` (Configuración ▸ Tiendas y caja).
+  - Un número vacío lo quita.
+- `registrar_clienta(p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp, p_cumple_dia, p_cumple_mes,
+  p_cumple_anio)` y `editar_clienta(p_id, p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp,
+  p_cumple_dia, p_cumple_mes, p_cumple_anio, p_tallas, p_version_esperada)` **pierden `p_acepta_whatsapp` y
+  `p_revoca_whatsapp`**. El permiso ya no se marca ahí (D-4). A una socia no se le puede borrar el celular.
+- `archivar_clienta` con anonimizar: primero escribe `revoca` (medio `anonimizar`) de los permisos vigentes, después vacía
+  los campos del club.
+- `unir_clientas`: la que queda toma el `club_desde` y el `publicidad_desde` más antiguos, y el código si no tenía. Los
+  eventos de la ficha unida se quedan con ella; `clientas_fusiones` lleva de una a la otra.
+- Legado: las fichas con `whatsapp_consentimiento_en` pasan a socias SIN publicidad (evento `club`/`legado`), solo si
+  tienen celular. Producción tenía 0 el 2026-09-30.
+
+**Web**
+- **Cobrar:** la fila de la clienta muestra «Socia C-0142» o la tarjeta «No es del club todavía — Invitar / Ahora no»
+  (CL-8).
+  - «Invitar» pide celular y cumpleaños, lee el texto `club` y llama a `unirse_al_club`.
+  - Al terminar muestra el QR personalizado: `wa.me/51<número de la tienda>?text=<mensaje_personal con su código>`.
+  - El ticket impreso lleva el QR personalizado (socia) o el genérico.
+- **`/clientas`:**
+  - la ficha muestra socia, publicidad y código, con «Unirse al club» (medio `ficha`), «Llegó su mensaje» y «Pidió BAJA»;
+  - «Registrar desde WhatsApp» y «Registrar una BAJA» en el panel;
+  - el cartel imprimible en `/clientas/cartel`, con el QR genérico de cada tienda;
+  - `NuevaClientaModal` pierde el interruptor «acepta WhatsApp».
+- **Configuración ▸ Tiendas y caja:** el número de WhatsApp de cada tienda.
+- **Ajustes al contrato (2026-09-30, a pedido del agente de Cobrar, aprobados por el arquitecto):**
+  - `fn_club_textos_vigentes()` no exige el módulo «Clientas»: la usa también el ticket impreso de una cajera sin él, para
+    el QR genérico. Los textos no son datos personales.
+  - `unirse_al_club` exige documento y nombre, además del celular (CL-1), con el hint `socia_sin_documento`.
+  - `unirse_al_club` suma `p_texto_version`: rechaza con `club_texto_cambio` si el texto `club` cambió desde que la
+    asesora lo leyó. Así el permiso guarda exactamente lo que se le leyó.
+- **Cambio de celular (decisión del arquitecto, 2026-09-30, a pedido de Felipe; Felipe puede revertirla):** el celular de una socia se cambia siempre, pero si tenía publicidad, `editar_clienta` y `registrar_clienta` se la quitan en la misma transacción (evento `revoca`, medio nuevo `cambio_celular`, con `registrado_por`), porque la prueba del permiso es el chat desde el número viejo; sigue socia y la recupera cuando escriba desde el número nuevo («Llegó su mensaje»). «Llegó su mensaje» y el cartel sí cambian el celular conservándola (ella escribió desde el nuevo), y el disparador `clientas_celular_con_publicidad` rechaza (`celular_con_publicidad`) cualquier otro cambio de celular que la conserve.
+
+
+## Actualización 2026-09-30 (c): camino B, ella confirma su publicidad en una página de CAYLA
+
+**Decisión de Felipe (2026-09-30), «Directo al camino B».** Viene del spike del club (rama
+`claude/spyke-club-clientas-visual-631f7a`). El QR personal ya no abre el WhatsApp de la tienda: abre una **página pública
+de CAYLA** con el texto y una **casilla sin marcar**. Cuando ella la marca y confirma, el permiso de publicidad queda
+registrado solo, y la caja y la ficha se actualizan sin que nadie marque nada.
+- «Llegó su mensaje» se queda como **respaldo** (camino A).
+- El QR genérico (cartel y ticket sin clienta) sigue abriendo el WhatsApp de la tienda: registrar a alguien nuevo desde
+  una página pública pediría su documento en internet, y eso no se decidió.
+
+**Por qué cumple la Ley 32323.** El consentimiento es de ella, en su propio celular, con una casilla que ella marca. Es la
+«iniciativa propia» más clara posible, y deja prueba en la base: la versión del texto, la hora y el enlace usado. El
+reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento válido.
+
+**Contrato (lo decide el arquitecto; Felipe puede revertir cualquier punto):**
+- **Tabla `retail.club_invitaciones`:** `id`, `clienta_id` (FK), `token` (único), `ubicacion_id`, `creada_por` (el
+  responsable), `creada_en`, `vence_en`, `usada_en`, `texto_version` (la que ella aceptó).
+  - RLS sin políticas: solo la leen y la escriben funciones.
+- **El token:** 16 caracteres aleatorios seguros para una URL (`gen_random_bytes`, unos 96 bits).
+  - **Vence a los 7 días:** el mismo QR le sirve desde casa si hoy no lo escanea.
+  - **Se usa una sola vez.** Adivinarlo no es viable, y aunque se adivinara solo daría un permiso de publicidad, nunca
+    datos: la página muestra su nombre de pila y el celular a medias.
+- **Medio nuevo `qr_web` en `club_permisos`:** es un otorga de publicidad **sin `registrado_por`**, porque lo registró
+  ella y no una persona de la tienda; lleva la versión del texto de la página. `registrado_por` nulo solo se admite en
+  `qr_web` y en `legado`.
+- **Texto nuevo `pagina_publicidad`**, v1, sembrado; `{celular}` se reemplaza por su celular a medias:
+  > Quiero recibir por WhatsApp de CAYLA novedades, rebajas y mi saludo de cumpleaños al {celular}. Sé que puedo darme de
+  > baja cuando quiera escribiendo BAJA.
+- **Funciones:**
+  - `crear_invitacion_club(p_clienta_id uuid, p_ubicacion_id uuid)` → `table(token text, vence_en timestamptz)`.
+    - Exige el módulo «Clientas» y el responsable.
+    - Exige que sea socia y que no tenga publicidad (hint `ya_tiene_publicidad`).
+    - Si ya tiene una invitación vigente sin usar, la devuelve; si no, crea una nueva.
+  - `fn_invitacion_club(p_token text)` → `table(estado text, nombre_corto text, celular_enmascarado text, codigo_club text,
+    texto text, texto_version integer, tienda text, razon_social text, ruc text)`.
+    - **Es para `anon`**: la página es pública.
+    - `estado`: `vigente`, `usada`, `vencida` o `no_existe`.
+    - Solo devuelve datos con `vigente`.
+  - `confirmar_invitacion_club(p_token text, p_texto_version integer)` → `text` (el estado final). **Es para `anon`.**
+    - Solo con una invitación vigente, sin usar, y con la clienta todavía socia y sin anonimizar.
+    - Rechaza con `club_texto_cambio` si el texto cambió.
+    - Escribe el otorga con medio `qr_web` y marca `publicidad_desde` y `usada_en`, todo en una transacción con
+      `for update` de la invitación.
+    - Una segunda llamada devuelve `usada` sin escribir nada.
+- **Web:**
+  - Ruta pública `/club/[token]`, fuera de `(app)` y permitida en `proxy.ts`. Mobile first, con la marca CAYLA y el diseño
+    del spike («Demo: página completa»).
+  - En Cobrar y en la ficha, «Mostrar su QR» crea la invitación, dibuja el QR de `${origen}/club/${token}` y dice
+    «Esperando su confirmación» sin animación en bucle (regla de movimiento, ADR-0136).
+  - La caja consulta `resumen_clienta_caja` cada 3 s mientras la hoja está abierta; cuando llega la publicidad, cambia a
+    «Listo».
+  - Debajo, «Llegó su mensaje (respaldo)».
+- **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
+  invitación en la base, y ese QR también le sirve desde casa.
+- **Anonimizar y unir (decisión del arquitecto, 2026-09-30):** archivar una ficha (con o sin anonimizar) vence en ese
+  momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
+  ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
+  otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.
+
+## Contrato de la tanda 1c (2026-09-30): el cumpleaños con un canje por año
+
+Se construye sobre la D-5, CL-10 y CL-11. Migración en TRES partes (van después de la 1b; cada una sola en el SQL Editor,
+en orden): `20260930230000_club_paso1c_parte1_venta_items.sql` (solo `venta_items`), `…230100_…parte2_configuracion.sql`
+(solo `configuracion_empresa`) y `…230200_…parte3_cumpleanos.sql` (`club_canjes` y las funciones). Toda venta lee la
+configuración y después escribe `venta_items`: tomadas en una misma transacción, una venta a medio camino y la migración
+se esperarían en cruz (deadlock). La cabecera de la PARTE 3 tiene el porqué, el orden y la verificación con los md5.
+
+**Decisión de Felipe (2026-09-30): el 10 % de cumpleaños se aplica completo aunque deje una prenda bajo su costo.** Es un
+regalo del club. El candado de «no vender bajo costo» sigue valiendo para el resto de los descuentos: se mide sin la
+parte del club.
+
+**Cómo viaja:**
+- `venta_items.descuento_unitario` sigue siendo el descuento TOTAL por unidad, así que el comprobante, los pagos y los
+  reportes no cambian.
+- La columna nueva `venta_items.descuento_club_unitario` (default 0) dice cuánto de ese total es del cumpleaños.
+  Candado: `0 <= descuento_club_unitario <= descuento_unitario`.
+- Cobrar calcula con la misma regla pura y manda en cada ítem `descuento_club_unitario`, con `p_canjear_cumpleanos =
+  true`. **La base lo recalcula y rechaza si no coincide** (hint `cumple_descuento_distinto`, tolerancia de 1 céntimo),
+  así que la pantalla nunca decide el monto.
+
+**Regla del cálculo** (CL-11, en cascada, a toda la compra, prenda sin registrar incluida):
+`descuento_club_unitario = round((precio_unitario − descuento_sin_club) × pct / 100, 2)`
+- `descuento_sin_club = descuento_unitario − descuento_club_unitario`.
+- Una prenda al 20 % queda en 28 %.
+- El redondeo es el de Postgres (medio céntimo hacia arriba); la regla de la web lo replica, con prueba.
+
+**`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
+de la nueva, partiendo de la definición viva de producción (la de la 1a).
+- **Con `p_canjear_cumpleanos = true` exige**, con la ficha ya resuelta tomada `for no key update` en la MISMA lectura de
+  la 1a (la que sigue las uniones; al construir: dos canjes a la misma socia hacen fila ahí, y una venta sin canje a esa
+  clienta no espera, porque su `for key share` no choca; tomarla primero `for key share` y subirla después trabaría a dos
+  canjes entre sí):
+  - que sea socia (`club_desde`), sin anonimizar ni archivar;
+  - que el mes actual en `America/Lima` sea su `cumple_mes`;
+  - que no haya un canje vivo este año (el único parcial lo hace imposible igual).
+  - Los hints: `cumple_no_socia`, `cumple_fuera_de_mes`, `cumple_ya_canjeado` y `cumple_sin_clienta` (una anonimizada ya
+    la frena la 1a con `clienta_anonimizada`). Al construir se sumó `cumple_sin_monto`: un canje que no descuenta nada
+    (todo redondea a 0.00) gastaría el cumpleaños del año por nada.
+  - Un reintento de la MISMA venta (mismo `p_token`) que esperó en la ficha mientras la primera se guardaba devuelve esa
+    venta, no `cumple_ya_canjeado`.
+- **Sin canjear**, todo `descuento_club_unitario` tiene que ser 0 (hint `cumple_sin_canje`).
+- **El motivo de la línea describe el descuento SIN el club** (candado `venta_items_motivo_coherente_con_descuento`, que
+  sigue `not valid`): una prenda cuyo único descuento es el cumpleaños no lleva motivo; con campaña o descuento a mano,
+  el suyo.
+- **Los candados de la venta miden el descuento SIN la parte del club:**
+  - el costo;
+  - el tope de la asesora (D-67);
+  - el 35 % del líder;
+  - el argumento sobre el 15 %;
+  - el código de descuento.
+  - (Al construir: la campaña también se verifica sobre el descuento sin club. El tope D-67 no necesita nada: mide
+    `p_descuento_pct`, que la caja declara aparte y no sale de las líneas.)
+- **Al canjear**, escribe en `retail.club_canjes` (`id`, `clienta_id`, `tipo` = `'cumpleanos'`, `anio`, `venta_id`,
+  `pct`, `monto`, `registrado_por`, `created_at`, `anulado_en`, `anulado_por`).
+  - Candado: único parcial `(clienta_id, tipo, anio) where anulado_en is null`.
+  - RLS sin políticas.
+  - Anota la actividad sin datos de la clienta.
+- `configuracion_empresa.club_cumple_pct numeric not null default 10`, con candado entre 1 y 50: Felipe lo ajusta sin
+  migrar.
+- **Anular la venta** libera el canje (`anulado_en`, `anulado_por`, los de la venta): la venta nunca existió. Al
+  construir se hizo con un disparador sobre `ventas` (`trg_club_canje_libera_al_anular`, como el de la prenda por
+  regularizar) y no dentro de `anular_venta`, que no cambia: así libera TODA anulación, también la del SQL a mano
+  (`pegar-en-produccion-anular-venta-*.sql`). Una devolución NO lo libera (decisión de Felipe, 2026-09-29).
+- **Sin conexión, la web apaga el botón**, y una venta con el canje nunca entra a la cola sin conexión (`llevaCanje`,
+  `lib/ventas-offline.ts`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (confirmar otra vez
+  cuando vuelva, con el mismo `p_token`, o quitar el cumpleaños y cobrar el total). Si igual llegara una a la base con el
+  canje ya usado, se rechaza entera y la cola la muestra como rechazo (ADR-0036).
+- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric`, `cumple_canjeado_este_anio boolean` y
+  (al conectar la web) `cumple_canjeado_el date`, el día de Lima del canje vivo: la caja dice «Cumpleaños canjeado el 12 sep»,
+  como el spike. Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
+
+**Web** (se sigue el spike aprobado, `docs/maquetas/club-clientas-spike-2026-09/` en el commit `94f2dece`: «hay que
+guiarse con el spike visual», Felipe):
+- En la caja de la clienta de Cobrar, la fila «Cumple este mes · 10 % disponible» con «Canjear 10 %» (y, con lo del club
+  plegado, la misma acción como píldora): solo se puede tocar si `cumple_disponible` y hay conexión; sin conexión el botón
+  dice «Sin conexión» y se apaga. Si ya lo usó, el candado «Cumpleaños canjeado el 12 sep · Una vez al año». El % sale de
+  `cumple_pct`, nunca escrito a mano.
+- **Al tocarlo, el 10 % es UNA línea en el pie del ticket** («Cumpleaños del club · 10 % de la compra −S/ x», punto 9 del
+  README del spike) y el total, el cobro, el vuelto y los pagos usan el total nuevo. **Las prendas no muestran nada**: el
+  reparto por línea (`descuento_club_unitario`) queda en la base y en el comprobante (el papel imprime el descuento total
+  de cada prenda y una línea «Incluye 10 % de cumpleaños del club»). Esto corrige lo que decía este contrato antes de
+  construir («cada prenda muestra su −10 %»).
+- Quitar o cambiar a la clienta del ticket, perder la conexión o que su resumen deje de decir disponible lo apaga, y NO
+  vuelve solo (spike: sin conexión se apaga y queda así; si volviera, el total cambiaría bajo las manos de quien cobra).
+  Cuando se apaga solo, la caja lo avisa.
+- Ante `cumple_ya_canjeado`, `cumple_fuera_de_mes`, `cumple_no_socia` o `cumple_descuento_distinto`, la caja apaga el
+  canje, vuelve a leer el resumen y lo dice; los otros tres (`cumple_sin_clienta`, `cumple_sin_canje`, `cumple_sin_monto`)
+  lo apagan sin releer. **La venta nunca se vuelve a mandar sola sin el descuento**: la clienta tiene que saber que paga
+  más (`rechazoDelCanje`).
+- Después de cobrar, «Venta registrada» dice «Cumpleaños canjeado (−S/ x). No puede usarlo otra vez hasta el año que
+  viene; devolver la compra tampoco lo devuelve.»
+- La regla pura vive en `lib/club-cumple-canje-reglas.ts`, con su prueba (el nombre `club-cumple-reglas.ts` ya lo usa la
+  tanda 1b para ESCRIBIR el cumpleaños en la hoja): `descuentoClubLinea`, `descuentosParaRegistrar`, `ticketConCumple`,
+  `cumpleEnCaja`, `pctDelCanje` y los textos.
+
+## Actualización 2026-09-30 (d): tanda 1e (el comprobante con carné y pasaporte)
+
+Migración `supabase/migrations/20260930250000_club_paso1e_comprobante_carne_pasaporte.sql` (una sola parte, sin
+políticas ni `drop trigger`). Es la PARTE 4 de la tabla de arriba y la DECISIÓN 3, con el OK de Felipe del 2026-09-29.
+Se probó en un Postgres desechable propio con todas las migraciones y el seed. Lo que se decidió al construirla:
+
+- **La base.** El candado de tipos de `comprobantes` suma `carne_extranjeria` y `pasaporte`, y un candado nuevo
+  (`comprobantes_carne_pasaporte_formato`) les exige número de 6 a 12 letras o dígitos en mayúsculas, la misma regla
+  que la ficha. Una factura sigue exigiendo RUC (`comprobantes_factura_requiere_ruc`, sin tocar).
+- **Una sola función cambia: `emitir_comprobante`.** Con un reemplazo anclado sobre su cuerpo vivo y candado de
+  versión por md5 normalizado (antes `392971c9…`, después `a3f15c5b…`), limpia y valida el carné o el pasaporte con
+  `fn_documento_clienta` (los mismos mensajes que la ficha, hint `documento_invalido`) antes de reservar el correlativo.
+  - Por qué ahí: es el único lugar por donde nace un comprobante con documento. La llaman `registrar_venta`,
+    `convertir_proforma_a_comprobante` y los apartados.
+  - Se revisaron en su definición viva todas las que usan `cliente_tipo_doc`: `registrar_venta` y la conversión de
+    proformas lo pasan tal cual; `emitir_nota` (notas de crédito y débito), `abonar_separacion` y `entregar_separacion`
+    lo copian del comprobante anterior. Ninguna rechaza ni traduce estos tipos.
+  - `fn_ligar_ventas_por_documento` (1a) no cambia: ya compara por tipo, así que un carné liga en cuanto el comprobante
+    lo guarda.
+- **Apartados, fuera.** `separar_prendas` arma `dni` o `sin_documento` desde su parámetro `p_clienta_dni` (solo dígitos),
+  y `separaciones.clienta_dni` es solo de DNI. Llevar el carné a los apartados es otra tabla, dos firmas y el formulario
+  de Apartar: queda en el backlog. Mientras tanto, ese apartado sale «sin documento» con su nombre, como hoy.
+- **Una sola parte, con los `alter` al final.** La regla de partes (ADR-0195) es por las políticas, y aquí no hay. La
+  transacción toma en exclusiva solo `comprobantes`, al final y con `lock_timeout` de 3 s: sin ciclo con una venta.
+- **El orden de despliegue es al revés que en la 1a: primero la migración, después la web.** Con la web nueva y el
+  candado viejo, la boleta a un carné se rechaza y con ella la venta ENTERA. Con la migración pegada y la web vieja no
+  cambia nada.
+- **La web.** Una sola tabla, `lib/documento-comprobante-reglas.ts`, con el catálogo 06 (1 DNI, 4 carné, 6 RUC,
+  7 pasaporte) y cómo se lee (DNI, CE, RUC, Pasaporte).
+  - La leen el envío a Lucode (`lib/lucode.ts`), el QR del papel (`recibo-reglas.ts`), la térmica, el A4, el modal de
+    venta registrada, Cambios/Devoluciones (`ventas-v2.ts`) y el registro de ventas de Impuestos. Antes cada uno decía
+    `ruc ? "6" : "1"` por su cuenta, y un carné habría salido como DNI en el envío y en el QR, y como «0» en el registro.
+  - `documentoParaComprobante` deja pasar los tres tipos, con su tipo; una ficha vieja fuera de formato sale «sin
+    documento» en vez de frenar la venta.
+  - En Cobrar, el paso «Comprobante» de una boleta o nota de venta tiene el combo «Tipo de documento» (DNI por defecto,
+    `CampoTipoDocumento`). Carné y pasaporte llevan el nombre a mano, porque no tienen padrón. Vive en
+    `components/punto-de-venta/DocumentoDelComprobante.tsx`, para tocar `PuntoDeVenta*.tsx` lo mínimo.
+  - Un carné o un pasaporte mal escrito no deja cobrar (`motivoBloqueoCobro`), con el mensaje de la ficha. Tampoco una
+    factura con letras en el número: pasa si se cambia de boleta a factura con un carné ya escrito (visto en el navegador
+    a 375 px), y saldría a SUNAT como un RUC que no existe.
+- **Lucode, sin confirmar.** «4» y «7» son los códigos del catálogo 06 de SUNAT, el mismo del que ya salen «1» y «6».
+  Pero ninguna boleta a un carné o a un pasaporte se transmitió todavía, ni al sandbox. Como decidió Felipe (punto 1
+  de arriba), la tanda no se cierra hasta que una boleta de prueba REAL a un carné sea aceptada con tipo «4». Si SUNAT
+  la rechazara, la boleta queda `rechazado` (la venta no se pierde), y se vuelve atrás en la web
+  (`documentoParaComprobante` otra vez solo DNI); la migración puede quedar.
+
+## Actualización 2026-09-30 (e): tanda 1d
+
+Se construye sobre la D-6, CL-7 y CL-14. Va después de la 1c.
+
+**Decisión de Felipe (2026-09-30): sin «es para regalo».**
+- Felipe decidió el 2026-09-30 seguir el spike aprobado del club (`docs/maquetas/club-clientas-spike-2026-09/`, README,
+  punto 8), que no lleva la marca «¿Es para regalo?» en la línea del ticket.
+- **La D-7 y la D-101 quedan superadas en ese punto.** Un regalo cuenta para la talla deducida. Lo corrige la talla que ella
+  dice en su ficha (preferencias, tanda 1f), que manda sobre la deducida.
+- Esta tanda no toca `venta_items`, `fn_clienta_compras` ni `registrar_venta`. El «LÍMITE CONOCIDO (v1)» de
+  `lib/clienta-actividad-reglas.ts` lo dice igual.
+- Lo que se había construido para la marca se sacó entero antes de pegarlo en ningún lado:
+  - las partes 3 y 4 de la migración;
+  - la lectura en la ficha;
+  - el salto en `deducirTallas`.
+
+**Migración en dos partes** (cada una se pega sola, en orden; sin políticas ni `drop trigger`):
+
+| Parte | Archivo | Qué |
+|---|---|---|
+| 1 | `20260930240000_club_paso1d_parte1_pedidos.sql` | `alter` de `pedidos_no_atendidos`: `motivo` y `razon`, con sus candados |
+| 2 | `20260930240100_club_paso1d_parte2_se_probo.sql` | `registrar_pedido_no_atendido` con `p_motivo` y `p_razon`; la cabecera completa |
+
+- **Por qué partes:** el `alter` va solo, como en la 1c, para que la transacción tenga una sola tabla en uso y no pueda
+  trabarse en cruz con nadie (40P01). La función va después de sus columnas. La parte 2 aborta si falta la 1.
+- **Parte 1:** `motivo text not null default 'no_habia_talla'`, así que todo lo anotado antes queda «buscó y no había».
+  - `razon` solo existe con `se_probo_no_llevo`, y es una de `no_le_quedo`, `precio`, `color` o `lo_piensa`.
+  - Candados: `pedidos_no_atendidos_motivo_valido` y `pedidos_no_atendidos_razon_solo_si_se_probo`.
+- **Parte 2:** `p_motivo` (default `no_habia_talla`) y `p_razon` van **al final**, así que la llamada vieja de 5 parámetros
+  sigue funcionando.
+  - Cambia la firma: se hace `drop` de la vieja y `create` de la nueva sobre su definición viva.
+  - Sigue firmando con `fn_actor_persona_id(true)`, sin exigir módulo (basta poder operar la sede), y con los mismos
+    permisos.
+  - Rechazos nuevos (P0001 con hint): `pedido_motivo_invalido`, `pedido_razon_sin_se_probo` y `pedido_razon_invalida`.
+
+**md5 normalizados, antes → después** (el «antes» coincide con lo medido en producción el 2026-09-30):
+
+| Función | antes | después |
+|---|---|---|
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)` | `750b65e98c09826228ba5f72b7800391` | deja de existir |
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)` | no existía | `b48f006fb8336ea27fb9e2929343d10d` |
+
+**Cobrar: «¿Se la probó y no la llevó?»**, como en el spike (`quitadaHTML` y el `quitar` de su motor):
+- **Cuándo:** al quitar una prenda del ticket aparece, justo bajo la clienta, la pregunta: «¿Se la probó y no la llevó?
+  Quitaste «Blusa Carlita» (M). Anótalo para Compras: es opcional.» Sale también si el ticket quedó vacío.
+- **Botones:** «No le quedó», «Precio», «Color» y «Lo piensa», y «No anotar».
+  - Las razones se apagan sin responsable, y el combo sale ahí mismo, como en «Anotar que no había».
+  - Tocar una anota `se_probo_no_llevo` con su razón, con o sin clienta, firmada por el responsable, y la pregunta se va.
+- **Aviso:** «Anotado: se la probó y no la llevó · Blusa Carlita · talla M». El spike decía que se ve en «Clientas ▸
+  Resumen», una pantalla que no existe; el aviso dice «Pedidos no atendidos».
+- **Se va sin anotar:** con «No anotar», al pasar a cobrar, al dejar el ticket en espera o al retomar otro. Quitar otra
+  prenda la reemplaza.
+- **Dónde está el código:**
+  - la pregunta vive en `components/punto-de-venta/SeProboNoLlevo.tsx`;
+  - `PuntoDeVenta.tsx` solo guarda la prenda quitada y la pone en el `arriba` del ticket;
+  - la lógica es pura, en `lib/se-probo-reglas.ts` (`prendaQuitadaDeLinea`, `textoPrendaQuitada`, `datosSeProbo`,
+    `avisoAnotado`), con su prueba.
+- **Qué se guarda:** la prenda se anota como «nombre · color», con su talla. Una «Prenda sin registrar» va con su
+  descripción, sin talla.
+
+**Lo que se decidió al construir**
+- **«Llegó tu talla» (paso 3) avisa SOLO por `motivo = 'no_habia_talla'`.** Queda escrito en la cabecera de la parte 2 y
+  en el comentario de la columna.
+  - Por la misma razón, Inicio y Análisis siguen contando solo «buscó y no había» (`esPedidoDeTalla`).
+  - La lista de Pedidos no atendidos muestra el motivo y la razón de cada fila.
+
+**Pruebas:**
+- `pnpm pruebas:club-se-probo`, en el CI: comprueba también que la 1d no toca la venta ni la ficha.
+- La lógica de la pregunta, en `lib/se-probo-reglas.test.ts`.
+
+## Actualización 2026-09-30 (f): tanda 1f, la lista y la ficha de /clientas como el spike
+
+**El encargo.** Que Clientas ▸ Fichas y la ficha queden como el spike del club (rama `claude/spyke-club-clientas-visual-631f7a`,
+`docs/maquetas/club-clientas-spike-2026-09/fuente/src/50-clientas.js`), sin lo de los pasos 3 a 5 (pestañas Avisos, Resumen y
+Beneficios; la escalera del aniversario). Antes, la lista eran las últimas 50 fichas y sus filtros contaban solo esas 50, y ni
+la lista ni la ficha sabían «su sede» (CL-6), la última compra ni cuántas son frecuentes con compra neta (CL-25).
+
+**Migración `20260930210000_club_paso1f_lista_y_ficha.sql`** (una sola parte, sin políticas ni `drop trigger`, `lock_timeout
+3s`, idempotente, candado de versión por md5 de lo que crea; va DESPUÉS de la 1b y no depende de la 1c, la 1d ni la 1e):
+- **Una regla, un lugar.** `fn_venta_devuelta_entera` (cada prenda volvió entera, sumando sus devoluciones aprobadas; un
+  cambio no cuenta) → `fn_club_compras_netas` (completadas, sin las de prueba ni las devueltas enteras) →
+  `fn_club_resumen_compras` (su sede, compras en 12 y 6 meses, frecuente con 3 o más en 6 meses, última compra). Internas: sin
+  EXECUTE para la API. El umbral es el de `lib/clienta-actividad-reglas.ts`, y `lib/clientas-lista-reglas.test.ts` lee la
+  migración y falla si se separan.
+- **Su sede (CL-6):** la de más compras netas en 12 meses; **si empatan, la de su compra más reciente** (y el nombre, para que
+  el empate total sea estable). Sin compras en 12 meses, no tiene sede («—»).
+- **Lecturas** (prefijo `fn_`, no abren el loader; todas exigen el módulo «Clientas»): `fn_clientas_lista(p_termino, p_filtro,
+  p_limite, p_desde)` (8 filtros: todas, socias, frecuentes, con y sin publicidad, sin celular, cumplen este mes y archivadas;
+  el término busca como `buscar_clienta`; 50 por página; `total` y `baja_en`), `fn_cifras_clientas()` (las cifras y la cuenta
+  de cada píldora, sobre toda la base), `fn_clienta_su_sede(p_clienta_id)`, `fn_clienta_permisos(p_clienta_id)` y
+  `fn_club_etiquetas()`.
+- **Preferencias (CL-5):** `retail.club_etiquetas (grupo, valor, orden, activa)`, sembrada con los valores **de trabajo** del
+  spike (`20-datos.js`, `ETQ`: Trabajo, Evento, Día a día · Clásico, Tendencia, Relajado · Fucsia, Amarillo, Negro, Lana,
+  Poliéster). **Felipe los puede cambiar** (pendiente 2 de la sección G del acta): un valor no se renombra ni se borra (el
+  disparador `club_etiquetas_fijas` lo impide, porque hay fichas que lo citan): se apaga (`activa = false`) y se agrega otro;
+  quien ya lo tenía lo conserva. `clientas.preferencias jsonb` (`{}` por defecto) y `guardar_preferencias_clienta(p_id,
+  p_preferencias, p_version_esperada)`: módulo, responsable del combo, candado optimista, solo valores del catálogo activo
+  (`preferencia_invalida`).
+
+**DECIDÍ (el arquitecto; Felipe puede revertir cualquiera):**
+- **Preferencias solo de una socia**, como el spike (lo muestra solo a ella), con un candado en el esquema
+  (`clientas_preferencias_solo_socia`). Sirven a los avisos del club; a una clienta que solo se identificó no se le pidió más
+  que ligar sus compras (Ley 29733, finalidad).
+- **Anonimizar y unir las vacían con un disparador** (`clientas_preferencias_sin_club`: la ficha deja de ser socia → sin
+  preferencias), no reescribiendo `archivar_clienta` ni `unir_clientas`: la 1b todavía las cambia (su md5 «después» se movió
+  dos veces el 2026-09-30) y un reemplazo anclado habría atado esta tanda a un md5 que se mueve. Vale para cualquier camino
+  futuro que quite el club. Límite: al unir, las preferencias de la ficha que se va no pasan a la que queda (se vuelven a
+  marcar).
+- **«Frecuente» con compra neta en la lista y en la ficha.** La ficha toma «Frecuente» de `fn_clienta_su_sede` (la misma regla
+  que la lista); si esa lectura falla, vuelve a `estadoFrecuente` sobre sus compras (principio 9). La caja sigue con
+  `estadoFrecuente` sobre `fn_clienta_compras`, que todavía cuenta las devueltas enteras (ver pendiente).
+- **«Frecuentes» no exige ser socia** (el spike sí: `esFrecuente = esSocia && …`): es un hecho de sus compras (D-103). La
+  insignia «Socia frecuente» sí es solo de socias; el filtro encuentra también a la identificada que compra seguido, que es a
+  quien conviene invitar.
+- **«Archivadas» es una píldora más, al final**, en vez del interruptor «Incluir archivadas» o un lugar en el menú «Más»: es una
+  vista (qué se mira), no una acción; vive en la URL como los demás filtros, lleva su cuenta y no mezcla archivadas con activas
+  en las otras cuentas. El menú es para acciones.
+- **«Pidió BAJA»** (`baja_en`): la socia cuyo último paso de la publicidad fue su BAJA se pinta así (apagada), como el spike, y
+  no como «Sin publicidad». Un cambio de celular que le quitó la publicidad no cuenta como BAJA.
+- **Buscador, filtro y página en la URL** (`?q=&filtro=&pagina=`): lo tipeado va por `useBusquedaEnUrl` (sin loader); un filtro
+  o una página por clic, con el loader.
+- **La tabla decide su forma por el ancho de la tarjeta (`@container`)**: 6 columnas desde 800 px de tarjeta, 4 de 560 a 800 y
+  apilada por debajo. Con el lateral abierto, una ventana de 800 px deja ~450 px a la tabla: ahí cortaba el chip y el celular.
+- **Cabecera en una fila también a 375 px**: Exportar, «Más» (con «Llegó un mensaje de WhatsApp» e «Imprimir el cartel del
+  club») y «+ Nueva clienta». «Más» es `MenuAcciones` con la opción nueva `texto` (botón secundario con palabra, no «⋯»).
+
+**Del spike se tomó** (`50-clientas.js` salvo que diga otro archivo): las dos acciones de la cabecera (l. 78), las cuatro
+cifras con sus detalles (l. 104), las píldoras con su cuenta (l. 105), las seis columnas y sus contenidos (l. 101 y 108-114), el
+pie «N de N clientas · todas las cuentas con el módulo ven a todas» (l. 114), la nota de su sede (l. 115), las insignias de estado
+y publicidad (`45-club-caja.js` l. 7-10), el dato «Su sede · N de M» de la ficha (l. 134), las preferencias con sus tres listas
+y su nota (l. 129 y 137; valores de `20-datos.js` l. 128-129) y la historia de los permisos con sus medios en palabras (l. 121,
+125-127 y 143).
+
+**No se tomó, a propósito:** las pestañas y todo lo de los pasos 3 a 5 (l. 81, 144); la tarjeta de filtros separada de la tabla
+(l. 113: CLAUDE.md pide filtros y tabla en UNA tarjeta); los códigos de sede TRU/AQP/LIM (V2 no los tiene: «Trujillo»,
+`nombreCortoSede`); el `esSocia` dentro de `esFrecuente` (`20-datos.js` l. 137, ver arriba); las celdas apiladas una por línea
+del spike en celular (aquí, nombre e insignias arriba y una línea con celular, sede y última compra); el corte con «…» de la
+última compra (aquí se parte en dos líneas) y los chips montados del spike en anchos medianos. El buscador ocupa todo el ancho
+de la tarjeta (el del spike tiene `max-w-sm`), como pidió el encargo.
+
+**La ficha se tocó lo mínimo** (`ClientaFichaModal.tsx`): tres imports; «Frecuente» con compra neta; «Registrada» pasa a «Su
+sede» (`Dato` suma un `detalle`); y las piezas aparte `PreferenciasClienta` y `HistoriaPermisos`. Ya junta con la 1b final (el
+camino B), queda en el orden del spike (`modalFicha`, l. 133-146): datos → insignias → talla → preferencias → permisos (de la
+1b) → historia → compras.
+
+**Pendiente (fuera de esta tanda):**
+- `fn_clienta_compras` todavía cuenta las ventas devueltas enteras (D-8, CL-25). Quien la reescriba (la 1d le suma
+  `es_regalo`) filtra con `retail.fn_venta_devuelta_entera(v.id)` y la caja deja de diferir de la ficha.
+- El texto `club` v2 que se le lee no nombra las preferencias. Si Felipe quiere que su «sí» las cubra, es una versión 3 del texto.
+- (Resuelto al juntarla con la 1b final.) «Ella misma» en la historia es el `qr_web` del camino B: la prueba de la base confirma
+  una invitación como `anon` y la historia dice «Pidió la publicidad por WhatsApp · desde la página de su QR · ella misma · texto
+  v1», con la tienda de la invitación.
+
+**Cómo se pega:** después de la 1b, `20260930210000_club_paso1f_lista_y_ficha.sql` solo en el SQL Editor (una parte). Fusionar
+la web después. **Cómo lo verifica Felipe:** abre Clientas: cuatro cifras con Frecuentes, el buscador que busca al escribir, las
+píldoras con Archivadas y la tabla con Su sede y Última compra; a 800 px con el lateral abierto nada se corta; abre una socia:
+«Su sede · N de M», marca Evento y Lana, «Guardar preferencias», y su historia del permiso en orden. Capturas lado a lado con el
+spike en `docs/capturas/2026-09-30-club-paso1f/`.

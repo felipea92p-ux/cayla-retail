@@ -39,6 +39,12 @@
 //     campos de la de crédito — lleva `nota_debito_codigo_tipo` y
 //     `nota_debito_motivo` (con los de crédito, Lucode respondía `Undefined array
 //     key "nota_debito_codigo_tipo"`). CAYLA no las emite hoy.
+//   - Carné de extranjería («4») y pasaporte («7») en `cliente_tipo_de_documento`
+//     (ADR-0288 D-3, tanda 1e, 2026-09-30): son los códigos del catálogo 06 de
+//     SUNAT, el mismo catálogo del que ya salen «1» (DNI) y «6» (RUC). NO
+//     VERIFICADO contra Lucode todavía: ninguna boleta a un carné o a un
+//     pasaporte se transmitió aún, ni al sandbox. Lo confirma la boleta de
+//     prueba real que pide el ADR antes de cerrar la tanda.
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
 //   - Anulación (paso c): PROBADA contra el sandbox real el 2026-09-09, y la
@@ -54,6 +60,7 @@
 //     lo lee como PENDIENTE, que es la lectura conservadora — nunca da por
 //     anulado lo que no le confirmaron.
 
+import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante, type TipoDocIdentificado } from "./documento-comprobante-reglas";
 import { capturarError } from "./errores";
 
 export type EntornoLucode = "sandbox" | "produccion";
@@ -77,7 +84,7 @@ export type DatosComprobante = {
   serie: string;
   numero: number;
   moneda: "PEN" | "USD";
-  clienteTipoDoc: "dni" | "ruc" | "sin_documento";
+  clienteTipoDoc: TipoDocComprobante;
   clienteNumDoc: string | null;
   clienteNombre: string | null;
   total: number;
@@ -143,10 +150,11 @@ function itemLucode(it: ItemComprobante) {
 }
 
 function payloadDe(c: DatosComprobante): Record<string, unknown> {
-  // Catálogo 06 de SUNAT: "1" = DNI, "6" = RUC. Sin documento reusa "1" con el
-  // número placeholder que el propio Lucode documenta para boletas sin
-  // identificar al cliente — no es una convención inventada acá.
-  const sinDoc = c.clienteTipoDoc === "sin_documento" || !c.clienteNumDoc;
+  // Catálogo 06 de SUNAT (`CODIGO_SUNAT_DOCUMENTO`): "1" DNI, "4" carné de
+  // extranjería, "6" RUC, "7" pasaporte. Sin documento reusa "1" con el número
+  // placeholder que el propio Lucode documenta para boletas sin identificar al
+  // cliente — no es una convención inventada acá.
+  const conDoc = llevaDocumento(c.clienteTipoDoc, c.clienteNumDoc);
   const base = {
     documento: c.tipo,
     serie: c.serie,
@@ -154,8 +162,8 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
     fecha_de_emision: new Date().toISOString().slice(0, 10),
     moneda: c.moneda,
     tipo_operacion: "0101",
-    cliente_tipo_de_documento: sinDoc ? "1" : c.clienteTipoDoc === "ruc" ? "6" : "1",
-    cliente_numero_de_documento: sinDoc ? "99999999" : c.clienteNumDoc!,
+    cliente_tipo_de_documento: conDoc ? CODIGO_SUNAT_DOCUMENTO[c.clienteTipoDoc as TipoDocIdentificado] : "1",
+    cliente_numero_de_documento: conDoc ? c.clienteNumDoc! : "99999999",
     cliente_denominacion: c.clienteNombre?.trim() || "CLIENTE VARIOS",
     cliente_direccion: "-",
     items: c.items.map(itemLucode),

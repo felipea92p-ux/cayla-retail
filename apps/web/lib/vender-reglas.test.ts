@@ -55,6 +55,14 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
     expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false })).toBe("Abre la caja para vender.");
   });
 
+  it("un carné o un pasaporte mal escrito frena el cobro, pero solo al cobrar y después del pago (ADR-0288 D-3)", () => {
+    const problema = "El pasaporte tiene de 6 a 12 letras o números, sin guiones.";
+    expect(motivoBloqueoCobro({ ...listo, problemaDocumento: problema })).toBe(problema);
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", problemaDocumento: problema })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], problemaDocumento: problema })).toBe("Elige cómo pagó la clienta.");
+    expect(motivoBloqueoCobro({ ...listo, problemaDocumento: null })).toBeNull();
+  });
+
   it("con el ticket vacío pide una prenda", () => {
     expect(motivoBloqueoCobro({ ...listo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
   });

@@ -2330,14 +2330,15 @@ select pg_temp.blusa('ZZ-FL-T4J-REVERTIDA') as vc \\gset
 select pr.id as oa from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'va' \\gset
 select pr.id as ob from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vb' \\gset
 select pr.id as oc from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vc' \\gset
--- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción).
-${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0) as _a1 \\gset
+-- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción). Esta prueba habla de la
+-- frescura, no del costo: se cierra con costo 0 y el líder confirma el costo atípico (último parámetro; 20260930121000).
+${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0, true) as _a1 \\gset
 select retail.revertir_produccion(:'oa') as _a2 \\gset
 select retail.anular_produccion(:'oa', 'se cargó al modelo equivocado') as _a3 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0) as _b1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0, true) as _b1 \\gset
 select retail.revertir_produccion(:'ob') as _b2 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0) as _b3 \\gset
-select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0) as _c1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0, true) as _b3 \\gset
+select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0, true) as _c1 \\gset
 select retail.revertir_produccion(:'oc') as _c2 \\gset
 ${COMO_POSTGRES}select pg_temp.lectura() as j \\gset
 select (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'verano') as fin25 \\gset
@@ -2580,6 +2581,12 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
 //   FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura
 const FIXTURE = join(RAIZ, "apps", "web", "lib", "__fixtures__", "frescura-sede.json");
 
+/** Las rutas que el contrato de la web declara `| null` (`Crudo` en `apps/web/lib/frescura-contrato.test.ts`). Que traigan
+ *  un null o no depende del día y no es un cambio de forma: el 1.º de cada mes `fn_confianza_registro` trae el mes recién
+ *  empezado sin bajadas (confianza y nivel en null), y este caso se cayó solo el 2026-10-01. En ellas la forma cuenta
+ *  «null» siempre; un cambio de tipo (number → string) o una clave que falta o sobra sigue fallando. */
+const ANULABLES = new Set(["confianza.confianza", "confianza.nivel", "evento[3]"]);
+
 /** La forma de un valor, sin sus datos: por cada ruta, los tipos que aparecen («string|null»). Los eventos y lo apartado
  *  van por variante (la clave es un uuid): se describen como un solo arreglo de tuplas. */
 function forma(sede, conf) {
@@ -2613,6 +2620,7 @@ function forma(sede, conf) {
     }
   }
   for (const f of conf ?? []) objeto("confianza", f);
+  for (const ruta of ANULABLES) tipos.get(ruta)?.add("null");
   return [...tipos].map(([ruta, s]) => `${ruta}: ${[...s].sort().join("|")}`).sort();
 }
 
@@ -2818,6 +2826,8 @@ ${k("FX_CONF", "(select coalesce(jsonb_agg(to_jsonb(c) order by c.mes), '[]'::js
       faltan.length === 0 && sobran.length === 0,
       `en el archivo y no hoy: ${faltan.join(" / ") || "—"} · hoy y no en el archivo: ${sobran.join(" / ") || "—"}`,
     );
+    // Nada de esto depende del día: la siembra es relativa a now() y «meses» cuenta las filas de fn_confianza_registro,
+    // que son siempre p_meses (2) por sede, tenga o no bajadas el mes en curso (no los meses con datos).
     afirmar(
       "la siembra da lo mismo que cuando se escribió el archivo (prendas, tardías, dudosas y meses)",
       sede.prendas.length === guardado.fn_frescura_sede.prendas.length &&

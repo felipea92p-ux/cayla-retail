@@ -8,7 +8,9 @@
 // (`desgloseIgv`), y la suma de los importes de las líneas ES el total.
 
 import type { MetodoPago } from "@cayla-retail/shared";
+import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
+import type { ClubEnElTicket } from "./club-caja-reglas";
 
 /** Solo lo que Vender emite hoy. Una nota de venta (sin valor tributario) no existe todavía
  *  como opción en la pantalla — ver ADR-0114. */
@@ -18,7 +20,8 @@ export type TipoReciboFiscal = "boleta" | "factura" | "nota_venta";
 
 /** Si el papel separa el IGV y lleva lo que SUNAT pide (QR, «representación impresa»). La nota de venta no. */
 export const desglosaIgv = (tipo: TipoReciboFiscal): boolean => tipo !== "nota_venta";
-export type TipoDocCliente = "dni" | "ruc" | "sin_documento";
+/** El documento de quien compra, como lo guarda el comprobante (con carné y pasaporte desde ADR-0288 D-3). */
+export type TipoDocCliente = TipoDocComprobante;
 
 export type LineaRecibo = {
   cantidad: number;
@@ -51,6 +54,13 @@ export type ReciboVenta = {
   vueltoTotal: number;
   /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
   atendio?: string | null;
+  /** El QR del club al pie (ADR-0288, tanda 1b; `clubEnElTicket`): el personal si la venta fue a una socia, el genérico si
+   *  no. Ausente/`null` sin número de la tienda, o en una reimpresión (el historial no sabe del club). */
+  club?: ClubEnElTicket | null;
+  /** El cumpleaños del club que canjeó la venta (ADR-0288 D-5): el descuento de cada prenda ya lo trae (es el TOTAL de
+   *  `venta_items`), y el papel dice cuánto de eso es del club. Ausente/`null` sin canje o en una reimpresión (el historial
+   *  no lo lee todavía). */
+  cumple?: { pct: number; monto: number } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -84,6 +94,10 @@ export function armarRecibo(entrada: {
   tasaIgv: number;
   /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
   atendio?: string | null;
+  /** El QR del club al pie; ver `clubEnElTicket` en `club-caja-reglas.ts`. */
+  club?: ClubEnElTicket | null;
+  /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
+  cumple?: { pct: number; monto: number } | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -115,6 +129,8 @@ export function armarRecibo(entrada: {
     pagos,
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
+    club: entrada.club ?? null,
+    cumple: entrada.cumple && entrada.cumple.monto > 0 ? entrada.cumple : null,
   };
 }
 
@@ -132,12 +148,14 @@ export function fechaHoraLima(iso: string): { fecha: string; hora: string; fecha
 /**
  * Texto del QR del comprobante, en el orden que SUNAT pide para su representación impresa:
  * RUC emisor | tipo (01 factura, 03 boleta) | serie | correlativo | IGV | total | fecha |
- * tipo de documento del cliente (6 RUC, 1 DNI, «-» sin documento) | número | (cierra con «|»).
+ * tipo de documento del cliente (catálogo 06: 1 DNI, 4 carné de extranjería, 6 RUC, 7 pasaporte; «-» sin documento) |
+ * número | (cierra con «|»).
  * Con esto quien escanee puede cotejar el documento aunque nuestro sistema no responda.
  */
 export function textoQrSunat(r: ReciboVenta, rucEmisor: string): string {
   const cli = r.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
+  // La guarda va dentro del ternario (y no en una constante aparte) para que TypeScript sepa que el tipo no es «sin documento».
+  const codigoDoc = llevaDocumento(cli.tipoDoc, cli.numDoc) ? CODIGO_SUNAT_DOCUMENTO[cli.tipoDoc] : null;
   return [
     rucEmisor,
     r.tipo === "factura" ? "01" : "03",
@@ -146,8 +164,8 @@ export function textoQrSunat(r: ReciboVenta, rucEmisor: string): string {
     r.igv.toFixed(2),
     r.total.toFixed(2),
     fechaHoraLima(r.emitidoEn).fechaIso,
-    tieneDoc ? (cli.tipoDoc === "ruc" ? "6" : "1") : "-",
-    tieneDoc ? cli.numDoc : "-",
+    codigoDoc ?? "-",
+    codigoDoc ? cli.numDoc : "-",
     "",
   ].join("|");
 }

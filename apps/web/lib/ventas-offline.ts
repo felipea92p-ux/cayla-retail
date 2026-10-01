@@ -36,6 +36,7 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
+import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 import type { Firma } from "./responsable-reglas";
 
 export type ItemVentaEncolada = { varianteId: string; cantidad: number };
@@ -51,6 +52,10 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
+  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del cumpleaños de la socia (ADR-0288 D-5). Solo con
+   *  `p_canjear_cumpleanos: true`; la base la recalcula y rechaza si no coincide (`cumple_descuento_distinto`). Se arma con
+   *  `descuentosParaRegistrar` de `lib/club-cumple-canje-reglas.ts`. */
+  descuento_club_unitario?: number;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;
@@ -58,16 +63,17 @@ export type ItemRegistrarVenta = {
   color_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (16 parámetros, hoy; la caja manda los 12 de abajo: `p_cliente_id` se sumó
- *  en la tanda 1a del club, ADR-0288). Se guarda entero en la cola y se reenvía sin cambios al subir — el `p_token`
- *  adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
+/** El payload completo de `registrar_venta` (17 parámetros, hoy; la caja manda los 13 de abajo: `p_cliente_id` se sumó
+ *  en la tanda 1a del club y `p_canjear_cumpleanos` en la 1c, ADR-0288). Se guarda entero en la cola y se reenvía sin
+ *  cambios al subir — el `p_token` adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta
+ *  pestaña o desde otra) no duplica. Una venta con el canje del cumpleaños NUNCA entra a la cola (`llevaCanje`). */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
   p_pagos: { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";
-  p_cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  p_cliente_tipo_doc: TipoDocComprobante;
   p_cliente_num_doc?: string;
   p_cliente_nombre?: string;
   /** La ficha de la clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Viaja también en la cola sin conexión;
@@ -79,6 +85,10 @@ export type ParamsRegistrarVenta = {
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que
    *  viaja en `x-responsable`: la venta queda a nombre de quien la hizo, no de la cuenta. */
   p_asesora_id?: string;
+  /** Canjear el cumpleaños de la socia del ticket (ADR-0288 D-5): la base exige socia, su mes de Lima y un canje por año, y
+   *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión, y una venta con canje no se encola
+   *  (`llevaCanje`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (esperar, o quitarlo). */
+  p_canjear_cumpleanos?: boolean;
 };
 
 export type VentaEncolada = {
@@ -156,6 +166,13 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
     if (!pasaElUmbralDeSobra(stockPisoOverlay.get(varianteId) ?? 0, cantidad)) return false;
   }
   return true;
+}
+
+/** ¿Esta venta canjea el cumpleaños? Entonces NO se encola (ADR-0288 D-5): sin conexión otra tienda podría canjearlo a la
+ *  vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el precio rebajado. Mira las dos
+ *  señales (el parámetro y la parte del club de cada ítem): la base exige que vayan juntas (`cumple_sin_canje`). */
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_items">): boolean {
+  return params.p_canjear_cumpleanos === true || params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0);
 }
 
 /** Cuánto de lo encolado sin subir es en EFECTIVO. Importa porque `retail.cerrar_caja`

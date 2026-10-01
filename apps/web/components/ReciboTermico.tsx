@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
+import { textoCumpleEnElRecibo } from "@/lib/club-cumple-canje-reglas";
+import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
   fechaHoraLima,
@@ -31,11 +33,11 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *    lo que necesita SUNAT (serie-número, QR) va aparte y no compite con eso.
  *  · El logo es el isotipo del colibrí en negro (`filter: brightness(0)`), no el PNG terracota.
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
+ *  · Al final, si la tienda tiene su WhatsApp cargado, el QR del club (`recibo.club`, armado en `lib/club-caja-reglas.ts`).
  */
 export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const fiscal = desglosaIgv(recibo.tipo);
   const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const contacto = [emisor.telefono, emisor.email].filter(Boolean);
@@ -70,9 +72,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </dd>
         <dt>Cliente</dt>
         <dd>{cli.nombre?.trim() || "CLIENTE VARIOS"}</dd>
-        {tieneDoc && (
+        {llevaDocumento(cli.tipoDoc, cli.numDoc) && (
           <>
-            <dt>{cli.tipoDoc === "ruc" ? "RUC" : "DNI"}</dt>
+            {/* DNI, RUC, CE (carné de extranjería) o Pasaporte: ADR-0288 D-3. */}
+            <dt>{ETIQUETA_DOCUMENTO_COMPROBANTE[cli.tipoDoc]}</dt>
             <dd>{cli.numDoc}</dd>
           </>
         )}
@@ -104,6 +107,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           <span className="rt-imp">{l.importe.toFixed(2)}</span>
         </div>
       ))}
+      {/* El cumpleaños del club (ADR-0288 D-5): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del club. */}
+      {recibo.cumple && <p className="rt-detalle">{textoCumpleEnElRecibo(recibo.cumple.pct, recibo.cumple.monto)}</p>}
 
       <div className="rt-linea" />
       {fiscal && (
@@ -167,6 +172,23 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
       </footer>
+
+      {/* El QR del club (ADR-0288, tanda 1b): después del pie y lejos del de SUNAT, para que nadie escanee uno por el otro.
+          Abre el WhatsApp de la tienda con el mensaje listo: la publicidad solo nace si ella lo envía (Ley 32323). El enlace
+          con el mensaje pesa ~230–245 bytes: nivel L (hasta 57 módulos) a 30 mm → ~0,53 mm y ~4 puntos de la térmica por
+          módulo, lo mismo que el de SUNAT a 25 mm. No achicarlo sin acortar el mensaje. */}
+      {recibo.club && (
+        <>
+          <div className="rt-linea" />
+          <div className="rt-centro rt-pie">
+            <p className="rt-negrita">{recibo.club.titulo}</p>
+            <p>{recibo.club.linea}</p>
+            <div className="rt-qr">
+              <QRCodeSVG value={recibo.club.enlace} size={256} level="L" marginSize={0} style={{ width: "30mm", height: "30mm", margin: "0 auto" }} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

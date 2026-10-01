@@ -3,6 +3,7 @@ import type { Database } from "@cayla-retail/database";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
 import { capturarError } from "@/lib/errores";
+import type { TipoDocComprobante } from "@/lib/documento-comprobante-reglas";
 
 // Transmitir UN comprobante a SUNAT por Lucode: la pieza que comparten `/api/lucode/emitir` (el envío
 // al cobrar y «Reintentar ahora») y `/api/lucode/reintentar` (el barrido de la cola, D-60). Solo
@@ -31,7 +32,7 @@ type FilaComprobante = {
   serie: string;
   numero: number;
   moneda: string;
-  cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  cliente_tipo_doc: TipoDocComprobante;
   cliente_num_doc: string | null;
   cliente_nombre: string | null;
   total: number;

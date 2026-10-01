@@ -106,7 +106,7 @@ caso(
   "anular_compra — Felipe con Rosa en el combo: anulada_por = Rosa (no Felipe) y anulada_at puesta",
   `insert into retail.proveedores (nombre, activo) values ('ZZ Prueba quién ' || substr(md5(random()::text), 1, 8), true) returning id as p \\gset
 ${felipe()}select retail.registrar_compra(:'p', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 1, 'costo_unitario', 10)),
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 1, 'costo_unitario', 10, 'confirma_costo', true)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
 select retail.anular_compra(:'compra', 'prueba') as _a \\gset
 select concat_ws(',', estado, anulada_por = :'rosa', anulada_at is not null) from retail.compras where id = :'compra';`,
@@ -117,7 +117,7 @@ caso(
   "anular_compra — responsable obligatorio y SIN encabezado: 42501 y la compra sigue vigente",
   `insert into retail.proveedores (nombre, activo) values ('ZZ Prueba quién ' || substr(md5(random()::text), 1, 8), true) returning id as p \\gset
 ${felipe()}select retail.registrar_compra(:'p', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 1, 'costo_unitario', 10)),
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 1, 'costo_unitario', 10, 'confirma_costo', true)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
 ${ENCENDER}${NO_ADMIN}${felipe(false)}select pg_temp.intento(format('select retail.anular_compra(%L, ''prueba'')', :'compra'));
 select estado from retail.compras where id = :'compra';`,

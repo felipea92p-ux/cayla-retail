@@ -2,6 +2,7 @@
 // la base, proyecta el límite de ventas del régimen, dice el estado de cada mes y arma los registros para el contador
 // (CSV). Sin React ni Supabase: se prueba con vitest y se usa desde el servidor y desde el navegador.
 
+import { CODIGO_SUNAT_DOCUMENTO } from "./documento-comprobante-reglas";
 import { mesDe, textoMes } from "./gastos-reglas";
 
 type Fila = Record<string, unknown>;
@@ -433,8 +434,10 @@ export const CODIGO_COMPROBANTE: Record<string, string> = {
   nota_credito: "07",
   nota_debito: "08",
 };
-/** Tipo de documento de identidad, tabla 2 de SUNAT (0 = sin documento). */
-export const CODIGO_DOCUMENTO: Record<string, string> = { dni: "1", ruc: "6", sin_documento: "0" };
+/** Tipo de documento de identidad, tabla 2 de SUNAT (la misma lista que el catálogo 06: 1 DNI, 4 carné de extranjería,
+ *  6 RUC, 7 pasaporte; 0 = sin documento). Sale de `documento-comprobante-reglas.ts`, la tabla que usan también Lucode y el
+ *  papel: antes un carné habría salido «0» aquí. */
+export const CODIGO_DOCUMENTO: Record<string, string> = { ...CODIGO_SUNAT_DOCUMENTO, sin_documento: "0" };
 export const TEXTO_NATURALEZA: Record<string, string> = { mercaderia: "Mercadería", gasto: "Gasto", activo: "Activo fijo", taller: "Insumos del Taller" };
 
 /** «2026-08» → «20260800»: el período como lo pide el PLE. */

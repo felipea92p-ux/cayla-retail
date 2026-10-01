@@ -6,6 +6,7 @@ import {
   aDevolucion,
   aSeparacion,
   agruparCompras,
+  COLUMNAS_CLIENTA,
   type Clienta,
   type FichaClienta,
   type FilaCambio,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/clientas-reglas";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
+import { ajustarCelular } from "@/lib/club-reglas";
+import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
@@ -27,15 +30,20 @@ import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/docu
 // anonimizar, unir y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77).
 // Candado optimista (ADR-0193 reusado): cada acción que edita manda `version`, y si la base
 // devuelve PT409, `error-escritura.ts` ya lo traduce sin que esta capa haga nada especial.
+//
+// ADR-0288 tanda 1b (D-4 reescrita): el alta y la edición YA NO marcan ningún permiso de WhatsApp. Ser socia del club
+// es `unirseAlClub` y la publicidad solo nace de un mensaje de ella (`club-acciones.ts`); por eso `DatosAlta` perdió
+// `aceptaWhatsapp` y `DatosEdicion` perdió `revocaWhatsapp`. El cumpleaños ganó su año (opcional, CL-3).
 export type DatosAlta = {
   /** ADR-0288 D-2: DNI por defecto, carné de extranjería o pasaporte. */
   documentoTipo: TipoDocumentoClienta;
   documentoNumero: string;
   nombre: string;
   telefonoWhatsapp: string;
-  aceptaWhatsapp: boolean;
   cumpleDia: string;
   cumpleMes: string;
+  /** Opcional (CL-3): vacío = no lo dijo. */
+  cumpleAnio: string;
 };
 
 export type ResultadoBusqueda = { clientas: Clienta[]; error: ErrorEscritura };
@@ -56,6 +64,26 @@ export async function buscarClienta(termino: string, incluirArchivadas = false):
 }
 
 /**
+ * Las fichas ACTIVAS con ese celular («Llegó un mensaje de WhatsApp», ADR-0288 tanda 1b). `buscar_clienta` ya compara el
+ * celular normalizado, pero también busca el término en el nombre y el documento: aquí solo quedan las que de verdad tienen
+ * ese número (los mismos 9 dígitos, aunque una ficha vieja lo guarde con espacios o con +51).
+ */
+export async function buscarPorCelular(celular: string): Promise<ResultadoBusqueda> {
+  const numero = ajustarCelular(celular);
+  const { clientas, error } = await buscarClienta(numero);
+  return { clientas: clientas.filter((c) => ajustarCelular(c.telefonoWhatsapp ?? "") === numero), error };
+}
+
+/**
+ * La socia ACTIVA de ese código («C-0142»), o null. `buscar_clienta` busca también por código (tanda 1b); aquí se queda
+ * solo la que lo tiene de verdad (el mismo término podría calzar en un nombre). `codigo_club` es único.
+ */
+export async function buscarPorCodigoClub(codigo: string): Promise<{ clienta: Clienta | null; error: ErrorEscritura }> {
+  const { clientas, error } = await buscarClienta(codigo);
+  return { clienta: clientas.find((c) => c.codigoClub?.toUpperCase() === codigo.toUpperCase()) ?? null, error };
+}
+
+/**
  * `firma` es la del combo «Responsable» de la pantalla que llama (`responsable.firma()`, ADR-0161): registrar una
  * clienta es operación de tienda y la base la firma con quien eligió el combo, no con la cuenta.
  */
@@ -66,20 +94,19 @@ export async function registrarClienta(datos: DatosAlta, firma: Firma | null): P
       p_documento_numero: normalizarNumeroDocumento(datos.documentoNumero) || undefined,
       p_nombre: datos.nombre.trim() || undefined,
       p_telefono_whatsapp: datos.telefonoWhatsapp.trim() || undefined,
-      p_acepta_whatsapp: datos.aceptaWhatsapp,
       p_cumple_dia: smallintOVacio(datos.cumpleDia),
       p_cumple_mes: smallintOVacio(datos.cumpleMes),
+      p_cumple_anio: smallintOVacio(datos.cumpleAnio),
     }),
     firma,
   );
   return { id: data ?? null, error };
 }
 
-export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null; revocaWhatsapp: boolean };
+export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null };
 
-/** `p_revoca_whatsapp` apaga el consentimiento A PROPÓSITO — a diferencia de `registrarClienta`,
- *  editar SÍ necesita poder quitar un permiso ya dado (la clienta puede pedir que no le escriban
- *  más), y `p_acepta_whatsapp=false` por sí solo nunca lo revoca (mismo criterio que el alta). */
+/** Editar ya no toca el club ni la publicidad (ADR-0288 D-4): su «BAJA» es `registrarBajaWhatsapp`. A una socia la base
+ *  no le deja borrar el celular (hint `socia_sin_celular`). */
 export async function editarClienta(id: string, datos: DatosEdicion, version: number, firma: Firma | null): Promise<ResultadoVersion> {
   const { data, error } = await firmar(
     createClient().rpc("editar_clienta", {
@@ -88,10 +115,9 @@ export async function editarClienta(id: string, datos: DatosEdicion, version: nu
       p_documento_numero: normalizarNumeroDocumento(datos.documentoNumero) || undefined,
       p_nombre: datos.nombre.trim() || undefined,
       p_telefono_whatsapp: datos.telefonoWhatsapp.trim() || undefined,
-      p_acepta_whatsapp: datos.aceptaWhatsapp,
-      p_revoca_whatsapp: datos.revocaWhatsapp,
       p_cumple_dia: smallintOVacio(datos.cumpleDia),
       p_cumple_mes: smallintOVacio(datos.cumpleMes),
+      p_cumple_anio: smallintOVacio(datos.cumpleAnio),
       p_tallas: datos.tallas ?? undefined,
       p_version_esperada: version,
     }),
@@ -147,24 +173,26 @@ export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura
 /** La ficha completa (clienta + su actividad), leída DESDE EL NAVEGADOR — para abrirla al hacer
  *  clic en una fila y para refrescarla tras editar/archivar/unir, sin depender de un Server
  *  Component. Mismas cinco lecturas que `lib/clientas.ts` (`getFichaClienta`, usada al aterrizar
- *  en `/clientas` la primera vez); esta es su gemela del lado del cliente. */
+ *  en `/clientas` la primera vez); esta es su gemela del lado del cliente.
+ *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta
+ *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue. */
 export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
   const supabase = createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones] = await Promise.all([
+  const [clienta, compras, cambios, devoluciones, separaciones, resumen] = await Promise.all([
     supabase
       .from("clientas")
-      .select(
-        "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id"
-      )
+      .select(COLUMNAS_CLIENTA)
       .eq("id", id)
       .maybeSingle(),
     supabase.rpc("fn_clienta_compras", { p_id: id }),
     supabase.rpc("fn_clienta_cambios", { p_id: id }),
     supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
     supabase.rpc("fn_clienta_separaciones", { p_id: id }),
+    supabase.rpc("fn_clienta_su_sede", { p_clienta_id: id }),
   ]);
 
   const error = clienta.error ?? compras.error ?? cambios.error ?? devoluciones.error ?? separaciones.error;
+  const filaResumen = resumen.error ? null : ((resumen.data ?? [])[0] as FilaResumenCompras | undefined);
   if (error || !clienta.data) return { ficha: null, error: error ?? null };
 
   return {
@@ -174,6 +202,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
       cambios: ((cambios.data ?? []) as FilaCambio[]).map(aCambio),
       devoluciones: ((devoluciones.data ?? []) as FilaDevolucion[]).map(aDevolucion),
       separaciones: ((separaciones.data ?? []) as FilaSeparacion[]).map(aSeparacion),
+      resumenCompras: filaResumen ? aResumenCompras(filaResumen) : null,
     },
     error: null,
   };
