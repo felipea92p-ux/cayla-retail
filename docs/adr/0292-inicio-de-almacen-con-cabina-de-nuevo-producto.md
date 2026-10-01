@@ -145,5 +145,11 @@ accesos, y un degradado de luz sobre las fotos. Todo con tokens; ningún hex sue
 - La sigla de sede: `pnpm pruebas:producto-origen` (terminal, `x-ubicacion`, sede de partida, sin sesión, fallo al anotar, permisos, borrado en
   cascada, migración repetida) y en el navegador con orígenes sembrados en local (TRU y AQP): sigla rellena para «tu sede», chips y filtros por
   sede, 375 px sin desborde, y la degradación sin la función.
+- **Error en el primer despliegue (2026-09-30): cada «Ver» caía en un 404.** Los enlaces de las filas de la cabina y de las tarjetas iban a `/productos/{id}`, una ruta que
+  no existe: la ficha es `/productos/{id}/editar`. Se verificaron filtros, tecla N y estados, pero no adónde llevaba cada enlace, y lo encontró quien lo estrenó. Corregido con
+  `hrefFichaProducto` y `hrefFotosProducto` (`#fotos`, la sección que ya usa «Agregar fotos» al crear un producto) y blindado con `lib/inicio-almacen-enlaces.test.ts`, que
+  recorre las rutas reales de `app/(app)` y falla si un enlace literal del Inicio de almacén no cae en una pantalla que exista (se comprobó reintroduciendo el enlace roto).
+  Lección: en una pantalla nueva, además de mirarla, **se hace clic en cada enlace**. Pendiente menor: desde el Inicio, «← Productos» de la ficha vuelve a `/productos`, no al Inicio
+  (`?desde=` solo admite rutas de Productos, `lib/vuelta-productos.ts`).
 - **No verificado:** Safari y Firefox; contraste medido de la cabina (se calculó con la fórmula WCAG sobre los tokens: Papel 16.4:1 en texto, 5.3:1
   en texto secundario); la terminal real de producción; `prefers-reduced-motion` en un navegador (solo el CSS).

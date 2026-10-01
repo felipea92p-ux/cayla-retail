@@ -66,6 +66,10 @@ SE ROMPE SI **alguien tiene el módulo «Bajada al piso» apagado**: el botón y
   Ajustar (`ajuste-reglas.ts:262`) siguen diciéndole a la gente que lo use. Queda apagado a propósito en `InventarioPanel.tsx` (comentario en
   `moviendo`) hasta decidir dónde vive: una puerta por talla en el cajón, no un botón de la prenda.
 
+> **Actualización 2026-10-01:** resuelto en [ADR-0300](0300-subir-a-almacen-por-prenda-con-todas-sus-tallas.md): «Subir a almacén» por prenda
+> (botón en la tarjeta y acción en el cajón, con una función nueva `retirar_del_piso` que sube varias tallas en una sola transacción). El modal de
+> UNA talla (`ReponerPisoModal`) se retiró; las referencias de arriba a él son históricas.
+
 ## Cómo se verificó
 
 - Pruebas: `lib/reponer-prenda-reglas.test.ts` (13): lista TODAS las tallas, S y M viajan **juntas** en un solo `p_items`, el tope es lo libre, lo

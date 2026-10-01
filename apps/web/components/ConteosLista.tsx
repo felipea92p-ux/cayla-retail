@@ -1,28 +1,39 @@
 import Link from "next/link";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { TABLA } from "@/components/ui/Tabla";
+import { ChevronRight, ClipboardCheck, Package } from "lucide-react";
+import type { TonoChip } from "@/components/ui/Chip";
+import { IconoPercha } from "@/components/ui/IconoPercha";
+import { ColumnaHora, DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO, FILA_ACTIVIDAD, PUNTO_ACTIVIDAD } from "@/components/ui/lista-actividad";
 import { resultadoConteo, textoAlcance, textoLugar, textoResultadoConteo, type ResultadoConteo } from "@/lib/conteo-reglas";
-import { textoAvanceHistorial } from "@/lib/conteo-inicio-reglas";
-import { horaLimaDe, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { apoyoDeResultado, cifraDeConteo, horaLimaDe, responsablesDeConteo, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { etiquetaDia } from "@/lib/movimientos-reglas";
 
 /* ====================================================================
-   ConteosLista · «Conteos recientes» del inicio (Inventario ▸ Conteo, rediseño 2026-09-29)
+   ConteosLista · «Conteos recientes» del inicio (Inventario ▸ Conteo)
 
-   Hora · Ubicación · Qué se contó · Resultado · Responsable · Acción, en APARTADOS POR DÍA (Felipe, 2026-10-01): una banda con
-   el día («HOY · miércoles 30 de setiembre») y, debajo, sus conteos, cada uno con la hora a la que se abrió. La fecha ya no
-   se repite en cada fila: el día es la banda. Cada fila es un enlace al conteo (el que sigue abierto también: allí se continúa). El RESULTADO se lee de un vistazo y nunca dice «Cerrado · Vacío»:
-     · En curso                → pizarra (informativo)
-     · Todo correcto           → verde
-     · 3 diferencias encontradas → neutro: el conteo ya las ajustó. En rojo, cada conteo del historial pintaría una pared roja
-                                 y el rojo dejaría de avisar lo que hoy hay que mirar.
-     · Conteo parcial          → ámbar: quedó a medias
-     · Cancelado               → apagado, sin tachar (no es una anulación de dinero; se canceló un conteo)
-   Un cerrado sin ninguna variante verificada (de antes del rediseño) y un anulado se leen «Cancelado»
-   y no cuentan para ninguna métrica (`resultadoConteo`).
+   Rediseño 2026-10-01, en dos pasos. Felipe, mirando la pantalla en producción: «muy desordenada y poco entendible… más moderna,
+   básica, simple y práctica»; y al ver la primera versión: «que tenga la misma estructura visual y lógica que la tabla de
+   Movimientos, se entiende mucho más». Por eso esta lista NO inventa una forma: usa la de Movimientos (`ui/lista-actividad.tsx`, la
+   misma rejilla, el mismo punto, el mismo título de día) y cada celda dice lo análogo:
 
-   La tabla cambia de forma por el ancho de SU tarjeta (`@container`), no por el de la ventana: con el lateral abierto,
-   una ventana de 1024 px deja ~670 al contenido y las seis columnas necesitan ~830. Debajo de eso cada fila se apila
-   en una ficha de cuatro renglones. Server Component: no hay estado, y los conteos de una sede son pocos.
+       Movimientos                         Conteos recientes
+       hora                                hora a la que se abrió
+       punto (entra / sale / neutro)       punto del resultado (verde, ámbar, gris…)
+       foto + prenda / talla · color       ícono del lugar + «Conteo 28» / «Almacén de tienda · Solo Pantalones»
+       proceso / de dónde a dónde          resultado («Todo correcto») / cuándo cerró
+       referencia («Traslado 100»)         quién abrió (y «Cerró X» solo si se sabe y es otra persona)
+       cantidad / «quedan 5»               variantes verificadas («15», o «20 de 37») / «variantes»
+       flecha ›                            flecha ›
+
+   El RESULTADO conserva sus reglas y tonos (ahora en el punto, no en un chip): En curso → pizarra · Todo correcto → verde ·
+   N diferencias encontradas → neutro (el conteo ya las ajustó; en rojo, cada conteo del historial sería una pared roja) · Conteo
+   parcial → ámbar · Cancelado → apagado. Un cerrado sin ninguna variante verificada y un anulado se leen «Cancelado»
+   (`resultadoConteo`).
+
+   «Cerró —» ya no sale en cada fila. Ojo: el hueco de fondo —un conteo cerrado con la cuenta de tienda no guarda quién lo cerró
+   (ADR-0280)— sigue ahí; esta pantalla no lo grita, pero tampoco lo arregla.
+
+   Server Component: no hay estado, y los conteos de una sede son pocos. Desde sm es la rejilla de seis celdas de Movimientos; en
+   celular, la de tres con «resultado» y «quién» en un segundo renglón (se ve a 375 px; ver el comentario de `FILA_ACTIVIDAD`).
    ==================================================================== */
 
 const TONO_RESULTADO: Record<ResultadoConteo, TonoChip> = {
@@ -33,95 +44,92 @@ const TONO_RESULTADO: Record<ResultadoConteo, TonoChip> = {
   cancelado: "apagado",
 };
 
-// Las seis columnas, de ~830 px de tarjeta hacia arriba (5,5 + 8 + 7 + 11 + 7 + 6 rem, más aire) — `@[52rem]` = 832 px. Las clases
-// van ESCRITAS enteras, no armadas con un `${}`: Tailwind solo genera lo que encuentra literal en el código.
-const PLANTILLA = "@[52rem]:grid-cols-[5.5rem_minmax(8rem,1fr)_minmax(7rem,1fr)_11rem_minmax(7rem,1fr)_6rem]";
 const plural = (n: number) => `${n} ${n === 1 ? "conteo" : "conteos"}`;
 
-// Sin espacio para las seis columnas la fila es una FICHA que se acomoda sola (`flex-wrap`), en dos tamaños:
-//  · angosta (celular, < 36 rem): fecha y resultado arriba —si el resultado no cabe al lado de la fecha («3 diferencias
-//    corregidas» en un celular de 320, baja a su propio renglón en vez de partir la fecha—, luego lugar y qué, y al final
-//    los responsables con la acción a la derecha;
-//  · media (tableta con el lateral abierto, 36–52 rem): fecha · lugar y qué · resultado · acción en UN renglón, y debajo los
-//    responsables.
-// En la tabla ancha cada celda vuelve a su columna (`order` se apaga: en una rejilla también reordena).
-const CELDA = {
-  fecha: "order-1 min-w-0 @[36rem]:w-24 @[36rem]:shrink-0 @[52rem]:order-none @[52rem]:w-auto @[52rem]:shrink",
-  resultado: "order-2 ml-auto @[36rem]:order-3 @[36rem]:ml-0 @[52rem]:order-none",
-  // La ubicación se dice en su columna solo en la tabla ancha; antes va delante de «Qué se contó» («Piso de venta · Todo»).
-  ubicacion: "hidden min-w-0 @[52rem]:order-none @[52rem]:block",
-  que: "order-3 min-w-0 basis-full @[36rem]:order-2 @[36rem]:flex-1 @[36rem]:basis-0 @[52rem]:order-none @[52rem]:flex-none @[52rem]:basis-auto",
-  responsable: "order-4 min-w-0 flex-1 @[36rem]:order-5 @[36rem]:flex-none @[36rem]:basis-full @[52rem]:order-none @[52rem]:basis-auto",
-  accion: "order-5 shrink-0 @[36rem]:order-4 @[52rem]:order-none",
-} as const;
-
-export function ConteosLista({ grupos }: { grupos: GrupoDia[] }) {
+/** La ficha: el lugar donde se contó, en el mismo recuadro que la miniatura de una prenda en Movimientos. */
+function FichaDeLugar({ tipo }: { tipo: string | null }) {
+  const clase = "h-[18px] w-[18px]";
   return (
-    <div className="border-t border-sand">
-      <div className={`${TABLA.encabezado} hidden border-b border-sand @[52rem]:grid ${PLANTILLA}`} role="row">
-        {["Hora", "Ubicación", "Qué se contó", "Resultado", "Responsable", "Acción"].map((titulo) => (
-          <span key={titulo} className={TABLA.titulo} role="columnheader">
-            {titulo}
-          </span>
-        ))}
-      </div>
+    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-tinta/10 bg-sand/50 text-taupe">
+      {tipo === "piso_venta" ? <IconoPercha className={clase} /> : tipo === "almacen_tienda" ? <Package className={clase} strokeWidth={1.5} /> : <ClipboardCheck className={clase} strokeWidth={1.5} />}
+    </span>
+  );
+}
+
+export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string }) {
+  return (
+    <div className="border-t border-sand px-4 pb-2 sm:px-5">
       {grupos.map((g) => (
-        <section key={g.dia} aria-label={g.titulo} className="border-t border-sand first-of-type:border-t-0">
-          {/* El apartado del día: la banda en hueso, con «HOY»/«AYER» cuando toca y cuántos conteos trae. */}
-          <h3 className="flex items-baseline gap-2.5 bg-hueso px-4 py-2.5 @[36rem]:px-5">
-            {g.rotulo && <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-taupe">{g.rotulo}</span>}
-            <span className="font-display text-base text-tinta">{g.titulo}</span>
-            <span className="ml-auto whitespace-nowrap text-xs font-normal text-taupe">{plural(g.conteos.length)}</span>
+        <section key={g.dia} aria-label={etiquetaDia(g.dia, hoy)}>
+          <h3 className={DIA_TITULO}>
+            <span className={DIA_ETIQUETA}>{etiquetaDia(g.dia, hoy)}</span>
+            <span className={DIA_CUANTOS}>{plural(g.conteos.length)}</span>
           </h3>
-          <div className="divide-y divide-sand">{g.conteos.map((c) => {
-        const resultado = resultadoConteo(c);
-        const abierto = resultado === "en_curso";
-        const avance = textoAvanceHistorial(c);
-        // La HORA a la que se abrió (la del día ya está en la banda); al pasar el mouse, también la de cierre.
-        const hora = horaLimaDe(c.creadoEn);
-        return (
-          <Link
-            key={c.id}
-            title={textoAperturaCierre(c)}
-            href={`/inventario/conteo/${c.id}`}
-            className={`fila-cayla flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 focus-visible:bg-crema/60 focus-visible:outline-none @[36rem]:px-5 @[52rem]:grid @[52rem]:gap-x-4 ${PLANTILLA}`}
-          >
-            <span className={CELDA.fecha}>
-              {/* Angosta, en una línea («11:58 · Conteo 27»); en su columna o en la ficha media, en dos. */}
-              <span className="text-sm tabular-nums text-tinta @[36rem]:block">{hora}</span>
-              <span className="text-xs text-taupe @[36rem]:block">
-                <span aria-hidden className="@[36rem]:hidden">
-                  {" "}
-                  ·{" "}
-                </span>
-                Conteo {c.numero}
-              </span>
-            </span>
-            <span className={CELDA.ubicacion}>
-              <span className="block truncate text-sm text-tinta">{textoLugar(c)}</span>
-            </span>
-            <span className={CELDA.que}>
-              <span className="block text-sm text-tinta @[52rem]:truncate">
-                <span className="@[52rem]:hidden">{textoLugar(c)} · </span>
-                {textoAlcance(c)}
-              </span>
-              {avance && <span className="block truncate text-xs text-taupe">{avance}</span>}
-            </span>
-            <span className={CELDA.resultado}>
-              <Chip tono={TONO_RESULTADO[resultado]} tachado={false}>
-                {textoResultadoConteo(c)}
-              </Chip>
-            </span>
-            <span className={CELDA.responsable}>
-              <span className="block truncate text-xs text-tinta/75">Abrió {c.abiertoPorNombre}</span>
-              {!abierto && c.estado === "cerrado" && <span className="block truncate text-xs text-taupe">Cerró {c.cerradoPorNombre}</span>}
-            </span>
-            <span className={CELDA.accion}>
-              <span className={`btn-cayla btn-chico ${abierto ? "btn-primario" : "btn-secundario"}`}>{abierto ? "Seguir" : "Ver"}</span>
-            </span>
-          </Link>
-        );
-      })}</div>
+          <ul role="list" className="divide-y divide-sand">
+            {g.conteos.map((c) => {
+              const resultado = resultadoConteo(c);
+              const { abrio, cerro } = responsablesDeConteo(c);
+              const apoyo = apoyoDeResultado(c);
+              const cifra = cifraDeConteo(c);
+              const hora = horaLimaDe(c.creadoEn);
+              const detalle = `${textoLugar(c)} · ${textoAlcance(c)}`;
+              return (
+                <li key={c.id}>
+                  {/* La fila entera es el enlace (el conteo en curso también: allí se sigue contando); al pasar el mouse, la hora de cierre. */}
+                  <Link
+                    href={`/inventario/conteo/${c.id}`}
+                    title={textoAperturaCierre(c)}
+                    className={`${FILA_ACTIVIDAD} focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo`}
+                  >
+                    <ColumnaHora desde={hora} />
+
+                    <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD[TONO_RESULTADO[resultado]]}`} />
+
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <FichaDeLugar tipo={c.sububicacionTipo} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13.5px] font-semibold text-tinta">Conteo {c.numero}</span>
+                        {/* En celular no hay columna de hora: va delante, y el detalle envuelve en vez de cortarse («Solo Cami…» no dice qué se contó). */}
+                        <span className="block break-words text-xs leading-snug tabular-nums text-taupe sm:hidden">
+                          {hora} · {detalle}
+                        </span>
+                        {/* Envuelve en vez de cortarse: aquí «Solo Pantalones» es lo que se vino a leer. */}
+                        <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{detalle}</span>
+                      </span>
+                    </span>
+
+                    {/* Resultado y quién. En celular bajan a un segundo renglón bajo la ficha; desde sm cada uno tiene su columna. */}
+                    <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
+                      <span className="min-w-0 sm:col-start-4 sm:row-start-1">
+                        <span className="block break-words text-[13px] leading-snug text-tinta">{textoResultadoConteo(c)}</span>
+                        {apoyo && <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{apoyo}</span>}
+                      </span>
+                      <span className="min-w-0 sm:col-start-5 sm:row-start-1">
+                        <span className="block truncate text-[13px] text-tinta">{abrio ?? "Sin responsable"}</span>
+                        {cerro && <span className="block truncate text-xs text-taupe">Cerró {cerro}</span>}
+                      </span>
+                    </span>
+
+                    <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-6">
+                      <span className="flex flex-col items-end leading-tight">
+                        {cifra ? (
+                          <>
+                            <span>{cifra.cifra}</span>
+                            <span className="mt-0.5 whitespace-nowrap text-[11px] font-normal text-taupe">{cifra.unidad}</span>
+                          </>
+                        ) : (
+                          <span aria-hidden className="font-normal text-taupe/60">
+                            —
+                          </span>
+                        )}
+                      </span>
+                      <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       ))}
     </div>

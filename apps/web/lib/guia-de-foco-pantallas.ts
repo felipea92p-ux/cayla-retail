@@ -155,11 +155,11 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 72;
+export const MODALES_PENDIENTES_HOY = 69;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
-  "components/AjustarInventarioModal.tsx": PENDIENTE, // 6 controles
+  "components/AjustarInventarioModal.tsx": { estado: "aplicada", evidencia: ["components/AjustarInventarioModal.tsx"] },
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
   "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
   "components/ApartarModal.tsx": PENDIENTE, // 8 controles
@@ -206,7 +206,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PedirAOtraSedeModal.tsx": PENDIENTE, // 2 controles
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
-  "components/PrendaSinRegistrarModal.tsx": PENDIENTE, // 8 controles
+  "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProductosGrilla.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
@@ -219,7 +219,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
-  "components/ReponerPisoModal.tsx": PENDIENTE, // 4 controles
   "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
   "components/ResolverDanadosModal.tsx": PENDIENTE, // 4 controles
   "components/ResumenPrevioEnvio.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
@@ -227,6 +226,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
   "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
   "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
+  "components/SubirAAlmacenModal.tsx": { estado: "aplicada", evidencia: ["components/SubirAAlmacenModal.tsx"] },
   "components/TallasLista.tsx": { estado: "aplicada", evidencia: ["components/TallasLista.tsx"] },
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },

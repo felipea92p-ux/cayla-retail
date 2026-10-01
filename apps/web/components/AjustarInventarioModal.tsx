@@ -10,7 +10,6 @@ import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/camp
 import {
   MOTIVOS_AJUSTE,
   NOTA_REPOSICION_CERRADA,
-  apartadoEn,
   argumentosDeAjuste,
   armarVariantesAjuste,
   candidatasDeHallazgo,
@@ -20,24 +19,24 @@ import {
   textoHallazgoConExceso,
   textoHallazgoSinResponder,
   cargaInicialAlPiso,
+  detalleDeTalla,
   leerResultadoAjuste,
   etiquetaCantidad,
   lineasDeAjuste,
   lugarDeAjuste,
+  minimoDeAjuste,
   modoDeAjuste,
   motivosAjusteDisponibles,
   pasarCantidades,
+  preguntaCantidades,
   repartirLineasAjuste,
   reposicionCerrada,
   soloDeLaPrenda,
   stockEn,
   TEXTO_AJUSTE_INCIERTO,
-  textoApartadoTalla,
-  textoBajoApartado,
-  textoCambioTalla,
   textoExitoAjuste,
-  textoNegativas,
-  textoPrendaNueva,
+  textoProblemaTalla,
+  textoStockTalla,
   textoTotalAjuste,
   type EleccionHallazgo,
   type FaltanteConteo,
@@ -48,6 +47,9 @@ import {
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { SelectorDeAjuste, type FilaDeAjuste } from "@/components/SelectorDeAjuste";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
@@ -67,7 +69,7 @@ import { firmar } from "@/lib/responsable-reglas";
 // hay; con los demás, cuánto se suma o se resta. Por eso el motivo va ANTES de las tallas: el número se escribe sabiendo
 // qué significa. Si el motivo cambia con cantidades ya escritas, cambian de forma pero no de resultado (`pasarCantidades`).
 
-// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPisoModal`).
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
@@ -188,8 +190,14 @@ export function AjustarInventarioModal({
   const lineas = lineasDeAjuste(variantes, cantidades, lugar, modo);
   const lineaDe = new Map(lineas.map((l) => [l.variante.varianteId, l]));
 
-  const negativas = lineas.filter((l) => l.resultado < 0);
-  const bajoApartado = lineas.filter((l) => l.resultado >= 0 && l.resultado < l.apartado);
+  // Lo que no se puede ajustar con lo escrito, por talla (stock negativo o por debajo de lo apartado): se dice en la fila de la
+  // talla, sin códigos, y mientras haya uno no se puede confirmar.
+  const problemaDe: Record<string, string> = {};
+  for (const l of lineas) {
+    const texto = textoProblemaTalla(l, modo);
+    if (texto) problemaDe[l.variante.varianteId] = texto;
+  }
+  const hayProblemas = Object.keys(problemaDe).length > 0;
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
   const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
   // Las sumas de prendas que faltaron en un conteo: a cada una se le pregunta «¿es la que faltó?».
@@ -197,6 +205,47 @@ export function AjustarInventarioModal({
   const candidataDe = new Map(candidatas.map((c) => [c.linea.variante.varianteId, c]));
   const hallazgos = resolverHallazgos(candidatas, elecciones);
   const nombreDe = (v: VarianteAjuste) => [v.talla, v.color].filter(Boolean).join(" / ") || "Única";
+  const varianteDe = new Map(variantes.map((v) => [v.varianteId, v]));
+
+  // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón. El motivo va primero porque decide qué significa el número de
+  // cada talla; no hace falta si lo único que se escribe son prendas nuevas en la tienda (entran como stock inicial, sin motivo).
+  const hayPregunta = hallazgos.sinResponder.length > 0 || hallazgos.conExceso.length > 0;
+  const guia = useGuiaCampos([
+    { id: "motivo", nombre: "Motivo", requerido: ajustes.length > 0 || lineas.length === 0, hecho: motivo !== "", pendiente: "Elige por qué ajustas." },
+    {
+      id: "cantidades",
+      nombre: "Cantidades",
+      requerido: true,
+      hecho: lineas.length > 0 && !hayProblemas && !hayPregunta,
+      pendiente:
+        lineas.length === 0
+          ? "Escribe qué cambia en alguna talla."
+          : hayProblemas
+            ? Object.values(problemaDe)[0]
+            : "Responde si es la prenda que faltó en el conteo.",
+    },
+    { id: "nota", nombre: "Observación", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
+    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién hace el ajuste." },
+  ]);
+
+  // Las filas del selector: la talla en voz de tienda (cuánto hay, cómo queda, lo apartado), nunca el código de la etiqueta.
+  const filas: FilaDeAjuste[] = variantes.map((v) => ({
+    varianteId: v.varianteId,
+    talla: v.talla ?? "Única",
+    principal: textoStockTalla(v, lugar, !hayPrenda),
+    detalle: detalleDeTalla({
+      variante: v,
+      linea: lineaDe.get(v.varianteId),
+      texto: cantidades[v.varianteId] ?? "",
+      modo,
+      lugar,
+      ubicado,
+      separaPisoAlmacen,
+      puedeBajarAlPiso,
+    }),
+    actual: stockEn(v, lugar),
+    minimo: minimoDeAjuste(v, lugar, modo),
+  }));
 
   // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
@@ -266,12 +315,8 @@ export function AjustarInventarioModal({
     }
     // Reenviar lo congelado no es un ajuste nuevo sino la pregunta «¿se guardó?»: el stock de la pantalla puede ya
     // incluir ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
-    if (!congelado && negativas.length > 0) {
-      setError(textoNegativas(negativas, modo));
-      return;
-    }
-    if (!congelado && bajoApartado.length > 0) {
-      setError(textoBajoApartado(bajoApartado[0], modo));
+    if (!congelado && hayProblemas) {
+      setError(Object.values(problemaDe)[0]);
       return;
     }
 
@@ -325,18 +370,12 @@ export function AjustarInventarioModal({
   }
 
   return (
-    <Modal
-      titulo="Ajustar inventario"
-      // El color va en el título: es lo que distingue esta prenda de las otras del mismo modelo en la lista de Existencias.
-      subtitulo={[referencia, colorPrenda].filter(Boolean).join(" · ")}
-      onClose={onClose}
-      ancho="max-w-md"
-      bloqueado={enviando}
-    >
+    <Modal titulo="Ajustar inventario" subtitulo="Corrige lo que hay de cada talla" onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
       {(cerrar) => (
-        <form onSubmit={onSubmit} className="mt-2 space-y-4">
+        // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
+        <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           {cargando ? (
-            <p className="text-sm text-tinta/65">Cargando variantes…</p>
+            <p className="text-sm text-tinta/65">Cargando las tallas…</p>
           ) : variantes.length === 0 ? (
             <p className="text-sm text-tinta/65">
               {hayPrenda
@@ -345,9 +384,16 @@ export function AjustarInventarioModal({
             </p>
           ) : (
             <>
+              {/* La prenda, como en «Reponer» y «Subir a almacén»: un puntito de su color, el nombre y el color. */}
+              <p className="flex items-center gap-2 text-[15px] text-tinta">
+                {prenda?.colorHex && <span aria-hidden className="h-4 w-4 shrink-0 rounded-full border border-tinta/15" style={{ background: prenda.colorHex }} />}
+                <span className="font-semibold">{referencia}</span>
+                {colorPrenda && <span className="text-taupe">{colorPrenda}</span>}
+              </p>
+
               {separaPisoAlmacen && (
                 <Segmentado
-                  etiqueta="Dónde se ajusta"
+                  etiqueta="¿Dónde ajustas?"
                   valor={ubicado}
                   onValor={(v) => !congelado && cambiarUbicado(v)}
                   opciones={[
@@ -358,133 +404,115 @@ export function AjustarInventarioModal({
               )}
 
               {/* Antes de las tallas: el motivo decide qué se escribe en ellas (contado o suma/resta). */}
-              <CampoSelect etiqueta="Motivo" valor={motivo} onValor={cambiarMotivo} opciones={motivos} marcador="Elegir motivo" />
+              <CampoGuiado id="motivo" guia={guia}>
+                <CampoSelect etiqueta={guia.etiqueta("motivo", "¿Por qué ajustas?")} valor={motivo} onValor={cambiarMotivo} opciones={motivos} marcador="Elige un motivo" />
+              </CampoGuiado>
 
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  {/* El total del lugar, con lo apartado aparte: lo libre es la cifra de la fila de Existencias. */}
-                  <p className="text-xs tabular-nums text-tinta/65" aria-live="polite">
-                    {textoTotalAjuste(variantes, lugar)}
-                  </p>
-                  {/* Qué se escribe en cada talla. Los dos rótulos se apilan en la misma celda y mide siempre lo del más
-                      largo: cambiar el motivo no mueve las tallas (ADR-0185). */}
-                  <p className="label-cayla ml-auto grid text-right text-[11px] text-tinta/55">
-                    {(["diferencia", "contado"] as const).map((m) => (
-                      <span key={m} className={`[grid-area:1/1] ${m === modo ? "" : "invisible"}`} aria-hidden={m !== modo || undefined}>
-                        {etiquetaCantidad(m, lugar)}
-                      </span>
-                    ))}
-                  </p>
-                </div>
-                {variantes.map((v) => {
-                  const actual = stockEn(v, lugar);
-                  const linea = lineaDe.get(v.varianteId);
-                  const nombre = nombreDe(v);
-                  const candidata = candidataDe.get(v.varianteId);
-                  const eleccion = elecciones[v.varianteId];
-                  return (
-                    <div key={v.varianteId} className="border-b border-tinta/10 pb-2">
-                      <div className="flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-tinta">{nombre}</p>
-                        <p className="font-mono text-[11px] text-tinta/55">
-                          {v.sku} · stock {actual}
-                          {textoCambioTalla(linea, modo)}
-                          {textoApartadoTalla(apartadoEn(v, lugar), modo)}
+              {/* El total del lugar va junto a la pregunta, con lo apartado aparte: lo libre es la cifra de la fila de Existencias. */}
+              <CampoGuiado id="cantidades" guia={guia} titulo={preguntaCantidades(modo, lugar)} ayuda={textoTotalAjuste(variantes, lugar)} retiene="fila">
+                <SelectorDeAjuste
+                  filas={filas}
+                  textos={cantidades}
+                  modo={modo}
+                  etiquetaControl={etiquetaCantidad(modo, lugar)}
+                  problemas={problemaDe}
+                  bloqueado={congelado || enviando}
+                  onTexto={(varianteId, texto) => setCantidades((previas) => ({ ...previas, [varianteId]: texto }))}
+                  extra={(varianteId) => {
+                    // La prenda que faltó en un conteo cerrado y hoy se suma: se pregunta si es esa (el ajuste queda enlazado a ese conteo).
+                    const candidata = candidataDe.get(varianteId);
+                    const variante = varianteDe.get(varianteId);
+                    if (!candidata || !variante) return null;
+                    const eleccion = elecciones[varianteId];
+                    return (
+                      <div className="mt-2 space-y-1.5 rounded-lg bg-hueso px-3 py-2.5" role="group" aria-label={`Faltante de conteo · ${nombreDe(variante)}`}>
+                        <p className="text-xs text-tinta">
+                          {textoFaltanteConteo(candidata.faltante)} <b className="font-medium">¿Es la que se encontró?</b>
                         </p>
-                        {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
-                      </div>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        step={1}
-                        // Al contar, vacío es «no la conté» (no cambia): el marcador no puede decir 0.
-                        min={modo === "contado" ? 0 : undefined}
-                        placeholder={modo === "contado" ? "—" : "0"}
-                        aria-label={`${etiquetaCantidad(modo, lugar)} · ${nombre}`}
-                        value={cantidades[v.varianteId] ?? ""}
-                        disabled={congelado}
-                        onChange={(e) => setCantidades((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
-                        className="w-20 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-right text-sm text-tinta outline-none focus:border-rojo"
-                      />
-                      </div>
-                      {/* La prenda que faltó en un conteo cerrado y hoy se suma: se pregunta si es esa (el ajuste queda enlazado a ese conteo). */}
-                      {candidata && (
-                        <div className="mt-2 space-y-1.5 rounded-lg bg-hueso px-3 py-2.5" role="group" aria-label={`Faltante de conteo · ${nombre}`}>
-                          <p className="text-xs text-tinta">
-                            {textoFaltanteConteo(candidata.faltante)} <b className="font-medium">¿Es la que se encontró?</b>
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {(
-                              [
-                                { valor: "si", texto: `Sí, es la del Conteo ${candidata.faltante.conteoNumero}` },
-                                { valor: "no", texto: "No, es otra cosa" },
-                              ] as const
-                            ).map((o) => (
-                              <button
-                                key={o.valor}
-                                type="button"
-                                aria-pressed={eleccion === o.valor}
-                                disabled={congelado}
-                                onClick={() => setElecciones((prev) => ({ ...prev, [v.varianteId]: o.valor }))}
-                                className={`btn-cayla h-8 text-xs ${eleccion === o.valor ? "btn-primario" : "btn-secundario"}`}
-                              >
-                                {o.texto}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(
+                            [
+                              { valor: "si", texto: `Sí, es la del Conteo ${candidata.faltante.conteoNumero}` },
+                              { valor: "no", texto: "No, es otra cosa" },
+                            ] as const
+                          ).map((o) => (
+                            <button
+                              key={o.valor}
+                              type="button"
+                              aria-pressed={eleccion === o.valor}
+                              disabled={congelado}
+                              onClick={() => setElecciones((previas) => ({ ...previas, [varianteId]: o.valor }))}
+                              className={`btn-cayla h-8 text-xs ${eleccion === o.valor ? "btn-primario" : "btn-secundario"}`}
+                            >
+                              {o.texto}
+                            </button>
+                          ))}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      </div>
+                    );
+                  }}
+                />
+              </CampoGuiado>
 
-              {/* SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén, a la vista en Piso.
-                  Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
-              {separaPisoAlmacen && (
-                <p className={`nota-cayla ${cerrada ? "" : "invisible"}`} role="status" aria-hidden={!cerrada || undefined}>
+              {/* Solo en el piso de una tienda que separa piso y almacén (ahí «Reposición» está cerrada). La hoja va anclada arriba, así que
+                  que aparezca o desaparezca no mueve las pestañas «Almacén / Piso» bajo el mouse (ADR-0185). */}
+              {cerrada && (
+                <p className="nota-cayla" role="status">
                   {NOTA_REPOSICION_CERRADA}
                 </p>
               )}
 
-              <CampoTexto
-                etiqueta="Observación (opcional)"
-                value={nota}
-                disabled={congelado}
-                onChange={(e) => setNota(e.target.value)}
-                maxLength={200}
-                placeholder="Detalle libre del ajuste"
-              />
+              <CampoGuiado id="nota" guia={guia}>
+                <CampoTexto
+                  etiqueta={guia.etiqueta("nota", "Observación (opcional)")}
+                  value={nota}
+                  disabled={congelado}
+                  onChange={(e) => setNota(e.target.value)}
+                  maxLength={200}
+                  placeholder="Detalle libre del ajuste"
+                />
+              </CampoGuiado>
             </>
           )}
 
-          <div className="min-h-[1rem] text-xs text-rojo">{error}</div>
-
           {lineas.length > 0 && (
-            <button
-              type="button"
-              onClick={descargarReporte}
-              className="label-cayla -mt-2 text-[11px] text-tinta/55 hover:text-rojo"
-            >
+            <button type="button" onClick={descargarReporte} className="label-cayla text-[11px] text-tinta/55 hover:text-rojo">
               Descargar reporte de este ajuste
             </button>
           )}
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </CampoGuiado>
+
+          {error && (
+            <p role="alert" className="text-sm text-rojo-profundo">
+              {error}
+            </p>
+          )}
+
+          {!cargando && variantes.length > 0 && <PieGuia guia={guia} listo="Todo listo para ajustar." />}
 
           {/* `pie-hoja-fijo`: Cancelar y Confirmar no se van bajo el pliegue en un laptop de 768 px de alto (globals.css). */}
           <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <Boton type="button" onClick={cerrar} className="flex-1">
+            <Boton type="button" onClick={cerrar} disabled={enviando} className="flex-1">
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
               cargando={enviando}
-              disabled={cargando || variantes.length === 0 || !responsable.listo}
-              title={responsable.motivo ?? undefined}
-              className="flex-1"
+              disabled={
+                cargando ||
+                variantes.length === 0 ||
+                !responsable.listo ||
+                lineas.length === 0 ||
+                (ajustes.length > 0 && !motivo) ||
+                hayProblemas ||
+                (!congelado && hayPregunta)
+              }
+              title={responsable.motivo ?? guia.frase ?? undefined}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
               Confirmar
             </Boton>

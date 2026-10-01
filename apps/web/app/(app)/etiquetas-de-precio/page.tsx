@@ -12,7 +12,7 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
 //   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237), las marcadas en la Tabla de
 //     Productos o la impresora de UNA talla (Tabla y Grilla); con `?desde=` de Productos el encabezado habla de Productos.
-// La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado (paso 2, ADR-0182).
+// La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado exacto (ADR-0180 paso 2, ADR-0302).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
 // `exigirModulo`. Lo que cuida los datos es la base: `movimientos_select` y `stock_select` solo dejan ver lo de las

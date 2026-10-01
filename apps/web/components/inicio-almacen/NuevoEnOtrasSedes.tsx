@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { formatoSoles } from "@/lib/resumen-formato";
-import { ayudaNuevos, chipsNuevos, filtrarNuevos, notaEnMiSede, type FiltroNuevos, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
+import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosProducto, notaEnMiSede, type FiltroNuevos, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
 import { Ico, PrendaSinFoto } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
@@ -180,11 +180,11 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
         </div>
       </div>
       <div className="ia-ac2">
-        <Link className="ia-mini" href={`/productos/${p.id}`}>
+        <Link className="ia-mini" href={hrefFichaProducto(p.id)}>
           Ver ficha
         </Link>
         {!p.fotoUrl && puedeEditar && (
-          <Link className="ia-mini ia-foto" href={`/productos/${p.id}/editar`}>
+          <Link className="ia-mini ia-foto" href={hrefFotosProducto(p.id)}>
             <Ico clave="camera" />
             Tomar foto
           </Link>
