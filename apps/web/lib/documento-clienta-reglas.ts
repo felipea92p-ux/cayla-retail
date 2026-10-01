@@ -73,11 +73,17 @@ export function documentoLegible(tipo: TipoDocumentoClienta, numero: string | nu
 }
 
 /**
- * Qué documento lleva el comprobante de una venta a esta clienta. Hoy el comprobante solo acepta DNI (y RUC en factura):
- * un carné o un pasaporte salen como «sin documento» con su nombre, igual que la boleta de una extranjera hasta ahora. La
- * tanda 1e (comprobante con carné y pasaporte, OK de Felipe, ADR-0288 D-3) cambia solo esta función.
+ * Qué documento lleva la boleta de una venta a esta clienta: el de su ficha, con su tipo. Desde la tanda 1e (ADR-0288 D-3,
+ * OK de Felipe) el comprobante acepta DNI, carné de extranjería y pasaporte, y a Lucode viajan con el catálogo 06 de SUNAT
+ * («1», «4», «7»: `documento-comprobante-reglas.ts`). Un número que no cumple el formato de su tipo (una ficha vieja, de
+ * antes del candado de la 1a) no pasa: esa boleta sale «sin documento» con su nombre, en vez de frenar la venta.
  */
-export function documentoParaComprobante(tipo: TipoDocumentoClienta, numero: string | null): string | null {
+export function documentoParaComprobante(
+  tipo: TipoDocumentoClienta,
+  numero: string | null
+): { tipo: TipoDocumentoClienta; numero: string } | null {
   if (!numero) return null;
-  return tipo === "dni" ? numero : null;
+  const limpio = normalizarNumeroDocumento(numero);
+  if (!limpio || problemaDocumento(tipo, limpio)) return null;
+  return { tipo, numero: limpio };
 }

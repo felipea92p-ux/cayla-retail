@@ -20,6 +20,7 @@ import type { CampanaLinea } from "@/lib/vender-reglas";
 import { ordenTalla } from "@/lib/catalogo-grupos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
+import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -55,7 +56,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -76,6 +77,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Las ventas de hoy de esta sede: la píldora «Hoy» de la cabecera y su lista (spike 2026-09-26). Secundario: si
     // falla, la caja vende igual y la lista lo dice. Siempre esta sede, no un consolidado (para eso está Facturación).
     supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: persona.ubicacionId }),
+    // El club (ADR-0288, tanda 1b): el texto que la asesora lee al invitar, los mensajes de los QR y el WhatsApp de esta
+    // tienda. Secundario: si falla (o la migración no está en producción), Cobrar no invita ni imprime QR y vende igual.
+    supabase.rpc("fn_club_textos_vigentes"),
+    supabase.from("ubicaciones").select("whatsapp_numero").eq("id", persona.ubicacionId).maybeSingle(),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -183,6 +188,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   };
 
   const ventasHoy = tolerar(resVentasHoy, "las ventas de hoy");
+  const club = clubDeLaCaja(resTextosClub.error ? null : resTextosClub.data, resWhatsappTienda.error ? null : resWhatsappTienda.data?.whatsapp_numero);
   const modulos = persona.modulos.map((m) => m.clave);
   // Proformas vive en Facturación, que además de su módulo pide el poder «facturar» (`exigirPermiso`).
   const puedeProforma = puede(persona, "facturar");
@@ -212,6 +218,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
       // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
       puedeBuscarClienta={modulos.includes("clientas")}
+      club={club}
     />
   );
 }

@@ -42,6 +42,35 @@ describe("armarRecibo — lo que se imprime sale de la venta que se cobró", () 
   });
 });
 
+// ADR-0288 D-5: con el cumpleaños, cada línea trae su descuento TOTAL (campaña + club, el de `venta_items`) y el papel dice
+// cuánto de eso es del club. El total del papel es el que se cobró.
+describe("armarRecibo con el cumpleaños del club", () => {
+  const conCumple = (cumple: { pct: number; monto: number } | null) =>
+    armarRecibo({
+      comprobante,
+      sede: "Tienda Lima",
+      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
+      // 79.90 con campaña 16.00 + club 6.39 = 22.39; 79.90 con club 7.99.
+      lineas: [
+        { cantidad: 1, referencia: "Blusa Aurora", codigo: null, precioUnitario: 79.9, descuentoUnitario: 22.39 },
+        { cantidad: 1, referencia: "Falda Lía", codigo: null, precioUnitario: 79.9, descuentoUnitario: 7.99 },
+      ],
+      pagos: [{ metodo: "yape", monto: 129.42 }],
+      tasaIgv: 0.18,
+      cumple,
+    });
+
+  it("el total es lo cobrado, y el papel sabe cuánto fue del club", () => {
+    const r = conCumple({ pct: 10, monto: 14.38 });
+    expect(r.total).toBe(129.42);
+    expect(r.cumple).toEqual({ pct: 10, monto: 14.38 });
+  });
+  it("sin canje (o con un monto en 0) no dice nada del cumpleaños", () => {
+    expect(conCumple(null).cumple).toBeNull();
+    expect(conCumple({ pct: 10, monto: 0 }).cumple).toBeNull();
+  });
+});
+
 describe("textoNumeroRecibo", () => {
   it("serie y número de 6 dígitos", () => {
     expect(textoNumeroRecibo({ serie: "B001", numero: 2 })).toBe("B001-000002");
@@ -76,6 +105,13 @@ describe("textoQrSunat — el orden que pide SUNAT", () => {
   it("factura con RUC", () => {
     const f = { ...base, tipo: "factura" as const, serie: "F001", cliente: { tipoDoc: "ruc" as const, numDoc: "20555555551", nombre: "ACME SAC" } };
     expect(textoQrSunat(f, "20123456789")).toBe("20123456789|01|F001|00000002|18.00|118.00|2026-09-18|6|20555555551|");
+  });
+  // ADR-0288 D-3 (tanda 1e): catálogo 06 de SUNAT, el mismo código que viaja a Lucode.
+  it("boleta a un carné de extranjería: «4»; a un pasaporte: «7»", () => {
+    const ce = { ...base, cliente: { tipoDoc: "carne_extranjeria" as const, numDoc: "001234567", nombre: "Ana" } };
+    const pas = { ...base, cliente: { tipoDoc: "pasaporte" as const, numDoc: "AB123456", nombre: "Ana" } };
+    expect(textoQrSunat(ce, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|4|001234567|");
+    expect(textoQrSunat(pas, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|7|AB123456|");
   });
   it("boleta sin documento usa «-»", () => {
     const s = { ...base, cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null } };
@@ -145,6 +181,14 @@ describe("armarRecibo — quién atendió", () => {
 
   it("sin dato queda en null: no se inventa a nadie", () => {
     expect(armarRecibo(entrada).atendio).toBeNull();
+  });
+
+  // ADR-0288 tanda 1b: el QR del club viaja tal cual lo armó `clubEnElTicket`; sin él (sin número de tienda, o una
+  // reimpresión desde el historial) el ticket sale como antes.
+  it("lleva el QR del club si la caja lo armó, y null si no", () => {
+    const club = { enlace: "https://wa.me/51987654321?text=Hola", titulo: "Club CAYLA", linea: "¿Novedades por WhatsApp?" };
+    expect(armarRecibo({ ...entrada, club }).club).toEqual(club);
+    expect(armarRecibo(entrada).club).toBeNull();
   });
 });
 

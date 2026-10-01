@@ -99,8 +99,9 @@ export async function getFuentesAvisos(
     ve("devoluciones")
       ? contar("las devoluciones pendientes", supabase.from("devoluciones").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("estado", "pendiente"))
       : undefined,
+    // Solo «buscó y no había»: «se la probó y no la llevó» (misma tabla, ADR-0288 D-6) es demanda, no un pedido que alguien espera.
     ve("vender")
-      ? contar("los pedidos no atendidos", supabase.from("pedidos_no_atendidos").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("resuelto", false))
+      ? contar("los pedidos no atendidos", supabase.from("pedidos_no_atendidos").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("resuelto", false).eq("motivo", "no_habia_talla"))
       : undefined,
     ve("conteos")
       ? contar("el conteo abierto", supabase.from("conteos").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("estado", "abierto")).then((n) => (n === null ? null : n > 0))

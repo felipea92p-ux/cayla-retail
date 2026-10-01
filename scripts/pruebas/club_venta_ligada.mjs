@@ -31,9 +31,11 @@
  *      conserva los suyos.
  *   f. Estructura: una sola firma de `registrar_clienta`, `editar_clienta` y `registrar_venta`; los ayudantes sin EXECUTE
  *      para la API; ninguna función de `retail` (salvo `separar_prendas`) nombra `clientas.dni` (y el vigilante muerde); los
- *      md5 «después» de la sección 0 de la migración son los de las funciones vivas, y las dos nuevas son las del archivo.
- *   g. Pegado: pegarla otra vez deja todo igual (funciones, columnas, candados e índices); con una de las funciones que
- *      guarda cambiada en vivo, aborta con un mensaje claro y no pisa nada.
+ *      md5 «después» de la sección 0 de la migración son los de las funciones vivas (con los de la tanda 1b, 20260930200000,
+ *      en las tres que la 1b volvió a cambiar), y las dos firmas que creó esta migración ya no existen: la 1b las reemplazó,
+ *      y el «antes» que escribió para ellas es el md5 de sus cuerpos en este archivo.
+ *   g. Pegado: con la 1b encima, pegar esta migración otra vez aborta con un mensaje claro y no pisa nada (la idempotencia y
+ *      el candado con una función cambiada en vivo los prueba ahora club_permisos.mjs, sobre la 1b).
  *   h. Dos cajas a la vez, en dos conexiones reales (ROLLBACK): (h1) registran el mismo DNI y la segunda espera en el alta
  *      (el único `(documento_tipo, documento_numero)`) en vez de crear otra ficha; (h1b) una une dos fichas mientras la otra
  *      vende a la que se va, y la venta espera en la LECTURA de la ficha (`for key share`), antes de decidir a cuál se liga.
@@ -84,8 +86,50 @@ if (VERSIONES.length !== 6) {
   process.exit(1);
 }
 const REGISTRAR_VENTA = VERSIONES.find((v) => v.firma.startsWith("retail.registrar_venta(")).firma;
+// Las dos firmas que creó ESTA migración. La tanda 1b las soltó: ya no existen.
 const REGISTRAR_NUEVA = "retail.registrar_clienta(text,text,text,text,boolean,smallint,smallint)";
 const EDITAR_NUEVA = "retail.editar_clienta(uuid,text,text,text,text,boolean,boolean,smallint,smallint,jsonb,integer)";
+
+// La tanda 1b del club (ADR-0288, 20260930200000) volvió a cambiar buscar_clienta, archivar_clienta y unir_clientas, y
+// reemplazó las dos firmas de arriba (perdieron p_acepta_whatsapp/p_revoca_whatsapp y ganaron p_cumple_anio). Su tabla de
+// versiones: firma → «antes» y «después» (null = que la firma no exista). Lo que esta prueba mira del documento con tipo,
+// la venta ligada y CL-27 sigue igual con las funciones de la 1b; lo que ya no se puede es pegar ESTA migración encima
+// (su candado lo impide, a propósito: ver la sección g).
+const PASO_1B = ["20260930200000_club_paso1b_parte1_whatsapp_tienda.sql", "20260930200100_club_paso1b_parte2_permisos_y_qr.sql"].map((n) => readFileSync(join(RAIZ, "supabase", "migrations", n), "utf8")).join("\n");
+const VERSIONES_1B = [
+  ...PASO_1B.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+// La cadena no se corta: lo que la 1b dice que había antes es lo que dejó esta migración.
+const cortadas1b = VERSIONES.filter((v) => VERSIONES_1B.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).length !== 3 || cortadas1b.length) {
+  console.error(
+    `✗ La tabla de versiones de la 1b debería repetir 3 firmas de esta migración con su «después» como «antes»; no calzan: ${cortadas1b.map((v) => v.firma).join(", ") || "(faltan firmas)"}.`
+  );
+  process.exit(1);
+}
+// La tanda 1c del club (ADR-0288 D-5, 20260930230200) cambió la firma de registrar_venta: soltó la de 16 parámetros (la que
+// esta migración dejó) y creó la de 17 (con p_canjear_cumpleanos), partiendo de su cuerpo vivo. Su tabla de versiones, igual
+// que la de la 1b.
+const PASO_1C = readFileSync(join(RAIZ, "supabase", "migrations", "20260930230200_club_paso1c_parte3_cumpleanos.sql"), "utf8");
+const VERSIONES_1C = [
+  ...PASO_1C.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const cortadas1c = VERSIONES.filter((v) => VERSIONES_1C.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (!VERSIONES_1C.some((w) => w.firma === REGISTRAR_VENTA) || cortadas1c.length) {
+  console.error(`✗ La tabla de versiones de la 1c debería tener la firma de registrar_venta de esta migración con su «después» como «antes».`);
+  process.exit(1);
+}
+/** La registrar_venta que vive HOY: la que creó la 1c. */
+const REGISTRAR_VENTA_HOY = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
+/** El md5 que cada firma tiene que tener HOY: el «después» de la última tanda que la tocó (1c, 1b), o el de esta migración. */
+const despuesHoy = (firma, despues) => {
+  const c = VERSIONES_1C.find((x) => x.firma === firma);
+  const b = VERSIONES_1B.find((x) => x.firma === firma);
+  return (c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
+};
+// Las firmas de registrar_clienta y editar_clienta que viven hoy (las de la 1b).
+const REGISTRAR_HOY = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
+const EDITAR_HOY = "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)";
 
 /** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo. */
 const cuerpoDe = (inicio) => {
@@ -351,7 +395,7 @@ caso(
 caso(
   "(c) …y editar_clienta rechaza igual (y la ficha queda como estaba)",
   como(FELIPE) + ALTA("f", { numero: "90880301", nombre: "Club Edita Mal Prueba" }) +
-    intentoCon(`select retail.editar_clienta(%L, 'dni', '9088030', 'Club Edita Mal Prueba', null, false, false, null, null, null, null)`, ":'f'") +
+    intentoCon(`select retail.editar_clienta(%L, 'dni', '9088030', 'Club Edita Mal Prueba', null, null, null, null, null, null)`, ":'f'") +
     `reset role;\nselect documento_tipo || ':' || documento_numero from retail.clientas where id = :'f';\n`,
   `${INVALIDO}\ndni:90880301`
 );
@@ -439,7 +483,7 @@ caso(
   SEDE() + como(FELIPE) +
     ALTA("e", { nombre: "Club Editada Prueba", celular: "987880801" }) +
     VENDER("venta", { tipoDoc: "'dni'", num: "'90880801'" }) +
-    `select retail.editar_clienta(:'e', 'dni', '90880801', 'Club Editada Prueba', '987880801', false, false, null, null, null, null) as _v \\gset
+    `select retail.editar_clienta(:'e', 'dni', '90880801', 'Club Editada Prueba', '987880801', null, null, null, null, null) as _v \\gset
 reset role;
 select (select cliente_id = :'e'::uuid from retail.ventas where id::text = :'venta'),
        (select detalle ->> 'ventas_ligadas' from retail.actividad where modulo = 'clientas' and accion = 'editar' and registro_id = :'e');
@@ -451,10 +495,10 @@ caso(
   como(FELIPE) +
     ALTA("a", { numero: "90880901", nombre: "Club Dueña Prueba" }) +
     ALTA("b", { numero: "90880902", nombre: "Club Otra Prueba" }) +
-    intentoCon(`select retail.editar_clienta(%L, 'dni', '90880901', 'Club Otra Prueba', null, false, false, null, null, null, null)`, ":'b'") +
+    intentoCon(`select retail.editar_clienta(%L, 'dni', '90880901', 'Club Otra Prueba', null, null, null, null, null, null)`, ":'b'") +
     `reset role;\nselect documento_tipo || ':' || documento_numero from retail.clientas where id = :'b';\n` +
     como(FELIPE) +
-    intentoCon(`select retail.editar_clienta(%L, 'pasaporte', '90880901', 'Club Otra Prueba', null, false, false, null, null, null, null)`, ":'b'"),
+    intentoCon(`select retail.editar_clienta(%L, 'pasaporte', '90880901', 'Club Otra Prueba', null, null, null, null, null, null)`, ":'b'"),
   "23505|documento_de_otra_ficha\ndni:90880902\nSIN_ERROR"
 );
 
@@ -499,8 +543,8 @@ caso(
   "(f) una sola firma de registrar_clienta, editar_clienta y registrar_venta; la de registrar_clienta empieza por el tipo y el número",
   `select string_agg(p.proname || '=' || (select count(*) from pg_proc q where q.pronamespace = p.pronamespace and q.proname = p.proname), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('registrar_clienta', 'editar_clienta', 'registrar_venta');
-select pg_get_function_identity_arguments('${REGISTRAR_NUEVA}'::regprocedure) ~ '^p_documento_tipo text, p_documento_numero text,',
-       pg_get_function_identity_arguments('${EDITAR_NUEVA}'::regprocedure) ~ '^p_id uuid, p_documento_tipo text, p_documento_numero text,';
+select pg_get_function_identity_arguments('${REGISTRAR_HOY}'::regprocedure) ~ '^p_documento_tipo text, p_documento_numero text,',
+       pg_get_function_identity_arguments('${EDITAR_HOY}'::regprocedure) ~ '^p_id uuid, p_documento_tipo text, p_documento_numero text,';
 `,
   "editar_clienta=1,registrar_clienta=1,registrar_venta=1\nt|t"
 );
@@ -509,8 +553,8 @@ caso(
   "(f) los dos ayudantes no los ejecuta nadie de la API (ni anon, ni authenticated, ni PUBLIC); las dos RPC, solo authenticated",
   `select ${AYUDANTES.map((f) => `has_function_privilege('anon', '${f}', 'execute'), has_function_privilege('authenticated', '${f}', 'execute')`).join(", ")};
 select bool_or(a.grantee = 0) from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
- where p.oid in (${[...AYUDANTES, REGISTRAR_NUEVA, EDITAR_NUEVA].map((f) => `'${f}'::regprocedure`).join(", ")}) and a.privilege_type = 'EXECUTE';
-select ${[REGISTRAR_NUEVA, EDITAR_NUEVA].map((f) => `has_function_privilege('authenticated', '${f}', 'execute'), has_function_privilege('anon', '${f}', 'execute')`).join(", ")};
+ where p.oid in (${[...AYUDANTES, REGISTRAR_HOY, EDITAR_HOY].map((f) => `'${f}'::regprocedure`).join(", ")}) and a.privilege_type = 'EXECUTE';
+select ${[REGISTRAR_HOY, EDITAR_HOY].map((f) => `has_function_privilege('authenticated', '${f}', 'execute'), has_function_privilege('anon', '${f}', 'execute')`).join(", ")};
 `,
   "f|f|f|f\nf\nt|f|t|f"
 );
@@ -539,14 +583,15 @@ end $fn$;
   "zz_lee_dni"
 );
 caso(
-  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen), y las dos nuevas son las del archivo",
+  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la 1b en las tres que la 1b volvió a cambiar, y registrar_venta de 16 ya no existe: la 1c la reemplazó); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join("") +
-    `select ${md5Norm("prosrc")} = ${md5Norm(`$cuerpo_1a$${CUERPO_REGISTRAR}$cuerpo_1a$`)} from pg_proc where oid = '${REGISTRAR_NUEVA}'::regprocedure;
-select ${md5Norm("prosrc")} = ${md5Norm(`$cuerpo_1a$${CUERPO_EDITAR}$cuerpo_1a$`)} from pg_proc where oid = '${EDITAR_NUEVA}'::regprocedure;
+    `select to_regprocedure('${REGISTRAR_NUEVA}') is null and to_regprocedure('${EDITAR_NUEVA}') is null;
+select ${md5Norm(`$cuerpo_1a$${CUERPO_REGISTRAR}$cuerpo_1a$`)} = '${VERSIONES_1B.find((w) => w.firma === REGISTRAR_NUEVA)?.antes}',
+       ${md5Norm(`$cuerpo_1a$${CUERPO_EDITAR}$cuerpo_1a$`)} = '${VERSIONES_1B.find((w) => w.firma === EDITAR_NUEVA)?.antes}';
 `,
-  [...VERSIONES.map((v) => v.despues ?? "NO_EXISTE"), "t", "t"].join("\n")
+  [...VERSIONES.map((v) => despuesHoy(v.firma, v.despues)), "t", "t|t"].join("\n")
 );
 caso(
   "(f) el esquema: sin columna dni, con documento_tipo 'dni' por defecto, los dos candados validados y el único parcial por (tipo, número)",
@@ -564,12 +609,17 @@ select string_agg(replace(indexdef, 'retail.', ''), ',') from pg_indexes
 // =====================================================================================================================
 // g. Pegado
 // =====================================================================================================================
-// Solo pegarla otra vez, sobre la base con la migración ya aplicada: el pegado sobre el estado de ANTES (main = producción)
-// lo hace el propio CI al levantar la base con todas las migraciones, y el candado de versión de la sección 0 exige que ese
-// estado sea el que se revisó.
-// Una foto de todo lo que la migración toca: cuerpo y permisos de las 10 funciones, columnas (con default y comentario),
-// candados e índices de `clientas`. Una línea: su md5. Y aparte, cuántas veces está el bloque D-1 en registrar_venta.
-const FUNCIONES_1A = [...VERSIONES.map((v) => v.firma), REGISTRAR_NUEVA, EDITAR_NUEVA, ...AYUDANTES];
+// POR QUÉ ESTA SECCIÓN CAMBIÓ CON LA TANDA 1b (20260930200000). Hasta la 1b, aquí se pegaba esta migración otra vez sobre la
+// base que ya la tenía (idempotencia) y con una función cambiada en vivo (el candado). Con la 1b encima, pegar esta migración
+// otra vez YA NO debe funcionar: su candado ve buscar_clienta, archivar_clienta y unir_clientas con el md5 de la 1b (ni su
+// «antes» ni su «después») y aborta. Es lo correcto: si pasara, crearía otra vez sus firmas de registrar_clienta y
+// editar_clienta al lado de las de la 1b (dos sobrecargas) y le devolvería a la ficha el interruptor de WhatsApp que la ley
+// no deja. La idempotencia y el candado de la 1b los prueba scripts/pruebas/club_permisos.mjs (sección l).
+// Lo que queda aquí: que pegar HOY esta migración por error aborta con un mensaje claro y no pisa nada.
+// Una foto de todo lo que la migración toca: cuerpo y permisos de las funciones (las de hoy), columnas (con default y
+// comentario), candados e índices de `clientas`. Una línea: su md5. Y aparte, cuántas veces está el bloque D-1 en
+// registrar_venta.
+const FUNCIONES_1A = [...VERSIONES.map((v) => v.firma), REGISTRAR_HOY, EDITAR_HOY, ...AYUDANTES];
 const FOTO = `reset role;
 select md5(string_agg(x, '|' order by x)) from (
   select p.oid::regprocedure::text || '=' || md5(p.prosrc) || ':' || coalesce(array_to_string(p.proacl, ','), '')
@@ -584,43 +634,28 @@ select md5(string_agg(x, '|' order by x)) from (
   union all
   select 'idx:' || indexdef from pg_indexes where schemaname = 'retail' and tablename = 'clientas'
 ) f(x);
-select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-1', ''))) / length('ADR-0288 D-1') from pg_proc where oid = '${REGISTRAR_VENTA}'::regprocedure;
+select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-1', ''))) / length('ADR-0288 D-1') from pg_proc where oid = '${REGISTRAR_VENTA_HOY}'::regprocedure;
+select string_agg(p.oid::regprocedure::text, ',' order by p.proname) from pg_proc p
+ where p.pronamespace = 'retail'::regnamespace and p.proname in ('registrar_clienta', 'editar_clienta');
 `;
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
 caso(
-  "(g) pegarla otra vez deja todo igual: funciones, permisos, columnas, candados e índices (y el bloque D-1 una sola vez en registrar_venta)",
-  FOTO + PEGAR + FOTO,
-  (s) => {
-    // Sin las líneas vacías que imprimen los `select` de la migración (sus reemplazos anclados devuelven void).
-    const l = s.split("\n").filter(Boolean);
-    return l.length === 4 && l[0] === l[2] && l[1] === "1" && l[3] === "1";
-  }
-);
-// Una función cambiada en vivo (md5 que no es ni «antes» ni «después»): la migración aborta con un mensaje claro y no pisa.
-const CAMBIADA_EN_VIVO = `reset role;
-create or replace function retail.buscar_clienta(p_termino text, p_incluir_archivadas boolean default false)
-returns setof retail.clientas language sql stable security definer set search_path = retail, public, extensions as $q$
-  select retail.fn_exigir_modulo('clientas');
-  select * from retail.clientas where nullif(btrim(p_termino), '') is not null and documento_numero = btrim(p_termino) limit 5;
-$q$;
-`;
-caso(
-  "(g) candado de versión: con buscar_clienta cambiada en vivo, la migración aborta con un mensaje claro",
-  CAMBIADA_EN_VIVO + PEGAR,
+  "(g) pegar HOY esta migración (con la 1b encima) aborta con un mensaje claro: buscar_clienta ya es la de la 1b",
+  PEGAR,
   (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("retail.buscar_clienta(text,boolean) cambió desde que se escribió esta migración")
 );
 caso(
-  "(g) …y no pisa NADA: esa función sigue con su cambio y lo demás queda como estaba",
+  "(g) …y no pisa NADA: funciones, permisos, columnas, candados e índices como estaban, el bloque D-1 una sola vez en registrar_venta y una sola firma (la de la 1b) de registrar_clienta y de editar_clienta",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y la foto lo delata.
-  CAMBIADA_EN_VIVO + FOTO +
+  FOTO +
     `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${MIGRACION}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
-    FOTO +
-    `select position('limit 5' in prosrc) > 0 from pg_proc where oid = 'retail.buscar_clienta(text,boolean)'::regprocedure;\n`,
+    FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
-    return l.length === 5 && l[0] === l[2] && l[1] === "1" && l[3] === "1" && l[4] === "t";
+    const firmas = `${EDITAR_HOY.slice(7)},${REGISTRAR_HOY.slice(7)}`;
+    return l.length === 6 && l[0] === l[3] && l[1] === "1" && l[4] === "1" && l[2] === firmas && l[5] === firmas;
   }
 );
 
