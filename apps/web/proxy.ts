@@ -29,10 +29,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // La página pública del QR de una socia (`/club/<token>`, ADR-0288 act. c): la abre una clienta sin cuenta. Pasa
-  // antes de tocar la sesión —ni la pide ni la refresca— y antes de la barrera de CAYLA Global (un aparato de la
-  // tienda con la cookie «global» la abriría igual). También su acción de servidor, que viaja como POST a esa misma
-  // ruta y se valida sola (`app/actions/club.ts`). Solo `/club/<token>`: ver `lib/rutas-publicas.ts`.
+  // Las páginas públicas del Club CAYLA (ADR-0288 act. g): el registro de cada tienda (`/club/<uuid>`, al que llevan el QR
+  // del cartel y el del ticket), la política y los términos. Las abre una clienta sin cuenta. Pasan antes de tocar la
+  // sesión —ni la piden ni la refrescan— y antes de la barrera de CAYLA Global (un aparato de la tienda con la cookie
+  // «global» las abriría igual). También las acciones del registro, que viajan como POST a esa misma ruta y se validan
+  // solas (`app/actions/club-registro.ts`). Solo esas tres formas: ver `lib/rutas-publicas.ts`.
   if (esRutaPublica(request.nextUrl.pathname)) {
     return NextResponse.next();
   }

@@ -86,7 +86,8 @@ import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/Acces
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
-import { CLUB_APAGADO, clubEnElTicket, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
+import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
+import { clubEnElTicket } from "@/lib/club-qr-reglas";
 import {
   avisoCumpleApagado,
   canjeSinConexion,
@@ -1390,8 +1391,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           pagos,
           tasaIgv: 0.18,
           atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
-          // El QR del club al pie: el personal si es socia (con su código), el genérico si no. Sin número de tienda, nada.
-          club: clubEnElTicket(club, clubDeLaClienta.lectura.estado === "listo" ? clubDeLaClienta.lectura.resumen : null),
+          // El QR del club al pie (ADR-0288 act. g): la página de registro de ESTA tienda; nada si ya recibe novedades.
+          club: clubEnElTicket({
+            origen: window.location.origin,
+            ubicacionId,
+            resumen: clubDeLaClienta.lectura.estado === "listo" ? clubDeLaClienta.lectura.resumen : null,
+          }),
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
           cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
         });

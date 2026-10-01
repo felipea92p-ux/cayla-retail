@@ -9,9 +9,6 @@ import {
   mensajePersonal,
   textoVigente,
   enlacePaginaClub,
-  estadoInvitacion,
-  textoPaginaPublicidad,
-  tokenValido,
   type TextoClub,
 } from "./club-reglas";
 
@@ -60,23 +57,10 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
   });
 });
 
-describe("camino B (ADR-0288 act. c): la página pública donde ella confirma", () => {
-  it("el enlace de la página vive en el mismo dominio del ERP", () => {
-    expect(enlacePaginaClub("https://retail.cayla.pe/", "Ab3_x-9QzLm2Pq7R")).toBe("https://retail.cayla.pe/club/Ab3_x-9QzLm2Pq7R");
-  });
-  it("un estado desconocido es «no existe»", () => {
-    expect(estadoInvitacion("vigente")).toBe("vigente");
-    expect(estadoInvitacion("usada")).toBe("usada");
-    expect(estadoInvitacion("otra cosa")).toBe("no_existe");
-    expect(estadoInvitacion(null)).toBe("no_existe");
-  });
-  it("el texto lleva su celular a medias", () => {
-    expect(textoPaginaPublicidad("Quiero recibir al {celular}.", "98•••333")).toBe("Quiero recibir al 98•••333.");
-  });
-  it("solo un token de 16 caracteres seguros llega a la base", () => {
-    expect(tokenValido("Ab3_x-9QzLm2Pq7R")).toBe(true);
-    expect(tokenValido("corto")).toBe(false);
-    expect(tokenValido("Ab3_x-9QzLm2Pq7R'; drop")).toBe(false);
+describe("la página de registro (ADR-0288 act. g): el QR del cartel y del ticket", () => {
+  it("abre /club/<tienda> en el mismo dominio del ERP", () => {
+    const tienda = "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c";
+    expect(enlacePaginaClub("https://retail.cayla.pe/", tienda)).toBe(`https://retail.cayla.pe/club/${tienda}`);
+    expect(enlacePaginaClub("http://localhost:3000", tienda)).toBe(`http://localhost:3000/club/${tienda}`);
   });
 });
-
