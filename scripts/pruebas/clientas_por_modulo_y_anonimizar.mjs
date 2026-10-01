@@ -617,12 +617,14 @@ caso(
 );
 // LISTA BLANCA: funciones security definer que citan la tabla o sus columnas y NO son una puerta a la ficha (leídas el
 // 2026-09-28): fn_ventas_del_dia (solo cli.nombre, o «Cliente varios»), separar_prendas (solo pregunta si la ficha existe),
-// bajar_al_piso, fn_aplicar_movimiento y fn_conciliacion_contable («clientas» en un mensaje o un título). Y desde la tanda 1a
+// bajar_al_piso, fn_aplicar_movimiento y fn_conciliacion_contable («clientas» en un mensaje o un título). Y desde el
+// 2026-10-01 (ADR-0300) retirar_del_piso, la hermana de bajar_al_piso: no lee la tabla de clientas ni ninguna de sus columnas, solo
+// dice «(3 apartadas para clientas)» en el mensaje de lo que no alcanza (lo apartado se cuenta en `stock`). Y desde la tanda 1a
 // del club (ADR-0288 D-1, 2026-09-30), registrar_venta: lee solo id, anonimizada y fusionada_en_id de la ficha que manda
 // Cobrar, para ligarle la venta, y no devuelve nada de ella. No exige el módulo a propósito (cabecera de 20260930160000,
 // «DECIDÍ»): el id solo sale de buscar_clienta, que sí lo exige, y exigirlo aquí haría fallar una venta entera encolada sin
 // conexión si al rol le quitaron el módulo en el camino.
-const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
+const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "retirar_del_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${DE_LA_PAGINA.map((n) => `'${n}'`).join(", ")})`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
