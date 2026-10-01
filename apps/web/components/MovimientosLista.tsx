@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
 import { CajonMovimiento } from "@/components/CajonMovimiento";
+import { DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import type { ContextoCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
@@ -146,9 +147,9 @@ export function MovimientosLista({
       <div className="px-4 pb-2 sm:px-5">
         {dias.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
-            <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
-              <span className="label-cayla text-[11px] font-bold text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className="label-cayla text-[10.5px] font-bold text-taupe">
+            <h3 className={DIA_TITULO}>
+              <span className={DIA_ETIQUETA}>{etiquetaDia(dia.fecha, hoyLima)}</span>
+              <span className={DIA_CUANTOS}>
                 {dia.operaciones.length} {dia.operaciones.length === 1 ? "movimiento" : "movimientos"}
               </span>
             </h3>
