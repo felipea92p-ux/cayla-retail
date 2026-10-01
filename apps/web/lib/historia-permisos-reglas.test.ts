@@ -51,7 +51,7 @@ describe("historia del permiso (CL-26)", () => {
   });
 
   it("todos los medios del esquema tienen palabras; uno desconocido se dice tal cual (nunca se esconde)", () => {
-    for (const m of ["caja_palabra", "ficha", "whatsapp_propio", "baja_whatsapp", "cambio_celular", "anonimizar", "legado", "qr_web"]) {
+    for (const m of ["caja_palabra", "ficha", "whatsapp_propio", "baja_whatsapp", "cambio_celular", "anonimizar", "legado", "qr_web", "pagina_cartel"]) {
       expect(MEDIO_LEGIBLE[m]).toBeTruthy();
     }
     expect(ev({ medio: "bot" }).detalle).toContain("bot");

@@ -57,15 +57,6 @@ export function codigoClubLegible(codigo: string | null): string | null {
 }
 
 /**
- * Del texto que llegó por WhatsApp (o que escribe la asesora), el código de socia que trae, normalizado: «club c-142»,
- * «(Club C-0142)» o «C0142» → «C-0142». null si no trae ninguno.
- */
-export function codigoEnTexto(texto: string): string | null {
-  const m = texto.toUpperCase().match(/\bC-?\s?(\d{1,6})\b/);
-  return m ? `C-${m[1]!.padStart(4, "0")}` : null;
-}
-
-/**
  * La página de registro del Club CAYLA de una tienda (ADR-0288 act. g, G-1): la abren el QR del cartel y el del ticket.
  * `origen`: el del navegador (`window.location.origin`), porque la página vive en el mismo dominio que el ERP;
  * `ubicacionId`: el uuid de la tienda del cartel (o de la venta), que es la que la saluda y le escribe después.

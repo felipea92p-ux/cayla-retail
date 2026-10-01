@@ -2,6 +2,7 @@ import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { textoCumpleEnElRecibo } from "@/lib/club-cumple-canje-reglas";
+import { textoValeEnElRecibo } from "@/lib/club-aniversario-canje-reglas";
 import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
@@ -109,6 +110,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       ))}
       {/* El cumpleaños del club (ADR-0288 D-5): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del club. */}
       {recibo.cumple && <p className="rt-detalle">{textoCumpleEnElRecibo(recibo.cumple.pct, recibo.cumple.monto)}</p>}
+      {/* El vale de aniversario del club (tanda 1g), igual. */}
+      {recibo.vale && <p className="rt-detalle">{textoValeEnElRecibo(recibo.vale.monto)}</p>}
 
       <div className="rt-linea" />
       {fiscal && (

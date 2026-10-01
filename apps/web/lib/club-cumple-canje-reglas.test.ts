@@ -275,6 +275,17 @@ describe("filaDelCumple: lo que dibuja la caja de la clienta (spike, `partesClub
     });
     expect(filaDelCumple({ tipo: "canjeado" }, false, null, SETIEMBRE)).toMatchObject({ resto: "este año" });
   });
+  it("con el vale de aniversario puesto, el canje se apaga y dice por qué (una ventaja por compra, tanda 1g)", () => {
+    const f = filaDelCumple({ tipo: "disponible", pct: 10 }, false, null, SETIEMBRE, true);
+    expect(f).toMatchObject({
+      tipo: "canje",
+      bajada: "Ya usa su vale de aniversario: una sola ventaja del club por compra",
+      boton: { texto: "Canjear 10 %", primario: false, accion: null },
+      pildora: { accion: null },
+    });
+    // Si el cumpleaños ya estaba puesto, se puede quitar igual.
+    expect(filaDelCumple({ tipo: "disponible", pct: 10 }, true, null, SETIEMBRE, true)).toMatchObject({ boton: { accion: "quitar" } });
+  });
   it("nada: la caja sigue con lo de la tanda 1b (su fecha o «Sin cumpleaños»)", () => {
     expect(filaDelCumple({ tipo: "nada" }, false, null, SETIEMBRE)).toBeNull();
     expect(filaDelCumple({ tipo: "nada" }, true, null, SETIEMBRE)).toBeNull();
@@ -306,6 +317,10 @@ describe("cuando algo lo apaga", () => {
   it("vuelve a leer su resumen cuando la base sabe algo que la caja no (ya canjeado, fuera de mes, no socia, % distinto)", () => {
     const releen = LOS_SIETE.filter((h) => rechazoDelCanje(h, 10)?.releer);
     expect(releen.sort()).toEqual(["cumple_descuento_distinto", "cumple_fuera_de_mes", "cumple_no_socia", "cumple_ya_canjeado"]);
+  });
+  it("una sola ventaja del club por compra (tanda 1g): también apaga el cumpleaños y relee", () => {
+    expect(rechazoDelCanje("club_un_cupon_por_compra", 10)).toMatchObject({ releer: true });
+    expect(rechazoDelCanje("club_un_cupon_por_compra", 10)?.detalle).toContain("Quité el 10 %");
   });
   it("un rechazo que no es del canje no lo toca (clienta_anonimizada lo traduce error-escritura y se quita a la clienta)", () => {
     expect(rechazoDelCanje("clienta_anonimizada", 10)).toBeNull();
