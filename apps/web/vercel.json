@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["gru1"],
-  "crons": [{ "path": "/api/lucode/reintentar", "schedule": "*/5 * * * *" }]
+  "crons": [
+    { "path": "/api/lucode/reintentar", "schedule": "*/5 * * * *" },
+    { "path": "/api/club/conservacion", "schedule": "0 8 * * *" }
+  ]
 }

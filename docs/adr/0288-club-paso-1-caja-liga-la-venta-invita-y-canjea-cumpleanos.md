@@ -852,3 +852,157 @@ la web después. **Cómo lo verifica Felipe:** abre Clientas: cuatro cifras con 
 píldoras con Archivadas y la tabla con Su sede y Última compra; a 800 px con el lateral abierto nada se corta; abre una socia:
 «Su sede · N de M», marca Evento y Lana, «Guardar preferencias», y su historia del permiso en orden. Capturas lado a lado con el
 spike en `docs/capturas/2026-09-30-club-paso1f/`.
+
+## Actualización 2026-10-01 (g): ella se une sola desde el cartel, y el club es solo WhatsApp de promociones
+
+**Qué cambió y por qué.** Felipe, con el paso 1 ya en producción (0 socias todavía), decidió que la asesora no registre el
+club en caja: ella escanea el QR del cartel y se registra sola en una página de CAYLA. El club deja de servir para avisos
+personales y queda como lo que vende: estar al día con lo que tiene CAYLA, sus promociones y los cupones de cumpleaños y de
+aniversario. Supera, en lo que contradicen, a la D-4 (dos permisos), la D-9 (el registro del club en caja), la actualización
+(c) (QR personal y casilla de publicidad) y al texto `club` v2.
+
+**Decisiones de Felipe (2026-10-01):**
+- **G-1 · Un solo QR, el del cartel, general por tienda.** Abre la página de registro de esa tienda. El ticket impreso lleva el
+  mismo QR. Se retiran el QR personal de la caja (camino B, `/club/[token]`) y el QR de WhatsApp del ticket (camino A).
+- **G-2 · En caja, solo el DNI.** «Registrar clienta» pide el documento; con DNI el nombre sale del padrón. La asesora no
+  escribe celular ni cumpleaños. Si no es socia, la tarjeta dice «Pídele que escanee el cartel» y se actualiza sola cuando
+  ella se une con ese documento. El canje del cumpleaños y «¿Se la probó?» no cambian.
+- **G-3 · La página.** Documento (DNI por defecto; carné o pasaporte con el nombre escrito por ella). Con DNI muestra el
+  nombre a medias («¿Eres Lucía P. S.?») para que confirme que tipeó bien, sin revelar el nombre completo de nadie. Celular y
+  fecha de nacimiento completa (con año) son obligatorios; el correo es opcional y solo un dato de contacto. Casilla
+  «Confirmo ser mayor de 18 años», que la base además comprueba con la fecha.
+- **G-4 · DNI que ya existe: se reemplazan sus datos**, y es socia desde la primera vez que se inscribió (`club_desde` no
+  se mueve). Si no existe, se crea la ficha completa.
+- **G-5 · Al unirse, recibe WhatsApp de promociones** (novedades, rebajas, avisos de sus cupones). Nada personal por WhatsApp:
+  ni «tu apartado está listo» ni «llegó tu talla».
+- **G-6 · Saludo obligatorio.** Después de «Unirme», el único paso que queda es «Saludar a CAYLA por WhatsApp» (al número de
+  la tienda del cartel, con su código). Así guarda el número oficial y la conversación la empieza ella. La página no puede
+  saber si lo envió: lo deja como el único camino para terminar.
+- **G-7 · Sin «Llegó un mensaje de WhatsApp».** Se retira de Clientas ▸ Más. La BAJA se registra en su ficha y en Avisos.
+- **G-8 · Clientas ▸ Avisos.** La lista de mensajes por mandar a cada socia. «Enviar» abre WhatsApp Web con el número y el
+  texto listos; la encargada solo presiona Enter. Queda anotado como enviado.
+- **G-9 · Aniversario:** no basta cumplir el año como socia; en ese año tiene que haber comprado.
+- **G-10 · Contra el abuso del cartel:** el DNI tiene que existir en el padrón; pocos registros por celular y por hora; la
+  ficha dice «se registró ella desde el cartel».
+- **G-11 · El texto de la página** tiene que ser profesional y sin huecos legales (borrador en
+  `docs/club/texto-legal-registro-v1.md`, para aprobar antes de publicar).
+
+**Lo que la ley exige y cómo lo cubre (resumen; detalle en el borrador del texto):**
+- Ley 32323 (art. 58.1.e del Código del Consumidor): publicidad solo a quien, por iniciativa propia, contacta a la empresa y
+  da un consentimiento libre, previo, informado, expreso e inequívoco. La cubren el cartel (ella decide escanear), la casilla
+  expresa sin marcar y su saludo desde su número.
+- Ley 29733 y su reglamento (DS 016-2024-JUS): deber de información (responsable, finalidades, destinatarios, transferencia al
+  extranjero, plazo, derechos ARCO), prueba del consentimiento a cargo de CAYLA (se guarda el texto exacto, su versión y la
+  hora), finalidades separadas, baja sencilla y gratuita, y el banco de datos inscrito ante la Autoridad Nacional.
+- Los datos viven en São Paulo, Brasil (Supabase `sa-east-1`, Vercel `gru1`): es un flujo transfronterizo y se informa.
+
+**Riesgo legal que el texto no cierra (para que Felipe decida):** el reglamento de la Ley 29733 (art. 3.2) no deja condicionar
+un beneficio a aceptar un tratamiento que no es indispensable. Si la casilla de WhatsApp es obligatoria para ser socia, el
+cupón de cumpleaños queda atado a aceptar publicidad. La ruta sólida es la casilla de WhatsApp opcional: sin ella es socia con
+sus cupones en tienda, sin mensajes.
+
+**Decisiones de Felipe (2026-10-01, segunda ronda), que cierran el riesgo y el texto:**
+- **G-12 · La casilla de WhatsApp es opcional.** Sin ella es socia con sus beneficios en tienda y sin mensajes. Cierra el
+  riesgo del art. 3.2.
+- **G-13 · Aniversario = un vale en soles para comprar en toda la tienda, que crece cada año** (supera la escalera de regalos
+  del CL-17). Un año de club cuenta con **6 compras o S/ 600 en compras netas**; si no cuenta, **se pausa** (no se pierde lo
+  acumulado); el vale se usa **dentro de 60 días**. Montos propuestos y editables sin deploy: S/ 20 · 30 · 40 · 50 · 60 (el del
+  quinto año se repite). Uno solo de los dos beneficios del club por compra.
+- **G-14 · Banco de datos inscrito:** código PJ-2026-4550 (constancia INS-2026-5132, 08/09/2026).
+- **G-15 · Conservación: 3 años desde la última compra** (sin compras: desde que se registró); luego la ficha se anonimiza sola.
+  Está en la política y en los términos.
+- **G-16 · Aviso de 15 días** antes de cambiar o terminar el programa (propuesto).
+
+## Contrato de la tanda 1g (2026-10-01)
+
+Cuatro agentes trabajan en paralelo sobre este contrato. El de base es el único que escribe migraciones y
+`packages/database/src/types.ts`; los demás programan contra estas firmas.
+
+### Base (migraciones `20261001210xxx_club_paso1g_*`, en partes: cada `alter` de una tabla en uso va solo)
+
+Esquema:
+- `clientas`: `correo text` (opcional, formato básico), `registro_origen text` (`caja` | `cartel`), `club_ubicacion_id uuid`
+  (la tienda del cartel donde se unió por última vez: es el WhatsApp que saludó y el que le escribe).
+- `club_textos.tipo` suma `terminos`, `privacidad`, `casilla_publicidad`, `saludo`, `aviso_cumpleanos`, `aviso_aniversario`,
+  `aviso_novedades`, `aviso_rebaja`, cada uno en v1 con el texto aprobado en `docs/club/texto-legal-registro-v1.md`. Los
+  marcadores (`{pct}`, `{escala}`, `{nombre}`, `{codigo}`, `{tienda}`) los completa quien muestra el texto.
+- `club_permisos.medio` suma `pagina_cartel` (otorga club y publicidad; sin `registrado_por`; con la versión del texto).
+- `configuracion_empresa`: `club_aniversario_compras int default 6`, `club_aniversario_monto numeric(10,2) default 600`,
+  `club_aniversario_dias int default 60`.
+- `club_aniversario_escala (anio smallint primary key, 1..5; monto numeric(10,2) > 0)` = 20, 30, 40, 50, 60.
+- `club_canjes.tipo` suma `aniversario`, con `anio_club smallint`: un canje vivo por clienta y año de club; anular lo libera.
+- `club_intentos_registro (id, creado_en, tipo 'consulta'|'registro', ip_hash, documento_hash, celular)`: RLS sin políticas.
+- `club_avisos_enviados (id, clienta_id, tipo 'cumpleanos'|'aniversario'|'novedades'|'rebaja', referencia, telefono, texto,
+  ubicacion_id, enviado_por, creado_en, deshecho_en)`: solo agrega.
+- Módulo nuevo `avisos_club` (grupo de Clientas), nace solo para el líder, `delegable = true`.
+
+Funciones («servidor» = solo la llama el servidor de la web con la llave de servicio, nunca `anon` ni `authenticated`):
+1. `fn_club_pagina(p_ubicacion_id uuid) returns jsonb` · `anon`. `{tienda, whatsapp, pct, escala:[{anio, monto}], compras,
+   monto_minimo, dias, textos:{terminos, privacidad, casilla_publicidad, saludo: {version, texto}}}`; `null` si no es una tienda.
+2. `club_intento(p_tipo text, p_ip_hash text, p_documento_hash text, p_celular text) returns boolean` · servidor. Anota y dice
+   si está dentro del límite: consultas ≤ 20 por ip y hora; registros ≤ 5 por ip, ≤ 3 por celular y ≤ 3 por documento, por hora.
+3. `registrarse_en_el_club(p_ubicacion_id uuid, p_documento_tipo text, p_documento_numero text, p_nombre text, p_telefono text,
+   p_nacimiento date, p_correo text, p_mayor_de_edad boolean, p_acepta_terminos boolean, p_acepta_publicidad boolean,
+   p_versiones jsonb, p_nombre_del_padron boolean) returns table (clienta_id uuid, codigo_club text, club_desde timestamptz,
+   era_socia boolean, nombre_corto text)` · servidor. G-3, G-4, G-5, G-10, G-12: 18 años cumplidos a la fecha de Lima;
+   `p_versiones` deben ser las vigentes (`club_texto_cambio`); documento que existe → reemplaza nombre (si viene del padrón),
+   celular, nacimiento y correo (un correo vacío no borra); conserva `club_desde` y `codigo_club`; una ficha anonimizada no se
+   reusa; casilla de publicidad marcada → otorga (después de cambiar el celular, que revoca la anterior por el disparador);
+   sin marcar → no toca un permiso anterior. Hints: `club_menor`, `club_datos_invalidos`, `club_texto_cambio`,
+   `club_documento_archivado`.
+4. `fn_club_aniversario(p_clienta_id uuid) returns table (anios_que_cuentan int, anio_en_curso_cuenta boolean, compras_anio int,
+   monto_anio numeric, proximo_aniversario date, vale_disponible boolean, vale_monto numeric, vale_vence date,
+   vale_canjeado_el date)` · módulo `clientas`. Año de club = [`club_desde` + n años, + n+1); cuenta con el umbral en compras
+   netas (la regla de la 1f); se pausa.
+5. `resumen_clienta_caja` suma `aniversario_disponible boolean, aniversario_monto numeric, aniversario_vence date` (reescrita
+   sobre `fa690d7f…`).
+6. `registrar_venta` suma `p_canjear_aniversario boolean default false` (18 parámetros; `drop` + `create` sobre `2b55a94a…`):
+   reparte el vale en `descuento_club_unitario` proporcional al neto de cada línea, sin pasar el total; una sola ventaja del
+   club por venta. Hints: `club_un_cupon_por_compra`, `aniversario_no_disponible`, `aniversario_ya_canjeado`,
+   `aniversario_sin_monto`.
+7. `fn_club_avisos_pendientes(p_ubicacion_id uuid) returns table (clienta_id uuid, nombre text, telefono text, tipo text,
+   referencia text, texto text, detalle text)` · módulo `avisos_club`. Solo socias con publicidad vigente de esa tienda
+   (`club_ubicacion_id`; sin él, su sede). Cumpleaños: desde el día 1 de su mes, cupón sin canjear, un aviso por año.
+   Aniversario: vale disponible, un aviso por vale. Novedades: productos que llegaron a esa tienda en los últimos 14 días, a lo
+   más uno por semana. Rebaja: prenda en promoción vigente con stock en esa tienda en su talla deducida. Tope CL-21 (2
+   promocionales al mes; cumpleaños y aniversario no cuentan) y grupo testigo CL-20 (1 de cada 5, fijo por clienta, fuera de
+   novedades y rebajas). El texto sale de las plantillas `aviso_*`.
+8. `registrar_aviso_enviado(p_clienta_id uuid, p_tipo text, p_referencia text, p_texto text, p_ubicacion_id uuid) returns uuid` y
+   `deshacer_aviso_enviado(p_id uuid) returns void` (dentro de 10 minutos) · módulo `avisos_club`, firman con el responsable.
+9. `guardar_beneficios_club(p_pct numeric, p_compras int, p_monto numeric, p_dias int, p_escala jsonb) returns void` · solo el
+   líder. Si cambia algo que los términos nombran, publica una versión nueva de `terminos`.
+10. `fn_club_anonimizar_inactivas() returns int` · servidor. Anonimiza con la rutina de `archivar_clienta` las fichas sin compra
+    en 3 años (sin compras: 3 años desde que se registró) y deja el permiso `anonimizar` en su historia.
+11. Retiro, sin borrar funciones: se revoca `execute` de `unirse_al_club`, `crear_invitacion_club`,
+    `registrar_mensaje_publicidad` y `registrar_desde_whatsapp` a `authenticated`, y de `fn_invitacion_club` y
+    `confirmar_invitacion_club` a `anon`. `registrar_baja_whatsapp` sigue.
+
+### Web
+- **Pública:** `app/club/[tienda]/page.tsx` (reemplaza `/club/[token]`), `app/club/privacidad/page.tsx`,
+  `app/club/terminos/page.tsx`, y las acciones de servidor `consultarNombre` y `registrarme` (llave de servicio por
+  `lib/supabase-admin.ts`, padrón por `consultarPadron`, la ip con una sal del servidor). Con guía de foco, probada a 375 px y sin
+  datos de nadie en los errores. El QR del cartel y el del ticket abren `${origen}/club/${ubicacion_id}`.
+- **Caja y ficha:** registrar solo con el documento (Cobrar y Nueva clienta); la tarjeta «Pídele que escanee el cartel» que se
+  actualiza sola; el vale de aniversario en la tarjeta y en el pie (como el cumpleaños; uno por compra); BAJA en la ficha; retiro
+  de invitar, del QR personal y de «Llegó un mensaje de WhatsApp».
+- **Avisos y configuración:** Clientas ▸ Avisos (módulo `avisos_club`): la lista por tipo; «Enviar» abre
+  `https://web.whatsapp.com/send?phone=51…&text=…` y anota el envío, con «Deshacer»; BAJA. «Beneficios del club» (líder): %,
+  umbral, días y escala. Cron diario `/api/club/conservacion` (con `CRON_SECRET`) que llama `fn_club_anonimizar_inactivas`.
+
+## Actualización 2026-10-01 (h): tanda 1g construida
+
+Construida sobre el contrato, con estas decisiones donde el contrato no alcanzaba (detalle en las cabeceras de
+`20261001210000`–`210700`):
+- El vale de aniversario se reparte por prenda con la misma regla que `repartirVale` de la web, al céntimo; si no coincide,
+  `aniversario_descuento_distinto`. `club_canjes.monto` guarda lo aplicado. **Un vale que cubre toda la compra se rechaza**
+  (`aniversario_cubre_todo`): pendiente de Felipe.
+- Con DNI, la página exige el nombre del padrón (G-10); con carné o pasaporte no pisa un nombre que ya existía. Un documento
+  archivado sin anonimizar no se reactiva desde la página (`club_documento_archivado`); uno anonimizado crea ficha nueva.
+- Cambiar el celular desde la página revoca la publicidad del número anterior y, si marcó la casilla, la otorga al nuevo.
+- `guardar_beneficios_club` publica una versión nueva de `terminos` cada vez que cambia algo (el % y la escala son parte de
+  lo que ella acepta) y no deja bajar la escala.
+- Avisos: grupo testigo fijo por clienta (1 de 5), tope del mes calendario de Lima, novedades con `fn_es_llegada` (sin la
+  carga inicial) a lo más cada 7 días, rebaja por `campanas_vigentes()` en la talla de su última compra de esa categoría.
+- Conservación: `fn_clienta_anonimizar` (la misma rutina que `archivar_clienta`); no anonimiza una ficha con apartado abierto.
+- La consulta del «¿Eres …?» va por `POST /api/club/nombre` con `x-espera: no` (una acción de servidor siempre abre el
+  loader, ADR-0149); el DNI viaja en el cuerpo.

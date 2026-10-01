@@ -116,7 +116,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "frescura" | "pulso";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -381,12 +381,18 @@ export const ARBOL: readonly Nodo[] = [
   // Clientas, paso 2 del acta (D-92, docs/datos/DECISIONES-2026-09-26-clientas.md): «crecer
   // Clientas... como grupo propio del menú», no anidada bajo Ventas — aunque en Roles y accesos
   // (`modulos.ts`) su grupo sigue siendo «Ventas» (D-92 pidió un grupo propio del MENÚ, no
-  // recategorizar el módulo). HOJA de primer nivel, no un Grupo de una sola hija: un grupo con
-  // una única hija que comparte su ícono choca con la prueba «una cabecera nunca repite el ícono
-  // de su hija» — y hoy no hay una segunda pantalla que lo justifique. Cuando los pasos 3/4 del
-  // acta (Avisos, Análisis) le sumen hermanas, ESE cambio hace el refactor a Grupo (Kent Beck:
-  // primero el terreno, después el cambio), no antes.
-  { id: "clientas", modulo: "clientas", etiqueta: "Clientas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
+  // recategorizar el módulo). Fue HOJA hasta que nació su segunda pantalla: con Avisos (ADR-0288
+  // act. g, tanda 1g, módulo `avisos_club`) pasa a GRUPO, como lo dejó anotado el paso 2.
+  // Las fichas conservan el corazón de siempre y la cabecera estrena uno propio (como «Venta» y
+  // «Posventa»): quien solo ve las fichas sigue viendo la misma fila, con el mismo ícono, porque un
+  // grupo con una sola hija se disuelve en ella con el nombre del grupo (`construirFila`).
+  {
+    id: "clientas", etiqueta: "Clientas", estado: "viva", icono: "club", raiz: "/clientas", pajaro: "07 Colibrí",
+    hijos: [
+      { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
+      { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
+    ],
+  },
   // Rendimiento (ADR-0219, respuesta 20): «al final del menú lateral», después de Finanzas. Nace sin rol
   // (ADR-0161): solo la ve el líder hasta que Felipe se la da al rol de las encargadas. HOJA de primer nivel,
   // no un grupo: hoy solo tiene la pantalla del equipo (la ficha de cada persona cuelga de su ruta, no del menú).

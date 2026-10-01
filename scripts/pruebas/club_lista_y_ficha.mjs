@@ -175,6 +175,13 @@ select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select extract(month from (now() at time zone 'America/Lima'))::int as mes_lima \\gset
 select case when extract(month from (now() at time zone 'America/Lima'))::int = 12 then 1 else extract(month from (now() at time zone 'America/Lima'))::int + 1 end as otro_mes \\gset
+-- Tanda 1g (ADR-0288 act. g): unirse_al_club, registrar_mensaje_publicidad, registrar_desde_whatsapp y crear_invitacion_club
+-- ya no las ejecuta authenticated, ni fn_invitacion_club y confirmar_invitacion_club anon (retiro SIN borrarlas). Esta
+-- prueba las usa para armar a sus socias: se les devuelve el EXECUTE dentro de la transacción del caso (termina en ROLLBACK).
+grant execute on function retail.unirse_al_club(uuid, text, smallint, smallint, smallint, text, uuid, uuid, integer),
+  retail.registrar_mensaje_publicidad(uuid, text, uuid), retail.registrar_desde_whatsapp(text, text, text, text, uuid),
+  retail.crear_invitacion_club(uuid, uuid) to authenticated;
+grant execute on function retail.fn_invitacion_club(text), retail.confirmar_invitacion_club(text, integer) to anon, authenticated;
 `;
 
 /** Cambia de cuenta (sin responsable en el combo). */

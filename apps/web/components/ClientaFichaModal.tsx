@@ -6,8 +6,7 @@ import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
-import { CampoCelular, CamposCumpleanos, ID_ANIO_CLUB, ID_CELULAR_CLUB, ID_DIA_CLUB, SinTextoDelClub, TextoDelClub } from "@/components/clientas/club-piezas";
-import { CaraDelQrClub } from "@/components/clientas/CaraDelQrClub";
+import { CampoCelular, CamposCumpleanos, ID_ANIO_CLUB, ID_CELULAR_CLUB, ID_DIA_CLUB } from "@/components/clientas/club-piezas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -16,19 +15,10 @@ import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/err
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
 import { ajustarNumeroAlTipo, documentoLegible, problemaDocumento } from "@/lib/documento-clienta-reglas";
-import { ajustarCelular, celularValido, codigoClubLegible, estadoClub, textoVigente, type TextoClub } from "@/lib/club-reglas";
-import { clubDeLaCaja } from "@/lib/club-caja-reglas";
-import {
-  CUMPLE_VACIO,
-  cajaDelProblemaCumple,
-  cumpleCompleto,
-  cumpleEscrito,
-  cumpleParaGuardar,
-  problemaCumple,
-  type CumpleEscrito,
-} from "@/lib/club-cumple-reglas";
-import { avisoCambioDeCelular, cambiaDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
-import { registrarBajaWhatsapp, registrarMensajePublicidad, textosClub, unirseAlClub } from "@/lib/club-acciones";
+import { estadoClub } from "@/lib/club-reglas";
+import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
+import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
+import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   archivarClienta,
@@ -45,14 +35,10 @@ import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
 
-/** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Las del
- *  club (ADR-0288 tanda 1b): «Unirse al club» (`club`), su QR (`qr`), «Llegó su mensaje» (`mensaje`) y «Registrar su
- *  BAJA» (`baja`). */
-type Modo = "ver" | "editar" | "archivar" | "unir" | "club" | "qr" | "mensaje" | "baja";
-
-/** Lo que se llena en «Unirse al club»: el celular es obligatorio (CL-1); el cumpleaños, día y mes con año opcional (CL-3);
- *  y la casilla de que se le leyó el texto y dijo que sí. */
-type DatosClub = { celular: string; cumple: CumpleEscrito; leido: boolean };
+/** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
+ *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
+ *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». */
+type Modo = "ver" | "editar" | "archivar" | "unir" | "baja";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric" });
 function fecha(iso: string): string {
@@ -82,26 +68,25 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
  * reglas que validan cada acción abajo (y que la base vuelve a exigir): no agregan ninguna.
  *   · editar: el documento, si se escribe, completo (D-2); a una socia no se le puede borrar el celular, el documento ni el
  *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el año del cumpleaños, si se escribe, completo.
- *   · archivar: el motivo. · unir: la otra ficha. · club: el celular (CL-1); el cumpleaños, sugerido; que se le leyó el
- *     texto y dijo que sí. · mensaje: el número desde el que escribió. · En todas, quién lo hace.
+ *   · archivar: el motivo. · unir: la otra ficha. · baja: solo quién lo hace. · En todas, quién lo hace.
  */
 function camposDeLaGuia(
   modo: Modo,
   c: Clienta | null,
-  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; aFusionar: Clienta | null; club: DatosClub; numeroMensaje: string },
+  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; aFusionar: Clienta | null },
   responsableListo: boolean,
   anioActual: number,
 ): CampoDeGuia[] {
   if (!c) return [];
   const quien: CampoDeGuia = { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién lo hace." };
   // La MISMA regla del cumpleaños que Cobrar (lib/club-cumple-reglas.ts): un día que el mes no tiene no pasa en ninguna.
-  const cumple = (escrito: CumpleEscrito, sugerido: boolean): CampoDeGuia => {
+  const cumple = (escrito: CumpleEscrito): CampoDeGuia => {
     const problema = problemaCumple(escrito, anioActual);
     return {
       id: "cumple",
       nombre: "Cumpleaños",
       requerido: problema !== null,
-      sugerido,
+      sugerido: false,
       hecho: cumpleCompleto(escrito, anioActual),
       pendiente: problema ?? "Sin él no hay beneficio de cumpleaños.",
     };
@@ -128,7 +113,7 @@ function camposDeLaGuia(
           hecho: e.telefonoWhatsapp.trim() !== "",
           pendiente: "Es socia del club: su celular no se puede dejar vacío.",
         },
-        cumple(cumpleDeEdicion(e), false),
+        cumple(cumpleDeEdicion(e)),
         quien,
       ];
     }
@@ -140,34 +125,9 @@ function camposDeLaGuia(
       ];
     case "unir":
       return [{ id: "otra", nombre: "La otra ficha", requerido: true, hecho: estado.aFusionar !== null, pendiente: "Busca y elige la otra ficha de esta clienta." }, quien];
-    case "club":
-      return [
-        {
-          id: "celular",
-          nombre: "Celular",
-          requerido: true,
-          hecho: celularValido(estado.club.celular),
-          pendiente: "Su celular: 9 dígitos que empiezan en 9 (sin él no puede ser socia).",
-        },
-        cumple(estado.club.cumple, true),
-        { id: "leido", nombre: "Leerle el texto", requerido: true, hecho: estado.club.leido, pendiente: "Léele el texto y marca que dijo que sí." },
-        quien,
-      ];
-    case "mensaje":
-      return [
-        {
-          id: "numero",
-          nombre: "Número que escribió",
-          requerido: true,
-          hecho: celularValido(estado.numeroMensaje),
-          pendiente: "El número desde el que le escribió a la tienda.",
-        },
-        quien,
-      ];
     case "baja":
       return [quien];
     case "ver":
-    case "qr":
       return [];
   }
 }
@@ -179,21 +139,11 @@ function camposDeLaGuia(
  * variante="hoja">` que cambia de contenido por `modo` — ADR-0136 no anida modales, cada acción
  * responde adentro del mismo panel.
  *
- * ADR-0288 tanda 1b: la ficha dice dónde está frente al club (`estadoClub`) y trae sus tres acciones. El permiso de
- * publicidad NUNCA se marca a mano: «Llegó su mensaje» registra que ella escribió primero, y la base solo lo acepta así.
+ * ADR-0288: la ficha dice dónde está frente al club (`estadoClub`). Desde la tanda 1g (G-1, G-2, G-7) ella se une sola
+ * escaneando el cartel y ahí decide si quiere publicidad (G-12): la ficha no une al club ni marca la publicidad. Lo único del
+ * club que se registra aquí es su BAJA, cuando escribe BAJA a la tienda; la historia de permisos lo muestra.
  */
-export function ClientaFichaModal({
-  id,
-  onClose,
-  onCambiada,
-  whatsappPorTienda = {},
-}: {
-  id: string;
-  onClose: () => void;
-  onCambiada: () => void;
-  /** El WhatsApp de cada tienda (id → número): su QR abre el chat de la tienda activa. Sin número, no hay QR. */
-  whatsappPorTienda?: Record<string, string | null>;
-}) {
+export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onClose: () => void; onCambiada: () => void }) {
   const [ficha, setFicha] = useState<FichaClienta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [modo, setModo] = useState<Modo>("ver");
@@ -203,9 +153,6 @@ export function ClientaFichaModal({
   const [terminoUnir, setTerminoUnir] = useState("");
   const [resultadosUnir, setResultadosUnir] = useState<Clienta[] | null>(null);
   const [aFusionar, setAFusionar] = useState<Clienta | null>(null);
-  const [club, setClub] = useState<DatosClub>({ celular: "", cumple: CUMPLE_VACIO, leido: false });
-  const [numeroMensaje, setNumeroMensaje] = useState("");
-  const [textos, setTextos] = useState<TextoClub[] | null>(null);
   const [guardando, setGuardando] = useState(false);
   const responsable = useResponsable();
   const anioActual = new Date().getFullYear();
@@ -215,21 +162,8 @@ export function ClientaFichaModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar / cambiar id
   }, [id]);
 
-  // El texto `club` vigente (lectura `fn_`, sin loader): sin él no se ofrece «Unirse al club», como en Cobrar. Se vuelve a
-  // leer si la base avisa que cambió mientras se le leía (`club_texto_cambio`).
-  const [lecturaTextos, setLecturaTextos] = useState(0);
-  useEffect(() => {
-    let vigente = true;
-    void textosClub().then(({ textos }) => {
-      if (vigente) setTextos(textos);
-    });
-    return () => {
-      vigente = false;
-    };
-  }, [lecturaTextos]);
-
   const guia = useGuiaCampos(
-    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, aFusionar, club, numeroMensaje }, responsable.listo, anioActual),
+    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, aFusionar }, responsable.listo, anioActual),
   );
 
   async function cargar() {
@@ -243,17 +177,6 @@ export function ClientaFichaModal({
     }
     setFicha(ficha);
     setModo("ver");
-  }
-
-  /**
-   * Su publicidad llegó mientras se veía su QR (ella confirmó en la página, camino B) o la base dice que ya la tenía: se
-   * vuelve a leer la ficha SIN el «Cargando…» y sin dejar la cara del QR (que ya dice «Listo»), y la lista se entera.
-   * Si la lectura falla, la ficha se queda como estaba: la próxima vez que se abra ya lo dirá.
-   */
-  async function refrescar() {
-    const { ficha: nueva } = await cargarFichaClienta(id);
-    if (nueva) setFicha(nueva);
-    onCambiada();
   }
 
   if (cargando || !ficha) {
@@ -273,14 +196,8 @@ export function ClientaFichaModal({
   // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
   const enClub = estadoClub(c);
-  const textoClub = textos ? textoVigente(textos, "club") : null;
-  // CL-1: socia = documento + nombre + celular. El celular se pide al unirla; documento y nombre, antes, con «Editar».
+  // Tanda 1g: se une desde el cartel con su documento; sin documento en esta ficha, se crearía otra.
   const faltaParaElClub = faltaParaSerSocia(c);
-  const cambiaCelular = celularValido(numeroMensaje) && cambiaDeCelular(c.telefonoWhatsapp, numeroMensaje);
-  // Su QR (ADR-0288, «Actualización 2026-09-30 (c)», camino B): la página de CAYLA donde ella pide la publicidad. Los textos
-  // y el WhatsApp de ESTA tienda solo arman el QR de respaldo (camino A), si la página no se puede preparar.
-  const numeroTienda = responsable.ubicacionId ? (whatsappPorTienda[responsable.ubicacionId] ?? null) : null;
-  const clubDeLaTienda = clubDeLaCaja(textos, numeroTienda);
   // Al editar el celular de una socia con novedades, lo que pierde, ANTES de guardar (la base se las quita sola).
   const avisoCelular = edicion ? avisoCambioDeCelular(c, edicion.telefonoWhatsapp) : null;
 
@@ -338,7 +255,7 @@ export function ClientaFichaModal({
       "editar la ficha",
       () =>
         avisar.exito("Ficha actualizada", {
-          detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir desde ese número, con su QR." : undefined,
+          detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir ella, escaneando el cartel del club." : undefined,
         }),
     );
   }
@@ -385,69 +302,7 @@ export function ClientaFichaModal({
     );
   }
 
-  // ---- El club (ADR-0288 tanda 1b) ----
-
-  async function onUnirse(e: React.FormEvent) {
-    e.preventDefault();
-    if (!celularValido(club.celular)) {
-      avisar.error("Su celular tiene 9 dígitos y empieza en 9: sin él no puede ser socia.", { enfocar: ID_CELULAR_CLUB });
-      return;
-    }
-    const problemaDelCumple = problemaCumple(club.cumple, anioActual);
-    if (problemaDelCumple) {
-      avisar.error(problemaDelCumple, { enfocar: cajaDelProblemaCumple(club.cumple, anioActual) === "anio" ? ID_ANIO_CLUB : ID_DIA_CLUB });
-      return;
-    }
-    if (!club.leido) {
-      avisar.error("Léele el texto del club y marca que dijo que sí antes de unirla.");
-      return;
-    }
-    const firma = responsable.firma();
-    let codigo: string | null = null;
-    await guardarAccion(
-      async () => {
-        const r = await unirseAlClub(
-          {
-            clientaId: id,
-            celular: club.celular,
-            ...cumpleParaGuardar(club.cumple),
-            medio: "ficha",
-            ubicacionId: responsable.ubicacionId,
-            // La versión del texto que se le leyó: si cambió en el camino, la base rechaza y aquí se relee el nuevo.
-            textoVersion: textoClub?.version ?? null,
-          },
-          firma,
-        );
-        // El texto cambió mientras se le leía: se trae el nuevo y hay que volver a leérselo.
-        if (r.error?.hint === "club_texto_cambio") {
-          setLecturaTextos((n) => n + 1);
-          setClub((d) => ({ ...d, leido: false }));
-        }
-        codigo = r.codigoClub;
-        return r;
-      },
-      "unirla al club",
-      () => avisar.exito("Ya es socia del club", { detalle: codigo ? `Su código: ${codigo}` : undefined }),
-      // Como en caja: al unirla aparece su QR, por si quiere pedir la publicidad ahora (ella decide: ahora, en casa o nunca).
-      "qr",
-    );
-  }
-
-  async function onMensaje(e: React.FormEvent) {
-    e.preventDefault();
-    if (!celularValido(numeroMensaje)) {
-      avisar.error("El número tiene 9 dígitos y empieza en 9.", { enfocar: ID_CELULAR_CLUB });
-      return;
-    }
-    const firma = responsable.firma();
-    const numero = numeroMensaje;
-    const cambia = cambiaCelular;
-    await guardarAccion(
-      () => registrarMensajePublicidad(id, numero, responsable.ubicacionId, firma),
-      "registrar su mensaje",
-      () => avisar.exito("Ya recibe novedades por WhatsApp", { detalle: cambia ? `Su celular ahora es ${numero}.` : undefined }),
-    );
-  }
+  // ---- El club: su BAJA (ADR-0288 tanda 1b; desde la 1g, lo único del club que se registra en la ficha) ----
 
   async function onBaja() {
     if (!c.telefonoWhatsapp) return;
@@ -463,7 +318,7 @@ export function ClientaFichaModal({
       "registrar su BAJA",
       () =>
         avisar.exito("BAJA registrada", {
-          detalle: fichas > 1 ? `Sin novedades por WhatsApp desde hoy, en las ${fichas} fichas con ese celular.` : "Sin novedades por WhatsApp desde hoy. Sigue siendo socia.",
+          detalle: fichas > 1 ? `Sin novedades por WhatsApp desde hoy, en las ${fichas} fichas con ese celular. Sigue siendo socia.` : "Sin novedades por WhatsApp desde hoy. Sigue siendo socia.",
         }),
     );
   }
@@ -512,15 +367,8 @@ export function ClientaFichaModal({
                     <Chip tono={frecuente.esFrecuente ? "verde" : "neutro"}>{frecuente.esFrecuente ? "Socia frecuente" : "Socia"}</Chip>
                   )}
                   {enClub === "socia_con_publicidad" && <Chip tono="verde">Publicidad</Chip>}
-                  {enClub === "socia" &&
-                    (activa ? (
-                      // Tocable, como en el spike: muestra su QR (solo ella puede pedir la publicidad, escribiéndole a la tienda).
-                      <button type="button" onClick={() => setModo("qr")} title="Mostrar su QR: solo ella puede pedir la publicidad, en la página de CAYLA que abre." className="rounded-full transition-opacity hover:opacity-75">
-                        <Chip tono="neutro">Sin publicidad · QR</Chip>
-                      </button>
-                    ) : (
-                      <Chip tono="neutro">Sin publicidad</Chip>
-                    ))}
+                  {/* Ya no es tocable (tanda 1g, G-1): sin QR personal, la publicidad la pide ella desde el cartel. */}
+                  {enClub === "socia" && <Chip tono="neutro">Sin publicidad</Chip>}
                 </div>
               )}
 
@@ -545,12 +393,7 @@ export function ClientaFichaModal({
                 (enClub === "no_socia" ? (
                   <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
                     <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
-                    {faltaParaElClub ??
-                      (textos !== null && !textoClub
-                        ? "El club todavía no tiene su texto vigente para leerle: avisa al líder."
-                        : c.telefonoWhatsapp
-                          ? "Se la invita en caja, o desde aquí."
-                          : "Sin celular no puede ser socia: se lo pides al unirla.")}
+                    {faltaParaElClub ?? "Se une ella, escaneando el cartel del club con su celular y este mismo documento."}
                   </div>
                 ) : (
                   <div className="card-cayla space-y-3 p-4">
@@ -560,7 +403,7 @@ export function ClientaFichaModal({
                       <Chip tono="verde">Socia</Chip>
                       <span className="text-xs text-tinta/60">
                         desde {fecha(c.clubDesde!)}
-                        {c.codigoClub ? ` · ${c.codigoClub}` : ""} · beneficios y avisos informativos (su apartado, la talla que pidió)
+                        {c.codigoClub ? ` · ${c.codigoClub}` : ""} · su cupón de cumpleaños y su vale de aniversario, en tienda
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -573,29 +416,21 @@ export function ClientaFichaModal({
                       ) : (
                         <>
                           <Chip tono="neutro">Sin publicidad</Chip>
-                          <span className="text-xs text-tinta/60">aún no la pidió</span>
+                          <span className="text-xs text-tinta/60">no la pidió: es socia sin mensajes</span>
                         </>
                       )}
                     </div>
-                    {activa && (
+                    {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
+                    {activa && c.publicidadDesde && c.telefonoWhatsapp && (
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
-                        {c.publicidadDesde
-                          ? c.telefonoWhatsapp && (
-                              <Boton type="button" className="!py-2" onClick={() => setModo("baja")}>
-                                Registrar su BAJA
-                              </Boton>
-                            )
-                          : (
-                              // Como el spike: «Llegó su mensaje (respaldo)» vive dentro de su QR.
-                              <Boton type="button" className="!py-2" onClick={() => setModo("qr")}>
-                                Mostrar su QR
-                              </Boton>
-                            )}
+                        <Boton type="button" className="!py-2" onClick={() => setModo("baja")}>
+                          Registrar su BAJA
+                        </Boton>
                       </div>
                     )}
                     <p className="text-xs text-tinta/55">
-                      La publicidad solo la puede dar ella: marcando la casilla en la página que abre su QR (o escribiéndole a la tienda). Aquí
-                      no se marca. «Registrar su BAJA» es para cuando te escribe BAJA: efecto inmediato, vale para las 3 tiendas.
+                      La publicidad solo la puede dar ella: marcando la casilla al unirse desde el cartel. Aquí no se marca. «Registrar su
+                      BAJA» es para cuando te escribe BAJA: efecto inmediato, vale para las 3 tiendas.
                     </p>
                   </div>
                 ))}
@@ -656,21 +491,6 @@ export function ClientaFichaModal({
                     >
                       Unir con otra ficha
                     </Boton>
-                    {enClub === "no_socia" && !faltaParaElClub && textoClub && (
-                      <Boton
-                        type="button"
-                        onClick={() => {
-                          setClub({
-                            celular: ajustarCelular(c.telefonoWhatsapp ?? ""),
-                            cumple: cumpleEscrito(c.cumpleDia, c.cumpleMes, c.cumpleAnio),
-                            leido: false,
-                          });
-                          setModo("club");
-                        }}
-                      >
-                        Unirse al club
-                      </Boton>
-                    )}
                     <Boton
                       type="button"
                       peso="primario"
@@ -842,110 +662,12 @@ export function ClientaFichaModal({
             </div>
           )}
 
-          {modo === "club" && (
-            <form onSubmit={onUnirse} className="space-y-5">
-              <p className="text-sm text-tinta/75">
-                Su «sí» de palabra al club: beneficios y avisos de sus apartados y de las tallas que pida. Las novedades por WhatsApp no
-                se marcan aquí: las pide ella, desde su QR.
-              </p>
-              <CampoGuiado id="celular" guia={guia}>
-                <CampoCelular etiqueta={guia.etiqueta("celular", "Celular (WhatsApp)")} obligatorio valor={club.celular} onValor={(v) => setClub((d) => ({ ...d, celular: v }))} />
-              </CampoGuiado>
-              <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Día y mes; el año, solo si lo quiere decir">
-                <CamposCumpleanos
-                  cumple={club.cumple}
-                  onCumple={(nuevo) => setClub((d) => ({ ...d, cumple: nuevo }))}
-                  anioActual={anioActual}
-                  despues="se puede agregar después."
-                />
-              </CampoGuiado>
-              {textoClub ? (
-                <CampoGuiado id="leido" guia={guia} titulo="Texto del club que se le lee" ayuda={`versión ${textoClub.version}`}>
-                  <TextoDelClub texto={textoClub.texto} leido={club.leido} onLeido={(v) => setClub((d) => ({ ...d, leido: v }))} />
-                </CampoGuiado>
-              ) : (
-                <SinTextoDelClub />
-              )}
-              <CampoGuiado id="responsable" guia={guia}>
-                <ComboResponsable control={responsable} deshabilitado={guardando} />
-              </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo: léele el texto y registra su «sí»." />
-              <div className="flex justify-end gap-3 pt-2">
-                {volverAVer}
-                <Boton
-                  type="submit"
-                  peso="primario"
-                  cargando={guardando}
-                  disabled={!responsable.listo || !textoClub}
-                  title={responsable.motivo ?? guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                >
-                  Dijo que sí: unirla
-                </Boton>
-              </div>
-            </form>
-          )}
-
-          {modo === "qr" && (
-            // La misma cara del QR que Cobrar (camino B, ADR-0288 act. c): crea su invitación, dibuja el QR de su página y se
-            // entera sola cuando ella confirma. «Llegó su mensaje (respaldo)» abre la hoja de siempre, con su celular.
-            <CaraDelQrClub
-              clientaId={id}
-              nombre={c.nombre ?? documento ?? "La clienta"}
-              codigo={codigoClubLegible(c.codigoClub)}
-              club={clubDeLaTienda}
-              ubicacionId={responsable.ubicacionId}
-              responsable={responsable}
-              onPublicidad={() => void refrescar()}
-              onLlegoSuMensaje={() => {
-                setNumeroMensaje(ajustarCelular(c.telefonoWhatsapp ?? ""));
-                setModo("mensaje");
-              }}
-              onListo={() => setModo("ver")}
-            />
-          )}
-
-          {modo === "mensaje" && (
-            <form onSubmit={onMensaje} className="space-y-5">
-              <p className="text-sm text-tinta/75">
-                Solo si <strong>ella</strong> le escribió primero a la tienda por WhatsApp (desde el QR o por su cuenta): su mensaje en el
-                chat de la tienda es la prueba de que quiere novedades. Búscalo antes de registrar.
-              </p>
-              <CampoGuiado id="numero" guia={guia} className="space-y-2">
-                <CampoCelular etiqueta={guia.etiqueta("numero", "Número desde el que escribió")} obligatorio valor={numeroMensaje} onValor={setNumeroMensaje} />
-                {cambiaCelular && (
-                  <p className="nota-cayla">
-                    Escribió desde otro número: al registrar, el <b>{numeroMensaje}</b> pasa a ser su celular
-                    {c.telefonoWhatsapp ? <> (hoy es {c.telefonoWhatsapp})</> : null}.
-                  </p>
-                )}
-              </CampoGuiado>
-              <CampoGuiado id="responsable" guia={guia}>
-                <ComboResponsable control={responsable} deshabilitado={guardando} />
-              </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo para registrar su permiso." />
-              <div className="flex justify-end gap-3 pt-2">
-                {volverAVer}
-                <Boton
-                  type="submit"
-                  peso="primario"
-                  cargando={guardando}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                >
-                  Registrar su permiso
-                </Boton>
-              </div>
-            </form>
-          )}
-
           {modo === "baja" && (
             <div className="space-y-5">
               <p className="text-sm text-tinta/75">
-                Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni el saludo de
-                cumpleaños por WhatsApp, en las 3 tiendas. <strong>Sigue siendo socia</strong>: los avisos de sus apartados y de sus tallas
-                siguen.
+                Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni los avisos de sus
+                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo socia</strong>: su cupón de cumpleaños y su vale de aniversario
+                siguen, en tienda.
               </p>
               <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {c.telefonoWhatsapp}.</p>
               <CampoGuiado id="responsable" guia={guia}>

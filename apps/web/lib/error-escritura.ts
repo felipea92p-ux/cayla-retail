@@ -483,6 +483,14 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `cumple_descuento_distinto`: la parte del club de una prenda no es la que calcula la base (el % pudo cambiar).
  *   · `cumple_sin_canje`: una prenda trae parte del club sin `p_canjear_cumpleanos`.
  *   · `cumple_sin_monto`: el canje no descontaría nada.
+ * Tanda 1g (el vale de aniversario en `registrar_venta`, G-13), con el mismo criterio. En Cobrar, además, la caja apaga el
+ * vale y dice qué hizo (`rechazoDelVale`, lib/club-aniversario-canje-reglas.ts):
+ *   · `club_un_cupon_por_compra`: se mandaron las dos ventajas del club en una venta (cumpleaños y vale).
+ *   · `aniversario_no_disponible`: no tiene un vale disponible (el año no cuenta, venció, o no es socia).
+ *   · `aniversario_ya_canjeado`: ya usó el vale de este año de club (otra caja o tienda se adelantó).
+ *   · `aniversario_sin_monto`: el vale no descontaría nada.
+ *   · `aniversario_cubre_todo`: el vale cubre toda la compra (una venta en S/ 0 no se registra; decisión pendiente de Felipe).
+ *   · `aniversario_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
@@ -505,6 +513,12 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["cumple_descuento_distinto", "El descuento de cumpleaños no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
   ["cumple_sin_canje", "Esta venta trae un descuento de cumpleaños sin canjearlo. Vuelve a tocar «Canjear» o quítalo."],
   ["cumple_sin_monto", "En esta venta no queda nada que descontar por el cumpleaños: no se canjea."],
+  ["club_un_cupon_por_compra", "Va una sola ventaja del club por compra: el cupón de cumpleaños o el vale de aniversario, no los dos."],
+  ["aniversario_no_disponible", "Esta socia no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
+  ["aniversario_ya_canjeado", "Esta socia ya usó su vale de aniversario de este año de club."],
+  ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
+  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
+  ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
 ]);
 
 /**

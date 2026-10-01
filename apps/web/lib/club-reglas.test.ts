@@ -3,15 +3,10 @@ import {
   ajustarCelular,
   celularValido,
   codigoClubLegible,
-  codigoEnTexto,
   enlaceQrClub,
   estadoClub,
-  mensajePersonal,
   textoVigente,
   enlacePaginaClub,
-  estadoInvitacion,
-  textoPaginaPublicidad,
-  tokenValido,
   type TextoClub,
 } from "./club-reglas";
 
@@ -41,9 +36,6 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
     expect(textoVigente(textos, "mensaje_generico")).toBeNull();
   });
 
-  it("el mensaje personal lleva su código de socia", () => {
-    expect(mensajePersonal("Hola CAYLA. (Club {codigo})", "C-0142")).toBe("Hola CAYLA. (Club C-0142)");
-  });
 
   it("el QR abre el WhatsApp DE LA TIENDA con el texto listo; sin número de tienda no hay QR", () => {
     expect(enlaceQrClub("987654321", "Hola CAYLA")).toBe("https://wa.me/51987654321?text=Hola%20CAYLA");
@@ -51,32 +43,16 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
     expect(enlaceQrClub("12345", "Hola")).toBeNull();
   });
 
-  it("el código de socia se reconoce en lo que llega por WhatsApp, escrito como sea", () => {
-    expect(codigoEnTexto("Hola CAYLA, quiero recibir novedades. (Club C-0142)")).toBe("C-0142");
-    expect(codigoEnTexto("club c-142")).toBe("C-0142");
-    expect(codigoEnTexto("C0142")).toBe("C-0142");
-    expect(codigoEnTexto("quiero unirme al club")).toBeNull();
+  it("el código de socia se lee en mayúsculas", () => {
     expect(codigoClubLegible("c-0142")).toBe("C-0142");
+    expect(codigoClubLegible(null)).toBeNull();
   });
 });
 
-describe("camino B (ADR-0288 act. c): la página pública donde ella confirma", () => {
-  it("el enlace de la página vive en el mismo dominio del ERP", () => {
-    expect(enlacePaginaClub("https://retail.cayla.pe/", "Ab3_x-9QzLm2Pq7R")).toBe("https://retail.cayla.pe/club/Ab3_x-9QzLm2Pq7R");
-  });
-  it("un estado desconocido es «no existe»", () => {
-    expect(estadoInvitacion("vigente")).toBe("vigente");
-    expect(estadoInvitacion("usada")).toBe("usada");
-    expect(estadoInvitacion("otra cosa")).toBe("no_existe");
-    expect(estadoInvitacion(null)).toBe("no_existe");
-  });
-  it("el texto lleva su celular a medias", () => {
-    expect(textoPaginaPublicidad("Quiero recibir al {celular}.", "98•••333")).toBe("Quiero recibir al 98•••333.");
-  });
-  it("solo un token de 16 caracteres seguros llega a la base", () => {
-    expect(tokenValido("Ab3_x-9QzLm2Pq7R")).toBe(true);
-    expect(tokenValido("corto")).toBe(false);
-    expect(tokenValido("Ab3_x-9QzLm2Pq7R'; drop")).toBe(false);
+describe("la página de registro (ADR-0288 act. g): el QR del cartel y del ticket", () => {
+  it("abre /club/<tienda> en el mismo dominio del ERP", () => {
+    const tienda = "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c";
+    expect(enlacePaginaClub("https://retail.cayla.pe/", tienda)).toBe(`https://retail.cayla.pe/club/${tienda}`);
+    expect(enlacePaginaClub("http://localhost:3000", tienda)).toBe(`http://localhost:3000/club/${tienda}`);
   });
 });
-

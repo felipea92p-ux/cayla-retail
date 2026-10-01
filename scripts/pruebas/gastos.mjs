@@ -16,6 +16,11 @@
  * CÓMO. Igual que `configuracion_caja_campanas.mjs`: cada escenario en su transacción con ROLLBACK (nunca se commitea nada
  * en el Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, `pg_temp.intento` para leer el error.
  *
+ * LAS FECHAS. Septiembre de 2026 (`MES` y los gastos del 5 al 24) es un rango explícito que ya pasó, no «este mes»:
+ * `registrar_gasto` solo rechaza una fecha futura, y el panel, la lista y Por pagar se piden con ese rango. Por eso esas
+ * fechas se quedan fijas y no vencen. Lo único que mira el mes en curso (las compras del mes de Compras, caso 8) va con
+ * `retail.fn_hoy_lima()`. Revisado el 2026-10-01 con «hoy» simulado en cinco fechas (ver la bitácora de ese día).
+ *
  * USO
  *   pnpm pruebas:gastos    → con las migraciones ya aplicadas en el local
  */

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { textoCumpleEnElRecibo } from "@/lib/club-cumple-canje-reglas";
+import { textoValeEnElRecibo } from "@/lib/club-aniversario-canje-reglas";
 import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
@@ -33,7 +34,7 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *    lo que necesita SUNAT (serie-número, QR) va aparte y no compite con eso.
  *  · El logo es el isotipo del colibrí en negro (`filter: brightness(0)`), no el PNG terracota.
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
- *  · Al final, si la tienda tiene su WhatsApp cargado, el QR del club (`recibo.club`, armado en `lib/club-caja-reglas.ts`).
+ *  · Al final, el QR del club (`recibo.club`, armado en `lib/club-qr-reglas.ts`): la página de registro de la tienda.
  */
 export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
@@ -109,6 +110,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       ))}
       {/* El cumpleaños del club (ADR-0288 D-5): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del club. */}
       {recibo.cumple && <p className="rt-detalle">{textoCumpleEnElRecibo(recibo.cumple.pct, recibo.cumple.monto)}</p>}
+      {/* El vale de aniversario del club (tanda 1g), igual. */}
+      {recibo.vale && <p className="rt-detalle">{textoValeEnElRecibo(recibo.vale.monto)}</p>}
 
       <div className="rt-linea" />
       {fiscal && (
@@ -173,10 +176,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         <p className="rt-negrita">¡Gracias por tu compra!</p>
       </footer>
 
-      {/* El QR del club (ADR-0288, tanda 1b): después del pie y lejos del de SUNAT, para que nadie escanee uno por el otro.
-          Abre el WhatsApp de la tienda con el mensaje listo: la publicidad solo nace si ella lo envía (Ley 32323). El enlace
-          con el mensaje pesa ~230–245 bytes: nivel L (hasta 57 módulos) a 30 mm → ~0,53 mm y ~4 puntos de la térmica por
-          módulo, lo mismo que el de SUNAT a 25 mm. No achicarlo sin acortar el mensaje. */}
+      {/* El QR del club (ADR-0288 act. g, G-1): después del pie y lejos del de SUNAT, para que nadie escanee uno por el otro.
+          Abre la página de registro del Club CAYLA de la tienda de la venta, el mismo QR del cartel: ahí ella se une sola y,
+          si quiere, marca la casilla de WhatsApp (Ley 32323). El enlace pesa ~70 bytes (origen + /club/ + uuid): a nivel L y
+          30 mm cada módulo mide cerca de 1 mm, holgado para la térmica. */}
       {recibo.club && (
         <>
           <div className="rt-linea" />

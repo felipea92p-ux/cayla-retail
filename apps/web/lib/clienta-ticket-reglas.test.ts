@@ -26,9 +26,9 @@ describe("filaDeClienta: qué ofrece la fila «Clienta» del ticket según el m�
 });
 
 describe("alta en el ticket y tickets en espera (ADR-0288 tanda 1a)", () => {
-  it("lo escrito en el buscador precarga el alta: DNI, celular o nombre; lo demás no se adivina", () => {
+  it("lo escrito en el buscador precarga el alta: DNI o nombre; un celular ya no (el alta no lo pide) y lo demás no se adivina", () => {
     expect(altaDesdeBusqueda(" 7123 4482 ")).toEqual({ ...ALTA_VACIA, documentoNumero: "71234482" });
-    expect(altaDesdeBusqueda("987654321")).toEqual({ ...ALTA_VACIA, celular: "987654321" });
+    expect(altaDesdeBusqueda("987654321")).toEqual(ALTA_VACIA);
     expect(altaDesdeBusqueda("María Quispe")).toEqual({ ...ALTA_VACIA, nombre: "María Quispe" });
     // Un carné de 9 dígitos que no empieza en 9, o letras con números (pasaporte), no se adivinan.
     expect(altaDesdeBusqueda("001234567")).toEqual(ALTA_VACIA);
