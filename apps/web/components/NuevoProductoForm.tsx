@@ -8,7 +8,6 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
-import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -22,12 +21,13 @@ import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/components/alta-producto/ParecidasDelAlta";
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
 import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
-import { useParecidos } from "@/lib/use-parecidos";
+import { useParecidasAlta } from "@/lib/useParecidasAlta";
 import {
   camposDelAlta,
   campoAhora,
@@ -270,9 +270,24 @@ export function NuevoProductoForm({
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
   const nombreFinal = tituloReferencia(referencia);
+  // Lo elegido en tejido y patrón, en palabras: lo usa la comparación con las prendas que ya existen, la ficha y la línea del paso plegado.
+  const tejidoTexto = [...tejidosCategoria, ...universo.tejidos].find((t) => t.id === tejidoId)?.texto ?? null;
+  const patronTexto = [...patronesCategoria, ...universo.patrones].find((t) => t.id === patronId)?.texto ?? null;
 
-  // ---------- ¿ya existe algo así? (aviso en vivo, con espera de 350 ms al tipear) ----------
-  const parecidos = useParecidos({ nombre: nombreFinal, activo: Boolean(categoriaId) });
+  // ---------- ¿ya existe algo así? (la base frena; «Prendas parecidas» avisa y ordena) ----------
+  // Devuelve lo mismo que devolvía `useParecidos` (con su espera de 350 ms al tipear) y suma la alerta del resumen, la hoja «Ver y comparar» y el
+  // pie del paso 2. El candado (`hayIdentico`, `hayUnaLetra`, `confirmo`) sigue saliendo de lo que dice la base: ver `lib/parecidas-alta-estado.ts`.
+  const parecidos = useParecidasAlta({
+    nombre: nombreFinal,
+    descripcion,
+    tejido: tejidoTexto,
+    patron: patronTexto,
+    categoriaId,
+    categoriaNombre: categoria?.nombre ?? null,
+    marcaId,
+    marcaNombre,
+    enLinea,
+  });
   const comprobandoNombre = Boolean(categoriaId) && parecidos.comprobando;
   const confirmo = parecidos.confirmo;
 
@@ -684,8 +699,6 @@ export function NuevoProductoForm({
   }
 
   // ---------- la línea de cada paso plegado (y de la lista «Avance» de la ficha) ----------
-  const tejidoTexto = [...tejidosCategoria, ...universo.tejidos].find((t) => t.id === tejidoId)?.texto ?? null;
-  const patronTexto = [...patronesCategoria, ...universo.patrones].find((t) => t.id === patronId)?.texto ?? null;
   const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
   // Lo que dice «Temporada y etiquetas · opcional» plegado: solo lo que se eligió a propósito.
   const resumenMas =
@@ -724,10 +737,15 @@ export function NuevoProductoForm({
   const textoCrear = cargando ? (fotos.length > 0 ? "Creando y subiendo fotos…" : "Creando…") : "Crear producto";
   function pie(n: NumeroPaso) {
     if (n === 1) return undefined; // elegir la categoría ya pasa al paso 2
-    const { texto, listo: listoBase } = piePaso(problemas, n, responsableAlta);
+    const { texto: textoBase, listo: listoBase } = piePaso(problemas, n, responsableAlta);
     // Con algo por hacer (aunque solo sea una sugerencia, los colores) el pie no dice «Listo»: lo dice «Falta: …», tocable.
     const faltan = faltanHastaElPaso(campos, n);
-    const listo = listoBase && faltan.length === 0;
+    // «Revisa: 2 parecidas · Ver» (solo el paso 2): lo que conviene mirar antes de seguir. No es una falta ni apaga «Seguir» (ese `disabled` sigue siendo
+    // solo `faltaDelPasoProblema`); solo le quita el pulso de «ya puedes seguir» y el «Listo».
+    const revisa = n === 2 ? parecidos.pieRevisa : null;
+    const listo = listoBase && faltan.length === 0 && !revisa;
+    // Lo que lee el lector de pantalla cuando «Falta: …» está a la vista: por qué «Crear» espera, o qué hay por revisar.
+    const texto = n === 2 ? (parecidos.motivoBloqueo ?? revisa ?? textoBase) : textoBase;
     const accion =
       n < 4 ? (
         <button
@@ -749,7 +767,13 @@ export function NuevoProductoForm({
           {textoCrear}
         </button>
       );
-    return { texto, listo, accion, faltan: faltan.length > 0 ? <FaltanDelPaso faltan={faltan} ahora={ahoraCampo} onIr={irACampo} /> : undefined };
+    const faltanTocables = faltan.length > 0 ? <FaltanDelPaso faltan={faltan} ahora={ahoraCampo} onIr={irACampo} /> : undefined;
+    return {
+      texto,
+      listo,
+      accion,
+      faltan: revisa ? <PieConParecidas faltan={faltanTocables} revisa={<RevisaParecidasDelPaso texto={revisa} onVer={() => parecidos.abrirHoja()} />} /> : faltanTocables,
+    };
   }
 
   function cuerpo(n: NumeroPaso) {
@@ -767,31 +791,9 @@ export function NuevoProductoForm({
       const ayudaOpcional = (texto: string) => (exige ? texto : `Opcional · ${texto}`);
       return (
         <div>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta" campo="nombre" estado={est.nombre}>
-            <div className="space-y-2">
-              <CampoTexto
-                id="nombre-producto"
-                etiqueta="Nombre"
-                caja
-                className="!h-12 text-base"
-                placeholder={sugerirNombre(contextoSugerencia).texto}
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                autoComplete="off"
-                pie={
-                  nombreFinal && nombreFinal !== referencia.trim() ? (
-                    <span>
-                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
-                    </span>
-                  ) : undefined
-                }
-              />
-              <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
-            </div>
-          </FilaAlta>
-          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-          </FilaAlta>
+          {/* Marca y proveedor va ARRIBA del nombre (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que
+              se escriba una letra, y al teclear el nombre la alerta ya tiene con qué comparar. Sigue siendo OPCIONAL y la guía no la señala: «Sigue aquí»
+              va al nombre, que es lo primero que falta. */}
           <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae · opcional" campo="marca" estado={est.marca}>
             <ElegirMarcaProveedor
               opcional
@@ -813,6 +815,31 @@ export function NuevoProductoForm({
               }}
               puedeCrear
             />
+          </FilaAlta>
+          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta" campo="nombre" estado={est.nombre}>
+            <div className="space-y-2">
+              <CampoTexto
+                id="nombre-producto"
+                etiqueta="Nombre"
+                caja
+                className="!h-12 text-base"
+                placeholder={sugerirNombre(contextoSugerencia).texto}
+                value={referencia}
+                onChange={(e) => setReferencia(e.target.value)}
+                autoComplete="off"
+                pie={
+                  nombreFinal && nombreFinal !== referencia.trim() ? (
+                    <span>
+                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
+                    </span>
+                  ) : undefined
+                }
+              />
+              <ParecidasBajoNombre p={parecidos.bajoNombre} />
+            </div>
+          </FilaAlta>
+          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
+            <CampoTexto etiqueta="Descripción" caja placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
@@ -1101,14 +1128,18 @@ export function NuevoProductoForm({
     // Con varias, la lista de lo que falta. Una sugerencia sola (colores) se dice como «Por revisar».
     const faltasN = faltanDelPaso(campos, n);
     const faltanN = faltasN.length > 1 || (faltasN.length === 1 && !faltasN[0].requerido) ? resumenFaltan(faltasN) : null;
+    // En el paso 2, lo que hay por mirar de «Prendas parecidas» (candado > parecidas) va antes que «Faltan: …»: lo que falta ya se repite en el pie y en
+    // cada campo, y lo parecido solo se dice aquí y en la alerta. Un paso ya ✓ sigue diciendo su resumen: mirar parecidas no le quita el ✓.
     const texto =
       e === "hecho"
         ? resumen[n] || "Listo"
-        : e === "abierto"
-          ? (faltanN ?? (pieN && !pieN.listo ? pieN.texto : (faltaDelPasoProblema(problemas, n) ?? "Listo")))
-          : abrible
-            ? (faltanN ?? (faltaDelPasoProblema(problemas, n) ?? "Por revisar"))
-            : "—";
+        : n === 2 && abrible && parecidos.resumenAvance
+          ? parecidos.resumenAvance
+          : e === "abierto"
+            ? (faltanN ?? (pieN && !pieN.listo ? pieN.texto : (faltaDelPasoProblema(problemas, n) ?? "Listo")))
+            : abrible
+              ? (faltanN ?? (faltaDelPasoProblema(problemas, n) ?? "Por revisar"))
+              : "—";
     return { numero: n, titulo: TITULOS[n], estado: e, texto, abrible };
   });
 
@@ -1172,6 +1203,7 @@ export function NuevoProductoForm({
               cargando={cargando}
               onCancelar={() => salida.pedirSalir("/productos")}
               onAbrirPaso={irAPaso}
+              parecidas={parecidos.ficha}
             />
           </div>
           {salida.aviso}

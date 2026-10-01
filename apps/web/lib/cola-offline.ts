@@ -19,6 +19,7 @@
  * Puro: sin React, sin Supabase, sin `window`. El trío de sincronización vive en `lib/useColaOffline.ts`.
  */
 
+import { claveReferencia } from "./alta-producto";
 import type { Firma } from "./responsable-reglas";
 
 export type OperacionEncolada<P = Record<string, unknown>> = {
@@ -147,13 +148,14 @@ export function subidasEntre<P>(previa: OperacionEncolada<P>[], actual: Operacio
 /**
  * ¿Ya hay un alta de producto esperando en la cola con este nombre? Sin red no se puede preguntar a la base si el
  * nombre existe; al menos no se encolan dos iguales (la segunda la rechazaría `crear_producto_con_variantes` al subir).
- * Compara sin mayúsculas ni tildes, como el aviso de parecidos.
+ * Compara como la base (`claveReferencia`, espejo de `fn_clave_referencia`): sin mayúsculas, tildes, espacios ni puntuación. «Polo G44», «Polo G-44» y
+ * «Polo G 44» son el mismo nombre para el índice único; si solo se quitaran mayúsculas y tildes, la segunda entraría a la cola y la base la rechazaría
+ * al subir, cuando la persona ya no está (hallazgo H8 del adversario, 2026-09-30).
  */
 export function nombreEnCola(cola: OperacionEncolada[], nombre: string): boolean {
-  const clave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
-  const buscado = clave(nombre);
+  const buscado = claveReferencia(nombre);
   if (!buscado) return false;
-  return porSubir(cola).some((op) => typeof op.params.p_referencia === "string" && clave(op.params.p_referencia) === buscado);
+  return porSubir(cola).some((op) => typeof op.params.p_referencia === "string" && claveReferencia(op.params.p_referencia) === buscado);
 }
 
 /**
