@@ -22,15 +22,13 @@ export type ResultadoEnvio = {
   /** Los lotes que dejó el envío (uno por proveedor): de ahí salen las etiquetas de precio (ADR-0180). */
   lotes: string[];
   extras: number;
-  deOtraSede: number;
-  traslados: { resultado: string }[];
   cierres: number;
   /** Lo que el proveedor queda debiendo en notas de crédito, a su costo con IGV. 0 = nada que reclamar (o quien
    *  recibió no es líder: el reclamo es dinero y vive en `/compras/notas-credito`). */
   porReclamar: number;
   yaRegistrado: boolean;
   /** Se cortó el internet al confirmar: el envío quedó en la cola de este navegador y sube solo (ADR-0210). Todavía
-   *  no hay lotes (sin etiquetas de precio) ni resultado de traslados: eso lo decide la base al subir. */
+   *  no hay lotes (sin etiquetas de precio): eso lo decide la base al subir. */
   sinConexion?: boolean;
   /** Lo que quedó escrito en el stock, prenda por prenda. */
   movimientos: MovimientoDelEnvio[];
@@ -41,8 +39,6 @@ const VISIBLES = 7;
 export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: { resultado: ResultadoEnvio; ubicacionNombre: string; onOtroEnvio: () => void }) {
   const ver = ok.movimientos.slice(0, VISIBLES);
   const mas = ok.movimientos.length - ver.length;
-  // Lo que vino de otra sede ya llega etiquetado (entra por traslado, no por lote): solo se etiqueta lo del proveedor.
-  const porEtiquetar = ok.unidades - ok.deOtraSede;
   return (
     <div className="card-cayla anim-entra flex flex-col items-center gap-2 px-6 pb-8 pt-10 text-center">
       {ok.sinConexion ? (
@@ -74,17 +70,11 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
           <p className="max-w-lg text-sm text-tinta/70">
             {ok.sinConexion ? "Sumarán" : "Ya suman"} al stock de {ubicacionNombre}
             {ok.proveedores > 0 && `, de ${ok.proveedores === 1 ? "un proveedor" : `${ok.proveedores} proveedores`}`}
-            {ok.extras > 0 && ` (${ok.extras} ${ok.extras === 1 ? "prenda" : "prendas"} fuera de comprobante)`}
-            {ok.deOtraSede > 0 && ` y ${ok.deOtraSede} de otra sede`}.
+            {ok.extras > 0 && ` (${ok.extras} ${ok.extras === 1 ? "prenda" : "prendas"} fuera de comprobante)`}.
           </p>
         </>
       ) : (
         <p className="font-display text-3xl text-tinta">Nada que sumar al stock</p>
-      )}
-      {ok.traslados.length > 0 && (
-        <p className="max-w-lg text-sm text-tinta/70">
-          {ok.traslados.map((t) => (t.resultado === "cerrada" ? "Un traslado confirmado completo." : "Un traslado quedó con diferencia: un líder lo revisa.")).join(" ")}
-        </p>
       )}
       {ok.cierres > 0 && (
         <p className="max-w-lg text-sm text-tinta/70">
@@ -125,9 +115,9 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         </ol>
       )}
 
-      {porEtiquetar > 0 && ok.lotes.length > 0 && (
+      {ok.unidades > 0 && ok.lotes.length > 0 && (
         <Link href={urlEtiquetasDePrecio({ lotes: ok.lotes })} className="btn-cayla btn-primario mt-4">
-          Imprimir {porEtiquetar === 1 ? "la etiqueta" : `${porEtiquetar} etiquetas`} de precio
+          Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
         </Link>
       )}
 

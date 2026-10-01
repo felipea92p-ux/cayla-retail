@@ -4,9 +4,13 @@ import type { RecepcionDeCompra } from "./compras-indicadores";
 import { diasDeAtraso, estadoLinea, faltanteDeLinea } from "./recepciones-reglas";
 
 // Reglas puras del ENVÍO (ADR-0113): una llegada a la puerta que puede traer comprobantes de VARIOS
-// proveedores, prendas fuera de comprobante con su origen y traslados de otra sede. Sin I/O: se
-// prueban sin base ni navegador. Lo que dice la pantalla y lo que manda a `recibir_envio` sale de acá,
-// para que el conteo que ve quien recibe sea exactamente el que se registra.
+// proveedores y prendas fuera de comprobante con su origen. Sin I/O: se prueban sin base ni navegador.
+// Lo que dice la pantalla y lo que manda a `recibir_envio` sale de acá, para que el conteo que ve quien
+// recibe sea exactamente el que se registra.
+//
+// ADR-0299 (2026-10-01): lo que viene de otra sede de CAYLA YA NO se recibe por acá. Recibir mercadería es de
+// proveedores; lo de otra sede se cuenta y se confirma en Traslados, que es donde se elige piso o almacén. Por eso
+// este archivo ya no sabe contar traslados (antes: `ConteoTraslado`, `trasladoContadoEntero`, `p_traslados`).
 
 /** Por línea de comprobante: cuántas unidades de cada variante llegan. AUSENTE = «sin contar»; un 0 escrito es «se contó y no llegó nada». */
 export type Reparto = Record<string /* lineaId */, Record<string /* varianteId */, number>>;
@@ -14,20 +18,26 @@ export type Reparto = Record<string /* lineaId */, Record<string /* varianteId *
 /**
  * Una prenda que llegó en el envío pero ningún comprobante la lista (ADR-0076), con su ORIGEN:
  * el proveedor que la mandó y si es un regalo (entra al stock sin costo y sin tocar el costo promedio).
- * Lo que viene de otra sede de CAYLA no va acá: se confirma como traslado (`ConteoTraslado`).
+ * Lo que viene de otra sede de CAYLA no va acá: se recibe en Traslados (ADR-0299).
  */
 export type ExtraEnvio = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string; proveedorId: string; esRegalo: boolean };
 
-/** Lo contado de un traslado en tránsito (envío interno): unidades que llegaron de cada variante enviada. AUSENTE = sin contar. */
-export type ConteoTraslado = Record<string /* varianteId */, number>;
+/**
+ * Los traslados en camino HACIA una sede: el aviso de Recibir mercadería («esto no se recibe aquí, ábrelo en Traslados»).
+ * Solo `en_transito` y solo los que tienen prendas: uno con diferencia ya entró al stock y espera a un líder (no hay nada
+ * que contar), y una cabecera vacía (ADR-0173) no es algo que recibir. Pura: la lectura es `getTrasladosEnCurso`.
+ */
+export type TrasladoHaciaAca = { id: string; numero: number; origenNombre: string; unidades: number };
 
-export type LineaEnTraslado = { varianteId: string; cantidadEnviada: number };
-
-/** Una línea de un traslado en tránsito hacia esta sede: lo que el origen dice que mandó. */
-export type LineaTrasladoEnCamino = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; cantidadEnviada: number };
-
-/** Un traslado que viene en camino hacia la sede (envío interno): se cuenta y confirma dentro del envío, no crea stock de la nada. */
-export type TrasladoEnCamino = { id: string; numero: number; origenNombre: string; fechaEstimadaLlegada: string | null; nota: string | null; lineas: LineaTrasladoEnCamino[] };
+export function trasladosHaciaAca(
+  traslados: { id: string; numero: number; estado: string; ubicacionDestinoId: string; ubicacionOrigenNombre: string; unidadesEnviadas: number; lineas: number }[],
+  ubicacionId: string,
+): TrasladoHaciaAca[] {
+  return traslados
+    .filter((t) => t.estado === "en_transito" && t.ubicacionDestinoId === ubicacionId && t.lineas > 0)
+    .map((t) => ({ id: t.id, numero: t.numero, origenNombre: t.ubicacionOrigenNombre, unidades: t.unidadesEnviadas }))
+    .sort((a, b) => a.numero - b.numero);
+}
 
 // ---------------------------------------------------------------------------
 // Quien cuenta no siempre ve dinero
@@ -154,8 +164,6 @@ export type TotalesEnvio = {
   faltantes: number;
   /** Prendas fuera de comprobante, con proveedor: suman al stock, no cuentan contra ninguna deuda. */
   fueraDeComprobante: number;
-  /** Unidades contadas de traslados internos (de otra sede). */
-  deOtraSede: number;
   lineasTotal: number;
   lineasContadas: number;
   /** Líneas contadas por encima de lo pendiente: la RPC las rechazaría. */
@@ -166,12 +174,7 @@ export function extraCompleto(e: ExtraEnvio): boolean {
   return !!e.varianteId && !!e.proveedorId && e.cantidad > 0;
 }
 
-export function totalesEnvio(
-  bloques: BloqueEnvio[],
-  reparto: Reparto,
-  extras: ExtraEnvio[],
-  traslados: { lineas: LineaEnTraslado[]; conteo: ConteoTraslado }[] = [],
-): TotalesEnvio {
+export function totalesEnvio(bloques: BloqueEnvio[], reparto: Reparto, extras: ExtraEnvio[]): TotalesEnvio {
   let esperadas = 0;
   let contadas = 0;
   let sinContar = 0;
@@ -195,8 +198,7 @@ export function totalesEnvio(
     }
   }
   const fueraDeComprobante = extras.filter(extraCompleto).reduce((a, e) => a + e.cantidad, 0);
-  const deOtraSede = traslados.reduce((a, t) => a + t.lineas.reduce((s, l) => s + (t.conteo[l.varianteId] ?? 0), 0), 0);
-  return { esperadas, contadas, sinContar, faltantes, fueraDeComprobante, deOtraSede, lineasTotal, lineasContadas, excedidas };
+  return { esperadas, contadas, sinContar, faltantes, fueraDeComprobante, lineasTotal, lineasContadas, excedidas };
 }
 
 // ---------------------------------------------------------------------------
@@ -324,14 +326,13 @@ export type MovimientoDelEnvio = { cantidad: number; referencia: string; detalle
 
 /**
  * Los movimientos de entrada que deja el envío, en el orden en que se ven en pantalla: primero lo que trae cada
- * comprobante, luego lo fuera de comprobante y por último lo de otra sede. `dePrenda` resuelve la variante para
- * las líneas agrupadas, las prendas fuera de comprobante y los traslados. Lo que quedó en 0 no es un movimiento.
+ * comprobante y luego lo fuera de comprobante. `dePrenda` resuelve la variante para las líneas agrupadas y las
+ * prendas fuera de comprobante. Lo que quedó en 0 no es un movimiento.
  */
 export function movimientosDelEnvio(p: {
   bloques: BloqueEnvio[];
   reparto: Reparto;
   extras: ExtraEnvio[];
-  traslados: { numero: number; lineas: { varianteId: string; referencia: string; talla: string | null; color: string | null }[]; conteo: ConteoTraslado }[];
   dePrenda: (varianteId: string) => { referencia: string; detalle: string } | null;
 }): MovimientoDelEnvio[] {
   const salida: MovimientoDelEnvio[] = [];
@@ -350,12 +351,6 @@ export function movimientosDelEnvio(p: {
     const v = p.dePrenda(e.varianteId);
     salida.push({ cantidad: e.cantidad, referencia: v?.referencia ?? "Prenda", detalle: [v?.detalle, e.esRegalo ? "regalo" : null].filter(Boolean).join(" · "), origen: "fuera de comprobante" });
   }
-  for (const t of p.traslados) {
-    for (const l of t.lineas) {
-      const n = t.conteo[l.varianteId] ?? 0;
-      if (n > 0) salida.push({ cantidad: n, referencia: l.referencia, detalle: detalleDe({ talla: l.talla, color: l.color, sku: "" }), origen: `traslado ${t.numero}` });
-    }
-  }
   return salida;
 }
 
@@ -364,13 +359,11 @@ export function movimientosDelEnvio(p: {
 // ---------------------------------------------------------------------------
 
 export type CierreElegido = { lineaId: string; faltan: number; motivo: string };
-export type TrasladoAConfirmar = { transferenciaId: string; lineas: LineaEnTraslado[]; conteo: ConteoTraslado };
 
 export type PedidoEnvio = {
   p_ubicacion_id: string;
   p_items: { compra_item_id: string; variante_id: string; cantidad: number }[];
   p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number }[];
-  p_traslados: { transferencia_id: string; lineas: { variante_id: string; cantidad: number }[] }[];
   p_cierres: { compra_item_id: string; cantidad: number; motivo: string }[];
   /** Siempre vacío desde 2026-09-19: la nota de crédito se registra en `/compras/notas-credito`, no acá.
    *  Viaja igual porque `recibir_envio` sigue aceptando el parámetro (la base no se tocó). */
@@ -383,8 +376,7 @@ export type PedidoEnvio = {
 /**
  * Arma el pedido exactamente como lo espera la RPC. Solo viaja lo contado (`> 0`): una línea sin contar
  * o en 0 no suma al stock. Un regalo nunca lleva costo; el costo de una prenda comprada fuera de
- * comprobante es opcional. De un traslado viajan TODAS sus líneas enviadas (contadas o no, aunque sea 0):
- * la base exige que ninguna quede sin decir qué pasó.
+ * comprobante es opcional. Nunca viaja un traslado: `recibir_envio` lo rechaza desde ADR-0299 (se recibe en Traslados).
  *
  * Notas de crédito: ya NO viajan (2026-09-19). Recepción cuenta y decide; el documento del proveedor se
  * reclama y se registra en `/compras/notas-credito`. `p_notas_credito` sigue en el pedido, siempre vacío,
@@ -395,7 +387,6 @@ export function armarPedidoEnvio(p: {
   bloques: BloqueEnvio[];
   reparto: Reparto;
   extras: ExtraEnvio[];
-  traslados: TrasladoAConfirmar[];
   cierres: CierreElegido[];
   numeroGuia: string;
   nota: string;
@@ -415,15 +406,10 @@ export function armarPedidoEnvio(p: {
     es_regalo: e.esRegalo,
     ...(!e.esRegalo && e.costoUnitario ? { costo_unitario: Number(e.costoUnitario) } : {}),
   }));
-  const p_traslados = p.traslados.map((t) => ({
-    transferencia_id: t.transferenciaId,
-    lineas: t.lineas.map((l) => ({ variante_id: l.varianteId, cantidad: t.conteo[l.varianteId] ?? 0 })),
-  }));
   return {
     p_ubicacion_id: p.ubicacionId,
     p_items,
     p_extras,
-    p_traslados,
     p_cierres: p.cierres.map((c) => ({ compra_item_id: c.lineaId, cantidad: c.faltan, motivo: c.motivo })),
     p_notas_credito: [],
     ...(p.numeroGuia.trim() ? { p_numero_guia: p.numeroGuia.trim() } : {}),
@@ -434,25 +420,18 @@ export function armarPedidoEnvio(p: {
 
 /**
  * Lo que ya está contado en envíos guardados SIN CONEXIÓN que todavía no subieron (ADR-0210): las líneas de
- * comprobante (recibidas o cerradas) y los traslados. La pantalla los saca de «pendientes» mientras esperan, igual
- * que Vender descuenta del stock lo vendido sin red — si no, alguien volvería a contar el mismo comprobante y, al
- * volver el internet, subirían dos recepciones de la misma mercadería. Un envío RECHAZADO no entra: la base no lo
- * registró y ese comprobante sigue por recibir.
+ * comprobante (recibidas o cerradas). La pantalla las saca de «pendientes» mientras esperan, igual que Vender
+ * descuenta del stock lo vendido sin red — si no, alguien volvería a contar el mismo comprobante y, al volver el
+ * internet, subirían dos recepciones de la misma mercadería. Un envío RECHAZADO no entra: la base no lo registró y
+ * ese comprobante sigue por recibir.
  */
-export function pendienteEnCola(pedidos: Pick<PedidoEnvio, "p_items" | "p_cierres" | "p_traslados">[]): { lineas: Set<string>; traslados: Set<string> } {
+export function pendienteEnCola(pedidos: Pick<PedidoEnvio, "p_items" | "p_cierres">[]): { lineas: Set<string> } {
   const lineas = new Set<string>();
-  const traslados = new Set<string>();
   for (const p of pedidos) {
     for (const i of p.p_items ?? []) lineas.add(i.compra_item_id);
     for (const c of p.p_cierres ?? []) lineas.add(c.compra_item_id);
-    for (const t of p.p_traslados ?? []) traslados.add(t.transferencia_id);
   }
-  return { lineas, traslados };
-}
-
-/** ¿Todas las líneas enviadas de un traslado tienen su conteo? La base lo exige (aunque sea 0). */
-export function trasladoContadoEntero(lineas: LineaEnTraslado[], conteo: ConteoTraslado): boolean {
-  return lineas.length > 0 && lineas.every((l) => conteo[l.varianteId] !== undefined);
+  return { lineas };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
