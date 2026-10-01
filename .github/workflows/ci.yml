@@ -1198,6 +1198,54 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
+      # La regla del «costo atípico» (20260930120000, Felipe 2026-09-30): función pura que dice si un costo por prenda merece
+      # una segunda mirada (sin costo, mayor que el precio, sube a más de 2× o baja a menos de 2/3 del vigente). Fronteras
+      # exactas, sin referencia no hay opinión relativa, el orden de los motivos, interna (sin execute para la API) y
+      # llamable desde una SECURITY DEFINER; se puede pegar dos veces. Ninguna escritura.
+      - name: pruebas:costo-fuera-de-banda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-fuera-de-banda
+
+      # Cerrar una orden del Taller pide confirmación si el costo por prenda es atípico (20260930121000, Felipe 2026-09-30): un
+      # líder recibe `costo_atipico` con el dato en `detail` y la orden queda intacta (todo o nada: sin buenas, sin
+      # movimientos, sin historial de costo); confirma con `p_confirma_costo_atipico` y el costo entra al promedio ponderado
+      # exacto con constancia SIN montos en la nota; un integrante (no ve montos) recibe `costo_atipico_sin_lider` sin cifras
+      # y mandar la confirmación por la API directa no cambia nada; una talla con cero buenas no cuenta; una muestra no
+      # pregunta; una sola función (sin sobrecargas); `anon` no la ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:produccion-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-costo-atipico
+
+      # Recibir un lote sin factura pide confirmación si el costo de una línea es atípico (20260930122000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con las líneas raras que faltan por confirmar en `detail.items` (numeradas; las normales no) y no
+      # se escribe nada (sin lote, sin movimientos, sin historial); la confirmación viaja EN CADA LÍNEA (`confirma_costo`): una marca
+      # parcial vuelve a preguntar solo por lo no marcado y una marca en una línea normal no hace nada; el rechazo no consume el
+      # token (el reintento con las marcas es un solo lote); con las marcas entra al promedio ponderado exacto y el lote deja
+      # constancia SIN montos; un integrante recibe `costo_atipico_sin_lider` sin cifras y no puede forzarlo por la API; sin costo y
+      # costo 0 (obsequio) no se juzgan; la firma de seis parámetros no cambió; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:lote-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:lote-costo-atipico
+
+      # Registrar una factura pide confirmación si el costo de una línea es atípico (20260930123000, Felipe 2026-09-30): el costo se
+      # compara con el de la variante que la línea nombra (o la mediana de las del producto, y el precio más bajo); el aviso numera
+      # las líneas que faltan por confirmar y no se escribe nada (sin compra, sin líneas, sin token); la confirmación viaja EN CADA
+      # LÍNEA (`confirma_costo`), sin cambiar la firma de 15 parámetros; la constancia sale SIN montos en la nota; registrar NO mueve
+      # `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
+      # de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
+      - name: pruebas:factura-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:factura-costo-atipico
+
+      # Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se
+      # escribe nada (ni el envío, ni la línea de comprobante, ni el token); la confirmación viaja EN CADA EXTRA (`confirma_costo`),
+      # sin cambiar la firma de 9 parámetros; un integrante recibe `costo_atipico_sin_lider` sin cifras y no puede forzarlo; regalo,
+      # sin costo y costo 0 (obsequio) no se juzgan; las líneas DE comprobante no se vuelven a preguntar; se puede pegar dos veces.
+      - name: pruebas:envio-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:envio-costo-atipico
+
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga
       # inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y los viejos sonando en

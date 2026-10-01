@@ -369,7 +369,8 @@ export type TrasladoAConfirmar = { transferenciaId: string; lineas: LineaEnTrasl
 export type PedidoEnvio = {
   p_ubicacion_id: string;
   p_items: { compra_item_id: string; variante_id: string; cantidad: number }[];
-  p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number }[];
+  /** `confirma_costo`: solo en el reintento tras `costo_atipico`, en los extras que se le mostraron al líder (`confirmarExtras`). */
+  p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number; confirma_costo?: true }[];
   p_traslados: { transferencia_id: string; lineas: { variante_id: string; cantidad: number }[] }[];
   p_cierres: { compra_item_id: string; cantidad: number; motivo: string }[];
   /** Siempre vacío desde 2026-09-19: la nota de crédito se registra en `/compras/notas-credito`, no acá.
@@ -430,6 +431,15 @@ export function armarPedidoEnvio(p: {
     ...(p.nota.trim() ? { p_nota: p.nota.trim() } : {}),
     p_token: p.token,
   };
+}
+
+/**
+ * El mismo pedido con la marca `confirma_costo` en los extras que el líder confirmó (costo atípico, 20260930124000).
+ * `lineas` son las posiciones en `p_extras`, desde 1, tal como las numera la base en su aviso. Una posición que no existe se
+ * ignora; el pedido original no se toca.
+ */
+export function confirmarExtras(pedido: PedidoEnvio, lineas: number[]): PedidoEnvio {
+  return { ...pedido, p_extras: pedido.p_extras.map((x, n) => (lineas.includes(n + 1) ? { ...x, confirma_costo: true as const } : x)) };
 }
 
 /**
