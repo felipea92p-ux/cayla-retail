@@ -852,3 +852,51 @@ la web después. **Cómo lo verifica Felipe:** abre Clientas: cuatro cifras con 
 píldoras con Archivadas y la tabla con Su sede y Última compra; a 800 px con el lateral abierto nada se corta; abre una socia:
 «Su sede · N de M», marca Evento y Lana, «Guardar preferencias», y su historia del permiso en orden. Capturas lado a lado con el
 spike en `docs/capturas/2026-09-30-club-paso1f/`.
+
+## Actualización 2026-10-01 (g): ella se une sola desde el cartel, y el club es solo WhatsApp de promociones
+
+**Qué cambió y por qué.** Felipe, con el paso 1 ya en producción (0 socias todavía), decidió que la asesora no registre el
+club en caja: ella escanea el QR del cartel y se registra sola en una página de CAYLA. El club deja de servir para avisos
+personales y queda como lo que vende: estar al día con lo que tiene CAYLA, sus promociones y los cupones de cumpleaños y de
+aniversario. Supera, en lo que contradicen, a la D-4 (dos permisos), la D-9 (el registro del club en caja), la actualización
+(c) (QR personal y casilla de publicidad) y al texto `club` v2.
+
+**Decisiones de Felipe (2026-10-01):**
+- **G-1 · Un solo QR, el del cartel, general por tienda.** Abre la página de registro de esa tienda. El ticket impreso lleva el
+  mismo QR. Se retiran el QR personal de la caja (camino B, `/club/[token]`) y el QR de WhatsApp del ticket (camino A).
+- **G-2 · En caja, solo el DNI.** «Registrar clienta» pide el documento; con DNI el nombre sale del padrón. La asesora no
+  escribe celular ni cumpleaños. Si no es socia, la tarjeta dice «Pídele que escanee el cartel» y se actualiza sola cuando
+  ella se une con ese documento. El canje del cumpleaños y «¿Se la probó?» no cambian.
+- **G-3 · La página.** Documento (DNI por defecto; carné o pasaporte con el nombre escrito por ella). Con DNI muestra el
+  nombre a medias («¿Eres Lucía P. S.?») para que confirme que tipeó bien, sin revelar el nombre completo de nadie. Celular y
+  fecha de nacimiento completa (con año) son obligatorios; el correo es opcional y solo un dato de contacto. Casilla
+  «Confirmo ser mayor de 18 años», que la base además comprueba con la fecha.
+- **G-4 · DNI que ya existe: se reemplazan sus datos**, y es socia desde la primera vez que se inscribió (`club_desde` no
+  se mueve). Si no existe, se crea la ficha completa.
+- **G-5 · Al unirse, recibe WhatsApp de promociones** (novedades, rebajas, avisos de sus cupones). Nada personal por WhatsApp:
+  ni «tu apartado está listo» ni «llegó tu talla».
+- **G-6 · Saludo obligatorio.** Después de «Unirme», el único paso que queda es «Saludar a CAYLA por WhatsApp» (al número de
+  la tienda del cartel, con su código). Así guarda el número oficial y la conversación la empieza ella. La página no puede
+  saber si lo envió: lo deja como el único camino para terminar.
+- **G-7 · Sin «Llegó un mensaje de WhatsApp».** Se retira de Clientas ▸ Más. La BAJA se registra en su ficha y en Avisos.
+- **G-8 · Clientas ▸ Avisos.** La lista de mensajes por mandar a cada socia. «Enviar» abre WhatsApp Web con el número y el
+  texto listos; la encargada solo presiona Enter. Queda anotado como enviado.
+- **G-9 · Aniversario:** no basta cumplir el año como socia; en ese año tiene que haber comprado.
+- **G-10 · Contra el abuso del cartel:** el DNI tiene que existir en el padrón; pocos registros por celular y por hora; la
+  ficha dice «se registró ella desde el cartel».
+- **G-11 · El texto de la página** tiene que ser profesional y sin huecos legales (borrador en
+  `docs/club/texto-legal-registro-v1.md`, para aprobar antes de publicar).
+
+**Lo que la ley exige y cómo lo cubre (resumen; detalle en el borrador del texto):**
+- Ley 32323 (art. 58.1.e del Código del Consumidor): publicidad solo a quien, por iniciativa propia, contacta a la empresa y
+  da un consentimiento libre, previo, informado, expreso e inequívoco. La cubren el cartel (ella decide escanear), la casilla
+  expresa sin marcar y su saludo desde su número.
+- Ley 29733 y su reglamento (DS 016-2024-JUS): deber de información (responsable, finalidades, destinatarios, transferencia al
+  extranjero, plazo, derechos ARCO), prueba del consentimiento a cargo de CAYLA (se guarda el texto exacto, su versión y la
+  hora), finalidades separadas, baja sencilla y gratuita, y el banco de datos inscrito ante la Autoridad Nacional.
+- Los datos viven en São Paulo, Brasil (Supabase `sa-east-1`, Vercel `gru1`): es un flujo transfronterizo y se informa.
+
+**Riesgo legal que el texto no cierra (para que Felipe decida):** el reglamento de la Ley 29733 (art. 3.2) no deja condicionar
+un beneficio a aceptar un tratamiento que no es indispensable. Si la casilla de WhatsApp es obligatoria para ser socia, el
+cupón de cumpleaños queda atado a aceptar publicidad. La ruta sólida es la casilla de WhatsApp opcional: sin ella es socia con
+sus cupones en tienda, sin mensajes.
