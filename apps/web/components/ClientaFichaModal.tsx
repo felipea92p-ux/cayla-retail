@@ -494,9 +494,9 @@ export function ClientaFichaModal({
         <div className="space-y-6">
           {modo === "ver" && (
             <>
-              {/* Como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `modalFicha`): los datos, el estado en
-                  insignias y, debajo, la tarjeta del club con lo que se puede registrar. Sin la historia del permiso: la
-                  base no expone todavía una lectura de `club_permisos` (tanda 1b). */}
+              {/* En el orden del spike del club (docs/maquetas/club-clientas-spike-2026-09/, `modalFicha` de 50-clientas.js): los
+                  datos, el estado en insignias, la talla, las preferencias (tanda 1f), la tarjeta del club con lo que se puede
+                  registrar y la historia del permiso (tanda 1f, `fn_clienta_permisos`). */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
                 <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es socia"} />
@@ -522,6 +522,23 @@ export function ClientaFichaModal({
                       <Chip tono="neutro">Sin publicidad</Chip>
                     ))}
                 </div>
+              )}
+
+              {tallas.length > 0 && (
+                <div className="card-cayla p-4">
+                  <p className="label-cayla text-[11px] text-tinta/65">Talla deducida de lo que compra</p>
+                  <p className="mt-1 text-sm text-tinta">{tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}</p>
+                </div>
+              )}
+
+              {enClub !== "no_socia" && !c.anonimizada && (
+                <PreferenciasClienta
+                  clientaId={c.id}
+                  version={c.version}
+                  guardadas={c.preferencias ?? {}}
+                  soloLectura={!activa}
+                  onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
+                />
               )}
 
               {!c.anonimizada &&
@@ -583,22 +600,6 @@ export function ClientaFichaModal({
                   </div>
                 ))}
 
-              {tallas.length > 0 && (
-                <div className="card-cayla p-4">
-                  <p className="label-cayla text-[11px] text-tinta/65">Talla deducida de lo que compra</p>
-                  <p className="mt-1 text-sm text-tinta">{tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}</p>
-                </div>
-              )}
-
-              {enClub !== "no_socia" && !c.anonimizada && (
-                <PreferenciasClienta
-                  clientaId={c.id}
-                  version={c.version}
-                  guardadas={c.preferencias ?? {}}
-                  soloLectura={!activa}
-                  onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
-                />
-              )}
               <HistoriaPermisos clientaId={c.id} clave={c.version} />
 
               <SeccionActividad titulo="Compras" vacio="Todavía no tiene compras registradas.">

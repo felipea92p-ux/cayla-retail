@@ -31,7 +31,8 @@
  *      pero se conserva si ya estaba; anonimizar y unir las vacían; el esquema rechaza preferencias en una no socia o que
  *      no son un objeto; un valor del catálogo no se renombra ni se borra (club_etiqueta_fija) y `fn_club_etiquetas` trae
  *      solo los activos, en orden.
- *   i. Historia del permiso: en orden, con tienda, quién («Felipe A.»), texto y versión; el legado sin quién; los eventos
+ *   i. Historia del permiso: en orden, con tienda, quién («Felipe A.»; «ella misma» si la dio ella en la página de su QR,
+ *      medio qr_web), texto y versión; el legado sin quién; los eventos
  *      de una ficha que se le unió, marcados `de_otra_ficha`.
  *   j. Estructura y pegado: md5 «después» de la sección 0 = vivos y cuerpos = archivo; pegar dos veces deja lo mismo; con
  *      una función cambiada en vivo aborta sin tocar nada; sin la tanda 1b aborta; ningún `into` en un texto entre
@@ -660,6 +661,21 @@ insert into retail.club_permisos (clienta_id, finalidad, accion, medio, nota, cr
 values (:'queda', 'club', 'otorga', 'legado', 'marcado en caja antes de ADR-0288', now() + interval '1 minute');
 ` + como(FELIPE) + HISTORIA("queda"),
   "club:otorga:caja_palabra:club:2:Tienda Lima:Felipe A.:true\nclub:otorga:legado:-:-:-:-:false"
+);
+caso(
+  "(i) camino B: ella confirma en la página de su QR (anon, medio qr_web) → «ella misma», sin nadie de la tienda, con la tienda de su invitación y el texto pagina_publicidad v1",
+  como(FELIPE) + SOCIA("s", "71550805", "Zlf Historia Qr", "966550805") +
+    `select token as s_token from retail.crear_invitacion_club(:'s', :'tru') \\gset\n` +
+    comoAnon +
+    `select retail.confirmar_invitacion_club(:'s_token', 1) as _c \\gset\n` +
+    ESPACIAR("s") +
+    `select count(*) filter (where medio = 'qr_web' and registrado_por is null) from retail.club_permisos where clienta_id = :'s';\n` +
+    como(FELIPE) + HISTORIA("s"),
+  [
+    "1",
+    "club:otorga:caja_palabra:club:2:Tienda Lima:Felipe A.:false",
+    "publicidad_whatsapp:otorga:qr_web:pagina_publicidad:1:Tienda Trujillo:ella misma:false",
+  ].join("\n")
 );
 caso(
   "(i) una ficha sin eventos no trae filas",
