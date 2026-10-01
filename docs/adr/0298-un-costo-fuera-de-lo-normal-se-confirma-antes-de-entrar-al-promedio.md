@@ -1,4 +1,4 @@
-# ADR-0296 — Un costo fuera de lo normal se confirma antes de entrar al promedio
+# ADR-0298 — Un costo fuera de lo normal se confirma antes de entrar al promedio
 
 **Fecha:** 2026-09-30 · **Estado:** construido y probado en local; **las cinco migraciones se aplicaron en producción el
 2026-10-01** (ver «Cómo se pegó») · **Decide:** Felipe (umbral, el cero, qué pasa con un integrante, el alcance y quién
