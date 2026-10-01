@@ -51,7 +51,7 @@ export type FilaDelTicket = {
   alTope: boolean;
   /** El «− 1 +». Una prenda sin registrar no lo lleva: la base exige cantidad 1 y el paso no tendría nada que hacer. */
   conPaso: boolean;
-  /** El % de la línea: con campaña, el de SU campaña (ADR-0182), no la cuenta monto ÷ precio. */
+  /** El % de la línea: con campaña, el de SU campaña, no la cuenta monto ÷ precio. */
   pct: number;
   /** «−25 % · Black Friday» o «−20 % · Prenda con desperfecto»; null sin descuento. */
   nota: string | null;
@@ -60,8 +60,8 @@ export type FilaDelTicket = {
   importeLista: number | null;
 };
 
-/** El % que se ve en la fila: el de la campaña si el descuento es de campaña (el precio baja al .90 y la cuenta se
- *  corre: 24.90 de 95.80 es 26 % y la campaña es de 25 %); si no, la cuenta de siempre. */
+/** El % que se ve en la fila: el de la campaña si el descuento es de campaña (el descuento es exacto al céntimo, pero
+ *  monto ÷ precio puede correrse un pelo: 4.98 de 19.90 es 25.03 % y la campaña es de 25 %); si no, la cuenta de siempre. */
 export function porcentajeVisible(l: LineaParaFila): number {
   return esDescuentoDeCampana(l) && l.campana ? l.campana.pct : porcentajeDeLinea(l);
 }

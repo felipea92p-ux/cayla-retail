@@ -1,5 +1,9 @@
 # ADR-0182 — El precio de campaña se redondea hacia abajo a .90: una sola regla, en la caja y en la base
 
+> **REEMPLAZADO por ADR-0300 (Felipe, 2026-10-01): el descuento de campaña es exacto, el % sobre el precio al céntimo.**
+> El .90 descontaba hasta casi un sol de más y el papel decía un % que no era: con S/ 39.00 y «−20 %» se cobraba 30.90
+> (20.8 %). Rige hasta que se pegue `20261001150000_campana_descuento_exacto.sql` junto con la web.
+
 **Fecha:** 2026-09-23 · **Estado:** migración `20260923174100_campana_redondea_a_90.sql` **PEGADA EN PRODUCCIÓN el
 2026-09-23** con OK de Felipe y verificada (sección «Pegada en producción»). **La web se publicó el mismo día a las 12:16
 (Lima)**, cuando Felipe fusionó el PR #351: base y caja ya calculan igual. Antes de activar la primera campaña, recargar

@@ -202,13 +202,23 @@ export function motivoBloqueoCobro(v: {
 // `venta_items` ya tiene (≥ 0, ≤ precio, subtotal generado) y que `registrar_venta`
 // recibe — así queda medido por prenda en vez de disfrazado de "precio más bajo".
 
-/** Un % (entero o no) convertido a monto por unidad, con 2 decimales. Fuera de 0..100
- *  se recorta: 0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el
- *  candado `venta_items_descuento_no_supera_precio` lo rechazaría igual. */
+/** Un % convertido a monto por unidad: la cuenta EXACTA `precio × % / 100`, llevada al céntimo más cercano (el medio
+ *  céntimo, hacia arriba: lo mismo que `round(x, 2)` de Postgres). Es la única cuenta de «un % se vuelve soles» de la
+ *  caja: la usan el descuento manual en % y el de campaña (`descuentoDeCampana`, ADR-0300). Fuera de 0..100 se recorta:
+ *  0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio`
+ *  lo rechazaría igual.
+ *
+ *  Va en enteros (céntimos × diezmilésimas de %), no en coma flotante: así S/ 19.90 con 25 % (4.975) daba 4.97 en vez de
+ *  4.98, y se equivocaba en 1 de cada ~550 combinaciones de precio y % (medido el 2026-10-01). El % se toma con hasta 4
+ *  decimales; el de una campaña tiene 2 (`etiquetas.descuento_pct` es numeric(5,2)). */
 export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaje: number): number {
   if (!Number.isFinite(porcentaje) || porcentaje <= 0) return 0;
   if (porcentaje >= 100) return precioUnitario;
-  return redondear2((precioUnitario * porcentaje) / 100);
+  const precioC = Math.round(precioUnitario * 100);
+  const pct4 = Math.round(porcentaje * 10_000); // 33.33 % → 333 300
+  // precioC × pct4 / 1 000 000 es el descuento exacto en céntimos; sumar medio millón antes de truncar lo lleva al
+  // céntimo más cercano. Cabe de sobra en un entero de JS: S/ 99 999.99 × 100 % = 10^13 < 2^53.
+  return Math.floor((precioC * pct4 + 500_000) / 1_000_000) / 100;
 }
 
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
@@ -248,29 +258,16 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 export const RAZON_CAMPANA = "campana";
 
 /**
- * El descuento por unidad de una campaña, con el precio rebajado REDONDEADO HACIA ABAJO a .90 (Felipe, 2026-09-23,
- * ADR-0182): S/ 89.90 con 20 % da S/ 71.92 y se cobra S/ 71.90 → descuento S/ 18.00. Si el cálculo cae en 71.85, queda
- * 70.90: siempre el .90 más cercano por debajo, nunca por encima. Un precio rebajado de menos de S/ 0.90 no se redondea
- * (no existe un .90 por debajo) y 100 % regala la prenda.
+ * El descuento por unidad de una campaña: EXACTO, el % de la campaña sobre el precio, al céntimo (Felipe, 2026-10-01,
+ * ADR-0300). S/ 39.00 con 20 % descuenta S/ 7.80 y se cobra S/ 31.20: lo que dice el papel («−20 %») es lo que se cobra.
+ * Reemplaza el redondeo del precio hacia abajo a .90 de ADR-0182, que descontaba hasta casi un sol de más.
  *
- * ES LA MISMA REGLA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20260923174100): la caja la calcula y
- * `registrar_venta`/`separar_prendas` la verifican. Si divergen, la venta se rechaza en el mostrador. Por eso va en
- * enteros (diezmilésimas de céntimo): con coma flotante, un 71.8999… en vez de 71.90 bajaría el precio un sol entero.
- * Los % tienen como mucho 2 decimales (`parsearDescuento`).
+ * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20261001150000): la caja la calcula y
+ * `registrar_venta`, `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el
+ * mostrador.
  */
 export function descuentoDeCampana(precio: number, pct: number): number {
-  if (!Number.isFinite(pct) || pct <= 0) return 0;
-  if (pct >= 100) return precio;
-  const precioC = Math.round(precio * 100);
-  // precio rebajado exacto, en diezmilésimas de céntimo: precio × (100 − pct) / 100, sin redondear. El % con 2
-  // decimales, como `round(p_pct, 2)` en la base.
-  const rebajado = precioC * (10_000 - Math.round(pct * 100));
-  const UN_CENTIMO = 10_000;
-  const finalC =
-    rebajado >= 90 * UN_CENTIMO
-      ? Math.floor((rebajado + 10 * UN_CENTIMO) / (100 * UN_CENTIMO)) * 100 - 10 // el X.90 más alto que no lo pasa
-      : Math.round(rebajado / UN_CENTIMO);
-  return (precioC - finalC) / 100;
+  return descuentoUnitarioPorPorcentaje(precio, pct);
 }
 
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
