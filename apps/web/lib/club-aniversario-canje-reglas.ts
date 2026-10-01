@@ -247,6 +247,10 @@ const RECHAZOS_DEL_VALE: ReadonlyMap<string, { releer: boolean; queHacer: string
   ["club_un_cupon_por_compra", { releer: true, queHacer: "Va una sola ventaja del club por compra. Quité el vale: elige una y vuelve a confirmar el cobro." }],
   // No depende de ella: la pantalla lo evita, y si igual llega, se apaga y se dice.
   ["aniversario_sin_monto", { releer: false, queHacer: "En esta venta no queda nada que descontar: el vale queda para otra compra." }],
+  // Una venta en S/ 0 no se registra (todo pago es mayor que cero): el vale queda para una compra más grande.
+  ["aniversario_cubre_todo", { releer: false, queHacer: "El vale cubre toda la compra. Quité el vale: agrega otra prenda o cobra esta compra sin él." }],
+  // El reparto de la caja y el de la base son la misma regla; si no coinciden, algo cambió en el ticket: se relee.
+  ["aniversario_descuento_distinto", { releer: true, queHacer: "Quité el vale porque el cálculo no coincidió: vuelve a ponerlo y confirma el cobro." }],
 ]);
 
 /**
