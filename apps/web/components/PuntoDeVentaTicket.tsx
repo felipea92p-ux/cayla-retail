@@ -5,6 +5,7 @@ import {
   BadgePercent,
   Banknote,
   Cake,
+  Gift,
   Check,
   CirclePause,
   CreditCard,
@@ -50,6 +51,7 @@ import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type Ti
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
+import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -201,13 +203,16 @@ type Props = {
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
   // Totales — ya calculados en el padre
-  /** Lo que se cobra: con el canje del cumpleaños, ya sin la parte del club. */
+  /** Lo que se cobra: con el canje del cumpleaños o el vale de aniversario, ya sin la parte del club. */
   total: number;
   prendas: number;
   /** El canje del cumpleaños aplicado (ADR-0288 D-5, tanda 1c): UNA línea en el pie, sobre el total (spike del club, punto
    *  9). `monto` es lo que regala el club en toda la compra; `totalSinCumple`, sobre qué se calculó. null sin canje. Las
    *  prendas no lo muestran: el reparto por línea es de la base y del comprobante. */
   cumple?: { pct: number; monto: number; totalSinCumple: number } | null;
+  /** El vale de aniversario aplicado (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie. `vale` es de cuánto es;
+   *  `monto`, lo que descuenta en esta compra (menos si la compra es menor); `totalSinVale`, sobre qué se repartió. */
+  vale?: { vale: number; monto: number; totalSinVale: number } | null;
   // Los momentos del ticket: «armar» (líneas + total), «descuento» y «cobrar» (pago + comprobante)
   momento: MomentoTicket;
   onIrACobrar: () => void;
@@ -290,6 +295,7 @@ export function PuntoDeVentaTicket({
   total,
   prendas,
   cumple = null,
+  vale = null,
   momento,
   onIrACobrar,
   onVolverATicket,
@@ -406,9 +412,12 @@ export function PuntoDeVentaTicket({
     !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con el cumpleaños canjeado, también
   // sin su parte (en cascada sobre el descuento nuevo, CL-11): el mismo número que quedará en «Total».
+  // Con el vale de aniversario, lo mismo: el vale se reparte sobre lo que quedará.
   const totalConDescuento = cumple
     ? ticketConCumple(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), cumple.pct).total
-    : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
+    : vale
+      ? ticketConVale(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), vale.vale).total
+      : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
@@ -1125,6 +1134,18 @@ export function PuntoDeVentaTicket({
               </span>
               <span key={cumple.monto} className="anim-asentar font-semibold text-taupe-profundo">
                 −{money(cumple.monto)}
+              </span>
+            </div>
+          )}
+          {/* El vale de aniversario (tanda 1g), igual: UNA línea; el reparto por prenda queda en la base y el comprobante. */}
+          {vale && vale.monto > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
+              <span title={ayudaPieVale(vale.vale, vale.monto, vale.totalSinVale)} className="flex items-center gap-1.5 text-taupe-profundo">
+                <Gift className={ICONO_CHICO} aria-hidden />
+                {TEXTO_PIE_VALE}
+              </span>
+              <span key={vale.monto} className="anim-asentar font-semibold text-taupe-profundo">
+                −{money(vale.monto)}
               </span>
             </div>
           )}

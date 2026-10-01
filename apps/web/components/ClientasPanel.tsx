@@ -12,7 +12,6 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { NuevaClientaModal } from "@/components/NuevaClientaModal";
 import { ClientaFichaModal } from "@/components/ClientaFichaModal";
-import { LlegoMensajeWhatsappModal } from "@/components/clientas/LlegoMensajeWhatsappModal";
 import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
 import { TABLA, Tabla } from "@/components/ui/Tabla";
@@ -67,7 +66,6 @@ export function ClientasPanel({
   params,
   cifras = null,
   hoy,
-  whatsappPorTienda = {},
 }: {
   /** La página de la lista que pidió la URL (`fn_clientas_lista`). */
   filas: ClientaDeLista[];
@@ -80,12 +78,9 @@ export function ClientasPanel({
   cifras?: CifrasClientas | null;
   /** Hoy en Lima (`aaaa-mm-dd`), para «hace N d»: lo decide el servidor, no el reloj del navegador. */
   hoy: string;
-  /** El WhatsApp de cada tienda (id → número), para el QR de una socia en su ficha. */
-  whatsappPorTienda?: Record<string, string | null>;
 }) {
   const router = useRouter();
   const [abriendoAlta, setAbriendoAlta] = useState(false);
-  const [abriendoMensaje, setAbriendoMensaje] = useState(false);
   const [fichaAbiertaId, setFichaAbiertaId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
 
@@ -119,7 +114,7 @@ export function ClientasPanel({
     avisar.exito("Lista exportada", { detalle: `${clientas.length} clienta${clientas.length === 1 ? "" : "s"}` });
   }
 
-  /** Tras cualquier cambio (ficha, club, mensaje, alta): la página vuelve a leerse del servidor, con la misma URL. */
+  /** Tras cualquier cambio (ficha, BAJA, alta): la página vuelve a leerse del servidor, con la misma URL. */
   function refrescar() {
     router.refresh();
   }
@@ -143,12 +138,12 @@ export function ClientasPanel({
             <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa">
               Exportar
             </Boton>
-            {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px. */}
+            {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
+                «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
             <MenuAcciones
               etiqueta="Más acciones de Clientas"
               texto="Más"
               items={[
-                { clave: "mensaje", etiqueta: "Llegó un mensaje de WhatsApp", onSelect: () => setAbriendoMensaje(true) },
                 { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
               ]}
             />
@@ -273,19 +268,7 @@ export function ClientasPanel({
       )}
 
       {fichaAbiertaId && (
-        <ClientaFichaModal id={fichaAbiertaId} onClose={() => setFichaAbiertaId(null)} onCambiada={refrescar} whatsappPorTienda={whatsappPorTienda} />
-      )}
-
-      {abriendoMensaje && (
-        <LlegoMensajeWhatsappModal
-          onClose={() => setAbriendoMensaje(false)}
-          onListo={(clientaId) => {
-            setAbriendoMensaje(false);
-            refrescar();
-            // Queda a la vista la ficha que se registró: ahí se ve «Socia · recibe novedades por WhatsApp».
-            if (clientaId) setFichaAbiertaId(clientaId);
-          }}
-        />
+        <ClientaFichaModal id={fichaAbiertaId} onClose={() => setFichaAbiertaId(null)} onCambiada={refrescar} />
       )}
     </div>
   );

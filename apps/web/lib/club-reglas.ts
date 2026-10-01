@@ -56,23 +56,6 @@ export function codigoClubLegible(codigo: string | null): string | null {
   return codigo ? codigo.toUpperCase() : null;
 }
 
-/**
- * Del texto que llegó por WhatsApp (o que escribe la asesora), el código de socia que trae, normalizado: «club c-142»,
- * «(Club C-0142)» o «C0142» → «C-0142». null si no trae ninguno.
- */
-export function codigoEnTexto(texto: string): string | null {
-  const m = texto.toUpperCase().match(/\bC-?\s?(\d{1,6})\b/);
-  return m ? `C-${m[1]!.padStart(4, "0")}` : null;
-}
-
-/**
- * Camino B (ADR-0288, act. c): el QR personal abre la página pública de CAYLA donde ELLA marca la casilla. `origen` es el
- * del navegador de la caja (`window.location.origin`): la página vive en el mismo dominio que el ERP.
- */
-export function enlacePaginaClub(origen: string, token: string): string {
-  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(token)}`;
-}
-
 /** Estados de una invitación tal como los devuelve `fn_invitacion_club`. */
 export type EstadoInvitacion = "vigente" | "usada" | "vencida" | "no_existe";
 

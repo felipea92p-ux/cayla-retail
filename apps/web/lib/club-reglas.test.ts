@@ -3,12 +3,10 @@ import {
   ajustarCelular,
   celularValido,
   codigoClubLegible,
-  codigoEnTexto,
   enlaceQrClub,
   estadoClub,
   mensajePersonal,
   textoVigente,
-  enlacePaginaClub,
   estadoInvitacion,
   textoPaginaPublicidad,
   tokenValido,
@@ -51,19 +49,13 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
     expect(enlaceQrClub("12345", "Hola")).toBeNull();
   });
 
-  it("el código de socia se reconoce en lo que llega por WhatsApp, escrito como sea", () => {
-    expect(codigoEnTexto("Hola CAYLA, quiero recibir novedades. (Club C-0142)")).toBe("C-0142");
-    expect(codigoEnTexto("club c-142")).toBe("C-0142");
-    expect(codigoEnTexto("C0142")).toBe("C-0142");
-    expect(codigoEnTexto("quiero unirme al club")).toBeNull();
+  it("el código de socia se lee en mayúsculas", () => {
     expect(codigoClubLegible("c-0142")).toBe("C-0142");
+    expect(codigoClubLegible(null)).toBeNull();
   });
 });
 
 describe("camino B (ADR-0288 act. c): la página pública donde ella confirma", () => {
-  it("el enlace de la página vive en el mismo dominio del ERP", () => {
-    expect(enlacePaginaClub("https://retail.cayla.pe/", "Ab3_x-9QzLm2Pq7R")).toBe("https://retail.cayla.pe/club/Ab3_x-9QzLm2Pq7R");
-  });
   it("un estado desconocido es «no existe»", () => {
     expect(estadoInvitacion("vigente")).toBe("vigente");
     expect(estadoInvitacion("usada")).toBe("usada");

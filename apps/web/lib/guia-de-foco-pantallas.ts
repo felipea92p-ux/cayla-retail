@@ -165,8 +165,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
-  // ADR-0288 tanda 1b: la ficha ganó las acciones del club (unirse, su QR, «Llegó su mensaje», «Registrar su BAJA») y, con ellas, la guía en
-  // cada acción que se llena (editar, archivar, unir y las tres del club).
+  // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
+  // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
+  // quién la registra, dentro de la misma hoja).
   "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx"] },
   "components/ColaboradoresModales.tsx": PENDIENTE, // 14 controles
   "components/ColaboradoresPanel.tsx": PENDIENTE, // 3 controles
@@ -232,8 +233,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  // ADR-0288 tanda 1b: «Llegó un mensaje de WhatsApp» (el mensaje, el número, el documento si no hay ficha, quién registra).
-  "components/clientas/LlegoMensajeWhatsappModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/LlegoMensajeWhatsappModal.tsx"] },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
   "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },
@@ -250,9 +249,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
-  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta (tipo de documento, número, nombre, celular, quién atiende).
+  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
-  // ADR-0288 tanda 1b: «Invitar» al club desde Cobrar (celular, cumpleaños, texto leído, quién atiende).
-  "components/punto-de-venta/InvitarAlClub.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/InvitarAlClub.tsx"] },
 };
