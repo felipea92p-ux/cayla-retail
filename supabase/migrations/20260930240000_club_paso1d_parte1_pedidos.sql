@@ -1,9 +1,9 @@
 -- ============================================================================
--- 20260930240000_club_paso1d_parte1_pedidos.sql — CAYLA V2 · Club de clientas · tanda 1d · PARTE 1 de 4
+-- 20260930240000_club_paso1d_parte1_pedidos.sql — CAYLA V2 · Club de clientas · tanda 1d · PARTE 1 de 2
 -- ADR-0288 (D-6, «Actualización 2026-09-30 (e)»). SOLO `pedidos_no_atendidos`: `motivo` y `razon`, con sus candados. Va
 -- sola porque es la tabla en la que se anota («no había» en el modal de talla y en Cambios; «se la probó» al quitar una
 -- prenda del ticket): con UNA sola tabla tomada, esta parte no puede trabarse en cruz con nadie. La cabecera completa (el
--- porqué, el orden de pegado de las cuatro partes y la verificación) está en la PARTE 2,
+-- porqué, el orden de pegado de las dos partes y la verificación) está en la PARTE 2,
 -- 20260930240100_club_paso1d_parte2_se_probo.sql. Se pega PRIMERO, sola en el SQL Editor; se puede pegar dos veces. Sin
 -- políticas ni `drop trigger`. Mientras la PARTE 2 no esté, la función de hoy no conoce las columnas y todo lo que anota
 -- queda `no_habia_talla`: exactamente como hasta hoy.

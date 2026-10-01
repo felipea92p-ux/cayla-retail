@@ -31,8 +31,8 @@
  *      DE_LA_PAGINA con su razón); otro vigilante nombra toda función que anota actividad
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
  *      escritos en la PARTE 1 son los de las funciones vivas (las cinco que la tanda 1a del club volvió a cambiar —ADR-0288,
- *      20260930160000—, con los «después» de la 1a; las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
- *      de la 1b; y `fn_clienta_compras`, que la 1d cambió para devolver `es_regalo` —20260930240300—, con el de la 1d). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
+ *      20260930160000—, con los «después» de la 1a; y las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
+ *      de la 1b). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
  *      candado del módulo; y la persona de la sección 4 es socia con publicidad: anonimizar tampoco deja rastro en
  *      `club_permisos` y escribe sus dos `revoca`.
  *   6. CONTROL y pegado: a las 11 funciones vivas se les quita su primera línea (el candado del módulo) y la tabla vuelve a
@@ -111,34 +111,15 @@ if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).lengt
   );
   process.exit(1);
 }
-/** El md5 que cada una de las 14 tenía después de la 1b: el de la 1b si la tocó; si no, el de la 1a; si no, el de la PARTE 1. */
-const DESPUES_1B = VERSIONES.map((v) => {
+/**
+ * El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1b si la 1b la tocó; si no, el de la 1a si la 1a la
+ * tocó; si no, el de la PARTE 1.
+ */
+const DESPUES_HOY = VERSIONES.map((v) => {
   const b = VERSIONES_1B.find((x) => x.firma === v.firma);
   if (b) return b.despues ?? "NO_EXISTE";
   const w = VERSIONES_1A.find((x) => x.firma === v.firma);
   return w ? (w.despues ?? "NO_EXISTE") : v.despues;
-});
-// La tanda 1d del club (ADR-0288 D-7, PARTE 4: 20260930240300) volvió a cambiar UNA de las 14: `fn_clienta_compras`
-// devuelve `es_regalo` (misma firma, otro tipo de retorno). Su tabla: firma → «antes» y «después» (null = que la firma no
-// exista). «Es para regalo» está EN ESPERA de Felipe: si sale, se borra esa parte y este bloque vuelve a lo de la 1b.
-const PASO_1D = leer("20260930240300_club_paso1d_parte4_regalo_ficha.sql");
-const VERSIONES_1D = [
-  ...PASO_1D.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
-].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
-// La cadena no se corta: la que la 1d tocó partió de lo que había después de la 1b.
-const cortadas1d = VERSIONES_1D.filter((w) => VERSIONES.some((v, n) => v.firma === w.firma && DESPUES_1B[n] !== w.antes));
-if (VERSIONES_1D.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).length !== 1 || cortadas1d.length) {
-  console.error(
-    `✗ La tabla de versiones de la 1d debería repetir 1 firma de la PARTE 1 (fn_clienta_compras) con lo de después de la 1b como «antes»; no calzan: ${cortadas1d.map((v) => v.firma).join(", ") || "(faltan firmas)"}.`
-  );
-  process.exit(1);
-}
-/**
- * El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1d si la 1d la tocó; si no, el de después de la 1b.
- */
-const DESPUES_HOY = VERSIONES.map((v, n) => {
-  const d = VERSIONES_1D.find((x) => x.firma === v.firma);
-  return d ? (d.despues ?? "NO_EXISTE") : DESPUES_1B[n];
 });
 /** La firma de registrar_clienta que vive hoy (la de la 1b). */
 const REGISTRAR_HOY = "registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
@@ -706,7 +687,7 @@ caso(
   "f|f\nTu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y accesos."
 );
 caso(
-  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a, 1b y 1d del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
+  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
   MD5_VIVOS,
   DESPUES_HOY.join("\n")
 );

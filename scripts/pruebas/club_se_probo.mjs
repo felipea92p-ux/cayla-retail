@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la tanda 1d del club de clientas (ADR-0288 D-6 y D-7; acta CL-7, CL-14 y D-101; migración en cuatro partes:
- * `20260930240000_club_paso1d_parte1_pedidos.sql`, `20260930240100_club_paso1d_parte2_se_probo.sql` y, EN ESPERA hasta que
- * Felipe decida si «es para regalo» se queda, `20260930240200_club_paso1d_parte3_regalo_venta_items.sql` y
- * `20260930240300_club_paso1d_parte4_regalo_ficha.sql`).
+ * Pruebas de la tanda 1d del club de clientas: «se la probó y no la llevó» (ADR-0288 D-6; acta CL-7 y CL-14; migración en
+ * dos partes: `20260930240000_club_paso1d_parte1_pedidos.sql` y `20260930240100_club_paso1d_parte2_se_probo.sql`).
  *
- * EL PROBLEMA. «Se la probó y no la llevó» no quedaba en ningún lado, y una prenda comprada para regalar se volvía «su
- * talla» en la ficha. La base tiene que hacer cumplir, no la pantalla:
- *   D-6  `pedidos_no_atendidos` guarda las dos señales con su `motivo` (`no_habia_talla`, el de siempre, o
- *        `se_probo_no_llevo`) y una `razon` opcional que SOLO existe con «se la probó» (`no_le_quedo`, `precio`, `color`,
- *        `lo_piensa`). Todo lo anotado antes queda «buscó y no había». La llamada vieja (5 parámetros) sigue igual.
- *   D-7  `venta_items.es_regalo` (false por defecto) y `fn_clienta_compras` lo devuelve, para que `deducirTallas` salte
- *        esa prenda (la regla de la talla es TypeScript: la prueba lib/clienta-actividad-reglas.test.ts).
+ * EL PROBLEMA. «Se la probó y no la llevó» no quedaba en ningún lado: Compras solo veía «buscó y no había». La base tiene
+ * que hacer cumplir, no la pantalla: `pedidos_no_atendidos` guarda las dos señales con su `motivo` (`no_habia_talla`, el de
+ * siempre, o `se_probo_no_llevo`) y una `razon` opcional que SOLO existe con «se la probó» (`no_le_quedo`, `precio`,
+ * `color`, `lo_piensa`). Todo lo anotado antes queda «buscó y no había». La llamada vieja (5 parámetros) sigue igual.
+ *
+ * «ES PARA REGALO» NO VA (Felipe, 2026-09-30, sigue el spike aprobado): esta tanda no toca `venta_items`,
+ * `fn_clienta_compras` ni `registrar_venta`, y la sección (d) lo vigila.
  *
  * QUÉ PRUEBA (cada caso en su transacción, que termina en ROLLBACK; con claims reales y `set local role authenticated`
  * para que los permisos se evalúen de verdad; cuentas del seed: Felipe, líder; Micaela, integrante de Trujillo):
@@ -21,21 +19,19 @@
  *      ubicación sigue; `anon` no la ejecuta.
  *   b. El esquema, sin la función: un insert directo con razón y sin «se la probó», con un motivo inventado o sin motivo.
  *   c. Lo de antes: filas anotadas antes de la tanda 1d quedan `no_habia_talla` al correr la PARTE 1.
- *   d. (PARTES 3 y 4, en espera) `venta_items.es_regalo` (not null, default false); una venta de hoy guarda false;
- *      `fn_clienta_compras` trae `es_regalo` (una prenda de regalo y una suya), sigue exigiendo el módulo «Clientas» y sigue
- *      sin EXECUTE para `anon`.
- *   e. Estructura y pegado: una sola firma de cada función, los md5 «después» de cada sección 0 son los de las funciones
- *      vivas, pegar las cuatro partes dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, cada parte
- *      aborta si falta la anterior, cada parte toma a lo más UNA tabla con `alter` (así no se traba en cruz con una venta,
- *      como encontró la 1c), sin la PARTE 3 una venta funciona igual (la marca de regalo puede salir entera), y ningún
- *      archivo tiene políticas, `drop trigger` ni `select … into` en un texto entre comillas (CLAUDE.md, ADR-0195, ADR-0288).
+ *   d. Sin «es para regalo»: los archivos de la 1d no nombran `venta_items`, `fn_clienta_compras` ni `registrar_venta`.
+ *   e. Estructura y pegado: una sola firma de la función, los md5 «después» de la sección 0 son los de la función viva,
+ *      pegar las dos partes dos veces deja lo mismo, con la función cambiada en vivo la PARTE 2 aborta sin pisar, la PARTE 2
+ *      aborta sin la PARTE 1, cada parte toma a lo más UNA tabla con `alter` (así no se traba en cruz con una venta, como
+ *      encontró la 1c), y ningún archivo tiene políticas, `drop trigger` ni `select … into` en un texto entre comillas
+ *      (CLAUDE.md, ADR-0195, ADR-0288).
  *
- * FUERA A PROPÓSITO: que `registrar_venta` guarde `es_regalo` desde `p_items` (en espera de Felipe). La pregunta «¿Se la
- * probó y no la llevó?» de Cobrar es web: su regla pura la prueba apps/web/lib/se-probo-reglas.test.ts.
+ * FUERA A PROPÓSITO: la pregunta «¿Se la probó y no la llevó?» de Cobrar es web; su regla pura la prueba
+ * apps/web/lib/se-probo-reglas.test.ts.
  *
  * USO
- *   pnpm pruebas:club-regalo-y-se-probo                  → contra la base `postgres` del stack local (la del CI)
- *   pnpm pruebas:club-regalo-y-se-probo --base cayla_x   → contra otra base del mismo contenedor
+ *   pnpm pruebas:club-se-probo                  → contra la base `postgres` del stack local (la del CI)
+ *   pnpm pruebas:club-se-probo --base cayla_x   → contra otra base del mismo contenedor
  */
 
 import { execFileSync } from "node:child_process";
@@ -48,14 +44,12 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 
-const PARTES = [
-  "20260930240000_club_paso1d_parte1_pedidos.sql",
-  "20260930240100_club_paso1d_parte2_se_probo.sql",
-  "20260930240200_club_paso1d_parte3_regalo_venta_items.sql",
-  "20260930240300_club_paso1d_parte4_regalo_ficha.sql",
-].map((nombre) => ({ nombre, sql: readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8") }));
-const [PARTE_1, PARTE_2, PARTE_3, PARTE_4] = PARTES.map((p) => p.sql);
-/** Las cuatro partes seguidas, como corren en local y en el CI. */
+const PARTES = ["20260930240000_club_paso1d_parte1_pedidos.sql", "20260930240100_club_paso1d_parte2_se_probo.sql"].map((nombre) => ({
+  nombre,
+  sql: readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8"),
+}));
+const [PARTE_1, PARTE_2] = PARTES.map((p) => p.sql);
+/** Las dos partes seguidas, como corren en local y en el CI. */
 const MIGRACION = PARTES.map((p) => p.sql).join("\n");
 
 // La tabla del candado de versión de la sección 0: firma → md5 normalizado «antes» (producción) y «después» (null = la firma
@@ -63,13 +57,12 @@ const MIGRACION = PARTES.map((p) => p.sql).join("\n");
 const VERSIONES = [
   ...MIGRACION.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
 ].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
-if (VERSIONES.length !== 3) {
-  console.error(`✗ La tabla de versiones de la migración debería tener 3 filas y tiene ${VERSIONES.length}.`);
+if (VERSIONES.length !== 2) {
+  console.error(`✗ La tabla de versiones de la migración debería tener 2 filas y tiene ${VERSIONES.length}.`);
   process.exit(1);
 }
 const FIRMA_PEDIDO = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)";
 const FIRMA_PEDIDO_VIEJA = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)";
-const FIRMA_COMPRAS = "retail.fn_clienta_compras(uuid)";
 
 
 // Seed local: Felipe (líder y Admin), Micaela (integrante de Trujillo).
@@ -115,27 +108,6 @@ end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated, anon;
 
--- Vende las prendas de p_items (jsonb de registrar_venta) con o sin clienta. Devuelve el id de la venta, o «ERROR|hint» (o
--- «ERROR|mensaje»). No es security definer: la llama la cuenta del caso.
-create function pg_temp.vender(p_ubic uuid, p_items jsonb, p_total numeric, p_clienta uuid) returns text language plpgsql as $f$
-declare v_id uuid; v_msg text; v_hint text;
-begin
-  v_id := retail.registrar_venta(
-    p_ubicacion_id => p_ubic,
-    p_items => p_items,
-    p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', p_total)),
-    p_cliente_id => p_clienta,
-    p_token => gen_random_uuid(),
-    p_cliente_tipo_doc => 'sin_documento'
-  );
-  return v_id::text;
-exception when others then
-  get stacked diagnostics v_msg = message_text, v_hint = pg_exception_hint;
-  return 'ERROR|' || case when v_hint ~ '^[a-z][a-z0-9_]*$' then v_hint else v_msg end;
-end;
-$f$;
-grant execute on function pg_temp.vender(uuid, jsonb, numeric, uuid) to authenticated;
-
 -- Una persona firma a su nombre, como hoy en el mostrador; y la integrante, con Clientas (así están en producción).
 update retail.configuracion_empresa set exige_responsable = false;
 insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('integrante'), 'clientas' on conflict do nothing;
@@ -160,42 +132,6 @@ const intentoCon = (sql, ...vars) => `select pg_temp.intento(format($q$${sql}$q$
 /** Cuántas filas de pedidos hay en la sede (para ver que un rechazo no dejó nada). */
 const CUANTOS = (alias) => `reset role;\nselect count(*) as ${alias} from retail.pedidos_no_atendidos \\gset\n`;
 
-/**
- * Una sede lista para vender (como en club_venta_ligada.mjs): piso y almacén si faltaran, su caja abierta por el líder y
- * 100 unidades de BLU-EMMA-NEG-M y BLU-EMMA-BEI-S en el piso. Deja :ubic, :v1, :v1_precio, :v2 y :v2_precio.
- */
-const SEDE = (nombre = "Tienda Lima") => `reset role;
-set local request.jwt.claim.sub = '${FELIPE}';
-set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
-select id as ubic from retail.ubicaciones where nombre = '${nombre}' \\gset
-insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
-  select :'ubic', 'Piso de venta', 'piso_venta'
-  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'piso_venta');
-insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
-  select :'ubic', 'Almacén de tienda', 'almacen_tienda'
-  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda');
-select (select count(*) from (
-  select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
-) x) as _cerro_previa \\gset
-select retail.abrir_caja(:'ubic', 100.00, 'prueba club_regalo_y_se_probo') as caja_id \\gset
-select id as v1, precio as v1_precio from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
-select id as v2, precio as v2_precio from retail.variantes where sku = 'BLU-EMMA-BEI-S' \\gset
-select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
-insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
-  values (:'v1', :'ubic', :'sub_piso', 'entrada', 100, 'colchón de prueba') returning id as mov1 \\gset
-select retail.fn_aplicar_movimiento(:'mov1') as _d1 \\gset
-insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
-  values (:'v2', :'ubic', :'sub_piso', 'entrada', 100, 'colchón de prueba') returning id as mov2 \\gset
-select retail.fn_aplicar_movimiento(:'mov2') as _d2 \\gset
-`;
-/** Una línea de `p_items`, a precio de lista (`es_regalo`: null = no se manda la llave). */
-const ITEM = (variante, precio, esRegalo = null) =>
-  `jsonb_build_object('variante_id', :'${variante}', 'cantidad', 1, 'precio_unitario', :'${precio}'::numeric, 'descuento_unitario', 0${
-    esRegalo === null ? "" : `, 'es_regalo', ${esRegalo}`
-  })`;
-/** `select pg_temp.vender(...) as <alias> \gset` con las líneas dadas y el total que suman. */
-const VENDER = (alias, items, total, clienta = "null") =>
-  `select pg_temp.vender(:'ubic', jsonb_build_array(${items.join(", ")}), ${total}, ${clienta}) as ${alias} \\gset\n`;
 /** Alta de ficha por la RPC (la cuenta ya elegida). */
 const ALTA = (alias, numero, nombre) =>
   `select retail.registrar_clienta(p_documento_tipo => 'dni', p_documento_numero => '${numero}', p_nombre => '${nombre}') as ${alias} \\gset\n`;
@@ -407,52 +343,21 @@ select column_default, is_nullable from information_schema.columns
 );
 
 // =====================================================================================================================
-// d. «Es para regalo» (D-7): la columna y fn_clienta_compras
+// d. Sin «es para regalo» (Felipe, 2026-09-30): la 1d no toca la venta ni la ficha
 // =====================================================================================================================
+const sinComentarios = (sql) => sql.replace(/--[^\n]*/g, "");
+estatico(
+  "(d) los archivos de la 1d no nombran venta_items, fn_clienta_compras ni registrar_venta (fuera de los comentarios)",
+  PARTES.every((p) => !/\b(venta_items|fn_clienta_compras|registrar_venta)\b/.test(sinComentarios(p.sql))),
+  PARTES.filter((p) => /\b(venta_items|fn_clienta_compras|registrar_venta)\b/.test(sinComentarios(p.sql))).map((p) => p.nombre).join(", ")
+);
 caso(
-  "(d) venta_items.es_regalo: boolean, not null, false por defecto",
+  "(d) venta_items no tiene una columna de regalo y fn_clienta_compras devuelve lo de siempre",
   `reset role;
-select data_type, is_nullable, column_default from information_schema.columns
- where table_schema = 'retail' and table_name = 'venta_items' and column_name = 'es_regalo';
+select count(*) from information_schema.columns where table_schema = 'retail' and table_name = 'venta_items' and column_name ~ 'regalo';
+select pg_get_function_result('retail.fn_clienta_compras(uuid)'::regprocedure) ~ 'regalo';
 `,
-  "boolean|NO|false"
-);
-caso(
-  "(d) fn_clienta_compras trae es_regalo por prenda: una venta marcada como regalo y otra para ella",
-  SEDE() +
-    como(FELIPE) +
-    ALTA("f1", "90881402", "Regalo Prueba") +
-    VENDER("regalo", [ITEM("v2", "v2_precio")], ":'v2_precio'", ":'f1'") +
-    VENDER("suya", [ITEM("v1", "v1_precio")], ":'v1_precio'", ":'f1'") +
-    // La FASE B hará que registrar_venta la guarde desde p_items; mientras tanto se marca aquí, como superusuario.
-    `reset role;
-update retail.venta_items set es_regalo = true where venta_id::text = :'regalo';
-set local role authenticated;
-select talla, es_regalo from retail.fn_clienta_compras(:'f1') order by talla;
-`,
-  "M|f\nS|t"
-);
-caso(
-  "(d) una venta de hoy (sin la marca) guarda es_regalo = false",
-  SEDE() + como(FELIPE) + VENDER("venta", [ITEM("v1", "v1_precio")], ":'v1_precio'") + `reset role;\nselect bool_or(es_regalo) from retail.venta_items where venta_id::text = :'venta';\n`,
-  "f"
-);
-caso(
-  "(d) fn_clienta_compras sigue exigiendo el módulo «Clientas» (Micaela sin él en su rol → clientas_sin_modulo)",
-  `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
-    `insert into retail.clientas (documento_numero, nombre) values ('90881403', 'Sin Modulo Prueba') returning id as f1 \\gset\n` +
-    como(MICAELA) +
-    intentoCon(`select * from retail.fn_clienta_compras(%L)`, ":'f1'"),
-  "42501|clientas_sin_modulo"
-);
-caso(
-  "(d) fn_clienta_compras: una sola firma, security definer, devuelve es_regalo al final; EXECUTE para authenticated y no para anon",
-  `reset role;
-select count(*), bool_and(prosecdef), bool_and(pg_get_function_result(oid) like '%subtotal numeric, es_regalo boolean)')
-  from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_clienta_compras';
-select has_function_privilege('authenticated', '${FIRMA_COMPRAS}', 'execute'), has_function_privilege('anon', '${FIRMA_COMPRAS}', 'execute');
-`,
-  "1|t|t\nt|f"
+  "0\nf"
 );
 
 // =====================================================================================================================
@@ -467,53 +372,35 @@ select to_regprocedure('${FIRMA_PEDIDO_VIEJA}') is null;
 `,
   "1|t\nt"
 );
-caso("(e) los md5 «después» de las secciones 0 (PARTES 2 y 4) son los de las funciones vivas", `reset role;\n${MD5_VIVOS}`, MD5_ESPERADOS);
+caso("(e) los md5 «después» de la sección 0 (PARTE 2) son los de la función viva", `reset role;\n${MD5_VIVOS}`, MD5_ESPERADOS);
 caso(
-  "(e) pegar las cuatro partes otra vez deja lo mismo (idempotente)",
+  "(e) pegar las dos partes otra vez deja lo mismo (idempotente)",
   `reset role;\n${MIGRACION}\nreset role;\n${MD5_VIVOS}select count(*) from pg_constraint where conrelid = 'retail.pedidos_no_atendidos'::regclass and conname in ('pedidos_no_atendidos_motivo_valido', 'pedidos_no_atendidos_razon_solo_si_se_probo');\n`,
   `${MD5_ESPERADOS}\n2`
 );
 casoQueAborta(
-  "(e) con fn_clienta_compras cambiada en vivo, la PARTE 4 aborta sin pisar",
+  "(e) con registrar_pedido_no_atendido cambiada en vivo, la PARTE 2 aborta sin pisar",
   `reset role;
-create or replace function retail.fn_clienta_compras(p_id uuid)
-returns table (venta_id uuid, fecha timestamptz, ubicacion text, categoria text, talla text, cantidad integer, subtotal numeric, es_regalo boolean)
-language sql stable security definer set search_path = retail, public, extensions
-as $$ select retail.fn_exigir_modulo('clientas'); select v.id, v.created_at, 'otra'::text, null::text, null::text, 1, 0::numeric, false from retail.ventas v where v.cliente_id = p_id; $$;
+create or replace function retail.registrar_pedido_no_atendido(p_ubicacion_id uuid, p_producto_id uuid default null,
+  p_descripcion_libre text default null, p_talla text default null, p_clienta_id uuid default null,
+  p_motivo text default 'no_habia_talla', p_razon text default null)
+returns uuid language plpgsql security definer set search_path = retail, public, extensions
+as $$ begin return null; end; $$;
 ${MIGRACION}`,
-  "retail.fn_clienta_compras(uuid) cambió desde que se escribió esta migración"
+  "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text) cambió desde que se escribió esta migración"
 );
-
 casoQueAborta(
   "(e) la PARTE 2 sin la PARTE 1 aborta y no toca la función",
   `reset role;\nalter table retail.pedidos_no_atendidos drop column motivo, drop column razon;\n${PARTE_2}`,
   "Falta la PARTE 1 de esta migración"
 );
-casoQueAborta(
-  "(e) la PARTE 4 sin la PARTE 3 aborta y no toca la función",
-  `reset role;\nalter table retail.venta_items drop column es_regalo;\n${PARTE_4}`,
-  "Falta la PARTE 3 de esta migración"
-);
-caso(
-  "(e) «es para regalo» puede salir entera: sin la columna de la PARTE 3, una venta (la registrar_venta de la 1c) y «se la probó» funcionan igual",
-  SEDE() +
-    `alter table retail.venta_items drop column es_regalo;\n` +
-    como(FELIPE) +
-    VENDER("venta", [ITEM("v1", "v1_precio")], ":'v1_precio'") +
-    `select retail.registrar_pedido_no_atendido(p_ubicacion_id => :'lima', p_descripcion_libre => 'Blusa', p_motivo => 'se_probo_no_llevo', p_razon => 'precio') as p \\gset
-reset role;
-select (select count(*) from retail.ventas where id::text = :'venta'), (select motivo || '|' || razon from retail.pedidos_no_atendidos where id = :'p');
-`,
-  "1|se_probo_no_llevo|precio"
-);
-
 // Cada parte toma a lo más UNA tabla con `alter` (la 1c encontró el cruce: una venta que ya leyó una tabla y espera
 // `venta_items`, contra una migración que tiene `venta_items` y espera la otra, se traban con 40P01). Las funciones van en
 // su propia parte, después de sus columnas.
 const tablasAlteradas = (sql) => [...new Set([...sql.replace(/--[^\n]*/g, "").matchAll(/\balter\s+table\s+retail\.(\w+)/gi)].map((m) => m[1]))];
 estatico(
-  "(e) cada parte toma a lo más una tabla con `alter`: PARTE 1 pedidos_no_atendidos, PARTE 2 ninguna, PARTE 3 venta_items, PARTE 4 ninguna",
-  JSON.stringify(PARTES.map((p) => tablasAlteradas(p.sql))) === JSON.stringify([["pedidos_no_atendidos"], [], ["venta_items"], []]),
+  "(e) cada parte toma a lo más una tabla con `alter`: PARTE 1 pedidos_no_atendidos, PARTE 2 ninguna",
+  JSON.stringify(PARTES.map((p) => tablasAlteradas(p.sql))) === JSON.stringify([["pedidos_no_atendidos"], []]),
   JSON.stringify(PARTES.map((p) => [p.nombre, tablasAlteradas(p.sql)]))
 );
 

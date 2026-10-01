@@ -186,6 +186,8 @@ aviso filtra `motivo = 'no_habia_talla'`.
 
 ## DECISIÓN 7: «es para regalo» es una marca por prenda vendida (D-101)
 
+*Superada el 2026-09-30: Felipe decidió seguir el spike, sin la marca. Ver «Actualización 2026-09-30 (e)».*
+
 **DECIDÍ:** `venta_items.es_regalo boolean not null default false`, que se marca por línea en el ticket solo si hay
 clienta elegida. `fn_clienta_compras` lo devuelve, y `deducirTallas` (`lib/clienta-actividad-reglas.ts`) lo salta:
 se cierra el «LÍMITE CONOCIDO (v1)» de ese archivo.
@@ -630,46 +632,45 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
 
 ## Actualización 2026-09-30 (e): tanda 1d
 
-Se construye sobre la D-6, la D-7, CL-7, CL-14 y D-101. Va después de la 1c. **«Es para regalo» (D-7) quedó EN ESPERA:** el
-spike aprobado del club (`docs/maquetas/club-clientas-spike-2026-09/`, README, punto 8) sacó «¿Es para regalo?» de la línea
-del ticket, y Felipe decide si la marca se queda. Por eso todo lo de `es_regalo` es separable y nada lo escribe todavía.
+Se construye sobre la D-6, CL-7 y CL-14. Va después de la 1c.
 
-**Migración en cuatro partes** (cada una se pega sola, en orden; sin políticas ni `drop trigger`):
+**Decisión de Felipe (2026-09-30): sin «es para regalo».**
+- Felipe decidió el 2026-09-30 seguir el spike aprobado del club (`docs/maquetas/club-clientas-spike-2026-09/`, README,
+  punto 8), que no lleva la marca «¿Es para regalo?» en la línea del ticket.
+- **La D-7 y la D-101 quedan superadas en ese punto.** Un regalo cuenta para la talla deducida. Lo corrige la talla que ella
+  dice en su ficha (preferencias, tanda 1f), que manda sobre la deducida.
+- Esta tanda no toca `venta_items`, `fn_clienta_compras` ni `registrar_venta`. El «LÍMITE CONOCIDO (v1)» de
+  `lib/clienta-actividad-reglas.ts` lo dice igual.
+- Lo que se había construido para la marca se sacó entero antes de pegarlo en ningún lado:
+  - las partes 3 y 4 de la migración;
+  - la lectura en la ficha;
+  - el salto en `deducirTallas`.
 
-| Parte | Archivo | Qué | Estado |
-|---|---|---|---|
-| 1 | `20260930240000_club_paso1d_parte1_pedidos.sql` | `alter` de `pedidos_no_atendidos`: `motivo` y `razon`, con sus candados | lista |
-| 2 | `20260930240100_club_paso1d_parte2_se_probo.sql` | `registrar_pedido_no_atendido` con `p_motivo` y `p_razon`; la cabecera completa | lista |
-| 3 | `20260930240200_club_paso1d_parte3_regalo_venta_items.sql` | `alter` de `venta_items`: `es_regalo` | EN ESPERA |
-| 4 | `20260930240300_club_paso1d_parte4_regalo_ficha.sql` | `fn_clienta_compras` devuelve `es_regalo` | EN ESPERA |
+**Migración en dos partes** (cada una se pega sola, en orden; sin políticas ni `drop trigger`):
 
-- **Por qué partes:** toda venta escribe en `venta_items`. Una transacción que la tomara junto con `pedidos_no_atendidos`
-  podía quedar en cruz con algo que lee las dos (`fn_producto_historia`) y cortarse con 40P01, como encontró la 1c con
-  `configuracion_empresa`. Cada parte toma a lo más una tabla con `alter` (lo vigila la prueba), y las funciones van
-  después de sus columnas. La 2 aborta si falta la 1, y la 4 si falta la 3.
+| Parte | Archivo | Qué |
+|---|---|---|
+| 1 | `20260930240000_club_paso1d_parte1_pedidos.sql` | `alter` de `pedidos_no_atendidos`: `motivo` y `razon`, con sus candados |
+| 2 | `20260930240100_club_paso1d_parte2_se_probo.sql` | `registrar_pedido_no_atendido` con `p_motivo` y `p_razon`; la cabecera completa |
+
+- **Por qué partes:** el `alter` va solo, como en la 1c, para que la transacción tenga una sola tabla en uso y no pueda
+  trabarse en cruz con nadie (40P01). La función va después de sus columnas. La parte 2 aborta si falta la 1.
 - **Parte 1:** `motivo text not null default 'no_habia_talla'`, así que todo lo anotado antes queda «buscó y no había».
-  `razon` solo existe con `se_probo_no_llevo`, y es una de `no_le_quedo`, `precio`, `color` o `lo_piensa`. Candados:
-  `pedidos_no_atendidos_motivo_valido` y `pedidos_no_atendidos_razon_solo_si_se_probo`.
-- **Parte 2:** `p_motivo` (default `no_habia_talla`) y `p_razon` van **al final**, así que la llamada vieja de 5
-  parámetros sigue funcionando.
+  - `razon` solo existe con `se_probo_no_llevo`, y es una de `no_le_quedo`, `precio`, `color` o `lo_piensa`.
+  - Candados: `pedidos_no_atendidos_motivo_valido` y `pedidos_no_atendidos_razon_solo_si_se_probo`.
+- **Parte 2:** `p_motivo` (default `no_habia_talla`) y `p_razon` van **al final**, así que la llamada vieja de 5 parámetros
+  sigue funcionando.
   - Cambia la firma: se hace `drop` de la vieja y `create` de la nueva sobre su definición viva.
   - Sigue firmando con `fn_actor_persona_id(true)`, sin exigir módulo (basta poder operar la sede), y con los mismos
     permisos.
   - Rechazos nuevos (P0001 con hint): `pedido_motivo_invalido`, `pedido_razon_sin_se_probo` y `pedido_razon_invalida`.
-- **Partes 3 y 4:** `venta_items.es_regalo boolean not null default false`, y `fn_clienta_compras` que lo devuelve al final
-  (con `drop` y `create`, la misma lectura, el mismo candado del módulo y los mismos permisos).
-  - La prueba comprueba que, sin la columna, una venta de la 1c y «se la probó» funcionan igual: la marca puede salir
-    entera.
 
-**md5 normalizados, antes → después** (los «antes» coinciden con lo medido en producción el 2026-09-30):
+**md5 normalizados, antes → después** (el «antes» coincide con lo medido en producción el 2026-09-30):
 
-| Función | antes | después | Parte |
-|---|---|---|---|
-| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)` | `750b65e98c09826228ba5f72b7800391` | deja de existir | 2 |
-| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)` | no existía | `b48f006fb8336ea27fb9e2929343d10d` | 2 |
-| `fn_clienta_compras(uuid)` | `4e70112f67b81461aad1fc813bdd057e` | `dbe1a8808f4c1d4fef7ed7bc7d5e4344` | 4 |
-
-`registrar_venta` no se toca: queda la de la 1c (`2b55a94a754e7708f5b133008f30469f`).
+| Función | antes | después |
+|---|---|---|
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)` | `750b65e98c09826228ba5f72b7800391` | deja de existir |
+| `registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)` | no existía | `b48f006fb8336ea27fb9e2929343d10d` |
 
 **Cobrar: «¿Se la probó y no la llevó?»**, como en el spike (`quitadaHTML` y el `quitar` de su motor):
 - **Cuándo:** al quitar una prenda del ticket aparece, justo bajo la clienta, la pregunta: «¿Se la probó y no la llevó?
@@ -683,37 +684,18 @@ del ticket, y Felipe decide si la marca se queda. Por eso todo lo de `es_regalo`
   prenda la reemplaza.
 - **Dónde está el código:**
   - la pregunta vive en `components/punto-de-venta/SeProboNoLlevo.tsx`;
-  - `PuntoDeVenta.tsx` solo guarda la prenda quitada y la pone en el `arriba` del ticket, sin tocar la tarjeta de la
-    clienta ni el pie;
+  - `PuntoDeVenta.tsx` solo guarda la prenda quitada y la pone en el `arriba` del ticket;
   - la lógica es pura, en `lib/se-probo-reglas.ts` (`prendaQuitadaDeLinea`, `textoPrendaQuitada`, `datosSeProbo`,
-    `avisoAnotado`), con su prueba;
-  - los botones usan los textos del spike (`TEXTO_RAZON`).
+    `avisoAnotado`), con su prueba.
 - **Qué se guarda:** la prenda se anota como «nombre · color», con su talla. Una «Prenda sin registrar» va con su
   descripción, sin talla.
 
 **Lo que se decidió al construir**
-- **«Llegó tu talla» (paso 3) avisa SOLO por `motivo = 'no_habia_talla'`.** Queda escrito en la cabecera y en el
-  comentario de la columna.
+- **«Llegó tu talla» (paso 3) avisa SOLO por `motivo = 'no_habia_talla'`.** Queda escrito en la cabecera de la parte 2 y
+  en el comentario de la columna.
   - Por la misma razón, Inicio y Análisis siguen contando solo «buscó y no había» (`esPedidoDeTalla`).
   - La lista de Pedidos no atendidos muestra el motivo y la razón de cada fila.
-- **ADR-0234 («probado = en pantalla») manda sobre «dejar la lógica lista antes de la pantalla»:** la función de la marca de
-  regalo en el ticket no se escribió. Su regla está en la cabecera de `lib/regalo-reglas.ts`: se ofrece solo con clienta
-  y viaja como `es_regalo: marcada && hay clienta`.
-  - La ficha sí dice «· regalo» (`detallePrendaComprada`) y `deducirTallas` salta el regalo. Sin la PARTE 4, todo lee
-    false.
-
-**Si Felipe dice que «es para regalo» se queda:**
-1. Pegar las partes 3 y 4.
-2. Una migración nueva le enseña a `registrar_venta` a leer `coalesce((v_item ->> 'es_regalo')::boolean, false)` de
-   `p_items`, sin cambiar la firma, con un reemplazo anclado sobre la definición de la 1c.
-3. `ItemRegistrarVenta` suma `es_regalo?: boolean`.
-4. La línea del ticket suma la marca, solo con clienta.
-
-**Si dice que sale:** se borran las partes 3 y 4 (y su bloque en `clientas_por_modulo_y_anonimizar.mjs`), `es_regalo` sale
-de `lib/clientas-reglas.ts`, `lib/regalo-reglas.ts` y `packages/database/src/types.ts`, y `deducirTallas` vuelve a su
-«límite conocido».
 
 **Pruebas:**
-- `pnpm pruebas:club-regalo-y-se-probo`: 27 casos, en el CI.
-- `clientas_por_modulo_y_anonimizar.mjs` suma la PARTE 4 a su cadena de md5.
+- `pnpm pruebas:club-se-probo`, en el CI: comprueba también que la 1d no toca la venta ni la ficha.
 - La lógica de la pregunta, en `lib/se-probo-reglas.test.ts`.

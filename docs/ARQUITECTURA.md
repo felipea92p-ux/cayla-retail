@@ -723,8 +723,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),
   `archivar_clienta`/`reactivar_clienta`, `unir_clientas` (D-99), `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
-  (`security definer`, cruzan sede a propósito; `fn_clienta_compras` trae `es_regalo` por prenda, ADR-0288 D-7). Talla deducida (D-101, salta
-  las prendas para regalo) y «te falta N para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
+  (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
+  para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
   (nunca guardadas). Reglas puras en `lib/clientas-reglas.ts`, mismo criterio de
   separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
   **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**

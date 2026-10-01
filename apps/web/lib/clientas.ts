@@ -41,8 +41,7 @@ export async function getClientas(limite = 50, incluirArchivadas = false): Promi
 /** La ficha completa: la clienta más su actividad, LEÍDA de ventas/cambios/devoluciones/
  *  separaciones (nunca una tabla copia) — `fn_clienta_*` cruzan las tres sedes a propósito, ver
  *  esas funciones (20260928180000_clienta_actividad_y_exportar.sql): la ficha es de la marca, no
- *  de la sede donde compró. Cada prenda comprada trae `es_regalo` (ADR-0288 D-7, 20260930240000):
- *  `agruparCompras` lo pasa a `esRegalo` y `deducirTallas` salta esas prendas. */
+ *  de la sede donde compró. */
 export async function getFichaClienta(id: string): Promise<FichaClienta | null> {
   const supabase = await createClient();
   const [clienta, compras, cambios, devoluciones, separaciones] = await Promise.all([

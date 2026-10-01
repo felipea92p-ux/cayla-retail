@@ -4477,7 +4477,6 @@ export type Database = {
           descuento_club_unitario: number
           descuento_etiqueta_id: string | null
           descuento_unitario: number
-          es_regalo: boolean
           id: string
           motivo_descuento: string | null
           motivo_descuento_detalle: string | null
@@ -4493,7 +4492,6 @@ export type Database = {
           descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
-          es_regalo?: boolean
           id?: string
           motivo_descuento?: string | null
           motivo_descuento_detalle?: string | null
@@ -4509,7 +4507,6 @@ export type Database = {
           descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
-          es_regalo?: boolean
           id?: string
           motivo_descuento?: string | null
           motivo_descuento_detalle?: string | null
@@ -5561,7 +5558,6 @@ export type Database = {
           talla: string | null
           cantidad: number
           subtotal: number
-          es_regalo: boolean
         }[]
       }
       fn_clienta_cambios: {

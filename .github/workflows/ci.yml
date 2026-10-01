@@ -908,15 +908,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-cumpleanos
 
-      # Club de clientas, tanda 1d (ADR-0288 D-6 y D-7): «buscó y no había» y «se la probó y no la llevó» son la misma tabla
+      # Club de clientas, tanda 1d (ADR-0288 D-6): «buscó y no había» y «se la probó y no la llevó» son la misma tabla
       # (`pedidos_no_atendidos.motivo`, con `razon` solo para «se la probó»; la llamada vieja de 5 parámetros sigue anotando
       # `no_habia_talla`; los rechazos no dejan fila; el esquema lo exige igual sin la función; lo de antes queda
-      # `no_habia_talla`); y `venta_items.es_regalo`, que `fn_clienta_compras` devuelve con el mismo candado del módulo. Una
-      # sola firma de cada función, md5 «después» = vivas, pegarla dos veces deja lo mismo, con una función cambiada en vivo
-      # aborta, sin políticas ni `drop trigger` ni `select … into` en un texto. Cada caso termina en ROLLBACK.
-      - name: pruebas:club-regalo-y-se-probo
+      # `no_habia_talla`). Sin «es para regalo» (Felipe, 2026-09-30): la 1d no toca la venta ni la ficha. Una sola firma,
+      # md5 «después» = viva, pegar las dos partes dos veces deja lo mismo, con la función cambiada en vivo aborta, la PARTE 2
+      # aborta sin la 1, cada parte toma a lo más una tabla con `alter`, sin políticas ni `drop trigger` ni `select … into`
+      # en un texto. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-se-probo
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:club-regalo-y-se-probo
+        run: pnpm pruebas:club-se-probo
 
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien

@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { COMPRAS_PARA_FRECUENTE, comprasRecientes, deducirTallas, estadoFrecuente } from "./clienta-actividad-reglas";
-import { agruparCompras, type Compra, type FilaCompra } from "./clientas-reglas";
+import type { Compra } from "./clientas-reglas";
 
-/** Un ítem comprado para ella (`esRegalo: false`), salvo que se diga lo contrario. */
-type ItemPrueba = Omit<Compra["items"][number], "esRegalo"> & { esRegalo?: boolean };
-
-function compra(fecha: string, items: ItemPrueba[]): Compra {
-  return { ventaId: fecha, fecha, ubicacion: "Tienda Trujillo", total: 0, items: items.map((i) => ({ esRegalo: false, ...i })) };
+function compra(fecha: string, items: Compra["items"]): Compra {
+  return { ventaId: fecha, fecha, ubicacion: "Tienda Trujillo", total: 0, items };
 }
 
 describe("deducirTallas", () => {
@@ -37,69 +34,6 @@ describe("deducirTallas", () => {
 
   it("sin compras, no deduce nada", () => {
     expect(deducirTallas([])).toEqual([]);
-  });
-
-  // ADR-0288 D-7 (D-101): la prenda «es para regalo» no es su talla.
-  it("salta la prenda marcada para regalo: la talla sale de la compra anterior para ella", () => {
-    const compras = [
-      compra("2026-09-28", [{ categoria: "Blusas", talla: "S", cantidad: 1, esRegalo: true }]),
-      compra("2026-08-10", [{ categoria: "Blusas", talla: "M", cantidad: 1 }]),
-    ];
-    expect(deducirTallas(compras)).toEqual([{ categoria: "Blusas", talla: "M" }]);
-  });
-
-  it("en una misma compra, el regalo no pisa la talla de lo que llevó para ella", () => {
-    const compras = [
-      compra("2026-09-28", [
-        { categoria: "Blusas", talla: "XS", cantidad: 1, esRegalo: true },
-        { categoria: "Blusas", talla: "L", cantidad: 1 },
-        { categoria: "Pantalones", talla: "30", cantidad: 1, esRegalo: true },
-      ]),
-    ];
-    expect(deducirTallas(compras)).toEqual([{ categoria: "Blusas", talla: "L" }]);
-  });
-
-  it("si solo compró para regalar, no se deduce ninguna talla", () => {
-    const compras = [compra("2026-09-28", [{ categoria: "Casacas", talla: "S", cantidad: 2, esRegalo: true }])];
-    expect(deducirTallas(compras)).toEqual([]);
-  });
-
-  it("el regalo sí cuenta como compra para «frecuente»: la compró ella", () => {
-    const ahora = new Date("2026-09-30T00:00:00Z");
-    const compras = [compra("2026-09-28T00:00:00Z", [{ categoria: "Casacas", talla: "S", cantidad: 1, esRegalo: true }])];
-    expect(estadoFrecuente(compras, ahora).comprasEnVentana).toBe(1);
-  });
-});
-
-describe("agruparCompras (filas de fn_clienta_compras)", () => {
-  const fila = (venta: string, talla: string, es_regalo?: boolean | null): FilaCompra => ({
-    venta_id: venta,
-    fecha: "2026-09-28T15:00:00Z",
-    ubicacion: "Tienda Trujillo",
-    categoria: "Blusas",
-    talla,
-    cantidad: 1,
-    subtotal: 89.9,
-    ...(es_regalo === undefined ? {} : { es_regalo }),
-  });
-
-  it("lleva es_regalo de la base a cada prenda", () => {
-    const [c] = agruparCompras([fila("v1", "S", true), fila("v1", "M", false)]);
-    expect(c.items.map((i) => [i.talla, i.esRegalo])).toEqual([
-      ["S", true],
-      ["M", false],
-    ]);
-    expect(c.total).toBeCloseTo(179.8);
-  });
-
-  it("sin la columna (base sin la tanda 1d) o con null, la prenda no es regalo", () => {
-    const [c] = agruparCompras([fila("v1", "S"), fila("v1", "M", null)]);
-    expect(c.items.every((i) => i.esRegalo === false)).toBe(true);
-  });
-
-  it("de la base a la talla: una compra con un regalo deduce la talla de lo suyo", () => {
-    const compras = agruparCompras([fila("v2", "S", true), fila("v2", "M", false)]);
-    expect(deducirTallas(compras)).toEqual([{ categoria: "Blusas", talla: "M" }]);
   });
 });
 

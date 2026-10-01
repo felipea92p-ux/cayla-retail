@@ -115,16 +115,6 @@ export type FilaCompra = {
   talla: string | null;
   cantidad: number;
   subtotal: number;
-  /** ADR-0288 D-7: la prenda era para regalar. Ausente en una base sin la tanda 1d (20260930240000): cuenta como false. */
-  es_regalo?: boolean | null;
-};
-
-export type ItemCompra = {
-  categoria: string | null;
-  talla: string | null;
-  cantidad: number;
-  /** Para regalar, no para ella: la ficha no deduce su talla de esta prenda (`deducirTallas`, D-101). */
-  esRegalo: boolean;
 };
 
 export type Compra = {
@@ -132,7 +122,7 @@ export type Compra = {
   fecha: string;
   ubicacion: string;
   total: number;
-  items: ItemCompra[];
+  items: { categoria: string | null; talla: string | null; cantidad: number }[];
 };
 
 export type Cambio = { id: string; fecha: string; ubicacion: string; motivo: string | null; diferencia: number };
@@ -168,7 +158,7 @@ export function agruparCompras(filas: readonly FilaCompra[]): Compra[] {
       porVenta.set(f.venta_id, c);
     }
     c.total += f.subtotal;
-    c.items.push({ categoria: f.categoria, talla: f.talla, cantidad: f.cantidad, esRegalo: f.es_regalo === true });
+    c.items.push({ categoria: f.categoria, talla: f.talla, cantidad: f.cantidad });
   }
   return [...porVenta.values()];
 }
