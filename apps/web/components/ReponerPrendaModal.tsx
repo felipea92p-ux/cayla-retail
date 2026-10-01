@@ -2,12 +2,12 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { SelectorDeTallas } from "@/components/SelectorDeTallas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -26,10 +26,8 @@ import {
   type RespuestaBajada,
 } from "@/lib/bajada-reglas";
 import {
-  acotarCantidad,
-  cantidadDe,
   detalleDeLoBajado,
-  leerCantidadTecleada,
+  filasDelSelector,
   lineasDeReponer,
   nombreDePrendaParaReponer,
   sePuedeBajarTalla,
@@ -239,61 +237,7 @@ export function ReponerPrendaModal({
 
           <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas bajas de cada talla?" retiene="fila">
             {/* Todas las tallas de la prenda: la que no tiene nada en el almacén también sale, para que se vea por qué no se baja. */}
-            <ul className="divide-y divide-tinta/10 rounded-lg border border-tinta/10 px-3">
-              {tallas.map((t) => {
-                const puede = sePuedeBajarTalla(t);
-                // Lo que se ve es lo que se envía: si tras refrescar el almacén quedó con menos de lo elegido, la cifra baja al tope.
-                const n = acotarCantidad(cantidadDe(cantidades, t.varianteId), t.almacen);
-                const problema = problemas[t.varianteId];
-                return (
-                  <li key={t.varianteId} className="py-2.5">
-                    <div className={`flex items-center gap-3 ${puede ? "" : "opacity-60"}`}>
-                      <span className="grid h-9 min-w-9 shrink-0 place-items-center rounded-lg bg-hueso px-1.5 text-sm font-semibold text-tinta">{t.talla}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-tinta">{puede ? `${t.almacen} en almacén` : "Nada en almacén"}</p>
-                        <p className="text-xs text-taupe">{t.piso === 0 ? "Nada en el piso" : `${t.piso} en el piso`}</p>
-                      </div>
-                      {puede && (
-                        <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-sand bg-papel">
-                          <button
-                            type="button"
-                            aria-label={`Una menos de la talla ${t.talla}`}
-                            disabled={congelado || loading || n <= 0}
-                            onClick={() => cambiar(t.varianteId, acotarCantidad(n - 1, t.almacen))}
-                            className="grid h-9 w-9 place-items-center text-tinta/70 disabled:opacity-30"
-                          >
-                            <Minus className="h-3.5 w-3.5" aria-hidden />
-                          </button>
-                          <input
-                            inputMode="numeric"
-                            aria-label={`Cuántas de la talla ${t.talla}`}
-                            value={n}
-                            disabled={congelado || loading}
-                            onChange={(e) => cambiar(t.varianteId, leerCantidadTecleada(e.target.value, t.almacen))}
-                            onFocus={(e) => e.currentTarget.select()}
-                            className="w-9 bg-transparent text-center text-sm tabular-nums text-tinta outline-none"
-                          />
-                          <button
-                            type="button"
-                            aria-label={`Una más de la talla ${t.talla}`}
-                            disabled={congelado || loading || n >= t.almacen}
-                            onClick={() => cambiar(t.varianteId, acotarCantidad(n + 1, t.almacen))}
-                            className="grid h-9 w-9 place-items-center text-tinta/70 disabled:opacity-30"
-                          >
-                            <Plus className="h-3.5 w-3.5" aria-hidden />
-                          </button>
-                        </span>
-                      )}
-                    </div>
-                    {problema && (
-                      <p role="alert" className="mt-1.5 pl-12 text-xs text-rojo-profundo">
-                        {problema}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <SelectorDeTallas filas={filasDelSelector(tallas, "bajar")} cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
             {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ninguna talla tiene prendas libres en el almacén para bajar.</p>}
           </CampoGuiado>
 

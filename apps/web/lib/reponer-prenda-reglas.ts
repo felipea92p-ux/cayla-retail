@@ -23,6 +23,32 @@ export type TallaParaReponer = { varianteId: string; talla: string; piso: number
 /** Cuánto lleva cada talla en el selector, por variante. Lo que no está aquí es 0. */
 export type Cantidades = Readonly<Record<string, number>>;
 
+/** Hacia dónde van las prendas: «bajar» = del almacén al piso («Reponer»); «subir» = del piso al almacén («Subir a almacén»). */
+export type Rumbo = "bajar" | "subir";
+
+/** Una fila del selector de tallas, ya dicha en voz de tienda: la comparten «Reponer» y «Subir a almacén». */
+export type FilaDelSelector = {
+  varianteId: string;
+  talla: string;
+  /** Lo máximo que se puede mover de esta talla (lo libre del lugar de donde sale). 0 = no se ofrece el control. */
+  tope: number;
+  /** La cifra del lugar de donde SALEN las prendas: es la que manda. */
+  principal: string;
+  /** La cifra del otro lugar, más tenue. */
+  secundaria: string;
+};
+
+const cifra = (n: number, lugar: string) => (n > 0 ? `${n} en ${lugar}` : `Nada en ${lugar}`);
+
+/** Las filas del selector para un rumbo: lo que sale va primero y manda el tope. */
+export function filasDelSelector(tallas: readonly TallaParaReponer[], rumbo: Rumbo): FilaDelSelector[] {
+  return tallas.map((t) =>
+    rumbo === "bajar"
+      ? { varianteId: t.varianteId, talla: t.talla, tope: t.almacen, principal: cifra(t.almacen, "almacén"), secundaria: cifra(t.piso, "el piso") }
+      : { varianteId: t.varianteId, talla: t.talla, tope: t.piso, principal: cifra(t.piso, "el piso"), secundaria: cifra(t.almacen, "almacén") }
+  );
+}
+
 /** Todas las tallas de la prenda, en el orden en que llegan (ya vienen en curva: `agruparPorPrenda`). Sin tope ni filtro:
  *  una talla sin nada en el almacén también se lista, para que quien la busca vea POR QUÉ no se puede bajar. */
 export function tallasParaReponer(filas: readonly FilaDeTalla[]): TallaParaReponer[] {
