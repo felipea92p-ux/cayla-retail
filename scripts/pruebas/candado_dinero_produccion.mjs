@@ -111,6 +111,11 @@ rollback;`,
     tipo: "exito",
     sql: `${PREPARAR}${MICAELA_AL_TALLER}${CAMBIA_A(MICAELA)}${AUTENTICADO}
 select retail.abrir_produccion(:'taller', :'prod', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 5))) as ord2 \\gset
+-- Un integrante no ve montos y cierra con los de la orden: una orden sin costo la frena el tope del costo atípico
+-- (20260930121000), así que se le pone el costo de siempre de la prenda (5 prendas × su costo vigente).
+reset role;
+update retail.producciones set costo_tela = 5 * (select costo from retail.variantes where id = :'v1') where id = :'ord2';
+${AUTENTICADO}
 select retail.cerrar_produccion(:'ord2', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 5)), null, null, null) as _cierre \\gset
 select estado, cantidad_buenas from retail.producciones where id = :'ord2';
 rollback;`,
