@@ -451,31 +451,5 @@ export function camposDeLlegoSuMensaje(h: { numero: string; responsableListo: bo
   ];
 }
 
-/** Lo que el ticket impreso lleva al pie para el club. */
-export type ClubEnElTicket = { enlace: string; titulo: string; linea: string };
-
-const LINEA_DEL_TICKET = "¿Novedades por WhatsApp? Escanea y envía el mensaje.";
-
-/**
- * El QR del club al pie del ticket (ADR-0288, «Actualización 2026-09-30»: la tabla de dónde está el QR).
- *   · Venta a una socia: el mensaje personal, con su código (así la tienda sabe de quién es cuando llega).
- *   · Cualquier otra venta (sin clienta, o con una que todavía no es socia): el genérico, que pide unirse al club.
- *   · Una socia que ya recibe novedades no necesita el QR: el ticket no le pide nada nuevo.
- *   · Sin número de la tienda, o sin el texto que toca, nada.
- * `resumen`: lo que la caja sabe de la clienta del ticket, o null si no hay clienta (o no se pudo leer).
- */
-export function clubEnElTicket(
-  club: ClubDeLaCaja,
-  resumen: Pick<ResumenClientaCaja, "esSocia" | "codigoClub" | "conPublicidad"> | null
-): ClubEnElTicket | null {
-  if (!club.whatsappTienda) return null;
-  const codigo = resumen?.esSocia ? codigoClubLegible(resumen.codigoClub) : null;
-  if (resumen?.esSocia && resumen.conPublicidad) return null;
-  if (codigo) {
-    const qr = qrDeLaSocia(club, codigo);
-    return qr.tipo === "qr" ? { enlace: qr.enlace, titulo: `Club CAYLA · Socia ${codigo}`, linea: LINEA_DEL_TICKET } : null;
-  }
-  const generico = textoVigente(club.textos, "mensaje_generico");
-  const enlace = generico ? enlaceQrClub(club.whatsappTienda, generico.texto) : null;
-  return enlace ? { enlace, titulo: "Club CAYLA", linea: LINEA_DEL_TICKET } : null;
-}
+// El QR del ticket impreso vive desde la tanda 1g en `lib/club-qr-reglas.ts` (`clubEnElTicket`): abre la página de registro de
+// la tienda de la venta (ADR-0288 act. g, G-1).

@@ -10,7 +10,6 @@ import {
   celularLegible,
   celularParaInvitar,
   clubDeLaCaja,
-  clubEnElTicket,
   cumpleDelResumen,
   debePedirInvitacion,
   destinoDePagina,
@@ -374,7 +373,6 @@ describe("la cara del QR: camino B, con el camino A de respaldo (ADR-0288 act. c
 describe("la nota de abajo solo promete el QR del ticket si de verdad sale", () => {
   it("con el WhatsApp de la tienda, su mensaje y su código: «En su ticket también sale un QR»", () => {
     expect(pieDelQr(CLUB, "C-0142")).toMatch(/^En su ticket también sale un QR: puede hacerlo en casa\./);
-    expect(clubEnElTicket(CLUB, resumen({ esSocia: true, codigoClub: "C-0142" }))).not.toBeNull();
   });
 
   it("sin número de la tienda, sin mensaje o sin código, el ticket no lo lleva: no se dice", () => {
@@ -397,54 +395,5 @@ describe("«Llegó su mensaje (respaldo)» en Cobrar", () => {
     expect(camposDeLlegoSuMensaje({ ...lista, numero: "" })[0]!.pendiente).toMatch(/desde el que le escribió/);
     expect(camposDeLlegoSuMensaje({ ...lista, numero: "98765" })[0]!.pendiente).toMatch(/9 dígitos/);
     expect(estadosDe(camposDeLlegoSuMensaje({ ...lista, numero: "" }))).toMatchObject({ numero: "ahora", responsable: "hecho" });
-  });
-});
-
-describe("el QR al pie del ticket impreso", () => {
-  const texto = (enlace: string) => decodeURIComponent(enlace.split("text=")[1]!);
-
-  it("venta a una socia: el personal, con su código", () => {
-    const t = clubEnElTicket(CLUB, resumen({ esSocia: true, codigoClub: "C-0142" }));
-    expect(t?.titulo).toBe("Club CAYLA · Socia C-0142");
-    expect(texto(t!.enlace)).toContain("(Club C-0142)");
-  });
-
-  it("venta sin clienta o a una que no es socia: el genérico", () => {
-    expect(texto(clubEnElTicket(CLUB, null)!.enlace)).toBe("Hola CAYLA, quiero unirme al club.");
-    expect(texto(clubEnElTicket(CLUB, resumen())!.enlace)).toBe("Hola CAYLA, quiero unirme al club.");
-    expect(clubEnElTicket(CLUB, null)?.titulo).toBe("Club CAYLA");
-  });
-
-  it("una socia que ya recibe novedades no lleva QR: no hay nada nuevo que pedirle", () => {
-    expect(clubEnElTicket(CLUB, resumen({ esSocia: true, codigoClub: "C-0142", conPublicidad: true }))).toBeNull();
-  });
-
-  it("sin número de la tienda o sin texto, el ticket sale sin QR del club", () => {
-    expect(clubEnElTicket({ ...CLUB, whatsappTienda: null }, null)).toBeNull();
-    expect(clubEnElTicket(CLUB_APAGADO, null)).toBeNull();
-    expect(clubEnElTicket({ ...CLUB, textos: TEXTOS.filter((t) => t.tipo !== "mensaje_generico") }, null)).toBeNull();
-    expect(clubEnElTicket({ ...CLUB, textos: TEXTOS.filter((t) => t.tipo !== "mensaje_personal") }, resumen({ esSocia: true, codigoClub: "C-0142" }))).toBeNull();
-  });
-
-  it("el enlace cabe en un QR de 57 módulos (nivel L): con los textos v2, menos de 271 bytes", () => {
-    const v2 = clubDeLaCaja(
-      [
-        {
-          tipo: "mensaje_personal",
-          version: 2,
-          texto:
-            "Hola CAYLA, quiero recibir por WhatsApp novedades, rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA. (Club {codigo})",
-        },
-        {
-          tipo: "mensaje_generico",
-          version: 2,
-          texto:
-            "Hola CAYLA, quiero unirme al Club CAYLA y recibir por WhatsApp novedades, rebajas y mi saludo de cumpleaños. Sé que me doy de baja escribiendo BAJA.",
-        },
-      ],
-      "987654321"
-    );
-    expect(clubEnElTicket(v2, resumen({ esSocia: true, codigoClub: "C-0142" }))!.enlace.length).toBeLessThan(271);
-    expect(clubEnElTicket(v2, null)!.enlace.length).toBeLessThan(271);
   });
 });
