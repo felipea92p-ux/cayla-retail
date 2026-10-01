@@ -22,7 +22,7 @@ function money(n: number) {
  * guardada y le aparece al líder en Inicio. Sin `esperado` (cierres anteriores a ADR-0186) se escribe el monto como
  * siempre. El candado real está en `abrir_caja`: esto solo lo explica antes de enviar.
  *
- * `enHoja` (Vender, ADR-0299): dentro de la hoja «Abrir caja» de Vender no dibuja su propia tarjeta (la hoja ya lo es) ni repite «Abrir
+ * `enHoja` (Vender, ADR-0301): dentro de la hoja «Abrir caja» de Vender no dibuja su propia tarjeta (la hoja ya lo es) ni repite «Abrir
  * caja» encima del título, y pone las dos opciones lado a lado. Con «Nadie de turno» la hoja angosta pasaba los 800 px
  * de alto; así, más ancha, cabe en un laptop (Felipe 2026-10-01).
  */

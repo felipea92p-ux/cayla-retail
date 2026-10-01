@@ -5,5 +5,5 @@ Felipe se lleva: probado en local a 1440, 1366×768 y 375 px, abriendo y cerrand
 
 ## 2026-10-01 (La persiana cubre también con el menú plegado; la hoja «Abrir caja» más ancha)
 Qué hice: con el menú lateral plegado la persiana dejaba una franja del POS sin cubrir; ahora sigue a la cabecera y cubre todo, también mientras el menú se pliega. La hoja «Abrir caja» de Vender pasó de 384 a 576 px, sin la tarjeta de adentro y con las dos opciones lado a lado. En pantallas grandes el cartel crece.
-Por qué así: la persiana va por portal a `body` y no ve el token del menú plegado, así que mide la cabecera real en vez de suponer su ancho. La hoja angosta, con «Nadie de turno», pasaba los 800 px de alto (ADR-0299, actualización b).
+Por qué así: la persiana va por portal a `body` y no ve el token del menú plegado, así que mide la cabecera real en vez de suponer su ancho. La hoja angosta, con «Nadie de turno», pasaba los 800 px de alto (ADR-0301, actualización b).
 Felipe se lleva: probado en local en ocho tamaños, de 375 px a 2560 px, plegando y desplegando el menú; con «Nadie de turno», la hoja mide unos 650 px y cabe en un laptop de 768 px.
