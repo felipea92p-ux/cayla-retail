@@ -339,7 +339,9 @@ export function leerRespuestaDeBajada(data: unknown): RespuestaBajada | null {
 // con la misma lista hace seguro volver a enviar; por eso la lista se congela hasta que la base responda.
 const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si la bajada se guardó. Tu lista sigue aquí: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}». Si ya se había guardado, no se repite.`;
 
-function lineasSinAlcance(details: string | null | undefined): { varianteId: string; hay: number; motivo: string }[] {
+/** Las líneas que la base dijo que no alcanzan, leídas de su `detail` (JSON): sirve a `bajar_al_piso` y a `retirar_del_piso`,
+ *  que traen el mismo detalle. Nunca lanza, ni con un `details` roto. */
+export function lineasSinAlcance(details: string | null | undefined): { varianteId: string; hay: number; motivo: string }[] {
   if (!details) return [];
   let crudo: unknown;
   try {
