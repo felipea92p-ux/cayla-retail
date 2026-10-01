@@ -5,6 +5,8 @@ import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "r
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { Boton, Campo, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -38,6 +40,12 @@ import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora,
 // Líneas: cada proveedor factura distinto. Si detalla talla/color, se elige
 // la variante; si agrupa ("Blusa Lino x 24"), se deja "Sin desglose" y el
 // reparto por talla/color se hace al recibir.
+//
+// Costo atípico (20260930123000, Felipe 2026-09-30): si el costo de alguna línea sale fuera de lo normal contra el de su prenda, la
+// base NO registra nada y contesta `costo_atipico` con las líneas raras que faltan por confirmar. Quien registra —que ya ve los
+// montos y tiene el papel en la mano— elige aquí, en línea: corregir los costos o confirmarlos, y confirmar reenvía el MISMO
+// intento (mismo token: el rechazo no guardó nada) con la marca `confirma_costo: true` en cada línea que se le mostró. La regla
+// vive en la base; esta pantalla no la repite. (La «ayuda» bajo cada costo, desde 5 %, es otra cosa: un aviso en vivo que no bloquea.)
 // `sku` trae el código de etiqueta (con respaldo al sku legado, «» si no tiene ninguno): solo rotula la opción sin talla ni color.
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
 // Lo que se sabe de un proveedor al elegirlo (ADR-0111): su plazo y forma de pago preferidos, y lo que ya se le
@@ -195,6 +203,9 @@ export function CompraFormV2({
   const [loading, setLoading] = useState(false);
   // La factura ya quedó registrada: el botón muestra su visto un momento antes de volver a la lista.
   const [registrada, setRegistrada] = useState(false);
+  // Lo que contestó la base cuando hubo costos atípicos, con la huella de las líneas de ese momento: si cambia cualquier
+  // costo, cantidad, prenda o el IGV, la huella ya no coincide y el aviso se retira solo (no hay que acordarse campo por campo).
+  const [atipicos, setAtipicos] = useState<{ costos: CostoAtipico[]; huella: string } | null>(null);
   // El bloque de pago solo se revela cuando la PERSONA cambió la condición o marcó «pagar ahora»; al abrir la pantalla
   // ya está ahí y no se anima.
   const [pagoTocado, setPagoTocado] = useState(false);
@@ -239,6 +250,10 @@ export function CompraFormV2({
   // venta el precio del papel ya es el costo y el selector no aparece.
   const conIgv = igvEfectivo > 0 && precioIncluyeIgv;
   const baseDeLinea = (l: Linea) => costoBase(Number(l.costoUnitario), igvEfectivo, conIgv);
+  // Las líneas que de verdad se mandan (la base numera las suyas, `linea`, desde 1, sobre esta misma lista).
+  const lineasQueSeEnvian = lineas.filter((l) => l.productoId && l.cantidad > 0);
+  const huellaDeLineas = JSON.stringify(lineasQueSeEnvian.map((l) => [l.productoId, l.varianteId, l.cantidad, baseDeLinea(l)]));
+  const costosAtipicos = atipicos && atipicos.huella === huellaDeLineas ? atipicos.costos : null;
   // Lo que se muestra en cada línea: con IGV incluido, lo que dice el papel
   // (cantidad × precio tipeado); sin IGV, la base. El resumen sale de la
   // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren.
@@ -359,6 +374,19 @@ export function CompraFormV2({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await registrar(null);
+  }
+
+  // Corregir: el foco va al costo de la primera línea que la base marcó.
+  function corregirCostos() {
+    const primera = costosAtipicos?.find((a) => a.linea !== null)?.linea ?? 1;
+    const i = Math.max(0, lineas.indexOf(lineasQueSeEnvian[primera - 1]));
+    setAtipicos(null);
+    document.getElementById(`compra-linea-${i}-costo`)?.focus();
+  }
+
+  /** `confirmadas`: las líneas (posición desde 1, las de la base) que quien registra confirmó; `null` en el primer intento. */
+  async function registrar(confirmadas: number[] | null) {
     if (loading || registrada) return;
     const validas = lineas.filter((l) => l.productoId && l.cantidad > 0);
     // Las mismas reglas que la lista de pendientes (`requisitosDeCompra`): el primer requisito sin cumplir avisa arriba
@@ -387,12 +415,15 @@ export function CompraFormV2({
       // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0184, F3) —
       // ya no es solo un valor por defecto. Ver `gestora` arriba: para un comprador nunca es una posición ciega.
       p_ubicacion_destino_id: gestora,
-      p_items: validas.map((l) => ({
+      p_items: validas.map((l, n) => ({
         producto_id: l.productoId,
         ...(l.varianteId ? { variante_id: l.varianteId } : {}),
         ...(l.descripcion.trim() ? { descripcion: l.descripcion.trim() } : {}),
         cantidad: l.cantidad,
         costo_unitario: baseDeLinea(l),
+        // Solo en el reintento tras `costo_atipico`, y solo en las líneas que se mostraron: el primer intento no manda la marca,
+        // así la pantalla nueva funciona igual contra una base que todavía no la conoce.
+        ...(confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
         // Cuántas unidades de ESTA línea le tocan a cada tienda: deben sumar `cantidad` (la base lo exige y rechaza si no).
         ...(repartir ? { destinos: destinosParaRpc(l.reparto) } : {}),
       })),
@@ -413,6 +444,11 @@ export function CompraFormV2({
     if (error) {
       cerrarProceso();
       setLoading(false);
+      const marcadas = leerCostosAtipicos(error);
+      if (marcadas) {
+        setAtipicos({ costos: marcadas, huella: huellaDeLineas });
+        return;
+      }
       // Serie-número repetidos para este proveedor (candado `unique` en
       // `compras`): el cursor vuelve a la serie, como en las demás validaciones.
       const duplicada = error.code === "P0001" && error.message.includes("ya está registrada");
@@ -421,6 +457,7 @@ export function CompraFormV2({
     }
 
     // La factura ya existe: lo que se envíe desde aquí en adelante es otra intención.
+    setAtipicos(null);
     token.current = crypto.randomUUID();
     salida.soltar();
 
@@ -889,9 +926,23 @@ export function CompraFormV2({
         <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
         <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
         <div className="flex flex-col gap-2">
-          <BotonRegistrar estado={estadoRegistro} habilitado={progreso.completo} describe="compra-pendientes">
-            {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
-          </BotonRegistrar>
+          {costosAtipicos ? (
+            <AvisoCostoAtipico
+              costos={costosAtipicos}
+              pie="Los costos se comparan sin IGV, contra el costo que ya tiene cada prenda. Si el papel dice eso, confírmalos: quedan en la factura y, al recibirla, entran al costo de esas prendas en todas las sedes."
+              textoCorregir="Corregir los costos"
+              textoConfirmar="Sí, el papel dice eso — registrar"
+              cargando={loading}
+              listo={responsable.listo}
+              motivoNoListo={responsable.motivo}
+              onCorregir={corregirCostos}
+              onConfirmar={() => registrar(costosAtipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
+            />
+          ) : (
+            <BotonRegistrar estado={estadoRegistro} habilitado={progreso.completo} describe="compra-pendientes">
+              {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
+            </BotonRegistrar>
+          )}
           <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
             Cancelar
           </Boton>
