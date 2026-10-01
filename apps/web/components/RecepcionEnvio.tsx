@@ -67,19 +67,17 @@ import {
   resumenPorComprobante,
   sumarUnidad,
   totalesEnvio,
-  trasladoContadoEntero,
-  type ConteoTraslado,
   type ExtraEnvio,
   type MovimientoDelEnvio,
   type PedidoEnvio,
   type Reparto,
-  type TrasladoEnCamino,
 } from "@/lib/envio-reglas";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
-// varios bultos— y puede traer comprobantes de VARIOS proveedores, prendas que ningún comprobante lista y
-// hasta mercadería de otra sede de CAYLA. Todo se cuenta acá y se registra JUNTO, en una sola llamada
-// atómica (`recibir_envio`): si algo falla no queda nada y el conteo sigue en pantalla para corregirlo.
+// varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
+// cuenta acá y se registra JUNTO, en una sola llamada atómica (`recibir_envio`): si algo falla no queda nada y el
+// conteo sigue en pantalla para corregirlo. Lo que viene de otra sede de CAYLA NO se recibe acá (ADR-0299): se
+// cuenta y se confirma en Traslados, donde además se elige si va al piso de venta o al almacén.
 //
 // Sale de `RecepcionCompraFormV2` (lista + panel de Felipe, 2026-09-14), con estas diferencias:
 // · La lista se MARCA (casillas) y admite comprobantes de cualquier proveedor; antes, elegir uno de otro
@@ -87,8 +85,7 @@ import {
 // · Una sola guía para todo el envío (los proveedores no traen la suya: la recepción es por envío).
 // · Los cuatro indicadores viven DEBAJO de «¿Qué llegó?» y desaparecen al marcar un comprobante.
 // · Escaneo: cada lectura suma 1 al comprobante que trae esa prenda, sea del proveedor que sea.
-// · Fuera de comprobante lleva ORIGEN: de qué proveedor viene y si es regalo. Lo que viene de otra sede
-//   no crea stock de la nada: se cuenta y confirma como traslado en tránsito (ADR-0068).
+// · Fuera de comprobante lleva ORIGEN: de qué proveedor viene y si es regalo.
 // · Cuenta CUALQUIER colaborador de la sede. Quien no es líder no ve dinero (llega en cero desde el
 //   servidor) y no decide qué pasa con lo que faltó: lo deja pendiente y un líder lo cierra después.
 //
@@ -122,9 +119,6 @@ type Proveedor = { id: string; nombre: string };
 type Pestana = "prendas" | "fuera" | "notas";
 type FiltroLista = "todas" | "atrasadas" | "proximas";
 
-const NUMERO =
-  "w-16 border-b bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none [appearance:textfield] focus:border-b-2 focus:border-rojo [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
 // Prenda · SKU · Pendiente · Llegó · Dif. · Estado
 // El diseño de la tabla lo decide el ANCHO DEL PANEL (`@container` en la columna derecha), no el de la ventana: con el menú
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
@@ -155,7 +149,7 @@ export function RecepcionEnvio({
   esLider,
   verMontos = esLider,
   comprasConNotaFaltante,
-  trasladosPorUbicacion,
+  veTraslados,
   resumen,
 }: {
   compras: CompraResumen[];
@@ -171,8 +165,8 @@ export function RecepcionEnvio({
   verMontos?: boolean;
   /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante): esos no se avisan. */
   comprasConNotaFaltante: string[];
-  /** Traslados en tránsito que vienen hacia cada ubicación (el «envío interno»). */
-  trasladosPorUbicacion: Record<string, TrasladoEnCamino[]>;
+  /** ¿Quien recibe ve el módulo Traslados? Si sí, el aviso de «lo de otra sede se recibe allá» lleva el enlace. */
+  veTraslados: boolean;
   /** Los indicadores: se dibujan bajo «¿Qué llegó?» mientras no haya nada marcado. */
   resumen: ReactNode;
 }) {
@@ -181,7 +175,7 @@ export function RecepcionEnvio({
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
   // Envíos guardados sin conexión que todavía no suben (ADR-0210): lo que ya contaron sale de «pendientes» mientras
-  // espera, para que nadie vuelva a contar el mismo comprobante o traslado y al volver la red suban dos recepciones.
+  // espera, para que nadie vuelva a contar el mismo comprobante y al volver la red suban dos recepciones.
   const colaOffline = useColaRecibir();
   // Lo que ya subió sigue oculto hasta que llega la lista nueva del servidor (`router.refresh`): en ese rato la lista
   // vieja lo mostraría otra vez como pendiente. Estado ajustado en el render (patrón «previo + comparación» de React).
@@ -215,8 +209,6 @@ export function RecepcionEnvio({
   // Las cantidades arrancan VACÍAS (D1): sin valor = sin contar.
   const [reparto, setReparto] = useState<Reparto>({});
   const [extras, setExtras] = useState<ExtraEnvio[]>([]);
-  const [trasladosElegidos, setTrasladosElegidos] = useState<string[]>([]);
-  const [conteoTraslados, setConteoTraslados] = useState<Record<string, ConteoTraslado>>({});
   const [pestana, setPestana] = useState<Pestana>("prendas");
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroLista>("todas");
@@ -262,7 +254,7 @@ export function RecepcionEnvio({
   // en esta pantalla: tocar el menú o «atrás» a mitad lo perdía entero. Cuenta lo que la persona contó o escribió; qué
   // comprobantes marcó no (se vuelven a marcar en un toque). Con el envío ya recibido («Envío recibido») no hay nada que
   // perder, y «Recibir otro» deja la pantalla como al abrir: la guardia se retira sola.
-  const fotoConteo = fotoFormulario({ reparto, extras, conteoTraslados, decisiones, numeroGuia, nota });
+  const fotoConteo = fotoFormulario({ reparto, extras, decisiones, numeroGuia, nota });
   const [fotoConteoAlAbrir] = useState(fotoConteo);
   const avisoSalida = useSalidaSinGuardar(
     !ok && fotoConteo !== fotoConteoAlAbrir,
@@ -295,15 +287,8 @@ export function RecepcionEnvio({
   const proveedoresEnvio = useMemo(() => proveedoresDelEnvio(bloques), [bloques]);
   const hayEnvio = seleccionadas.length > 0;
 
-  const trasladosDeAca = (trasladosPorUbicacion[ubicacionId] ?? []).filter((t) => !enCola.traslados.has(t.id));
-  const trasladosMarcados = trasladosDeAca.filter((t) => trasladosElegidos.includes(t.id));
-  const totales = totalesEnvio(
-    bloques,
-    reparto,
-    extras,
-    trasladosMarcados.map((t) => ({ lineas: t.lineas, conteo: conteoTraslados[t.id] ?? {} })),
-  );
-  const unidadesRecibiendo = totales.contadas + totales.fueraDeComprobante + totales.deOtraSede;
+  const totales = totalesEnvio(bloques, reparto, extras);
+  const unidadesRecibiendo = totales.contadas + totales.fueraDeComprobante;
   const ubicacionNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "";
   // Quién recibe (ADR-0161/0162): `recibir_envio` firma con esa persona, elegida entre quienes están de turno en la
   // ubicación a la que ENTRA la mercadería (la que se elige arriba), no en la sede de la cabecera.
@@ -426,11 +411,9 @@ export function RecepcionEnvio({
       ids.forEach((id) => delete copia[id]);
       return copia;
     });
-    // Sin ningún comprobante no hay envío: lo fuera de comprobante y lo de otra sede tampoco tienen dónde vivir.
+    // Sin ningún comprobante no hay envío: lo fuera de comprobante tampoco tiene dónde vivir.
     if (resto.length === 0) {
       setExtras([]);
-      setTrasladosElegidos([]);
-      setConteoTraslados({});
       setPestana("prendas");
     }
     setQuitarPendiente(null);
@@ -563,23 +546,8 @@ export function RecepcionEnvio({
   // Cambiar de producto olvida la variante elegida — la talla/color de la prenda anterior casi nunca aplica a la nueva.
   const elegirProductoExtra = (i: number, productoId: string) => actualizarExtra(i, { productoId, varianteId: "" });
 
-  // ---- envío interno: traslados en tránsito ------------------------------------------------------
-  function alternarTraslado(id: string) {
-    setTrasladosElegidos((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  }
-  function fijarTraslado(trasladoId: string, varianteId: string, valor: number | null) {
-    setConteoTraslados((m) => {
-      const propias = { ...(m[trasladoId] ?? {}) };
-      if (valor === null) delete propias[varianteId];
-      else propias[varianteId] = Math.max(0, Math.floor(valor) || 0);
-      return { ...m, [trasladoId]: propias };
-    });
-  }
   function cambiarUbicacion(id: string) {
-    // Los traslados en camino dependen de a qué sede entra el envío.
     setUbicacionId(id);
-    setTrasladosElegidos([]);
-    setConteoTraslados({});
   }
 
   // ---- lo que faltó (D2, solo líder) --------------------------------------------------------------
@@ -623,10 +591,8 @@ export function RecepcionEnvio({
       )
     : [];
 
-  const trasladosSinContar = trasladosMarcados.filter((t) => !trasladoContadoEntero(t.lineas, conteoTraslados[t.id] ?? {}));
-  const sinComprobanteContado = totales.contadas === 0 && (totales.fueraDeComprobante > 0 || trasladosMarcados.length > 0);
-  const puedeConfirmar =
-    (unidadesRecibiendo > 0 || cierres.length > 0) && totales.excedidas === 0 && porDecidir.length === 0 && trasladosSinContar.length === 0 && !sinComprobanteContado;
+  const sinComprobanteContado = totales.contadas === 0 && totales.fueraDeComprobante > 0;
+  const puedeConfirmar = (unidadesRecibiendo > 0 || cierres.length > 0) && totales.excedidas === 0 && porDecidir.length === 0 && !sinComprobanteContado;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -645,21 +611,16 @@ export function RecepcionEnvio({
         { enfocar: panel.current },
       );
     if (sinComprobanteContado)
-      return void avisar.error("Lo que llegó fuera de comprobante o de otra sede necesita al menos una línea de comprobante contada en este envío.", { enfocar: panel.current });
+      return void avisar.error("Lo que llegó fuera de comprobante necesita al menos una línea de comprobante contada en este envío.", { enfocar: panel.current });
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
-    if (trasladosSinContar.length > 0) {
-      setPestana("fuera");
-      return void avisar.error(`Cuenta cada prenda del traslado ${trasladosSinContar[0].numero} (aunque alguna sea 0) antes de recibir.`);
-    }
 
     const pedido = armarPedidoEnvio({
       ubicacionId,
       bloques,
       reparto,
       extras,
-      traslados: trasladosMarcados.map((t) => ({ transferenciaId: t.id, lineas: t.lineas, conteo: conteoTraslados[t.id] ?? {} })),
       cierres: cierres.map((c) => ({ lineaId: c.lineaId, faltan: c.faltan, motivo: c.motivo })),
       numeroGuia,
       nota,
@@ -671,7 +632,6 @@ export function RecepcionEnvio({
       bloques,
       reparto,
       extras,
-      traslados: trasladosMarcados.map((t) => ({ numero: t.numero, lineas: t.lineas, conteo: conteoTraslados[t.id] ?? {} })),
       dePrenda: (id) => {
         const v = variantePorId.get(id);
         return v ? { referencia: v.referencia, detalle: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku } : null;
@@ -703,14 +663,14 @@ export function RecepcionEnvio({
     setLoading(true);
     const cerrarProceso = avisar.proceso(unidadesRecibiendo > 0 ? "Recibiendo el envío…" : "Cerrando faltantes…");
     const supabase = createClient();
-    // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
-    // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
+    // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante y los cierres se registran
+    // juntos o no se registra nada. Con el mismo token, reintentar no duplica.
     const firma = responsable.firma();
     const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
     // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
-    // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
+    // navegador y sube solo; mientras tanto sus comprobantes salen de «pendientes».
     if (error && debeEncolarse(error, status)) {
       const documentos = bloques.map((b) => b.compra.documento).join(", ");
       const que = unidadesRecibiendo > 0 ? `${unidadesRecibiendo} ${unidadesRecibiendo === 1 ? "unidad" : "unidades"}` : `${cierres.length} ${cierres.length === 1 ? "faltante cerrado" : "faltantes cerrados"}`;
@@ -732,8 +692,6 @@ export function RecepcionEnvio({
         proveedores: proveedoresEnvio.length,
         lotes: [],
         extras: pedido.p_extras.length,
-        deOtraSede: totales.deOtraSede,
-        traslados: [],
         cierres: cierres.length,
         porReclamar: 0,
         yaRegistrado: false,
@@ -764,14 +722,12 @@ export function RecepcionEnvio({
     }
     setAtipicos(null);
 
-    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: { lote_id: string }[]; extras?: number; traslados?: { resultado: string }[]; cierres?: number };
+    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: { lote_id: string }[]; extras?: number; cierres?: number };
     const resultado: Resultado = {
       unidades: unidadesRecibiendo,
       proveedores: r.lotes?.length ?? proveedoresEnvio.length,
       lotes: (r.lotes ?? []).map((l) => l.lote_id),
       extras: r.extras ?? 0,
-      deOtraSede: totales.deOtraSede,
-      traslados: r.traslados ?? [],
       cierres: r.cierres ?? 0,
       // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no es líder).
       porReclamar: reclamos.reduce((a, x) => a + x.monto, 0),
@@ -793,8 +749,6 @@ export function RecepcionEnvio({
     setAbiertos({});
     setReparto({});
     setExtras([]);
-    setTrasladosElegidos([]);
-    setConteoTraslados({});
     setDecisiones({});
     setNumeroGuia("");
     setNota("");
@@ -1231,7 +1185,7 @@ export function RecepcionEnvio({
                     clasePestana="px-3 pb-3.5 pt-4 text-sm"
                     items={[
                       { clave: "prendas", etiqueta: "Prendas del envío", conteo: <CifraQueCuenta valor={totales.esperadas} /> },
-                      { clave: "fuera", etiqueta: "Fuera de comprobante", conteo: <CifraQueCuenta valor={totales.fueraDeComprobante + totales.deOtraSede} /> },
+                      { clave: "fuera", etiqueta: "Fuera de comprobante", conteo: <CifraQueCuenta valor={totales.fueraDeComprobante} /> },
                       { clave: "notas", etiqueta: "Notas", conteo: nota.trim() ? 1 : 0 },
                     ]}
                   />
@@ -1521,86 +1475,21 @@ export function RecepcionEnvio({
                       </button>
                     </div>
 
-                    <div className="space-y-3 border-t border-tinta/10 pt-5">
-                      <div>
-                        <p className="font-display text-lg text-tinta">¿Vino algo de otra sede de CAYLA? (envío interno)</p>
-                        <p className="mt-1 text-xs text-tinta/65">
-                          No se ingresa como prenda suelta: se cuenta y se confirma el traslado que ya salió de la otra sede, para que su stock y el de acá cuadren. Si el Taller o una tienda te mandó prendas y no aparecen aquí, primero tiene que registrarlas como traslado.
-                        </p>
-                      </div>
-                      {trasladosDeAca.length === 0 ? (
-                        <p className="rounded-xl border border-dashed border-tinta/20 px-4 py-3 text-sm text-tinta/65">No hay traslados en camino hacia {ubicacionNombre || "esta ubicación"}.</p>
-                      ) : (
-                        trasladosDeAca.map((t) => {
-                          const marcado = trasladosElegidos.includes(t.id);
-                          const conteo = conteoTraslados[t.id] ?? {};
-                          return (
-                            <div key={t.id} className={`overflow-hidden rounded-xl border ${marcado ? "border-tinta/40" : "border-tinta/15"}`}>
-                              <button
-                                type="button"
-                                role="checkbox"
-                                aria-checked={marcado}
-                                onClick={() => alternarTraslado(t.id)}
-                                className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${marcado ? "bg-tinta/[0.04]" : "hover:bg-tinta/[0.03]"}`}
-                              >
-                                <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcado ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
-                                  {marcado && <Check className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block text-sm font-semibold text-tinta">
-                                    Traslado {t.numero} · desde {t.origenNombre}
-                                  </span>
-                                  <span className="block text-xs text-tinta/65">
-                                    {t.lineas.reduce((a, l) => a + l.cantidadEnviada, 0)} unidades enviadas en {t.lineas.length} {t.lineas.length === 1 ? "línea" : "líneas"}
-                                    {t.fechaEstimadaLlegada ? ` · llegada estimada ${diaMes(t.fechaEstimadaLlegada.slice(0, 10))}` : ""}
-                                  </span>
-                                </span>
-                                <span className="label-cayla text-[10px] text-tinta/55">{marcado ? "Vino en este envío" : "Marcar si vino"}</span>
-                              </button>
-                              {marcado && (
-                                <div className="anim-revelar divide-y divide-tinta/10 border-t border-tinta/10">
-                                  {t.lineas.map((l) => {
-                                    const contada = conteo[l.varianteId];
-                                    const v = variantePorId.get(l.varianteId);
-                                    const estado = estadoLinea(contada ?? null, l.cantidadEnviada);
-                                    const detalle = [l.talla, l.color].filter(Boolean).join(" / ") || l.sku;
-                                    return (
-                                      <div key={l.varianteId} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5">
-                                        <span className="min-w-0 flex-1 text-sm text-tinta">
-                                          {l.referencia}
-                                          <span className="block text-xs text-tinta/55">
-                                            {detalle} · {v?.sku ?? l.sku}
-                                          </span>
-                                        </span>
-                                        <span className="w-20 text-center text-sm tabular-nums text-tinta/65">Envió {l.cantidadEnviada}</span>
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          aria-label={`Llegó de ${l.referencia} ${detalle} (traslado ${t.numero})`}
-                                          value={contada ?? ""}
-                                          placeholder="—"
-                                          onChange={(e) => fijarTraslado(t.id, l.varianteId, e.target.value === "" ? null : Number(e.target.value))}
-                                          onFocus={(e) => e.target.select()}
-                                          className={`${NUMERO} ${estado === "completa" ? "border-verde bg-verde/[0.09] text-verde-profundo" : contada === undefined ? "border-tinta/20 text-tinta/45" : "border-ambar bg-ambar/10 text-ambar-profundo"}`}
-                                        />
-                                        <span className="w-28">
-                                          <Chip tono={estado === "completa" ? "verde" : estado === "sin_contar" ? "neutro" : "ambar"}>
-                                            {estado === "sin_contar" ? "Sin contar" : estado === "completa" ? "Completa" : estado === "faltan" ? `Faltan ${l.cantidadEnviada - (contada ?? 0)}` : `Sobran ${(contada ?? 0) - l.cantidadEnviada}`}
-                                          </Chip>
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                  {!trasladoContadoEntero(t.lineas, conteo) && <p className="bg-ambar/[0.05] px-4 py-2 text-xs text-ambar-profundo">Cuenta cada prenda, aunque alguna sea 0: la base no confirma un traslado con líneas sin decir.</p>}
-                                  {trasladoContadoEntero(t.lineas, conteo) && t.lineas.some((l) => (conteo[l.varianteId] ?? 0) !== l.cantidadEnviada) && (
-                                    <p className="bg-ambar/[0.05] px-4 py-2 text-xs text-ambar-profundo">Lo contado no coincide con lo enviado: el traslado queda para que un líder lo revise y no suma stock hasta entonces.</p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
+                    {/* ADR-0299: lo que manda otra sede de CAYLA no se recibe en este envío. Se cuenta y se confirma en Traslados
+                        (ahí se elige piso o almacén). El aviso de arriba de la pantalla dice cuáles vienen en camino. */}
+                    <div className="space-y-1 border-t border-tinta/10 pt-5">
+                      <p className="font-display text-lg text-tinta">¿Vino algo de otra sede de CAYLA?</p>
+                      <p className="text-xs text-tinta/65">
+                        Eso no se recibe en este envío: se cuenta y se confirma en{" "}
+                        {veTraslados ? (
+                          <Link href="/inventario/traslados" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                            Traslados
+                          </Link>
+                        ) : (
+                          "Traslados"
+                        )}
+                        , donde también eliges si va al piso de venta o al almacén.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1672,18 +1561,10 @@ export function RecepcionEnvio({
                       Los espero todas
                     </button>
                   </span>
-                ) : trasladosSinContar.length > 0 ? (
-                  <span key="tras" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
-                    <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
-                    Falta contar las prendas de {trasladosSinContar.length === 1 ? "un traslado" : `${trasladosSinContar.length} traslados`} (en «Fuera de comprobante»).
-                    <button type="button" onClick={() => setPestana("fuera")} className="label-cayla text-[10px] text-rojo hover:underline">
-                      Ir a contarlas
-                    </button>
-                  </span>
                 ) : sinComprobanteContado ? (
                   <span key="sin" className="anim-revelar flex items-center gap-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
-                    Lo de fuera de comprobante o de otra sede necesita al menos una línea de comprobante contada.
+                    Lo de fuera de comprobante necesita al menos una línea de comprobante contada.
                   </span>
                 ) : extras.some((e) => (e.productoId || e.varianteId) && !extraCompleto(e)) ? (
                   <span key="ext" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
@@ -1715,7 +1596,6 @@ export function RecepcionEnvio({
                     { n: totales.sinContar, etiqueta: "Sin contar", tono: "text-tinta/45" },
                     { n: totales.faltantes, etiqueta: "Faltantes", tono: totales.faltantes > 0 ? "text-ambar-profundo" : "text-tinta/45" },
                     { n: totales.fueraDeComprobante, etiqueta: "Fuera de comprobante", tono: totales.fueraDeComprobante > 0 ? "text-tinta" : "text-tinta/45" },
-                    ...(trasladosMarcados.length > 0 ? [{ n: totales.deOtraSede, etiqueta: "De otra sede", tono: "text-tinta" }] : []),
                   ].map((m) => (
                     <span key={m.etiqueta} className="block">
                       <span className={`font-display text-xl leading-none tabular-nums transition-colors duration-300 sm:text-2xl ${m.tono}`}>
@@ -1749,8 +1629,6 @@ export function RecepcionEnvio({
             .filter(extraCompleto)
             .map((e) => `${variantePorId.get(e.varianteId)?.referencia ?? "Prenda"} ×${e.cantidad}${e.esRegalo ? " (regalo)" : ""}`)
             .join(" · ")}
-          deOtraSede={totales.deOtraSede}
-          trasladosDetalle={trasladosMarcados.map((t) => `Traslado ${t.numero} · ${t.origenNombre}`).join(" · ")}
           cierresMonto={esLider && cierres.length > 0 ? faltantes.filter((f) => cierres.some((c) => c.lineaId === f.lineaId)).reduce((a, f) => a + f.faltan * f.costoUnitario, 0) : null}
           ubicacionNombre={ubicacionNombre}
           numeroGuia={numeroGuia}

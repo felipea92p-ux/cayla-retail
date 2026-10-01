@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
@@ -8,8 +8,10 @@ import { getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-i
 import { getComprasConNotaFaltante } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
-import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
-import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
+import { getEnviosDeLotes } from "@/lib/envio";
+import { getTrasladosEnCurso, type TrasladoResumen } from "@/lib/traslados";
+import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto, trasladosHaciaAca } from "@/lib/envio-reglas";
+import { AvisoTrasladosEnCamino } from "@/components/AvisoTrasladosEnCamino";
 import { valorPorRecibirDeMiTienda } from "@/lib/reparto-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
@@ -25,10 +27,14 @@ import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 
-// Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta para todo lo que llega: un envío puede traer
-// comprobantes de varios proveedores, prendas fuera de comprobante (de un proveedor, con su regalo) y
-// hasta mercadería de otra sede. Lo que llegó SIN comprobante todavía (muestras, el papel que no llega)
-// vive en «Ingreso sin comprobante» de Inventario: es una excepción, no un par de esta pantalla.
+// Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta de lo que llega de PROVEEDORES: un envío puede traer
+// comprobantes de varios proveedores y prendas fuera de comprobante (de un proveedor, con su regalo). Lo que
+// llegó SIN comprobante todavía (muestras, el papel que no llega) vive en «Ingreso sin comprobante» de
+// Inventario: es una excepción, no un par de esta pantalla.
+//
+// ADR-0299 (2026-10-01): lo que manda OTRA SEDE de CAYLA (un traslado) ya no se recibe acá. Se cuenta y se
+// confirma en Traslados, donde además se elige piso o almacén. Esta pantalla solo AVISA que hay traslados en camino
+// hacia la sede que se mira y lleva a Traslados (`AvisoTrasladosEnCamino`).
 //
 // Vive en `/recibir`, NO bajo `/compras`: el layout de Compras es solo de líder (montos, pagos, notas de
 // crédito) y aquí cuenta CUALQUIER colaborador de la sede (Felipe, 2026-09-18, como en Traslados). Quien
@@ -230,11 +236,18 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const ubicacionesPermitidas = [{ id: ubicacionMirada, nombre: nombreMirada }];
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
-  const [lineasCompletas, comprasConNotaFaltante, trasladosPorUbicacion] = await Promise.all([
+  const [lineasCompletas, comprasConNotaFaltante, trasladosDeLaSede] = await Promise.all([
     getLineasCompra(compras.map((c) => c.id), { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
-    getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),
+    // El aviso de traslados es secundario: si esta lectura falla, Recibir sigue funcionando sin el aviso (nunca se cae por él).
+    getTrasladosEnCurso(ubicacionMirada).catch((e: unknown) => {
+      console.error("Aviso de traslados en Recibir mercadería:", e);
+      return [] as TrasladoResumen[];
+    }),
   ]);
+  const avisoTraslados = (
+    <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, ubicacionMirada)} sedeNombre={nombreMirada} veTraslados={veModulo(persona, "traslados")} />
+  );
   const lineas = verMontos ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
   // Los indicadores de abajo son de ESTA tienda: salen de su lista (que ya trae sus cifras) y, para quien ve el dinero, de
   // lo que le falta a ella a su costo. Los de toda la empresa siguen en Compras.
@@ -244,6 +257,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     <div className="space-y-6">
       {encabezado}
       {pestanas}
+      {avisoTraslados}
 
       {compras.length === 0 && !cursor ? (
         <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
@@ -286,7 +300,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           esLider={esLider}
           verMontos={verMontos}
           comprasConNotaFaltante={comprasConNotaFaltante}
-          trasladosPorUbicacion={trasladosPorUbicacion}
+          veTraslados={veModulo(persona, "traslados")}
           resumen={
             <KpisRecibir
               {...kpis}
