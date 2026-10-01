@@ -413,6 +413,21 @@
   .caja-cerrada-titulo { margin-top: 22px; font-size: 34px; }
 }
 
+/* Pantalla grande (un monitor de caja de 24" o más): todo crece un escalón para que se lea de lejos. */
+@media (min-width: 1800px) and (min-height: 1000px) {
+  .caja-cerrada-cuerdas { width: 260px; height: 72px; }
+  .caja-cerrada-cartel { width: 380px; height: 150px; }
+  .caja-cerrada-palabra { font-size: 64px; }
+  .caja-cerrada-sede { max-width: 340px; font-size: 11.5px; }
+  .caja-cerrada-cara::before { left: 64px; }
+  .caja-cerrada-cara::after { right: 64px; }
+  .caja-cerrada-texto { max-width: 600px; }
+  .caja-cerrada-titulo { font-size: 48px; }
+  .caja-cerrada-bajada { font-size: 17px; max-width: 520px; }
+  .caja-cerrada-boton { max-width: 440px; height: 68px; font-size: 13.5px; }
+  .caja-cerrada-info { font-size: 13.5px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .caja-cerrada *,
   .caja-cerrada *::before,

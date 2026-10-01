@@ -21,15 +21,21 @@ function money(n: number) {
  * cajón antes de abrir: con un toque si coincide, o escribiendo cuánto hay y por qué no coincide. La diferencia queda
  * guardada y le aparece al líder en Inicio. Sin `esperado` (cierres anteriores a ADR-0186) se escribe el monto como
  * siempre. El candado real está en `abrir_caja`: esto solo lo explica antes de enviar.
+ *
+ * `enHoja` (Vender, ADR-0301): dentro de la hoja «Abrir caja» de Vender no dibuja su propia tarjeta (la hoja ya lo es) ni repite «Abrir
+ * caja» encima del título, y pone las dos opciones lado a lado. Con «Nadie de turno» la hoja angosta pasaba los 800 px
+ * de alto; así, más ancha, cabe en un laptop (Felipe 2026-10-01).
  */
 export function AbrirCajaFormV2({
   ubicacionId,
   ubicacionEtiqueta,
   esperado,
+  enHoja = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   esperado: number | null;
+  enHoja?: boolean;
 }) {
   const router = useRouter();
   const [opcion, setOpcion] = useState<"igual" | "otro" | null>(esperado === null ? "otro" : null);
@@ -73,9 +79,9 @@ export function AbrirCajaFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card-cayla space-y-4 p-5">
+    <form onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
-        <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>
+        {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
         <h2 className="font-display mt-0.5 text-2xl text-tinta">
           {esperado === null ? `${ubicacionEtiqueta} no tiene una caja abierta` : "Antes de abrir, cuenta el cajón"}
         </h2>
@@ -90,7 +96,7 @@ export function AbrirCajaFormV2({
               ahora: si abres con un monto que no está, cualquier faltante de hoy va a parecer tuyo.
             </p>
           </div>
-          <div role="radiogroup" aria-label="¿Cuánto hay en el cajón?" className="grid gap-2">
+          <div role="radiogroup" aria-label="¿Cuánto hay en el cajón?" className={`grid gap-2 ${enHoja ? "sm:grid-cols-2" : ""}`}>
             <Opcion
               activa={opcion === "igual"}
               onElegir={() => setOpcion("igual")}
