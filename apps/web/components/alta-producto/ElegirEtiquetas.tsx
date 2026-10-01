@@ -38,8 +38,9 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
      PROMETE: `elegidas` (ids) es siempre lo que se ve marcado con ✓, tanto en la grilla chica como en la hoja; lo que
               se ve en línea punteada («ya aplica») NO está en `elegidas` y no se puede marcar: la campaña lo aplica
               sola a toda la categoría. La grilla chica nunca esconde una marcada ni una cubierta.
-     ASUME:   `etiquetas` = aprobadas y activas (lo que trae `getContextoAlta`, más las creadas aquí). Quien no es líder
-              no ve las que llevan descuento (`repartirEtiquetas`): la base las rechazaría, así que ni se ofrecen.
+     ASUME:   `etiquetas` = aprobadas y activas (lo que trae `getContextoAlta`, más las creadas aquí). Se ofrecen TODAS, con
+              descuento o sin él, a quien da de alta el producto (ADR-0293, 2026-09-30): antes quien no era líder no veía
+              «Para liquidar» ni «Últimas unidades» y parecía que no existían.
      NO HACE: no guarda la prenda ni sus etiquetas (eso es del envío del formulario, `p_etiqueta_ids`); solo crea una
               etiqueta NUEVA en el vocabulario, y solo con conexión (la firma quien inició el alta, sin combo propio desde 2026-09-29).
 
@@ -55,8 +56,6 @@ type Props = {
   elegidas: readonly string[];
   /** El `setState` del formulario: se usa siempre con función (`prev => …`) para no pisar lo que se marcó mientras una respuesta venía en camino. */
   onElegidas: Dispatch<SetStateAction<string[]>>;
-  /** Un líder: la base le deja dar etiquetas CON descuento. A los demás no se les ofrecen. */
-  esLider: boolean;
   /** Quien crea una etiqueta y la deja aprobada de una (`fn_puede_editar_etiquetas`: líder o un rol con el módulo Etiquetas). Solo cambia lo que dice el panel de crear. */
   puedeAprobar: boolean;
   /** Sin internet no se puede crear una etiqueta nueva (sí elegir las que ya existen). */
@@ -68,13 +67,13 @@ type Props = {
   onPropuesta: (nombre: string) => void;
 };
 
-export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, esLider, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
+export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
   const [hoja, setHoja] = useState(false);
   const hoy = useMemo(() => hoyLima(), []);
   /** La última etiqueta tocada (grilla chica u hoja): su ayuda se lee en una línea aparte donde no hay mouse (`[@media(hover:none)]`). */
   const [ultimaId, setUltimaId] = useState<string | null>(null);
 
-  const reparto = useMemo(() => repartirEtiquetas(etiquetas, { categoriaId, daDescuentos: esLider }), [etiquetas, categoriaId, esLider]);
+  const reparto = useMemo(() => repartirEtiquetas(etiquetas, { categoriaId }), [etiquetas, categoriaId]);
   const idsCubiertas = useMemo(() => new Set(reparto.cubiertas.map((c) => c.id)), [reparto.cubiertas]);
   // Lo elegido que la campaña ya cubre no cuenta como elegido a mano (ya está «ya aplica»): si la persona la marcó y DESPUÉS
   // cambió a una categoría que la cubre, el formulario tampoco la manda.
@@ -95,8 +94,6 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       <div className="space-y-2.5">
         {etiquetas.length === 0 ? (
           <p className="text-sm text-taupe">{enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}</p>
-        ) : total === 0 ? (
-          <p className="text-sm text-taupe">Las etiquetas que hay llevan descuento y las pone un líder.</p>
         ) : (
           <GrillaMuestras>
             {visibles.map((et) => (
@@ -127,7 +124,6 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
         )}
         <p className="text-xs text-taupe">
           Se aplican a todas las variantes de la prenda.
-          {reparto.ocultasPorDescuento > 0 && ` Las que llevan descuento (${reparto.ocultasPorDescuento}) las pone un líder.`}
         </p>
       </div>
 

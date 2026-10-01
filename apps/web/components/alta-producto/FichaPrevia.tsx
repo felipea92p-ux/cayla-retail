@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
+import { AlertaParecidas } from "@/components/alta-producto/AlertaParecidas";
+import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
+import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
+import type { AlertaVista } from "@/lib/parecidas-alta-vista";
 
+// «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va entre la ficha y «Avance» (escritorio), la tira
+// «2 prendas parecidas · Ver» sobre la barra de abajo (celular y tablet) y la hoja «Ver y comparar» se monta aquí (es un portal: se ve igual con el
+// resumen oculto). Quien no la pase ve la ficha de siempre.
+//
 // La prenda que se va a crear, tal como va a quedar (spike Nuevo producto, 2026-09-24; más corta desde el spike v2 del
 // 2026-09-28). La tarjeta dice solo lo que identifica a la prenda —foto, código, nombre, «categoría · marca · tejido»,
 // dos cifras (Variantes y Hoy en tienda) y «Precio · margen»—; tallas, etiquetas y códigos de variante ya se leen en su
@@ -47,6 +55,19 @@ export type DatosFicha = {
   /** «El hilo» (ADR-0284): lo que sigue en el camino —puede ser una sugerencia, como los colores—, tocable para ir a su campo.
    *  `bloquea` false = crear ya se puede. null = no queda nada. */
   guia: { texto: string; nombre: string; bloquea: boolean; onIr: () => void } | null;
+};
+
+/** Todo lo que la ficha dibuja de «Prendas parecidas». Lo arma `useParecidasAlta`; aquí no se decide nada. */
+export type ParecidasFicha = {
+  alerta: AlertaVista | null;
+  /** El aviso rojo bajo «Nombre» ya se anuncia solo: la alerta del resumen no repite el idéntico. */
+  avisoEnLinea: boolean;
+  /** Abre la hoja «Ver y comparar» (con `id`, parada en esa prenda). */
+  onVer: (id?: string) => void;
+  onVerMarca: () => void;
+  onReintentar: () => void;
+  /** Las props de la hoja, o `null` si está cerrada. */
+  hoja: ComponentProps<typeof HojaParecidas> | null;
 };
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
@@ -166,11 +187,13 @@ export function FichaPrevia({
   cargando,
   onCancelar,
   onAbrirPaso,
+  parecidas,
 }: {
   datos: DatosFicha;
   cargando: boolean;
   onCancelar: () => void;
   onAbrirPaso: (n: PasoAvance["numero"]) => void;
+  parecidas?: ParecidasFicha;
 }) {
   const [verMovil, setVerMovil] = useState(false);
   const textoCrear = cargando ? (datos.fotos > 0 ? "Creando y subiendo fotos…" : "Creando…") : "Crear producto";
@@ -179,24 +202,46 @@ export function FichaPrevia({
   return (
     <>
       {/* Escritorio: fija a la derecha */}
-      <aside aria-label="La prenda que vas a crear" className="hidden space-y-3 lg:sticky lg:top-6 lg:block">
-        <Tarjeta d={datos} />
-        <Avance pasos={datos.avance} onAbrir={onAbrirPaso} />
-        <div className="flex gap-2">
-          <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
-            Cancelar
-          </button>
-          <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario flex-1">
-            {textoCrear}
-          </button>
+      {/* Con la alerta el resumen es más alto que una pantalla de 900 px. Lo informativo (ficha, alerta, Avance) corre por su cuenta con tope de
+          alto y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo del mismo aside: el botón nunca se esconde justo cuando hay algo que
+          revisar. `-mx-1.5 px-1.5` deja sitio al aro del pulso de la alerta, que por fuera lo cortaría el scroll (ver `app/estilos/alta-parecidas.css`).
+          Sin `parecidas` el resumen es el de siempre: una sola columna sin tope. */}
+      <aside
+        aria-label="La prenda que vas a crear"
+        className={`hidden lg:sticky lg:top-6 ${parecidas ? "lg:flex lg:max-h-[calc(100dvh-3rem)] lg:flex-col lg:gap-3" : "space-y-3 lg:block"}`}
+      >
+        <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto lg:-mx-1.5 lg:px-1.5" : ""}`}>
+          <Tarjeta d={datos} />
+          {parecidas && (
+            <AlertaParecidas
+              alerta={parecidas.alerta}
+              avisoEnLinea={parecidas.avisoEnLinea}
+              onVer={parecidas.onVer}
+              onVerMarca={parecidas.onVerMarca}
+              onReintentar={parecidas.onReintentar}
+            />
+          )}
+          <Avance pasos={datos.avance} onAbrir={onAbrirPaso} />
         </div>
-        <Siguiente d={datos} clase="text-center text-[12.5px]" />
+        <div className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
+          <div className="flex gap-2">
+            <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
+              Cancelar
+            </button>
+            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario flex-1">
+              {textoCrear}
+            </button>
+          </div>
+          <Siguiente d={datos} clase="text-center text-[12.5px]" />
+        </div>
       </aside>
 
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
       <div data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+        {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
+        {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (
           <div className="mb-3 max-h-[60vh] space-y-3 overflow-y-auto [animation:cayla-revelar_240ms_var(--ease-cayla)]">
             <Tarjeta d={datos} />
@@ -226,6 +271,8 @@ export function FichaPrevia({
         </div>
         <Siguiente d={datos} clase="mt-1 text-xs" />
       </div>
+      {/* La hoja es un portal: va fuera del `aside` (oculto bajo 1024 px) y de la barra. */}
+      {parecidas?.hoja && <HojaParecidas {...parecidas.hoja} />}
     </>
   );
 }
