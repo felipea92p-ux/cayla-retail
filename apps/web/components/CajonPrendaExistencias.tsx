@@ -8,7 +8,7 @@ import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, F
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import { estadoTalla, queHacerPrenda, sePuedeBajar, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -83,7 +83,6 @@ function Grupo({ titulo, bajada, children }: { titulo: string; bajada: string; c
 
 export function CajonPrendaExistencias({
   prenda,
-  varianteInicial,
   separa,
   puedeReponer,
   enSedeActiva,
@@ -97,8 +96,6 @@ export function CajonPrendaExistencias({
   onCerrar,
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
-  /** La talla de la fila que se tocó (en «Por talla»): «Reponer a piso» empieza por ella si se puede bajar. */
-  varianteInicial?: string;
   separa: boolean;
   /** ¿Puede reponer aquí? Su módulo «Bajada al piso» y su sede activa (`permisosDelDetalle`). */
   puedeReponer: boolean;
@@ -112,7 +109,8 @@ export function CajonPrendaExistencias({
   /** Solo un Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
    *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
   puedeEliminar?: boolean;
-  onReponer: (f: FilaExistencias) => void;
+  /** «Reponer a piso» abre la ventana de la PRENDA entera, con todas sus tallas (`ReponerPrendaModal`). */
+  onReponer: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   onAjustar: (f: FilaExistencias) => void;
   /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
   onEliminar?: () => void;
@@ -132,13 +130,12 @@ export function CajonPrendaExistencias({
 
   const fotoOk = Boolean(prenda.fotoUrl);
   const diagnostico = separa ? queHacerPrenda(prenda.tallas) : null;
-  // «Reponer a piso» empieza por la talla tocada si se puede bajar; si no, por la primera que sí (`tallaParaReponer`).
-  const tocada = varianteInicial ? prenda.tallas.find((f) => f.varianteId === varianteInicial) : undefined;
-  const tallaAReponer = tocada && sePuedeBajar(tocada) ? tocada : tallaParaReponer(prenda.tallas);
+  // «Reponer a piso» se ofrece si alguna talla se puede bajar (`tallaParaReponer`); la ventana lista todas las tallas.
+  const hayQueReponer = tallaParaReponer(prenda.tallas) !== null;
   const hrefTrasladar = veTraslados ? urlTrasladar(prenda.tallas) : null;
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
-  const hayOperar = (puedeReponer && tallaAReponer !== null) || hrefTrasladar !== null;
+  const hayOperar = (puedeReponer && hayQueReponer) || hrefTrasladar !== null;
   const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
@@ -271,10 +268,10 @@ export function CajonPrendaExistencias({
                 {hayOperar && (
                   <Grupo titulo="Operar esta prenda" bajada="Acciones rápidas de reposición y movimiento.">
                     <div className="grid gap-2">
-                      {puedeReponer && tallaAReponer && <Accion principal icono={IconoPercha} texto="Reponer a piso" onClick={() => onReponer(tallaAReponer)} />}
+                      {puedeReponer && hayQueReponer && <Accion principal icono={IconoPercha} texto="Reponer a piso" onClick={() => onReponer(prenda)} />}
                       {hrefTrasladar && <Accion icono={ArrowLeftRight} texto="Trasladar" href={hrefTrasladar} />}
                     </div>
-                    {sinModuloBajada && tallaAReponer && <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>}
+                    {sinModuloBajada && hayQueReponer && <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>}
                   </Grupo>
                 )}
 

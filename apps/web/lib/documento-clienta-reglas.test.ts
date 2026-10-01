@@ -71,10 +71,17 @@ describe("documento de la clienta (ADR-0288 D-2): las mismas reglas que la base"
     expect(documentoLegible("dni", null)).toBeNull();
   });
 
-  it("al comprobante solo pasa un DNI hasta la tanda 1e: carné y pasaporte salen sin documento", () => {
-    expect(documentoParaComprobante("dni", "71234482")).toBe("71234482");
-    expect(documentoParaComprobante("carne_extranjeria", "001234567")).toBeNull();
-    expect(documentoParaComprobante("pasaporte", "AB123456")).toBeNull();
+  it("desde la tanda 1e, al comprobante pasan los tres tipos, con su tipo (ADR-0288 D-3)", () => {
+    expect(documentoParaComprobante("dni", "71234482")).toEqual({ tipo: "dni", numero: "71234482" });
+    expect(documentoParaComprobante("carne_extranjeria", "001234567")).toEqual({ tipo: "carne_extranjeria", numero: "001234567" });
+    expect(documentoParaComprobante("pasaporte", "AB123456")).toEqual({ tipo: "pasaporte", numero: "AB123456" });
     expect(documentoParaComprobante("dni", null)).toBeNull();
+  });
+
+  it("al comprobante va limpio (sin espacios, en mayúsculas), y uno fuera de formato no pasa: la boleta sale sin documento en vez de frenar la venta", () => {
+    expect(documentoParaComprobante("pasaporte", "ab 123 456")).toEqual({ tipo: "pasaporte", numero: "AB123456" });
+    expect(documentoParaComprobante("carne_extranjeria", "CE-12")).toBeNull();
+    expect(documentoParaComprobante("dni", "7123448")).toBeNull();
+    expect(documentoParaComprobante("pasaporte", "   ")).toBeNull();
   });
 });

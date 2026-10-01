@@ -150,7 +150,8 @@ export function ExistenciasTarjetas({
   puedeReponer: boolean;
   puedeAjustar: boolean;
   mostrarMarca: boolean;
-  onReponer: (fila: FilaExistencias, origen: HTMLElement) => void;
+  /** «Reponer» abre la ventana de la PRENDA entera (todas las tallas que la tarjeta muestra), no la de una talla. */
+  onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   onAjustar: (fila: FilaExistencias) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
@@ -290,7 +291,7 @@ export function ExistenciasTarjetas({
                   type="button"
                   disabled={!talla}
                   title={talla ? "Bajar prendas del almacén al piso" : "No hay nada libre en el almacén para bajar al piso"}
-                  onClick={(e) => talla && onReponer(talla, e.currentTarget)}
+                  onClick={(e) => talla && onReponer(p, e.currentTarget)}
                   className="btn-cayla btn-primario min-h-[34px] flex-1 px-3 py-1.5 text-[12.5px]"
                 >
                   <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />

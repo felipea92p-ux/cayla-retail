@@ -460,12 +460,51 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  * respaldo por si el mensaje no llega.
  *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
  *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
+ * Tanda 1b (club: socia, publicidad por WhatsApp y el número de cada tienda), con el mismo criterio:
+ *   · `club_sin_texto`: no hay texto `club` vigente para leerle, y sin él no se registra su «sí».
+ *   · `celular_invalido`: el celular de la clienta (o el número que escribió) no tiene 9 dígitos que empiecen en 9.
+ *   · `no_es_socia`: «Llegó su mensaje» de alguien que todavía no es socia.
+ *   · `socia_sin_celular`: a una socia no se le puede dejar sin celular.
+ *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Tiendas y caja) no es un celular.
+ *   · `socia_sin_documento`: para ser socia hacen falta documento y nombre, además del celular (CL-1).
+ *   · `club_texto_cambio`: el texto `club` cambió desde que la asesora lo leyó; el permiso guarda exactamente lo leído.
+ * Camino B (ADR-0288, «Actualización 2026-09-30 (c)»):
+ *   · `ya_tiene_publicidad`: «Mostrar su QR» de una socia que ya recibe novedades (`crear_invitacion_club`). La cara del QR
+ *     no lo muestra como error: pasa a «Ya recibe novedades» y actualiza la caja o la ficha.
+ *   · `celular_con_publicidad`: el celular de una socia con novedades se cambió por un camino que no se las quita (el
+ *     disparador `clientas_celular_con_publicidad`). `editar_clienta` se las quita sola; la ficha lo avisa ANTES de guardar
+ *     (`avisoCambioDeCelular`, lib/club-clientas-reglas.ts).
+ * Tanda 1c (el canje del cumpleaños en `registrar_venta`, ADR-0288 D-5). Llegan como `P0001` con su frase; la de acá es el
+ * respaldo. En Cobrar, además, la caja apaga el canje y dice qué hizo (`rechazoDelCanje`, lib/club-cumple-canje-reglas.ts):
+ *   · `cumple_sin_clienta`: canjear sin clienta en el ticket.
+ *   · `cumple_no_socia`: no es socia (o se archivó o anonimizó mientras se cobraba).
+ *   · `cumple_fuera_de_mes`: no es el mes de su cumpleaños en Lima.
+ *   · `cumple_ya_canjeado`: ya tiene un canje vivo este año (otra caja o tienda se adelantó).
+ *   · `cumple_descuento_distinto`: la parte del club de una prenda no es la que calcula la base (el % pudo cambiar).
+ *   · `cumple_sin_canje`: una prenda trae parte del club sin `p_canjear_cumpleanos`.
+ *   · `cumple_sin_monto`: el canje no descontaría nada.
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
   ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son la misma clienta, únelas desde su ficha."],
   ["clienta_anonimizada", "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta."],
   ["clienta_no_existe", "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla."],
+  ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle a la clienta, así que no se puede registrar su «sí». Avisa al líder."],
+  ["celular_invalido", "El celular tiene 9 dígitos y empieza en 9, sin +51 ni espacios. Revísalo y vuelve a intentar."],
+  ["no_es_socia", "Esta clienta todavía no es socia del club: primero únela al club y después registra su mensaje."],
+  ["socia_sin_celular", "Una socia del club necesita su celular: no se puede dejar vacío."],
+  ["whatsapp_tienda_invalido", "El WhatsApp de la tienda tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío."],
+  ["socia_sin_documento", "Para unirla al club, su ficha necesita documento y nombre: complétalos primero."],
+  ["club_texto_cambio", "El texto del club cambió mientras la invitabas: vuelve a leérselo."],
+  ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
+  ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
+  ["cumple_sin_clienta", "El cumpleaños es de una socia del club: elige a la clienta en el ticket antes de canjearlo."],
+  ["cumple_no_socia", "El descuento de cumpleaños es para las socias del club: esta clienta no es socia."],
+  ["cumple_fuera_de_mes", "El descuento de cumpleaños se canjea solo en el mes de su cumpleaños, y este no es."],
+  ["cumple_ya_canjeado", "Esta socia ya canjeó su cumpleaños este año."],
+  ["cumple_descuento_distinto", "El descuento de cumpleaños no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
+  ["cumple_sin_canje", "Esta venta trae un descuento de cumpleaños sin canjearlo. Vuelve a tocar «Canjear» o quítalo."],
+  ["cumple_sin_monto", "En esta venta no queda nada que descontar por el cumpleaños: no se canjea."],
 ]);
 
 /**

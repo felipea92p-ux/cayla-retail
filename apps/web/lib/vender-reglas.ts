@@ -173,6 +173,9 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
+  /** Qué está mal del carné o del pasaporte de la boleta (`problemaDocumentoComprobante`, ADR-0288 D-3); `null`/ausente = nada.
+   *  La base rechaza uno fuera de formato y, con él, la venta entera: mejor no dejar cobrar hasta corregirlo. */
+  problemaDocumento?: string | null;
   /** Por qué el combo «Responsable» todavía no deja guardar (`ControlResponsable.motivo`, ADR-0161); `null`/ausente = ya
    *  hay responsable. Se pide antes que el pago: primero quién hace la venta, después la plata. */
   motivoResponsable?: string | null;
@@ -189,6 +192,7 @@ export function motivoBloqueoCobro(v: {
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
   if (restante < 0) return "Los pagos superan el total.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
+  if (v.problemaDocumento) return v.problemaDocumento;
   return null;
 }
 

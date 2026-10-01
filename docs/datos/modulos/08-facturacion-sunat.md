@@ -134,7 +134,7 @@ stateDiagram-v2
 | `tipo` | `text` | no | — | `boleta`, `factura`, `nota_credito`, `nota_debito`. |
 | `serie` | `text` | no | — | Copia de `series_comprobantes.serie` en el momento de emitir: si mañana la sede cambia de serie, los documentos viejos no se reescriben. |
 | `numero` | `integer` | no | — | El correlativo que se llevó esta emisión. Irreversible ante SUNAT una vez transmitido. |
-| `cliente_tipo_doc` | `text` | no | `'sin_documento'` | `dni`, `ruc` o `sin_documento`. En una boleta sin documento se transmite el DNI comodín `99999999`. |
+| `cliente_tipo_doc` | `text` | no | `'sin_documento'` | `dni`, `ruc` o `sin_documento`; `carne_extranjeria` y `pasaporte` desde `20260930250000` (ADR-0288 D-3; **por pegar en producción** el 2026-09-30). A Lucode, catálogo 06: 1, 6, 4, 7. En una boleta sin documento se transmite el DNI comodín `99999999`. |
 | `cliente_num_doc` | `text` | sí | — | El DNI o RUC de la clienta. |
 | `cliente_nombre` | `text` | sí | — | Nombre o razón social. Si va vacío, Lucode recibe `CLIENTE VARIOS`. |
 | `moneda` | `text` | no | `'PEN'` | Moneda del documento. Sin check: acepta cualquier texto, aunque el conector solo entiende `PEN` y `USD`. |
@@ -161,7 +161,7 @@ stateDiagram-v2
 - `unique (tipo, serie, numero)` — **el candado más importante del módulo**: es imposible que existan dos boletas B004-000007. Si dos personas emiten al mismo tiempo, una de las dos revienta antes que SUNAT vea un duplicado.
 - `comprobantes_tipo_check` — solo los cuatro tipos legales.
 - `comprobantes_total_check` (`total > 0`) — no existe un comprobante de S/0.
-- `comprobantes_cliente_tipo_doc_check` — solo `dni`/`ruc`/`sin_documento`.
+- `comprobantes_cliente_tipo_doc_check` — solo `dni`/`ruc`/`sin_documento` (con `20260930250000`, por pegar: también `carne_extranjeria`/`pasaporte`, y `comprobantes_carne_pasaporte_formato` les exige de 6 a 12 letras o dígitos en mayúsculas).
 - `comprobantes_factura_requiere_ruc` — una factura sin RUC del cliente no puede existir en la base, no solo en el formulario.
 - `comprobantes_nota_requiere_original` — una NC/ND sin comprobante original y sin motivo no puede existir.
 - `comprobantes_transmitido_tiene_entorno` (`estado = 'pendiente' or entorno_transmision is not null`) — un comprobante que salió de "pendiente" siempre sabe si fue prueba o real. **Nació `not valid`**: las filas viejas quedan marcadas como ambiente desconocido en vez de rellenarse con una mentira.

@@ -1,4 +1,4 @@
-# ADR-0293 · «Conteos recientes» agrupados por día, con filtro Hoy / Ayer / fecha
+# ADR-0296 · «Conteos recientes» agrupados por día, con filtro Hoy / Ayer / fecha
 
 - **Fecha:** 2026-10-01 · **Estado:** construido y probado (265 archivos de pruebas web). Solo web, **sin migración**.
 - **Pedido:** Felipe, 2026-10-01, mirando Inventario ▸ Conteo en producción: la tabla de conteos recientes repetía la fecha en cada fila; quiere apartados por día (la fecha en una banda, y en cada fila solo la hora) y una barra de filtro con botones «Hoy», «Ayer» y una fecha exacta del calendario. Aprobó la maqueta (`docs/maquetas/conteo-recientes-2026-10/`) y decidió: **hora de apertura** y **entrada en «Todos»**.

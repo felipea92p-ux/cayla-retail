@@ -14,6 +14,7 @@ import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
+import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». `EliminarProductoModal` (ADR-0252,
@@ -367,15 +368,22 @@ export function InventarioPanel({
   // pregunta, y mezclarlos en un solo dropdown confundía dos clasificaciones distintas.
   const [accion, setAccion] = useState(TODAS);
   const [condicion, setCondicion] = useState(TODAS);
-  // Reponer y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
-  // Se guarda la prenda y no una copia de su fila: tras un corte de red el modal refresca y sus cifras dicen si llegó.
+  // «Retirar del piso» (una talla, con nota) abre `ReponerPisoModal`. OJO: hoy NADIE llama a `setMoviendo` —el cajón lateral
+  // (46e8abb6) se llevó el menú «⋯» de cada talla, que era su única entrada—, así que este bloque está apagado hasta que se
+  // le vuelva a dar una puerta. «Reponer» ya no pasa por aquí: es `ReponerPrendaModal`, más abajo.
+  // Se guarda la talla y no una copia de su fila: tras un corte de red el modal refresca y sus cifras dicen si llegó.
   const [moviendo, setMoviendo] = useState<{ varianteId: string; sentido: SentidoPiso } | null>(null);
   const filaMoviendo = moviendo ? stock.find((f) => f.varianteId === moviendo.varianteId) : undefined;
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
-  function abrirMovimiento(varianteId: string, sentido: SentidoPiso, origen: HTMLElement | null) {
+  // «Reponer» abre la ventana de la PRENDA entera (`ReponerPrendaModal`, ADR-0295). Se guardan los ids de sus tallas y no
+  // una copia de las filas: tras guardar o chocar con otra persona, `router.refresh()` trae las cifras nuevas y la ventana
+  // las lee de `stock`, no de lo que había al abrirla.
+  const [reponiendo, setReponiendo] = useState<string[] | null>(null);
+  const prendaReponiendo = reponiendo ? agruparPorPrenda(stock.filter((f) => reponiendo.includes(f.varianteId)))[0] : undefined;
+  function abrirReponer(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
     volverFoco.current = origen;
-    setMoviendo({ varianteId, sentido });
+    setReponiendo(prenda.tallas.map((t) => t.varianteId));
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
@@ -1063,9 +1071,9 @@ export function InventarioPanel({
             mostrarMarca={mostrarMarca}
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
-            onReponer={(f, origen) => {
+            onReponer={(prenda, origen) => {
               setAbierta(null);
-              abrirMovimiento(f.varianteId, "bajar", origen);
+              abrirReponer(prenda, origen);
             }}
             onAjustar={(f) => {
               setAbierta(null);
@@ -1414,6 +1422,16 @@ export function InventarioPanel({
         />
       )}
 
+      {prendaReponiendo && (
+        <ReponerPrendaModal
+          prenda={prendaReponiendo}
+          ubicacionId={ubicacionId}
+          sede={sedeNombre}
+          alCerrarEnfocar={volverFoco}
+          onClose={() => setReponiendo(null)}
+        />
+      )}
+
       {ajustando && (
         <AjustarInventarioModal
           productoId={ajustando.productoId}
@@ -1455,7 +1473,6 @@ export function InventarioPanel({
       {prendaAbierta && (
         <CajonPrendaExistencias
           prenda={prendaAbierta}
-          varianteInicial={abierta?.varianteId}
           separa={separa}
           puedeReponer={puedeReponer}
           enSedeActiva={permisos.etiquetasEHistorial}
@@ -1467,9 +1484,9 @@ export function InventarioPanel({
             setAbierta(null);
             setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });
           }}
-          onReponer={(f) => {
+          onReponer={(prenda) => {
             setAbierta(null);
-            abrirMovimiento(f.varianteId, "bajar", null);
+            abrirReponer(prenda, null);
           }}
           onAjustar={(f) => {
             setAbierta(null);

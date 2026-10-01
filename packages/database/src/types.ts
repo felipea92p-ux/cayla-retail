@@ -587,6 +587,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -595,6 +599,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }
         Insert: {
           anonimizada?: boolean
@@ -606,6 +611,10 @@ export type Database = {
           cumple_mes?: number | null
           documento_numero?: string | null
           documento_tipo?: string
+          club_desde?: string | null
+          codigo_club?: string | null
+          cumple_anio?: number | null
+          publicidad_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -614,6 +623,7 @@ export type Database = {
           telefono_whatsapp?: string | null
           version?: number
           whatsapp_consentimiento_en?: string | null
+          preferencias?: Json
         }
         Update: {
           anonimizada?: boolean
@@ -625,6 +635,10 @@ export type Database = {
           cumple_mes?: number | null
           documento_numero?: string | null
           documento_tipo?: string
+          club_desde?: string | null
+          codigo_club?: string | null
+          cumple_anio?: number | null
+          publicidad_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -633,6 +647,7 @@ export type Database = {
           telefono_whatsapp?: string | null
           version?: number
           whatsapp_consentimiento_en?: string | null
+          preferencias?: Json
         }
         Relationships: [
           {
@@ -691,6 +706,63 @@ export type Database = {
             columns: ["clienta_mantiene_id"]
             isOneToOne: false
             referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_canjes: {
+        Row: {
+          anio: number
+          anulado_en: string | null
+          anulado_por: string | null
+          clienta_id: string
+          created_at: string
+          id: string
+          monto: number
+          pct: number
+          registrado_por: string | null
+          tipo: string
+          venta_id: string
+        }
+        Insert: {
+          anio: number
+          anulado_en?: string | null
+          anulado_por?: string | null
+          clienta_id: string
+          created_at?: string
+          id?: string
+          monto: number
+          pct: number
+          registrado_por?: string | null
+          tipo: string
+          venta_id: string
+        }
+        Update: {
+          anio?: number
+          anulado_en?: string | null
+          anulado_por?: string | null
+          clienta_id?: string
+          created_at?: string
+          id?: string
+          monto?: number
+          pct?: number
+          registrado_por?: string | null
+          tipo?: string
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_canjes_clienta_id_fkey"
+            columns: ["clienta_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_canjes_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
             referencedColumns: ["id"]
           },
         ]
@@ -1508,6 +1580,7 @@ export type Database = {
       }
       configuracion_empresa: {
         Row: {
+          club_cumple_pct: number
           email: string | null
           id: boolean
           nombre_comercial: string | null
@@ -1519,6 +1592,7 @@ export type Database = {
           web: string | null
         }
         Insert: {
+          club_cumple_pct?: number
           email?: string | null
           id?: boolean
           nombre_comercial?: string | null
@@ -1530,6 +1604,7 @@ export type Database = {
           web?: string | null
         }
         Update: {
+          club_cumple_pct?: number
           email?: string | null
           id?: boolean
           nombre_comercial?: string | null
@@ -2711,7 +2786,9 @@ export type Database = {
           created_at: string
           descripcion_libre: string | null
           id: string
+          motivo: string
           producto_id: string | null
+          razon: string | null
           resuelto: boolean
           resuelto_en: string | null
           talla: string | null
@@ -2723,7 +2800,9 @@ export type Database = {
           created_at?: string
           descripcion_libre?: string | null
           id?: string
+          motivo?: string
           producto_id?: string | null
+          razon?: string | null
           resuelto?: boolean
           resuelto_en?: string | null
           talla?: string | null
@@ -2735,7 +2814,9 @@ export type Database = {
           created_at?: string
           descripcion_libre?: string | null
           id?: string
+          motivo?: string
           producto_id?: string | null
+          razon?: string | null
           resuelto?: boolean
           resuelto_en?: string | null
           talla?: string | null
@@ -4229,6 +4310,7 @@ export type Database = {
           nombre: string
           sede_dynamic_id: string | null
           tipo: string
+          whatsapp_numero: string | null
         }
         Insert: {
           activo?: boolean
@@ -4239,6 +4321,7 @@ export type Database = {
           nombre: string
           sede_dynamic_id?: string | null
           tipo: string
+          whatsapp_numero?: string | null
         }
         Update: {
           activo?: boolean
@@ -4249,6 +4332,7 @@ export type Database = {
           nombre?: string
           sede_dynamic_id?: string | null
           tipo?: string
+          whatsapp_numero?: string | null
         }
         Relationships: []
       }
@@ -4393,6 +4477,7 @@ export type Database = {
           argumento_descuento: string | null
           cantidad: number
           costo_unitario: number
+          descuento_club_unitario: number
           descuento_etiqueta_id: string | null
           descuento_unitario: number
           id: string
@@ -4407,6 +4492,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad: number
           costo_unitario: number
+          descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
@@ -4421,6 +4507,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad?: number
           costo_unitario?: number
+          descuento_club_unitario?: number
           descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
@@ -5293,6 +5380,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5301,6 +5392,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }[]
       }
       editar_clienta: {
@@ -5310,10 +5402,9 @@ export type Database = {
           p_documento_numero?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
-          p_acepta_whatsapp?: boolean
-          p_revoca_whatsapp?: boolean
           p_cumple_dia?: number
           p_cumple_mes?: number
+          p_cumple_anio?: number
           p_tallas?: Json
           p_version_esperada?: number
         }
@@ -5322,6 +5413,84 @@ export type Database = {
       archivar_clienta: {
         Args: { p_id: string; p_motivo: string; p_anonimizar?: boolean; p_version_esperada?: number }
         Returns: number
+      }
+      unirse_al_club: {
+        Args: {
+          p_clienta_id: string
+          p_telefono_whatsapp: string
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_cumple_anio?: number
+          p_medio?: string
+          p_ubicacion_id?: string
+          p_venta_id?: string
+          p_texto_version?: number
+        }
+        Returns: { codigo_club: string; club_desde: string }[]
+      }
+      registrar_mensaje_publicidad: {
+        Args: { p_clienta_id: string; p_telefono_que_escribio: string; p_ubicacion_id?: string }
+        Returns: string
+      }
+      registrar_desde_whatsapp: {
+        Args: {
+          p_documento_tipo: string
+          p_documento_numero: string
+          p_nombre?: string
+          p_telefono_que_escribio: string
+          p_ubicacion_id?: string
+        }
+        Returns: { clienta_id: string; codigo_club: string }[]
+      }
+      registrar_baja_whatsapp: {
+        Args: { p_telefono: string; p_ubicacion_id?: string }
+        Returns: number
+      }
+      resumen_clienta_caja: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          es_socia: boolean
+          codigo_club: string | null
+          club_desde: string | null
+          con_publicidad: boolean
+          celular: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          cumple_disponible: boolean
+          cumple_pct: number
+          cumple_canjeado_este_anio: boolean
+          cumple_canjeado_el: string | null
+        }[]
+      }
+      fn_club_textos_vigentes: {
+        Args: Record<PropertyKey, never>
+        Returns: { tipo: string; version: number; texto: string }[]
+      }
+      crear_invitacion_club: {
+        Args: { p_clienta_id: string; p_ubicacion_id?: string }
+        Returns: { token: string; vence_en: string }[]
+      }
+      fn_invitacion_club: {
+        Args: { p_token: string }
+        Returns: {
+          estado: string
+          nombre_corto: string | null
+          celular_enmascarado: string | null
+          codigo_club: string | null
+          texto: string | null
+          texto_version: number | null
+          tienda: string | null
+          razon_social: string | null
+          ruc: string | null
+        }[]
+      }
+      confirmar_invitacion_club: {
+        Args: { p_token: string; p_texto_version: number }
+        Returns: string
+      }
+      guardar_whatsapp_tienda: {
+        Args: { p_ubicacion_id: string; p_numero?: string }
+        Returns: undefined
       }
       reactivar_clienta: {
         Args: { p_id: string; p_version_esperada?: number }
@@ -5344,6 +5513,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5352,6 +5525,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }
       }
       exportar_clientas: {
@@ -5366,6 +5540,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5374,6 +5552,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }[]
       }
       fn_clienta_compras: {
@@ -5399,6 +5578,84 @@ export type Database = {
       fn_clienta_separaciones: {
         Args: { p_id: string }
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
+      }
+      fn_clientas_lista: {
+        Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }
+        Returns: {
+          id: string
+          documento_tipo: string
+          documento_numero: string | null
+          nombre: string | null
+          telefono_whatsapp: string | null
+          club_desde: string | null
+          publicidad_desde: string | null
+          codigo_club: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          cumple_anio: number | null
+          created_at: string
+          archivada_en: string | null
+          anonimizada: boolean
+          fusionada_en_id: string | null
+          su_sede_id: string | null
+          su_sede: string | null
+          compras_sede: number
+          compras_12m: number
+          compras_6m: number
+          es_frecuente: boolean
+          ultima_compra: string | null
+          baja_en: string | null
+          total: number
+        }[]
+      }
+      fn_cifras_clientas: {
+        Args: never
+        Returns: {
+          identificadas: number
+          socias: number
+          con_publicidad: number
+          sin_publicidad: number
+          frecuentes: number
+          sin_celular: number
+          cumplen_este_mes: number
+          archivadas: number
+        }[]
+      }
+      fn_clienta_su_sede: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          su_sede_id: string | null
+          su_sede: string | null
+          compras_sede: number
+          compras_12m: number
+          compras_6m: number
+          es_frecuente: boolean
+          ultima_compra: string | null
+        }[]
+      }
+      fn_clienta_permisos: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          id: string
+          finalidad: string
+          accion: string
+          medio: string
+          texto_tipo: string | null
+          texto_version: number | null
+          sede: string | null
+          registrado_por: string | null
+          nota: string | null
+          created_at: string
+          de_otra_ficha: boolean
+        }[]
+      }
+      fn_club_etiquetas: {
+        Args: never
+        Returns: { grupo: string; valor: string; orden: number }[]
+      }
+      guardar_preferencias_clienta: {
+        Args: { p_id: string; p_preferencias: Json; p_version_esperada?: number }
+        Returns: number
       }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }
@@ -7509,7 +7766,7 @@ export type Database = {
       }
       registrar_clienta: {
         Args: {
-          p_acepta_whatsapp?: boolean
+          p_cumple_anio?: number
           p_cumple_dia?: number
           p_cumple_mes?: number
           p_documento_numero?: string
@@ -7659,7 +7916,9 @@ export type Database = {
         Args: {
           p_clienta_id?: string
           p_descripcion_libre?: string
+          p_motivo?: string
           p_producto_id?: string
+          p_razon?: string
           p_talla?: string
           p_ubicacion_id: string
         }
@@ -7711,6 +7970,7 @@ export type Database = {
         Args: {
           p_asesora_id?: string
           p_autorizado_por?: string
+          p_canjear_cumpleanos?: boolean
           p_cliente_id?: string
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
