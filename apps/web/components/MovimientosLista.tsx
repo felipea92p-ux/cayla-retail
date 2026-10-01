@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
-import { CajonMovimiento } from "@/components/CajonMovimiento";
+import { CajonMovimiento, type VistaCajon } from "@/components/CajonMovimiento";
 import { DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { construirDetalleBajadas, type ContextoCajon } from "@/lib/movimientos-cajon";
