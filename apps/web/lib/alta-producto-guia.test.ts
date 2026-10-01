@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { problemasAlta, type EstadoAlta, type PasoAlta } from "./alta-producto";
-import { camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
+import { campoAhora, camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
 
 // Una prenda completa: nada falta. Cada prueba parte de ella y le quita lo que quiere probar.
 const completo: EstadoAlta = {
@@ -61,6 +61,18 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(sin.some((c) => c.id === "marca" && (c.requerido || c.sugerido))).toBe(false);
     expect(idsPorHacer(sin, 2)).toEqual([]);
     expect(estadosDeCampos(guia({}, { marcaElegida: true }), 2).marca).toBe("hecho");
+  });
+
+  it("la marca va ANTES del nombre en pantalla (Felipe, 2026-09-30) y aun así «Sigue aquí» va al nombre, que es lo primero que falta", () => {
+    const campos = guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false });
+    const ids = campos.filter((c) => c.paso === 2).map((c) => c.id);
+    expect(ids.indexOf("marca")).toBeLessThan(ids.indexOf("nombre"));
+    expect(campoAhora(campos, 2)).toBe("nombre");
+    // Ni siquiera escribiendo en la marca (el combo con foco): una marca opcional no retiene la luz.
+    expect(campoAhora(campos, 2, "marca")).toBe("nombre");
+    expect(estadosDeCampos(campos, 2, "marca").marca).toBe("opcional");
+    // Y el orden no cambia lo que falta: la marca nunca está por hacer.
+    expect(idsPorHacer(campos, 2)).toEqual(["nombre", "tejido", "patron"]);
   });
 
   it("mientras se comprueba el nombre (o es un duplicado) el nombre sigue siendo «ahora», no «hecho»", () => {
@@ -231,5 +243,61 @@ describe("pasoConfirmado — el ✓ es de un paso que la persona visitó", () =>
     expect(pasoConfirmado({ paso: 3, abierto: 2, vistos: vistos(1, 2, 3), problemas })).toBe(false);
     // Con el 4 abierto y el nombre roto, el 3 (anterior, visitado, sin problemas propios) conserva su ✓.
     expect(pasoConfirmado({ paso: 3, abierto: 4, vistos: vistos(1, 2, 3, 4), problemas })).toBe(true);
+  });
+});
+
+describe("enFoco — «Sigue aquí» espera a que la persona termine de escribir", () => {
+  // La prueba de Felipe (2026-09-30): con UNA letra en el nombre, apenas terminaba la comprobación la luz saltaba al tejido.
+  const sinTela = { tejidoId: "", patronId: "" };
+
+  it("sin foco, con el nombre ya comprobado la luz salta al tejido (lo de antes)", () => {
+    const est = estadosDeCampos(guia(sinTela, { marcaElegida: false }), 2);
+    expect(est.nombre).toBe("hecho");
+    expect(est.tejido).toBe("ahora");
+  });
+
+  it("escribiendo en el nombre, este conserva la luz aunque ya cuente como hecho: sin ✓ y nada más se enciende", () => {
+    const est = estadosDeCampos(guia(sinTela, { marcaElegida: false }), 2, "nombre");
+    expect(est.nombre).toBe("ahora");
+    expect(est.tejido).toBe("falta");
+    expect(est.patron).toBe("falta");
+    expect(Object.values(est).filter((e) => e === "ahora")).toHaveLength(1);
+  });
+
+  it("al salir del nombre (sin foco) la luz pasa al tejido y el nombre lleva ✓", () => {
+    const est = estadosDeCampos(guia(sinTela), 2, null);
+    expect(est.nombre).toBe("hecho");
+    expect(est.tejido).toBe("ahora");
+  });
+
+  it("lo mismo en el paso 4: con un dígito el precio ya es «hecho», pero mientras se escribe sigue siendo «ahora»", () => {
+    const campos = guia({ precioBase: "8", stockTotal: 0 });
+    expect(estadosDeCampos(campos, 4).precio).toBe("hecho");
+    expect(estadosDeCampos(campos, 4).stock).toBe("ahora");
+    const escribiendo = estadosDeCampos(campos, 4, "precio");
+    expect(escribiendo.precio).toBe("ahora");
+    expect(escribiendo.stock).toBe("falta");
+  });
+
+  it("un campo opcional con foco (la descripción) no le quita la luz a lo que sigue de verdad", () => {
+    expect(campoAhora(guia(sinTela), 2, "descripcion")).toBe("tejido");
+    expect(estadosDeCampos(guia(sinTela), 2, "descripcion").descripcion).toBe("opcional");
+  });
+
+  it("el foco en un campo de OTRO paso no cambia nada: solo el paso abierto tiene un lugar donde estar parado", () => {
+    expect(campoAhora(guia(sinTela), 2, "precio")).toBe("tejido");
+    expect(estadosDeCampos(guia(sinTela), 2, "precio").precio).toBe("hecho");
+  });
+
+  it("el foco no cambia lo que falta, lo que bloquea ni lo que sigue en todo el hilo", () => {
+    const campos = guia(sinTela);
+    expect(idsPorHacer(campos, 2)).toEqual(["tejido", "patron"]);
+    expect(siguienteDelHilo(campos)?.campo.id).toBe("tejido");
+  });
+
+  it("escribiendo en un campo por hacer que no es el primero, la luz lo acompaña", () => {
+    const campos = guia({ precioBase: "", stockTotal: 0 });
+    expect(campoAhora(campos, 4, "stock")).toBe("stock");
+    expect(estadosDeCampos(campos, 4, "stock").precio).toBe("falta");
   });
 });

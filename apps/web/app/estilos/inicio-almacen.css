@@ -1,0 +1,1590 @@
+/* ====================================================================
+   Inicio de una cuenta de Almacén (Felipe, 2026-09-30, ADR-0292)
+   Maqueta de referencia: docs/maquetas/inicio-almacen-2026-09/inicio-almacen.html (dirección A «Cabina», cabina en
+   Papel, movimiento completo). Componentes: components/inicio-almacen/.
+
+   Todo sale de tokens de globals.css (ADR-0169). Las tres familias de movimiento están separadas para poder quitar
+   una sin tocar las otras:
+     · ENTRADA Y RESPUESTA  (`ia-rv`, `ia-rj`, aros y trazos que se llenan al llegar a la vista, foco de luz, imán):
+       la regla de siempre (`--ease-cayla`, sin rebote, una sola vez).
+     · SEÑALES  (el punto que late en lo urgente, el aro del camión en camino): siguen la regla de ADR-0136.
+     · AMBIENTE  (`ia-aur`, la aurora de la cabina): el único bucle decorativo. Felipe lo aprobó el 2026-09-30 («con
+       todas las animaciones»). Está aislado en el bloque «AMBIENTE» del final: borrar ese bloque lo apaga.
+   `prefers-reduced-motion` apaga las tres.
+   ==================================================================== */
+
+@keyframes ia-sube {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+}
+@keyframes ia-latido {
+  0% { opacity: 0.7; transform: scale(0.6); }
+  70%, 100% { opacity: 0; transform: scale(1.9); }
+}
+@keyframes ia-barre {
+  to { transform: translateX(130%); }
+}
+@keyframes ia-escanea {
+  from { transform: translateY(0); }
+  to { transform: translateY(420%); }
+}
+@keyframes ia-dibuja {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ia-deriva {
+  to { transform: translate(60px, 34px) scale(1.12); }
+}
+
+@layer components {
+  .ia {
+    --ia-t80: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+    --ia-t65: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    --ia-t50: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+    --ia-t30: color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    --ia-t12: color-mix(in srgb, var(--color-tinta) 12%, transparent);
+    --ia-t08: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+    --ia-t05: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+    container: ia / inline-size;
+    display: grid;
+    gap: 28px;
+  }
+  .ia svg.ia-ic {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ── entrada escalonada: cada pieza sube y se asienta una vez, con 55 ms de desfase ── */
+  .ia-rv {
+    animation: ia-sube 620ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .ia-rj {
+    animation: ia-sube 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms + var(--j, 0) * 45ms + 140ms);
+  }
+
+  /* ── piezas base ── */
+  .ia-sec-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .ia-sec-h > .ia-l {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ia-cnt {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    border-radius: 99px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .ia-ayuda {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: -4px 0 12px;
+    font-size: 13px;
+    color: var(--ia-t65);
+  }
+  .ia-ayuda svg {
+    width: 15px;
+    height: 15px;
+    margin-top: 3px;
+    color: var(--color-taupe);
+  }
+  .ia-enl {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-taupe);
+    transition: gap 260ms var(--ease-cayla), color 260ms var(--ease-cayla);
+  }
+  .ia-enl:hover {
+    gap: 8px;
+    color: var(--color-rojo);
+  }
+  .ia-enl svg.ia-ic {
+    width: 15px;
+    height: 15px;
+  }
+  .ia-mini {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--ia-t12);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
+  }
+  .ia-mini:hover {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    border-color: var(--color-tinta);
+  }
+  .ia-mini svg.ia-ic {
+    width: 15px;
+    height: 15px;
+  }
+  .ia-mini.ia-foto {
+    border-color: color-mix(in srgb, var(--color-ambar) 40%, transparent);
+    color: var(--color-ambar-profundo);
+  }
+  .ia-mini.ia-foto:hover {
+    background: var(--color-ambar);
+    color: var(--color-crema);
+    border-color: var(--color-ambar);
+  }
+
+  /* foco de luz que sigue al mouse (`EfectosInicio` escribe --mx y --my) */
+  .ia-spot {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .ia-spot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms var(--ease-cayla);
+    background: radial-gradient(
+      280px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-taupe) 11%, transparent),
+      color-mix(in srgb, var(--color-taupe) 4%, transparent) 50%,
+      transparent 72%
+    );
+  }
+  .ia-spot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms var(--ease-cayla);
+    background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--color-taupe) 60%, transparent), transparent 65%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  .ia-spot:hover::after,
+  .ia-spot:hover::before {
+    opacity: 1;
+  }
+
+  /* ── la cabina: Papel ── */
+  .ia-hero {
+    --h-bg: var(--color-papel);
+    --h-solid: var(--color-papel);
+    --h-fg: var(--color-tinta);
+    --h-80: var(--ia-t80);
+    --h-60: var(--ia-t65);
+    --h-line: var(--ia-t12);
+    --h-grid: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+    --h-edge: var(--color-sand);
+    --h-glass: color-mix(in srgb, var(--color-hueso) 50%, transparent);
+    --h-glass-b: var(--color-sand);
+    --h-a: color-mix(in srgb, var(--color-taupe) 24%, transparent);
+    --h-b: color-mix(in srgb, var(--color-pizarra) 16%, transparent);
+    --h-btn: var(--color-tinta);
+    --h-btn-fg: var(--color-crema);
+    --h-halo: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+    --h-kbd: var(--ia-t05);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(18px, 3cqi, 34px);
+    padding: clamp(20px, 3.4cqi, 38px);
+    border-radius: 26px;
+    background: var(--h-bg);
+    color: var(--h-fg);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--h-edge);
+  }
+  .ia-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    opacity: 0.6;
+    background-image: linear-gradient(var(--h-grid) 1px, transparent 1px), linear-gradient(90deg, var(--h-grid) 1px, transparent 1px);
+    background-size: 36px 36px;
+    -webkit-mask-image: radial-gradient(90% 130% at 18% 0%, #000 18%, transparent 76%);
+    mask-image: radial-gradient(90% 130% at 18% 0%, #000 18%, transparent 76%);
+  }
+  .ia-aur {
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(56px);
+    pointer-events: none;
+  }
+  .ia-aur.ia-a {
+    width: 440px;
+    height: 330px;
+    left: -120px;
+    top: -140px;
+    background: radial-gradient(closest-side, var(--h-a), transparent);
+  }
+  .ia-aur.ia-b {
+    width: 480px;
+    height: 340px;
+    right: -150px;
+    bottom: -180px;
+    background: radial-gradient(closest-side, var(--h-b), transparent);
+  }
+  .ia-hl {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .ia-hl .ia-lbl {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--h-60);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .ia-hl .ia-lbl::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--h-60);
+  }
+  .ia-hl h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(36px, 5.6cqi, 56px);
+    line-height: 0.98;
+    letter-spacing: -0.015em;
+  }
+  .ia-ac {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 20px;
+    margin-top: 10px;
+  }
+  .ia-cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    height: 58px;
+    padding: 0 10px 0 26px;
+    border-radius: 99px;
+    background: var(--h-btn);
+    color: var(--h-btn-fg);
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    transition: box-shadow 350ms var(--ease-cayla);
+    will-change: transform;
+  }
+  .ia-cta:hover {
+    box-shadow: 0 0 0 6px var(--h-halo);
+  }
+  .ia-cta .ia-plus {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--h-btn-fg);
+    color: var(--h-btn);
+    transition: transform 550ms var(--ease-cayla);
+  }
+  .ia-cta:hover .ia-plus {
+    transform: rotate(90deg);
+  }
+  /* un solo brillo que barre el botón al llegar */
+  .ia-cta::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 36%, color-mix(in srgb, var(--color-papel) 80%, transparent) 50%, transparent 64%);
+    transform: translateX(-130%);
+    animation: ia-barre 1.5s var(--ease-cayla) 1.1s 1 forwards;
+  }
+  .ia-tecla {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--h-60);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ia-tecla kbd {
+    padding: 2px 9px;
+    border: 1px solid var(--h-line);
+    border-radius: 7px;
+    background: var(--h-kbd);
+    color: var(--h-fg);
+    font: 600 12px var(--font-sans);
+  }
+  .ia-vinc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--h-80);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 260ms var(--ease-cayla), gap 300ms var(--ease-cayla);
+  }
+  .ia-vinc:hover {
+    color: var(--h-fg);
+    gap: 12px;
+  }
+  .ia-vinc svg.ia-ic {
+    width: 15px;
+    height: 15px;
+  }
+  .ia-uh {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .ia-uh > span,
+  .ia-desp .ia-lbl2 {
+    color: var(--h-60);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .ia-lst {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 8px;
+  }
+  /* una fila de «lo último registrado»: miniatura, nombre, sede o quién, y «Ver →» */
+  .ia-rs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px 8px 8px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: var(--h-glass);
+    transition: background 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla), transform 350ms var(--ease-cayla);
+  }
+  .ia-rs:hover {
+    border-color: var(--h-line);
+    background: var(--color-papel);
+    transform: translateX(4px);
+  }
+  .ia-rs .ia-th {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    background: var(--color-hueso);
+    overflow: hidden;
+  }
+  .ia-rs .ia-th img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .ia-rs .ia-th svg.ia-g {
+    width: 22px;
+    height: 26px;
+    fill: none;
+    stroke: var(--color-taupe);
+    stroke-width: 1.4;
+    stroke-dasharray: 3 3;
+    opacity: 0.75;
+  }
+  .ia-rs .ia-mtx {
+    min-width: 0;
+  }
+  .ia-rs .ia-nm {
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .ia-rs .ia-mt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--h-60);
+    font-size: 12.5px;
+  }
+  .ia-rs .ia-ya {
+    margin-left: auto;
+    color: var(--color-verde-profundo);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ia-sd {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 9px 2px 7px;
+    border-radius: 99px;
+    background: var(--ia-t05);
+    color: var(--color-tinta);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .ia-sd i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-taupe);
+  }
+  .ia-sd[data-t="1"] i {
+    background: var(--color-pizarra);
+  }
+  .ia-sd[data-t="2"] i {
+    background: var(--color-tinta);
+  }
+  /* La sede de quien mira va rellena: se distingue de las otras de un vistazo. */
+  .ia-sd[data-propia] {
+    background: var(--color-tinta);
+    color: var(--color-papel);
+  }
+  .ia-sd[data-propia] i {
+    background: var(--color-papel);
+  }
+  .ia-rs-msg {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    color: var(--h-80);
+    font-size: 14px;
+  }
+
+  /* «Sigue ahora» */
+  .ia-ah {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--h-glass-b);
+    border-radius: 20px;
+    background: var(--h-glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .ia-ah .ia-lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--h-60);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .ia-ah .ia-lbl i {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-rojo);
+  }
+  .ia-ah .ia-lbl i.ia-ok {
+    background: var(--color-verde);
+  }
+  .ia-ah .ia-lbl i.ia-toca {
+    background: var(--color-ambar);
+  }
+  .ia-ah h3 {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .ia-ah .ia-d {
+    color: var(--h-60);
+    font-size: 14px;
+  }
+  .ia-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 12px;
+    background: var(--h-btn);
+    color: var(--h-btn-fg);
+    font-size: 14.5px;
+    font-weight: 600;
+    transition: gap 300ms var(--ease-cayla), transform 260ms var(--ease-cayla);
+  }
+  .ia-go:hover {
+    gap: 14px;
+  }
+  .ia-go:active {
+    transform: scale(0.98);
+  }
+  .ia-go svg.ia-ic {
+    width: 16px;
+    height: 16px;
+  }
+  .ia-desp {
+    display: grid;
+    gap: 2px;
+  }
+  .ia-desp .ia-lbl2 {
+    margin-bottom: 4px;
+  }
+  .ia-dp {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: background 260ms var(--ease-cayla);
+  }
+  .ia-dp:hover {
+    background: var(--color-papel);
+  }
+  .ia-dp .ia-t {
+    flex: 1;
+    min-width: 0;
+    color: var(--h-fg);
+  }
+  .ia-dp .ia-n {
+    min-width: 24px;
+    padding: 1px 9px;
+    font-size: 12px;
+  }
+  .ia-dp svg.ia-ic {
+    width: 15px;
+    height: 15px;
+    color: var(--color-verde);
+    stroke-width: 2.2;
+  }
+  .ia-fila {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--h-line);
+  }
+  .ia-fila .ia-t {
+    color: var(--h-80);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .ia-fila .ia-t b {
+    display: block;
+    color: var(--h-fg);
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .ia-ring {
+    flex: none;
+    width: 54px;
+    height: 54px;
+    transform: rotate(-90deg);
+  }
+  .ia-ring circle {
+    fill: none;
+    stroke-width: 4.5;
+    stroke-linecap: round;
+  }
+  .ia-ring .ia-bg {
+    stroke: var(--h-line);
+  }
+  .ia-ring .ia-fg {
+    stroke: var(--h-fg);
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1300ms var(--ease-cayla) 300ms;
+  }
+  .ia-in .ia-ring .ia-fg {
+    stroke-dashoffset: var(--off);
+  }
+  .ia-ring.ia-l .ia-bg {
+    stroke: var(--ia-t12);
+  }
+  .ia-ring.ia-l .ia-fg {
+    stroke: var(--color-verde);
+  }
+
+  /* ── «Te toca» ── */
+  .ia-tt {
+    overflow: hidden;
+  }
+  .ia-ap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px 20px;
+    border-top: 1px solid var(--ia-t08);
+    text-align: left;
+    transition: background 260ms var(--ease-cayla);
+  }
+  .ia-ap.ia-f {
+    border-top: 0;
+  }
+  .ia-ap:hover {
+    background: var(--ia-t05);
+  }
+  /* el filo rojo de lo urgente va en una sombra interior: ::before y ::after ya los usa el foco de luz */
+  .ia-ap.ia-u {
+    box-shadow: inset 3px 0 0 var(--color-rojo);
+  }
+  .ia-pt {
+    position: relative;
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .ia-pt.ia-urg { background: var(--color-rojo); }
+  .ia-pt.ia-toca { background: var(--color-ambar); }
+  .ia-pt.ia-info { background: var(--color-pizarra); }
+  .ia-pt.ia-dia { background: var(--color-verde); }
+  .ia-pt.ia-sinleer { background: var(--ia-t30); }
+  /* SEÑAL (ADR-0136): lo urgente late */
+  .ia-pt.ia-urg::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border: 1.5px solid var(--color-rojo);
+    border-radius: 50%;
+    opacity: 0;
+    animation: ia-latido 2.4s var(--ease-cayla) infinite;
+  }
+  .ia-ap .ia-tx {
+    flex: 1;
+    min-width: 0;
+  }
+  .ia-ap .ia-t {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: color 260ms var(--ease-cayla);
+  }
+  .ia-ap:hover .ia-t {
+    color: var(--color-rojo);
+  }
+  .ia-ap .ia-d {
+    margin-top: 1px;
+    color: var(--ia-t65);
+    font-size: 13px;
+  }
+  .ia-tag {
+    color: var(--color-rojo);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ia-n {
+    flex: none;
+    min-width: 28px;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .ia-n.ia-urg { background: var(--color-rojo); color: var(--color-crema); }
+  .ia-n.ia-toca { background: var(--color-ambar); color: var(--color-crema); }
+  .ia-n.ia-info { background: var(--color-pizarra); color: var(--color-crema); }
+  .ia-n.ia-dia { background: var(--color-verde); color: var(--color-crema); }
+  .ia-n.ia-sinleer { background: var(--ia-t08); color: var(--ia-t80); font-size: 12px; }
+  .ia-ap .ia-chev {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--ia-t30);
+    transition: transform 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
+  }
+  .ia-ap:hover .ia-chev {
+    transform: translateX(4px);
+    color: var(--color-rojo);
+  }
+  .ia-mas {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 550ms var(--ease-cayla);
+  }
+  .ia-mas.ia-on {
+    grid-template-rows: 1fr;
+  }
+  .ia-mas > div {
+    overflow: hidden;
+  }
+  .ia-vm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px;
+    border-top: 1px solid var(--ia-t08);
+    color: var(--color-taupe);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 260ms var(--ease-cayla);
+  }
+  .ia-vm:hover {
+    background: var(--ia-t05);
+  }
+  .ia-vm svg.ia-ic {
+    width: 15px;
+    height: 15px;
+    transition: transform 400ms var(--ease-cayla);
+  }
+  .ia-vm.ia-on svg.ia-ic {
+    transform: rotate(180deg);
+  }
+  .ia-dial {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 20px;
+    border-top: 1px solid var(--ia-t08);
+    color: var(--ia-t65);
+    font-size: 13px;
+  }
+  .ia-dial svg.ia-ic {
+    width: 16px;
+    height: 16px;
+    color: var(--color-verde);
+  }
+  .ia-dial b {
+    color: var(--color-verde-profundo);
+    font-weight: 600;
+  }
+  .ia-vacio {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px;
+  }
+  .ia-vacio .ia-ck {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-verde) 12%, transparent);
+  }
+  .ia-vacio .ia-ck svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--color-verde);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+    animation: ia-dibuja 700ms var(--ease-cayla) 400ms forwards;
+  }
+  .ia-vacio b {
+    display: block;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .ia-vacio span {
+    color: var(--ia-t65);
+    font-size: 13px;
+  }
+  .ia-err {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    color: var(--ia-t80);
+    font-size: 14px;
+  }
+  .ia-err svg.ia-ic {
+    width: 22px;
+    height: 22px;
+    color: var(--color-ambar);
+  }
+  .ia-err p {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  /* ── «Nuevo en otras sedes» ── */
+  .ia-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .ia-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--ia-t12);
+    border-radius: 99px;
+    color: var(--ia-t80);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
+  }
+  .ia-chip:hover {
+    background: var(--ia-t05);
+  }
+  .ia-chip[aria-pressed="true"] {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .ia-chip em {
+    font-size: 11px;
+    font-style: normal;
+    opacity: 0.65;
+  }
+  .ia-arr {
+    display: flex;
+    gap: 8px;
+  }
+  .ia-arr button {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--ia-t12);
+    border-radius: 50%;
+    transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), transform 260ms var(--ease-cayla);
+  }
+  .ia-arr button:hover {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .ia-arr button:active {
+    transform: scale(0.92);
+  }
+  .ia-fd {
+    display: flex;
+    gap: 14px;
+    padding: 6px 2px 18px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    perspective: 1000px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+  }
+  .ia-fd::-webkit-scrollbar {
+    display: none;
+  }
+  .ia-dv {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 26px;
+    margin-left: 2px;
+    border-left: 1px dashed var(--ia-t12);
+    scroll-snap-align: start;
+  }
+  .ia-dv span {
+    color: var(--ia-t50);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+  .ia-pc {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* 250 px en lo angosto; crece con el ancho (hasta 360 px) para que en pantalla grande no sobre el espacio. */
+    flex: 0 0 min(clamp(250px, 15cqi, 360px), 74cqi);
+    border: 1px solid var(--color-sand);
+    border-radius: 18px;
+    background: var(--color-papel);
+    overflow: hidden;
+    scroll-snap-align: start;
+    transition: transform 450ms var(--ease-cayla), border-color 300ms var(--ease-cayla), box-shadow 400ms var(--ease-cayla);
+    will-change: transform;
+  }
+  .ia-pc:hover {
+    border-color: var(--color-taupe);
+    box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  }
+  .ia-pc .ia-ft {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1 / 1.02;
+    background: linear-gradient(160deg, var(--color-hueso), var(--color-sand));
+    overflow: hidden;
+  }
+  .ia-pc .ia-ft img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 700ms var(--ease-cayla);
+  }
+  .ia-pc:hover .ia-ft img {
+    transform: scale(1.07) translateY(-4px);
+  }
+  .ia-pc .ia-ft.ia-sin {
+    background: repeating-linear-gradient(135deg, var(--color-hueso) 0 10px, color-mix(in srgb, var(--color-sand) 55%, transparent) 10px 20px);
+  }
+  .ia-pc .ia-ft svg.ia-g {
+    width: 54%;
+    height: auto;
+    fill: none;
+    stroke: var(--color-taupe);
+    stroke-width: 1.4;
+    stroke-dasharray: 4 4;
+    opacity: 0.75;
+    transition: transform 700ms var(--ease-cayla);
+  }
+  .ia-pc:hover .ia-ft svg.ia-g {
+    transform: scale(1.07) translateY(-4px);
+  }
+  /* un barrido de luz baja por la foto al llegar (una vez) */
+  .ia-pc .ia-scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -40%;
+    height: 36%;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-papel) 60%, transparent), transparent);
+    animation: ia-escanea 1.7s var(--ease-cayla) calc(var(--i, 0) * 80ms + 0.6s) 1 both;
+  }
+  .ia-bd {
+    position: absolute;
+    top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ia-bd svg.ia-ic {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2;
+  }
+  .ia-bd.ia-nv { left: 10px; background: var(--color-tinta); color: var(--color-crema); }
+  .ia-bd.ia-fo { right: 10px; background: color-mix(in srgb, var(--color-papel) 88%, transparent); color: var(--color-verde-profundo); }
+  .ia-bd.ia-sf { right: 10px; background: color-mix(in srgb, var(--color-papel) 88%, transparent); color: var(--color-ambar-profundo); }
+  .ia-pc .ia-cuerpo {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 7px;
+    padding: 14px 16px 6px;
+  }
+  .ia-cod {
+    color: var(--ia-t65);
+    font: 500 11.5px var(--font-mono, ui-monospace, monospace);
+    letter-spacing: 0.04em;
+  }
+  .ia-pc h4 {
+    font-size: 15.5px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .ia-qn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--ia-t65);
+    font-size: 12.5px;
+  }
+  .ia-sw {
+    display: flex;
+    align-items: center;
+    padding-left: 3px;
+  }
+  .ia-sw i {
+    width: 15px;
+    height: 15px;
+    margin-left: -3px;
+    border: 1.5px solid var(--color-papel);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--ia-t12);
+  }
+  .ia-sw b {
+    margin-left: 8px;
+    color: var(--ia-t65);
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .ia-pie-pc {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px dashed var(--ia-t12);
+    font-size: 12.5px;
+  }
+  .ia-pie-pc .ia-pr {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .ia-pie-pc .ia-tr {
+    color: var(--ia-t65);
+    text-align: right;
+  }
+  .ia-pie-pc .ia-tr.ia-ok {
+    color: var(--color-verde-profundo);
+    font-weight: 500;
+  }
+  .ia-pc .ia-ac2 {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px 16px;
+  }
+  .ia-pc .ia-ac2 .ia-mini {
+    flex: 1;
+    padding: 0 8px;
+  }
+
+  /* ── «Pulso del almacén» ── */
+  .ia-kp {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .ia-k {
+    position: relative;
+    min-height: 108px;
+    padding: 16px;
+    border: 1px solid var(--color-sand);
+    border-radius: 18px;
+    background: var(--color-papel);
+    overflow: hidden;
+  }
+  .ia-k .ia-lbl {
+    color: var(--ia-t65);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .ia-k .ia-v {
+    margin-top: 6px;
+    font-family: var(--font-serif);
+    font-size: 36px;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .ia-k .ia-v small {
+    margin-left: 2px;
+    font-size: 18px;
+  }
+  .ia-k .ia-s {
+    margin-top: 2px;
+    color: var(--ia-t65);
+    font-size: 12.5px;
+  }
+  .ia-k .ia-ring {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 46px;
+    height: 46px;
+    margin-top: -23px;
+  }
+
+  /* ── «En camino» ── */
+  .ia-ruta {
+    padding: 6px 0;
+  }
+  .ia-rr {
+    display: grid;
+    gap: 10px;
+    padding: 15px 18px;
+    border-top: 1px solid var(--ia-t08);
+  }
+  .ia-rr:first-child {
+    border-top: 0;
+  }
+  .ia-rr .ia-hd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ia-rr .ia-hd b {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .ia-rr .ia-hd span {
+    color: var(--ia-t65);
+    font-size: 12.5px;
+  }
+  .ia-via {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 30px;
+  }
+  .ia-via .ia-ln {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: repeating-linear-gradient(90deg, var(--ia-t30) 0 6px, transparent 6px 12px);
+  }
+  .ia-via .ia-ln i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: var(--color-tinta);
+    transition: width 1600ms var(--ease-cayla) 350ms;
+  }
+  .ia-in .ia-via .ia-ln i {
+    width: calc(var(--pv) * 100%);
+  }
+  .ia-via .ia-nd {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--ia-t30);
+    border-radius: 50%;
+    background: var(--color-papel);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .ia-via .ia-nd.ia-on {
+    border-color: var(--color-tinta);
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .ia-via .ia-tk {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 14px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    border-radius: 50%;
+    background: var(--color-taupe);
+    color: var(--color-crema);
+    transition: left 1600ms var(--ease-cayla) 350ms;
+  }
+  .ia-via .ia-tk svg.ia-ic {
+    width: 14px;
+    height: 14px;
+  }
+  .ia-in .ia-via .ia-tk {
+    left: calc(14px + (100% - 28px) * var(--pv));
+  }
+  /* SEÑAL: el camión en camino late */
+  .ia-via .ia-tk::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 1.5px solid var(--color-taupe);
+    border-radius: 50%;
+    opacity: 0;
+    animation: ia-latido 2.4s var(--ease-cayla) 1.6s infinite;
+  }
+  .ia-rr .ia-prog {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--ia-t65);
+    font-size: 12.5px;
+  }
+
+  /* ── «Reponer a piso hoy» ── */
+  .ia-rp .ia-it {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 18px;
+    border-top: 1px solid var(--ia-t08);
+    text-align: left;
+    transition: background 260ms var(--ease-cayla);
+  }
+  .ia-rp .ia-it.ia-f {
+    border-top: 0;
+  }
+  .ia-rp .ia-it:hover {
+    background: var(--ia-t05);
+  }
+  .ia-rp .ia-mg {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--color-hueso);
+    overflow: hidden;
+  }
+  .ia-rp .ia-mg img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .ia-rp .ia-mg svg.ia-g {
+    width: 20px;
+    height: 24px;
+    fill: none;
+    stroke: var(--color-taupe);
+    stroke-width: 1.4;
+    stroke-dasharray: 3 3;
+    opacity: 0.75;
+  }
+  .ia-rp .ia-nm {
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .ia-rp .ia-cl {
+    color: var(--ia-t65);
+    font-size: 12.5px;
+  }
+  .ia-tl {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .ia-tl span {
+    padding: 0 7px;
+    border-radius: 6px;
+    background: var(--ia-t05);
+    color: var(--ia-t65);
+    font-size: 11.5px;
+    line-height: 21px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ia-tl span.ia-p {
+    background: color-mix(in srgb, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar-profundo);
+    font-weight: 700;
+  }
+  .ia-rp .ia-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--ia-t08);
+    color: var(--ia-t65);
+    font-size: 13px;
+  }
+
+  /* ── «Accesos» ── */
+  .ia-acs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ia-ax {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    padding: 17px 6px;
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+    background: var(--color-papel);
+    font-size: 13.5px;
+    font-weight: 500;
+    text-align: center;
+    transition: transform 400ms var(--ease-cayla), border-color 300ms var(--ease-cayla), color 260ms var(--ease-cayla), box-shadow 400ms var(--ease-cayla);
+  }
+  .ia-ax svg.ia-ic {
+    width: 24px;
+    height: 24px;
+    transition: transform 450ms var(--ease-cayla);
+  }
+  .ia-ax:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-taupe);
+    color: var(--color-rojo);
+    box-shadow: 0 14px 26px -16px color-mix(in srgb, var(--color-tinta) 30%, transparent);
+  }
+  .ia-ax:hover svg.ia-ic {
+    transform: scale(1.14);
+  }
+  .ia-ax.ia-esc {
+    border-color: var(--color-tinta);
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .ia-ax.ia-esc:hover {
+    border-color: var(--color-taupe);
+    background: var(--color-taupe);
+    color: var(--color-crema);
+  }
+
+  /* ── el orden en pantalla ── */
+  .ia-gA,
+  .ia-cL,
+  .ia-cR {
+    display: grid;
+    gap: 30px;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    min-width: 0;
+  }
+  .ia-gA > *,
+  .ia-cL > *,
+  .ia-cR > * {
+    min-width: 0;
+  }
+  @container ia (min-width: 720px) {
+    .ia-hero {
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    }
+  }
+  @container ia (min-width: 640px) and (max-width: 939px) {
+    .ia-cR {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ia-cR > .ia-full {
+      grid-column: 1 / -1;
+    }
+  }
+  @container ia (min-width: 940px) {
+    .ia-gA {
+      grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
+    }
+  }
+  /* ── ancho completo (Felipe, 2026-09-30): a más ancho, más grande y no más vacío ──
+     El Inicio de almacén ya no se topa en 64 rem (AppShell: el marcador de ancho completo). Por encima de ~1100 px de contenedor crece el título de la
+     cabina; por encima de ~1500 px, la columna derecha y «Sigue ahora» crecen con el ancho (con tope) y el resto es para lo principal. */
+  @container ia (min-width: 1100px) {
+    .ia-hl h2 {
+      font-size: clamp(56px, 4.4cqi, 104px);
+    }
+  }
+  @container ia (min-width: 1500px) {
+    .ia-hero {
+      grid-template-columns: minmax(0, 1fr) clamp(420px, 30cqi, 720px);
+    }
+    .ia-gA {
+      grid-template-columns: minmax(0, 1fr) clamp(380px, 26cqi, 600px);
+    }
+  }
+  @container ia (max-width: 639px) {
+    .ia-gA,
+    .ia-cL,
+    .ia-cR {
+      gap: 26px;
+    }
+    .ia-hero {
+      padding: 20px 18px;
+      border-radius: 22px;
+    }
+    .ia-hl h2 {
+      font-size: 42px;
+    }
+    .ia-ac {
+      margin-top: 4px;
+    }
+    .ia-cta {
+      justify-content: space-between;
+      width: 100%;
+      height: 54px;
+    }
+    .ia-tecla {
+      display: none;
+    }
+    .ia-chips {
+      flex-wrap: nowrap;
+      margin-right: -16px;
+      padding-right: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .ia-chips::-webkit-scrollbar {
+      display: none;
+    }
+    .ia-arr {
+      display: none;
+    }
+    .ia-ap {
+      padding: 14px 16px;
+    }
+    .ia-pc .ia-ft {
+      aspect-ratio: 1 / 0.8;
+    }
+    .ia-k .ia-v {
+      font-size: 32px;
+    }
+  }
+
+  /* ── botón fijo de abajo (celular): una acción de ESTA pantalla, no navegación (ADR-0206) ── */
+  .ia-dock {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: flex;
+    gap: 10px;
+    padding: 26px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--color-crema) 58%, transparent);
+    pointer-events: none;
+    transform: translateY(120%);
+    transition: transform 550ms var(--ease-cayla);
+  }
+  .ia-dock > * {
+    pointer-events: auto;
+  }
+  .ia-dock.ia-on {
+    transform: none;
+  }
+  .ia-dock .ia-principal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    flex: 1;
+    height: 54px;
+    border-radius: 16px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    font-size: 16px;
+    font-weight: 600;
+    transition: transform 260ms var(--ease-cayla);
+  }
+  .ia-dock .ia-principal:active,
+  .ia-dock .ia-ib:active {
+    transform: scale(0.96);
+  }
+  .ia-dock .ia-ib {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 54px;
+    height: 54px;
+    border: 1px solid var(--ia-t12);
+    border-radius: 16px;
+    background: var(--color-papel);
+    transition: transform 260ms var(--ease-cayla);
+  }
+  .ia-dock svg.ia-ic {
+    width: 22px;
+    height: 22px;
+  }
+  @media (min-width: 640px) {
+    .ia-dock {
+      display: none;
+    }
+  }
+
+  /* ── quien prefiere menos movimiento ve el resultado, no el viaje ── */
+  @media (prefers-reduced-motion: reduce) {
+    .ia *,
+    .ia *::before,
+    .ia *::after,
+    .ia-dock {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+    .ia-cta::after {
+      display: none;
+    }
+    .ia-pc .ia-scan {
+      display: none;
+    }
+  }
+
+  /* ── AMBIENTE (ADR-0292): el único bucle decorativo. Borrar este bloque lo apaga; nada más depende de él. ── */
+  .ia-aur.ia-a {
+    animation: ia-deriva 15s ease-in-out infinite alternate;
+  }
+  .ia-aur.ia-b {
+    animation: ia-deriva 19s ease-in-out infinite alternate-reverse;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ia-aur.ia-a,
+    .ia-aur.ia-b {
+      animation: none;
+    }
+  }
+}

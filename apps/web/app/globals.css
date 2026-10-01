@@ -8,6 +8,8 @@
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
 @import "./estilos/alta-guia.css";
+@import "./estilos/alta-parecidas.css";
+@import "./estilos/inicio-almacen.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -1426,6 +1428,36 @@ html[data-buscando] [data-resultados] {
   .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
   .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
   .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
+
+  /* PIE FIJO DE UNA HOJA (2026-09-30, revisión de responsive de Inventario): la hoja de `<Modal>` es la que scrollea, y en un
+     laptop de 768 px de alto el botón principal de un formulario largo quedaba bajo el pliegue (Ajustar inventario de 1024 a
+     1600 px; Registrar nota de crédito, en todos). La fila de acciones lleva `pie-hoja-fijo`: se queda pegada al borde de
+     abajo de la hoja mientras el contenido pasa por detrás, y si todo cabe, no se nota (ocupa el mismo lugar de siempre).
+     Las cuentas: la hoja tiene `p-6` y la fila la absorbe con márgenes negativos y un padding igual, así que su posición
+     natural no cambia un píxel; el fondo sale de `--fondo-hoja` (lo pone `<Modal>`, papel o crema) y el degradado de arriba
+     hace que el contenido se vaya sin un corte seco. `bottom: -1.5rem` y no `0`: el navegador mide el pegado desde el borde
+     de adentro del padding de la hoja, y con `0` el pie quedaba 24 px arriba del borde y dejaba asomar el campo de atrás
+     (medido a 1024×768). Va como hija del <form> o de la hoja, nunca dentro de otra caja con overflow: sticky se pega al
+     scroll más cercano. */
+  .pie-hoja-fijo {
+    position: sticky;
+    bottom: -1.5rem;
+    z-index: 1;
+    margin-inline: -1.5rem;
+    margin-bottom: -1.5rem;
+    padding-inline: 1.5rem;
+    padding-bottom: 1.5rem;
+    background: var(--fondo-hoja, var(--color-papel));
+  }
+  .pie-hoja-fijo::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: 1rem;
+    background: linear-gradient(to top, var(--fondo-hoja, var(--color-papel)), transparent);
+    pointer-events: none;
+  }
 }
 
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----

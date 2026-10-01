@@ -1,0 +1,200 @@
+{
+  "replica": "replica-pos.js",
+  "caso": {
+    "id": "boleta-sin-dni-yape",
+    "titulo": "Vender una blusa con boleta y Yape",
+    "totalPasos": 7
+  },
+  "intro": {
+    "titulo": "Práctica: vender una blusa con boleta y Yape",
+    "parrafos": [
+      "Hoy eres <b>Valentina</b>, colaboradora de la <b>Tienda Trujillo</b>, y es tu primer día. Una clienta se probó una <b>blusa Emma beige talla L</b> y decidió llevársela. Quiere pagar con <b>Yape</b>, que le des <b>boleta</b> y <b>no quiere dar su DNI</b>.",
+      "Esto es una <b>copia de práctica</b> del sistema, con datos inventados. Nada de lo que toques es real: no se cobra a nadie, no baja ninguna prenda del stock y no sale ninguna boleta de verdad. Puedes tocar sin miedo.",
+      "<b>Primero inténtalo por tu cuenta.</b> Si en algún momento no sabes qué hacer, pulsa «No sé qué más hacer»: la guía te acompañará con una sola acción a la vez."
+    ],
+    "lista": [
+      "La clienta quiere: <b>blusa Emma beige, talla L</b> · pago con <b>Yape</b> · <b>boleta</b>, sin dar su DNI.",
+      "El botón <b>«No sé qué más hacer»</b> te muestra el siguiente paso, de a uno.",
+      "El botón <b>«Comentar»</b> es para escribir lo que quieras: una palabra que no entendiste, un botón que no encontraste."
+    ],
+    "boton": "Empezar"
+  },
+  "barra": {
+    "tarea": "<b>Tu tarea:</b> atiende a la clienta hasta que se lleve su boleta: una blusa Emma beige talla L, pagada con Yape y sin que dé su DNI. <b>Hazlo tú primero</b>; si te trabas, pulsa «No sé qué más hacer».",
+    "noSe": "No sé qué más hacer",
+    "comentar": "Comentar",
+    "pista": "Dame una pista"
+  },
+  "etapas": {
+    "vender": {
+      "paso": 1,
+      "titulo": "Ir a Vender",
+      "donde": "En el Inicio, la primera pantalla del sistema. Arriba a la derecha debe decir Tienda Trujillo.",
+      "haz": "Toca el botón negro «Vender», arriba a la derecha.",
+      "porque": "La blusa que vendas baja del stock (las prendas que hay) de la tienda donde estás; si estuvieras en otra sede, saldría de otra tienda.",
+      "avisos": [
+        "Mira el nombre de la tienda, arriba a la derecha: en esta práctica ya está puesta en Tienda Trujillo y no hace falta cambiarla.",
+        "«Vender» (el botón del Inicio) y «Punto de Venta» (en el menú de la izquierda) son la misma pantalla con dos nombres. «Cobrar» es otra cosa y llega más adelante."
+      ],
+      "pista": "Es el botón negro que está arriba a la derecha del Inicio; a veces tarda unos segundos en aparecer. Si no lo ves, también sirve «Punto de Venta» en el menú de la izquierda."
+    },
+    "talla": {
+      "paso": 2,
+      "titulo": "Elegir la blusa, talla L",
+      "donde": "«Venta en tienda · Tienda Trujillo»: una pantalla con tarjetas de prendas. Busca la tarjeta «Blusa Emma · Beige».",
+      "haz": "Toca la talla «L» de la Blusa Emma beige, que es la única que no está tachada. Tócala una sola vez.",
+      "porque": "Elegir la talla pone la blusa en la cuenta de la clienta; todavía no se cobra nada.",
+      "avisos": [
+        "La tarjeta dice «desde S/10.00» porque cuenta el precio más bajo de otra talla que aquí no hay. La blusa talla L cuesta S/ 79,90.",
+        "Al elegir la talla, el botón de arriba cambia a «Apartar 1». No lo toques: apartar es guardar la prenda sin cobrarla, y esta clienta se la lleva hoy.",
+        "Cada toque sobre la talla suma otra blusa; la clienta se lleva una sola."
+      ],
+      "pista": "Dentro de la tarjeta «Blusa Emma · Beige» hay una fila de tallas, de XS a XL. Toca solo la «L», una vez. Sabrás que funcionó porque la blusa muestra un «1» y el ticket (la cuenta de la clienta) muestra S/79.90."
+    },
+    "responsable": {
+      "paso": 3,
+      "titulo": "Indicar quién atiende",
+      "donde": "«Venta en tienda», con la blusa ya en el ticket, la cuenta de la clienta. En el ticket hay un cuadro de borde rojo punteado que dice «¿Quién está atendiendo?».",
+      "haz": "Toca «¿Quién está atendiendo?» y, en la lista que se abre, elige «Valentina».",
+      "porque": "Cada venta queda a nombre de quien atendió a la clienta, y sin ese dato el sistema no deja cobrar.",
+      "avisos": [
+        "En esta práctica la que atiende eres tú: Valentina. La lista también trae a Camila y a Renata, compañeras de turno; elige siempre «Valentina». En la tienda real, elegirías tu propio nombre."
+      ],
+      "pista": "Es el cuadro de borde punteado rojo dentro del ticket, con la frase «Obligatorio para guardar». Tócalo, se abre la lista de quienes están de turno, y toca «Valentina». Mientras no elijas a nadie, el botón «Cobrar» se queda gris."
+    },
+    "cobrar": {
+      "paso": 4,
+      "titulo": "Abrir el cobro",
+      "donde": "«Venta en tienda», con el ticket listo: Blusa Emma, cantidad 1, S/ 79,90, y al pie el botón «Cobrar S/79.90».",
+      "haz": "Toca «Cobrar S/79.90».",
+      "porque": "«Cobrar» solo abre la pantalla de cobro; todavía no se cobró nada. El cobro se confirma más adelante, con otro botón.",
+      "avisos": [
+        "Deja «Agregar clienta» vacío: es opcional, y esta clienta no quiere dar sus datos."
+      ],
+      "pista": "Es el botón negro del pie del ticket, con el monto escrito: «Cobrar S/79.90». Si sale gris, falta elegir quién atiende. Si tu pantalla muestra solo el catálogo y abajo una barra «Ver ticket», tócala primero para abrir el ticket."
+    },
+    "pago": {
+      "paso": 5,
+      "titulo": "Elegir Yape",
+      "donde": "«Cobro». Arriba dice «Cómo pagó la clienta», con cinco medios: Efectivo, Tarjeta, Yape, Plin y Transferencia. El botón de abajo está gris y dice «Elige cómo pagó la clienta.».",
+      "haz": "Toca «Yape».",
+      "porque": "El Yape no entra en el efectivo de la caja: es plata que va a la cuenta del negocio y no al cajón, por eso el medio de pago se anota aparte.",
+      "avisos": [
+        "Más de S/ 700 sin DNI: ese pago no se hace por Yape, se cobra por otro medio de pago. Aquí son S/ 79,90, así que no aplica; pero la pantalla no te lo va a impedir, por eso te lo recuerdo para la tienda real.",
+        "El cuadro «Nº de operación» déjalo vacío: no lo necesitas para esta práctica."
+      ],
+      "pista": "Son cinco botones grandes; «Yape» es el tercero, entre Tarjeta y Plin. Al tocarlo verás «Yape» con el monto de S/ 79,90 y la palabra «Cubierto»."
+    },
+    "confirmar": {
+      "paso": 6,
+      "titulo": "Dejar boleta y confirmar",
+      "donde": "«Cobro», con Yape ya elegido. Más abajo están «Comprobante» (Boleta, Factura, Nota de venta) y los cuadros «DNI de la clienta» y «Nombre de la clienta».",
+      "haz": "Deja «Boleta» marcada, los cuadros del DNI y del nombre vacíos, y toca «Confirmar cobro S/79.90».",
+      "porque": "Una boleta sin DNI es válida para una compra de este monto, así que no hay que pedirle nada más a la clienta.",
+      "avisos": [
+        "La etiqueta roja «Opcional» junto a «Comprobante» no significa que la boleta sea opcional: esta clienta pidió boleta, así que se queda marcada. Lo opcional es el DNI.",
+        "El «!» junto al DNI no es una alarma: es una ayuda sobre la «Consulta de DNI». Sin DNI no pasa nada.",
+        "Antes de confirmar, la pantalla no dice a nombre de quién saldrá la boleta. Sin DNI ni nombre saldrá a nombre de «Cliente varios», que es como se anota a una clienta que no da sus datos; lo verás recién en la pantalla siguiente."
+      ],
+      "pista": "El botón «Confirmar cobro S/79.90» está al final de la pantalla de cobro. Se pone negro cuando todo está listo; mientras esté gris, el mensajito cerca del botón te dice qué falta."
+    },
+    "cerrar": {
+      "paso": 7,
+      "titulo": "Cerrar la venta",
+      "donde": "«Venta registrada · Tienda Trujillo»: dice «LISTO S/79.90», muestra la boleta, el Yape y «Cliente: Cliente varios», y tiene tres botones: «Imprimir y nueva venta», «Solo imprimir» y «Sin imprimir».",
+      "haz": "Toca «Sin imprimir» (en esta práctica no hay impresora).",
+      "porque": "La venta ya está hecha: la blusa ya salió del stock de Trujillo y la boleta quedó guardada. Imprimir solo sirve para darle el papel a la clienta.",
+      "avisos": [
+        "«Pendiente de enviar» no significa que la venta falló: ya está guardada. Quiere decir que la boleta aún no llegó a SUNAT y el sistema la vuelve a mandar solo. No repitas el cobro. En esta práctica no hay conexión con SUNAT, por eso sale así.",
+        "Con este toque termina la práctica y te mostraré cómo te fue."
+      ],
+      "pista": "Los tres botones están juntos, debajo del resumen de la venta; «Sin imprimir» es el tercero. Tócalo para dejar la pantalla lista para la siguiente clienta."
+    }
+  },
+  "desvios": {
+    "prenda_equivocada": {
+      "mensaje": "En el ticket hay otra prenda (la Casaca Luciana), y la clienta pidió la blusa Emma beige talla L.",
+      "comoVolver": "Para volver: toca el botón de quitar de esa prenda en el ticket (lo marca el marco rojo); después eliges la blusa."
+    },
+    "cantidad_equivocada": {
+      "mensaje": "En el ticket hay más de una blusa, y la clienta se lleva solo una. Cada toque sobre la talla suma otra unidad.",
+      "comoVolver": "Para volver: toca el botón de quitar del ticket (lo marca el marco rojo) y luego toca la talla L una sola vez."
+    },
+    "pago_equivocado": {
+      "mensaje": "Ahora hay otro medio de pago marcado, y la clienta pidió pagar con Yape. Ojo: Plin es otra billetera, no es lo mismo que Yape.",
+      "comoVolver": "Para volver: toca «Yape»; ese medio reemplaza al anterior."
+    },
+    "comprobante_equivocado": {
+      "mensaje": "Ahora está marcada «Factura» o «Nota de venta», y la clienta pidió boleta. La factura es para empresas (pide RUC) y la nota de venta no es una boleta.",
+      "comoVolver": "Para volver: toca «Boleta» para dejarla marcada."
+    },
+    "dni_escrito": {
+      "mensaje": "Hay un DNI o un nombre escrito, y esta clienta no quiere dar sus datos. Además, si el DNI queda a medias, el botón de confirmar se queda gris.",
+      "comoVolver": "Para volver: borra lo escrito en «DNI de la clienta» y en «Nombre de la clienta» hasta dejar los dos cuadros vacíos."
+    },
+    "sede": {
+      "mensaje": "Ese selector cambia de tienda, y en esta práctica siempre trabajas en Tienda Trujillo, así que no cambió nada. En la tienda real, la prenda sale del stock de la tienda que dice ahí.",
+      "comoVolver": "Sigue con el botón que marca el marco rojo."
+    },
+    "apartar": {
+      "mensaje": "«Apartar» guarda la prenda para una clienta sin cobrarla, y esta clienta se la lleva hoy. Aquí no se guardó nada.",
+      "comoVolver": "Sigue con el botón que marca el marco rojo; para cobrar se usa «Cobrar», no «Apartar»."
+    },
+    "descuento": {
+      "mensaje": "Esta clienta paga el precio completo, S/ 79,90, y en esta práctica no se aplica ningún descuento.",
+      "comoVolver": "Sigue con el botón que marca el marco rojo."
+    },
+    "clienta": {
+      "mensaje": "«Agregar clienta» sirve para anotar los datos de una clienta, y esta no quiere dar los suyos. Para vender no hace falta.",
+      "comoVolver": "Déjalo vacío y sigue con el botón que marca el marco rojo."
+    },
+    "espera": {
+      "mensaje": "«Dejar en espera» deja la cuenta pausada para atender a otra clienta, y esta clienta está lista para pagar ahora.",
+      "comoVolver": "No se dejó nada en espera: sigue con el botón que marca el marco rojo."
+    },
+    "talla_almacen": {
+      "mensaje": "Esa talla está en el almacén, no en el piso de venta: de ahí no se vende en esta pantalla, y la clienta pidió la talla L.",
+      "comoVolver": "Toca la talla L de la Blusa Emma beige, la que sí tiene prendas en el piso de venta."
+    },
+    "no_disponible": {
+      "mensaje": "Eso existe en el sistema de verdad, pero en esta copia de práctica no funciona.",
+      "comoVolver": "Sigue con el botón que marca el marco rojo."
+    }
+  },
+  "fallos": {
+    "prenda": "La clienta pidió la blusa Emma beige talla L y se cobró otra prenda.",
+    "cantidad": "La clienta se lleva una sola blusa y se cobró más de una.",
+    "pago": "La clienta pidió pagar con Yape y se cobró con otro medio.",
+    "comprobante": "La clienta pidió boleta y se emitió otro comprobante (factura o nota de venta).",
+    "dni": "La clienta no quería dar su DNI y quedó escrito uno en el comprobante.",
+    "responsable": "La venta tenía que quedar a nombre de Valentina, que fue quien atendió, y quedó a nombre de otra persona."
+  },
+  "comentarios": {
+    "titulo": "Tus comentarios",
+    "ayuda": "Escribe lo que quieras, cuando quieras: una palabra que no entendiste, un botón que no encontraste, algo que te confundió. Se guarda en tu navegador y no se manda a ningún lado.",
+    "vacio": "Todavía no escribiste ningún comentario.",
+    "placeholder": "Por ejemplo: «No encontré dónde elegir la talla».",
+    "guardar": "Guardar comentario",
+    "copiar": "Copiar mis comentarios",
+    "copiado": "Copiado ✓",
+    "copiarManual": "Selecciona el texto y cópialo",
+    "cerrar": "Cerrar",
+    "finAyuda": "todo lo que escribiste quedó guardado en tu navegador. Cópialo con el botón de abajo y mándaselo por mensaje de texto a quien te pasó esta práctica. Nada se envía solo: lo copias tú y lo pegas donde quieras."
+  },
+  "fin": {
+    "etiqueta": "Práctica terminada",
+    "tituloOk": "Venta completa, tal como la pidió la clienta",
+    "tituloConDetalles": "Venta hecha, con algunos detalles por revisar",
+    "resultadoOk": "La clienta se llevó su blusa Emma beige talla L, pagó con Yape, recibió su boleta y no tuvo que dar su DNI. Todo quedó como ella lo pidió.",
+    "resultadoConDetalles": "La venta quedó hecha, pero algo no quedó como lo pidió la clienta. Nada de esto es real; puedes volver a practicar cuando quieras. Lo que quedó distinto:",
+    "aprendisteTitulo": "Lo que te llevas",
+    "aprendiste": [
+      "Cada venta queda a nombre de quien atendió a la clienta. Por eso siempre se indica quién atiende antes de cobrar.",
+      "El Yape no entra al cajón: la plata va a la cuenta del negocio, así que al cerrar la caja solo cuenta el efectivo.",
+      "Una clienta puede llevarse su boleta sin dar su DNI: sale a nombre de «Cliente varios». Pasando los S/ 700 sin DNI, el pago no va por Yape sino por otro medio. Y si la boleta queda «Pendiente de enviar», la venta ya está hecha: el sistema vuelve a intentar solo."
+    ],
+    "pregunta": "¿Qué fue lo que más te costó?",
+    "reiniciar": "Volver a practicar"
+  },
+  "angosta": "Esta práctica se ve bien en computadora o tablet. Tu pantalla es muy pequeña: ábrela en una computadora o tablet para practicar."
+}

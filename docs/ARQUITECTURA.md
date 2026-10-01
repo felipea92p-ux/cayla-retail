@@ -101,6 +101,14 @@ flowchart TB
 
 ### 3.1 Mapa por dominio (ruta → lib → componentes → RPC/tablas)
 
+**Inicio (`/`)**
+- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
+  (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
+  puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
+  catálogo», pulso, en camino, reponer a piso y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
+  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, existencias, movimientos de hoy, en camino), cada una tolerante.
+  Reglas puras con pruebas: `lib/inicio-almacen-reglas.ts`. La sigla de la sede donde se registró cada producto sale de `fn_producto_origen` (tabla `producto_origen` + disparador en `productos`, migración `20260930170000`; `components/inicio-almacen/ChipSede.tsx`). Estilos: `app/estilos/inicio-almacen.css` (clases `ia-*`, bloque «AMBIENTE» aislado). Ocupa todo el ancho del `<main>`: el marcador `data-ancho-completo` de `InicioAlmacen` le quita el tope de 64 rem que `AppShell` pone por defecto (`has-[[data-ancho-completo]]:max-w-none`; `lib/ancho-completo.test.ts`). ADR-0292.
+
 **Identidad y sede**
 - `lib/persona.ts` (`requirePersonaActual`, cacheado) resuelve rol
   (`lider`/`integrante`) y sede activa desde `personas` + cookie
@@ -154,8 +162,8 @@ flowchart TB
   `desactivar_terminal` / `reactivar_terminal` (`TablaTerminales`, `AlternarTerminalModal`). **Crear y cambiar la clave no
   es una RPC:** exige la llave de servicio y lo hace `pnpm terminales:crear` (`scripts/terminales/`). `colaboradores.terminal`
   quedó retirada (siempre null) y `agregar_terminal` lanza 0A000. Los poderes siguen siendo las cinco capacidades
-  (`fn_puede_gestionar_caja`, `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo`, `fn_puede_editar_cuentas_proveedor` y, solo del
-  líder, `fn_puede_dar_descuento_por_etiqueta`); `fn_es_terminal` / `fn_mi_terminal` ahora leen `retail.terminales`. La web
+  (`fn_puede_gestionar_caja`, `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo`, `fn_puede_editar_cuentas_proveedor` y, del
+  líder o de un rol con Etiquetas —ADR-0293, antes solo líder—, `fn_puede_dar_descuento_por_etiqueta`); `fn_es_terminal` / `fn_mi_terminal` ahora leen `retail.terminales`. La web
   pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
   en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   La sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila viene de `fn_persona_actual_resumen`,
@@ -328,6 +336,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`HINTS_CONTEO`); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`, la usa Análisis). Kit compartido en `components/conteo/` (`EstadoLinea`,
   `ResumenConteo`, `PasosConteo`). **Sin** prioridad por valor, sin conteo a ciegas y sin costos. `cerrar_conteo` exige, en este orden: permiso, `conteo_vacio` (nada
   verificado), `conteo_pendientes` (salvo cierre parcial) y `diferencias_sin_confirmar`.
+  - **«Conteos recientes» por día** (ADR-0293, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa en bandas por día (primera columna = hora) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
   `layout.tsx` con `exigirModulo("frescura")`; sexta fila de Inventario en `lib/menu.ts`) → `page.tsx` →
   `lib/frescura.ts:getFrescuraPantalla` (el líder: `armarFrescuraLider` = RPC `fn_frescura_sede` por cada tienda en
@@ -547,6 +556,25 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`components/alta-producto/IdentidadAlta.tsx`); esa identidad firma la prenda y los guardados de mitad de formulario (marca,
   talla, tejido, color, etiqueta, muestra, valor, categoría) vía `useFirmaDeMitad` (reglas puras en `lib/identidad-alta-reglas.ts`).
   Se acaba al salir de la pantalla; «Crear otro parecido» la conserva.
+  **Prendas parecidas (ADR-0294, 2026-09-30; Fase 1, solo web y sin migración):** antes de crear, el resumen de la derecha avisa qué ya existe de la
+  marca elegida (sin marca, de la categoría) y una hoja «Ver y comparar» deja mirar foto, colores, tallas, cantidades por sede y cuándo y dónde se cargó.
+  En el paso 2 «Marca y proveedor» va ARRIBA del Nombre (sigue opcional y la guía no la señala: `camposDelAlta` en `lib/alta-producto-guia.ts`).
+  Ruta ↔ lib ↔ base, de la base hacia la pantalla:
+  (1) el candado que frena «Crear» sigue saliendo de la RPC `buscar_productos_parecidos(p_referencia, p_excluir_id)` ← `lib/use-parecidos.ts`
+  (`useParecidos`; Editar producto, `ProductoForm.tsx`, lo sigue usando con `AvisoParecidos`);
+  (2) la lectura de lo que ya existe: `lib/useCandidatasAlta.ts` → `lib/candidatas-alta-lector.ts` (`crearLectorDeLaBase` y el control de carrera, plazo
+  y memoria) lee `fn_productos` (por marca o, sin marca, por categoría), la tabla `productos`, `fn_existencias_productos` (sin sede: cantidades de todas
+  las tiendas), `fn_producto_origen` (ADR-0292), `fn_temporadas`, `ubicaciones` y, si hace falta, `variantes` y `producto_fotos`;
+  `lib/candidatas-alta-datos.ts` (`construirCandidatas`) las junta en `CandidataAlta[]` (`lib/parecidas-alta-tipos.ts`) **sin precio ni costo**;
+  (3) `lib/parecidas-alta-reglas.ts` (+ `lib/parecidas-lexico.ts`) las ordena y da el nivel (idéntico, una letra, parecida, contexto);
+  (4) `lib/parecidas-alta-vista.ts` arma lo que se dibuja (`armarAlerta`, `armarTarjeta`, `armarHoja`, todos los textos en `TEXTO` y `FRASE`);
+  (5) `lib/parecidas-alta-estado.ts` (`armarParecidasDelAlta`: qué frena, revisadas, respaldo) y `lib/useParecidasAlta.ts` (el hook que conecta; pausa de 0,6 s
+  para la alerta) sustituyen a `useParecidos` dentro de `NuevoProductoForm.tsx` y devuelven sus mismos nombres más lo nuevo;
+  (6) pantalla: `FichaPrevia.tsx` (prop opcional `parecidas`: `AlertaParecidas` entre la ficha y «Avance», `TiraParecidas` como primer hijo de la barra
+  `data-barra-ficha` en celular y tablet, y `HojaParecidas` como portal) y `components/alta-producto/ParecidasDelAlta.tsx` en el paso 2 (avisos bajo
+  Nombre —rojo para el idéntico o el nombre reservado «Prenda sin Registrar», ámbar para «casi igual»—, «Revisa: N parecidas · Ver» y, solo de respaldo, la casilla de siempre); estilos en `app/estilos/alta-parecidas.css`.
+  «Es el mismo diseño» lleva a `/productos/<id>/editar` (no suma unidades; eso es una fase posterior). Solo frena el idéntico y, mientras la base lo exija,
+  «una letra» hasta que se responda «No, es otro diseño» (`CASI_IGUAL_FRENA_EN_BASE`). Las lecturas son GET o RPC `fn_*` (el loader global no bloquea).
   Su pantalla de éxito (`components/alta-producto/ProductoCreado.tsx`) ofrece «Imprimir etiquetas» —en otra pestaña,
   `/etiquetas-de-precio?producto=`— solo si el producto entró con stock (`etiquetasDelAlta`, ADR-0180 act. 2026-09-29).
   Las **etiquetas** (ADR-0109, act. 2026-09-27 c) son una fila del paso 3 «Cómo se hace» (después de Colores, antes de

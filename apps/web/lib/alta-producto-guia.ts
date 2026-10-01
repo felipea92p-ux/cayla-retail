@@ -14,14 +14,14 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
-import type { EstadoCampo } from "./guia-campos";
+import { siguienteDe, type EstadoCampo } from "./guia-campos";
 
 export type CampoGuia = {
   id: CampoAlta;
@@ -51,11 +51,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const precioOk = e.precioBase.trim() !== "" && Number.isFinite(precio) && precio > 0;
   const costo = Number(e.costoBase);
   const costoOk = e.costoBase.trim() === "" || (Number.isFinite(costo) && costo >= 0);
-  const nombreOk = e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
+  const nombreOk = e.referencia.trim() !== "" && claveReferencia(e.referencia) !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
   return [
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
+    // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
+    // escriba una letra. Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió. El orden no cambia nada de eso:
+    // `siguienteDe` solo retiene campos requeridos o sugeridos, así que «Sigue aquí» sigue yendo al nombre.
+    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "nombre",
       paso: 2,
@@ -66,15 +70,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       // La misma frase que `problemasAlta` da en cada caso: «Revisa el nombre» a secas no dice qué hacer.
       pendiente: !e.referencia.trim()
         ? "Escribe el nombre del producto."
-        : e.nombreBloqueado
-          ? "Ya existe un producto con ese nombre."
-          : e.nombreSinConfirmar
-            ? "Confirma que es otro producto, o abre el que ya existe."
-            : "Comprobando que el nombre no exista todavía…",
+        : claveReferencia(e.referencia) === ""
+          ? "El nombre necesita al menos una letra o un número."
+          : e.nombreBloqueado
+            ? "Ya existe un producto con ese nombre."
+            : e.nombreSinConfirmar
+              ? "Confirma que es otro diseño (mira la prenda parecida), o ábrela."
+              : "Comprobando que el nombre no exista todavía…",
     },
     { id: "descripcion", paso: 2, nombre: "Descripción", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo, los detalles." },
-    // Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió.
-    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "tejido",
       paso: 2,
@@ -120,18 +124,26 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
 /** Lo que aún le falta a un campo para dejar de estar pendiente: requerido o sugerido, y sin hacer. */
 const porHacer = (c: CampoGuia) => !c.hecho && (c.requerido || c.sugerido);
 
-/** El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente. */
-export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): CampoAlta | null {
-  return campos.find((c) => c.paso === pasoAbierto && porHacer(c))?.id ?? null;
+/**
+ * El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente.
+ *
+ * `enFoco` es el campo donde la persona está escribiendo AHORA (una caja de texto: nombre, precio, una cantidad). Mientras siga ahí
+ * conserva la luz aunque ya cuente como hecho: con una letra el nombre ya lo es, y con un dígito el precio, y una luz que salta al
+ * siguiente campo a media palabra estorba. La regla es la de los modales (`siguienteDe`, lib/guia-campos.ts).
+ */
+export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): CampoAlta | null {
+  const ahora = siguienteDe(campos.filter((c) => c.paso === pasoAbierto), enFoco);
+  return ahora ? (ahora.id as CampoAlta) : null;
 }
 
 /** El estado de cada campo del paso ABIERTO: el primero por hacer es «ahora» (Sigue aquí), los demás por hacer «falta». Un campo
- *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. */
-export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): Record<CampoAlta, EstadoCampo> {
-  const ahora = campoAhora(campos, pasoAbierto);
+ *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. El que se está escribiendo (`enFoco`)
+ *  sigue siendo «ahora», sin ✓ todavía. */
+export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): Record<CampoAlta, EstadoCampo> {
+  const ahora = campoAhora(campos, pasoAbierto, enFoco);
   const out = {} as Record<CampoAlta, EstadoCampo>;
   for (const c of campos) {
-    out[c.id] = c.hecho ? "hecho" : c.id === ahora ? "ahora" : c.requerido || c.sugerido ? "falta" : "opcional";
+    out[c.id] = c.id === ahora ? "ahora" : c.hecho ? "hecho" : c.requerido || c.sugerido ? "falta" : "opcional";
   }
   return out;
 }
