@@ -108,5 +108,8 @@ cosa que la fila. Por eso el aviso pregunta a esa función y no tiene umbrales p
   2 filas piso → almacén con esa nota; el aviso ámbar «Existencias va a pedir bajar de nuevo…» sale cuando la M quedaría en cero. Rechazo: con la S
   vaciada por debajo, «No se subió nada: revisa las tallas marcadas» y «Ya no queda nada libre en el piso», con las cifras releídas. 375 px: los botones
   bajan a dos renglones, sin desborde horizontal.
+- **Lo que cazó el CI (2026-10-01):** el «vigilante» de `pruebas:clientas-modulo` marca toda función `security definer` cuyo código diga «clientas» sin
+  el candado del módulo Clientas, y `retirar_del_piso` lo dice en el mensaje «(3 apartadas para clientas)». No toca la ficha de la clienta (lo apartado se
+  cuenta en `stock`): se declaró en su lista blanca junto a `bajar_al_piso`, que está por la misma razón. La función de producción no cambió.
 - **No probado:** con una cuenta no administradora (en local se vio «Eres admin»); el corte de red de esta ventana en el navegador (la lógica es la de
   «Reponer», que sí se probó, y la idempotencia de la base está en las pruebas SQL); en producción hasta pegar el SQL y fusionar.
