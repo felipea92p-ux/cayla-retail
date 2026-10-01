@@ -244,7 +244,7 @@ type Props = {
   cajaId: string | null;
   /** Lo que dejó en el cajón el último cierre de la sede (ADR-0186), para verificar la apertura. `null` si no se sabe. */
   fondoUltimoCierre?: number | null;
-  /** Cuándo y quién cerró la caja la última vez, para el cartel «Cerrado» (ADR-0299). `null` si la caja está abierta o la sede nunca cerró. */
+  /** Cuándo y quién cerró la caja la última vez, para el cartel «Cerrado» (ADR-0301). `null` si la caja está abierta o la sede nunca cerró. */
   cierreAnterior?: CierreAnterior | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
@@ -296,7 +296,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
-  // El botón grande de la persiana «Caja cerrada» (ADR-0299): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
+  // El botón grande de la persiana «Caja cerrada» (ADR-0301): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
   const botonAbrirCaja = useRef<HTMLButtonElement>(null);
   // A dónde vuelve el foco al cerrarse «Abrir caja». Se decide AL CERRARSE, no al dibujar el modal: cuando la caja abre, el
   // modal se desmonta con las props de su último render (todavía con la caja cerrada) y Radix devuelve el foco un instante
@@ -1544,7 +1544,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
-          Con la caja cerrada, todo esto queda tras la persiana de `CajaCerrada` (ADR-0299) y `inert`: ni el mouse ni el
+          Con la caja cerrada, todo esto queda tras la persiana de `CajaCerrada` (ADR-0301) y `inert`: ni el mouse ni el
           teclado llegan, y el único camino es su botón «Abrir caja». La cabecera (sede) y el menú quedan nítidos.
           `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles nunca encogen por debajo de su
           contenido y el scroll interno de cada uno no se activa. */}
@@ -1792,7 +1792,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         />
       )}
 
-      {/* Caja cerrada (ADR-0299): persiana y cartel sobre todo el área de trabajo. Abrir la caja lo puede cualquiera
+      {/* Caja cerrada (ADR-0301): persiana y cartel sobre todo el área de trabajo. Abrir la caja lo puede cualquiera
           (D-13) y es lo primero que se hace, por eso es el único botón. Al abrir, el cartel gira y la persiana sube sola. */}
       <CajaCerrada
         cerrada={bloqueado}
