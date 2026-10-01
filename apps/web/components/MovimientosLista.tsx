@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
-import { CajonMovimiento, type VistaCajon } from "@/components/CajonMovimiento";
+import { CajonMovimiento } from "@/components/CajonMovimiento";
 import { DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import { construirDetalleBajadas, type ContextoCajon } from "@/lib/movimientos-cajon";
+import { construirDetalleBajadas, vistaDeOperacion, type ContextoCajon, type VistaCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
@@ -116,7 +116,7 @@ export function MovimientosLista({
     enlaceVentas,
     enlaceCompras,
     modulosVisibles: accesos.modulos,
-    volverA: ctx.volverA,
+    hoyLima,
   };
 
   // Agrupar por día de Lima (`fecha` ya viene calculada en SQL): las operaciones llegan ordenadas por hora desc, así que
@@ -131,9 +131,9 @@ export function MovimientosLista({
   // Lo que muestra el cajón: la operación abierta, o las bajadas plegadas de un día (si siguen plegadas con estos filtros).
   const grupoBajadas = bajadasAbiertas ? itemsPorDia.flatMap((d) => d.items).find((i) => i.tipo === "bajadas" && i.clave === bajadasAbiertas) : undefined;
   const vistaCajon: VistaCajon | null = operacionAbierta
-    ? { tipo: "operacion", operacion: operacionAbierta }
+    ? vistaDeOperacion(operacionAbierta, ctxCajon)
     : grupoBajadas?.tipo === "bajadas"
-      ? { tipo: "bajadas", detalle: construirDetalleBajadas(grupoBajadas.clave, grupoBajadas.operaciones, ctxCajon, hoyLima) }
+      ? { tipo: "bajadas", detalle: construirDetalleBajadas(grupoBajadas.clave, grupoBajadas.operaciones, ctxCajon) }
       : null;
 
   return (
@@ -180,7 +180,6 @@ export function MovimientosLista({
       {vistaCajon && (
         <CajonMovimiento
           vista={vistaCajon}
-          contexto={ctxCajon}
           onVerVenta={
             enlaceVentas && abierto
               ? () => {
