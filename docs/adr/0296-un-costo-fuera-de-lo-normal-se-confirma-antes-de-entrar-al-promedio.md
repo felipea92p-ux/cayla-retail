@@ -1,4 +1,4 @@
-# ADR-0292 — Un costo fuera de lo normal se confirma antes de entrar al promedio
+# ADR-0296 — Un costo fuera de lo normal se confirma antes de entrar al promedio
 
 **Fecha:** 2026-09-30 · **Estado:** construido y probado en local; **las cinco migraciones están sin pegar en producción** al
 escribirse esto (ver «Cómo se pega») · **Decide:** Felipe (umbral, el cero, qué pasa con un integrante, el alcance y quién

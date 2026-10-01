@@ -1,4 +1,4 @@
-## 🛡️ Tope de costo atípico en las cuatro puertas del costo (2026-09-30, ADR-0292) — migraciones sin pegar; rama `claude/costo-validation-cerrar-produccion-fa4c02`
+## 🛡️ Tope de costo atípico en las cuatro puertas del costo (2026-09-30, ADR-0296) — migraciones sin pegar; rama `claude/costo-validation-cerrar-produccion-fa4c02`
 
 Cierra el ítem 6 de `docs/backlog/2026-09-29-top-30-pendientes-erp.md` (EI-7 del cimiento 9) y lo extiende a Compras.
 
@@ -8,10 +8,10 @@ Cierra el ítem 6 de `docs/backlog/2026-09-29-top-30-pendientes-erp.md` (EI-7 de
 - [x] **Factura:** `registrar_compra` (marca por línea; firma de 15 parámetros intacta; confirma quien registra) + `CompraFormV2.tsx`. 21 pruebas, 8 mutantes.
 - [x] **Fuera de comprobante de un envío:** `recibir_envio` (marca por extra; firma de 9 intacta) + `RecepcionEnvio.tsx`/`ResumenPrevioEnvio.tsx`. 20 pruebas, 8 mutantes.
 - [x] Verificado en el navegador con los componentes reales contra PostgREST y una base privada (líder e integrante, en las cuatro pantallas). Toda la batería web (≈153 mil pruebas) y 22 suites SQL en verde.
-- [ ] **POR PEGAR en producción:** las cinco migraciones `20260930120000` a `20260930124000`, en una sola corrida y en ese orden (sonda y verificación en ADR-0292 §8). Después, refrescar `docs/datos/generado/` (`pnpm datos:generar:produccion`).
-- [ ] **Decisión de Felipe — lote:** ¿un integrante puede teclear costo al recibir un lote sin factura? Hoy la pantalla se lo deja y choca con ADR-0126; con esta regla además le da un canal lateral para acotar el costo. Opciones en ADR-0292 §7.
+- [ ] **POR PEGAR en producción:** las cinco migraciones `20260930120000` a `20260930124000`, en una sola corrida y en ese orden (sonda y verificación en ADR-0296 §8). Después, refrescar `docs/datos/generado/` (`pnpm datos:generar:produccion`).
+- [ ] **Decisión de Felipe — lote:** ¿un integrante puede teclear costo al recibir un lote sin factura? Hoy la pantalla se lo deja y choca con ADR-0126; con esta regla además le da un canal lateral para acotar el costo. Opciones en ADR-0296 §7.
 - [ ] **Decisión de Felipe — Producción:** al encender el módulo para el rol Integrante, toda orden con costo total 0 solo la cierra un líder: definir quién teclea el costo al abrirla.
-- [ ] **Revisar a los ~10 cierres reales:** medir la variación verdadera de costo (consulta en ADR-0292 §3) y ajustar la banda si hace falta; el 0,25 es un supuesto.
+- [ ] **Revisar a los ~10 cierres reales:** medir la variación verdadera de costo (consulta en ADR-0296 §3) y ajustar la banda si hace falta; el 0,25 es un supuesto.
 - [ ] **Corregir un costo ya contaminado** sigue sin existir: `revertir_produccion` no lo deshace y el candado de `20260927190000` impide la corrección manual. Tarea aparte («Que revertir_produccion también deshaga el costo»).
 - [ ] **Ramas ajenas:** toda rama cuyas pruebas registren facturas, lotes u órdenes con precios arbitrarios necesita `confirma_costo` (ver las nueve pruebas ajustadas aquí).
 - [ ] **Sin probar:** las pantallas a 375 px (son de escritorio); la ruta completa de cada pantalla con sesión real (se montó el componente real en una página de prueba).
