@@ -108,6 +108,9 @@ export function ResumenStockOverlay({
     </button>
   );
   const sinNada = delStock.total === 0 && !(deLasVentas && deLasVentas.vendidas > 0);
+  // Las columnas de la tabla van en línea y no como clase `grid-cols-[…]`: si la hoja de estilos no trae esa clase (una build o un servidor
+  // de desarrollo sin regenerar), la cuadrícula se apilaba en UNA columna y la tabla dejaba de leerse (2026-10-01).
+  const columnas = separa ? "minmax(0,1fr) 4rem 4rem 4.5rem" : "minmax(0,1fr) 4rem 4.5rem";
 
   return (
     <Modal
@@ -148,11 +151,7 @@ export function ResumenStockOverlay({
         ) : (
           <Seccion titulo="Por categoría" bajada={separa ? "Cuántas prendas hay en el almacén y en el piso, y cuántas se vendieron este mes." : "Cuántas prendas hay y cuántas se vendieron este mes."}>
             <div className="overflow-hidden rounded-lg border border-tinta/10">
-              <div
-                className={`grid gap-x-3 bg-hueso/60 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe ${
-                  separa ? "grid-cols-[minmax(0,1fr)_4rem_4rem_4.5rem]" : "grid-cols-[minmax(0,1fr)_4rem_4.5rem]"
-                }`}
-              >
+              <div className="grid gap-x-3 bg-hueso/60 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
                 <span>Categoría</span>
                 {separa ? (
                   <>
@@ -166,7 +165,7 @@ export function ResumenStockOverlay({
               </div>
               <ul className="divide-y divide-tinta/10">
                 {tabla.filas.map((f) => (
-                  <li key={f.nombre} className={`grid items-center gap-x-3 px-3.5 py-2.5 text-sm tabular-nums ${separa ? "grid-cols-[minmax(0,1fr)_4rem_4rem_4.5rem]" : "grid-cols-[minmax(0,1fr)_4rem_4.5rem]"}`}>
+                  <li key={f.nombre} className="grid items-center gap-x-3 px-3.5 py-2.5 text-sm tabular-nums" style={{ gridTemplateColumns: columnas }}>
                     <span className="min-w-0">
                       <span className="block truncate text-tinta">{f.nombre}</span>
                       {separa && <BarraDeStock piso={f.piso ?? 0} almacen={f.almacen ?? 0} escala={escala} />}
@@ -183,7 +182,7 @@ export function ResumenStockOverlay({
                   </li>
                 ))}
               </ul>
-              <div className={`grid gap-x-3 border-t border-tinta/15 bg-hueso/60 px-3.5 py-2.5 text-sm font-semibold tabular-nums text-tinta ${separa ? "grid-cols-[minmax(0,1fr)_4rem_4rem_4.5rem]" : "grid-cols-[minmax(0,1fr)_4rem_4.5rem]"}`}>
+              <div className="grid gap-x-3 border-t border-tinta/15 bg-hueso/60 px-3.5 py-2.5 text-sm font-semibold tabular-nums text-tinta" style={{ gridTemplateColumns: columnas }}>
                 <span>Total</span>
                 {separa ? (
                   <>
