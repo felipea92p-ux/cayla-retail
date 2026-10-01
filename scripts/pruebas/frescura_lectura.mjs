@@ -2580,11 +2580,17 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
 //   FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura
 const FIXTURE = join(RAIZ, "apps", "web", "lib", "__fixtures__", "frescura-sede.json");
 
+const NULOS_DEL_MES_EN_CURSO = new Set(["confianza.confianza", "confianza.nivel"]);
+
 /** La forma de un valor, sin sus datos: por cada ruta, los tipos que aparecen («string|null»). Los eventos y lo apartado
  *  van por variante (la clave es un uuid): se describen como un solo arreglo de tuplas. */
 function forma(sede, conf) {
   const tipos = new Map();
   const anotar = (ruta, v) => {
+    // El mes en curso sin bajadas todavía (el día 1, por ejemplo) devuelve `confianza` y `nivel` en null; el archivo se
+    // escribió un día con datos y no lo tiene. Es un valor legítimo (la web ya lo tipa `number | null`): su nulidad
+    // depende de la fecha en que corre la prueba, así que no cuenta como forma. Se compara el tipo que traen con dato.
+    if (v === null && NULOS_DEL_MES_EN_CURSO.has(ruta)) return;
     const t = v === null ? "null" : Array.isArray(v) ? "array" : typeof v;
     if (!tipos.has(ruta)) tipos.set(ruta, new Set());
     tipos.get(ruta).add(t);

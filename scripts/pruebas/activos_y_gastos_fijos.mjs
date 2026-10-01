@@ -195,7 +195,7 @@ select count(*) from retail.fn_tipos_activo();`);
   const r = correr(`${ESCENA}
 select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Luz de la tienda', :'prov', 'boleta', 180, true, 10) as f \\gset
 select estado, fecha_esperada, monto_variable from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'f';
-select estado from retail.fn_gastos_fijos_mes('2026-10-01', :'tru') where id = :'f';
+select estado from retail.fn_gastos_fijos_mes((date_trunc('month', retail.fn_hoy_lima()) + interval '1 month')::date, :'tru') where id = :'f';
 select retail.registrar_gasto(:'tru', 'servicios_basicos', 'Luz de septiembre', '2026-09-12', 176.40, null, 'yape', null, null, null, null, :'f') as g \\gset
 select estado, gasto_monto from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'f';
 select pg_temp.intento(format('select retail.registrar_gasto(%L, ''servicios_basicos'', ''Otra luz'', ''2026-09-20'', 10, null, ''yape'', null, null, null, null, %L)', :'tru', :'f'));
@@ -206,7 +206,7 @@ select retail.archivar_gasto_fijo(:'f') as _x \\gset
 select count(*) from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'f';`);
   const [falta, viene, registrado, dobleMes, otroMes, otraTienda, dia31, archivado] = lineas(r);
   esperar("pasó su día (10) y no hay gasto: falta, esperado el 2026-09-10, monto variable", r.ok && falta === "falta|2026-09-10|t", r);
-  esperar("en octubre todavía viene", r.ok && viene === "por_llegar", r);
+  esperar("el mes que viene todavía viene", r.ok && viene === "por_llegar", r);
   esperar("con su gasto registrado: registrado, con lo pagado de verdad", r.ok && registrado === "registrado|176.40", r);
   esperar("un solo gasto por fijo en el mismo mes", r.ok && dobleMes.includes("ya tiene su gasto de este mes"), r);
   esperar("el mes anterior es otro mes: sí se registra", r.ok && otroMes === "SIN_ERROR", r);
@@ -218,9 +218,11 @@ select count(*) from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id =
 // 7. Lo que se repite se propone como fijo; ya guardado, deja de proponerse. Permisos de fijos.
 {
   const r = correr(`${ESCENA}
-select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio mensual', '2026-06-08', 100, null, 'yape') as g1 \\gset
-select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio mensual', '2026-07-09', 120, null, 'yape') as g2 \\gset
-select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio de agosto', '2026-08-09', 110, null, 'yape') as g3 \\gset
+-- Los tres meses anteriores al mes en curso (la ventana de fn_gastos_fijos_sugeridos), calculados desde hoy: con fechas
+-- fijas la prueba solo pasaba el mes en que se escribió (el 1 de octubre la ventana ya no incluía junio).
+select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio mensual', (date_trunc('month', retail.fn_hoy_lima()) - interval '3 months')::date + 7, 100, null, 'yape') as g1 \\gset
+select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio mensual', (date_trunc('month', retail.fn_hoy_lima()) - interval '2 months')::date + 8, 120, null, 'yape') as g2 \\gset
+select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio de agosto', (date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date + 8, 110, null, 'yape') as g3 \\gset
 select meses, monto, dia_del_mes, descripcion, comprobante_tipo from retail.fn_gastos_fijos_sugeridos() where ubicacion_id = :'tru' and categoria = 'publicidad';
 select retail.guardar_gasto_fijo(null, :'tru', 'publicidad', 'Anuncio mensual', null, 'sin_comprobante', 110, false, 9) as f \\gset
 select count(*) from retail.fn_gastos_fijos_sugeridos() where ubicacion_id = :'tru' and categoria = 'publicidad';
