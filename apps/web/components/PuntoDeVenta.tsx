@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
@@ -98,6 +98,8 @@ import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/E
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
 import { descripcionDePrenda, prendaQuitadaDeLinea, type PrendaQuitada } from "@/lib/se-probo-reglas";
+import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
+import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 
 /**
@@ -237,11 +239,13 @@ type Props = {
   esLider: boolean;
   /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). `esLider` queda para lo que sigue siendo del líder (descuentos). */
   puedeCerrarCaja: boolean;
-  /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
+  /** Null si no hay caja abierta — el POS queda tras la persiana de «Caja cerrada» y desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
   /** Lo que dejó en el cajón el último cierre de la sede (ADR-0186), para verificar la apertura. `null` si no se sabe. */
   fondoUltimoCierre?: number | null;
+  /** Cuándo y quién cerró la caja la última vez, para el cartel «Cerrado» (ADR-0299). `null` si la caja está abierta o la sede nunca cerró. */
+  cierreAnterior?: CierreAnterior | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
@@ -288,10 +292,25 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
+  // El botón grande de la persiana «Caja cerrada» (ADR-0299): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
+  const botonAbrirCaja = useRef<HTMLButtonElement>(null);
+  // A dónde vuelve el foco al cerrarse «Abrir caja». Se decide AL CERRARSE, no al dibujar el modal: cuando la caja abre, el
+  // modal se desmonta con las props de su último render (todavía con la caja cerrada) y Radix devuelve el foco un instante
+  // después. Con un destino fijo, el foco iba al botón de la persiana —que se va con ella— y quedaba en el `body`, con el
+  // escáner sin foco. Así: caja ya abierta → el buscador; se cerró sin abrir → el botón, y Enter vuelve a abrirlo.
+  const cajaCerradaAhora = useRef(cajaId === null);
+  useEffect(() => {
+    cajaCerradaAhora.current = cajaId === null;
+  }, [cajaId]);
+  const [focoTrasAbrirCaja] = useState<RefObject<HTMLElement | null>>(() => ({
+    get current() {
+      return cajaCerradaAhora.current ? botonAbrirCaja.current : buscador.current;
+    },
+  }));
   const token = useRef<string>(crypto.randomUUID());
   /** Mutex de la subida de la cola offline: mientras haya una pasada en curso, un
    *  segundo disparo (mount/online/latido solapados, o React Strict Mode invocando el
@@ -1525,13 +1544,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
-          Con la caja cerrada se apagan el catálogo y el ticket, NO esta fila: «Abrir caja» tiene que poder tocarse.
+          Con la caja cerrada, todo esto queda tras la persiana de `CajaCerrada` (ADR-0299) y `inert`: ni el mouse ni el
+          teclado llegan, y el único camino es su botón «Abrir caja». La cabecera (sede) y el menú quedan nítidos.
           `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles nunca encogen por debajo de su
           contenido y el scroll interno de cada uno no se activa. */}
       <div
         // `max-lg:[&>aside]:hidden`: bajo `lg` el ticket vive en su hoja; en el primer pintado (servidor, sin saber el
         // ancho) `apilado` todavía es false y el ticket se dibujaba un instante debajo del catálogo en el celular.
-        className={`grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden ${bloqueado ? "[&>aside]:pointer-events-none [&>aside]:opacity-50" : ""}`}
+        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
+        inert={bloqueado}
       >
         <div className="flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
           <div className="anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
@@ -1568,12 +1589,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                   : undefined
               }
             />
-            {/* Abrir la caja lo puede cualquiera (D-13) y es lo primero que se hace: a la vista, nunca dentro de «Más». */}
-            {bloqueado && (
-              <button type="button" onClick={() => setModalCaja("abrir")} className="label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-                Abrir caja
-              </button>
-            )}
             <span className="ml-auto">
               <ResumenDeHoy
                 forma="texto"
@@ -1617,9 +1632,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             </div>
           )}
 
-          {/* Con la caja cerrada, el catálogo se ve igual — pero apagado y fuera de alcance del mouse. `disabled` real
-              en cada control de adentro, no solo esto: `pointer-events-none` no le dice nada al teclado. */}
-          <div aria-disabled={bloqueado} className={`flex min-h-0 flex-1 flex-col transition-opacity ${bloqueado ? "pointer-events-none opacity-50" : ""}`}>
+          {/* Con la caja cerrada, el catálogo queda tras la persiana y fuera de alcance (`inert` arriba). `disabled` real
+              en cada control de adentro igual: es lo que dice «no se puede» si algo llegara sin pasar por la persiana. */}
+          <div aria-disabled={bloqueado} className="flex min-h-0 flex-1 flex-col">
         <PuntoDeVentaCatalogo
           ubicacionEtiqueta={ubicacionEtiqueta}
           bloqueado={bloqueado}
@@ -1777,8 +1792,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         />
       )}
 
+      {/* Caja cerrada (ADR-0299): persiana y cartel sobre todo el área de trabajo. Abrir la caja lo puede cualquiera
+          (D-13) y es lo primero que se hace, por eso es el único botón. Al abrir, el cartel gira y la persiana sube sola. */}
+      <CajaCerrada
+        cerrada={bloqueado}
+        ubicacionEtiqueta={ubicacionEtiqueta}
+        cierreAnterior={cierreAnterior}
+        onAbrir={() => setModalCaja("abrir")}
+        botonRef={botonAbrirCaja}
+        alAbrirEnfocar={buscador}
+        aviso={<PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />}
+      />
+
       {modalAbrirVisible && (
-        <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
           <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} />
         </Modal>
       )}
