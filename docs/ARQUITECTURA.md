@@ -322,7 +322,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
   **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 5 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
   categorías, `getAlcanceConteo` → RPC `fn_conteo_alcance` —dato de apoyo: cuántas variantes trae cada lugar y categoría; si no llega, la tarjeta sale sin cifras— y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y
-  `AccionesEnCurso`; sin abierto, `AbrirConteo.tsx`: dónde/qué/quién en tres preguntas + «Tu conteo» (variantes, resumen y botón; guía de foco `lib/conteo-inicio-guia.ts`), `rpc abrir_conteo`) + `ConteosLista.tsx` («Conteos recientes»: Todo correcto /
+  `AccionesEnCurso`; sin abierto, `AbrirConteo.tsx`: dónde/qué/quién en tres preguntas + «Tu conteo» (variantes, resumen y botón; guía de foco `lib/conteo-inicio-guia.ts`), `rpc abrir_conteo`; «Qué» es Todo / Una categoría / **Por prenda** (2026-10-01): `conteo/ElegirPrendas.tsx` busca con el filtro de Existencias sobre `GET /api/conteo/prendas` —se lee al tocar la opción, vía `lib/usePrendasParaContar.ts`; lógica en `lib/conteo-por-prenda.ts`— y las prendas elegidas viajan como `?variantes=`: es una vista, el conteo que abre la base sigue siendo «todo»; ver backlog 2026-10-01) + `ConteosLista.tsx` («Conteos recientes»: Todo correcto /
   N diferencias corregidas / Conteo parcial / Cancelado / En curso). `?variantes=` con abierto redirige a `/inventario/conteo/<id>?variantes=`.
   → `/inventario/conteo/[id]` decide por estado (`getDetalleConteo` → RPC `fn_conteo_detalle`, un solo jsonb con cabecera, resumen y líneas): **abierto** →
   `ContarConteo.tsx` (`ListaConteo` = una tabla con un `tbody` por percha, `FilaConteo` memoizada + `CampoContaste`; el estado de las líneas vive fuera de React en
@@ -1025,6 +1025,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
+- `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
+  sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
+  hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
+  no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
 - `/api/padron` → consulta de DNI/RUC. El token del proveedor nunca sale del
   servidor. Devuelve siempre 200 con `fuente` (`padron` | `historial` | `ninguna`)
   y, si vino del padrón, `via` (`sunat_publico` | `proveedor`) — "no pude

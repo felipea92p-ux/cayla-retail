@@ -14,6 +14,8 @@ import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
 import { TODA_LA_UBICACION, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
 import { camposDeApertura, type AlcanceElegido } from "@/lib/conteo-inicio-guia";
 import { filtrarCombo } from "@/lib/combo-reglas";
+import { podarElegidas, prendasDelLugar, textoPrendas, type LugarDeConteo } from "@/lib/conteo-por-prenda";
+import { usePrendasParaContar } from "@/lib/usePrendasParaContar";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { avisar } from "@/components/ui/Avisos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -22,6 +24,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -29,7 +32,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
    Tres preguntas a la izquierda y, a la derecha, «Tu conteo»: cuántas variantes trae lo elegido, un resumen de tres líneas y el botón.
      1. «¿Dónde vas a contar?»  — Almacén de tienda o Piso de venta. Solo en una sede que los separa; el Taller no los separa y su
                                  conteo es de toda la ubicación: la pregunta ni aparece.
-     2. «¿Qué vas a contar?»    — Todo, o una categoría (con buscador, a la vista: un toque en vez de abrir una lista).
+     2. «¿Qué vas a contar?»    — Todo, una categoría (con buscador, a la vista: un toque en vez de abrir una lista) o prendas exactas
+                                 («Por prenda», 2026-10-01: el buscador de Existencias sobre lo que hay en el lugar elegido).
      3. «¿Quién cuenta?»        — el responsable (combo de asistencia, ADR-0161/0162): firma la apertura.
 
    La cifra de «Tu conteo» son VARIANTES (modelo · color · talla), nunca unidades: el conteo es a ciegas, y decir cuántas prendas
@@ -52,6 +56,9 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 
    Abrir lleva directo a contar (`router.push`): no se relee este inicio, que ya no es donde se trabaja. `?variantes=`
    («Contar esta prenda» desde Movimientos, ADR-0241) se arrastra a la ruta del conteo para que la lista salga acotada.
+   «Por prenda» usa ese mismo camino: la base abre el conteo del lugar completo (`p_alcance = 'todo'`) y las prendas elegidas viajan
+   como `?variantes=`. Es una vista, no un alcance guardado: el historial lo seguirá llamando «Todo». Convertirlo en alcance de la
+   base (`conteos.alcance = 'prendas'`) es una decisión pendiente, ver `docs/backlog/2026-10-01-search-by-exact-garment-0f2248.md`.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string };
@@ -92,13 +99,24 @@ export function AbrirConteo({
   const [lugarId, setLugarId] = useState<string | "">("");
   const [queCuento, setQueCuento] = useState<AlcanceElegido>("todo");
   const [categoriaId, setCategoriaId] = useState<string | "">("");
+  // «Por prenda»: los ids elegidos, en el orden en que se eligieron. Las prendas se leen la primera vez que se toca la opción.
+  const [prendasElegidas, setPrendasElegidas] = useState<string[]>([]);
+  const [quitadasPorLugar, setQuitadasPorLugar] = useState(0);
+  const cargaDePrendas = usePrendasParaContar(queCuento === "prendas");
 
   const lugar = separaPisoAlmacen ? (lugares.find((l) => l.id === lugarId) ?? null) : null;
   const categoria = queCuento === "categoria" && categoriaId ? (categorias.find((c) => c.id === categoriaId) ?? null) : null;
 
   // Lo que la persona ve como «faltante» sale de la guía, y la guía de lo que la base exige (`lib/conteo-inicio-guia.ts`).
   const guia = useGuiaCampos(
-    camposDeApertura({ separaPisoAlmacen, lugarId: lugar?.id ?? "", alcance: queCuento, categoriaId: categoria?.id ?? "", responsableListo: responsable.listo }),
+    camposDeApertura({
+      separaPisoAlmacen,
+      lugarId: lugar?.id ?? "",
+      alcance: queCuento,
+      categoriaId: categoria?.id ?? "",
+      prendasElegidas: prendasElegidas.length,
+      responsableListo: responsable.listo,
+    }),
     { enModal: false }
   );
   const listo = guia.puedeConfirmar;
@@ -106,7 +124,30 @@ export function AbrirConteo({
   // La clave del lugar en `alcance`: el piso o el almacén elegido, o «toda la ubicación» en una sede que no los separa.
   const lugarClave = separaPisoAlmacen ? (lugar?.id ?? null) : TODA_LA_UBICACION;
   const hayCifras = alcance !== null && lugarClave !== null;
-  const cuantas = variantesDelConteo(alcance, lugarClave, queCuento === "categoria" ? (categoria?.id ?? null) : null);
+  // Por prenda la cifra son las prendas elegidas (cada una es una variante); aún sin elegir ninguna, no hay cifra que dar.
+  const cuantas =
+    queCuento === "prendas"
+      ? prendasElegidas.length > 0
+        ? prendasElegidas.length
+        : null
+      : variantesDelConteo(alcance, lugarClave, queCuento === "categoria" ? (categoria?.id ?? null) : null);
+
+  // Las prendas que se pueden elegir son las que tienen stock en el lugar de este conteo (la condición de la foto de `abrir_conteo`):
+  // `ElegirPrendas` las filtra por `lugarDeBusqueda` y las indexa una vez por lista.
+  const lugarDeBusqueda = tipoDeLugar(separaPisoAlmacen, lugar?.tipo);
+
+  /** Elegir piso o almacén: lo que ya estaba elegido y no está registrado en el lugar nuevo se quita, y se dice. */
+  function elegirLugar(id: string) {
+    setLugarId(id);
+    if (prendasElegidas.length === 0 || !cargaDePrendas.prendas) return;
+    const nuevo = tipoDeLugar(true, lugares.find((l) => l.id === id)?.tipo);
+    if (!nuevo) return;
+    const alli = new Set(prendasDelLugar(cargaDePrendas.prendas, nuevo).map((p) => p.varianteId));
+    const { quedan, quitadas } = podarElegidas(prendasElegidas, alli);
+    if (quitadas.length === 0) return;
+    setPrendasElegidas(quedan);
+    setQuitadasPorLugar(quitadas.length);
+  }
 
   // «Cuenta Micaela»: el nombre corto de quien el combo tiene elegido.
   const elegido = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId) ?? null;
@@ -149,14 +190,34 @@ export function AbrirConteo({
     if (quienAbre && typeof data === "string") recordarResponsableGuardar(claveResponsableConteo(data), quienAbre);
     avisar.exito("Conteo abierto", { detalle: "Ya puedes escanear." });
     // Se queda «Abriendo…» hasta que la pantalla de contar reemplaza a esta: soltar el botón dejaría abrir dos veces.
-    router.push(`/inventario/conteo/${data}${sufijoVariantes(variantes)}`);
+    // «Por prenda» manda las suyas; si no, las que traiga `?variantes=` desde Movimientos («Contar esta prenda», ADR-0241).
+    router.push(`/inventario/conteo/${data}${sufijoVariantes(queCuento === "prendas" ? prendasElegidas : variantes)}`);
   }
 
   const idTitulo = useId();
   const textoDonde = separaPisoAlmacen ? (lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : null) : "Toda la ubicación";
-  const textoQue = categoria ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre }) : queCuento === "categoria" ? "Una categoría" : "Todo";
+  // «el Piso de venta» / «el Almacén de tienda» / «esta ubicación»; `null` si falta elegir dónde. Para frases de ayuda.
+  const textoDondeConArticulo = separaPisoAlmacen ? (textoDonde ? `el ${textoDonde.charAt(0).toLowerCase()}${textoDonde.slice(1)}` : null) : "esta ubicación";
+  const textoQue =
+    queCuento === "prendas"
+      ? prendasElegidas.length > 0
+        ? textoPrendas(prendasElegidas.length)
+        : "Por prenda"
+      : categoria
+        ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre })
+        : queCuento === "categoria"
+          ? "Una categoría"
+          : "Todo";
   const ayudaQue =
-    queCuento === "todo" ? (
+    queCuento === "prendas" ? (
+      prendasElegidas.length > 0 ? (
+        <>
+          Contarás solo <b className="font-medium text-tinta">{textoPrendas(prendasElegidas.length)}</b>: la lista del conteo mostrará solo ellas.
+        </>
+      ) : (
+        "Busca las prendas exactas que vas a contar: una, varias o todas las tallas de un modelo."
+      )
+    ) : queCuento === "todo" ? (
       textoDonde && separaPisoAlmacen ? (
         <>
           Todas las prendas del <b className="font-medium text-tinta">{textoDonde}</b>.
@@ -204,7 +265,7 @@ export function AbrirConteo({
               <TarjetasOpcion
                 etiqueta="Dónde vas a contar"
                 valor={lugarId}
-                onValor={setLugarId}
+                onValor={elegirLugar}
                 deshabilitado={abriendo}
                 opciones={lugares.map((l) => ({
                   valor: l.id,
@@ -225,6 +286,7 @@ export function AbrirConteo({
               opciones={[
                 { clave: "todo", etiqueta: "Todo" },
                 { clave: "categoria", etiqueta: "Una categoría" },
+                { clave: "prendas", etiqueta: "Por prenda" },
               ]}
             />
             <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
@@ -242,6 +304,28 @@ export function AbrirConteo({
                   onValor={setCategoriaId}
                   buscador={buscador}
                   cifraDe={hayCifras ? (id) => variantesDelConteo(alcance, lugarClave, id) ?? 0 : null}
+                />
+              </div>
+            </div>
+            {/* «Por prenda»: el mismo despliegue dentro de la pregunta, también `inert` mientras está cerrado. */}
+            <div
+              inert={queCuento !== "prendas"}
+              className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "prendas" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <ElegirPrendas
+                  estado={cargaDePrendas.estado}
+                  reintentar={cargaDePrendas.reintentar}
+                  activo={queCuento === "prendas"}
+                  lugarTexto={textoDondeConArticulo}
+                  lugar={lugarDeBusqueda}
+                  prendas={cargaDePrendas.prendas}
+                  elegidas={prendasElegidas}
+                  onElegidas={(ids) => {
+                    setPrendasElegidas(ids);
+                    setQuitadasPorLugar(0);
+                  }}
+                  quitadasPorLugar={quitadasPorLugar}
                 />
               </div>
             </div>
@@ -265,7 +349,7 @@ export function AbrirConteo({
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 
-          {alcance && (
+          {(alcance || queCuento === "prendas") && (
             <div aria-live="polite" className="flex min-w-0 items-baseline gap-2 @[46rem]:flex-col @[46rem]:gap-0.5">
               <span className={`font-display text-[26px] leading-none @[46rem]:text-[52px] ${cuantas === null ? "text-taupe/50" : "text-tinta"}`}>
                 {cuantas === null ? "—" : <CifraQueCuenta valor={cuantas} />}
@@ -276,7 +360,11 @@ export function AbrirConteo({
                   <>
                     <span className="@[46rem]:hidden">variantes por contar</span>
                     <span className="hidden @[46rem]:inline">
-                      {separaPisoAlmacen && !lugar ? "Elige dónde para ver cuántas variantes" : "Elige la categoría para ver cuántas variantes"}
+                      {separaPisoAlmacen && !lugar
+                        ? "Elige dónde para ver cuántas variantes"
+                        : queCuento === "prendas"
+                          ? "Elige las prendas para ver cuántas variantes"
+                          : "Elige la categoría para ver cuántas variantes"}
                     </span>
                   </>
                 ) : cuantas === 1 ? (
@@ -313,6 +401,12 @@ export function AbrirConteo({
       </div>
     </section>
   );
+}
+
+/** El lugar de búsqueda de «Por prenda»: el piso o el almacén elegido, toda la ubicación en una sede que no los separa, o `null` si falta elegir. */
+function tipoDeLugar(separaPisoAlmacen: boolean, tipo: string | null | undefined): LugarDeConteo | null {
+  if (!separaPisoAlmacen) return "toda";
+  return tipo === "piso_venta" || tipo === "almacen_tienda" ? tipo : null;
 }
 
 /** «175 variantes registradas» / «1 variante registrada». */
