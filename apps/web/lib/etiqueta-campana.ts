@@ -50,7 +50,7 @@ export type PrendaConCosto = { id: string; categoriaId: string | null; precio: n
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
  *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las
  *  categorías elegidas. El precio es el que de verdad se cobra: el % exacto, con la misma
- *  cuenta que la caja y `registrar_venta` (`descuentoDeCampana`, ADR-0300). */
+ *  cuenta que la caja y `registrar_venta` (`descuentoDeCampana`, ADR-0302). */
 export function prendasBajoCosto(
   pct: number | null,
   prendas: readonly PrendaConCosto[],

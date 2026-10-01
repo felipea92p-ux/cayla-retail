@@ -340,7 +340,7 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
-      # Descuento de campaña EXACTO, al céntimo (ADR-0300; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
+      # Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
       # registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
       # dos veces. ROLLBACK.
       - name: pruebas:campana-redondeo

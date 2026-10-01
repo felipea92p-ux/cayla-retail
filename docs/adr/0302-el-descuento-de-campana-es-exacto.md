@@ -1,6 +1,6 @@
-# ADR-0300 — El descuento de campaña es exacto: el % sobre el precio, al céntimo
+# ADR-0302 — El descuento de campaña es exacto: el % sobre el precio, al céntimo
 
-**Fecha:** 2026-10-01 · **Estado:** migración `20261001150000_campana_descuento_exacto.sql` **PEGADA EN PRODUCCIÓN el
+**Fecha:** 2026-10-01 · **Estado:** migración `20261001161912_campana_descuento_exacto.sql` **PEGADA EN PRODUCCIÓN el
 2026-10-01 a las 11:19 (Lima)** con la orden de Felipe («pégalo ahora»), y verificada (§7); la web se publica al fusionar el
 PR #685 en la misma ventana · **Decide:**
 Felipe · **Reemplaza:** ADR-0182 (el precio de campaña bajaba al .90) · **Rama:** `claude/discount-review-ae10ca`
@@ -56,7 +56,7 @@ exacto; los dos son «el céntimo más cercano, empate hacia arriba», y se comp
 
 ## 3. Qué cambió
 
-- **Base** (`20261001150000_campana_descuento_exacto.sql`): solo el cuerpo de `retail.fn_descuento_campana`, con su misma
+- **Base** (`20261001161912_campana_descuento_exacto.sql`): solo el cuerpo de `retail.fn_descuento_campana`, con su misma
   firma. `registrar_venta`, `separar_prendas` y `editar_separacion` la llaman por su nombre y cambian solas. Se verificó en
   producción (solo lectura) que nada más depende de ella: 0 índices, 0 checks, 0 vistas y 0 columnas generadas (un índice
   sobre una función `immutable` que cambia de resultado quedaría corrupto). La migración aborta todo si una de las tres
@@ -97,7 +97,7 @@ exacto; los dos son «el céntimo más cercano, empate hacia arriba», y se comp
 1. **Fuera del horario de tienda.** Confirmar que ninguna caja tiene ventas sin conexión por sincronizar.
 2. Confirmar la huella: `select md5(pg_get_functiondef('retail.fn_descuento_campana(numeric,numeric)'::regprocedure));` =
    `569f5547b94e7edb538df910cf7e1c6f`. Si es otra, alguien la cambió: parar y mirar.
-3. Pegar `20261001150000_campana_descuento_exacto.sql` tal cual (una sola parte: no toca tablas ni políticas; su bloque
+3. Pegar `20261001161912_campana_descuento_exacto.sql` tal cual (una sola parte: no toca tablas ni políticas; su bloque
    final aborta todo si algo no quedó bien).
 4. Verificar: `select retail.fn_descuento_campana(39, 20)` = 7.80 y `select retail.fn_descuento_campana(89.90, 20)` = 17.98.
 5. **En la misma ventana**, fusionar el PR (publica la web).
@@ -109,6 +109,10 @@ exacto; los dos son «el céntimo más cercano, empate hacia arriba», y se comp
 Felipe pidió no esperar al cierre («no sé por qué esperaríamos»): en producción nunca se había cobrado una venta con campaña,
 así que el desfase de minutos entre la base y la web solo podía rechazar (no cobrar mal) una venta de las 13 prendas con
 campaña. Pegada por `apply_migration` (versión `20261001161912`).
+
+Se escribió como ADR-0300 y migración `20261001150000`; el PR #682 («Subir a almacén») entró antes a `main` con esos dos
+números, así que este pasó a **ADR-0302** y a `20261001161912` (la versión con que producción la registró). El comentario de
+`fn_descuento_campana` en producción quedó diciendo «ADR-0300»: se corrige la próxima vez que se toque la función.
 
 - **Antes:** huella `569f5547b94e7edb538df910cf7e1c6f` (la de ADR-0182, nadie la había tocado); `fn_descuento_campana(39, 20)`
   = 8.10; 13 variantes con campaña vigente; 0 ventas con campaña.

@@ -76,7 +76,7 @@ const BOTON_PRINCIPAL =
 const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
-// Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0300).
+// Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
 const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
 const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
 

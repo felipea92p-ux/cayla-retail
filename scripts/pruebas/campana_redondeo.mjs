@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Pruebas del descuento de campaña EXACTO (ADR-0300; antes, el redondeo a .90 de ADR-0182) contra el Postgres local —
+ * Pruebas del descuento de campaña EXACTO (ADR-0302; antes, el redondeo a .90 de ADR-0182) contra el Postgres local —
  * CAYLA V2. El nombre del script (`campana-redondeo`) se conserva para no tocar el CI: hoy el único redondeo es al céntimo.
  *
- * QUÉ PRUEBA. `20261001150000_campana_descuento_exacto.sql`: la regla `retail.fn_descuento_campana` (el % sobre el
+ * QUÉ PRUEBA. `20261001161912_campana_descuento_exacto.sql`: la regla `retail.fn_descuento_campana` (el % sobre el
  * precio, al céntimo) y que las funciones que cobran con campaña la usen. `registrar_venta` acepta el descuento exacto y
  * rechaza el del .90 de antes, y `separar_prendas` también. Si la caja (`descuentoDeCampana`, lib/vender-reglas.ts) y la
  * base dan números distintos, la venta se rechaza en el mostrador: por eso la tabla de ejemplos es la MISMA que en
@@ -13,7 +13,7 @@
  * como Felipe (líder) con `set local request.jwt.claim.sub`. Nunca se commitea nada en el Postgres local que comparten
  * los worktrees. La campaña de prueba (20 %) se crea y se etiqueta dentro de cada transacción.
  *
- * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261001150000_campana_descuento_exacto.sql` mete la
+ * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261001161912_campana_descuento_exacto.sql` mete la
  * migración dentro de la transacción (que se revierte). Sin la variable, prueba lo que la base ya tiene (lo que hace CI).
  * El escenario 5 la aplica DOS veces seguidas para probar que se puede re-ejecutar.
  *
@@ -27,7 +27,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20261001150000_campana_descuento_exacto.sql";
+const MIGRACION = "supabase/migrations/20261001161912_campana_descuento_exacto.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";

@@ -412,10 +412,10 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
 // que `registrar_venta` (20260918170000) acepta y rechaza — si divergen, la caja
 // mandaría algo que la base rechaza en el mostrador.
 //
-// Desde ADR-0300 (2026-10-01) el descuento de campaña es EXACTO: el % sobre el precio, al céntimo. Con S/ 100 y 20 % se
+// Desde ADR-0302 (2026-10-01) el descuento de campaña es EXACTO: el % sobre el precio, al céntimo. Con S/ 100 y 20 % se
 // cobra S/ 80.00, así que el descuento de campaña de estas pruebas es 20.00 (y 40.00 con 40 %).
 
-describe("descuentoDeCampana — exacto, al céntimo (ADR-0300)", () => {
+describe("descuentoDeCampana — exacto, al céntimo (ADR-0302)", () => {
   // [precio, %, descuento esperado, precio que paga la clienta]
   it.each([
     [39, 20, 7.8, 31.2], // la etiqueta de Luna: el papel dice −20 % y se cobra exactamente eso (con el .90 eran 30.90)

@@ -225,7 +225,7 @@ select id as talla from retail.tallas where activo and estado = 'aprobado' order
 select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
 `;
 
-/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.92: descuento 15.98, exacto, ADR-0300). Deja :etq. Como postgres. */
+/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.92: descuento 15.98, exacto, ADR-0302). Deja :etq. Como postgres. */
 const CAMPANA_20 = `reset role;
 insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
   values ('ZZ Cumple Campaña (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)

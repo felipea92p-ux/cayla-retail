@@ -83,7 +83,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
             {e.campana.hasta && <span className="etq-vence">Válido hasta el {fechaVigencia(e.campana.hasta)}</span>}
           </p>
           <div className="etq-ahora">
-            {/* El mismo descuento exacto que cobra la caja (ADR-0300): el papel nunca dice otro precio ni otro %. */}
+            {/* El mismo descuento exacto que cobra la caja (ADR-0302): el papel nunca dice otro precio ni otro %. */}
             <p className={claseCobra}>
               <small>S/</small>
               {cobra}

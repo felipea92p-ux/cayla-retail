@@ -209,7 +209,7 @@ describe("mejorCampanaPorVariante — la misma que elige la caja", () => {
 
 describe("armarEtiquetas con campaña (ADR-0180 paso 2)", () => {
   const campana = { etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30" };
-  it("la etiqueta lleva el descuento exacto de la caja: 79.90 con 20 % se cobra 63.92 (ADR-0300)", () => {
+  it("la etiqueta lleva el descuento exacto de la caja: 79.90 con 20 % se cobra 63.92 (ADR-0302)", () => {
     const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S", { precio: 79.9 })], [], new Map([["s", campana]]));
     expect(etiquetas[0].campana).toEqual({ nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30", descuento: 15.98 });
   });
@@ -341,7 +341,7 @@ describe("iconosPorVariante — etiquetas a mano y por categoría, con un solo d
     const iconos = iconosPorVariante(variantes, new Map([["camisa", ["aniv", "liq"]]]), new Map(), catalogo, campanas, HOY);
     const { etiquetas } = armarEtiquetas(new Map([["camisa", 1]]), [blusa("camisa", "M", { precio: 89.9 })], [], campanas, iconos);
     expect(etiquetas[0].iconos.map((i) => i.icono)).toEqual(["liquidar", "aniversario"]);
-    // 20 %, no 30 % ni 10 %: 89.90 → 71.92, es decir, 17.98 de descuento (exacto, ADR-0300).
+    // 20 %, no 30 % ni 10 %: 89.90 → 71.92, es decir, 17.98 de descuento (exacto, ADR-0302).
     expect(etiquetas[0].campana).toMatchObject({ nombre: "Para liquidar", pct: 20, descuento: 17.98 });
   });
 });

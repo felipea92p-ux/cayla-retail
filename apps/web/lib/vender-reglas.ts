@@ -204,7 +204,7 @@ export function motivoBloqueoCobro(v: {
 
 /** Un % convertido a monto por unidad: la cuenta EXACTA `precio × % / 100`, llevada al céntimo más cercano (el medio
  *  céntimo, hacia arriba: lo mismo que `round(x, 2)` de Postgres). Es la única cuenta de «un % se vuelve soles» de la
- *  caja: la usan el descuento manual en % y el de campaña (`descuentoDeCampana`, ADR-0300). Fuera de 0..100 se recorta:
+ *  caja: la usan el descuento manual en % y el de campaña (`descuentoDeCampana`, ADR-0302). Fuera de 0..100 se recorta:
  *  0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio`
  *  lo rechazaría igual.
  *
@@ -259,10 +259,10 @@ export const RAZON_CAMPANA = "campana";
 
 /**
  * El descuento por unidad de una campaña: EXACTO, el % de la campaña sobre el precio, al céntimo (Felipe, 2026-10-01,
- * ADR-0300). S/ 39.00 con 20 % descuenta S/ 7.80 y se cobra S/ 31.20: lo que dice el papel («−20 %») es lo que se cobra.
+ * ADR-0302). S/ 39.00 con 20 % descuenta S/ 7.80 y se cobra S/ 31.20: lo que dice el papel («−20 %») es lo que se cobra.
  * Reemplaza el redondeo del precio hacia abajo a .90 de ADR-0182, que descontaba hasta casi un sol de más.
  *
- * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20261001150000): la caja la calcula y
+ * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20261001161912): la caja la calcula y
  * `registrar_venta`, `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el
  * mostrador.
  */
@@ -273,7 +273,7 @@ export function descuentoDeCampana(precio: number, pct: number): number {
 /** Lo que se cobra por unas líneas: Σ cantidad × (precio − descuento), sumado en céntimos exactos (como `ticketConCumple`).
  *  Es el ÚNICO total de un ticket en la web: caja, apartados, ventas en espera y la cola sin conexión. En coma flotante,
  *  99.90 − 14.99 da 84.91000000000001: «armar» mostraba ese número y Apartar no aceptaba S/ 84.91 recibidos en efectivo
- *  contra ese total. Con el descuento de campaña exacto (ADR-0300) esos céntimos dejaron de ser raros. */
+ *  contra ese total. Con el descuento de campaña exacto (ADR-0302) esos céntimos dejaron de ser raros. */
 export function totalDeLineas(lineas: readonly { cantidad: number; precioUnitario: number; descuentoUnitario: number }[]): number {
   return lineas.reduce((c, l) => c + l.cantidad * (Math.round(l.precioUnitario * 100) - Math.round(l.descuentoUnitario * 100)), 0) / 100;
 }

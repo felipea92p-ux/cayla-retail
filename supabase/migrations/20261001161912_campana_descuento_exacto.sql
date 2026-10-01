@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261001150000_campana_descuento_exacto.sql — CAYLA V2 (ADR-0300, Felipe 2026-10-01)
+-- 20261001161912_campana_descuento_exacto.sql — CAYLA V2 (ADR-0302, Felipe 2026-10-01)
 --
 -- EL CAMBIO. El descuento de una campaña es EXACTO: el % de la campaña sobre el precio, al céntimo. S/ 39.00 con
 -- 20 % descuenta S/ 7.80 y se cobra S/ 31.20. Reemplaza la regla de ADR-0182 (20260923174100), que bajaba el precio
@@ -42,7 +42,7 @@ as $$
 $$;
 
 comment on function retail.fn_descuento_campana(numeric, numeric) is
-  'Descuento por unidad de una campaña: EXACTO, round(precio × % / 100, 2) (S/ 39.00 con 20 % → 7.80, se cobra 31.20). 0 % o vacío no descuenta; 100 % regala. Misma cuenta que descuentoDeCampana en la caja (ADR-0300; reemplaza el .90 de ADR-0182).';
+  'Descuento por unidad de una campaña: EXACTO, round(precio × % / 100, 2) (S/ 39.00 con 20 % → 7.80, se cobra 31.20). 0 % o vacío no descuenta; 100 % regala. Misma cuenta que descuentoDeCampana en la caja (ADR-0302; reemplaza el .90 de ADR-0182).';
 
 revoke all on function retail.fn_descuento_campana(numeric, numeric) from public, anon;
 grant execute on function retail.fn_descuento_campana(numeric, numeric) to authenticated;

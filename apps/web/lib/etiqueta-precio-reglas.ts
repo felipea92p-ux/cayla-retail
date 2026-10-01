@@ -229,7 +229,7 @@ export function armarEtiquetas(
       continue;
     }
     const c = campanas.get(v.id);
-    // El mismo descuento exacto que cobra la caja (ADR-0300): el papel nunca dice otro precio ni otro %.
+    // El mismo descuento exacto que cobra la caja (ADR-0302): el papel nunca dice otro precio ni otro %.
     const descuento = c ? descuentoDeCampana(v.precio, c.pct) : 0;
     etiquetas.push({
       varianteId: v.id,

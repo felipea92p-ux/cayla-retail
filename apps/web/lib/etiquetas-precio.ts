@@ -39,7 +39,7 @@ export type EtiquetasDePrecio = {
 /**
  * Las etiquetas de precio de un origen (ADR-0180): una fila por prenda, con cuántas imprimir y el precio que la caja
  * cobra HOY. Si la prenda tiene una campaña vigente, la etiqueta la lleva (paso 2, Felipe 2026-09-23), con el mismo
- * descuento exacto que cobra la caja (ADR-0300).
+ * descuento exacto que cobra la caja (ADR-0302).
  *
  * No hay función nueva en la base a propósito:
  * - Todo ingreso ya escribe sus `movimientos` de entrada con el lote o la producción (principio 4). Esto solo los lee.
