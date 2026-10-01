@@ -94,3 +94,16 @@ el celular había que pasar la cabecera, la franja, dos filas de píldoras y una
   / Corregir / Existencias, detalle de una venta con Cambio / Devolución, «Bajar estas 2 al piso» en la operación, hoja
   de Filtros con Exportar, buscador con cámara. **Falta verlo con una cuenta real:** Apartados con `?abrir=`,
   Existencias con `?variante=`, Conteo con `?variantes=` y la cámara en un teléfono.
+
+## Actualización 2026-10-01 — las bajadas del día abren el cajón, ya no se despliegan
+
+La fila plegada «Bajadas al piso» (punto 3) dejó de desplegarse hacia abajo —empujaba la lista y, abierta, ocupaba media
+pantalla— y ahora abre el **mismo cajón lateral** que el resto de las operaciones (`CajonMovimiento`, `vista.tipo ===
+"bajadas"`): título, «Hoy · 10:04 – 10:41», tres cifras (unidades · veces · tallas), cada prenda con su hora, su variante,
+cuánto se bajó y «quedan N», y quién las hizo. Es de consulta, como los demás. Es un solo marco con dos contenidos
+(`ContenidoOperacion` / `ContenidoBajadas`): pasar de las bajadas a otra fila, o al revés, cambia el contenido sin cerrar
+ni volver a deslizar. Las bajadas no van en la URL (`?mov=`): no son un movimiento con id y su agrupación depende de los
+filtros. Lógica pura y probada: `construirDetalleBajadas` en `lib/movimientos-cajon.ts` (6 casos en
+`lib/movimientos-cajon.test.ts`). Lo que se perdió a propósito: abrir el detalle de UNA bajada desde esa lista; quien
+quiera ese detalle (stock antes/después, enlaces) la busca con la píldora «Piso ↔ almacén» o por su prenda, donde cada
+bajada es su fila.
