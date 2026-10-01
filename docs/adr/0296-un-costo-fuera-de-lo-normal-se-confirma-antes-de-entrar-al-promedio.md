@@ -1,7 +1,7 @@
 # ADR-0296 — Un costo fuera de lo normal se confirma antes de entrar al promedio
 
-**Fecha:** 2026-09-30 · **Estado:** construido y probado en local; **las cinco migraciones están sin pegar en producción** al
-escribirse esto (ver «Cómo se pega») · **Decide:** Felipe (umbral, el cero, qué pasa con un integrante, el alcance y quién
+**Fecha:** 2026-09-30 · **Estado:** construido y probado en local; **las cinco migraciones se aplicaron en producción el
+2026-10-01** (ver «Cómo se pegó») · **Decide:** Felipe (umbral, el cero, qué pasa con un integrante, el alcance y quién
 confirma una factura); Claude (cómo viaja la confirmación) · **Rama:** `claude/costo-validation-cerrar-produccion-fa4c02`
 · **Nace de:** `docs/cimientos/2026-09-29-cimiento-09-produccion-taller.md` (EI-7) y el ítem 6 de
 `docs/backlog/2026-09-29-top-30-pendientes-erp.md`.
@@ -135,7 +135,17 @@ API directa recibe lo mismo que sin ella.
   encenderlo, toda orden con costo total 0 (nadie tecleó tela, avíos ni maquila y no hubo insumos) solo la podrá cerrar un líder:
   definir antes quién teclea el costo al abrir la orden.
 
-## 8. Cómo se pega en producción (lo hace Felipe: el clasificador me impide pegar)
+## 8. Cómo se pegó en producción (2026-10-01)
+
+**Hecho el 2026-10-01**, por orden expresa de Felipe, con el conector de Supabase (`apply_migration`) y en el orden de abajo.
+Una migración por transacción (el conector aplica cada una atómica; lo que importa es el orden, no la corrida única). Quedaron
+registradas en `supabase_migrations.schema_migrations` con la hora de aplicación (`20261001150509` a `20261001150821`), no con el
+nombre del archivo. **Sonda previa:** las cuatro huellas coincidían con las de abajo, `fn_costo_fuera_de_banda` no existía y
+había 0 órdenes y 0 filas en `costo_historial`. **Verificación posterior:** una sola firma por función (`cerrar_produccion` de 6
+parámetros; `recibir_lote`, `registrar_compra` y `recibir_envio` con sus 6, 15 y 9), permisos como se esperaba, y la huella
+normalizada de cada función viva **coincide con la del cuerpo del archivo del repo** (`fn_costo_fuera_de_banda` `fa271cba…`,
+`cerrar_produccion` `26dd16b8…`, `recibir_lote` `771823a5…`, `registrar_compra` `9a9ff4e5…`, `recibir_envio` `9ef488f5…`).
+Lo que sigue es el procedimiento tal como estaba escrito, por si hay que repetirlo en otra base.
 
 **Orden: las cinco en una sola corrida del SQL Editor, en este orden.** Las cuatro últimas llaman a la primera; si falta, fallan
 en silencio al ejecutarse (plpgsql no valida el cuerpo al crear).
