@@ -4,8 +4,8 @@ Para aprobar por Felipe antes de publicar (ADR-0288, actualización (g), G-11). 
 `retail.club_textos` con su versión: la base guarda qué versión aceptó cada socia y a qué hora (prueba del consentimiento,
 art. 9 del reglamento de la Ley 29733).
 
-**Marcas:** `[PENDIENTE: …]` es un dato que falta y bloquea la publicación. `{…}` lo completa el sistema (la tienda del
-cartel, el % de cumpleaños vigente, el código de socia). Los datos de CAYLA S.A.C. salen de `apps/web/lib/emisor.ts`, los
+**Marcas:** `{…}` lo completa el sistema: la tienda del cartel, el % de cumpleaños vigente, la escala de vales vigente
+(«S/ 20 el primer año, S/ 30 el segundo…») y el código de socia. Los datos de CAYLA S.A.C. salen de `apps/web/lib/emisor.ts`, los
 mismos que van impresos en cada boleta.
 
 **No es asesoría legal.** Está escrito contra la Ley 29733, su reglamento (DS 016-2024-JUS), el Código de Protección y
@@ -20,14 +20,13 @@ Defensa del Consumidor (Ley 29571) con la modificación de la Ley 32323, y lo in
 
 **Club CAYLA**
 
-Entérate primero de lo nuevo y de nuestras promociones, y recibe un regalo por tu cumpleaños y por cada año con nosotras.
+Recibe un descuento en tu cumpleaños y un vale de compra por cada año con nosotras. Si quieres, también te contamos primero lo nuevo y nuestras promociones por WhatsApp.
 
 ### Qué recibes
 
-- **Novedades y promociones por WhatsApp:** lo nuevo que llega a CAYLA, rebajas y promociones, al número que registres.
 - **Cupón de cumpleaños:** {pct} % de descuento en una compra en cualquier tienda CAYLA durante el mes de tu cumpleaños.
-- **Beneficio de aniversario:** por cada año como socia en el que hayas comprado en CAYLA, [PENDIENTE: qué recibe].
-- **Te avisamos por WhatsApp** cuando tengas un cupón listo para usar.
+- **Vale de aniversario:** al cumplir cada año como socia, si en ese año hiciste 6 compras o sumaste S/ 600 en compras, recibes un vale para comprar lo que quieras en cualquier tienda CAYLA. El vale crece cada año: {escala}.
+- **Novedades y promociones por WhatsApp** (opcional): lo nuevo que llega a CAYLA, rebajas, promociones y el aviso de tus cupones.
 
 Las condiciones de cada beneficio están en los Términos del Club CAYLA (sección 3).
 
@@ -48,11 +47,11 @@ Las condiciones de cada beneficio están en los Términos del Club CAYLA (secci�
 1. **Obligatoria:** ☐ Confirmo que soy mayor de 18 años.
 2. **Obligatoria:** ☐ He leído la Política de privacidad y los Términos del Club CAYLA, y acepto que CAYLA S.A.C. use mis
    datos para administrar mi membresía y mis beneficios.
-3. [PENDIENTE: obligatoria u opcional, decisión de Felipe sobre el riesgo del art. 3.2] ☐ Acepto que CAYLA S.A.C. me envíe
+3. **Opcional:** ☐ Acepto que CAYLA S.A.C. me envíe
    por WhatsApp, al número que registro, novedades, promociones y avisos de mis cupones, elegidos según mis compras y mi
    talla. Puedo dejar de recibirlos cuando quiera escribiendo BAJA al WhatsApp de cualquier tienda CAYLA.
 
-**Botón:** «Unirme al Club CAYLA» (se habilita cuando están las casillas obligatorias).
+**Botón:** «Unirme al Club CAYLA» (se habilita cuando están las dos casillas obligatorias). Sin la casilla 3 es socia igual, con sus beneficios en tienda y sin mensajes.
 
 **Debajo del botón, en letra chica:** «CAYLA S.A.C. (RUC {ruc}) es la responsable de tus datos. Se guardan en servidores en
 Brasil. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en
@@ -65,12 +64,12 @@ Brasil. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a
 Tu código de socia es **{código}**. Dilo en caja o muestra tu documento para usar tus cupones.
 
 **Último paso: salúdanos por WhatsApp.** Así guardas nuestro número oficial y nuestros mensajes te llegan con los enlaces
-activos.
+activos. (Solo si marcó la casilla 3; si no la marcó, la página termina en su código.)
 
 Botón: «Saludar a CAYLA por WhatsApp» → abre el WhatsApp de {tienda} con este mensaje, que envía ella:
 
 > Hola CAYLA, soy {nombre}. Me acabo de unir al Club CAYLA ({código}) y quiero recibir sus novedades y promociones por este
-> WhatsApp.
+> WhatsApp. Sé que me doy de baja escribiendo BAJA.
 
 ### Si su documento ya era socia
 
@@ -95,7 +94,7 @@ CAYLA S.A.C., RUC 20605964550, con domicilio en Mz. Q Lt. 26, Urb. San Andrés V
 Libertad, Perú. Correo: caylaperu@gmail.com.
 
 Tus datos forman parte del banco de datos personales «Clientes», inscrito en el Registro Nacional de Protección de Datos
-Personales con el código [PENDIENTE: código de inscripción ante la Autoridad Nacional de Protección de Datos Personales].
+Personales con el código PJ-2026-4550 (constancia de inscripción INS-2026-5132, del 8 de septiembre de 2026).
 
 ### 2.2 Qué datos tratamos
 
@@ -111,7 +110,7 @@ No pedimos datos sensibles (salud, origen, religión u otros).
 ### 2.3 Para qué los usamos
 
 1. **Administrar tu membresía** (necesario para ser socia): reconocerte en caja, ligar tus compras y comprobantes a tu ficha,
-   y aplicar tus beneficios (cupón de cumpleaños y beneficio de aniversario).
+   y aplicar tus beneficios (cupón de cumpleaños y vale de aniversario).
 2. **Enviarte por WhatsApp novedades, promociones y avisos de tus cupones**, elegidos según tus compras y tu talla. Solo con
    tu autorización expresa, y puedes retirarla en cualquier momento.
 3. **Cumplir obligaciones legales:** emitir y conservar comprobantes de pago ante SUNAT.
@@ -135,9 +134,9 @@ No vendemos ni cedemos tus datos. Para operar, los tratan por encargo de CAYLA y
 
 ### 2.6 Cuánto tiempo los guardamos
 
-Mientras seas socia y hasta [PENDIENTE: plazo] desde tu última compra. Si pides la cancelación, anonimizamos tu ficha: tu
-nombre, documento, celular, fecha de nacimiento y correo dejan de estar asociados a tus compras. Los comprobantes de pago se
-conservan el tiempo que exige la ley tributaria.
+Mientras seas socia y compres en CAYLA. Si pasan **3 años desde tu última compra**, anonimizamos tu ficha de forma
+automática: tu nombre, documento, celular, fecha de nacimiento y correo dejan de estar asociados a tus compras. Lo mismo
+hacemos si pides la cancelación antes. Los comprobantes de pago se conservan el tiempo que exige la ley tributaria.
 
 ### 2.7 Tus derechos
 
@@ -153,7 +152,7 @@ Autoridad Nacional de Protección de Datos Personales del Ministerio de Justicia
 ### 2.8 Dejar de recibir WhatsApp
 
 Escribe **BAJA** al WhatsApp de cualquier tienda CAYLA. Dejamos de enviarte mensajes desde ese momento, en todas las tiendas,
-sin costo y sin que tengas que explicar por qué. Sigues siendo socia y puedes usar tus cupones en tienda.
+sin costo y sin que tengas que explicar por qué. Sigues siendo socia y puedes usar tus cupones y vales en tienda.
 
 ### 2.9 Seguridad
 
@@ -186,23 +185,37 @@ pediremos una nueva autorización.
    - Es personal: lo usa la socia, con su documento. No se canjea por dinero ni se acumula con otro cupón del Club.
    - Solo en compras presenciales en tiendas CAYLA. Requiere conexión del sistema en el momento del pago.
    - Si la compra se anula, el cupón vuelve a estar disponible. Si devuelves o cambias prendas, el cupón ya se considera usado.
-4. **Beneficio de aniversario:** por cada año cumplido como socia en el que hayas hecho al menos una compra en CAYLA,
-   [PENDIENTE: qué recibe y cómo se usa].
-5. **Avisos:** te avisamos por WhatsApp cuando tengas un cupón disponible, si autorizaste los mensajes. Si no recibes el aviso,
-   el cupón igual está disponible en caja.
-6. **Cambios y fin del programa:** CAYLA puede cambiar los beneficios o terminar el Club avisando con [PENDIENTE: días] días de
-   anticipación por WhatsApp o en tienda. Los cupones ya disponibles se respetan hasta su vencimiento.
+4. **Vale de aniversario:**
+   - Cada año como socia se cuenta desde la fecha en que te uniste. Un año **cuenta** si en él hiciste al menos 6 compras o
+     sumaste al menos S/ 600 en compras en tiendas CAYLA. Las compras devueltas completas no cuentan, y una devolución parcial
+     descuenta lo devuelto.
+   - Al cumplir un año que cuenta, recibes un vale según cuántos años que cuentan llevas: {escala}. Desde el quinto año, el
+     vale del quinto año se repite cada año.
+   - Si un año no cuenta, no recibes vale ese año, pero no pierdes lo acumulado: el siguiente año que cuente sigue donde te
+     quedaste.
+   - Tienes 60 días desde tu aniversario para usarlo, en una sola compra, en cualquier prenda de cualquier tienda CAYLA.
+   - El vale se descuenta del total de esa compra. No se canjea por dinero, no da vuelto: si la compra es menor que el vale,
+     la diferencia no se conserva. Es personal y se usa con tu documento.
+   - No se acumula con el cupón de cumpleaños en la misma compra.
+   - Si la compra se anula, el vale vuelve a estar disponible dentro de su plazo. Si devuelves o cambias prendas, el vale ya se
+     considera usado.
+5. **Avisos:** si autorizaste los mensajes, te avisamos por WhatsApp cuando tengas un cupón o un vale disponible. Si no
+   recibes el aviso, el beneficio igual está disponible en caja.
+6. **Cambios y fin del programa:** CAYLA puede cambiar los beneficios o terminar el Club avisando con 15 días de anticipación
+   por WhatsApp (a quien lo autorizó) y en tienda. Los cupones y vales ya disponibles se respetan hasta su vencimiento.
 7. **Baja del Club:** puedes darte de baja cuando quieras en cualquier tienda CAYLA o en caylaperu@gmail.com.
+8. **Conservación de datos:** si pasan 3 años desde tu última compra, tu ficha se anonimiza de forma automática y dejas de ser
+   socia (ver la Política de privacidad, punto 2.6).
 
 ---
 
 ## Lo que falta para publicar
 
-| Dato | Quién | Por qué bloquea |
-|---|---|---|
-| Código de inscripción del banco de datos «Clientes» | Felipe | La Ley 29733 exige inscribirlo; sin código, la política afirmaría algo falso. El trámite es gratuito y en línea. |
-| Casilla de WhatsApp: obligatoria u opcional | Felipe | Riesgo del art. 3.2 del reglamento (ADR-0288, actualización (g)). |
-| Qué da el beneficio de aniversario | Felipe | El Código del Consumidor pide condiciones claras: no se publica un beneficio sin decir cuál es. |
-| Plazo de conservación | Felipe | La ley exige informarlo. |
-| Días de aviso antes de cambiar o terminar el Club | Felipe | Condición del programa. |
-| Fecha de publicación | Al publicar | — |
+| Dato | Estado |
+|---|---|
+| Inscripción del banco de datos | **Listo:** PJ-2026-4550 (INS-2026-5132, 08/09/2026). |
+| Casilla de WhatsApp | **Opcional** (Felipe, 2026-10-01): cierra el riesgo del art. 3.2. |
+| Vale de aniversario | **Decidido** (Felipe, 2026-10-01): 6 compras o S/ 600 netos; se pausa; 60 días. Montos **propuestos** S/ 20 · 30 · 40 · 50 · 60 (año 5 en adelante), editables sin tocar código. |
+| Plazo de conservación | **Decidido:** 3 años desde la última compra, con anonimización automática. |
+| Aviso antes de cambiar o terminar el Club | **Propuesto:** 15 días. |
+| Fecha de publicación | Al publicar. |

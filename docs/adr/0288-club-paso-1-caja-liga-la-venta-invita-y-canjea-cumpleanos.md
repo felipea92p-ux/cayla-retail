@@ -900,3 +900,91 @@ aniversario. Supera, en lo que contradicen, a la D-4 (dos permisos), la D-9 (el 
 un beneficio a aceptar un tratamiento que no es indispensable. Si la casilla de WhatsApp es obligatoria para ser socia, el
 cupón de cumpleaños queda atado a aceptar publicidad. La ruta sólida es la casilla de WhatsApp opcional: sin ella es socia con
 sus cupones en tienda, sin mensajes.
+
+**Decisiones de Felipe (2026-10-01, segunda ronda), que cierran el riesgo y el texto:**
+- **G-12 · La casilla de WhatsApp es opcional.** Sin ella es socia con sus beneficios en tienda y sin mensajes. Cierra el
+  riesgo del art. 3.2.
+- **G-13 · Aniversario = un vale en soles para comprar en toda la tienda, que crece cada año** (supera la escalera de regalos
+  del CL-17). Un año de club cuenta con **6 compras o S/ 600 en compras netas**; si no cuenta, **se pausa** (no se pierde lo
+  acumulado); el vale se usa **dentro de 60 días**. Montos propuestos y editables sin deploy: S/ 20 · 30 · 40 · 50 · 60 (el del
+  quinto año se repite). Uno solo de los dos beneficios del club por compra.
+- **G-14 · Banco de datos inscrito:** código PJ-2026-4550 (constancia INS-2026-5132, 08/09/2026).
+- **G-15 · Conservación: 3 años desde la última compra** (sin compras: desde que se registró); luego la ficha se anonimiza sola.
+  Está en la política y en los términos.
+- **G-16 · Aviso de 15 días** antes de cambiar o terminar el programa (propuesto).
+
+## Contrato de la tanda 1g (2026-10-01)
+
+Cuatro agentes trabajan en paralelo sobre este contrato. El de base es el único que escribe migraciones y
+`packages/database/src/types.ts`; los demás programan contra estas firmas.
+
+### Base (migraciones `20261001210xxx_club_paso1g_*`, en partes: cada `alter` de una tabla en uso va solo)
+
+Esquema:
+- `clientas`: `correo text` (opcional, formato básico), `registro_origen text` (`caja` | `cartel`), `club_ubicacion_id uuid`
+  (la tienda del cartel donde se unió por última vez: es el WhatsApp que saludó y el que le escribe).
+- `club_textos.tipo` suma `terminos`, `privacidad`, `casilla_publicidad`, `saludo`, `aviso_cumpleanos`, `aviso_aniversario`,
+  `aviso_novedades`, `aviso_rebaja`, cada uno en v1 con el texto aprobado en `docs/club/texto-legal-registro-v1.md`. Los
+  marcadores (`{pct}`, `{escala}`, `{nombre}`, `{codigo}`, `{tienda}`) los completa quien muestra el texto.
+- `club_permisos.medio` suma `pagina_cartel` (otorga club y publicidad; sin `registrado_por`; con la versión del texto).
+- `configuracion_empresa`: `club_aniversario_compras int default 6`, `club_aniversario_monto numeric(10,2) default 600`,
+  `club_aniversario_dias int default 60`.
+- `club_aniversario_escala (anio smallint primary key, 1..5; monto numeric(10,2) > 0)` = 20, 30, 40, 50, 60.
+- `club_canjes.tipo` suma `aniversario`, con `anio_club smallint`: un canje vivo por clienta y año de club; anular lo libera.
+- `club_intentos_registro (id, creado_en, tipo 'consulta'|'registro', ip_hash, documento_hash, celular)`: RLS sin políticas.
+- `club_avisos_enviados (id, clienta_id, tipo 'cumpleanos'|'aniversario'|'novedades'|'rebaja', referencia, telefono, texto,
+  ubicacion_id, enviado_por, creado_en, deshecho_en)`: solo agrega.
+- Módulo nuevo `avisos_club` (grupo de Clientas), nace solo para el líder, `delegable = true`.
+
+Funciones («servidor» = solo la llama el servidor de la web con la llave de servicio, nunca `anon` ni `authenticated`):
+1. `fn_club_pagina(p_ubicacion_id uuid) returns jsonb` · `anon`. `{tienda, whatsapp, pct, escala:[{anio, monto}], compras,
+   monto_minimo, dias, textos:{terminos, privacidad, casilla_publicidad, saludo: {version, texto}}}`; `null` si no es una tienda.
+2. `club_intento(p_tipo text, p_ip_hash text, p_documento_hash text, p_celular text) returns boolean` · servidor. Anota y dice
+   si está dentro del límite: consultas ≤ 20 por ip y hora; registros ≤ 5 por ip, ≤ 3 por celular y ≤ 3 por documento, por hora.
+3. `registrarse_en_el_club(p_ubicacion_id uuid, p_documento_tipo text, p_documento_numero text, p_nombre text, p_telefono text,
+   p_nacimiento date, p_correo text, p_mayor_de_edad boolean, p_acepta_terminos boolean, p_acepta_publicidad boolean,
+   p_versiones jsonb, p_nombre_del_padron boolean) returns table (clienta_id uuid, codigo_club text, club_desde timestamptz,
+   era_socia boolean, nombre_corto text)` · servidor. G-3, G-4, G-5, G-10, G-12: 18 años cumplidos a la fecha de Lima;
+   `p_versiones` deben ser las vigentes (`club_texto_cambio`); documento que existe → reemplaza nombre (si viene del padrón),
+   celular, nacimiento y correo (un correo vacío no borra); conserva `club_desde` y `codigo_club`; una ficha anonimizada no se
+   reusa; casilla de publicidad marcada → otorga (después de cambiar el celular, que revoca la anterior por el disparador);
+   sin marcar → no toca un permiso anterior. Hints: `club_menor`, `club_datos_invalidos`, `club_texto_cambio`,
+   `club_documento_archivado`.
+4. `fn_club_aniversario(p_clienta_id uuid) returns table (anios_que_cuentan int, anio_en_curso_cuenta boolean, compras_anio int,
+   monto_anio numeric, proximo_aniversario date, vale_disponible boolean, vale_monto numeric, vale_vence date,
+   vale_canjeado_el date)` · módulo `clientas`. Año de club = [`club_desde` + n años, + n+1); cuenta con el umbral en compras
+   netas (la regla de la 1f); se pausa.
+5. `resumen_clienta_caja` suma `aniversario_disponible boolean, aniversario_monto numeric, aniversario_vence date` (reescrita
+   sobre `fa690d7f…`).
+6. `registrar_venta` suma `p_canjear_aniversario boolean default false` (18 parámetros; `drop` + `create` sobre `2b55a94a…`):
+   reparte el vale en `descuento_club_unitario` proporcional al neto de cada línea, sin pasar el total; una sola ventaja del
+   club por venta. Hints: `club_un_cupon_por_compra`, `aniversario_no_disponible`, `aniversario_ya_canjeado`,
+   `aniversario_sin_monto`.
+7. `fn_club_avisos_pendientes(p_ubicacion_id uuid) returns table (clienta_id uuid, nombre text, telefono text, tipo text,
+   referencia text, texto text, detalle text)` · módulo `avisos_club`. Solo socias con publicidad vigente de esa tienda
+   (`club_ubicacion_id`; sin él, su sede). Cumpleaños: desde el día 1 de su mes, cupón sin canjear, un aviso por año.
+   Aniversario: vale disponible, un aviso por vale. Novedades: productos que llegaron a esa tienda en los últimos 14 días, a lo
+   más uno por semana. Rebaja: prenda en promoción vigente con stock en esa tienda en su talla deducida. Tope CL-21 (2
+   promocionales al mes; cumpleaños y aniversario no cuentan) y grupo testigo CL-20 (1 de cada 5, fijo por clienta, fuera de
+   novedades y rebajas). El texto sale de las plantillas `aviso_*`.
+8. `registrar_aviso_enviado(p_clienta_id uuid, p_tipo text, p_referencia text, p_texto text, p_ubicacion_id uuid) returns uuid` y
+   `deshacer_aviso_enviado(p_id uuid) returns void` (dentro de 10 minutos) · módulo `avisos_club`, firman con el responsable.
+9. `guardar_beneficios_club(p_pct numeric, p_compras int, p_monto numeric, p_dias int, p_escala jsonb) returns void` · solo el
+   líder. Si cambia algo que los términos nombran, publica una versión nueva de `terminos`.
+10. `fn_club_anonimizar_inactivas() returns int` · servidor. Anonimiza con la rutina de `archivar_clienta` las fichas sin compra
+    en 3 años (sin compras: 3 años desde que se registró) y deja el permiso `anonimizar` en su historia.
+11. Retiro, sin borrar funciones: se revoca `execute` de `unirse_al_club`, `crear_invitacion_club`,
+    `registrar_mensaje_publicidad` y `registrar_desde_whatsapp` a `authenticated`, y de `fn_invitacion_club` y
+    `confirmar_invitacion_club` a `anon`. `registrar_baja_whatsapp` sigue.
+
+### Web
+- **Pública:** `app/club/[tienda]/page.tsx` (reemplaza `/club/[token]`), `app/club/privacidad/page.tsx`,
+  `app/club/terminos/page.tsx`, y las acciones de servidor `consultarNombre` y `registrarme` (llave de servicio por
+  `lib/supabase-admin.ts`, padrón por `consultarPadron`, la ip con una sal del servidor). Con guía de foco, probada a 375 px y sin
+  datos de nadie en los errores. El QR del cartel y el del ticket abren `${origen}/club/${ubicacion_id}`.
+- **Caja y ficha:** registrar solo con el documento (Cobrar y Nueva clienta); la tarjeta «Pídele que escanee el cartel» que se
+  actualiza sola; el vale de aniversario en la tarjeta y en el pie (como el cumpleaños; uno por compra); BAJA en la ficha; retiro
+  de invitar, del QR personal y de «Llegó un mensaje de WhatsApp».
+- **Avisos y configuración:** Clientas ▸ Avisos (módulo `avisos_club`): la lista por tipo; «Enviar» abre
+  `https://web.whatsapp.com/send?phone=51…&text=…` y anota el envío, con «Deshacer»; BAJA. «Beneficios del club» (líder): %,
+  umbral, días y escala. Cron diario `/api/club/conservacion` (con `CRON_SECRET`) que llama `fn_club_anonimizar_inactivas`.
