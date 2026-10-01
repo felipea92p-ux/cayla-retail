@@ -4,11 +4,12 @@ import {
   diaLimaDe,
   diaValido,
   horaLimaDe,
+  apoyoDeResultado,
+  cifraDeConteo,
   hrefRecientes,
-  inicialesDe,
   responsablesDeConteo,
   textoAperturaCierre,
-  rotuloDelDia,
+  textoCierre,
   textoDiaLargo,
   textoPieRecientes,
   textoTotalRecientes,
@@ -93,29 +94,19 @@ describe("textos del día", () => {
     expect(textoDiaLargo("2025-12-31", HOY)).toBe("miércoles 31 de diciembre de 2025");
     expect(textoDiaLargo("2026-09-30", HOY)).toBe("miércoles 30 de setiembre");
   });
-  it("«Hoy» y «Ayer» rotulan la banda; los demás días, nada", () => {
-    expect(rotuloDelDia("2026-09-30", HOY)).toBe("Hoy");
-    expect(rotuloDelDia("2026-09-29", HOY)).toBe("Ayer");
-    expect(rotuloDelDia("2026-09-28", HOY)).toBeNull();
-    expect(rotuloDelDia("2026-10-01", HOY)).toBeNull();
-  });
-  it("«Ayer» del 1 de octubre es el 30 de setiembre (cruza de mes)", () => {
-    expect(rotuloDelDia("2026-09-30", "2026-10-01")).toBe("Ayer");
-  });
 });
 
-describe("agruparPorDia: una banda por día, en el orden de la base", () => {
+describe("agruparPorDia: un grupo por día, en el orden de la base", () => {
   it("junta los del mismo día y deja a cada uno en su banda", () => {
-    const g = agruparPorDia(TODOS, HOY);
-    expect(g.map((x) => [x.dia, x.rotulo, x.conteos.map((c) => c.numero)])).toEqual([
-      ["2026-09-30", "Hoy", [25, 27, 26]],
-      ["2026-09-29", "Ayer", [11, 10]],
-      ["2026-09-24", null, [5]],
+    const g = agruparPorDia(TODOS);
+    expect(g.map((x) => [x.dia, x.conteos.map((c) => c.numero)])).toEqual([
+      ["2026-09-30", [25, 27, 26]],
+      ["2026-09-29", [11, 10]],
+      ["2026-09-24", [5]],
     ]);
-    expect(g[0].titulo).toBe("miércoles 30 de setiembre");
   });
   it("sin conteos no hay bandas", () => {
-    expect(agruparPorDia([], HOY)).toEqual([]);
+    expect(agruparPorDia([])).toEqual([]);
   });
 });
 
@@ -222,19 +213,40 @@ describe("responsablesDeConteo: la fila dice un nombre, y el de quien cerró sol
   });
 });
 
-describe("inicialesDe", () => {
-  it("dos letras con nombre y apellido, una con un solo nombre", () => {
-    expect(inicialesDe("Angie Chavez")).toBe("AC");
-    expect(inicialesDe("Diana")).toBe("D");
+describe("textoCierre y apoyoDeResultado: la línea bajo el resultado", () => {
+  const cerrado = { estado: "cerrado", creadoEn: "2026-09-30T16:43:00Z", cerradoEn: "2026-09-30T16:52:00Z", lineas: 4, lineasConDiferencia: 0, parcial: false, variantes: 4 };
+
+  it("cerrado el mismo día: la hora; otro día: la fecha y la hora", () => {
+    expect(textoCierre(cerrado)).toBe("Cerrado 11:52");
+    expect(textoCierre({ ...cerrado, creadoEn: "2026-09-30T23:40:00Z", cerradoEn: "2026-10-01T14:05:00Z" })).toBe("Cerrado 01/10 09:05");
   });
-  it("con más de dos palabras toma las dos primeras; con tildes y minúsculas, en mayúscula", () => {
-    expect(inicialesDe("María del Pilar Ñañez")).toBe("MD");
-    expect(inicialesDe("ñusta quispe")).toBe("ÑQ");
+  it("en curso o cancelado no cerraron", () => {
+    expect(textoCierre({ ...cerrado, estado: "abierto", cerradoEn: null })).toBeNull();
+    expect(textoCierre({ ...cerrado, estado: "anulado", cerradoEn: null })).toBeNull();
   });
-  it("sin nombre o sin letras: «?»", () => {
-    expect(inicialesDe("—")).toBe("?");
-    expect(inicialesDe("")).toBe("?");
-    expect(inicialesDe(null)).toBe("?");
-    expect(inicialesDe("12 34")).toBe("?");
+  it("el apoyo: cuándo cerró; «Sigue abierto» si está en curso; nada si se canceló", () => {
+    expect(apoyoDeResultado(cerrado)).toBe("Cerrado 11:52");
+    expect(apoyoDeResultado({ ...cerrado, estado: "abierto", cerradoEn: null, lineas: 3, variantes: 9 })).toBe("Sigue abierto");
+    expect(apoyoDeResultado({ ...cerrado, estado: "anulado", cerradoEn: null, lineas: 0, variantes: 0 })).toBeNull();
+  });
+});
+
+describe("cifraDeConteo: cuántas variantes, a la derecha de la fila", () => {
+  const base = { estado: "cerrado", lineas: 15, lineasConDiferencia: 0, parcial: false, variantes: 15 };
+
+  it("un conteo terminado dice cuántas variantes verificó", () => {
+    expect(cifraDeConteo(base)).toEqual({ cifra: "15", unidad: "variantes" });
+    expect(cifraDeConteo({ ...base, lineas: 1, variantes: 1 })).toEqual({ cifra: "1", unidad: "variante" });
+  });
+  it("con diferencias cuenta igual: las diferencias las dice el resultado, no la cifra", () => {
+    expect(cifraDeConteo({ ...base, lineasConDiferencia: 3 })).toEqual({ cifra: "15", unidad: "variantes" });
+  });
+  it("uno en curso o parcial dice «X de Y»: no terminó de verificar todo", () => {
+    expect(cifraDeConteo({ ...base, estado: "abierto", lineas: 18, variantes: 37 })).toEqual({ cifra: "18 de 37", unidad: "variantes" });
+    expect(cifraDeConteo({ ...base, lineas: 20, variantes: 37, parcial: true })).toEqual({ cifra: "20 de 37", unidad: "variantes" });
+  });
+  it("uno cancelado no tiene cifra: lo contado se perdió", () => {
+    expect(cifraDeConteo({ ...base, estado: "anulado", lineas: 0, variantes: 0 })).toBeNull();
+    expect(cifraDeConteo({ ...base, lineas: 0, variantes: 0 })).toBeNull(); // cerrado sin ninguna variante verificada = Cancelado
   });
 });

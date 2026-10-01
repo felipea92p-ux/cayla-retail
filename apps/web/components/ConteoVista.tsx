@@ -134,7 +134,7 @@ export function ConteoVista({
         <div className="overflow-hidden rounded-b-xl">
           {recientes.mostrados.length > 0 ? (
             <>
-              <ConteosLista grupos={agruparPorDia(recientes.mostrados, recientes.hoy)} />
+              <ConteosLista grupos={agruparPorDia(recientes.mostrados)} hoy={recientes.hoy} />
               <p className="border-t border-sand px-4 py-2.5 text-xs text-taupe @[36rem]:px-5">{textoPieRecientes(recientes)}</p>
             </>
           ) : recientes.dia !== null ? (
