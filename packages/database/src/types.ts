@@ -600,6 +600,9 @@ export type Database = {
           version: number
           whatsapp_consentimiento_en: string | null
           preferencias: Json
+          correo: string | null
+          registro_origen: string
+          club_ubicacion_id: string | null
         }
         Insert: {
           anonimizada?: boolean
@@ -624,6 +627,9 @@ export type Database = {
           version?: number
           whatsapp_consentimiento_en?: string | null
           preferencias?: Json
+          correo?: string | null
+          registro_origen?: string
+          club_ubicacion_id?: string | null
         }
         Update: {
           anonimizada?: boolean
@@ -648,8 +654,18 @@ export type Database = {
           version?: number
           whatsapp_consentimiento_en?: string | null
           preferencias?: Json
+          correo?: string | null
+          registro_origen?: string
+          club_ubicacion_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clientas_club_ubicacion_id_fkey"
+            columns: ["club_ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clientas_fusionada_en_id_fkey"
             columns: ["fusionada_en_id"]
@@ -710,42 +726,117 @@ export type Database = {
           },
         ]
       }
+      club_aniversario_escala: {
+        Row: {
+          anio: number
+          monto: number
+        }
+        Insert: {
+          anio: number
+          monto: number
+        }
+        Update: {
+          anio?: number
+          monto?: number
+        }
+        Relationships: []
+      }
+      club_avisos_enviados: {
+        Row: {
+          clienta_id: string
+          creado_en: string
+          deshecho_en: string | null
+          deshecho_por: string | null
+          enviado_por: string
+          id: string
+          referencia: string
+          telefono: string | null
+          texto: string | null
+          tipo: string
+          ubicacion_id: string
+        }
+        Insert: {
+          clienta_id: string
+          creado_en?: string
+          deshecho_en?: string | null
+          deshecho_por?: string | null
+          enviado_por: string
+          id?: string
+          referencia: string
+          telefono?: string | null
+          texto?: string | null
+          tipo: string
+          ubicacion_id: string
+        }
+        Update: {
+          clienta_id?: string
+          creado_en?: string
+          deshecho_en?: string | null
+          deshecho_por?: string | null
+          enviado_por?: string
+          id?: string
+          referencia?: string
+          telefono?: string | null
+          texto?: string | null
+          tipo?: string
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_avisos_enviados_clienta_id_fkey"
+            columns: ["clienta_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_avisos_enviados_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_canjes: {
         Row: {
           anio: number
+          anio_club: number | null
           anulado_en: string | null
           anulado_por: string | null
           clienta_id: string
           created_at: string
           id: string
           monto: number
-          pct: number
+          pct: number | null
           registrado_por: string | null
           tipo: string
           venta_id: string
         }
         Insert: {
           anio: number
+          anio_club?: number | null
           anulado_en?: string | null
           anulado_por?: string | null
           clienta_id: string
           created_at?: string
           id?: string
           monto: number
-          pct: number
+          pct?: number | null
           registrado_por?: string | null
           tipo: string
           venta_id: string
         }
         Update: {
           anio?: number
+          anio_club?: number | null
           anulado_en?: string | null
           anulado_por?: string | null
           clienta_id?: string
           created_at?: string
           id?: string
           monto?: number
-          pct?: number
+          pct?: number | null
           registrado_por?: string | null
           tipo?: string
           venta_id?: string
@@ -766,6 +857,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      club_intentos_registro: {
+        Row: {
+          celular: string | null
+          creado_en: string
+          documento_hash: string | null
+          id: number
+          ip_hash: string
+          tipo: string
+        }
+        Insert: {
+          celular?: string | null
+          creado_en?: string
+          documento_hash?: string | null
+          id?: never
+          ip_hash: string
+          tipo: string
+        }
+        Update: {
+          celular?: string | null
+          creado_en?: string
+          documento_hash?: string | null
+          id?: never
+          ip_hash?: string
+          tipo?: string
+        }
+        Relationships: []
       }
       codigos_barras: {
         Row: {
@@ -1580,6 +1698,9 @@ export type Database = {
       }
       configuracion_empresa: {
         Row: {
+          club_aniversario_compras: number
+          club_aniversario_dias: number
+          club_aniversario_monto: number
           club_cumple_pct: number
           email: string | null
           id: boolean
@@ -1592,6 +1713,9 @@ export type Database = {
           web: string | null
         }
         Insert: {
+          club_aniversario_compras?: number
+          club_aniversario_dias?: number
+          club_aniversario_monto?: number
           club_cumple_pct?: number
           email?: string | null
           id?: boolean
@@ -1604,6 +1728,9 @@ export type Database = {
           web?: string | null
         }
         Update: {
+          club_aniversario_compras?: number
+          club_aniversario_dias?: number
+          club_aniversario_monto?: number
           club_cumple_pct?: number
           email?: string | null
           id?: boolean
@@ -5460,11 +5587,100 @@ export type Database = {
           cumple_pct: number
           cumple_canjeado_este_anio: boolean
           cumple_canjeado_el: string | null
+          aniversario_disponible: boolean
+          aniversario_monto: number | null
+          aniversario_vence: string | null
         }[]
       }
       fn_club_textos_vigentes: {
         Args: Record<PropertyKey, never>
         Returns: { tipo: string; version: number; texto: string }[]
+      }
+      // ---- Club de clientas, tanda 1g (ADR-0288 «Contrato de la tanda 1g»; migraciones 20261001210000…210700) ----
+      /** La página pública del cartel. `anon` y `authenticated`. `null` si no es una tienda activa. Forma:
+       *  { tienda, whatsapp, pct, escala: [{ anio, monto }], compras, monto_minimo, dias,
+       *    textos: { terminos, privacidad, casilla_publicidad, saludo } } con cada texto { version, texto }. */
+      fn_club_pagina: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      /** Servidor (llave de servicio, nunca anon ni authenticated): anota el intento y dice si está dentro del límite por
+       *  hora. p_tipo 'consulta' (≤ 20 por ip) o 'registro' (≤ 5 por ip, ≤ 3 por celular, ≤ 3 por documento). */
+      club_intento: {
+        Args: { p_tipo: string; p_ip_hash: string; p_documento_hash?: string | null; p_celular?: string | null }
+        Returns: boolean
+      }
+      /** Servidor (llave de servicio): ella se une sola desde el cartel. p_versiones = { terminos, privacidad,
+       *  casilla_publicidad?, saludo? } con las versiones que leyó. Hints: club_menor, club_datos_invalidos (detail = el
+       *  campo), club_texto_cambio, club_documento_archivado. */
+      registrarse_en_el_club: {
+        Args: {
+          p_ubicacion_id: string
+          p_documento_tipo: string
+          p_documento_numero: string
+          p_nombre: string | null
+          p_telefono: string
+          p_nacimiento: string
+          p_correo: string | null
+          p_mayor_de_edad: boolean
+          p_acepta_terminos: boolean
+          p_acepta_publicidad: boolean
+          p_versiones: Json
+          p_nombre_del_padron: boolean
+        }
+        Returns: { clienta_id: string; codigo_club: string; club_desde: string; era_socia: boolean; nombre_corto: string }[]
+      }
+      /** Módulo «Clientas»: su aniversario en el club (año de club, umbral en compras netas, pausa y vale). */
+      fn_club_aniversario: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          anios_que_cuentan: number
+          anio_en_curso_cuenta: boolean
+          compras_anio: number
+          monto_anio: number
+          proximo_aniversario: string | null
+          vale_disponible: boolean
+          vale_monto: number | null
+          vale_vence: string | null
+          vale_canjeado_el: string | null
+        }[]
+      }
+      /** Módulo «Avisos del club»: los mensajes por mandar a las socias con publicidad de esa tienda. tipo: cumpleanos,
+       *  aniversario, rebaja o novedades. */
+      fn_club_avisos_pendientes: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          clienta_id: string
+          nombre: string
+          telefono: string
+          tipo: string
+          referencia: string
+          texto: string
+          detalle: string | null
+        }[]
+      }
+      /** Módulo «Avisos del club»; firma con el responsable. Hints: aviso_sin_publicidad, aviso_grupo_testigo,
+       *  aviso_tope_mes, aviso_sin_baja, aviso_invalido. Repetido (misma clienta, tipo y referencia, sin deshacer) devuelve el
+       *  mismo id. */
+      registrar_aviso_enviado: {
+        Args: { p_clienta_id: string; p_tipo: string; p_referencia: string; p_texto: string; p_ubicacion_id: string }
+        Returns: string
+      }
+      /** Módulo «Avisos del club»; dentro de 10 minutos. Hints: aviso_no_existe, aviso_fuera_de_plazo. */
+      deshacer_aviso_enviado: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      /** Solo el líder. p_escala = [{ anio: 1..5, monto }]. Si cambia algo que los términos nombran, publica una versión
+       *  nueva de `terminos`. Hints: beneficios_invalidos (detail = el campo), terminos_no_reconocidos. */
+      guardar_beneficios_club: {
+        Args: { p_pct: number; p_compras: number; p_monto: number; p_dias: number; p_escala: Json }
+        Returns: undefined
+      }
+      /** Servidor (cron diario con CRON_SECRET): anonimiza las fichas sin compra en 3 años. Devuelve cuántas. */
+      fn_club_anonimizar_inactivas: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       crear_invitacion_club: {
         Args: { p_clienta_id: string; p_ubicacion_id?: string }
@@ -7970,6 +8186,7 @@ export type Database = {
         Args: {
           p_asesora_id?: string
           p_autorizado_por?: string
+          p_canjear_aniversario?: boolean
           p_canjear_cumpleanos?: boolean
           p_cliente_id?: string
           p_cliente_nombre?: string
