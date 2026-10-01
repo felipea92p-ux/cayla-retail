@@ -1438,7 +1438,7 @@ export function InventarioPanel({
         <AjustarInventarioModal
           productoId={ajustando.productoId}
           // Cada fila de Existencias es una prenda (modelo + color): el ajuste muestra solo sus tallas.
-          prenda={{ color: ajustando.color }}
+          prenda={{ color: ajustando.color, colorHex: ajustando.colorHex }}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
           puedeBajarAlPiso={puedeBajarAlPiso}
