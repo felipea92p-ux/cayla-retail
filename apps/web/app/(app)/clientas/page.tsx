@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { getCifrasClientas, getListaClientas, getTiendasConWhatsapp } from "@/lib/clientas";
 import { leerParamsLista } from "@/lib/clientas-lista-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -14,7 +14,7 @@ import { ClientasPanel } from "@/components/ClientasPanel";
 // (`exigirModulo`), y la base lo vuelve a exigir: la política de `clientas` y sus funciones
 // preguntan por el módulo (ADR-0249, actualización 2026-09-28).
 export default async function ClientasPage({ searchParams }: { searchParams: Promise<{ q?: string; filtro?: string; pagina?: string }> }) {
-  await requirePersonaActualV2();
+  await exigirModulo("clientas"); // el layout es la puerta del grupo (Clientas o Avisos): las fichas piden «clientas»
   const params = leerParamsLista(await searchParams);
   // El WhatsApp de cada tienda (ADR-0288 tanda 1b): el QR de una socia abre el chat de la tienda activa. Si la base todavía
   // no tiene la columna, llega vacío y la ficha dice que no hay QR (principio 9).
