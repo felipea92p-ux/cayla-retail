@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261001150000_retirar_del_piso.sql — CAYLA V2 · ADR-0296 «Subir a almacén» · la puerta que sube VARIAS tallas del piso al
+-- 20261001150000_retirar_del_piso.sql — CAYLA V2 · ADR-0300 «Subir a almacén» · la puerta que sube VARIAS tallas del piso al
 -- almacén en una sola transacción. Solo agrega una función: no toca tablas, políticas ni disparadores.
 --
 -- EL PROBLEMA PRIMERO. «Reponer» (almacén → piso) ya sube varias tallas de una prenda de una vez porque existe `bajar_al_piso`
@@ -193,7 +193,7 @@ end;
 $fn$;
 
 comment on function retail.retirar_del_piso(uuid, jsonb, text, uuid) is
-  'ADR-0296: sube al almacén, de una vez y todo o nada, varias tallas del piso de una tienda. p_items = [{variante_id, cantidad}] (1 a 300; repetidas se suman). p_token obligatorio: cada talla lleva una marca derivada (md5 de marca:variante) que guarda mover_interno; reenviar la misma lista devuelve ya_registrada sin mover nada. Pide el módulo «Bajada al piso» y operar la tienda; firma el responsable. Cada línea es un mover_interno piso→almacén (la misma fila que «Retirar del piso»).';
+  'ADR-0300: sube al almacén, de una vez y todo o nada, varias tallas del piso de una tienda. p_items = [{variante_id, cantidad}] (1 a 300; repetidas se suman). p_token obligatorio: cada talla lleva una marca derivada (md5 de marca:variante) que guarda mover_interno; reenviar la misma lista devuelve ya_registrada sin mover nada. Pide el módulo «Bajada al piso» y operar la tienda; firma el responsable. Cada línea es un mover_interno piso→almacén (la misma fila que «Retirar del piso»).';
 
 revoke all on function retail.retirar_del_piso(uuid, jsonb, text, uuid) from public, anon;
 grant execute on function retail.retirar_del_piso(uuid, jsonb, text, uuid) to authenticated;

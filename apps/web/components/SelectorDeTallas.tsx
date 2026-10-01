@@ -3,7 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import { acotarCantidad, cantidadDe, leerCantidadTecleada, type Cantidades, type FilaDelSelector } from "@/lib/reponer-prenda-reglas";
 
-// La lista de tallas de «Reponer» y de «Subir a almacén» (ADR-0295, ADR-0296): una fila por talla con lo que hay de cada lado y un
+// La lista de tallas de «Reponer» y de «Subir a almacén» (ADR-0295, ADR-0300): una fila por talla con lo que hay de cada lado y un
 // control − 0 + para elegir cuántas se mueven. Lo único que cambia entre las dos ventanas es QUÉ lado manda (`tope`, `principal`,
 // `secundaria` vienen de `filasDelSelector`); el marcado es uno solo para que se vean y se toquen igual.
 //

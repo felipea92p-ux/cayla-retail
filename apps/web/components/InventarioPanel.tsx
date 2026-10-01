@@ -15,6 +15,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
+import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». `EliminarProductoModal` (ADR-0252,
@@ -384,6 +385,13 @@ export function InventarioPanel({
   function abrirReponer(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
     volverFoco.current = origen;
     setReponiendo(prenda.tallas.map((t) => t.varianteId));
+  }
+  // «Subir a almacén» (ADR-0300): la misma idea del lado contrario, con la ventana `SubirAAlmacenModal`.
+  const [subiendo, setSubiendo] = useState<string[] | null>(null);
+  const prendaSubiendo = subiendo ? agruparPorPrenda(stock.filter((f) => subiendo.includes(f.varianteId)))[0] : undefined;
+  function abrirSubir(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
+    volverFoco.current = origen;
+    setSubiendo(prenda.tallas.map((t) => t.varianteId));
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
@@ -1075,6 +1083,10 @@ export function InventarioPanel({
               setAbierta(null);
               abrirReponer(prenda, origen);
             }}
+            onSubir={(prenda, origen) => {
+              setAbierta(null);
+              abrirSubir(prenda, origen);
+            }}
             onAjustar={(f) => {
               setAbierta(null);
               setAjustando(f);
@@ -1432,6 +1444,17 @@ export function InventarioPanel({
         />
       )}
 
+      {prendaSubiendo && (
+        <SubirAAlmacenModal
+          prenda={prendaSubiendo}
+          ubicacionId={ubicacionId}
+          sede={sedeNombre}
+          politica={politica}
+          alCerrarEnfocar={volverFoco}
+          onClose={() => setSubiendo(null)}
+        />
+      )}
+
       {ajustando && (
         <AjustarInventarioModal
           productoId={ajustando.productoId}
@@ -1487,6 +1510,10 @@ export function InventarioPanel({
           onReponer={(prenda) => {
             setAbierta(null);
             abrirReponer(prenda, null);
+          }}
+          onSubir={(prenda) => {
+            setAbierta(null);
+            abrirSubir(prenda, null);
           }}
           onAjustar={(f) => {
             setAbierta(null);

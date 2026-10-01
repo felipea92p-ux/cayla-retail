@@ -66,6 +66,11 @@ export function sePuedeBajarTalla(t: Pick<TallaParaReponer, "almacen">): boolean
   return t.almacen > 0;
 }
 
+/** Se puede subir al almacén si hay algo LIBRE en el piso (lo apartado para una clienta no se mueve). */
+export function sePuedeSubirTalla(t: Pick<TallaParaReponer, "piso">): boolean {
+  return t.piso > 0;
+}
+
 export function cantidadDe(cantidades: Cantidades, varianteId: string): number {
   return cantidades[varianteId] ?? 0;
 }
@@ -82,15 +87,19 @@ export function leerCantidadTecleada(texto: string, tope: number): number {
   return solo === "" ? 0 : acotarCantidad(Number(solo), tope);
 }
 
-/** Las líneas que viajan a la base: solo las tallas con algo elegido, en el orden de la curva. */
-export function lineasDeReponer(tallas: readonly TallaParaReponer[], cantidades: Cantidades): LineaBajada[] {
+/** Las líneas que viajan a la base: solo las tallas con algo elegido, en el orden de la curva, recortadas al tope del lugar
+ *  de donde salen (el almacén al bajar, el piso al subir). */
+export function lineasDeMover(tallas: readonly TallaParaReponer[], cantidades: Cantidades, rumbo: Rumbo): LineaBajada[] {
   const lineas: LineaBajada[] = [];
   for (const t of tallas) {
-    const cantidad = acotarCantidad(cantidadDe(cantidades, t.varianteId), t.almacen);
+    const cantidad = acotarCantidad(cantidadDe(cantidades, t.varianteId), rumbo === "bajar" ? t.almacen : t.piso);
     if (cantidad > 0) lineas.push({ varianteId: t.varianteId, cantidad });
   }
   return lineas;
 }
+
+/** «Reponer»: del almacén al piso. */
+export const lineasDeReponer = (tallas: readonly TallaParaReponer[], cantidades: Cantidades): LineaBajada[] => lineasDeMover(tallas, cantidades, "bajar");
 
 export function totalAReponer(lineas: readonly LineaBajada[]): number {
   return lineas.reduce((suma, l) => suma + l.cantidad, 0);
@@ -115,10 +124,12 @@ export function detalleDeLoBajado(tallas: readonly TallaParaReponer[], lineas: r
   return lineas.map((l) => `${talla.get(l.varianteId) ?? "?"} ${l.cantidad}`).join(" · ");
 }
 
-/** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso`. */
-export function textoFilaSinAlcance(hay: number, motivo: string): string {
+/** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso` / `retirar_del_piso`;
+ *  `lugar` es de donde salen las prendas (el almacén al bajar, el piso al subir). */
+export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacén" | "piso" = "almacén"): string {
   if (motivo === "archivada") return "Esta talla está archivada: no se baja al piso.";
   if (motivo === "no_existe") return "Esta talla ya no existe en el catálogo.";
-  if (motivo === "no_es_prenda") return "Esto no es una prenda real: no se baja al piso.";
-  return hay === 0 ? "Ya no queda nada libre en el almacén." : hay === 1 ? "Solo queda 1 libre en el almacén." : `Solo quedan ${hay} libres en el almacén.`;
+  if (motivo === "no_es_prenda") return "Esto no es una prenda real: no se mueve.";
+  const en = lugar === "piso" ? "el piso" : "el almacén";
+  return hay === 0 ? `Ya no queda nada libre en ${en}.` : hay === 1 ? `Solo queda 1 libre en ${en}.` : `Solo quedan ${hay} libres en ${en}.`;
 }

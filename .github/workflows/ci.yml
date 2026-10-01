@@ -391,7 +391,7 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-al-piso
 
-      # «Subir a almacén» (ADR-0296): `retirar_del_piso` sube varias tallas del piso al almacén en UNA transacción (el movimiento
+      # «Subir a almacén» (ADR-0300): `retirar_del_piso` sube varias tallas del piso al almacén en UNA transacción (el movimiento
       # contrario a `bajar_al_piso`). Todo o nada (una talla que no alcanza no deja subir ni la que sí), una marca por lista que
       # hace seguro reenviar tras un corte, mismo módulo y mismo Responsable que «Retirar del piso», y la misma fila del libro
       # que escribe `mover_entre_piso_y_almacen`. Cada caso termina en ROLLBACK.

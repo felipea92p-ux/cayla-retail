@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0296 «Subir a almacén» — `retirar_del_piso` (`20261001150000_retirar_del_piso.sql`): sube varias tallas del
+ * Prueba de ADR-0300 «Subir a almacén» — `retirar_del_piso` (`20261001150000_retirar_del_piso.sql`): sube varias tallas del
  * piso al almacén de una tienda en UNA transacción.
  *
  * QUÉ CUBRE
