@@ -398,3 +398,154 @@ de arriba, y por qué:
     `registrar_venta` pasa a `703928f5…`.
   - La regla quedó en CLAUDE.md («El SQL Editor agrega líneas por su cuenta»).
 
+
+## Contrato de la tanda 1b (2026-09-30): socia, dos permisos, código y QR
+
+Se construye sobre la D-4 reescrita y la «Actualización 2026-09-30». Migración `20260930200000_club_paso1b_permisos_y_qr.sql`,
+en partes si hace falta: sin políticas, triggers con `create or replace trigger`, y ningún `select … into` dentro de un texto
+entre comillas.
+
+**Esquema**
+- `retail.clientas` suma estas columnas:
+  - `club_desde timestamptz`, `publicidad_desde timestamptz`;
+  - `codigo_club text unique`, con formato `C-0001` y secuencia `retail.clientas_codigo_club_seq`;
+  - `cumple_anio smallint` (opcional, CL-3).
+  - Candados:
+    - `club_desde` exige celular;
+    - `publicidad_desde` exige `club_desde`;
+    - `codigo_club` está presente si y solo si hay `club_desde`;
+    - una anonimizada no tiene `club_desde`, `publicidad_desde`, `codigo_club` ni `cumple_anio`.
+- `retail.ubicaciones.whatsapp_numero text`: 9 dígitos que empiezan en 9. Sin número no hay QR.
+- `retail.club_textos (tipo, version, texto, vigente_desde, creado_por)`, con único `(tipo, version)`.
+  - `tipo`: `club` (lo lee la asesora), `mensaje_personal` (lo envía ella; lleva `{codigo}`) o `mensaje_generico`.
+  - El vigente de cada tipo es su versión más alta. Se siembran los textos v2 de la actualización como `version = 2`.
+    El v1 nunca se sembró.
+- `retail.club_permisos`, de solo agregar (un disparador rechaza `update` y `delete`; RLS sin políticas y sin permisos
+  para la API):
+  - columnas: `id`, `clienta_id`, `finalidad` (`club` o `publicidad_whatsapp`), `accion` (`otorga` o `revoca`), `medio`,
+    `texto_tipo`, `texto_version`, `ubicacion_id`, `venta_id`, `registrado_por`, `nota` y `created_at`;
+  - `medio`: `caja_palabra`, `ficha`, `whatsapp_propio`, `baja_whatsapp`, `anonimizar` o `legado`.
+  - Candados:
+    - una publicidad que se otorga exige `medio = 'whatsapp_propio'`;
+    - `otorga` exige `texto_version`, salvo en `legado`;
+    - `registrado_por` es obligatorio salvo en `legado`.
+  - **Sin teléfono en el evento.** Anonimizar tiene que poder borrar a la clienta (Ley 29733) y un registro de solo
+    agregar no se edita. La prueba del número es el chat de la tienda.
+
+**Funciones.** Todas empiezan con `fn_exigir_modulo('clientas')` y firman con `fn_actor_persona_id(true)`, salvo la de
+la tienda.
+- `unirse_al_club(p_clienta_id uuid, p_telefono_whatsapp text, p_cumple_dia smallint, p_cumple_mes smallint,
+  p_cumple_anio smallint, p_medio text default 'caja_palabra', p_ubicacion_id uuid, p_venta_id uuid)`
+  → `table(codigo_club text, club_desde timestamptz)`.
+  - `p_medio` es `caja_palabra` o `ficha`. El celular es obligatorio.
+  - Exige texto `club` vigente (hint `club_sin_texto`); rechaza una ficha archivada o anonimizada.
+  - Si ya es socia, completa los datos y devuelve su código sin un evento nuevo.
+- `registrar_mensaje_publicidad(p_clienta_id uuid, p_telefono_que_escribio text, p_ubicacion_id uuid)` → `timestamptz`
+  («Llegó su mensaje»).
+  - Exige que sea socia.
+  - Escribe una publicidad que se otorga con medio `whatsapp_propio` y el texto `mensaje_personal` vigente.
+  - Si el número que escribió difiere del de la ficha, ese pasa a ser su celular.
+- `registrar_desde_whatsapp(p_documento_tipo text, p_documento_numero text, p_nombre text, p_telefono_que_escribio text,
+  p_ubicacion_id uuid)` → `table(clienta_id uuid, codigo_club text)` (cartel).
+  - El documento es obligatorio (CL-1).
+  - Completa o crea la ficha, como `registrar_clienta`.
+  - Escribe `club` y publicidad, las dos con medio `whatsapp_propio` y el texto `mensaje_generico`.
+- `registrar_baja_whatsapp(p_telefono text, p_ubicacion_id uuid)` → `integer` (fichas afectadas).
+  - Revoca la publicidad (medio `baja_whatsapp`) de toda ficha con ese celular y vacía `publicidad_desde`.
+  - Su club sigue: los avisos informativos no son publicidad.
+- `resumen_clienta_caja(p_clienta_id uuid)` → `table(es_socia boolean, codigo_club text, club_desde timestamptz,
+  con_publicidad boolean, celular text, cumple_dia smallint, cumple_mes smallint)`. Es de lectura (prefijo `resumen_`).
+- `fn_club_textos_vigentes()` → `table(tipo text, version integer, texto text)`. Es de lectura; la llama la web.
+- `guardar_whatsapp_tienda(p_ubicacion_id uuid, p_numero text)`.
+  - Con el mismo permiso que `guardar_metas_tienda` (Configuración ▸ Tiendas y caja).
+  - Un número vacío lo quita.
+- `registrar_clienta(p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp, p_cumple_dia, p_cumple_mes,
+  p_cumple_anio)` y `editar_clienta(p_id, p_documento_tipo, p_documento_numero, p_nombre, p_telefono_whatsapp,
+  p_cumple_dia, p_cumple_mes, p_cumple_anio, p_tallas, p_version_esperada)` **pierden `p_acepta_whatsapp` y
+  `p_revoca_whatsapp`**. El permiso ya no se marca ahí (D-4). A una socia no se le puede borrar el celular.
+- `archivar_clienta` con anonimizar: primero escribe `revoca` (medio `anonimizar`) de los permisos vigentes, después vacía
+  los campos del club.
+- `unir_clientas`: la que queda toma el `club_desde` y el `publicidad_desde` más antiguos, y el código si no tenía. Los
+  eventos de la ficha unida se quedan con ella; `clientas_fusiones` lleva de una a la otra.
+- Legado: las fichas con `whatsapp_consentimiento_en` pasan a socias SIN publicidad (evento `club`/`legado`), solo si
+  tienen celular. Producción tenía 0 el 2026-09-30.
+
+**Web**
+- **Cobrar:** la fila de la clienta muestra «Socia C-0142» o la tarjeta «No es del club todavía — Invitar / Ahora no»
+  (CL-8).
+  - «Invitar» pide celular y cumpleaños, lee el texto `club` y llama a `unirse_al_club`.
+  - Al terminar muestra el QR personalizado: `wa.me/51<número de la tienda>?text=<mensaje_personal con su código>`.
+  - El ticket impreso lleva el QR personalizado (socia) o el genérico.
+- **`/clientas`:**
+  - la ficha muestra socia, publicidad y código, con «Unirse al club» (medio `ficha`), «Llegó su mensaje» y «Pidió BAJA»;
+  - «Registrar desde WhatsApp» y «Registrar una BAJA» en el panel;
+  - el cartel imprimible en `/clientas/cartel`, con el QR genérico de cada tienda;
+  - `NuevaClientaModal` pierde el interruptor «acepta WhatsApp».
+- **Configuración ▸ Tiendas y caja:** el número de WhatsApp de cada tienda.
+- **Ajustes al contrato (2026-09-30, a pedido del agente de Cobrar, aprobados por el arquitecto):**
+  - `fn_club_textos_vigentes()` no exige el módulo «Clientas»: la usa también el ticket impreso de una cajera sin él, para
+    el QR genérico. Los textos no son datos personales.
+  - `unirse_al_club` exige documento y nombre, además del celular (CL-1), con el hint `socia_sin_documento`.
+  - `unirse_al_club` suma `p_texto_version`: rechaza con `club_texto_cambio` si el texto `club` cambió desde que la
+    asesora lo leyó. Así el permiso guarda exactamente lo que se le leyó.
+- **Cambio de celular (decisión del arquitecto, 2026-09-30, a pedido de Felipe; Felipe puede revertirla):** el celular de una socia se cambia siempre, pero si tenía publicidad, `editar_clienta` y `registrar_clienta` se la quitan en la misma transacción (evento `revoca`, medio nuevo `cambio_celular`, con `registrado_por`), porque la prueba del permiso es el chat desde el número viejo; sigue socia y la recupera cuando escriba desde el número nuevo («Llegó su mensaje»). «Llegó su mensaje» y el cartel sí cambian el celular conservándola (ella escribió desde el nuevo), y el disparador `clientas_celular_con_publicidad` rechaza (`celular_con_publicidad`) cualquier otro cambio de celular que la conserve.
+
+
+## Actualización 2026-09-30 (c): camino B, ella confirma su publicidad en una página de CAYLA
+
+**Decisión de Felipe (2026-09-30), «Directo al camino B».** Viene del spike del club (rama
+`claude/spyke-club-clientas-visual-631f7a`). El QR personal ya no abre el WhatsApp de la tienda: abre una **página pública
+de CAYLA** con el texto y una **casilla sin marcar**. Cuando ella la marca y confirma, el permiso de publicidad queda
+registrado solo, y la caja y la ficha se actualizan sin que nadie marque nada.
+- «Llegó su mensaje» se queda como **respaldo** (camino A).
+- El QR genérico (cartel y ticket sin clienta) sigue abriendo el WhatsApp de la tienda: registrar a alguien nuevo desde
+  una página pública pediría su documento en internet, y eso no se decidió.
+
+**Por qué cumple la Ley 32323.** El consentimiento es de ella, en su propio celular, con una casilla que ella marca. Es la
+«iniciativa propia» más clara posible, y deja prueba en la base: la versión del texto, la hora y el enlace usado. El
+reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento válido.
+
+**Contrato (lo decide el arquitecto; Felipe puede revertir cualquier punto):**
+- **Tabla `retail.club_invitaciones`:** `id`, `clienta_id` (FK), `token` (único), `ubicacion_id`, `creada_por` (el
+  responsable), `creada_en`, `vence_en`, `usada_en`, `texto_version` (la que ella aceptó).
+  - RLS sin políticas: solo la leen y la escriben funciones.
+- **El token:** 16 caracteres aleatorios seguros para una URL (`gen_random_bytes`, unos 96 bits).
+  - **Vence a los 7 días:** el mismo QR le sirve desde casa si hoy no lo escanea.
+  - **Se usa una sola vez.** Adivinarlo no es viable, y aunque se adivinara solo daría un permiso de publicidad, nunca
+    datos: la página muestra su nombre de pila y el celular a medias.
+- **Medio nuevo `qr_web` en `club_permisos`:** es un otorga de publicidad **sin `registrado_por`**, porque lo registró
+  ella y no una persona de la tienda; lleva la versión del texto de la página. `registrado_por` nulo solo se admite en
+  `qr_web` y en `legado`.
+- **Texto nuevo `pagina_publicidad`**, v1, sembrado; `{celular}` se reemplaza por su celular a medias:
+  > Quiero recibir por WhatsApp de CAYLA novedades, rebajas y mi saludo de cumpleaños al {celular}. Sé que puedo darme de
+  > baja cuando quiera escribiendo BAJA.
+- **Funciones:**
+  - `crear_invitacion_club(p_clienta_id uuid, p_ubicacion_id uuid)` → `table(token text, vence_en timestamptz)`.
+    - Exige el módulo «Clientas» y el responsable.
+    - Exige que sea socia y que no tenga publicidad (hint `ya_tiene_publicidad`).
+    - Si ya tiene una invitación vigente sin usar, la devuelve; si no, crea una nueva.
+  - `fn_invitacion_club(p_token text)` → `table(estado text, nombre_corto text, celular_enmascarado text, codigo_club text,
+    texto text, texto_version integer, tienda text, razon_social text, ruc text)`.
+    - **Es para `anon`**: la página es pública.
+    - `estado`: `vigente`, `usada`, `vencida` o `no_existe`.
+    - Solo devuelve datos con `vigente`.
+  - `confirmar_invitacion_club(p_token text, p_texto_version integer)` → `text` (el estado final). **Es para `anon`.**
+    - Solo con una invitación vigente, sin usar, y con la clienta todavía socia y sin anonimizar.
+    - Rechaza con `club_texto_cambio` si el texto cambió.
+    - Escribe el otorga con medio `qr_web` y marca `publicidad_desde` y `usada_en`, todo en una transacción con
+      `for update` de la invitación.
+    - Una segunda llamada devuelve `usada` sin escribir nada.
+- **Web:**
+  - Ruta pública `/club/[token]`, fuera de `(app)` y permitida en `proxy.ts`. Mobile first, con la marca CAYLA y el diseño
+    del spike («Demo: página completa»).
+  - En Cobrar y en la ficha, «Mostrar su QR» crea la invitación, dibuja el QR de `${origen}/club/${token}` y dice
+    «Esperando su confirmación» sin animación en bucle (regla de movimiento, ADR-0136).
+  - La caja consulta `resumen_clienta_caja` cada 3 s mientras la hoja está abierta; cuando llega la publicidad, cambia a
+    «Listo».
+  - Debajo, «Llegó su mensaje (respaldo)».
+- **Ticket impreso:** sigue con el QR del camino A (WhatsApp con su código). Imprimir no puede depender de crear una
+  invitación en la base, y ese QR también le sirve desde casa.
+- **Anonimizar y unir (decisión del arquitecto, 2026-09-30):** archivar una ficha (con o sin anonimizar) vence en ese
+  momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
+  ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
+  otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.

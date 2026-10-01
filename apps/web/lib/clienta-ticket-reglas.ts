@@ -2,8 +2,8 @@
  * La clienta del ticket del Punto de venta (spike 2026-09-26, hallazgo 4). Se busca en la libreta (`buscar_clienta`:
  * DNI, celular o nombre) y, elegida, sus datos pasan solos al comprobante y a la proforma o el apartado.
  *
- * Desde la tanda 1a del club (ADR-0288), la venta queda ligada a su ficha (`p_cliente_id`) y el documento tiene tipo.
- * Lo que NO hace todavía, a propósito: la pregunta del club (tanda 1b) y «es para regalo» (tanda 1d).
+ * Desde la tanda 1a del club (ADR-0288), la venta queda ligada a su ficha (`p_cliente_id`) y el documento tiene tipo. La
+ * pregunta del club (tanda 1b) vive aparte, en `club-caja-reglas.ts`. Lo que NO hace todavía: «es para regalo» (tanda 1d).
  */
 import { documentoLegible, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
@@ -52,8 +52,8 @@ export function terminoBuscable(texto: string): string | null {
   return t.length >= 3 ? t : null;
 }
 
-/** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9). Sin cumpleaños ni permiso de WhatsApp: eso es del
- *  club (tanda 1b). */
+/** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9). Sin cumpleaños ni permiso de WhatsApp: el cumpleaños
+ *  se pide al invitarla al club (`InvitarAlClub`) y la publicidad solo nace de un mensaje de ella (D-4). */
 export type AltaEnTicket = { documentoTipo: TipoDocumentoClienta; documentoNumero: string; nombre: string; celular: string };
 export const ALTA_VACIA: AltaEnTicket = { documentoTipo: "dni", documentoNumero: "", nombre: "", celular: "" };
 

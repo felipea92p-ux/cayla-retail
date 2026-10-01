@@ -447,12 +447,35 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  * respaldo por si el mensaje no llega.
  *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
  *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
+ * Tanda 1b (club: socia, publicidad por WhatsApp y el número de cada tienda), con el mismo criterio:
+ *   · `club_sin_texto`: no hay texto `club` vigente para leerle, y sin él no se registra su «sí».
+ *   · `celular_invalido`: el celular de la clienta (o el número que escribió) no tiene 9 dígitos que empiecen en 9.
+ *   · `no_es_socia`: «Llegó su mensaje» de alguien que todavía no es socia.
+ *   · `socia_sin_celular`: a una socia no se le puede dejar sin celular.
+ *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Tiendas y caja) no es un celular.
+ *   · `socia_sin_documento`: para ser socia hacen falta documento y nombre, además del celular (CL-1).
+ *   · `club_texto_cambio`: el texto `club` cambió desde que la asesora lo leyó; el permiso guarda exactamente lo leído.
+ * Camino B (ADR-0288, «Actualización 2026-09-30 (c)»):
+ *   · `ya_tiene_publicidad`: «Mostrar su QR» de una socia que ya recibe novedades (`crear_invitacion_club`). La cara del QR
+ *     no lo muestra como error: pasa a «Ya recibe novedades» y actualiza la caja o la ficha.
+ *   · `celular_con_publicidad`: el celular de una socia con novedades se cambió por un camino que no se las quita (el
+ *     disparador `clientas_celular_con_publicidad`). `editar_clienta` se las quita sola; la ficha lo avisa ANTES de guardar
+ *     (`avisoCambioDeCelular`, lib/club-clientas-reglas.ts).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
   ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son la misma clienta, únelas desde su ficha."],
   ["clienta_anonimizada", "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta."],
   ["clienta_no_existe", "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla."],
+  ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle a la clienta, así que no se puede registrar su «sí». Avisa al líder."],
+  ["celular_invalido", "El celular tiene 9 dígitos y empieza en 9, sin +51 ni espacios. Revísalo y vuelve a intentar."],
+  ["no_es_socia", "Esta clienta todavía no es socia del club: primero únela al club y después registra su mensaje."],
+  ["socia_sin_celular", "Una socia del club necesita su celular: no se puede dejar vacío."],
+  ["whatsapp_tienda_invalido", "El WhatsApp de la tienda tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío."],
+  ["socia_sin_documento", "Para unirla al club, su ficha necesita documento y nombre: complétalos primero."],
+  ["club_texto_cambio", "El texto del club cambió mientras la invitabas: vuelve a leérselo."],
+  ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
+  ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
 ]);
 
 /**

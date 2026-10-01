@@ -16,8 +16,14 @@ export type Clienta = {
   documentoNumero: string | null;
   nombre: string | null;
   telefonoWhatsapp: string | null;
-  /** true si la clienta dio su permiso de contacto por WhatsApp — dato aparte del teléfono. */
+  /** true si la clienta tiene el permiso de PUBLICIDAD por WhatsApp (lo dio escribiendo ella primero, ADR-0288 D-4).
+   *  Desde la tanda 1b sale de `publicidad_desde`, no de `whatsapp_consentimiento_en`. */
   tienePermisoWhatsapp: boolean;
+  /** ADR-0288 tanda 1b: socia desde (su «sí» al club), con publicidad desde, y su código («C-0142»). */
+  clubDesde: string | null;
+  publicidadDesde: string | null;
+  codigoClub: string | null;
+  cumpleAnio: number | null;
   cumpleDia: number | null;
   cumpleMes: number | null;
   tallas: Record<string, string> | null;
@@ -42,6 +48,10 @@ export type FilaClienta = {
   nombre: string | null;
   telefono_whatsapp: string | null;
   whatsapp_consentimiento_en: string | null;
+  club_desde: string | null;
+  publicidad_desde: string | null;
+  codigo_club: string | null;
+  cumple_anio: number | null;
   cumple_dia: number | null;
   cumple_mes: number | null;
   tallas: unknown;
@@ -52,6 +62,12 @@ export type FilaClienta = {
   anonimizada: boolean;
   fusionada_en_id: string | null;
 };
+
+/** Las columnas de `clientas` que arman una `FilaClienta`: la MISMA lista para la lectura del servidor (`clientas.ts`) y la
+ *  del navegador (`clientas-acciones.ts`). Antes cada una escribía la suya, y la tanda 1b (ADR-0288) habría tenido que
+ *  acordarse de sumar las del club en tres lugares. */
+export const COLUMNAS_CLIENTA =
+  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, club_desde, publicidad_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id";
 
 function comoTallas(valor: unknown): Record<string, string> | null {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
@@ -65,7 +81,11 @@ export function aClienta(fila: FilaClienta): Clienta {
     documentoNumero: fila.documento_numero,
     nombre: fila.nombre,
     telefonoWhatsapp: fila.telefono_whatsapp,
-    tienePermisoWhatsapp: fila.whatsapp_consentimiento_en !== null,
+    tienePermisoWhatsapp: fila.publicidad_desde !== null,
+    clubDesde: fila.club_desde,
+    publicidadDesde: fila.publicidad_desde,
+    codigoClub: fila.codigo_club,
+    cumpleAnio: fila.cumple_anio,
     cumpleDia: fila.cumple_dia,
     cumpleMes: fila.cumple_mes,
     tallas: comoTallas(fila.tallas),

@@ -32,13 +32,18 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
     expect(codigo).toMatch(/<aside className="[^"]*\bmin-w-0\b[^"]*">/);
   });
 
-  it("la fila cantidad/precio unitario/importe de cada prenda puede bajar a una segunda línea", () => {
-    const inicio = codigo.indexOf('mt-3 flex');
-    expect(inicio).toBeGreaterThan(-1);
-    const fila = codigo.slice(inicio, inicio + 80);
-    expect(fila).toContain("flex-wrap");
-    // Confirma que es la fila correcta: la que sigue trae el stepper de Cantidad.
-    expect(codigo.slice(inicio, inicio + 400)).toContain("Cantidad");
+  // Desde el 2026-09-30 cada prenda es UNA fila compacta (`punto-de-venta/LineaDelTicket.tsx`, spike del club):
+  // nombre | − 1 + | importe | quitar. Lo que no puede encogerse (paso, importe, basurero) lleva `shrink-0`; lo que
+  // cede el ancho es el bloque del nombre (`min-w-0 flex-1`), que corta el nombre en 2 líneas y deja bajar a otra
+  // línea el «color · talla · stock». Sin esas clases, a 320-375 px la fila empuja al ticket fuera de la pantalla.
+  it("la fila de cada prenda cede el ancho por el nombre y el detalle baja de línea", () => {
+    const linea = readFileSync(join(__dirname, "punto-de-venta", "LineaDelTicket.tsx"), "utf8");
+    expect(codigo).toContain("<LineaDelTicket");
+    expect(linea).toMatch(/<div className="min-w-0 flex-1" title=/);
+    expect(linea).toContain("line-clamp-2");
+    expect(linea).toMatch(/<p className="[^"]*\bflex-wrap\b[^"]*">\s*<span>\{f\.detalle\}/);
+    // El paso, el importe y el basurero no se encogen: se encoge el nombre.
+    expect(linea.match(/\bshrink-0\b/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 
   it("la fila «Descuento» + «Dejar en espera» puede bajar a una segunda línea", () => {

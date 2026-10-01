@@ -1,0 +1,123 @@
+/* ==================================================================
+   Cartel del club (ADR-0288 tanda 1b, `/clientas/cartel`, `components/clientas/CartelClub.tsx`).
+
+   Todo el cartel se mide en `em`: 52,5 × 74,25 em es una hoja A4 (210 × 297 mm) cuando la letra de la hoja mide 4 mm.
+   Así la vista previa en pantalla y lo que sale de la impresora son el MISMO dibujo; solo cambia la letra del que lo
+   contiene (`.cartel-club-previa` la calcula del ancho de su tarjeta, `#cartel-club-print` la fija en 4 mm).
+
+   Al imprimir, como las etiquetas de precio y la boleta A4: `#cartel-club-print` va pegado a <body> con un portal y se
+   oculta TODO lo demás con `display:none` (no `visibility`: lo oculto seguiría ocupando alto). Una tienda por página.
+   ================================================================== */
+
+.cartel-club {
+  box-sizing: border-box;
+  width: 52.5em;
+  height: 74.25em;
+  padding: 5em 4.5em 4em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--color-tinta);
+  background: var(--color-papel);
+}
+.cartel-club-marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.5em;
+  letter-spacing: 0.32em;
+  color: var(--color-rojo);
+}
+.cartel-club-isotipo {
+  width: 2.1em;
+  height: auto;
+}
+.cartel-club-titulo {
+  margin-top: 1.6em;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 3.6em;
+  line-height: 1.05;
+  letter-spacing: -0.005em;
+}
+.cartel-club-bajada {
+  margin-top: 0.5em;
+  font-size: 1.55em;
+  color: var(--color-tinta-60);
+}
+.cartel-club-qr {
+  display: block;
+  margin-top: 1.8em;
+  width: 29em;
+  height: 29em;
+}
+.cartel-club-pasos {
+  margin-top: 1.9em;
+  max-width: 36em;
+  padding-left: 1.4em;
+  list-style: decimal;
+  text-align: left;
+  font-size: 1.2em;
+  line-height: 1.5;
+}
+.cartel-club-letra-chica {
+  margin-top: auto;
+  font-size: 1em;
+  color: var(--color-tinta-60);
+}
+.cartel-club-tienda {
+  margin-top: 0.6em;
+  font-size: 1.15em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* La vista previa: la letra sale del ancho de la tarjeta (52,5 em = el ancho entero), a cualquier tamaño de pantalla. */
+.cartel-club-previa {
+  container-type: inline-size;
+}
+.cartel-club-previa .cartel-club {
+  font-size: calc(100cqi / 52.5);
+}
+
+#cartel-club-print {
+  display: none;
+}
+@page cartel-club {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  body:has(#cartel-club-print) > *:not(#cartel-club-print) {
+    display: none !important;
+  }
+  html:has(#cartel-club-print),
+  body:has(#cartel-club-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #cartel-club-print {
+    display: block;
+  }
+  #cartel-club-print .cartel-club-hoja {
+    page: cartel-club;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    break-after: page;
+  }
+  #cartel-club-print .cartel-club-hoja:last-child {
+    break-after: auto;
+  }
+  #cartel-club-print .cartel-club {
+    font-size: 4mm;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

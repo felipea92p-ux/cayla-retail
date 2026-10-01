@@ -588,3 +588,54 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
     expect(traducirError({ message: "duplicate key value", code: "23505", hint: "otra_cosa" }, "registrar la clienta")).toContain("Código:");
   });
 });
+
+// ADR-0288 tanda 1b (20260930200000): el club, sus dos permisos y el WhatsApp de cada tienda. Sus rechazos traen un hint
+// estable; algunos llegan con 22023 o 23514 y sin él caerían al genérico con «Código:».
+describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 tanda 1b)", () => {
+  const HINTS = [
+    "club_sin_texto",
+    "celular_invalido",
+    "no_es_socia",
+    "socia_sin_celular",
+    "whatsapp_tienda_invalido",
+    "socia_sin_documento",
+    "club_texto_cambio",
+    // Camino B (ADR-0288 act. c).
+    "ya_tiene_publicidad",
+    "celular_con_publicidad",
+  ];
+
+  it("el mensaje de la base pasa tal cual, con cualquier código", () => {
+    for (const [hint, code] of [
+      ["club_sin_texto", "P0001"],
+      ["celular_invalido", "22023"],
+      ["no_es_socia", "P0001"],
+      ["socia_sin_celular", "23514"],
+      ["whatsapp_tienda_invalido", "22023"],
+      ["socia_sin_documento", "23514"],
+      ["club_texto_cambio", "P0001"],
+      ["ya_tiene_publicidad", "P0001"],
+      ["celular_con_publicidad", "P0001"],
+    ] as const) {
+      const message = `Mensaje de la base para ${hint}.`;
+      const salida = traducirError({ message, code, hint }, "unirla al club");
+      expect(salida, hint).toBe(message);
+      expect(salida, hint).not.toContain("Código:");
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo (nunca el genérico)", () => {
+    for (const hint of HINTS) {
+      const salida = traducirError({ message: "", code: "22023", hint }, "guardar el WhatsApp de la tienda");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida.length, hint).toBeGreaterThan(20);
+    }
+  });
+
+  it("camino B: las dos frases nuevas dicen qué pasa con su publicidad", () => {
+    expect(traducirError({ message: "", code: "P0001", hint: "ya_tiene_publicidad" }, "mostrar su QR")).toMatch(/Ya recibe novedades/);
+    expect(traducirError({ message: "", code: "P0001", hint: "celular_con_publicidad" }, "editar la ficha")).toBe(
+      "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."
+    );
+  });
+});

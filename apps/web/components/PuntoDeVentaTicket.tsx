@@ -27,12 +27,10 @@ import {
   descuentoResultante,
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
-  esDescuentoDeCampana,
   hayDescuentoManual,
   necesitaArgumentoEscrito,
   pasoDelCobro,
   pasoDelDescuento,
-  porcentajeDeLinea,
   RAZONES_DESCUENTO,
   type MomentoTicket,
   type PasoDescuento,
@@ -45,9 +43,10 @@ import { BilleteRapido } from "@/components/BilleteRapido";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { codigoPrenda } from "@/lib/prenda-reglas";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
-import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
+import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -172,6 +171,9 @@ type Props = {
   bloqueado: boolean;
   // Ticket
   carrito: ItemCarrito[];
+  /** Color y talla de cada variante (por `varianteId`), para la fila de cada prenda. La línea del carrito no los
+   *  guarda; sin ellos la fila muestra el código de la etiqueta, como antes. */
+  detalles?: ReadonlyMap<string, DetalleVariante>;
   /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
   listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
@@ -256,6 +258,7 @@ export function PuntoDeVentaTicket({
   id,
   bloqueado,
   carrito,
+  detalles,
   listaRef,
   onQuitar,
   onCantidad,
@@ -1038,110 +1041,19 @@ export function PuntoDeVentaTicket({
                   (responde al escaneo que la creó); acá solo va el ref de la lista — las
                   líneas tienen que seguir siendo sus hijas directas. */}
               <div ref={listaRef} className="divide-y divide-sand">
-                {carrito.map((it) => {
-                  // Con campaña se muestra SU % (ADR-0182): el precio baja al .90, así que la cuenta monto ÷ precio se corre
-                  // (24.90 de 95.80 es 26 % y la campaña es de 25 %).
-                  const pctLinea = esDescuentoDeCampana(it) && it.campana ? it.campana.pct : porcentajeDeLinea(it);
-                  const precioNeto = it.precioUnitario - it.descuentoUnitario;
-                  return (
-                    <article key={it.claveLinea} className="px-5 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
-                          <p className="font-mono text-xs text-tinta/60">{codigoPrenda(it)}</p>
-                          {esDescuentoDeCampana(it) && it.campana && (
-                            <p className="mt-0.5 text-[11px] text-tinta/60">Campaña · {it.campana.nombre}</p>
-                          )}
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => onAbrirDescuento([it.claveLinea])}
-                            disabled={bloqueado}
-                            aria-label={`Descuento para ${it.referencia}`}
-                            className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
-                              pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
-                            }`}
-                          >
-                            <Percent className={ICONO_CHICO} aria-hidden />
-                            {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Quitar ${it.referencia}`}
-                            onClick={() => onQuitar(it.claveLinea)}
-                            className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
-                          >
-                            <Trash2 className={ICONO_CHICO} aria-hidden />
-                            Quitar
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-                        <label className="text-[10px] text-tinta/50 uppercase">
-                          Cantidad
-                          <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
-                            {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
-                                basurero de la línea, que es lo único que queda por hacer. */}
-                            {it.cantidad <= 1 ? (
-                              <button
-                                type="button"
-                                aria-label={`Quitar ${it.referencia}`}
-                                onClick={() => onQuitar(it.claveLinea)}
-                                className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
-                              >
-                                <Trash2 className="h-4 w-4" aria-hidden />
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                aria-label="Reducir cantidad"
-                                onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
-                                className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
-                              >
-                                −
-                              </button>
-                            )}
-                            <input
-                              aria-label={`Cantidad de ${it.referencia}`}
-                              type="number"
-                              min={1}
-                              max={it.stockAqui}
-                              value={it.cantidad}
-                              onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
-                              className={`w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
-                            />
-                            <button
-                              type="button"
-                              aria-label="Aumentar cantidad"
-                              onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
-                              disabled={it.cantidad >= it.stockAqui}
-                              className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </label>
-                        {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Con
-                            descuento se ve el de lista tachado y el que se cobra. */}
-                        <div className="text-[10px] text-tinta/50 uppercase">
-                          Precio unitario
-                          <p className="mt-1 flex h-9 items-center gap-1.5 text-sm font-semibold text-tinta normal-case">
-                            {pctLinea > 0 && <s className="text-xs font-normal text-tinta/45">{money(it.precioUnitario)}</s>}
-                            <span>{money(precioNeto)}</span>
-                          </p>
-                        </div>
-                        <div className="pb-2 text-right">
-                          <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
-                          <p className="text-sm font-bold text-tinta">{money(it.cantidad * precioNeto)}</p>
-                        </div>
-                      </div>
-                      <p className="mt-2 text-[11px] text-tinta/50">
-                        {it.varianteId === ID_CARGO_ESPECIAL ? "Prenda sin registrar: almacén la regulariza después." : `Máximo disponible en sede: ${it.stockAqui}`}
-                      </p>
-                    </article>
-                  );
-                })}
+                {/* Una prenda = una fila compacta (spike del club, 2026-09-30): `LineaDelTicket`. El descuento de
+                    una prenda se abre tocando su importe; el del ticket, con «Aplicar descuento» del pie. */}
+                {carrito.map((it) => (
+                  <LineaDelTicket
+                    key={it.claveLinea}
+                    linea={it}
+                    detalle={detalles?.get(it.varianteId)}
+                    bloqueado={bloqueado}
+                    onQuitar={onQuitar}
+                    onCantidad={onCantidad}
+                    onDescuento={(clave) => onAbrirDescuento([clave])}
+                  />
+                ))}
               </div>
 
               {/* La nota vive con las líneas, no con el cobro: nace mientras se arma la

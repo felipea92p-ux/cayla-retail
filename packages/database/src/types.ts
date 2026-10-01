@@ -587,6 +587,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -606,6 +610,10 @@ export type Database = {
           cumple_mes?: number | null
           documento_numero?: string | null
           documento_tipo?: string
+          club_desde?: string | null
+          codigo_club?: string | null
+          cumple_anio?: number | null
+          publicidad_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -625,6 +633,10 @@ export type Database = {
           cumple_mes?: number | null
           documento_numero?: string | null
           documento_tipo?: string
+          club_desde?: string | null
+          codigo_club?: string | null
+          cumple_anio?: number | null
+          publicidad_desde?: string | null
           fusionada_en_id?: string | null
           id?: string
           motivo_archivo?: string | null
@@ -4229,6 +4241,7 @@ export type Database = {
           nombre: string
           sede_dynamic_id: string | null
           tipo: string
+          whatsapp_numero: string | null
         }
         Insert: {
           activo?: boolean
@@ -4239,6 +4252,7 @@ export type Database = {
           nombre: string
           sede_dynamic_id?: string | null
           tipo: string
+          whatsapp_numero?: string | null
         }
         Update: {
           activo?: boolean
@@ -4249,6 +4263,7 @@ export type Database = {
           nombre?: string
           sede_dynamic_id?: string | null
           tipo?: string
+          whatsapp_numero?: string | null
         }
         Relationships: []
       }
@@ -5293,6 +5308,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5310,10 +5329,9 @@ export type Database = {
           p_documento_numero?: string
           p_nombre?: string
           p_telefono_whatsapp?: string
-          p_acepta_whatsapp?: boolean
-          p_revoca_whatsapp?: boolean
           p_cumple_dia?: number
           p_cumple_mes?: number
+          p_cumple_anio?: number
           p_tallas?: Json
           p_version_esperada?: number
         }
@@ -5322,6 +5340,80 @@ export type Database = {
       archivar_clienta: {
         Args: { p_id: string; p_motivo: string; p_anonimizar?: boolean; p_version_esperada?: number }
         Returns: number
+      }
+      unirse_al_club: {
+        Args: {
+          p_clienta_id: string
+          p_telefono_whatsapp: string
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_cumple_anio?: number
+          p_medio?: string
+          p_ubicacion_id?: string
+          p_venta_id?: string
+          p_texto_version?: number
+        }
+        Returns: { codigo_club: string; club_desde: string }[]
+      }
+      registrar_mensaje_publicidad: {
+        Args: { p_clienta_id: string; p_telefono_que_escribio: string; p_ubicacion_id?: string }
+        Returns: string
+      }
+      registrar_desde_whatsapp: {
+        Args: {
+          p_documento_tipo: string
+          p_documento_numero: string
+          p_nombre?: string
+          p_telefono_que_escribio: string
+          p_ubicacion_id?: string
+        }
+        Returns: { clienta_id: string; codigo_club: string }[]
+      }
+      registrar_baja_whatsapp: {
+        Args: { p_telefono: string; p_ubicacion_id?: string }
+        Returns: number
+      }
+      resumen_clienta_caja: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          es_socia: boolean
+          codigo_club: string | null
+          club_desde: string | null
+          con_publicidad: boolean
+          celular: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+        }[]
+      }
+      fn_club_textos_vigentes: {
+        Args: Record<PropertyKey, never>
+        Returns: { tipo: string; version: number; texto: string }[]
+      }
+      crear_invitacion_club: {
+        Args: { p_clienta_id: string; p_ubicacion_id?: string }
+        Returns: { token: string; vence_en: string }[]
+      }
+      fn_invitacion_club: {
+        Args: { p_token: string }
+        Returns: {
+          estado: string
+          nombre_corto: string | null
+          celular_enmascarado: string | null
+          codigo_club: string | null
+          texto: string | null
+          texto_version: number | null
+          tienda: string | null
+          razon_social: string | null
+          ruc: string | null
+        }[]
+      }
+      confirmar_invitacion_club: {
+        Args: { p_token: string; p_texto_version: number }
+        Returns: string
+      }
+      guardar_whatsapp_tienda: {
+        Args: { p_ubicacion_id: string; p_numero?: string }
+        Returns: undefined
       }
       reactivar_clienta: {
         Args: { p_id: string; p_version_esperada?: number }
@@ -5344,6 +5436,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -5366,6 +5462,10 @@ export type Database = {
           cumple_mes: number | null
           documento_numero: string | null
           documento_tipo: string
+          club_desde: string | null
+          codigo_club: string | null
+          cumple_anio: number | null
+          publicidad_desde: string | null
           fusionada_en_id: string | null
           id: string
           motivo_archivo: string | null
@@ -7508,7 +7608,7 @@ export type Database = {
       }
       registrar_clienta: {
         Args: {
-          p_acepta_whatsapp?: boolean
+          p_cumple_anio?: number
           p_cumple_dia?: number
           p_cumple_mes?: number
           p_documento_numero?: string
