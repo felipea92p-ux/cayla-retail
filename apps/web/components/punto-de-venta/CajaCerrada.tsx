@@ -30,7 +30,7 @@ function sinMovimiento(): boolean {
 }
 
 /**
- * Vender con la caja cerrada (ADR-0299, maqueta B «Persiana», docs/maquetas/caja-cerrada-2026-10/). Antes solo se apagaba
+ * Vender con la caja cerrada (ADR-0301, maqueta B «Persiana», docs/maquetas/caja-cerrada-2026-10/). Antes solo se apagaba
  * el catálogo con `opacity-50` y un botón chico en la fila de arriba; una colaboradora nueva no entendía por qué «no
  * vendía». Ahora el área de trabajo se desenfoca, baja una persiana y se cuelga un cartel «Cerrado», con un solo botón
  * grande. Al abrir, el cartel gira a «Abierto» y la persiana sube.
