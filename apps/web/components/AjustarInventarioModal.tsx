@@ -67,7 +67,7 @@ import { firmar } from "@/lib/responsable-reglas";
 // hay; con los demás, cuánto se suma o se resta. Por eso el motivo va ANTES de las tallas: el número se escribe sabiendo
 // qué significa. Si el motivo cambia con cantidades ya escritas, cambian de forma pero no de resultado (`pasarCantidades`).
 
-// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPisoModal`).
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({

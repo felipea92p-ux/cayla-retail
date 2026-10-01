@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { textoQuedan } from "@/lib/movimientos-saldo";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -241,36 +241,30 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
 }
 
 /** Las bajadas al piso de un día, plegadas en una fila (ADR-0241): en «Todos» no cambian el total y ocupaban un tercio
- *  de la lista. Se despliega en sus operaciones, cada una como siempre. Solo existe en «Todos» sin búsqueda: con la
- *  píldora «Piso ↔ almacén» o buscando una prenda, cada bajada es su fila (quien viene a confirmar «¿la bajé?» la ve). */
+ *  de la lista. Al tocarla abre el cajón lateral con todas (antes se desplegaba hacia abajo y empujaba la lista).
+ *  Solo existe en «Todos» sin búsqueda: con la píldora «Piso ↔ almacén» o buscando una prenda, cada bajada es su fila
+ *  (quien viene a confirmar «¿la bajé?» la ve). `abierta`: el cajón de ESTAS bajadas está a la vista. */
 export function FilaBajadas({
-  clave,
   operaciones,
   prendas,
-  ctx,
   abierta,
-  onAlternar,
+  onAbrir,
 }: {
-  clave: string;
   operaciones: OperacionMovimiento[];
   prendas: Record<string, PrendaDeMovimiento>;
-  ctx: ContextoFila;
   abierta: boolean;
-  onAlternar: () => void;
+  onAbrir: () => void;
 }) {
   const r = resumirBajadas(operaciones);
   const fotos = [...new Set(operaciones.flatMap((op) => op.filas.map((m) => prendas[m.varianteId]?.fotoUrl ?? null)))].slice(0, 3);
-  const detalleId = clave.replace(/[^a-zA-Z0-9-]/g, "");
   const horas = r.desde === r.hasta ? r.hasta : `${r.desde}–${r.hasta}`;
   return (
     <li>
       <div className={FILA_ACTIVIDAD}>
         <button
           type="button"
-          onClick={onAlternar}
-          aria-expanded={abierta}
-          aria-controls={detalleId}
-          aria-label={`${abierta ? "Ocultar" : "Ver"} las ${r.veces} ${r.etiqueta.toLowerCase()}: ${r.tallas} tallas, ${r.unidades} unidades`}
+          onClick={onAbrir}
+          aria-label={`Ver las ${r.veces} ${r.etiqueta.toLowerCase()}: ${r.tallas} tallas, ${r.unidades} unidades`}
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
         <ColumnaHora desde={r.desde} hasta={r.hasta} />
@@ -299,20 +293,9 @@ export function FilaBajadas({
         </span>
         <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-medium tabular-nums text-taupe sm:col-start-6">
           ⇄ {r.unidades}
-          <ChevronDown aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/40 transition-transform duration-200 motion-reduce:transition-none ${abierta ? "rotate-180" : ""}`} />
+          <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
         </span>
       </div>
-      {abierta && (
-        <ul id={detalleId} className="mb-2 ml-2 divide-y divide-sand/70 border-l-2 border-sand pl-2">
-          {operaciones.map((op) =>
-            op.filas.length === 1 ? (
-              <FilaMovimiento key={op.clave} m={op.filas[0]} prenda={prendas[op.filas[0].varianteId]} ctx={ctx} />
-            ) : (
-              <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} />
-            )
-          )}
-        </ul>
-      )}
     </li>
   );
 }
