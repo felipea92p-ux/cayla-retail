@@ -25,6 +25,7 @@ import {
   type Apartado,
   type FormularioApartado,
 } from "./separaciones-reglas";
+import { totalDeLineas } from "./vender-reglas";
 
 const formulario = (extra: Partial<FormularioApartado> = {}): FormularioApartado => ({
   nombres: "Ana",
@@ -105,6 +106,10 @@ describe("erroresDelApartado", () => {
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 200 }] }), 179).pago).toMatch(/pasar el total/);
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 50, recibido: 40 }] }), 179).pago).toMatch(/no alcanza/);
     expect(pasoDelApartado(erroresDelApartado(formulario({ pagos: [] }), 179))).toBe(1);
+  });
+  it("«Todo» en efectivo justo pasa aunque el total salga de un descuento con céntimos (99.90 − 14.99 = 84.91)", () => {
+    const total = totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }]);
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: total, recibido: 84.91 }] }), total).pago).toBeUndefined();
   });
   it("devolución: transferencia pide CCI de 20; Yape vacío usa el celular", () => {
     expect(erroresDelApartado(formulario({ devolucionMedio: "transferencia" }), 179).devolucion).toMatch(/CCI/);

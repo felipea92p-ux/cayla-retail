@@ -225,7 +225,7 @@ select id as talla from retail.tallas where activo and estado = 'aprobado' order
 select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
 `;
 
-/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.90: descuento 16.00). Deja :etq. Como postgres. */
+/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.92: descuento 15.98, exacto, ADR-0302). Deja :etq. Como postgres. */
 const CAMPANA_20 = `reset role;
 insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
   values ('ZZ Cumple Campaña (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
@@ -361,10 +361,10 @@ select a.modulo, a.accion, a.tabla, a.registro_id = :'venta', a.persona_id = :'p
   "vender|cumpleanos_canjeado|ventas|t|t|10.00|7.99|t"
 );
 caso(
-  "(a) la cascada (CL-11): la prenda con campaña de 20 % (16.00) suma 6.39 y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50) entran en el mismo canje: monto 17.28",
+  "(a) la cascada (CL-11): la prenda con campaña de 20 % (15.98) suma 6.39 y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50) entran en el mismo canje: monto 17.28",
   SEDE() + CAMPANA_20 + como(FELIPE) + SOCIA("f", "90990103", "Cumple Cascada Prueba", "966990103") +
     VENDER("venta", {
-      lineas: items(item({ sinClub: 16, club: 6.39, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
+      lineas: items(item({ sinClub: 15.98, club: 6.39, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
       clienta: ":'f'",
       canjear: "true",
     }) +
@@ -375,7 +375,7 @@ select monto from retail.club_canjes where venta_id::text = :'venta';
 select sum(monto) from retail.venta_pagos where venta_id::text = :'venta';
 select precio_cobrado from retail.prendas_por_regularizar p join retail.venta_items vi on vi.id = p.venta_item_id where vi.venta_id::text = :'venta';
 `,
-  "22.39/6.39/campana/28 4.50/4.50/-/10\n17.28\n155.52\n40.50"
+  "22.37/6.39/campana/28 4.50/4.50/-/10\n17.28\n155.56\n40.50"
 );
 caso(
   "(a) el medio céntimo de la base sube (75.45 × 10 % = 7.545 → 7.55, como la web), y el % sale de configuracion_empresa (12.5 %: 79.90 → 9.9875 → 9.99)",
