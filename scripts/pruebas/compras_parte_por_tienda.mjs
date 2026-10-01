@@ -96,7 +96,7 @@ function compra(v, { lineas, igv = 18, total = null, tipo = "factura" }) {
       const dest = Object.entries(l.dest)
         .map(([ub, c]) => `jsonb_build_object('ubicacion_id', :'${ub}', 'cantidad', ${c})`)
         .join(", ");
-      return `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'descripcion', 'L${i + 1}', 'cantidad', ${l.cant}, 'costo_unitario', ${l.costo}, 'destinos', jsonb_build_array(${dest}))`;
+      return `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'descripcion', 'L${i + 1}', 'cantidad', ${l.cant}, 'costo_unitario', ${l.costo}, 'confirma_costo', true, 'destinos', jsonb_build_array(${dest}))`;
     })
     .join(", ");
   const destino = Object.keys(lineas[0].dest)[0];

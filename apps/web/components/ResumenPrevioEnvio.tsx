@@ -28,6 +28,7 @@ export function ResumenPrevioEnvio({
   responsable,
   onConfirmar,
   onVolver,
+  avisoCosto,
 }: {
   filas: FilaResumen[];
   fuera: number;
@@ -42,6 +43,8 @@ export function ResumenPrevioEnvio({
   responsable: ControlResponsable;
   onConfirmar: () => void;
   onVolver: () => void;
+  /** Costo atípico (20260930124000): si la base pidió confirmar un costo, este aviso REEMPLAZA a los dos botones (trae los suyos). */
+  avisoCosto?: React.ReactNode;
 }) {
   const filaClase = "anim-entra grid grid-cols-[auto_1fr_auto] items-center gap-3 border-t border-tinta/10 py-2.5 first:border-t-0";
   let i = 0;
@@ -109,14 +112,16 @@ export function ResumenPrevioEnvio({
             Cada prenda entra como un movimiento del historial. Después no se edita: si algo estuvo mal, se corrige con un ajuste.
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} className="mt-5" />
-          <div className="mt-5 flex flex-wrap justify-end gap-3">
-            <Boton peso="discreto" onClick={cerrar} disabled={cargando}>
-              Volver a contar
-            </Boton>
-            <Boton peso="primario" cargando={cargando} onClick={onConfirmar}>
-              Confirmar y recibir {unidades.toLocaleString("es-PE")} {unidades === 1 ? "unidad" : "unidades"}
-            </Boton>
-          </div>
+          {avisoCosto ?? (
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <Boton peso="discreto" onClick={cerrar} disabled={cargando}>
+                Volver a contar
+              </Boton>
+              <Boton peso="primario" cargando={cargando} onClick={onConfirmar}>
+                Confirmar y recibir {unidades.toLocaleString("es-PE")} {unidades === 1 ? "unidad" : "unidades"}
+              </Boton>
+            </div>
+          )}
         </div>
       )}
     </Modal>

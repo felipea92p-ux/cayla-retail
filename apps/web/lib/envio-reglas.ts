@@ -419,6 +419,15 @@ export function armarPedidoEnvio(p: {
 }
 
 /**
+ * El mismo pedido con la marca `confirma_costo` en los extras que el líder confirmó (costo atípico, 20260930124000).
+ * `lineas` son las posiciones en `p_extras`, desde 1, tal como las numera la base en su aviso. Una posición que no existe se
+ * ignora; el pedido original no se toca.
+ */
+export function confirmarExtras(pedido: PedidoEnvio, lineas: number[]): PedidoEnvio {
+  return { ...pedido, p_extras: pedido.p_extras.map((x, n) => (lineas.includes(n + 1) ? { ...x, confirma_costo: true as const } : x)) };
+}
+
+/**
  * Lo que ya está contado en envíos guardados SIN CONEXIÓN que todavía no subieron (ADR-0210): las líneas de
  * comprobante (recibidas o cerradas). La pantalla las saca de «pendientes» mientras esperan, igual que Vender
  * descuenta del stock lo vendido sin red — si no, alguien volvería a contar el mismo comprobante y, al volver el

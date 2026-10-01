@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
+import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 import { CampoSelect, Desplegable } from "@/components/ui/campos";
@@ -21,6 +23,13 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 // `ordenes_compra` y `producciones_pendientes`, ninguno con equivalente V2
 // todavía. Mismo patrón de escritura que `RegistrarVentaModal.tsx`: RPC
 // directa desde el cliente + `traducirError()`, sin backend propio.
+//
+// Costo atípico (20260930122000, Felipe 2026-09-30): el costo de una línea es opcional y lo teclea quien recibe. Si alguno sale
+// fuera de lo normal, la base NO recibe nada y contesta `costo_atipico` con las líneas raras que faltan por confirmar. Al líder
+// se le muestra aquí, en línea, con dos salidas (corregir los costos o confirmarlos), y confirmar reenvía el MISMO intento
+// (mismo token: el rechazo no guardó nada) con la marca `confirma_costo: true` en CADA línea que se le mostró: la base acepta
+// exactamente esas, no «todo lo que venga». A quien no es líder la base le dice, sin cifras, que un líder debe confirmarlo; su
+// salida es recibir esa línea sin costo. La regla vive en la base; esta pantalla no la repite.
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
 
@@ -42,6 +51,9 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
+  // Las líneas cuyo costo la base marcó como atípico (solo las ve el líder); mientras haya algo, la pregunta está abierta.
+  const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
+  const formulario = useRef<HTMLFormElement>(null);
   // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0210).
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
   const colaOffline = useColaRecibir();
@@ -53,19 +65,46 @@ export function RecepcionFormV2({
   const token = useRef<string>(crypto.randomUUID());
 
   function agregarLinea() {
+    setAtipicos(null);
     setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   }
 
   function quitarLinea(i: number) {
+    setAtipicos(null);
     setLineas((actual) => actual.filter((_, n) => n !== i));
   }
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
+    // Cambiar cualquier línea borra la pregunta: lo que se le mostró ya no es lo que se va a recibir.
+    setAtipicos(null);
     setLineas((actual) => actual.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
+  }
+
+  // Las líneas que de verdad se mandan (con prenda y cantidad), como posiciones del formulario: la base numera las suyas
+  // (`linea`, desde 1) sobre esta misma lista.
+  const indicesEnviados = () => lineas.flatMap((l, i) => (l.varianteId && l.cantidad > 0 ? [i] : []));
+
+  // La línea del formulario que la base marcó como atípica (o, sin saber cuál, la primera con costo).
+  function lineaDelCostoAtipico(marcadas: CostoAtipico[] | null): number {
+    const enviados = indicesEnviados();
+    const primera = marcadas?.find((a) => a.linea !== null)?.linea;
+    if (primera) return enviados[primera - 1] ?? 0;
+    return enviados.find((i) => lineas[i].costoUnitario) ?? 0;
+  }
+
+  function corregirCostos() {
+    const i = lineaDelCostoAtipico(atipicos);
+    setAtipicos(null);
+    formulario.current?.querySelector<HTMLInputElement>(`[data-campo="recepcion-costo-${i}"]`)?.focus();
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await enviar(null);
+  }
+
+  /** `confirmadas`: las líneas (posición desde 1, las de la base) que el líder confirmó; `null` en el primer intento. */
+  async function enviar(confirmadas: number[] | null) {
     const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
     if (validas.length === 0) {
       avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "recepcion-linea-0" });
@@ -85,10 +124,13 @@ export function RecepcionFormV2({
     const params = {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
-      p_items: validas.map((l) => ({
+      p_items: validas.map((l, n) => ({
         variante_id: l.varianteId,
         cantidad: l.cantidad,
         ...(l.costoUnitario ? { costo_unitario: Number(l.costoUnitario) } : {}),
+        // Solo en el reintento tras `costo_atipico`, y solo en las líneas que se le mostraron al líder: el primer intento no
+        // manda la marca, así la pantalla nueva funciona igual contra una base que todavía no la conoce.
+        ...(confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
       })),
       p_numero_guia: numeroGuia || undefined,
       p_token: token.current,
@@ -119,9 +161,22 @@ export function RecepcionFormV2({
     }
     responsable.despues(error);
     if (error) {
+      const marcadas = leerCostosAtipicos(error);
+      if (marcadas) {
+        setAtipicos(marcadas);
+        return;
+      }
+      if (error.message === "costo_atipico_sin_lider") {
+        avisar.error(
+          "El costo que escribiste está fuera de lo normal y solo un líder puede confirmarlo. Bórralo (el costo es opcional) y recibe el lote sin costo, o pídele a un líder que lo confirme.",
+          { enfocar: `recepcion-linea-${lineaDelCostoAtipico(null)}` },
+        );
+        return;
+      }
       avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
+    setAtipicos(null);
     token.current = crypto.randomUUID();
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
     setOk({ unidades, loteId: loteId ?? null });
@@ -160,7 +215,7 @@ export function RecepcionFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form ref={formulario} onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSelect
           etiqueta="Proveedor"
@@ -210,6 +265,7 @@ export function RecepcionFormV2({
               step="0.10"
               placeholder="Costo (opc.)"
               aria-label="Costo unitario"
+              data-campo={`recepcion-costo-${i}`}
               value={l.costoUnitario}
               onChange={(e) => {
                 const v = e.target.value;
@@ -234,9 +290,23 @@ export function RecepcionFormV2({
 
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button type="submit" disabled={loading} className={botonPrimario}>
-        {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
-      </button>
+      {atipicos ? (
+        <AvisoCostoAtipico
+          costos={atipicos}
+          pie="Revisa los costos que escribiste. Si son correctos, confírmalos: entran al costo de esas prendas en todas las sedes."
+          textoCorregir="Corregir los costos"
+          textoConfirmar="Sí, son correctos — recibir con estos costos"
+          cargando={loading}
+          listo={responsable.listo}
+          motivoNoListo={responsable.motivo}
+          onCorregir={corregirCostos}
+          onConfirmar={() => enviar(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
+        />
+      ) : (
+        <button type="submit" disabled={loading} className={botonPrimario}>
+          {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
+        </button>
+      )}
     </form>
   );
 }

@@ -7,6 +7,7 @@ import {
   bloquesDelEnvio,
   comprobanteSinMontos,
   comprobantesQueTraen,
+  confirmarExtras,
   extraCompleto,
   guiaConFormato,
   inicialesProveedor,
@@ -23,6 +24,7 @@ import {
   pendienteEnCola,
   trasladosHaciaAca,
   type ExtraEnvio,
+  type PedidoEnvio,
   type Reparto,
 } from "./envio-reglas";
 
@@ -487,5 +489,38 @@ describe("pendienteEnCola (ADR-0210)", () => {
 
   it("sin cola, no oculta nada", () => {
     expect(pendienteEnCola([]).lineas.size).toBe(0);
+  });
+});
+
+describe("confirmarExtras (costo atípico, 20260930124000)", () => {
+  const pedido: PedidoEnvio = {
+    p_ubicacion_id: "u",
+    p_items: [{ compra_item_id: "c1", variante_id: "v1", cantidad: 5 }],
+    p_extras: [
+      { proveedor_id: "p", variante_id: "v1", cantidad: 2, es_regalo: false, costo_unitario: 70 },
+      { proveedor_id: "p", variante_id: "v2", cantidad: 1, es_regalo: false, costo_unitario: 32 },
+      { proveedor_id: "p", variante_id: "v3", cantidad: 1, es_regalo: true },
+    ],
+    p_traslados: [],
+    p_cierres: [],
+    p_notas_credito: [],
+    p_token: "t",
+  };
+
+  it("pone la marca solo en los extras que se confirmaron (posición desde 1) y no toca el resto", () => {
+    const r = confirmarExtras(pedido, [1]);
+    expect(r.p_extras.map((x) => x.confirma_costo)).toEqual([true, undefined, undefined]);
+    expect(r.p_items).toBe(pedido.p_items);
+    expect(r.p_token).toBe("t");
+  });
+
+  it("no modifica el pedido original (el primer intento sigue sin marcas)", () => {
+    confirmarExtras(pedido, [1, 2]);
+    expect(pedido.p_extras.every((x) => x.confirma_costo === undefined)).toBe(true);
+  });
+
+  it("una posición que no existe se ignora; sin posiciones no cambia nada", () => {
+    expect(confirmarExtras(pedido, [9]).p_extras.some((x) => x.confirma_costo)).toBe(false);
+    expect(confirmarExtras(pedido, []).p_extras).toEqual(pedido.p_extras);
   });
 });

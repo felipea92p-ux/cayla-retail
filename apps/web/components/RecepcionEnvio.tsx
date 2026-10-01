@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
+import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { nuevaOperacion, porSubir, subidasEntre, type OperacionEncolada } from "@/lib/cola-offline";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
@@ -51,6 +53,7 @@ import {
   armarPedidoEnvio,
   bloquesDelEnvio,
   comprobantesQueTraen,
+  confirmarExtras,
   EVENTO_MARCAR,
   extraCompleto,
   guiaConFormato,
@@ -236,6 +239,9 @@ export function RecepcionEnvio({
   const menuRef = useRef<HTMLDivElement>(null);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
   const [pedidoListo, setPedidoListo] = useState<{ pedido: PedidoEnvio; movimientos: MovimientoDelEnvio[] } | null>(null);
+  // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que el líder debe confirmar; el
+  // resumen previo sigue abierto mientras tanto. Se borra al volver, al armar otro pedido y al registrar.
+  const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   // Un token por envío: reintentar (un doble toque, una red lenta) no duplica el stock. Se renueva al terminar.
   const [token, setToken] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
@@ -631,13 +637,28 @@ export function RecepcionEnvio({
         return v ? { referencia: v.referencia, detalle: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku } : null;
       },
     });
+    setAtipicos(null);
     setPedidoListo({ pedido, movimientos });
   }
 
+  // Corregir: se cierra el resumen, se abre «fuera de comprobante» y el foco va al costo del primer extra que la base marcó.
+  function corregirCostos() {
+    const primera = atipicos?.find((a) => a.linea !== null)?.linea ?? 1;
+    const completos = extras.filter(extraCompleto);
+    const i = Math.max(0, extras.indexOf(completos[primera - 1]));
+    setAtipicos(null);
+    setPedidoListo(null);
+    setPestana("fuera");
+    window.setTimeout(() => document.querySelector<HTMLInputElement>(`[data-campo="envio-extra-costo-${i}"]`)?.focus(), 60);
+  }
+
   // «Confirmar y recibir» del resumen: UNA llamada, UNA transacción, con el mismo token (reintentar no duplica).
-  async function registrar() {
+  // `confirmadas`: los extras (posición en `p_extras`, desde 1) que el líder confirmó por costo atípico; `null` en el primer intento.
+  async function registrar(confirmadas: number[] | null = null) {
     if (!pedidoListo || loading) return;
-    const { pedido, movimientos } = pedidoListo;
+    const { movimientos } = pedidoListo;
+    // El primer intento no manda la marca (así la pantalla nueva funciona igual contra una base que todavía no la conoce).
+    const pedido = confirmadas ? confirmarExtras(pedidoListo.pedido, confirmadas) : pedidoListo.pedido;
     if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const cerrarProceso = avisar.proceso(unidadesRecibiendo > 0 ? "Recibiendo el envío…" : "Cerrando faltantes…");
@@ -681,10 +702,25 @@ export function RecepcionEnvio({
     }
     responsable.despues(error);
     if (error) {
+      // Costo atípico: el resumen SIGUE abierto con el aviso y sus dos salidas; no se registró nada.
+      const marcadas = leerCostosAtipicos(error);
+      if (marcadas) {
+        setAtipicos(marcadas);
+        return;
+      }
       setPedidoListo(null);
+      // A quien no es líder la base le dice, sin cifras, que solo un líder confirma: su salida es quitar ese costo (es opcional).
+      if (error.message === "costo_atipico_sin_lider") {
+        setPestana("fuera");
+        avisar.error("El costo de una prenda fuera de comprobante está fuera de lo normal y solo un líder puede confirmarlo.", {
+          detalle: "Borra ese costo (es opcional) y recibe la prenda sin costo, o pídele a un líder que lo confirme. No se registró nada.",
+        });
+        return;
+      }
       avisar.error(traducirError(error, "registrar el envío"), { detalle: "No se registró nada: tu conteo sigue aquí para corregirlo." });
       return;
     }
+    setAtipicos(null);
 
     const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: { lote_id: string }[]; extras?: number; cierres?: number };
     const resultado: Resultado = {
@@ -1418,6 +1454,7 @@ export function RecepcionEnvio({
                               step="0.10"
                               placeholder={ex.esRegalo ? "Sin costo" : "Costo (opc.)"}
                               aria-label="Costo unitario"
+                              data-campo={`envio-extra-costo-${i}`}
                               disabled={ex.esRegalo}
                               value={ex.esRegalo ? "" : ex.costoUnitario}
                               onChange={(e) => {
@@ -1598,8 +1635,27 @@ export function RecepcionEnvio({
           unidades={unidadesRecibiendo}
           cargando={loading}
           responsable={responsable}
-          onConfirmar={registrar}
-          onVolver={() => setPedidoListo(null)}
+          onConfirmar={() => registrar()}
+          onVolver={() => {
+            setAtipicos(null);
+            setPedidoListo(null);
+          }}
+          avisoCosto={
+            atipicos ? (
+              <AvisoCostoAtipico
+                costos={atipicos}
+                pie="Los costos se comparan contra el costo que ya tiene cada prenda. Si son correctos, confírmalos: entran al costo de esas prendas en todas las sedes."
+                textoCorregir="Corregir los costos"
+                textoConfirmar="Sí, son correctos — recibir"
+                textoCargando="Recibiendo…"
+                cargando={loading}
+                listo={responsable.listo}
+                motivoNoListo={responsable.motivo}
+                onCorregir={corregirCostos}
+                onConfirmar={() => registrar(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
+              />
+            ) : undefined
+          }
         />
       )}
 
