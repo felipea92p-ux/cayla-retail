@@ -111,3 +111,19 @@ filtros. Lógica pura y probada: `construirDetalleBajadas` en `lib/movimientos-c
 `lib/movimientos-cajon.test.ts`). Lo que se perdió a propósito: abrir el detalle de UNA bajada desde esa lista; quien
 quiera ese detalle (stock antes/después, enlaces) la busca con la píldora «Piso ↔ almacén» o por su prenda, donde cada
 bajada es su fila.
+
+## Actualización 2026-10-01 (b) — todos los cajones se leen igual
+
+Lo que se hizo con el cajón de las bajadas se aplicó a los demás (pedido de Felipe, tras leer cada uno como alguien sin
+contexto). Todos tienen el mismo orden: el nombre del movimiento y **cuándo** («Hoy, a las 10:59»); **una frase con el
+número grande** («3 prendas llegaron desde Tienda Lima», «1 prenda vendida», «1 prenda menos en el stock») y **quién**;
+y debajo solo lo que ayuda a creerla: la prenda con su foto (si es de una), la lista de prendas (si son varias), «En la
+tienda: había 6 · ahora hay 5», el motivo de un ajuste y «Más información» (el documento y el historial de la prenda).
+Se fueron «Movimiento», «Referencia», «Impacto», «Consultar», «Stock Antes/Después», «variante» y los símbolos «⇄ / +1 / −1».
+Un cambio dice **«La clienta devolvió»** y **«Se llevó»** (antes «Sale / Entra», que suena a stock). Las frases viven en
+`fraseDeMovimiento` / `fraseDeAjuste` (`lib/movimientos-cajon.ts`) y una prueba recorre TODOS los procesos de
+`ETIQUETA_PROCESO`, sumando y restando, en singular y plural: un proceso nuevo cae a «prenda entró / salió de la tienda»
+en vez de romper. Una bajada o un retiro suelto (movimiento interno) usa el cajón de las bajadas con una sola operación.
+**Dos correcciones de fondo:** un conteo (o cualquier ajuste) de varias prendas ahora las lista TODAS, con «1 más» /
+«5 menos» (antes solo se veía la primera); y el historial solo se ofrece si todas las filas son del mismo producto (antes,
+con varios, llevaba al del primero). Se quitó el botón «Copiar» de la referencia de un cambio.
