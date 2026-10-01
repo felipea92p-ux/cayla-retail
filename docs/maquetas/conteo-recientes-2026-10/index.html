@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conteos recientes por día — maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens de la guía «CAYLA Dynamic» (ADR-0169): ningún hex suelto fuera de este bloque. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --tinta-60:#5b544c; --sand:#e8e0d0; --taupe:#805c4c;
+    --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+    --r-control:8px; --r-superficie:16px; --r-pildora:999px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --serif:"EB Garamond", ui-serif, Georgia, serif;
+    --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font:14px/1.5 var(--sans); font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;}
+  button{font:inherit; color:inherit; cursor:pointer;}
+  h1,h2,h3,p{margin:0;}
+  :focus-visible{outline:2px solid var(--tinta); outline-offset:2px;}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+
+  /* ---------- Barra de la demo (no es parte de la pantalla) ---------- */
+  .demo{position:sticky; top:0; z-index:60; background:var(--tinta); color:var(--crema); padding:10px 16px;}
+  .demo-in{max-width:1180px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px;}
+  .demo b{font:500 17px var(--serif); white-space:nowrap;}
+  .demo .grupo{display:flex; align-items:center; gap:8px;}
+  .demo .grupo > span{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; opacity:.6;}
+  .seg-demo{display:inline-flex; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); overflow:hidden;}
+  .seg-demo button{background:transparent; border:0; padding:6px 11px; font-size:12.5px; opacity:.75; white-space:nowrap;}
+  .seg-demo button[aria-pressed="true"]{background:var(--crema); color:var(--tinta); opacity:1;}
+  .demo .reiniciar{margin-left:auto; background:transparent; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); padding:6px 11px; font-size:12.5px; opacity:.85;}
+  .demo :focus-visible{outline-color:var(--crema);}
+
+  /* ---------- Escenario ---------- */
+  .escenario{padding:36px 16px 80px; display:flex; justify-content:center;}
+  .marco{width:100%; max-width:1040px; transition:max-width 420ms var(--ease);}
+  .marco[data-ancho="celular"]{max-width:375px;}
+  .nota-demo{margin-top:18px; font-size:12px; color:var(--taupe); text-align:center; line-height:1.6;}
+
+  /* ---------- La tarjeta: se adapta a SU ancho, no al de la ventana ---------- */
+  .tarjeta{container-type:inline-size; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); position:relative;}
+  .cab{padding:20px 20px 14px;}
+  @container (min-width:36rem){ .cab{padding:22px 24px 16px;} }
+  .cab h2{font:500 22px/1.2 var(--serif);}
+  .cab .sub{font-size:13px; color:var(--tinta-60); margin-top:2px;}
+
+  /* ---------- Barra de filtro ---------- */
+  .filtro{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px;}
+  .pildora{display:inline-flex; align-items:center; gap:.375rem; border-radius:var(--r-pildora); border:1px solid var(--sand); background:transparent; padding:5px 14px; font-size:13px; font-weight:600; color:var(--taupe); white-space:nowrap; transition:background-color 150ms, border-color 150ms, color 150ms;}
+  .pildora:hover{color:var(--tinta); background:color-mix(in oklab, var(--sand) 40%, transparent);}
+  .pildora[aria-pressed="true"]{background:var(--tinta); border-color:var(--tinta); color:var(--crema);}
+  .pildora .n{font-weight:500; opacity:.7; font-size:12px;}
+  .pildora svg{width:14px; height:14px; flex:none;}
+  .pildora .x{margin-left:2px; display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; background:color-mix(in oklab, var(--crema) 22%, transparent);}
+  .pildora .x svg{width:9px; height:9px;}
+  .pildora .x[hidden]{display:none;}
+  .total{margin-left:auto; font-size:12.5px; color:var(--taupe);}
+  .ancla{position:relative; display:inline-block;}
+
+  /* ---------- Calendario (popover) ---------- */
+  .cal{position:absolute; z-index:30; top:calc(100% + 8px); left:0; width:292px; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 14px 12px; animation:entra 220ms var(--ease);}
+  @keyframes entra{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:none;}}
+  .cal[hidden]{display:none;}
+  .cal-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .cal-cab strong{font:500 17px var(--serif); text-transform:capitalize;}
+  .cal-nav{width:30px; height:30px; border-radius:var(--r-control); border:1px solid var(--sand); background:transparent; display:grid; place-items:center; color:var(--taupe);}
+  .cal-nav:hover:not(:disabled){background:color-mix(in oklab, var(--sand) 40%, transparent); color:var(--tinta);}
+  .cal-nav:disabled{opacity:.35; cursor:default;}
+  .cal-nav svg{width:14px; height:14px;}
+  .cal-sem, .cal-dias{display:grid; grid-template-columns:repeat(7,1fr); gap:2px;}
+  .cal-sem span{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--taupe); text-align:center; padding:4px 0;}
+  .dia{position:relative; height:36px; border:0; border-radius:var(--r-control); background:transparent; font-size:13px; display:grid; place-items:center; padding-bottom:5px;}
+  .dia:hover:not(:disabled){background:color-mix(in oklab, var(--sand) 55%, transparent);}
+  .dia:disabled{color:color-mix(in oklab, var(--tinta) 28%, transparent); cursor:default;}
+  .dia.hoy{box-shadow:inset 0 0 0 1px var(--taupe);}
+  .dia[aria-pressed="true"]{background:var(--tinta); color:var(--crema);}
+  .dia .punto{position:absolute; bottom:5px; left:50%; width:4px; height:4px; margin-left:-2px; border-radius:50%; background:var(--taupe);}
+  .dia[aria-pressed="true"] .punto{background:var(--crema);}
+  .cal-pie{display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--sand); font-size:12px; color:var(--taupe);}
+  .cal-pie i{display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--taupe); margin-right:6px; vertical-align:middle;}
+  .cal-pie button{background:none; border:0; padding:0; color:var(--tinta); text-decoration:underline; text-underline-offset:3px; font-size:12px;}
+
+  /* ---------- Lista agrupada por día ---------- */
+  .lista{border-top:1px solid var(--sand);}
+  .encabezado-tabla{display:none;}
+  .dia-grupo + .dia-grupo{border-top:1px solid var(--sand);}
+  .dia-cab{display:flex; align-items:baseline; gap:10px; padding:10px 20px; background:var(--hueso);}
+  .dia-cab .rot{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--taupe);}
+  .dia-cab .fecha{font:500 16px/1.2 var(--serif); color:var(--tinta);}
+  .dia-cab .cuenta{margin-left:auto; font-size:12px; color:var(--taupe); white-space:nowrap;}
+  @container (min-width:36rem){ .dia-cab{padding:10px 24px;} }
+  .fila{color:inherit; text-decoration:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; padding:12px 20px; border-top:1px solid var(--sand); background:var(--papel); transition:background-color 150ms;}
+  .fila:first-of-type{border-top:0;}
+  .fila:hover{background:color-mix(in oklab, var(--sand) 28%, transparent);}
+  .hora{order:1; font-size:15px; color:var(--tinta); font-weight:500;}
+  .hora small{display:block; font-size:12px; font-weight:400; color:var(--taupe);}
+  .c-res{order:2; margin-left:auto;}
+  .c-que{order:3; flex-basis:100%;}
+  .c-que b{font-weight:400; display:block; font-size:14px;}
+  .c-que small{display:block; font-size:12px; color:var(--taupe);}
+  .c-ubi{display:none;}
+  .c-resp{order:4; flex:1; min-width:0; font-size:12px; color:var(--tinta-60);}
+  .c-resp small{display:block; color:var(--taupe);}
+  .c-acc{order:5;}
+  .btn{display:inline-flex; align-items:center; border-radius:var(--r-control); border:1px solid var(--sand); background:transparent; padding:4px 14px; font-size:13px; font-weight:500;}
+  .btn.prim{background:var(--tinta); color:var(--crema); border-color:var(--tinta);}
+  .chip{display:inline-flex; align-items:center; gap:6px; border-radius:var(--r-pildora); padding:2px 10px; font-size:12px; white-space:nowrap; background:color-mix(in oklab, var(--hueso) 100%, transparent); color:var(--tinta);}
+  .chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.75;}
+  .chip.verde{background:color-mix(in oklab, var(--verde) 12%, transparent); color:var(--verde);}
+  .chip.ambar{background:color-mix(in oklab, var(--ambar) 12%, transparent); color:var(--ambar);}
+  .chip.apagado{background:transparent; border:1px solid var(--sand); color:var(--tinta-60);}
+  .chip.apagado::before{display:none;}
+  .chip.neutro{color:var(--taupe);}
+
+  /* Ancho medio (36–52 rem): hora · qué se contó · resultado · acción en UN renglón, y debajo quién abrió y cerró */
+  @container (min-width:36rem){
+    .fila{padding:12px 24px;}
+    .hora{width:5.5rem; flex:none;}
+    .c-que{order:2; flex:1 1 0; min-width:0; flex-basis:0;}
+    .c-res{order:3; margin-left:0;}
+    .c-acc{order:4;}
+    .c-resp{order:5; flex:1 0 100%; padding-left:calc(5.5rem + 12px);}
+  }
+
+  /* Tabla ancha (la tarjeta mide ≥ 52 rem): seis columnas, y la primera es solo la hora */
+  @container (min-width:52rem){
+    .encabezado-tabla{display:grid; background:var(--papel); border-bottom:1px solid var(--sand);}
+    .encabezado-tabla, .fila{grid-template-columns:5rem minmax(8rem,1fr) minmax(7rem,1.2fr) 11rem minmax(7rem,1fr) 5rem; column-gap:16px;}
+    .encabezado-tabla span{font-size:12px; color:var(--taupe); padding:8px 0;}
+    .encabezado-tabla{padding:0 24px;}
+    .fila{display:grid; align-items:center; padding:12px 24px;}
+    .hora,.c-res,.c-que,.c-resp,.c-acc{order:0; margin:0; flex-basis:auto; width:auto; padding-left:0;}
+    .c-ubi{display:block; font-size:14px;}
+    .c-que b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .q-lugar{display:none;}
+    .c-acc{text-align:right;}
+  }
+
+  /* ---------- Sin resultados ---------- */
+  .vacio{padding:34px 24px 38px; text-align:center;}
+  .vacio h3{font:500 19px var(--serif);}
+  .vacio p{margin-top:4px; color:var(--tinta-60); font-size:13.5px;}
+  .vacio .acciones{margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+
+  .pie[hidden]{display:none;}
+  .pie{border-top:1px solid var(--sand); padding:10px 20px; font-size:12px; color:var(--taupe);}
+</style>
+</head>
+<body>
+
+<div class="demo">
+  <div class="demo-in">
+    <b>Conteos recientes por día</b>
+    <div class="grupo"><span>Ancho</span>
+      <div class="seg-demo" id="segAncho">
+        <button type="button" data-v="escritorio" aria-pressed="true">Escritorio</button>
+        <button type="button" data-v="celular" aria-pressed="false">Celular</button>
+      </div>
+    </div>
+    <button type="button" class="reiniciar" id="reiniciar">Reiniciar</button>
+  </div>
+</div>
+
+<main class="escenario">
+  <div class="marco" id="marco" data-ancho="escritorio">
+    <section class="tarjeta" aria-labelledby="t-recientes">
+      <div class="cab">
+        <h2 id="t-recientes">Conteos recientes</h2>
+        <p class="sub">Agrupados por el día en que se abrieron. La hora es la de apertura.</p>
+
+        <div class="filtro" role="group" aria-label="Filtrar por día">
+          <button type="button" class="pildora" id="fTodos" aria-pressed="true">Todos <span class="n" id="nTodos"></span></button>
+          <button type="button" class="pildora" id="fHoy" aria-pressed="false">Hoy <span class="n" id="nHoy"></span></button>
+          <button type="button" class="pildora" id="fAyer" aria-pressed="false">Ayer <span class="n" id="nAyer"></span></button>
+          <span class="ancla">
+            <button type="button" class="pildora" id="fFecha" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="cal">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>
+              <span id="fFechaTxt">Elegir fecha</span>
+              <span class="x" id="fFechaX" hidden aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l6 6M8 2L2 8"/></svg></span>
+            </button>
+            <div class="cal" id="cal" role="dialog" aria-label="Elegir una fecha" hidden>
+              <div class="cal-cab">
+                <button type="button" class="cal-nav" id="calPrev" aria-label="Mes anterior"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2L4 7l5 5"/></svg></button>
+                <strong id="calMes"></strong>
+                <button type="button" class="cal-nav" id="calNext" aria-label="Mes siguiente"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2l5 5-5 5"/></svg></button>
+              </div>
+              <div class="cal-sem" aria-hidden="true"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+              <div class="cal-dias" id="calDias"></div>
+              <div class="cal-pie"><span><i></i>Día con conteos</span><button type="button" id="calHoy">Ir a hoy</button></div>
+            </div>
+          </span>
+          <span class="total" id="total" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="lista" id="lista"></div>
+      <div class="pie" id="pie"></div>
+    </section>
+
+    <p class="nota-demo">Datos de ejemplo tomados del historial real de la tienda TRU (Conteos 1 a 27); las horas son inventadas.<br>«Hoy» en esta demo es el miércoles 30 de setiembre de 2026.</p>
+  </div>
+</main>
+
+<script>
+/* Datos: [n, día, hora de apertura, hora de cierre (o ""), lugar, qué, avance, resultado, abrió, cerró] */
+const HOY = "2026-09-30";
+const DIAS_SEM = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","setiembre","octubre","noviembre","diciembre"];
+const R = {dif:["neutro","diferencia"], ok:["verde","Todo correcto"], par:["ambar","Conteo parcial"], can:["apagado","Cancelado"]};
+const A = "Almacén de tienda", P = "Piso de venta";
+const DATOS = [
+  [27,"2026-09-30","11:58","12:03",A,"Solo Camisas y Blusas","2 variantes verificadas","dif",1,"Angie Chavez","—"],
+  [26,"2026-09-30","11:54","",A,"Solo Jeans","","can",0,"Angie Chavez",""],
+  [25,"2026-09-30","11:43","11:52",A,"Solo Jeans","15 variantes verificadas","dif",1,"Angie Chavez","—"],
+  [24,"2026-09-30","11:41","",A,"Todo","","can",0,"Angie Chavez",""],
+  [23,"2026-09-30","11:38","11:39",A,"Solo Camisas y Blusas","2 variantes verificadas","dif",1,"Angie Chavez","—"],
+  [22,"2026-09-30","11:33","11:36",A,"Solo Jeans","15 variantes verificadas","ok",0,"Angie Chavez","—"],
+  [21,"2026-09-30","11:15","",A,"Solo Camisas y Blusas","","can",0,"Angie Chavez",""],
+  [20,"2026-09-30","11:06","",A,"Solo Camisas y Blusas","","can",0,"Angie Chavez",""],
+  [19,"2026-09-30","11:04","11:05",A,"Solo Camisas y Blusas","2 variantes verificadas","ok",0,"Angie Chavez","—"],
+  [18,"2026-09-30","11:02","11:03",A,"Solo Camisas y Blusas","1 de 2 variantes verificadas","par",0,"Angie Chavez","—"],
+  [17,"2026-09-30","10:47","",A,"Solo Camisas y Blusas","","can",0,"Angie Chavez",""],
+  [16,"2026-09-30","10:29","10:38",A,"Todo","28 de 30 variantes verificadas","par",0,"Angie Chavez","—"],
+  [15,"2026-09-30","10:12","10:20",A,"Solo Camisas y Blusas","2 variantes verificadas","ok",0,"Angie Chavez","—"],
+  [14,"2026-09-30","09:58","",A,"Todo","","can",0,"Felipe Alvarez",""],
+  [13,"2026-09-30","09:30","09:31",A,"Solo Camisas y Blusas","2 variantes verificadas","dif",1,"Felipe Alvarez","Felipe Alvarez"],
+  [12,"2026-09-30","09:12","09:20",A,"Todo","28 variantes verificadas","dif",1,"Felipe Alvarez","Felipe Alvarez"],
+  [11,"2026-09-29","17:40","",A,"Solo Camisas y Blusas","","can",0,"Felipe Alvarez",""],
+  [10,"2026-09-29","16:05","",A,"Todo","","can",0,"Felipe Alvarez",""],
+  [9,"2026-09-29","12:20","",A,"Todo","","can",0,"Angie Chavez",""],
+  [8,"2026-09-29","10:15","",A,"Solo Polos","","can",0,"Danitza Gutiérrez",""],
+  [7,"2026-09-28","15:30","",A,"Solo Jeans","","can",0,"Danitza Gutiérrez",""],
+  [6,"2026-09-28","09:45","",A,"Todo","","can",0,"Angie Chavez",""],
+  [5,"2026-09-24","14:10","",P,"Todo","","can",0,"Angie Chavez","Angie Chavez"],
+  [4,"2026-09-22","11:25","",A,"Todo","","can",0,"ESTACIÓN — Almacén Trujillo (no es persona)",""],
+  [3,"2026-09-17","16:40","",P,"Todo","","can",0,"Benjamin Cueva",""],
+  [2,"2026-09-17","16:10","",A,"Todo","","can",0,"Benjamin Cueva",""],
+  [1,"2026-09-17","15:32","",A,"Todo","","can",0,"Benjamin Cueva",""],
+].map(([n,dia,h,hc,lugar,que,avance,res,dif,abrio,cerro]) => ({n,dia,h,hc,lugar,que,avance,res,dif,abrio,cerro}));
+
+const $ = (id) => document.getElementById(id);
+const fechaUTC = (iso) => { const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m-1, d)); };
+const iso = (dt) => dt.toISOString().slice(0,10);
+const sumarDias = (s, n) => { const d = fechaUTC(s); d.setUTCDate(d.getUTCDate()+n); return iso(d); };
+const AYER = sumarDias(HOY, -1);
+const dd_mm = (s) => { const [,m,d] = s.split("-"); return `${d}/${m}`; };
+const larga = (s) => { const d = fechaUTC(s); return `${DIAS_SEM[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; };
+const plural = (n, u, v) => `${n} ${n === 1 ? u : v}`;
+const cuentaDe = (dia) => DATOS.filter((c) => c.dia === dia).length;
+
+let filtro = { tipo: "todos", dia: null };   // todos | hoy | ayer | fecha
+let mesVisible = HOY.slice(0,7);
+
+function textoResultado(c) {
+  if (c.res === "dif") return c.dif === 1 ? "1 diferencia encontrada" : `${c.dif} diferencias encontradas`;
+  return R[c.res][1];
+}
+function tonoResultado(c) { return R[c.res][0]; }
+
+function render() {
+  const visibles = DATOS.filter((c) =>
+    filtro.tipo === "todos" ? true : c.dia === filtro.dia);
+  $("fTodos").setAttribute("aria-pressed", filtro.tipo === "todos");
+  $("fHoy").setAttribute("aria-pressed", filtro.tipo === "hoy");
+  $("fAyer").setAttribute("aria-pressed", filtro.tipo === "ayer");
+  $("fFecha").setAttribute("aria-pressed", filtro.tipo === "fecha");
+  $("fFechaTxt").textContent = filtro.tipo === "fecha" ? `${larga(filtro.dia).split(" ").slice(0,1)[0].slice(0,3)} ${dd_mm(filtro.dia)}` : "Elegir fecha";
+  $("fFechaX").hidden = filtro.tipo !== "fecha";
+  $("nTodos").textContent = DATOS.length; $("nHoy").textContent = cuentaDe(HOY); $("nAyer").textContent = cuentaDe(AYER);
+
+  const lista = $("lista");
+  if (visibles.length === 0) {
+    const ultimo = DATOS.find((c) => c.dia < (filtro.dia || HOY));
+    lista.innerHTML = `<div class="vacio"><h3>No hubo conteos ${filtro.tipo === "hoy" ? "hoy" : filtro.tipo === "ayer" ? "ayer" : "el " + larga(filtro.dia)}.</h3>
+      <p>${ultimo ? `El conteo anterior fue el ${larga(ultimo.dia)} (Conteo ${ultimo.n}).` : "Todavía no se hizo ningún conteo."}</p>
+      <div class="acciones">${ultimo ? `<button type="button" class="btn" data-ir="${ultimo.dia}">Ir a ese día</button>` : ""}<button type="button" class="btn prim" data-ir="todos">Ver todos</button></div></div>`;
+    $("total").textContent = "0 conteos";
+    $("pie").textContent = ""; $("pie").hidden = true;
+    return;
+  }
+
+  // Agrupar por día (ya vienen del más reciente al más antiguo).
+  const grupos = [];
+  for (const c of visibles) {
+    const g = grupos[grupos.length - 1];
+    if (g && g.dia === c.dia) g.items.push(c); else grupos.push({ dia: c.dia, items: [c] });
+  }
+  const rotulo = (dia) => dia === HOY ? "Hoy" : dia === AYER ? "Ayer" : "";
+  lista.innerHTML = `
+    <div class="encabezado-tabla" role="row" aria-hidden="true">${["Hora","Ubicación","Qué se contó","Resultado","Responsable",""].map((t) => `<span>${t}</span>`).join("")}</div>
+    ${grupos.map((g) => `
+      <section class="dia-grupo" aria-label="${larga(g.dia)}">
+        <header class="dia-cab">
+          ${rotulo(g.dia) ? `<span class="rot">${rotulo(g.dia)}</span>` : ""}
+          <span class="fecha">${larga(g.dia)}</span>
+          <span class="cuenta">${plural(g.items.length, "conteo", "conteos")}</span>
+        </header>
+        ${g.items.map((c) => `
+          <a class="fila" href="#" onclick="return false" title="Abierto ${c.h}${c.hc ? " · cerrado " + c.hc : ""}">
+            <span class="hora">${c.h}<small>Conteo ${c.n}</small></span>
+            <span class="c-ubi">${c.lugar}</span>
+            <span class="c-que"><b><span class="q-lugar">${c.lugar} · </span>${c.que}</b>${c.avance ? `<small>${c.avance}</small>` : ""}</span>
+            <span class="c-res"><span class="chip ${tonoResultado(c)}">${textoResultado(c)}</span></span>
+            <span class="c-resp">Abrió ${c.abrio}${c.res !== "can" && c.cerro ? `<small>Cerró ${c.cerro}</small>` : ""}</span>
+            <span class="c-acc"><span class="btn">Ver</span></span>
+          </a>`).join("")}
+      </section>`).join("")}`;
+  const textoTotal = plural(visibles.length, "conteo", "conteos");
+  $("total").textContent = filtro.tipo === "todos" ? `${textoTotal} en ${grupos.length} ${grupos.length === 1 ? "día" : "días"}` : textoTotal;
+  $("pie").hidden = false;
+  $("pie").textContent = filtro.tipo === "todos" ? "Se muestran los conteos más recientes de esta tienda." : `Mostrando solo ${larga(filtro.dia)}.`;
+}
+
+/* ---------- Calendario ---------- */
+function pintarCalendario() {
+  const [y, m] = mesVisible.split("-").map(Number);
+  const primero = new Date(Date.UTC(y, m-1, 1));
+  const offset = (primero.getUTCDay() + 6) % 7;             // lunes = 0
+  const diasMes = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  $("calMes").textContent = `${MESES[m-1]} ${y}`;
+  const celdas = [];
+  for (let i = 0; i < offset; i++) celdas.push(`<span></span>`);
+  for (let d = 1; d <= diasMes; d++) {
+    const dia = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const n = cuentaDe(dia), futuro = dia > HOY;
+    const sel = filtro.tipo !== "todos" && filtro.dia === dia;
+    celdas.push(`<button type="button" class="dia${dia === HOY ? " hoy" : ""}" data-dia="${dia}" ${futuro ? "disabled" : ""} aria-pressed="${sel}"
+      aria-label="${larga(dia)}${n ? ", " + plural(n, "conteo", "conteos") : ", sin conteos"}">${d}${n ? `<span class="punto"></span>` : ""}</button>`);
+  }
+  $("calDias").innerHTML = celdas.join("");
+  $("calNext").disabled = mesVisible >= HOY.slice(0,7);
+  const primerMesConDatos = DATOS[DATOS.length-1].dia.slice(0,7);
+  $("calPrev").disabled = mesVisible <= primerMesConDatos;
+}
+function abrirCal(abrir) {
+  $("cal").hidden = !abrir; $("fFecha").setAttribute("aria-expanded", abrir);
+  if (abrir) { mesVisible = (filtro.tipo === "fecha" ? filtro.dia : HOY).slice(0,7); pintarCalendario(); }
+}
+function mover(mes, delta) { const [y,m] = mes.split("-").map(Number); const d = new Date(Date.UTC(y, m-1+delta, 1)); return iso(d).slice(0,7); }
+
+/* ---------- Eventos ---------- */
+$("fTodos").onclick = () => { filtro = { tipo: "todos", dia: null }; abrirCal(false); render(); };
+$("fHoy").onclick   = () => { filtro = { tipo: "hoy", dia: HOY }; abrirCal(false); render(); };
+$("fAyer").onclick  = () => { filtro = { tipo: "ayer", dia: AYER }; abrirCal(false); render(); };
+$("fFecha").onclick = (e) => {
+  if (e.target.closest("#fFechaX")) { filtro = { tipo: "todos", dia: null }; abrirCal(false); render(); return; }
+  abrirCal($("cal").hidden);
+};
+$("calPrev").onclick = () => { mesVisible = mover(mesVisible, -1); pintarCalendario(); };
+$("calNext").onclick = () => { mesVisible = mover(mesVisible, +1); pintarCalendario(); };
+$("calHoy").onclick  = () => { mesVisible = HOY.slice(0,7); pintarCalendario(); };
+$("calDias").onclick = (e) => {
+  const b = e.target.closest("[data-dia]"); if (!b || b.disabled) return;
+  const dia = b.dataset.dia;
+  // Elegir hoy o ayer en el calendario enciende el botón de siempre: el mismo filtro no tiene dos caras.
+  filtro = dia === HOY ? { tipo: "hoy", dia } : dia === AYER ? { tipo: "ayer", dia } : { tipo: "fecha", dia };
+  abrirCal(false); render();
+};
+$("lista").onclick = (e) => {
+  const b = e.target.closest("[data-ir]"); if (!b) return;
+  const a = b.dataset.ir;
+  filtro = a === "todos" ? { tipo: "todos", dia: null } : a === HOY ? { tipo: "hoy", dia: a } : a === AYER ? { tipo: "ayer", dia: a } : { tipo: "fecha", dia: a };
+  render();
+};
+document.addEventListener("click", (e) => { if (!$("cal").hidden && !e.target.closest(".ancla")) abrirCal(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("cal").hidden) { abrirCal(false); $("fFecha").focus(); } });
+
+$("segAncho").onclick = (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  $("marco").dataset.ancho = b.dataset.v;
+  [...$("segAncho").children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+};
+$("reiniciar").onclick = () => { filtro = { tipo: "todos", dia: null }; abrirCal(false); render(); };
+
+render();
+</script>
+</body>
+</html>

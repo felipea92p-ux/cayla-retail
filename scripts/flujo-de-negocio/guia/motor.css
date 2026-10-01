@@ -1,0 +1,84 @@
+/* Motor de la guía interactiva — la capa de la PRÁCTICA (barra, guía, comentarios, intro, fin).
+   El ERP vive dentro de un iframe con su propio CSS real; esto solo pinta lo que rodea al ERP.
+   Colores y tipografías: los tokens oficiales «CAYLA Dynamic» (apps/web/app/globals.css). Nunca un hex suelto fuera de esta lista. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+  --sand: #e8e0d0; --taupe: #805c4c; --verde: #48603f; --ambar: #74501a; --hueso: #eae1d2; --pizarra: #4c5d6e;
+  --tinta-60: #5b544c;
+  --f-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-serif: "EB Garamond", ui-serif, Georgia, serif;
+  --barra: 56px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--crema); color: var(--tinta); font-family: var(--f-sans); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; }
+[hidden] { display: none !important; }
+
+/* ── Barra de la práctica (arriba, siempre) ───────────────────────────────────────────────────────────── */
+#g-barra { position: fixed; inset: 0 0 auto 0; height: var(--barra); z-index: 50; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+  background: var(--papel); border-bottom: 1px solid var(--sand); }
+#g-barra .g-marca { font-family: var(--f-serif); font-size: 19px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
+#g-barra .g-tarea { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.3; color: var(--tinta-60); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#g-barra .g-tarea b { color: var(--tinta); font-weight: 600; }
+#g-erp { position: fixed; inset: var(--barra) 0 0 0; width: 100%; height: calc(100% - var(--barra)); border: 0; background: var(--crema); }
+
+.g-btn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--tinta); background: var(--tinta); color: var(--crema);
+  font-size: 13px; font-weight: 500; white-space: nowrap; transition: background-color .2s, transform .15s; }
+.g-btn:hover { background: var(--rojo-profundo); border-color: var(--rojo-profundo); }
+.g-btn:active { transform: scale(.98); }
+.g-btn.g-sec { background: transparent; color: var(--tinta); border-color: rgba(26,26,24,.28); }
+.g-btn.g-sec:hover { background: var(--hueso); border-color: var(--tinta); color: var(--tinta); }
+.g-btn.g-ayuda { background: var(--papel); color: var(--rojo-profundo); border-color: var(--rojo); }
+.g-btn.g-ayuda:hover { background: var(--rojo); color: var(--crema); }
+.g-btn:focus-visible, .g-tarjeta button:focus-visible, textarea:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.g-num { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px; background: var(--rojo); color: var(--crema); font-size: 10.5px; font-weight: 700; }
+
+/* ── Tarjetas flotantes: intro, guía, comentarios, fin ────────────────────────────────────────────────── */
+.g-tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; }
+.g-flota { position: fixed; z-index: 60; }
+#g-guia { left: 16px; bottom: 16px; width: min(372px, calc(100vw - 32px)); padding: 16px 16px 14px; box-shadow: 0 10px 34px rgba(26,26,24,.14); max-height: calc(100vh - var(--barra) - 32px); overflow: auto; }
+#g-guia .g-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+#g-guia .g-paso { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+#g-guia .g-barra-prog { letter-spacing: 2px; color: var(--rojo); font-size: 12px; }
+#g-guia h2 { font-family: var(--f-serif); font-size: 21px; line-height: 1.15; margin: 2px 0 10px; font-weight: 600; }
+#g-guia .g-fila { display: grid; grid-template-columns: 22px 1fr; gap: 8px; margin: 7px 0; font-size: 13.5px; line-height: 1.4; }
+#g-guia .g-fila b { font-weight: 600; }
+#g-guia .g-haz { background: var(--hueso); border-radius: 10px; padding: 9px 10px; margin: 10px 0; font-size: 14px; }
+#g-guia .g-aviso { margin-top: 9px; padding: 8px 10px; border-radius: 10px; font-size: 12.8px; line-height: 1.4; background: rgba(184,65,45,.08); color: var(--rojo-profundo); }
+#g-guia .g-aviso.g-desvio { background: rgba(116,80,26,.1); color: var(--ambar); }
+#g-guia .g-pie { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+#g-guia .g-pie .g-btn { height: 32px; font-size: 12.5px; padding: 0 11px; }
+#g-guia.g-min { width: auto; padding: 8px; }
+#g-guia.g-min > :not(.g-cab) { display: none; }
+#g-guia.g-min .g-cab { margin: 0; }
+.g-pista { margin-top: 9px; padding: 8px 10px; border-left: 3px solid var(--verde); background: rgba(72,96,63,.08); font-size: 13px; border-radius: 0 10px 10px 0; }
+
+#g-coment { right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); padding: 16px; box-shadow: 0 10px 34px rgba(26,26,24,.14); max-height: calc(100vh - var(--barra) - 32px); display: flex; flex-direction: column; }
+#g-coment h3 { font-family: var(--f-serif); font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+#g-coment p.g-sub { margin: 0 0 10px; font-size: 12.8px; color: var(--tinta-60); line-height: 1.4; }
+#g-coment textarea { width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px; border: 1px solid rgba(26,26,24,.28); border-radius: 10px; background: var(--crema); font: inherit; font-size: 14px; color: var(--tinta); }
+#g-coment .g-lista { overflow: auto; margin: 10px 0; display: grid; gap: 8px; flex: 1; min-height: 0; }
+#g-coment .g-item { background: var(--hueso); border-radius: 10px; padding: 8px 10px; font-size: 13px; line-height: 1.4; position: relative; }
+#g-coment .g-item small { display: block; color: var(--taupe); font-size: 11px; margin-bottom: 2px; font-weight: 600; letter-spacing: .03em; }
+#g-coment .g-item button { position: absolute; top: 5px; right: 6px; border: 0; background: none; color: var(--tinta-60); font-size: 11.5px; text-decoration: underline; padding: 2px; }
+#g-coment .g-fila-btn { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.g-velo { position: fixed; inset: 0; z-index: 80; background: var(--crema); display: grid; place-items: center; padding: 20px; overflow: auto; }
+.g-velo .g-tarjeta { width: min(560px, 100%); padding: 30px 30px 26px; }
+.g-velo h1 { font-family: var(--f-serif); font-size: 34px; line-height: 1.08; margin: 0 0 14px; font-weight: 600; }
+.g-velo p { font-size: 15.5px; line-height: 1.5; margin: 0 0 12px; color: var(--tinta-60); }
+.g-velo p b { color: var(--tinta); font-weight: 600; }
+.g-velo .g-etiqueta { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--rojo); font-weight: 600; margin-bottom: 10px; display: block; }
+.g-velo ul { margin: 0 0 14px; padding-left: 20px; font-size: 14.5px; line-height: 1.55; color: var(--tinta-60); }
+.g-velo .g-btn { height: 46px; font-size: 15px; padding: 0 22px; margin-top: 8px; }
+.g-velo .g-resultado { padding: 11px 13px; border-radius: 12px; margin: 14px 0; font-size: 14px; line-height: 1.45; background: rgba(72,96,63,.1); color: var(--verde); }
+.g-velo .g-resultado.g-mal { background: rgba(116,80,26,.1); color: var(--ambar); }
+.g-velo textarea.g-copia { width: 100%; min-height: 150px; padding: 11px 12px; border: 1px solid rgba(26,26,24,.28); border-radius: 10px; background: var(--crema); font: 13px/1.5 var(--f-sans); color: var(--tinta); margin: 6px 0 4px; }
+
+/* Aviso de pantalla angosta: en v1 la réplica es de computadora/tablet */
+#g-angosta { display: none; }
+@media (max-width: 899px) {
+  #g-angosta { display: grid; }
+  #g-barra, #g-erp, #g-guia, #g-coment { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

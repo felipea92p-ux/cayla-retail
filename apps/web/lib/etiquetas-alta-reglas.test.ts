@@ -41,27 +41,28 @@ describe("nombreDeEtiqueta / claveEtiqueta", () => {
 });
 
 describe("repartirEtiquetas", () => {
-  it("una líder ve todas: las de campaña que cubren su categoría quedan aparte, no se eligen", () => {
-    const r = repartirEtiquetas(TODAS, { categoriaId: "blusas", daDescuentos: true });
+  it("las de campaña que cubren la categoría de la prenda quedan aparte (no se eligen); todas las demás se eligen", () => {
+    const r = repartirEtiquetas(TODAS, { categoriaId: "blusas" });
     expect(r.elegibles.map((e) => e.id)).toEqual(["e1", "e2", "e4"]);
     expect(r.cubiertas.map((e) => e.id)).toEqual(["e3"]);
-    expect(r.ocultasPorDescuento).toBe(0);
   });
 
-  it("quien no es líder no recibe las que llevan descuento (la base las rechazaría) y se cuenta cuántas quedaron fuera", () => {
-    const r = repartirEtiquetas(TODAS, { categoriaId: "faldas", daDescuentos: false });
-    expect(r.elegibles.map((e) => e.id)).toEqual(["e1", "e2"]);
-    expect(r.ocultasPorDescuento).toBe(2); // Cyber (no cubre faldas) y Para liquidar
+  it("las que llevan descuento SE OFRECEN a quien da de alta la prenda, sea líder o no (ADR-0293: «Para liquidar» no puede faltar)", () => {
+    const r = repartirEtiquetas(TODAS, { categoriaId: "faldas" });
+    expect(r.elegibles.map((e) => e.id)).toEqual(["e1", "e2", "e3", "e4"]);
+    expect(r.elegibles.filter((e) => e.descuentoPct !== null).map((e) => e.nombre)).toEqual(["Cyber CAYLA", "Para liquidar"]);
+    expect(r.cubiertas).toEqual([]);
   });
 
-  it("una campaña con descuento que ya cubre la categoría se MUESTRA a cualquiera (es informativa, no la pone nadie)", () => {
-    const r = repartirEtiquetas(TODAS, { categoriaId: "blusas", daDescuentos: false });
-    expect(r.cubiertas.map((e) => e.id)).toEqual(["e3"]);
-    expect(r.ocultasPorDescuento).toBe(1); // solo Para liquidar
+  it("ninguna etiqueta del vocabulario se pierde: cada una es elegible o cubierta, nunca las dos ni ninguna", () => {
+    for (const categoriaId of ["", "blusas", "faldas"]) {
+      const r = repartirEtiquetas(TODAS, { categoriaId });
+      expect([...r.elegibles, ...r.cubiertas].map((e) => e.id).sort()).toEqual(TODAS.map((e) => e.id).sort());
+    }
   });
 
   it("sin categoría elegida ninguna está «cubierta» todavía", () => {
-    const r = repartirEtiquetas(TODAS, { categoriaId: "", daDescuentos: true });
+    const r = repartirEtiquetas(TODAS, { categoriaId: "" });
     expect(r.cubiertas).toEqual([]);
     expect(r.elegibles).toHaveLength(4);
   });
@@ -134,7 +135,7 @@ describe("agruparEtiquetas", () => {
 });
 
 describe("significadoDelTexto", () => {
-  const reparto = repartirEtiquetas(TODAS, { categoriaId: "blusas", daDescuentos: false });
+  const reparto = repartirEtiquetas(TODAS, { categoriaId: "blusas" });
   const ctx = { todas: TODAS, reparto, elegidas: ["e2"], propuestas: ["Verano Chic"] };
 
   it("vacío o solo espacios no es nada", () => {
@@ -152,15 +153,15 @@ describe("significadoDelTexto", () => {
   it("una campaña que ya cubre la categoría responde «campana»", () => {
     expect(significadoDelTexto("cyber cayla", ctx)).toMatchObject({ tipo: "existe", motivo: "campana" });
   });
-  it("una con descuento que este rol no puede dar responde «solo_lider»: crearla de nuevo chocaría con el índice único", () => {
-    expect(significadoDelTexto("para liquidar", ctx)).toMatchObject({ tipo: "existe", motivo: "solo_lider" });
+  it("una con descuento se elige como cualquier otra: responde «elegible», no ofrece crearla de nuevo (chocaría con el índice único)", () => {
+    expect(significadoDelTexto("para liquidar", ctx)).toMatchObject({ tipo: "existe", motivo: "elegible", etiqueta: LIQUIDAR });
   });
   it("una que ya se propuso en esta pantalla (y espera a un líder) no se vuelve a proponer", () => {
     expect(significadoDelTexto("verano chic", ctx)).toEqual({ tipo: "existe", nombre: "verano chic", etiqueta: null, motivo: "propuesta" });
   });
   it("un nombre guardado con espacios de más se reconoce como existente, no como nueva", () => {
     const raro = [et("d1", "Nueva   colección")];
-    const r = repartirEtiquetas(raro, { categoriaId: "", daDescuentos: true });
+    const r = repartirEtiquetas(raro, { categoriaId: "" });
     expect(significadoDelTexto("nueva colección", { todas: raro, reparto: r, elegidas: [], propuestas: [] })).toMatchObject({ tipo: "existe", motivo: "elegible" });
   });
   it("lo escrito con comas no se crea: pegar «a, b, c» dejaría UNA etiqueta con comas en el vocabulario", () => {
@@ -168,7 +169,7 @@ describe("significadoDelTexto", () => {
     expect(FRASE_ETIQUETA_INVALIDA).toContain("de a una");
   });
   it("cada motivo tiene su frase, y ninguna queda vacía", () => {
-    for (const m of ["elegible", "elegida", "campana", "solo_lider", "propuesta"] as const) expect(fraseDeExistente(m).length).toBeGreaterThan(10);
+    for (const m of ["elegible", "elegida", "campana", "propuesta"] as const) expect(fraseDeExistente(m).length).toBeGreaterThan(10);
   });
 });
 
