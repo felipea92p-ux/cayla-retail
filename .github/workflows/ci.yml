@@ -930,6 +930,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-lista-y-ficha
 
+      # Club de clientas, tanda 1e (ADR-0288 D-3): el comprobante acepta carné de extranjería y pasaporte. Boleta y nota de
+      # venta guardan el tipo y el número limpio; fuera de formato (o sin número) → `documento_invalido` sin venta, sin stock
+      # movido ni correlativo gastado; la factura sigue exigiendo RUC; el candado de la tabla frena un insert directo; la
+      # venta con boleta a un carné se liga al registrar a la clienta con ese carné (no la de un DNI con los mismos dígitos);
+      # la nota de crédito copia el tipo y el número; md5 «después» = vivas, pegarla dos veces deja lo mismo y con
+      # `emitir_comprobante` cambiada en vivo aborta sin pisar. Nada llama a Lucode ni a SUNAT. Cada caso termina en ROLLBACK.
+      - name: pruebas:comprobante-carne-pasaporte
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobante-carne-pasaporte
+
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
       # nunca se aprobó. Cada caso termina en ROLLBACK.

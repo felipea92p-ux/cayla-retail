@@ -79,7 +79,8 @@ import { conCambio, lecturaDePistola, PAUSA_FIN_LECTURA_MS, type Rafaga } from "
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
-import { documentoParaComprobante } from "@/lib/documento-clienta-reglas";
+import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
+import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
 import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
@@ -364,6 +365,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Una proforma a nombre de una empresa (RUC) se cobra con factura; lo demás, boleta.
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>(proforma?.clienteDoc?.length === 11 ? "factura" : "boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState(proforma?.clienteDoc ?? "");
+  // DNI, carné de extranjería o pasaporte, en una boleta o nota de venta (ADR-0288 D-3). La factura siempre es RUC.
+  const [clienteDocIdentidad, setClienteDocIdentidad] = useState<TipoDocumentoClienta>("dni");
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
   // La prenda recién quitada del ticket, para «¿Se la probó y no la llevó?» (ADR-0288 D-6, spike del club): `clave` es la
@@ -717,7 +720,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     flipState.current = null;
   }, [carrito.length]);
 
-  const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc, clienteDocIdentidad);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
@@ -1069,6 +1072,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     total,
     pagos,
     facturaSinRuc,
+    problemaDocumento: problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc),
     motivoResponsable: responsable.motivo,
     proformaVencidaSinConfirmar: proformaActiva?.confirmacion != null && !confirmoVencida,
   });
@@ -1154,24 +1158,31 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   function limpiarComprobante() {
     setTipoComprobante("boleta");
     setClienteNumDoc("");
+    setClienteDocIdentidad("dni");
     setClienteNombre("");
     setClienta(null);
   }
 
-  // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después. El documento
-  // pasa solo si el comprobante lo acepta (`documentoParaComprobante`: hoy solo el DNI; un carné o un pasaporte salen
-  // «sin documento» con su nombre hasta la tanda 1e, ADR-0288 D-3). La venta igual queda en su ficha: `p_cliente_id`.
+  // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después. Su documento
+  // pasa con su tipo (`documentoParaComprobante`: DNI, carné o pasaporte desde la tanda 1e, ADR-0288 D-3). La venta igual
+  // queda en su ficha: `p_cliente_id`.
   function documentoDeClienta(c: Clienta) {
-    return documentoParaComprobante(c.documentoTipo, c.documentoNumero) ?? "";
+    return documentoParaComprobante(c.documentoTipo, c.documentoNumero) ?? { tipo: "dni" as const, numero: "" };
   }
   function elegirClienta(c: Clienta) {
+    const doc = documentoDeClienta(c);
     setClienta(c);
-    setClienteNumDoc(documentoDeClienta(c));
+    setClienteDocIdentidad(doc.tipo);
+    setClienteNumDoc(doc.numero);
     setClienteNombre(c.nombre ?? "");
   }
   function quitarClienta() {
     if (clienta) {
-      if (clienteNumDoc === documentoDeClienta(clienta)) setClienteNumDoc("");
+      const doc = documentoDeClienta(clienta);
+      if (clienteNumDoc === doc.numero && clienteDocIdentidad === doc.tipo) {
+        setClienteNumDoc("");
+        setClienteDocIdentidad("dni");
+      }
       if (clienteNombre === (clienta.nombre ?? "")) setClienteNombre("");
     }
     setClienta(null);
@@ -1456,6 +1467,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             onTipoComprobante={setTipoComprobante}
             clienteNumDoc={clienteNumDoc}
             onClienteNumDoc={setClienteNumDoc}
+            clienteDocIdentidad={clienteDocIdentidad}
+            onClienteDocIdentidad={setClienteDocIdentidad}
             clienteNombre={clienteNombre}
             onClienteNombre={setClienteNombre}
             facturaSinRuc={facturaSinRuc}

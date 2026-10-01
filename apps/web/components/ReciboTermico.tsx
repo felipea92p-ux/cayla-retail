@@ -2,6 +2,7 @@ import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { textoCumpleEnElRecibo } from "@/lib/club-cumple-canje-reglas";
+import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
   fechaHoraLima,
@@ -37,7 +38,6 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
 export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const fiscal = desglosaIgv(recibo.tipo);
   const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const contacto = [emisor.telefono, emisor.email].filter(Boolean);
@@ -72,9 +72,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </dd>
         <dt>Cliente</dt>
         <dd>{cli.nombre?.trim() || "CLIENTE VARIOS"}</dd>
-        {tieneDoc && (
+        {llevaDocumento(cli.tipoDoc, cli.numDoc) && (
           <>
-            <dt>{cli.tipoDoc === "ruc" ? "RUC" : "DNI"}</dt>
+            {/* DNI, RUC, CE (carné de extranjería) o Pasaporte: ADR-0288 D-3. */}
+            <dt>{ETIQUETA_DOCUMENTO_COMPROBANTE[cli.tipoDoc]}</dt>
             <dd>{cli.numDoc}</dd>
           </>
         )}

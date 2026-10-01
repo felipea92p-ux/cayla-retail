@@ -36,6 +36,7 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
+import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 import type { Firma } from "./responsable-reglas";
 
 export type ItemVentaEncolada = { varianteId: string; cantidad: number };
@@ -72,7 +73,7 @@ export type ParamsRegistrarVenta = {
   p_pagos: { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";
-  p_cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  p_cliente_tipo_doc: TipoDocComprobante;
   p_cliente_num_doc?: string;
   p_cliente_nombre?: string;
   /** La ficha de la clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Viaja también en la cola sin conexión;

@@ -106,6 +106,13 @@ describe("textoQrSunat — el orden que pide SUNAT", () => {
     const f = { ...base, tipo: "factura" as const, serie: "F001", cliente: { tipoDoc: "ruc" as const, numDoc: "20555555551", nombre: "ACME SAC" } };
     expect(textoQrSunat(f, "20123456789")).toBe("20123456789|01|F001|00000002|18.00|118.00|2026-09-18|6|20555555551|");
   });
+  // ADR-0288 D-3 (tanda 1e): catálogo 06 de SUNAT, el mismo código que viaja a Lucode.
+  it("boleta a un carné de extranjería: «4»; a un pasaporte: «7»", () => {
+    const ce = { ...base, cliente: { tipoDoc: "carne_extranjeria" as const, numDoc: "001234567", nombre: "Ana" } };
+    const pas = { ...base, cliente: { tipoDoc: "pasaporte" as const, numDoc: "AB123456", nombre: "Ana" } };
+    expect(textoQrSunat(ce, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|4|001234567|");
+    expect(textoQrSunat(pas, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|7|AB123456|");
+  });
   it("boleta sin documento usa «-»", () => {
     const s = { ...base, cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null } };
     expect(textoQrSunat(s, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|-|-|");

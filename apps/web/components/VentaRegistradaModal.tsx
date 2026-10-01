@@ -8,6 +8,7 @@ import { ReciboTermico } from "@/components/ReciboTermico";
 import { money, type VentaOk } from "@/components/PuntoDeVenta";
 import { EMISOR, emisorCompleto, type Emisor } from "@/lib/emisor";
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
+import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas";
 import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
@@ -135,7 +136,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   Cliente:{" "}
                   <span className="text-tinta">
                     {r.cliente.nombre?.trim() || "Cliente varios"}
-                    {r.cliente.tipoDoc !== "sin_documento" && r.cliente.numDoc ? ` · ${r.cliente.tipoDoc === "ruc" ? "RUC" : "DNI"} ${r.cliente.numDoc}` : ""}
+                    {documentoLegibleComprobante(r.cliente.tipoDoc, r.cliente.numDoc) ? ` · ${documentoLegibleComprobante(r.cliente.tipoDoc, r.cliente.numDoc)}` : ""}
                   </span>
                 </p>
               </div>

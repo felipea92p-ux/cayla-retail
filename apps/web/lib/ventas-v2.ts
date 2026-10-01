@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import { documentoLegibleComprobante, esTipoDocComprobante } from "@/lib/documento-comprobante-reglas";
 import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
 
@@ -386,8 +387,7 @@ export async function getVentasRecientes(
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
     if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
-    const documento =
-      c.cliente_num_doc && c.cliente_tipo_doc !== "sin_documento" ? `${c.cliente_tipo_doc === "ruc" ? "RUC" : "DNI"} ${c.cliente_num_doc}` : null;
+    const documento = esTipoDocComprobante(c.cliente_tipo_doc) ? documentoLegibleComprobante(c.cliente_tipo_doc, c.cliente_num_doc) : null;
     const clienta = [c.cliente_nombre?.trim() || null, documento].filter(Boolean).join(" · ") || null;
     comprobantePorVenta.set(c.venta_id, {
       texto: `${ETIQUETA_TIPO[c.tipo as TipoComprobante] ?? c.tipo} ${c.serie}-${String(c.numero).padStart(6, "0")}`,

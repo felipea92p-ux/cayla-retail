@@ -8,6 +8,9 @@
 // rechaza el build entero (se encontró exactamente así, 2026-09-12, al
 // conectar Vender con Facturación).
 
+import type { TipoDocumentoClienta } from "./documento-clienta-reglas";
+import { tipoDocDelComprobante, type TipoDocComprobante } from "./documento-comprobante-reglas";
+
 // "nota_venta" (ADR-0164): documento INTERNO de la tienda, con serie propia (NV01…), sin IGV
 // desglosado y que NUNCA se transmite a SUNAT — por eso nace en su propio estado, "interna".
 export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito" | "nota_venta";
@@ -27,7 +30,7 @@ export type Comprobante = {
   tipo: TipoComprobante;
   serie: string;
   numero: number;
-  cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  cliente_tipo_doc: TipoDocComprobante;
   cliente_num_doc: string | null;
   cliente_nombre: string | null;
   total: number;
@@ -119,16 +122,17 @@ export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   interna: "Interna — no va a SUNAT",
 };
 
-/** El tipo de documento (DNI/RUC/sin documento) no es una decisión aparte
- *  del tipo de comprobante — se deriva de él (una factura SIEMPRE exige
- *  RUC). Vivía copiada, carácter por carácter, en ComprobantesPanel.tsx y
- *  ProformasPanel.tsx; Vender la necesita también — a la tercera vez, se
- *  extrae en vez de copiarse de nuevo. */
+/** El tipo de documento no es una decisión aparte del tipo de comprobante — se deriva de él (una factura SIEMPRE exige
+ *  RUC). Vivía copiada, carácter por carácter, en ComprobantesPanel.tsx y ProformasPanel.tsx; Vender la necesita también —
+ *  a la tercera vez, se extrae en vez de copiarse de nuevo. Desde la tanda 1e del club (ADR-0288 D-3), una boleta o una nota
+ *  de venta lleva el documento de identidad elegido (`identidad`: DNI por defecto, carné de extranjería o pasaporte); la
+ *  regla vive en `documento-comprobante-reglas.ts`. */
 export function tipoDocumentoDeCliente(
   tipo: TipoComprobante,
-  clienteNumDoc: string
-): "dni" | "ruc" | "sin_documento" {
-  return tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  clienteNumDoc: string,
+  identidad: TipoDocumentoClienta = "dni"
+): TipoDocComprobante {
+  return tipoDocDelComprobante(tipo, clienteNumDoc, identidad);
 }
 
 /** Lo que se puede leer de "B001-000010" (o "B001-10", o solo "10") escrito a mano en
