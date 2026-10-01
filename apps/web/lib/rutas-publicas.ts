@@ -5,7 +5,8 @@
 //   · `/club/<uuid de la tienda>`: el registro, al que llevan el QR del cartel y el del ticket. Sus dos acciones de servidor
 //     (`consultarNombre`, `registrarme`) viajan como POST a esta misma dirección, así que también pasan, y se validan solas
 //     (`app/actions/club-registro.ts`);
-//   · `/club/privacidad` y `/club/terminos`: los textos que acepta al unirse.
+//   · `/club/privacidad` y `/club/terminos`: los textos que acepta al unirse;
+//   · `/api/club/nombre`: el «¿Eres …?» del DNI, aparte de la acción de servidor para que no abra el loader (ADR-0149).
 // `/login` y `/auth` NO van aquí: esas sí miran la sesión (quien ya entró no vuelve al login).
 //
 // Por qué tan estrecha: toda ruta que pasa sin sesión es una puerta abierta a internet. Pasa `/club/` seguido de UN uuid o de
@@ -15,8 +16,10 @@
 
 const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const PAGINAS_DEL_CLUB = new RegExp(`^/club/(?:${UUID}|privacidad|terminos)/?$`);
+/** La consulta del nombre a medias mientras ella escribe su DNI (`app/api/club/nombre/route.ts`): una sola ruta, exacta. */
+const CONSULTA_DEL_CLUB = /^\/api\/club\/nombre\/?$/;
 
 /** ¿Esta ruta se sirve sin sesión y sin pasar por ninguna otra barrera de `proxy.ts`? */
 export function esRutaPublica(pathname: string): boolean {
-  return PAGINAS_DEL_CLUB.test(pathname);
+  return PAGINAS_DEL_CLUB.test(pathname) || CONSULTA_DEL_CLUB.test(pathname);
 }

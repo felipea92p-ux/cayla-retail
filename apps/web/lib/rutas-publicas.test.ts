@@ -17,6 +17,7 @@ describe("rutas públicas: solo el registro del club, la política y los términ
     expect(esRutaPublica("/club/privacidad")).toBe(true);
     expect(esRutaPublica("/club/terminos")).toBe(true);
     expect(esRutaPublica("/club/terminos/")).toBe(true);
+    expect(esRutaPublica("/api/club/nombre")).toBe(true);
   });
 
   it("nada más: ni el ERP, ni el club sin tienda, ni otro segmento, ni subrutas, ni rutas que solo empiezan igual", () => {
@@ -33,6 +34,9 @@ describe("rutas públicas: solo el registro del club, la política y los términ
       "/auth/callback",
       "/api/padron",
       "/api/club/conservacion",
+      "/api/club",
+      "/api/club/nombre/otra",
+      "/api/club/registro",
       // El token del QR personal (camino B, retirado en la tanda 1g) ya no abre nada.
       "/club/Ab3_x-9QwErTyUiO",
       "/club/cualquier-cosa",

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import { consultarNombre, registrarme } from "@/app/actions/club-registro";
+import { registrarme } from "@/app/actions/club-registro";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -38,6 +38,7 @@ import {
   type PaginaClub,
   type RegistroEscrito,
   type RespuestaRegistro,
+  type RespuestaConsulta,
 } from "@/lib/club-registro-reglas";
 
 /* ====================================================================
@@ -118,7 +119,14 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
       return;
     }
     setConsulta({ estado: "buscando", numero });
-    consultarNombre(ubicacionId, numero).then(
+    // Lectura mientras escribe: por su ruta con `x-espera: no`, no por la acción de servidor (que abriría el loader, ADR-0149).
+    fetch("/api/club/nombre", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-espera": "no" },
+      body: JSON.stringify({ ubicacionId, numero }),
+    })
+      .then((r) => r.json() as Promise<RespuestaConsulta>)
+      .then(
       (res) => {
         if (numeroActual.current !== numero) return;
         setConsulta(res.estado === "encontrado" ? { estado: "encontrado", numero, aMedias: res.aMedias } : { estado: "fallo", numero, mensaje: mensajeDeConsulta(res) });
