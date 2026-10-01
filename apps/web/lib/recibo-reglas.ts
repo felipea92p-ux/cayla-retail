@@ -55,6 +55,10 @@ export type ReciboVenta = {
   /** El QR del club al pie (ADR-0288, tanda 1b; `clubEnElTicket`): el personal si la venta fue a una socia, el genérico si
    *  no. Ausente/`null` sin número de la tienda, o en una reimpresión (el historial no sabe del club). */
   club?: ClubEnElTicket | null;
+  /** El cumpleaños del club que canjeó la venta (ADR-0288 D-5): el descuento de cada prenda ya lo trae (es el TOTAL de
+   *  `venta_items`), y el papel dice cuánto de eso es del club. Ausente/`null` sin canje o en una reimpresión (el historial
+   *  no lo lee todavía). */
+  cumple?: { pct: number; monto: number } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -90,6 +94,8 @@ export function armarRecibo(entrada: {
   atendio?: string | null;
   /** El QR del club al pie; ver `clubEnElTicket` en `club-caja-reglas.ts`. */
   club?: ClubEnElTicket | null;
+  /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
+  cumple?: { pct: number; monto: number } | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -122,6 +128,7 @@ export function armarRecibo(entrada: {
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
     club: entrada.club ?? null,
+    cumple: entrada.cumple && entrada.cumple.monto > 0 ? entrada.cumple : null,
   };
 }
 

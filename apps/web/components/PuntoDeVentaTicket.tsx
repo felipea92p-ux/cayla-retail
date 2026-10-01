@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefO
 import {
   BadgePercent,
   Banknote,
+  Cake,
   Check,
   CirclePause,
   CreditCard,
@@ -47,6 +48,7 @@ import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
+import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -198,8 +200,13 @@ type Props = {
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
   // Totales — ya calculados en el padre
+  /** Lo que se cobra: con el canje del cumpleaños, ya sin la parte del club. */
   total: number;
   prendas: number;
+  /** El canje del cumpleaños aplicado (ADR-0288 D-5, tanda 1c): UNA línea en el pie, sobre el total (spike del club, punto
+   *  9). `monto` es lo que regala el club en toda la compra; `totalSinCumple`, sobre qué se calculó. null sin canje. Las
+   *  prendas no lo muestran: el reparto por línea es de la base y del comprobante. */
+  cumple?: { pct: number; monto: number; totalSinCumple: number } | null;
   // Los momentos del ticket: «armar» (líneas + total), «descuento» y «cobrar» (pago + comprobante)
   momento: MomentoTicket;
   onIrACobrar: () => void;
@@ -278,6 +285,7 @@ export function PuntoDeVentaTicket({
   onIrAEspera,
   total,
   prendas,
+  cumple = null,
   momento,
   onIrACobrar,
   onVolverATicket,
@@ -390,8 +398,11 @@ export function PuntoDeVentaTicket({
   const montoPedido = (it: ItemCarrito) => descuentoUnitarioPorPorcentaje(it.precioUnitario, pct);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
     !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
-  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora.
-  const totalConDescuento = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
+  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con el cumpleaños canjeado, también
+  // sin su parte (en cascada sobre el descuento nuevo, CL-11): el mismo número que quedará en «Total».
+  const totalConDescuento = cumple
+    ? ticketConCumple(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), cumple.pct).total
+    : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
@@ -1096,6 +1107,21 @@ export function PuntoDeVentaTicket({
         </div>
 
         <div className="border-t border-sand bg-papel px-5 pt-4 pb-5">
+          {/* El cumpleaños del club (tanda 1c; spike, `descuentoClub`): UNA línea de toda la compra, en cualquier momento
+              del ticket mientras esté aplicado, porque el Total de abajo ya lo descuenta. `key` en el monto: se asienta
+              cuando cambia (entra o sale una prenda), como el Total. */}
+          {cumple && cumple.monto > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
+              <span title={ayudaPieCumple(cumple.pct, cumple.totalSinCumple)} className="flex items-center gap-1.5 text-taupe-profundo">
+                <Cake className={ICONO_CHICO} aria-hidden />
+                {textoPieCumple(cumple.pct)}
+              </span>
+              <span key={cumple.monto} className="anim-asentar font-semibold text-taupe-profundo">
+                −{money(cumple.monto)}
+              </span>
+            </div>
+          )}
+
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
               se cobra, así que se decide antes de cobrar (decisión 3-A). */}
           {momentoMostrado === "armar" && (

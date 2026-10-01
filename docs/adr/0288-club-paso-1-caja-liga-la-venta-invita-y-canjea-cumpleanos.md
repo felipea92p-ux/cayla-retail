@@ -549,3 +549,99 @@ reglamento de la Ley 29733 (art. 5.1) nombra el «toque» como consentimiento v�
   momento sus invitaciones sin usar, y unir vence las de la ficha que se va; las de la que queda siguen. Nada se borra y
   ninguna invitación pasa a otra ficha, porque un enlace pensado para un número podría terminar dando la publicidad en
   otro. La página responde `vencida` también ante una ficha archivada, anonimizada, unida o sin club, sin decir por qué.
+
+## Contrato de la tanda 1c (2026-09-30): el cumpleaños con un canje por año
+
+Se construye sobre la D-5, CL-10 y CL-11. Migración en TRES partes (van después de la 1b; cada una sola en el SQL Editor,
+en orden): `20260930230000_club_paso1c_parte1_venta_items.sql` (solo `venta_items`), `…230100_…parte2_configuracion.sql`
+(solo `configuracion_empresa`) y `…230200_…parte3_cumpleanos.sql` (`club_canjes` y las funciones). Toda venta lee la
+configuración y después escribe `venta_items`: tomadas en una misma transacción, una venta a medio camino y la migración
+se esperarían en cruz (deadlock). La cabecera de la PARTE 3 tiene el porqué, el orden y la verificación con los md5.
+
+**Decisión de Felipe (2026-09-30): el 10 % de cumpleaños se aplica completo aunque deje una prenda bajo su costo.** Es un
+regalo del club. El candado de «no vender bajo costo» sigue valiendo para el resto de los descuentos: se mide sin la
+parte del club.
+
+**Cómo viaja:**
+- `venta_items.descuento_unitario` sigue siendo el descuento TOTAL por unidad, así que el comprobante, los pagos y los
+  reportes no cambian.
+- La columna nueva `venta_items.descuento_club_unitario` (default 0) dice cuánto de ese total es del cumpleaños.
+  Candado: `0 <= descuento_club_unitario <= descuento_unitario`.
+- Cobrar calcula con la misma regla pura y manda en cada ítem `descuento_club_unitario`, con `p_canjear_cumpleanos =
+  true`. **La base lo recalcula y rechaza si no coincide** (hint `cumple_descuento_distinto`, tolerancia de 1 céntimo),
+  así que la pantalla nunca decide el monto.
+
+**Regla del cálculo** (CL-11, en cascada, a toda la compra, prenda sin registrar incluida):
+`descuento_club_unitario = round((precio_unitario − descuento_sin_club) × pct / 100, 2)`
+- `descuento_sin_club = descuento_unitario − descuento_club_unitario`.
+- Una prenda al 20 % queda en 28 %.
+- El redondeo es el de Postgres (medio céntimo hacia arriba); la regla de la web lo replica, con prueba.
+
+**`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
+de la nueva, partiendo de la definición viva de producción (la de la 1a).
+- **Con `p_canjear_cumpleanos = true` exige**, con la ficha ya resuelta tomada `for no key update` en la MISMA lectura de
+  la 1a (la que sigue las uniones; al construir: dos canjes a la misma socia hacen fila ahí, y una venta sin canje a esa
+  clienta no espera, porque su `for key share` no choca; tomarla primero `for key share` y subirla después trabaría a dos
+  canjes entre sí):
+  - que sea socia (`club_desde`), sin anonimizar ni archivar;
+  - que el mes actual en `America/Lima` sea su `cumple_mes`;
+  - que no haya un canje vivo este año (el único parcial lo hace imposible igual).
+  - Los hints: `cumple_no_socia`, `cumple_fuera_de_mes`, `cumple_ya_canjeado` y `cumple_sin_clienta` (una anonimizada ya
+    la frena la 1a con `clienta_anonimizada`). Al construir se sumó `cumple_sin_monto`: un canje que no descuenta nada
+    (todo redondea a 0.00) gastaría el cumpleaños del año por nada.
+  - Un reintento de la MISMA venta (mismo `p_token`) que esperó en la ficha mientras la primera se guardaba devuelve esa
+    venta, no `cumple_ya_canjeado`.
+- **Sin canjear**, todo `descuento_club_unitario` tiene que ser 0 (hint `cumple_sin_canje`).
+- **El motivo de la línea describe el descuento SIN el club** (candado `venta_items_motivo_coherente_con_descuento`, que
+  sigue `not valid`): una prenda cuyo único descuento es el cumpleaños no lleva motivo; con campaña o descuento a mano,
+  el suyo.
+- **Los candados de la venta miden el descuento SIN la parte del club:**
+  - el costo;
+  - el tope de la asesora (D-67);
+  - el 35 % del líder;
+  - el argumento sobre el 15 %;
+  - el código de descuento.
+  - (Al construir: la campaña también se verifica sobre el descuento sin club. El tope D-67 no necesita nada: mide
+    `p_descuento_pct`, que la caja declara aparte y no sale de las líneas.)
+- **Al canjear**, escribe en `retail.club_canjes` (`id`, `clienta_id`, `tipo` = `'cumpleanos'`, `anio`, `venta_id`,
+  `pct`, `monto`, `registrado_por`, `created_at`, `anulado_en`, `anulado_por`).
+  - Candado: único parcial `(clienta_id, tipo, anio) where anulado_en is null`.
+  - RLS sin políticas.
+  - Anota la actividad sin datos de la clienta.
+- `configuracion_empresa.club_cumple_pct numeric not null default 10`, con candado entre 1 y 50: Felipe lo ajusta sin
+  migrar.
+- **Anular la venta** libera el canje (`anulado_en`, `anulado_por`, los de la venta): la venta nunca existió. Al
+  construir se hizo con un disparador sobre `ventas` (`trg_club_canje_libera_al_anular`, como el de la prenda por
+  regularizar) y no dentro de `anular_venta`, que no cambia: así libera TODA anulación, también la del SQL a mano
+  (`pegar-en-produccion-anular-venta-*.sql`). Una devolución NO lo libera (decisión de Felipe, 2026-09-29).
+- **Sin conexión, la web apaga el botón**, y una venta con el canje nunca entra a la cola sin conexión (`llevaCanje`,
+  `lib/ventas-offline.ts`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (confirmar otra vez
+  cuando vuelva, con el mismo `p_token`, o quitar el cumpleaños y cobrar el total). Si igual llegara una a la base con el
+  canje ya usado, se rechaza entera y la cola la muestra como rechazo (ADR-0036).
+- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric`, `cumple_canjeado_este_anio boolean` y
+  (al conectar la web) `cumple_canjeado_el date`, el día de Lima del canje vivo: la caja dice «Cumpleaños canjeado el 12 sep»,
+  como el spike. Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
+
+**Web** (se sigue el spike aprobado, `docs/maquetas/club-clientas-spike-2026-09/` en el commit `94f2dece`: «hay que
+guiarse con el spike visual», Felipe):
+- En la caja de la clienta de Cobrar, la fila «Cumple este mes · 10 % disponible» con «Canjear 10 %» (y, con lo del club
+  plegado, la misma acción como píldora): solo se puede tocar si `cumple_disponible` y hay conexión; sin conexión el botón
+  dice «Sin conexión» y se apaga. Si ya lo usó, el candado «Cumpleaños canjeado el 12 sep · Una vez al año». El % sale de
+  `cumple_pct`, nunca escrito a mano.
+- **Al tocarlo, el 10 % es UNA línea en el pie del ticket** («Cumpleaños del club · 10 % de la compra −S/ x», punto 9 del
+  README del spike) y el total, el cobro, el vuelto y los pagos usan el total nuevo. **Las prendas no muestran nada**: el
+  reparto por línea (`descuento_club_unitario`) queda en la base y en el comprobante (el papel imprime el descuento total
+  de cada prenda y una línea «Incluye 10 % de cumpleaños del club»). Esto corrige lo que decía este contrato antes de
+  construir («cada prenda muestra su −10 %»).
+- Quitar o cambiar a la clienta del ticket, perder la conexión o que su resumen deje de decir disponible lo apaga, y NO
+  vuelve solo (spike: sin conexión se apaga y queda así; si volviera, el total cambiaría bajo las manos de quien cobra).
+  Cuando se apaga solo, la caja lo avisa.
+- Ante `cumple_ya_canjeado`, `cumple_fuera_de_mes`, `cumple_no_socia` o `cumple_descuento_distinto`, la caja apaga el
+  canje, vuelve a leer el resumen y lo dice; los otros tres (`cumple_sin_clienta`, `cumple_sin_canje`, `cumple_sin_monto`)
+  lo apagan sin releer. **La venta nunca se vuelve a mandar sola sin el descuento**: la clienta tiene que saber que paga
+  más (`rechazoDelCanje`).
+- Después de cobrar, «Venta registrada» dice «Cumpleaños canjeado (−S/ x). No puede usarlo otra vez hasta el año que
+  viene; devolver la compra tampoco lo devuelve.»
+- La regla pura vive en `lib/club-cumple-canje-reglas.ts`, con su prueba (el nombre `club-cumple-reglas.ts` ya lo usa la
+  tanda 1b para ESCRIBIR el cumpleaños en la hoja): `descuentoClubLinea`, `descuentosParaRegistrar`, `ticketConCumple`,
+  `cumpleEnCaja`, `pctDelCanje` y los textos.

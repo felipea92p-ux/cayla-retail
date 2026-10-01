@@ -47,6 +47,10 @@ const resumen = (parte: Partial<ResumenClientaCaja> = {}): ResumenClientaCaja =>
   celular: null,
   cumpleDia: null,
   cumpleMes: null,
+  cumpleDisponible: false,
+  cumplePct: 10,
+  cumpleCanjeadoEsteAnio: false,
+  cumpleCanjeadoEl: null,
   ...parte,
 });
 const listo = (parte: Partial<ResumenClientaCaja> = {}): LecturaClub => ({ estado: "listo", resumen: resumen(parte) });

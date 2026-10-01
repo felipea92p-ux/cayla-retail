@@ -107,11 +107,20 @@ const CONFIRMAR_INVITACION = "retail.confirmar_invitacion_club(text,integer)";
 
 // Las funciones que crea el archivo (cuerpo entre `$$` y `$$`), para comparar con las vivas.
 const CREADAS = [...MIGRACION.matchAll(/create or replace function (retail\.[a-z_]+)\(/g)].map((m) => m[1]);
-/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo. */
+// La tanda 1c (ADR-0288 D-5, 20260930230200) volvió a crear resumen_clienta_caja (le sumó el cumpleaños: otro tipo de
+// retorno, `drop` y `create`). Su cuerpo vivo es el de ese archivo; y pegar la 1b encima de la 1c aborta (no puede cambiarle
+// el tipo de retorno: lo prueba club_cumpleanos.mjs), así que los casos que vuelven a pegar la 1b (k y l) empiezan por
+// dejar esa función como la dejó la 1b (ANTES_DE_LA_1C, dentro de la transacción que se revierte).
+const PASO_1C = readFileSync(join(RAIZ, "supabase", "migrations", "20260930230200_club_paso1c_parte3_cumpleanos.sql"), "utf8");
+const REHECHAS_1C = ["retail.resumen_clienta_caja"];
+const ANTES_DE_LA_1C = `reset role;\ndrop function if exists retail.resumen_clienta_caja(uuid);\n`;
+/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1c, si
+ *  la 1c la rehízo). */
 const cuerpoDe = (nombre) => {
-  const ini = MIGRACION.indexOf(`create or replace function ${nombre}(`);
-  const a = MIGRACION.indexOf("$$", ini) + 2;
-  return MIGRACION.slice(a, MIGRACION.indexOf("$$", a));
+  const [texto, crea] = REHECHAS_1C.includes(nombre) ? [PASO_1C, "create function"] : [MIGRACION, "create or replace function"];
+  const ini = texto.indexOf(`${crea} ${nombre}(`);
+  const a = texto.indexOf("$$", ini) + 2;
+  return texto.slice(a, texto.indexOf("$$", a));
 };
 
 // Las que llama la web (EXECUTE solo para authenticated) y los ayudantes internos (sin EXECUTE para la API).
@@ -726,7 +735,8 @@ caso(
   "(i) resumen_clienta_caja: no socia, socia, y socia con publicidad (con su celular y cumpleaños)",
   como(FELIPE) + ALTA("n", { numero: "90660901", nombre: "Resumen No Prueba", celular: "966090101" }) +
     ALTA("s", { numero: "90660902", nombre: "Resumen Si Prueba" }) +
-    `select * from retail.resumen_clienta_caja(:'n');
+    // Las columnas de la 1b, por nombre: la 1c le suma las del cumpleaños (las prueba club_cumpleanos.mjs).
+    `select es_socia, codigo_club, club_desde, con_publicidad, celular, cumple_dia, cumple_mes from retail.resumen_clienta_caja(:'n');
 select codigo_club as c from retail.unirse_al_club(:'s', '966090201', 12::smallint, 8::smallint) \\gset
 select es_socia, codigo_club = :'c', club_desde is not null, con_publicidad, celular, cumple_dia, cumple_mes from retail.resumen_clienta_caja(:'s');
 select retail.registrar_mensaje_publicidad(:'s', '966090201') as _p \\gset
@@ -829,8 +839,7 @@ insert into retail.clientas (documento_numero, nombre, telefono_whatsapp, whatsa
   values ('90661002', 'Legado Sin Celular Prueba', '12345', now()) returning id as sin_cel \\gset
 insert into retail.clientas (nombre, telefono_whatsapp, whatsapp_consentimiento_en)
   values ('Legado Sin Documento Prueba', '966100301', now()) returning id as sin_doc \\gset
-reset role;
-${MIGRACION}
+${ANTES_DE_LA_1C}${MIGRACION}
 set local search_path = retail, public, extensions;
 select telefono_whatsapp, club_desde = '2026-06-01 10:00-05'::timestamptz, codigo_club ~ '^C-[0-9]{4,}$', publicidad_desde is null from retail.clientas where id = :'bien';
 select finalidad || ':' || accion || ':' || medio, created_at = '2026-06-01 10:00-05'::timestamptz, texto_version is null, registrado_por is null, nota
@@ -1308,8 +1317,8 @@ select md5(string_agg(x, '|' order by x)) from (
 `;
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
 caso(
-  "(l) pegarla otra vez (entera, las dos partes) deja todo igual: funciones, permisos, columnas, candados, índices, disparadores, RLS y textos",
-  FOTO + PEGAR + FOTO,
+  "(l) pegarla otra vez (entera, las dos partes) deja todo igual: funciones, permisos, columnas, candados, índices, disparadores, RLS y textos (sobre la base como la dejó la 1b)",
+  ANTES_DE_LA_1C + PEGAR + FOTO + PEGAR + FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
     return l.length === 2 && l[0] === l[1];
@@ -1317,7 +1326,7 @@ caso(
 );
 caso(
   "(l) y cada parte por separado, en orden y dos veces (como en el SQL Editor), también",
-  FOTO + `reset role;\n${PARTE_1}\n${PARTE_1}\n${PARTE_2}\n${PARTE_2}\nset local search_path = retail, public, extensions;\n` + FOTO,
+  ANTES_DE_LA_1C + PEGAR + FOTO + `reset role;\n${PARTE_1}\n${PARTE_1}\n${PARTE_2}\n${PARTE_2}\nset local search_path = retail, public, extensions;\n` + FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
     return l.length === 2 && l[0] === l[1];
