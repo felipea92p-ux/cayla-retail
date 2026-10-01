@@ -270,7 +270,7 @@ escáner reconoce `useRetenerLuz` como pieza de la guía.
 
 Felipe (2026-10-01): `/focus` en todo Ventas, empezando por el Punto de venta y, dentro, por el botón «Prenda sin registrar».
 
-- **`components/PrendaSinRegistrarModal.tsx` pasa a `aplicada`** (`MODALES_PENDIENTES_HOY` 73 → 72). Lógica en
+- **`components/PrendaSinRegistrarModal.tsx` pasa a `aplicada`** (`MODALES_PENDIENTES_HOY` baja en uno: 72 → 71 al juntarse con `main`). Lógica en
   `lib/prenda-sin-registrar-guia.ts`: los cinco campos (categoría, talla, color, descripción, precio), todos requeridos porque los cinco
   ya apagaban «Agregar al ticket»; `hecho` se le pregunta a `pasoSiguiente` (la regla de siempre), sin copiarla. La prueba recorre las
   64 combinaciones de datos vacíos y exige que «falta algo» ⇔ el botón apagado, y que una letra en la descripción no mueva la luz.
