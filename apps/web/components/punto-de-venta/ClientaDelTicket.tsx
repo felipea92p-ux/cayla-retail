@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Cake, ChevronDown, ChevronUp, Search, UserPlus, UserRound, X } from "lucide-react";
+import { Cake, ChevronDown, ChevronUp, Lock, Search, UserPlus, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -28,6 +28,7 @@ import {
   type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
 import { CUMPLE_VACIO, cajaDelProblemaCumple, cumpleParaGuardar, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
+import { ayudaCumpleFueraDeMes, filaDelCumple, type AccionCumple, type FilaCumple } from "@/lib/club-cumple-canje-reglas";
 import {
   altaDesdeBusqueda,
   filaDeClienta,
@@ -50,6 +51,9 @@ const BOTON_CHICO_PRIMARIO =
   "label-cayla h-7 shrink-0 rounded-md bg-tinta px-2.5 text-[10.5px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BOTON_CHICO_SECUNDARIO =
   "label-cayla h-7 shrink-0 rounded-md border border-tinta/25 bg-papel px-2.5 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50";
+/** Con lo del club plegado, sus acciones como píldoras (spike, `accion` de `partesClub`): «Canjear 10 %». */
+const PILDORA_ACCION =
+  "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-xs leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /**
  * La clienta arriba del ticket (spike 2026-09-26, hallazgo 4; referentes: Shopify POS, Square y Odoo ponen al cliente arriba
@@ -69,7 +73,10 @@ const BOTON_CHICO_SECUNDARIO =
  * `claude/spyke-club-clientas-visual-631f7a`): UNA sola caja con el nombre, el documento y el estado arriba («Identificada»
  * o «Socia» y su publicidad), y lo del club DENTRO de la misma caja:
  *   · socia: su cumpleaños, plegado por defecto (la flecha lo abre). Sin publicidad, su chip abre su QR (camino B: la
- *     página de CAYLA donde ella la pide; la hoja se actualiza sola y el chip pasa a «Publicidad», ADR-0288 act. c);
+ *     página de CAYLA donde ella la pide; la hoja se actualiza sola y el chip pasa a «Publicidad», ADR-0288 act. c).
+ *     En su mes (tanda 1c, D-5), la fila del cumpleaños trae «Canjear 10 %» —y plegada, la misma acción como píldora—;
+ *     canjeado, el candado. Qué dice lo decide `filaDelCumple` (lib/club-cumple-canje-reglas.ts); si está aplicado lo sabe
+ *     el Punto de venta (`clubDeLaClienta`), porque el ticket y el cobro lo usan cuando esta caja ya no está;
  *   · no socia: «No es del club todavía — Invitar / Ahora no», en cada compra (CL-8); «Ahora no» deja solo el enlace
  *     «Invitar al club» en esta venta.
  * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas); lo que se sabe de ella vive en
@@ -132,6 +139,9 @@ export function ClientaDelTicket({
   const linea = clienta ? lineaDeLaClientaEnCaja(clienta, resumen?.celular ?? null, caja.tipo === "socia" ? caja.codigo : null) : null;
   const hayFilas = caja.tipo === "socia";
   const abiertaLaCaja = hayFilas && clubDeLaClienta.abierta;
+  // El canje del cumpleaños (tanda 1c): null = nada del canje, la fila sigue con lo de la 1b (su fecha o «Sin cumpleaños»).
+  const filaCumple = caja.tipo === "socia" ? filaDelCumple(clubDeLaClienta.cumple, clubDeLaClienta.cumpleAplicado, resumen?.cumpleCanjeadoEl ?? null) : null;
+  const alCumple = (accion: AccionCumple) => (accion === "canjear" ? clubDeLaClienta.canjearCumple() : clubDeLaClienta.quitarCumple());
 
   return (
     <div className="px-5 pt-3">
@@ -178,16 +188,36 @@ export function ClientaDelTicket({
           </div>
 
           {caja.tipo === "socia" && abiertaLaCaja && (
-            // Las filas de adentro (spike, `filaTarjeta`). En la tanda 1b solo su cumpleaños: el 10 % (1c), el regalo de
+            // Las filas de adentro (spike, `filaTarjeta`): su cumpleaños, con el canje en su mes (1c). El regalo de
             // aniversario (paso 5) y «su pedido» (1d) vendrán como filas iguales a esta.
             <div className="anim-revelar">
-              {caja.cumple ? (
-                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />}>{caja.cumple}</FilaDelClub>
+              {filaCumple ? (
+                <FilaCumpleDelClub fila={filaCumple} bloqueado={bloqueado} onAccion={alCumple} />
+              ) : caja.cumple ? (
+                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} titulo={ayudaCumpleFueraDeMes(resumen?.cumplePct ?? null)}>
+                  {caja.cumple}
+                </FilaDelClub>
               ) : (
                 <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} sm="Se agrega en su ficha de Clientas" titulo="Sin él no hay beneficio de cumpleaños.">
                   <b className="font-semibold">Sin cumpleaños</b>
                 </FilaDelClub>
               )}
+            </div>
+          )}
+
+          {caja.tipo === "socia" && !abiertaLaCaja && filaCumple?.tipo === "canje" && (
+            // Plegada, la acción a la vista como píldora (spike: «la tarjeta nace plegada y las acciones son botones»).
+            <div className="anim-revelar flex flex-wrap gap-1.5 border-t border-sand px-3 py-1.5">
+              <button
+                type="button"
+                onClick={() => filaCumple.pildora.accion && alCumple(filaCumple.pildora.accion)}
+                disabled={bloqueado || filaCumple.pildora.accion === null}
+                title={filaCumple.ayuda}
+                className={PILDORA_ACCION}
+              >
+                <Cake className="h-3 w-3" aria-hidden />
+                {filaCumple.pildora.texto}
+              </button>
             </div>
           )}
 
@@ -267,8 +297,21 @@ function ChipPublicidad({ publicidad, onQr, bloqueado }: { publicidad: Publicida
   );
 }
 
-/** Una fila de adentro de la caja = una línea (spike, `filaTarjeta`); la segunda (`sm`) solo cuando ayuda. */
-function FilaDelClub({ icono, sm, titulo, children }: { icono: React.ReactNode; sm?: string; titulo?: string; children: React.ReactNode }) {
+/** Una fila de adentro de la caja = una línea (spike, `filaTarjeta`); la segunda (`sm`) solo cuando ayuda, y su botón a la
+ *  derecha (`accion`) si tiene uno. */
+function FilaDelClub({
+  icono,
+  sm,
+  titulo,
+  accion,
+  children,
+}: {
+  icono: React.ReactNode;
+  sm?: string;
+  titulo?: string;
+  accion?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div title={titulo} className="flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-[12.5px]">
       <span className="text-taupe" aria-hidden>
@@ -278,7 +321,48 @@ function FilaDelClub({ icono, sm, titulo, children }: { icono: React.ReactNode; 
         {children}
         {sm && <span className="block truncate text-[11px] text-tinta/60">{sm}</span>}
       </div>
+      {accion}
     </div>
+  );
+}
+
+/** La fila del cumpleaños con el canje (tanda 1c; spike, `partesClub`): «Cumple este mes · 10 % disponible» y su botón, o el
+ *  candado de «Cumpleaños canjeado el 12 sep». Los textos y la acción salen de `filaDelCumple`. */
+function FilaCumpleDelClub({ fila, bloqueado, onAccion }: { fila: FilaCumple; bloqueado: boolean; onAccion: (a: AccionCumple) => void }) {
+  // Spike: «Cumple este mes · 10 % disponible», pero «Cumpleaños canjeado el 12 sep» (sin el punto medio).
+  const texto = (
+    <>
+      <b className="font-semibold">{fila.destacado}</b>
+      {fila.tipo === "canje" ? " · " : " "}
+      {fila.resto}
+    </>
+  );
+  if (fila.tipo === "canjeado") {
+    return (
+      <FilaDelClub icono={<Lock className="h-3.5 w-3.5 shrink-0" />} sm={fila.bajada} titulo={fila.ayuda}>
+        {texto}
+      </FilaDelClub>
+    );
+  }
+  const { boton } = fila;
+  return (
+    <FilaDelClub
+      icono={<Cake className="h-3.5 w-3.5 shrink-0" />}
+      sm={fila.bajada}
+      titulo={fila.ayuda}
+      accion={
+        <button
+          type="button"
+          onClick={() => boton.accion && onAccion(boton.accion)}
+          disabled={bloqueado || boton.accion === null}
+          className={boton.primario ? BOTON_CHICO_PRIMARIO : BOTON_CHICO_SECUNDARIO}
+        >
+          {boton.texto}
+        </button>
+      }
+    >
+      {texto}
+    </FilaDelClub>
   );
 }
 

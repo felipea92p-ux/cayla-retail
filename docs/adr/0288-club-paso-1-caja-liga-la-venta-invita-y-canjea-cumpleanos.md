@@ -616,16 +616,34 @@ de la nueva, partiendo de la definición viva de producción (la de la 1a).
   construir se hizo con un disparador sobre `ventas` (`trg_club_canje_libera_al_anular`, como el de la prenda por
   regularizar) y no dentro de `anular_venta`, que no cambia: así libera TODA anulación, también la del SQL a mano
   (`pegar-en-produccion-anular-venta-*.sql`). Una devolución NO lo libera (decisión de Felipe, 2026-09-29).
-- **Sin conexión, la web apaga el botón.** Una venta en cola que llega con el canje ya usado se rechaza entera y la cola
-  la muestra como rechazo (ADR-0036).
-- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric` y `cumple_canjeado_este_anio boolean`.
-  Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
+- **Sin conexión, la web apaga el botón**, y una venta con el canje nunca entra a la cola sin conexión (`llevaCanje`,
+  `lib/ventas-offline.ts`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (confirmar otra vez
+  cuando vuelva, con el mismo `p_token`, o quitar el cumpleaños y cobrar el total). Si igual llegara una a la base con el
+  canje ya usado, se rechaza entera y la cola la muestra como rechazo (ADR-0036).
+- **`resumen_clienta_caja`** suma `cumple_disponible boolean`, `cumple_pct numeric`, `cumple_canjeado_este_anio boolean` y
+  (al conectar la web) `cumple_canjeado_el date`, el día de Lima del canje vivo: la caja dice «Cumpleaños canjeado el 12 sep»,
+  como el spike. Cambia el tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
 
-**Web:**
-- En la caja de la clienta de Cobrar, el botón «Canjear 10 %» del spike: solo aparece si `cumple_disponible` y hay
-  conexión; si ya lo usó, dice «Cumpleaños ya canjeado».
-- Al tocarlo, cada prenda muestra su «−10 % cumpleaños» y el total baja.
-- Quitar a la clienta del ticket, o que deje de estar disponible, lo apaga.
+**Web** (se sigue el spike aprobado, `docs/maquetas/club-clientas-spike-2026-09/` en el commit `94f2dece`: «hay que
+guiarse con el spike visual», Felipe):
+- En la caja de la clienta de Cobrar, la fila «Cumple este mes · 10 % disponible» con «Canjear 10 %» (y, con lo del club
+  plegado, la misma acción como píldora): solo se puede tocar si `cumple_disponible` y hay conexión; sin conexión el botón
+  dice «Sin conexión» y se apaga. Si ya lo usó, el candado «Cumpleaños canjeado el 12 sep · Una vez al año». El % sale de
+  `cumple_pct`, nunca escrito a mano.
+- **Al tocarlo, el 10 % es UNA línea en el pie del ticket** («Cumpleaños del club · 10 % de la compra −S/ x», punto 9 del
+  README del spike) y el total, el cobro, el vuelto y los pagos usan el total nuevo. **Las prendas no muestran nada**: el
+  reparto por línea (`descuento_club_unitario`) queda en la base y en el comprobante (el papel imprime el descuento total
+  de cada prenda y una línea «Incluye 10 % de cumpleaños del club»). Esto corrige lo que decía este contrato antes de
+  construir («cada prenda muestra su −10 %»).
+- Quitar o cambiar a la clienta del ticket, perder la conexión o que su resumen deje de decir disponible lo apaga, y NO
+  vuelve solo (spike: sin conexión se apaga y queda así; si volviera, el total cambiaría bajo las manos de quien cobra).
+  Cuando se apaga solo, la caja lo avisa.
+- Ante `cumple_ya_canjeado`, `cumple_fuera_de_mes`, `cumple_no_socia` o `cumple_descuento_distinto`, la caja apaga el
+  canje, vuelve a leer el resumen y lo dice; los otros tres (`cumple_sin_clienta`, `cumple_sin_canje`, `cumple_sin_monto`)
+  lo apagan sin releer. **La venta nunca se vuelve a mandar sola sin el descuento**: la clienta tiene que saber que paga
+  más (`rechazoDelCanje`).
+- Después de cobrar, «Venta registrada» dice «Cumpleaños canjeado (−S/ x). No puede usarlo otra vez hasta el año que
+  viene; devolver la compra tampoco lo devuelve.»
 - La regla pura vive en `lib/club-cumple-canje-reglas.ts`, con su prueba (el nombre `club-cumple-reglas.ts` ya lo usa la
   tanda 1b para ESCRIBIR el cumpleaños en la hoja): `descuentoClubLinea`, `descuentosParaRegistrar`, `ticketConCumple`,
   `cumpleEnCaja`, `pctDelCanje` y los textos.

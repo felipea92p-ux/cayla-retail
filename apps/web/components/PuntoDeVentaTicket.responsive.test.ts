@@ -47,11 +47,22 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
   });
 
   it("la fila «Descuento» + «Dejar en espera» puede bajar a una segunda línea", () => {
-    const inicio = codigo.indexOf('mb-3 flex');
+    // Desde la tanda 1c del club, arriba de ella va la del cumpleaños: se busca a partir de su comentario.
+    const inicio = codigo.indexOf("mb-3 flex", codigo.indexOf("Fila «Descuento»"));
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 90);
     expect(fila).toContain("flex-wrap");
     expect(codigo.slice(inicio, inicio + 2200)).toContain("Dejar en espera");
+  });
+
+  // ADR-0288 D-5 (tanda 1c): «Cumpleaños del club · 10 % de la compra  −S/46.12» sobre el total. A 320 px el texto y el
+  // monto no caben en una línea: el monto baja, no empuja el ticket fuera de la pantalla.
+  it("la línea del cumpleaños del club puede bajar a una segunda línea", () => {
+    const inicio = codigo.indexOf("{cumple && cumple.monto > 0 && (");
+    expect(inicio).toBeGreaterThan(-1);
+    const fila = codigo.slice(inicio, inicio + 160);
+    expect(fila).toContain("flex-wrap");
+    expect(codigo.slice(inicio, inicio + 700)).toContain("textoPieCumple");
   });
 
   it("la fila subtotal/IGV + Total puede bajar a una segunda línea, y el Total sigue a la derecha", () => {

@@ -30,8 +30,9 @@
 --      campaña, 35 % del líder, argumento sobre el 15 % y código de descuento) miden el descuento SIN la parte del club.
 --   3. Anular una venta libera su canje (`anulado_en`, `anulado_por`, los de la venta): un disparador sobre `ventas`
 --      (`trg_club_canje_libera_al_anular`), como el de la prenda por regularizar. Una devolución NO lo libera.
---   4. `resumen_clienta_caja` suma `cumple_disponible`, `cumple_pct` y `cumple_canjeado_este_anio` (cambia su tipo de
---      retorno: `drop` y `create`, con la misma lectura y los mismos permisos).
+--   4. `resumen_clienta_caja` suma `cumple_disponible`, `cumple_pct`, `cumple_canjeado_este_anio` y `cumple_canjeado_el`
+--      (el día de Lima del canje vivo de este año: la caja dice «Cumpleaños canjeado el 12 sep», como el spike). Cambia su
+--      tipo de retorno: `drop` y `create`, con la misma lectura y los mismos permisos.
 --
 -- DECIDÍ: Felipe (2026-09-30): el % se aplica completo aunque la prenda quede bajo su costo. Es un regalo del club; el
 --   candado de costo sigue valiendo para el resto de los descuentos, medido sin la parte del club.
@@ -138,7 +139,7 @@ begin
       -- firma                                                                                                          antes (producción / 1b)              despues (este archivo)
       ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text)',         '703928f528c805117648d43c6fea3b76', null),
       ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean)', null,                               '2b55a94a754e7708f5b133008f30469f'),
-      ('retail.resumen_clienta_caja(uuid)',                                                                                    'dac9d86ff36907d1c82bdf1746627305', '1cfcde52084341a1d32b7b5a488c8ffa'),
+      ('retail.resumen_clienta_caja(uuid)',                                                                                    'dac9d86ff36907d1c82bdf1746627305', 'fa690d7f1a5e1fa2412f9be78cb784a6'),
       ('retail.fn_club_canje_libera_al_anular()',                                                                              null,                               'a9507e16b3e6a5f114aa886a0667376c')
     ) as t(firma, antes, despues)
   loop
@@ -727,7 +728,7 @@ revoke all on function retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, te
 grant execute on function retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text, boolean) to authenticated;
 
 -- ---------- 4. resumen_clienta_caja: el cumpleaños disponible, el % y si ya lo canjeó ----------
--- Cambia su tipo de retorno (3 columnas más): `create or replace` no puede, así que `drop` y `create`, con la misma lectura
+-- Cambia su tipo de retorno (4 columnas más): `create or replace` no puede, así que `drop` y `create`, con la misma lectura
 -- (la ficha por su id) y los mismos permisos. Pegar dos veces la suelta y la vuelve a crear igual.
 drop function if exists retail.resumen_clienta_caja(uuid);
 
@@ -742,7 +743,8 @@ returns table (
   cumple_mes smallint,
   cumple_disponible boolean,
   cumple_pct numeric,
-  cumple_canjeado_este_anio boolean
+  cumple_canjeado_este_anio boolean,
+  cumple_canjeado_el date
 )
 language sql
 stable
@@ -760,10 +762,12 @@ as $$
            and c.cumple_mes is not null and c.cumple_mes = extract(month from retail.fn_hoy_lima())
            and k.id is null,
          coalesce((select e.club_cumple_pct from retail.configuracion_empresa e limit 1), 10.00),
-         k.id is not null
+         k.id is not null,
+         -- El día (en Lima, como el año del canje) en que lo canjeó: «Cumpleaños canjeado el 12 sep».
+         (k.created_at at time zone 'America/Lima')::date
     from retail.clientas c
     left join lateral (
-      select x.id from retail.club_canjes x
+      select x.id, x.created_at from retail.club_canjes x
        where x.clienta_id = c.id and x.tipo = 'cumpleanos'
          and x.anio = extract(year from retail.fn_hoy_lima()) and x.anulado_en is null
        limit 1
@@ -772,7 +776,7 @@ as $$
 $$;
 
 comment on function retail.resumen_clienta_caja(uuid) is
-  'La tarjeta de la clienta en Cobrar (ADR-0288 D-8): socia, código, desde cuándo, con publicidad, celular y cumpleaños; y el canje del cumpleaños (D-5): si está disponible hoy, el % y si ya lo canjeó este año. Lectura (prefijo resumen_: no abre el loader). Módulo «Clientas».';
+  'La tarjeta de la clienta en Cobrar (ADR-0288 D-8): socia, código, desde cuándo, con publicidad, celular y cumpleaños; y el canje del cumpleaños (D-5): si está disponible hoy, el % y si ya lo canjeó este año (y qué día). Lectura (prefijo resumen_: no abre el loader). Módulo «Clientas».';
 
 revoke execute on function retail.resumen_clienta_caja(uuid) from public, anon;
 grant execute on function retail.resumen_clienta_caja(uuid) to authenticated;

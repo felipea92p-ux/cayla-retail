@@ -590,9 +590,11 @@ select (select estado from retail.devoluciones where id = :'dev'), (select count
 // =====================================================================================================================
 // h. resumen_clienta_caja
 // =====================================================================================================================
-const RESUMEN = (f) => `select cumple_disponible, cumple_pct, cumple_canjeado_este_anio from retail.resumen_clienta_caja(:'${f}');\n`;
+// La cuarta columna: `cumple_canjeado_el` es HOY (Lima) si canjeó, y nulo si no (la caja dice «Cumpleaños canjeado el 30 sep»).
+const RESUMEN = (f) =>
+  `select cumple_disponible, cumple_pct, cumple_canjeado_este_anio, coalesce(cumple_canjeado_el::text, 'nulo') = coalesce(case when cumple_canjeado_este_anio then retail.fn_hoy_lima()::text end, 'nulo') from retail.resumen_clienta_caja(:'${f}');\n`;
 caso(
-  "(h) resumen_clienta_caja: en su mes y sin canje → disponible (t, 10, f); después del canje → (f, 10, t); anulada la venta → otra vez (t, 10, f); otro mes y no socia → (f, 10, f)",
+  "(h) resumen_clienta_caja: en su mes y sin canje → disponible (t, 10, f); después del canje → (f, 10, t) con el día de hoy; anulada la venta → otra vez (t, 10, f) sin día; otro mes y no socia → (f, 10, f)",
   SEDE() + como(FELIPE) +
     SOCIA("f", "90990801", "Cumple Resumen Prueba", "966990801") +
     SOCIA("otro", "90990802", "Cumple Resumen Otro", "966990802", ":'otro_mes'") +
@@ -606,7 +608,7 @@ select id as item from retail.venta_items where venta_id::text = :'venta' \\gset
     `select retail.anular_venta(:'venta', 'prueba resumen', jsonb_build_array(jsonb_build_object('venta_item_id', :'item', 'condicion', 'vendible'))) as _an \\gset
 ` +
     RESUMEN("f") + RESUMEN("otro") + RESUMEN("no_socia"),
-  "t|10.00|f\nf|10.00|t\nt|10.00|f\nf|10.00|f\nf|10.00|f"
+  "t|10.00|f|t\nf|10.00|t|t\nt|10.00|f|t\nf|10.00|f|t\nf|10.00|f|t"
 );
 caso(
   "(h) …y el % es el de configuracion_empresa (12.5)",
@@ -614,7 +616,7 @@ caso(
 insert into retail.configuracion_empresa (ruc, razon_social, club_cumple_pct) values ('20000000001', 'Prueba Club SAC', 12.5)
   on conflict (id) do update set club_cumple_pct = 12.5;
 ` + como(FELIPE) + SOCIA("f", "90990811", "Cumple Resumen Doce", "966990811") + RESUMEN("f"),
-  "t|12.50|f"
+  "t|12.50|f|t"
 );
 
 // =====================================================================================================================

@@ -167,8 +167,163 @@ export const pctLegible = (pct: number) => String(Number(pct.toFixed(2)));
 /** El botón de la caja de la clienta: «Canjear 10 %». */
 export const textoBotonCumple = (pct: number) => `Canjear ${pctLegible(pct)} %`;
 
-/** Lo que dice cada prenda con el canje: «−10 % cumpleaños» (con el signo menos tipográfico). */
-export const textoLineaCumple = (pct: number) => `−${pctLegible(pct)} % cumpleaños`;
+/** Soles como los dice la caja (`money` de `PuntoDeVenta`): «S/46.12». Aquí también, para que el texto salga armado de la
+ *  regla y no del JSX. */
+const soles = (n: number) => `S/${n.toFixed(2)}`;
 
-/** Cuando ya lo usó este año. */
-export const TEXTO_CUMPLE_CANJEADO = "Cumpleaños ya canjeado";
+/** Los meses como los abrevia el spike del club (`MESES`, y `OPCIONES_MES_CUMPLE` de `club-cumple-reglas.ts`). */
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"] as const;
+
+/** «12 sep» de una fecha `aaaa-mm-dd` (el día del canje, ya en Lima: `resumen_clienta_caja.cumple_canjeado_el`). null si no
+ *  llega una fecha. */
+export function diaYMesCorto(iso: string | null | undefined): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? "");
+  if (!m) return null;
+  const mes = Number(m[2]);
+  if (mes < 1 || mes > 12) return null;
+  return `${Number(m[3])} ${MESES_CORTOS[mes - 1]}`;
+}
+
+/** Hasta cuándo vale el canje: el último día del mes de hoy en Lima, «30 sep» (febrero bisiesto incluido). */
+export function finDelMesLima(ahora: Date = new Date()): string {
+  const [anio, mes] = hoyLima(ahora).split("-").map(Number) as [number, number];
+  // El día 0 del mes siguiente es el último de este (en UTC, sin zonas de por medio).
+  const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+  return `${ultimo} ${MESES_CORTOS[mes - 1]}`;
+}
+
+/* ------------------------------------------------------------------ La fila del cumpleaños en la caja de la clienta */
+// Dibujada como el spike del club (`partesClub` de `45-club-caja.js`, commit 94f2dece): desplegada, UNA fila con su botón;
+// plegada, una píldora con la acción. El componente (`ClientaDelTicket`) solo pinta lo que esto decide.
+
+export type AccionCumple = "canjear" | "quitar";
+
+export type FilaCumple =
+  | {
+      /** Es su mes y no lo usó: «Cumple este mes · 10 % disponible» con «Canjear 10 %», «Quitar» o «Sin conexión». */
+      tipo: "canje";
+      /** En negrita. */
+      destacado: string;
+      /** Después del punto medio. */
+      resto: string;
+      /** La segunda línea, más chica. */
+      bajada: string;
+      /** El botón de la fila. `accion` null = apagado (sin conexión). `primario`: el oscuro; si no, el de borde. */
+      boton: { texto: string; primario: boolean; accion: AccionCumple | null };
+      /** Con lo del club plegado, la misma acción como píldora (spike: «Canjear 10 %», «Quitar 10 %», «Sin conexión»). */
+      pildora: { texto: string; accion: AccionCumple | null };
+      /** Lo que dice al pasar el mouse (el `title`). */
+      ayuda: string;
+    }
+  | {
+      /** Ya lo usó este año: el candado, «Cumpleaños canjeado el 12 sep · Una vez al año». Sin acción. */
+      tipo: "canjeado";
+      destacado: string;
+      resto: string;
+      bajada: string;
+      ayuda: string;
+    };
+
+/**
+ * Qué muestra la fila del cumpleaños. null = nada del canje: la caja sigue con lo de la tanda 1b («Cumple el 18 de
+ * setiembre» o «Sin cumpleaños»). `aplicado`: la asesora tocó «Canjear» en esta venta (y sigue disponible). `canjeadoEl`: el
+ * día del canje (`cumple_canjeado_el`); sin él la fila dice «este año».
+ */
+export function filaDelCumple(estado: CumpleEnCaja, aplicado: boolean, canjeadoEl: string | null, ahora: Date = new Date()): FilaCumple | null {
+  if (estado.tipo === "canjeado") {
+    const dia = diaYMesCorto(canjeadoEl);
+    return {
+      tipo: "canjeado",
+      destacado: "Cumpleaños canjeado",
+      resto: dia ? `el ${dia}` : "este año",
+      bajada: "Una vez al año",
+      ayuda: "Un solo canje por año. Devolver la compra no lo libera; anularla sí.",
+    };
+  }
+  if (estado.tipo === "nada") return null;
+  const pct = pctLegible(estado.pct);
+  const ayuda = "Vale en toda la compra, una vez al año. Sin conexión se apaga: otra tienda podría canjearlo a la vez.";
+  const base = { tipo: "canje" as const, destacado: "Cumple este mes", resto: `${pct} % disponible`, ayuda };
+  if (estado.tipo === "sin_conexion") {
+    return {
+      ...base,
+      bajada: "Sin conexión el botón se apaga",
+      boton: { texto: "Sin conexión", primario: false, accion: null },
+      pildora: { texto: "Sin conexión", accion: null },
+    };
+  }
+  return {
+    ...base,
+    bajada: `${pct} % de toda la compra, sobre lo ya rebajado · hasta el ${finDelMesLima(ahora)}`,
+    boton: aplicado ? { texto: "Quitar", primario: false, accion: "quitar" } : { texto: textoBotonCumple(estado.pct), primario: true, accion: "canjear" },
+    pildora: aplicado ? { texto: `Quitar ${pct} %`, accion: "quitar" } : { texto: textoBotonCumple(estado.pct), accion: "canjear" },
+  };
+}
+
+/** El `title` de «Cumple el 18 de setiembre» fuera de su mes (spike): el % sale de la base, nunca escrito a mano. */
+export const ayudaCumpleFueraDeMes = (pct: number | null) => `El ${pctLegible(pct && pct > 0 ? pct : PCT_CUMPLE_POR_DEFECTO)} % se abre solo en su mes.`;
+
+/* ------------------------------------------------------------------ El pie del ticket (spike, README punto 9) */
+// El canje es UNA línea en el pie, sobre el total: «Cumpleaños del club · 10 % de la compra  −S/46.12». Las prendas no dicen
+// nada: el reparto por línea (`descuento_club_unitario`) es de la base y del comprobante, no de la pantalla.
+
+/** «Cumpleaños del club · 10 % de la compra». */
+export const textoPieCumple = (pct: number) => `Cumpleaños del club · ${pctLegible(pct)} % de la compra`;
+
+/** Su `title`: sobre cuánto se calculó. */
+export const ayudaPieCumple = (pct: number, totalSinCumple: number) =>
+  `${pctLegible(pct)} % de toda la compra (${soles(totalSinCumple)}), sobre lo ya rebajado`;
+
+/** Después de cobrar («Venta registrada»), con el monto que regaló el club. */
+export const textoCumpleCobrado = (monto: number) =>
+  `Cumpleaños canjeado (−${soles(monto)}). No puede usarlo otra vez hasta el año que viene; devolver la compra tampoco lo devuelve.`;
+
+/** En el ticket impreso, que muestra el descuento de cada prenda («Dscto. -22.39 c/u»): cuánto de eso es del club. */
+export const textoCumpleEnElRecibo = (pct: number, monto: number) =>
+  `Incluye ${pctLegible(pct)} % de cumpleaños del club: -${monto.toFixed(2)}`;
+
+/* ------------------------------------------------------------------ Cuando algo lo apaga */
+
+/** Por qué se apagó solo (sin que la asesora tocara «Quitar»): se perdió la conexión, o una relectura dice que ya no está. */
+export type MotivoCumpleApagado = "sin_conexion" | "no_disponible";
+
+/** El aviso cuando se apaga solo. No vuelve solo: la asesora lo vuelve a tocar (spike: sin conexión se apaga y queda así). */
+export function avisoCumpleApagado(motivo: MotivoCumpleApagado, pct: number): { titulo: string; detalle: string } {
+  const titulo = `Se quitó el ${pctLegible(pct)} % de cumpleaños`;
+  return motivo === "sin_conexion"
+    ? { titulo, detalle: "Sin conexión no se canjea: otra tienda podría usarlo a la vez. Cuando vuelva la conexión, tócalo otra vez." }
+    : { titulo, detalle: "Ya no está disponible para esta clienta (pudo usarlo en otra tienda, o terminó su mes). El total volvió a su precio." };
+}
+
+/** Los `hint` de `registrar_venta` que rechazan el canje (ADR-0288, «Contrato de la tanda 1c»). */
+const RECHAZOS_DEL_CANJE: ReadonlyMap<string, { releer: boolean; queHacer: (pct: string) => string }> = new Map([
+  // La base ya sabe algo que la caja no: se vuelve a leer su resumen para que la fila diga lo que es.
+  ["cumple_ya_canjeado", { releer: true, queHacer: (p: string) => `Pudo usarlo en otra caja o tienda. Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
+  ["cumple_fuera_de_mes", { releer: true, queHacer: (p: string) => `Su mes ya terminó (hora de Lima). Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
+  ["cumple_no_socia", { releer: true, queHacer: (p: string) => `Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
+  ["cumple_descuento_distinto", { releer: true, queHacer: (p: string) => `El % del club pudo cambiar mientras cobrabas. Quité el ${p} %: vuelve a tocar «Canjear» para calcularlo de nuevo.` }],
+  // Estos no dependen de ella: la pantalla los evita, y si igual llegan, se apaga y se dice.
+  ["cumple_sin_clienta", { releer: false, queHacer: (p: string) => `Quité el ${p} %: elige a la clienta y vuelve a tocar «Canjear».` }],
+  ["cumple_sin_canje", { releer: false, queHacer: (p: string) => `Quité el ${p} %: vuelve a tocar «Canjear» y confirma otra vez.` }],
+  ["cumple_sin_monto", { releer: false, queHacer: (p: string) => `Quité el ${p} %: su cumpleaños queda para otra compra de este mes.` }],
+]);
+
+/**
+ * Qué hace la caja cuando `registrar_venta` rechaza el canje: SIEMPRE lo apaga (la venta no se guardó y NO se vuelve a
+ * mandar sola sin el descuento: la clienta tiene que saber que paga más), y a veces vuelve a leer su resumen. El título del
+ * aviso es `traducirError` (lib/error-escritura.ts); esto es el detalle: qué hizo la pantalla y qué sigue. null si el
+ * rechazo no es del canje.
+ */
+export function rechazoDelCanje(hint: string | null | undefined, pct: number): { releer: boolean; detalle: string } | null {
+  const r = hint ? RECHAZOS_DEL_CANJE.get(hint) : undefined;
+  return r ? { releer: r.releer, detalle: `La venta no se guardó. ${r.queHacer(pctLegible(pct))}` } : null;
+}
+
+/** Se cortó la conexión cobrando con el canje: no va a la cola (D-5). El mismo `p_token` hace seguro volver a confirmar. */
+export function canjeSinConexion(pct: number): { titulo: string; detalle: string } {
+  return {
+    titulo: `Se cortó la conexión: el ${pctLegible(pct)} % de cumpleaños no se guarda sin internet`,
+    detalle:
+      "Otra tienda podría usarlo a la vez. Cuando vuelva la conexión, confirma otra vez: si ya se había guardado, el sistema la reconoce y no la duplica. Si la clienta no puede esperar, quita el cumpleaños y cobra el total completo.",
+  };
+}
