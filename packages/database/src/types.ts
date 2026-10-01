@@ -599,6 +599,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }
         Insert: {
           anonimizada?: boolean
@@ -622,6 +623,7 @@ export type Database = {
           telefono_whatsapp?: string | null
           version?: number
           whatsapp_consentimiento_en?: string | null
+          preferencias?: Json
         }
         Update: {
           anonimizada?: boolean
@@ -645,6 +647,7 @@ export type Database = {
           telefono_whatsapp?: string | null
           version?: number
           whatsapp_consentimiento_en?: string | null
+          preferencias?: Json
         }
         Relationships: [
           {
@@ -5389,6 +5392,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }[]
       }
       editar_clienta: {
@@ -5521,6 +5525,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }
       }
       exportar_clientas: {
@@ -5547,6 +5552,7 @@ export type Database = {
           telefono_whatsapp: string | null
           version: number
           whatsapp_consentimiento_en: string | null
+          preferencias: Json
         }[]
       }
       fn_clienta_compras: {
@@ -5572,6 +5578,84 @@ export type Database = {
       fn_clienta_separaciones: {
         Args: { p_id: string }
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
+      }
+      fn_clientas_lista: {
+        Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }
+        Returns: {
+          id: string
+          documento_tipo: string
+          documento_numero: string | null
+          nombre: string | null
+          telefono_whatsapp: string | null
+          club_desde: string | null
+          publicidad_desde: string | null
+          codigo_club: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          cumple_anio: number | null
+          created_at: string
+          archivada_en: string | null
+          anonimizada: boolean
+          fusionada_en_id: string | null
+          su_sede_id: string | null
+          su_sede: string | null
+          compras_sede: number
+          compras_12m: number
+          compras_6m: number
+          es_frecuente: boolean
+          ultima_compra: string | null
+          baja_en: string | null
+          total: number
+        }[]
+      }
+      fn_cifras_clientas: {
+        Args: never
+        Returns: {
+          identificadas: number
+          socias: number
+          con_publicidad: number
+          sin_publicidad: number
+          frecuentes: number
+          sin_celular: number
+          cumplen_este_mes: number
+          archivadas: number
+        }[]
+      }
+      fn_clienta_su_sede: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          su_sede_id: string | null
+          su_sede: string | null
+          compras_sede: number
+          compras_12m: number
+          compras_6m: number
+          es_frecuente: boolean
+          ultima_compra: string | null
+        }[]
+      }
+      fn_clienta_permisos: {
+        Args: { p_clienta_id: string }
+        Returns: {
+          id: string
+          finalidad: string
+          accion: string
+          medio: string
+          texto_tipo: string | null
+          texto_version: number | null
+          sede: string | null
+          registrado_por: string | null
+          nota: string | null
+          created_at: string
+          de_otra_ficha: boolean
+        }[]
+      }
+      fn_club_etiquetas: {
+        Args: never
+        Returns: { grupo: string; valor: string; orden: number }[]
+      }
+      guardar_preferencias_clienta: {
+        Args: { p_id: string; p_preferencias: Json; p_version_esperada?: number }
+        Returns: number
       }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }

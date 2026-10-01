@@ -919,6 +919,17 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-se-probo
 
+      # Club de clientas, tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): la lista y la ficha de /clientas. Su sede (la de
+      # más compras NETAS en 12 meses; empate: la de su compra más reciente), última compra y frecuente (3 en 6 meses) con compra
+      # neta (CL-25: una venta devuelta entera no cuenta, un cambio sí); cada filtro, el paginado y el término como
+      # buscar_clienta; las cifras = el total de la lista; sin el módulo, clientas_sin_modulo; preferencias solo de una socia,
+      # del catálogo y con candado de versión (anonimizar y unir las vacían); la historia del permiso en orden; md5 «después» =
+      # vivas, pegarla dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar y ningún `into` en un texto
+      # que el SQL Editor pueda confundir. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-lista-y-ficha
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-lista-y-ficha
+
       # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
       # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
       # nunca se aprobó. Cada caso termina en ROLLBACK.

@@ -39,6 +39,11 @@ import {
   unirClientas,
   type DatosEdicion,
 } from "@/lib/clientas-acciones";
+// Tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): su sede y frecuente con compra neta, las preferencias y la historia del
+// permiso. Viven en piezas aparte; aquí solo se enganchan.
+import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
+import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
+import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Las del
  *  club (ADR-0288 tanda 1b): «Unirse al club» (`club`), su QR (`qr`), «Llegó su mensaje» (`mensaje`) y «Registrar su
@@ -262,7 +267,8 @@ export function ClientaFichaModal({
   const c = ficha.clienta;
   const activa = estaActiva(c);
   const tallas = deducirTallas(ficha.compras);
-  const frecuente = estadoFrecuente(ficha.compras, new Date());
+  const frecuente = frecuenteDeLaFicha(ficha.resumenCompras ?? null, estadoFrecuente(ficha.compras, new Date()));
+  const suSede = suSedeDeLaFicha(ficha.resumenCompras ?? null);
   // Dentro de la ficha el documento se ve completo, con su tipo («DNI 71234482», «CE 001234567»): quien la abre ya la
   // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
@@ -488,14 +494,14 @@ export function ClientaFichaModal({
         <div className="space-y-6">
           {modo === "ver" && (
             <>
-              {/* Como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `modalFicha`): los datos, el estado en
-                  insignias y, debajo, la tarjeta del club con lo que se puede registrar. Sin la historia del permiso: la
-                  base no expone todavía una lectura de `club_permisos` (tanda 1b). */}
+              {/* En el orden del spike del club (docs/maquetas/club-clientas-spike-2026-09/, `modalFicha` de 50-clientas.js): los
+                  datos, el estado en insignias, la talla, las preferencias (tanda 1f), la tarjeta del club con lo que se puede
+                  registrar y la historia del permiso (tanda 1f, `fn_clienta_permisos`). */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
                 <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es socia"} />
                 <Dato etiqueta="Frecuente" valor={frecuente.esFrecuente ? "Sí" : `Falta ${frecuente.faltanParaFrecuente}`} tono={frecuente.esFrecuente ? "verde" : undefined} />
-                <Dato etiqueta="Registrada" valor={fecha(c.createdAt)} />
+                <Dato etiqueta="Su sede" valor={suSede.valor} detalle={suSede.detalle} />
               </div>
 
               {!c.anonimizada && (
@@ -516,6 +522,23 @@ export function ClientaFichaModal({
                       <Chip tono="neutro">Sin publicidad</Chip>
                     ))}
                 </div>
+              )}
+
+              {tallas.length > 0 && (
+                <div className="card-cayla p-4">
+                  <p className="label-cayla text-[11px] text-tinta/65">Talla deducida de lo que compra</p>
+                  <p className="mt-1 text-sm text-tinta">{tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}</p>
+                </div>
+              )}
+
+              {enClub !== "no_socia" && !c.anonimizada && (
+                <PreferenciasClienta
+                  clientaId={c.id}
+                  version={c.version}
+                  guardadas={c.preferencias ?? {}}
+                  soloLectura={!activa}
+                  onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
+                />
               )}
 
               {!c.anonimizada &&
@@ -577,12 +600,7 @@ export function ClientaFichaModal({
                   </div>
                 ))}
 
-              {tallas.length > 0 && (
-                <div className="card-cayla p-4">
-                  <p className="label-cayla text-[11px] text-tinta/65">Talla deducida de lo que compra</p>
-                  <p className="mt-1 text-sm text-tinta">{tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}</p>
-                </div>
-              )}
+              <HistoriaPermisos clientaId={c.id} clave={c.version} />
 
               <SeccionActividad titulo="Compras" vacio="Todavía no tiene compras registradas.">
                 {ficha.compras.map((compra) => (
@@ -956,11 +974,14 @@ export function ClientaFichaModal({
   );
 }
 
-function Dato({ etiqueta, valor, tono }: { etiqueta: string; valor: string; tono?: "verde" }) {
+function Dato({ etiqueta, valor, tono, detalle }: { etiqueta: string; valor: string; tono?: "verde"; detalle?: string | null }) {
   return (
     <div>
       <p className="label-cayla text-[10px] text-tinta/50">{etiqueta}</p>
-      <p className={`mt-0.5 text-sm font-medium ${tono === "verde" ? "text-verde" : "text-tinta"}`}>{valor}</p>
+      <p className={`mt-0.5 text-sm font-medium ${tono === "verde" ? "text-verde" : "text-tinta"}`}>
+        {valor}
+        {detalle && <span className="text-xs font-normal text-tinta/55"> · {detalle}</span>}
+      </p>
     </div>
   );
 }

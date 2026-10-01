@@ -717,3 +717,92 @@ Se construye sobre la D-6, CL-7 y CL-14. Va después de la 1c.
 **Pruebas:**
 - `pnpm pruebas:club-se-probo`, en el CI: comprueba también que la 1d no toca la venta ni la ficha.
 - La lógica de la pregunta, en `lib/se-probo-reglas.test.ts`.
+
+## Actualización 2026-09-30 (f): tanda 1f, la lista y la ficha de /clientas como el spike
+
+**El encargo.** Que Clientas ▸ Fichas y la ficha queden como el spike del club (rama `claude/spyke-club-clientas-visual-631f7a`,
+`docs/maquetas/club-clientas-spike-2026-09/fuente/src/50-clientas.js`), sin lo de los pasos 3 a 5 (pestañas Avisos, Resumen y
+Beneficios; la escalera del aniversario). Antes, la lista eran las últimas 50 fichas y sus filtros contaban solo esas 50, y ni
+la lista ni la ficha sabían «su sede» (CL-6), la última compra ni cuántas son frecuentes con compra neta (CL-25).
+
+**Migración `20260930210000_club_paso1f_lista_y_ficha.sql`** (una sola parte, sin políticas ni `drop trigger`, `lock_timeout
+3s`, idempotente, candado de versión por md5 de lo que crea; va DESPUÉS de la 1b y no depende de la 1c, la 1d ni la 1e):
+- **Una regla, un lugar.** `fn_venta_devuelta_entera` (cada prenda volvió entera, sumando sus devoluciones aprobadas; un
+  cambio no cuenta) → `fn_club_compras_netas` (completadas, sin las de prueba ni las devueltas enteras) →
+  `fn_club_resumen_compras` (su sede, compras en 12 y 6 meses, frecuente con 3 o más en 6 meses, última compra). Internas: sin
+  EXECUTE para la API. El umbral es el de `lib/clienta-actividad-reglas.ts`, y `lib/clientas-lista-reglas.test.ts` lee la
+  migración y falla si se separan.
+- **Su sede (CL-6):** la de más compras netas en 12 meses; **si empatan, la de su compra más reciente** (y el nombre, para que
+  el empate total sea estable). Sin compras en 12 meses, no tiene sede («—»).
+- **Lecturas** (prefijo `fn_`, no abren el loader; todas exigen el módulo «Clientas»): `fn_clientas_lista(p_termino, p_filtro,
+  p_limite, p_desde)` (8 filtros: todas, socias, frecuentes, con y sin publicidad, sin celular, cumplen este mes y archivadas;
+  el término busca como `buscar_clienta`; 50 por página; `total` y `baja_en`), `fn_cifras_clientas()` (las cifras y la cuenta
+  de cada píldora, sobre toda la base), `fn_clienta_su_sede(p_clienta_id)`, `fn_clienta_permisos(p_clienta_id)` y
+  `fn_club_etiquetas()`.
+- **Preferencias (CL-5):** `retail.club_etiquetas (grupo, valor, orden, activa)`, sembrada con los valores **de trabajo** del
+  spike (`20-datos.js`, `ETQ`: Trabajo, Evento, Día a día · Clásico, Tendencia, Relajado · Fucsia, Amarillo, Negro, Lana,
+  Poliéster). **Felipe los puede cambiar** (pendiente 2 de la sección G del acta): un valor no se renombra ni se borra (el
+  disparador `club_etiquetas_fijas` lo impide, porque hay fichas que lo citan): se apaga (`activa = false`) y se agrega otro;
+  quien ya lo tenía lo conserva. `clientas.preferencias jsonb` (`{}` por defecto) y `guardar_preferencias_clienta(p_id,
+  p_preferencias, p_version_esperada)`: módulo, responsable del combo, candado optimista, solo valores del catálogo activo
+  (`preferencia_invalida`).
+
+**DECIDÍ (el arquitecto; Felipe puede revertir cualquiera):**
+- **Preferencias solo de una socia**, como el spike (lo muestra solo a ella), con un candado en el esquema
+  (`clientas_preferencias_solo_socia`). Sirven a los avisos del club; a una clienta que solo se identificó no se le pidió más
+  que ligar sus compras (Ley 29733, finalidad).
+- **Anonimizar y unir las vacían con un disparador** (`clientas_preferencias_sin_club`: la ficha deja de ser socia → sin
+  preferencias), no reescribiendo `archivar_clienta` ni `unir_clientas`: la 1b todavía las cambia (su md5 «después» se movió
+  dos veces el 2026-09-30) y un reemplazo anclado habría atado esta tanda a un md5 que se mueve. Vale para cualquier camino
+  futuro que quite el club. Límite: al unir, las preferencias de la ficha que se va no pasan a la que queda (se vuelven a
+  marcar).
+- **«Frecuente» con compra neta en la lista y en la ficha.** La ficha toma «Frecuente» de `fn_clienta_su_sede` (la misma regla
+  que la lista); si esa lectura falla, vuelve a `estadoFrecuente` sobre sus compras (principio 9). La caja sigue con
+  `estadoFrecuente` sobre `fn_clienta_compras`, que todavía cuenta las devueltas enteras (ver pendiente).
+- **«Frecuentes» no exige ser socia** (el spike sí: `esFrecuente = esSocia && …`): es un hecho de sus compras (D-103). La
+  insignia «Socia frecuente» sí es solo de socias; el filtro encuentra también a la identificada que compra seguido, que es a
+  quien conviene invitar.
+- **«Archivadas» es una píldora más, al final**, en vez del interruptor «Incluir archivadas» o un lugar en el menú «Más»: es una
+  vista (qué se mira), no una acción; vive en la URL como los demás filtros, lleva su cuenta y no mezcla archivadas con activas
+  en las otras cuentas. El menú es para acciones.
+- **«Pidió BAJA»** (`baja_en`): la socia cuyo último paso de la publicidad fue su BAJA se pinta así (apagada), como el spike, y
+  no como «Sin publicidad». Un cambio de celular que le quitó la publicidad no cuenta como BAJA.
+- **Buscador, filtro y página en la URL** (`?q=&filtro=&pagina=`): lo tipeado va por `useBusquedaEnUrl` (sin loader); un filtro
+  o una página por clic, con el loader.
+- **La tabla decide su forma por el ancho de la tarjeta (`@container`)**: 6 columnas desde 800 px de tarjeta, 4 de 560 a 800 y
+  apilada por debajo. Con el lateral abierto, una ventana de 800 px deja ~450 px a la tabla: ahí cortaba el chip y el celular.
+- **Cabecera en una fila también a 375 px**: Exportar, «Más» (con «Llegó un mensaje de WhatsApp» e «Imprimir el cartel del
+  club») y «+ Nueva clienta». «Más» es `MenuAcciones` con la opción nueva `texto` (botón secundario con palabra, no «⋯»).
+
+**Del spike se tomó** (`50-clientas.js` salvo que diga otro archivo): las dos acciones de la cabecera (l. 78), las cuatro
+cifras con sus detalles (l. 104), las píldoras con su cuenta (l. 105), las seis columnas y sus contenidos (l. 101 y 108-114), el
+pie «N de N clientas · todas las cuentas con el módulo ven a todas» (l. 114), la nota de su sede (l. 115), las insignias de estado
+y publicidad (`45-club-caja.js` l. 7-10), el dato «Su sede · N de M» de la ficha (l. 134), las preferencias con sus tres listas
+y su nota (l. 129 y 137; valores de `20-datos.js` l. 128-129) y la historia de los permisos con sus medios en palabras (l. 121,
+125-127 y 143).
+
+**No se tomó, a propósito:** las pestañas y todo lo de los pasos 3 a 5 (l. 81, 144); la tarjeta de filtros separada de la tabla
+(l. 113: CLAUDE.md pide filtros y tabla en UNA tarjeta); los códigos de sede TRU/AQP/LIM (V2 no los tiene: «Trujillo»,
+`nombreCortoSede`); el `esSocia` dentro de `esFrecuente` (`20-datos.js` l. 137, ver arriba); las celdas apiladas una por línea
+del spike en celular (aquí, nombre e insignias arriba y una línea con celular, sede y última compra); el corte con «…» de la
+última compra (aquí se parte en dos líneas) y los chips montados del spike en anchos medianos. El buscador ocupa todo el ancho
+de la tarjeta (el del spike tiene `max-w-sm`), como pidió el encargo.
+
+**La ficha se tocó lo mínimo** (`ClientaFichaModal.tsx`): tres imports; «Frecuente» con compra neta; «Registrada» pasa a «Su
+sede» (`Dato` suma un `detalle`); y las piezas aparte `PreferenciasClienta` y `HistoriaPermisos`. Ya junta con la 1b final (el
+camino B), queda en el orden del spike (`modalFicha`, l. 133-146): datos → insignias → talla → preferencias → permisos (de la
+1b) → historia → compras.
+
+**Pendiente (fuera de esta tanda):**
+- `fn_clienta_compras` todavía cuenta las ventas devueltas enteras (D-8, CL-25). Quien la reescriba (la 1d le suma
+  `es_regalo`) filtra con `retail.fn_venta_devuelta_entera(v.id)` y la caja deja de diferir de la ficha.
+- El texto `club` v2 que se le lee no nombra las preferencias. Si Felipe quiere que su «sí» las cubra, es una versión 3 del texto.
+- (Resuelto al juntarla con la 1b final.) «Ella misma» en la historia es el `qr_web` del camino B: la prueba de la base confirma
+  una invitación como `anon` y la historia dice «Pidió la publicidad por WhatsApp · desde la página de su QR · ella misma · texto
+  v1», con la tienda de la invitación.
+
+**Cómo se pega:** después de la 1b, `20260930210000_club_paso1f_lista_y_ficha.sql` solo en el SQL Editor (una parte). Fusionar
+la web después. **Cómo lo verifica Felipe:** abre Clientas: cuatro cifras con Frecuentes, el buscador que busca al escribir, las
+píldoras con Archivadas y la tabla con Su sede y Última compra; a 800 px con el lateral abierto nada se corta; abre una socia:
+«Su sede · N de M», marca Evento y Lana, «Guardar preferencias», y su historia del permiso en orden. Capturas lado a lado con el
+spike en `docs/capturas/2026-09-30-club-paso1f/`.

@@ -132,6 +132,9 @@ const DEL_CLUB = ["crear_invitacion_club", "registrar_baja_whatsapp", "registrar
 // confirmar_invitacion_club solo le da la publicidad (medio qr_web). Las prueba club_permisos.mjs, sección (o). El vigilante
 // las cuenta entre las que tocan la ficha y deja pasar sin el candado SOLO a estas dos.
 const DE_LA_PAGINA = ["confirmar_invitacion_club", "fn_invitacion_club"];
+// Las de la tanda 1f (20260930210000, la lista y la ficha): cinco lecturas y el guardado de las preferencias, todas con el
+// candado del módulo (las prueba a fondo scripts/pruebas/club_lista_y_ficha.mjs).
+const DE_LA_1F = ["fn_cifras_clientas", "fn_clienta_permisos", "fn_clienta_su_sede", "fn_clientas_lista", "fn_club_etiquetas", "guardar_preferencias_clienta"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -630,9 +633,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b) y las 2 de la página pública (camino B), y todas llevan el candado del módulo salvo esas 2",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B) y las 6 de la lista y la ficha (tanda 1f), y todas llevan el candado del módulo salvo las 2 de la página",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA].sort().join(",")}\nninguna`
+  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
