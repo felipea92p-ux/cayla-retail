@@ -5599,9 +5599,17 @@ export type Database = {
       // ---- Club de clientas, tanda 1g (ADR-0288 «Contrato de la tanda 1g»; migraciones 20261001210000…210700) ----
       /** La página pública del cartel. `anon` y `authenticated`. `null` si no es una tienda activa. Forma:
        *  { tienda, whatsapp, pct, escala: [{ anio, monto }], compras, monto_minimo, dias,
-       *    textos: { terminos, privacidad, casilla_publicidad, saludo } } con cada texto { version, texto }. */
+       *    textos: { terminos, privacidad, casilla_publicidad, saludo } } con cada texto
+       *  { version, texto, vigente_desde } (vigente_desde = 'aaaa-mm-dd', el día de Lima en que se publicó esa versión). */
       fn_club_pagina: {
         Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      /** Lo mismo que fn_club_pagina sin la tienda, para /club/privacidad y /club/terminos. `anon` y `authenticated`. Forma:
+       *  { pct, escala: [{ anio, monto }], compras, monto_minimo, dias,
+       *    textos: { terminos, privacidad } } con cada texto { version, texto, vigente_desde }. */
+      fn_club_textos_legales: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       /** Servidor (llave de servicio, nunca anon ni authenticated): anota el intento y dice si está dentro del límite por
@@ -5610,9 +5618,11 @@ export type Database = {
         Args: { p_tipo: string; p_ip_hash: string; p_documento_hash?: string | null; p_celular?: string | null }
         Returns: boolean
       }
-      /** Servidor (llave de servicio): ella se une sola desde el cartel. p_versiones = { terminos, privacidad,
-       *  casilla_publicidad?, saludo? } con las versiones que leyó. Hints: club_menor, club_datos_invalidos (detail = el
-       *  campo), club_texto_cambio, club_documento_archivado. */
+      /** Servidor (llave de servicio): ella se une sola desde el cartel. p_versiones = { "terminos": N, "privacidad": N,
+       *  "casilla_publicidad": N } con la versión que vio de cada una (la casilla solo se exige vigente si p_acepta_publicidad;
+       *  "saludo" es opcional). Hints: club_menor, club_datos_invalidos (detail = el campo: tienda, terminos, mayor_de_edad,
+       *  documento, nombre, celular, nacimiento, correo, versiones), club_texto_cambio, club_documento_archivado,
+       *  club_sin_texto. */
       registrarse_en_el_club: {
         Args: {
           p_ubicacion_id: string
@@ -5666,13 +5676,20 @@ export type Database = {
         Args: { p_clienta_id: string; p_tipo: string; p_referencia: string; p_texto: string; p_ubicacion_id: string }
         Returns: string
       }
+      /** Módulo «Avisos del club»: cuántos avisos no deshechos se anotaron HOY (Lima) desde esa tienda, por tipo (solo los
+       *  tipos con al menos uno). */
+      fn_club_avisos_enviados_hoy: {
+        Args: { p_ubicacion_id: string }
+        Returns: { tipo: string; enviados: number }[]
+      }
       /** Módulo «Avisos del club»; dentro de 10 minutos. Hints: aviso_no_existe, aviso_fuera_de_plazo. */
       deshacer_aviso_enviado: {
         Args: { p_id: string }
         Returns: undefined
       }
-      /** Solo el líder. p_escala = [{ anio: 1..5, monto }]. Si cambia algo que los términos nombran, publica una versión
-       *  nueva de `terminos`. Hints: beneficios_invalidos (detail = el campo), terminos_no_reconocidos. */
+      /** Solo el líder. p_escala = [{ "anio": 1, "monto": 20 }, …] (los cinco años, como la devuelve fn_club_pagina; montos que
+       *  no bajan). Si cambia algo, publica una versión nueva de `terminos`. Hints: solo_lider, beneficios_invalidos
+       *  (detail = el campo), terminos_no_reconocidos. */
       guardar_beneficios_club: {
         Args: { p_pct: number; p_compras: number; p_monto: number; p_dias: number; p_escala: Json }
         Returns: undefined
