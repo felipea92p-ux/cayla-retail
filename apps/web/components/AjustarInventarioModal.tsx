@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import {
@@ -370,7 +371,14 @@ export function AjustarInventarioModal({
   }
 
   return (
-    <Modal titulo="Ajustar inventario" subtitulo="Corrige lo que hay de cada talla" onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal
+      titulo="Ajustar inventario"
+      subtitulo="Corrige lo que hay de cada talla"
+      onClose={onClose}
+      ancho="max-w-md"
+      bloqueado={enviando}
+      lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} /> : undefined}
+    >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
