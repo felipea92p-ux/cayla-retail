@@ -66,27 +66,10 @@ export function codigoEnTexto(texto: string): string | null {
 }
 
 /**
- * Camino B (ADR-0288, act. c): el QR personal abre la página pública de CAYLA donde ELLA marca la casilla. `origen` es el
- * del navegador de la caja (`window.location.origin`): la página vive en el mismo dominio que el ERP.
+ * La página de registro del Club CAYLA de una tienda (ADR-0288 act. g, G-1): la abren el QR del cartel y el del ticket.
+ * `origen`: el del navegador (`window.location.origin`), porque la página vive en el mismo dominio que el ERP;
+ * `ubicacionId`: el uuid de la tienda del cartel (o de la venta), que es la que la saluda y le escribe después.
  */
-export function enlacePaginaClub(origen: string, token: string): string {
-  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(token)}`;
+export function enlacePaginaClub(origen: string, ubicacionId: string): string {
+  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(ubicacionId)}`;
 }
-
-/** Estados de una invitación tal como los devuelve `fn_invitacion_club`. */
-export type EstadoInvitacion = "vigente" | "usada" | "vencida" | "no_existe";
-
-export function estadoInvitacion(valor: string | null | undefined): EstadoInvitacion {
-  return valor === "vigente" || valor === "usada" || valor === "vencida" ? valor : "no_existe";
-}
-
-/** El texto de la página con su celular a medias en lugar de `{celular}`. */
-export function textoPaginaPublicidad(plantilla: string, celularEnmascarado: string | null): string {
-  return plantilla.split("{celular}").join(celularEnmascarado ?? "tu celular");
-}
-
-/** Un token con forma válida (16 caracteres seguros para URL): la página no consulta la base con cualquier cosa. */
-export function tokenValido(token: string): boolean {
-  return /^[A-Za-z0-9_-]{16}$/.test(token);
-}
-
