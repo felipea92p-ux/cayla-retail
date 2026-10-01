@@ -48,6 +48,16 @@
         "dev"
       ],
       "port": 3070
+    },
+    {
+      "name": "guias-flujo",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "python3 -m http.server ${PORT:-8792} --directory .flujo-de-negocio/guias"
+      ],
+      "port": 8792,
+      "autoPort": true
     }
   ]
 }
