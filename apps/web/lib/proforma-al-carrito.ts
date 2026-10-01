@@ -1,6 +1,6 @@
 import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { lineasDeLaProforma, numeroDeProforma, precioAlCobrarDeLaProforma, type LineaProforma, type Proforma } from "./proformas-reglas";
-import { conDescuentoDeCampana } from "./vender-reglas";
+import { conDescuentoDeCampana, descuentoResultante } from "./vender-reglas";
 import { DONDE_SE_BAJA, motivoNoCobrable, type AvisoStock } from "./vender-stock-local";
 
 /**
@@ -94,5 +94,8 @@ function lineaAlPrecioDeLaProforma(l: LineaProforma, v: VarianteBusqueda, numero
   };
   const deCampana = conDescuentoDeCampana(base);
   const deProforma: ItemCarrito = { ...base, descuentoUnitario: cobro.descuentoUnitario, razonDescuento: cobro.motivo, razonDescuentoOtro: cobro.motivoDetalle };
-  return deCampana.descuentoUnitario > deProforma.descuentoUnitario ? deCampana : deProforma;
+  // Un solo descuento, el mayor, con la regla de la caja y de `registrar_venta`: la proforma solo gana si SUPERA a la
+  // campaña por más de un céntimo. Con el descuento exacto (ADR-0300) una proforma al 20 % y una campaña de 20 % dan lo
+  // mismo: si ganaba la proforma, la línea iba como descuento manual y la base la rechazaba (venta_descuento_no_supera_campana).
+  return descuentoResultante(base, cobro.descuentoUnitario).prevaleceCampana ? deCampana : deProforma;
 }

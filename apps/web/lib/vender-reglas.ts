@@ -270,6 +270,14 @@ export function descuentoDeCampana(precio: number, pct: number): number {
   return descuentoUnitarioPorPorcentaje(precio, pct);
 }
 
+/** Lo que se cobra por unas líneas: Σ cantidad × (precio − descuento), sumado en céntimos exactos (como `ticketConCumple`).
+ *  Es el ÚNICO total de un ticket en la web: caja, apartados, ventas en espera y la cola sin conexión. En coma flotante,
+ *  99.90 − 14.99 da 84.91000000000001: «armar» mostraba ese número y Apartar no aceptaba S/ 84.91 recibidos en efectivo
+ *  contra ese total. Con el descuento de campaña exacto (ADR-0300) esos céntimos dejaron de ser raros. */
+export function totalDeLineas(lineas: readonly { cantidad: number; precioUnitario: number; descuentoUnitario: number }[]): number {
+  return lineas.reduce((c, l) => c + l.cantidad * (Math.round(l.precioUnitario * 100) - Math.round(l.descuentoUnitario * 100)), 0) / 100;
+}
+
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
 export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
 

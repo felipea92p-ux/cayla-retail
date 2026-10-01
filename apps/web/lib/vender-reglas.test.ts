@@ -24,6 +24,7 @@ import {
   SIN_DETALLE_DESCUENTO,
   sinStockPorApartado,
   textoSinStock,
+  totalDeLineas,
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
@@ -462,14 +463,47 @@ describe("descuentoDeCampana — exacto, al céntimo (ADR-0300)", () => {
     const MILLON = BigInt(1_000_000);
     const MEDIO = BigInt(500_000);
     const CERO = BigInt(0);
+    // Se juntan los casos que fallan y se comprueba una vez al final: 300 000 `expect` sueltos pasaban de los 5 s de
+    // límite cuando la suite corre en paralelo.
+    const malos: string[] = [];
     for (let c = 1; c <= 60000; c += 7) {
       for (const pct of [0.5, 1, 5, 7.5, 10, 12.5, 15, 20, 25, 30, 33.33, 40, 45, 50, 55, 66.67, 70, 99.99]) {
         const descuentoC = BigInt(Math.round(descuentoDeCampana(c / 100, pct) * 100));
         // exacto × 1 000 000 = céntimos × (% en diezmilésimas)
         const exactoPorMillon = BigInt(c) * BigInt(Math.round(pct * 10_000));
         const diferencia = descuentoC * MILLON - exactoPorMillon; // en millonésimas de céntimo
-        expect(diferencia > -MEDIO && diferencia <= MEDIO).toBe(true);
-        expect(descuentoC >= CERO && descuentoC <= BigInt(c)).toBe(true);
+        const cercano = diferencia > -MEDIO && diferencia <= MEDIO;
+        const dentroDelPrecio = descuentoC >= CERO && descuentoC <= BigInt(c);
+        if (!cercano || !dentroDelPrecio) malos.push(`S/ ${c / 100} con ${pct} % → ${descuentoDeCampana(c / 100, pct)}`);
+      }
+    }
+    expect(malos).toEqual([]);
+  });
+});
+
+describe("totalDeLineas — el total del ticket, en céntimos exactos", () => {
+  it("99.90 − 14.99 es 84.91, no 84.91000000000001 (la caja lo mostraba y Apartar no aceptaba 84.91 en efectivo)", () => {
+    expect(totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }])).toBe(84.91);
+  });
+  it("suma cantidades y líneas sin arrastrar error: 2 × 71.91 + 3 × 84.91 = 398.55", () => {
+    expect(
+      totalDeLineas([
+        { cantidad: 2, precioUnitario: 79.9, descuentoUnitario: 7.99 },
+        { cantidad: 3, precioUnitario: 99.9, descuentoUnitario: 14.99 },
+      ]),
+    ).toBe(398.55);
+  });
+  it("sin líneas, cero", () => {
+    expect(totalDeLineas([])).toBe(0);
+  });
+  it("con cualquier campaña y cantidad, el total es un número exacto de céntimos", () => {
+    for (let c = 1990; c <= 29990; c += 500) {
+      for (const pct of [5, 10, 15, 20, 25, 33.33]) {
+        for (const cantidad of [1, 2, 3, 7]) {
+          const precio = c / 100;
+          const total = totalDeLineas([{ cantidad, precioUnitario: precio, descuentoUnitario: descuentoDeCampana(precio, pct) }]);
+          expect(String(total)).toMatch(/^\d+(\.\d{1,2})?$/);
+        }
       }
     }
   });

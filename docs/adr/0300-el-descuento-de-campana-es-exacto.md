@@ -117,3 +117,31 @@ campaña. Pegada por `apply_migration` (versión `20261001161912`).
 - **El CI encontró una prueba más con el .90 escrito a mano:** la cascada del cumpleaños del Club (`club_cumpleanos.mjs` (a),
   CL-11) mandaba la campaña como 16.00. Pasa a 15.98: el Club sigue sumando 6.39 sobre lo que queda (63.92), la línea
   queda en 22.37 (28 %) y el canje en 17.28. Probada contra Postgres con las 394 migraciones: 34/34.
+
+## 8. Revisión adversarial (2026-10-01)
+
+Cuatro revisores (otras cuentas del %, quién usa el resultado, la transición, la migración y las pruebas) y un escéptico
+por cada hallazgo alto o medio que intentó refutarlo: 10 agentes, solo lectura. Lo confirmado se arregló en el mismo PR:
+
+- **Proforma con el mismo % que la campaña** (`lib/proforma-al-carrito.ts`): el empate lo ganaba la proforma, la línea iba
+  como descuento a mano y `registrar_venta` la rechazaba (`venta_descuento_no_supera_campana`). Con el .90 casi no pasaba
+  (29 de 5 802 casos simulados); con el descuento exacto pasaba casi siempre (5 769). Ahora decide `descuentoResultante`, la
+  regla de la caja y de la base: la proforma gana solo si supera a la campaña por más de un céntimo.
+- **Totales en coma flotante:** 99.90 − 14.99 daba `84.91000000000001`. «Armar» mostraba ese número y Apartar rechazaba
+  S/ 84.91 recibidos en efectivo («no alcanza»). Ya pasaba con descuentos a mano (79.90 − 7.99); el descuento exacto lo llevó
+  a las prendas con campaña. `totalDeLineas` (suma en céntimos, como `ticketConCumple`) reemplaza las 6 sumas a mano: caja,
+  ticket (2), ventas en espera, cola sin conexión y Apartar.
+- **Nueva proforma** calculaba el % por su cuenta en coma flotante: ahora usa `descuentoUnitarioPorPorcentaje`.
+- **Aviso «bajo costo»:** compara en céntimos (19.90 − 3.98 daba 15.9199… y avisaba bajo un costo de 15.92 que se cobra exacto).
+- Control de cada prueba nueva: con el código viejo fallan, y con el arreglo pasan.
+
+**Lo que queda, y no es de código:**
+
+- **Etiquetas ya impresas con el .90.** La de Luna dice «−20 % S/ 30.90» y se cobra 31.20; una de 99.90 con 15 % dice 84.90 y
+  se cobra 84.91. Exhibir un precio menor que el que se cobra es un reclamo seguro: hay que reimprimir las etiquetas de las dos
+  campañas vigentes desde la pantalla de la campaña («Etiquetas de campaña»).
+- **F5 en todas las pestañas abiertas desde antes,** no solo en Vender: Apartados y los celulares también traen la cuenta vieja.
+- **Una venta sin conexión hecha con la caja vieja** sobre una prenda con campaña, que suba después del cambio, se rechaza.
+  Como nunca hubo una venta con campaña, el riesgo es casi nulo.
+- La validación de la migración comprueba que cada función llame a la regla al menos una vez, no en todos sus usos (bajo).
+

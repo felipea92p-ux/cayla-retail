@@ -27,6 +27,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
   limpiarOperacion,
@@ -1047,7 +1048,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Un canje que no regala nada (todo a S/ 0) no se manda: la base lo rechazaría (`cumple_sin_monto`) y gastaría su año.
   const cumpleDelTicket =
     pctCumple !== null && conCumple.totalCumple > 0 ? { pct: pctCumple, monto: conCumple.totalCumple, totalSinCumple: conCumple.totalSinCumple } : null;
-  const total = cumpleDelTicket ? conCumple.total : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
+  const total = cumpleDelTicket ? conCumple.total : totalDeLineas(carrito);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
 
   // Se apagó SOLO (sin conexión, o su resumen ya no lo da por disponible): el total subió sin que nadie tocara «Quitar», y

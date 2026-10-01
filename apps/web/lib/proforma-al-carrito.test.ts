@@ -61,6 +61,24 @@ describe("lineasDelCarritoDesdeProforma", () => {
     expect(lineas[0]).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 59.97 });
   });
 
+  // Con el descuento exacto (ADR-0300) una proforma al 20 % y una campaña de 20 % dan el MISMO monto. Si ganaba la proforma,
+  // la línea viajaba como descuento a mano y `registrar_venta` la rechazaba (venta_descuento_no_supera_campana).
+  const paraLiquidar = { etiquetaId: "e", nombre: "Para liquidar", pct: 20 };
+  const deLuna = (descuento: number) =>
+    lineasDelCarritoDesdeProforma(
+      proforma([linea({ precio_unitario: 39, descuento_unitario: descuento, motivo_descuento: "cerrar_venta" })]),
+      [variante({ precio: 39, campana: paraLiquidar })],
+    ).lineas[0];
+
+  it("si la proforma da lo MISMO que la campaña, gana la campaña", () => {
+    expect(deLuna(7.8)).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 7.8 });
+  });
+
+  it("la proforma solo gana si supera a la campaña por más de un céntimo, como exige la base", () => {
+    expect(deLuna(7.81)).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 7.8 });
+    expect(deLuna(7.82)).toMatchObject({ razonDescuento: "cerrar_venta", descuentoUnitario: 7.82 });
+  });
+
   it("una prenda que no está en esta tienda (o sin stock) queda en «faltan»", () => {
     const { lineas, faltan } = lineasDelCarritoDesdeProforma(
       proforma([linea({ variante_id: "vX", descripcion: "Blusa Emma · S · Negro" }), linea()]),

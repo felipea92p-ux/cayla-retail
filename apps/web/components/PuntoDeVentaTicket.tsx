@@ -33,6 +33,7 @@ import {
   pasoDelCobro,
   pasoDelDescuento,
   RAZONES_DESCUENTO,
+  totalDeLineas,
   type MomentoTicket,
   type PasoDescuento,
   METODOS_CON_OPERACION,
@@ -368,7 +369,7 @@ export function PuntoDeVentaTicket({
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
     prendas: t.carrito.reduce((acc, it) => acc + it.cantidad, 0),
-    total: t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0),
+    total: totalDeLineas(t.carrito),
   });
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const desglose = desgloseIgv(total, TASA_IGV);
@@ -408,7 +409,7 @@ export function PuntoDeVentaTicket({
   // sin su parte (en cascada sobre el descuento nuevo, CL-11): el mismo número que quedará en «Total».
   const totalConDescuento = cumple
     ? ticketConCumple(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), cumple.pct).total
-    : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
+    : totalDeLineas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
