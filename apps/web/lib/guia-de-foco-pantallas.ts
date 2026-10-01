@@ -214,6 +214,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
   "components/ReponerPisoModal.tsx": PENDIENTE, // 4 controles
+  "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
   "components/ResolverDanadosModal.tsx": PENDIENTE, // 4 controles
   "components/ResumenPrevioEnvio.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/RolesModales.tsx": PENDIENTE, // 17 controles

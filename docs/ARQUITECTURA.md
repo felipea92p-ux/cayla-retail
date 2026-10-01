@@ -261,10 +261,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
   `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
-  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → `ReponerPisoModal.tsx` (RPC
-  `mover_entre_piso_y_almacen` desde ADR-0240 —`mover_interno` + el módulo «Bajada al piso»; antes `mover_interno`
-  directo—, en los dos sentidos: «Reponer» y, desde el bloque 2 de ADR-0208, «Retirar del piso» en el menú «⋯»;
-  los dos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
+  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer» (tarjeta y cajón) abre
+  `ReponerPrendaModal.tsx` (ADR-0295: la prenda entera con todas sus tallas y UNA llamada a `bajar_al_piso`, todo o nada, con
+  marca; la lógica pura en `lib/reponer-prenda-reglas.ts`, los errores los interpreta `lib/bajada-reglas.ts`) y «Retirar del
+  piso» sigue en `ReponerPisoModal.tsx` (RPC `mover_entre_piso_y_almacen` desde ADR-0240 —`mover_interno` + el módulo «Bajada
+  al piso»— con `sentido: "retirar"`, desde el bloque 2 de ADR-0208; **hoy sin entrada en pantalla** desde el cajón lateral,
+  ver ADR-0295); ambos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
   `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
   `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
   dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
