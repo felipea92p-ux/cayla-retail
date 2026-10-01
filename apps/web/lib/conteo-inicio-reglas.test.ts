@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { conteoResumenDesdeFila, type ConteoResumen, type FilaResumenConteo } from "./conteo-reglas";
-import { TODA_LA_UBICACION, alcanceDeRespuesta, armarAlcance, categoriasPorVariantes, sufijoVariantes, textoAvanceHistorial, textoUltimoConteo, variantesDelConteo, type FilaAlcance } from "./conteo-inicio-reglas";
+import { TODA_LA_UBICACION, alcanceDeRespuesta, armarAlcance, categoriasPorVariantes, sufijoVariantes, textoUltimoConteo, variantesDelConteo, type FilaAlcance } from "./conteo-inicio-reglas";
 
 const NOMBRES = new Map<string, string>();
 
@@ -63,23 +63,6 @@ describe("textoUltimoConteo", () => {
     const lleno = Array.from({ length: 3 }, (_, i) => conteo({ id: `x${i}`, numero: i + 1, sububicacion_id: "almacen" }));
     expect(textoUltimoConteo(lleno, "piso", 3)).toBe("Sin conteo reciente");
     expect(textoUltimoConteo(lleno, "piso", 20)).toBe("Nunca se contó");
-  });
-});
-
-describe("textoAvanceHistorial", () => {
-  it("un conteo terminado dice cuántas variantes verificó, con su singular", () => {
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, lineas: 37 }))).toBe("37 variantes verificadas");
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, lineas: 1 }))).toBe("1 variante verificada");
-  });
-
-  it("uno en curso o parcial dice «X de Y»", () => {
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, estado: "abierto", cerrado_en: null, lineas: 18, pendientes: 19 }))).toBe("18 de 37 variantes verificadas");
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, lineas: 30, pendientes: 7, parcial: true }))).toBe("30 de 37 variantes verificadas");
-  });
-
-  it("uno cancelado no dice nada: lo contado se perdió", () => {
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, estado: "anulado", lineas: 12 }))).toBeNull();
-    expect(textoAvanceHistorial(conteo({ id: "a", numero: 1, lineas: 0 }))).toBeNull();
   });
 });
 

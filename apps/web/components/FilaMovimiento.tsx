@@ -4,8 +4,8 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { textoQuedan } from "@/lib/movimientos-saldo";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
-import type { TonoChip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { ColumnaHora, FILA_ACTIVIDAD, PUNTO_ACTIVIDAD } from "@/components/ui/lista-actividad";
 import {
   etiquetaConDireccion,
   nombreCortoSububicacion,
@@ -35,38 +35,14 @@ import {
 // cantidad arriba, proceso y referencia abajo— sin desplazarse de lado. Ya no hay
 // «Responsable»: la autoría sigue guardada y se ve en el detalle.
 //
+// La rejilla de la fila, el punto y la columna de hora viven en `ui/lista-actividad.tsx`: Conteos recientes se lee igual y las usa de ahí.
+//
 // La fila NO es un <button>: la referencia es un enlace y un enlace dentro de un botón
 // no es HTML válido. El botón que abre el detalle cubre la fila entera (`absolute
 // inset-0`) y el enlace queda encima (`relative z-10`).
-export const FILA_MOVIMIENTO =
-  "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 sm:grid-cols-[3.25rem_0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] sm:items-center sm:gap-x-4 sm:px-2";
-
 /** La fila de origen del cajón abierto (diseño aprobado 2026-09-28): un lavado suave, nunca un color fuerte — se
- *  agrega AL LADO de `FILA_MOVIMIENTO`, no lo reemplaza, así sigue reaccionando al hover igual que cualquier otra. */
+ *  agrega AL LADO de `FILA_ACTIVIDAD`, no lo reemplaza, así sigue reaccionando al hover igual que cualquier otra. */
 const FILA_SELECCIONADA = "bg-hueso/70";
-
-// El tono que antes llevaba el chip de categoría, ahora como un punto: sobrio, y no
-// obliga a que «Entrada · Traslado recibido» quepa en un chip de versalitas.
-export const PUNTO_MOVIMIENTO: Record<TonoChip, string> = {
-  neutro: "bg-tinta/30",
-  ambar: "bg-ambar",
-  verde: "bg-verde",
-  rojo: "bg-rojo",
-  pizarra: "bg-pizarra",
-  apagado: "bg-tinta/15",
-  tinta: "bg-tinta",
-};
-
-/** La hora, primera columna de la fila (desde sm; en celular sigue bajo el nombre, donde no hay columnas). Una bajada
- *  plegada trae un rango: la hora de la primera y, debajo, la de la última. */
-function ColumnaHora({ desde, hasta }: { desde?: string | null; hasta?: string | null }) {
-  return (
-    <span className="hidden whitespace-nowrap text-[13px] leading-snug tabular-nums text-taupe sm:block">
-      {desde}
-      {hasta && hasta !== desde && <span className="block">–{hasta}</span>}
-    </span>
-  );
-}
 
 /** Lo que una fila necesita saber de la pantalla, igual para todas. */
 export type ContextoFila = {
@@ -113,7 +89,7 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const seleccionada = ctx.abiertoId === m.id;
   return (
-    <li className={`${FILA_MOVIMIENTO} ${dentroDeOperacion ? "sm:pl-6" : ""} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
+    <li className={`${FILA_ACTIVIDAD} ${dentroDeOperacion ? "sm:pl-6" : ""} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(m)}
@@ -123,7 +99,7 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
 
       <ColumnaHora desde={dentroDeOperacion ? null : m.hora} />
 
-      <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO[tonoCategoria(m.categoria, m.delta)]}`} />
+      <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD[tonoCategoria(m.categoria, m.delta)]}`} />
 
       {/* Prenda: la foto (en una tienda de ropa, la prenda se reconoce por la foto antes que por el nombre), el nombre y
           debajo talla · color · dónde (y la hora, solo en celular). El SKU queda en el título (y la búsqueda lo encuentra). */}
@@ -205,7 +181,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const seleccionada = op.filas.some((m) => m.id === ctx.abiertoId);
   return (
     <li>
-      <div className={`${FILA_MOVIMIENTO} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
+      <div className={`${FILA_ACTIVIDAD} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
         <button
           type="button"
           onClick={() => ctx.onAbrir(primera)}
@@ -217,7 +193,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
         {/* Un cambio entra y sale a la vez: ni verde ni rojo. */}
         <span
           aria-hidden
-          className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO[r.entran > 0 && r.salen > 0 ? "neutro" : tonoCategoria(primera.categoria, r.entran - r.salen)]}`}
+          className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD[r.entran > 0 && r.salen > 0 ? "neutro" : tonoCategoria(primera.categoria, r.entran - r.salen)]}`}
         />
 
         <span className="flex min-w-0 items-center gap-2.5">
@@ -284,7 +260,7 @@ export function FilaBajadas({
   const horas = r.desde === r.hasta ? r.hasta : `${r.desde}–${r.hasta}`;
   return (
     <li>
-      <div className={`${FILA_MOVIMIENTO} ${abierta ? FILA_SELECCIONADA : ""}`}>
+      <div className={FILA_ACTIVIDAD}>
         <button
           type="button"
           onClick={onAbrir}
@@ -292,7 +268,7 @@ export function FilaBajadas({
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
         <ColumnaHora desde={r.desde} hasta={r.hasta} />
-        <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO.ambar}`} />
+        <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD.ambar}`} />
         <span className="flex min-w-0 items-center gap-2.5">
           <span aria-hidden className="flex shrink-0 -space-x-3">
             {fotos.map((url, i) => (

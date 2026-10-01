@@ -99,6 +99,10 @@ function conBarras(crudo: string): string {
   return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4)}`;
 }
 
+/** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
+const ANCHO_CALENDARIO = 272;
+const MARGEN_PANTALLA = 8;
+
 export function CampoFecha({
   etiqueta,
   ayuda,
@@ -113,6 +117,7 @@ export function CampoFecha({
   revelarError = false,
   diasMarcados,
   descripcionMarcado = "con datos",
+  caja = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -135,6 +140,9 @@ export function CampoFecha({
   diasMarcados?: readonly string[];
   /** Cómo se dice un día marcado al lector de pantalla: «… de setiembre de 2026, con conteos». */
   descripcionMarcado?: string;
+  /** Guía oficial para barras de filtros (como `CampoTexto caja`): caja hundida en hueso, sin hilo y con la etiqueta solo para
+   *  lectores de pantalla — quien lo usa dice en pantalla qué es (Conteo: «Otra fecha» junto a las píldoras). */
+  caja?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -143,6 +151,9 @@ export function CampoFecha({
   const [abierto, setAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const [tocado, setTocado] = useState(false);
+  // El calendario nace anclado al borde izquierdo del campo. Si el campo está cerca del borde derecho de la pantalla (los filtros de
+  // Conteo van a la derecha de su tarjeta) no cabría: se mide AL ABRIR y, si hace falta y cabe, se ancla al borde derecho.
+  const [haciaIzquierda, setHaciaIzquierda] = useState(false);
   // El día con foco dentro de la grilla (teclado) y el mes que se muestra.
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
@@ -170,6 +181,8 @@ export function CampoFecha({
 
   function abrir() {
     if (disabled) return;
+    const campo = raiz.current?.getBoundingClientRect();
+    if (campo) setHaciaIzquierda(campo.left + ANCHO_CALENDARIO > window.innerWidth - MARGEN_PANTALLA && campo.right - ANCHO_CALENDARIO >= MARGEN_PANTALLA);
     setCursor(elegido ?? hoy());
     setAbierto(true);
     requestAnimationFrame(() => grilla.current?.focus());
@@ -265,8 +278,9 @@ export function CampoFecha({
       pie={conError ? <span role="alert">{texto === "" ? "Falta la fecha." : "Fecha no válida. Usa dd/mm/aaaa."}</span> : pie}
       tono={conError ? "error" : tono}
       htmlFor={id}
+      etiquetaOculta={caja}
     >
-      <div ref={raiz} className="relative">
+      <div ref={raiz} className={caja ? "caja-cayla relative px-3" : "relative"}>
         <input
           ref={entrada}
           id={id}
@@ -300,13 +314,13 @@ export function CampoFecha({
             <path d="M2 7h12M5.5 2v3M10.5 2v3" strokeLinecap="round" />
           </svg>
         </button>
-        <Hilo activo={enfocado || abierto} />
+        {!caja && <Hilo activo={enfocado || abierto} />}
 
         {abierto && (
           <div
             role="dialog"
             aria-label="Calendario"
-            className="anim-revelar absolute left-0 top-full z-50 mt-1.5 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
+            className={`anim-revelar absolute top-full z-50 mt-1.5 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md ${haciaIzquierda ? "right-0" : "left-0"}`}
           >
             <div className="mb-2 flex items-center justify-between">
               <button

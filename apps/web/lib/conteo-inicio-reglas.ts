@@ -6,7 +6,7 @@
  */
 
 import { diaYHoraLima } from "./fechas-lima";
-import { resultadoConteo, textoProgreso, type ConteoResumen } from "./conteo-reglas";
+import { resultadoConteo, type ConteoResumen } from "./conteo-reglas";
 import { tolerar } from "./resultado";
 
 /** Cuántos conteos trae el historial del inicio (`fn_conteos_resumen`, del más reciente al más antiguo). */
@@ -28,18 +28,6 @@ export function textoUltimoConteo(conteos: readonly ConteoResumen[], sububicacio
   });
   if (ultimo) return `Último conteo: ${ultimo.numero} · ${diaYHoraLima(ultimo.cerradoEn ?? ultimo.creadoEn).dia}`;
   return conteos.length >= limite ? "Sin conteo reciente" : "Nunca se contó";
-}
-
-/**
- * Lo que va bajo «Qué se contó» en el historial, después del alcance: cuántas variantes se verificaron. Un conteo cancelado
- * no dice nada (lo contado se perdió); uno en curso o parcial dice «18 de 37 variantes verificadas»; uno terminado, «37
- * variantes verificadas». `null` si no hay nada que decir.
- */
-export function textoAvanceHistorial(c: Pick<ConteoResumen, "estado" | "lineas" | "lineasConDiferencia" | "parcial" | "variantes">): string | null {
-  const r = resultadoConteo(c);
-  if (r === "cancelado") return null;
-  if (r === "en_curso" || r === "parcial") return textoProgreso({ verificadas: c.lineas, variantes: c.variantes });
-  return `${c.lineas} ${c.lineas === 1 ? "variante verificada" : "variantes verificadas"}`;
 }
 
 /** La clave de «toda la ubicación» en `AlcanceConteo`: lo que cuenta una sede que no separa piso y almacén (el Taller). */
