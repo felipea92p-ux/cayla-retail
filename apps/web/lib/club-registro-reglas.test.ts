@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   MENSAJE,
   argumentosRegistro,
-  beneficiosDelClub,
   bienvenida,
   bloquesDeTexto,
   casillaTerminos,
@@ -174,20 +173,6 @@ describe("cifras y marcadores", () => {
 });
 
 describe("los textos aprobados de la página (docs/club/texto-legal-registro-v1.md)", () => {
-  it("«Qué recibes» con el % del cumpleaños, el umbral del año y la escala vigentes", () => {
-    const [cumple, vale, whatsapp] = beneficiosDelClub(pagina());
-    expect(`${cumple!.fuerte} ${cumple!.resto}`).toBe(
-      "Cupón de cumpleaños: 10 % de descuento en una compra en cualquier tienda CAYLA durante el mes de tu cumpleaños.",
-    );
-    expect(`${vale!.fuerte} ${vale!.resto}`).toBe(
-      "Vale de aniversario: al cumplir cada año como socia, si en ese año hiciste 6 compras o sumaste S/ 600 en compras, recibes un vale para comprar lo que quieras en cualquier tienda CAYLA. El vale crece cada año: S/ 20 el primer año, S/ 30 el segundo, S/ 40 el tercero, S/ 50 el cuarto y S/ 60 el quinto.",
-    );
-    expect(`${whatsapp!.fuerte} ${whatsapp!.resto}`).toBe(
-      "Novedades y promociones por WhatsApp (opcional): lo nuevo que llega a CAYLA, rebajas, promociones y el aviso de tus cupones.",
-    );
-    expect(beneficiosDelClub({ ...pagina(), compras: 1 })[1]!.resto).toContain("hiciste 1 compra o");
-  });
-
   it("la casilla de los términos y la letra chica, con los datos de CAYLA S.A.C.", () => {
     const casilla = casillaTerminos("CAYLA S.A.C.")
       .map((t) => (typeof t === "string" ? t : t.texto))
@@ -389,9 +374,11 @@ describe("después de «Unirme»", () => {
 
   it("nueva: bienvenida con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
     const b = bienvenida(listo, pagina());
-    expect(b.titulo).toBe("¡Bienvenida al Club CAYLA, Lucía!");
-    expect(b.parrafos).toEqual([["Tu código de socia es ", { fuerte: "C-0142" }, ". Dilo en caja o muestra tu documento para usar tus cupones."]]);
-    expect(b.saludo?.boton).toBe("Saludar a CAYLA por WhatsApp");
+    expect(b.titulo).toBe("¡Bienvenida, Lucía!");
+    expect(b.bajada).toBe("Ya eres socia del Club CAYLA.");
+    expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
+    // A la tienda del cartel: la que le contesta y le escribe después.
+    expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
     expect(b.saludo?.enlace.startsWith("https://wa.me/51953585537?text=")).toBe(true);
     expect(decodeURIComponent(b.saludo!.enlace.split("text=")[1]!)).toBe("Hola CAYLA, soy Lucía. Me acabo de unir al Club CAYLA (C-0142).");
   });
@@ -406,15 +393,16 @@ describe("después de «Unirme»", () => {
     expect(sinSaludo.saludo?.enlace).toBe("https://wa.me/51953585537?text=");
   });
 
-  it("ya era socia: «Actualizamos tus datos.» y desde cuándo es socia", () => {
+  it("ya era socia: «Actualizamos tus datos» y desde cuándo es socia", () => {
     const b = bienvenida({ ...listo, eraSocia: true }, pagina());
-    expect(b.titulo).toBe("Actualizamos tus datos.");
-    expect(b.parrafos[0]).toEqual(["Eres socia del Club CAYLA desde el 12 de setiembre de 2026."]);
+    expect(b.titulo).toBe("Actualizamos tus datos");
+    expect(b.bajada).toBe("Eres socia del Club CAYLA desde el 12 de setiembre de 2026.");
+    expect(bienvenida({ ...listo, eraSocia: true, clubDesde: null }, pagina()).bajada).toBe("Ya eras socia del Club CAYLA.");
   });
 
   it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
     const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Bienvenida al Club CAYLA!");
+    expect(b.titulo).toBe("¡Bienvenida!");
     const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
     expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
     expect(saludo).toContain("(C-0142)");
