@@ -263,11 +263,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295: la prenda entera con todas sus tallas y UNA llamada a `bajar_al_piso`, todo o nada, con
-  marca; la lógica pura en `lib/reponer-prenda-reglas.ts`, los errores los interpreta `lib/bajada-reglas.ts`) y «Retirar del
-  piso» sigue en `ReponerPisoModal.tsx` (RPC `mover_entre_piso_y_almacen` desde ADR-0240 —`mover_interno` + el módulo «Bajada
-  al piso»— con `sentido: "retirar"`, desde el bloque 2 de ADR-0208; **hoy sin entrada en pantalla** desde el cajón lateral,
-  ver ADR-0295); ambos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
-  `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
+  marca) y «Subir a almacén» (entre «Reponer» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
+  (la prenda entera y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
+  alcanza, y cada talla es un `mover_interno` piso→almacén con una marca derivada de la de la lista; nota opcional y aviso de
+  «Existencias va a pedir bajar de nuevo»). Las dos ventanas comparten `SelectorDeTallas.tsx`; su lógica pura vive en
+  `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
+  de la tarjeta es un icono con tooltip. Ambas solo si la sede que se mira es la activa, porque firman con su Responsable;
+  `<Modal bloqueado>` no deja cerrar mientras guarda, y tras un corte de red las cifras quedan fijas hasta «Confirmar de nuevo»; y
   `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
   dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
   `PedirOtraSedeModal` de Apartados (RPC `pedir_prenda_para_apartar`, ADR-0233; tarea #9 del análisis); lo que decide cada

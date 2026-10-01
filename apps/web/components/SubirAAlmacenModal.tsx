@@ -5,88 +5,83 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { SelectorDeTallas } from "@/components/SelectorDeTallas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import type { PrendaParaReponer } from "@/components/ReponerPrendaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { esFalloDeRed, type ErrorEscritura } from "@/lib/error-escritura";
-import {
-  argumentosDeBajada,
-  avisoDeExito,
-  interpretarErrorDeBajada,
-  leerRespuestaDeBajada,
-  resolverTokenReusado,
-  respuestaResuelveLaMarca,
-  RPC_BAJADA,
-  textoDeExito,
-  textoMarcaSinResolver,
-  type RespuestaBajada,
-} from "@/lib/bajada-reglas";
+import { formatearHoraLima } from "@/lib/bajada-reglas";
+import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import {
   detalleDeLoBajado,
   filasDelSelector,
-  lineasDeReponer,
+  lineasDeMover,
   nombreDePrendaParaReponer,
-  sePuedeBajarTalla,
+  sePuedeSubirTalla,
   tallasParaReponer,
-  textoBotonReponer,
   textoFilaSinAlcance,
   totalAReponer,
   type Cantidades,
-  type FilaDeTalla,
 } from "@/lib/reponer-prenda-reglas";
+import {
+  argumentosDeRetiro,
+  AVISO_QUEDAN_CON_POCO,
+  interpretarErrorDeRetiro,
+  leerRespuestaDeRetiro,
+  MAX_NOTA_RETIRO,
+  respuestaResuelveLaMarcaDeRetiro,
+  RPC_RETIRO,
+  TEXTO_YA_ESTABA_SUBIDA,
+  TEXTOS_BLOQUE_SUBIR,
+  textoBotonSubir,
+  textoDelBloqueSubir,
+  textoMarcaSinResolverDeRetiro,
+  tituloDeExitoRetiro,
+  type RespuestaRetiro,
+} from "@/lib/retiro-reglas";
 
 const TOPE_ESPERA_MS = 20_000;
 
-/** La prenda que se repone: un modelo en un color, con TODAS las tallas que la tarjeta muestra. */
-export type PrendaParaReponer = {
-  referencia: string;
-  color: string | null;
-  colorHex: string | null;
-  tallas: readonly FilaDeTalla[];
-};
-
-// «Reponer piso» (ADR-0295): el botón «Reponer» de una prenda abre ESTA ventana, con todas sus tallas, y al confirmar llama
-// UNA vez a `bajar_al_piso` (todo o nada, con marca de reintento: ADR-0208). Antes abría una ventana de una sola talla
-// —la primera que se podía bajar— y la M no aparecía aunque también estuviera por colgar.
-//
-// Por qué `bajar_al_piso` y no `mover_entre_piso_y_almacen` una vez por talla: con dos llamadas, la segunda puede fallar
-// con la primera ya guardada y la prenda queda repuesta a medias (ADR-0208 lo descartó: «llamar N veces desde la web no
-// es todo o nada»). Las filas de movimiento son las mismas que escribía «Reponer» (cada línea es un `mover_interno`
-// almacén → piso) y Frescura las lee por su forma, así que ningún indicador cambia; solo se suma la cabecera de la bajada.
-//
-// La ventana NO sugiere cuántas bajar (ADR-0231): arranca en cero y la cifra la pone quien tiene la prenda en la mano.
-// «Retirar del piso» sigue en `ReponerPisoModal`: es una sola talla y lleva nota.
-export function ReponerPrendaModal({
+// «Subir a almacén» (ADR-0300): el movimiento contrario a «Reponer». Abre la PRENDA entera con todas sus tallas, la persona elige
+// cuántas sube de cada una y al confirmar se hace UNA llamada a `retirar_del_piso` (todo o nada, con marca de reintento), nunca una
+// por talla: con dos llamadas la prenda podría quedar subida a medias. Es la misma ventana que `ReponerPrendaModal` (comparten
+// `SelectorDeTallas`); lo que cambia es que sale del PISO, lleva una nota opcional —el único rastro de por qué se guardó— y avisa si
+// alguna talla va a quedar pidiendo reponer.
+export function SubirAAlmacenModal({
   prenda,
   ubicacionId,
   sede,
+  politica,
   alCerrarEnfocar,
   onClose,
 }: {
   prenda: PrendaParaReponer;
   ubicacionId: string;
-  /** El nombre de la sede, para los textos de la base («…al piso de Tienda TRU»). */
+  /** El nombre de la sede, para los textos de la base («…al almacén de Tienda TRU»). */
   sede: string;
-  /** El control que abrió la ventana (el «Reponer» de la tarjeta): al cerrar, el teclado vuelve ahí. */
+  /** La política de la sede (`politicaDe`): el aviso de lo que quedará pregunta lo mismo que «Acción hoy» de la fila. */
+  politica: PoliticaOperativaInventario;
+  /** El control que abrió la ventana (el «Subir a almacén» de la tarjeta): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
   const router = useRouter();
   const tallas = tallasParaReponer(prenda.tallas);
   const [cantidades, setCantidades] = useState<Cantidades>({});
+  const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Lo que la base contestó fila por fila («Solo queda 1»): se borra apenas la persona cambia esa cifra.
   const [problemas, setProblemas] = useState<Record<string, string>>({});
-  // La marca de este intento (ADR-0208): el mismo intento enviado otra vez devuelve lo ya guardado sin bajar de nuevo.
-  // Una por ventana abierta; un rechazo de la base la deja libre (la transacción se deshizo entera).
+  // La marca de este intento (ADR-0208): el mismo intento enviado otra vez devuelve lo ya guardado sin subir de nuevo. Una por
+  // ventana abierta; un rechazo de la base la deja libre (la transacción se deshizo entera).
   const token = useRef<string>(crypto.randomUUID());
-  // Tras una respuesta incierta (corte de red) las cifras quedan fijas: cambiarlas sería otro intento y bajaría de nuevo
-  // lo que quizá ya se bajó. Solo se puede reenviar LO MISMO o cerrar.
+  // Tras una respuesta incierta (corte de red) las cifras y la nota quedan fijas: cambiarlas sería otro intento y subiría de nuevo
+  // lo que quizá ya se subió. Solo se puede reenviar LO MISMO o cerrar.
   const [congelado, setCongelado] = useState(false);
   const enviadoEn = useRef<string | null>(null);
   // Candado contra el doble clic en el mismo instante: `loading` apaga el botón recién en el render siguiente.
@@ -94,14 +89,16 @@ export function ReponerPrendaModal({
   // Mover prendas pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
 
-  const lineas = lineasDeReponer(tallas, cantidades);
+  const lineas = lineasDeMover(tallas, cantidades, "subir");
   const total = totalAReponer(lineas);
-  const hayAlgoQueBajar = tallas.some(sePuedeBajarTalla);
+  const hayAlgoQueSubir = tallas.some(sePuedeSubirTalla);
+  const textoBloque = textoDelBloqueSubir(tallas, cantidades, politica);
 
-  // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace.
+  // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace. La nota es opcional.
   const guia = useGuiaCampos([
-    { id: "cantidades", nombre: "Cuántas bajar", requerido: true, hecho: total > 0, pendiente: "Elige cuántas prendas bajar." },
-    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién baja las prendas." },
+    { id: "cantidades", nombre: "Cuántas subir", requerido: true, hecho: total > 0, pendiente: "Elige cuántas prendas subir." },
+    { id: "nota", nombre: "Por qué la subes", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
+    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién sube las prendas." },
   ]);
 
   function cambiar(varianteId: string, cantidad: number) {
@@ -120,7 +117,7 @@ export function ReponerPrendaModal({
     e.preventDefault();
     if (enVuelo.current || !responsable.listo) return;
     if (lineas.length === 0) {
-      setError("Elige cuántas prendas bajar.");
+      setError("Elige cuántas prendas subir.");
       return;
     }
     enVuelo.current = true;
@@ -129,8 +126,8 @@ export function ReponerPrendaModal({
     setProblemas({});
     const eraReenvio = enviadoEn.current !== null;
     const marcaDeEnvio = (enviadoEn.current ??= new Date().toISOString());
-    // Sin tope, una conexión colgada dejaría la ventana bloqueada para siempre: a los 20 s se corta y se trata como un
-    // corte de red (mensaje honesto, se puede cerrar), porque la base pudo haber guardado igual.
+    // Sin tope, una conexión colgada dejaría la ventana bloqueada para siempre: a los 20 s se corta y se trata como un corte de red
+    // (mensaje honesto, se puede cerrar), porque la base pudo haber guardado igual.
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     let data: unknown = null;
@@ -138,7 +135,7 @@ export function ReponerPrendaModal({
     try {
       const respuesta = await firmar(
         createClient()
-          .rpc(RPC_BAJADA as never, argumentosDeBajada(ubicacionId, lineas, token.current) as never)
+          .rpc(RPC_RETIRO as never, argumentosDeRetiro(ubicacionId, lineas, nota, token.current) as never)
           .abortSignal(control.signal),
         responsable.firma(),
       );
@@ -153,50 +150,28 @@ export function ReponerPrendaModal({
 
     if (errorRpc) {
       enVuelo.current = false;
-      const fallo = interpretarErrorDeBajada(errorRpc, sede);
+      const fallo = interpretarErrorDeRetiro(errorRpc, sede);
       if (fallo.tipo === "red") {
-        // Sin respuesta no se sabe si se guardó: las cifras se congelan y solo se reenvía igual, con la misma marca.
+        // Sin respuesta no se sabe si se subió: las cifras se congelan y solo se reenvía igual, con la misma marca.
         setCongelado(true);
         setError(fallo.mensaje);
         // Con la red caída no se refresca: un refresh sin red se vuelve navegación completa y borra el mensaje honesto.
         if (!esFalloDeRed(errorRpc)) router.refresh();
         return;
       }
-      if (eraReenvio && !respuestaResuelveLaMarca(errorRpc)) {
-        // La base contestó sin mirar la marca (módulo apagado, sesión vencida): lo anterior sigue en duda y las cifras
-        // siguen fijas; soltarlas dejaría bajar dos veces lo que quizá ya se guardó.
+      if (eraReenvio && !respuestaResuelveLaMarcaDeRetiro(errorRpc)) {
+        // La base contestó sin mirar la marca (módulo apagado, sesión vencida): lo anterior sigue en duda y las cifras siguen
+        // fijas; soltarlas dejaría subir dos veces lo que quizá ya se guardó.
         setCongelado(true);
-        setError(`${fallo.mensaje} ${textoMarcaSinResolver(marcaDeEnvio, textoBotonReponer(total, true))}`);
+        setError(`${fallo.mensaje} ${textoMarcaSinResolverDeRetiro(formatearHoraLima(marcaDeEnvio))}`);
         return;
       }
-      // La base miró la marca: o esa transacción se deshizo entera, o dice qué guardó. La marca de envío sobra.
+      // La base miró la marca: esa transacción se deshizo entera. La marca de envío sobra.
       enviadoEn.current = null;
       setCongelado(false);
-      if (fallo.tipo === "token_reusado") {
-        if (fallo.guardadas) {
-          const salida = resolverTokenReusado(lineas, fallo.guardadas, fallo.mensaje, sede);
-          if (salida.tipo === "ya_estaba") {
-            avisar.aviso(salida.exito.detalle, { detalle: sede });
-            router.refresh();
-            onClose();
-            return;
-          }
-          // Quedan solo las que faltaban, con marca nueva.
-          token.current = crypto.randomUUID();
-          setCantidades(Object.fromEntries(salida.lineas.map((l) => [l.varianteId, l.cantidad])));
-          setError(salida.mensaje);
-        } else {
-          // Sin saber qué se guardó esa lista no se puede reenviar (bajaría dos veces): se vacía y se mira de nuevo.
-          token.current = crypto.randomUUID();
-          setCantidades({});
-          setError(fallo.mensaje);
-        }
-        router.refresh();
-        return;
-      }
       if (fallo.tipo === "sin_alcance" && fallo.lineas.length > 0) {
-        setProblemas(Object.fromEntries(fallo.lineas.map((l) => [l.varianteId, textoFilaSinAlcance(l.hay, l.motivo)])));
-        setError("No se bajó nada: revisa las tallas marcadas.");
+        setProblemas(Object.fromEntries(fallo.lineas.map((l) => [l.varianteId, textoFilaSinAlcance(l.hay, l.motivo, "piso")])));
+        setError("No se subió nada: revisa las tallas marcadas.");
       } else {
         setError(fallo.mensaje);
       }
@@ -206,17 +181,11 @@ export function ReponerPrendaModal({
     }
 
     // Sin error la transacción se confirmó: si la respuesta no calza con el contrato, se informa con lo que se envió.
-    const r: RespuestaBajada = leerRespuestaDeBajada(data) ?? {
-      bajada_id: "",
-      ya_registrada: false,
-      lineas: lineas.length,
-      unidades: total,
-      registrada_en: new Date().toISOString(),
-    };
+    const r: RespuestaRetiro = leerRespuestaDeRetiro(data) ?? { ya_registrada: false, lineas: lineas.length, unidades: total };
     if (r.ya_registrada) {
-      avisar.aviso(textoDeExito(r, sede).detalle, { detalle: sede });
+      avisar.aviso(TEXTO_YA_ESTABA_SUBIDA, { detalle: sede });
     } else {
-      avisar.exito(avisoDeExito(r, sede).titulo, {
+      avisar.exito(tituloDeExitoRetiro(r.unidades), {
         detalle: `${nombreDePrendaParaReponer(prenda)} · ${detalleDeLoBajado(tallas, lineas)}`,
       });
     }
@@ -225,7 +194,7 @@ export function ReponerPrendaModal({
   }
 
   return (
-    <Modal titulo="Reponer piso" subtitulo="Del almacén al piso de venta" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
+    <Modal titulo="Subir a almacén" subtitulo="Del piso de venta al almacén" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
@@ -235,10 +204,30 @@ export function ReponerPrendaModal({
             {prenda.color && <span className="text-taupe">{prenda.color}</span>}
           </p>
 
-          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas bajas de cada talla?" retiene="fila">
-            {/* Todas las tallas de la prenda: la que no tiene nada en el almacén también sale, para que se vea por qué no se baja. */}
-            <SelectorDeTallas filas={filasDelSelector(tallas, "bajar")} cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
-            {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ninguna talla tiene prendas libres en el almacén para bajar.</p>}
+          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas subes de cada talla?" retiene="fila">
+            {/* Todas las tallas de la prenda: la que no tiene nada en el piso también sale, para que se vea por qué no se sube. */}
+            <SelectorDeTallas filas={filasDelSelector(tallas, "subir")} cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
+            {!hayAlgoQueSubir && <p className="mt-2 text-xs text-taupe">Ninguna talla tiene prendas libres en el piso para subir.</p>}
+          </CampoGuiado>
+
+          {/* Los textos posibles se apilan invisibles en la misma celda: mide lo del más largo y nada salta al elegir (ADR-0185). */}
+          <div className="grid text-xs leading-snug" aria-live="polite">
+            {TEXTOS_BLOQUE_SUBIR.map((t) => (
+              <p key={t} aria-hidden inert className="invisible [grid-area:1/1]">
+                {t}
+              </p>
+            ))}
+            <p className={`[grid-area:1/1] ${textoBloque === AVISO_QUEDAN_CON_POCO ? "text-ambar" : "text-tinta/65"}`}>{textoBloque}</p>
+          </div>
+
+          <CampoGuiado id="nota" guia={guia}>
+            <CampoTexto
+              etiqueta={guia.etiqueta("nota", "Por qué la subes (opcional)")}
+              maxLength={MAX_NOTA_RETIRO}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              disabled={loading || congelado}
+            />
           </CampoGuiado>
 
           <CampoGuiado id="responsable" guia={guia}>
@@ -251,7 +240,7 @@ export function ReponerPrendaModal({
             </p>
           )}
 
-          <PieGuia guia={guia} listo="Todo listo para bajar." />
+          <PieGuia guia={guia} listo="Todo listo para subir." />
 
           {/* `pie-hoja-fijo`: Cancelar y el botón principal no se van bajo el pliegue en un laptop de 768 px de alto (globals.css). */}
           <div className="pie-hoja-fijo flex gap-2 pt-1">
@@ -266,7 +255,7 @@ export function ReponerPrendaModal({
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {textoBotonReponer(total, congelado)}
+              {textoBotonSubir(total, congelado)}
             </Boton>
           </div>
         </form>

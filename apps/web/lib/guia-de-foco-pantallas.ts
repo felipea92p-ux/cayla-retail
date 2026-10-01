@@ -216,7 +216,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
-  "components/ReponerPisoModal.tsx": PENDIENTE, // 4 controles
   "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
   "components/ResolverDanadosModal.tsx": PENDIENTE, // 4 controles
   "components/ResumenPrevioEnvio.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
@@ -224,6 +223,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
   "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
   "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
+  "components/SubirAAlmacenModal.tsx": { estado: "aplicada", evidencia: ["components/SubirAAlmacenModal.tsx"] },
   "components/TallasLista.tsx": { estado: "aplicada", evidencia: ["components/TallasLista.tsx"] },
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },

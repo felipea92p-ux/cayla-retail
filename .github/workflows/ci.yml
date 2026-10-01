@@ -391,6 +391,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-al-piso
 
+      # «Subir a almacén» (ADR-0300): `retirar_del_piso` sube varias tallas del piso al almacén en UNA transacción (el movimiento
+      # contrario a `bajar_al_piso`). Todo o nada (una talla que no alcanza no deja subir ni la que sí), una marca por lista que
+      # hace seguro reenviar tras un corte, mismo módulo y mismo Responsable que «Retirar del piso», y la misma fila del libro
+      # que escribe `mover_entre_piso_y_almacen`. Cada caso termina en ROLLBACK.
+      - name: pruebas:retirar-del-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:retirar-del-piso
+
       # Nuevo producto con su stock de hoy (ADR-0212): el producto y la carga inicial son todo o nada (sin tienda, otra tienda,
       # un Taller «al piso» o un rol sin «Bajada al piso» no dejan ni el producto), las cantidades entran como «carga_inicial»
       # al almacén (o al piso con UNA bajada), firma el responsable, el mismo token no carga dos veces, la carga es solo para
