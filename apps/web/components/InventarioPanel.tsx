@@ -23,7 +23,7 @@ import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
-import { ResumenComercialOverlay } from "@/components/ResumenComercialOverlay";
+import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { TarjetaReponerAPiso } from "@/components/TarjetaReponerAPiso";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
@@ -42,7 +42,6 @@ import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomend
 import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar } from "@/lib/inventario-reglas";
-import type { FilaSemana } from "@/lib/existencias-categorias";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -292,7 +291,6 @@ export function InventarioPanel({
   sinStock,
   marcaFallo = null,
   verProductos = false,
-  filasSemana,
   deltaSede,
   comparacionFallo = false,
   politica,
@@ -337,10 +335,6 @@ export function InventarioPanel({
   marcaFallo?: string | null;
   /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
   verProductos?: boolean;
-  /** Los últimos 7 días de la sede (`getFilasSemanaDeSede`): ritmo de venta, costo/precio/categoría y
-   *  el delta vs. hace 7 días — alimenta el overlay de «Disponible total» (el ritmo de la tabla ya no sale de aquí: es el
-   *  Ritmo reciente, `existencias-ritmo.ts`). */
-  filasSemana: FilaSemana[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
   /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
@@ -757,7 +751,7 @@ export function InventarioPanel({
           <div className={`${separa ? "max-xl:col-span-2" : ""} xl:contents`}>
             <TarjetaPrioridad icono={Package} etiqueta="Resumen disponible" valor={resumen.disponible} unidad="uds" activa={viendoDisponible} onClick={() => setViendoDisponible(true)}>
               {/* Donde se separa piso y almacén, dónde está lo disponible. Donde no (Taller), el cambio de 7 días. Al tocarla se abre
-                  `ResumenComercialOverlay`: ventas, cobertura y qué sale o no sale esta semana. */}
+                  `ResumenStockOverlay`: prendas por categoría en almacén y piso, lo vendido en el mes y lo que más sale. */}
               {separa
                 ? `${libres.piso.toLocaleString("es-PE")} en piso · ${libres.almacen.toLocaleString("es-PE")} en almacén`
                 : comparacionFallo
@@ -1462,7 +1456,7 @@ export function InventarioPanel({
 
       {viendoApartados && <ApartadosModal apartados={apartados} otraSede={!enSedeActiva} onClose={() => setViendoApartados(false)} />}
 
-      {viendoDisponible && <ResumenComercialOverlay filas={filasSemana} esLider={esLider} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
+      {viendoDisponible && <ResumenStockOverlay stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
 
       {/* «Ver análisis de cobertura» (AnalisisCoberturaOverlay) y «Ver recomendaciones» (RecomendacionesOverlay) no vuelven:
           el rediseño del 2026-09-28 los reemplaza por «Prioridades de hoy» y el diagnóstico de cada fila; la cobertura
