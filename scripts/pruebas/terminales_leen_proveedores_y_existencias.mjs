@@ -222,7 +222,7 @@ const FOTO = (auth, sufijo) =>
   `select coalesce(max(facturas), 0) as f_${sufijo}, coalesce(max(saldo), 0) as s_${sufijo} from retail.fn_proveedores() where id = :'prov' \\gset\n`;
 const COMPRA = (letra, ubic, cant) => `
 select retail.registrar_compra(:'prov', 'TST', '${letra}' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), 'credito', :'${ubic}',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'descripcion', 'L1', 'cantidad', ${cant}, 'costo_unitario', 10,
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'descripcion', 'L1', 'cantidad', ${cant}, 'costo_unitario', 10, 'confirma_costo', true,
     'destinos', jsonb_build_array(jsonb_build_object('ubicacion_id', :'${ubic}', 'cantidad', ${cant})))),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as c_${letra} \\gset
 `;

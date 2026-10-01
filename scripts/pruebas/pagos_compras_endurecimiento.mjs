@@ -144,7 +144,7 @@ select v.id as var, v.producto_id as prod from retail.variantes v where v.sku = 
 
 const HOY = "retail.fn_hoy_lima()";
 const N = "'N' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)";
-const ITEM = (cantidad, costo) => `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', ${cantidad}, 'costo_unitario', ${costo})`;
+const ITEM = (cantidad, costo) => `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', ${cantidad}, 'costo_unitario', ${costo}, 'confirma_costo', true)`;
 
 /**
  * Crea un comprobante a crédito con la RPC real y deja `:v` con su id. Por defecto: 24 u × S/ 50 + IGV 18 % =
