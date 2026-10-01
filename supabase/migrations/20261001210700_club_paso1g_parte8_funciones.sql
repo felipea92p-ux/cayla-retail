@@ -62,10 +62,17 @@
 --   vale 20, una prenda de 79.90               → 20.00                      (cobra 59.90)
 --   vale 30, 79.90 y 40.10                     → 19.98 y 10.02              (fracciones iguales: la primera del ticket)
 --   vale 20, 79.90 y 45.00                     → 12.79 y 7.21               (el céntimo va a la de mayor fracción)
---   vale 60, una prenda de 45.00               → 45.00                      (el vale no da vuelto)
+--   vale 60, una prenda de 45.00               → la regla daría 45.00, pero la venta quedaría en S/ 0: se rechaza
+--                                                 (`aniversario_cubre_todo`, ver abajo)
 --   vale 20, una prenda de 10.00 × 3           → 6.66 × 3 = 19.98           (sobran 2 céntimos: no se reparten por unidad)
 --   vale 50, 79.90 × 2 y 45.00 × 3             → 13.55 × 2 y 7.63 × 3 = 49.99
 --
+-- DECIDÍ: un vale que cubre TODA la compra (vale ≥ total) se rechaza con `aniversario_cubre_todo`. Los términos dicen que «si
+--   la compra es menor que el vale, la diferencia no se conserva», pero hoy una venta en S/ 0 no se puede registrar: todo
+--   pago tiene que ser mayor que cero (`venta_pagos_monto_check`) y una boleta en S/ 0 es una «transferencia gratuita» ante
+--   SUNAT, que no está modelada. Queda para Felipe: o se cobra al menos S/ 0.01 (E = mín(vale, T − 0.01), y la web cambia
+--   su regla igual), o se modela la venta gratuita y su comprobante (toca SUNAT/Lucode: su OK primero). Mientras tanto, la
+--   caja dice por qué y nada queda a medias.
 -- DECIDÍ: «año de club» n = [club_desde + (n−1) años, club_desde + n años), en fechas de Lima; el aniversario n es el día
 --   club_desde + n años, y ese día ya es del año n+1. El año n CUENTA si en él hizo ≥ club_aniversario_compras compras netas o
 --   sumó ≥ club_aniversario_monto. Compras netas = las de la 1f (`fn_club_compras_netas`: completadas, sin las de prueba, sin
@@ -150,11 +157,12 @@
 --     from pg_proc p
 --    where p.pronamespace = 'retail'::regnamespace
 --      and p.proname in ('registrar_venta', 'resumen_clienta_caja', 'archivar_clienta', 'registrar_baja_whatsapp',
---                        'fn_club_pagina', 'club_intento', 'registrarse_en_el_club', 'fn_club_aniversario',
---                        'fn_club_avisos_pendientes', 'registrar_aviso_enviado', 'deshacer_aviso_enviado',
---                        'guardar_beneficios_club', 'fn_club_anonimizar_inactivas')
+--                        'fn_club_pagina', 'fn_club_textos_legales', 'club_intento', 'registrarse_en_el_club',
+--                        'fn_club_aniversario', 'fn_club_avisos_pendientes', 'fn_club_avisos_enviados_hoy',
+--                        'registrar_aviso_enviado', 'deshacer_aviso_enviado', 'guardar_beneficios_club',
+--                        'fn_club_anonimizar_inactivas')
 --    order by 1;
---   → exactamente 13 filas (una sola firma de registrar_venta, la de 18), cada una con su md5 «después» de la sección 0; y
+--   → exactamente 15 filas (una sola firma de registrar_venta, la de 18), cada una con su md5 «después» de la sección 0; y
 --   select tipo, version from retail.club_textos where tipo in ('terminos', 'privacidad', 'casilla_publicidad', 'saludo',
 --     'aviso_cumpleanos', 'aviso_aniversario', 'aviso_novedades', 'aviso_rebaja') order by 1;   → 8 filas, versión 1
 --   select anio, monto from retail.club_aniversario_escala order by 1;   → 1|20.00 · 2|30.00 · 3|40.00 · 4|50.00 · 5|60.00
@@ -225,7 +233,7 @@ begin
     select * from (values
       -- firma                                                                                                                        antes (producción 2026-10-01)        despues (este archivo)
       ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean)',         '2b55a94a754e7708f5b133008f30469f',  null),
-      ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)', null,                                'a0c06bb5aa41fb7ef3ffb375cac5d933'),
+      ('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)', null,                                '156fd99a4b558670029ab73e04f7ceb1'),
       ('retail.resumen_clienta_caja(uuid)',                                                                                            'fa690d7f1a5e1fa2412f9be78cb784a6',  '391f37d6941dc03cde25804c9d277834'),
       ('retail.archivar_clienta(uuid,text,boolean,integer)',                                                                           '5e20213a48c0b617ea92f7394d40eec9',  '73cb792a340c57f7239106bd21feccfe'),
       ('retail.registrar_baja_whatsapp(text,uuid)',                                                                                    '4c7d6ca5bac17c826b129f1f4764a0f5',  'a3026ba7024de52985cee3336522f0ba'),
@@ -235,7 +243,7 @@ begin
       ('retail.fn_club_soles_texto(numeric)',                                                                                          null,                                '3efa7a8adbb250b894ad0b9c7fd4f334'),
       ('retail.fn_club_fecha_texto(date)',                                                                                             null,                                '35016f9e8221269f5fb0f091209aaccc'),
       ('retail.fn_club_monto_neto_venta(uuid)',                                                                                        null,                                'bd412f05c8d3509ee7f83d1c3ab0ad72'),
-      ('retail.fn_club_aniversario_calculo(uuid)',                                                                                     null,                                '664bcc299ddeb7db5de98bab1c0ba2cc'),
+      ('retail.fn_club_aniversario_calculo(uuid)',                                                                                     null,                                '72c2a6cb88b99cb3ce8da04650252b01'),
       ('retail.fn_clienta_anonimizar(uuid,uuid,boolean)',                                                                              null,                                'f6a34ec2c9175faf4224999a3e89dde6'),
       ('retail.fn_club_ofrece_json(text[])',                                                                                           null,                                '75bf19f91e5c8a9bbaa04288dea6ab72'),
       ('retail.fn_club_pagina(uuid)',                                                                                                  null,                                '70a5d6e3d9970d33d9ffded02e3dcd61'),
@@ -412,7 +420,8 @@ begin
   loop
     exit;
   end loop;
-  if not v_existe then
+  -- Sin fila, el `for` deja las variables en nulo (no en su valor inicial): `is not true`, no `not`.
+  if v_existe is not true then
     return;
   end if;
   if v_desde_ts is null then
@@ -1358,6 +1367,13 @@ begin
         raise exception 'En esta venta no queda nada que descontar con el vale: no se canjea.' using hint = 'aniversario_sin_monto';
       end if;
       v_vale := least(greatest(round(v_aniv_monto * 100), 0)::bigint, v_total);
+      -- Una venta en S/ 0 no se puede cobrar (todo pago es mayor que cero) ni emitir: el vale que cubre TODA la compra se
+      -- rechaza con un aviso claro, en vez de caer en el candado de los pagos. Cómo regalar una compra entera (y su
+      -- comprobante ante SUNAT) lo decide Felipe: ver la cabecera.
+      if v_vale >= v_total then
+        raise exception 'El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede cobrar ni emitir: suma otra prenda o úsalo en una compra mayor.'
+          using hint = 'aniversario_cubre_todo';
+      end if;
       v_resto := v_vale;
       for i in 1 .. array_length(v_netos, 1) loop
         v_unid := v_unid || ((v_vale * v_netos[i]) / v_total);
