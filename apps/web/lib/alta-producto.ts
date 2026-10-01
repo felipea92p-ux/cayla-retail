@@ -201,8 +201,10 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
+  // Sin ni una letra ni un número («...», «✨») la base no tiene con qué formar la clave del nombre y lo rechaza recién al final de los 4 pasos.
+  else if (claveReferencia(e.referencia) === "") p.push({ bloque: "nombre", texto: "El nombre necesita al menos una letra o un número." });
   else if (e.nombreBloqueado) p.push({ bloque: "nombre", texto: "Ya existe un producto con ese nombre." });
-  else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro producto, o abre el que ya existe." });
+  else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro diseño (mira la prenda parecida), o ábrela." });
   else if (e.comprobandoNombre) p.push({ bloque: "nombre", texto: "Comprobando que el nombre no exista todavía…" });
   if (e.exigeTejidoPatron) {
     if (!e.hayTejidosEnCategoria || !e.hayPatronesEnCategoria) {

@@ -33,3 +33,6 @@ supabase/seed-taxonomia/
 # fuera de git a propósito: así jamás puede colarse en un `git archive`
 # ni en un copy/paste al SQL Editor de producción.
 supabase/migrations/0000_local_stub_dynamic.sql
+
+# /flujo-de-negocio: informes, capturas y guías generadas son locales (el repo es público)
+.flujo-de-negocio/

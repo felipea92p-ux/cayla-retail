@@ -14,7 +14,7 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -51,11 +51,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const precioOk = e.precioBase.trim() !== "" && Number.isFinite(precio) && precio > 0;
   const costo = Number(e.costoBase);
   const costoOk = e.costoBase.trim() === "" || (Number.isFinite(costo) && costo >= 0);
-  const nombreOk = e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
+  const nombreOk = e.referencia.trim() !== "" && claveReferencia(e.referencia) !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
   return [
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
+    // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
+    // escriba una letra. Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió. El orden no cambia nada de eso:
+    // `siguienteDe` solo retiene campos requeridos o sugeridos, así que «Sigue aquí» sigue yendo al nombre.
+    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "nombre",
       paso: 2,
@@ -66,15 +70,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       // La misma frase que `problemasAlta` da en cada caso: «Revisa el nombre» a secas no dice qué hacer.
       pendiente: !e.referencia.trim()
         ? "Escribe el nombre del producto."
-        : e.nombreBloqueado
-          ? "Ya existe un producto con ese nombre."
-          : e.nombreSinConfirmar
-            ? "Confirma que es otro producto, o abre el que ya existe."
-            : "Comprobando que el nombre no exista todavía…",
+        : claveReferencia(e.referencia) === ""
+          ? "El nombre necesita al menos una letra o un número."
+          : e.nombreBloqueado
+            ? "Ya existe un producto con ese nombre."
+            : e.nombreSinConfirmar
+              ? "Confirma que es otro diseño (mira la prenda parecida), o ábrela."
+              : "Comprobando que el nombre no exista todavía…",
     },
     { id: "descripcion", paso: 2, nombre: "Descripción", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo, los detalles." },
-    // Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió.
-    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "tejido",
       paso: 2,

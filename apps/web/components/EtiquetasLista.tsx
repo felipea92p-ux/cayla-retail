@@ -183,13 +183,13 @@ export function EtiquetasLista({
 }: {
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
-  /** Solo para un Líder (el costo no viaja a otros roles): avisa qué prendas quedarían bajo su costo. */
+  /** Las prendas con su precio para elegirlas y avisar cuáles quedarían bajo su costo. El costo solo llega a quien tiene permiso de dinero (en los demás es 0 y no avisa). */
   prendasConCosto: PrendaConCosto[];
   /** etiqueta_id → variantes etiquetadas a mano con ella. */
   variantesManuales: Record<string, string[]>;
-  /** Crear, editar, aprobar y archivar etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas. */
+  /** Crear, editar, aprobar y archivar etiquetas: el líder o un rol con el módulo Etiquetas. */
   puedeEditar: boolean;
-  /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923130000; la base lo vuelve a exigir). */
+  /** Tocar una etiqueta CON descuento o ponerle uno: el líder o un rol con el módulo Etiquetas, igual que `puedeEditar` (ADR-0293; la base lo vuelve a exigir). */
   puedeDarDescuento?: boolean;
 }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
@@ -457,7 +457,7 @@ export function EtiquetasLista({
               <div className={GRILLA_ATRIBUTOS}>
                 {delGrupo.map((e) => (
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
-                    {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
+                    {/* Una etiqueta CON descuento cambia el precio en caja; quien tiene el módulo Etiquetas también la configura (ADR-0293). */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
                         <BotonesPendiente
@@ -684,7 +684,7 @@ function CampanaModal({
             value={descuento}
             onChange={(e) => setDescuento(e.target.value)}
             disabled={!puedeDarDescuento}
-            placeholder={puedeDarDescuento ? "Ej. 20" : "Solo un líder pone descuento"}
+            placeholder={puedeDarDescuento ? "Ej. 20" : "Tu rol no pone descuento"}
             tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
             className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
             pie={

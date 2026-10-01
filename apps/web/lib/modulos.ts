@@ -80,7 +80,7 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "frescura", grupo: "Inventario", nombre: "Frescura del piso", incluye: "Ver cuánto lleva colgada cada prenda de su tienda contra las demás de su categoría, y qué conviene hacer con la que se queda" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
-  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar y archivar etiquetas sin descuento" },
+  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
   { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
@@ -120,12 +120,13 @@ export const MODULOS: readonly Modulo[] = [
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
  *  «Ver costos, márgenes y montos de Compras» (ADR-0126) SALIÓ de esta lista el 2026-09-22 (Felipe): los montos los ve
- *  quien tenga Facturas de compra, Por pagar o Notas de crédito (migración 20260923130000). */
+ *  quien tenga Facturas de compra, Por pagar o Notas de crédito (migración 20260923130000). «Poner etiquetas con descuento a
+ *  una prenda» SALIÓ el 2026-09-30 (Felipe, ADR-0293): quien crea la prenda la etiqueta como quiera y quien tiene Etiquetas
+ *  configura el descuento (migración 20261001130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
   { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Poner etiquetas con descuento a una prenda", origen: "ADR-0160" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).
@@ -209,7 +210,7 @@ export function modulosDeHoy(
  *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
  *                             (`fn_puede_ver_dinero_de_compras`, 20260923130000). Solo VER: qué ESCRIBE cada uno lo dice
  *                             `accionesDeCompra` (P1, 20260923140000)
- *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
+ *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda

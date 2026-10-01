@@ -42,7 +42,7 @@ export default async function NuevoProductoPage() {
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
       ) : (
         // `key`: si se cambia de sede en la cabecera, el stock de hoy es de OTRA tienda: el formulario empieza de nuevo.
-        <NuevoProductoForm key={persona.ubicacionId} contexto={contexto} destino={destino} esLider={persona.rol === "lider"} puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")} />
+        <NuevoProductoForm key={persona.ubicacionId} contexto={contexto} destino={destino} puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")} />
       )}
     </div>
   );

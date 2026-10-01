@@ -94,7 +94,9 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
   const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
   const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
-  const puedeDarDescuento = persona.rol === "lider"; // fn_puede_dar_descuento_por_etiqueta: solo el líder
+  // Configurar el descuento de una etiqueta y tocar las que lo llevan: líder o un rol con Etiquetas (ADR-0293, 2026-09-30;
+  // `fn_puede_dar_descuento_por_etiqueta` = `fn_puede_editar_etiquetas`). Antes era solo el líder y esas tarjetas salían sin acciones.
+  const puedeDarDescuento = puedeEditarEtiquetas;
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
 
@@ -122,8 +124,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
       : Promise.resolve({ data: [], error: null }),
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
-    // Costos y precios SOLO para un Líder, y solo para avisarle al configurar una campaña
-    // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
+    // Precios de las prendas, para el aviso de «por debajo del costo» al configurar una campaña y para elegir prendas en
+    // «Prendas». El COSTO no viaja a quien no tiene permiso de dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
     tipo === "etiquetas" && puedeDarDescuento
       ? leerTodas((desde, hasta) =>
           supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
@@ -202,7 +204,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     descuentoPct: e.descuento_pct,
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
-  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre.
+  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre; quien no, configura la campaña
+  // sin el aviso de costo (`costo` 0 nunca queda «por debajo»).
   const costos = puedeDarDescuento ? await getCostosVariantes() : null;
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => ({
     id: v.id,
