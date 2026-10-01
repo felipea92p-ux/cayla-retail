@@ -5,7 +5,6 @@ import {
   codigoClubLegible,
   enlaceQrClub,
   estadoClub,
-  mensajePersonal,
   textoVigente,
   enlacePaginaClub,
   type TextoClub,
@@ -37,9 +36,6 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
     expect(textoVigente(textos, "mensaje_generico")).toBeNull();
   });
 
-  it("el mensaje personal lleva su código de socia", () => {
-    expect(mensajePersonal("Hola CAYLA. (Club {codigo})", "C-0142")).toBe("Hola CAYLA. (Club C-0142)");
-  });
 
   it("el QR abre el WhatsApp DE LA TIENDA con el texto listo; sin número de tienda no hay QR", () => {
     expect(enlaceQrClub("987654321", "Hola CAYLA")).toBe("https://wa.me/51987654321?text=Hola%20CAYLA");

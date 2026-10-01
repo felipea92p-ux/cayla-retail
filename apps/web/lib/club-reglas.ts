@@ -37,11 +37,6 @@ export function textoVigente(textos: readonly TextoClub[], tipo: TipoTextoClub):
   return textos.filter((t) => t.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
 }
 
-/** El mensaje personalizado que ella envía, con su código de socia en lugar de `{codigo}`. */
-export function mensajePersonal(plantilla: string, codigoClub: string): string {
-  return plantilla.split("{codigo}").join(codigoClub);
-}
-
 /**
  * El enlace que abre el WhatsApp DE LA TIENDA con el texto listo para que ELLA lo envíe (el QR lo codifica). `null` si la
  * tienda no tiene número cargado (Configuración ▸ Tiendas y caja): sin número no hay QR, y el club sigue sin publicidad.
