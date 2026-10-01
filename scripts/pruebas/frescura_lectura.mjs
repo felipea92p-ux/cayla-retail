@@ -2330,14 +2330,15 @@ select pg_temp.blusa('ZZ-FL-T4J-REVERTIDA') as vc \\gset
 select pr.id as oa from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'va' \\gset
 select pr.id as ob from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vb' \\gset
 select pr.id as oc from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vc' \\gset
--- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción).
-${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0) as _a1 \\gset
+-- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción). Esta prueba habla de la
+-- frescura, no del costo: se cierra con costo 0 y el líder confirma el costo atípico (último parámetro; 20260930121000).
+${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0, true) as _a1 \\gset
 select retail.revertir_produccion(:'oa') as _a2 \\gset
 select retail.anular_produccion(:'oa', 'se cargó al modelo equivocado') as _a3 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0) as _b1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0, true) as _b1 \\gset
 select retail.revertir_produccion(:'ob') as _b2 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0) as _b3 \\gset
-select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0) as _c1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0, true) as _b3 \\gset
+select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0, true) as _c1 \\gset
 select retail.revertir_produccion(:'oc') as _c2 \\gset
 ${COMO_POSTGRES}select pg_temp.lectura() as j \\gset
 select (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'verano') as fin25 \\gset
