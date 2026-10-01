@@ -950,7 +950,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
-        <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
+        <Link href="/" className={`lateral-logo group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
           <IsotipoCayla className="h-8 w-auto shrink-0 transition-transform duration-500 ease-cayla group-hover:scale-105" />
           <span className={`flex min-w-0 flex-col transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
             <span className="label-cayla text-sm text-tinta transition-colors duration-200 group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
@@ -972,7 +972,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </button>
         </div>
 
-        <nav className="scroll-cayla flex-1 space-y-7 overflow-y-auto px-3">
+        <nav className="scroll-cayla lateral-scroll flex-1 space-y-7 overflow-y-auto px-3">
           {grupos.map((g) => (
             <GrupoLateral
               key={g.titulo}
@@ -995,12 +995,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* El lateral terminaba en un vacío de media pantalla. La firma de la
             marca le da un piso al bloque de abajo, en vez de dejar el aire
             colgando entre el último ítem y la persona. */}
-        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
+        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className={`lateral-firma font-display overflow-hidden whitespace-nowrap px-7 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
           Donde el estilo transforma.
         </p>
 
         {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
-        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
+        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`lateral-persona overflow-hidden border-t border-tinta/10 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
             {esAparato ? (
               // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir

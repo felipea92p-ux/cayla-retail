@@ -1460,6 +1460,33 @@ html[data-buscando] [data-resultados] {
   }
 }
 
+/* ---- LATERAL EN UN LAPTOP BAJO (2026-10-01, revisión de responsive de Inventario) ----
+   A 768 px de alto el menú no cabe: con Inventario abierto faltaban 244 px, y el pie «Donde el estilo transforma.» tapaba la
+   última fila visible. Dos cosas, ninguna toca la altura de las filas (`ALTO_FILA` alimenta la animación de los grupos):
+   1. En escritorio (>= 640 px de ancho) y con 800 px de alto o menos, se quita lo decorativo: la firma desaparece y el
+      logo y la persona respiran menos. Recupera ~100 px para las filas. Los paddings base viven aquí y NO como utilidades
+      en AppShell.tsx (`pt-7`, `py-5`…): una utilidad le gana a esta capa y la variante de abajo no se aplicaría (ADR-0105).
+   2. `.lateral-scroll` pinta una sombra suave arriba o abajo SOLO cuando hay filas escondidas en ese lado (el truco de
+      `background-attachment: local`: las tapas se mueven con el contenido y descubren la sombra fija). Así una fila cortada
+      se lee como «sigue», no como un error. Sin JavaScript. ---- */
+@layer components {
+  .lateral-logo { padding-top: 1.75rem; padding-bottom: 1.5rem; }
+  .lateral-firma { padding-top: 1.5rem; padding-bottom: 1.25rem; }
+  .lateral-persona { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  @media (min-width: 640px) and (max-height: 800px) {
+    .lateral-firma { display: none; }
+    .lateral-logo { padding-top: 1rem; padding-bottom: 0.75rem; }
+    .lateral-persona { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  }
+  .lateral-scroll {
+    background:
+      linear-gradient(var(--color-crema) 30%, transparent) top / 100% 36px no-repeat local,
+      linear-gradient(transparent, var(--color-crema) 70%) bottom / 100% 36px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--color-tinta) 14%, transparent), transparent) top / 100% 12px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--color-tinta) 14%, transparent), transparent) bottom / 100% 12px no-repeat scroll;
+  }
+}
+
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
         Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
         El barrido y la aguja llevan la MISMA curva y duración a propósito: la
