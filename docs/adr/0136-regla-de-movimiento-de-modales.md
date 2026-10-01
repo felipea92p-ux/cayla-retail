@@ -185,3 +185,14 @@ movimiento fuera de esta regla. Quedan como excepciones **solo de esa pieza** (`
 - **Con `prefers-reduced-motion`, nada de eso:** la capa aparece y desaparece sin movimiento.
 Por qué se acepta aquí: no es un modal ni una respuesta a una acción. Es un estado de la tienda que tiene que leerse de lejos y
 sin leer («la tienda está cerrada»), y que dura lo que tarda alguien en abrir la caja.
+
+## Actualización 2026-10-01 (e) — la página pública del Club CAYLA tiene su propio movimiento
+
+**Alcance:** esta regla gobierna el ERP (lo que usa el equipo). La página a la que llega una clienta al escanear el cartel del
+club (`/club/<tienda>`, ADR-0288 act. g e i) es una pieza de marca para clientas, y Felipe aprobó el 2026-10-01 un movimiento
+más vistoso: el colibrí que entra volando y queda flotando, el hilo rojo que se dibuja, tarjetas que suben en cascada, un
+destello y un latido en el botón principal, pétalos que caen una vez y la tarjeta de socia que entra girando.
+- **Lo que se mantiene:** sin rebotes exagerados; cada efecto pasa una o dos veces y se detiene; el único bucle es el colibrí
+  flotando; colores solo con tokens; con `prefers-reduced-motion` todo se apaga y cada pieza queda en su estado final.
+- **Dónde vive:** `apps/web/app/estilos/club-publico.css` (sus `@keyframes`), sin tocar la «REGLA DE MODALES» de
+  `globals.css`. No se copia a pantallas del ERP.
