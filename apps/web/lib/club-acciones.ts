@@ -1,86 +1,15 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
-import type { TextoClub, TipoTextoClub } from "@/lib/club-reglas";
 
 // Las escrituras y lecturas del club desde el navegador (ADR-0288 tanda 1b): una función por RPC, para que Cobrar y
 // /clientas no sepan de Supabase. Todas las que guardan firman con el responsable del combo (ADR-0161) y la base exige el
-// módulo «Clientas» (42501 `clientas_sin_modulo`). Las reglas (quién puede ser socia, que la publicidad solo nace de un
-// mensaje de ella) viven en la base, no aquí.
-
-export type ResultadoUnirse = { codigoClub: string | null; clubDesde: string | null; error: ErrorEscritura };
-
-/** Su «sí» al club (de palabra: en caja o en la ficha). Devuelve su código de socia. */
-export async function unirseAlClub(
-  datos: {
-    clientaId: string;
-    celular: string;
-    cumpleDia: number | null;
-    cumpleMes: number | null;
-    cumpleAnio: number | null;
-    medio: "caja_palabra" | "ficha";
-    ubicacionId: string | null;
-    ventaId?: string | null;
-    /** La versión del texto `club` que la asesora LEYÓ: si cambió mientras la invitaba, la base rechaza
-     *  (`club_texto_cambio`) para que el permiso guarde exactamente lo que se le leyó. */
-    textoVersion: number | null;
-  },
-  firma: Firma | null
-): Promise<ResultadoUnirse> {
-  const { data, error } = await firmar(
-    createClient().rpc("unirse_al_club", {
-      p_clienta_id: datos.clientaId,
-      p_telefono_whatsapp: datos.celular,
-      p_cumple_dia: datos.cumpleDia ?? undefined,
-      p_cumple_mes: datos.cumpleMes ?? undefined,
-      p_cumple_anio: datos.cumpleAnio ?? undefined,
-      p_medio: datos.medio,
-      p_ubicacion_id: datos.ubicacionId ?? undefined,
-      p_venta_id: datos.ventaId ?? undefined,
-      p_texto_version: datos.textoVersion ?? undefined,
-    }),
-    firma
-  );
-  const fila = Array.isArray(data) ? data[0] : null;
-  return { codigoClub: fila?.codigo_club ?? null, clubDesde: fila?.club_desde ?? null, error };
-}
-
-/** «Llegó su mensaje»: ella escribió primero desde el QR; su permiso de publicidad queda registrado. */
-export async function registrarMensajePublicidad(
-  clientaId: string,
-  telefonoQueEscribio: string,
-  ubicacionId: string | null,
-  firma: Firma | null
-): Promise<{ publicidadDesde: string | null; error: ErrorEscritura }> {
-  const { data, error } = await firmar(
-    createClient().rpc("registrar_mensaje_publicidad", {
-      p_clienta_id: clientaId,
-      p_telefono_que_escribio: telefonoQueEscribio,
-      p_ubicacion_id: ubicacionId ?? undefined,
-    }),
-    firma
-  );
-  return { publicidadDesde: (data as string | null) ?? null, error };
-}
-
-/** El cartel del mostrador: llegó «quiero unirme al club…» de un número que no está; la tienda le pidió su documento. */
-export async function registrarDesdeWhatsapp(
-  datos: { documentoTipo: string; documentoNumero: string; nombre: string; telefonoQueEscribio: string; ubicacionId: string | null },
-  firma: Firma | null
-): Promise<{ clientaId: string | null; codigoClub: string | null; error: ErrorEscritura }> {
-  const { data, error } = await firmar(
-    createClient().rpc("registrar_desde_whatsapp", {
-      p_documento_tipo: datos.documentoTipo,
-      p_documento_numero: datos.documentoNumero,
-      p_nombre: datos.nombre.trim() || undefined,
-      p_telefono_que_escribio: datos.telefonoQueEscribio,
-      p_ubicacion_id: datos.ubicacionId ?? undefined,
-    }),
-    firma
-  );
-  const fila = Array.isArray(data) ? data[0] : null;
-  return { clientaId: fila?.clienta_id ?? null, codigoClub: fila?.codigo_club ?? null, error };
-}
+// módulo «Clientas» (42501 `clientas_sin_modulo`). Las reglas (quién puede ser socia, que la publicidad solo nace de ella)
+// viven en la base, no aquí.
+//
+// Tanda 1g (ADR-0288, «Actualización 2026-10-01 (g)»): ella se une sola desde el cartel, así que la caja y la ficha ya no
+// unen al club ni registran la publicidad. Se fueron `unirseAlClub`, `crearInvitacionClub` (su QR personal),
+// `registrarMensajePublicidad` y `registrarDesdeWhatsapp` («Llegó un mensaje de WhatsApp»): la base les quitó el permiso.
 
 /** Escribió BAJA a cualquier tienda: sin publicidad desde hoy, en las 3 tiendas. Devuelve cuántas fichas tenían ese número. */
 export async function registrarBajaWhatsapp(
@@ -111,12 +40,21 @@ export type ResumenClientaCaja = {
   cumpleCanjeadoEsteAnio: boolean;
   /** El día de Lima (`aaaa-mm-dd`) en que lo canjeó este año, o null: «Cumpleaños canjeado el 12 sep». */
   cumpleCanjeadoEl: string | null;
+  /** El vale de aniversario (tanda 1g, G-13): un año de club que cuenta, sin canje vivo y dentro de sus días. Lo decide la
+   *  base; la caja lo muestra con `valeEnCaja` (lib/club-aniversario-canje-reglas.ts). */
+  aniversarioDisponible: boolean;
+  /** Cuánto vale (la escala de `club_aniversario_escala`): nunca escrito a mano en la pantalla. */
+  aniversarioMonto: number | null;
+  /** Hasta cuándo se puede usar (`aaaa-mm-dd`, día de Lima). */
+  aniversarioVence: string | null;
 };
+
 
 /** Lo que la tarjeta de la clienta necesita en Cobrar (lectura: `resumen_` no abre el loader). */
 export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: ResumenClientaCaja | null; error: ErrorEscritura }> {
   const { data, error } = await createClient().rpc("resumen_clienta_caja", { p_clienta_id: clientaId });
   const f = Array.isArray(data) ? data[0] : null;
+  const aniversario = f ?? { aniversario_disponible: false, aniversario_monto: null, aniversario_vence: null };
   return {
     resumen: f
       ? {
@@ -132,32 +70,12 @@ export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: 
           cumplePct: f.cumple_pct == null ? null : Number(f.cumple_pct),
           cumpleCanjeadoEsteAnio: f.cumple_canjeado_este_anio === true,
           cumpleCanjeadoEl: f.cumple_canjeado_el ?? null,
+          // Igual con la 1g: sin estas columnas no se ofrece el vale.
+          aniversarioDisponible: aniversario.aniversario_disponible === true,
+          aniversarioMonto: aniversario.aniversario_monto == null ? null : Number(aniversario.aniversario_monto),
+          aniversarioVence: aniversario.aniversario_vence ?? null,
         }
       : null,
     error,
   };
 }
-
-/** Los textos vigentes del club (el que se lee en caja y los dos mensajes del QR). */
-export async function textosClub(): Promise<{ textos: TextoClub[]; error: ErrorEscritura }> {
-  const { data, error } = await createClient().rpc("fn_club_textos_vigentes");
-  return {
-    textos: (data ?? []).map((t) => ({ tipo: t.tipo as TipoTextoClub, version: t.version, texto: t.texto })),
-    error,
-  };
-}
-
-/** Camino B (ADR-0288 act. c): la invitación de un solo uso que abre la página pública. La devuelve vigente si ya había. */
-export async function crearInvitacionClub(
-  clientaId: string,
-  ubicacionId: string | null,
-  firma: Firma | null
-): Promise<{ token: string | null; venceEn: string | null; error: ErrorEscritura }> {
-  const { data, error } = await firmar(
-    createClient().rpc("crear_invitacion_club", { p_clienta_id: clientaId, p_ubicacion_id: ubicacionId ?? undefined }),
-    firma
-  );
-  const fila = Array.isArray(data) ? data[0] : null;
-  return { token: fila?.token ?? null, venceEn: fila?.vence_en ?? null, error };
-}
-

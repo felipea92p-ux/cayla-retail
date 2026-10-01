@@ -6,7 +6,7 @@
 // CONTRATO
 //   PROMETE: toda combinación de finalidad, acción y medio tiene un título (un medio que la web no conoce se dice tal cual,
 //            nunca se esconde el evento); el punto del evento: club en taupe, publicidad que llega en verde, que se va en ámbar.
-//   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B).
+//   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B y `pagina_cartel` de la 1g).
 //   NO HACE: no ordena (la base ya la trae de la más vieja a la más nueva).
 
 export type FilaPermiso = {
@@ -28,6 +28,8 @@ export const MEDIO_LEGIBLE: Readonly<Record<string, string>> = {
   caja_palabra: "de palabra, en caja",
   ficha: "desde la ficha",
   qr_web: "desde la página de su QR",
+  // Tanda 1g (G-1, G-10): ella se unió sola, escaneando el cartel de la tienda (sin quién registró: lo hizo ella).
+  pagina_cartel: "se registró ella desde el cartel",
   whatsapp_propio: "ella escribió a la tienda",
   baja_whatsapp: "escribió BAJA",
   cambio_celular: "cambió su celular",

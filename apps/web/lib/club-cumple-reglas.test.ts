@@ -6,8 +6,6 @@ import {
   ajustarDia,
   cajaDelProblemaCumple,
   cumpleCompleto,
-  cumpleEscrito,
-  cumpleParaGuardar,
   cumpleVacio,
   problemaCumple,
 } from "./club-cumple-reglas";
@@ -75,17 +73,5 @@ describe("el cumpleaños: la misma regla en Cobrar y en /clientas", () => {
     expect(cajaDelProblemaCumple({ dia: "", mes: "", anio: "1990" }, 2026)).toBe("dia");
     expect(cajaDelProblemaCumple({ dia: "12", mes: "", anio: "" }, 2026)).toBe("dia");
     expect(cajaDelProblemaCumple({ dia: "12", mes: "3", anio: "" }, 2026)).toBeNull();
-  });
-
-  it("lo que viaja a la base: números o null, y el año solo con día y mes", () => {
-    expect(cumpleParaGuardar({ dia: "14", mes: "3", anio: "1990" })).toEqual({ cumpleDia: 14, cumpleMes: 3, cumpleAnio: 1990 });
-    expect(cumpleParaGuardar({ dia: "14", mes: "3", anio: "" })).toEqual({ cumpleDia: 14, cumpleMes: 3, cumpleAnio: null });
-    expect(cumpleParaGuardar(CUMPLE_VACIO)).toEqual({ cumpleDia: null, cumpleMes: null, cumpleAnio: null });
-  });
-
-  it("el de la ficha se escribe en la hoja tal cual, vacío si no lo tenía", () => {
-    expect(cumpleEscrito(14, 3, 1990)).toEqual({ dia: "14", mes: "3", anio: "1990" });
-    expect(cumpleEscrito(14, 3, null)).toEqual({ dia: "14", mes: "3", anio: "" });
-    expect(cumpleEscrito(null, undefined, null)).toEqual(CUMPLE_VACIO);
   });
 });

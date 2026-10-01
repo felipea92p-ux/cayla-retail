@@ -111,11 +111,24 @@ if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).lengt
   );
   process.exit(1);
 }
+// La tanda 1g del club (ADR-0288 act. g, 20261001210700) volvió a cambiar archivar_clienta (la rutina de anonimizar pasó a
+// fn_clienta_anonimizar, la misma que usa el cron de conservación). Su tabla, igual; y tampoco se corta: partió de la 1b.
+const PASO_1G = leer("20261001210700_club_paso1g_parte8_funciones.sql");
+const VERSIONES_1G = [
+  ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const cortadas1g = VERSIONES_1G.filter((w) => w.antes && VERSIONES_1B.some((v) => v.firma === w.firma && v.despues !== w.antes));
+if (!VERSIONES_1G.some((w) => w.firma === "retail.archivar_clienta(uuid,text,boolean,integer)") || cortadas1g.length) {
+  console.error(`✗ La tabla de versiones de la 1g debería tener archivar_clienta con el «después» de la 1b como «antes»; no calzan: ${cortadas1g.map((v) => v.firma).join(", ")}.`);
+  process.exit(1);
+}
 /**
- * El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1b si la 1b la tocó; si no, el de la 1a si la 1a la
- * tocó; si no, el de la PARTE 1.
+ * El md5 que cada una de las 14 tiene que tener HOY: el «después» de la 1g si la 1g la tocó; si no, el de la 1b si la 1b la
+ * tocó; si no, el de la 1a si la 1a la tocó; si no, el de la PARTE 1.
  */
 const DESPUES_HOY = VERSIONES.map((v) => {
+  const g = VERSIONES_1G.find((x) => x.firma === v.firma);
+  if (g) return g.despues ?? "NO_EXISTE";
   const b = VERSIONES_1B.find((x) => x.firma === v.firma);
   if (b) return b.despues ?? "NO_EXISTE";
   const w = VERSIONES_1A.find((x) => x.firma === v.firma);
@@ -135,6 +148,16 @@ const DE_LA_PAGINA = ["confirmar_invitacion_club", "fn_invitacion_club"];
 // Las de la tanda 1f (20260930210000, la lista y la ficha): cinco lecturas y el guardado de las preferencias, todas con el
 // candado del módulo (las prueba a fondo scripts/pruebas/club_lista_y_ficha.mjs).
 const DE_LA_1F = ["fn_cifras_clientas", "fn_clienta_permisos", "fn_clienta_su_sede", "fn_clientas_lista", "fn_club_etiquetas", "guardar_preferencias_clienta"];
+// Las de la tanda 1g (ADR-0288 act. g, 20261001210700) que tocan la ficha:
+//  · fn_club_aniversario: con el candado de «Clientas», como las demás;
+//  · las de Avisos del club (fn_club_avisos_pendientes, registrar_aviso_enviado): con el candado de SU módulo, avisos_club
+//    (la encargada de los avisos no necesita ver la ficha entera; solo nombre, celular y el texto del aviso);
+//  · las del servidor (registrarse_en_el_club, fn_club_anonimizar_inactivas): SIN módulo A PROPÓSITO, porque no hay sesión
+//    (las llama el servidor de la web con la llave de servicio: ni anon ni authenticated tienen EXECUTE; lo prueba
+//    club_registro_cartel.mjs). El vigilante las cuenta y les deja pasar eso, y solo eso.
+const DE_LA_1G = ["fn_club_aniversario"];
+const DE_AVISOS = ["fn_club_avisos_pendientes", "registrar_aviso_enviado"];
+const DEL_SERVIDOR = ["fn_club_anonimizar_inactivas", "registrarse_en_el_club"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -235,6 +258,13 @@ insert into retail.clientas (id, documento_numero, nombre, archivada_en, motivo_
 
 -- Cuántas líneas de actividad de Clientas había antes del caso (la base la comparten otras pruebas).
 select count(*) as act0 from retail.actividad where modulo = 'clientas' \\gset
+-- Tanda 1g (ADR-0288 act. g): unirse_al_club, registrar_mensaje_publicidad, registrar_desde_whatsapp y crear_invitacion_club
+-- ya no las ejecuta authenticated, ni fn_invitacion_club y confirmar_invitacion_club anon (retiro SIN borrarlas). Esta
+-- prueba las usa para armar a sus socias: se les devuelve el EXECUTE dentro de la transacción del caso (termina en ROLLBACK).
+grant execute on function retail.unirse_al_club(uuid, text, smallint, smallint, smallint, text, uuid, uuid, integer),
+  retail.registrar_mensaje_publicidad(uuid, text, uuid), retail.registrar_desde_whatsapp(text, text, text, text, uuid),
+  retail.crear_invitacion_club(uuid, uuid) to authenticated;
+grant execute on function retail.fn_invitacion_club(text), retail.confirmar_invitacion_club(text, integer) to anon, authenticated;
 `;
 
 /** Cambia de cuenta. `responsable`: el uuid que viaja en `x-responsable` (el combo de la terminal), o nada. */
@@ -626,7 +656,8 @@ caso(
 // conexión si al rol le quitaron el módulo en el camino.
 const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "retirar_del_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
-const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${DE_LA_PAGINA.map((n) => `'${n}'`).join(", ")})`;
+const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR].map((n) => `'${n}'`).join(", ")})
+  and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
   from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
@@ -635,9 +666,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B) y las 6 de la lista y la ficha (tanda 1f), y todas llevan el candado del módulo salvo las 2 de la página",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) y las 5 de la tanda 1g, y todas llevan el candado del módulo salvo las 2 de la página y las 2 del servidor (las de Avisos, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F].sort().join(",")}\nninguna`
+  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",

@@ -939,6 +939,36 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-lista-y-ficha
 
+      # Club de clientas, tanda 1g (ADR-0288 «Actualización 2026-10-01 (g)»): ella se une sola desde el cartel. El registro sin
+      # sesión (`registrarse_en_el_club`, solo service_role): ficha nueva o reemplazo de sus datos sin moverle `club_desde` ni
+      # el código, la prueba del consentimiento (pagina_cartel citando los términos y la casilla, sin persona), menor de 18,
+      # versiones de los textos, celular nuevo que revoca y vuelve a dar la publicidad, archivada (no se reactiva) y anonimizada
+      # (nunca se reusa); los límites del cartel (`club_intento`); quién puede llamar (anon y authenticated NO); la página y los
+      # textos legales EXACTOS del documento aprobado; guardar_beneficios_club con su versión nueva de los términos; la
+      # conservación de 3 años; md5 «después» = vivas, pegar las ocho partes dos veces deja lo mismo, con registrar_venta
+      # cambiada en vivo aborta sin pisar, y cada `alter` de una tabla en uso en su parte. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-registro-cartel
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-registro-cartel
+
+      # Club de clientas, tanda 1g (G-9, G-13): el vale de aniversario. El reparto en `registrar_venta` con
+      # `p_canjear_aniversario`, igual al de la web (tabla de ejemplos) y exacto al céntimo; el umbral (6 compras o S/ 600 en
+      # compras NETAS), la pausa y la escala (el quinto se repite), los 60 días; el canje (monto aplicado, año de club), uno por
+      # compra con el cumpleaños, uno por año de club, el vale que cubre toda la compra (aniversario_cubre_todo); anular libera,
+      # una devolución no; y dos cajas a la vez (la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK
+      # (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-aniversario
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-aniversario
+
+      # Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
+      # casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
+      # su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
+      # avisos_club (nace sin rol) y la BAJA desde Avisos; anonimizar borra teléfono y texto. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-avisos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-avisos
+
       # Club de clientas, tanda 1e (ADR-0288 D-3): el comprobante acepta carné de extranjería y pasaporte. Boleta y nota de
       # venta guardan el tipo y el número limpio; fuera de formato (o sin número) → `documento_invalido` sin venta, sin stock
       # movido ni correlativo gastado; la factura sigue exigiendo RUC; el candado de la tabla frena un insert directo; la

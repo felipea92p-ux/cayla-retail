@@ -43,6 +43,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/cambios": PENDIENTE,
   // ---- clientas ----
   "/clientas": { estado: "no-aplica", motivo: "Lista de clientas con buscador y filtros; todo lo que se llena vive en sus ventanas (registrar clienta, la ficha, «Llegó un mensaje de WhatsApp»), cada una con su guía en el registro de modales." },
+  // ADR-0288 act. g (tanda 1g): una bandeja; lo único que se llena es quién envía (se enciende si falta). «Beneficios del club» es un modal.
+  "/clientas/avisos": { estado: "aplicada", evidencia: ["components/clientas/AvisosClubPanel.tsx"] },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: una hoja A4 por tienda con su QR; se revisa y se imprime, no hay campos que completar ni pasos." },
   // ---- colaboradores ----
   "/colaboradores": PENDIENTE,
@@ -165,8 +167,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
-  // ADR-0288 tanda 1b: la ficha ganó las acciones del club (unirse, su QR, «Llegó su mensaje», «Registrar su BAJA») y, con ellas, la guía en
-  // cada acción que se llena (editar, archivar, unir y las tres del club).
+  // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
+  // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
+  // quién la registra, dentro de la misma hoja).
   "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx"] },
   "components/ColaboradoresModales.tsx": PENDIENTE, // 14 controles
   "components/ColaboradoresPanel.tsx": PENDIENTE, // 3 controles
@@ -232,8 +235,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  // ADR-0288 tanda 1b: «Llegó un mensaje de WhatsApp» (el mensaje, el número, el documento si no hay ficha, quién registra).
-  "components/clientas/LlegoMensajeWhatsappModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/LlegoMensajeWhatsappModal.tsx"] },
+  // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
+  // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
+  "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
   "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },
@@ -250,9 +254,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
-  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta (tipo de documento, número, nombre, celular, quién atiende).
+  // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
-  // ADR-0288 tanda 1b: «Invitar» al club desde Cobrar (celular, cumpleaños, texto leído, quién atiende).
-  "components/punto-de-venta/InvitarAlClub.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/InvitarAlClub.tsx"] },
 };
