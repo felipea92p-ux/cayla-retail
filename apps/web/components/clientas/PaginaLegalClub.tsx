@@ -35,11 +35,11 @@ export async function PaginaLegalClub({ cual, t }: { cual: "privacidad" | "termi
         <TextoLegal bloques={cuerpoLegal(texto.texto)} />
       </div>
       <p className="mt-10 flex flex-wrap gap-x-4 gap-y-1 border-t border-sand pt-4 text-[13px]">
-        <a href={enlaceLegal(otro, volverA)} className="font-medium text-tinta underline underline-offset-2 hover:text-rojo-profundo">
+        <a href={enlaceLegal(otro, volverA)} className="club-enlace club-enlace-amplio font-medium">
           {TITULOS[otro]}
         </a>
         {volverA && (
-          <a href={`/club/${volverA}`} className="text-tinta/70 underline underline-offset-2 hover:text-rojo-profundo">
+          <a href={`/club/${volverA}`} className="club-enlace club-enlace-amplio">
             Ir al registro del Club CAYLA
           </a>
         )}

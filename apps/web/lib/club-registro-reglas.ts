@@ -175,18 +175,13 @@ export function fechaLarga(valor: string | null | undefined): string | null {
 }
 
 /* ------------------------------------------------------------------ Los textos aprobados de la página */
-// `docs/club/texto-legal-registro-v1.md`, sección 1, palabra por palabra. Lo que depende de la configuración (el % del
-// cumpleaños, las compras y el monto que hacen contar un año, la escala del vale) sale de la base, para que la página diga lo
-// mismo que los términos vigentes.
+// Los del formulario, las casillas y la letra chica: `docs/club/texto-legal-registro-v1.md`, sección 1. Su «Cabecera» y su «Qué
+// recibes» los reemplazó el inicio del diseño aprobado por Felipe el 2026-10-01 (`lib/club-publico-reglas.ts`: `INICIO`,
+// `tarjetasDelInicio` y `notaDelUmbral`), con las mismas cifras de la base; las condiciones de cada beneficio siguen en los
+// Términos, enlazados ahí mismo.
 
 /** Un trozo de párrafo: texto suelto o una parte que se lee en negrita. */
 export type Trozo = string | { fuerte: string };
-
-export const TITULO_CLUB = "Club CAYLA";
-export const BAJADA_CLUB =
-  "Recibe un descuento en tu cumpleaños y un vale de compra por cada año con nosotras. Si quieres, también te contamos primero lo nuevo y nuestras promociones por WhatsApp.";
-/** «Las condiciones de cada beneficio están en los Términos del Club CAYLA (sección 3).», con el enlace en el medio. */
-export const NOTA_CONDICIONES = { antes: "Las condiciones de cada beneficio están en los ", enlace: "Términos del Club CAYLA", despues: " (sección 3)." } as const;
 
 export const AYUDA = {
   documento: "Lo usamos para reconocerte en caja y aplicar tus cupones.",
@@ -198,25 +193,6 @@ export const AYUDA = {
 
 export const CASILLA_MAYOR = "Confirmo que soy mayor de 18 años.";
 export const BOTON_UNIRME = "Unirme al Club CAYLA";
-
-/** «Qué recibes»: los tres beneficios, con el % del cumpleaños, el umbral del año y la escala del vale vigentes. */
-export function beneficiosDelClub(p: PaginaClub): { fuerte: string; resto: string }[] {
-  const compras = `${p.compras} ${p.compras === 1 ? "compra" : "compras"}`;
-  return [
-    {
-      fuerte: "Cupón de cumpleaños:",
-      resto: `${formatoPct(p.pct)} % de descuento en una compra en cualquier tienda CAYLA durante el mes de tu cumpleaños.`,
-    },
-    {
-      fuerte: "Vale de aniversario:",
-      resto: `al cumplir cada año como socia, si en ese año hiciste ${compras} o sumaste ${formatoSoles(p.montoMinimo)} en compras, recibes un vale para comprar lo que quieras en cualquier tienda CAYLA. El vale crece cada año: ${escalaEnPalabras(p.escala)}.`,
-    },
-    {
-      fuerte: "Novedades y promociones por WhatsApp",
-      resto: "(opcional): lo nuevo que llega a CAYLA, rebajas, promociones y el aviso de tus cupones.",
-    },
-  ];
-}
 
 /** La casilla de los términos, con los dos enlaces en su lugar (`enlace`: cuál abre). */
 export function casillaTerminos(razonSocial: string): (string | { enlace: "privacidad" | "terminos"; texto: string })[] {
@@ -570,21 +546,20 @@ export function ipDeLaPeticion(reenviadaPor: string | null | undefined, real: st
 
 export type Bienvenida = {
   titulo: string;
-  parrafos: Trozo[][];
+  /** La línea bajo el título: «Ya eres socia…», o desde cuándo lo es si ya lo era. */
+  bajada: string;
   /** Solo si marcó la casilla de WhatsApp y la tienda tiene número (ADR-0288 G-6, G-12). */
   saludo: { titulo: string; parrafo: string; boton: string; enlace: string } | null;
 };
 
 /**
- * Lo que ve al terminar. Nueva: «¡Bienvenida al Club CAYLA, {nombre}!» y su código. Ya era socia: «Actualizamos tus datos.»
- * y desde cuándo es socia. Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así
- * guarda el número oficial y la conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
+ * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de socia, que dibuja la página). Nueva:
+ * «¡Bienvenida, {nombre}!» y «Ya eres socia del Club CAYLA.». Ya era socia: «Actualizamos tus datos» y desde cuándo es socia.
+ * Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así guarda el número oficial y la
+ * conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
  */
 export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p: PaginaClub): Bienvenida {
-  const parrafos: Trozo[][] = [];
   const desde = r.eraSocia ? fechaLarga(r.clubDesde) : null;
-  if (desde) parrafos.push([`Eres socia del Club CAYLA desde el ${desde}.`]);
-  parrafos.push(["Tu código de socia es ", { fuerte: r.codigo }, ". Dilo en caja o muestra tu documento para usar tus cupones."]);
   const mensaje = p.textos.saludo
     ? completarMarcadores(p.textos.saludo.texto, { ...marcadoresDePagina(p), nombre: r.nombre ?? "", codigo: r.codigo })
         .replace(/ +([.,)])/g, "$1")
@@ -592,13 +567,18 @@ export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p
     : "";
   const enlace = r.conPublicidad ? enlaceQrClub(p.whatsapp, mensaje) : null;
   return {
-    titulo: r.eraSocia ? "Actualizamos tus datos." : `¡Bienvenida al Club CAYLA${r.nombre ? `, ${r.nombre}` : ""}!`,
-    parrafos,
+    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
+    bajada: r.eraSocia
+      ? desde
+        ? `Eres socia del Club CAYLA desde el ${desde}.`
+        : "Ya eras socia del Club CAYLA."
+      : "Ya eres socia del Club CAYLA.",
     saludo: enlace
       ? {
-          titulo: "Último paso: salúdanos por WhatsApp.",
+          titulo: "Último paso: salúdanos por WhatsApp",
           parrafo: "Así guardas nuestro número oficial y nuestros mensajes te llegan con los enlaces activos.",
-          boton: "Saludar a CAYLA por WhatsApp",
+          // A la tienda del cartel, que es la que le contesta y le escribe después (`clientas.club_ubicacion_id`).
+          boton: `Saludar a ${p.tienda}`,
           enlace,
         }
       : null,

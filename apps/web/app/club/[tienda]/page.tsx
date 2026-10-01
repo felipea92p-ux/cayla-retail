@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { EB_Garamond } from "next/font/google";
 import { connection } from "next/server";
 import { RegistroClub } from "@/components/clientas/RegistroClub";
 import { AvisoClub, HojaClub } from "@/components/clientas/piezas-club-publico";
@@ -11,6 +12,11 @@ import { leerPaginaClub } from "@/lib/club-pagina";
 // Vive fuera de `app/(app)` a propósito: no hereda su `layout.tsx` (sesión, persona, menú lateral, cabecera del ERP); solo el
 // raíz (tipografías, avisos, el loader general y `PaginaEstable`, ninguno pide sesión). `proxy.ts` la deja pasar sin sesión
 // (`lib/rutas-publicas.ts`), y también sus dos acciones de servidor, que viajan como POST a esta misma dirección.
+
+// La cursiva de la Garamond, solo para esta página: el «tu regalo.» del título (diseño aprobado el 2026-10-01). El layout raíz
+// carga la Garamond derecha; sin esta, el navegador inclinaría la derecha a la fuerza. Se pide aquí y no en el raíz para que el
+// ERP no cargue un archivo de letra que no usa. La lee `.club-titulo em` (`app/estilos/club-publico.css`).
+const garamondCursiva = EB_Garamond({ subsets: ["latin"], style: ["italic"], variable: "--font-garamond-cursiva", display: "swap" });
 
 export const metadata: Metadata = {
   // Raya larga con espacios, como «Retail — CAYLA»: la pestaña de ella dice qué es, no el nombre del sistema interno.
@@ -26,7 +32,13 @@ export default async function PaginaRegistroClub({ params }: { params: Promise<{
   const { tienda } = await params;
   const lectura = await leerPaginaClub(tienda);
 
-  if (lectura.estado === "lista") return <RegistroClub ubicacionId={tienda} paginaInicial={lectura.pagina} />;
+  if (lectura.estado === "lista") {
+    return (
+      <div className={garamondCursiva.variable}>
+        <RegistroClub ubicacionId={tienda} paginaInicial={lectura.pagina} />
+      </div>
+    );
+  }
   return (
     <HojaClub>
       {lectura.estado === "no_es_tienda" ? (
