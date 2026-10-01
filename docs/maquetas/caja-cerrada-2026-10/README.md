@@ -1,6 +1,6 @@
 # Spike · Vender con la caja cerrada (2026-10-01)
 
-> **Estado: elegida la B (Persiana), construida (ADR-0299, 2026-10-01).** Lo que sigue describe las tres tal como se mostraron. Antes, con la caja cerrada, `PuntoDeVenta.tsx` solo
+> **Estado: elegida la B (Persiana), construida (ADR-0301, 2026-10-01).** Lo que sigue describe las tres tal como se mostraron. Antes, con la caja cerrada, `PuntoDeVenta.tsx` solo
 > apaga el catálogo y el ticket (`opacity-50` + `pointer-events-none`, líneas ~1421 y ~1509) y deja un botón chico
 > «Abrir caja» en la fila de arriba.
 

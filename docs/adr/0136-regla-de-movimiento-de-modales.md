@@ -176,7 +176,7 @@ Si en una pantalla con muchos opcionales el movimiento cansa, lo siguiente es ba
 
 ## Actualización 2026-10-01 (d) — la persiana de «Caja cerrada»: un rebote y tres bucles, con nombre propio
 
-Felipe eligió la maqueta B de «Vender con la caja cerrada» (ADR-0299, `docs/maquetas/caja-cerrada-2026-10/`) sabiendo que traía
+Felipe eligió la maqueta B de «Vender con la caja cerrada» (ADR-0301, `docs/maquetas/caja-cerrada-2026-10/`) sabiendo que traía
 movimiento fuera de esta regla. Quedan como excepciones **solo de esa pieza** (`components/punto-de-venta/CajaCerrada.tsx`,
 `app/estilos/caja-cerrada.css`); no se copian a otra pantalla:
 - **Un rebote amortiguado, una sola vez:** el cartel «Cerrado» cae colgado de su clavo y se mece hasta quedar quieto.
