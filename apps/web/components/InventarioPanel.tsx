@@ -13,7 +13,6 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
-import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
 import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
@@ -42,7 +41,7 @@ import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
 import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
-import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar, type SentidoPiso } from "@/lib/inventario-reglas";
+import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar } from "@/lib/inventario-reglas";
 import type { FilaSemana } from "@/lib/existencias-categorias";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
@@ -347,7 +346,7 @@ export function InventarioPanel({
   /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
   comparacionFallo?: boolean;
   /** Política operativa de Inventario (`politica-operativa-inventario.ts`): una sola fuente para
-   *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Retirar del piso» (`ReponerPisoModal`). */
+   *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Subir a almacén» (`SubirAAlmacenModal`). */
   politica: PoliticaOperativaInventario;
   /** ¿Su rol ve Traslados? «Trasladar» (detalle y barra de varias) lleva a «Mover mercadería», que exige ese módulo. */
   veTraslados?: boolean;
@@ -369,12 +368,6 @@ export function InventarioPanel({
   // pregunta, y mezclarlos en un solo dropdown confundía dos clasificaciones distintas.
   const [accion, setAccion] = useState(TODAS);
   const [condicion, setCondicion] = useState(TODAS);
-  // «Retirar del piso» (una talla, con nota) abre `ReponerPisoModal`. OJO: hoy NADIE llama a `setMoviendo` —el cajón lateral
-  // (46e8abb6) se llevó el menú «⋯» de cada talla, que era su única entrada—, así que este bloque está apagado hasta que se
-  // le vuelva a dar una puerta. «Reponer» ya no pasa por aquí: es `ReponerPrendaModal`, más abajo.
-  // Se guarda la talla y no una copia de su fila: tras un corte de red el modal refresca y sus cifras dicen si llegó.
-  const [moviendo, setMoviendo] = useState<{ varianteId: string; sentido: SentidoPiso } | null>(null);
-  const filaMoviendo = moviendo ? stock.find((f) => f.varianteId === moviendo.varianteId) : undefined;
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
   // «Reponer» abre la ventana de la PRENDA entera (`ReponerPrendaModal`, ADR-0295). Se guardan los ids de sus tallas y no
@@ -1419,20 +1412,6 @@ export function InventarioPanel({
         </Tabla>
       )}
       </div>
-
-      {moviendo && filaMoviendo && sububicacionPiso && sububicacionAlmacen && (
-        <ReponerPisoModal
-          sentido={moviendo.sentido}
-          // El modal ofrece y valida contra lo DISPONIBLE, no contra lo físico: lo apartado no se mueve (ADR-0141).
-          fila={{ ...filaMoviendo, piso: filaMoviendo.pisoDisponible, almacen: filaMoviendo.almacenDisponible }}
-          ubicacionId={ubicacionId}
-          sububicacionPisoId={sububicacionPiso.id}
-          sububicacionAlmacenId={sububicacionAlmacen.id}
-          alCerrarEnfocar={volverFoco}
-          politica={politica}
-          onClose={() => setMoviendo(null)}
-        />
-      )}
 
       {prendaReponiendo && (
         <ReponerPrendaModal

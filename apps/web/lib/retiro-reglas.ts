@@ -13,7 +13,7 @@
 
 import { BOTON_CONFIRMAR_DE_NUEVO, itemsParaRpc, lineasSinAlcance, type ItemRpc, type LineaBajada } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
-import { RETIRO_NO_ES_BAJA, avisoTrasRetiro } from "./inventario-reglas";
+import { RETIRO_NO_ES_BAJA, quedaraPidiendoReponer } from "./inventario-reglas";
 import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
 import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
 
@@ -113,13 +113,13 @@ export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_
 
 /**
  * El texto del bloque: si alguna talla elegida quedaría pidiendo reponer (o «Por colgar») según la política de la sede, lo dice;
- * si no, recuerda que subir no es dar de baja. Pregunta a `avisoTrasRetiro`, la misma regla que después pinta la fila, y recibe
+ * si no, recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoReponer`, la misma regla que después pinta la fila, y recibe
  * lo DISPONIBLE como la ventana.
  */
 export function textoDelBloqueSubir(tallas: readonly TallaParaReponer[], cantidades: Cantidades, politica: PoliticaOperativaInventario): string {
   const quedaCorto = tallas.some((t) => {
     const n = Math.min(Math.max(0, Math.trunc(cantidades[t.varianteId] ?? 0)), t.piso);
-    return n > 0 && avisoTrasRetiro({ piso: t.piso, almacen: t.almacen }, n, politica) !== null;
+    return n > 0 && quedaraPidiendoReponer({ piso: t.piso, almacen: t.almacen }, n, politica);
   });
   return quedaCorto ? AVISO_QUEDAN_CON_POCO : RETIRO_NO_ES_BAJA;
 }
