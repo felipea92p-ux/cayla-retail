@@ -107,10 +107,25 @@ if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).lengt
   );
   process.exit(1);
 }
-/** El md5 que cada firma tiene que tener HOY: el «después» de la 1b si la 1b la tocó; si no, el de esta migración. */
+// La tanda 1c del club (ADR-0288 D-5, 20260930230200) cambió la firma de registrar_venta: soltó la de 16 parámetros (la que
+// esta migración dejó) y creó la de 17 (con p_canjear_cumpleanos), partiendo de su cuerpo vivo. Su tabla de versiones, igual
+// que la de la 1b.
+const PASO_1C = readFileSync(join(RAIZ, "supabase", "migrations", "20260930230200_club_paso1c_parte3_cumpleanos.sql"), "utf8");
+const VERSIONES_1C = [
+  ...PASO_1C.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const cortadas1c = VERSIONES.filter((v) => VERSIONES_1C.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (!VERSIONES_1C.some((w) => w.firma === REGISTRAR_VENTA) || cortadas1c.length) {
+  console.error(`✗ La tabla de versiones de la 1c debería tener la firma de registrar_venta de esta migración con su «después» como «antes».`);
+  process.exit(1);
+}
+/** La registrar_venta que vive HOY: la que creó la 1c. */
+const REGISTRAR_VENTA_HOY = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
+/** El md5 que cada firma tiene que tener HOY: el «después» de la última tanda que la tocó (1c, 1b), o el de esta migración. */
 const despuesHoy = (firma, despues) => {
+  const c = VERSIONES_1C.find((x) => x.firma === firma);
   const b = VERSIONES_1B.find((x) => x.firma === firma);
-  return (b ? b.despues : despues) ?? "NO_EXISTE";
+  return (c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
 };
 // Las firmas de registrar_clienta y editar_clienta que viven hoy (las de la 1b).
 const REGISTRAR_HOY = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
@@ -568,7 +583,7 @@ end $fn$;
   "zz_lee_dni"
 );
 caso(
-  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la 1b en las tres que la 1b volvió a cambiar); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
+  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la 1b en las tres que la 1b volvió a cambiar, y registrar_venta de 16 ya no existe: la 1c la reemplazó); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join("") +
@@ -619,7 +634,7 @@ select md5(string_agg(x, '|' order by x)) from (
   union all
   select 'idx:' || indexdef from pg_indexes where schemaname = 'retail' and tablename = 'clientas'
 ) f(x);
-select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-1', ''))) / length('ADR-0288 D-1') from pg_proc where oid = '${REGISTRAR_VENTA}'::regprocedure;
+select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-1', ''))) / length('ADR-0288 D-1') from pg_proc where oid = '${REGISTRAR_VENTA_HOY}'::regprocedure;
 select string_agg(p.oid::regprocedure::text, ',' order by p.proname) from pg_proc p
  where p.pronamespace = 'retail'::regnamespace and p.proname in ('registrar_clienta', 'editar_clienta');
 `;

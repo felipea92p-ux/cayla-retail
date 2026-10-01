@@ -9,6 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { PedidoNoAtendido } from "@/lib/pedidos-no-atendidos";
+import { describirMotivo } from "@/lib/se-probo-reglas";
 
 // La mitad cliente de la pantalla de verificación (D-79, ADR-0152): marcar resuelto es la única
 // escritura que esta pantalla ofrece — anotar uno nuevo todavía no tiene botón acá a propósito
@@ -84,6 +85,8 @@ function FilaPedido({
         <p className="text-xs text-tinta/55">
           {dia} {hora}
           {!pedido.productoReferencia && pedido.descripcionLibre && " · fuera de catálogo"}
+          {/* ADR-0288 D-6: la misma lista trae «buscó y no había» y «se la probó y no la llevó» (con su razón). */}
+          {` · ${describirMotivo(pedido.motivo, pedido.razon)}`}
         </p>
       </div>
       {pedido.resuelto ? (

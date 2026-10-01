@@ -589,6 +589,35 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
   });
 });
 
+// ADR-0288 tanda 1c (20260930230200): el canje del cumpleaños en `registrar_venta`. Llegan como P0001 con su frase; si la
+// frase no llega, cada hint tiene la suya (nunca el genérico con «Código:»).
+describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () => {
+  const HINTS = [
+    "cumple_sin_clienta",
+    "cumple_no_socia",
+    "cumple_fuera_de_mes",
+    "cumple_ya_canjeado",
+    "cumple_descuento_distinto",
+    "cumple_sin_canje",
+    "cumple_sin_monto",
+  ];
+
+  it("el mensaje de la base pasa tal cual", () => {
+    for (const hint of HINTS) {
+      const message = `Mensaje de la base para ${hint}.`;
+      expect(traducirError({ message, code: "P0001", hint }, "registrar la venta"), hint).toBe(message);
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo en castellano", () => {
+    for (const hint of HINTS) {
+      const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida, hint).toMatch(/cumpleaños/);
+    }
+  });
+});
+
 // ADR-0288 tanda 1b (20260930200000): el club, sus dos permisos y el WhatsApp de cada tienda. Sus rechazos traen un hint
 // estable; algunos llegan con 22023 o 23514 y sin él caerían al genérico con «Código:».
 describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 tanda 1b)", () => {
