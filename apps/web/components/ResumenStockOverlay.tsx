@@ -149,14 +149,14 @@ export function ResumenStockOverlay({
         {sinNada ? (
           <Vacio>Todavía no hay prendas con stock en esta sede.</Vacio>
         ) : (
-          <Seccion titulo="Por categoría" bajada={separa ? "Cuántas prendas hay en el almacén y en el piso, y cuántas se vendieron este mes." : "Cuántas prendas hay y cuántas se vendieron este mes."}>
+          <Seccion titulo="Por categoría" bajada={separa ? "Cuántas prendas hay en el piso y en el almacén, y cuántas se vendieron este mes." : "Cuántas prendas hay y cuántas se vendieron este mes."}>
             <div className="overflow-hidden rounded-lg border border-tinta/10">
               <div className="grid gap-x-3 bg-hueso/60 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
                 <span>Categoría</span>
                 {separa ? (
                   <>
-                    <span className="text-right">Almacén</span>
                     <span className="text-right">Piso</span>
+                    <span className="text-right">Almacén</span>
                   </>
                 ) : (
                   <span className="text-right">Hay</span>
@@ -172,8 +172,8 @@ export function ResumenStockOverlay({
                     </span>
                     {separa ? (
                       <>
-                        <span className="text-right text-tinta">{n(f.almacen ?? 0)}</span>
                         <span className="text-right text-tinta">{n(f.piso ?? 0)}</span>
+                        <span className="text-right text-tinta">{n(f.almacen ?? 0)}</span>
                       </>
                     ) : (
                       <span className="text-right text-tinta">{n(f.total)}</span>
@@ -186,8 +186,8 @@ export function ResumenStockOverlay({
                 <span>Total</span>
                 {separa ? (
                   <>
-                    <span className="text-right">{n(tabla.total.almacen ?? 0)}</span>
                     <span className="text-right">{n(tabla.total.piso ?? 0)}</span>
+                    <span className="text-right">{n(tabla.total.almacen ?? 0)}</span>
                   </>
                 ) : (
                   <span className="text-right">{n(tabla.total.total)}</span>
