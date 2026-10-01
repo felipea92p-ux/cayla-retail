@@ -25,7 +25,6 @@ import {
   type ReferenciaMovimiento,
 } from "./movimientos-reglas";
 import type { ApartadoDeMovimiento } from "./movimientos-atajos";
-import { textoQuedan } from "./movimientos-saldo";
 
 export type FormaCajon = "grupo" | "individual" | "cambio" | "interno" | "ajuste";
 
@@ -354,7 +353,9 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
 
 // ---------------------------------------------------------------------------
 // El cajón de «Bajadas al piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
-// abre este cajón. Es de CONSULTA como los demás: dice cuántas bajadas hubo, entre qué horas, qué prendas y quién.
+// abre este cajón. Es de CONSULTA como los demás y se lee de corrido, sin saber de stock: qué pasó (una frase), cuándo,
+// quién, y la lista de prendas con su hora. Cada dato en palabras de tienda (2026-10-01, simplificado tras leerlo como
+// alguien sin contexto: «veces», «tallas», «⇄» y «quedan N» —el total de la tienda, no el del piso— no se entendían).
 // ---------------------------------------------------------------------------
 
 /** Una prenda bajada (una fila de una operación) dentro del cajón de las bajadas del día. */
@@ -364,40 +365,51 @@ export type FilaBajada = {
   referencia: string;
   variante: string | null; // "L · Azul marino"
   fotoUrl: string | null;
-  unidades: number;
-  /** «quedan 4» tras esa fila (el mismo texto que la lista), o null si la base no trajo el saldo. */
-  quedan: string | null;
+  /** «1 prenda», «2 prendas»: la cantidad ya dicha, sin símbolos. */
+  cantidad: string;
+  /** «Almacén → Piso». Solo si el día mezcla bajadas con otros movimientos de la tienda (un retiro del piso, algo de
+   *  la cuarentena): ahí cada fila tiene que decir hacia dónde fue. Si todas son bajadas, null: sería repetir. */
+  sentido: string | null;
 };
 
 export type DetalleBajadas = {
   clave: string;
-  titulo: string; // «Bajadas al piso» (o «Movido dentro de la sede» si alguna no lo fue)
-  subtitulo: string; // «Hoy · 10:04 – 10:41»
-  resumen: CeldaResumen[];
+  titulo: string; // «Bajadas al piso» (o «Movido dentro de la sede» si alguna no lo fue): el mismo nombre de la fila
+  /** «Hoy, de 10:04 a 11:29» · «Ayer, a las 18:35». */
+  cuando: string;
+  /** El número grande y la frase que lo sigue: «10» + «prendas pasaron del almacén al piso de venta». */
+  cifra: string;
+  frase: string;
+  /** Quién las hizo: «Carla Ruiz y Luis Soto»; null si todas son carga de sistema. */
+  quien: string | null;
   nota: string;
   /** La más reciente primero, como la lista; una fila por prenda aunque se hayan bajado juntas. */
   filas: FilaBajada[];
-  /** Quién las hizo (nombres distintos, en orden de aparición); null si todas son carga de sistema. */
-  realizadoPor: string | null;
 };
 
+/** «Ana» · «Ana y Luis» · «Ana, Luis y Carla». */
+function unirNombres(nombres: string[]): string {
+  return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
 /** Lo que el cajón de las bajadas del día necesita dibujar, sacado de las operaciones que la fila plegó (llegan de la
- *  más nueva a la más vieja, `plegarBajadas`). Todo dato real: el saldo y el nombre se omiten si la base no los trajo. */
+ *  más nueva a la más vieja, `plegarBajadas`). Todo dato real: el nombre se omite si la base no lo trajo. */
 export function construirDetalleBajadas(clave: string, operaciones: readonly OperacionMovimiento[], ctx: ContextoCajon, hoyLima: string): DetalleBajadas {
   const r = resumirBajadas(operaciones);
-  const unidad = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
-  const horas = r.desde === r.hasta ? r.hasta : `${r.desde} – ${r.hasta}`;
+  const soloBajadas = r.etiqueta === "Bajadas al piso";
+  const dia = etiquetaDia(operaciones[0].fecha, hoyLima);
   const personas = [...new Set(operaciones.flatMap((op) => op.filas.map(realizadoPor)).filter((n): n is string => n !== null))];
+  const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
   return {
     clave,
     titulo: r.etiqueta,
-    subtitulo: `${etiquetaDia(operaciones[0].fecha, hoyLima)} · ${horas}`,
-    resumen: [
-      { valor: `${r.unidades}`, etiqueta: unidad(r.unidades, "unidad", "unidades") },
-      { valor: `${r.veces}`, etiqueta: unidad(r.veces, "vez", "veces") },
-      { valor: `${r.tallas}`, etiqueta: unidad(r.tallas, "talla", "tallas") },
-    ],
-    nota: "Movimiento interno, no cambia el total de stock de la sede.",
+    cuando: r.desde === r.hasta ? `${dia}, a las ${r.hasta}` : `${dia}, de ${r.desde} a ${r.hasta}`,
+    cifra: `${r.unidades}`,
+    frase: soloBajadas
+      ? `${r.unidades === 1 ? "prenda pasó" : "prendas pasaron"} del almacén al piso de venta`
+      : `${r.unidades === 1 ? "prenda cambió" : "prendas cambiaron"} de lugar dentro de la tienda`,
+    quien: personas.length > 0 ? unirNombres(personas) : null,
+    nota: "El stock total de la tienda no cambia: solo cambiaron de lugar.",
     filas: operaciones.flatMap((op) =>
       op.filas.map((m) => ({
         id: m.id,
@@ -405,11 +417,10 @@ export function construirDetalleBajadas(clave: string, operaciones: readonly Ope
         referencia: m.referencia,
         variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
         fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
-        unidades: Math.abs(m.cantidad),
-        quedan: textoQuedan(ctx.saldos?.[m.id]),
+        cantidad: prendas(Math.abs(m.cantidad)),
+        sentido: soloBajadas ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,
       }))
     ),
-    realizadoPor: personas.length > 0 ? personas.join(", ") : null,
   };
 }
 

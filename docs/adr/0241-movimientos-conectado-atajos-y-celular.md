@@ -99,8 +99,12 @@ el celular había que pasar la cabecera, la franja, dos filas de píldoras y una
 
 La fila plegada «Bajadas al piso» (punto 3) dejó de desplegarse hacia abajo —empujaba la lista y, abierta, ocupaba media
 pantalla— y ahora abre el **mismo cajón lateral** que el resto de las operaciones (`CajonMovimiento`, `vista.tipo ===
-"bajadas"`): título, «Hoy · 10:04 – 10:41», tres cifras (unidades · veces · tallas), cada prenda con su hora, su variante,
-cuánto se bajó y «quedan N», y quién las hizo. Es de consulta, como los demás. Es un solo marco con dos contenidos
+"bajadas"`): el mismo nombre de la fila, «Hoy, de 10:04 a 11:29», UNA frase con el número grande («10 prendas pasaron del
+almacén al piso de venta»), quién las hizo («Por Carla Ruiz y Luis Soto») y la lista de prendas con su hora, su variante y
+cuántas. Si el día mezcla bajadas con otros movimientos (un retiro del piso), la frase dice «cambiaron de lugar dentro de
+la tienda» y cada fila dice «Almacén → Piso» o «Piso → Almacén». Se simplificó el mismo día tras leerlo como alguien sin
+contexto: «veces», «tallas» (un bolso es talla única), «⇄» y «quedan N» no se entendían —ese N era el total de la tienda,
+no el del piso— y «quién» quedaba debajo de las filas. Es de consulta, como los demás. Es un solo marco con dos contenidos
 (`ContenidoOperacion` / `ContenidoBajadas`): pasar de las bajadas a otra fila, o al revés, cambia el contenido sin cerrar
 ni volver a deslizar. Las bajadas no van en la URL (`?mov=`): no son un movimiento con id y su agrupación depende de los
 filtros. Lógica pura y probada: `construirDetalleBajadas` en `lib/movimientos-cajon.ts` (6 casos en

@@ -220,9 +220,10 @@ function CajaReferencia({ referencia, onVerVenta, referenciaEsVenta }: { referen
   );
 }
 
-/** El cuerpo del cajón de las bajadas del día: qué fue, cuántas y entre qué horas, y cada prenda con su hora (la hora
- *  va primera, como en la lista) y cuánto se bajó. Solo lectura: quien quiera el detalle de una bajada la busca por su
- *  prenda (píldora «Piso ↔ almacén» o el buscador), donde cada bajada es su fila. */
+/** El cuerpo del cajón de las bajadas del día, pensado para leerse sin saber de stock: el nombre de la fila, cuándo, UNA
+ *  frase con el número grande («10 prendas pasaron del almacén al piso de venta»), quién lo hizo, y cada prenda con su
+ *  hora (la hora va primera, como en la lista) y cuántas. Solo lectura: quien quiera el detalle de una bajada la busca
+ *  por su prenda (píldora «Piso ↔ almacén» o el buscador), donde cada bajada es su fila. */
 function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
   return (
     <>
@@ -230,11 +231,21 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
         <Dialog.Title asChild>
           <h2 className="font-display text-[26px] leading-tight text-tinta">{b.titulo}</h2>
         </Dialog.Title>
-        <Dialog.Description className="mt-1 text-[15px] tabular-nums text-taupe">{b.subtitulo}</Dialog.Description>
+        <Dialog.Description className="mt-1 text-[15px] tabular-nums text-taupe">{b.cuando}</Dialog.Description>
       </div>
 
-      <TarjetasResumen celdas={b.resumen} />
-      <p className="mt-3 text-[13.5px] text-taupe">{b.nota}</p>
+      <div className="mt-6 rounded-xl border border-sand px-5 py-4">
+        <p className="flex items-center gap-4">
+          <span className="font-display text-[44px] leading-none tabular-nums text-tinta">{b.cifra}</span>
+          <span className="text-balance text-[16px] leading-snug text-tinta">{b.frase}</span>
+        </p>
+        {b.quien && (
+          <p className="mt-3 border-t border-sand pt-3 text-[14px] text-taupe">
+            Por <span className="text-tinta">{b.quien}</span>
+          </p>
+        )}
+      </div>
+      <p className="mt-3 text-[13.5px] leading-snug text-taupe">{b.nota}</p>
 
       <Seccion icono={ListChecks} titulo="Prendas">
         <ul className="-mt-1">
@@ -245,24 +256,13 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
               <div className="min-w-0">
                 <p className="line-clamp-2 break-words text-[14.5px] font-semibold leading-snug text-tinta">{f.referencia}</p>
                 {f.variante && <p className="truncate text-[13px] text-taupe">{f.variante}</p>}
+                {f.sentido && <p className="truncate text-[12.5px] text-taupe">{f.sentido}</p>}
               </div>
-              <div className="text-right">
-                <p className="text-[15px] font-semibold tabular-nums text-taupe">
-                  <span aria-hidden>⇄ </span>
-                  {f.unidades}
-                </p>
-                {f.quedan && <p className="whitespace-nowrap text-[11.5px] text-taupe">{f.quedan}</p>}
-              </div>
+              <span className="whitespace-nowrap text-right text-[14px] tabular-nums text-tinta">{f.cantidad}</span>
             </li>
           ))}
         </ul>
       </Seccion>
-
-      {b.realizadoPor && (
-        <Seccion icono={UserRound} titulo="Realizado por">
-          <p className="text-[14px] text-tinta">{b.realizadoPor}</p>
-        </Seccion>
-      )}
     </>
   );
 }
