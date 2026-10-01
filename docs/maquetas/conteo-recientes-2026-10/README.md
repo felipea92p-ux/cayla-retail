@@ -1,6 +1,6 @@
 # Conteos recientes por día — maqueta (2026-10-01)
 
-> **Construida** (ADR-0293, rama `claude/conteo-recientes-por-dia`). Decidido por Felipe: hora de **apertura** y entrada en **«Todos»**. Diferencia con la maqueta: la fecha exacta es el `CampoFecha` de siempre (con su etiqueta «Otra fecha» y los días con conteos marcados), no una píldora; «Todos» no lleva cifra (muestra los más recientes, no todos).
+> **Construida** (ADR-0295, rama `claude/conteo-recientes-por-dia`). Decidido por Felipe: hora de **apertura** y entrada en **«Todos»**. Diferencia con la maqueta: la fecha exacta es el `CampoFecha` de siempre (con su etiqueta «Otra fecha» y los días con conteos marcados), no una píldora; «Todos» no lleva cifra (muestra los más recientes, no todos).
 
 **Pedido (Felipe):** en Inventario ▸ Conteo, la tabla «Conteos recientes» agrupada por día como apartados, con la primera columna solo con la hora; y una barra de filtro con botones «Hoy», «Ayer» y un calendario para una fecha exacta.
 
