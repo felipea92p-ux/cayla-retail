@@ -1,7 +1,8 @@
 # ADR-0300 — El descuento de campaña es exacto: el % sobre el precio, al céntimo
 
-**Fecha:** 2026-10-01 · **Estado:** construido y probado en local; migración `20261001150000_campana_descuento_exacto.sql`
-**SIN PEGAR en producción** (espera el OK de Felipe, y va en la misma ventana que publicar la web: ver §6) · **Decide:**
+**Fecha:** 2026-10-01 · **Estado:** migración `20261001150000_campana_descuento_exacto.sql` **PEGADA EN PRODUCCIÓN el
+2026-10-01 a las 11:19 (Lima)** con la orden de Felipe («pégalo ahora»), y verificada (§7); la web se publica al fusionar el
+PR #685 en la misma ventana · **Decide:**
 Felipe · **Reemplaza:** ADR-0182 (el precio de campaña bajaba al .90) · **Rama:** `claude/discount-review-ae10ca`
 
 ## 1. El problema, primero
@@ -102,3 +103,17 @@ exacto; los dos son «el céntimo más cercano, empate hacia arriba», y se comp
 5. **En la misma ventana**, fusionar el PR (publica la web).
 6. Antes de abrir, recargar Vender (F5) en cada caja: una pestaña abierta desde antes sigue con la cuenta vieja y su venta
    con campaña se rechazaría.
+
+## 7. Pegada en producción (2026-10-01, 11:19 Lima)
+
+Felipe pidió no esperar al cierre («no sé por qué esperaríamos»): en producción nunca se había cobrado una venta con campaña,
+así que el desfase de minutos entre la base y la web solo podía rechazar (no cobrar mal) una venta de las 13 prendas con
+campaña. Pegada por `apply_migration` (versión `20261001161912`).
+
+- **Antes:** huella `569f5547b94e7edb538df910cf7e1c6f` (la de ADR-0182, nadie la había tocado); `fn_descuento_campana(39, 20)`
+  = 8.10; 13 variantes con campaña vigente; 0 ventas con campaña.
+- **Después:** huella `6338481c87bbabeca5121f9a21281cfa`; (39, 20) = 7.80, (89.90, 20) = 17.98, (22, 10) = 2.20; las 3 funciones
+  (`registrar_venta`, `separar_prendas`, `editar_separacion`) la llaman; `authenticated` la ejecuta y `anon` no; sigue `immutable`.
+- **El CI encontró una prueba más con el .90 escrito a mano:** la cascada del cumpleaños del Club (`club_cumpleanos.mjs` (a),
+  CL-11) mandaba la campaña como 16.00. Pasa a 15.98: el Club sigue sumando 6.39 sobre lo que queda (63.92), la línea
+  queda en 22.37 (28 %) y el canje en 17.28. Probada contra Postgres con las 394 migraciones: 34/34.
