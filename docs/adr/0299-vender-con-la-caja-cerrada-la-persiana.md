@@ -1,4 +1,4 @@
-# ADR-0298 · Vender con la caja cerrada: la persiana y el cartel «Cerrado»
+# ADR-0299 · Vender con la caja cerrada: la persiana y el cartel «Cerrado»
 
 - **Fecha:** 2026-10-01 · **Estado:** construido y probado en local (escritorio 1440 × 900 y 1366 × 768, celular 375 px). Solo web, **sin migración**.
 - **Pedido:** Felipe, 2026-10-01: con la caja cerrada, que el POS no solo pierda opacidad. Quiere que todo el fondo se desenfoque y

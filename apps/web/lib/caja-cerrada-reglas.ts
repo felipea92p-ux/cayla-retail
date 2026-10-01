@@ -1,4 +1,4 @@
-// Vender con la caja cerrada (ADR-0298, maqueta B «Persiana», docs/maquetas/caja-cerrada-2026-10/).
+// Vender con la caja cerrada (ADR-0299, maqueta B «Persiana», docs/maquetas/caja-cerrada-2026-10/).
 // Lo que dice el cartel y la línea de abajo, y los tiempos de la salida. Lógica pura: la importan el componente y su prueba.
 import { diaYHoraLima, diasEntreFechas, hoyLima } from "./fechas-lima";
 

@@ -1,4 +1,4 @@
-/* VENDER CON LA CAJA CERRADA: LA PERSIANA (ADR-0298; maqueta B, docs/maquetas/caja-cerrada-2026-10/).
+/* VENDER CON LA CAJA CERRADA: LA PERSIANA (ADR-0299; maqueta B, docs/maquetas/caja-cerrada-2026-10/).
    Con la caja cerrada, el área de trabajo se desenfoca, baja una persiana oscura y se cuelga un cartel «Cerrado»; al abrir,
    el cartel gira a «Abierto» y la persiana sube. Lo dibuja `components/punto-de-venta/CajaCerrada.tsx`, que pone `data-fase`:
      cerrada  → entra (velo, persiana que baja, cartel que se cuelga, texto en cascada) y se queda;

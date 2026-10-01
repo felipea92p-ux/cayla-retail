@@ -1,4 +1,4 @@
-## Vender con la caja cerrada (ADR-0298) — 2026-10-01
+## Vender con la caja cerrada (ADR-0299) — 2026-10-01
 
 - [ ] **Probar en piso con una colaboradora nueva** (Felipe): ¿entiende sola que tiene que abrir la caja? ¿El movimiento continuo
   (reflejo, meneo, punto que late) cansa en una tienda abierta todo el día? Si cansa, lo siguiente es quitar el reflejo y el meneo
