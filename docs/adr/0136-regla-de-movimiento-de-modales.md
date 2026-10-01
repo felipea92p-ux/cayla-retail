@@ -173,3 +173,15 @@ note»: quieto, un círculo de rayas se leía como adorno y no como «esto puede
 - Al pasar el campo a «hecho», «sigue aquí» o «falta», la marca se vuelve a montar con su estado y deja de girar.
 - Se anima con `transform`, que no repinta ni recalcula el layout: decenas de marcas a la vez (un alta con muchos campos opcionales) no pesan.
 Si en una pantalla con muchos opcionales el movimiento cansa, lo siguiente es bajar la velocidad o girar solo el campo que sigue, no quitarlo.
+
+## Actualización 2026-10-01 (d) — la persiana de «Caja cerrada»: un rebote y tres bucles, con nombre propio
+
+Felipe eligió la maqueta B de «Vender con la caja cerrada» (ADR-0298, `docs/maquetas/caja-cerrada-2026-10/`) sabiendo que traía
+movimiento fuera de esta regla. Quedan como excepciones **solo de esa pieza** (`components/punto-de-venta/CajaCerrada.tsx`,
+`app/estilos/caja-cerrada.css`); no se copian a otra pantalla:
+- **Un rebote amortiguado, una sola vez:** el cartel «Cerrado» cae colgado de su clavo y se mece hasta quedar quieto.
+- **Tres bucles mientras la caja sigue cerrada:** el punto rojo del cartel que late (señal, como el del chip «Vencida»), un
+  reflejo que cruza la persiana cada 8 s y el cartel que se mece ±0,9°. Se paran en cuanto la caja abre.
+- **Con `prefers-reduced-motion`, nada de eso:** la capa aparece y desaparece sin movimiento.
+Por qué se acepta aquí: no es un modal ni una respuesta a una acción. Es un estado de la tienda que tiene que leerse de lejos y
+sin leer («la tienda está cerrada»), y que dura lo que tarda alguien en abrir la caja.

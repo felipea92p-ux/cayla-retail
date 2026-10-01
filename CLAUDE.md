@@ -160,7 +160,8 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
 `--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el giro del botón mientras la base responde y las rayas
-del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c), y todo se apaga con
+del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c; y, solo en la persiana de «Caja cerrada» de Vender, el
+cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0298), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 

@@ -174,7 +174,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   }
 
   // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
-  const fondoUltimoCierre = caja ? null : ((await getUltimoCierre(persona.ubicacionId))?.montoFondo ?? null);
+  // El mismo cierre le dice al cartel «Cerrado» desde cuándo y quién cerró (ADR-0298).
+  const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
+  const fondoUltimoCierre = ultimoCierre?.montoFondo ?? null;
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.
   const categoriasLibre = resCategorias.data ?? [];
@@ -208,6 +210,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}
       fondoUltimoCierre={fondoUltimoCierre}
+      cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
       variantes={variantesParaVenta}
       listasPrendaLibre={listasPrendaLibre}
       campanasNoCargaron={campanasNoCargaron}
