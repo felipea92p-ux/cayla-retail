@@ -5,9 +5,16 @@
 // el cajón necesita dibujar — ya en castellano de pantalla, ya con sus enlaces. El componente no decide nada de
 // negocio: solo pinta lo que esta función le entrega.
 //
-// Las 5 formas (`FormaCajon`) son las 5 capturas aprobadas. Un motivo que no esté explícitamente en ninguna de las 5
-// cae en «individual» (una sola prenda: Venta es su ejemplo) — mismo patrón, con sus propios campos (ADR pendiente:
-// «reutiliza el mismo patrón visual y adapta los campos», instrucción del pedido, sección 12).
+// Simplificado el 2026-10-01 (pedido de Felipe, tras leer el cajón de las bajadas como alguien sin contexto): todos los
+// cajones se leen igual y sin saber de stock. Arriba, el nombre del movimiento y CUÁNDO; después UNA frase con el número
+// grande («3 prendas llegaron desde Tienda Lima») y QUIÉN; el resto es lo que ayuda a creerla: la prenda, la lista, lo
+// que había y lo que hay ahora en la tienda, y el documento. Se fueron las palabras de oficina («Movimiento»,
+// «Referencia», «Impacto», «Consultar», «Stock Antes/Después», «variante»): cada dato dice lo que es en palabras de tienda.
+//
+// Las formas (`FormaCajon`) son el patrón visual de cada caso. Un motivo que no esté explícitamente en ninguna cae en
+// «individual» (una sola prenda) o «grupo» (varias): mismo patrón, con su frase por defecto — nunca rompe el cajón.
+// Un movimiento «interno» (piso ↔ almacén) no tiene cajón propio: se dibuja con el de las bajadas del día
+// (`construirDetalleBajadas`, con una sola operación).
 
 import {
   etiquetaConDireccion,
@@ -19,7 +26,6 @@ import {
   referenciaMovimiento,
   resumirBajadas,
   resumirOperacion,
-  textoComprobante,
   type Movimiento,
   type OperacionMovimiento,
   type ReferenciaMovimiento,
@@ -31,7 +37,7 @@ export type FormaCajon = "grupo" | "individual" | "cambio" | "interno" | "ajuste
 /** Qué forma de cajón le toca a una operación. Pura función de sus filas — nunca del ancho de pantalla ni de nada
  *  visual. `interno` y `ajuste` son SIEMPRE su propia forma (así tengan una fila o diez): el título ya dice qué pasó
  *  y listar «1 prenda distinta» adentro no es un caso raro. Cualquier otra operación de más de una fila usa `grupo`
- *  (el patrón «Incluye N prendas» de Traslado recibido); de una sola fila, `individual` (el patrón de Venta). */
+ *  (una entrada o un traslado de varias prendas); de una sola fila, `individual` (una venta, un traslado de una). */
 export function formaDeOperacion(op: OperacionMovimiento): FormaCajon {
   const primera = op.filas[0];
   if (primera.motivo === "cambio") return "cambio";
@@ -40,83 +46,60 @@ export function formaDeOperacion(op: OperacionMovimiento): FormaCajon {
   return op.filas.length > 1 ? "grupo" : "individual";
 }
 
-/** Icono a pintar en la lista/cajón según entra, sale o es neutro — mismo criterio que `PUNTO_MOVIMIENTO` de
- *  `FilaMovimiento.tsx`, pero como un tono para las cifras (no un punto). */
-export type TonoCifra = "verde" | "rojo" | "neutro" | "ambar";
+/** Color de una cifra: verde suma, rojo falta (solo un ajuste que resta: ahí sí hay que mirar), neutro el resto. */
+export type TonoCifra = "verde" | "rojo" | "neutro";
 
-export function tonoDelta(delta: number, forma: FormaCajon): TonoCifra {
-  if (forma === "interno") return "neutro";
-  if (delta > 0) return "verde";
-  if (delta < 0) return forma === "ajuste" ? "rojo" : "neutro"; // una venta no es alarma (sección 16 del pedido); un ajuste que resta, sí
-  return "neutro";
-}
-
-/** Una celda del resumen superior (las 3 cajas o la tira dividida, según la forma). */
-export type CeldaResumen = { valor: string; etiqueta: string; tono?: TonoCifra };
-
-/** Un ítem de la lista «Incluye N prendas» (grupo/interno) o de «Sale»/«Entra» (cambio). */
+/** Una prenda de una lista (grupo, ajuste de varias, cambio): nombre, talla · color, y cuántas, ya dicho:
+ *  «3 prendas», «1 prenda», «2 más», «5 menos». */
 export type ItemPrenda = {
   varianteId: string;
   referencia: string;
   variante: string | null; // "L · Azul marino"
   fotoUrl: string | null;
-  cifra: string; // "+6", "3 unidades", "−1"
-  /** El número sin formatear detrás de `cifra` (sin signo ni texto): para pluralizar "unidad"/"unidades" sin volver
-   *  a parsear el string mostrado — que lleva el guion Unicode «−», no el ASCII, y `Number()` no lo entiende. */
-  unidades: number;
+  cantidad: string;
   tono: TonoCifra;
 };
 
-/** Una fila de datos (icono + etiqueta + valor) del cuerpo del cajón. */
-export type FilaDetalle = {
-  clave: string;
-  etiqueta: string;
-  valor: string;
-  subvalor?: string | null; // p.ej. "Piso → Clienta" en taupe bajo "Salida · Venta"
-};
-
-/** Un link de «Consultar»: solo lectura, nunca una acción operativa (sección 14 del pedido). */
+/** Una fila de «Más información»: el documento del movimiento (traslado, boleta, conteo, factura…) o el historial de la
+ *  prenda. Con `href` o `onClick` se puede abrir; sin ninguno es solo una línea informativa (el documento existe pero
+ *  quien mira no tiene el módulo para abrirlo). Solo lectura: nunca una acción que mueva stock. */
 export type ConsultarLink = {
   clave: string;
-  texto: string;
+  texto: string; // «Traslado 99», «Boleta B001-000001», «Historial de esta prenda»
+  detalle?: string | null; // «Guía 123 · Proveedor SAC»
   href?: string;
   /** Sin `href`: abre algo EN esta pantalla (hoy solo la venta, en su propio modal ya existente). */
   onClick?: "abrir_venta";
-  /** Estilo del icono final tal cual la captura aprobada de ESE cajón: unas usan flecha de salida, otras «›». */
-  iconoFinal: "externo" | "cursor";
 };
 
 export type DetalleCajon = {
   forma: FormaCajon;
   clave: string;
-  titulo: string;
-  subtitulo: string | null;
-  fotoUrl: string | null; // solo `individual`: la foto real de la prenda: en las demás formas es el isotipo
-  resumen: CeldaResumen[];
-  /** Referencia (Traslado N / Boleta / Conteo N / Factura…), si el proceso tiene una. */
-  referencia: (ReferenciaMovimiento & { icono: "documento" | "copiar" }) | null;
-  /** Solo `interno`: la nota fija ("Movimiento interno, no cambia..."). */
-  notaDetalle: string | null;
-  /** `grupo` / `interno`: la lista de prendas que viajaron juntas. */
+  titulo: string; // el nombre del movimiento, sin «Entrada ·» / «Salida ·»: «Venta», «Traslado recibido»
+  /** «Hoy, a las 10:59» · «Lunes 28 de septiembre, a las 10:59». */
+  cuando: string;
+  /** Solo cuando el movimiento es de UNA prenda (venta, traslado de una, ajuste de una): su foto, nombre y talla · color. */
+  prenda: { referencia: string; variante: string | null; fotoUrl: string | null } | null;
+  /** El número grande y la frase que lo sigue: «3» + «prendas llegaron desde Tienda Lima». */
+  cifra: string;
+  frase: string;
+  /** Quién lo hizo: «Carla Ruiz y Luis Soto»; null si es carga de sistema. */
+  quien: string | null;
+  /** «En la tienda había 6 y ahora hay 5» (piso + almacén), derivado del saldo real y del cambio. Null si la base no
+   *  trajo el saldo (se omite en vez de inventar un «antes»), si son varias prendas o si no cambia el total (apartar). */
+  enTienda: { antes: number; despues: number } | null;
+  /** Solo ajustes: por qué («Diferencia detectada en conteo físico» o la nota que escribió quien ajustó). */
+  motivo: string | null;
+  /** `grupo` y `ajuste` de varias: la lista de prendas. */
   items: ItemPrenda[] | null;
-  /** `cambio`: lo que sale y lo que entra, cada uno con sus prendas (casi siempre una). */
-  sale: ItemPrenda[] | null;
-  entra: ItemPrenda[] | null;
-  /** `cambio`: el mensaje fijo de la captura. `interno`: "Stock total de sede: sin cambios." `grupo` (una entrada):
-   *  "Antes: 0 · Ahora: N unidades" ya resuelto en `resumen` si aplica — acá solo el texto libre cuando no hay cifras. */
-  notaImpacto: string | null;
-  /** `individual` / `ajuste`: antes/después reales (derivados de `delta` + el saldo de `fn_movimientos_saldos`).
-   *  Null si la base no trajo el saldo (se degrada sin la sección, principio 9 — nunca se inventa). */
-  stock: { antes: number; despues: number } | null;
-  filaMovimiento: FilaDetalle | null; // `individual`: "Movimiento" con su ruta
-  motivo: string | null; // `ajuste`: "Diferencia detectada en conteo físico" o la nota del ajuste manual
-  fechaHora: string; // "28/09/2026 · 10:59"
-  realizadoPor: string | null; // "Caja / Vendedora" — null si es carga de sistema
+  /** `cambio`: lo que la clienta devolvió y lo que se llevó, cada uno con sus prendas (casi siempre una). */
+  devolvio: ItemPrenda[] | null;
+  llevo: ItemPrenda[] | null;
   consultar: ConsultarLink[];
 };
 
-/** Lo que el cajón necesita del entorno para armar enlaces y "quedan"/"realizado por" — todo dato REAL, nada
- *  inventado (sección 17 del pedido): si algo no llega, la sección correspondiente se omite. */
+/** Lo que el cajón necesita del entorno para armar enlaces y «quién»/«cuándo» — todo dato REAL, nada inventado: si algo
+ *  no llega, esa línea se omite. */
 export type ContextoCajon = {
   prendas: Record<string, { productoId: string; fotoUrl: string | null }>;
   /** Cuántas quedaron en la sede tras CADA fila (por id de movimiento) — `fn_movimientos_saldos`. Null = sin el dato. */
@@ -127,238 +110,225 @@ export type ContextoCajon = {
   /** Los módulos que ve quien mira (`persona.modulos`): un apartado solo enlaza a Apartados si el rol lo ve — mismo
    *  candado que ya usa `referenciaApartado` de `FilaMovimiento.tsx` (ADR-0161). */
   modulosVisibles: readonly string[];
-  volverA: string;
+  /** El día de hoy en Lima, para decir «Hoy» / «Ayer» en vez de una fecha. */
+  hoyLima: string;
 };
 
-function conVuelta(href: string, volverA: string): string {
-  return `${href}${href.includes("?") ? "&" : "?"}volver=${encodeURIComponent(volverA)}`;
+/** Lo que muestra el cajón: UNA operación (`DetalleCajon`) o las bajadas de un día / un movimiento interno
+ *  (`DetalleBajadas`). */
+export type VistaCajon = { tipo: "operacion"; detalle: DetalleCajon } | { tipo: "bajadas"; detalle: DetalleBajadas };
+
+// ---------------------------------------------------------------------------
+// Palabras de tienda: la frase de cada movimiento.
+// ---------------------------------------------------------------------------
+
+/** «1 prenda» · «3 prendas». */
+function cuantasPrendas(n: number): string {
+  return `${n.toLocaleString("es-PE")} ${n === 1 ? "prenda" : "prendas"}`;
 }
 
-function itemDeFila(m: Movimiento, ctx: ContextoCajon, forma: FormaCajon): ItemPrenda {
-  const variante = [m.talla, m.color].filter(Boolean).join(" · ") || null;
-  const cifra = m.categoria === "interno" ? `${Math.abs(m.cantidad)} ${Math.abs(m.cantidad) === 1 ? "unidad" : "unidades"}` : `${m.delta > 0 ? "+" : m.delta < 0 ? "−" : ""}${Math.abs(m.delta)}`;
-  // En «Cambio» la prenda que sale y la que entra SÍ se colorean (rojo/verde, como en la captura aprobada) aunque una
-  // venta sola no lo haga: acá la clienta se está llevando algo puntual, no es el patrón general de salida silenciosa.
-  const tono: TonoCifra = forma === "cambio" ? (m.delta < 0 ? "rojo" : "verde") : tonoDelta(m.delta, forma);
+/** «Ana» · «Ana y Luis» · «Ana, Luis y Carla». */
+function unirNombres(nombres: string[]): string {
+  return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+/** Quién lo hizo, sin repetir y en orden de aparición. Sin persona (carga de sistema), null: la línea «Por …» se omite
+ *  en vez de inventar un rol. */
+function quienes(filas: readonly Movimiento[]): string | null {
+  const nombres = [...new Set(filas.map((m) => (m.esSistema || !m.usuario ? null : m.usuario)).filter((n): n is string => n !== null))];
+  return nombres.length > 0 ? unirNombres(nombres) : null;
+}
+
+/** Lo que dice la frase grande de un movimiento que suma o resta stock (o aparta), desde la tienda que se mira:
+ *  «prendas llegaron desde Tienda Lima», «prenda vendida». El número va aparte, en grande, delante. Un motivo sin frase
+ *  propia dice, al menos, hacia dónde fue el stock. */
+export function fraseDeMovimiento(m: Movimiento, n: number): string {
+  const una = n === 1;
+  const prenda = una ? "prenda" : "prendas";
+  const { origen, destino } = partesOrigenDestino(m);
+  switch (m.motivo) {
+    case "venta":
+      return `${prenda} ${una ? "vendida" : "vendidas"}`;
+    case "anulacion_venta":
+      return `${prenda} ${una ? "volvió" : "volvieron"} a la tienda: se anuló la venta`;
+    case "devolucion":
+      return `${prenda} ${una ? "devuelta" : "devueltas"} por una clienta`;
+    case "recepcion":
+      return `${prenda} ${una ? "llegó" : "llegaron"} ${m.lote?.proveedor ? `de ${m.lote.proveedor}` : "de un proveedor"}`;
+    case "produccion":
+      return `${prenda} ${una ? "llegó" : "llegaron"} de Producción`;
+    case "carga_inicial":
+      return `${prenda} ${una ? "se cargó" : "se cargaron"} como stock inicial`;
+    case "traslado_entrada":
+      return `${prenda} ${una ? "llegó" : "llegaron"} desde ${origen}`;
+    case "traslado_salida":
+      return `${prenda} ${una ? "salió" : "salieron"} hacia ${destino ?? "otra tienda"}`;
+    case "traslado_anulado":
+      return `${prenda} ${una ? "volvió" : "volvieron"} a la tienda: se anuló el envío`;
+    case "cuarentena_liquidada":
+      return `${prenda} ${una ? "dañada liquidada" : "dañadas liquidadas"}`;
+    case "cuarentena_se_boto":
+      return `${prenda} ${una ? "dañada botada" : "dañadas botadas"}`;
+    case "cuarentena_donada":
+      return `${prenda} ${una ? "dañada donada" : "dañadas donadas"}`;
+    case "apartado":
+      return `${prenda} ${una ? "apartada" : "apartadas"} para una clienta`;
+    case "liberacion_apartado":
+      return `${prenda} ${una ? "liberada: vuelve" : "liberadas: vuelven"} a estar a la venta`;
+  }
+  // Modelo anterior de traslado (una sola fila, sin pierna): lo dice el signo, como `etiquetaMovimiento`.
+  if (m.categoria === "transferencia") return m.delta > 0 ? `${prenda} ${una ? "llegó" : "llegaron"} desde ${origen}` : `${prenda} ${una ? "salió" : "salieron"} hacia ${destino ?? "otra tienda"}`;
+  return m.delta > 0 ? `${prenda} ${una ? "entró" : "entraron"} a la tienda` : `${prenda} ${una ? "salió" : "salieron"} de la tienda`;
+}
+
+/** «1 prenda más en el stock» · «5 prendas menos en el stock»: lo que hizo un ajuste, sin signos. */
+export function fraseDeAjuste(delta: number): string {
+  const n = Math.abs(delta);
+  return `${n === 1 ? "prenda" : "prendas"} ${delta > 0 ? "más" : "menos"} en el stock`;
+}
+
+/** «Hoy, a las 10:59» · «Ayer, a las 18:35» · «Lunes 28 de septiembre, a las 10:59». */
+function cuandoDe(op: Pick<OperacionMovimiento, "fecha" | "hora">, ctx: ContextoCajon): string {
+  return `${etiquetaDia(op.fecha, ctx.hoyLima)}, a las ${op.hora}`;
+}
+
+function itemDeFila(m: Movimiento, ctx: ContextoCajon, cantidad: string, tono: TonoCifra = "neutro"): ItemPrenda {
   return {
     varianteId: m.varianteId,
     referencia: m.referencia,
-    variante,
+    variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
     fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
-    cifra,
-    unidades: m.categoria === "interno" ? Math.abs(m.cantidad) : Math.abs(m.delta),
+    cantidad,
     tono,
   };
 }
 
-/** «28/09/2026 · 10:59», con la fecha `aaaa-mm-dd` real de la fila (no `fechaCorta`, que es d/m/a — acá se pide
- *  d/m/aaaa completo, como en las 5 capturas). */
-function fechaHoraCompleta(fecha: string, hora: string): string {
-  const [a, m, d] = fecha.split("-");
-  return `${d}/${m}/${a} · ${hora}`;
+/** Cuántas prendas movió una fila de entrada/salida/traslado/apartado (el cambio de stock, o lo apartado). */
+function unidadesDeFila(m: Movimiento): number {
+  return m.categoria === "apartado" || m.categoria === "liberacion_apartado" ? Math.abs(m.cantidad) : Math.abs(m.delta);
 }
 
 function referenciaApartado(m: Movimiento, ctx: ContextoCajon): ReferenciaMovimiento | null {
   const a = ctx.apartados[m.id];
   if (!a) return null;
-  return { texto: a.codigo, detalle: a.clienta || null, href: ctx.modulosVisibles.includes("apartados") ? `/vender/apartados?abrir=${a.separacionId}` : null };
+  return { texto: `Apartado ${a.codigo}`, detalle: a.clienta || null, href: ctx.modulosVisibles.includes("apartados") ? `/vender/apartados?abrir=${a.separacionId}` : null };
 }
 
-/** El nombre "de tienda" de quién lo hizo: sección 8 del pedido — no hay columna de rol en la fila, solo el nombre.
- *  Sin persona (carga de sistema), null: la sección "Realizado por" se omite en vez de inventar un rol. */
-function realizadoPor(m: Movimiento): string | null {
-  if (m.esSistema) return null;
-  if (!m.usuario) return null;
-  return m.usuario;
+/** El documento del movimiento (traslado, conteo, boleta, factura de compra, apartado) y el historial de la prenda. El
+ *  historial solo se ofrece si todas las filas son del MISMO producto: con varios, llevar al del primero sería mentir. */
+function masInformacion(op: OperacionMovimiento, ctx: ContextoCajon): ConsultarLink[] {
+  const primera = op.filas[0];
+  const enlaces: ConsultarLink[] = [];
+  const esApartado = primera.categoria === "apartado" || primera.categoria === "liberacion_apartado";
+  const ref = esApartado ? referenciaApartado(primera, ctx) : referenciaMovimiento(primera, { enlaceCompras: ctx.enlaceCompras });
+  if (ref) {
+    const abreVenta = Boolean(primera.venta) && ctx.enlaceVentas && !ref.href;
+    enlaces.push({ clave: "documento", texto: ref.texto, detalle: ref.detalle, ...(ref.href ? { href: ref.href } : abreVenta ? { onClick: "abrir_venta" as const } : {}) });
+  }
+  const productos = new Set(op.filas.map((m) => ctx.prendas[m.varianteId]?.productoId ?? ""));
+  const [producto] = [...productos];
+  if (productos.size === 1 && producto) enlaces.push({ clave: "historial", texto: op.filas.length > 1 ? "Historial de estas prendas" : "Historial de esta prenda", href: `/productos/${producto}/historial` });
+  return enlaces;
 }
 
+// ---------------------------------------------------------------------------
+// El cajón de una operación.
+// ---------------------------------------------------------------------------
+
+/** Lo que el cajón necesita dibujar para una operación que NO es interna (las internas van por
+ *  `construirDetalleBajadas`: use `vistaDeOperacion` y no tendrás que decidirlo). */
 export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajon): DetalleCajon {
   const forma = formaDeOperacion(op);
   const primera = op.filas[0];
   const r = resumirOperacion(op, { enlaceCompras: ctx.enlaceCompras });
-  const fechaHora = fechaHoraCompleta(op.fecha, op.hora);
-  const consultarHistorial: ConsultarLink = {
-    clave: "historial",
-    texto: op.filas.length > 1 ? "Ver historial relacionado" : "Ver historial de esta variante",
-    href: `/productos/${ctx.prendas[primera.varianteId]?.productoId ?? ""}/historial`,
-    iconoFinal: "cursor",
+  const base = {
+    forma,
+    clave: op.clave,
+    cuando: cuandoDe(op, ctx),
+    quien: quienes(op.filas),
+    prenda: null,
+    enTienda: null,
+    motivo: null,
+    items: null,
+    devolvio: null,
+    llevo: null,
+    consultar: masInformacion(op, ctx),
   };
 
   if (forma === "cambio") {
-    const sale = op.filas.filter((m) => m.delta < 0).map((m) => itemDeFila(m, ctx, forma));
-    const entra = op.filas.filter((m) => m.delta > 0).map((m) => itemDeFila(m, ctx, forma));
-    const refVenta = primera.venta?.comprobante ? { texto: textoComprobante(primera.venta.comprobante), detalle: null, href: null } : null;
+    const entra = op.filas.filter((m) => m.delta > 0);
+    const sale = op.filas.filter((m) => m.delta < 0);
     return {
-      forma,
-      clave: op.clave,
+      ...base,
       titulo: "Cambio",
-      subtitulo: r.productos[0] ?? primera.referencia,
-      fotoUrl: null,
-      resumen: [
-        { valor: [r.entran > 0 && `+${r.entran}`, r.salen > 0 && `−${r.salen}`].filter(Boolean).join(" / ") || "—", etiqueta: "Movimiento" },
-        { valor: nombreCortoSububicacion(primera.sububicacion), etiqueta: "Sede" },
-        { valor: op.hora, etiqueta: "Hora" },
-      ],
-      referencia: refVenta ? { ...refVenta, icono: "copiar" } : null,
-      notaDetalle: null,
-      items: null,
-      sale,
-      entra,
-      notaImpacto: "Intercambio registrado en la misma sede.",
-      stock: null,
-      filaMovimiento: null,
-      motivo: null,
-      fechaHora,
-      realizadoPor: realizadoPor(primera),
-      consultar: [
-        ...(ctx.enlaceVentas && primera.venta ? [{ clave: "boleta", texto: "Ver boleta", onClick: "abrir_venta" as const, iconoFinal: "cursor" as const }] : []),
-        consultarHistorial,
-      ],
-    };
-  }
-
-  if (forma === "interno") {
-    const items = op.filas.map((m) => itemDeFila(m, ctx, forma));
-    const unidades = op.filas.reduce((s, m) => s + Math.abs(m.cantidad), 0);
-    return {
-      forma,
-      clave: op.clave,
-      titulo: etiquetaMovimiento(primera),
-      subtitulo: op.filas.length > 1 ? resumenProductos(r.productos) : null,
-      fotoUrl: null,
-      resumen: [
-        { valor: `${unidades}`, etiqueta: "unidades" },
-        { valor: `${nombreCortoSububicacion(primera.sububicacion)} → ${nombreCortoSububicacion(primera.sububicacionDestino)}`, etiqueta: "ruta" },
-        { valor: `${r.variantes}`, etiqueta: r.variantes === 1 ? "prenda distinta" : "prendas distintas" },
-      ],
-      referencia: null,
-      notaDetalle: "Movimiento interno, no cambia el total de stock de la sede.",
-      items,
-      sale: null,
-      entra: null,
-      notaImpacto: "Stock total de sede: sin cambios.",
-      stock: null,
-      filaMovimiento: null,
-      motivo: null,
-      fechaHora,
-      realizadoPor: realizadoPor(primera),
-      consultar: [
-        { clave: "existencias", texto: "Ver existencias", href: `/inventario?variante=${primera.varianteId}`, iconoFinal: "cursor" },
-        consultarHistorial,
-      ],
+      cifra: `${r.entran}`,
+      frase: r.entran === 1 && r.salen === 1 ? "prenda cambiada por otra" : `${r.entran === 1 ? "prenda devuelta" : "prendas devueltas"} por ${cuantasPrendas(r.salen)}`,
+      devolvio: entra.map((m) => itemDeFila(m, ctx, cuantasPrendas(Math.abs(m.delta)))),
+      llevo: sale.map((m) => itemDeFila(m, ctx, cuantasPrendas(Math.abs(m.delta)))),
     };
   }
 
   if (forma === "ajuste") {
-    const saldo = ctx.saldos?.[primera.id] ?? null;
+    const una = op.filas.length === 1;
     const esConteo = Boolean(primera.conteo);
-    const refConteo = esConteo ? referenciaMovimiento(primera) : null;
+    const saldo = ctx.saldos?.[primera.id] ?? null;
     return {
-      forma,
-      clave: op.clave,
+      ...base,
       titulo: esConteo ? "Ajuste por conteo" : etiquetaProceso(primera.motivo),
-      subtitulo: [primera.referencia, primera.talla, primera.color].filter(Boolean).join(" · "),
-      fotoUrl: null,
-      resumen: [
-        { valor: `${primera.delta > 0 ? "+" : "−"}${Math.abs(primera.delta)} unidad${Math.abs(primera.delta) === 1 ? "" : "es"}`, etiqueta: "AJUSTE", tono: tonoDelta(primera.delta, forma) },
-        { valor: nombreCortoSububicacion(primera.sububicacion), etiqueta: "UBICACIÓN" },
-        { valor: primera.hora, etiqueta: "FECHA" },
-      ],
-      referencia: refConteo ? { ...refConteo, icono: "documento" } : null,
-      notaDetalle: null,
-      items: null,
-      sale: null,
-      entra: null,
-      notaImpacto: null,
-      stock: saldo !== null ? { antes: saldo - primera.delta, despues: saldo } : null,
-      filaMovimiento: null,
+      prenda: una ? { referencia: primera.referencia, variante: [primera.talla, primera.color].filter(Boolean).join(" · ") || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null } : null,
+      cifra: una ? `${Math.abs(primera.delta)}` : `${op.filas.length}`,
+      frase: una ? fraseDeAjuste(primera.delta) : "prendas se corrigieron",
+      enTienda: una && saldo !== null ? { antes: saldo - primera.delta, despues: saldo } : null,
       motivo: esConteo ? "Diferencia detectada en conteo físico" : (primera.nota ?? etiquetaProceso(primera.motivo)),
-      fechaHora,
-      realizadoPor: realizadoPor(primera),
-      consultar: [...(refConteo ? [{ clave: "conteo", texto: "Ver conteo", href: refConteo.href ?? undefined, iconoFinal: "externo" as const }] : []), { ...consultarHistorial, iconoFinal: "cursor" as const }],
+      items: una ? null : op.filas.map((m) => itemDeFila(m, ctx, `${Math.abs(m.delta)} ${m.delta > 0 ? "más" : "menos"}`, m.delta > 0 ? "verde" : "rojo")),
     };
   }
 
   if (forma === "grupo") {
-    const items = op.filas.map((m) => itemDeFila(m, ctx, forma));
-    const esEntradaSimple = r.entran > 0 && r.salen === 0;
-    const { origen, destino } = partesOrigenDestino(primera);
-    const referencia = r.referencia;
-    // Título SIN el prefijo Entrada/Salida (literal a la captura, «Traslado recibido» a secas — la fila de la lista
-    // sí lo lleva, acá el verde/rojo del resumen ya dice la dirección): las filas mezcladas (un cambio de varios
-    // ítems, caso raro) siguen usando el nombre del proceso a secas, igual que ya hacía `resumirOperacion`.
-    const tituloSinDireccion = new Set(op.filas.map((m) => etiquetaConDireccion(m))).size > 1 ? etiquetaProceso(primera.motivo) : etiquetaMovimiento(primera);
+    const mixta = r.entran > 0 && r.salen > 0;
+    const n = r.entran || r.salen || r.apartadas || r.liberadas;
+    // Sin el prefijo Entrada/Salida: el cajón ya dice la dirección en la frase. Las filas mezcladas (caso raro) usan el
+    // nombre del proceso a secas, como ya hacía `resumirOperacion`.
+    const titulo = new Set(op.filas.map((m) => etiquetaConDireccion(m))).size > 1 ? etiquetaProceso(primera.motivo) : etiquetaMovimiento(primera);
     return {
-      forma,
-      clave: op.clave,
-      titulo: tituloSinDireccion,
-      subtitulo: resumenProductos(r.productos),
-      fotoUrl: null,
-      // Literal a la captura de Traslado recibido: solo la 1ª celda es número grande + etiqueta; la ruta y la
-      // hora·ubicación son una sola línea cada una, sin una segunda línea de etiqueta debajo.
-      resumen: [
-        { valor: `${esEntradaSimple ? "+" : r.salen > 0 && r.entran === 0 ? "−" : "⇄"}${esEntradaSimple ? r.entran : r.salen > 0 && r.entran === 0 ? r.salen : r.entran + r.salen}`, etiqueta: "unidades", tono: tonoDelta(esEntradaSimple ? 1 : -1, forma) },
-        { valor: destino ? `${origen} → ${destino}` : origen, etiqueta: "" },
-        { valor: `${op.hora} · ${nombreCortoSububicacion(primera.sububicacion)}`, etiqueta: "" },
-      ],
-      referencia: referencia ? { ...referencia, icono: "documento" } : null,
-      notaDetalle: null,
-      items,
-      sale: null,
-      entra: null,
-      // Literal a la captura de Traslado recibido: "antes" de que llegara este envío, 0 de ESTE envío; "ahora", lo
-      // que trajo. Para una salida múltiple (una venta o devolución de varias prendas) no hay un "antes 0" honesto
-      // que mostrar, así que se deja como nota de una línea en vez de inventar una cifra.
-      notaImpacto: esEntradaSimple ? null : `${r.salen} ${r.salen === 1 ? "unidad salió" : "unidades salieron"} de la sede.`,
-      stock: null,
-      filaMovimiento: null,
-      motivo: null,
-      fechaHora,
-      realizadoPor: realizadoPor(primera),
-      consultar: [...consultarDeReferencia(primera, ctx), consultarHistorial],
+      ...base,
+      titulo,
+      cifra: `${mixta ? op.filas.length : n}`,
+      frase: mixta ? "prendas se movieron" : fraseDeMovimiento(primera, n),
+      items: op.filas.map((m) => itemDeFila(m, ctx, cuantasPrendas(unidadesDeFila(m)))),
     };
   }
 
-  // individual — una sola fila: Venta es el ejemplo de la captura; cualquier otro proceso de una sola prenda
-  // (devolución, producción, dañado, apartado…) usa el mismo patrón con sus propios textos.
-  const saldo = ctx.saldos?.[primera.id] ?? null;
+  // individual — una sola fila: una venta, un traslado de una prenda, una devolución, un apartado…
   const esApartado = primera.categoria === "apartado" || primera.categoria === "liberacion_apartado";
-  const referencia = esApartado ? referenciaApartado(primera, ctx) : referenciaMovimiento(primera, { enlaceCompras: ctx.enlaceCompras });
-  const { origen, destino } = partesOrigenDestino(primera);
+  const n = unidadesDeFila(primera);
+  const saldo = ctx.saldos?.[primera.id] ?? null;
   return {
+    ...base,
     forma: "individual",
-    clave: op.clave,
-    titulo: primera.referencia,
-    subtitulo: [primera.talla, primera.color].filter(Boolean).join(" · ") || null,
-    fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null,
-    resumen: [
-      { valor: etiquetaConDireccion(primera), etiqueta: "" },
-      { valor: primera.categoria === "interno" || esApartado ? `${Math.abs(primera.cantidad)}` : `${primera.delta > 0 ? "+" : primera.delta < 0 ? "−" : ""}${Math.abs(primera.delta)}`, etiqueta: primera.categoria === "interno" || esApartado ? "unidades" : "unidad", tono: tonoDelta(primera.delta, "individual") },
-      { valor: saldo !== null ? `quedan ${saldo}` : "—", etiqueta: "" },
-    ],
-    referencia: referencia ? { ...referencia, icono: primera.venta ? "copiar" : "documento" } : null,
-    notaDetalle: null,
-    items: null,
-    sale: null,
-    entra: null,
-    notaImpacto: null,
-    stock: saldo !== null && !esApartado ? { antes: saldo - primera.delta, despues: saldo } : null,
-    filaMovimiento: { clave: "movimiento", etiqueta: "Movimiento", valor: etiquetaConDireccion(primera), subvalor: destino ? `${origen} → ${destino}` : origen },
-    motivo: null,
-    fechaHora,
-    realizadoPor: realizadoPor(primera),
-    consultar: [...consultarDeReferencia(primera, ctx), consultarHistorial],
+    titulo: etiquetaMovimiento(primera),
+    prenda: { referencia: primera.referencia, variante: [primera.talla, primera.color].filter(Boolean).join(" · ") || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null },
+    cifra: `${n}`,
+    frase: fraseDeMovimiento(primera, n),
+    enTienda: saldo !== null && !esApartado ? { antes: saldo - primera.delta, despues: saldo } : null,
   };
+}
+
+/** Qué dibuja el cajón para una operación: una interna (bajada, retiro) se lee con el cajón de las bajadas; cualquier
+ *  otra, con el suyo. */
+export function vistaDeOperacion(op: OperacionMovimiento, ctx: ContextoCajon): VistaCajon {
+  return formaDeOperacion(op) === "interno"
+    ? { tipo: "bajadas", detalle: construirDetalleBajadas(op.clave, [op], ctx) }
+    : { tipo: "operacion", detalle: construirDetalleCajon(op, ctx) };
 }
 
 // ---------------------------------------------------------------------------
 // El cajón de «Bajadas al piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
-// abre este cajón. Es de CONSULTA como los demás y se lee de corrido, sin saber de stock: qué pasó (una frase), cuándo,
-// quién, y la lista de prendas con su hora. Cada dato en palabras de tienda (2026-10-01, simplificado tras leerlo como
-// alguien sin contexto: «veces», «tallas», «⇄» y «quedan N» —el total de la tienda, no el del piso— no se entendían).
+// abre este cajón. También es el de UN movimiento interno suelto (una bajada o un retiro). Es de CONSULTA como los
+// demás y se lee de corrido, sin saber de stock: qué pasó (una frase), cuándo, quién, y la lista de prendas.
 // ---------------------------------------------------------------------------
 
-/** Una prenda bajada (una fila de una operación) dentro del cajón de las bajadas del día. */
+/** Una prenda movida (una fila de una operación) dentro del cajón de las bajadas. */
 export type FilaBajada = {
   id: string;
   hora: string;
@@ -367,14 +337,14 @@ export type FilaBajada = {
   fotoUrl: string | null;
   /** «1 prenda», «2 prendas»: la cantidad ya dicha, sin símbolos. */
   cantidad: string;
-  /** «Almacén → Piso». Solo si el día mezcla bajadas con otros movimientos de la tienda (un retiro del piso, algo de
-   *  la cuarentena): ahí cada fila tiene que decir hacia dónde fue. Si todas son bajadas, null: sería repetir. */
+  /** «Almacén → Piso». Solo si no todas son bajadas (o no todas son retiros): ahí cada fila tiene que decir hacia dónde
+   *  fue. Si todas van hacia el mismo lado, null: sería repetir. */
   sentido: string | null;
 };
 
 export type DetalleBajadas = {
   clave: string;
-  titulo: string; // «Bajadas al piso» (o «Movido dentro de la sede» si alguna no lo fue): el mismo nombre de la fila
+  titulo: string; // «Bajadas al piso» · «Bajada al piso» · «Retiro del piso» · «Movido dentro de la sede»: el nombre de la fila
   /** «Hoy, de 10:04 a 11:29» · «Ayer, a las 18:35». */
   cuando: string;
   /** El número grande y la frase que lo sigue: «10» + «prendas pasaron del almacén al piso de venta». */
@@ -383,62 +353,46 @@ export type DetalleBajadas = {
   /** Quién las hizo: «Carla Ruiz y Luis Soto»; null si todas son carga de sistema. */
   quien: string | null;
   nota: string;
-  /** La más reciente primero, como la lista; una fila por prenda aunque se hayan bajado juntas. */
+  /** ¿Hay más de una hora? Con una sola, la hora ya está en `cuando` y repetirla en cada fila sobra. */
+  mostrarHora: boolean;
+  /** La más reciente primero, como la lista; una fila por prenda aunque se hayan movido juntas. */
   filas: FilaBajada[];
 };
 
-/** «Ana» · «Ana y Luis» · «Ana, Luis y Carla». */
-function unirNombres(nombres: string[]): string {
-  return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-}
-
-/** Lo que el cajón de las bajadas del día necesita dibujar, sacado de las operaciones que la fila plegó (llegan de la
- *  más nueva a la más vieja, `plegarBajadas`). Todo dato real: el nombre se omite si la base no lo trajo. */
-export function construirDetalleBajadas(clave: string, operaciones: readonly OperacionMovimiento[], ctx: ContextoCajon, hoyLima: string): DetalleBajadas {
+/** Lo que el cajón de las bajadas necesita dibujar, sacado de las operaciones internas (llegan de la más nueva a la más
+ *  vieja, `plegarBajadas`): las del día plegadas, o una sola. Todo dato real: el nombre se omite si la base no lo trajo. */
+export function construirDetalleBajadas(clave: string, operaciones: readonly OperacionMovimiento[], ctx: ContextoCajon): DetalleBajadas {
   const r = resumirBajadas(operaciones);
-  const soloBajadas = r.etiqueta === "Bajadas al piso";
-  const dia = etiquetaDia(operaciones[0].fecha, hoyLima);
-  const personas = [...new Set(operaciones.flatMap((op) => op.filas.map(realizadoPor)).filter((n): n is string => n !== null))];
-  const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+  const filas = operaciones.flatMap((op) => op.filas.map((m) => ({ op, m })));
+  const etiquetas = new Set(filas.map(({ m }) => etiquetaConDireccion(m)));
+  const sentido = etiquetas.size === 1 ? [...etiquetas][0] : null;
+  const bajada = sentido === "Bajada al piso";
+  const retiro = sentido === "Retiro del piso";
+  const dia = etiquetaDia(operaciones[0].fecha, ctx.hoyLima);
+  const horas = new Set(operaciones.map((op) => op.hora));
+  const una = r.unidades === 1;
   return {
     clave,
-    titulo: r.etiqueta,
+    // Una sola operación se llama por su nombre en singular («Bajada al piso»); varias, como la fila plegada.
+    titulo: operaciones.length === 1 ? etiquetaMovimiento(operaciones[0].filas[0]) : r.etiqueta,
     cuando: r.desde === r.hasta ? `${dia}, a las ${r.hasta}` : `${dia}, de ${r.desde} a ${r.hasta}`,
     cifra: `${r.unidades}`,
-    frase: soloBajadas
-      ? `${r.unidades === 1 ? "prenda pasó" : "prendas pasaron"} del almacén al piso de venta`
-      : `${r.unidades === 1 ? "prenda cambió" : "prendas cambiaron"} de lugar dentro de la tienda`,
-    quien: personas.length > 0 ? unirNombres(personas) : null,
+    frase: bajada
+      ? `${una ? "prenda pasó" : "prendas pasaron"} del almacén al piso de venta`
+      : retiro
+        ? `${una ? "prenda volvió" : "prendas volvieron"} del piso al almacén`
+        : `${una ? "prenda cambió" : "prendas cambiaron"} de lugar dentro de la tienda`,
+    quien: quienes(filas.map(({ m }) => m)),
     nota: "El stock total de la tienda no cambia: solo cambiaron de lugar.",
-    filas: operaciones.flatMap((op) =>
-      op.filas.map((m) => ({
-        id: m.id,
-        hora: op.hora,
-        referencia: m.referencia,
-        variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
-        fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
-        cantidad: prendas(Math.abs(m.cantidad)),
-        sentido: soloBajadas ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,
-      }))
-    ),
+    mostrarHora: horas.size > 1,
+    filas: filas.map(({ op, m }) => ({
+      id: m.id,
+      hora: op.hora,
+      referencia: m.referencia,
+      variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
+      fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
+      cantidad: cuantasPrendas(Math.abs(m.cantidad)),
+      sentido: bajada || retiro ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,
+    })),
   };
 }
-
-/** "Vestido Sofía, Falda Renata y 3 más" — hasta 2 nombres y el resto contado, como ya hace `FilaOperacion`. */
-function resumenProductos(productos: string[]): string {
-  return productos.length <= 2 ? productos.join(", ") : `${productos.slice(0, 2).join(", ")} y ${productos.length - 2} más`;
-}
-
-/** Los links de Consultar que salen de la referencia del proceso (Traslado/Conteo/Compra), más "Ver boleta" cuando
- *  hay venta y quien mira ve Historial de ventas — el mismo whitelist de la sección 14 del pedido, nunca un atajo
- *  operativo. */
-function consultarDeReferencia(m: Movimiento, ctx: ContextoCajon): ConsultarLink[] {
-  const links: ConsultarLink[] = [];
-  if (m.transferencia) links.push({ clave: "traslado", texto: "Ver traslado", href: `/inventario/traslados/${m.transferencia.id}`, iconoFinal: "externo" });
-  if (m.conteo) links.push({ clave: "conteo", texto: "Ver conteo", href: `/inventario/conteo/${m.conteo.id}`, iconoFinal: "externo" });
-  if (m.venta && ctx.enlaceVentas) links.push({ clave: "boleta", texto: "Ver boleta", onClick: "abrir_venta", iconoFinal: "cursor" });
-  else if (m.compra && ctx.enlaceCompras) links.push({ clave: "compra", texto: "Ver comprobante de compra", href: `/compras/factura/${m.compra.id}`, iconoFinal: "externo" });
-  return links;
-}
-
-export { conVuelta };
