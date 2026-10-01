@@ -216,6 +216,170 @@ function CajaReferencia({ referencia, onVerVenta, referenciaEsVenta }: { referen
   );
 }
 
+/** El cuerpo del cajón de UNA operación (las 5 formas): encabezado, resumen, secciones y «Consultar». Vive aparte del
+ *  marco para que el mismo cajón pueda mostrar otro contenido (las bajadas del día) sin cerrarse ni volver a deslizarse. */
+function ContenidoOperacion({ d, referenciaEsVenta, onVerVenta }: { d: DetalleCajon; referenciaEsVenta: boolean; onVerVenta?: () => void }) {
+  return (
+    <>
+      {/* Encabezado: foto real solo en «individual» (Venta); isotipo en cambio/interno/ajuste; ninguno en «grupo» (Traslado). */}
+      {d.forma === "individual" ? (
+        <div className="flex items-center gap-5 pr-9">
+          <Avatar fotoUrl={d.fotoUrl} />
+          <div className="min-w-0">
+            <Dialog.Title asChild>
+              <h2 className="font-display text-[26px] leading-tight text-tinta">{d.titulo}</h2>
+            </Dialog.Title>
+            {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
+          </div>
+        </div>
+      ) : d.forma === "grupo" ? (
+        <div className="pr-9">
+          <Dialog.Title asChild>
+            <h2 className="font-display text-[26px] leading-tight text-tinta">{d.titulo}</h2>
+          </Dialog.Title>
+          {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
+        </div>
+      ) : (
+        <div className="flex items-center gap-4 pr-9">
+          <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[10px] border border-tinta/10 bg-hueso">
+            <SinFoto tamano="h-9 w-9" />
+          </span>
+          <div className="min-w-0">
+            <Dialog.Title asChild>
+              <h2 className="font-display text-[24px] leading-tight text-tinta">{d.titulo}</h2>
+            </Dialog.Title>
+            {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
+          </div>
+        </div>
+      )}
+
+      {d.forma === "grupo" ? <TiraResumen celdas={d.resumen} /> : <TarjetasResumen celdas={d.resumen} mayusculas={d.forma === "ajuste"} />}
+
+      {/* Referencia: solo grupo/ajuste la ponen ARRIBA del cuerpo (así en las capturas); individual/cambio la
+          llevan como una fila más de «Movimiento»/«Referencia» — ver más abajo. */}
+      {(d.forma === "grupo" || d.forma === "ajuste") && d.referencia && (
+        <div className="mt-6">
+          <p className="mb-2 text-[15px] font-semibold text-tinta">Referencia</p>
+          <CajaReferencia referencia={d.referencia} referenciaEsVenta={false} />
+        </div>
+      )}
+      {d.forma === "cambio" && d.referencia && (
+        <div className="mt-6">
+          <p className="mb-2 text-[15px] font-semibold text-tinta">Referencia</p>
+          <CajaReferencia referencia={d.referencia} referenciaEsVenta={referenciaEsVenta} onVerVenta={onVerVenta} />
+        </div>
+      )}
+
+      {d.forma === "interno" && d.notaDetalle && (
+        <Seccion icono={ClipboardList} titulo="Detalle">
+          <p className="text-[14px] text-taupe">{d.notaDetalle}</p>
+        </Seccion>
+      )}
+
+      {(d.forma === "grupo" || d.forma === "interno") && d.items && (
+        <Seccion icono={ListChecks} titulo="Incluye">
+          <p className="-mt-2 mb-3 text-[13.5px] text-taupe">
+            {d.items.length} {d.items.length === 1 ? "prenda distinta" : "prendas distintas"}
+          </p>
+          <ListaPrendas items={d.items} />
+        </Seccion>
+      )}
+
+      {d.forma === "cambio" && (
+        <>
+          <Seccion icono={ArrowLeft} titulo="Sale">
+            <div className="grid gap-2">{d.sale?.map((it) => <TarjetaCambio key={it.varianteId} item={it} />)}</div>
+          </Seccion>
+          <Seccion icono={ArrowRight} titulo="Entra">
+            <div className="grid gap-2">{d.entra?.map((it) => <TarjetaCambio key={it.varianteId} item={it} />)}</div>
+          </Seccion>
+        </>
+      )}
+
+      {d.forma === "individual" && d.filaMovimiento && (
+        <Seccion>
+          <FilaDatoUI icono={ArrowLeftRight} etiqueta="Movimiento" valor={d.filaMovimiento.valor} subvalor={d.filaMovimiento.subvalor} />
+          {d.referencia && <FilaDatoUI icono={FileText} etiqueta="Referencia" valor={referenciaValor(d.referencia, referenciaEsVenta, onVerVenta)} />}
+          {d.stock && (
+            <FilaDatoUI
+              icono={Package}
+              etiqueta="Stock"
+              valor={
+                <>
+                  Antes: <b>{d.stock.antes}</b>
+                  <br />
+                  Después: <b>{d.stock.despues}</b>
+                </>
+              }
+            />
+          )}
+          <FilaDatoUI icono={Calendar} etiqueta="Fecha y hora" valor={d.fechaHora} />
+          {d.realizadoPor && <FilaDatoUI icono={UserRound} etiqueta="Realizado por" valor={d.realizadoPor} />}
+        </Seccion>
+      )}
+
+      {d.forma === "ajuste" && (
+        <>
+          {d.motivo && (
+            <Seccion icono={FileText} titulo="Motivo">
+              <p className="text-[14px] text-tinta">{d.motivo}</p>
+            </Seccion>
+          )}
+          {d.stock && (
+            <Seccion icono={Package} titulo="Stock">
+              <p className="text-[14px] text-tinta">
+                Antes: <b>{d.stock.antes}</b>
+                <br />
+                Después: <b>{d.stock.despues}</b>
+              </p>
+            </Seccion>
+          )}
+          {d.realizadoPor && (
+            <Seccion icono={UserRound} titulo="Realizado por">
+              <p className="text-[14px] text-tinta">{d.realizadoPor}</p>
+            </Seccion>
+          )}
+        </>
+      )}
+
+      {(d.forma === "grupo" || d.forma === "interno") && (
+        <Seccion icono={Calendar} titulo="Fecha y hora">
+          <p className="text-[14px] text-tinta">{d.fechaHora}</p>
+        </Seccion>
+      )}
+
+      {d.notaImpacto && (
+        <Seccion icono={BarChart3} titulo={d.forma === "cambio" ? "Stock" : "Impacto"}>
+          {d.forma === "cambio" ? (
+            <p className="flex items-center gap-2 rounded-lg bg-verde/10 px-3 py-2.5 text-[13.5px] text-verde-profundo">
+              <CheckCircle2 aria-hidden className="h-[18px] w-[18px] shrink-0" strokeWidth={1.6} />
+              {d.notaImpacto}
+            </p>
+          ) : (
+            <p className="text-[14px] text-taupe">{d.notaImpacto}</p>
+          )}
+        </Seccion>
+      )}
+
+      <Seccion icono={Search} titulo="Consultar">
+        {d.forma === "individual" ? (
+          <div>
+            {d.consultar.map((c) => (
+              <FilaConsultar key={c.clave} link={c} estilo="plana" onVerVenta={onVerVenta} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-sand">
+            {d.consultar.map((c) => (
+              <FilaConsultar key={c.clave} link={c} estilo="caja" onVerVenta={onVerVenta} />
+            ))}
+          </div>
+        )}
+      </Seccion>
+    </>
+  );
+}
+
 export function CajonMovimiento({
   operacion,
   contexto,
@@ -262,161 +426,7 @@ export function CajonMovimiento({
             </button>
 
             <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-[30px] pb-8 pt-8">
-              {/* Encabezado: foto real solo en «individual» (Venta); isotipo en cambio/interno/ajuste; ninguno en «grupo» (Traslado). */}
-              {d.forma === "individual" ? (
-                <div className="flex items-center gap-5 pr-9">
-                  <Avatar fotoUrl={d.fotoUrl} />
-                  <div className="min-w-0">
-                    <Dialog.Title asChild>
-                      <h2 className="font-display text-[26px] leading-tight text-tinta">{d.titulo}</h2>
-                    </Dialog.Title>
-                    {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
-                  </div>
-                </div>
-              ) : d.forma === "grupo" ? (
-                <div className="pr-9">
-                  <Dialog.Title asChild>
-                    <h2 className="font-display text-[26px] leading-tight text-tinta">{d.titulo}</h2>
-                  </Dialog.Title>
-                  {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 pr-9">
-                  <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[10px] border border-tinta/10 bg-hueso">
-                    <SinFoto tamano="h-9 w-9" />
-                  </span>
-                  <div className="min-w-0">
-                    <Dialog.Title asChild>
-                      <h2 className="font-display text-[24px] leading-tight text-tinta">{d.titulo}</h2>
-                    </Dialog.Title>
-                    {d.subtitulo && <Dialog.Description className="mt-1 text-[15px] text-taupe">{d.subtitulo}</Dialog.Description>}
-                  </div>
-                </div>
-              )}
-
-              {d.forma === "grupo" ? <TiraResumen celdas={d.resumen} /> : <TarjetasResumen celdas={d.resumen} mayusculas={d.forma === "ajuste"} />}
-
-              {/* Referencia: solo grupo/ajuste la ponen ARRIBA del cuerpo (así en las capturas); individual/cambio la
-                  llevan como una fila más de «Movimiento»/«Referencia» — ver más abajo. */}
-              {(d.forma === "grupo" || d.forma === "ajuste") && d.referencia && (
-                <div className="mt-6">
-                  <p className="mb-2 text-[15px] font-semibold text-tinta">Referencia</p>
-                  <CajaReferencia referencia={d.referencia} referenciaEsVenta={false} />
-                </div>
-              )}
-              {d.forma === "cambio" && d.referencia && (
-                <div className="mt-6">
-                  <p className="mb-2 text-[15px] font-semibold text-tinta">Referencia</p>
-                  <CajaReferencia referencia={d.referencia} referenciaEsVenta={referenciaEsVenta} onVerVenta={onVerVenta} />
-                </div>
-              )}
-
-              {d.forma === "interno" && d.notaDetalle && (
-                <Seccion icono={ClipboardList} titulo="Detalle">
-                  <p className="text-[14px] text-taupe">{d.notaDetalle}</p>
-                </Seccion>
-              )}
-
-              {(d.forma === "grupo" || d.forma === "interno") && d.items && (
-                <Seccion icono={ListChecks} titulo="Incluye">
-                  <p className="-mt-2 mb-3 text-[13.5px] text-taupe">
-                    {d.items.length} {d.items.length === 1 ? "prenda distinta" : "prendas distintas"}
-                  </p>
-                  <ListaPrendas items={d.items} />
-                </Seccion>
-              )}
-
-              {d.forma === "cambio" && (
-                <>
-                  <Seccion icono={ArrowLeft} titulo="Sale">
-                    <div className="grid gap-2">{d.sale?.map((it) => <TarjetaCambio key={it.varianteId} item={it} />)}</div>
-                  </Seccion>
-                  <Seccion icono={ArrowRight} titulo="Entra">
-                    <div className="grid gap-2">{d.entra?.map((it) => <TarjetaCambio key={it.varianteId} item={it} />)}</div>
-                  </Seccion>
-                </>
-              )}
-
-              {d.forma === "individual" && d.filaMovimiento && (
-                <Seccion>
-                  <FilaDatoUI icono={ArrowLeftRight} etiqueta="Movimiento" valor={d.filaMovimiento.valor} subvalor={d.filaMovimiento.subvalor} />
-                  {d.referencia && <FilaDatoUI icono={FileText} etiqueta="Referencia" valor={referenciaValor(d.referencia, referenciaEsVenta, onVerVenta)} />}
-                  {d.stock && (
-                    <FilaDatoUI
-                      icono={Package}
-                      etiqueta="Stock"
-                      valor={
-                        <>
-                          Antes: <b>{d.stock.antes}</b>
-                          <br />
-                          Después: <b>{d.stock.despues}</b>
-                        </>
-                      }
-                    />
-                  )}
-                  <FilaDatoUI icono={Calendar} etiqueta="Fecha y hora" valor={d.fechaHora} />
-                  {d.realizadoPor && <FilaDatoUI icono={UserRound} etiqueta="Realizado por" valor={d.realizadoPor} />}
-                </Seccion>
-              )}
-
-              {d.forma === "ajuste" && (
-                <>
-                  {d.motivo && (
-                    <Seccion icono={FileText} titulo="Motivo">
-                      <p className="text-[14px] text-tinta">{d.motivo}</p>
-                    </Seccion>
-                  )}
-                  {d.stock && (
-                    <Seccion icono={Package} titulo="Stock">
-                      <p className="text-[14px] text-tinta">
-                        Antes: <b>{d.stock.antes}</b>
-                        <br />
-                        Después: <b>{d.stock.despues}</b>
-                      </p>
-                    </Seccion>
-                  )}
-                  {d.realizadoPor && (
-                    <Seccion icono={UserRound} titulo="Realizado por">
-                      <p className="text-[14px] text-tinta">{d.realizadoPor}</p>
-                    </Seccion>
-                  )}
-                </>
-              )}
-
-              {(d.forma === "grupo" || d.forma === "interno") && (
-                <Seccion icono={Calendar} titulo="Fecha y hora">
-                  <p className="text-[14px] text-tinta">{d.fechaHora}</p>
-                </Seccion>
-              )}
-
-              {d.notaImpacto && (
-                <Seccion icono={BarChart3} titulo={d.forma === "cambio" ? "Stock" : "Impacto"}>
-                  {d.forma === "cambio" ? (
-                    <p className="flex items-center gap-2 rounded-lg bg-verde/10 px-3 py-2.5 text-[13.5px] text-verde-profundo">
-                      <CheckCircle2 aria-hidden className="h-[18px] w-[18px] shrink-0" strokeWidth={1.6} />
-                      {d.notaImpacto}
-                    </p>
-                  ) : (
-                    <p className="text-[14px] text-taupe">{d.notaImpacto}</p>
-                  )}
-                </Seccion>
-              )}
-
-              <Seccion icono={Search} titulo="Consultar">
-                {d.forma === "individual" ? (
-                  <div>
-                    {d.consultar.map((c) => (
-                      <FilaConsultar key={c.clave} link={c} estilo="plana" onVerVenta={onVerVenta} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-sand">
-                    {d.consultar.map((c) => (
-                      <FilaConsultar key={c.clave} link={c} estilo="caja" onVerVenta={onVerVenta} />
-                    ))}
-                  </div>
-                )}
-              </Seccion>
+              <ContenidoOperacion d={d} referenciaEsVenta={referenciaEsVenta} onVerVenta={onVerVenta} />
             </div>
           </div>
         </Dialog.Content>
