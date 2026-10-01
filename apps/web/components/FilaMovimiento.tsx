@@ -264,7 +264,7 @@ export function FilaBajadas({
         <button
           type="button"
           onClick={onAbrir}
-          aria-label={`Ver las ${r.veces} ${r.etiqueta.toLowerCase()}: ${r.tallas} tallas, ${r.unidades} unidades`}
+          aria-label={`Ver el detalle de ${r.etiqueta.toLowerCase()}: ${r.veces} veces, ${r.unidades} unidades`}
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
         <ColumnaHora desde={r.desde} hasta={r.hasta} />
