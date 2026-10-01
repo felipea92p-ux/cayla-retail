@@ -782,7 +782,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`consultarNombre`, `registrarme`) con la llave de servicio → `club_intento` (ip y documento en huella con sal,
   `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`.
 - QR del club (ADR-0288 act. g, G-1): uno por tienda, a `/club/<uuid>`. Cartel `/clientas/cartel` (`CartelClub.tsx`) y ticket
-  impreso (`recibo.club`) arman su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`, `clubEnElTicket`).
+  impreso (`recibo.club`) arman su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`, `clubEnElTicket`). El cartel es el
+  diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
+  escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
+  para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
 - `/clientas/avisos` (ADR-0288 act. g, G-8; tanda 1g, módulo **`avisos_club`**, sin pegar): Clientas pasa a GRUPO del menú
   (Fichas · Avisos). `app/(app)/clientas/layout.tsx` es la puerta del grupo (`clientas` o `avisos_club`); las fichas
   (`page.tsx`) piden `clientas` y `avisos/layout.tsx` pide `avisos_club`. En CAYLA Global no se abre (manda desde UNA
