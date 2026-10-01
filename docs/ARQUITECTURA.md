@@ -751,10 +751,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
   **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**
   - la ficha lee `club_desde`, `publicidad_desde` y `codigo_club`;
-  - las acciones viven en `lib/club-acciones.ts`: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»),
-    `registrar_desde_whatsapp` (cartel), `registrar_baja_whatsapp`, `crear_invitacion_club` (camino B) y
-    `fn_club_textos_vigentes`;
-  - «Llegó un mensaje de WhatsApp» → `components/clientas/LlegoMensajeWhatsappModal.tsx`;
+  - las acciones viven en `lib/club-acciones.ts`: `registrar_baja_whatsapp` («Registrar su BAJA», en la ficha) y
+    `resumen_clienta_caja`. Desde la tanda 1g (ADR-0288 act. g) ella se une sola desde el cartel: la web ya no llama
+    `unirse_al_club`, `registrar_mensaje_publicidad`, `registrar_desde_whatsapp` ni `crear_invitacion_club`, y se retiró
+    «Llegó un mensaje de WhatsApp» (G-7). El alta (`NuevaClientaModal`) pide solo el documento (`camposDeRegistrar`,
+    `lib/club-caja-reglas.ts`, la misma regla que Cobrar);
   - cartel imprimible → `/clientas/cartel` (`components/clientas/CartelClub.tsx`);
   - reglas puras en `lib/club-reglas.ts` y `lib/club-clientas-reglas.ts`.
   **Tanda 1f del club (ADR-0288 act. (f), `20260930210000`, sin pegar):** la lista ya no es
@@ -771,10 +772,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
-- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada) +
-  `InvitarAlClub.tsx` + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader), `unirse_al_club`,
-  `crear_invitacion_club`. La página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero`. El
-  ticket impreso lleva el QR del club (camino A: el WhatsApp de la tienda). Reglas en `lib/club-caja-reglas.ts`.
+- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada; alta
+  solo con el documento) + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader) + `useEsperaDelCartel.ts`
+  (tanda 1g: si no es socia, «Pídele que escanee el cartel» y relee `resumen_clienta_caja` cada 3 s hasta 10 min). El
+  cumpleaños (`lib/club-cumple-canje-reglas.ts`, `p_canjear_cumpleanos`) y el vale de aniversario
+  (`lib/club-aniversario-canje-reglas.ts`, `p_canjear_aniversario`, tanda 1g) van a `registrar_venta`, uno por compra. La
+  página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero` para el QR del ticket impreso. Reglas
+  en `lib/club-caja-reglas.ts`.
 - Configuración ▸ Tiendas y caja ▸ «WhatsApp de cada tienda» → RPC `guardar_whatsapp_tienda`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
