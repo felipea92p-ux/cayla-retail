@@ -56,13 +56,32 @@ export function textoDeFamilia(valor: string | null | undefined): string {
 }
 
 /**
- * Fondo CSS de una muestra de color. Un metálico lleva un reflejo (luz arriba, sombra abajo) sobre su hex: pintado
- * plano, «Plata vieja» es el mismo gris que «Gris» y «Champán» el mismo beige que «Beige» (ΔE2000 3 y 4, revisión
- * del 2026-09-25), y la muestra tiene que decir «esto es metal» antes de que alguien lea el nombre. El reflejo sale
- * de los tokens de la paleta (crema y tinta), no de un color suelto.
+ * Fondo CSS de una muestra de color. Un color liso va EXACTO, sin velo ni degradado: es el #hex que guarda la base (medido el
+ * 2026-10-02 contra una captura convertida a sRGB: diferencia media de 0,9 sobre 255). Un metálico lleva además el reflejo de un
+ * metal cepillado —una banda de luz cerca del borde, otra más tenue al centro y sombra al fondo— sobre su hex: pintado plano,
+ * «Plata vieja» es el mismo gris que «Gris» y «Champán» el mismo beige que «Beige» (ΔE2000 3 y 4, revisión del 2026-09-25), y la
+ * muestra tiene que decir «esto es metal» antes de que alguien lea el nombre. El reflejo sale de los tokens de la paleta (crema y
+ * tinta), no de un color suelto.
  */
 export function fondoDeMuestra(hex: string | null, familiaColor?: string | null): string | undefined {
   if (!hex) return undefined;
   if (familiaColor !== "metalico") return hex;
-  return `linear-gradient(135deg, color-mix(in srgb, var(--color-crema) 75%, transparent) 0%, transparent 48%, color-mix(in srgb, var(--color-tinta) 28%, transparent) 100%), ${hex}`;
+  return [
+    "linear-gradient(115deg,",
+    "color-mix(in srgb, var(--color-crema) 78%, transparent) 0%,",
+    "transparent 24%,",
+    "color-mix(in srgb, var(--color-crema) 52%, transparent) 40%,",
+    "transparent 54%,",
+    "color-mix(in srgb, var(--color-tinta) 20%, transparent) 76%,",
+    `color-mix(in srgb, var(--color-tinta) 38%, transparent) 100%), ${hex}`,
+  ].join(" ");
+}
+
+/**
+ * El borde de una muestra: el MISMO color, más oscuro. Un borde gris fijo se pierde sobre un negro y le quita vida a un amarillo;
+ * uno del propio tono da a cada círculo un filo limpio —y a los claros (Blanco, Crudo, Perla, Vainilla) el filo que los separa del
+ * fondo de la carta— sin cambiar el color que se ve adentro. Sin hex válido no hay borde propio: quien llama deja el suyo.
+ */
+export function bordeDeMuestra(hex: string | null | undefined): string | undefined {
+  return hex && /^#[0-9a-f]{6}$/i.test(hex) ? `color-mix(in srgb, ${hex} 68%, black)` : undefined;
 }

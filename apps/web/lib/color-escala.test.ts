@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { enEscala, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
-import { enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR } from "./colores-familias";
+import { enEscala, esColorClaro, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
+import { bordeDeMuestra, enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR, fondoDeMuestra } from "./colores-familias";
 
 // La carta de CAYLA al 2026-10-02: los 75 colores activos de producción, cada uno con la familia que le da la migración
 // 20261002180000. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
@@ -228,5 +228,49 @@ describe("esFamiliaDeColor — la lista que valida la API", () => {
     expect(esFamiliaDeColor("rosado")).toBe(true);
     expect(esFamiliaDeColor("naranja")).toBe(true);
     for (const malo of ["", "Rosado", "rosa", "sin-familia", null, undefined, 5]) expect(esFamiliaDeColor(malo)).toBe(false);
+  });
+});
+
+describe("esColorClaro — de qué color va el ✓ encima de un círculo", () => {
+  it("tinta sobre los claros —incluido el turquesa y el esmeralda, que el brillo del RGB daba por oscuros— y crema sobre los oscuros", () => {
+    for (const [nombre, hex] of [["Blanco", "#F4F9FF"], ["Amarillo", "#F0C05A"], ["Turquesa", "#33BECC"], ["Esmeralda", "#009B74"], ["Celeste", "#A9CADA"]]) {
+      expect(esColorClaro(hex), nombre).toBe(true);
+    }
+    for (const [nombre, hex] of [["Negro", "#2D2C2F"], ["Cobalto", "#00539C"], ["Verde", "#487D49"], ["Rojo", "#BD332D"], ["Marino", "#2A304E"]]) {
+      expect(esColorClaro(hex), nombre).toBe(false);
+    }
+  });
+
+  it("sin hex válido se trata como claro: el ✓ de un color sin tono se lee sobre el fondo crema", () => {
+    expect(esColorClaro(null)).toBe(true);
+    expect(esColorClaro("no-es-un-hex")).toBe(true);
+  });
+});
+
+describe("fondoDeMuestra y bordeDeMuestra — cómo se ve una muestra", () => {
+  it("un color liso va EXACTO: el #hex de la base, sin degradado ni velo", () => {
+    for (const [, , hex, familia] of CARTA) if (familia !== "metalico") expect(fondoDeMuestra(hex, familia)).toBe(hex);
+  });
+
+  it("un metálico lleva reflejo y sigue pintando su hex debajo", () => {
+    for (const [, , hex, familia] of CARTA) {
+      if (familia !== "metalico") continue;
+      const f = fondoDeMuestra(hex, familia)!;
+      expect(f).toContain("linear-gradient");
+      expect(f.endsWith(hex)).toBe(true);
+    }
+  });
+
+  it("sin hex no hay fondo; el reflejo sale de tokens, no de un color suelto", () => {
+    expect(fondoDeMuestra(null, "metalico")).toBeUndefined();
+    expect(fondoDeMuestra(null)).toBeUndefined();
+    const f = fondoDeMuestra("#C8A951", "metalico")!;
+    expect(f).toContain("var(--color-crema)");
+    expect(f).toContain("var(--color-tinta)");
+  });
+
+  it("el borde es el propio tono más oscuro; sin hex válido no hay borde propio (queda el de la pantalla)", () => {
+    expect(bordeDeMuestra("#BD332D")).toBe("color-mix(in srgb, #BD332D 68%, black)");
+    for (const malo of [null, undefined, "", "#fff", "rojo", "#12345"]) expect(bordeDeMuestra(malo)).toBeUndefined();
   });
 });

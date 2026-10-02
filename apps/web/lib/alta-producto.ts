@@ -104,8 +104,16 @@ export function codigosRepetidos(codigos: readonly (string | null)[]): number[] 
   return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
 }
 
-/** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
-export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
+/** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
+ *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos. */
+export type ColorAlta = {
+  codigo: string;
+  nombre: string;
+  hex: string | null;
+  familiaColor: string;
+  sinonimos?: readonly string[];
+  pantoneTcx?: string | null;
+};
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
 // que un color recién creado dejaba fuera de lugar, ni en el brillo del RGB, que subestima los azules (ADR-0310).

@@ -47,6 +47,16 @@ export function oklchDeHex(hex: string | null | undefined): Oklch | null {
   return { L, C: Math.hypot(a, bb), h: h < 0 ? h + 360 : h };
 }
 
+/**
+ * ¿El color es lo bastante claro para que encima se lea tinta oscura? Es el cruce de contraste entre tinta y crema (la claridad
+ * OKLab ≈ 0,6): por encima, el ✓ de un color elegido va en tinta; por debajo, en crema. Sin hex válido, se trata como claro.
+ * Reemplaza al brillo del RGB, que ponía un ✓ blanco sobre el turquesa (contraste 2,2) y el esmeralda.
+ */
+export function esColorClaro(hex: string | null | undefined): boolean {
+  const o = oklchDeHex(hex);
+  return !o || o.L > 0.6;
+}
+
 /** La gama dentro de su familia: 0 (la de menor matiz) o 1. Sin hex válido cae en la última, junto al final de la fila. */
 export function gamaDeColor(familiaColor: string | null | undefined, hex: string | null | undefined): number {
   const corte = familiaColor ? CORTES_DE_GAMA[familiaColor] : undefined;
