@@ -56,7 +56,7 @@ type Consulta =
   | { clave: string; fase: "error"; mensaje: string };
 
 const ETIQUETA = {
-  dni: { campo: "DNI de la clienta", nombre: "Nombre de la clienta", padron: "RENIEC" },
+  dni: { campo: "DNI del cliente", nombre: "Nombre del cliente", padron: "RENIEC" },
   ruc: { campo: "RUC de la empresa", nombre: "Razón social", padron: "SUNAT" },
 } as const;
 
@@ -292,7 +292,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
           ) : (
             <p className="text-xs leading-snug text-tinta/70">
               {conPunto(MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón.")} Escribe el nombre a
-              mano y confírmalo con la clienta antes de emitir.
+              mano y confírmalo con el cliente antes de emitir.
             </p>
           )}
 

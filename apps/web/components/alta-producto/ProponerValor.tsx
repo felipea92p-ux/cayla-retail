@@ -63,7 +63,7 @@ export function ProponerValor(props: Props) {
   const t = TEXTOS[props.tipo];
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-secundario h-9 whitespace-nowrap">
+      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-primario h-9 whitespace-nowrap">
         {t.boton}
       </button>
       {abierto && (
@@ -135,7 +135,7 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
-          Nombre de la {t.singular} nueva
+          Nombre {tipo === "tallas" ? "de la" : "del"} {t.singular} nuev{tipo === "tallas" ? "a" : "o"}
         </label>
         <input
           id={`nuevo-${tipo}`}

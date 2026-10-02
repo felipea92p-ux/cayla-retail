@@ -76,7 +76,7 @@ export function DocumentoDelComprobante({
             pie={problema ?? (!numero && sinNumero ? sinNumero : "Sin guiones ni espacios. Solo el DNI consulta el padrón: el nombre va a mano.")}
             tono={problema ? "error" : "neutro"}
           />
-          <CampoTexto id="comprobante-documento-nombre" etiqueta="Nombre de la clienta" value={nombre} onChange={(e) => onNombre(e.target.value)} />
+          <CampoTexto id="comprobante-documento-nombre" etiqueta="Nombre del cliente" value={nombre} onChange={(e) => onNombre(e.target.value)} />
         </>
       )}
     </div>

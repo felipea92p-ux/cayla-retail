@@ -203,7 +203,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
                 detalle={
                   buscando
-                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC, el nombre de la prenda o el nº de operación."
+                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC o el nombre de la prenda."
                     : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
                 }
               />
@@ -224,7 +224,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
           <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
             <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
-            sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
+            sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
           </p>
         </div>
 

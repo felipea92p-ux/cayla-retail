@@ -23,7 +23,7 @@ export const INICIO = {
   antetitulo: "Únete gratis",
   tituloArriba: "Tu mes,",
   tituloAbajo: "tu regalo.",
-  bajada: "Un descuento en tu cumpleaños y un vale de compra cada año con nosotras.",
+  bajada: "Un descuento en tu cumpleaños y un vale de compra cada año en CAYLA.",
   boton: "Quiero unirme",
   bajoBoton: "Es gratis y te toma un minuto · solo mayores de 18",
 } as const;
@@ -90,7 +90,7 @@ export type Avance = {
   total: number;
   /** De 0 a 1: el ancho de la barra. */
   fraccion: number;
-  /** A la izquierda: «Empecemos», «Vas bien», «Casi lista» o «Todo listo». */
+  /** A la izquierda: «Empecemos», «Vas bien», «Ya casi» o «Todo listo» (sin género). */
   estado: string;
   /** A la derecha: «Te falta aceptar», «2 de 5 listos» (si falta más de una cosa) o «Ya puedes unirte». */
   falta: string;
@@ -117,7 +117,7 @@ export function avanceDelRegistro(campos: readonly CampoDeGuia[]): Avance {
   const total = requeridos.length;
   const hechos = total - faltan.length;
   const fraccion = total === 0 ? 1 : hechos / total;
-  const estado = faltan.length === 0 ? "Todo listo" : hechos === 0 ? "Empecemos" : faltan.length <= 2 ? "Casi lista" : "Vas bien";
+  const estado = faltan.length === 0 ? "Todo listo" : hechos === 0 ? "Empecemos" : faltan.length <= 2 ? "Ya casi" : "Vas bien";
   const unico = faltan.length === 1 ? faltan[0] : undefined;
   const falta =
     faltan.length === 0
@@ -180,7 +180,7 @@ export function sociaDesde(valor: string | null | undefined): string | null {
     iso = hoyLima(new Date(t));
   }
   const mes = MESES_CORTOS[Number(iso.slice(5, 7)) - 1];
-  return mes ? `Socia desde ${mes} ${iso.slice(0, 4)}` : null;
+  return mes ? `Miembro desde ${mes} ${iso.slice(0, 4)}` : null;
 }
 
 /** Los colores de los pétalos: los de la marca, como nombres de token de `globals.css` (`var(--color-<nombre>)`). */

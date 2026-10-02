@@ -9,7 +9,7 @@
 //            cifra o no tiene sentido (un 0, un negativo), null: el cartel no se imprime con un beneficio inventado.
 //   ASUME:   la forma del jsonb que ya lee el modal de beneficios (`leerBeneficios`, `club-beneficios-reglas.ts`): el % del
 //            cumpleaños, el vale de cada año del 1 al 5 (G-13), las compras (un entero) y el monto en soles.
-//   NO HACE: no decide quién puede ser socia ni las condiciones del vale: las dicen los términos, al escanear.
+//   NO HACE: no decide quién puede ser miembro ni las condiciones del vale: las dicen los términos, al escanear.
 
 import { leerBeneficios } from "./club-beneficios-reglas";
 import { formatoPct, formatoSoles } from "./club-registro-reglas";
@@ -17,8 +17,8 @@ import { formatoPct, formatoSoles } from "./club-registro-reglas";
 /** Lo que el cartel dice igual en toda tienda y con cualquier beneficio vigente (diseño C). */
 export const CARTEL_INVITACION = {
   sello: "CLUB CAYLA",
-  titulo: "Estás invitada",
-  bajada: "a ser socia del club. Es gratis.",
+  titulo: "Te invitamos",
+  bajada: "a ser parte del club. Es gratis.",
   escanea: "Escanea y únete en un minuto",
 } as const;
 

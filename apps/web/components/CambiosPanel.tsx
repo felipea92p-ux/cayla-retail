@@ -259,7 +259,7 @@ export function CambiosPanel({
               }
               detalle={
                 filtro === "sin_comprobante"
-                  ? "Si la clienta no trae la boleta, escanea la prenda o busca su nombre arriba."
+                  ? "Si el cliente no trae la boleta, escanea la prenda o busca su nombre arriba."
                   : "Si la compra es más antigua, búscala por su boleta."
               }
             />

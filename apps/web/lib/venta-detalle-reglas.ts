@@ -5,7 +5,7 @@
 // El recibo NO se recalcula aparte: se arma con `armarRecibo`, la misma cuenta del ticket que
 // salió al cobrar (`subtotal + IGV = total` al centavo).
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import { codigoPrenda } from "./prenda-reglas";
 import { armarRecibo, type PagoRecibo, type ReciboVenta, type TipoDocCliente, type TipoReciboFiscal } from "./recibo-reglas";
@@ -25,7 +25,7 @@ export type FilaVentaItem = {
     producto: { referencia: string } | null;
   } | null;
 };
-export type FilaVentaPago = { metodo: MetodoPago; monto: number; recibido: number | null };
+export type FilaVentaPago = { metodo: MetodoPagoVenta; monto: number; recibido: number | null };
 export type FilaComprobante = {
   tipo: string;
   serie: string;

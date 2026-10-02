@@ -112,7 +112,7 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
     case "sistema":
       return `«${referencia}» ${razon}.`;
     case "con_documentos":
-      return `«${referencia}» ${razon}. Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
+      return `«${referencia}» ${razon}. Del otro lado hay un cliente, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
     case "con_historia": {
       const quien = "Solo una cuenta Admin puede eliminarlo con su historia.";
       if (como.prendas > 0 || !razon.startsWith("tiene ")) return `«${referencia}» ${razon}. ${quien}`;

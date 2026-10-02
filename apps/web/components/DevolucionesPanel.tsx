@@ -341,7 +341,7 @@ export function DevolucionesPanel({
                   }
                   detalle={
                     filtro === "sin_comprobante"
-                      ? "Si la clienta no trae la boleta, escanea la prenda o busca su nombre arriba."
+                      ? "Si el cliente no trae la boleta, escanea la prenda o busca su nombre arriba."
                       : "Si la compra es más antigua, búscala por su boleta: una devolución fuera de plazo la decide un líder."
                   }
                 />
@@ -425,7 +425,7 @@ function AvisosDevoluciones({ accesos, cajaAbierta, esLider }: { accesos: Acceso
             <b className="font-semibold text-tinta">La caja está cerrada.</b>{" "}
             {esLider
               ? "Puedes aprobar sin reembolso; para devolver en efectivo, abre la caja primero."
-              : "Si la clienta quiere su dinero en efectivo, abre la caja antes de registrar: sin ella no se le puede reembolsar."}
+              : "Si el cliente quiere su dinero en efectivo, abre la caja antes de registrar: sin ella no se le puede reembolsar."}
           </span>
           {accesos.caja && (
             <Link href="/caja" className="btn-cayla btn-enlace gap-1 text-[13px] max-sm:ml-11">

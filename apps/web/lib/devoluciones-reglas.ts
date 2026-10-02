@@ -119,7 +119,7 @@ export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisu
  *  vuelve al piso y toda la que no, a cuarentena (`aprobar_devolucion` la manda a `prendas_danadas`,
  *  también la de «devolver al proveedor»). Rechazada: no se movió nada, sigue con la clienta. */
 export function destinoPrendaResuelta(estado: "aprobada" | "rechazada", condicion: string): { texto: string; tono: EstadoVisual["tono"] } {
-  if (estado === "rechazada") return { texto: "Se queda con la clienta", tono: "neutro" };
+  if (estado === "rechazada") return { texto: "Se queda con el cliente", tono: "neutro" };
   return condicion === "vendible" ? { texto: "Al piso", tono: "verde" } : { texto: "En cuarentena", tono: "ambar" };
 }
 
@@ -277,7 +277,7 @@ export function impactoDevolucion(e: {
     })),
     caja: {
       titulo: "Al registrarla, la caja no se mueve",
-      detalle: `La clienta pagó ${soles(e.valorPagado)} por lo que devuelve. Si se le reembolsa, lo decide quien la apruebe.`,
+      detalle: `El cliente pagó ${soles(e.valorPagado)} por lo que devuelve. Si se le reembolsa, lo decide quien la apruebe.`,
     },
     documento: e.comprobanteAceptado
       ? {
@@ -305,7 +305,7 @@ export function revisarAprobacion(e: {
     return { bloqueo: "La caja está cerrada: ábrela en Caja, o reembolsa con otro método.", aviso: null };
   }
   if (e.monto !== null && e.monto > e.valorPagado) {
-    return { bloqueo: null, aviso: `Es más de lo que pagó la clienta (${soles(e.valorPagado)}).` };
+    return { bloqueo: null, aviso: `Es más de lo que pagó el cliente (${soles(e.valorPagado)}).` };
   }
   return { bloqueo: null, aviso: null };
 }

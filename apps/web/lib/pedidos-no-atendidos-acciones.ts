@@ -19,7 +19,7 @@ export async function registrarPedidoNoAtendido(datos: DatosPedidoNoAtendido, fi
   if (!args) {
     return {
       id: null,
-      error: { message: "Anota el modelo del catálogo o describe lo que pidió la clienta", code: "P0001", details: "", hint: "" },
+      error: { message: "Anota el modelo del catálogo o describe lo que pidió el cliente", code: "P0001", details: "", hint: "" },
     };
   }
   const { data, error } = await firmar(createClient().rpc("registrar_pedido_no_atendido", args), firma);

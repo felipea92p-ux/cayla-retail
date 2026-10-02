@@ -213,14 +213,14 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     const num = soloDigitos(f.devolucionNumero);
     if (num && !esCelularPeru(num)) e.devolucion = "El número tiene 9 dígitos y empieza en 9 (vacío = su celular).";
   }
-  if (!f.acepta) e.acepta = "Falta que la clienta acepte las condiciones.";
+  if (!f.acepta) e.acepta = "Falta que el cliente acepte las condiciones.";
   return e;
 }
 
 /** La barra de 3 tramos (clienta → adelanto → devolución), igual que el cobro del Punto de venta. */
 export type PasoApartado = 0 | 1 | 2;
 export const TEXTO_PASO_APARTADO: Record<PasoApartado, string> = {
-  0: "Anota a la clienta y elige quién hace el apartado.",
+  0: "Anota al cliente y elige quién hace el apartado.",
   1: "Registra cuánto deja de adelanto y cómo.",
   2: "Cómo se le devuelve si no recoge, y que acepte.",
 };
@@ -372,13 +372,13 @@ export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.
 
 /** Las funciones que una tienda puede apagar. La clave es la misma que guarda la base (`apartados_opciones.apagadas`). */
 export const FUNCIONES_APARTADOS = [
-  { clave: "clienta", grupo: "Apartar", titulo: "Clienta por DNI o celular", texto: "Busca a la clienta en la ficha y llena sus datos solos." },
+  { clave: "clienta", grupo: "Apartar", titulo: "Cliente por DNI o celular", texto: "Busca al cliente en la ficha y llena sus datos solos." },
   { clave: "qr", grupo: "Apartar", titulo: "Cámara QR en el celular", texto: "El mismo escáner de Vender, para apartar sin pistola." },
   { clave: "estante", grupo: "Apartar", titulo: "Estante «Apartados»", texto: "Cada apartado recibe su lugar (A-01, A-02…) para encontrarlo al entregar." },
   { clave: "otra_sede", grupo: "Apartar", titulo: "Pedir a otra sede", texto: "Si aquí no queda, se pide a la tienda que la tiene y al llegar se guarda sola." },
   { clave: "abonos", grupo: "Cobro", titulo: "Abonos a cuenta", texto: "Pagar una parte antes de recoger, las veces que quiera." },
   { clave: "editar", grupo: "Cobro", titulo: "Editar un apartado abierto", texto: "Sumar, quitar o cambiar la talla sin liberar y volver a apartar." },
-  { clave: "lote", grupo: "Seguimiento", titulo: "Recordar en lote", texto: "Escribirles una por una a las que vencen pronto, con el mensaje listo." },
+  { clave: "lote", grupo: "Seguimiento", titulo: "Recordar en lote", texto: "Escribirles uno por uno a los clientes con apartados por vencer, con el mensaje listo." },
 ] as const;
 export type FuncionApartados = (typeof FUNCIONES_APARTADOS)[number]["clave"];
 

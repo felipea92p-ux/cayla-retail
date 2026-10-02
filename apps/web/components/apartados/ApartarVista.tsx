@@ -164,7 +164,7 @@ export function ApartarVista({
       : desdeTicket.noEntraron.length > 0
       ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
       : desdeTicket.lineas.length > 0
-        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos de la clienta." }
+        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos del cliente." }
         : null,
   );
   const [activo, setActivo] = useState(0);
@@ -244,7 +244,7 @@ export function ApartarVista({
     setRecientes((r) => [varianteId, ...r.filter((x) => x !== varianteId)].slice(0, 4));
     const enTicket = lineas.find((l) => l.varianteId === varianteId)?.cantidad ?? 0;
     if (p.stockAqui - enTicket <= 0) {
-      if (!silencioso) setMensaje({ tono: "error", texto: `${p.referencia} ${variante(p)}: no queda disponible en ${ubicacionEtiqueta} (lo que hay ya está vendido o apartado para otra clienta).` });
+      if (!silencioso) setMensaje({ tono: "error", texto: `${p.referencia} ${variante(p)}: no queda disponible en ${ubicacionEtiqueta} (lo que hay ya está vendido o apartado para otro cliente).` });
       return enTicket > 0 ? "tope" : (p.almacenAqui ?? 0) > 0 ? "en_almacen" : "agotada";
     }
     setLineas((ls) => (enTicket ? ls.map((l) => (l.varianteId === varianteId ? { ...l, cantidad: l.cantidad + 1 } : l)) : [...ls, { varianteId, cantidad: 1 }]));
@@ -360,7 +360,7 @@ export function ApartarVista({
     setBuscandoClienta(true);
     const { clientas, error } = await buscarClienta(t);
     setBuscandoClienta(false);
-    if (error) return avisar.error(traducirError(error, "buscar la clienta"));
+    if (error) return avisar.error(traducirError(error, "buscar al cliente"));
     // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
     // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
     const exacta = clientas.find((x) =>
@@ -567,7 +567,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la envía por traslado; al llegar queda guardada para la clienta y aquí se cobra su adelanto.</p>
+                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la envía por traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
                 </div>
               ) : (
                 <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
@@ -582,7 +582,7 @@ export function ApartarVista({
               <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-sand/60">
                 <ScanBarcode className="h-7 w-7 text-tinta/70" aria-hidden />
               </div>
-              <p className="font-display text-2xl text-tinta">Escanea la prenda que la clienta quiere apartar</p>
+              <p className="font-display text-2xl text-tinta">Escanea la prenda que el cliente quiere apartar</p>
               <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">
                 {esTelefono
                   ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
@@ -726,7 +726,7 @@ export function ApartarVista({
                 </div>
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> La clienta</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
                   {conClienta && (
                     <div className="space-y-1.5">
                       {clientaId ? (
@@ -743,8 +743,8 @@ export function ApartarVista({
                               onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
                               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
                               inputMode="numeric"
-                              placeholder="DNI (8) o celular (9) de la clienta"
-                              aria-label="Buscar a la clienta por DNI o celular"
+                              placeholder="DNI (8) o celular (9) del cliente"
+                              aria-label="Buscar al cliente por DNI o celular"
                               className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
                             />
                           </label>
@@ -779,7 +779,7 @@ export function ApartarVista({
                 </fieldset>
 
                 <fieldset className={`space-y-2 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó la clienta</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
                   <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
                     {METODOS_PAGO.map((m, i) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
@@ -846,7 +846,7 @@ export function ApartarVista({
                     ))}
                   </div>
                   {f.devolucionMedio === "transferencia" ? (
-                    <Campo etiqueta="CCI de la clienta" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
                   ) : (
                     <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "el mismo celular"} className={`${CAMPO} font-mono`} /></Campo>
                   )}
@@ -896,7 +896,7 @@ export function ApartarVista({
         <BarraMovil
           etiqueta={`${prendasEnTicket} ${prendasEnTicket === 1 ? "prenda" : "prendas"} · por apartar`}
           monto={total}
-          accion="Clienta"
+          accion="Cliente"
           icono={<ArrowRight className="h-4 w-4" aria-hidden />}
           onClick={() => irAPaso("clienta")}
         />

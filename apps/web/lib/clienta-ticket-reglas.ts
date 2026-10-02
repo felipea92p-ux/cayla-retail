@@ -24,7 +24,7 @@ export { numeroEnmascarado as dniEnmascarado } from "./documento-clienta-reglas"
  *  confirmar que es ella. El documento sale con su tipo: «DNI 71•••482», «CE 00•••567», «Pasaporte AB•••456». */
 export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: string } {
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero);
-  const titulo = c.nombre?.trim() || documento || (c.celular ? `Cel. ${c.celular}` : "Clienta sin nombre");
+  const titulo = c.nombre?.trim() || documento || (c.celular ? `Cel. ${c.celular}` : "Cliente sin nombre");
   const partes = [documento && c.nombre?.trim() ? documento : null, c.celular ? `Cel. ${c.celular}` : null].filter(Boolean);
   return { titulo, detalle: partes.join(" · ") };
 }
@@ -35,7 +35,7 @@ export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: 
  * ofrece — un botón que siempre falla le enseña a la cajera que el sistema falla —, y se vende igual: el DNI y el nombre van
  * en el comprobante. Una clienta que ya venía en el ticket (retomado de otra cuenta) se deja ver y quitar, no cambiar:
  * cambiarla es buscar.
- *   · `agregar`: sin clienta, con el módulo («Agregar clienta»).
+ *   · `agregar`: sin clienta, con el módulo («Agregar cliente»).
  *   · `nada`: sin clienta, sin el módulo (la fila no aparece).
  *   · `elegida`: con clienta, se puede cambiar o quitar.
  *   · `elegida_fija`: con clienta, sin el módulo: solo quitar.

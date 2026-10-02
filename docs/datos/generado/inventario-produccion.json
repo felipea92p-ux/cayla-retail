@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-10-02T15:53:26.427343+00:00",
-  "funciones_en_produccion": 745,
+  "leido_en": "2026-10-02T17:33:51.202457+00:00",
+  "funciones_en_produccion": 746,
   "tablas": [
     {
       "esquema": "retail",
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 180,
+      "filas_estimadas": 183,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -616,7 +616,7 @@
       "tabla": "ajustes_inventario_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 82,
+      "filas_estimadas": 83,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1093,7 +1093,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 49,
+      "filas_estimadas": 53,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1189,7 +1189,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 56,
+      "filas_estimadas": 60,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -7608,7 +7608,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 43,
+      "filas_estimadas": 46,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13048,7 +13048,7 @@
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 170,
+      "filas_estimadas": 171,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14269,7 +14269,7 @@
       "tabla": "modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 37,
+      "filas_estimadas": 35,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14375,7 +14375,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 579,
+      "filas_estimadas": 587,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16535,7 +16535,7 @@
       "tabla": "prendas_por_regularizar",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 71,
+      "filas_estimadas": 76,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17973,12 +17973,12 @@
           "definicion": "CREATE UNIQUE INDEX productos_codigo_unico ON retail.productos USING btree (codigo)"
         },
         {
-          "nombre": "productos_pkey",
-          "definicion": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)"
+          "nombre": "productos_marca_referencia_clave_unica",
+          "definicion": "CREATE UNIQUE INDEX productos_marca_referencia_clave_unica ON retail.productos USING btree (marca_id, retail.fn_clave_referencia(referencia)) NULLS NOT DISTINCT WHERE (estado_alta <> 'rechazado'::text)"
         },
         {
-          "nombre": "productos_referencia_clave_unica",
-          "definicion": "CREATE UNIQUE INDEX productos_referencia_clave_unica ON retail.productos USING btree (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)"
+          "nombre": "productos_pkey",
+          "definicion": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)"
         },
         {
           "nombre": "productos_token_cliente_key",
@@ -18953,7 +18953,7 @@
       "tabla": "rol_modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 53,
+      "filas_estimadas": 50,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21401,7 +21401,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 501,
+      "filas_estimadas": 505,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23923,7 +23923,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 77,
+      "filas_estimadas": 85,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24144,7 +24144,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 42,
+      "filas_estimadas": 45,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24221,7 +24221,7 @@
         {
           "nombre": "venta_pagos_metodo_check",
           "clase": "regla",
-          "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text])))"
+          "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))"
         },
         {
           "nombre": "venta_pagos_monto_check",
@@ -24270,7 +24270,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 42,
+      "filas_estimadas": 45,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [

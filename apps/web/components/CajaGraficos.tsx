@@ -8,9 +8,9 @@ function money(n: number) {
 }
 
 type Grupo = "efectivo" | "tarjeta" | "digital";
-const GRUPO_DE_METODO: Record<string, Grupo> = { efectivo: "efectivo", tarjeta: "tarjeta", yape: "digital", plin: "digital", transferencia: "digital" };
-const LABEL_METODO: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", yape: "Yape", plin: "Plin", transferencia: "Transferencia" };
-const LABEL_GRUPO: Record<Grupo, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", digital: "Yape / Plin / Transferencia" };
+const GRUPO_DE_METODO: Record<string, Grupo> = { efectivo: "efectivo", tarjeta: "tarjeta", yape: "digital", plin: "digital", transferencia: "digital", qr: "digital" };
+const LABEL_METODO: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", yape: "Yape", plin: "Plin", transferencia: "Transferencia", qr: "QR" };
+const LABEL_GRUPO: Record<Grupo, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", digital: "Yape / Plin / QR / Transferencia" };
 const COLOR_GRUPO: Record<Grupo, string> = {
   efectivo: "var(--color-metodo-efectivo)",
   tarjeta: "var(--color-metodo-tarjeta)",

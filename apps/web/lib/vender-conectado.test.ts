@@ -147,9 +147,9 @@ describe("clienta del ticket", () => {
     // Nunca dice «DNI» de un documento que no lo es.
     expect(lineaDeClienta({ id: "1", nombre: "Lucía Rossi", documentoTipo: "pasaporte", documentoNumero: "AB123456", celular: null }).detalle).not.toContain("DNI");
   });
-  it("sin documento, el celular; sin nada, «Clienta sin nombre»", () => {
+  it("sin documento, el celular; sin nada, «Cliente sin nombre»", () => {
     expect(lineaDeClienta({ id: "1", nombre: null, documentoTipo: "dni", documentoNumero: null, celular: "987654321" }).titulo).toBe("Cel. 987654321");
-    expect(lineaDeClienta({ id: "1", nombre: "  ", documentoTipo: "pasaporte", documentoNumero: null, celular: null }).titulo).toBe("Clienta sin nombre");
+    expect(lineaDeClienta({ id: "1", nombre: "  ", documentoTipo: "pasaporte", documentoNumero: null, celular: null }).titulo).toBe("Cliente sin nombre");
   });
   it("no busca con menos de 3 caracteres", () => {
     expect(terminoBuscable(" 71 ")).toBeNull();

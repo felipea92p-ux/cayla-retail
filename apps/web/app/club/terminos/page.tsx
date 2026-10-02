@@ -7,7 +7,7 @@ import { PaginaLegalClub } from "@/components/clientas/PaginaLegalClub";
 
 export const metadata: Metadata = {
   title: "Términos — Club CAYLA",
-  description: "Las condiciones del Club CAYLA: quién puede ser socia, el cupón de cumpleaños y el vale de aniversario.",
+  description: "Las condiciones del Club CAYLA: quién puede ser miembro, el cupón de cumpleaños y el vale de aniversario.",
 };
 
 export default async function PaginaTerminosClub({ searchParams }: { searchParams: Promise<{ t?: string | string[] }> }) {

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
+import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -32,6 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <EsperaGlobal />
         {/* La página no se encoge bajo el mouse (ADR-0185): una vez, acá, para toda la app y sus ventanas. */}
         <PaginaEstable />
+        {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
+        <SesionEntrePestanas />
       </body>
     </html>
   );

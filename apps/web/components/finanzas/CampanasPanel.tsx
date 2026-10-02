@@ -266,7 +266,7 @@ export function CampanasPanel({
       </div>
 
       <div {...entra(4, "nota-cayla")}>
-        Una campaña también puede valer por otras cosas (clientas nuevas, sacar mercadería que no rota). El sistema no decide por ti: te
+        Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
         dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
         Catálogo ▸ Etiquetas; la meta y el fondo, en{" "}
         {esLider ? (

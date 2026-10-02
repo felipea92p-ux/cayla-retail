@@ -55,7 +55,7 @@ describe("leerAvisos: las filas de fn_club_avisos_pendientes, sin confiar en ell
 
   it("sin nombre, sin teléfono, sin texto o sin detalle no se cae", () => {
     const [a] = leerAvisos([fila({ nombre: "  ", telefono: null, texto: null, detalle: " ", referencia: null })]);
-    expect(a).toMatchObject({ nombre: "Socia sin nombre", telefono: null, texto: "", detalle: null, referencia: "" });
+    expect(a).toMatchObject({ nombre: "Miembro sin nombre", telefono: null, texto: "", detalle: null, referencia: "" });
   });
 });
 

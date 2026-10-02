@@ -23,7 +23,7 @@
  *   g. Los límites del cartel (`club_intento`): consultas por ip; registros por ip, celular y documento.
  *   h. Quién puede llamar: anon y authenticated NO ejecutan las funciones del servidor; service_role sí; la página sí es anon;
  *      las tablas nuevas sin acceso para la API; el retiro de las funciones del camino A y B.
- *   i. fn_club_pagina y fn_club_textos_legales: los textos v1 EXACTOS de docs/club/texto-legal-registro-v1.md, su versión y
+ *   i. fn_club_pagina y fn_club_textos_legales: los textos vigentes EXACTOS de docs/club/texto-legal-registro-v2.md, su versión y
  *      fecha, la escala y el umbral; null fuera de una tienda.
  *   j. guardar_beneficios_club: solo el líder, sus rangos, la escala que no baja, la versión nueva de los términos con los
  *      números nuevos, su rastro, y nada si no cambió nada.
@@ -81,16 +81,17 @@ const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SI
 const despuesHoy = (v) => (v.firma === RV_HOY ? SIN_CODIGO_DESPUES : v.despues) ?? "NO_EXISTE";
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
 
-// Los textos aprobados (docs/club/texto-legal-registro-v1.md), como los sembró la PARTE 4: el cuerpo de cada sección.
-const DOC = leer("docs", "club", "texto-legal-registro-v1.md");
+// Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
+// (ADR-0288 act. k). El cuerpo de cada sección.
+const DOC = leer("docs", "club", "texto-legal-registro-v2.md");
 const seccion = (desde) => {
   const a = DOC.indexOf(desde);
   return DOC.slice(a, DOC.indexOf("\n---\n", a)).trim();
 };
 const TEXTO_PRIVACIDAD = seccion("### 2.1 Quién es responsable");
-const TEXTO_TERMINOS = seccion("1. **Quién puede ser socia:**");
-const TEXTO_CASILLA =
-  "Acepto que CAYLA S.A.C. me envíe por WhatsApp, al número que registro, novedades, promociones y avisos de mis cupones, elegidos según mis compras y mi talla. Puedo dejar de recibirlos cuando quiera escribiendo BAJA al WhatsApp de cualquier tienda CAYLA.";
+const TEXTO_TERMINOS = seccion("1. **Quién puede ser miembro:**");
+// La casilla v2, breve (Felipe, 2026-10-02): la baja la explican la Política (2.8) y cada aviso.
+const TEXTO_CASILLA = "Quiero recibir por WhatsApp novedades y promociones de CAYLA.";
 // El documento escribe {código}; el marcador del sistema va sin tilde. Es la versión 2 (ADR-0288 act. j): sin la frase de la BAJA.
 const TEXTO_SALUDO =
   "Hola CAYLA, soy {nombre}. Me acabo de unir al Club CAYLA ({codigo}) y quiero recibir sus novedades y promociones por este WhatsApp.";
@@ -102,7 +103,7 @@ if (
   !DOC_PLANO.includes(TEXTO_CASILLA) ||
   !DOC_PLANO.includes(TEXTO_SALUDO.replace("{codigo}", "{código}"))
 ) {
-  console.error("✗ No encontré las secciones del texto legal en docs/club/texto-legal-registro-v1.md.");
+  console.error("✗ No encontré las secciones del texto legal en docs/club/texto-legal-registro-v2.md.");
   process.exit(1);
 }
 
@@ -158,7 +159,8 @@ const comoServidor = `reset role;\nset local request.jwt.claim.sub = '';\nset lo
 const intento = (sql) => `select pg_temp.intento($q$${sql}$q$);\n`;
 const intentoCon = (sql, ...vars) => `select pg_temp.intento(format($q$${sql}$q$, ${vars.join(", ")}));\n`;
 const lit = (v) => (v === null ? "null" : `'${v}'`);
-const V1 = `'{"terminos": 1, "privacidad": 1, "casilla_publicidad": 1}'::jsonb`;
+// Las versiones vigentes de lo que se acepta: la v2 de 20261002160000 (ADR-0288 act. k). Si se publica otra, súbelas aquí.
+const VIGENTES = `'{"terminos": 2, "privacidad": 2, "casilla_publicidad": 2}'::jsonb`;
 
 /** Los argumentos de registrarse_en_el_club (los de una registración que pasa, cambiando lo que pida el caso). */
 const args = ({
@@ -172,7 +174,7 @@ const args = ({
   mayor = true,
   terminos = true,
   pub = true,
-  versiones = V1,
+  versiones = VIGENTES,
   padron = true,
 }) =>
   `${ubic}, '${tipo}', ${lit(numero)}, ${lit(nombre)}, ${lit(cel)}, ${nac === null ? "null" : nac.startsWith(":") ? nac : `'${nac}'`}::date, ${lit(correo)}, ${mayor}, ${terminos}, ${pub}, ${versiones}, ${padron}`;
@@ -232,7 +234,7 @@ select nombre, telefono_whatsapp, cumple_dia || '/' || cumple_mes || '/' || cump
   "t|t|f|Lucia\nLUCIA PEREZ SALAS|987654321|12/5/1990|lucia.perez@correo.pe|cartel|t|t|t|t|dni"
 );
 caso(
-  "(a) …y la historia: el club por pagina_cartel citando los términos v1 (la nota: la privacidad v1) y la publicidad citando la casilla v1, los dos SIN registrado_por y con la tienda; la actividad «registro_cartel» sin persona y sin datos suyos",
+  "(a) …y la historia: el club por pagina_cartel citando los términos v2 (la nota: la privacidad v2) y la publicidad citando la casilla v2, los dos SIN registrado_por y con la tienda; la actividad «registro_cartel» sin persona y sin datos suyos",
   comoServidor + REGISTRAR("f", { numero: "90881002", nombre: "MARIA LOPEZ RUIZ", cel: "966881002" }) +
     `reset role;\n` + EVENTOS("f") +
     `select count(*) filter (where ubicacion_id = :'ubic') from retail.club_permisos where clienta_id = :'f';
@@ -240,15 +242,15 @@ select a.modulo, a.accion, a.persona_id is null, a.ubicacion_id = :'ubic', a.det
        (a.descripcion || a.detalle::text) !~* '(maria|lopez|90881002|966881002)'
   from retail.actividad a where a.accion = 'registro_cartel' and a.registro_id = :'f';
 `,
-  "club:otorga:pagina_cartel:terminos v1:true:aceptó también la privacidad v1 · publicidad_whatsapp:otorga:pagina_cartel:casilla_publicidad v1:true:-\n2\nclientas|registro_cartel|t|t|true|true|t"
+  "club:otorga:pagina_cartel:terminos v2:true:aceptó también la privacidad v2 · publicidad_whatsapp:otorga:pagina_cartel:casilla_publicidad v2:true:-\n2\nclientas|registro_cartel|t|t|true|true|t"
 );
 caso(
   "(a) sin la casilla de WhatsApp (G-12): socia con sus beneficios y SIN publicidad; un solo evento (el del club)",
-  comoServidor + REGISTRAR("f", { numero: "90881003", cel: "966881003", pub: false, versiones: `'{"terminos": 1, "privacidad": 1}'::jsonb` }) +
+  comoServidor + REGISTRAR("f", { numero: "90881003", cel: "966881003", pub: false, versiones: `'{"terminos": 2, "privacidad": 2}'::jsonb` }) +
     `reset role;
 select club_desde is not null, publicidad_desde is null, codigo_club is not null from retail.clientas where id = :'f';
 ` + EVENTOS("f"),
-  "t|t|t\nclub:otorga:pagina_cartel:terminos v1:true:aceptó también la privacidad v1"
+  "t|t|t\nclub:otorga:pagina_cartel:terminos v2:true:aceptó también la privacidad v2"
 );
 
 // =====================================================================================================================
@@ -338,22 +340,22 @@ caso(
 // d. Las versiones de los textos
 // =====================================================================================================================
 caso(
-  "(d) las versiones: términos 2 (que no existe), sin privacidad o con la casilla 2 (marcando WhatsApp) → club_texto_cambio; la casilla distinta SIN marcar WhatsApp pasa (no se le pide); y con un texto de términos nuevo (v2), la v1 ya no vale y la v2 sí",
+  "(d) las versiones: términos 3 (que no existe), sin privacidad o con la casilla 3 (marcando WhatsApp) → club_texto_cambio; la casilla distinta SIN marcar WhatsApp pasa (no se le pide); y con un texto de términos nuevo (v3), la v2 ya no vale y la v3 sí",
   comoServidor +
-    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 2, "privacidad": 1, "casilla_publicidad": 1}'::jsonb` }) +
-    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 1, "casilla_publicidad": 1}'::jsonb` }) +
-    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 1, "privacidad": 1, "casilla_publicidad": 2}'::jsonb` }) +
-    INTENTO_REG({ numero: "90884001", pub: false, versiones: `'{"terminos": 1, "privacidad": 1, "casilla_publicidad": 7}'::jsonb` }) +
+    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 3, "privacidad": 2, "casilla_publicidad": 2}'::jsonb` }) +
+    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 2, "casilla_publicidad": 2}'::jsonb` }) +
+    INTENTO_REG({ numero: "90884001", versiones: `'{"terminos": 2, "privacidad": 2, "casilla_publicidad": 3}'::jsonb` }) +
+    INTENTO_REG({ numero: "90884001", pub: false, versiones: `'{"terminos": 2, "privacidad": 2, "casilla_publicidad": 7}'::jsonb` }) +
     `reset role;
-insert into retail.club_textos (tipo, version, texto) values ('terminos', 2, 'Términos v2 de prueba.');
+insert into retail.club_textos (tipo, version, texto) values ('terminos', 3, 'Términos v3 de prueba.');
 ` + comoServidor +
     INTENTO_REG({ numero: "90884002", cel: "966884002" }) +
-    INTENTO_REG({ numero: "90884002", cel: "966884002", versiones: `'{"terminos": 2, "privacidad": 1, "casilla_publicidad": 1}'::jsonb` }) +
+    INTENTO_REG({ numero: "90884002", cel: "966884002", versiones: `'{"terminos": 3, "privacidad": 2, "casilla_publicidad": 2}'::jsonb` }) +
     `reset role;
 select string_agg(texto_tipo || ' v' || texto_version, ',' order by texto_tipo) from retail.club_permisos p join retail.clientas c on c.id = p.clienta_id
  where c.documento_numero = '90884002';
 `,
-  "P0001|club_texto_cambio\nP0001|club_texto_cambio\nP0001|club_texto_cambio\nSIN_ERROR\nP0001|club_texto_cambio\nSIN_ERROR\ncasilla_publicidad v1,terminos v2"
+  "P0001|club_texto_cambio\nP0001|club_texto_cambio\nP0001|club_texto_cambio\nSIN_ERROR\nP0001|club_texto_cambio\nSIN_ERROR\ncasilla_publicidad v2,terminos v3"
 );
 
 // =====================================================================================================================
@@ -486,7 +488,7 @@ caso(
 // i. La página
 // =====================================================================================================================
 caso(
-  "(i) fn_club_pagina (como anon): la tienda, su WhatsApp, el % (10), la escala 20/30/40/50/60, el umbral (6, 600, 60) y los cuatro textos EXACTOS del documento aprobado (v1; el saludo en su v2, sin la frase de la BAJA: act. j), con su fecha; el Taller o una tienda que no existe → null",
+  "(i) fn_club_pagina (como anon): la tienda, su WhatsApp, el % (10), la escala 20/30/40/50/60, el umbral (6, 600, 60) y los cuatro textos EXACTOS del documento vigente (todos en su v2: act. j y k), con su fecha; el Taller o una tienda que no existe → null",
   `reset role;\nupdate retail.ubicaciones set whatsapp_numero = '966000111' where id = :'ubic';\n` + comoAnon +
     `select p ->> 'tienda', p ->> 'whatsapp', p ->> 'pct', (select string_agg((e ->> 'anio') || '=' || (e ->> 'monto'), ',') from jsonb_array_elements(p -> 'escala') e),
        p ->> 'compras', p ->> 'monto_minimo', p ->> 'dias',
@@ -495,23 +497,23 @@ caso(
        p -> 'textos' -> 'privacidad' ->> 'texto' = $t$${TEXTO_PRIVACIDAD}$t$,
        p -> 'textos' -> 'casilla_publicidad' ->> 'texto' = $t$${TEXTO_CASILLA}$t$,
        p -> 'textos' -> 'saludo' ->> 'texto' = $t$${TEXTO_SALUDO}$t$,
-       (select bool_and((v ->> 'version') = (case k when 'saludo' then '2' else '1' end) and (v ->> 'vigente_desde') ~ '^\\d{4}-\\d{2}-\\d{2}$') from jsonb_each(p -> 'textos') t(k, v))
+       (select bool_and((v ->> 'version') = '2' and (v ->> 'vigente_desde') ~ '^\\d{4}-\\d{2}-\\d{2}$') from jsonb_each(p -> 'textos') t(k, v))
   from (select retail.fn_club_pagina(:'ubic') as p) x;
 select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_random_uuid()) is null, retail.fn_club_pagina(null) is null;
 `,
   "Tienda Lima|966000111|10.00|1=20.00,2=30.00,3=40.00,4=50.00,5=60.00|6|600.00|60|casilla_publicidad,privacidad,saludo,terminos|t|t|t|t|t\nt|t|t"
 );
 caso(
-  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cuatro plantillas de avisos terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
+  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cuatro plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
   comoAnon +
     `select (select string_agg(k, ',' order by k) from jsonb_object_keys(p) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(p -> 'textos') k),
        p -> 'textos' -> 'terminos' ->> 'texto' = $t$${TEXTO_TERMINOS}$t$, p -> 'textos' -> 'privacidad' ->> 'version'
   from (select retail.fn_club_textos_legales() as p) x;
 reset role;
-select string_agg(tipo || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo)
+select string_agg(tipo || ' v' || version || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo, version)
   from retail.club_textos where tipo like 'aviso\\_%';
 ` + intento(`insert into retail.club_textos (tipo, version, texto) values ('aviso_rebaja', 9, 'Hola {nombre}, sin baja.')`),
-  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|1\naviso_aniversario:true,aviso_cumpleanos:true,aviso_novedades:true,aviso_rebaja:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
+  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_rebaja v1:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
 );
 
 // =====================================================================================================================
@@ -520,23 +522,23 @@ select string_agg(tipo || ':' || (texto like '%Si no quieres recibir más mensaj
 const ESCALA = (a) => `'${JSON.stringify(a.map((monto, k) => ({ anio: k + 1, monto })))}'::jsonb`;
 const CONF = `reset role;\ninsert into retail.configuracion_empresa (ruc, razon_social) values ('20000000001', 'Prueba Club SAC') on conflict (id) do nothing;\n`;
 caso(
-  "(j) guardar_beneficios_club (el líder): guarda % , umbral, días y escala; publica términos v2 con «al menos 8 compras», «S/ 700» y «Tienes 45 días» (y {pct} y {escala} siguen de marcadores), deja su rastro, y la página ya muestra todo nuevo; guardar lo mismo otra vez no publica nada",
+  "(j) guardar_beneficios_club (el líder): guarda % , umbral, días y escala; publica términos v3 con «al menos 8 compras», «S/ 700» y «Tienes 45 días» (y {pct} y {escala} siguen de marcadores), deja su rastro, y la página ya muestra todo nuevo; guardar lo mismo otra vez no publica nada",
   CONF + como(FELIPE) +
     `select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65])}) as _g \\gset
 select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65])}) as _g2 \\gset
 reset role;
 select club_cumple_pct, club_aniversario_compras, club_aniversario_monto, club_aniversario_dias from retail.configuracion_empresa;
 select string_agg(anio || '=' || monto, ',' order by anio) from retail.club_aniversario_escala;
-select max(version), bool_and(texto like '%al menos 8 compras o%') filter (where version = 2), bool_and(texto ~ 'al menos S/ 700\\s+en compras') filter (where version = 2),
-       bool_and(texto like '%Tienes 45 días desde tu aniversario%') filter (where version = 2), bool_and(texto like '%{pct}%' and texto like '%{escala}%') filter (where version = 2),
-       bool_and(creado_por = :'persona_felipe') filter (where version = 2)
+select max(version), bool_and(texto like '%al menos 8 compras o%') filter (where version = 3), bool_and(texto ~ 'al menos S/ 700\\s+en compras') filter (where version = 3),
+       bool_and(texto like '%Tienes 45 días desde tu aniversario%') filter (where version = 3), bool_and(texto like '%{pct}%' and texto like '%{escala}%') filter (where version = 3),
+       bool_and(creado_por = :'persona_felipe') filter (where version = 3)
   from retail.club_textos where tipo = 'terminos';
 select count(*), max(detalle ->> 'terminos_version') from retail.configuracion_historial where que = 'beneficios_club';
 ` + `select p ->> 'pct', p -> 'textos' -> 'terminos' ->> 'version' from (select retail.fn_club_pagina(:'ubic') as p) x;\n`,
-  "12.00|8|700.00|45\n1=25.00,2=35.00,3=45.00,4=55.00,5=65.00\n2|t|t|t|t|t\n1|2\n12.00|2"
+  "12.00|8|700.00|45\n1=25.00,2=35.00,3=45.00,4=55.00,5=65.00\n3|t|t|t|t|t\n1|3\n12.00|3"
 );
 caso(
-  "(j) …solo el líder (Micaela → solo_lider); los rangos y la escala (falta un año, un año de más, un monto en 0, una escala que baja) → beneficios_invalidos con su campo; y unos términos que ya no dicen el umbral como el v1 → terminos_no_reconocidos, sin guardar nada",
+  "(j) …solo el líder (Micaela → solo_lider); los rangos y la escala (falta un año, un año de más, un monto en 0, una escala que baja) → beneficios_invalidos con su campo; y unos términos que ya no dicen el umbral como el v2 → terminos_no_reconocidos, sin guardar nada",
   CONF + como(MICAELA) + intento(`select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65])})`) +
     como(FELIPE) +
     intento(`select retail.guardar_beneficios_club(0, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65])})`) +
@@ -547,7 +549,7 @@ caso(
     intento(`select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65, 75])})`) +
     intento(`select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 0, 45, 55, 65])})`) +
     intento(`select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 30, 55, 65])})`) +
-    `reset role;\ninsert into retail.club_textos (tipo, version, texto) values ('terminos', 2, 'Unos términos que no dicen el umbral.');\n` + como(FELIPE) +
+    `reset role;\ninsert into retail.club_textos (tipo, version, texto) values ('terminos', 3, 'Unos términos que no dicen el umbral.');\n` + como(FELIPE) +
     intento(`select retail.guardar_beneficios_club(12, 8, 700, 45, ${ESCALA([25, 35, 45, 55, 65])})`) +
     `reset role;\nselect club_cumple_pct, club_aniversario_compras from retail.configuracion_empresa;\nselect max(version) from retail.club_textos where tipo = 'terminos';\n`,
   [
@@ -562,7 +564,7 @@ caso(
     "22023|beneficios_invalidos:escala",
     "P0001|terminos_no_reconocidos",
     "10.00|6",
-    "2",
+    "3",
   ].join("\n")
 );
 
