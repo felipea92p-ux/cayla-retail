@@ -321,7 +321,10 @@ export function DesplegablePildora({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li className="px-3 py-3 text-sm text-tinta/65">
+                {/* Sin opciones (los demás filtros no dejan ninguna) no es lo mismo que «la búsqueda no encontró nada». */}
+                {opciones.length === 0 ? "Con los filtros puestos no queda ninguna para elegir. Quita otro filtro." : `Nada coincide con «${busqueda.trim()}».`}
+              </li>
             ) : (
               mostradas.map((o, i) => (
                 <li

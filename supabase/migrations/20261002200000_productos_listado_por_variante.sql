@@ -22,8 +22,8 @@
 --     en nombre, código, marca, proveedor, CATEGORÍA, y en sku, código y COLOR de cada variante. Una palabra de 4 letras o
 --     más pierde su final -a/-o/-as/-os: «negra» encuentra «Negro», «blusa» encuentra «Blusas». Y el código de barras
 --     exacto, como siempre.
---   · fn_productos_filtro(...): una fila por variante visible (activa; o cualquiera, si la prenda está descontinuada,
---     como la muestra la pantalla) con una marca por filtro (`f_*`). Es el ÚNICO lugar donde se define qué cumple cada
+--   · fn_productos_filtro(...): una fila por variante visible (las activas; o todas, si la prenda no tiene ninguna activa:
+--     la misma regla que la pantalla) con una marca por filtro (`f_*`). Es el ÚNICO lugar donde se define qué cumple cada
 --     filtro: el listado (aquí) y los conteos por opción (20261002200100) la leen, así nunca dicen cosas distintas.
 --   · fn_productos_listado(...): las mismas columnas que `fn_productos`, con los filtros nuevos, sin variantes
 --     desactivadas en el precio y con la regla «la misma variante».
@@ -69,7 +69,11 @@ as $$
            concat_ws(' ',
              retail.fn_clave_texto(p.referencia), retail.fn_clave_texto(p.codigo),
              retail.fn_clave_texto(mc.nombre), retail.fn_clave_texto(pv.nombre), retail.fn_clave_texto(ca.nombre),
-             (select string_agg(concat_ws(' ', retail.fn_clave_texto(v.sku), retail.fn_clave_texto(v.codigo), retail.fn_clave_texto(co.nombre)), ' ')
+             -- sku y código de TODAS las variantes (una etiqueta vieja sigue encontrando su prenda); el color, solo de las que
+             -- la pantalla muestra (si no, «blusa rosa» traía una blusa a la que le apagaron el rosado).
+             (select string_agg(concat_ws(' ', retail.fn_clave_texto(v.sku), retail.fn_clave_texto(v.codigo),
+                       case when v.activo or not exists (select 1 from retail.variantes va where va.producto_id = p.id and va.activo)
+                            then retail.fn_clave_texto(co.nombre) end), ' ')
                 from retail.variantes v
                 left join retail.colores co on co.codigo = v.color_codigo
                where v.producto_id = p.id)
@@ -132,7 +136,10 @@ security definer
 set search_path = retail, public, extensions
 set plan_cache_mode = force_custom_plan
 as $$
-  with params as (
+  -- `materialized`: sin él, Postgres copia esta expresión en cada fila de variante y el buscador (que recorre el catálogo)
+  -- corría 2 veces por variante: ~5 s con 86 prendas y más de 8 s (el límite de PostgREST) con ~130. Lo encontró la revisión
+  -- adversaria del 2026-10-02; la prueba exige UNA llamada por listado.
+  with params as materialized (
     select
       case when nullif(btrim(coalesce(p_busqueda, '')), '') is null then null
            else retail.fn_productos_buscar_palabras(p_busqueda) end as ids_busqueda,
@@ -144,7 +151,9 @@ as $$
       nullif(p_tallas, '{}') as tallas
   ),
   visibles as (
-    -- Activas; y si la prenda está descontinuada, todas (la pantalla las conserva: `productos-vista.ts`).
+    -- La regla de la pantalla (`variantesQueSeVenden`, productos-vista.ts): las activas; y si la prenda no tiene NINGUNA
+    -- activa, todas (para que no desaparezca de la lista y se pueda abrir para reactivarla). Antes era «activas o prenda
+    -- descontinuada»: una activa con todas sus tallas apagadas desaparecía y en una descontinuada contaban las apagadas.
     select v.id as variante_id, v.producto_id, v.precio, v.color_codigo, co.familia_color, v.talla_id,
            p.categoria_id, p.marca_id, p.proveedor_id, p.estado, p.es_prueba, p.stock_minimo,
            coalesce(pct.temporada, p.temporada, ca.temporada) as temporada,
@@ -157,7 +166,7 @@ as $$
     -- de su categoría.
     left join retail.producto_color_temporadas pct on pct.producto_id = v.producto_id and pct.color_codigo = v.color_codigo
     where p.id <> '11111111-1111-4111-8111-111111111111'::uuid -- «Monto manual»: no es una prenda
-      and (v.activo or p.estado = 'descontinuado')
+      and (v.activo or not exists (select 1 from retail.variantes va where va.producto_id = v.producto_id and va.activo))
   ),
   -- Solo la sede pedida (la red la calcula el listado aparte, para la página): `p_con_stock` = hay un filtro «aquí».
   stock_variante as (
@@ -422,8 +431,9 @@ $$;
 
 -- `fn_productos_filtro` es una pieza interna: la leen las dos funciones de la pantalla (security definer), nadie más.
 revoke all on function retail.fn_productos_filtro(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, boolean) from public, anon, authenticated;
-revoke all on function retail.fn_productos_buscar_palabras(text) from public, anon;
-grant execute on function retail.fn_productos_buscar_palabras(text) to authenticated, service_role;
+-- El buscador también es interno (security definer: ignora RLS). Solo lo llama `fn_productos_filtro`; quien quiera exponerlo
+-- después, que empiece con `fn_tiene_acceso_retail()`.
+revoke all on function retail.fn_productos_buscar_palabras(text) from public, anon, authenticated;
 revoke all on function retail.fn_productos_listado(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, text, integer, integer) from public, anon;
 grant execute on function retail.fn_productos_listado(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, text, integer, integer) to authenticated, service_role;
 

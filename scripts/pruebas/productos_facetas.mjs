@@ -129,6 +129,23 @@ comprobarEscena(
    update retail.productos set marca_id = null where referencia = 'Falda Renata';`
 );
 comprobarEscena("precio de 70 a 120", { ...ACTIVAS, p_precio_min: 70, p_precio_max: 120 });
+// La prenda partida (revisión adversaria): Casaca Ximena con el azul marino barato en Lima y el negro caro sin stock en Lima.
+// Con «sin stock en Lima», el tramo caro la trae (su negro no hay aquí) y el barato no: los tramos tienen que decirlo igual.
+comprobarEscena(
+  "sin stock en Lima con una prenda partida por precio",
+  { ...ACTIVAS, p_disponibilidad: "'sin_sede'", p_ubicacion_id: LIMA },
+  `update retail.variantes v set precio = 60 from retail.productos p where p.id = v.producto_id and p.referencia = 'Casaca Ximena' and v.color_codigo = 'AZM';
+   update retail.stock s set cantidad = 0, cantidad_apartada = 0 from retail.variantes v, retail.productos p
+     where v.id = s.variante_id and p.id = v.producto_id and p.referencia = 'Casaca Ximena' and v.color_codigo = 'NEG' and s.ubicacion_id = ${LIMA};
+   update retail.stock s set cantidad = 3 from retail.variantes v, retail.productos p
+     where v.id = s.variante_id and p.id = v.producto_id and p.referencia = 'Casaca Ximena' and v.color_codigo = 'AZM' and s.ubicacion_id = ${LIMA};`
+);
+
+caso("los conteos también corren el buscador UNA sola vez", () => {
+  const r = dentro("set local track_functions = 'all';", `select (retail.fn_productos_facetas(p_busqueda => 'blusa') ->> 'total');
+    select calls from pg_stat_xact_user_functions where schemaname = 'retail' and funcname = 'fn_productos_buscar_palabras';`);
+  return r.split("\n").pop() === "1" ? null : `llamadas al buscador: ${r.split("\n").pop()}`;
+});
 
 caso("conteo disyuntivo: con «Casacas» elegida, las otras categorías siguen con su número (si no, no se podría cambiar)", () => {
   const cat = JSON.parse(dentro("", `select (retail.fn_productos_facetas(p_estado => 'activo', p_categoria_id => (select id from retail.categorias where nombre = 'Casacas')) -> 'facetas' -> 'categoria')::text;`));

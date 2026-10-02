@@ -237,16 +237,30 @@ begin
     where retail.fn_productos_pasa_disponibilidad(p_disponibilidad, pp.m, pp.mh, pr.vendible, pr.red, pr.stock_minimo, pr.punto, pr.demanda)
   ),
   -- ── Precio: con todos los filtros menos el suyo ─────────────────────────────────────────────────────────────────────
+  -- Las variantes que entran en el rango: cumplen lo demás, y con «hay en la sede» las que hay; con «sin stock en la sede»
+  -- las que NO hay (en una prenda partida —una talla aquí, otra no—, la que no hay es la que la hace pasar con un precio).
+  precio_filas as (
+    select fi.producto_id, fi.precio, fi.hay_en_sede
+    from f fi
+    where fi.t_precio
+      and (p_disponibilidad is distinct from 'en_sede' or fi.hay_en_sede)
+      and (p_disponibilidad is distinct from 'sin_sede' or not fi.hay_en_sede)
+  ),
   precio_prenda as (
-    select fi.producto_id, bool_or(fi.t_precio) as m, bool_or(fi.t_precio and fi.hay_en_sede) as mh,
-           -- Con «hay en la sede», el precio que cuenta es el de una variante que hay; si no, el de cualquiera que cumple.
-           min(fi.precio) filter (where fi.t_precio and (p_disponibilidad is distinct from 'en_sede' or fi.hay_en_sede)) as pmin,
-           max(fi.precio) filter (where fi.t_precio and (p_disponibilidad is distinct from 'en_sede' or fi.hay_en_sede)) as pmax
+    select fi.producto_id, bool_or(fi.t_precio) as m, bool_or(fi.t_precio and fi.hay_en_sede) as mh
     from f fi group by fi.producto_id
   ),
   precio_ok as (
-    select pp.* from precio_prenda pp join prenda pr on pr.producto_id = pp.producto_id
-    where retail.fn_productos_pasa_disponibilidad(p_disponibilidad, pp.m, pp.mh, pr.vendible, pr.red, pr.stock_minimo, pr.punto, pr.demanda)
+    -- Prendas que pueden salir con ALGÚN rango de precio: las que pasan la disponibilidad sin mirar el precio; con «sin stock
+    -- en la sede», basta que tengan una variante que cumple y no hay aquí (con el rango justo, esa sola la hace pasar).
+    select pp.producto_id, min(pf.precio) as pmin, max(pf.precio) as pmax
+    from precio_prenda pp
+    join prenda pr on pr.producto_id = pp.producto_id
+    join precio_filas pf on pf.producto_id = pp.producto_id
+    where (p_disponibilidad = 'sin_sede' and pr.vendible)
+       or (p_disponibilidad is distinct from 'sin_sede'
+           and retail.fn_productos_pasa_disponibilidad(p_disponibilidad, pp.m, pp.mh, pr.vendible, pr.red, pr.stock_minimo, pr.punto, pr.demanda))
+    group by pp.producto_id
   ),
   rango as (
     select min(pmin) as minimo, max(pmax) as maximo, count(*) as prendas,
@@ -267,14 +281,19 @@ begin
     where coalesce(array_length(co.lista, 1), 0) > 0
   ),
   tramos_n as (
-    -- Cuenta exactamente lo que trae el tramo como filtro: alguna variante (que cumple lo demás) con desde ≤ precio ≤ hasta.
-    select t.i, t.desde, t.hasta, count(distinct fi.producto_id) as n
-    from tramos t
-    join f fi on fi.t_precio
-      and (t.desde is null or fi.precio >= t.desde) and (t.hasta is null or fi.precio <= t.hasta)
-      and (p_disponibilidad is distinct from 'en_sede' or fi.hay_en_sede)
-    join precio_ok po on po.producto_id = fi.producto_id
-    group by t.i, t.desde, t.hasta
+    -- Cada tramo decide la disponibilidad CON su rango (como lo hace la lista al elegirlo): alguna variante en el rango que
+    -- cumple lo demás (m) y alguna de esas que hay en la sede (mh), y la misma regla de siempre.
+    select x.i, x.desde, x.hasta, count(*) as n
+    from (
+      select t.i, t.desde, t.hasta, fi.producto_id,
+             bool_or(fi.t_precio) as m, bool_or(fi.t_precio and fi.hay_en_sede) as mh
+      from tramos t
+      join f fi on (t.desde is null or fi.precio >= t.desde) and (t.hasta is null or fi.precio <= t.hasta)
+      group by t.i, t.desde, t.hasta, fi.producto_id
+    ) x
+    join prenda pr on pr.producto_id = x.producto_id
+    where retail.fn_productos_pasa_disponibilidad(p_disponibilidad, x.m, x.mh, pr.vendible, pr.red, pr.stock_minimo, pr.punto, pr.demanda)
+    group by x.i, x.desde, x.hasta
   )
   select jsonb_build_object(
     'total', (select n from total),

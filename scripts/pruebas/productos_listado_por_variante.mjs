@@ -185,6 +185,44 @@ caso("código de barras exacto, como siempre", () => {
   return igual(dentro("", NOMBRES("fn_productos_listado", `p_busqueda => '${codigo}', p_por_pagina => 100`)), "Casaca Luciana");
 });
 
+// ── Lo que encontró la revisión adversaria (2026-10-02) ───────────────────────────────────────────────────────────────
+caso("el buscador corre UNA vez por listado (no una por variante: ~5 s con 86 prendas y más de 8 s con ~130)", () =>
+  igual(
+    dentro(
+      "set local track_functions = 'all';",
+      `select count(*) from retail.fn_productos_listado(p_busqueda => 'blusa', p_por_pagina => 100);
+       select calls from pg_stat_xact_user_functions where schemaname = 'retail' and funcname = 'fn_productos_buscar_palabras';`
+    ).split("\n").pop(),
+    "1"
+  ));
+
+caso("una prenda activa con todas sus tallas apagadas sigue en la lista (como en la pantalla y en `fn_productos`)", () =>
+  igual(
+    dentro(
+      `update retail.variantes v set activo = false from retail.productos p where p.id = v.producto_id and p.referencia = 'Pantalón Mía';`,
+      NOMBRES("fn_productos_listado", `p_busqueda => 'Mía', p_por_pagina => 100`)
+    ),
+    "Pantalón Mía"
+  ));
+
+caso("descontinuada: el color y el precio de una talla apagada no la hacen pasar (la tarjeta no la muestra)", () => {
+  const escena = `update retail.productos set estado = 'descontinuado' where referencia = 'Falda Ariana';
+    update retail.variantes v set precio = 20, color_codigo = 'NEG', activo = false from retail.productos p
+      where p.id = v.producto_id and p.referencia = 'Falda Ariana' and v.talla_id = (select id from retail.tallas where valor = 'S');`;
+  const negra = dentro(escena, NOMBRES("fn_productos_listado", `p_colores => '{NEG}', p_por_pagina => 100`));
+  const barata = dentro(escena, NOMBRES("fn_productos_listado", `p_precio_max => 30, p_por_pagina => 100`));
+  return negra.includes("Falda Ariana") || barata.includes("Falda Ariana") ? `la trajo: negra «${negra}», hasta S/30 «${barata}»` : null;
+});
+
+caso("el buscador no encuentra por el color de una talla apagada (el filtro de color tampoco)", () =>
+  igual(
+    dentro(
+      `update retail.variantes v set activo = false from retail.productos p where p.id = v.producto_id and p.referencia = 'Blusa Valentina' and v.color_codigo = 'ROS';`,
+      NOMBRES("fn_productos_listado", `p_busqueda => 'blusa rosado', p_por_pagina => 100`)
+    ),
+    ""
+  ));
+
 // ── Lo de siempre no cambia ───────────────────────────────────────────────────────────────────────────────────────────
 for (const orden of ["recientes", "precio_asc", "precio_desc", null]) {
   caso(`sin filtros nuevos, el mismo orden y total que \`fn_productos\` (${orden ?? "nombre"})`, () => {

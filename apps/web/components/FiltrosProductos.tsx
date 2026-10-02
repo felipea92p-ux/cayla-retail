@@ -116,6 +116,11 @@ export function FiltrosProductos({
   // clic) se aplica sobre ella y no sobre la URL vieja: antes el segundo pisaba al primero y el orden recién elegido se
   // perdía. Vence a los 3 s, por si una navegación nunca llega.
   const pedida = useRef<{ consulta: string; en: number } | null>(null);
+  // La misma URL pedida, para PINTAR: las píldoras de varias (Talla, Color) muestran lo recién marcado al instante y el clic
+  // siguiente se suma a él (antes dos clics seguidos leían la URL vieja y el segundo borraba al primero). Next descarta una
+  // navegación pendiente cuando empieza otra, así que la que llega es siempre la última pedida: al llegar, se olvida.
+  const [consultaPedida, setConsultaPedida] = useState<string | null>(null);
+  const consultaMostrada = consultaPedida ?? consultaUrl;
   const { buscando, buscar } = useBusquedaEnUrl();
   const etiquetaBuscar = (
     <span className="flex items-baseline justify-between gap-2">
@@ -167,6 +172,7 @@ export function FiltrosProductos({
    *  reemplaza la entrada del historial en vez de sumar una por pausa (Atrás ya no recorre precios intermedios). */
   function navegar(consulta: string, { teclado = false } = {}) {
     pedida.current = { consulta, en: Date.now() };
+    setConsultaPedida(consulta);
     const href = hrefDeConsulta(pathname, consulta);
     if (teclado) buscar(href, { reemplazar: true });
     else router.push(href);
@@ -182,6 +188,7 @@ export function FiltrosProductos({
   if (urlVista !== consultaUrl) {
     setUrlVista(consultaUrl);
     setTipeado((t) => tipeadoPendiente(consultaUrl, t, enfocada));
+    setConsultaPedida(null);
   }
   // Y cualquier URL que llega cierra lo pedido: Next descarta la navegación pendiente cuando empieza otra, así que si llegó
   // otra (un enlace de afuera, «A quién pedirle»), la pedida ya no va a llegar y aplicar sobre ella deshacía ese enlace.
@@ -295,7 +302,13 @@ export function FiltrosProductos({
   async function copiarEnlace() {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve esta misma lista, con los mismos filtros." });
+      // «Hay en / Sin stock en [sede]» mira la sede de quien abre el enlace, no la de quien lo manda: se dice.
+      const deLaSede = disponibilidad === "en_sede" || disponibilidad === "sin_sede";
+      avisar.exito("Enlace copiado", {
+        detalle: deLaSede
+          ? "Quien lo abra ve los mismos filtros, pero «Hay en» y «Sin stock en» se aplican a SU sede."
+          : "Quien lo abra ve esta misma lista, con los mismos filtros.",
+      });
     } catch {
       avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
     }
@@ -364,8 +377,8 @@ export function FiltrosProductos({
   const conteoEstado = facetas
     ? { ...(conteos("estado") ?? {}), todos: Object.values(conteos("estado") ?? {}).reduce((a, n) => a + n, 0) }
     : undefined;
-  const tallasMarcadas = listaDeUrl(params.get("talla"));
-  const coloresMarcados = marcadosDeColor(consultaUrl);
+  const tallasMarcadas = listaDeUrl(new URLSearchParams(consultaMostrada).get("talla"));
+  const coloresMarcados = marcadosDeColor(consultaMostrada);
 
   // Dos filas con nombre (Felipe, 2026-10-02): arriba lo que pide la clienta en el mostrador, abajo lo del líder (reponer,
   // completar, de quién es). El mismo panel va abierto en la página (computadora) o dentro de la hoja (celular), nunca los dos.
@@ -420,7 +433,9 @@ export function FiltrosProductos({
           onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
           onTramo={(t) => {
             setTipeado((x) => sinCajas(x, ["precioMin", "precioMax"]));
-            aplicar({ precioMin: t.desde == null ? "" : String(t.desde), precioMax: t.hasta == null ? "" : String(t.hasta) });
+            // Es un botón de alternar: tocar el tramo que ya está puesto lo quita.
+            if (tramoActivo(t, precioMin, precioMax)) aplicar({ precioMin: "", precioMax: "" });
+            else aplicar({ precioMin: t.desde == null ? "" : String(t.desde), precioMax: t.hasta == null ? "" : String(t.hasta) });
           }}
           onEntrar={alEntrarCaja}
           onSalir={alSalirCaja}
