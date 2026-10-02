@@ -234,7 +234,7 @@ function TarjetaProducto({
           </p>
         )}
         <div className="flex items-center justify-between">
-          <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} />
+          <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
           <span className="text-[11px] text-tinta/55">{activo?.nombre ?? ""}</span>
         </div>
       </div>
