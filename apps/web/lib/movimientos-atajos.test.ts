@@ -41,7 +41,7 @@ function movimiento(parcial: Partial<Movimiento>): Movimiento {
   };
 }
 
-const TODO: AccesosAtajos = { modulos: ["cambios", "devoluciones", "bajada_piso", "conteos", "existencias", "apartados"], puedeAjustar: true };
+const TODO: AccesosAtajos = { modulos: ["cambios", "devoluciones", "conteos", "existencias", "apartados"], puedeAjustar: true };
 const claves = (m: Movimiento, a: AccesosAtajos = TODO, apt?: Parameters<typeof atajosDeMovimiento>[2]) => atajosDeMovimiento(m, a, apt).map((x) => x.clave);
 
 describe("atajosDeMovimiento", () => {

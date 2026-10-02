@@ -331,7 +331,7 @@ export function motivosAjusteDisponibles(
 // Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 // «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias (si no los ves, pídele al líder el módulo «Bajada al piso»). Prendas de más al contar: «Conteo físico».";
+  "Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
 
 /** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
@@ -344,8 +344,8 @@ export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, 
 }
 
 /** ¿El stock inicial de las prendas nuevas queda colgado en el piso? Una prenda «colgada» entra al almacén y se BAJA en
- *  la misma operación (`cargar_stock_inicial` → `bajar_al_piso`), y bajar pide el módulo «Bajada al piso» (ADR-0212,
- *  decidido para el alta de producto). Quien no lo tiene no queda trabado con un error al confirmar: sus prendas nuevas
+ *  la misma operación (`cargar_stock_inicial` → `bajar_al_piso`), y bajar pide Existencias (ADR-0306; antes «Bajada al piso»).
+ *  Quien no lo tiene no queda trabado con un error al confirmar: sus prendas nuevas
  *  entran al almacén, igual que en «Nuevo producto», y la fila lo dice antes (`textoPrendaNueva`). */
 export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): boolean {
   return separaPisoAlmacen && ubicado === "piso" && puedeBajarAlPiso;

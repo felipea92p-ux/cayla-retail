@@ -9,9 +9,11 @@
  *      sin rol; firma con el responsable una sola vez y sin el patrón viejo de auth.uid(); los cuatro disparadores
  *      (editar/borrar y vaciar, en las dos tablas); y que ninguna de las cinco partes quite un disparador ni cree una
  *      política (CLAUDE.md, «Políticas y deadlocks»: en el SQL Editor de producción es el 40P01 de ADR-0195).
- *   P2 permisos: el líder baja en cualquier tienda; sin el módulo no; con SOLO «Bajada al piso» baja y sigue sin poder
- *      ajustar ni cerrar un conteo; con SOLO Existencias no baja por aquí NI por «Reponer» (la puerta
- *      `mover_entre_piso_y_almacen` también pide el módulo, ADR-0240: antes «Reponer» le seguía funcionando); con solo Vender no; en otra tienda no; un rol «limitado como hoy» con el módulo sí.
+ *   P2 permisos (ADR-0306: «Bajada al piso» ya no es un módulo, es una función de Existencias): el líder baja en
+ *      cualquier tienda; sin Existencias no (ni con solo Conteos y Traslados); con SOLO Existencias baja por aquí Y por
+ *      «Reponer» (la puerta `mover_entre_piso_y_almacen` pide lo mismo), y como Existencias incluye ajustar stock también
+ *      ajusta, pero sigue sin poder cerrar un conteo; con solo Vender no; en otra tienda no; un rol «limitado como hoy»
+ *      con Existencias sí.
  *   P3 firma: terminal con el módulo y responsable presente baja y firma la responsable; sin responsable, 42501; con
  *      responsable ausente, 42501; terminal sin el módulo, no.
  *   P4 todo o nada: una lista con dos líneas imposibles no baja NINGUNA (ni la que alcanzaba), nombra las dos y trae el
@@ -47,6 +49,7 @@ const PARTES = [
   "20260926000200_bajada_piso_funciones.sql",
   "20260926000300_frescura_lectura_bajadas.sql",
   "20260926000400_reposicion_no_toca_el_piso.sql",
+  "20261002120000_bajada_y_ajuste_dentro_de_existencias.sql",
 ];
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
@@ -172,8 +175,8 @@ const soloModulos = (clave, modulos) =>
   (modulos.length
     ? `insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('${clave}'), unnest(array[${modulos.map((m) => `'${m}'`).join(", ")}]);\n`
     : "");
-/** Ningún rol con el módulo, sea cual sea el estado de la base local (en una base recién armada ya es así). */
-const SIN_BAJADA_EN_NINGUN_ROL = `${COMO_POSTGRES}delete from retail.rol_modulos where modulo = 'bajada_piso';\n`;
+/** Ningún rol con Existencias (desde ADR-0306 el candado de bajar es ver Existencias), sea cual sea el estado de la base local. */
+const SIN_EXISTENCIAS_EN_NINGUN_ROL = `${COMO_POSTGRES}delete from retail.rol_modulos where modulo = 'existencias';\n`;
 /** [["va", 3], ["vb", 2]] → la lista jsonb de la RPC. */
 const lista = (...pares) =>
   `jsonb_build_array(${pares.map(([v, n]) => `jsonb_build_object('variante_id', :'${v}', 'cantidad', ${n})`).join(", ")})`;
@@ -184,7 +187,7 @@ const CONTADORES = `concat_ws(',', (select count(*) from retail.movimientos), (s
 
 const MSG = {
   sinToken: "Falta la marca de este intento. Recarga la página y vuelve a escanear.",
-  sinModulo: "No puedes bajar prendas al piso: tu rol no tiene el módulo «Bajada al piso». Pídele al líder que lo active.",
+  sinModulo: "No puedes bajar prendas al piso: tu rol no tiene el módulo «Existencias». Pídele al líder que lo active.",
   sinTienda: "No tienes permiso para mover mercadería en esa tienda.",
   vacia: "No hay prendas para bajar: escanea al menos una.",
   lineaInvalida: "Cada prenda necesita un código válido y al menos 1 unidad.",
@@ -272,14 +275,14 @@ select pg_temp.intento('select count(*) from retail.bajada_piso_items');`,
   (l) => l.slice(-2).every((x) => json(x).msg.includes("permission denied for table"))
 );
 caso(
-  // «Nace sin rol» lo vigila `lib/modulos.test.ts` sobre las migraciones: aquí la base local puede tenerlo encendido a mano.
-  // El texto de Existencias es el de 20260928130000 (ADR-0250 le quitó «ajustar stock»: ya es su propio módulo), que
-  // corre después de la 20260926170000 (que a su vez nombra el retiro del bloque 2, después de la 0000).
-  "P1 · el módulo: Inventario, orden 85, delegable, no siempre-del-líder; Existencias dice «reponer y retirar del piso»",
-  `select concat_ws('|', m.grupo, m.nombre, m.orden, m.solo_lider::int, m.delegable::int,
-     (select incluye from retail.modulos where clave = 'existencias'))
-     from retail.modulos m where m.clave = 'bajada_piso';`,
-  "Inventario|Bajada al piso|85|0|1|Consultar stock, reponer y retirar del piso, apartar prendas"
+  // ADR-0306 (2026-10-02): «Bajada al piso» y «Ajustar stock» salen del catálogo y de los roles; son funciones de
+  // Existencias, cuyo texto lo dice (el de 20261002120000, que corre después de 20260928130000).
+  "P1 · «Bajada al piso» ya NO es un módulo (ni queda en ningún rol); Existencias dice que incluye reponer, retirar y ajustar",
+  `select concat_ws('|',
+     (select count(*) from retail.modulos where clave = 'bajada_piso'),
+     (select count(*) from retail.rol_modulos where modulo = 'bajada_piso'),
+     (select incluye from retail.modulos where clave = 'existencias'));`,
+  "0|0|Consultar stock, reponer el piso (bajar del almacén, subir y retirar), apartar prendas y ajustar stock"
 );
 caso(
   "P1 · firma con el responsable UNA vez (fn_actor_persona_id(true)) y sin el patrón viejo de auth.uid()",
@@ -317,40 +320,50 @@ ${COMO_POSTGRES}select concat_ws(',', ${cant("va", "piso_t")}, ${cant("va", "pis
   (l) => json(l.at(-3)).ok && json(l.at(-2)).ok && l.at(-1) === "2,1"
 );
 caso(
-  "P2 · integrante SIN el módulo → «tu rol no tiene el módulo «Bajada al piso»», nada se mueve",
-  `${SIN_BAJADA_EN_NINGUN_ROL}select ${CONTADORES} as antes \\gset
+  "P2 · integrante SIN Existencias → «tu rol no tiene el módulo «Existencias»», nada se mueve",
+  `${SIN_EXISTENCIAS_EN_NINGUN_ROL}select ${CONTADORES} as antes \\gset
 ${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
 ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
   (l) => error(l.at(-2), "bajada_sin_modulo", MSG.sinModulo) && l.at(-1) === "t"
 );
 caso(
-  "P2 · rol con SOLO «Bajada al piso»: baja, y sigue sin poder ajustar stock ni cerrar un conteo",
+  // ADR-0306: reponer el piso es una función de Existencias. Quien tiene SOLO Existencias baja y, como Existencias
+  // incluye ajustar stock (fn_puede_ajustar_stock: líder o Existencias/Conteos/Traslados), también ajusta; y cerrar un
+  // conteo (misma capacidad) pasa la puerta de permisos: el conteo de prueba está vacío, así que choca con la regla de
+  // dominio «conteo_vacio», no con «Solo un líder…».
+  "P2 · rol con SOLO Existencias: baja, también puede ajustar stock, y cerrar un conteo pasa la puerta de permisos",
   `insert into retail.conteos (ubicacion_id, sububicacion_id) select :'tru', :'alm_t'
    where not exists (select 1 from retail.conteos where ubicacion_id = :'tru' and estado = 'abierto');
 select id as conteo from retail.conteos where ubicacion_id = :'tru' and estado = 'abierto' \\gset
-${soloModulos("integrante", ["bajada_piso"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 2]), ":'tok1'")};
+${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 2]), ":'tok1'")};
 select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''conteo_fisico'', null, %L)', :'va', :'tru', :'piso_t'));
 select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`,
-  // El mensaje de «ajustar» cambió el 2026-09-27 (ADR-0250): «Bajada al piso» ya no implica «Ajustar stock», que
-  // ahora es su propio módulo — ni «Existencias/Conteos/Traslados» (fn_puede_ajustar_inventario, sin tocar) alcanza.
   (l) =>
     json(l.at(-3)).ok &&
-    json(l.at(-2)).msg.startsWith("Tu rol no tiene el módulo «Ajustar stock»") &&
-    json(l.at(-1)).msg.startsWith("Solo un líder puede cerrar un conteo")
+    json(l.at(-2)).ok &&
+    json(l.at(-1)).hint === "conteo_vacio"
 );
 caso(
-  // ADR-0240 (opción A de Felipe, 2026-09-26): mover piso↔almacén es de «Bajada al piso» por cualquier puerta. Antes
-  // este caso afirmaba lo contrario («Reponer» con solo Existencias le seguía funcionando).
-  "P2 · rol con SOLO Existencias: NO baja por bajar_al_piso NI por «Reponer», y mover_interno ya no se llama desde afuera",
+  // ADR-0240 (mover piso↔almacén es lo mismo por cualquier puerta) + ADR-0306 (esa puerta es Existencias): con SOLO
+  // Existencias baja por bajar_al_piso Y por «Reponer»; `mover_interno` sigue sin llamarse desde afuera.
+  "P2 · rol con SOLO Existencias: baja por bajar_al_piso Y por «Reponer», y mover_interno ya no se llama desde afuera",
   `${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
 select pg_temp.intento(format('select retail.mover_entre_piso_y_almacen(%L, %L, 1, %L, %L, null)', :'tru', :'va', :'alm_t', :'piso_t'));
 select pg_temp.intento(format('select retail.mover_interno(%L, %L, 1, %L, %L, null)', :'tru', :'va', :'alm_t', :'piso_t'));
 ${COMO_POSTGRES}select ${cant("va", "piso_t")};`,
   (l) =>
-    error(l.at(-4), "bajada_sin_modulo", MSG.sinModulo) &&
-    json(l.at(-3)).hint === "bajada_sin_modulo" &&
+    json(l.at(-4)).ok &&
+    json(l.at(-3)).ok &&
     json(l.at(-2)).estado === "42501" &&
-    l.at(-1) === "0"
+    l.at(-1) === "2"
+);
+caso(
+  // Los demás módulos de inventario no dan la función: bajar es de Existencias, no de Conteos ni de Traslados.
+  "P2 · rol con Conteos y Traslados pero SIN Existencias → rechazado por bajar y por «Reponer»",
+  `${soloModulos("integrante", ["conteos", "traslados"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
+select pg_temp.intento(format('select retail.mover_entre_piso_y_almacen(%L, %L, 1, %L, %L, null)', :'tru', :'va', :'alm_t', :'piso_t'));
+${COMO_POSTGRES}select ${cant("va", "piso_t")};`,
+  (l) => error(l.at(-3), "bajada_sin_modulo", MSG.sinModulo) && json(l.at(-2)).hint === "bajada_sin_modulo" && l.at(-1) === "0"
 );
 caso(
   "P2 · rol con solo Vender → rechazado",
@@ -358,13 +371,13 @@ caso(
   (l) => error(l.at(-1), "bajada_sin_modulo", MSG.sinModulo)
 );
 caso(
-  "P2 · integrante con el módulo, en OTRA tienda → «No tienes permiso para mover mercadería en esa tienda.»",
-  `${soloModulos("integrante", ["bajada_piso"])}${sesion(MICAELA)}${COMO_API}select ${bajar("lim", lista(["va", 1]), ":'tok1'")};`,
+  "P2 · integrante con Existencias, en OTRA tienda → «No tienes permiso para mover mercadería en esa tienda.»",
+  `${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${bajar("lim", lista(["va", 1]), ":'tok1'")};`,
   (l) => error(l.at(-1), "bajada_sin_tienda", MSG.sinTienda)
 );
 caso(
-  "P2 · un rol «limitado como hoy» con el módulo SÍ baja (el candado es ver el módulo, no la capacidad de escritura)",
-  `${soloModulos("integrante", ["bajada_piso"])}update retail.roles set limitado_como_hoy = true where clave = 'integrante';
+  "P2 · un rol «limitado como hoy» con Existencias SÍ baja (el candado es ver el módulo, no la capacidad de escritura)",
+  `${soloModulos("integrante", ["existencias"])}update retail.roles set limitado_como_hoy = true where clave = 'integrante';
 ${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};`,
   (l) => json(l.at(-1)).ok === true
 );
@@ -374,8 +387,8 @@ ${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")}
 // ===========================================================================
 
 const TERMINAL_CON_MODULO = `${COMO_POSTGRES}insert into retail.rol_modulos (rol_id, modulo)
-  select retail.fn_rol_por_clave('terminal_administrativa'), 'bajada_piso'
-  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'bajada_piso');\n`;
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');\n`;
 caso(
   "P3 · TERMINAL cuyo rol tiene el módulo + responsable presente: baja, y firma Rosa (movimientos, documento y terminal_id)",
   `${TERMINAL_CON_MODULO}${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select ${bajar("tru", lista(["va", 2], ["vb", 1]), ":'tok1'")} as r \\gset
@@ -425,13 +438,13 @@ ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
   (l) => json(l.at(-2)).hint === "responsable_no_presente" && l.at(-1) === "t"
 );
 caso(
-  "P3 · terminal cuyo rol NO tiene el módulo → rechazada aunque haya responsable presente",
-  `${SIN_BAJADA_EN_NINGUN_ROL}${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};`,
+  "P3 · terminal cuyo rol NO tiene Existencias → rechazada aunque haya responsable presente",
+  `${SIN_EXISTENCIAS_EN_NINGUN_ROL}${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};`,
   (l) => error(l.at(-1), "bajada_sin_modulo", MSG.sinModulo)
 );
 caso(
   "P3 · persona (Micaela) sin encabezado y sin «exige responsable»: firma ella",
-  `${soloModulos("integrante", ["bajada_piso"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
+  `${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
 ${COMO_POSTGRES}select (select persona_id = :'micaela' from retail.bajadas_piso where token_cliente = :'tok1')::text;`,
   (l) => json(l.at(-2)).ok && l.at(-1) === "true"
 );

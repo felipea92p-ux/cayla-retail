@@ -24,7 +24,7 @@ function hojas(nodos: readonly Nodo[]): { id: string; ruta: string; modulo?: Cla
 /** Lo que se hace parado en una sede: cada uno deja un movimiento que tiene que quedar anotado EN una sede. */
 const DE_OPERACION: ClaveModulo[] = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "facturacion",
-  "bajada_piso", "ajustar_stock", "conteos", "recibir", "notas_credito", "facturas_compra",
+  "conteos", "recibir", "notas_credito", "facturas_compra",
 ];
 
 describe("CAYLA Global es para decidir, no para operar", () => {
