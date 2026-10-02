@@ -47,6 +47,7 @@ const ETIQUETA_METODO: Record<string, { texto: string; color: string }> = {
   yape: { texto: "Yape / Plin", color: "var(--color-metodo-yape)" },
   plin: { texto: "Yape / Plin", color: "var(--color-metodo-yape)" },
   transferencia: { texto: "Transferencia", color: "var(--color-metodo-transferencia)" },
+  qr: { texto: "QR", color: "var(--color-metodo-qr)" },
 };
 
 function colorDeMetodo(texto: string | null): string {
@@ -55,6 +56,7 @@ function colorDeMetodo(texto: string | null): string {
   if (t.includes("tarjeta")) return "var(--color-metodo-tarjeta)";
   if (t.includes("yape") || t.includes("plin")) return "var(--color-metodo-yape)";
   if (t.includes("transferencia")) return "var(--color-metodo-transferencia)";
+  if (/\bqr\b/.test(t)) return "var(--color-metodo-qr)";
   return "var(--color-taupe)";
 }
 

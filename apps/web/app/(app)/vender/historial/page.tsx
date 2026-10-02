@@ -203,7 +203,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
                 detalle={
                   buscando
-                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC, el nombre de la prenda o el nº de operación."
+                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC o el nombre de la prenda."
                     : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
                 }
               />
