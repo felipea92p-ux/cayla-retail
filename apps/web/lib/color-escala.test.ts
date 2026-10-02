@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { enEscala, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
-import { FAMILIAS_COLOR } from "./colores-familias";
+import { enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR } from "./colores-familias";
 
 // La carta de CAYLA al 2026-10-02: los 75 colores activos de producción, cada uno con la familia que le da la migración
 // 20261002180000. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
@@ -202,5 +202,31 @@ describe("gamaDeColor", () => {
   it("el cian cae en la primera gama del azul y el ultramar en la segunda", () => {
     expect(gamaDeColor("azul", "#33becc")).toBe(0);
     expect(gamaDeColor("azul", "#00539c")).toBe(1);
+  });
+});
+
+describe("enLaCarta — toda la paleta en una lista (Atributos → Colores)", () => {
+  const todos = CARTA.map(([codigo, nombre, hex, familiaColor]) => ({ codigo, nombre, hex, familiaColor }));
+  const ordenEsperado = FAMILIAS_COLOR.flatMap((f) => (ESPERADO[f.valor] ?? []).flat());
+
+  it("pone las familias en el espectro y, dentro de cada una, la escala — igual que la carta de Nuevo producto", () => {
+    expect([...todos].sort(enLaCarta).map((c) => c.codigo)).toEqual(ordenEsperado);
+    expect([...todos].reverse().sort(enLaCarta).map((c) => c.codigo)).toEqual(ordenEsperado);
+  });
+
+  it("una familia que el código no conoce va al final, sin perderse", () => {
+    const ajeno = { codigo: "ZZZ", nombre: "Raro", hex: "#123456", familiaColor: "inexistente" };
+    const r = [ajeno, ...todos].sort(enLaCarta);
+    expect(r[r.length - 1].codigo).toBe("ZZZ");
+    expect(r).toHaveLength(76);
+  });
+});
+
+describe("esFamiliaDeColor — la lista que valida la API", () => {
+  it("acepta las 11 familias, incluidas las dos nuevas, y rechaza lo demás", () => {
+    for (const f of FAMILIAS_COLOR) expect(esFamiliaDeColor(f.valor)).toBe(true);
+    expect(esFamiliaDeColor("rosado")).toBe(true);
+    expect(esFamiliaDeColor("naranja")).toBe(true);
+    for (const malo of ["", "Rosado", "rosa", "sin-familia", null, undefined, 5]) expect(esFamiliaDeColor(malo)).toBe(false);
   });
 });

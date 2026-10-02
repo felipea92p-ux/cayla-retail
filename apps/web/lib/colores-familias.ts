@@ -1,3 +1,5 @@
+import { enEscala, type ColorEnEscala } from "./color-escala";
+
 // Familias de color: la agrupación que ven todas las pantallas que muestran colores (Nuevo producto, Agregar colores,
 // Atributos → Colores) y la que valida la API. Vive aparte, UNA sola vez, para que agrupen igual (ADR-0310).
 //
@@ -36,6 +38,17 @@ export type FamiliaColor = (typeof FAMILIAS_COLOR)[number]["valor"];
 /** ¿Es una de las familias permitidas? La API lo usa para no tener su propia copia de la lista. */
 export function esFamiliaDeColor(valor: unknown): valor is FamiliaColor {
   return typeof valor === "string" && FAMILIAS_COLOR.some((f) => f.valor === valor);
+}
+
+/**
+ * El orden de TODA la paleta en una sola lista plana: las familias en el orden del espectro (`FAMILIAS_COLOR`; una familia que
+ * este archivo no conoce, al final) y, dentro de cada una, la escala. Es lo que usa Atributos → Colores; la carta de Nuevo
+ * producto agrupa por su cuenta con `ordenarColores`, pero con la misma `enEscala`, así que las dos pantallas coinciden.
+ */
+export function enLaCarta(a: ColorEnEscala, b: ColorEnEscala): number {
+  const fa = FAMILIAS_COLOR.findIndex((f) => f.valor === a.familiaColor);
+  const fb = FAMILIAS_COLOR.findIndex((f) => f.valor === b.familiaColor);
+  return (fa < 0 ? FAMILIAS_COLOR.length : fa) - (fb < 0 ? FAMILIAS_COLOR.length : fb) || enEscala(a, b);
 }
 
 export function textoDeFamilia(valor: string | null | undefined): string {

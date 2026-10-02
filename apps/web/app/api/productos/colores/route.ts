@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { esFamiliaDeColor } from "@/lib/colores-familias";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
 function mensajeDeError(error: ErrorEscritura, accion: string) {
@@ -34,18 +35,6 @@ const ERROR_PANTONE = "El código Pantone tiene la forma 19-1557 TCX (o solo 19-
 //   persona — no se le oculta silenciosamente ni se fusiona con el existente.
 //   Tampoco hace falta una pantalla de "fusionar": ese mismo candado hace
 //   imposible que dos colores equivalentes convivan como filas distintas.
-const FAMILIAS_COLOR = [
-  "neutro",
-  "azul",
-  "rojo",
-  "amarillo",
-  "verde",
-  "morado",
-  "tierra",
-  "metalico",
-  "estampado",
-] as const;
-
 export async function POST(request: Request) {
   // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
   // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
@@ -67,7 +56,7 @@ export async function POST(request: Request) {
   if (!/^[A-Z]{3}$/.test(codigo)) {
     return Response.json({ error: "El código tiene que ser exactamente 3 letras (ej. VEB)." }, { status: 400 });
   }
-  if (!FAMILIAS_COLOR.includes(familiaColor as (typeof FAMILIAS_COLOR)[number])) {
+  if (!esFamiliaDeColor(familiaColor)) {
     return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
   }
   // Un color nuevo sin hex se veía como el beige de relleno: obligarlo acá
@@ -80,9 +69,9 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  // orden=2000: los de CAYLA usan una centena por familia (neutro 100-190 …
-  // metálico 800-890, de claro a oscuro: 20260926210000); un color agregado
-  // desde esta pantalla entra al final de su familia y de cualquier lista.
+  // orden=2000: un color agregado desde esta pantalla entra al final de cualquier lista que todavía ordene por
+  // `colores.orden`. Las pantallas de colores ya no lo usan: la carta y Atributos ordenan por la escala del color
+  // (`lib/color-escala.ts`, ADR-0310), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
     .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })
@@ -150,7 +139,7 @@ export async function PATCH(request: Request) {
   }
 
   if ("familiaColor" in cuerpoObj) {
-    if (!FAMILIAS_COLOR.includes(cuerpoObj.familiaColor as (typeof FAMILIAS_COLOR)[number])) {
+    if (!esFamiliaDeColor(cuerpoObj.familiaColor)) {
       return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
     }
     patch.familia_color = cuerpoObj.familiaColor as string;
