@@ -94,7 +94,15 @@ export type DatosComprobante = {
   /** Solo NC/ND: código del Catálogo 09 (crédito) o 10 (débito) de SUNAT —
    *  es lo que `comprobantes.motivo` ya guarda desde la Fase 0. */
   motivoCodigo?: string | null;
+  /** Día de la venta en hora de Lima (`AAAA-MM-DD`). Sin él se usa el de hoy en Lima. Lucode acepta de hoy a 5 días atrás. */
+  fechaEmision?: string;
 };
+
+/** Hoy en Lima como `AAAA-MM-DD`. NO `toISOString()`: es UTC, y desde las 19:00 de Lima ya es «mañana», que Lucode
+ *  rechaza («puede ser hoy o hasta 5 días previos», visto en B002-8 a B002-14, 2026-10-01). */
+export function fechaDeLima(d: Date = new Date()): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+}
 
 export type MotivoErrorLucode = "sin_credenciales" | "sin_respuesta" | "credenciales_invalidas" | "rechazado_por_lucode";
 
@@ -159,7 +167,7 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
     documento: c.tipo,
     serie: c.serie,
     numero: c.numero,
-    fecha_de_emision: new Date().toISOString().slice(0, 10),
+    fecha_de_emision: c.fechaEmision ?? fechaDeLima(),
     moneda: c.moneda,
     tipo_operacion: "0101",
     cliente_tipo_de_documento: conDoc ? CODIGO_SUNAT_DOCUMENTO[c.clienteTipoDoc as TipoDocIdentificado] : "1",

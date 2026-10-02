@@ -768,7 +768,7 @@ export function EditarApartadoModal({
               const hermanas = v ? prendas.filter((h) => h.referencia === v.referencia && h.color === v.color) : [];
               return (
                 <li key={pr.itemId || pr.varianteId} className={`flex flex-wrap items-center gap-3 px-3.5 py-3 ${fuera ? "bg-crema/70" : ""}`}>
-                  <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} ancho={40} className="w-10" />
+                  <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={40} className="w-10" />
                   <div className="min-w-0 flex-1">
                     <p className={`truncate text-sm font-semibold ${fuera ? "text-tinta/45 line-through" : "text-tinta"}`}>{pr.referencia}</p>
                     <p className="text-xs text-tinta/60">{v ? detalleVariante(v) : pr.sku} · {pr.cantidad} u.</p>
@@ -804,7 +804,7 @@ export function EditarApartadoModal({
               const p = porId.get(l.varianteId)!;
               return (
                 <li key={`n-${l.varianteId}`} className="flex flex-wrap items-center gap-3 bg-verde/5 px-3.5 py-3">
-                  <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} ancho={40} className="w-10" />
+                  <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={40} className="w-10" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-[11px] font-normal text-verde-profundo">nueva</span></p>
                     <p className="text-xs text-tinta/60">{detalleVariante(p)}</p>

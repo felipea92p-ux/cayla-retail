@@ -30,14 +30,18 @@ export type VarianteCatalogo = {
   color: string | null;
   colorHex: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
-   *  color todavía no tiene foto. El cliente cae a un tinte del color (o a
-   *  las iniciales, en Vender) cuando falta, nunca a un ícono de "sin foto". */
+   *  color todavía no tiene foto. El cliente cae a un tinte del color (o
+   *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
   fotoUrl: string | null;
   precio: number;
   activo: boolean;
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** Prefijo y familia de su categoría: dibujan su ícono (`IconoCategoria`, por prefijo, nunca por nombre) donde la
+   *  prenda no tiene foto, como la tarjeta de Vender. Opcionales: un catálogo guardado antes de este cambio no los trae. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
   codigosBarras: string[];
@@ -119,7 +123,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
         .select(
           `id, sku, codigo, color_codigo, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+           producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -156,6 +160,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     productoId: v.producto?.id ?? "",
     referencia: v.producto?.referencia ?? "(sin referencia)",
     categoria: v.producto?.categoria?.nombre ?? null,
+    categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
+    categoriaFamilia: v.producto?.categoria?.familia ?? null,
     marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));

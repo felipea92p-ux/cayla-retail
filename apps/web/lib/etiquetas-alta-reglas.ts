@@ -150,3 +150,46 @@ export function unirEtiquetas(delServidor: readonly EtiquetaAlta[], nuevas: read
   const claves = new Set(delServidor.map((e) => claveEtiqueta(e.nombre)));
   return [...delServidor, ...nuevas.filter((e) => !ids.has(e.id) && !claves.has(claveEtiqueta(e.nombre)))];
 }
+
+/** La campaña con descuento que la caja cobrará HOY sobre la prenda que se está creando. */
+export type CampanaDelAlta = {
+  nombre: string;
+  pct: number;
+  hasta: string | null;
+  /** Lo que se rebaja por unidad (el mismo cálculo de la caja) y el precio que paga el cliente. */
+  descuento: number;
+  precioFinal: number;
+  /** Las otras campañas con descuento que rigen hoy y NO se cobran (la caja cobra solo la mayor), de mayor a menor %. */
+  otras: { nombre: string; pct: number }[];
+};
+
+/**
+ * La campaña que el resumen del alta anuncia: la de mayor % entre las elegidas a mano y las que la categoría aplica sola, que
+ * RIGE HOY (sin fechas = permanente; una que aún no empieza o ya terminó no cuenta, igual que la etiqueta de precio impresa y la
+ * caja). Existe para que el resumen diga lo mismo que dirá el papel: si la etiqueta sale con descuento, el resumen también.
+ *
+ * NO HACE: no suma campañas (la caja cobra solo la mayor, ADR-0107) ni toca el precio que se guarda: es solo lo que se muestra.
+ */
+export function campanaDelAlta(
+  etiquetas: readonly EtiquetaAlta[],
+  precio: number | null,
+  hoy: string,
+  descuentoDe: (precio: number, pct: number) => number,
+): CampanaDelAlta | null {
+  if (precio === null || !(precio > 0)) return null;
+  let mejor: EtiquetaAlta | null = null;
+  const rigen: EtiquetaAlta[] = [];
+  for (const e of etiquetas) {
+    if (e.descuentoPct === null || !(e.descuentoPct > 0)) continue;
+    if ((e.vigenteDesde && e.vigenteDesde > hoy) || (e.vigenteHasta && e.vigenteHasta < hoy)) continue;
+    rigen.push(e);
+    if (!mejor || e.descuentoPct > (mejor.descuentoPct ?? 0)) mejor = e;
+  }
+  if (!mejor || mejor.descuentoPct === null) return null;
+  const descuento = descuentoDe(precio, mejor.descuentoPct);
+  return { nombre: mejor.nombre, pct: mejor.descuentoPct, hasta: mejor.vigenteHasta, descuento, precioFinal: Math.round((precio - descuento) * 100) / 100, otras: rigen
+      .filter((e) => e !== mejor)
+      .sort((a, b) => (b.descuentoPct ?? 0) - (a.descuentoPct ?? 0))
+      .map((e) => ({ nombre: e.nombre, pct: e.descuentoPct ?? 0 })),
+  };
+}
