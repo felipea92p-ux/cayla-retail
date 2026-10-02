@@ -36,7 +36,7 @@ export function BoletaA4({
   const esFactura = recibo.tipo === "factura";
   // La nota de venta (ADR-0164) no separa IGV: sus líneas van al precio cobrado y el pie no lleva nada de SUNAT.
   const fiscal = desglosaIgv(recibo.tipo);
-  const lineas = lineasA4(recibo, fiscal ? 0.18 : 0);
+  const lineas = lineasA4(recibo);
   const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const nombreDoc = esFactura ? "factura" : "boleta de venta";
 
@@ -105,7 +105,7 @@ export function BoletaA4({
             <th className={`${cab} w-[11mm] text-center`}>Cant.</th>
             <th className={`${cab} w-[15mm] text-center`}>Unidad</th>
             <th className={`${cab} text-left`}>Descripción</th>
-            <th className={`${cab} w-[23mm] text-right`}>V. unitario</th>
+            <th className={`${cab} w-[23mm] text-right`}>P. unitario</th>
             <th className={`${cab} w-[19mm] text-right`}>Dscto.</th>
             <th className={`${cab} w-[24mm] text-right`}>Total</th>
           </tr>
@@ -119,7 +119,7 @@ export function BoletaA4({
                 {l.descripcion}
                 {(l.detalle || l.codigo) && <span className="block text-[7.5pt] text-black/60">{[l.detalle, l.codigo].filter(Boolean).join(" · ")}</span>}
               </td>
-              <td className="px-2 py-1.5 text-right tabular-nums">{s(l.valorUnitario)}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums">{s(l.precioUnitario)}</td>
               <td className="px-2 py-1.5 text-right tabular-nums">{l.descuento > 0 ? s(l.descuento) : "—"}</td>
               <td className="px-2 py-1.5 text-right tabular-nums">{s(l.total)}</td>
             </tr>
