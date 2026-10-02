@@ -233,9 +233,9 @@ function TarjetaProducto({
             {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
           </p>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
-          <span className="text-[11px] text-tinta/55">{activo?.nombre ?? ""}</span>
+          <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>
       </div>
 
