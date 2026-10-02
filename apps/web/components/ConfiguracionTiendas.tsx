@@ -336,7 +336,7 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
       <Superficie className="anim-sube">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que las clientas le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
         >
           <Link href="/clientas/cartel" className="btn-cayla btn-secundario btn-chico">
             Ver el cartel del club
@@ -361,7 +361,7 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
         <PieTabla>
           <span>
             9 dígitos que empiezan en 9, sin +51. Vacío = sin QR. Antes de cargarlo, que el celular de la tienda tenga encendido el respaldo
-            de WhatsApp: su chat es la prueba de que la clienta pidió las novedades.
+            de WhatsApp: su chat es la prueba de que el cliente pidió las novedades.
           </span>
         </PieTabla>
       </Superficie>

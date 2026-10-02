@@ -406,7 +406,7 @@ export type Cedible = { unidades: number; conserva: number; motivo: string };
 
 export function cedibleDe(o: UbicacionRed): Cedible {
   if (o.tipo !== "tienda") {
-    return { unidades: Math.max(o.disponible, 0), conserva: 0, motivo: `${nombreCorto(o.nombre)} no vende a clientas` };
+    return { unidades: Math.max(o.disponible, 0), conserva: 0, motivo: `${nombreCorto(o.nombre)} no vende a clientes` };
   }
   const v = calcularVelocidad({
     ventas: o.ventasVentana,
@@ -517,7 +517,7 @@ export function planDeReposicion(c: ContextoPlan): PlanReposicion {
   const explicacion: string[] = [];
 
   // El Taller (o un almacén) no vende a clientas: su stock es para distribuir.
-  if (destino.tipo !== "tienda") return planVacio(f.utilizable > 0 ? [`${nombreCorto(destino.nombre)} no vende a clientas: su stock está para distribuir`] : []);
+  if (destino.tipo !== "tienda") return planVacio(f.utilizable > 0 ? [`${nombreCorto(destino.nombre)} no vende a clientes: su stock está para distribuir`] : []);
 
   const pasos: PasoPlan[] = [];
   const demanda = v.estado === "ok" ? v.unidadesDia! : null;
@@ -638,7 +638,7 @@ export function planDeReposicion(c: ContextoPlan): PlanReposicion {
             pasos.push({ tipo: "trasladar", cantidad, texto: `Trasladar ${cantidad} desde ${nombreCorto(o.nombre)}`, motivo: `${nombreCorto(o.nombre)} puede ceder ${ced.unidades}: ${ced.motivo}`, accionable: true, origen });
           } else {
             const texto = o.tipo === "taller" ? `Pedir ${cantidad} al Taller` : `Pedir ${cantidad} a ${nombreCorto(o.nombre)}`;
-            pasos.push({ tipo: "pedir_al_taller", cantidad, texto, motivo: `${nombreCorto(o.nombre)} tiene ${o.disponible} y no vende a clientas`, accionable: true, origen });
+            pasos.push({ tipo: "pedir_al_taller", cantidad, texto, motivo: `${nombreCorto(o.nombre)} tiene ${o.disponible} y no vende a clientes`, accionable: true, origen });
           }
           restante -= cantidad;
           usados += 1;

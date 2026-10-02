@@ -1,5 +1,5 @@
 /**
- * Qué hace una pestaña cuando la cuenta del navegador cambia por debajo de ella (ADR-0307).
+ * Qué hace una pestaña cuando la cuenta del navegador cambia por debajo de ella (ADR-0309).
  *
  * La sesión vive en cookies, compartidas por todas las pestañas. Si en una pestaña alguien sale y entra con otra cuenta,
  * las demás siguen dibujadas con el menú y los datos de la cuenta anterior, aunque cada petición ya viaje como la nueva.

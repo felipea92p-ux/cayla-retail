@@ -374,7 +374,7 @@ export function bloqueoPorVenta(
   if (vendidas.length === 0) return null;
   const nombres = vendidas.map((f) => f.guardada?.codigo ?? nombreVariante(f, n));
   const lista = nombres.length <= 3 ? nombres.join(", ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
-  return `${lista} ya ${vendidas.length === 1 ? "salió" : "salieron"} con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.`;
+  return `${lista} ya ${vendidas.length === 1 ? "salió" : "salieron"} con un cliente (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.`;
 }
 
 /** «Sin color» se ofrece al corregir solo si no deja a la prenda mezclando: todas las demás activas ya son «Sin color». */

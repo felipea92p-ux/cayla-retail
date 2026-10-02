@@ -103,7 +103,7 @@ export function leerAvisos(filas: readonly FilaAvisoPendiente[]): AvisoPendiente
     out.push({
       clave,
       clientaId: f.clienta_id,
-      nombre: f.nombre?.trim() || "Socia sin nombre",
+      nombre: f.nombre?.trim() || "Miembro sin nombre",
       telefono: f.telefono?.trim() || null,
       tipo: f.tipo,
       referencia,

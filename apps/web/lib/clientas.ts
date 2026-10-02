@@ -41,7 +41,7 @@ export type ListaClientas = { filas: ClientaDeLista[]; total: number; falla: str
  * La lista de /clientas (ADR-0288 tanda 1f, `fn_clientas_lista`): una página del filtro y la búsqueda de la URL, con su sede,
  * su última compra y si es frecuente, calculados por la base sobre TODAS las fichas (no sobre las 50 de la vista). Si la base
  * todavía no tiene la función (migración 20260930210000 sin pegar), devuelve `falla` en vez de tumbar la pantalla
- * (principio 9): la pantalla lo dice y sigue con «+ Nueva clienta».
+ * (principio 9): la pantalla lo dice y sigue con «+ Nuevo cliente».
  */
 export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
   const supabase = await createClient();
@@ -51,7 +51,7 @@ export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
     p_limite: POR_PAGINA,
     p_desde: desdeDePagina(p.pagina),
   });
-  if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientas: ${error.message}` };
+  if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientes: ${error.message}` };
   const filas = (data ?? []) as FilaListaClienta[];
   return { filas: filas.map(aClientaDeLista), total: filas[0]?.total ?? 0, falla: null };
 }
@@ -74,7 +74,7 @@ export async function getFichaClienta(id: string): Promise<FichaClienta | null> 
     supabase.rpc("fn_clienta_separaciones", { p_id: id }),
   ]);
 
-  const filaClienta = exigir(clienta, "la ficha de la clienta") as FilaClienta | null;
+  const filaClienta = exigir(clienta, "la ficha del cliente") as FilaClienta | null;
   if (!filaClienta) return null;
 
   return {

@@ -127,7 +127,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               Nuevo cambio
             </button>
           </div>
-          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para la clienta; no es un comprobante de pago.</p>
+          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
 
           {typeof document !== "undefined" && createPortal(<TicketCambioTermico ticket={ticket} />, document.body)}
         </>
@@ -165,7 +165,7 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
         )}
         {ticket.clienta && (
           <>
-            <dt>Clienta</dt>
+            <dt>Cliente</dt>
             <dd>{ticket.clienta}</dd>
           </>
         )}

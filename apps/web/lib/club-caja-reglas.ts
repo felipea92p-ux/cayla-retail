@@ -1,4 +1,4 @@
-// El club en la CAJA (ADR-0288, tandas 1b y 1g): qué muestra la caja de la clienta en Cobrar, qué pide «Registrar clienta»
+// El club en la CAJA (ADR-0288, tandas 1b y 1g): qué muestra la caja de la clienta en Cobrar, qué pide «Registrar cliente»
 // (en Cobrar y en /clientas). Lógica pura, sin React ni red: la usan la página de Vender
 // (servidor), `PuntoDeVenta`, `ClientaDelTicket` y `NuevaClientaModal`. El cumpleaños tiene su propia regla
 // (`lib/club-cumple-reglas.ts`), y sus canjes, las suyas (`club-cumple-canje-reglas.ts`, `club-aniversario-canje-reglas.ts`).
@@ -8,7 +8,7 @@
 //
 // Tanda 1g («Actualización 2026-10-01 (g)», G-1, G-2): ella se une sola, escaneando el cartel del club. La caja ya no invita
 // ni muestra un QR personal: registra a la clienta solo con su documento y, si no es socia, le pide a la asesora que le
-// muestre el cartel; la tarjeta vuelve a leer su resumen sola y pasa a «Socia» cuando ella se une con ese documento.
+// muestre el cartel; la tarjeta vuelve a leer su resumen sola y pasa a «Miembro» cuando ella se une con ese documento.
 //
 // CONTRATO
 //   PROMETE: decir qué se ofrece en caja según lo que la base contestó (`resumen_clienta_caja`, `fn_club_textos_vigentes`,
@@ -84,8 +84,8 @@ export type CajaDelClub =
 
 /**
  * Lo del club dentro de la caja de la clienta del ticket (spike del club, `clientaDelTicketHTML` y `partesClub`).
- *   · Socia: el chip «Socia», el de su publicidad y, adentro, su cumpleaños y su vale de aniversario.
- *   · Identificada: el chip «Identificada» y la fila del cartel, en cada compra (G-2).
+ *   · Socia: el chip «Miembro», el de su publicidad y, adentro, su cumpleaños y su vale de aniversario.
+ *   · Identificada: el chip «Identificado» y la fila del cartel, en cada compra (G-2).
  * `ficha`: lo que el ticket sabe de ella (su documento).
  */
 export function cajaDelClub(v: { lectura: LecturaClub; ficha: Pick<ClientaDelTicket, "documentoNumero"> }): CajaDelClub {
@@ -114,9 +114,9 @@ export function lineaDeLaClientaEnCaja(clienta: ClientaDelTicket, celularFresco:
   return { titulo: l.titulo, detalle: [l.detalle, codigo].filter(Boolean).join(" · ") };
 }
 
-/** Cómo se lee la clienta en la lista del buscador (spike: «… · Socia» / «… · Identificada»). */
-export function estadoEnLaLibreta(clubDesde: string | null | undefined): "Socia" | "Identificada" {
-  return clubDesde ? "Socia" : "Identificada";
+/** Cómo se lee la clienta en la lista del buscador (spike: «… · Miembro» / «… · Identificado»). */
+export function estadoEnLaLibreta(clubDesde: string | null | undefined): "Miembro" | "Identificado" {
+  return clubDesde ? "Miembro" : "Identificado";
 }
 
 /* ------------------------------------------------------------------ El celular */
@@ -132,12 +132,12 @@ export function problemaCelularOpcional(celular: string): string | null {
   return celular.trim() === "" || celularValido(celular) ? null : "Un celular peruano tiene 9 dígitos y empieza con 9.";
 }
 
-/* ------------------------------------------------------------------ La guía de foco de «Registrar clienta» */
+/* ------------------------------------------------------------------ La guía de foco de «Registrar cliente» */
 //
 // CLAUDE.md «Guía de foco» (ADR-0284): lo que la hoja marca como hecho, lo que sigue y lo que falta sale de la MISMA regla que
 // apaga su botón (`sePuedeConfirmar(campos)` es lo que se pregunta al confirmar).
 
-/** Lo escrito en «Registrar clienta» (Cobrar y Clientas ▸ Nueva clienta; spike, `modalRegistrar`). */
+/** Lo escrito en «Registrar cliente» (Cobrar y Clientas ▸ Nueva clienta; spike, `modalRegistrar`). */
 export type HojaRegistrar = {
   documentoTipo: TipoDocumentoClienta;
   documentoNumero: string;
@@ -180,7 +180,7 @@ export function camposDeRegistrar(h: HojaRegistrar): CampoDeGuia[] {
 /* ------------------------------------------------------------------ «Pídele que escanee el cartel» (tanda 1g, G-2) */
 //
 // Mientras la tarjeta de una clienta que no es socia está a la vista, Cobrar vuelve a leer su resumen cada 3 s: cuando ella
-// se une desde el cartel con ese documento, la tarjeta pasa sola a «Socia» (con su chip y, si es su mes, su cumpleaños).
+// se une desde el cartel con ese documento, la tarjeta pasa sola a «Miembro» (con su chip y, si es su mes, su cumpleaños).
 // Deja de preguntar con la pestaña oculta y a los 10 minutos («¿Ya se unió? Actualizar»): una tarjeta olvidada no pregunta
 // toda la tarde. Sin animación en bucle (ADR-0136): la fila dice que se actualiza sola, no late.
 
@@ -217,13 +217,13 @@ export function filaDelCartel(v: { sinDocumento: boolean; espera: EsperaDelCarte
   if (v.sinDocumento) {
     return {
       destacado,
-      bajada: `${porQue}. Su ficha no tiene documento: complétalo en Clientas para que se una con esta ficha.`,
+      bajada: `${porQue}. Su ficha no tiene documento: complétalo en Clientes para que se una con esta ficha.`,
       ayuda: "En el cartel se une con su documento: sin él en esta ficha, se crearía otra.",
       actualizar: false,
       consultar: false,
     };
   }
-  const ayuda = "Se une sola, en su celular, con este mismo documento. La tarjeta se actualiza cuando lo haga.";
+  const ayuda = "Se une por su cuenta, en su celular, con este mismo documento. La tarjeta se actualiza cuando lo haga.";
   if (v.espera === "vencida") return { destacado, bajada: `${porQue}. ¿Ya se unió? Toca «Actualizar».`, ayuda, actualizar: true, consultar: false };
   return { destacado, bajada: `${porQue} · se actualiza sola`, ayuda, actualizar: false, consultar: v.espera === "esperando" };
 }

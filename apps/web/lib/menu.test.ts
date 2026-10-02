@@ -598,8 +598,8 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
 
   // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
   // Es la caja del mostrador: Ventas le sale SUELTO (Felipe, 2026-09-25), sin la cabecera «Ventas» ni la de «Posventa».
-  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones, Comprobantes y Clientas, en ese orden y sin grupos que abrir", () => {
-    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas"]);
+  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones, Comprobantes y Clientes, en ese orden y sin grupos que abrir", () => {
+    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientes"]);
     expect(riel.some(esGrupoMenu)).toBe(false);
   });
 
@@ -652,7 +652,7 @@ describe("terminales sin tipo: el rol manda", () => {
     // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
     expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
     expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual([
-      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas",
+      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientes",
     ]);
   });
 

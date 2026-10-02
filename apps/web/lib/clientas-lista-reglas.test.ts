@@ -100,13 +100,13 @@ describe("una fila de la lista", () => {
     expect(c).toMatchObject({ id: "c1", documentoTipo: "carne_extranjeria", suSede: "Tienda Trujillo", comprasSede: 2, compras12m: 3, esFrecuente: true });
   });
 
-  it("Estado: Identificada, Socia o Socia frecuente; archivada, anonimizada o unida dicen por qué", () => {
-    expect(estadoDeLaFila(fila({}))).toEqual({ texto: "Identificada", tono: "pizarra" });
-    expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: false }))).toEqual({ texto: "Socia", tono: "neutro" });
-    expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: true }))).toEqual({ texto: "Socia frecuente", tono: "verde" });
-    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01" })).texto).toBe("Archivada");
-    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01", anonimizada: true })).texto).toBe("Anonimizada");
-    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01", anonimizada: true, fusionada_en_id: "c2" })).texto).toBe("Unida a otra");
+  it("Estado: Identificado, Miembro o Miembro frecuente; archivado, anonimizado o unido a otra ficha dicen por qué", () => {
+    expect(estadoDeLaFila(fila({}))).toEqual({ texto: "Identificado", tono: "pizarra" });
+    expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: false }))).toEqual({ texto: "Miembro", tono: "neutro" });
+    expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: true }))).toEqual({ texto: "Miembro frecuente", tono: "verde" });
+    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01" })).texto).toBe("Archivado");
+    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01", anonimizada: true })).texto).toBe("Anonimizado");
+    expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01", anonimizada: true, fusionada_en_id: "c2" })).texto).toBe("Unido a otra ficha");
   });
 
   it("Publicidad: solo una socia activa tiene algo que decir", () => {
@@ -149,16 +149,16 @@ describe("cifras, píldoras y pie", () => {
   });
 
   it("los detalles de las tarjetas", () => {
-    expect(detalleSocias(cifras)).toBe("40 % de las identificadas");
-    expect(detalleSocias({ identificadas: 0, socias: 0 })).toBe("Todavía ninguna");
-    expect(detallePublicidad(cifras)).toBe("3 socias sin publicidad");
-    expect(detallePublicidad({ sinPublicidad: 1 })).toBe("1 socia sin publicidad");
+    expect(detalleSocias(cifras)).toBe("40 % de los identificados");
+    expect(detalleSocias({ identificadas: 0, socias: 0 })).toBe("Todavía ninguno");
+    expect(detallePublicidad(cifras)).toBe("3 miembros sin publicidad");
+    expect(detallePublicidad({ sinPublicidad: 1 })).toBe("1 miembro sin publicidad");
   });
 
-  it("el pie: N de las activas (o de las archivadas) y que todas las cuentas con el módulo ven a todas", () => {
-    expect(pieLista(7, "socias", cifras)).toBe("7 de 20 clientas · todas las cuentas con el módulo ven a todas");
-    expect(pieLista(1, "archivadas", cifras)).toBe("1 de 1 archivadas · todas las cuentas con el módulo ven a todas");
-    expect(pieLista(1, "todas", null)).toBe("1 clienta · todas las cuentas con el módulo ven a todas");
+  it("el pie: N de los activos (o de los archivados) y que todas las cuentas con el módulo ven a todos", () => {
+    expect(pieLista(7, "socias", cifras)).toBe("7 de 20 clientes · todas las cuentas con el módulo ven a todos");
+    expect(pieLista(1, "archivadas", cifras)).toBe("1 de 1 archivados · todas las cuentas con el módulo ven a todos");
+    expect(pieLista(1, "todas", null)).toBe("1 cliente · todas las cuentas con el módulo ven a todos");
   });
 });
 

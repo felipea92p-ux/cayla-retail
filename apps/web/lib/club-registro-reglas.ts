@@ -10,7 +10,7 @@
 //   ASUME:   quien decide si alguien PUEDE ser socia es la base (`registrarse_en_el_club`: 18 años a la fecha de Lima, textos
 //            vigentes, ficha no anonimizada) y quien frena el abuso también (`club_intento`). Esto solo evita mandar lo que la
 //            base rechazaría y dice por qué.
-//   NO HACE: no inventa textos legales: los de la página son los aprobados en `docs/club/texto-legal-registro-v1.md`; la
+//   NO HACE: no inventa textos legales: los de la página son los aprobados en `docs/club/texto-legal-registro-v2.md`; la
 //            política, los términos, la casilla de WhatsApp y el saludo vienen de `club_textos` con su versión.
 
 import type { Database } from "@cayla-retail/database";
@@ -175,7 +175,7 @@ export function fechaLarga(valor: string | null | undefined): string | null {
 }
 
 /* ------------------------------------------------------------------ Los textos aprobados de la página */
-// Los del formulario, las casillas y la letra chica: `docs/club/texto-legal-registro-v1.md`, sección 1. Su «Cabecera» y su «Qué
+// Los del formulario, las casillas y la letra chica: `docs/club/texto-legal-registro-v2.md`, sección 1. Su «Cabecera» y su «Qué
 // recibes» los reemplazó el inicio del diseño aprobado por Felipe el 2026-10-01 (`lib/club-publico-reglas.ts`: `INICIO`,
 // `tarjetasDelInicio` y `notaDelUmbral`), con las mismas cifras de la base; las condiciones de cada beneficio siguen en los
 // Términos, enlazados ahí mismo.
@@ -194,20 +194,16 @@ export const AYUDA = {
 export const CASILLA_MAYOR = "Confirmo que soy mayor de 18 años.";
 export const BOTON_UNIRME = "Unirme al Club CAYLA";
 
-/** La casilla de los términos, con los dos enlaces en su lugar (`enlace`: cuál abre). */
-export function casillaTerminos(razonSocial: string): (string | { enlace: "privacidad" | "terminos"; texto: string })[] {
-  return [
-    "He leído la ",
-    { enlace: "privacidad", texto: "Política de privacidad" },
-    " y los ",
-    { enlace: "terminos", texto: "Términos del Club CAYLA" },
-    `, y acepto que ${razonSocial} use mis datos para administrar mi membresía y mis beneficios.`,
-  ];
+/** La casilla de los términos, con los dos enlaces en su lugar (`enlace`: cuál abre). Breve (Felipe, 2026-10-02): lo que
+ *  acepta —para qué se usan sus datos, quién es responsable— lo dicen la Política y los Términos que enlaza. */
+export function casillaTerminos(): (string | { enlace: "privacidad" | "terminos"; texto: string })[] {
+  return ["Acepto la ", { enlace: "privacidad", texto: "Política de privacidad" }, " y los ", { enlace: "terminos", texto: "Términos del Club CAYLA" }, "."];
 }
 
-/** La letra chica bajo el botón: quién es responsable de sus datos, dónde viven y cómo ejercer sus derechos (Ley 29733). */
+/** La letra chica bajo el botón: quién es responsable de sus datos y cómo ejercer sus derechos (Ley 29733). Dónde se guardan
+ *  (Brasil, flujo transfronterizo) lo dice la Política de privacidad, 2.5; aquí no (Felipe, 2026-10-02). */
 export function letraChica(e: { razonSocial: string; ruc: string; email: string }): string {
-  return `${e.razonSocial} (RUC ${e.ruc}) es la responsable de tus datos. Se guardan en servidores en Brasil. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en ${e.email}.`;
+  return `${e.razonSocial} (RUC ${e.ruc}) es la responsable de tus datos. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en ${e.email}.`;
 }
 
 /** `/club/privacidad?t=<tienda>`: la política o los términos, sabiendo de qué tienda viene (para volver a su registro). */
@@ -546,15 +542,16 @@ export function ipDeLaPeticion(reenviadaPor: string | null | undefined, real: st
 
 export type Bienvenida = {
   titulo: string;
-  /** La línea bajo el título: «Ya eres socia…», o desde cuándo lo es si ya lo era. */
+  /** La línea bajo el título: «Ya eres miembro…», o desde cuándo lo es si ya lo era. */
   bajada: string;
   /** Solo si marcó la casilla de WhatsApp y la tienda tiene número (ADR-0288 G-6, G-12). */
   saludo: { titulo: string; parrafo: string; boton: string; enlace: string } | null;
 };
 
 /**
- * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de socia, que dibuja la página). Nueva:
- * «¡Bienvenida, {nombre}!» y «Ya eres socia del Club CAYLA.». Ya era socia: «Actualizamos tus datos» y desde cuándo es socia.
+ * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de miembro, que dibuja la página). Nuevo:
+ * «¡Te damos la bienvenida, {nombre}!» y «Ya eres miembro del Club CAYLA.». Ya era miembro: «Actualizamos tus datos» y desde
+ * cuándo lo es. Sin género: sirve igual a un cliente o a una clienta (Felipe, 2026-10-02).
  * Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así guarda el número oficial y la
  * conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
  */
@@ -567,12 +564,12 @@ export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p
     : "";
   const enlace = r.conPublicidad ? enlaceQrClub(p.whatsapp, mensaje) : null;
   return {
-    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
+    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Te damos la bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
     bajada: r.eraSocia
       ? desde
-        ? `Eres socia del Club CAYLA desde el ${desde}.`
-        : "Ya eras socia del Club CAYLA."
-      : "Ya eres socia del Club CAYLA.",
+        ? `Eres miembro del Club CAYLA desde el ${desde}.`
+        : "Ya eras miembro del Club CAYLA."
+      : "Ya eres miembro del Club CAYLA.",
     saludo: enlace
       ? {
           titulo: "Último paso: salúdanos por WhatsApp",

@@ -186,7 +186,7 @@ describe("«Conteo físico» pregunta cuántas hay, no cuánto cambia (Felipe, 2
     expect(textoApartadoTalla(2, "contado")).toBe(" · 2 apartadas (cuéntalas)");
     const [bajo] = lineasDeAjuste([m], { "2": "0" }, "piso", "contado");
     expect(textoProblemaTalla(bajo, "contado")).toBe(
-      "Contaste 0 y hay 1 apartada para clientas. Cuéntalas también; si de verdad falta, libera ese apartado primero."
+      "Contaste 0 y hay 1 apartada para clientes. Cuéntalas también; si de verdad falta, libera ese apartado primero."
     );
   });
 
@@ -230,7 +230,7 @@ describe("lo apartado: la fila de Existencias muestra lo libre, el modal lo fís
 
   it("el ajuste que deja menos que lo apartado se frena en la fila, sin el código de la etiqueta", () => {
     const linea = { variante: {} as never, delta: -1, actual: 1, resultado: 0, apartado: 1 };
-    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero.");
+    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientes. Libera o resuelve esos apartados primero.");
   });
 
   it("sin la columna de apartados (filas viejas de las pruebas), cuenta 0", () => {

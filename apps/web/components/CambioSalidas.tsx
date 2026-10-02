@@ -82,7 +82,7 @@ export function CambioSalidas({
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         {aviso}
       </p>
-      <p className="mt-1 text-[13px] text-tinta/75">Elige cómo seguir con la clienta:</p>
+      <p className="mt-1 text-[13px] text-tinta/75">Elige cómo seguir con el cliente:</p>
 
       <div className="mt-3 grid gap-2">
         {origenes.map((o, i) =>

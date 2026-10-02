@@ -83,7 +83,7 @@ async function ventasPorClienta(ubicacionId: string, campo: "documento" | "nombr
   let query = supabase.from("comprobantes").select("venta_id").not("venta_id", "is", null);
   query = campo === "documento" ? query.eq("cliente_num_doc", texto) : query.ilike("cliente_nombre", `%${literalParaIlike(texto)}%`);
   if (!todasLasSedes) query = query.eq("ubicacion_id", ubicacionId);
-  const filas = exigir(await query.order("created_at", { ascending: false }).limit(LIMITE_BUSQUEDA), "las compras de esa clienta");
+  const filas = exigir(await query.order("created_at", { ascending: false }).limit(LIMITE_BUSQUEDA), "las compras de ese cliente");
   return [...new Set(filas.map((f) => f.venta_id as string))];
 }
 

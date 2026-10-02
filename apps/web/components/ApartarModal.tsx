@@ -124,11 +124,11 @@ export function ApartarModal({
             tono={ver("cantidad") ? "error" : undefined}
           />
           <CampoTexto
-            etiqueta="Clienta"
+            etiqueta="Cliente"
             value={clienta}
             onChange={(e) => setClienta(e.target.value)}
             maxLength={80}
-            placeholder="Nombre de la clienta"
+            placeholder="Nombre del cliente"
             pie={ver("clienta")}
             tono={ver("clienta") ? "error" : undefined}
           />

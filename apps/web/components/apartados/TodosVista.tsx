@@ -155,7 +155,7 @@ export function TodosVista({
   const cifras = [
     { etiqueta: "Por recoger", valor: String(resumen.porRecoger), pie: `${resumen.prendasGuardadas} ${resumen.prendasGuardadas === 1 ? "prenda guardada" : "prendas guardadas"}` },
     { etiqueta: "En custodia", valor: money(resumen.enCustodia), pie: `Anticipos: entran a ventas al entregar${resumen.enCustodiaEfectivo > 0 ? ` · ${money(resumen.enCustodiaEfectivo)} fue en efectivo` : ""}`, custodia: true },
-    { etiqueta: "Por devolver", valor: money(resumen.montoPorDevolver), pie: `${resumen.porDevolver} ${resumen.porDevolver === 1 ? "clienta espera" : "clientas esperan"} su dinero`, alerta: resumen.porDevolver > 0 },
+    { etiqueta: "Por devolver", valor: money(resumen.montoPorDevolver), pie: `${resumen.porDevolver} ${resumen.porDevolver === 1 ? "cliente espera" : "clientes esperan"} su dinero`, alerta: resumen.porDevolver > 0 },
     { etiqueta: "Vencen en 2 días", valor: String(resumen.vencenPronto), pie: "Buen momento para escribirles" },
   ];
 
@@ -181,9 +181,9 @@ export function TodosVista({
           <div className="min-w-0 flex-1 text-[13px]">
             <p className="font-semibold">
               {porAvisar.length
-                ? `${porAvisar.length} ${porAvisar.length === 1 ? "clienta por avisar" : "clientas por avisar"} hoy`
-                : "Todas avisadas hoy"}
-              {avisadasHoy.length > 0 && <span className="font-normal"> · {avisadasHoy.length} ya {avisadasHoy.length === 1 ? "avisada" : "avisadas"}</span>}
+                ? `${porAvisar.length} ${porAvisar.length === 1 ? "cliente por avisar" : "clientes por avisar"} hoy`
+                : "Todos avisados hoy"}
+              {avisadasHoy.length > 0 && <span className="font-normal"> · {avisadasHoy.length} ya {avisadasHoy.length === 1 ? "avisado" : "avisados"}</span>}
             </p>
             {porAvisar.length > 0 && <p>Vencen pronto o ya vencieron. Se abre WhatsApp con el mensaje listo, una tras otra.</p>}
           </div>
@@ -212,7 +212,7 @@ export function TodosVista({
                       {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
                     </p>
                     <p className="text-xs text-tinta/60">
-                      {pe.direccion === "pedi" ? "Para" : "Para la clienta de " + pe.otraSede + ":"} {pe.nombres} {pe.apellidos}
+                      {pe.direccion === "pedi" ? "Para" : "Para el cliente de " + pe.otraSede + ":"} {pe.nombres} {pe.apellidos}
                       {pe.guardadaHasta && ` · guardada hasta el ${fechaCorta(pe.guardadaHasta)}`}
                       {pe.trasladoNumero != null && ` · traslado N.º ${pe.trasladoNumero}`}
                       {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
@@ -341,8 +341,8 @@ export function TodosVista({
                             <button
                               type="button"
                               onClick={() => setRecordar([a])}
-                              aria-label={hoyYa ? `${a.nombres} ya fue avisada hoy; escribirle otra vez` : `Escribir a ${a.nombres} por WhatsApp`}
-                              title={hoyYa ? `Avisada hoy${aviso?.ultimoPor ? ` por ${aviso.ultimoPor}` : ""}` : aviso ? `Último aviso: ${fechaCorta(diaLima(aviso.ultimoEn))}` : "Escribirle por WhatsApp"}
+                              aria-label={hoyYa ? `Ya se le avisó hoy a ${a.nombres}; escribirle otra vez` : `Escribir a ${a.nombres} por WhatsApp`}
+                              title={hoyYa ? `Se le avisó hoy${aviso?.ultimoPor ? ` por ${aviso.ultimoPor}` : ""}` : aviso ? `Último aviso: ${fechaCorta(diaLima(aviso.ultimoEn))}` : "Escribirle por WhatsApp"}
                               className={`${BOTON_CHICO} inline-flex items-center ${hoyYa ? "border-verde/40 text-verde-profundo" : ""}`}
                             >
                               {hoyYa ? <Check className="h-3.5 w-3.5" aria-hidden /> : <MessageCircle className="h-3.5 w-3.5" aria-hidden />}

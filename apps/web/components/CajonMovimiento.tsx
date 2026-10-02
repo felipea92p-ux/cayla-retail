@@ -241,7 +241,7 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
         </Seccion>
       )}
       {d.devolvio && (
-        <Seccion icono={ArrowLeft} titulo="La clienta devolvió">
+        <Seccion icono={ArrowLeft} titulo="El cliente devolvió">
           <ListaPrendas items={d.devolvio} />
         </Seccion>
       )}

@@ -172,16 +172,16 @@ describe("cifras y marcadores", () => {
   });
 });
 
-describe("los textos aprobados de la página (docs/club/texto-legal-registro-v1.md)", () => {
-  it("la casilla de los términos y la letra chica, con los datos de CAYLA S.A.C.", () => {
-    const casilla = casillaTerminos("CAYLA S.A.C.")
+describe("los textos aprobados de la página (docs/club/texto-legal-registro-v2.md)", () => {
+  it("la casilla de los términos, breve, y la letra chica con los datos de CAYLA S.A.C. (sin «Brasil»: eso va en la Política)", () => {
+    const casilla = casillaTerminos()
       .map((t) => (typeof t === "string" ? t : t.texto))
       .join("");
     expect(casilla).toBe(
-      "He leído la Política de privacidad y los Términos del Club CAYLA, y acepto que CAYLA S.A.C. use mis datos para administrar mi membresía y mis beneficios.",
+      "Acepto la Política de privacidad y los Términos del Club CAYLA.",
     );
     expect(letraChica({ razonSocial: "CAYLA S.A.C.", ruc: "20605964550", email: "caylaperu@gmail.com" })).toBe(
-      "CAYLA S.A.C. (RUC 20605964550) es la responsable de tus datos. Se guardan en servidores en Brasil. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en caylaperu@gmail.com.",
+      "CAYLA S.A.C. (RUC 20605964550) es la responsable de tus datos. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en caylaperu@gmail.com.",
     );
   });
 
@@ -372,10 +372,10 @@ describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
 describe("después de «Unirme»", () => {
   const listo = { estado: "listo" as const, nombre: "Lucía", codigo: "C-0142", clubDesde: "2026-09-12T15:00:00Z", eraSocia: false, conPublicidad: true };
 
-  it("nueva: bienvenida con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
+  it("nuevo: bienvenida (sin género) con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
     const b = bienvenida(listo, pagina());
-    expect(b.titulo).toBe("¡Bienvenida, Lucía!");
-    expect(b.bajada).toBe("Ya eres socia del Club CAYLA.");
+    expect(b.titulo).toBe("¡Te damos la bienvenida, Lucía!");
+    expect(b.bajada).toBe("Ya eres miembro del Club CAYLA.");
     expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
     // A la tienda del cartel: la que le contesta y le escribe después.
     expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
@@ -393,16 +393,16 @@ describe("después de «Unirme»", () => {
     expect(sinSaludo.saludo?.enlace).toBe("https://wa.me/51953585537?text=");
   });
 
-  it("ya era socia: «Actualizamos tus datos» y desde cuándo es socia", () => {
+  it("ya era miembro: «Actualizamos tus datos» y desde cuándo lo es", () => {
     const b = bienvenida({ ...listo, eraSocia: true }, pagina());
     expect(b.titulo).toBe("Actualizamos tus datos");
-    expect(b.bajada).toBe("Eres socia del Club CAYLA desde el 12 de setiembre de 2026.");
-    expect(bienvenida({ ...listo, eraSocia: true, clubDesde: null }, pagina()).bajada).toBe("Ya eras socia del Club CAYLA.");
+    expect(b.bajada).toBe("Eres miembro del Club CAYLA desde el 12 de setiembre de 2026.");
+    expect(bienvenida({ ...listo, eraSocia: true, clubDesde: null }, pagina()).bajada).toBe("Ya eras miembro del Club CAYLA.");
   });
 
   it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
     const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Bienvenida!");
+    expect(b.titulo).toBe("¡Te damos la bienvenida!");
     const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
     expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
     expect(saludo).toContain("(C-0142)");

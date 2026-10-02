@@ -134,7 +134,7 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  `null` sin almacén (Taller); ausente para quien arme variantes sin este dato: se comporta como antes. */
   almacenAqui?: number | null;
   /** Lo APARTADO para clientas en el piso de esta sede (`apartadoEnPiso`): con el piso y el almacén en 0, es lo que
-   *  distingue «apartada para una clienta» de «agotada» (`motivoNoCobrable`). Ausente = 0: se comporta como antes. */
+   *  distingue «apartada para un cliente» de «agotada» (`motivoNoCobrable`). Ausente = 0: se comporta como antes. */
   apartadoAqui?: number | null;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
@@ -432,7 +432,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Sin releerlo, la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar.
   const [ajustesAlmacen, setAjustesAlmacen] = useState<Map<string, number | null>>(() => new Map());
   // Lo apartado en el piso, releído con las MISMAS lecturas: aparte del stock porque una venta nunca lo toca. Sin
-  // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para una clienta».
+  // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para un cliente».
   const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
@@ -767,7 +767,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const datosAviso = { nombre: nombreVariante, sede: ubicacionEtiqueta, stockAqui: v.stockAqui, almacenAqui: v.almacenAqui, apartadoAqui: v.apartadoAqui };
     // Con el piso en 0 no entra al ticket (la venta descuenta el piso), pero no es lo mismo «agotada» que «está en el
-    // almacén de esta tienda» ni que «apartada para una clienta»: el aviso dice cuál y qué hacer (D-40,
+    // almacén de esta tienda» ni que «apartada para un cliente»: el aviso dice cuál y qué hacer (D-40,
     // `lib/vender-stock-local.ts`).
     const motivo = motivoNoCobrable(v);
     if (motivo !== "cobrable") {

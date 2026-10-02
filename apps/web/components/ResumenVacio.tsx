@@ -40,7 +40,7 @@ export function ResumenVacio({
   const esTienda = ubicacion.tipo === "tienda";
 
   const titulo = !esTienda
-    ? `${ubicacion.nombre} no vende a clientas`
+    ? `${ubicacion.nombre} no vende a clientes`
     : modo === "comparar"
       ? `${ubicacion.nombre} no tuvo stock ni ventas en estos dos períodos`
       : `${ubicacion.nombre} no tuvo stock ni ventas${rango ? ` del ${rango}` : " en este período"}`;

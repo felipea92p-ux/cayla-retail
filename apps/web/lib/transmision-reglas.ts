@@ -127,7 +127,7 @@ const QUE_HACER: Record<string, string> = {
   sin_respuesta: "No hagas nada: se reintenta solo cuando Lucode vuelva a responder.",
   sin_credenciales: "Carga LUCODE_TOKEN en Vercel y vuelve a desplegar; hasta entonces nada llega a SUNAT.",
   credenciales_invalidas: "Renueva la clave en el panel de Lucode y actualiza LUCODE_TOKEN en Vercel.",
-  rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento de la clienta, serie o montos).",
+  rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento del cliente, serie o montos).",
 };
 
 /** Qué tiene que hacer alguien con el último error de la cola; `null` si el motivo no se conoce (se

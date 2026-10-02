@@ -304,12 +304,12 @@ export function partesOrigenDestino(m: Movimiento): { origen: string; destino: s
   switch (m.motivo) {
     case "venta":
     case "cuarentena_liquidada":
-      return { origen: aqui, destino: "Clienta" };
+      return { origen: aqui, destino: "Cliente" };
     case "anulacion_venta":
     case "devolucion":
-      return { origen: "Clienta", destino: aqui };
+      return { origen: "Cliente", destino: aqui };
     case "cambio":
-      return m.delta > 0 ? { origen: "Clienta", destino: aqui } : { origen: aqui, destino: "Clienta" };
+      return m.delta > 0 ? { origen: "Cliente", destino: aqui } : { origen: aqui, destino: "Cliente" };
     case "recepcion":
       return { origen: m.lote?.proveedor ?? "Proveedor", destino: aqui };
     case "produccion":
@@ -632,7 +632,7 @@ export function resumirOperacion(op: OperacionMovimiento, opciones: { enlaceComp
     referencia ??= referenciaMovimiento(m, opciones);
   }
   // Todas las filas dicen lo mismo (lo normal): esa es la etiqueta y esas son sus puntas. Si no (un cambio), el nombre
-  // del proceso y solo el lugar de la sede: «Clienta → Piso» sería verdad para una fila y mentira para la otra.
+  // del proceso y solo el lugar de la sede: «Cliente → Piso» sería verdad para una fila y mentira para la otra.
   const mixta = etiquetas.size > 1;
   const partes = partesOrigenDestino(primera);
   return {

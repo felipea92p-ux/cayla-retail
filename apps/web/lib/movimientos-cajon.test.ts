@@ -92,7 +92,7 @@ describe("fraseDeMovimiento — la frase grande de cada movimiento, en palabras 
   it("una venta, una devolución y una anulación dicen qué le pasó a la prenda", () => {
     expect(fraseDeMovimiento(fila({ motivo: "venta", delta: -1 }), 1)).toBe("prenda vendida");
     expect(fraseDeMovimiento(fila({ motivo: "venta", delta: -3 }), 3)).toBe("prendas vendidas");
-    expect(fraseDeMovimiento(fila({ motivo: "devolucion", delta: 1 }), 1)).toBe("prenda devuelta por una clienta");
+    expect(fraseDeMovimiento(fila({ motivo: "devolucion", delta: 1 }), 1)).toBe("prenda devuelta por un cliente");
     expect(fraseDeMovimiento(fila({ motivo: "anulacion_venta", delta: 1 }), 2)).toBe("prendas volvieron a la tienda: se anuló la venta");
   });
 
@@ -112,7 +112,7 @@ describe("fraseDeMovimiento — la frase grande de cada movimiento, en palabras 
   });
 
   it("apartar no suma ni resta: dice que la prenda quedó apartada o libre", () => {
-    expect(fraseDeMovimiento(fila({ categoria: "apartado", motivo: "apartado", delta: 0, cantidad: 1 }), 1)).toBe("prenda apartada para una clienta");
+    expect(fraseDeMovimiento(fila({ categoria: "apartado", motivo: "apartado", delta: 0, cantidad: 1 }), 1)).toBe("prenda apartada para un cliente");
     expect(fraseDeMovimiento(fila({ categoria: "liberacion_apartado", motivo: "liberacion_apartado", delta: 0, cantidad: 2 }), 2)).toBe("prendas liberadas: vuelven a estar a la venta");
   });
 
@@ -304,7 +304,7 @@ describe("construirDetalleCajon — Apartado (individual que no cambia el stock)
 
   it("dice que quedó apartada, sin «había/ahora hay» (apartar no cambia el total), y el apartado abre si el rol lo ve", () => {
     const d = construirDetalleCajon(operacion([apartada]), ctx);
-    expect([d.cifra, d.frase]).toEqual(["1", "prenda apartada para una clienta"]);
+    expect([d.cifra, d.frase]).toEqual(["1", "prenda apartada para un cliente"]);
     expect(d.enTienda).toBeNull();
     expect(d.consultar[0]).toEqual({ clave: "documento", texto: "Apartado AP-0001", detalle: "María Pérez", href: "/vender/apartados?abrir=s1" });
     expect(construirDetalleCajon(operacion([apartada]), { ...ctx, modulosVisibles: [] }).consultar[0].href).toBeUndefined();
