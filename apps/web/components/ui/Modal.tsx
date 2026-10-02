@@ -33,6 +33,10 @@ type Props = {
       globals.css) y el resto no se mueve. Solo escritorio: en celular, donde la hoja sube desde abajo, no se muestra. Funciona con
       `ancho` = max-w-sm | max-w-md | max-w-lg. No entra a la cascada: llega con la hoja. */
   lateral?: ReactNode;
+  /** Botones de la cabecera, arriba a la DERECHA de la hoja, siempre a la vista (hoy, «+ Nuevo tejido / patrón / etiqueta» en las hojas de
+      «Nuevo producto», 2026-10-02). Solo variante «hoja» (la «papel» ya usa esa esquina para la ✕). Sale de la cascada y se coloca
+      con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
+  acciones?: ReactNode;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
@@ -56,7 +60,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
 
@@ -162,7 +166,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             </button>
           )}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
@@ -175,6 +179,11 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
           {typeof children === "function" ? children(pedirCierre) : children}
           {/* Va DESPUÉS del contenido para no correr el orden de la cascada (`nth-child`), y fuera de ella (`data-sin-cascada`): se coloca
               a la izquierda con `position: absolute` (globals.css, `.hoja-con-lateral`), así que su lugar en el DOM no importa. */}
+          {acciones && variante === "hoja" && (
+            <div data-sin-cascada className="absolute right-6 top-6 z-10 flex items-center gap-2">
+              {acciones}
+            </div>
+          )}
           {lateral && (
             <div data-lateral data-sin-cascada>
               {lateral}

@@ -320,7 +320,7 @@ export function ProductoForm({
   // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
   const nombreNuevo = tituloReferencia(referencia);
   const nombreCambio = !!producto && claveReferencia(nombreNuevo) !== claveReferencia(producto.referencia);
-  const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id });
+  const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id, marcaId });
   const parejaCambio = !!producto && (marcaId !== producto.marcaId || proveedorId !== producto.proveedorId);
   const categoriaActual = categorias.find((c) => c.id === categoriaId);
   // Al EDITAR la regla es «no empeora» (ADR-0109, cuarta parte; Felipe, 2026-09-19): en Indumentaria un producto activo que

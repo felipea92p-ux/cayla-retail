@@ -69,6 +69,7 @@ type Props = {
 
 export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
   const [hoja, setHoja] = useState(false);
+  const [nueva, setNueva] = useState(false);
   const hoy = useMemo(() => hoyLima(), []);
   /** La última etiqueta tocada (grilla chica u hoja): su ayuda se lee en una línea aparte donde no hay mouse (`[@media(hover:none)]`). */
   const [ultimaId, setUltimaId] = useState<string | null>(null);
@@ -128,7 +129,19 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       </div>
 
       {hoja && (
-        <Modal variante="hoja" ancho="max-w-[680px]" titulo="Elige las etiquetas" subtitulo={`${total} en el catálogo.`} onClose={() => setHoja(false)}>
+        <Modal
+          variante="hoja"
+          ancho="max-w-[680px]"
+          titulo="Elige las etiquetas"
+          subtitulo={`${total} en el catálogo.`}
+          onClose={() => setHoja(false)}
+          // «+ Nueva etiqueta» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
+          acciones={
+            <button type="button" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="btn-cayla btn-secundario h-9 whitespace-nowrap">
+              + Nueva etiqueta
+            </button>
+          }
+        >
           <HojaEtiquetas
             etiquetas={etiquetas}
             reparto={reparto}
@@ -143,6 +156,19 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
             onCreada={onCreada}
             onPropuesta={onPropuesta}
           />
+          {nueva && (
+            <NuevaEtiquetaModal
+              contexto={{ todas: etiquetas, reparto, elegidas: [...marcadas], propuestas }}
+              puedeAprobar={puedeAprobar}
+              enLinea={enLinea}
+              onCerrar={() => setNueva(false)}
+              onCreada={(e) => {
+                onCreada(e);
+                alternar(e.id);
+              }}
+              onPropuesta={onPropuesta}
+            />
+          )}
         </Modal>
       )}
     </TooltipProvider>
@@ -399,6 +425,78 @@ function HojaEtiquetas({
         )}
       </div>
     </>
+  );
+}
+
+/** «+ Nueva etiqueta» de la cabecera de la hoja: pide el nombre y, si de verdad es nueva, abre la misma confirmación de siempre. */
+function NuevaEtiquetaModal({
+  contexto,
+  puedeAprobar,
+  enLinea,
+  onCerrar,
+  onCreada,
+  onPropuesta,
+}: {
+  contexto: Parameters<typeof significadoDelTexto>[1];
+  puedeAprobar: boolean;
+  enLinea: boolean;
+  onCerrar: () => void;
+  onCreada: (e: EtiquetaAlta) => void;
+  onPropuesta: (nombre: string) => void;
+}) {
+  const [texto, setTexto] = useState("");
+  const significado = significadoDelTexto(texto, contexto);
+  const nota =
+    significado.tipo === "existe" && significado.motivo !== "elegible" && significado.motivo !== "elegida"
+      ? fraseDeExistente(significado.motivo)
+      : significado.tipo === "existe"
+        ? `«${significado.etiqueta?.nombre ?? texto.trim()}» ya existe: tócala en la lista para marcarla.`
+        : significado.tipo === "invalida"
+          ? FRASE_ETIQUETA_INVALIDA
+          : null;
+  return (
+    <Modal variante="hoja" ancho="max-w-md" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+      {(cerrar) => (
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-tinta">Nombre de la etiqueta</span>
+            <input
+              autoFocus
+              autoComplete="off"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
+              }}
+              className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            />
+          </label>
+          {nota && (
+            <p role="status" className="text-xs text-ambar-profundo">
+              {nota}
+            </p>
+          )}
+          {significado.tipo === "nueva" && enLinea && (
+            <CrearEtiquetaAbierta
+              key={significado.nombre}
+              nombre={significado.nombre}
+              puedeAprobar={puedeAprobar}
+              onAprobada={(valor) => {
+                onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+                avisar.exito(`Etiqueta «${valor.texto}» creada y agregada`);
+                cerrar();
+              }}
+              onPendiente={(valor) => {
+                onPropuesta(valor.texto);
+                avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+                cerrar();
+              }}
+              onCerrar={cerrar}
+            />
+          )}
+        </div>
+      )}
+    </Modal>
   );
 }
 

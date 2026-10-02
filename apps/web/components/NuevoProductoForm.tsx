@@ -211,7 +211,7 @@ export function NuevoProductoForm({
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
   // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
-  // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  // (la base hace la bajada con `bajar_al_piso`, que pide Existencias, ADR-0306): si no, van al almacén.
   // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
   // hereda por no mirar la pregunta.
   const puedePiso = destino.separaPiso && destino.puedeBajar;
@@ -455,8 +455,9 @@ export function NuevoProductoForm({
       guia.alAbrirPaso();
       return;
     }
-    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa a la marca (el tinte se
-    // mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil.
+    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
+    // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
+    // pantalla táctil.
     if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
   }, [paso, ahoraCampo, guia]);
 
@@ -1080,7 +1081,7 @@ export function NuevoProductoForm({
                   </div>
                   {!puedePiso && (
                     <p className="text-xs text-taupe">
-                      Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
+                      Entran al almacén. Para colgarlas después, usa «Reponer» en Existencias.
                     </p>
                   )}
                 </div>

@@ -120,6 +120,12 @@ const HUELLAS: Huella[] = [
   {
     // 20260918230000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
     // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
+    // 20261002120000 (ADR-0294): pasó a ser único POR MARCA (`productos_marca_referencia_clave_unica`); el nombre viejo queda por si
+    // una base todavía no recibió esa migración.
+    marca: "productos_marca_referencia_clave_unica",
+    frase: "Ya existe un producto con ese nombre en esa marca (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
+  },
+  {
     marca: "productos_referencia_clave_unica",
     frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
   },

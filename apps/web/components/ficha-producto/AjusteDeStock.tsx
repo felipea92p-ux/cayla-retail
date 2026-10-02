@@ -27,7 +27,7 @@ export function AjusteDeStock({
   descripcion,
   deshabilitado = false,
 }: {
-  /** `null`/ausente: la cuenta no tiene el módulo «Ajustar stock» y no se ofrece nada. */
+  /** `null`/ausente: la cuenta no puede ajustar stock (Existencias, Conteos o Traslados) y no se ofrece nada. */
   ajuste: AjusteStockFicha | null | undefined;
   /** El color de la prenda TAL COMO ESTÁ GUARDADO (no el corregido a medias en pantalla): la ventana lo busca en la base. */
   colorNombre: string | null;

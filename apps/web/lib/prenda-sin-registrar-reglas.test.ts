@@ -87,7 +87,7 @@ describe("usoDeColores / opcionesDeColor", () => {
     expect(o[2]!.detalle).toBe("Neutro");
   });
   it("sin categoría o sin uso: todos, agrupados por familia", () => {
-    expect(opcionesDeColor(colores, undefined).map((x) => x.valor)).toEqual(["NEG", "BEI", "AZM"]);
+    expect(opcionesDeColor(colores, undefined).map((x) => x.valor)).toEqual(["BEI", "NEG", "AZM"]);
   });
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { claveCelda, construirCeldas } from "./alta-producto";
-import { leyendaVariantes, limpiarPrecio, llenarTodas, precioDistinto, textoFotosDeFila, textoPrecioBase, totalesCantidades } from "./tabla-alta-reglas";
+import { leyendaVariantes, limpiarPrecio, llenarTodas, pasoCantidad, precioDistinto, textoFotosDeFila, textoPrecioBase, totalesCantidades, vaciarTodas } from "./tabla-alta-reglas";
 
 // Peor caso real (README del spike): 9 tallas × 8 colores = 72 celdas.
 const TALLAS = ["26", "28", "30", "32", "34", "36", "38", "40", "42"];
@@ -50,6 +50,36 @@ describe("llenarTodas", () => {
     expect(llenarTodas(celdas, new Set(), "007")[0].valor).toBe("7");
     expect(llenarTodas(celdas, new Set(), "0")[0].valor).toBe("0");
     expect(llenarTodas(celdas, new Set(), "-2")[0].valor).toBe("2");
+  });
+});
+
+describe("vaciarTodas", () => {
+  const celdas = construirCeldas(TALLAS, COLORES);
+
+  it("deja vacías las 72 celdas menos las quitadas", () => {
+    const fuera = new Set([claveCelda("42", "TER"), claveCelda("26", "NEG")]);
+    const r = vaciarTodas(celdas, fuera);
+    expect(r).toHaveLength(70);
+    expect(r.every((x) => x.valor === "")).toBe(true);
+    expect(r.some((x) => fuera.has(x.clave))).toBe(false);
+  });
+});
+
+describe("pasoCantidad", () => {
+  it("suma y resta 1; vacío cuenta como 0", () => {
+    expect(pasoCantidad("", 1)).toBe("1");
+    expect(pasoCantidad("3", 1)).toBe("4");
+    expect(pasoCantidad("3", -1)).toBe("2");
+  });
+
+  it("no baja de 0 (y 0 se guarda vacío, igual que tipeado a mano)", () => {
+    expect(pasoCantidad("", -1)).toBe("");
+    expect(pasoCantidad("0", -1)).toBe("");
+    expect(pasoCantidad("1", -1)).toBe("");
+  });
+
+  it("no pasa de 9999", () => {
+    expect(pasoCantidad("9999", 1)).toBe("9999");
   });
 });
 
