@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import type { FirmaOmitida } from "@/lib/responsable-omitido";
 
 // Las escrituras y lecturas del club desde el navegador (ADR-0288 tanda 1b): una función por RPC, para que Cobrar y
 // /clientas no sepan de Supabase. Todas las que guardan firman con el responsable del combo (ADR-0161) y la base exige el
@@ -15,7 +16,7 @@ import { firmar, type Firma } from "@/lib/responsable-reglas";
 export async function registrarBajaWhatsapp(
   telefono: string,
   ubicacionId: string | null,
-  firma: Firma | null
+  firma: Firma | FirmaOmitida | null
 ): Promise<{ fichas: number; error: ErrorEscritura }> {
   const { data, error } = await firmar(
     createClient().rpc("registrar_baja_whatsapp", { p_telefono: telefono, p_ubicacion_id: ubicacionId ?? undefined }),

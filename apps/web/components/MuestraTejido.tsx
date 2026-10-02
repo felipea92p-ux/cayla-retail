@@ -352,6 +352,254 @@ const DIBUJOS: Record<FamiliaTejido, () => Dibujo> = {
       </>
     ),
   }),
+
+  // — Las de abajo se sumaron el 2026-10-02 para los tejidos de producción que salían «Sin muestra». —
+
+  // Franela: pelusa del cepillado (motas cortas claras y oscuras en todas las direcciones) sobre una sarga
+  // finísima casi invisible, gris jaspeado. Se ve blanda y mate, a diferencia del polar (motas redondas).
+  franela: () => {
+    const azar = semillaAzar(61);
+    return {
+      fondo: "#CFCBC1",
+      formas: (
+        <>
+          {rango(50).map((i) => (
+            <line key={`d${i}`} x1={i * 3 - 40} y1={ALTO} x2={i * 3} y2={0} stroke="#A9A498" strokeWidth={0.8} opacity={0.35} />
+          ))}
+          {rango(240).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            const largo = 1.4 + azar() * 1.6;
+            const clara = i % 2 === 0;
+            return <line key={`m${i}`} x1={f(x)} y1={f(y)} x2={f(x + largo)} y2={f(y)} stroke={clara ? "#EFECE4" : "#8F8A7E"} strokeWidth={0.9} strokeLinecap="round" opacity={clara ? 0.7 : 0.4} />;
+          })}
+        </>
+      ),
+    };
+  },
+
+  // Gasa: casi transparente. Una malla finísima y dos capas translúcidas que se cruzan; donde se
+  // superponen se nota el fondo a través, que es justo lo que la distingue de la popelina.
+  gasa: () => ({
+    fondo: "#EDE1DC",
+    formas: (
+      <>
+        {rango(40).map((i) => (
+          <rect key={`v${i}`} x={i * 3} y={0} width={0.4} height={ALTO} fill="#8E7A74" opacity={0.18} />
+        ))}
+        {rango(14).map((i) => (
+          <rect key={`h${i}`} x={0} y={i * 3} width={ANCHO} height={0.4} fill="#8E7A74" opacity={0.18} />
+        ))}
+        <path d="M-5 30 C25 6, 55 40, 90 14 S125 24, 130 12 L130 40 L-5 40 Z" fill="#C9AFA8" opacity={0.28} />
+        <path d="M-5 14 C30 36, 60 0, 95 24 S125 8, 130 20 L130 0 L-5 0 Z" fill="#FFFFFF" opacity={0.35} />
+      </>
+    ),
+  }),
+
+  // Hilo (tejido de punto con hilo de algodón): las «V» del punto liso pero gruesas, apiladas en columnas (la
+  // punta de cada «V» cae entre los brazos de la de abajo, que es lo que lo lee como tejido y no como zigzag), con
+  // el cuerpo del hilo visible y una hebra clara encima. Más grande que el jersey, que es el mismo punto en fino.
+  hilo: () => {
+    let cuerpo = "";
+    let hebra = "";
+    for (const fila of rango(8)) {
+      for (const col of rango(17)) {
+        const x = col * 7.5 - 3;
+        const y = fila * 5.5 - 1;
+        cuerpo += `M${f(x)} ${f(y)} l3.5 5.5 l3.5 -5.5 `;
+        hebra += `M${f(x + 0.7)} ${f(y + 0.3)} l2.8 4.4 `;
+      }
+    }
+    return {
+      fondo: "#E9DFCB",
+      formas: (
+        <>
+          <path d={cuerpo} fill="none" stroke="#9D8A68" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.55} />
+          <path d={hebra} fill="none" stroke="#FBF6EA" strokeWidth={0.8} strokeLinecap="round" opacity={0.8} />
+        </>
+      ),
+    };
+  },
+
+  // Macramé: cuerdas que se cruzan en diagonal formando rombos, con un nudo en cada cruce. Es el nudo lo
+  // que lo delata; sin él sería una red de pescar.
+  macrame: () => {
+    const k = 14;
+    let cuerdas = "";
+    for (let a = -3; a <= 9; a++) cuerdas += `M${k * a} 0 L${k * a + 40} 40 `;
+    for (let b = 0; b <= 12; b++) cuerdas += `M${k * b} 0 L${k * b - 40} 40 `;
+    const nudos: ReactElement[] = [];
+    for (let a = -3; a <= 9; a++) {
+      for (let b = 0; b <= 12; b++) {
+        const x = (k * (a + b)) / 2;
+        const y = (k * (b - a)) / 2;
+        if (x < -2 || x > 122 || y < -2 || y > 42) continue;
+        nudos.push(
+          <g key={`${a}_${b}`}>
+            <circle cx={x} cy={y} r={2.3} fill="#8E7B5A" opacity={0.92} />
+            <circle cx={f(x - 0.6)} cy={f(y - 0.6)} r={0.8} fill="#F6EEDC" opacity={0.7} />
+          </g>,
+        );
+      }
+    }
+    return {
+      fondo: "#E3D8C0",
+      formas: (
+        <>
+          <path d={cuerdas} fill="none" stroke="#A99677" strokeWidth={1.6} strokeLinecap="round" opacity={0.8} />
+          {nudos}
+        </>
+      ),
+    };
+  },
+
+  // «Tela mojada»: elástica, brillante y fluida, con ondas largas de brillo plano sobre un fondo oscuro. Es
+  // la hermana oscura de la seda: misma idea de bandas planas, más estrechas y con más contraste.
+  mojado: () => ({
+    fondo: "#5F5453",
+    formas: (
+      <>
+        {[
+          [6, 1.6, "#CDBFB9", 0.55],
+          [13, 3.4, "#9C8B86", 0.5],
+          [20, 1.4, "#E5DAD5", 0.75],
+          [27, 3.8, "#9C8B86", 0.5],
+          [34, 1.6, "#CDBFB9", 0.55],
+        ].map(([y, ancho, color, op], i) => (
+          <path
+            key={i}
+            d={`M-5 ${y} C18 ${Number(y) - 9}, 42 ${Number(y) + 9}, 66 ${y} S104 ${Number(y) - 8}, 125 ${Number(y) + 3}`}
+            fill="none"
+            stroke={String(color)}
+            strokeWidth={Number(ancho)}
+            strokeLinecap="round"
+            opacity={Number(op)}
+          />
+        ))}
+      </>
+    ),
+  }),
+
+  // Oxford: tafetán en «canasta» (dos hilos juntos por cada cruce), con urdimbre azul y trama blanca. Los
+  // bloques de 2×2 que alternan vertical y horizontal son lo que lo separa de una popelina lisa.
+  oxford: () => ({
+    fondo: "#B9CEDD",
+    formas: (
+      <>
+        {rango(20).flatMap((col) =>
+          rango(7).map((fila) => {
+            const x = col * 6;
+            const y = fila * 6;
+            return (col + fila) % 2 === 0 ? (
+              <g key={`${col}_${fila}`} fill="#F6F7F4" opacity={0.9}>
+                <rect x={x + 0.4} y={y} width={1.8} height={6} />
+                <rect x={x + 3.4} y={y} width={1.8} height={6} />
+              </g>
+            ) : (
+              <g key={`${col}_${fila}`} fill="#F6F7F4" opacity={0.9}>
+                <rect x={x} y={y + 0.4} width={6} height={1.8} />
+                <rect x={x} y={y + 3.4} width={6} height={1.8} />
+              </g>
+            );
+          }),
+        )}
+      </>
+    ),
+  }),
+
+  // Sastre: tela de vestir. Gris carbón con una sarga finísima y motas claras y oscuras (jaspeado): sobria,
+  // sin brillo y sin dibujo, porque el dibujo de una prenda de sastre lo pone el Patrón, no el tejido.
+  sastre: () => {
+    const azar = semillaAzar(71);
+    return {
+      fondo: "#464B54",
+      formas: (
+        <>
+          {rango(70).map((i) => (
+            <line key={`d${i}`} x1={i * 2 - 40} y1={ALTO} x2={i * 2} y2={0} stroke="#5E646E" strokeWidth={0.7} opacity={0.5} />
+          ))}
+          {rango(160).map((i) => (
+            <rect key={`m${i}`} x={f(azar() * ANCHO)} y={f(azar() * ALTO)} width={1.2} height={0.7} fill={i % 2 === 0 ? "#8D939D" : "#2A2D33"} opacity={0.6} />
+          ))}
+        </>
+      ),
+    };
+  },
+
+  // Seersucker: franjas lisas azules que alternan con franjas fruncidas blancas; el fruncido son líneas
+  // onduladas, porque el relieve ES el tejido (no se plancha).
+  seersucker: () => ({
+    fondo: "#F3F1EA",
+    formas: (
+      <>
+        {rango(8).map((i) => {
+          const x = i * 15;
+          const onda = (x0: number) => `M${f(x0)} 0 q1.6 2.5 0 5${" t0 5".repeat(7)}`;
+          return (
+            <g key={i}>
+              <rect x={x} y={0} width={7.5} height={ALTO} fill="#B7CBDB" />
+              <rect x={x + 1.9} y={0} width={0.5} height={ALTO} fill="#8FA6B8" opacity={0.5} />
+              <rect x={x + 5} y={0} width={0.5} height={ALTO} fill="#8FA6B8" opacity={0.5} />
+              <rect x={x + 7.5} y={0} width={7.5} height={ALTO} fill="#E7E6DF" />
+              {[9.4, 11.4, 13.4].map((dx) => (
+                <path key={dx} d={onda(x + dx)} fill="none" stroke="#8FA6B8" strokeWidth={0.7} opacity={0.75} />
+              ))}
+            </g>
+          );
+        })}
+      </>
+    ),
+  }),
+
+  // Suplex: poliamida con elastano. Punto finísimo de canales verticales, gris azulado y mate, con apenas
+  // un brillo. Más claro y sin las bandas de la licra: se lee «deportivo», no «charol».
+  suplex: () => ({
+    fondo: "#4B5262",
+    formas: (
+      <>
+        {rango(75).map((i) => (
+          <rect key={i} x={i * 1.6} y={0} width={0.55} height={ALTO} fill="#2E3340" opacity={0.55} />
+        ))}
+        <polygon points="62,0 90,0 72,40 44,40" fill="#FFFFFF" opacity={0.08} />
+      </>
+    ),
+  }),
+
+  // «Tela»: el nombre genérico. Un tafetán liso en gris neutro: no dice de qué fibra es porque el nombre
+  // tampoco lo dice, y el gris (no el crudo del algodón) evita que parezca otra fibra concreta.
+  tela: () => ({
+    fondo: "#D5D3CD",
+    formas: (
+      <>
+        {rango(50).map((i) => (
+          <rect key={`v${i}`} x={i * 2.4} y={0} width={0.9} height={ALTO} fill="#6F6D66" opacity={0.2} />
+        ))}
+        {rango(17).map((i) => (
+          <rect key={`h${i}`} x={0} y={i * 2.4} width={ANCHO} height={0.9} fill="#6F6D66" opacity={0.2} />
+        ))}
+      </>
+    ),
+  }),
+
+  // Aterciopelada: pelo corto y tupido, todo caído en una misma dirección (por eso el color cambia según
+  // cómo le da la luz), ciruela profunda con una banda de brillo plana.
+  terciopelo: () => {
+    const azar = semillaAzar(53);
+    return {
+      fondo: "#5B3A56",
+      formas: (
+        <>
+          {rango(260).map((i) => {
+            const x = azar() * ANCHO;
+            const y = azar() * ALTO;
+            const clara = i % 3 === 0;
+            return <line key={i} x1={f(x)} y1={f(y)} x2={f(x + 2.2)} y2={f(y - 1.2)} stroke={clara ? "#9A6F93" : "#3A2237"} strokeWidth={0.9} strokeLinecap="round" opacity={0.5} />;
+          })}
+          <polygon points="40,0 70,0 52,40 22,40" fill="#FFFFFF" opacity={0.12} />
+        </>
+      ),
+    };
+  },
 };
 
 export function MuestraTejido({
