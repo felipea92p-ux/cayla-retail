@@ -6,36 +6,43 @@ import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
 import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { money } from "@/components/PuntoDeVenta";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
-
-/** Las iniciales de la prenda cuando su color aún no tiene foto — mismo plan B que el catálogo del Punto de venta. */
-function iniciales(referencia: string) {
-  return referencia.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 /**
  * La foto de la prenda, servida al tamaño en que se VE. `ancho` es el ancho en pantalla (px CSS): el optimizador de
  * Next entrega un WebP de ese ancho (y el doble en pantallas retina), no el original. Medido el 2026-09-22 en
  * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
- * del buscador bajaba ~0,7 MB por búsqueda. Si la foto no carga (404, host no permitido), quedan las iniciales:
- * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
+ * del buscador bajaba ~0,7 MB por búsqueda. Si no hay foto o no carga (404, host no permitido), queda el dibujo de su
+ * categoría en el tono de su familia —el mismo plan B que el catálogo del Punto de venta—: nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
  * rechazaría tumbando la pantalla.
  */
 export function FotoPrenda({
   fotoUrl,
   referencia,
   ancho,
+  categoriaPrefijo,
+  categoriaFamilia = null,
   className = "",
 }: {
   fotoUrl: string | null | undefined;
   referencia: string;
   ancho: number;
+  /** Prefijo y familia de su categoría: dibujan su ícono cuando no hay foto (`IconoCategoria`, por prefijo). */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   className?: string;
 }) {
   const [rota, setRota] = useState(false);
+  const conFoto = Boolean(fotoUrl) && !rota;
+  const tono = tonoDeCategoria(categoriaFamilia);
   return (
-    <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg bg-sand/40 ${className}`}>
-      {fotoUrl && !rota ? (
+    <div
+      className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${conFoto ? "bg-sand/40" : ""} ${className}`}
+      style={conFoto ? undefined : { backgroundColor: tono.fondo, color: tono.acento }}
+    >
+      {fotoUrl && conFoto ? (
         <Image
           src={fotoUrl}
           alt={referencia}
@@ -46,8 +53,8 @@ export function FotoPrenda({
           onError={() => setRota(true)}
         />
       ) : (
-        <span aria-hidden className={`font-display absolute inset-0 flex items-center justify-center text-tinta/30 ${ancho < 40 ? "text-[11px]" : "text-lg"}`}>
-          {iniciales(referencia)}
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center">
+          <IconoCategoria prefijo={categoriaPrefijo} familia={categoriaFamilia} className={ancho < 40 ? "h-3/5 w-3/5" : "h-1/2 w-1/2"} />
         </span>
       )}
     </div>
