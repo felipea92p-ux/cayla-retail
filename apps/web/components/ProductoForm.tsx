@@ -851,9 +851,18 @@ export function ProductoForm({
       <div className="min-w-0 space-y-6">
         <TiraFicha pendientes={pendientes} completadaAqui={pendientesAlAbrir.size > 0} onIr={irAPendiente} />
 
-        {/* ---------- datos del producto ---------- */}
-        <section className="card-cayla space-y-4 p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Producto</p>
+        {/* ---------- datos del producto ----------
+             Dos grupos numerados dentro de la MISMA tarjeta (estilo PasoAlta del alta), no dos tarjetas separadas que se
+             pliegan: un campo plegado rompería la guía de foco (ADR-0284) — un chip de «Para completar esta ficha» hace
+             scroll a `tejido`/`patron`, y si esos campos quedaran ocultos tras un acordeón cerrado, el scroll apuntaría a
+             algo invisible. Ningún id ni `data-campo` se movió. */}
+        <section className="card-cayla space-y-5 p-5">
+          <div className="flex items-center gap-2.5">
+            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] font-bold text-tinta/60">
+              1
+            </span>
+            <p className="label-cayla text-[11px] text-tinta/65">Identidad y categoría</p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <CampoTexto
               etiqueta="Referencia"
@@ -908,6 +917,15 @@ export function ProductoForm({
               pie={antesDe("descripcion")}
               tono={tonoDe("descripcion")}
             />
+          </div>
+
+          <div className="flex items-center gap-2.5 border-t border-sand pt-4">
+            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] font-bold text-tinta/60">
+              2
+            </span>
+            <p className="label-cayla text-[11px] text-tinta/65">Tejido, patrón y estado</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div data-campo="tejido" className="hilo-caja">
             <Campo
               etiqueta={<ConMarca estado={marcaDe("tejido")}>{exigeTejido || familiaExigente ? "Tejido" : "Tejido (opcional)"}</ConMarca>}
