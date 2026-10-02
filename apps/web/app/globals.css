@@ -14,6 +14,7 @@
 @import "./estilos/caja-cerrada.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
+@import "./estilos/ficha-taller.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -106,6 +107,9 @@
   /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
      de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
   --color-metodo-anticipo: var(--color-taupe);
+  /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
+     de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
+  --color-metodo-redondeo: var(--color-taupe);
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a

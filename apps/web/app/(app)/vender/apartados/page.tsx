@@ -39,7 +39,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones] = await Promise.all([
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo] = await Promise.all([
     getApartadosDeTienda(persona.ubicacionId),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
@@ -49,6 +49,9 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),
     getUbicaciones(),
+    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo, al entregar el saldo? (20261003135000 y 20261003140000, ADR-0311).
+    // Si la función no existe todavía, o dice false, la entrega cobra exacto como siempre: nunca se ofrece algo que la base rechazaría.
+    supabase.rpc("fn_acepta_redondeo_efectivo"),
   ]);
 
   if (!datos.instalado) {
@@ -111,6 +114,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
       esLider={persona.rol === "lider"}
       lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
+      redondeoEfectivo={resRedondeo.data === true}
     />
   );
 }

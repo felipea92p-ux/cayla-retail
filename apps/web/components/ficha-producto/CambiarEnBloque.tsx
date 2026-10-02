@@ -20,6 +20,7 @@ export function CambiarEnBloque({
   nombres,
   veCosto,
   deshabilitado,
+  onCampo,
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -28,6 +29,8 @@ export function CambiarEnBloque({
   nombres: NombresFicha;
   veCosto: boolean;
   deshabilitado: boolean;
+  /** Precio o Costo: la matriz de la ficha muestra en cada celda lo que aquí se está cambiando. */
+  onCampo?: (campo: CampoBloque) => void;
 }) {
   const [campo, setCampo] = useState<CampoBloque>("precio");
   const [alcance, setAlcance] = useState("todas");
@@ -67,6 +70,7 @@ export function CambiarEnBloque({
             valor={campo}
             onCambio={(c) => {
               setCampo(c as CampoBloque);
+              onCampo?.(c as CampoBloque);
               setResultado(null);
               if (monto.trim() !== "") onPendiente(c as CampoBloque);
             }}
@@ -124,7 +128,7 @@ export function CambiarEnBloque({
         {resultado?.texto ??
           (monto.trim() !== ""
             ? "Pulsa Aplicar para ponerlo en las variantes (o bórralo): si no, no se guarda."
-            : "Cambia varias de una vez con Aplicar; también puedes cambiar cada fila abajo.")}
+            : "Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.")}
       </p>
     </div>
   );

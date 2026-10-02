@@ -25,7 +25,8 @@ export type FilaVentaItem = {
     producto: { referencia: string } | null;
   } | null;
 };
-export type FilaVentaPago = { metodo: MetodoPagoVenta; monto: number; recibido: number | null };
+/** Una fila de `venta_pagos`. `redondeo` (ADR-0311) no es una forma de pago: es lo que no se cobró por redondear el efectivo. */
+export type FilaVentaPago = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido: number | null };
 export type FilaComprobante = {
   tipo: string;
   serie: string;
@@ -58,6 +59,8 @@ export type VentaDetalle = {
   prendas: number;
   lineas: LineaDetalle[];
   pagos: PagoRecibo[];
+  /** Lo que no se cobró por redondear el efectivo (ADR-0311); 0 si no hubo. `pagos` no lo incluye: es un renglón aparte. */
+  redondeo: number;
   vueltoTotal: number;
   comprobante: { tipo: string; serie: string; numero: number; estado: EstadoComprobante; hash: string | null; motivoRechazo: string | null } | null;
   /** Solo si el comprobante es boleta o factura: lo que alimenta el ticket y el A4. */
@@ -85,6 +88,11 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   });
   const total = redondear2(lineas.reduce((a, l) => a + l.importe, 0));
 
+  // El redondeo del efectivo viaja como una fila más de `venta_pagos` (ADR-0311), pero no es una forma de pago: se separa de los
+  // pagos reales (el efectivo ya viene redondeado) y se dice aparte. `pagos + redondeo = total`.
+  const pagosReales = filas.pagos.filter((p): p is FilaVentaPago & { metodo: MetodoPagoVenta } => p.metodo !== "redondeo");
+  const redondeo = redondear2(filas.pagos.filter((p) => p.metodo === "redondeo").reduce((a, p) => a + p.monto, 0));
+
   // El papel dice el primer nombre de quien atendió (`ctx.vendedor` llega completo, o `null`/«—» si no se sabe).
   const atendio = ctx.vendedor ? (nombresCortos([ctx.vendedor]).get(ctx.vendedor) ?? null) : null;
 
@@ -104,7 +112,8 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
           descuentoUnitario: l.descuentoUnitario,
           detalle: l.detalle || undefined,
         })),
-        pagos: filas.pagos.map((p) => ({ metodo: p.metodo, monto: p.monto, recibido: p.recibido ?? undefined })),
+        pagos: pagosReales.map((p) => ({ metodo: p.metodo, monto: p.monto, recibido: p.recibido ?? undefined })),
+        redondeo,
         tasaIgv: 0.18,
         atendio,
       })
@@ -113,7 +122,7 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   // Los pagos salen del recibo cuando lo hay (misma cuenta del vuelto); si no, se arman igual.
   const pagos: PagoRecibo[] =
     recibo?.pagos ??
-    filas.pagos.map((p) => ({
+    pagosReales.map((p) => ({
       metodo: p.metodo,
       monto: p.monto,
       recibido: p.recibido,
@@ -127,6 +136,7 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
     prendas: lineas.reduce((a, l) => a + l.cantidad, 0),
     lineas,
     pagos,
+    redondeo,
     vueltoTotal: redondear2(pagos.reduce((a, p) => a + p.vuelto, 0)),
     comprobante: c ? { tipo: c.tipo, serie: c.serie, numero: c.numero, estado: c.estado, hash: hashDe(c.respuesta_sunat), motivoRechazo: c.motivo_rechazo } : null,
     recibo,

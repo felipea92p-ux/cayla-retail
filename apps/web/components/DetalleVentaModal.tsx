@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { leerVentaDetalle } from "@/lib/venta-detalle";
 import { puedeImprimir, type VentaDetalle } from "@/lib/venta-detalle-reglas";
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
-import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { fechaHoraLima, LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 
 const money = (n: number) => "S/" + n.toFixed(2);
@@ -173,6 +173,15 @@ export function DetalleVentaModal({
                   )}
                 </div>
               ))}
+              {d.redondeo > 0 && (
+                <div>
+                  <p className="flex justify-between tabular-nums text-tinta/85">
+                    <span>{TEXTO_REDONDEO}</span>
+                    <span>{money(d.redondeo)}</span>
+                  </p>
+                  <p className="text-xs text-tinta/60">{LEY_REDONDEO}</p>
+                </div>
+              )}
               {d.recibo && d.recibo.tipo !== "nota_venta" && (
                 <div className="space-y-0.5 border-t border-sand pt-2 text-xs tabular-nums text-tinta/65">
                   <p className="flex justify-between">

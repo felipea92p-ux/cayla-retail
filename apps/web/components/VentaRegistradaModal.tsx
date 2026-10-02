@@ -9,7 +9,7 @@ import { money, type VentaOk } from "@/components/PuntoDeVenta";
 import { EMISOR, emisorCompleto, type Emisor } from "@/lib/emisor";
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
 import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas";
-import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { fechaHoraLima, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
 import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
@@ -132,6 +132,12 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                       <span>{money(p.monto)}</span>
                     </p>
                   ))}
+                  {(r.redondeo ?? 0) > 0 && (
+                    <p className="flex justify-between tabular-nums text-tinta/60">
+                      <span>{TEXTO_REDONDEO}</span>
+                      <span>{money(r.redondeo ?? 0)}</span>
+                    </p>
+                  )}
                 </div>
                 <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
                   Cliente:{" "}

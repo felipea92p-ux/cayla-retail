@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cierresPorDia,
   cobradoDelTurno,
+  notaDeRedondeo,
   cuadreDe,
   elegirMetodo,
   elegirVista,
@@ -34,6 +35,28 @@ describe("cobradoDelTurno", () => {
 
   it("un método desconocido cae en «Otro»", () => {
     expect(cobradoDelTurno({ credito: 10 }).metodos).toEqual([{ clave: "otro", texto: "Otro", monto: 10 }]);
+  });
+
+  it("el redondeo del efectivo (ADR-0311) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {
+    const r = cobradoDelTurno({ efectivo: 79.8, tarjeta: 120, redondeo: 0.08 });
+    expect(r.total).toBe(199.8);
+    expect(r.metodos.map((m) => m.clave)).toEqual(["efectivo", "tarjeta"]);
+    expect(cobradoDelTurno({ redondeo: 0.08 })).toEqual({ total: 0, anticipo: 0, metodos: [] });
+  });
+});
+
+describe("notaDeRedondeo", () => {
+  const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+  it("con redondeo, lo dice aparte y avisa que no suma a lo cobrado", () => {
+    const nota = notaDeRedondeo(0.08, soles);
+    expect(nota).toContain("S/ 0.08");
+    expect(nota).toContain("de redondeo en efectivo");
+    expect(nota).toContain("múltiplo de S/ 0.10, hacia abajo");
+    expect(nota).toContain("no suma a lo cobrado");
+  });
+  it("sin redondeo (o con una base anterior que no lo manda) no hay nota", () => {
+    expect(notaDeRedondeo(0, soles)).toBeNull();
+    expect(notaDeRedondeo(NaN, soles)).toBeNull();
   });
 });
 

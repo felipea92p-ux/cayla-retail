@@ -141,6 +141,8 @@ const NOMBRE_GASTO: Record<string, string> = {
   "655": "Bajas de activos fijos",
   // F7: lo que sobra o falta al cerrar o abrir una caja (un sobrante resta).
   "6599": "Faltantes y sobrantes de caja",
+  // ADR-0311: lo que CAYLA cede al cobrar el efectivo al múltiplo de S/ 0.10, hacia abajo (la ley). Cuenta provisional hasta el contador.
+  "6598": "Redondeo de efectivo",
 };
 /** Siempre se muestran (aunque estén en cero, con «—»): lo que un mes normal tiene. Las demás, solo si hay algo. */
 const GASTOS_SIEMPRE = ["62", "635", "636", "632", "637", "631", "656", "634"];
@@ -383,6 +385,8 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
   if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];
+  if (clave === "g6598")
+    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
   return ["gastos vigentes con fecha del mes, sin el IGV de su factura", "menos las notas de crédito de su proveedor"];
 }
 
