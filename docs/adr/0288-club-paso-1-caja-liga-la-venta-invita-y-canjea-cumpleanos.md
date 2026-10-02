@@ -1064,3 +1064,14 @@ espejo.
 - **Con una terminal** (la cuenta de la tienda, sin persona), el combo sigue. `club_avisos_enviados.enviado_por` es obligatorio y
   `registrar_aviso_enviado` rechaza un actor vacío. Es la misma excepción que «Apartar prenda».
 - No cambia ninguna función de la base: el único punto de decisión es `fn_actor_persona_id`.
+
+## Actualización 2026-10-02 (m): se retira la pregunta «¿Se la probó y no la llevó?» del ticket
+
+Felipe, 2026-10-02: la pregunta que salía al quitar una prenda del ticket (D-6, tanda 1d) se retira. Solo aparecía si la vendedora
+agregaba la prenda y luego la quitaba, un paso sin otro motivo para hacerse; y saltaba también cuando se quitaba por un error de
+escaneo. Basta con «¿Qué talla pidió?» en el modal de talla («Anotar que no había»), que sí tiene una puerta propia.
+- **Web:** `PuntoDeVenta.tsx` ya no guarda la prenda quitada ni la pregunta; se borra `components/punto-de-venta/SeProboNoLlevo.tsx`.
+- **Se queda igual:** la tabla `pedidos_no_atendidos` con su motivo `se_probo_no_llevo` y sus razones, `registrar_pedido_no_atendido`
+  y `lib/se-probo-reglas.ts`. Las filas ya guardadas se siguen leyendo y describiendo; no hay migración.
+- **Se pierde:** ya no hay dónde anotar «Precio», «Color», «No le quedó» o «Lo piensa» (el informe CL-14 de razones queda sin
+  datos nuevos). Si hace falta, se agrega otra puerta, no esta.
