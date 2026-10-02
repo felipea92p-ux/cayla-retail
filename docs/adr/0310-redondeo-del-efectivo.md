@@ -284,10 +284,10 @@ select
   coalesce((select retail.fn_asiento_cuenta_de_medio('redondeo') = '6598'), false)                                                                      as p120000_diario,
   exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta' and p.prosrc like '%venta_redondeo_invalido%')     as p130000_registrar_venta,
   exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'entregar_separacion' and p.prosrc like '%venta_redondeo_invalido%') as p135000_entregar_separacion,
-  coalesce((select retail.fn_acepta_redondeo_efectivo()), false)                                                                                        as p140000_bandera_encendida;
+  to_regprocedure('retail.fn_acepta_redondeo_efectivo()') is not null                                                                                   as p140000_bandera_creada;
 ```
 
-(Si falta la primera parte, `fn_asiento_cuenta_de_medio('redondeo')` devuelve `104` y no `6598`; y si no existe la bandera, la consulta falla con «function does not exist»: también es un «falta».)
+(Con la parte del diario sin pegar, `fn_asiento_cuenta_de_medio('redondeo')` devuelve `104` y no `6598`, y la columna sale `false`. La bandera se pega al final y solo se mira si EXISTE; para saber si está encendida: `select retail.fn_acepta_redondeo_efectivo();`, que antes de pegarla falla con «function does not exist».)
 
 ### Actividad 6 — Apartados (2026-10-02)
 
