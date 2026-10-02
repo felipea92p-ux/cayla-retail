@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
-import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
+import { emitirDocumentoLucode, entornoLucode, fechaDeLima, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
 import { capturarError } from "@/lib/errores";
 import type { TipoDocComprobante } from "@/lib/documento-comprobante-reglas";
@@ -37,6 +37,7 @@ type FilaComprobante = {
   cliente_nombre: string | null;
   total: number;
   estado: string;
+  created_at: string;
   items: unknown;
   comprobante_original_id: string | null;
   motivo: string | null;
@@ -56,7 +57,7 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
+      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, created_at, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
     )
     .match(comprobanteId ? { id: comprobanteId } : { venta_id: ventaId! })
     // Por venta solo cuenta su boleta o factura: una nota de crédito posterior también lleva `venta_id`.
@@ -115,6 +116,8 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
     clienteNombre: fila.cliente_nombre,
     total: fila.total,
     items,
+    // El día de la venta, no el del reenvío: un comprobante que se reintenta al día siguiente sigue siendo de su día.
+    fechaEmision: fechaDeLima(new Date(fila.created_at)),
   };
 
   if (fila.tipo === "nota_credito" || fila.tipo === "nota_debito") {
