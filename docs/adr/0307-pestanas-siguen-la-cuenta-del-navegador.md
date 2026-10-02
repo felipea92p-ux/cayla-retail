@@ -12,5 +12,8 @@ nueva puede no tener ese módulo). Regla pura y probada: `lib/sesion-entre-pesta
 **Cómo se entera.** `onAuthStateChange` (Supabase ya lo reenvía entre pestañas) y una lectura de la cuenta al volver a
 mirar la pestaña (`visibilitychange`/`focus`). Una pestaña sin cuenta (login, páginas públicas) no hace nada.
 
+**Aviso.** Antes de irse la pestaña anota el motivo en `sessionStorage` y la pantalla de destino lo muestra con
+`avisar.aviso` («La cuenta cambió», «La sesión se cerró en otra pestaña»); el aviso espera al loader general (ADR-0149).
+
 **Costo asumido.** Una pantalla a medio llenar se pierde al irse; con otra cuenta ya no era de esa persona. Lo guardado
 sin conexión vive en el equipo y no se toca.

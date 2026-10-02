@@ -20,3 +20,16 @@ export const DESTINO_DE_ACCION: Record<Exclude<AccionDeSesion, "nada">, string> 
   login: "/login",
   inicio: "/",
 };
+
+/** Dónde se deja el motivo del salto para que la pantalla de destino lo cuente (sessionStorage: solo esta pestaña). */
+export const CLAVE_AVISO_DE_SESION = "cayla_aviso_sesion";
+
+export const AVISO_DE_ACCION: Record<Exclude<AccionDeSesion, "nada">, { texto: string; detalle: string }> = {
+  login: { texto: "La sesión se cerró en otra pestaña", detalle: "Vuelve a entrar para seguir." },
+  inicio: { texto: "La cuenta cambió", detalle: "Te llevamos al inicio con la cuenta que está activa." },
+};
+
+/** Lo guardado en la clave solo vale si es una acción conocida: un valor raro no dibuja nada. */
+export function avisoGuardado(valor: string | null) {
+  return valor === "login" || valor === "inicio" ? AVISO_DE_ACCION[valor] : null;
+}
