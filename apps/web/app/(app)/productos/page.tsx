@@ -27,6 +27,7 @@ import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-s
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
+import { compararTallas } from "@/lib/tallas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -88,11 +89,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios, resTallas] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -100,6 +101,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
     // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
     getPreciosExtremos(filtros).catch(() => null),
+    supabase.from("tallas").select("id, valor").eq("activo", true),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
@@ -127,7 +129,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color }));
+  // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
+  const tallasOpciones = exigir(resTallas, "las tallas")
+    .map((t) => ({ id: t.id, nombre: t.valor }))
+    .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
   const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
     <Link
@@ -217,6 +223,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       <FiltrosProductos
         categorias={categoriasOpciones}
         colores={coloresOpciones}
+        tallas={tallasOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
         totalProductos={resultado.totalProductos}

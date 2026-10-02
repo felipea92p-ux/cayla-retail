@@ -8,7 +8,8 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
-import { estadoDeUrl, estadoParaBase } from "@/lib/productos-filtros";
+import { estadoDeUrl, estadoParaBase, listaDeUrl } from "@/lib/productos-filtros";
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
@@ -179,7 +180,11 @@ export type FiltrosProductos = {
   /** De qué marca y/o qué proveedor lo trae (20260918231300). Los dos se pueden combinar: la base solo deja parejas válidas. */
   marcaId?: string;
   proveedorId?: string;
-  colorCodigo?: string;
+  /** Varios colores y familias a la vez (ADR-0308): la prenda pasa si tiene UNA variante de alguno de esos colores o de
+   *  alguna de esas familias, que además cumpla talla, precio y stock (`fn_productos_listado`, 20261002200000). */
+  colores: string[];
+  familias: string[];
+  tallas: string[];
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
@@ -199,7 +204,10 @@ export type ParamsProductosListado = {
   cat?: string;
   marca?: string;
   proveedor?: string;
+  /** Una o varias, separadas por coma (`color=NEG,AZM`); lo mismo `familia` y `talla` (ids). */
   color?: string;
+  familia?: string;
+  talla?: string;
   estado?: string;
   precioMin?: string;
   precioMax?: string;
@@ -223,7 +231,9 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     // `sin` = los que no tienen (ADR-0283): a la base llega como el uuid nulo, que `fn_productos` entiende como «sin marca».
     marcaId: filtroDeMarcaOProveedor(p.marca),
     proveedorId: filtroDeMarcaOProveedor(p.proveedor),
-    colorCodigo: p.color?.trim() || undefined,
+    colores: listaDeUrl(p.color).filter((c) => /^[A-Za-z0-9_-]{1,20}$/.test(c)),
+    familias: listaDeUrl(p.familia).filter((f) => FAMILIAS_COLOR.some((x) => x.valor === f)),
+    tallas: listaDeUrl(p.talla).filter(esUuid),
     // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
     estado: estadoParaBase(estadoDeUrl(p.estado)),
     // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
@@ -289,7 +299,9 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
     ...(filtros.marcaId ? { p_marca_id: filtros.marcaId } : {}),
     ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-    ...(filtros.colorCodigo ? { p_color_codigo: filtros.colorCodigo } : {}),
+    // `fn_productos_resumen` (la de hoy) entiende UN color y nada de talla ni familia: con un solo color se lo pasa; con
+    // más, el resumen cuenta sin color. Solo decide si se muestra «A quién pedirle» y el aviso de descontinuadas.
+    ...(filtros.colores.length === 1 && !filtros.familias.length ? { p_color_codigo: filtros.colores[0] } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
@@ -337,7 +349,9 @@ function paramsListado(filtros: FiltrosProductos) {
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
     ...(filtros.marcaId ? { p_marca_id: filtros.marcaId } : {}),
     ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-    ...(filtros.colorCodigo ? { p_colores: [filtros.colorCodigo] } : {}),
+    ...(filtros.colores.length ? { p_colores: filtros.colores } : {}),
+    ...(filtros.familias.length ? { p_familias: filtros.familias } : {}),
+    ...(filtros.tallas.length ? { p_tallas: filtros.tallas } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
@@ -449,9 +463,9 @@ export async function getReposicionPorProveedor(
   const supabase = await createClient();
   const filas: FilaReposicion[] = [];
   for (let pagina = 1; pagina <= 3; pagina++) {
-    const { data, error } = await supabase.rpc("fn_productos", {
-      ...paramsFiltrosProductos(filtros),
-      p_stock: "reponer",
+    const { data, error } = await supabase.rpc("fn_productos_listado", {
+      ...paramsListado({ ...filtros, stock: undefined }),
+      p_disponibilidad: "reponer",
       p_pagina: pagina,
       p_por_pagina: 100,
     });

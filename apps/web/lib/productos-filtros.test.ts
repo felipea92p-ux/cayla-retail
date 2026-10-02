@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  marcadosDeColor,
+  opcionesDeColor,
+  separarColor,
+  listaDeUrl,
+  listaParaUrl,
   chipsDeFiltros,
   contarFiltrosActivos,
   estadoDeUrl,
@@ -112,5 +117,59 @@ describe("productos-filtros — estado, conteo y chips", () => {
   it("un id que ya no existe se lee «—», no rompe", () => {
     const vacio = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined };
     expect(chipsDeFiltros("cat=zzz", vacio)[0].texto).toBe("Categoría: —");
+  });
+});
+
+describe("productos-filtros — varias opciones", () => {
+  it("la lista de la URL, sin vacíos ni repetidos; vacía borra la clave", () => {
+    expect(listaDeUrl("M,L,,M")).toEqual(["M", "L"]);
+    expect(listaDeUrl(null)).toEqual([]);
+    expect(listaDeUrl("NEG")).toEqual(["NEG"]); // un enlace viejo con un solo color sigue sirviendo
+    expect(listaParaUrl(["M", "L", "M"])).toBe("M,L");
+    expect(listaParaUrl([])).toBe("");
+  });
+
+  it("color y familia son UN filtro: cuentan una vez; la talla, otra", () => {
+    expect(contarFiltrosActivos("color=NEG,ROS&familia=azul")).toBe(1);
+    expect(contarFiltrosActivos("talla=a,b&familia=azul")).toBe(2);
+  });
+
+  it("los chips dicen todas las tallas y colores, con la familia por su nombre", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: (c: string) => ({ NEG: "Negro" })[c], talla: (t: string) => ({ a: "M", b: "L" })[t], familia: () => "Azul" };
+    expect(chipsDeFiltros("talla=a,b&color=NEG&familia=azul", nombres).map((c) => c.texto)).toEqual(["Talla: M, L", "Color: Familia Azul, Negro"]);
+    expect(chipsDeFiltros("color=NEG&familia=azul", nombres)[0].quitar).toEqual(["color", "familia"]);
+  });
+});
+
+describe("productos-filtros — color agrupado por familia", () => {
+  const colores = [
+    { id: "NEG", nombre: "Negro", familia: "neutro" },
+    { id: "AZM", nombre: "Azul marino", familia: "azul" },
+    { id: "CEL", nombre: "Celeste", familia: "azul" },
+    { id: "RARO", nombre: "Raro", familia: null },
+  ];
+  const familias = [
+    { valor: "neutro", texto: "Neutro" },
+    { valor: "azul", texto: "Azul" },
+    { valor: "verde", texto: "Verde" },
+  ];
+
+  it("cada familia con colores abre su grupo con «Toda la familia …»; sin colores, no aparece", () => {
+    expect(opcionesDeColor(colores, familias).map((o) => o.texto)).toEqual([
+      "Toda la familia Neutro",
+      "Negro",
+      "Toda la familia Azul",
+      "Azul marino",
+      "Celeste",
+      "Raro",
+    ]);
+  });
+
+  it("lo marcado va a la URL separado y vuelve igual (ida y vuelta)", () => {
+    const marcado = ["familia:azul", "NEG"];
+    const url = separarColor(marcado);
+    expect(url).toEqual({ color: "NEG", familia: "azul" });
+    expect(marcadosDeColor(`color=${url.color}&familia=${url.familia}`)).toEqual(marcado);
+    expect(separarColor([])).toEqual({ color: "", familia: "" });
   });
 });

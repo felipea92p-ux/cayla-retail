@@ -2,13 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
-import { TODOS, textoPildora } from "@/lib/pildora-reglas";
+import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias } from "@/lib/pildora-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -97,20 +97,24 @@ export function FilaPildoras({ titulo, children }: { titulo: string; children: R
  *  opciones) necesita un `<input>` de texto dentro de la lista desplegada, y el `Select` de Radix está pensado
  *  para navegar opciones, no para alojar un campo de texto propio adentro — mismo mecanismo que ya usa
  *  `Desplegable` (`campos.tsx`), con este vestido de píldora en vez de campo de formulario. */
+type UnaOpcion = { valor: string; onValor: (v: string) => void; varias?: undefined };
+/** Varias opciones a la vez (Talla, Color; Felipe, 2026-10-02): la lista queda abierta, cada opción se marca o desmarca, y
+ *  la ✕ vacía todo. */
+type VariasOpciones = { varias: { valores: readonly string[]; onValores: (v: string[]) => void }; valor?: undefined; onValor?: undefined };
+
 export function DesplegablePildora({
   icono: Icono,
   etiqueta,
   valor,
   onValor,
+  varias,
   opciones,
   valorPorDefecto = TODOS,
   encoger = false,
-}: {
+}: (UnaOpcion | VariasOpciones) & {
   icono: LucideIcon;
   /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
   etiqueta: string;
-  valor: string;
-  onValor: (v: string) => void;
   opciones: readonly OpcionCombo<string>[];
   /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
   valorPorDefecto?: string;
@@ -126,8 +130,9 @@ export function DesplegablePildora({
   const disparador = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
-  // Puesta = distinta de lo que vale sola: solo entonces se marca y lleva la ✕ para volver a su valor de siempre.
-  const activa = valor !== valorPorDefecto;
+  // Puesta = distinta de lo que vale sola (o, con varias, con algo marcado): solo entonces se marca y lleva la ✕.
+  const marcadas = varias ? varias.valores : [valor];
+  const activa = varias ? varias.valores.length > 0 : valor !== valorPorDefecto;
 
   // Regla global de combos (ADR-0209): con más de 8 opciones, un buscador; si no, la lista de siempre.
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
@@ -143,13 +148,14 @@ export function DesplegablePildora({
   // La caja flotante entera (buscador + lista): vive en un portal, fuera de `contenedor`.
   const capa = useRef<HTMLDivElement>(null);
   const listaVisible = abierto && !!posLista;
-  const elegida = opciones.find((o) => o.valor === valor) ?? null;
-  const texto = textoPildora(etiqueta, elegida);
-  const puedeQuitar = activa && opciones.some((o) => o.valor === valorPorDefecto);
+  const elegidas = opciones.filter((o) => marcadas.includes(o.valor));
+  const elegida = varias ? (elegidas.length === 1 ? elegidas[0] : null) : (opciones.find((o) => o.valor === valor) ?? null);
+  const texto = varias ? textoPildoraVarias(etiqueta, elegidas.map((o) => o.texto)) : textoPildora(etiqueta, elegida);
+  const puedeQuitar = varias ? activa : activa && opciones.some((o) => o.valor === valorPorDefecto);
 
   function abrir() {
     setBusqueda("");
-    const i = Math.max(0, opciones.findIndex((o) => o.valor === valor));
+    const i = Math.max(0, opciones.findIndex((o) => marcadas.includes(o.valor)));
     setActivo(i);
     mostrarDesde(i);
     setAbierto(true);
@@ -161,6 +167,10 @@ export function DesplegablePildora({
   }
 
   function elegir(o: OpcionCombo<string>) {
+    if (varias) {
+      varias.onValores(alternarEnLista(varias.valores, o.valor)); // la lista sigue abierta para marcar otra
+      return;
+    }
     onValor(o.valor);
     cerrar();
   }
@@ -260,7 +270,8 @@ export function DesplegablePildora({
           onClick={() => {
             // La ✕ desaparece al quitar el filtro: el foco vuelve a la píldora, no se pierde en la página (teclado).
             disparador.current?.focus();
-            onValor(valorPorDefecto);
+            if (varias) varias.onValores([]);
+            else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
           className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
@@ -302,6 +313,7 @@ export function DesplegablePildora({
             ref={lista}
             role="listbox"
             aria-label={etiqueta}
+            aria-multiselectable={varias ? true : undefined}
             tabIndex={mostrarBuscador ? undefined : -1}
             onKeyDown={mostrarBuscador ? undefined : alTeclado}
             onScroll={alHacerScroll}
@@ -315,13 +327,23 @@ export function DesplegablePildora({
                   key={o.valor}
                   data-i={i}
                   role="option"
-                  aria-selected={o.valor === valor}
+                  aria-selected={marcadas.includes(o.valor)}
                   onMouseEnter={() => setActivo(i)}
                   onClick={() => elegir(o)}
                   className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
                     i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
-                  } ${o.valor === valor ? "font-semibold" : ""}`}
+                  } ${!varias && o.valor === valor ? "font-semibold" : ""}`}
                 >
+                  {varias && (
+                    <span
+                      aria-hidden
+                      className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
+                        marcadas.includes(o.valor) ? "border-tinta bg-tinta text-crema" : "border-tinta/30"
+                      }`}
+                    >
+                      {marcadas.includes(o.valor) && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                    </span>
+                  )}
                   {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
                   <span className="align-middle">{o.texto}</span>
                 </li>

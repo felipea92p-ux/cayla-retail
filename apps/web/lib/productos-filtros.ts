@@ -111,11 +111,24 @@ export function estadoParaBase(estado: EstadoListado): "activo" | "descontinuado
  *  antes «Filtros · 1» se encendía con solo ordenar. */
 export function contarFiltrosActivos(consulta: string): number {
   const p = new URLSearchParams(consulta);
-  const claves = ["cat", "marca", "proveedor", "color", "stock"].filter((k) => p.get(k));
+  // Color y familia son un mismo filtro (el de color, con su lista agrupada por familia): cuentan una vez.
+  const claves = ["cat", "marca", "proveedor", "stock", "talla"].filter((k) => p.get(k));
+  if (p.get("color") || p.get("familia")) claves.push("color");
   // El precio cuenta solo si se entiende, con la misma regla que aplica el servidor (`leerMonto`): «abc» no filtra ni cuenta.
   const precio = leerMonto(p.get("precioMin") ?? "") != null || leerMonto(p.get("precioMax") ?? "") != null ? 1 : 0;
   const estado = estadoDeUrl(p.get("estado")) !== ESTADO_POR_DEFECTO ? 1 : 0;
   return claves.length + precio + estado;
+}
+
+// ── Listas en la URL (Talla, Color y familia: varias opciones a la vez) ─────────────────────────────────────────────────
+/** `talla=a,b` → ["a", "b"]: sin vacíos ni repetidos. Una sola opción sigue siendo `color=NEG`, como antes. */
+export function listaDeUrl(valor: string | null | undefined): string[] {
+  return [...new Set((valor ?? "").split(",").map((v) => v.trim()).filter(Boolean))];
+}
+
+/** La lista de vuelta a la URL («» si quedó vacía: borra la clave). */
+export function listaParaUrl(lista: readonly string[]): string {
+  return [...new Set(lista)].join(",");
 }
 
 export const ROTULO_STOCK: Record<string, string> = { sin_stock: "Sin stock", bajo: "Stock bajo", reponer: "Pedir a proveedor" };
@@ -124,7 +137,14 @@ export const ROTULO_STOCK: Record<string, string> = { sin_stock: "Sin stock", ba
  *  `quitar` son las claves que lo apagan. `nombres` resuelve ids a nombres; un id que ya no existe dice «—». */
 export function chipsDeFiltros(
   consulta: string,
-  nombres: { categoria: (id: string) => string | undefined; marca: (id: string) => string | undefined; proveedor: (id: string) => string | undefined; color: (id: string) => string | undefined },
+  nombres: {
+    categoria: (id: string) => string | undefined;
+    marca: (id: string) => string | undefined;
+    proveedor: (id: string) => string | undefined;
+    color: (id: string) => string | undefined;
+    talla?: (id: string) => string | undefined;
+    familia?: (valor: string) => string | undefined;
+  },
   sin = "sin",
 ): { texto: string; quitar: string[] }[] {
   const p = new URLSearchParams(consulta);
@@ -137,8 +157,13 @@ export function chipsDeFiltros(
   if (marca) chips.push({ texto: `Marca: ${marca === sin ? "sin marca" : (nombres.marca(marca) ?? "—")}`, quitar: ["marca"] });
   const proveedor = p.get("proveedor");
   if (proveedor) chips.push({ texto: `Proveedor: ${proveedor === sin ? "sin proveedor" : (nombres.proveedor(proveedor) ?? "—")}`, quitar: ["proveedor"] });
-  const color = p.get("color");
-  if (color) chips.push({ texto: `Color: ${nombres.color(color) ?? "—"}`, quitar: ["color"] });
+  const tallas = listaDeUrl(p.get("talla"));
+  if (tallas.length) chips.push({ texto: `Talla: ${tallas.map((t) => nombres.talla?.(t) ?? "—").join(", ")}`, quitar: ["talla"] });
+  const colores = [
+    ...listaDeUrl(p.get("familia")).map((f) => `Familia ${nombres.familia?.(f) ?? f}`),
+    ...listaDeUrl(p.get("color")).map((c) => nombres.color(c) ?? "—"),
+  ];
+  if (colores.length) chips.push({ texto: `Color: ${colores.join(", ")}`, quitar: ["color", "familia"] });
   const estado = estadoDeUrl(p.get("estado"));
   if (estado !== ESTADO_POR_DEFECTO) chips.push({ texto: `Estado: ${ROTULO_ESTADO[estado]}`, quitar: ["estado"] });
   const stock = p.get("stock");
@@ -146,4 +171,38 @@ export function chipsDeFiltros(
   const precio = textoRangoPrecio(p.get("precioMin"), p.get("precioMax"));
   if (precio) chips.push({ texto: `Precio: ${precio}`, quitar: ["precioMin", "precioMax"] });
   return chips;
+}
+
+// ── Color agrupado por familia (Felipe, 2026-10-02: un solo filtro de color, no uno aparte de familia) ──────────────────
+const PREFIJO_FAMILIA = "familia:";
+
+/** Las opciones del filtro de color: por cada familia (en el orden de `FAMILIAS_COLOR`) primero «Toda la familia Azul» y
+ *  debajo sus colores; al final, los colores sin familia. Una sola lista: elegir la familia o un tono exacto. */
+export function opcionesDeColor<C extends { id: string; nombre: string; familia: string | null }>(
+  colores: readonly C[],
+  familias: readonly { valor: string; texto: string }[],
+): ({ valor: string; texto: string; familia: true } | { valor: string; texto: string; familia: false; color: C })[] {
+  const salida: ({ valor: string; texto: string; familia: true } | { valor: string; texto: string; familia: false; color: C })[] = [];
+  for (const f of familias) {
+    const suyos = colores.filter((c) => c.familia === f.valor);
+    if (suyos.length === 0) continue;
+    salida.push({ valor: PREFIJO_FAMILIA + f.valor, texto: `Toda la familia ${f.texto}`, familia: true });
+    for (const c of suyos) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c });
+  }
+  for (const c of colores.filter((x) => !familias.some((f) => f.valor === x.familia))) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c });
+  return salida;
+}
+
+/** Lo marcado en la lista de color, de vuelta a la URL: `color=` los tonos y `familia=` las familias. */
+export function separarColor(valores: readonly string[]): { color: string; familia: string } {
+  return {
+    color: listaParaUrl(valores.filter((v) => !v.startsWith(PREFIJO_FAMILIA))),
+    familia: listaParaUrl(valores.filter((v) => v.startsWith(PREFIJO_FAMILIA)).map((v) => v.slice(PREFIJO_FAMILIA.length))),
+  };
+}
+
+/** Y al revés: lo que dice la URL, como lo marca la lista. */
+export function marcadosDeColor(consulta: string): string[] {
+  const p = new URLSearchParams(consulta);
+  return [...listaDeUrl(p.get("familia")).map((f) => PREFIJO_FAMILIA + f), ...listaDeUrl(p.get("color"))];
 }

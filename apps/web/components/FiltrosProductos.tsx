@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
+import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -13,6 +14,11 @@ import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
+  listaDeUrl,
+  listaParaUrl,
+  marcadosDeColor,
+  opcionesDeColor,
+  separarColor,
   ESTADOS_LISTADO,
   ESTADO_POR_DEFECTO,
   ROTULO_ESTADO,
@@ -36,7 +42,7 @@ import { SIN_EN_URL } from "@/lib/marcas";
 // (fn_productos/fn_productos_resumen), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
-type OpcionColor = Opcion & { hex: string | null };
+type OpcionColor = Opcion & { hex: string | null; familia: string | null };
 
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
@@ -46,6 +52,7 @@ type OpcionColor = Opcion & { hex: string | null };
 export function FiltrosProductos({
   categorias,
   colores,
+  tallas,
   marcas,
   proveedores,
   totalProductos,
@@ -54,6 +61,8 @@ export function FiltrosProductos({
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
+  /** Tallas activas, ya en su orden de curva (S · M · L, 28 · 30 · 32). */
+  tallas: Opcion[];
   /** Marcas y proveedores activos (ADR-0109): filtrar el catálogo por de quién es y quién lo trae. */
   marcas: Opcion[];
   proveedores: Opcion[];
@@ -207,7 +216,6 @@ export function FiltrosProductos({
   const cat = params.get("cat");
   const marca = params.get("marca");
   const proveedor = params.get("proveedor");
-  const color = params.get("color");
   const estado = estadoDeUrl(params.get("estado"));
   const stock = params.get("stock");
   const orden = ordenDeUrl(params.get("orden"));
@@ -220,6 +228,8 @@ export function FiltrosProductos({
       marca: (id) => marcas.find((m) => m.id === id)?.nombre,
       proveedor: (id) => proveedores.find((p) => p.id === id)?.nombre,
       color: (id) => colores.find((c) => c.id === id)?.nombre,
+      talla: (id) => tallas.find((t) => t.id === id)?.nombre,
+      familia: (f) => textoDeFamilia(f),
     },
     SIN_EN_URL,
   );
@@ -329,19 +339,34 @@ export function FiltrosProductos({
               onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
               opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
             />
+            {/* Talla y Color aceptan varias opciones a la vez (Felipe, 2026-10-02: «M o L», «negro o azul»). */}
+            <DesplegablePildora
+              icono={Ruler}
+              etiqueta="Talla"
+              varias={{ valores: listaDeUrl(params.get("talla")), onValores: (v) => aplicar({ talla: listaParaUrl(v) }) }}
+              opciones={tallas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+            />
+            {/* Un solo filtro de color, agrupado por familia: «Toda la familia Azul» o un tono exacto (no un filtro aparte de
+                familia, que podría contradecir al de color). */}
             <DesplegablePildora
               icono={Palette}
               etiqueta="Color"
-              valor={color ?? TODOS}
-              onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                ...colores.map((c) => ({
-                  valor: c.id,
-                  texto: c.nombre,
-                  icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
-                })),
-              ]}
+              varias={{ valores: marcadosDeColor(consultaUrl), onValores: (v) => aplicar(separarColor(v)) }}
+              opciones={opcionesDeColor(colores.map((c) => ({ ...c, familia: c.familia })), FAMILIAS_COLOR).map((o) =>
+                o.familia
+                  ? { valor: o.valor, texto: o.texto }
+                  : {
+                      valor: o.valor,
+                      texto: o.texto,
+                      icono: (
+                        <span
+                          aria-hidden
+                          className="ml-3 inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15 bg-hueso"
+                          style={{ background: fondoDeMuestra(o.color.hex, o.color.familia) }}
+                        />
+                      ),
+                    },
+              )}
             />
             <BloquePrecio
               precioMin={precioMin}
