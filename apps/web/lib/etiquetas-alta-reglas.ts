@@ -159,6 +159,8 @@ export type CampanaDelAlta = {
   /** Lo que se rebaja por unidad (el mismo cálculo de la caja) y el precio que paga el cliente. */
   descuento: number;
   precioFinal: number;
+  /** Las otras campañas con descuento que rigen hoy y NO se cobran (la caja cobra solo la mayor), de mayor a menor %. */
+  otras: { nombre: string; pct: number }[];
 };
 
 /**
@@ -176,12 +178,18 @@ export function campanaDelAlta(
 ): CampanaDelAlta | null {
   if (precio === null || !(precio > 0)) return null;
   let mejor: EtiquetaAlta | null = null;
+  const rigen: EtiquetaAlta[] = [];
   for (const e of etiquetas) {
     if (e.descuentoPct === null || !(e.descuentoPct > 0)) continue;
     if ((e.vigenteDesde && e.vigenteDesde > hoy) || (e.vigenteHasta && e.vigenteHasta < hoy)) continue;
+    rigen.push(e);
     if (!mejor || e.descuentoPct > (mejor.descuentoPct ?? 0)) mejor = e;
   }
   if (!mejor || mejor.descuentoPct === null) return null;
   const descuento = descuentoDe(precio, mejor.descuentoPct);
-  return { nombre: mejor.nombre, pct: mejor.descuentoPct, hasta: mejor.vigenteHasta, descuento, precioFinal: Math.round((precio - descuento) * 100) / 100 };
+  return { nombre: mejor.nombre, pct: mejor.descuentoPct, hasta: mejor.vigenteHasta, descuento, precioFinal: Math.round((precio - descuento) * 100) / 100, otras: rigen
+      .filter((e) => e !== mejor)
+      .sort((a, b) => (b.descuentoPct ?? 0) - (a.descuentoPct ?? 0))
+      .map((e) => ({ nombre: e.nombre, pct: e.descuentoPct ?? 0 })),
+  };
 }
