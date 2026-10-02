@@ -16,7 +16,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosPorColor } from "@/components/ficha-producto/FotosPorColor";
-import { conFotosNuevas, type FotoLocal } from "@/lib/fotos-por-color-reglas";
+import { comoPrincipal, conFotosNuevas, fotosDelColor, primeraEnSuColor, vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
@@ -45,6 +45,7 @@ import {
   temporadaHeredadaPorColor,
 } from "@/lib/temporada-ficha-reglas";
 import {
+  agregarCombinaciones,
   anclarFotos,
   asignacionesDeEtiquetas,
   avisoBloqueSinAplicar,
@@ -52,9 +53,12 @@ import {
   consolidar,
   correccionesSinAplicar,
   corregida,
+  corregir,
   costosSinComprobar,
   elegirTemporada,
   esChoqueDeCandados,
+  etiquetasComunes,
+  filasDelEje,
   filasDeProducto,
   FRASE_CHOQUE_DE_CANDADOS,
   fotosComoSeVen,
@@ -64,6 +68,7 @@ import {
   NACEN_SIN_UNIDADES,
   payloadVariantes,
   problemasVariantes,
+  cambiarFila,
   ubicar,
   ubicarTemporadas,
   variantesParaResumen,
@@ -75,7 +80,15 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
-import { ConMarca, TiraFicha } from "@/components/ficha-producto/TiraFicha";
+import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
+import { MatrizStockFicha, MotivoDeLaVisita } from "@/components/ficha-producto/MatrizStockFicha";
+import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
+import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
+import { AgregarColoresModal, type ResultadoAgregarColores } from "@/components/ficha-producto/AgregarColoresModal";
+import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import type { FotoSubida } from "@/components/ficha-producto/useSubirFotos";
+import { resumenVariantes } from "@/lib/matriz-ficha-reglas";
+import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
 import type { EstadoCampo } from "@/lib/alta-producto-guia";
@@ -307,7 +320,7 @@ export function ProductoForm({
   // hacer) hasta que el guardado termina completo: si fallan las etiquetas o la temporada y se reintenta, el aviso final
   // igual ofrece reimprimir etiquetas, dice que las nuevas nacieron sin unidades y nombra todo lo guardado (tras
   // consolidar, las filas y la barra ya no lo recuerdan).
-  const logrado = useRef<{ correcciones: boolean; nuevas: number; frases: string[] }>({ correcciones: false, nuevas: 0, frases: [] });
+  const logrado = useRef<{ correcciones: boolean; nuevas: number; cargadas: number; frases: string[] }>({ correcciones: false, nuevas: 0, cargadas: 0, frases: [] });
   // Un monto escrito en «Cambiar en bloque» sin pulsar Aplicar: se perdería en silencio al guardar lo demás.
   const [bloquePendiente, setBloquePendiente] = useState<CampoBloque | null>(null);
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
@@ -398,7 +411,39 @@ export function ProductoForm({
   const [pendientesAlAbrir] = useState<ReadonlySet<IdPendiente>>(() => new Set(pendientes.map((p) => p.id)));
   const marcaDe = (id: IdPendiente): EstadoCampo | null =>
     !pendientesAlAbrir.has(id) ? null : pendientes.some((p) => p.id === id) ? (pendientes[0].id === id ? "ahora" : "falta") : "hecho";
-  const irAPendiente = (p: PendienteFicha) => irAlIdCampo(p.id);
+
+  // ---------- la ficha como la maqueta B (Felipe 2026-10-02, docs/maquetas/producto-editar-rediseno-2026-10/b-taller.html) ----------
+  // Cuatro secciones plegables (abiertas al entrar, como la maqueta), la matriz color × talla con el stepper del stock y, a la
+  // derecha, el panel del taller. Plegar no saca nada de la página: quien lleva a un campo abre antes su sección (`abrir`).
+  type Seccion = "producto" | "tejido" | "fotos" | "variantes";
+  const [abiertas, setAbiertas] = useState<Record<Seccion, boolean>>({ producto: true, tejido: true, fotos: true, variantes: true });
+  const abrir = (sec: Seccion) => setAbiertas((a) => (a[sec] ? a : { ...a, [sec]: true }));
+  const [verDetalle, setVerDetalle] = useState(false);
+  const [campoBloque, setCampoBloque] = useState<CampoBloque>("precio");
+  const [agregandoColor, setAgregandoColor] = useState(false);
+  // `undefined` = cerrado; un color (o `null`, sin color) = el ajuste de siempre abierto para ese color (ADR-0291: una talla que
+  // faltó en un conteo no se suma a ciegas desde el stepper).
+  const [ajusteDeColor, setAjusteDeColor] = useState<string | null | undefined>(undefined);
+  const stock = useStockFicha({ productoId: producto?.id ?? null, ajuste: ajusteStock });
+  const coloresPanel = coloresFicha.filter((c) => c !== "");
+  const [colorElegido, setColorElegido] = useState<string | null>(coloresPanel[0] ?? null);
+  // Con el mouse encima de un color de la matriz, el panel lo muestra sin elegirlo (`undefined` = vuelve al elegido).
+  const [colorVisto, setColorVisto] = useState<string | null | undefined>(undefined);
+  const colorFijo = colorElegido !== null && coloresPanel.includes(colorElegido) ? colorElegido : (coloresPanel[0] ?? null);
+  const colorMostrado = colorVisto !== undefined && (colorVisto === null || coloresPanel.includes(colorVisto)) ? colorVisto : colorFijo;
+
+  /** Lo que falta (el panel derecho): tejido o patrón abren su sección y llevan al campo; las fotos, el color que no la tiene. */
+  function irAPendiente(p: PendienteFicha, colorSinFoto: string | null) {
+    if (p.id === "fotos") {
+      if (colorSinFoto) setColorElegido(colorSinFoto);
+      abrir("fotos");
+      return;
+    }
+    const yaAbierta = abiertas.tejido;
+    abrir("tejido");
+    // Recién abierta, la sección todavía está creciendo: se espera su animación (320 ms) para que el campo ya esté a la vista.
+    window.setTimeout(() => irAlIdCampo(p.id), yaAbierta ? 0 : 340);
+  }
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
@@ -544,23 +589,37 @@ export function ProductoForm({
       // Lo principal ya se guardó pero no se supo cómo quedaron las variantes: guardar otra vez crearía las nuevas dos veces.
       return void avisar.error("Recarga la prenda antes de seguir: lo principal ya quedó guardado.", { accion: { texto: "Recargar", onClick: recargar } });
     }
-    if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
+    // Un error lleva a su campo: si su sección estaba plegada, se abre primero (el foco no llega a lo invisible).
+    if (!referencia.trim()) {
+      abrir("producto");
+      return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
+    }
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
+      abrir("tejido");
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
     // Marca y proveedor pueden faltar (ADR-0283), pero lo que el producto ya tenía se cambia, no se deja en blanco.
     const sinDejarEnBlanco = problemaAlEditar({ marcaId: producto?.marcaId ?? "", proveedorId: producto?.proveedorId ?? "" }, { marcaId, proveedorId });
-    if (sinDejarEnBlanco) return void avisar.error(sinDejarEnBlanco, { enfocar: "producto-marca" });
+    if (sinDejarEnBlanco) {
+      abrir("producto");
+      return void avisar.error(sinDejarEnBlanco, { enfocar: "producto-marca" });
+    }
+    if (nombreCambio) abrir("producto");
     if (nombreCambio && parecidos.comprobando) return void avisar.error("Espera un momento: se está comprobando que el nombre no exista todavía.", { enfocar: "producto-referencia" });
     if (nombreCambio && parecidos.hayIdentico) return void avisar.error("Ya existe un producto con ese nombre.", { enfocar: "producto-referencia" });
     if (nombreCambio && parecidos.hayUnaLetra && !parecidos.confirmo) {
       return void avisar.error("Ese nombre se escribe casi igual que otro producto: confirma que es distinto, o déjalo como estaba.", { enfocar: "producto-referencia" });
     }
+    if ((exigeTejido && !tejidoId) || (exigePatron && !patronId)) abrir("tejido");
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
-    if (avisoBloque) return void avisar.error(avisoBloque, { enfocar: "variantes-bloque-monto" });
+    if (avisoBloque) {
+      abrir("variantes");
+      return void avisar.error(avisoBloque, { enfocar: "variantes-bloque-monto" });
+    }
     const bloqueante = problemas.find((p) => p.bloquea);
     if (bloqueante) {
+      abrir("variantes");
       const enfocar = bloqueante.clave ? `producto-variante-${bloqueante.clave}-precio` : filas.length === 0 ? "variantes-agregar-color" : undefined;
       return void avisar.error(bloqueante.texto, enfocar ? { enfocar } : undefined);
     }
@@ -668,6 +727,14 @@ export function ProductoForm({
     logrado.current.nuevas += nuevas;
     let actuales = consolidar(filas, deLaBase);
     setFilas(actuales);
+    // Lo que se puso con el stepper en las variantes NUEVAS entra ahora como stock inicial (ya existen y tienen id). Va aparte del
+    // guardado de la prenda: si falla, la prenda igual quedó guardada y el aviso lo dice.
+    const eranNuevas = new Set(filas.filter((f) => !f.id).map((f) => f.clave));
+    const recienCreadas = actuales.filter((f) => eranNuevas.has(f.clave) && f.id);
+    logrado.current.cargadas += await stock.cargarNuevas(
+      new Map(recienCreadas.map((f) => [f.clave, f.id!])),
+      new Map(recienCreadas.map((f) => [f.clave, { color: nombres.color(f.colorCodigo), talla: nombres.talla(f.tallaId) || null }]))
+    );
     if (sinAplicar.length === 0) {
       // La base corrigió y mudó fotos y temporada de los colores que se quedaron sin variantes: lo que se veía pasa a ser
       // lo guardado, y a la vez (en la misma pintada) su origen, porque las filas consolidadas ya no tienen mudanzas.
@@ -738,15 +805,18 @@ export function ProductoForm({
     }
 
     // El guardado terminó completo: lo logrado se lee (aunque haya llegado en un reintento) y se olvida.
-    const { correcciones: huboCorrecciones, nuevas: creadas, frases } = logrado.current;
-    logrado.current = { correcciones: false, nuevas: 0, frases: [] };
+    const { correcciones: huboCorrecciones, nuevas: creadas, cargadas, frases } = logrado.current;
+    logrado.current = { correcciones: false, nuevas: 0, cargadas: 0, frases: [] };
     const hechoTodo = [...new Set([...frases, ...hecho])];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó y quién lo firmó (la prueba de que quedó hecho).
     setGuardado(true);
     setHojaAbierta(false);
     avisar.exito(`${nombrePrenda} guardado`, {
       detalle:
-        [hechoTodo.length > 0 ? hechoTodo.join(", ") : null, creadas > 0 ? NACEN_SIN_UNIDADES : null]
+        [
+          hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
+          cargadas > 0 ? `${cargadas} ${cargadas === 1 ? "unidad entró" : "unidades entraron"} como stock inicial` : creadas > 0 ? NACEN_SIN_UNIDADES : null,
+        ]
           .filter(Boolean)
           .join(" · ") || undefined,
       // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se ofrece reimprimir.
@@ -831,11 +901,64 @@ export function ProductoForm({
   }
   const tonoDe = (campo: CampoDato) => (cambioDeDato(resumen, campo) ? ("aviso" as const) : undefined);
 
-  // Panel del taller (2026-10-02, decisión de Felipe tras 3 maquetas en docs/maquetas/producto-editar-rediseno-2026-10/):
-  // el panel derecho usa el ancho que ADR-0257 dejó libre — es un espejo de solo lectura, nunca un segundo lugar para
-  // guardar (eso sigue siendo solo la barra de abajo).
+  // Lo que dicen las cabeceras plegadas de cada sección (y el panel derecho).
   const marcaNombre = marcaId ? (marcas.marcas.find((m) => m.id === marcaId)?.nombre ?? (marcaId === producto?.marcaId ? producto?.marcaNombre : null) ?? null) : null;
+  const proveedorNombre = proveedorId
+    ? (marcas.proveedores.find((p) => p.id === proveedorId)?.nombre ?? (proveedorId === producto?.proveedorId ? producto?.proveedorNombre : null) ?? null)
+    : null;
   const tejidoNombre = tejidoId ? (opcionesTejido.find((o) => o.valor === tejidoId)?.texto ?? null) : null;
+  const patronNombre = patronId ? (opcionesPatron.find((o) => o.valor === patronId)?.texto ?? null) : null;
+  const pendienteFotos = pendientes.find((p) => p.id === "fotos") ?? null;
+  const vistaFotos = vistaDeFotos(coloresPanel, fotosVista);
+  const sinFotoNombres = vistaFotos.tarjetas.filter((t) => t.estado === "sin-foto").map((t) => nombres.color(t.codigo));
+  const comunes = etiquetasComunes(
+    filas,
+    opcionesEtiqueta.map((e) => e.valor)
+  );
+  const etiquetasTexto = comunes.length > 0 ? comunes.map((id) => opcionesEtiqueta.find((e) => e.valor === id)?.texto ?? "").filter(Boolean).join(", ") : null;
+  // Un color recién agregado que todavía no tiene ninguna unidad puesta: el banner «nació sin unidades» lo lleva al stepper.
+  const colorSinUnidades = coloresPanel.find((c) => {
+    const del = filas.filter((f) => f.activo && f.colorCodigo === c);
+    return del.length > 0 && del.every((f) => !f.guardada) && del.every((f) => stock.numeroNueva(f.clave) === 0);
+  });
+
+  /** «+ Agregar color» de la matriz: lo mismo que hacía la sección de variantes (`AgregarColoresModal`, ADR-0263/0279). */
+  function agregarColores(r: ResultadoAgregarColores) {
+    const base = r.colorDeLasQueTiene
+      ? corregir(
+          filas,
+          filasDelEje(filas, "color", null).map((f) => f.clave),
+          { colorCodigo: r.colorDeLasQueTiene }
+        )
+      : filas;
+    setFilas(agregarCombinaciones(base, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }));
+    if (r.fotos.length > 0) sumarFotosDeColores(r.fotos);
+  }
+
+  /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). */
+  function fotosDesdePanel(nuevas: FotoSubida[]) {
+    if (nuevas.length === 0) return;
+    const conClave = nuevas.map((n) => ({ clientKey: crypto.randomUUID(), id: null, url: n.url, esPrincipal: false, colorCodigo: n.colorCodigo }));
+    let siguientes: FotoLocal[] = conFotosNuevas(fotosVista, conClave);
+    const portadaAntes = fotosDelColor(fotosVista, conClave[0].colorCodigo)[0];
+    siguientes = portadaAntes?.esPrincipal ? comoPrincipal(siguientes, conClave[0].clientKey) : primeraEnSuColor(siguientes, conClave[0].clientKey);
+    cambiarFotos(siguientes);
+  }
+
+  // Las variantes nuevas a las que ya se les puso stock con el stepper: la hoja dice con cuánto entran (y no «nacen sin unidades»).
+  const conStockNuevas = filas.filter((f) => !f.id && stock.numeroNueva(f.clave) > 0);
+  const unidadesNuevas = conStockNuevas.reduce((s, f) => s + stock.numeroNueva(f.clave), 0);
+  const notaAgregan =
+    unidadesNuevas > 0
+      ? `Entran con ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"} como stock inicial (${conStockNuevas
+          .map((f) => `${nombres.color(f.colorCodigo)} ${nombres.talla(f.tallaId) || "Única"} ${stock.numeroNueva(f.clave)}`)
+          .join(" · ")}). Las que quedan en 0 nacen sin unidades.`
+      : undefined;
+
+  function irAColorNuevo(c: string) {
+    document.getElementById(`matriz-color-${c}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setColorElegido(c);
+  }
 
   return (
     <form
@@ -847,23 +970,20 @@ export function ProductoForm({
       }}
       className="pb-28 sm:pb-24"
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-      <div className="min-w-0 space-y-6">
-        <TiraFicha pendientes={pendientes} completadaAqui={pendientesAlAbrir.size > 0} onIr={irAPendiente} />
-
-        {/* ---------- datos del producto ----------
-             Dos grupos numerados dentro de la MISMA tarjeta (estilo PasoAlta del alta), no dos tarjetas separadas que se
-             pliegan: un campo plegado rompería la guía de foco (ADR-0284) — un chip de «Para completar esta ficha» hace
-             scroll a `tejido`/`patron`, y si esos campos quedaran ocultos tras un acordeón cerrado, el scroll apuntaría a
-             algo invisible. Ningún id ni `data-campo` se movió. */}
-        <section className="card-cayla space-y-5 p-5">
-          <div className="flex items-center gap-2.5">
-            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] font-bold text-tinta/60">
-              1
-            </span>
-            <p className="label-cayla text-[11px] text-tinta/65">Identidad y categoría</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-[26px] lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-3">
+          {/* ---------- 1 · Producto ---------- */}
+          <SeccionFicha
+            id="seccion-producto"
+            numero={1}
+            hecho={!!referencia.trim() && !!categoriaId}
+            titulo="Producto"
+            resumen={[categoriaActual?.nombre, marcaNombre, proveedorNombre].filter(Boolean).join(" · ") || "Falta la categoría"}
+            abierta={abiertas.producto}
+            onAbierta={(v) => setAbiertas((a) => ({ ...a, producto: v }))}
+            retraso={40}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
             <CampoTexto
               etiqueta="Referencia"
               id="producto-referencia"
@@ -918,14 +1038,20 @@ export function ProductoForm({
               tono={tonoDe("descripcion")}
             />
           </div>
+          </SeccionFicha>
 
-          <div className="flex items-center gap-2.5 border-t border-sand pt-4">
-            <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] font-bold text-tinta/60">
-              2
-            </span>
-            <p className="label-cayla text-[11px] text-tinta/65">Tejido, patrón y estado</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* ---------- 2 · Tejido, patrón y estado ---------- */}
+          <SeccionFicha
+            id="seccion-tejido"
+            numero={2}
+            hecho={!pendientes.some((p) => p.id === "tejido" || p.id === "patron")}
+            titulo="Tejido, patrón y estado"
+            resumen={[tejidoNombre ?? "Sin tejido", patronNombre ?? "Sin patrón", ESTADOS.find((e) => e.valor === estado)?.texto].filter(Boolean).join(" · ")}
+            abierta={abiertas.tejido}
+            onAbierta={(v) => setAbiertas((a) => ({ ...a, tejido: v }))}
+            retraso={90}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
             <div data-campo="tejido" className="hilo-caja">
             <Campo
               etiqueta={<ConMarca estado={marcaDe("tejido")}>{exigeTejido || familiaExigente ? "Tejido" : "Tejido (opcional)"}</ConMarca>}
@@ -1105,62 +1231,184 @@ export function ProductoForm({
               </div>
             )}
           </div>
-        </section>
+          </SeccionFicha>
 
-        {/* ---------- fotos ---------- */}
-        {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
-        <section id="fotos" data-campo="fotos" data-estado={marcaDe("fotos") ?? undefined} className="card-cayla hilo-tarjeta scroll-mt-24 p-5">
-          {marcaDe("fotos") && (
-            <p className="mb-3 flex items-center gap-2 text-[12px] text-taupe">
-              <MarcaCampo estado={marcaDe("fotos")!} />
-              {marcaDe("fotos") === "ahora" ? <EtiquetaAhora /> : marcaDe("fotos") === "hecho" ? "Listo" : "Falta"}
-            </p>
-          )}
-          <FotosPorColor
-            fotos={fotosVista}
-            onFotos={cambiarFotos}
-            guardadas={fotosGuardadas}
-            colores={coloresFicha}
-            vocabulario={colores}
-            nombreColor={nombres.color}
-            disabled={loading}
-          />
-        </section>
+          {/* ---------- 3 · Fotos ----------
+               id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
+          <SeccionFicha
+            id="fotos"
+            numero={3}
+            hecho={!pendienteFotos}
+            titulo="Fotos"
+            resumen={sinFotoNombres.length > 0 ? `Falta ${sinFotoNombres.join(", ")} — mira el panel de la derecha` : "Completa"}
+            abierta={abiertas.fotos}
+            onAbierta={(v) => setAbiertas((a) => ({ ...a, fotos: v }))}
+            retraso={140}
+          >
+            <div data-campo="fotos" data-estado={marcaDe("fotos") ?? undefined} className="hilo-tarjeta space-y-3 rounded-xl">
+              <p className="text-[11.5px] text-tinta/45">
+                La vista grande y el selector de color viven en el panel del taller, a la derecha: usa «Cambiar foto» (o «+ Agregar foto» si al color le falta)
+                sobre la imagen grande, ahí mismo. Aquí abajo ves, ordenas o quitas todas.
+              </p>
+              {marcaDe("fotos") && (
+                <p className="flex items-center gap-2 text-[12px] text-taupe">
+                  <MarcaCampo estado={marcaDe("fotos")!} />
+                  {marcaDe("fotos") === "ahora" ? <EtiquetaAhora /> : marcaDe("fotos") === "hecho" ? "Listo" : "Falta"}
+                </p>
+              )}
+              <FotosPorColor
+                fotos={fotosVista}
+                onFotos={cambiarFotos}
+                guardadas={fotosGuardadas}
+                colores={coloresFicha}
+                vocabulario={colores}
+                nombreColor={nombres.color}
+                disabled={loading}
+              />
+            </div>
+          </SeccionFicha>
 
-        {/* ---------- variantes (ADR-0263) ---------- */}
-        <VariantesFicha
-          key={reinicio}
+          {/* ---------- 4 · Variantes y precios (ADR-0263; matriz de la maqueta B) ---------- */}
+          <SeccionFicha
+            id="seccion-variantes"
+            numero={4}
+            hecho={false}
+            titulo="Variantes y precios"
+            resumen={resumenVariantes(filas)}
+            abierta={abiertas.variantes}
+            onAbierta={(v) => setAbiertas((a) => ({ ...a, variantes: v }))}
+            retraso={190}
+          >
+            {filas.some((f) => f.activo) && (
+              <div className="mb-3">
+                <CambiarEnBloque
+                  key={reinicio}
+                  filas={filas}
+                  onFilas={setFilas}
+                  onPendiente={setBloquePendiente}
+                  nombres={nombres}
+                  veCosto={veCosto}
+                  deshabilitado={loading}
+                  onCampo={setCampoBloque}
+                />
+              </div>
+            )}
+
+            <MatrizStockFicha
+              ctx={ctx}
+              filas={filas}
+              stock={stock}
+              verCosto={campoBloque === "costo"}
+              colorActivo={colorFijo}
+              onElegirColor={(c) => setColorElegido(c)}
+              onVerColor={setColorVisto}
+              onCambioFila={(clave, cambio) => setFilas((actual) => cambiarFila(actual, clave, cambio))}
+              onAbrirModal={(c) => setAjusteDeColor(c)}
+              deshabilitado={loading}
+            />
+
+            <MotivoDeLaVisita stock={stock} deshabilitado={loading} />
+
+            <button type="button" id="variantes-agregar-color" className="taller-agregar-color" disabled={loading} onClick={() => setAgregandoColor(true)}>
+              + Agregar color
+            </button>
+
+            {/* «Nacen sin unidades» (NACEN_SIN_UNIDADES): una variante nueva arranca en 0 a propósito. El banner hace obvio el paso
+                siguiente: el mismo stepper de arriba, y lo puesto entra como stock inicial al guardar. */}
+            {colorSinUnidades && (
+              <div className="taller-banner-nueva" role="status">
+                <span aria-hidden>●</span>
+                <span>
+                  <b>{nombres.color(colorSinUnidades)}</b> nació sin unidades: así entra el stock real, con el mismo stepper de arriba. Toca «+»; entra al
+                  guardar.
+                </span>
+                <button type="button" onClick={() => irAColorNuevo(colorSinUnidades)}>
+                  Ir a {nombres.color(colorSinUnidades)}
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 border-t border-sand pt-3">
+              <button
+                type="button"
+                aria-expanded={verDetalle}
+                onClick={() => setVerDetalle((v) => !v)}
+                className="label-cayla inline-flex items-center gap-1 text-[11px] text-tinta/65 hover:text-tinta"
+              >
+                Más de cada variante: corregir color o talla, agregar talla, etiquetas, margen
+                <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${verDetalle ? "rotate-180" : ""}`} />
+              </button>
+              {verDetalle && (
+                <div className="mt-3">
+                  <VariantesFicha
+                    key={reinicio}
+                    detalle
+                    ctx={ctx}
+                    filas={filas}
+                    problemas={problemas}
+                    onFilas={setFilas}
+                    onBloquePendiente={setBloquePendiente}
+                    tallasCategoria={tallasCategoria}
+                    categoriaNombre={categoriaActual?.nombre}
+                    onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
+                    onFotosDeColores={sumarFotosDeColores}
+                    etiquetas={opcionesEtiqueta}
+                    avisoEtiquetas={avisoEtiquetas}
+                    deshabilitado={loading}
+                    resumen={resumen}
+                  />
+                </div>
+              )}
+            </div>
+          </SeccionFicha>
+        </div>
+
+        <PanelDelTaller
           ctx={ctx}
           filas={filas}
-          problemas={problemas}
-          onFilas={setFilas}
-          onBloquePendiente={setBloquePendiente}
-          tallasCategoria={tallasCategoria}
-          categoriaNombre={categoriaActual?.nombre}
-          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
-          onFotosDeColores={sumarFotosDeColores}
-          etiquetas={opcionesEtiqueta}
-          avisoEtiquetas={avisoEtiquetas}
+          colores={coloresPanel}
+          colorMostrado={colorMostrado}
+          onElegirColor={(c) => setColorElegido(c)}
+          fotosVista={fotosVista}
+          onFotosSubidas={fotosDesdePanel}
+          stock={stock}
+          onAbrirModal={(c) => setAjusteDeColor(c)}
+          pendientes={pendientes}
+          completadaAqui={pendientesAlAbrir.size > 0}
+          onIrPendiente={irAPendiente}
           deshabilitado={loading}
-          resumen={resumen}
         />
       </div>
 
-      <PanelDelTaller
-        identidad={{
-          codigo: producto?.codigo ?? null,
-          nombre: referencia,
-          categoria: categoriaActual?.nombre ?? null,
-          marca: marcaNombre,
-          tejido: tejidoNombre,
-        }}
-        ctx={ctx}
-        filas={filas}
-        fotosVista={fotosVista}
-        nombreColor={nombres.color}
-        nombreTalla={nombres.talla}
-      />
-      </div>
+      {agregandoColor && (
+        <AgregarColoresModal
+          ctx={ctx}
+          filas={filas}
+          tallas={tallasCategoria}
+          categoriaNombre={categoriaActual?.nombre}
+          etiquetasTexto={etiquetasTexto}
+          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
+          onConfirmar={agregarColores}
+          onClose={() => setAgregandoColor(false)}
+        />
+      )}
+      {ajusteDeColor !== undefined && ajusteStock && producto && (
+        // El editor es un <form>: los eventos del modal (un portal) suben por el árbol de React (ADR-0128). Sin esto, su «Confirmar»
+        // abriría «Revisa y guarda» del producto. El mismo envoltorio que `AjusteDeStock`.
+        <span className="contents" onSubmit={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <AjustarInventarioModal
+            productoId={producto.id}
+            prenda={{ color: ajusteDeColor === null ? null : nombres.color(ajusteDeColor) }}
+            ubicacionId={ajusteStock.ubicacionId}
+            sububicaciones={ajusteStock.sububicaciones}
+            puedeBajarAlPiso={ajusteStock.puedeBajarAlPiso}
+            onClose={() => {
+              setAjusteDeColor(undefined);
+              stock.recargar();
+            }}
+          />
+        </span>
+      )}
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
       <BarraDeCambios
@@ -1177,6 +1425,7 @@ export function ProductoForm({
           nombre={producto?.referencia ?? referencia}
           resumen={resumen}
           avisos={avisosSinBloquear}
+          notaAgregan={notaAgregan}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}
         />

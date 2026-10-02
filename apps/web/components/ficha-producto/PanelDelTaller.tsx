@@ -1,160 +1,238 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import Image from "next/image";
+import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { AjusteDeStock } from "./AjusteDeStock";
-import { PuntoColor, type ContextoFicha } from "./piezas";
+import type { PendienteFicha } from "@/lib/producto-ficha-guia";
+import { rangoDePrecios, tonoDeBarra } from "@/lib/matriz-ficha-reglas";
+import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
+import type { ContextoFicha } from "./piezas";
+import type { StockFicha } from "./useStockFicha";
 
-// Panel del taller (2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre al quitar el panel de
-// guardado. A diferencia de ese panel viejo, este NO guarda nada — es un espejo de solo lectura (identidad, foto por
-// color, stock por talla) salvo el lápiz de «Ajustar stock», que es el MISMO `AjusteDeStock` que ya vive en la lista de
-// variantes de abajo (mismo `AjustarInventarioModal`, mismo motivo/sede/responsable: no se reinventa el ajuste).
-// Decidido con Felipe tras 3 maquetas (docs/maquetas/producto-editar-rediseno-2026-10/): la B, «Panel del taller».
+// Panel del taller (maqueta B, Felipe 2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre. Es la identidad
+// visual de la prenda en vivo —la foto del color elegido, sus colores, el stock por talla de ese color, el precio y lo que le falta—
+// para que quien ajusta precios o stock a la izquierda vea de un vistazo qué le falta sin bajar a buscarlo.
 //
-// «Cambiar foto» no duplica el subidor de `FotosPorColor` (esa pieza ya sabe subir, reemplazar y quitar fotos por
-// color) — solo lleva la vista hasta la sección «Fotos», con el mismo scroll que ya usa la guía de foco (`#fotos`).
+// NO es un segundo lugar para guardar (ADR-0257: guardar es solo la barra de abajo). Lo que hace aquí es lo mismo que hace la
+// izquierda, por el mismo camino: el stepper de cada talla es el ajuste de `useStockFicha` (con el motivo de la visita), y
+// «Cambiar foto» sube la foto con la misma revisión de siempre (`useSubirFotos`, ADR-0228) y la deja en la ficha hasta «Revisar y
+// guardar», como cualquier foto de la sección «Fotos».
 
 export function PanelDelTaller({
-  identidad,
   ctx,
   filas,
+  colores,
+  colorMostrado,
+  onElegirColor,
   fotosVista,
-  nombreColor,
-  nombreTalla,
+  onFotosSubidas,
+  stock,
+  onAbrirModal,
+  pendientes,
+  completadaAqui,
+  onIrPendiente,
+  deshabilitado,
 }: {
-  identidad: {
-    codigo: string | null;
-    nombre: string;
-    categoria: string | null;
-    marca: string | null;
-    tejido: string | null;
-  };
   ctx: ContextoFicha;
   filas: readonly FilaFicha[];
+  /** Los colores que la prenda vende hoy, en el orden de la ficha. */
+  colores: readonly string[];
+  /** El color que el panel muestra (el elegido, o el que tiene el mouse encima en la matriz). */
+  colorMostrado: string | null;
+  onElegirColor: (c: string | null) => void;
   fotosVista: readonly FotoLocal[];
-  nombreColor: (codigo: string | null) => string;
-  nombreTalla: (id: string | null) => string;
+  /** Fotos recién subidas desde el panel: van al color mostrado y pasan a ser su portada. */
+  onFotosSubidas: (nuevas: FotoSubida[]) => void;
+  stock: StockFicha;
+  onAbrirModal: (color: string | null) => void;
+  pendientes: readonly PendienteFicha[];
+  completadaAqui: boolean;
+  onIrPendiente: (p: PendienteFicha, colorSinFoto: string | null) => void;
+  deshabilitado: boolean;
 }) {
-  // Los colores con alguna variante activa, en el orden en que aparecen en la ficha (igual que `coloresConVariantesActivas`,
-  // pero acá basta el orden de aparición: no hace falta traer esa regla solo para esto).
-  const colores = [...new Set(filas.filter((f) => f.activo).map((f) => f.colorCodigo))];
-  const [colorElegido, setColorElegido] = useState<string | null>(colores[0] ?? null);
-  const colorActivo = colores.includes(colorElegido) ? colorElegido : (colores[0] ?? null);
+  const n = ctx.nombres;
+  const archivo = useRef<HTMLInputElement>(null);
+  const { elegir, ocupado, revision } = useSubirFotos({ onSubidas: onFotosSubidas });
 
   const vista = vistaDeFotos(colores, fotosVista as FotoLocal[]);
-  const tarjetaDelColor = vista.tarjetas.find((t) => t.codigo === colorActivo);
-  const fotoPrincipal = tarjetaDelColor?.fotos[0] ?? vista.general.fotos[0] ?? null;
+  const tarjeta = vista.tarjetas.find((t) => t.codigo === colorMostrado);
+  const propia = tarjeta?.fotos[0] ?? null;
+  const foto = propia ?? vista.general.fotos[0] ?? null;
+  const sinFoto = (c: string) => vista.tarjetas.find((t) => t.codigo === c)?.estado === "sin-foto";
+  const color = (c: string | null) => ctx.colores.find((x) => x.codigo === c);
 
-  const filasDelColor = filas
-    .filter((f) => f.activo && f.colorCodigo === colorActivo)
+  const delColor = filas
+    .filter((f) => f.activo && f.colorCodigo === colorMostrado)
     .slice()
-    .sort((a, b) => compararTallas(nombreTalla(a.tallaId), nombreTalla(b.tallaId)));
+    .sort((a, b) => compararTallas(n.talla(a.tallaId), n.talla(b.tallaId)));
+  const numero = (f: FilaFicha) => (f.id && f.guardada ? stock.numero(f.id) : stock.numeroNueva(f.clave));
+  const max = Math.max(1, ...delColor.map(numero));
 
-  const activas = filas.filter((f) => f.activo);
-  const precios = activas.map((f) => Number(f.precio)).filter((n) => n > 0);
-  const precioMin = precios.length ? Math.min(...precios) : null;
-  const precioMax = precios.length ? Math.max(...precios) : null;
-
-  function irAFotos() {
-    const el = document.getElementById("fotos");
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.animate(
-      [{ backgroundColor: "var(--color-hueso)" }, { backgroundColor: "var(--color-papel)" }],
-      { duration: 900, easing: "cubic-bezier(.32,.72,.24,1)" },
-    );
-  }
+  const precios = filas
+    .filter((f) => f.activo)
+    .map((f) => Number(f.precio))
+    .filter((p) => p > 0);
+  const primerSinFoto = colores.find(sinFoto) ?? null;
+  const pendiente = pendientes[0];
 
   return (
-    <aside aria-label="Panel del taller" className="hidden space-y-3 lg:sticky lg:top-6 lg:block">
-      <div className="card-cayla overflow-hidden">
-        <div className="relative aspect-[4/3] bg-hueso">
-          {fotoPrincipal ? (
-            <Image src={fotoPrincipal.url} alt="" fill sizes="340px" className="object-cover" unoptimized />
+    <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 lg:sticky lg:top-6">
+      <div className="taller-panel-foto">
+        <div className="taller-foto-grande">
+          {foto ? (
+            <Image key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" unoptimized />
           ) : (
-            <div className="grid h-full place-items-center px-6 text-center text-[12.5px] text-ambar-profundo">
-              {colorActivo ? `Sin foto de ${nombreColor(colorActivo)} todavía` : "Sin fotos todavía"}
-            </div>
+            <div className="taller-foto-vacia">{colorMostrado ? `Sin foto de ${n.color(colorMostrado)} todavía` : "Sin fotos todavía"}</div>
+          )}
+          {colorMostrado && (
+            <span className="taller-tagcolor">
+              <span className="grid h-[9px] w-[9px] place-items-center overflow-hidden rounded-full">
+                <span className="block scale-[1.1]">
+                  <Punto hex={color(colorMostrado)?.hex ?? null} familia={color(colorMostrado)?.familiaColor} />
+                </span>
+              </span>
+              {n.color(colorMostrado)}
+            </span>
           )}
           <button
             type="button"
-            onClick={irAFotos}
-            className="absolute bottom-2.5 right-2.5 rounded-full bg-tinta/80 px-3 py-1.5 text-[11.5px] font-semibold text-crema backdrop-blur transition-colors hover:bg-tinta"
+            className="taller-btn-foto"
+            data-sin-foto={!propia || undefined}
+            disabled={deshabilitado || ocupado}
+            onClick={() => archivo.current?.click()}
           >
-            {fotoPrincipal ? "Cambiar foto" : "+ Agregar foto"}
+            {propia ? "Cambiar foto" : "+ Agregar foto"}
           </button>
+          <input
+            ref={archivo}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            onChange={(e) => {
+              const archivos = [...(e.target.files ?? [])];
+              e.target.value = "";
+              if (archivos.length > 0) elegir(archivos, colorMostrado);
+            }}
+          />
         </div>
         {colores.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3">
-            {colores.map((c) => (
-              <button
-                key={c ?? "sin-color"}
-                type="button"
-                onClick={() => setColorElegido(c)}
-                aria-pressed={c === colorActivo}
-                aria-label={nombreColor(c)}
-                title={nombreColor(c)}
-                className={`rounded-full p-0.5 transition-shadow ${c === colorActivo ? "shadow-[0_0_0_2px_var(--color-tinta)]" : "shadow-[0_0_0_1.5px_var(--color-sand)] hover:shadow-[0_0_0_1.5px_var(--color-taupe)]"}`}
-              >
-                <PuntoColor codigo={c} colores={ctx.colores} />
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="border-t border-sand px-4 py-3.5">
-          {identidad.codigo && <p className="font-mono text-[12px] text-taupe">{identidad.codigo}</p>}
-          <p className="font-display mt-0.5 text-xl leading-tight text-tinta">{identidad.nombre || "Sin nombre"}</p>
-          <p className="text-[12.5px] text-taupe">
-            {identidad.categoria ?? "Sin categoría"}
-            {identidad.marca && ` · ${identidad.marca}`}
-            {identidad.tejido && ` · ${identidad.tejido}`}
-          </p>
-        </div>
-      </div>
-
-      {colorActivo && filasDelColor.length > 0 && (
-        <div className="card-cayla space-y-2.5 p-4">
-          <p className="label-cayla flex items-center justify-between text-[11px] text-tinta/65">
-            <span>Stock por talla</span>
-            <span>{nombreColor(colorActivo)}</span>
-          </p>
-          <ul className="space-y-1.5">
-            {filasDelColor.map((f) => {
-              const e = f.id && ctx.estado ? ctx.estado[f.id] : undefined;
-              const stock = e ? e.stock : f.guardada ? 0 : null;
-              const tallaTxt = nombreTalla(f.tallaId) || "Sin talla";
+          <div className="taller-swatches">
+            {colores.map((c) => {
+              const col = color(c);
               return (
-                <li key={f.clave} className="flex items-center justify-between gap-2 text-[13px]">
-                  <span className="font-medium text-tinta">{tallaTxt}</span>
-                  <span className="flex items-center tabular-nums text-tinta">
-                    {stock === null ? "—" : `${stock} u.`}
-                    {f.guardada && (
-                      <AjusteDeStock
-                        ajuste={ctx.ajusteStock}
-                        colorNombre={nombreColor(colorActivo)}
-                        forma="lapiz"
-                        descripcion={`${nombreColor(colorActivo)} · ${tallaTxt}`}
-                      />
-                    )}
+                <button
+                  key={c}
+                  type="button"
+                  className="taller-swatch"
+                  aria-pressed={c === colorMostrado}
+                  data-sin-foto={sinFoto(c) || undefined}
+                  title={sinFoto(c) ? `${n.color(c)} — sin foto` : n.color(c)}
+                  aria-label={n.color(c)}
+                  onClick={() => onElegirColor(c)}
+                >
+                  <span className="absolute inset-0 grid place-items-center overflow-hidden rounded-full">
+                    <span className="block scale-[2.9]">
+                      <Punto hex={col?.hex ?? null} familia={col?.familiaColor} />
+                    </span>
                   </span>
-                </li>
+                </button>
               );
             })}
-          </ul>
+          </div>
+        )}
+      </div>
+
+      {colorMostrado !== null && delColor.length > 0 && (
+        <div className="taller-tarjeta">
+          <p className="taller-tit mb-2.5 flex justify-between">
+            <span>Stock por talla</span>
+            <span>{n.color(colorMostrado)}</span>
+          </p>
+          {delColor.map((f) => {
+            const u = numero(f);
+            const guardada = !!(f.id && f.guardada);
+            const esperando = guardada && stock.cargando;
+            const talla = n.talla(f.tallaId) || "Única";
+            const nombre = `${n.color(colorMostrado)} · ${talla}`;
+            const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
+            const conBotones = !guardada || stock.puedeAjustar;
+            return (
+              <div key={f.clave} className="taller-barra-talla">
+                <b className="text-[12px] text-taupe">{talla}</b>
+                <div className="taller-pista">
+                  <div
+                    className="taller-relleno"
+                    data-tono={tonoDeBarra(u)}
+                    role="progressbar"
+                    aria-valuenow={u}
+                    aria-valuemin={0}
+                    aria-valuemax={max}
+                    aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
+                    style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-right text-[12px] tabular-nums text-tinta">{esperando ? "…" : u}</span>
+                {conBotones ? (
+                  <span className="taller-stepper" data-mini="true">
+                    <button
+                      type="button"
+                      aria-label={`Una menos de ${nombre}`}
+                      disabled={deshabilitado || esperando || !puedeBajar}
+                      onClick={() => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1))}
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Una más de ${nombre}`}
+                      disabled={deshabilitado || esperando}
+                      onClick={() => {
+                        if (!guardada) return stock.pasoNueva(f.clave, 1);
+                        if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
+                      }}
+                    >
+                      +
+                    </button>
+                  </span>
+                ) : (
+                  <span />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {precioMin !== null && (
-        <div className="card-cayla flex items-center justify-between p-4">
-          <span className="label-cayla text-[11px] text-tinta/65">Precio de la prenda</span>
-          <span className="font-display text-lg text-tinta">
-            {precioMax !== null && precioMax !== precioMin ? `S/ ${precioMin.toFixed(0)} – ${precioMax.toFixed(0)}` : `S/ ${precioMin.toFixed(2)}`}
-          </span>
+      {precios.length > 0 && (
+        <div className="taller-tarjeta flex items-center justify-between">
+          <span className="taller-tit">Precio de la prenda</span>
+          <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
         </div>
       )}
+
+      {pendiente ? (
+        <button type="button" className="taller-tarjeta taller-guia" onClick={() => onIrPendiente(pendiente, primerSinFoto)} title={pendiente.detalle}>
+          <span className="taller-hilo" aria-hidden />
+          <span>
+            Falta <b>{pendiente.etiqueta.charAt(0).toLowerCase() + pendiente.etiqueta.slice(1)}</b>
+            {pendientes.length > 1 ? ` y ${pendientes.length - 1} más` : ""} — no hace falta para guardar
+          </span>
+        </button>
+      ) : (
+        completadaAqui && (
+          <div className="taller-tarjeta taller-guia" data-completa="true" role="status">
+            <span className="taller-hilo" aria-hidden />
+            Ficha completa
+          </div>
+        )
+      )}
+
+      <p className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
+      {revision}
     </aside>
   );
 }

@@ -87,6 +87,7 @@ export function VariantesFicha({
   avisoEtiquetas,
   deshabilitado,
   resumen,
+  detalle = false,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -111,6 +112,9 @@ export function VariantesFicha({
   /** Lo que cambió contra lo guardado (la cuenta de la barra, armada con `variantesParaResumen(filas)`: el índice de cada
    *  cambio es el de su fila). Sin él, las filas no se marcan. */
   resumen?: ResumenCambios;
+  /** Dentro de «Más de cada variante», bajo la matriz de la ficha (maqueta B, 2026-10-02): sin su tarjeta ni «Cambiar en bloque»
+   *  (la matriz ya lo tiene arriba), y con otros ids en los precios para no repetir los de la matriz. */
+  detalle?: boolean;
 }) {
   const n = ctx.nombres;
   const [modal, setModal] = useState<ModalAbierto>(null);
@@ -178,6 +182,7 @@ export function VariantesFicha({
       etiquetas={etiquetas}
       avisoEtiquetas={avisoEtiquetas}
       etiquetasAbiertas={etiquetasEn === f.clave}
+      sufijoId={detalle ? "-detalle" : ""}
       onEtiquetasAbiertas={(abrir) => setEtiquetasEn(abrir ? f.clave : null)}
       deshabilitado={deshabilitado}
       onCambio={(cambio) => onFilas(cambiarFila(filas, f.clave, cambio))}
@@ -189,7 +194,7 @@ export function VariantesFicha({
   );
 
   return (
-    <section className="card-cayla space-y-4 p-4 sm:p-5" aria-labelledby="variantes-titulo">
+    <section className={detalle ? "space-y-4" : "card-cayla space-y-4 p-4 sm:p-5"} aria-labelledby="variantes-titulo">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 id="variantes-titulo" className="label-cayla text-[11px] text-tinta/65">
           Variantes (talla × color)
@@ -219,7 +224,7 @@ export function VariantesFicha({
               </ChipEje>
             );
           })}
-          <button type="button" id="variantes-agregar-color" disabled={deshabilitado} onClick={() => setModal({ tipo: "agregar-color" })} className="btn-cayla btn-enlace text-[12.5px]">
+          <button type="button" id={detalle ? undefined : "variantes-agregar-color"} disabled={deshabilitado} onClick={() => setModal({ tipo: "agregar-color" })} className="btn-cayla btn-enlace text-[12.5px]">
             + Agregar color
           </button>
         </Eje>
@@ -258,7 +263,7 @@ export function VariantesFicha({
         {ctx.puedeCorregir && bloqueoGeneral && bloqueoGeneral !== bloqueoDelUnicoGrupo && <p className="text-[12px] text-ambar-profundo">{bloqueoGeneral}</p>}
       </div>
 
-      {activas > 0 && (
+      {activas > 0 && !detalle && (
         <CambiarEnBloque filas={filas} onFilas={onFilas} onPendiente={onBloquePendiente} nombres={n} veCosto={ctx.veCosto} deshabilitado={deshabilitado} />
       )}
 
@@ -432,6 +437,7 @@ function FilaVariante({
   onCorregir,
   onDeshacer,
   onQuitar,
+  sufijoId,
 }: {
   f: FilaFicha;
   ctx: ContextoFicha;
@@ -454,6 +460,7 @@ function FilaVariante({
   onCorregir: (() => void) | null;
   onDeshacer: () => void;
   onQuitar: () => void;
+  sufijoId: string;
 }) {
   const n = ctx.nombres;
   const g = f.guardada;
@@ -519,7 +526,7 @@ function FilaVariante({
             min={0}
             step="0.01"
             inputMode="decimal"
-            id={`producto-variante-${f.clave}-precio`}
+            id={`producto-variante-${f.clave}-precio${sufijoId}`}
             aria-label={`Precio de ${nombre}`}
             placeholder="0.00"
             value={f.precio}
