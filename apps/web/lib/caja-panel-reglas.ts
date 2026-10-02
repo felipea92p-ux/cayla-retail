@@ -37,7 +37,7 @@ export function minutosDeHora(hora: string): number {
 }
 
 export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro";
-const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+export const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
 
 /** Los métodos de una venta: `"efectivo + yape"` → `["efectivo", "yape"]`. Sin repetir, y con Yape y
  *  Plin juntos, igual que la dona ("Yape / Plin"). Sin dato no inventa uno: lista vacía. */

@@ -3,7 +3,12 @@ import {
   cierresPorDia,
   cobradoDelTurno,
   cuadreDe,
+  elegirMetodo,
+  elegirVista,
+  FILTRO_MOV_INICIAL,
+  metodosDelTurno,
   modoCierresPredeterminado,
+  pasaFiltroMov,
   pasaFiltroMovimiento,
   piezasDelCajon,
   resumenCuadres,
@@ -55,6 +60,52 @@ describe("pasaFiltroMovimiento", () => {
   });
   it("«Ventas» deja fuera los movimientos manuales", () => {
     expect([ventaEf, ventaYape, egreso].filter((e) => pasaFiltroMovimiento(e, "ventas"))).toEqual([ventaEf, ventaYape]);
+  });
+});
+
+describe("filtro por medio de pago", () => {
+  const venta = (titulo: string, metodos: ("efectivo" | "tarjeta" | "yape" | "transferencia" | "otro")[]) => ({ icono: "venta" as const, titulo, metodos });
+  const ef = venta("Venta · efectivo", ["efectivo"]);
+  const tar = venta("Venta · tarjeta", ["tarjeta"]);
+  const yape = venta("Venta · yape", ["yape"]);
+  const mixta = venta("Venta · efectivo + yape", ["efectivo", "yape"]);
+  const ingreso = { icono: "ingreso" as const, titulo: "Depósito" };
+  const todos = [ef, tar, yape, mixta, ingreso];
+
+  it("elegir un medio lleva a «Ventas»: nunca queda «Mueve el cajón + Tarjeta»", () => {
+    expect(elegirMetodo({ vista: "cajon", metodo: null }, "tarjeta")).toEqual({ vista: "ventas", metodo: "tarjeta" });
+    expect(elegirMetodo(FILTRO_MOV_INICIAL, "yape")).toEqual({ vista: "ventas", metodo: "yape" });
+  });
+  it("tocar el medio ya elegido lo suelta y queda en «Ventas»; tocar otro lo reemplaza", () => {
+    expect(elegirMetodo({ vista: "ventas", metodo: "yape" }, "yape")).toEqual({ vista: "ventas", metodo: null });
+    expect(elegirMetodo({ vista: "ventas", metodo: "yape" }, "tarjeta")).toEqual({ vista: "ventas", metodo: "tarjeta" });
+  });
+  it("elegir cualquier vista suelta el medio", () => {
+    expect(elegirVista("todo")).toEqual({ vista: "todo", metodo: null });
+    expect(elegirVista("cajon")).toEqual({ vista: "cajon", metodo: null });
+  });
+  it("filtra las ventas por medio; la de pago mixto sale en cada uno de sus medios; los movimientos manuales no", () => {
+    const con = (m: "efectivo" | "tarjeta" | "yape") => todos.filter((e) => pasaFiltroMov(e, { vista: "ventas", metodo: m }));
+    expect(con("yape")).toEqual([yape, mixta]);
+    expect(con("efectivo")).toEqual([ef, mixta]);
+    expect(con("tarjeta")).toEqual([tar]);
+  });
+  it("sin medio elegido se comporta como antes", () => {
+    expect(todos.filter((e) => pasaFiltroMov(e, FILTRO_MOV_INICIAL))).toEqual(todos);
+    expect(todos.filter((e) => pasaFiltroMov(e, { vista: "cajon", metodo: null }))).toEqual([ef, mixta, ingreso]);
+  });
+  it("una venta sin medio conocido no sale al filtrar por uno, ni cuenta en la lista de medios", () => {
+    const sinDato = { icono: "venta" as const, titulo: "Venta" };
+    expect(pasaFiltroMov(sinDato, { vista: "ventas", metodo: "efectivo" })).toBe(false);
+    expect(metodosDelTurno([sinDato])).toEqual([]);
+  });
+  it("lista solo los medios usados en el turno, en el orden de siempre, con cuántas ventas tuvo cada uno", () => {
+    expect(metodosDelTurno(todos)).toEqual([
+      { clave: "efectivo", ventas: 2 },
+      { clave: "tarjeta", ventas: 1 },
+      { clave: "yape", ventas: 2 },
+    ]);
+    expect(metodosDelTurno([ingreso])).toEqual([]);
   });
 });
 
