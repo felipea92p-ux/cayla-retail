@@ -212,7 +212,8 @@ function TarjetaEtiqueta({
             onTocar();
             if (!cubierta) onAlternar();
           }}
-          title={enHoja ? undefined : et.nombre}
+          // Sin `title` nativo: la burbuja ya trae el nombre entero y, desde que `TarjetaMuestraBase` deja pasar los eventos del
+          // `TooltipTrigger` (2026-10-02), se abre de verdad; los dos juntos se encimarían.
         >
           <div className="relative">
             <MuestraEtiqueta nombre={et.nombre} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
