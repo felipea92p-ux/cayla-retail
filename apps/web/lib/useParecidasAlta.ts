@@ -64,7 +64,8 @@ export function useParecidasAlta(p: EntradaParecidasAlta) {
   const lee = activo && p.enLinea;
 
   // La base: el candado. Exactamente lo de siempre (350 ms de espera, 6 s de plazo, sin mostrar el resultado de un nombre viejo).
-  const base = useParecidos({ nombre: p.nombre, activo });
+  // Un nombre es único POR MARCA (ADR-0294): la base solo frena al homónimo de la misma marca, y la pantalla igual.
+  const base = useParecidos({ nombre: p.nombre, activo, marcaId: p.marcaId });
 
   // Un nombre que el sistema se reservó («Prenda sin Registrar»): la base no lo ve como «ya existe» pero el índice único sí lo rechaza. No espera a la pausa.
   const reservado = useMemo(() => nombreReservado(p.nombre), [p.nombre]);

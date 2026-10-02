@@ -5891,7 +5891,7 @@ export type Database = {
         Returns: number
       }
       buscar_productos_parecidos: {
-        Args: { p_excluir_id?: string; p_referencia: string }
+        Args: { p_excluir_id?: string; p_marca_id?: string; p_por_marca?: boolean; p_referencia: string }
         Returns: {
           categoria: string
           categoria_id: string

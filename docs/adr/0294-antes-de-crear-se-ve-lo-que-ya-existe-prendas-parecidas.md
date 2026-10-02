@@ -198,3 +198,25 @@ una cuenta (la página de prueba usó respuestas de ejemplo); la casilla de resp
 vacía nombre y descripción y llama a `reiniciar()` en `NuevoProductoForm.tsx`, `otroParecido`); el pulso y `prefers-reduced-motion` en un sistema
 real; el anuncio del lector de pantalla; Safari de una tablet de tienda; el peso de la lectura en una tablet. La página temporal `app/auth/` **no va
 al commit**.
+
+## Actualización 2026-10-02 — fases 2b y 2c: nombre único POR MARCA y la carrera entre sedes
+
+Migración `supabase/migrations/20261002120100_nombre_unico_por_marca_y_carrera_entre_sedes.sql` (una sola parte; **SIN pegar en producción**, pide el OK de Felipe).
+
+- **2c (D1 de Felipe).** `productos_referencia_clave_unica` (único en toda la tienda) pasa a `productos_marca_referencia_clave_unica` sobre `(marca_id, clave)`
+  con `NULLS NOT DISTINCT`: dos productos **sin marca** con el mismo nombre siguen chocando. Se crea el nuevo (más permisivo, no puede fallar por datos)
+  y el viejo se suelta al final. Producción tiene 0 duplicados por (marca, clave) el 2026-10-02.
+- **2b.** `crear_producto_con_variantes` compara «idéntico» y «una letra» solo dentro de la misma marca y, si pierde la carrera contra el índice, responde
+  `nombre_duplicado` con el id del ganador (antes: un `23505` seco). Un reintento con el mismo token a la vez devuelve el producto ya creado.
+- `catalogo_actualizar_producto` (renombrar) y `censo_crear_variante` (conteo) buscan en la marca que corresponde; el conteo **sin marca** sigue colgando la
+  variante de cualquier producto de ese nombre (no crea un duplicado donde hoy se reutiliza).
+- `buscar_productos_parecidos` gana `p_marca_id` y `p_por_marca` (valores de fábrica = comportamiento de antes). Hubo que soltar la función vieja (si no, queda
+  una sobrecarga y la llamada con dos argumentos es ambigua) y repetir su `grant`. La pantalla (`useParecidos({ marcaId })`) la usa para frenar exactamente
+  lo que la base frena, en Nuevo y en Editar producto.
+- Parches **anclados** sobre la definición viva (ADR-0283), con las anclas verificadas contra producción (1, 1, 1, 1, 2, 2 apariciones). Dos de los reemplazos
+  de `crear_producto_con_variantes` abren y cierran un `begin … exception … end;` y por eso se aplican **juntos** en un solo `create or replace`
+  (`pg_temp.reemplazar_juntos`); de a uno la función no compila. Descubierto probándolo.
+- **Verificado:** en un Postgres 17 desechable con las funciones esqueleto: misma marca frena; otra marca pasa; sin marca frena; la carrera (chequeo previo
+  ciego, índice activo) responde `nombre_duplicado` con el ganador; mismo token devuelve el mismo producto; la migración es re-ejecutable. Web: `tsc` 0 y vitest
+  completo verde. **No verificado:** contra la base completa (no hay Postgres local con todas las migraciones en esta sesión) ni con cuenta real.
+- **Sigue vigente:** «una letra» frena en la base hasta `p_confirmo_distinto` (`CASI_IGUAL_FRENA_EN_BASE` no cambia); «Prenda sin Registrar» sigue reservado.
