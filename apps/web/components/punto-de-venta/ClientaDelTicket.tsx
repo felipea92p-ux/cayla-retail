@@ -68,14 +68,14 @@ const PILDORA_ACCION =
  * `filaDeClienta` (lib/clienta-ticket-reglas.ts, con pruebas): sin clienta, la fila no aparece y se vende igual.
  *
  * El club, dibujado como el spike del club (`clientaDelTicketHTML` de `45-club-caja.js`, commit 94f2dece): UNA sola caja con
- * el nombre, el documento y el estado arriba («Identificada» o «Socia» y su publicidad), y lo del club DENTRO de la misma caja:
+ * el nombre, el documento y el estado arriba («Identificado» o «Miembro» y su publicidad), y lo del club DENTRO de la misma caja:
  *   · socia: su cumpleaños y su vale de aniversario, plegados por defecto (la flecha los abre). En su mes (tanda 1c, D-5), la
  *     fila del cumpleaños trae «Canjear 10 %»; con un vale disponible (tanda 1g, G-13), «Usar vale» —y plegada, las mismas
  *     acciones como píldoras—. Va una sola ventaja del club por compra: con una puesta, la otra se apaga y dice por qué. Qué
  *     dicen lo deciden `filaDelCumple` y `filaDelVale`; si están aplicados lo sabe el Punto de venta (`clubDeLaClienta`),
  *     porque el ticket y el cobro los usan cuando esta caja ya no está;
  *   · no socia (tanda 1g, G-2): «Pídele que escanee el cartel del club», en cada compra. Mientras la caja está a la vista,
- *     vuelve a leer su resumen cada 3 s (`useEsperaDelCartel`) y, cuando ella se une con ese documento, pasa sola a «Socia».
+ *     vuelve a leer su resumen cada 3 s (`useEsperaDelCartel`) y, cuando ella se une con ese documento, pasa sola a «Miembro».
  * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas). Si la lectura falla, la caja queda como antes
  * del club y la venta sigue (principio 9).
  */
@@ -115,7 +115,7 @@ export function ClientaDelTicket({
     onSocia: (nuevo) => {
       clubDeLaClienta.seUnio(nuevo);
       const codigo = codigoClubLegible(nuevo.codigoClub);
-      avisar.exito(`${clienta ? lineaDeClienta(clienta).titulo : "La clienta"} ya es del club`, {
+      avisar.exito(`${clienta ? lineaDeClienta(clienta).titulo : "El cliente"} ya es del club`, {
         detalle: codigo ? `Se unió desde el cartel. Su código: ${codigo}.` : "Se unió desde el cartel.",
       });
     },
@@ -163,7 +163,7 @@ export function ClientaDelTicket({
               </button>
               {caja.tipo !== "nada" && (
                 <span className="anim-revelar mt-1 flex flex-wrap gap-1">
-                  {caja.tipo === "socia" ? <Chip tono="neutro">Socia</Chip> : <Chip tono="pizarra">Identificada</Chip>}
+                  {caja.tipo === "socia" ? <Chip tono="neutro">Miembro</Chip> : <Chip tono="pizarra">Identificado</Chip>}
                   {caja.tipo === "socia" && <ChipPublicidad publicidad={caja.publicidad} />}
                 </span>
               )}
@@ -184,7 +184,7 @@ export function ClientaDelTicket({
               type="button"
               onClick={onQuitar}
               disabled={bloqueado}
-              aria-label="Quitar la clienta de esta venta"
+              aria-label="Quitar al cliente de esta venta"
               className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta"
             >
               <X className="h-4 w-4" aria-hidden />
@@ -202,7 +202,7 @@ export function ClientaDelTicket({
                   {caja.cumple}
                 </FilaDelClub>
               ) : (
-                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} sm="Se agrega en su ficha de Clientas" titulo="Sin él no hay beneficio de cumpleaños.">
+                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} sm="Se agrega en su ficha de Clientes" titulo="Sin él no hay beneficio de cumpleaños.">
                   <b className="font-semibold">Sin cumpleaños</b>
                 </FilaDelClub>
               )}
@@ -238,7 +238,7 @@ export function ClientaDelTicket({
           className="flex w-full items-center gap-2 rounded-xl border border-dashed border-tinta/25 px-3 py-2.5 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta"
         >
           <UserRound className="h-4 w-4 shrink-0" aria-hidden />
-          Agregar clienta
+          Agregar cliente
           <span className="ml-auto text-[11.5px] text-tinta/50">Documento, celular o nombre · opcional</span>
         </button>
       )}
@@ -404,7 +404,7 @@ function iniciales(texto: string) {
     .join("");
 }
 
-/** Una ficha de la lista del buscador, con lo que la lista dice de ella frente al club (spike: «· Socia» / «· Identificada»). */
+/** Una ficha de la lista del buscador, con lo que la lista dice de ella frente al club (spike: «· Miembro» / «· Identificado»). */
 type EnLaLibreta = { clienta: ClientaDelTicket; clubDesde: string | null };
 
 type Estado =
@@ -458,7 +458,7 @@ function BuscarClientaModal({
             documentoNumero: c.documento_numero,
             celular: c.telefono_whatsapp,
           },
-          // Antes de la migración de la tanda 1b la columna no llega: se lee como «Identificada», que es lo que era.
+          // Antes de la migración de la tanda 1b la columna no llega: se lee como «Identificado», que es lo que era.
           clubDesde: c.club_desde ?? null,
         })),
       });
@@ -476,10 +476,10 @@ function BuscarClientaModal({
 
   return (
     <Modal
-      titulo={alta ? "Registrar clienta" : "Clienta de esta venta"}
+      titulo={alta ? "Registrar cliente" : "Cliente de esta venta"}
       subtitulo={
         alta
-          ? "Solo su documento. Para ser del club, se une ella escaneando el cartel."
+          ? "Solo su documento. Para ser del club, se une por su cuenta escaneando el cartel."
           : "Opcional. Sus datos pasan solos al comprobante y la compra queda en su ficha."
       }
       variante="hoja"
@@ -530,15 +530,15 @@ function BuscarClientaModal({
                 // Spike del club (`modalBuscarClienta`): las dos salidas, del mismo ancho.
                 <div className="space-y-3">
                   <p className="rounded-lg bg-hueso px-3 py-3 text-xs text-tinta/75">
-                    No está en la libreta de clientas. Puedes registrarla ahora, o seguir sin ella: el DNI y el nombre se ponen al cobrar, en el
+                    No está en la libreta de clientes. Puedes registrarlo ahora, o seguir sin cliente: el DNI y el nombre se ponen al cobrar, en el
                     comprobante.
                   </p>
                   <div className="flex gap-2">
                     <Boton type="button" peso="primario" onClick={irARegistrar} className="flex-1">
-                      Registrarla
+                      Registrarlo
                     </Boton>
                     <Boton type="button" peso="fantasma" onClick={cerrar} className="flex-1">
-                      Seguir sin ella
+                      Seguir sin cliente
                     </Boton>
                   </div>
                 </div>
@@ -568,7 +568,7 @@ function BuscarClientaModal({
               <div className="mt-3 flex justify-end">
                 <button type="button" onClick={irARegistrar} className="btn-cayla btn-sutil btn-chico">
                   <UserPlus className="h-4 w-4" aria-hidden />
-                  Registrar clienta
+                  Registrar cliente
                 </button>
               </div>
             )}
@@ -657,7 +657,7 @@ function RegistrarClientaEnTicket({
     if (error || !id) {
       // Solo ante un rechazo: con éxito, `despues` vaciaría el combo y soltaría a quien atiende la venta en curso.
       if (error) responsable.despues(error);
-      return void avisar.error(traducirError(error, "registrar a la clienta"));
+      return void avisar.error(traducirError(error, "registrar al cliente"));
     }
     const nueva: ClientaDelTicket = {
       id,
@@ -666,7 +666,7 @@ function RegistrarClientaEnTicket({
       documentoNumero: numero || null,
       celular: null,
     };
-    avisar.exito("Clienta registrada", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
+    avisar.exito("Cliente registrado", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
     onRegistrada(nueva);
   }
 

@@ -88,7 +88,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                     {agotada
                       ? "Sin stock aquí"
                       : apartada
-                        ? "Apartada para una clienta"
+                        ? "Apartada para un cliente"
                         : enAlmacen
                           ? `${t.almacenAqui} en el almacén`
                           : tope

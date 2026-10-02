@@ -172,7 +172,7 @@ export function lecturaDesempeno(x: AnalisisDesempeno, dias: number): Lectura | 
       tono: "ambar",
       detalle: x.tuvoQuiebre
         ? "El piso llegó a 0 en algún momento del período y luego se repuso: cada quiebre es venta que no se hizo."
-        : `Expuesta en piso ${x.diasConStockPiso === null ? "muy poco" : `${Math.round(x.diasConStockPiso)} de ${Math.round(dias)} días`} del período: la mayor parte del tiempo no estuvo disponible para la clienta.`,
+        : `Expuesta en piso ${x.diasConStockPiso === null ? "muy poco" : `${Math.round(x.diasConStockPiso)} de ${Math.round(dias)} días`} del período: la mayor parte del tiempo no estuvo disponible para el cliente.`,
     };
   }
 

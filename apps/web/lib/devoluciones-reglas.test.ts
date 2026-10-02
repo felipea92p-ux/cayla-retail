@@ -112,7 +112,7 @@ describe("destinoPrendaResuelta", () => {
     expect(destinoPrendaResuelta("aprobada", "vendible")).toEqual({ texto: "Al piso", tono: "verde" });
     expect(destinoPrendaResuelta("aprobada", "danada_donar").texto).toBe("En cuarentena");
     expect(destinoPrendaResuelta("aprobada", "devolver_proveedor").texto).toBe("En cuarentena");
-    expect(destinoPrendaResuelta("rechazada", "vendible").texto).toBe("Se queda con la clienta");
+    expect(destinoPrendaResuelta("rechazada", "vendible").texto).toBe("Se queda con el cliente");
   });
 });
 
@@ -241,7 +241,7 @@ describe("revisarAprobacion", () => {
   });
 
   it("reembolsar más de lo que pagó avisa pero no frena; un monto negativo sí frena", () => {
-    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó la clienta (S/ 79.90)." });
+    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó el cliente (S/ 79.90)." });
     expect(revisarAprobacion({ ...base, monto: -5 }).bloqueo).toBe("El monto del reembolso no puede ser negativo.");
   });
 });

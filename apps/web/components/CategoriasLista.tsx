@@ -572,7 +572,7 @@ export function CategoriasLista({
                 onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })}
                 rows={2}
                 maxLength={2000}
-                placeholder="Solo la ve el equipo — nunca la clienta."
+                placeholder="Solo la ve el equipo — nunca el cliente."
                 className="w-full resize-none rounded-md border border-tinta/15 bg-papel px-2.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo/50"
               />
             </Campo>

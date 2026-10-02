@@ -35,7 +35,7 @@ export function lineasDelCarritoDesdeVenta(prendas: readonly PrendaParaRepetir[]
     }
     if (v.stockAqui <= 0) {
       const enAlmacen = v.almacenAqui ?? 0;
-      faltan.push(`${p.descripcion} (${enAlmacen > 0 ? `${enAlmacen} en el almacén` : motivoNoCobrable(v) === "apartada" ? "apartada para una clienta" : "no hay en esta tienda"})`);
+      faltan.push(`${p.descripcion} (${enAlmacen > 0 ? `${enAlmacen} en el almacén` : motivoNoCobrable(v) === "apartada" ? "apartada para un cliente" : "no hay en esta tienda"})`);
       continue;
     }
     const cantidad = Math.min(p.cantidad, v.stockAqui);

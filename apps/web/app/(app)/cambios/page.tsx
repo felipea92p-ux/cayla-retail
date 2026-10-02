@@ -41,7 +41,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
   // clienta no se ofrece (ADR-0141).
   const stockAquiPorVariante = new Map([...stock].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
-  // Lo apartado en ese mismo piso: con él, una talla sin nada libre dice «apartada para una clienta» y no «no queda».
+  // Lo apartado en ese mismo piso: con él, una talla sin nada libre dice «apartada para un cliente» y no «no queda».
   const apartadoAquiPorVariante = new Map([...stock].map(([id, c]) => [id, apartadoEnPiso(c)]));
   const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 

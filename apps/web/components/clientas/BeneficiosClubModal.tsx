@@ -46,7 +46,7 @@ export function BeneficiosClubModal({
   return (
     <Modal
       titulo="Beneficios del club"
-      subtitulo="El cupón de cumpleaños y el vale de aniversario de cada socia, para las 3 tiendas."
+      subtitulo="El cupón de cumpleaños y el vale de aniversario de cada miembro, para las 3 tiendas."
       onClose={onClose}
       variante="hoja"
       ancho="max-w-lg"

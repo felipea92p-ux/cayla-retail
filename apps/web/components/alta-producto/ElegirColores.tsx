@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { Modal } from "@/components/ui/Modal";
 import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
@@ -20,7 +21,7 @@ import { useEnLinea } from "@/lib/useEnLinea";
 //   2. la carta de colores, abierta de entrada: un renglón por familia, de claro a oscuro. El nombre sale al instante
 //      bajo la carta al pasar el mouse, al llegar con Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en
 //      tablet no salía). El elegido lleva anillo y ✓.
-// «+ Nuevo color» abre un formulario corto en línea (`NuevoColorAlta`) sin salir de la pantalla; el color creado
+// «+ Nuevo color» abre un modal (`NuevoColorAlta`) sin salir de la pantalla; el color creado
 // queda elegido (lo hace quien recibe `onCreado`: suma el color a su lista y lo elige).
 //
 // El título del bloque («Colores» y su bajada) lo pone el formulario, no este componente.
@@ -150,25 +151,30 @@ export function ElegirColores({
         </p>
       )}
 
-      {/* Justo bajo el buscador y no al pie de la carta (el spike lo dibuja después): con la carta abierta de entrada, al
-          pie quedaba fuera de la vista y el botón parecía no hacer nada. */}
+      {/* «+ Nuevo color» es un modal (Felipe, 2026-10-02): el formulario en línea empujaba la carta hacia abajo y, con ella abierta,
+          quedaba lejos del botón. Cinco datos (nombre, tono, familia, código y su aviso de parecidos) merecen su propia hoja. */}
       {nuevo && (
-        <NuevoColorAlta
-          key={nuevo.vez}
-          colores={colores}
-          elegidos={elegidos}
-          nombreInicial={nuevo.nombre}
-          onCerrar={() => setNuevo(null)}
-          onElegir={(cod) => {
-            if (!elegidos.includes(cod)) onAlternar(cod);
-            setNuevo(null);
-          }}
-          onCreado={(color, esPendiente) => {
-            setNuevo(null);
-            setPendiente(esPendiente ? color : null);
-            onCreado(color);
-          }}
-        />
+        <Modal variante="hoja" ancho="max-w-[680px]" titulo="Nuevo color" subtitulo="Queda en el catálogo y se elige en esta prenda." onClose={() => setNuevo(null)}>
+          {(cerrar) => (
+            <NuevoColorAlta
+              key={nuevo.vez}
+              enModal
+              colores={colores}
+              elegidos={elegidos}
+              nombreInicial={nuevo.nombre}
+              onCerrar={cerrar}
+              onElegir={(cod) => {
+                if (!elegidos.includes(cod)) onAlternar(cod);
+                setNuevo(null);
+              }}
+              onCreado={(color, esPendiente) => {
+                setNuevo(null);
+                setPendiente(esPendiente ? color : null);
+                onCreado(color);
+              }}
+            />
+          )}
+        </Modal>
       )}
 
       {carta && (

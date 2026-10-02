@@ -139,7 +139,7 @@ function TarjetaPendiente({
           <span className="font-semibold text-tinta">Motivo:</span> {d.motivo}
         </p>
         <p className="text-xs text-tinta/70">
-          La clienta pagó {soles(d.valorPagado)} por esto.
+          El cliente pagó {soles(d.valorPagado)} por esto.
           {d.comprobanteAceptado && " Al aprobarla se emite la nota de crédito."}
         </p>
       </div>

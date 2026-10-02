@@ -297,7 +297,7 @@ export function ComprobantesPanel({
             <Ayuda titulo="Estados de un comprobante">
               Pendiente de enviar: ya tiene su número oficial reservado (nadie más puede usarlo), pero todavía no se transmitió a SUNAT. Si SUNAT
               está caída, el número no se pierde: se reintenta después. De prueba: se transmitió a la plataforma de pruebas de Lucode, no a SUNAT;
-              tiene número y PDF, pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de la clienta. Sale de ahí
+              tiene número y PDF, pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal del cliente. Sale de ahí
               cuando el sistema apunta al ambiente de producción.
             </Ayuda>
           </p>
@@ -617,7 +617,7 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
             ayuda={
               <Ayuda titulo="Por qué se pide el motivo">
                 Queda guardado en el comprobante, con el nombre del responsable y la fecha — igual que al
-                anular. Sé concreto: “la clienta se arrepintió antes de pagar” dice más que “no
+                anular. Sé concreto: “el cliente se arrepintió antes de pagar” dice más que “no
                 se usó”.
               </Ayuda>
             }
@@ -625,7 +625,7 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
             minLength={3}
             value={motivoLiberacion}
             onChange={(e) => setMotivoLiberacion(e.target.value)}
-            placeholder="La clienta se arrepintió antes de pagar"
+            placeholder="El cliente se arrepintió antes de pagar"
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoLiberacion} className="pt-2" />

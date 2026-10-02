@@ -9,21 +9,19 @@ import {
   Check,
   CirclePause,
   CreditCard,
-  FileText,
   Landmark,
   MessageSquareText,
   Percent,
   Play,
-  Receipt,
+  QrCode,
   ShoppingBag,
   StickyNote,
   Tag,
-  Trash2,
   Wallet,
   X,
 } from "lucide-react";
-import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
+import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   descuentoResultante,
   descuentoUnitarioPorPorcentaje,
@@ -36,14 +34,8 @@ import {
   totalDeLineas,
   type MomentoTicket,
   type PasoDescuento,
-  METODOS_CON_OPERACION,
 } from "@/lib/vender-reglas";
-import { Ayuda } from "@/components/Ayuda";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { CampoMonto } from "@/components/ui/CampoMonto";
-import { BilleteRapido } from "@/components/BilleteRapido";
-import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
-import type { TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
@@ -61,8 +53,6 @@ const TASA_IGV = 0.18;
 const ATAJOS_DESCUENTO = [5, 10, 15] as const;
 
 
-/** Billetes de sol que se reciben en el mostrador — las teclas de «Recibido» los suman. */
-const BILLETES = [10, 20, 50, 100, 200] as const;
 
 /** La nota del ticket: el tope es el `check` de `ventas.nota`; el contador se muestra
  *  recién cerca del tope, para no contar letras a quien escribe cuatro palabras. */
@@ -141,12 +131,31 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
-  efectivo: <Banknote className={ICONO} aria-hidden />,
-  tarjeta: <CreditCard className={ICONO} aria-hidden />,
-  yape: <IconoYape className={ICONO} />,
-  plin: <IconoPlin className={ICONO} />,
-  transferencia: <Landmark className={ICONO} aria-hidden />,
+/** El ícono de un medio, al tamaño que pida quien lo pinta: los cuadrados de la hoja de cobro lo quieren llenando el cuadro. */
+export function iconoMetodo(m: MetodoPagoVenta, className: string): React.ReactNode {
+  switch (m) {
+    case "efectivo":
+      return <Banknote className={className} aria-hidden />;
+    case "tarjeta":
+      return <CreditCard className={className} aria-hidden />;
+    case "qr":
+      return <QrCode className={className} aria-hidden />;
+    case "yape":
+      return <IconoYape className={className} />;
+    case "plin":
+      return <IconoPlin className={className} />;
+    case "transferencia":
+      return <Landmark className={className} aria-hidden />;
+  }
+}
+
+export const ICONO_METODO: Record<MetodoPagoVenta, React.ReactNode> = {
+  efectivo: iconoMetodo("efectivo", ICONO),
+  tarjeta: iconoMetodo("tarjeta", ICONO),
+  qr: iconoMetodo("qr", ICONO),
+  yape: iconoMetodo("yape", ICONO),
+  plin: iconoMetodo("plin", ICONO),
+  transferencia: iconoMetodo("transferencia", ICONO),
 };
 
 // Los colores de cada método viven en `globals.css` (`.metodo-efectivo`, …): los mismos tokens
@@ -154,14 +163,6 @@ export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
 // en las dos pantallas. Lo que se pinta con ellos usa `--c` (relleno/borde), `--ct` (fondo suave) y
 // `--cd` (texto legible: el dorado de efectivo no llega a AA como texto y usa una tinta oscura).
 
-/** La etiquetita dorada que dice «este es el paso que toca» (o «Opcional»). */
-function PastillaPaso({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-rojo/10 px-2 py-px text-[10px] font-medium text-rojo-profundo">
-      {children}
-    </span>
-  );
-}
 
 /** Marca de «elegida» en la lista del apartado de descuento. */
 function IconoCheck() {
@@ -218,29 +219,13 @@ type Props = {
   motivoBloqueo: string | null;
   /** El combo «Responsable» (ADR-0161), justo encima de Cobrar. Su estado vive en el padre (`useResponsable`). */
   responsable: ControlResponsable;
-  // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
+  /** Los pagos puestos: el pago y el comprobante se eligen en la hoja de cobro (`HojaDeCobro`); el ticket solo los usa para
+   *  saber si «Confirmar cobro» ya está listo. */
   pagos: PagoAplicado[];
-  restante: number;
-  vuelto: number;
-  onAgregarPago: (metodo: MetodoPago) => void;
-  onMontoPago: (indice: number, monto: number) => void;
-  onQuitarPago: (indice: number) => void;
-  /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
-  onRecibido: (monto: number | null) => void;
-  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230). */
-  onOperacion: (indice: number, texto: string) => void;
-  // Comprobante + documento de la clienta
-  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
-  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
-  clienteNumDoc: string;
-  onClienteNumDoc: (v: string) => void;
-  /** DNI, carné de extranjería o pasaporte de una boleta o nota de venta (ADR-0288 D-3). */
-  clienteDocIdentidad: TipoDocumentoClienta;
-  onClienteDocIdentidad: (t: TipoDocumentoClienta) => void;
-  clienteNombre: string;
-  onClienteNombre: (v: string) => void;
-  /** Derivado en el padre: lo usa `cobrar()` para frenar y acá para encender el (!). */
-  facturaSinRuc: boolean;
+  /** El comprobante elegido (o ninguno todavía): la nota de venta no desglosa IGV en el pie. */
+  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta"> | null;
+  /** En el celular, la hoja de cobro entera: va dentro del ticket (y de su formulario) mientras se cobra. */
+  cuerpoCobro?: ReactNode;
   // Cobrar
   loading: boolean;
   onCobrar: (e: React.FormEvent) => void;
@@ -295,22 +280,8 @@ export function PuntoDeVentaTicket({
   motivoBloqueo,
   responsable,
   pagos,
-  restante,
-  vuelto,
-  onAgregarPago,
-  onMontoPago,
-  onQuitarPago,
-  onRecibido,
-  onOperacion,
   tipoComprobante,
-  onTipoComprobante,
-  clienteNumDoc,
-  onClienteNumDoc,
-  clienteDocIdentidad,
-  onClienteDocIdentidad,
-  clienteNombre,
-  onClienteNombre,
-  facturaSinRuc,
+  cuerpoCobro,
   loading,
   onCobrar,
   arriba,
@@ -375,17 +346,6 @@ export function PuntoDeVentaTicket({
   // El paso que la pantalla resalta (solo guía) y si «Confirmar cobro» ya se puede: se enciende.
   const paso = pasoDelCobro(pagos, total);
   const listoParaConfirmar = cobrando && paso === "comprobante" && !apagado;
-
-  // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
-  const faltaPago = !cobrando
-    ? null
-    : pagos.length === 0
-      ? "Elige cómo pagó la clienta"
-      : restante > 0
-        ? `Falta cubrir ${money(restante)}`
-        : restante < 0
-          ? "Los pagos superan el total"
-          : null;
 
   // Lo que ya se descontó (suma de todas las líneas), para la fila sobre el total.
   const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
@@ -769,249 +729,10 @@ export function PuntoDeVentaTicket({
                 </p>
               )}
             </div>
-          ) : cobrando ? (
-            <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
-                  aunque la clienta no pida nada. Tocar un medio agrega su fila con lo que
-                  falta; combinar («Yape + efectivo», la venta más común de la tienda) es bajar
-                  un monto y tocar otro. El (!) solo aparece mientras no esté cubierto. */}
-              <fieldset className="space-y-2">
-                <legend className="text-[11px] text-tinta/50">
-                  <span className="flex items-center gap-1">
-                    {faltaPago !== null && (
-                      <Ayuda tono="falta" titulo={faltaPago}>
-                        {pagos.length === 0
-                          ? "Toca uno de los cinco, o pulsa F1 a F5. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se cuenta el efectivo."
-                          : restante > 0
-                            ? "Los medios puestos no llegan al total. Sube un monto o toca otro medio para el resto."
-                            : "La suma de los medios pasa el total y la venta no cuadraría. Baja un monto o quita un medio."}
-                      </Ayuda>
-                    )}
-                    <Wallet className={ICONO_CHICO} aria-hidden />
-                    Cómo pagó la clienta
-                    {paso === "medio" && <PastillaPaso>Siguiente paso</PastillaPaso>}
-                  </span>
-                </legend>
-                {/* Mientras no haya ningún medio la luz recorre los cinco (`ola-activa`, en globals.css):
-                    enseña dónde tocar. En cuanto se elige uno se detiene. */}
-                <div className={`grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1 ${pagos.length === 0 ? "ola-activa" : ""}`}>
-                  {METODOS_PAGO.map((m, iAtajo) => {
-                    // Interruptor: tocar uno elegido lo quita (su monto pasa al siguiente,
-                    // `quitarPagoTraspasando`). Antes quedaba deshabilitado y tocarlo de nuevo
-                    // no hacía nada — sin pista de que había que usar el basurero de abajo.
-                    const indicePuesto = pagos.findIndex((p) => p.metodo === m);
-                    const puesto = indicePuesto !== -1;
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => (puesto ? onQuitarPago(indicePuesto) : onAgregarPago(m))}
-                        disabled={bloqueado}
-                        aria-pressed={puesto}
-                        title={puesto ? `Quitar ${m} (F${iAtajo + 1})` : `${m} (F${iAtajo + 1})`}
-                        aria-keyshortcuts={`F${iAtajo + 1}`}
-                        style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                        className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                          puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA
-                        }`}
-                      >
-                        {/* La tecla del atajo, chiquita en la esquina: enseña F1–F5 sin ocupar sitio. */}
-                        <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold tracking-wide opacity-45">
-                          F{iAtajo + 1}
-                        </span>
-                        {ICONO_METODO[m]}
-                        {m}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {pagos.length > 0 && (
-                  <div className="anim-revelar divide-y divide-sand rounded-lg border border-sand bg-crema">
-                    {pagos.map((p, i) => (
-                      // `anim-revelar` sin lógica extra: el "Recibido" de esta misma fila
-                      // (abajo) solo se pinta cuando `p.metodo` es "efectivo", y ese valor
-                      // no cambia mientras la fila vive (`agregarPago` no permite duplicados
-                      // ni hay forma de mutarlo) — animar la fila cubre el bloque entero.
-                      <div key={p.metodo} className="anim-revelar space-y-2 px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`metodo-${p.metodo}`} style={{ color: "var(--cd)" }}>{ICONO_METODO[p.metodo]}</span>
-                          <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
-                          <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-                            <span className="text-xs text-tinta/60">S/</span>
-                            <CampoMonto
-                              aria-label={`Monto en ${p.metodo}`}
-                              valor={p.monto}
-                              onCambio={(monto) => onMontoPago(i, monto)}
-                              disabled={bloqueado}
-                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            aria-label={`Quitar pago en ${p.metodo}`}
-                            onClick={() => onQuitarPago(i)}
-                            disabled={bloqueado}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
-                          >
-                            <Trash2 className="h-4 w-4" aria-hidden />
-                          </button>
-                        </div>
-
-                        {/* Solo el efectivo da vuelto: lo entregado se anota para calcularlo y
-                            mostrarlo grande — nunca viaja a la venta. Las teclas SUMAN billetes
-                            (S/100 + S/50 = 150); «Exacto» pone lo justo; el campo corrige. */}
-                        {p.metodo === "efectivo" && (
-                          <div className="space-y-2 rounded-md bg-sand/40 p-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
-                                Recibido
-                                {paso === "recibido" && <PastillaPaso>Siguiente paso</PastillaPaso>}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <label className={`flex h-8 items-center gap-1 rounded-md border bg-papel px-2 transition-colors focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${paso === "recibido" ? "border-rojo/70" : "border-sand"}`}>
-                                  <span className="text-xs text-tinta/60">S/</span>
-                                  <input
-                                    aria-label="Efectivo recibido"
-                                    type="number"
-                                    inputMode="decimal"
-                                    min={0}
-                                    step="0.01"
-                                    value={p.recibido ?? ""}
-                                    onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
-                                    placeholder="0.00"
-                                    disabled={bloqueado}
-                                    className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
-                                  />
-                                </label>
-                                {p.recibido !== undefined && (
-                                  <button
-                                    type="button"
-                                    aria-label="Borrar lo recibido"
-                                    onClick={() => onRecibido(null)}
-                                    disabled={bloqueado}
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-sand/60 hover:text-tinta"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-5 gap-1.5">
-                              {BILLETES.map((b) => (
-                                <BilleteRapido key={b} valor={b} onSumar={() => onRecibido((p.recibido ?? 0) + b)} disabled={bloqueado} />
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => onRecibido(p.monto)}
-                              disabled={bloqueado}
-                              className="label-cayla h-8 w-full rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
-                            >
-                              Exacto
-                            </button>
-                            {vuelto > 0 && (
-                              <p key={vuelto} className="anim-asentar flex items-baseline justify-between pt-1">
-                                <span className="label-cayla text-[11px] text-tinta/60">Vuelto</span>
-                                <span className="font-display text-3xl leading-none text-tinta">{money(vuelto)}</span>
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* El nº de operación que la clienta ve en su celular (ADR-0230): opcional, no frena el cobro. Con él,
-                            Ventas ▸ Historial encuentra esta venta aunque la clienta pierda la boleta. */}
-                        {METODOS_CON_OPERACION.includes(p.metodo) && (
-                          <label className="flex items-center justify-between gap-2 text-[11px] text-tinta/50">
-                            <span>Nº de operación (opcional)</span>
-                            <input
-                              aria-label={`Número de operación de ${p.metodo}`}
-                              inputMode="numeric"
-                              autoComplete="off"
-                              value={p.referencia ?? ""}
-                              onChange={(e) => onOperacion(i, e.target.value)}
-                              placeholder="Ej. 01234567"
-                              disabled={bloqueado}
-                              className="h-8 w-36 rounded-md border border-sand bg-papel px-2 text-right font-mono text-sm text-tinta outline-none placeholder:font-sans placeholder:text-tinta/30 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
-                            />
-                          </label>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {pagos.length > 0 && (
-                  <p
-                    key={restante}
-                    className={`anim-asentar flex items-baseline justify-between text-xs ${
-                      restante === 0 ? "text-verde-profundo" : restante > 0 ? "text-tinta/70" : "text-rojo-profundo"
-                    }`}
-                  >
-                    <span>{restante === 0 ? "Cubierto" : restante > 0 ? "Falta cubrir" : "Se pasa por"}</span>
-                    <span className="font-semibold">{restante === 0 ? "✓" : money(Math.abs(restante))}</span>
-                  </p>
-                )}
-              </fieldset>
-
-              {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
-                  solo tienen sentido para la boleta o la factura que se va a emitir. */}
-              {/* Al tocar este paso solo se tiñen de terracota las líneas de los campos de texto
-                  (DNI y nombre): `--hilo` es la variable que lee el hilo de cada campo (`Hilo`). */}
-              <div className={`border-t border-sand pt-4 ${paso === "comprobante" ? "[--hilo:color-mix(in_srgb,var(--color-rojo)_65%,transparent)]" : ""}`}>
-                <fieldset className="space-y-2">
-                  <legend className="text-[11px] text-tinta/50">
-                    <span className="flex items-center gap-1">
-                      {facturaSinRuc && (
-                        <Ayuda tono="falta" titulo="Escribe el RUC de la empresa">
-                          La factura sale a nombre de una empresa y SUNAT exige su RUC. Si la clienta no lo tiene a
-                          mano, cambia a boleta: admite DNI opcional o ningún documento.
-                        </Ayuda>
-                      )}
-                      <Receipt className={ICONO_CHICO} aria-hidden />
-                      Comprobante
-                      {paso === "comprobante" && <PastillaPaso>Opcional: ya está en {ETIQUETA_TIPO[tipoComprobante]}</PastillaPaso>}
-                    </span>
-                  </legend>
-                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
-                    {(["boleta", "factura", "nota_venta"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => onTipoComprobante(t)}
-                        disabled={bloqueado}
-                        aria-pressed={tipoComprobante === t}
-                        className={`${OPCION} label-cayla flex h-9 items-center justify-center gap-1.5 rounded-md text-[11px] ${
-                          tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
-                        }`}
-                      >
-                        {t === "factura" ? <FileText className={ICONO_CHICO} aria-hidden /> : <Receipt className={ICONO_CHICO} aria-hidden />}
-                        {ETIQUETA_TIPO[t]}
-                      </button>
-                    ))}
-                  </div>
-                  <fieldset disabled={bloqueado}>
-                    <DocumentoDelComprobante
-                      tipoComprobante={tipoComprobante}
-                      identidad={clienteDocIdentidad}
-                      onIdentidad={onClienteDocIdentidad}
-                      numero={clienteNumDoc}
-                      onNumero={onClienteNumDoc}
-                      nombre={clienteNombre}
-                      onNombre={onClienteNombre}
-                      sinNumero={
-                        tipoComprobante === "boleta" ? "Sin documento, la boleta sale a nombre de «Cliente varios»."
-                        : tipoComprobante === "nota_venta" ? "Sin documento, la nota de venta sale a nombre de «Cliente varios»."
-                        : undefined
-                      }
-                    />
-                  </fieldset>
-                  {tipoComprobante === "nota_venta" && (
-                    <p className="text-[11px] text-tinta/60">Documento interno de la tienda: no se envía a SUNAT y no desglosa IGV.</p>
-                  )}
-                </fieldset>
-              </div>
-            </div>
+          ) : cobrando && cuerpoCobro ? (
+            // En el celular la hoja de cobro vive aquí, dentro de la hoja del ticket (y del formulario que cobra). En
+            // escritorio entra sobre el catálogo (`HojaDeCobro` desde `PuntoDeVenta`) y aquí siguen las prendas, quietas.
+            <div className={saliendo ? "anim-revelar-salida px-4 py-4" : "anim-revelar px-4 py-4"}>{cuerpoCobro}</div>
           ) : !carrito.length ? (
             <>
               {arriba}
@@ -1022,7 +743,7 @@ export function PuntoDeVentaTicket({
             </>
           ) : (
             <>
-              {arriba}
+              {!cobrando && arriba}
               {/* La entrada y el reflujo de cada línea los anima el padre con `Flip`
                   (responde al escaneo que la creó); acá solo va el ref de la lista — las
                   líneas tienen que seguir siendo sus hijas directas. */}
@@ -1034,7 +755,7 @@ export function PuntoDeVentaTicket({
                     key={it.claveLinea}
                     linea={it}
                     detalle={detalles?.get(it.varianteId)}
-                    bloqueado={bloqueado}
+                    bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}
                     onDescuento={(clave) => onAbrirDescuento([clave])}
@@ -1045,6 +766,7 @@ export function PuntoDeVentaTicket({
               {/* La nota vive con las líneas, no con el cobro: nace mientras se arma la
                   venta y el ticket en espera la guarda junto con ellas. Una línea, hasta
                   200; el contador aparece recién al pasar de 160. No va al comprobante. */}
+              {!cobrando && (
               <div className="border-t border-sand px-5 py-4">
                 <label className="block">
                   <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
@@ -1077,6 +799,7 @@ export function PuntoDeVentaTicket({
                   </p>
                 </div>
               </div>
+              )}
             </>
           )}
         </div>

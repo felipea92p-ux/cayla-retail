@@ -100,10 +100,10 @@ describe("la caja de la clienta en Cobrar (spike del club, `clientaDelTicketHTML
     expect(textoCumple(3, 13)).toBeNull();
   });
 
-  it("en el buscador, cada ficha dice si es socia", () => {
-    expect(estadoEnLaLibreta("2026-09-30T10:00:00Z")).toBe("Socia");
-    expect(estadoEnLaLibreta(null)).toBe("Identificada");
-    expect(estadoEnLaLibreta(undefined)).toBe("Identificada");
+  it("en el buscador, cada ficha dice si es miembro", () => {
+    expect(estadoEnLaLibreta("2026-09-30T10:00:00Z")).toBe("Miembro");
+    expect(estadoEnLaLibreta(null)).toBe("Identificado");
+    expect(estadoEnLaLibreta(undefined)).toBe("Identificado");
   });
 });
 
@@ -149,11 +149,11 @@ describe("«Pídele que escanee el cartel del club» (tanda 1g)", () => {
   it("sin documento en su ficha no espera: al unirse desde el cartel caería en otra ficha", () => {
     const f = filaDelCartel({ sinDocumento: true, espera: "esperando", cumplePct: 10 });
     expect(f).toMatchObject({ actualizar: false, consultar: false });
-    expect(f.bajada).toMatch(/complétalo en Clientas/);
+    expect(f.bajada).toMatch(/complétalo en Clientes/);
   });
 });
 
-describe("la guía de foco de «Registrar clienta» (Cobrar y Nueva clienta): solo el documento (tanda 1g)", () => {
+describe("la guía de foco de «Registrar cliente» (Cobrar y Nueva clienta): solo el documento (tanda 1g)", () => {
   const lista: HojaRegistrar = {
     documentoTipo: "dni",
     documentoNumero: "45871236",

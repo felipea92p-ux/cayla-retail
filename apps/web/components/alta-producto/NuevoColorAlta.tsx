@@ -45,7 +45,10 @@ export function NuevoColorAlta({
   onCreado,
   onElegir,
   onCerrar,
+  enModal = false,
 }: {
+  /** Va dentro de una hoja (ya es la tarjeta): sin marco propio y con el nombre en su propia línea. */
+  enModal?: boolean;
   /** Los colores que ya tiene la pantalla: para reconocer un nombre repetido, sugerir la familia y avisar parecidos. */
   colores: ColorAlta[];
   elegidos: string[];
@@ -147,9 +150,13 @@ export function NuevoColorAlta({
   const aviso = error ?? (mismoNombre ? null : intento || duenoDelCodigo || !enLinea ? bloqueo : null);
 
   return (
-    <div className="anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto] sm:items-start">
-        <div className="col-span-2 sm:col-span-1">
+    <div className={enModal ? "space-y-3" : "anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3"}>
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:items-start ${
+          enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
+        }`}
+      >
+        <div className={enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
           <label htmlFor={`${id}-nombre`} className="mb-1 block text-xs font-semibold text-tinta">
             Nombre del color
           </label>

@@ -285,7 +285,7 @@ export function DevolucionesFlujo({
           <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
-              <legend className="sr-only">Prendas que la clienta quiere devolver</legend>
+              <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
                   const estado = estadoPrendaDevolucion(l, ahora);
@@ -401,7 +401,7 @@ export function DevolucionesFlujo({
                       setAvisoContinuar(null);
                       setDetalle(e.target.value);
                     }}
-                    placeholder={motivo === "defecto" ? "Ej. costura abierta en la manga" : "Lo que la clienta cuente"}
+                    placeholder={motivo === "defecto" ? "Ej. costura abierta en la manga" : "Lo que el cliente cuente"}
                     className="mt-1.5 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
                   />
                 </div>
@@ -438,7 +438,7 @@ export function DevolucionesFlujo({
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
-                <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
+                <Dato titulo="Cliente">{compra.clienta ?? "No quedó registrado en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
                 {/* Con el combo (ADR-0161) la registra el responsable elegido, no la cuenta de la sesión. */}
                 <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>

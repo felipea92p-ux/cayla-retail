@@ -7,7 +7,7 @@ import { PaginaLegalClub } from "@/components/clientas/PaginaLegalClub";
 
 export const metadata: Metadata = {
   title: "Política de privacidad — Club CAYLA",
-  description: "Cómo trata CAYLA S.A.C. los datos de las socias del Club CAYLA.",
+  description: "Cómo trata CAYLA S.A.C. los datos de los miembros del Club CAYLA.",
 };
 
 export default async function PaginaPrivacidadClub({ searchParams }: { searchParams: Promise<{ t?: string | string[] }> }) {

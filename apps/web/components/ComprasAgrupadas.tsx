@@ -275,7 +275,7 @@ export function SinResultadosVentas({
       <p className="text-sm font-semibold text-tinta">
         No encontramos ventas con «{busqueda}»{todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}.
       </p>
-      <p className="mt-1 text-sm text-tinta/70">Prueba con el número de boleta, el DNI de la clienta, o escanea la etiqueta de la prenda.</p>
+      <p className="mt-1 text-sm text-tinta/70">Prueba con el número de boleta, el DNI del cliente, o escanea la etiqueta de la prenda.</p>
       {puedeVerTodas && !todasLasSedes && (
         <button
           type="button"

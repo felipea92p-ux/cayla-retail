@@ -153,7 +153,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
               ))}
             </div>
             <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
-              Clienta: <span className="text-tinta">{a.nombres} {a.apellidos}</span> · si no recoge: {textoDevolucion(a)}
+              Cliente: <span className="text-tinta">{a.nombres} {a.apellidos}</span> · si no recoge: {textoDevolucion(a)}
             </p>
           </div>
           <fieldset className="card-cayla space-y-2 p-4">
@@ -232,7 +232,7 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
   }
   const opciones: { id: NonNullable<typeof motivo>; texto: string }[] = [
     { id: "vencio", texto: "Venció y no vino" },
-    { id: "clienta_desistio", texto: "La clienta desistió" },
+    { id: "clienta_desistio", texto: "El cliente desistió" },
     { id: "error_de_carga", texto: "Fue un error al apartar" },
   ];
   return (
@@ -338,7 +338,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
           </div>
           {medio === "efectivo" ? (
             <p className={`rounded-lg border px-3 py-2 text-xs ${sinCaja ? "border-rojo/30 text-rojo-profundo" : "border-sand bg-crema text-tinta/75"}`}>
-              {sinCaja ? "Para devolver en efectivo abre primero la caja de la tienda." : "Solo si la clienta vino a la tienda. Sale del cajón como «Devolución de apartado»."}
+              {sinCaja ? "Para devolver en efectivo abre primero la caja de la tienda." : "Solo si el cliente vino a la tienda. Sale del cajón como «Devolución de apartado»."}
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -482,7 +482,7 @@ export function RecordarModal({
   return (
     <Modal
       titulo={varias ? "Recordar en lote" : `Escribirle a ${actual.nombres}`}
-      subtitulo={varias ? `${hechas.size} de ${cola.length} avisadas · WhatsApp de ${ubicacion.etiqueta}` : `${actual.codigo} · ${formatoCelular(actual.celular)}`}
+      subtitulo={varias ? `${hechas.size} de ${cola.length} avisados · WhatsApp de ${ubicacion.etiqueta}` : `${actual.codigo} · ${formatoCelular(actual.celular)}`}
       onClose={() => {
         if (hechas.size) router.refresh();
         onClose();
@@ -510,7 +510,7 @@ export function RecordarModal({
                         <span className="text-xs text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
                       </span>
                       {hechas.has(a.id) ? (
-                        <span className="flex items-center gap-1 text-xs text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisada</span>
+                        <span className="flex items-center gap-1 text-xs text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisado</span>
                       ) : (
                         <EstadoChip {...estadoVisible(a, hoy)} />
                       )}
@@ -1032,7 +1032,7 @@ export function PedirOtraSedeModal({
           </div>
           <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-xs text-tinta/75">
             <li>{tienda.nombre} la envía por traslado (la ve en su «Todos»).</li>
-            <li>Al cerrar el traslado aquí, queda guardada sola para la clienta 3 días.</li>
+            <li>Al cerrar el traslado aquí, queda guardada sola para el cliente 3 días.</li>
             <li>Cuando venga, se cobra su adelanto y queda apartada.</li>
           </ol>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
@@ -1067,7 +1067,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
     setEnviando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "enviar la prenda", { confirmarAntesDeRepetir: true }));
-    avisar.exito(`Enviado a ${pedido.otraSede}`, { detalle: "Salió como traslado: sepárala y mándala con la nota de la clienta." });
+    avisar.exito(`Enviado a ${pedido.otraSede}`, { detalle: "Salió como traslado: sepárala y mándala con la nota del cliente." });
     router.refresh();
     cerrar();
   }
@@ -1122,7 +1122,7 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
         <div className="space-y-4">
           <label className="block">
             <span className={campoEtiqueta}>Por qué (opcional)</span>
-            <input value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={120} placeholder={pedido.direccion === "me_piden" ? "Ya no la tenemos" : "La clienta ya no la quiere"} className={campoTexto} />
+            <input value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={120} placeholder={pedido.direccion === "me_piden" ? "Ya no la tenemos" : "El cliente ya no la quiere"} className={campoTexto} />
           </label>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">

@@ -57,12 +57,12 @@ describe("sinStockTexto — lo que dice una talla o un color sin nada libre", ()
   const r = derivar();
 
   it("apartada si lo que queda está apartado, no queda si de verdad no hay", () => {
-    expect(r.sinStockTexto("S", "Negro")).toBe("apartada para una clienta");
+    expect(r.sinStockTexto("S", "Negro")).toBe("apartada para un cliente");
     expect(r.sinStockTexto("M", "Negro")).toBe("no queda aquí");
   });
 
   it("solo suma las variantes de ESA talla y color: una combinación que no existe no hereda lo de sus vecinas", () => {
-    expect(r.sinStockTexto("S", "Rojo")).toBe("apartada para una clienta");
+    expect(r.sinStockTexto("S", "Rojo")).toBe("apartada para un cliente");
     // M/Rojo no existe: no hereda lo apartado de S/Rojo (filtro por talla)…
     expect(r.sinStockTexto("M", "Rojo")).toBe("no queda aquí");
     // …ni S/Verde lo de S/Negro y S/Rojo (filtro por color).
@@ -71,7 +71,7 @@ describe("sinStockTexto — lo que dice una talla o un color sin nada libre", ()
 
   it("con talla o color sin fijar suma lo apartado de todas las que cubre", () => {
     // Rojo (cualquier talla): solo S/Rojo, apartada.
-    expect(r.sinStockTexto(null, "Rojo")).toBe("apartada para una clienta");
+    expect(r.sinStockTexto(null, "Rojo")).toBe("apartada para un cliente");
     // Talla M (cualquier color): solo M/Negro, agotada.
     expect(r.sinStockTexto("M", null)).toBe("no queda aquí");
   });
@@ -81,7 +81,7 @@ describe("sinStockTexto — lo que dice una talla o un color sin nada libre", ()
       variante("a", "polera", { talla: "S", color: "Negro", apartadoAqui: 1 }),
       variante("b", "polera", { talla: "S", color: "Rojo", apartadoAqui: -3 }),
     ]);
-    expect(derivar({}, raro).sinStockTexto("S", null)).toBe("apartada para una clienta");
+    expect(derivar({}, raro).sinStockTexto("S", null)).toBe("apartada para un cliente");
   });
 });
 
@@ -106,12 +106,12 @@ describe("hayAqui y sinStockAqui — la frontera entre «hay» y «no hay»", ()
 describe("avisoSinStock — el aviso bajo la elección", () => {
   it("prenda apartada: dice que es de una clienta, que no se entrega desde aquí y dónde más hay", () => {
     const r = derivar({ talla: "S", color: "Negro" });
-    expect(r.avisoSinStock).toBe("Negro · Talla S está apartada para una clienta: no se entrega desde aquí. Hay 2 en Trujillo.");
+    expect(r.avisoSinStock).toBe("Negro · Talla S está apartada para un cliente: no se entrega desde aquí. Hay 2 en Trujillo.");
   });
 
   it("prenda apartada y sin otra sede: lo dice igual que la validación, «No hay en otra sede.»", () => {
     const r = derivar({ talla: "S", color: "Rojo" });
-    expect(r.avisoSinStock).toBe("Rojo · Talla S está apartada para una clienta: no se entrega desde aquí. No hay en otra sede.");
+    expect(r.avisoSinStock).toBe("Rojo · Talla S está apartada para un cliente: no se entrega desde aquí. No hay en otra sede.");
   });
 
   it("prenda agotada: sigue diciendo «no queda», sin hablar de una clienta", () => {
@@ -135,7 +135,7 @@ describe("descripcionNueva — una prenda sin talla ni color se nombra por su re
   it("el accesorio no queda «sin sujeto» en el aviso ni en la validación de Cambios", () => {
     const r = derivar({ productoId: "cinturon" });
     expect(r.descripcionNueva).toBe("Cinturón Cuero");
-    expect(r.avisoSinStock).toBe("Cinturón Cuero está apartada para una clienta: no se entrega desde aquí. No hay en otra sede.");
+    expect(r.avisoSinStock).toBe("Cinturón Cuero está apartada para un cliente: no se entrega desde aquí. No hay en otra sede.");
 
     // Lo que CambiosFlujo le pasa a validarCambio: el título arranca con el nombre, no con un espacio.
     const nueva = { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva!.stockAqui, apartadoAqui: r.varianteNueva!.apartadoAqui, otrasSedes: r.otrasSedes };
@@ -153,7 +153,7 @@ describe("descripcionNueva — una prenda sin talla ni color se nombra por su re
       metodo: "efectivo",
       cajaAbierta: false,
     }).find((v) => v.clave === "stock");
-    expect(stock?.titulo).toBe("Cinturón Cuero está apartada para una clienta en Tienda Lima");
+    expect(stock?.titulo).toBe("Cinturón Cuero está apartada para un cliente en Tienda Lima");
   });
 
   it("es la referencia del producto ELEGIDO, no la de la prenda que compró", () => {

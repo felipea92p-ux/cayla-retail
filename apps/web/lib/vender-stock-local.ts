@@ -60,7 +60,7 @@ export function motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui }: { sto
 }
 
 /** Lo que dice la fila de una prenda en el buscador de Vender según por qué se puede o no cobrar: «sin stock aquí»,
- *  «apartada para una clienta», «N en el almacén» o «N aquí». Es una función pura (y no una cadena de ternarios dentro
+ *  «apartada para un cliente», «N en el almacén» o «N aquí». Es una función pura (y no una cadena de ternarios dentro
  *  del componente) para que una prueba la pueda romper: una rama de un ternario que queda inalcanzable no la ve ninguna
  *  regex. */
 export function textoStockDeFila(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }): string {
@@ -68,7 +68,7 @@ export function textoStockDeFila(v: { stockAqui: number; almacenAqui?: number | 
     case "agotada":
       return "sin stock aquí";
     case "apartada":
-      return "apartada para una clienta";
+      return "apartada para un cliente";
     case "en_almacen":
       return `${v.almacenAqui} en el almacén`;
     case "cobrable":
@@ -87,7 +87,7 @@ export function quedoEnAlmacen(estado: string, almacenAqui?: number | null): boo
 /** El tooltip de una talla que no se puede cobrar ni bajar (agotada o apartada): dice el motivo y, si la hay, dónde más
  *  hay (`otrasSedes` ya viene armado: «2 en Trujillo»). Con «agotada» conserva sus textos de siempre. */
 export function tooltipTallaSinPiso(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }, otrasSedes: string | null): string {
-  if (motivoNoCobrable(v) === "apartada") return otrasSedes ? `Apartada para una clienta · ${otrasSedes}` : "Apartada para una clienta";
+  if (motivoNoCobrable(v) === "apartada") return otrasSedes ? `Apartada para un cliente · ${otrasSedes}` : "Apartada para un cliente";
   return otrasSedes ? `Sin stock aquí · ${otrasSedes}` : "Sin stock en ninguna sede";
 }
 
@@ -116,8 +116,8 @@ export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui, apartadoAqu
   if (motivo === "apartada") {
     // Lo que queda es de una clienta que la apartó: no es «no hay» (puede venir por ella) ni hay nada que bajar.
     return {
-      titulo: `${nombre} está apartada para una clienta`,
-      detalle: `No se vende desde aquí: es de la clienta que la apartó en ${sede}.`,
+      titulo: `${nombre} está apartada para un cliente`,
+      detalle: `No se vende desde aquí: es del cliente que la apartó en ${sede}.`,
     };
   }
   return {
@@ -226,7 +226,7 @@ export function conAlmacenAjustado<V extends { varianteId: string; almacenAqui?:
 
 /** Lo apartado en el piso corregido con lo que se RELEYÓ de la base. Igual que el almacén, va aparte del stock: una
  *  venta descuenta lo cobrable y nunca lo apartado. Sin él, tras el primer sondeo una prenda que otra caja apartó
- *  diría «agotada» y no «apartada para una clienta». Mismo contrato: sin ajustes, el MISMO arreglo. */
+ *  diría «agotada» y no «apartada para un cliente». Mismo contrato: sin ajustes, el MISMO arreglo. */
 export function conApartadoAjustado<V extends { varianteId: string; apartadoAqui?: number | null }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
   if (ajustes.size === 0) return variantes;
   return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, apartadoAqui: ajustes.get(v.varianteId)! } : v));

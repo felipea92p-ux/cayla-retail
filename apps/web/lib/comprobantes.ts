@@ -257,7 +257,7 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
     supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", [...notasDelMes, ...ids]),
   ]);
   const telefonos = new Map<string, string>();
-  for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de las clientas").datos : null) ?? []) {
+  for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de los clientes").datos : null) ?? []) {
     if (cl.documento_numero && cl.telefono_whatsapp) telefonos.set(cl.documento_numero, cl.telefono_whatsapp);
   }
   const notaDe = new Map<string, { id: string; numero: string }>();

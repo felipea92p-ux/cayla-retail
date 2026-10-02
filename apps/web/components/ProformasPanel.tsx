@@ -109,7 +109,7 @@ export function ProformasPanel({
               Proformas
               <Ayuda titulo="Proforma">
                 No es un comprobante de pago: SUNAT no la reconoce y no usa número de serie. Sirve para cotizarle prendas a
-                una clienta y guardarle el precio unos días. Cuando vuelve a comprar, «Cobrar» la lleva al Punto de Venta con
+                un cliente y guardarle el precio unos días. Cuando vuelve a comprar, «Cobrar» la lleva al Punto de Venta con
                 las prendas en el carrito, y ahí nace la venta con su boleta o factura.
               </Ayuda>
             </p>

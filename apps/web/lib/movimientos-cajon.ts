@@ -170,7 +170,7 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
     case "anulacion_venta":
       return `${prenda} ${una ? "volvió" : "volvieron"} a la tienda: se anuló la venta`;
     case "devolucion":
-      return `${prenda} ${una ? "devuelta" : "devueltas"} por una clienta`;
+      return `${prenda} ${una ? "devuelta" : "devueltas"} por un cliente`;
     case "recepcion":
       return `${prenda} ${una ? "llegó" : "llegaron"} ${m.lote?.proveedor ? `de ${m.lote.proveedor}` : "de un proveedor"}`;
     case "produccion":
@@ -190,7 +190,7 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
     case "cuarentena_donada":
       return `${prenda} ${una ? "dañada donada" : "dañadas donadas"}`;
     case "apartado":
-      return `${prenda} ${una ? "apartada" : "apartadas"} para una clienta`;
+      return `${prenda} ${una ? "apartada" : "apartadas"} para un cliente`;
     case "liberacion_apartado":
       return `${prenda} ${una ? "liberada: vuelve" : "liberadas: vuelven"} a estar a la venta`;
   }
