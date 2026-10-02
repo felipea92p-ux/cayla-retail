@@ -1,8 +1,8 @@
-## 🏷️ La caja descuenta sin código (2026-10-01, ADR-0162 act. 2026-10-01) — migración + web; rama `claude/caja-descuento-sin-codigo-816518`
+## 🏷️ La caja descuenta sin código (2026-10-01, ADR-0162 act. 2026-10-01) — migración EN PRODUCCIÓN (2026-10-02) + web; rama `claude/caja-descuento-sin-codigo-816518`
 
-- [x] `registrar_venta` ya no pide código de descuento a nadie (`20261002100000_descuento_sin_codigo.sql`): candado de versión (md5 «antes» = el de producción el 2026-10-01, verificado en solo lectura), recorte entre marcas, validación final; idempotente.
+- [x] `registrar_venta` ya no pide código de descuento a nadie (`20261002100000_descuento_sin_codigo.sql`): candado de versión (md5 «antes» = `156fd99a…`, el de la tanda 1g del club, en producción el 2026-10-02), recorte entre marcas, validación final; idempotente. Rehecha el 2026-10-02 sobre la 1g (la versión del 2026-10-01 partía de la 1c y su número chocaba con `20261001150000_retirar_del_piso.sql`).
 - [x] Vender ▸ Descuento sin el campo «Código»; `pasoDelDescuento` sin el paso `codigo`; `PuntoDeVenta` sin el estado ni la prop `esLider`.
-- [x] Pruebas: `registrar_venta.mjs` (casos 17-22 reescritos, 28/28 con la migración), `club_cumpleanos.mjs` y `club_venta_ligada.mjs` (md5 de hoy = el de esta migración; pegar HOY la 1c aborta sin pisar). Las dos del club se corren en el CI (la base local no tiene el club aplicado).
-- [ ] **No está en producción.** Pegar `20261002100000_descuento_sin_codigo.sql` en el SQL Editor, sola, ANTES de fusionar la web. Verificación al pie del archivo.
+- [x] Pruebas: `registrar_venta.mjs` (casos 17-22 reescritos, 28/28 con la migración), `club_cumpleanos.mjs` (caso del código reescrito) y `club_registro_cartel.mjs` (md5 de hoy = el de esta migración; pegar HOY la 1g aborta sin pisar). Corridas con toda la cadena dentro de una transacción: en verde salvo las carreras de dos conexiones, que ese arnés no puede correr (las corre el CI).
+- [x] **En producción el 2026-10-02** (Claude, con `apply_migration`, por orden de Felipe): md5 `525479a9…`, una sola firma, permisos intactos. En la misma tanda se aplicó `20261001140000_recibir_envio_ya_no_recibe_traslados.sql`, que estaba en `main` y faltaba en producción.
 - [ ] Después: `pnpm datos:generar:produccion` con el volcado nuevo.
 - [ ] Limpieza que queda: las tres frases del código en `lib/error-escritura.ts` (se pueden borrar cuando la migración esté en producción) y `lib/codigos-descuento.ts` / `lib/facturacion-codigos-reglas.ts`, que ya no tienen pantalla que los use.
