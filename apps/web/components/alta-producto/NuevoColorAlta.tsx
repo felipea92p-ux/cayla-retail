@@ -219,7 +219,7 @@ export function NuevoColorAlta({
 
       {existente && (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-hueso px-3 py-2 text-xs text-tinta">
-          <Punto hex={existente.hex} familia={existente.familiaColor} />
+          <Punto hex={existente.hex} familia={existente.familiaColor} tipo={existente.tipo} />
           <span>
             {mismoNombre ? `«${existente.nombre}» ya está en la lista de colores.` : `«${nombreDeColor(nombre)}» es otro nombre de «${existente.nombre}».`}
           </span>

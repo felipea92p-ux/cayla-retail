@@ -75,3 +75,59 @@ amarillo; Salmón → rojo); el `orden` viejo no hace falta restaurarlo (la web 
 **Pendiente (de Felipe).** Tres ajustes que se pueden revertir color por color: Coral queda en Rojo, Mora en Morado (por su
 nombre, aunque su matiz sea de rosado) y Salmón en Naranja. Y los 4 colores creados a mano: Perla es casi igual a Crudo
 (ΔE 2,1) y «Amarillo mantequilla» a Vainilla y a Amarillo limón (7,8 y 7,2).
+
+---
+
+## Actualización 2026-10-02 (b) — «Gris melange» se pinta jaspeado: `colores.tipo` llega a la muestra
+
+**Problema.** `colores.tipo` vale `solido | textura | estampado` desde la migración `20260915230000`, pero la web nunca lo leyó:
+`fondoDeMuestra(hex, familia)` solo distinguía «metálico». «Gris melange» (GRM, `textura`, #A2A2A1) se pintaba como un gris liso
+casi igual a «Gris» (GRI, #848587), y la carta no podía decir «esto es una tela jaspeada» antes de que alguien leyera el nombre.
+
+**Decidí.** `tipo` viaja de la base a la muestra y `fondoDeMuestra(hex, familia, tipo)` pinta una `textura` con un jaspeado sobre su
+hex.
+- *Viaje del dato:* `ColorAlta.tipo` (opcional: ausente = liso, que es el default de la base), la consulta de `alta-producto-datos.ts`,
+  `colorDeRespuesta`, las dos consultas de `api/productos/colores`, la de Editar producto y la de Atributos → Colores.
+- *Quién lo pinta:* `Punto`, la carta y su pie, la franja de la matriz de cantidades, las fotos por color, Atributos → Colores y los
+  combos de Editar producto. Una sola función para todas: la misma muestra se ve igual en todas las pantallas.
+- *Cómo se dibuja* (`MOTAS`/`JASPEADO` en `lib/colores-familias.ts`): ocho capas de puntos de luz (`--color-crema`) y sombra
+  (`--color-tinta`) con `color-mix` sobre el hex, con baldosas de lado primo (5…29 px) para que no se lea como rejilla. Solo tokens: el
+  único color suelto en el CSS es el hex de la base, y una prueba lo exige.
+- *Prioridad:* metálico > textura > liso (la de ADR-0312: acabado antes que rol antes que matiz). `estampado` se queda liso: un dibujo
+  no se deduce de un hex (esa foto es `imagen_muestra_url`, que nadie lee todavía).
+- *El liso sigue EXACTO* (`color-escala.test.ts`): con `tipo` sólido, estampado, nulo, ausente o desconocido devuelve el hex tal cual.
+
+**Descarté.**
+- *Un velo de ruido SVG (`feTurbulence`) como `data:` URI:* es ruido de verdad, pero no puede usar `var(--color-…)` dentro de un
+  `data:`; habría que escribir los colores a mano, que es lo que la paleta prohíbe.
+- *Pocas capas de puntos chicos y densos (3 a 6 capas de 3–13 px, las primeras cinco pruebas):* cada capa es una rejilla regular y
+  juntas se leen como malla o moiré, y a 100×32 px parecía un tejido, no una fibra. Con ocho capas ralas y de baja opacidad se lee
+  como grano al azar. Se juzgó en el navegador a 1:1, en la tarjeta real entre sus vecinos lisos.
+- *Un campo nuevo o un hex distinto para GRM:* no se cambia ningún hex ni familia; el jaspeado es presentación.
+- *Pintarlo también en Vender y en el filtro de Productos:* el punto de color del filtro y el modal de «prenda sin registrar» dibujan
+  el hex a mano (no pasan por `fondoDeMuestra`); tocarlos es otra decisión y Vender exige celular. Ver «Pendiente».
+
+**Se rompe si.**
+- Aparece un `textura` muy oscuro o muy claro: el equilibrio luz/sombra es el de un tono medio. Medido (CSS real renderizado a un
+  canvas de 300×300): sobre #A2A2A1 el color promedio se mueve +1 de 255 (el liso ya se aceptó con 0,9), sobre #848587 +3, sobre un
+  azul marino #1F2A44 +9 y sobre un perla #EAE6DD −3. Si hace falta, se ajusta la mezcla por `claridadDeHex`.
+- Alguien deja un `textura` con `familia_color = 'metalico'` esperando ver las dos cosas: manda el reflejo, sin jaspeado.
+- Una pantalla nueva dibuja un color con su propio `style={{ background: hex }}` en vez de `fondoDeMuestra`: ese color vuelve a verse
+  liso. Hoy hay dos (ver «Pendiente»).
+
+**Verificación.** `color-escala.test.ts` (liso exacto con cualquier `tipo`; la textura lleva `radial-gradient` y termina en su hex;
+sin colores sueltos; el metálico gana; sin hex, sin fondo) y `color-alta-reglas.test.ts` (`colorDeRespuesta` trae el tipo). Suite
+completa de la web: 308 archivos, 154.813 pruebas; `tsc` sin errores. En el navegador, con la base local y sesión real:
+Atributos → Colores muestra exactamente 1 muestra jaspeada (GRM), 64 lisas y los 8 metálicos con su reflejo intacto; Nuevo producto
+pinta GRM jaspeado en el círculo de la carta, en su pie (punto de 20 px), en el chip elegido y en la fila y franja de la matriz, con
+«Gris» liso al lado; Editar producto recibe `tipo: "textura"` para GRM y `"solido"` para GRI. Escritorio (1024 px) y 375 px sin
+desborde horizontal.
+
+**Cómo deshacerlo.** `git revert` del commit (no toca datos ni migraciones). El `tipo` que viaja por las consultas es inofensivo si
+se deja.
+
+**Pendiente (de Felipe).** (1) El punto de color del filtro de Productos (`FiltrosProductos.tsx`) y el del modal de «prenda sin
+registrar» dibujan el hex plano: GRM sale liso ahí. Pasarlos por `fondoDeMuestra` es trivial; el segundo toca Vender (celular
+obligatorio, PL-105). (2) Esta actualización va apilada sobre el PR #736 (`claude/color-scales-families-c7513c`: la prueba
+`color-escala.test.ts` y la reescritura de `colores-familias.ts` viven allí): **se fusiona después de #736**. Su migración
+`20261002180000` ya está pegada en producción; la mía no trae SQL.

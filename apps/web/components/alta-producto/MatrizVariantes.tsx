@@ -22,7 +22,7 @@ import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 //     real) la tabla se desplaza dentro de su caja y la página nunca se desborda a lo ancho (375 px incluidos).
 // El precio distinto por celda ya no vive aquí: pasó al segmento «¿Alguna cuesta distinto?» de `MatrizCantidades`.
 
-type Color = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null };
+type Color = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null };
 
 /** El rayado de «no existe»: el mismo en los pasos 3 y 4. */
 export const RAYADO_FUERA = "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(26_26_24/0.05)_6px_7px)] text-tinta/25";
@@ -114,7 +114,7 @@ export function MatrizVariantes({
                       <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} />
                       <div className="flex min-w-0 flex-col leading-tight">
                         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
-                          {c && <Punto hex={c.hex} familia={c.familiaColor} />}
+                          {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                           {nombre}
                         </span>
                         {suyas.length > 0 ? (

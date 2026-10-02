@@ -84,7 +84,7 @@ export function ElegirColores({
               key={c.codigo}
               className="inline-flex min-h-9 items-center gap-[7px] rounded-full border border-tinta bg-tinta/[0.07] py-1 pl-3 pr-1.5 text-[13.5px] text-tinta"
             >
-              <Punto hex={c.hex} familia={c.familiaColor} />
+              <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />
               {c.nombre}
               <button
                 type="button"
@@ -122,7 +122,7 @@ export function ElegirColores({
             texto: c.nombre,
             detalle: elegidos.includes(c.codigo) ? "elegido" : undefined,
             claves: c.sinonimos,
-            icono: <Punto hex={c.hex} familia={c.familiaColor} />,
+            icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />,
           }))}
           crearArriba
           crear={{
@@ -213,7 +213,7 @@ export function ElegirColores({
                             onMouseLeave={() => setSenalado(null)}
                             onFocus={() => setSenalado(c)}
                             onBlur={() => setSenalado(null)}
-                            style={{ background: fondoDeMuestra(c.hex, c.familiaColor) ?? "transparent", borderColor: bordeDeMuestra(c.hex) }}
+                            style={{ background: fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "transparent", borderColor: bordeDeMuestra(c.hex) }}
                             className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-[12px] font-bold transition-transform duration-150 hover:scale-110 ${
                               elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
                             } ${esColorClaro(c.hex) ? "text-tinta" : "text-crema"}`}
@@ -249,7 +249,7 @@ function PieDeLaCarta({ senalado, elegido, colores }: { senalado: ColorAlta | nu
     <p aria-hidden className="mt-1 flex h-9 items-center gap-2 border-t border-sand pt-1 text-[12px]">
       {senalado ? (
         <>
-          <Punto hex={senalado.hex} familia={senalado.familiaColor} grande />
+          <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />
           <span className="min-w-0 truncate">
             <span className="text-tinta">{senalado.nombre}</span>
             <span className="text-taupe">
@@ -268,12 +268,12 @@ function PieDeLaCarta({ senalado, elegido, colores }: { senalado: ColorAlta | nu
   );
 }
 
-export function Punto({ hex, familia, grande = false }: { hex: string | null; familia?: string | null; grande?: boolean }) {
+export function Punto({ hex, familia, tipo, grande = false }: { hex: string | null; familia?: string | null; tipo?: string | null; grande?: boolean }) {
   return (
     <span
       aria-hidden
       className={`inline-block shrink-0 rounded-full border border-tinta/20 ${grande ? "h-5 w-5" : "h-2.5 w-2.5"}`}
-      style={{ background: fondoDeMuestra(hex, familia) ?? "transparent", borderColor: bordeDeMuestra(hex) }}
+      style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "transparent", borderColor: bordeDeMuestra(hex) }}
     />
   );
 }

@@ -40,7 +40,7 @@ export function MatrizCantidades({
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
   tallas: { id: string; texto: string }[];
-  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
+  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null }[];
   excluidas: Set<string>;
   cantidades: Record<string, string>;
   onCantidad: (clave: string, valor: string) => void;
@@ -159,7 +159,7 @@ export function MatrizCantidades({
               // la fila como franja pegada al nombre. El anillo interior (no el color) es lo que la hace legible incluso
               // en blanco, hueso o crema: sin él, esos colores desaparecen contra el papel.
               const conZebra = i % 2 === 1;
-              const franja = c ? (fondoDeMuestra(c.hex, c.familiaColor) ?? "var(--color-sand)") : "var(--color-sand)";
+              const franja = c ? (fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
               const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
               return (
                 <tr key={color ?? "sin-color"}>
@@ -173,7 +173,7 @@ export function MatrizCantidades({
                       style={{ background: franja }}
                     />
                     <span className="flex items-center gap-1.5">
-                      {c && <Punto hex={c.hex} familia={c.familiaColor} />}
+                      {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                       {nombre}
                     </span>
                   </th>
