@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { useRecordatorioEtiquetas } from "@/components/ficha-producto/RecordatorioEtiquetas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
@@ -92,6 +93,8 @@ export function AjustarInventarioModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  // Sin Provider (Existencias: InventarioPanel.tsx, SelectorDeAjuste.tsx) `agregar` es un no-op — ver RecordatorioEtiquetas.tsx.
+  const { agregar: agregarRecordatorioEtiquetas } = useRecordatorioEtiquetas();
   const sububicacionPiso = sububicaciones.find((s) => s.tipo === "piso_venta") ?? null;
   const sububicacionAlmacen = sububicaciones.find((s) => s.tipo === "almacen_tienda") ?? null;
   const separaPisoAlmacen = !!sububicacionPiso && !!sububicacionAlmacen;
@@ -366,6 +369,12 @@ export function AjustarInventarioModal({
     }
     const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, enlazados: hallazgos.enlaces.size, ya_registrado: false };
     avisar.exito(textoExitoAjuste(r), { detalle: referencia });
+    // Subir una cantidad es una prenda más sin etiquetar; se junta en el recordatorio del módulo (no se avisa aquí
+    // mismo, para no interrumpir con un aviso por cada ajuste — ver RecordatorioEtiquetas.tsx).
+    const subieron = lineas.filter((l) => l.delta > 0);
+    if (subieron.length > 0) {
+      agregarRecordatorioEtiquetas(subieron.map((l) => ({ varianteId: l.variante.varianteId, color: l.variante.color, talla: l.variante.talla })));
+    }
     router.refresh();
     onClose();
   }
