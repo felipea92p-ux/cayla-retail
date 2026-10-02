@@ -192,7 +192,9 @@ export function PuntoDeVentaCatalogo({
       aria-label="Escanear o buscar prendas"
       className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:flex-1 lg:border-b-0"
     >
-      <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
+      {/* `@container`: la fila de captura decide por el ancho del PANEL, no de la ventana. En una laptop con el lateral
+          abierto el panel mide ~290 px aunque la ventana sea de escritorio. */}
+      <div className="anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías.
@@ -335,9 +337,10 @@ export function PuntoDeVentaCatalogo({
             type="button"
             onClick={() => onPrendaSinRegistrar()}
             disabled={bloqueado}
-            // En el teléfono son tres botones en la fila: el texto se parte en dos líneas en vez de robarle ancho a la cámara.
+            // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
+            // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
             // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
-            className="label-cayla shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] text-crema max-sm:w-[6.75rem] max-sm:leading-snug transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/85 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
+            className="label-cayla w-[6.75rem] shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] leading-snug text-crema @md:w-auto @md:leading-normal transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/85 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
           >
             Prenda sin registrar
           </button>
@@ -494,26 +497,29 @@ export function PuntoDeVentaCatalogo({
                     </div>
                   ) : (
                     // Sin foto: el dibujo de su categoría en el tono de su familia (el mismo de Catálogo ▸ Categorías) y
-                    // su nombre abajo. Antes eran las iniciales de la prenda, que no decían qué era (Felipe 2026-10-02).
+                    // su nombre debajo, los dos centrados como un bloque. Antes eran las iniciales de la prenda, que no
+                    // decían qué era (Felipe 2026-10-02). El nombre va en el flujo y no pegado a una esquina: en una
+                    // tarjeta de 95 px (celular de 320) una esquina lo cortaba en «CAMISAS Y…»; aquí baja a dos líneas.
                     // `pointer-events-none` por lo mismo que la foto: este div es `relative` y tapaba el botón de la tarjeta.
                     <div
                       aria-hidden
-                      className={`pointer-events-none relative mb-2.5 flex aspect-square items-center justify-center rounded-lg ${soloEnAlmacen ? "opacity-55" : ""}`}
+                      className={`pointer-events-none relative mb-2.5 flex aspect-square flex-col items-center justify-center gap-[7%] rounded-lg p-2 ${soloEnAlmacen ? "opacity-55" : ""}`}
                       style={{ backgroundColor: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).fondo, color: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).acento }}
                     >
                       <IconoCategoria
                         prefijo={g.tallas[0]?.variante.categoriaPrefijo}
                         familia={g.tallas[0]?.variante.categoriaFamilia ?? null}
-                        className="h-2/5 w-2/5 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.06]"
+                        className="aspect-square h-auto w-[38%] shrink-0 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.06]"
                       />
                       {g.tallas[0]?.variante.categoria && (
-                        <span className="label-cayla absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-papel/80 px-1.5 py-0.5 text-[9.5px] text-tinta/60">
+                        <span className="label-cayla line-clamp-2 max-w-full text-center text-[9.5px] leading-snug text-tinta/60">
                           {g.tallas[0].variante.categoria}
                         </span>
                       )}
                     </div>
                   )}
-                  <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
+                  {/* Dos líneas: en un celular de 320 la tarjeta mide ~120 px y una sola dejaba «Pantalón…» sin decir cuál. */}
+                  <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{g.referencia}</p>
                   <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
 
                   {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la

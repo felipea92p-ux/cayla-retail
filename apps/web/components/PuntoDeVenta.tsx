@@ -1618,7 +1618,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       <div
         // `max-lg:[&>aside]:hidden`: bajo `lg` el ticket vive en su hoja; en el primer pintado (servidor, sin saber el
         // ancho) `apilado` todavía es false y el ticket se dibujaba un instante debajo del catálogo en el celular.
-        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
+        // El ticket mide 420 px cuando hay sitio y cede hasta 320 (el 40 % del ancho): fijo en 420, una laptop de 1024 con
+        // el lateral abierto dejaba al catálogo en 190 px — el buscador hecho una pastilla y tarjetas de 90 px (2026-10-02).
+        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(320px,40%,420px)] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
         inert={bloqueado}
       >
         <div className="relative flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">

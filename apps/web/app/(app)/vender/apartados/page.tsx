@@ -77,6 +77,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       talla: v.talla,
       color: v.color,
       categoria: v.categoria,
+      categoriaPrefijo: v.categoriaPrefijo ?? null,
+      categoriaFamilia: v.categoriaFamilia ?? null,
       marca: v.marca,
       precio: v.precio,
       campana: campana.get(v.varianteId) ?? null,

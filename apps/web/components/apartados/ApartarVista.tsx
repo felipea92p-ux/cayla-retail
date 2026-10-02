@@ -308,23 +308,32 @@ export function ApartarVista({
     const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
     const atras = !puede && (v.almacenAqui ?? 0) > 0 ? v.almacenAqui : 0;
     return (
-      <li key={v.varianteId} id={puede ? `apt-op-${i}` : undefined} role="option" aria-selected={puede && i === activo} aria-disabled={!puede}>
+      // `@container`: la fila decide por SU ancho. En un celular la lista mide ~180 px y la columna del precio dejaba al
+      // nombre en «B…» y partía el código en pedazos; ahí el precio y el stock bajan bajo el nombre.
+      <li key={v.varianteId} id={puede ? `apt-op-${i}` : undefined} role="option" aria-selected={puede && i === activo} aria-disabled={!puede} className="@container">
         <button
           type="button"
           disabled={!puede}
           onMouseEnter={() => puede && setActivo(i)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => agregar(v.varianteId)}
-          className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-200 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
+          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-200 @[19rem]:px-4 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
         >
-          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} ancho={44} className="w-11" />
+          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-            <span className="text-xs text-tinta/60">
+            <span className="block truncate text-xs text-tinta/60">
               {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
             </span>
+            <span className="mt-0.5 block text-xs @[19rem]:hidden">
+              <span className="font-semibold tabular-nums text-tinta">{money(precioFinal(v))}</span>
+              <span className={puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}>
+                {" · "}
+                {puede ? `${v.stockAqui} disp.` : atras ? `${atras} en el almacén` : "sin disponible aquí"}
+              </span>
+            </span>
           </span>
-          <span className="shrink-0 text-right">
+          <span className="hidden shrink-0 text-right @[19rem]:block">
             <span className="block text-sm font-semibold tabular-nums text-tinta">
               {v.campana && <span className="mr-1.5 text-xs font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
               {money(precioFinal(v))}
@@ -533,13 +542,18 @@ export function ApartarVista({
         )}
 
         {p ? (
-          <article className="anim-revelar grid gap-5 rounded-2xl border border-sand bg-papel p-4 sm:grid-cols-[200px_minmax(0,1fr)]">
-            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} ancho={200} className="w-full max-w-[200px]" />
+          // `@container`: foto y datos lado a lado solo si la TARJETA tiene ancho (≥ 32rem), no la ventana. Con el lateral
+          // abierto o en un celular, se apilan: la foto más chica y centrada, y el encabezado y las tallas centrados con ella.
+          <div className="@container">
+          <article className="anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
+            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
-              <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
-              <h3 className="font-display mt-1 text-2xl text-tinta">{p.referencia}</h3>
-              <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Tallas">
+              <div className="text-center @lg:text-left">
+                <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
+                <h3 className="font-display mt-1 text-2xl text-tinta">{p.referencia}</h3>
+                <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
                 {hermanas.map((h) => (
                   <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-xs font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
                     {h.talla ?? "—"}
@@ -547,7 +561,7 @@ export function ApartarVista({
                 ))}
               </div>
               <dl className="mt-3 divide-y divide-sand border-t border-sand text-[13px]">
-                <div className="flex justify-between py-2"><dt className="text-tinta/60">Código</dt><dd className="font-mono">{codigoPrenda(p)}</dd></div>
+                <div className="flex justify-between gap-3 py-2"><dt className="shrink-0 text-tinta/60">Código</dt><dd className="min-w-0 break-all text-right font-mono">{codigoPrenda(p)}</dd></div>
                 <div className="flex justify-between py-2">
                   <dt className="text-tinta/60">Precio</dt>
                   <dd className="tabular-nums font-semibold">
@@ -555,7 +569,7 @@ export function ApartarVista({
                     {money(precioFinal(p))}
                   </dd>
                 </div>
-                <div className="flex justify-between py-2"><dt className="text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="tabular-nums">{p.stockAqui} disponibles</dd></div>
+                <div className="flex justify-between gap-3 py-2"><dt className="min-w-0 text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="shrink-0 tabular-nums">{p.stockAqui} disponibles</dd></div>
               </dl>
               {tiendasConPrenda.length > 0 ? (
                 <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-[12.5px] text-ambar-profundo">
@@ -576,6 +590,7 @@ export function ApartarVista({
               )}
             </div>
           </article>
+          </div>
         ) : (
           <div className="flex min-h-[260px] flex-1 items-center justify-center rounded-2xl border border-dashed border-sand p-6 text-center">
             <div>
@@ -600,7 +615,7 @@ export function ApartarVista({
                 const r = porId.get(id)!;
                 return (
                   <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
-                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} ancho={44} className="w-11" />
+                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
                     <span className="min-w-0 text-xs">
                       <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>
