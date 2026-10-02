@@ -52,6 +52,10 @@ export const ACCIONES_SIN_RESPONSABLE = {
   etiqueta_rechazar: "Rechazar una etiqueta propuesta",
   etiqueta_campana: "Ponerle campaña a una etiqueta",
   catalogo_confirmar_estado: "Aprobar, desactivar o reactivar un valor del Catálogo con un solo clic",
+  // Avisos del club (Felipe, 2026-10-02; migración 20261002170000): con la cuenta de una persona no se elige quién envía.
+  aviso_club_enviar: "Anotar un aviso del club como enviado por WhatsApp",
+  aviso_club_deshacer: "Deshacer un aviso del club anotado como enviado",
+  aviso_club_baja: "Registrar que un cliente pidió BAJA de los mensajes del club",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

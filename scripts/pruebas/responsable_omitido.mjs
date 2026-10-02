@@ -166,7 +166,9 @@ caso(
 );
 
 // ---------------- La lista ----------------
-caso("la lista tiene las 28 acciones soltadas", `select count(*) from retail.acciones_sin_responsable;`, "28");
+// 28 de la siembra (20260929230000) y, con todas las migraciones, 3 más de Avisos del club (20261002170000).
+const TOTAL = EN_SECO ? "28" : "31";
+caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
@@ -175,9 +177,9 @@ caso(
   (s) => s.split(",").length >= 2 && s.startsWith("42501|") && s.includes(",42501|")
 );
 caso(
-  "la migración se puede pegar dos veces (re-ejecutable): sigue habiendo 28",
+  `la migración se puede pegar dos veces (re-ejecutable): sigue habiendo ${TOTAL}`,
   (EN_SECO ? MIGRACION : "") + `select count(*) from retail.acciones_sin_responsable;`,
-  "28"
+  TOTAL
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE}${EN_SECO ? ", en seco" : ""})`);
