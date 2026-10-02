@@ -657,8 +657,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
   `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
-  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
-  boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
+  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0306 la
+  `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
+  ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
+  (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
+  su botón envía el formulario del ticket (`form="ticket-pos"`), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).

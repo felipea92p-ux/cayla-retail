@@ -9,6 +9,7 @@ import {
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   metodoDeAtajo,
+  montosSugeridos,
   esDescuentoDeCampana,
   esperaAlCargar,
   hayDescuentoManual,
@@ -31,6 +32,7 @@ import {
   type PagoAplicado,
   type Vendedora,
 } from "./vender-reglas";
+import { METODOS_PAGO_VENTA } from "@cayla-retail/shared";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
 // principal, la línea que lo explica debajo, y el freno dentro de `cobrar()`. Si el
@@ -238,6 +240,46 @@ describe("metodoDeAtajo — F1 a F5 son los cinco medios, en el orden del select
 
   it("mantener la tecla (repeat) no repite el atajo", () => {
     expect(metodoDeAtajo(tecla("F2", { repeat: true }))).toBeNull();
+  });
+
+  it("con los seis medios de la hoja de cobro (QR incluido), F3 es QR y F6 transferencia", () => {
+    expect(metodoDeAtajo(tecla("F3"), METODOS_PAGO_VENTA)).toBe("qr");
+    expect(metodoDeAtajo(tecla("F4"), METODOS_PAGO_VENTA)).toBe("yape");
+    expect(metodoDeAtajo(tecla("F6"), METODOS_PAGO_VENTA)).toBe("transferencia");
+    expect(metodoDeAtajo(tecla("F7"), METODOS_PAGO_VENTA)).toBeNull();
+  });
+});
+
+describe("montosSugeridos — los billetes con que suele pagarse, por encima del monto", () => {
+  it("los dos montos de la maqueta", () => {
+    expect(montosSugeridos(59.9)).toEqual([60, 70, 100, 200]);
+    expect(montosSugeridos(223.9)).toEqual([230, 240, 250, 300]);
+  });
+  it("nunca el mismo monto ni uno menor, y como mucho cuatro", () => {
+    for (const m of [0.5, 9.9, 10, 19.9, 50, 99, 100, 150, 199.9, 200, 1234.5]) {
+      const s = montosSugeridos(m);
+      expect(s.length).toBeGreaterThan(0);
+      expect(s.length).toBeLessThanOrEqual(4);
+      expect(s.every((v) => v > m)).toBe(true);
+      expect([...s].sort((a, b) => a - b)).toEqual(s);
+      expect(new Set(s).size).toBe(s.length);
+    }
+  });
+  it("sin monto no sugiere nada", () => {
+    expect(montosSugeridos(0)).toEqual([]);
+    expect(montosSugeridos(Number.NaN)).toEqual([]);
+  });
+});
+
+describe("motivoBloqueoCobro — sin comprobante elegido no se cobra", () => {
+  it("cubierto el pago, falta elegir boleta, factura o nota de venta", () => {
+    expect(motivoBloqueoCobro({ ...listo, sinComprobante: true })).toBe("Elige el comprobante.");
+  });
+  it("primero el pago: sin medio, eso es lo que se pide", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], sinComprobante: true })).toBe("Elige cómo pagó la clienta.");
+  });
+  it("mientras se arma el ticket no se pide", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", sinComprobante: true })).toBeNull();
   });
 });
 
@@ -661,14 +703,14 @@ describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", (
   ];
 
   it("total 80: Plin baja a 40 y el efectivo se llena con los 40 que faltan", () => {
-    expect(pagosTrasEditarMonto(plinYEfectivo, 0, 40, 80)).toEqual([
+    expect(pagosTrasEditarMonto(plinYEfectivo, 0, 40, 80)).toMatchObject([
       { metodo: "plin", monto: 40 },
       { metodo: "efectivo", monto: 40 },
     ]);
   });
 
   it("también al revés: editar el segundo ajusta el primero", () => {
-    expect(pagosTrasEditarMonto(plinYEfectivo, 1, 30, 80)).toEqual([
+    expect(pagosTrasEditarMonto(plinYEfectivo, 1, 30, 80)).toMatchObject([
       { metodo: "plin", monto: 50 },
       { metodo: "efectivo", monto: 30 },
     ]);
@@ -692,13 +734,33 @@ describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", (
 
   it("no toca el recibido del efectivo", () => {
     const r = pagosTrasEditarMonto([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0, recibido: 50 }], 0, 40, 80);
-    expect(r[1]).toEqual({ metodo: "efectivo", monto: 40, recibido: 50 });
+    expect(r[1]).toMatchObject({ metodo: "efectivo", monto: 40, recibido: 50 });
   });
 
-  it("con un solo medio o con tres, solo cambia el editado (no hay a quién repartirle)", () => {
-    expect(pagosTrasEditarMonto([{ metodo: "efectivo", monto: 80 }], 0, 50, 80)).toEqual([{ metodo: "efectivo", monto: 50 }]);
+  it("con un solo medio solo cambia el editado (no hay a quién repartirle)", () => {
+    expect(pagosTrasEditarMonto([{ metodo: "efectivo", monto: 80 }], 0, 50, 80)).toMatchObject([{ metodo: "efectivo", monto: 50 }]);
+  });
+
+  it("con tres o más, el primer medio que no se escribió a mano se queda con el resto", () => {
     const tres: PagoAplicado[] = [{ metodo: "plin", monto: 40 }, { metodo: "yape", monto: 20 }, { metodo: "efectivo", monto: 20 }];
-    expect(pagosTrasEditarMonto(tres, 1, 10, 80).map((p) => p.monto)).toEqual([40, 10, 20]);
+    const r = pagosTrasEditarMonto(tres, 1, 10, 80);
+    expect(r.map((p) => p.monto)).toEqual([50, 10, 20]);
+    expect(r[1].fijo).toBe(true);
+    // Escribir el tercero: el primero sigue siendo el libre y absorbe la diferencia.
+    const r2 = pagosTrasEditarMonto(r, 2, 30, 80);
+    expect(r2.map((p) => p.monto)).toEqual([40, 10, 30]);
+    expect(restanteDePagos(80, r2)).toBe(0);
+  });
+
+  it("con tres o más, si ya se escribieron todos solo cambia el editado y el aviso dice cuánto falta", () => {
+    const todos: PagoAplicado[] = [
+      { metodo: "plin", monto: 40, fijo: true },
+      { metodo: "yape", monto: 20, fijo: true },
+      { metodo: "efectivo", monto: 20, fijo: true },
+    ];
+    const r = pagosTrasEditarMonto(todos, 0, 30, 80);
+    expect(r.map((p) => p.monto)).toEqual([30, 20, 20]);
+    expect(restanteDePagos(80, r)).toBe(10);
   });
 
   it("un índice que no existe no rompe nada", () => {
