@@ -7,13 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
   filtrosProductosDesdeParams,
+  conSede,
   paginaProductosDesdeParams,
   listarProductos,
-  getResumenProductos,
   getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
-  getPreciosExtremos,
+  getFacetasProductos,
+  getTemporadasCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
@@ -27,6 +28,7 @@ import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-s
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
+import { compararTallas } from "@/lib/tallas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -47,7 +49,7 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
 // cliente (`getCatalogo()`) a filtros en la URL + Postgres
-// (`fn_productos`/`fn_productos_resumen`), mismo patrón que Movimientos —
+// (`fn_productos`/`fn_productos_resumen`; desde 2026-10-02 `fn_productos_listado`/`fn_productos_facetas`, ADR-0308), mismo patrón que Movimientos —
 // ver `20260915160000_productos_listado_filtros.sql` para las decisiones
 // (paginado por número de página, por qué el stock entra acá ahora).
 // `getCatalogo()` sigue existiendo para quien necesite el catálogo entero
@@ -62,7 +64,9 @@ import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
-  const filtros = filtrosProductosDesdeParams(params);
+  // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
+  const enSede = persona.vista !== "global";
+  const filtros = conSede(filtrosProductosDesdeParams(params), enSede ? persona.ubicacionId : null);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
@@ -88,18 +92,20 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas] = await Promise.all([
     listarProductos(filtros, pagina),
-    getResumenProductos(filtros),
+    // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
+    getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
-    // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
-    getPreciosExtremos(filtros).catch(() => null),
+    supabase.from("tallas").select("id, valor").eq("activo", true),
+    // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
+    getTemporadasCatalogo().catch(() => null),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
@@ -113,21 +119,24 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     redirect(p.size > 0 ? `/productos?${p.toString()}` : "/productos");
   }
 
-  // Y si la lista de activas sale vacía, cuántas descontinuadas sí calzan (solo entonces se pregunta; si falla, no se avisa).
-  const preguntarDescontinuadas = resultado.totalProductos === 0 && filtros.estado === "activo" && !filtros.stock;
-  const [reposicion, existencias, descontinuadas] = await Promise.all([
-    resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
+  // Si la lista de activas sale vacía, cuántas descontinuadas sí calzan: ya lo trae el conteo de «Estado» (con los demás
+  // filtros puestos). Sin conteos, no se avisa.
+  const descontinuadas =
+    resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
+  const [reposicion, existencias] = await Promise.all([
+    (facetas?.facetas.disponibilidad?.reponer ?? 0) > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
-    preguntarDescontinuadas
-      ? getResumenProductos({ ...filtros, estado: "descontinuado" }).then((r) => r.totalProductos, () => 0)
-      : Promise.resolve(0),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color }));
+  // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
+  const tallasOpciones = exigir(resTallas, "las tallas")
+    .map((t) => ({ id: t.id, nombre: t.valor }))
+    .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
   const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
     <Link
@@ -217,11 +226,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       <FiltrosProductos
         categorias={categoriasOpciones}
         colores={coloresOpciones}
+        tallas={tallasOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
         totalProductos={resultado.totalProductos}
-        limitesPrecio={limitesRedondeados(precios)}
+        limitesPrecio={limitesRedondeados(facetas?.precio ?? null)}
+        facetas={facetas}
         panelInicial={panelFiltros}
+        sede={enSede ? persona.ubicacionEtiqueta : null}
+        temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}

@@ -12,3 +12,16 @@ export function textoPildora(etiqueta: string, elegida: { valor: string; texto: 
   if (!elegida || elegida.valor === TODOS) return { etiqueta, valor: null };
   return { etiqueta, valor: elegida.texto };
 }
+
+/** Una píldora de VARIAS opciones (Talla, Color; Felipe, 2026-10-02): nada → solo el nombre; una → «Talla: M»; dos →
+ *  «Talla: M, L»; más → «Talla: M, L +2». No se corta a ciegas: los dos primeros y cuántas más. */
+export function textoPildoraVarias(etiqueta: string, elegidas: readonly string[]): { etiqueta: string; valor: string | null } {
+  if (elegidas.length === 0) return { etiqueta, valor: null };
+  const primeras = elegidas.slice(0, 2).join(", ");
+  return { etiqueta, valor: elegidas.length > 2 ? `${primeras} +${elegidas.length - 2}` : primeras };
+}
+
+/** Marcar o desmarcar una opción dentro de una píldora de varias. */
+export function alternarEnLista(lista: readonly string[], valor: string): string[] {
+  return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
+}
