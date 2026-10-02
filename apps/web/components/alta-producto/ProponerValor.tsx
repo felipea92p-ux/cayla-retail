@@ -63,7 +63,7 @@ export function ProponerValor(props: Props) {
   const t = TEXTOS[props.tipo];
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-secundario h-9 whitespace-nowrap">
+      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-primario h-9 whitespace-nowrap">
         {t.boton}
       </button>
       {abierto && (
