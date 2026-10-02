@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
+import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -10,9 +11,24 @@ import { Modal } from "@/components/ui/Modal";
 import { guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { avisar } from "@/components/ui/Avisos";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { opcionesConConteo, textoTramo, tramoActivo, type FacetaClave, type FacetasProductos, type TramoPrecio } from "@/lib/productos-facetas";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
+  listaDeUrl,
+  listaParaUrl,
+  marcadosDeColor,
+  opcionesDeColor,
+  separarColor,
+  FALTAS,
+  ROTULO_FALTA,
+  SIN_TEMPORADA,
+  faltaDeUrl,
+  temporadaDeUrl,
+  DISPONIBILIDADES,
+  DISPONIBILIDAD_DE_SEDE,
+  disponibilidadDeUrl,
+  rotuloDisponibilidad,
   ESTADOS_LISTADO,
   ESTADO_POR_DEFECTO,
   ROTULO_ESTADO,
@@ -36,7 +52,7 @@ import { SIN_EN_URL } from "@/lib/marcas";
 // (fn_productos/fn_productos_resumen), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
-type OpcionColor = Opcion & { hex: string | null };
+type OpcionColor = Opcion & { hex: string | null; familia: string | null };
 
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
@@ -46,14 +62,20 @@ type OpcionColor = Opcion & { hex: string | null };
 export function FiltrosProductos({
   categorias,
   colores,
+  tallas,
   marcas,
   proveedores,
   totalProductos,
   limitesPrecio,
   panelInicial,
+  sede,
+  temporadas,
+  facetas,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
+  /** Tallas activas, ya en su orden de curva (S · M · L, 28 · 30 · 32). */
+  tallas: Opcion[];
   /** Marcas y proveedores activos (ADR-0109): filtrar el catálogo por de quién es y quién lo trae. */
   marcas: Opcion[];
   proveedores: Opcion[];
@@ -63,6 +85,12 @@ export function FiltrosProductos({
   limitesPrecio: LimitesPrecio | null;
   /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
   panelInicial: EstadoPanelFiltros;
+  /** El nombre de la sede elegida arriba, para «Hay en Tienda Lima»; `null` en CAYLA Global (no hay una sede). */
+  sede: string | null;
+  /** La lista cerrada de temporadas (`fn_temporadas`); `null` si la base aún no la tiene: la píldora no se dibuja. */
+  temporadas: Opcion[] | null;
+  /** Cuántas prendas hay en cada opción y los tramos de precio (`fn_productos_facetas`); `null` = no se pudo saber. */
+  facetas: FacetasProductos | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -88,6 +116,11 @@ export function FiltrosProductos({
   // clic) se aplica sobre ella y no sobre la URL vieja: antes el segundo pisaba al primero y el orden recién elegido se
   // perdía. Vence a los 3 s, por si una navegación nunca llega.
   const pedida = useRef<{ consulta: string; en: number } | null>(null);
+  // La misma URL pedida, para PINTAR: las píldoras de varias (Talla, Color) muestran lo recién marcado al instante y el clic
+  // siguiente se suma a él (antes dos clics seguidos leían la URL vieja y el segundo borraba al primero). Next descarta una
+  // navegación pendiente cuando empieza otra, así que la que llega es siempre la última pedida: al llegar, se olvida.
+  const [consultaPedida, setConsultaPedida] = useState<string | null>(null);
+  const consultaMostrada = consultaPedida ?? consultaUrl;
   const { buscando, buscar } = useBusquedaEnUrl();
   const etiquetaBuscar = (
     <span className="flex items-baseline justify-between gap-2">
@@ -139,6 +172,7 @@ export function FiltrosProductos({
    *  reemplaza la entrada del historial en vez de sumar una por pausa (Atrás ya no recorre precios intermedios). */
   function navegar(consulta: string, { teclado = false } = {}) {
     pedida.current = { consulta, en: Date.now() };
+    setConsultaPedida(consulta);
     const href = hrefDeConsulta(pathname, consulta);
     if (teclado) buscar(href, { reemplazar: true });
     else router.push(href);
@@ -154,6 +188,7 @@ export function FiltrosProductos({
   if (urlVista !== consultaUrl) {
     setUrlVista(consultaUrl);
     setTipeado((t) => tipeadoPendiente(consultaUrl, t, enfocada));
+    setConsultaPedida(null);
   }
   // Y cualquier URL que llega cierra lo pedido: Next descarta la navegación pendiente cuando empieza otra, así que si llegó
   // otra (un enlace de afuera, «A quién pedirle»), la pedida ya no va a llegar y aplicar sobre ella deshacía ese enlace.
@@ -207,9 +242,10 @@ export function FiltrosProductos({
   const cat = params.get("cat");
   const marca = params.get("marca");
   const proveedor = params.get("proveedor");
-  const color = params.get("color");
   const estado = estadoDeUrl(params.get("estado"));
-  const stock = params.get("stock");
+  const disponibilidad = disponibilidadDeUrl(params.get("stock"), sede != null);
+  const temporada = temporadaDeUrl(params.get("temporada"));
+  const falta = faltaDeUrl(params.get("falta"));
   const orden = ordenDeUrl(params.get("orden"));
 
   // Los chips leen la URL (lo que de verdad filtra la lista), siempre «Nombre: valor» como la píldora (`lib/productos-filtros.ts`).
@@ -220,6 +256,10 @@ export function FiltrosProductos({
       marca: (id) => marcas.find((m) => m.id === id)?.nombre,
       proveedor: (id) => proveedores.find((p) => p.id === id)?.nombre,
       color: (id) => colores.find((c) => c.id === id)?.nombre,
+      talla: (id) => tallas.find((t) => t.id === id)?.nombre,
+      familia: (f) => textoDeFamilia(f),
+      sede,
+      temporada: (clave) => temporadas?.find((t) => t.id === clave)?.nombre,
     },
     SIN_EN_URL,
   );
@@ -262,7 +302,13 @@ export function FiltrosProductos({
   async function copiarEnlace() {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve esta misma lista, con los mismos filtros." });
+      // «Hay en / Sin stock en [sede]» mira la sede de quien abre el enlace, no la de quien lo manda: se dice.
+      const deLaSede = disponibilidad === "en_sede" || disponibilidad === "sin_sede";
+      avisar.exito("Enlace copiado", {
+        detalle: deLaSede
+          ? "Quien lo abra ve los mismos filtros, pero «Hay en» y «Sin stock en» se aplican a SU sede."
+          : "Quien lo abra ve esta misma lista, con los mismos filtros.",
+      });
     } catch {
       avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
     }
@@ -317,77 +363,159 @@ export function FiltrosProductos({
     </div>
   );
 
+  // Cuántas prendas trae cada opción (ADR-0308): se esconden las que darían una lista vacía. Sin conteos (`facetas` null:
+  // la base no respondió), todas las opciones, sin número, como antes.
+  const conteos = (f: FacetaClave) => facetas?.facetas[f] ?? (facetas ? {} : undefined);
+  const contar = <O extends { valor: string }>(opciones: readonly O[], f: FacetaClave, elegidas: readonly (string | null)[]) =>
+    opcionesConConteo(opciones, conteos(f), elegidas.filter((e): e is string => !!e));
+  const conteoColor = facetas
+    ? {
+        ...Object.fromEntries(Object.entries(conteos("familia") ?? {}).map(([k, n]) => [`familia:${k}`, n])),
+        ...(conteos("color") ?? {}),
+      }
+    : undefined;
+  const conteoEstado = facetas
+    ? { ...(conteos("estado") ?? {}), todos: Object.values(conteos("estado") ?? {}).reduce((a, n) => a + n, 0) }
+    : undefined;
+  const tallasMarcadas = listaDeUrl(new URLSearchParams(consultaMostrada).get("talla"));
+  const coloresMarcados = marcadosDeColor(consultaMostrada);
+
   // Dos filas con nombre (Felipe, 2026-10-02): arriba lo que pide la clienta en el mostrador, abajo lo del líder (reponer,
   // completar, de quién es). El mismo panel va abierto en la página (computadora) o dentro de la hoja (celular), nunca los dos.
   const panel = (
     <PanelPildoras filas>
       <FilaPildoras titulo="Prenda">
-            <DesplegablePildora
-              icono={Shirt}
-              etiqueta="Categoría"
-              valor={cat ?? TODOS}
-              onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
-            />
-            <DesplegablePildora
-              icono={Palette}
-              etiqueta="Color"
-              valor={color ?? TODOS}
-              onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                ...colores.map((c) => ({
-                  valor: c.id,
-                  texto: c.nombre,
-                  icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
-                })),
-              ]}
-            />
-            <BloquePrecio
-              precioMin={precioMin}
-              precioMax={precioMax}
-              limites={limitesPrecio}
-              onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
-              onEntrar={alEntrarCaja}
-              onSalir={alSalirCaja}
-            />
+        <DesplegablePildora
+          icono={Shirt}
+          etiqueta="Categoría"
+          valor={cat ?? TODOS}
+          onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
+          opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(categorias.map((c) => ({ valor: c.id, texto: c.nombre })), "categoria", [cat])]}
+        />
+        {/* Talla y Color aceptan varias opciones a la vez (Felipe, 2026-10-02: «M o L», «negro o azul»). */}
+        <DesplegablePildora
+          icono={Ruler}
+          etiqueta="Talla"
+          varias={{ valores: tallasMarcadas, onValores: (v) => aplicar({ talla: listaParaUrl(v) }) }}
+          opciones={contar(tallas.map((t) => ({ valor: t.id, texto: t.nombre })), "talla", tallasMarcadas)}
+        />
+        {/* Un solo filtro de color, agrupado por familia: «Toda la familia Azul» o un tono exacto (no un filtro aparte de
+            familia, que podría contradecir al de color). */}
+        <DesplegablePildora
+          icono={Palette}
+          etiqueta="Color"
+          varias={{ valores: coloresMarcados, onValores: (v) => aplicar(separarColor(v)) }}
+          opciones={opcionesConConteo(
+            opcionesDeColor(colores, FAMILIAS_COLOR).map((o) =>
+              o.familia
+                ? { valor: o.valor, texto: o.texto }
+                : {
+                    valor: o.valor,
+                    texto: o.texto,
+                    icono: (
+                      <span
+                        aria-hidden
+                        className="ml-3 inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15 bg-hueso"
+                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia) }}
+                      />
+                    ),
+                  },
+            ),
+            conteoColor,
+            coloresMarcados,
+          )}
+        />
+        <BloquePrecio
+          precioMin={precioMin}
+          precioMax={precioMax}
+          limites={limitesPrecio}
+          tramos={facetas?.tramos ?? []}
+          onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
+          onTramo={(t) => {
+            setTipeado((x) => sinCajas(x, ["precioMin", "precioMax"]));
+            // Es un botón de alternar: tocar el tramo que ya está puesto lo quita.
+            if (tramoActivo(t, precioMin, precioMax)) aplicar({ precioMin: "", precioMax: "" });
+            else aplicar({ precioMin: t.desde == null ? "" : String(t.desde), precioMax: t.hasta == null ? "" : String(t.hasta) });
+          }}
+          onEntrar={alEntrarCaja}
+          onSalir={alSalirCaja}
+        />
       </FilaPildoras>
       <FilaPildoras titulo="Gestión">
-            <DesplegablePildora
-              icono={PackageSearch}
-              etiqueta="Stock"
-              valor={stock ?? TODOS}
-              onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
-              opciones={[
-                { valor: TODOS, texto: "Todos" },
-                { valor: "sin_stock", texto: "Sin stock" },
-                { valor: "bajo", texto: "Stock bajo" },
-                { valor: "reponer", texto: "Pedir a proveedor" },
-              ]}
-            />
-            <DesplegablePildora
-              icono={Tag}
-              etiqueta="Marca"
-              valor={marca ?? TODOS}
-              onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, { valor: SIN_EN_URL, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-            />
-            <DesplegablePildora
-              icono={Truck}
-              etiqueta="Proveedor"
-              valor={proveedor ?? TODOS}
-              onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
-              opciones={[{ valor: TODOS, texto: "Todos" }, { valor: SIN_EN_URL, texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-            />
-            {/* «Activos» es lo que vale sola (Felipe, 2026-10-02): se ve «Estado: Activos» en reposo y «Todos» se elige a propósito. */}
-            <DesplegablePildora
-              icono={CircleCheck}
-              etiqueta="Estado"
-              valor={estado}
-              valorPorDefecto={ESTADO_POR_DEFECTO}
-              onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
-              opciones={ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] }))}
-            />
+        {/* La sede y la red, cada una rotulada (Felipe, 2026-10-02): «¿hay en mi tienda?» es la del mostrador; «sin stock en
+            ninguna», la del líder que le pide al proveedor. Sin sede elegida (CAYLA Global) solo las de la red. */}
+        <DesplegablePildora
+          icono={PackageSearch}
+          etiqueta="Disponibilidad"
+          valor={disponibilidad ?? TODOS}
+          onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
+          opciones={[
+            { valor: TODOS, texto: "Todas" },
+            ...contar(
+              DISPONIBILIDADES.filter((d) => sede != null || !DISPONIBILIDAD_DE_SEDE.includes(d)).map((d) => ({
+                valor: d as string,
+                texto: rotuloDisponibilidad(d, sede),
+              })),
+              "disponibilidad",
+              [disponibilidad ?? null],
+            ),
+          ]}
+        />
+        <DesplegablePildora
+          icono={Tag}
+          etiqueta="Marca"
+          valor={marca ?? TODOS}
+          onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
+          opciones={[
+            { valor: TODOS, texto: "Todas" },
+            ...contar([{ valor: SIN_EN_URL, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))], "marca", [marca]),
+          ]}
+        />
+        <DesplegablePildora
+          icono={Truck}
+          etiqueta="Proveedor"
+          valor={proveedor ?? TODOS}
+          onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
+          opciones={[
+            { valor: TODOS, texto: "Todos" },
+            ...contar([{ valor: SIN_EN_URL, texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))], "proveedor", [proveedor]),
+          ]}
+        />
+        {/* «Activos» es lo que vale sola (Felipe, 2026-10-02): se ve «Estado: Activos» en reposo y «Todos» se elige a propósito. */}
+        <DesplegablePildora
+          icono={CircleCheck}
+          etiqueta="Estado"
+          valor={estado}
+          valorPorDefecto={ESTADO_POR_DEFECTO}
+          onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
+          opciones={opcionesConConteo(
+            ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] })),
+            conteoEstado,
+            [estado, ESTADO_POR_DEFECTO],
+          )}
+        />
+        {temporadas && (
+          <DesplegablePildora
+            icono={CalendarRange}
+            etiqueta="Temporada"
+            valor={temporada ?? TODOS}
+            onValor={(v) => aplicar({ temporada: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todas" },
+              ...contar([...temporadas.map((t) => ({ valor: t.id, texto: t.nombre })), { valor: SIN_TEMPORADA, texto: "Sin temporada" }], "temporada", [
+                temporada ?? null,
+              ]),
+            ]}
+          />
+        )}
+        {/* Lo que le falta a la ficha, en un solo lugar: el filtro de quien carga el catálogo (Felipe, 2026-10-02). */}
+        <DesplegablePildora
+          icono={ClipboardList}
+          etiqueta="Por completar"
+          valor={falta ?? TODOS}
+          onValor={(v) => aplicar({ falta: v === TODOS ? "" : v })}
+          opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...contar(FALTAS.map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] })), "falta", [falta ?? null])]}
+        />
       </FilaPildoras>
     </PanelPildoras>
   );
@@ -463,14 +591,19 @@ function BloquePrecio({
   precioMin,
   precioMax,
   limites,
+  tramos,
   onCambiar,
+  onTramo,
   onEntrar,
   onSalir,
 }: {
   precioMin: string;
   precioMax: string;
   limites: LimitesPrecio | null;
+  /** Tramos con su conteo, cortados en los cuartiles de los precios (`fn_productos_facetas`). */
+  tramos: readonly TramoPrecio[];
   onCambiar: (min: string, max: string) => void;
+  onTramo: (t: TramoPrecio) => void;
   onEntrar: (caja: CajaTipeada) => void;
   onSalir: () => void;
 }) {
@@ -522,6 +655,29 @@ function BloquePrecio({
             />
           ))}
         </Slider.Root>
+      )}
+      {/* Tramos con su número (Felipe, 2026-10-02): un toque y listo; cortados donde están los precios de verdad, no de a
+          igual ancho (con 17 prendas a S/ 39,90, tramos parejos dejarían uno lleno y otro vacío). */}
+      {tramos.length > 0 && (
+        <div className="flex basis-full flex-wrap items-center gap-1.5 pb-0.5" role="group" aria-label="Tramos de precio">
+          {tramos.map((t) => {
+            const activo = tramoActivo(t, precioMin, precioMax);
+            return (
+              <button
+                key={`${t.desde}-${t.hasta}`}
+                type="button"
+                aria-pressed={activo}
+                onClick={() => onTramo(t)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors ${
+                  activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-tinta/35 hover:text-tinta"
+                }`}
+              >
+                {textoTramo(t)}
+                <span className={`tabular-nums ${activo ? "text-crema/70" : "text-tinta/40"}`}>{t.n}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

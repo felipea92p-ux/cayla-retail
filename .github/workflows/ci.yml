@@ -1342,6 +1342,19 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:productos-orden
 
+      # El listado nuevo de Productos (20261002200000, ADR-0308): color, talla, precio, temporada y stock de la sede se exigen
+      # a LA MISMA variante; las variantes desactivadas no cuentan; talla, familia, temporada, faltas y disponibilidad en la
+      # sede y en la red; buscador sin tildes, por categoría y color, «%» literal. Con controles contra `fn_productos`.
+      - name: pruebas:productos-listado
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-listado
+
+      # Cuántas prendas hay en cada opción del filtro de Productos (20261002200100, ADR-0308): CADA conteo es el total que
+      # trae el listado al elegir esa opción, en ocho escenas; conteo disyuntivo; ninguna opción vacía; rango de precio y tramos.
+      - name: pruebas:productos-facetas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-facetas
+
       # Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
       # incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
       # siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.

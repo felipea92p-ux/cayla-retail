@@ -182,3 +182,10 @@ describe("mensajeSinResultados — la lista abre con las activas", () => {
     expect(mensajeSinResultados({ estado: "activo" })).toBe(MENSAJE_SIN_RESULTADOS);
   });
 });
+
+describe("mensajeSinResultados — «Hay en [sede]» sí trae descontinuadas", () => {
+  it("con «Hay en …» el vacío es el de siempre, no culpa a la Disponibilidad", () => {
+    expect(mensajeSinResultados({ estado: "descontinuado", stock: "en_sede" })).toBe(MENSAJE_SIN_RESULTADOS);
+    expect(mensajeSinResultados({ estado: "descontinuado", stock: "sin_red" })).toContain("filtro de Disponibilidad");
+  });
+});
