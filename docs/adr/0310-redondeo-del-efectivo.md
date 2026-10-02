@@ -93,7 +93,9 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
 - [x] **6. Apartados** (§8): `entregar_separacion` acepta la fila de redondeo en el saldo que se paga al entregar y verifica que sea la de la ley;
   el adelanto y los abonos no se redondean. La pantalla de entrega, el modal «Apartado entregado» y la boleta final lo dicen; la boleta sale por el
   saldo exacto. La bandera `fn_acepta_redondeo_efectivo` ahora exige las dos funciones (Vender y Apartados cobran con la misma).
-- [ ] 7. Cambios y devoluciones en efectivo.
+- [~] **7. Cambios y devoluciones en efectivo — DIFERIDA a propósito** (§9): en producción hay 0 cambios, 0 devoluciones y 0 variantes con céntimos en el
+  catálogo, y la dirección del redondeo de un reembolso (hacia arriba) es una lectura legal sin verificar. Construirla hoy metería una columna por tabla y siete funciones
+  de dinero por un caso que nunca ocurrió. Vuelve cuando se cumpla el disparador de §9.
 - [ ] 8. Condicional: declarar el redondeo en el comprobante SUNAT, solo prueba en el sandbox de Lucode.
 
 **Orden en producción** (lo pega Felipe, nunca esta sesión): partes de las actividades 2 y 3 → publicar la web → `registrar_venta`
@@ -293,6 +295,24 @@ no elige nada: el recuadro le dice cuánto cobrar en efectivo y por qué, y el b
 
 ## 9. Lo que queda
 
-Las actividades 7 y 8. Pendientes que salieron de la investigación y no son de esta lista: el cierre de caja se cierra
+**Actividad 7 diferida (decisión de criterio, 2026-10-02; Felipe puede pedirla igual).** Números de producción (solo lectura, 2026-10-02): 49 ventas, **0 cambios, 0 devoluciones**,
+**0 de 599 variantes activas con céntimos en el precio** (así la diferencia de un cambio —precio nuevo menos precio viejo, de lista— es siempre múltiplo de S/ 0.10 mientras el catálogo lo sea)
+y 2 pagos en efectivo con céntimos, ambos de ventas. El único camino que hoy deja un efectivo sin moneda en esas dos operaciones es una línea con precio tecleado a mano, o un reembolso de una venta con
+descuento porcentual (63.92). Para cerrarlo hacen falta una columna en `cambios` y otra en `devoluciones`, parchar `registrar_cambio`, `aprobar_devolucion`, `fn_calcular_esperado_caja`, `fn_flujo_lineas`,
+`fn_dinero_libro`, `fn_bal_causas_dinero` y `fn_asientos` (la más parchada del repo) y las pantallas de Cambios y Devoluciones, además de fijar una regla que ninguna norma peruana trata (¿un reembolso en efectivo se redondea
+hacia arriba, a favor del cliente, o se devuelve exactamente lo que se cobró en efectivo, que ya es múltiplo de 0.10?). **DECIDÍ** diferirla; **DESCARTÉ** construirla ahora porque su costo (siete funciones de dinero más
+dos tablas, con la dirección legal sin verificar) es muy superior a lo que cuesta no tenerla (S/ 0.01–0.09 por operación, y hoy cero operaciones); **SE ROMPE SI** una caja entrega un reembolso en efectivo de una venta con
+descuento porcentual y el arqueo del día amanece con una diferencia de céntimos que nadie sabe explicar. **Disparador para construirla:** la consulta de abajo devuelve algo distinto de cero, o la integrante vuelve a ver un
+cajón con céntimos tras un reembolso.
+
+```sql
+select (select count(*) from retail.devoluciones where estado = 'aprobada' and reembolso_metodo = 'efectivo' and mod(round(reembolso_monto * 100)::int, 10) <> 0) as devoluciones_en_efectivo_con_centimos,
+       (select count(*) from retail.cambios where metodo_pago_diferencia = 'efectivo' and mod(round(abs(diferencia) * 100)::int, 10) <> 0) as cambios_en_efectivo_con_centimos,
+       (select count(*) from retail.variantes where activo and mod(round(precio * 100)::int, 10) <> 0) as variantes_con_centimos;
+```
+
+Mientras tanto, la mitigación sin código: al aprobar un reembolso en efectivo, el líder elige el monto (ya es libre hasta el tope) y puede entregar un múltiplo de 0.10 y el resto por Yape.
+
+**Actividad 8:** solo con el OK explícito de Felipe y el sandbox de Lucode. Pendientes que salieron de la investigación y no son de esta lista: el cierre de caja se cierra
 tecleando la cifra del sistema (desde ADR-0186 el esperado se ve antes de contar); y 77 de 84 líneas vendidas en producción son
 «Prenda sin registrar» con precio tecleado a mano (de ahí salen céntimos como 62.15 y 309.59).
