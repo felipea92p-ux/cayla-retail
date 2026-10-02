@@ -1,4 +1,9 @@
 {
+ "acciones_sin_responsable": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "actividad": {
   "forzado": false,
   "relkind": "r",
@@ -95,6 +100,46 @@
   "rls": true
  },
  "clientas_fusiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_aniversario_escala": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_avisos_enviados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_canjes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_etiquetas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_intentos_registro": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_invitaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_permisos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_textos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -339,6 +384,11 @@
   "relkind": "r",
   "rls": true
  },
+ "frescura_decisiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos": {
   "forzado": false,
   "relkind": "r",
@@ -400,6 +450,11 @@
   "rls": true
  },
  "medios_de_cobro": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "metas_persona_ajustes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -500,6 +555,11 @@
   "rls": true
  },
  "producto_fotos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_origen": {
   "forzado": false,
   "relkind": "r",
   "rls": true
