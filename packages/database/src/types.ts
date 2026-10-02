@@ -6892,6 +6892,25 @@ export type Database = {
       }
       fn_productos_buscar: { Args: { p_busqueda: string }; Returns: string[] }
       fn_productos_buscar_palabras: { Args: { p_busqueda: string }; Returns: string[] }
+      fn_productos_facetas: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_colores?: string[]
+          p_disponibilidad?: string
+          p_estado?: string
+          p_falta?: string
+          p_familias?: string[]
+          p_marca_id?: string
+          p_precio_max?: number
+          p_precio_min?: number
+          p_proveedor_id?: string
+          p_tallas?: string[]
+          p_temporada?: string
+          p_ubicacion_id?: string
+        }
+        Returns: Json
+      }
       fn_productos_listado: {
         Args: {
           p_busqueda?: string

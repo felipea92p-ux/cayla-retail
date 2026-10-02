@@ -96,6 +96,9 @@ as $$
 $$;
 
 -- ── El filtro: una fila por variante visible, una marca por filtro ───────────────────────────────────────────────────
+-- `drop … if exists` antes del create: es una función NUEVA de esta tanda, interna (solo la leen el listado y los conteos,
+-- que se crean después en este mismo lote), y así el archivo se puede volver a pegar aunque su forma cambie.
+drop function if exists retail.fn_productos_filtro(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, boolean);
 create or replace function retail.fn_productos_filtro(
   p_busqueda text default null,
   p_categoria_id uuid default null,
@@ -119,7 +122,9 @@ returns table (
   categoria_id uuid, marca_id uuid, proveedor_id uuid, estado text, es_prueba boolean, stock_minimo integer,
   f_busqueda boolean, f_categoria boolean, f_marca boolean, f_proveedor boolean, f_estado boolean, f_falta boolean,
   f_color boolean, f_talla boolean, f_precio boolean, f_temporada boolean, f_disp boolean,
-  disp_sede integer, talla_retirada boolean
+  disp_sede integer, talla_retirada boolean,
+  -- Para los conteos por opción (20261002200100): si a la prenda le falta la foto, y si ESTA variante hay en la sede.
+  sin_foto boolean, hay_en_sede boolean
 )
 language sql
 stable
@@ -186,7 +191,9 @@ as $$
          (p_disponibilidad is distinct from 'en_sede'
            or (coalesce(sv.disp_sede, 0) > 0 and not coalesce(sv.talla_retirada, false))),
          coalesce(sv.disp_sede, 0),
-         coalesce(sv.talla_retirada, false)
+         coalesce(sv.talla_retirada, false),
+         vi.sin_foto,
+         (coalesce(sv.disp_sede, 0) > 0 and not coalesce(sv.talla_retirada, false))
   from visibles vi
   cross join params pa
   left join stock_variante sv on sv.variante_id = vi.variante_id;

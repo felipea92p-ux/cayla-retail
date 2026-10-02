@@ -10,11 +10,10 @@ import {
   conSede,
   paginaProductosDesdeParams,
   listarProductos,
-  getResumenProductos,
   getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
-  getPreciosExtremos,
+  getFacetasProductos,
   getTemporadasCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
@@ -50,7 +49,7 @@ import { compararTallas } from "@/lib/tallas";
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
 // cliente (`getCatalogo()`) a filtros en la URL + Postgres
-// (`fn_productos`/`fn_productos_resumen`), mismo patrón que Movimientos —
+// (`fn_productos`/`fn_productos_resumen`; desde 2026-10-02 `fn_productos_listado`/`fn_productos_facetas`, ADR-0308), mismo patrón que Movimientos —
 // ver `20260915160000_productos_listado_filtros.sql` para las decisiones
 // (paginado por número de página, por qué el stock entra acá ahora).
 // `getCatalogo()` sigue existiendo para quien necesite el catálogo entero
@@ -93,9 +92,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios, resTallas, temporadas] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas] = await Promise.all([
     listarProductos(filtros, pagina),
-    getResumenProductos(filtros),
+    // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
+    getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
@@ -103,8 +103,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
-    // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
-    getPreciosExtremos(filtros).catch(() => null),
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
@@ -121,17 +119,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     redirect(p.size > 0 ? `/productos?${p.toString()}` : "/productos");
   }
 
-  // Y si la lista de activas sale vacía, cuántas descontinuadas sí calzan (solo entonces se pregunta; si falla, no se avisa).
-  const preguntarDescontinuadas = resultado.totalProductos === 0 && filtros.estado === "activo" && !filtros.stock;
-  const [reposicion, existencias, descontinuadas] = await Promise.all([
-    resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
+  // Si la lista de activas sale vacía, cuántas descontinuadas sí calzan: ya lo trae el conteo de «Estado» (con los demás
+  // filtros puestos). Sin conteos, no se avisa.
+  const descontinuadas =
+    resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
+  const [reposicion, existencias] = await Promise.all([
+    (facetas?.facetas.disponibilidad?.reponer ?? 0) > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
-    preguntarDescontinuadas
-      ? getResumenProductos({ ...filtros, estado: "descontinuado" }).then((r) => r.totalProductos, () => 0)
-      : Promise.resolve(0),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -233,7 +230,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
         totalProductos={resultado.totalProductos}
-        limitesPrecio={limitesRedondeados(precios)}
+        limitesPrecio={limitesRedondeados(facetas?.precio ?? null)}
+        facetas={facetas}
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}

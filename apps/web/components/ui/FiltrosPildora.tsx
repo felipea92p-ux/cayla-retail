@@ -115,7 +115,8 @@ export function DesplegablePildora({
   icono: LucideIcon;
   /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
   etiqueta: string;
-  opciones: readonly OpcionCombo<string>[];
+  /** `cantidad`: cuántas prendas trae esa opción (Productos, ADR-0308); se lee a la derecha. Sin ella, la lista de siempre. */
+  opciones: readonly (OpcionCombo<string> & { cantidad?: number })[];
   /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
   valorPorDefecto?: string;
   /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
@@ -346,6 +347,11 @@ export function DesplegablePildora({
                   )}
                   {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
                   <span className="align-middle">{o.texto}</span>
+                  {o.cantidad != null && (
+                    <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
+                      {o.cantidad}
+                    </span>
+                  )}
                 </li>
               ))
             )}
