@@ -11,10 +11,18 @@ import { compararTallas } from "./tallas";
 
 export type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null };
 
+/** Las variantes que el catálogo muestra y cuenta: las que se venden. Una desactivada (un color o una talla que se quitó de
+ *  la ficha) no cuenta ni se lista; sus unidades, si las tiene, siguen en el inventario. Un modelo con TODAS desactivadas
+ *  (descontinuado) las conserva para no quedar sin colores, tallas ni precio. */
+export function variantesQueSeVenden<V extends { activo: boolean }>(variantes: readonly V[]): readonly V[] {
+  const activas = variantes.filter((v) => v.activo);
+  return activas.length > 0 ? activas : variantes;
+}
+
 /** Los colores en que existe el modelo, en el orden en que llegan, con la foto de la primera variante de cada uno. */
 export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponible[] {
   const vistos = new Map<string, ColorDisponible>();
-  for (const v of variantes) {
+  for (const v of variantesQueSeVenden(variantes)) {
     if (!v.color) continue;
     if (!vistos.has(v.color)) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
   }
@@ -24,7 +32,7 @@ export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponib
 /** Las tallas del modelo, sin repetir, en su orden de curva (XS · S · M · L): las variantes llegan en el orden en
  *  que se crearon, y «L, M, S» confunde a quien busca la M. */
 export function tallasDe(variantes: readonly VarianteCatalogo[]): string[] {
-  return [...new Set(variantes.flatMap((v) => (v.talla ? [v.talla] : [])))].sort(compararTallas);
+  return [...new Set(variantesQueSeVenden(variantes).flatMap((v) => (v.talla ? [v.talla] : [])))].sort(compararTallas);
 }
 
 /** Las variantes agrupadas por color (en el orden de `coloresDe`) y, dentro de cada color, por curva de talla. */
