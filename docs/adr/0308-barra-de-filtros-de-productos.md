@@ -42,13 +42,19 @@ dos controles para el mismo orden (flechas ↑↓ y «Ordenar») dentro del pane
 
 ```
 DECIDÍ:    la URL es la única fuente de verdad de la barra; las cajas (buscador y precio) guardan solo lo que se está escribiendo,
-           caja por caja, y todo cambio se aplica sobre la URL vigente (la pedida que aún no llega, o la del navegador en el
-           momento de usarla). Lógica pura en lib/productos-filtros.ts.
+           caja por caja (la que tiene el cursor no se suelta hasta salir), y todo cambio se aplica sobre la URL vigente: la
+           pedida que aún no llega, o la del navegador en el momento de usarla. Cualquier URL que llega cierra lo pedido
+           (Next descarta la navegación pendiente cuando empieza otra); un enlace de afuera de la barra hace esperar al
+           temporizador del buscador, que se rearma al llegar la URL y manda lo que la caja todavía dice.
+           Lógica pura en lib/productos-filtros.ts.
 DESCARTÉ:  (a) copiar la URL a un estado local al montar (lo que había): se separaba al navegar desde fuera (A quién pedirle,
            Atrás) y volvía a mandar un precio que ya no estaba; (b) leer `params` del momento en que se programó el temporizador:
-           un clic dentro de los 350 ms se perdía (medido: el orden elegido desaparecía).
-SE ROMPE SI: una navegación tarda más de 3 s en llegar y en ese lapso se hace otro cambio: la URL pedida vence y el cambio se
-           aplica sobre la del navegador.
+           un clic dentro de los 350 ms se perdía (medido: el orden elegido desaparecía); (c) soltar la caja apenas la URL dice
+           lo mismo recortado: el espacio antes de la palabra siguiente se borraba bajo el cursor («blusaroja»; lo encontró
+           la revisión adversaria).
+SE ROMPE SI: la navegación ajena no es un enlace (<a>) ni nace en la barra —un router.push de otro componente— dentro de los
+           350 ms de una tecla: el temporizador la puede descartar. Hoy el único caso es «A quién pedirle», que conserva los
+           filtros y la búsqueda.
 ```
 
 ```
@@ -77,6 +83,9 @@ DESCARTÉ:  localStorage (el panel aparecería y desaparecería al hidratar); ab
            productos bajo el pliegue y Baymard muestra que los controles fuera de la vista no se descubren).
 SE ROMPE SI: alguien usa la tablet en vertical a menos de 768 px: ve la hoja, no el panel (es lo mismo que el celular).
 ```
+
+Una revisión adversaria (4 lentes y un escéptico por hallazgo) confirmó 6 defectos de la propia tanda y ninguno se refutó;
+están corregidos y reproducidos en el navegador (commit `fix(catalogo): lo que encontró la revisión adversaria…`).
 
 Medido sin desborde horizontal a 375, 768, 1024, 1280, 1440 y 1920 px. A 768 el menú lateral deja ~420 px: el bloque de
 precio se parte en dos líneas y el nombre de la fila va arriba.
