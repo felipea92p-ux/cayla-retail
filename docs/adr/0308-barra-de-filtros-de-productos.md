@@ -1,7 +1,7 @@
 # ADR-0308 — La barra de filtros de Productos dice la verdad
 
 **Fecha:** 2026-10-02 · **Estado:** tanda 1 construida y verificada (PR #723, sin migración); tanda 2 construida y verificada en una base
-local al día, **SQL por pegar** (`20261002200000`, `20261002200100`) ·
+local al día; **SQL en producción desde el 2026-10-02** (`20261002200000`, `20261002200100`, huellas verificadas) ·
 **Decide:** Felipe (las 19 decisiones de negocio y de forma, en preguntas del 2026-10-02); Claude (lo técnico) ·
 **Rama:** `claude/filtro-pantalla-mejora-dba838` · **Análisis:** `docs/pantallas/productos-filtros.md`
 
