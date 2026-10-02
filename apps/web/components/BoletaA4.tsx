@@ -3,7 +3,7 @@ import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
-import { desglosaIgv, fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
+import { desglosaIgv, fechaHoraLima, LEY_REDONDEO, montoEnLetras, NOMBRE_METODO, TEXTO_REDONDEO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
 
 const s = (n: number) => `S/ ${n.toFixed(2)}`;
 // Tinte suave para los encabezados: se imprime con `print-color-adjust: exact` pero, si la
@@ -143,6 +143,11 @@ export function BoletaA4({
                   {p.recibido !== null && p.metodo === "efectivo" && ` · recibió ${s(p.recibido)} · vuelto ${s(p.vuelto)}`}
                 </p>
               ))}
+              {(recibo.redondeo ?? 0) > 0 && (
+                <p>
+                  {TEXTO_REDONDEO} {s(recibo.redondeo ?? 0)} <span className="text-black/55">({LEY_REDONDEO})</span>
+                </p>
+              )}
             </div>
             {vendedor && <p>Atendió: {vendedor}</p>}
             {hash && <p className="break-all text-[6.5pt] text-black/55">Hash: {hash}</p>}
