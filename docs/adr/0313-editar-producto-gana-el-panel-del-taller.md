@@ -1,4 +1,4 @@
-# ADR-0305 — Editar producto usa el ancho que dejó libre ADR-0257: el panel del taller
+# ADR-0313 — Editar producto usa el ancho que dejó libre ADR-0257: el panel del taller
 
 **Fecha:** 2026-10-02
 **Estado:** Construido y verificado en local (navegador, puerto 3070): ajuste real de stock con motivo «Reposición»,
