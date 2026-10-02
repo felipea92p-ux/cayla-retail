@@ -104,6 +104,7 @@ export function DesplegablePildora({
   onValor,
   opciones,
   valorPorDefecto = TODOS,
+  encoger = false,
 }: {
   icono: LucideIcon;
   /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
@@ -113,6 +114,9 @@ export function DesplegablePildora({
   opciones: readonly OpcionCombo<string>[];
   /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
   valorPorDefecto?: string;
+  /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
+   *  375 px). En el riel del panel no: ahí cada píldora conserva su ancho y el riel se desliza. */
+  encoger?: boolean;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -220,7 +224,7 @@ export function DesplegablePildora({
   }
 
   return (
-    <div className="relative flex items-center" ref={contenedor}>
+    <div className={`relative flex items-center ${encoger ? "min-w-0" : ""}`} ref={contenedor}>
       <button
         ref={disparador}
         type="button"
@@ -230,7 +234,7 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
+        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
           puedeQuitar ? "pl-3 pr-1" : "px-3"
         } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
       >
@@ -253,7 +257,11 @@ export function DesplegablePildora({
       {puedeQuitar && (
         <button
           type="button"
-          onClick={() => onValor(valorPorDefecto)}
+          onClick={() => {
+            // La ✕ desaparece al quitar el filtro: el foco vuelve a la píldora, no se pierde en la página (teclado).
+            disparador.current?.focus();
+            onValor(valorPorDefecto);
+          }}
           aria-label={`Quitar filtro ${etiqueta}`}
           className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
         >
@@ -269,15 +277,7 @@ export function DesplegablePildora({
         createPortal(
           <div
             ref={capa}
-            style={{
-              position: "fixed",
-              ...posLista,
-              // Al ancho de su texto, no al de la píldora: con la píldora de 90 px los nombres de marca se partían en tres
-              // líneas. Como `Desplegable` (`campos.tsx`), sin salirse de la ventana.
-              width: "max-content",
-              minWidth: Math.max(posLista.width, 208),
-              maxWidth: Math.min(360, window.innerWidth - posLista.left - 8),
-            }}
+            style={{ position: "fixed", ...posLista, ...anchoDeLista(posLista.left, posLista.width, window.innerWidth) }}
             className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg"
           >
           {mostrarBuscador && (
@@ -333,4 +333,15 @@ export function DesplegablePildora({
         )}
     </div>
   );
+}
+
+/** La lista flotante, al ancho de su texto y no al de la píldora (con la píldora de 90 px los nombres de marca se partían en
+ *  tres líneas), como `Desplegable` (`campos.tsx`). Mínimo 208 px, máximo 360, y SIEMPRE dentro de la ventana: si la píldora
+ *  está cerca del borde derecho, la lista se corre a la izquierda en vez de salirse (antes el mínimo le ganaba al máximo y
+ *  la lista quedaba cortada, sin scroll que la alcanzara). */
+function anchoDeLista(left: number, anchoPildora: number, anchoVentana: number) {
+  const margen = 8;
+  const minimo = Math.min(Math.max(anchoPildora, 208), anchoVentana - 2 * margen);
+  const izquierda = Math.max(margen, Math.min(left, anchoVentana - margen - minimo));
+  return { left: izquierda, width: "max-content" as const, minWidth: minimo, maxWidth: Math.min(360, anchoVentana - izquierda - margen) };
 }

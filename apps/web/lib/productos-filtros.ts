@@ -35,16 +35,6 @@ export function consultaSinFiltros(actual: string): string {
   return p.toString();
 }
 
-/** Dos consultas son la misma URL aunque el orden de sus claves cambie (`a=1&b=2` = `b=2&a=1`). */
-export function mismaConsulta(a: string, b: string): boolean {
-  const norma = (s: string) =>
-    [...new URLSearchParams(s).entries()]
-      .map(([k, v]) => `${k}=${v}`)
-      .sort()
-      .join("&");
-  return norma(a) === norma(b);
-}
-
 /** Las cajas que se escriben (buscador y precio): mientras alguien teclea, lo suyo vive aquí y recién después pasa a la URL. */
 export type CajaTipeada = "q" | "precioMin" | "precioMax";
 /** Solo las cajas que se están escribiendo AHORA, con lo escrito. Una caja que no está aquí muestra lo que dice la URL,
@@ -75,12 +65,17 @@ export function cambiosTipeados(consulta: string, tipeado: Tipeado): Record<stri
   return cambios;
 }
 
-/** Cuando la URL ya dice lo escrito, la caja deja de «estar escribiéndose» y vuelve a mostrar la URL. Devuelve el mismo
- *  objeto si nada cambió (para no volver a pintar de gusto). */
-export function tipeadoPendiente(consulta: string, tipeado: Tipeado): Tipeado {
+/** Cuando la URL ya dice lo escrito, la caja deja de «escribirse» y vuelve a mostrar la URL. La caja con el cursor adentro
+ *  NUNCA se suelta: lo escrito es de la persona, aunque la URL ya diga lo mismo recortado o normalizado. Si se soltara,
+ *  «blusa » (con el espacio antes de la palabra siguiente) pasaría a mostrar «blusa» y el espacio se borraría bajo el
+ *  cursor («blusaroja»), y «39,9» pasaría a «39.90» a mitad de escribir 39,95. Se suelta al salir de la caja.
+ *  Devuelve el mismo objeto si nada cambió (para no volver a pintar de gusto). */
+export function tipeadoPendiente(consulta: string, tipeado: Tipeado, enfocada: CajaTipeada | null = null): Tipeado {
   const p = new URLSearchParams(consulta);
-  // Sigue «escribiéndose» lo que la URL todavía no dice (incluido lo que está a medio escribir, como «39,»).
-  const quedan = (Object.keys(tipeado) as CajaTipeada[]).filter((k) => valorParaUrl(k, tipeado[k] as string) !== (p.get(k) ?? ""));
+  // Sigue «escribiéndose» la caja con el cursor y lo que la URL todavía no dice (incluido lo a medio escribir, «39,»).
+  const quedan = (Object.keys(tipeado) as CajaTipeada[]).filter(
+    (k) => k === enfocada || valorParaUrl(k, tipeado[k] as string) !== (p.get(k) ?? ""),
+  );
   if (quedan.length === Object.keys(tipeado).length) return tipeado;
   return Object.fromEntries(quedan.map((k) => [k, tipeado[k] as string])) as Tipeado;
 }
@@ -117,7 +112,8 @@ export function estadoParaBase(estado: EstadoListado): "activo" | "descontinuado
 export function contarFiltrosActivos(consulta: string): number {
   const p = new URLSearchParams(consulta);
   const claves = ["cat", "marca", "proveedor", "color", "stock"].filter((k) => p.get(k));
-  const precio = p.get("precioMin") || p.get("precioMax") ? 1 : 0;
+  // El precio cuenta solo si se entiende, con la misma regla que aplica el servidor (`leerMonto`): «abc» no filtra ni cuenta.
+  const precio = leerMonto(p.get("precioMin") ?? "") != null || leerMonto(p.get("precioMax") ?? "") != null ? 1 : 0;
   const estado = estadoDeUrl(p.get("estado")) !== ESTADO_POR_DEFECTO ? 1 : 0;
   return claves.length + precio + estado;
 }

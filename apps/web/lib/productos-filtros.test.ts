@@ -8,7 +8,6 @@ import {
   consultaConCambios,
   consultaSinFiltros,
   hrefDeConsulta,
-  mismaConsulta,
   sinCajas,
   tipeadoPendiente,
   valorDeCaja,
@@ -28,11 +27,6 @@ describe("productos-filtros — la URL es la única verdad de la barra", () => {
     expect(consultaSinFiltros("q=blusa&cat=a")).toBe("");
   });
 
-  it("dos consultas con las mismas claves en otro orden son la misma URL", () => {
-    expect(mismaConsulta("a=1&b=2", "b=2&a=1")).toBe(true);
-    expect(mismaConsulta("a=1", "a=2")).toBe(false);
-    expect(mismaConsulta("", "")).toBe(true);
-  });
 });
 
 describe("productos-filtros — cajas que se escriben", () => {
@@ -58,6 +52,13 @@ describe("productos-filtros — cajas que se escriben", () => {
     expect(cambiosTipeados("precioMax=60", { precioMax: "" })).toEqual({ precioMax: "" });
     expect(tipeadoPendiente("precioMax=39.9", { precioMax: "39,90" })).toEqual({});
     expect(tipeadoPendiente("precioMax=60", { precioMax: "39," })).toEqual({ precioMax: "39," });
+  });
+
+  it("la caja con el cursor no se suelta: el espacio antes de la palabra siguiente no se borra («blusaroja»)", () => {
+    expect(tipeadoPendiente("q=blusa", { q: "blusa " }, "q")).toEqual({ q: "blusa " });
+    expect(tipeadoPendiente("precioMax=39.9", { precioMax: "39,9" }, "precioMax")).toEqual({ precioMax: "39,9" });
+    // Al salir de la caja (sin foco), lo mismo recortado ya está en la URL: se suelta.
+    expect(tipeadoPendiente("q=blusa", { q: "blusa " }, null)).toEqual({});
   });
 
   it("la caja deja de «escribirse» cuando la URL ya dice lo mismo", () => {
@@ -88,6 +89,8 @@ describe("productos-filtros — estado, conteo y chips", () => {
     expect(contarFiltrosActivos("estado=activo")).toBe(0);
     expect(contarFiltrosActivos("estado=todos")).toBe(1);
     expect(contarFiltrosActivos("cat=a&color=NEG&precioMin=10&precioMax=80")).toBe(3); // el precio cuenta una vez
+    expect(contarFiltrosActivos("precioMax=39,90")).toBe(1); // cliente y servidor leen la coma igual: se aplica y se cuenta
+    expect(contarFiltrosActivos("precioMax=abc")).toBe(0); // nadie lo aplica: no se cuenta
   });
 
   it("cada chip dice «Nombre: valor»; el orden no es un chip", () => {

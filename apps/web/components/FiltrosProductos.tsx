@@ -23,7 +23,6 @@ import {
   consultaConCambios,
   consultaSinFiltros,
   hrefDeConsulta,
-  mismaConsulta,
   sinCajas,
   tipeadoPendiente,
   valorDeCaja,
@@ -71,6 +70,12 @@ export function FiltrosProductos({
   const consultaUrl = params.toString();
   // Solo lo que se está escribiendo ahora (buscador y precio); lo demás se lee de la URL (`lib/productos-filtros.ts`).
   const [tipeado, setTipeado] = useState<Tipeado>({});
+  // La caja con el cursor adentro: lo suyo no se reemplaza por la URL hasta que salga (`tipeadoPendiente`).
+  const [enfocada, setEnfocada] = useState<CajaTipeada | null>(null);
+  const raiz = useRef<HTMLDivElement>(null);
+  // Un enlace de AFUERA de la barra (Grilla/Tabla, paginación, el menú) que está navegando: mientras tanto el temporizador
+  // del buscador espera, o su navegación descartaría la del enlace. Al llegar cualquier URL se olvida.
+  const ajena = useRef<number | null>(null);
   const busqueda = valorDeCaja(tipeado, "q", consultaUrl);
   const precioMin = tipeado.precioMin ?? montoParaCaja(params.get("precioMin") ?? "");
   const precioMax = tipeado.precioMax ?? montoParaCaja(params.get("precioMax") ?? "");
@@ -89,7 +94,9 @@ export function FiltrosProductos({
       <span>
         Buscar
         {/* El atajo de Shopify y GitHub (Felipe, 2026-10-02): «/» desde cualquier parte de la pantalla. */}
-        <kbd className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">/</kbd>
+        <kbd aria-hidden className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">
+          /
+        </kbd>
       </span>
       <SenalBuscando activo={buscando} />
     </span>
@@ -142,15 +149,36 @@ export function FiltrosProductos({
   }
 
   // La URL llegó: lo que ya dice deja de «escribirse» (se ajusta al pintar, como manda React para un estado que sigue a una
-  // prop) y la URL pedida, si es esta, ya no está pendiente.
+  // prop), salvo la caja con el cursor.
   const [urlVista, setUrlVista] = useState(consultaUrl);
   if (urlVista !== consultaUrl) {
     setUrlVista(consultaUrl);
-    setTipeado((t) => tipeadoPendiente(consultaUrl, t));
+    setTipeado((t) => tipeadoPendiente(consultaUrl, t, enfocada));
   }
+  // Y cualquier URL que llega cierra lo pedido: Next descarta la navegación pendiente cuando empieza otra, así que si llegó
+  // otra (un enlace de afuera, «A quién pedirle»), la pedida ya no va a llegar y aplicar sobre ella deshacía ese enlace.
   useEffect(() => {
-    if (pedida.current && mismaConsulta(pedida.current.consulta, consultaUrl)) pedida.current = null;
+    pedida.current = null;
+    ajena.current = null;
   }, [consultaUrl]);
+
+  // Un enlace de afuera de la barra empieza a navegar (captura: antes de que Next lo tome).
+  useEffect(() => {
+    const alClic = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (a && !raiz.current?.contains(a)) ajena.current = Date.now();
+    };
+    document.addEventListener("click", alClic, true);
+    return () => document.removeEventListener("click", alClic, true);
+  }, []);
+
+  function alEntrarCaja(caja: CajaTipeada) {
+    setEnfocada(caja);
+  }
+  function alSalirCaja() {
+    setEnfocada(null);
+    setTipeado((t) => tipeadoPendiente(consultaUrl, t, null));
+  }
 
   // Atrás / Adelante: manda la URL del historial, no la última que se pidió aquí.
   useEffect(() => {
@@ -163,15 +191,18 @@ export function FiltrosProductos({
   }, []);
 
   // Búsqueda y precio se mandan solos al dejar de tipear o arrastrar (350 ms). El slider de precio solo anota lo tipeado en
-  // cada paso; este mismo efecto hace de espera para los dos.
+  // cada paso; este mismo efecto hace de espera para los dos. También se vuelve a armar cuando llega una URL: si otra
+  // navegación descartó la del buscador, lo que la caja todavía dice se manda sobre la URL que de verdad quedó (antes la
+  // caja decía «blusa» y la lista salía sin filtrar).
   useEffect(() => {
     const t = setTimeout(() => {
+      if (ajena.current && Date.now() - ajena.current < 3000) return; // espera a que llegue el enlace: lo rearma su URL
       const cambios = cambiosTipeados(consultaVigente(), tipeado);
       if (Object.keys(cambios).length > 0) aplicar(cambios, { teclado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipeado]);
+  }, [tipeado, consultaUrl]);
 
   const cat = params.get("cat");
   const marca = params.get("marca");
@@ -271,8 +302,9 @@ export function FiltrosProductos({
           <Link2 aria-hidden className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Copiar enlace</span>
         </button>
-        <div className="rounded-lg bg-sand/50 p-0.5">
+        <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
           <DesplegablePildora
+            encoger
             icono={ArrowUpDown}
             etiqueta="Ordenar por"
             valor={orden}
@@ -316,6 +348,8 @@ export function FiltrosProductos({
               precioMax={precioMax}
               limites={limitesPrecio}
               onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
+              onEntrar={alEntrarCaja}
+              onSalir={alSalirCaja}
             />
       </FilaPildoras>
       <FilaPildoras titulo="Gestión">
@@ -359,7 +393,7 @@ export function FiltrosProductos({
   );
 
   return (
-    <div className="space-y-2">
+    <div ref={raiz} className="space-y-2">
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <CampoTexto
@@ -370,6 +404,9 @@ export function FiltrosProductos({
               const q = e.target.value;
               setTipeado((t) => ({ ...t, q }));
             }}
+            onFocus={() => alEntrarCaja("q")}
+            onBlur={alSalirCaja}
+            aria-keyshortcuts="/"
             id={ID_BUSCADOR}
             // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
             placeholder="Prenda, código o código de barras…"
@@ -427,11 +464,15 @@ function BloquePrecio({
   precioMax,
   limites,
   onCambiar,
+  onEntrar,
+  onSalir,
 }: {
   precioMin: string;
   precioMax: string;
   limites: LimitesPrecio | null;
   onCambiar: (min: string, max: string) => void;
+  onEntrar: (caja: CajaTipeada) => void;
+  onSalir: () => void;
 }) {
   const activa = Boolean(precioMin || precioMax);
   return (
@@ -445,9 +486,18 @@ function BloquePrecio({
         sugerido={limites ? String(limites.min) : "Desde"}
         etiqueta="Precio desde"
         onCambiar={(v) => onCambiar(v, precioMax)}
+        onEntrar={() => onEntrar("precioMin")}
+        onSalir={onSalir}
       />
       <span aria-hidden className="text-tinta/40">–</span>
-      <CajaMonto valor={precioMax} sugerido={limites ? String(limites.max) : "Hasta"} etiqueta="Precio hasta" onCambiar={(v) => onCambiar(precioMin, v)} />
+      <CajaMonto
+        valor={precioMax}
+        sugerido={limites ? String(limites.max) : "Hasta"}
+        etiqueta="Precio hasta"
+        onCambiar={(v) => onCambiar(precioMin, v)}
+        onEntrar={() => onEntrar("precioMax")}
+        onSalir={onSalir}
+      />
       {limites && (
         <Slider.Root
           className="relative ml-1 flex h-4 w-24 shrink-0 touch-none select-none items-center sm:w-28"
@@ -479,7 +529,21 @@ function BloquePrecio({
 
 /** Una caja de monto con «S/» delante. Texto (no `type=number`): acepta «39,90» y no cambia el valor con la rueda del
  *  mouse al pasar por encima. */
-function CajaMonto({ valor, sugerido, etiqueta, onCambiar }: { valor: string; sugerido: string; etiqueta: string; onCambiar: (v: string) => void }) {
+function CajaMonto({
+  valor,
+  sugerido,
+  etiqueta,
+  onCambiar,
+  onEntrar,
+  onSalir,
+}: {
+  valor: string;
+  sugerido: string;
+  etiqueta: string;
+  onCambiar: (v: string) => void;
+  onEntrar: () => void;
+  onSalir: () => void;
+}) {
   return (
     <label className="flex h-7 w-[4.75rem] shrink-0 items-center gap-1 rounded-md border border-tinta/15 bg-papel/70 px-2 focus-within:border-tinta/40">
       <span aria-hidden className="text-[11px] text-tinta/45">
@@ -488,6 +552,8 @@ function CajaMonto({ valor, sugerido, etiqueta, onCambiar }: { valor: string; su
       <input
         value={valor}
         onChange={(e) => onCambiar(e.target.value)}
+        onFocus={onEntrar}
+        onBlur={onSalir}
         placeholder={sugerido}
         inputMode="decimal"
         autoComplete="off"

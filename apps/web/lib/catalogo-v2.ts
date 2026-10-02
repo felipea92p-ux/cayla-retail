@@ -9,6 +9,7 @@ import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
 import { estadoDeUrl, estadoParaBase } from "@/lib/productos-filtros";
+import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
@@ -213,7 +214,6 @@ export type ParamsProductosListado = {
 export const PRODUCTOS_POR_PAGINA = 20;
 
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
-const esNumeroPositivo = (v?: string) => !!v && /^\d+(\.\d+)?$/.test(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no calce con su forma. */
 export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosProductos {
@@ -226,8 +226,9 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     colorCodigo: p.color?.trim() || undefined,
     // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
     estado: estadoParaBase(estadoDeUrl(p.estado)),
-    precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
-    precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
+    // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
+    precioMin: leerMonto(p.precioMin ?? "") ?? undefined,
+    precioMax: leerMonto(p.precioMax ?? "") ?? undefined,
     stock:
       p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
     orden: leerOrdenProductos(p.orden),
@@ -303,9 +304,10 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
  *  `null` si no se pudo saber: el control de arrastre no se dibuja y las cajas «Desde / Hasta» siguen funcionando. */
 export async function getPreciosExtremos(filtros: FiltrosProductos): Promise<{ min: number; max: number } | null> {
   const supabase = await createClient();
+  // Sin `p_stock`: con él, cada una de las dos llamadas calcula el stock de TODO el catálogo (la parte cara). Los límites salen
+  // del catálogo con los demás filtros; el control igual manda «sin tope» en sus puntas.
   const base = {
     ...paramsFiltrosProductos({ ...filtros, precioMin: undefined, precioMax: undefined }),
-    ...(filtros.stock ? { p_stock: filtros.stock } : {}),
     p_pagina: 1,
     p_por_pagina: 1,
   };
@@ -314,7 +316,10 @@ export async function getPreciosExtremos(filtros: FiltrosProductos): Promise<{ m
     supabase.rpc("fn_productos", { ...base, p_orden: "precio_desc" }),
   ]);
   if (bajo.error || alto.error) return null;
-  const precios = (filas: { activo: boolean; precio: number }[] | null) => (filas ?? []).filter((f) => f.activo).map((f) => Number(f.precio));
+  // Todas las variantes, activas o no: es el mismo criterio con que la base eligió ese producto y con que aplica el filtro
+  // de precio. Contar solo las activas daba un mínimo que no era el de ningún producto. La tanda 2 deja afuera las inactivas
+  // en los dos lados a la vez.
+  const precios = (filas: { precio: number }[] | null) => (filas ?? []).map((f) => Number(f.precio));
   const bajos = precios(bajo.data);
   const altos = precios(alto.data);
   if (bajos.length === 0 || altos.length === 0) return null;

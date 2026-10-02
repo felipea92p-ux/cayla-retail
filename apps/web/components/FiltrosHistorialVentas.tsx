@@ -100,8 +100,9 @@ export function FiltrosHistorialVentas({
   const actual = Object.fromEntries(params.entries());
   const visibles = atajosVisibles(misAtajos).filter((a) => puedeMias || a.clave !== "mias");
   const cubiertoPorAtajo = (k: string) => visibles.some((a) => atajoActivo(a, actual) && k in a.params);
-  // La tienda cuenta como filtro solo si se eligió en la URL: la de la cabecera por defecto no es un filtro puesto.
-  const sedeEnUrl = params.get("sede") ?? "";
+  // La tienda cuenta como filtro solo si se eligió en la URL y es OTRA que la de la cabecera: la misma regla que la píldora
+  // (`valorPorDefecto`). Si después se cambia la cabecera a esa misma tienda, ni el contador ni el chip dicen que hay filtro.
+  const sedeEnUrl = (params.get("sede") ?? "") === sedePorDefecto ? "" : (params.get("sede") ?? "");
   const activos = [
     sedeEnUrl,
     vendedor && !cubiertoPorAtajo("mias") ? vendedor : "",

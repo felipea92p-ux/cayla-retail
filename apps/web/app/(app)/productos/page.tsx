@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
@@ -103,6 +104,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
   // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
+  // Una página que ya no existe (se descontinuó lo único que había en la 2, se volvió con «← Productos» a una página vieja):
+  // a la primera, con los mismos filtros. Sin esto la pantalla decía «0 productos», escondía la paginación y avisaba de
+  // descontinuadas aunque hubiera activas en la página 1.
+  if (resultado.productos.length === 0 && pagina > 1) {
+    const p = new URLSearchParams();
+    for (const [k, val] of Object.entries(params)) if (val && k !== "pagina") p.set(k, val);
+    redirect(p.size > 0 ? `/productos?${p.toString()}` : "/productos");
+  }
+
   // Y si la lista de activas sale vacía, cuántas descontinuadas sí calzan (solo entonces se pregunta; si falla, no se avisa).
   const preguntarDescontinuadas = resultado.totalProductos === 0 && filtros.estado === "activo" && !filtros.stock;
   const [reposicion, existencias, descontinuadas] = await Promise.all([
