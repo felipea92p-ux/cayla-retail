@@ -69,7 +69,7 @@ export function SwatchesColor({
     <div
       role="radiogroup"
       aria-label="Color"
-      className="flex items-center gap-1.5"
+      className="flex shrink-0 items-center gap-1.5"
       onMouseLeave={() => onHover(null)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
