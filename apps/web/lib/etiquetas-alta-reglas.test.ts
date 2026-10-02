@@ -204,7 +204,7 @@ describe("campanaDelAlta", () => {
   });
   it("elige la de mayor % y calcula el precio final", () => {
     const c = campanaDelAlta([et("a", "Verano", { descuentoPct: 10 }), et("b", "Liquidar", { descuentoPct: 30 })], 100, hoy, desc);
-    expect(c).toMatchObject({ nombre: "Liquidar", pct: 30, descuento: 30, precioFinal: 70 });
+    expect(c).toMatchObject({ nombre: "Liquidar", pct: 30, descuento: 30, precioFinal: 70, otras: [{ nombre: "Verano", pct: 10 }] });
   });
   it("ignora la que ya terminó o aún no empieza", () => {
     expect(campanaDelAlta([et("a", "Vieja", { descuentoPct: 50, vigenteHasta: "2026-10-01" })], 100, hoy, desc)).toBeNull();
