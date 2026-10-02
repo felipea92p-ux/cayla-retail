@@ -51,8 +51,8 @@ producción (OKLCH, 2026-10-02):
 - *Guardar `gama` o `tono` como columnas*: salen del hex; guardarlas es un dato que se desactualiza al editar el hex.
 - *Fusionar o retirar los 4 colores creados a mano* (Azul medio, Perla, Azul Intermedio, Amarrillo mantequilla): ya tienen 23
   variantes con stock (12, 7, 3, 1); fusionarlos toca SKUs. Quedan donde están.
-- *Quitar `colores.orden` de las consultas de Vender y Conteo*: toca Vender (celular obligatorio) para un cambio de 0 efecto
-  visible; se renumera en la base y listo.
+- ~~*Quitar `colores.orden` de las consultas de Vender y Conteo*: toca Vender (celular obligatorio) para un cambio de 0 efecto
+  visible; se renumera en la base y listo.~~ **Revertido el mismo día: ver «Actualización 2026-10-02 (c)».**
 
 **Se rompe si.**
 
@@ -131,3 +131,34 @@ registrar» dibujan el hex plano: GRM sale liso ahí. Pasarlos por `fondoDeMuest
 obligatorio, PL-105). (2) Esta actualización va apilada sobre el PR #736 (`claude/color-scales-families-c7513c`: la prueba
 `color-escala.test.ts` y la reescritura de `colores-familias.ts` viven allí): **se fusiona después de #736**. Su migración
 `20261002180000` ya está pegada en producción; la mía no trae SQL.
+
+---
+
+## Actualización 2026-10-02 (c): ninguna lista pide ya `colores.orden`
+
+**Por qué se revierte el descarte.** «Se renumera en la base y listo» solo era cierto el día de la migración: un color creado
+después desde Atributos entra con `orden = 2000` (`app/api/productos/colores/route.ts`) y, en cualquier lista plana que aún
+pedía `.order("orden")`, quedaba al final aunque su tono fuera el de un rosado. El renumerado arreglaba una foto; el defecto
+volvía con el primer color nuevo.
+
+**Qué cambió.** Cinco cargadores dejan de pedir `orden`. Cuatro ordenan la lista en código con `enLaCarta` antes de entregarla
+(`app/(app)/vender/page.tsx`, `app/(app)/inventario/conteo/[id]/page.tsx`, `app/(app)/productos/[id]/editar/page.tsx` y
+`lib/alta-producto-datos.ts`), así que el orden no depende de qué pantalla la consuma después: `ElegirUnColor` (Editar
+producto, corregir variante) y el combo del alta al vuelo del conteo pintan la lista tal como llega. El quinto es
+`app/(app)/productos/atributos/page.tsx`: ya no ordena porque `ColoresLista` ordena con `enLaCarta` su estado inicial y cada
+cambio; la columna se sigue trayendo porque el editor la arrastra (ver backlog).
+
+**Candado.** `lib/colores-sin-orden.test.ts` falla si un archivo de `app/`, `components/` o `lib/` vuelve a pedir `colores` con
+`.order("orden")`. Contra el código de antes señalaba esos cinco sitios; el encargo original listaba tres, y el candado
+encontró el cuarto (Editar producto) y el quinto (Atributos).
+
+**Verificación.** Typecheck y lint limpios; 141 pruebas de las áreas tocadas en verde. En la base local (73 colores): Vender
+a 375 px sin desborde, con la lista de Color de «Prenda sin registrar» en la carta (Blanco → Negro, luego Tierra…); Vender,
+Nuevo producto y Editar producto entregan las 73 familias en orden de espectro; Conteo entrega los mismos 73 nombres en el
+mismo orden que Vender; Atributos ▸ Colores muestra Neutro 11 → Tierra 8 → … → Estampado 3. La base local no tenía un color
+con `orden = 2000`: el caso que motivó el cambio se cubre con `lib/color-escala.test.ts`, no con datos.
+
+**Se rompe si.** Un cargador nuevo de colores se arma por partes (la cadena guardada en una variable y ordenada después): el
+candado no lo ve. En tal caso la regla es la de arriba: ordenar con `enLaCarta`, nunca con la columna.
+
+**Cómo deshacerlo.** `git revert` del commit; no toca datos. La columna `colores.orden` no se borra.

@@ -8,6 +8,7 @@ import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
 import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
 import { exigir } from "@/lib/resultado";
+import { enLaCarta } from "@/lib/colores-familias";
 import { idsDeParam } from "@/lib/etiqueta-precio-reglas";
 import { volverAMovimientos } from "@/lib/movimientos-reglas";
 import { exigirModulo, puede } from "@/lib/persona-actual";
@@ -48,7 +49,7 @@ export default async function ConteoPage({
   const [catalogo, categorias, colores, ejes, marcas] = await Promise.all([
     getCatalogoConteo(),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true),
     getEjesPorCategoria(),
     getCatalogoMarcas(),
   ]);
@@ -74,7 +75,11 @@ export default async function ConteoPage({
         catalogo={catalogo}
         soloVariantes={soloVariantes}
         categorias={exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }))}
-        colores={exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }))}
+        // Ordenados con la escala de la carta (ADR-0312, no `colores.orden`); la pantalla solo necesita código y nombre.
+        colores={exigir(colores, "los colores")
+          .map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color }))
+          .sort(enLaCarta)
+          .map(({ codigo, nombre }) => ({ codigo, nombre }))}
         tallasPorCategoria={ejes.tallas}
         marcas={marcas}
         puedeCrearMarcas={puede(persona, "editarCatalogo")}

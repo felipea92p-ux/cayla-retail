@@ -126,11 +126,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
 
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos] = await Promise.all([
-    supabase
-      .from("colores")
-      .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
-      .order("orden")
-      .order("nombre"),
+    // Sin `.order`: `ColoresLista` ordena con `enLaCarta` (ADR-0312). `orden` se sigue trayendo porque el editor lo arrastra.
+    supabase.from("colores").select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
     supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),

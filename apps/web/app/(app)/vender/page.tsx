@@ -20,6 +20,7 @@ import type { CampanaLinea } from "@/lib/vender-reglas";
 import { ordenTalla } from "@/lib/catalogo-grupos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
+import { enLaCarta } from "@/lib/colores-familias";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 
 /**
@@ -71,7 +72,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true),
     // Las tallas de cada categoría (`categoria_tallas`) y sus habituales. Si no cargan, el modal ofrece todas: la caja no se cae por esto.
     getEjesPorCategoria().catch(() => null),
     // Las ventas de hoy de esta sede: la píldora «Hoy» de la cabecera y su lista (spike 2026-09-26). Secundario: si
@@ -185,7 +186,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.
   const categoriasLibre = resCategorias.data ?? [];
-  const coloresLibre = (resColores.data ?? []).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }));
+  // El orden sale del hex (ADR-0312), no de `colores.orden`: un color creado hoy cae en su lugar sin que nadie lo ubique.
+  const coloresLibre = (resColores.data ?? [])
+    .map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }))
+    .sort(enLaCarta);
   const listasPrendaLibre: ListasPrendaLibre = {
     categorias: categoriasLibre,
     tallas: [...(resTallas.data ?? [])].sort((a, b) => ordenTalla(a.valor, b.valor)),
