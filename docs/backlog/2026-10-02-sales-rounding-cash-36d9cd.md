@@ -2,6 +2,13 @@
 
 Investigación y diseño: `docs/investigacion/2026-10-02-redondeo-del-efectivo.md`. Regla: S/ 0.10, solo efectivo, solo hacia abajo, una vez sobre el total a pagar en efectivo (100.02 → 100.00, 100.12 → 100.10, 100.19 → 100.10). ADR-0310 y las migraciones `20261003100000`–`20261003190000` están **propuestos en el documento, no reservados** en ningún otro lado: volver a barrer ramas antes de usarlos.
 
+**POR PEGAR en producción (2026-10-02) — lo pega Felipe, cada parte SOLA y en este orden; la web es segura sin el SQL (lee `fn_acepta_redondeo_efectivo` y, si no existe o dice `false`, cobra exacto):**
+1. `20261003100000` (regla) → `20261003110000` (candado de `venta_pagos`) → `20261003111000` (lectores) → `20261003120000` (diario).
+2. Fusionar el PR (publica la web).
+3. `20261003130000` (`registrar_venta`) → `20261003135000` (`entregar_separacion`) → `20261003140000` (la bandera, **al final**).
+4. Recargar (F5) Vender y Apartados en cada caja; después `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+Huellas, consultas de verificación y cómo apagarlo: `docs/adr/0310-redondeo-del-efectivo.md` §8.
+
 **Decisiones** (Felipe aprobó el diseño y la lista el 2026-10-02 con «hazlo»; lo demás sigue las recomendaciones del ADR-0310 §7 y es provisional)
 - [x] Diseño (fila `metodo='redondeo'` en `venta_pagos`) y lista de actividades: aprobados.
 - [ ] Contador: ¿qué cuenta recibe el redondeo (provisional, propia y de gasto; 6599 es faltantes y 659 es mermas) y cómo trata el IGV de un comprobante exacto? Hasta que conteste, la cuenta es provisional.
