@@ -103,3 +103,15 @@ mano).
 Felipe se lleva: Editar producto con el panel del taller operativo en local, el recordatorio de etiquetas persistente
 probado de punta a punta, y las dos superficies de ajuste de stock (panel + lista de variantes) compartiendo el
 mismo `AjustarInventarioModal` y ahora también el mismo recordatorio.
+
+## 2026-10-02 (noche: la maqueta B tal cual en el ERP local)
+Qué hice: Felipe vio la ficha y dijo que la estética no era la de la maqueta («no nos estamos entendiendo»): yo había hecho el
+panel derecho pero dejado la lista de variantes de siempre. Rehíce Editar producto igual a la B: cuatro secciones plegables, la
+matriz color × talla con el stepper en cada celda, totales, precio o costo tocable, la línea del motivo de la visita, «+ Agregar
+color» con su stock y el panel del taller completo (`c6a56e53`).
+Por qué así: el stepper no pisa el stock; cada toque es un ajuste de inventario real (`ajustar_inventario`) en lotes, sin loader, con
+motivo y responsable, leyendo el stock con la misma consulta del modal (la prueba de ADR-0270 lo exigió). Lo que la maqueta no
+mostraba (corregir, etiquetas, margen) quedó plegado en «Más de cada variante», no perdido.
+Felipe se lleva: la ficha en `http://localhost:3070/productos/<id>/editar` probada contra la base local (lotes 200 OK, dos toques
+cuentan dos, Beige nuevo entra con 2+1 unidades, franja de etiquetas al volver). Pendiente de mirar con él: si la línea del motivo,
+el lugar y el responsable debe ir más compacta, y si «Más de cada variante» se integra a la matriz.

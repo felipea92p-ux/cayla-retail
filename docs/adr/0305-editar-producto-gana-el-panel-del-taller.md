@@ -102,3 +102,33 @@ derecho (`FichaPrevia.tsx`).
    cabecera, la franja «N prenda(s) nueva(s) sin etiquetar · color · talla».
 4. Click en «← Productos» (o cualquier enlace del menú dentro de Productos): la franja sigue ahí.
 5. Click en «Inventario» (u otro módulo) en el menú lateral: la franja desaparece.
+
+## Actualización 2026-10-02 (tarde): la B tal cual, con el stepper
+
+Felipe vio la ficha construida y dijo que no era la maqueta: «Quiero tal cual la maqueta B construida en local y así ir realizando los
+cambios». Las decisiones 1 y 2 de arriba (lápiz al modal, lista agrupada por color) quedan **reemplazadas** por la maqueta
+(`docs/maquetas/producto-editar-rediseno-2026-10/b-taller.html`):
+
+- **Cuatro secciones plegables** (`SeccionFicha.tsx`): Producto, Tejido/patrón/estado, Fotos, Variantes y precios; ✓ en verde cuando
+  no les falta nada, abiertas al entrar. Plegada, una sección no saca nada de la página (`visibility: hidden`), y quien lleva a un
+  campo (la guía del panel, el foco de un error en `revisar()`) la abre antes. La decisión 3 de arriba (no plegar por la guía) se
+  cumple así: se pliega, pero nunca se apunta a algo plegado.
+- **La matriz color × talla** (`MatrizStockFicha.tsx`, reglas en `lib/matriz-ficha-reglas.ts` con su prueba): stepper −/N/+ en cada
+  celda con el stock de HOY en el lugar que se ajusta, totales por color y por talla, el precio debajo (o el costo, si «Cambiar en
+  bloque» está en Costo) que se toca para corregirlo y espera a «Revisar y guardar».
+- **El stepper ES el ajuste de inventario, no un campo** (`useStockFicha.ts`): cada toque se junta en un lote (900 ms) y viaja por
+  `ajustar_inventario` (ADR-0240) con el motivo, el lugar y el responsable de la visita («Registrar los ajustes de stock de esta visita
+  como…»), sin el loader de pantalla completa (`x-espera: no`). Si la base dice que no o la respuesta no llega, se vuelve a leer el
+  stock y nada se reenvía solo. La lectura es la MISMA del modal (`leerVariantesParaAjuste`): sigue habiendo una sola lectura de
+  `stock` para ajustar (ADR-0270, `lib/stock-una-sola-cifra.test.ts`). Una talla que faltó en un conteo abre el modal (ADR-0291: no
+  se adivina). Lo puesto en una variante NUEVA entra como stock inicial justo después de «Revisar y guardar», y la hoja lo dice.
+- **Lo que la maqueta no muestra y el ERP necesita** (corregir color o talla, agregar talla, etiquetas, margen, desactivar) sigue en
+  «Más de cada variante», plegado, con la misma `VariantesFicha` en modo `detalle`.
+- **El panel** es el de la maqueta: foto del color con su nombre y «Cambiar foto» (sube con la revisión de siempre y queda como portada
+  de ese color), colores de 28 px con el borde punteado quieto si no tienen foto (la maqueta lo hacía girar; un bucle no está permitido,
+  ADR-0136), barras de stock por talla (verde, ámbar con 3 o menos, gris en 0) con su stepper, precio, «Falta …» que lleva al lugar.
+- El recordatorio de etiquetas se entrega al SALIR de la ficha (al guardar y volver a Productos), no con cada toque: «luego de guardar
+  los cambios, no antes».
+
+Motivos del ajuste: los reales (`MOTIVOS_AJUSTE`: Reposición, Merma, Conteo físico, Otro), no los cuatro inventados de la maqueta; viene
+elegido «Conteo físico», como en la maqueta.
