@@ -1,0 +1,6 @@
+# 2026-10-02 · La barra de filtros de Productos dice la verdad (tanda 1, ADR-0308)
+
+- QUÉ HICE: `/pantalla` de la barra con datos de producción (máximo real S/ 119 contra un control de 0 a 999; 179 de 284 opciones llevan a 0; «Sin stock» medido en la red) y 19 decisiones de Felipe. Tanda 1, sin migración: el estado sigue a la URL, la píldora compartida dice su nombre en seis pantallas, un solo «Ordenar por» con «Más recientes» por defecto, «Activos» por defecto, cajas de precio con límites reales, panel abierto en la computadora en filas «Prenda / Gestión», hoja en el celular, «/» y «Copiar enlace».
+- POR QUÉ ASÍ: la URL es la única verdad y lo escrito se aplica sobre la URL vigente (un clic dentro de los 350 ms se perdía); la base de la tanda 2 se agrega al lado de `fn_productos` para no dejar caída la web entre pegar y fusionar (#444).
+- QUÉ SE ROMPERÍA SIN ESTO: un chip «Hasta S/100» sobre una lista sin filtrar, un precio que no existe, y una colaboradora que no sabe si «ADIDAS» es la marca o el proveedor.
+- Verificado con Chrome sin ventana contra una base propia al día con `main` (`supabase start` en `/Volumes/CAYLA-SSD/Developer/.pila-filtro-dba838`, puertos 546xx): la base local compartida va ~60 migraciones atrás (le falta `20260929180000`, el orden «recientes») y no se tocó.

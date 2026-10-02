@@ -297,7 +297,7 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
 
 /** El precio más bajo y el más alto de lo que se está viendo, SIN el propio filtro de precio: si lo contara, el rango se
  *  encogería solo cada vez que se mueve. Reemplaza al tope escrito a mano (S/ 999, con la prenda más cara a S/ 119).
- *  Provisorio (tanda 1 del filtro, ADR-0306): son dos páginas de UN producto de `fn_productos`, ordenadas por precio, y el
+ *  Provisorio (tanda 1 del filtro, ADR-0308): son dos páginas de UN producto de `fn_productos`, ordenadas por precio, y el
  *  máximo es el de la prenda cuyo precio más bajo es el más alto (con tallas a distinto precio puede quedarse corto; el tope
  *  del control igual manda «sin tope»). La tanda 2 lo reemplaza por la función de facetas, exacta.
  *  `null` si no se pudo saber: el control de arrastre no se dibuja y las cajas «Desde / Hasta» siguen funcionando. */

@@ -371,6 +371,7 @@ export function FiltrosProductos({
               setTipeado((t) => ({ ...t, q }));
             }}
             id={ID_BUSCADOR}
+            // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
             placeholder="Prenda, código o código de barras…"
             autoComplete="off"
             type="search"
