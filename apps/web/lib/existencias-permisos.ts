@@ -1,15 +1,15 @@
 // Qué puede hacer la persona desde el detalle de una prenda en Existencias (tarea #11 del análisis `/pantalla`).
 //
 // Vivía como cuatro líneas sueltas dentro de `InventarioPanel.tsx`, sin prueba: un cambio ahí (quitar un `&&`) volvía a
-// abrir «Reponer al piso» a un rol sin «Bajada al piso», que es exactamente el hueco que cerró ADR-0240. Aquí es una
+// abrir «Reponer al piso» a una cuenta que no ve Existencias (ADR-0240; ADR-0306 quitó el módulo «Bajada al piso»). Aquí es una
 // función pura con su prueba; la pantalla solo la lee.
 //
 // Las tres reglas que se cruzan:
 //   · Sede ACTIVA: todo lo que escribe firma con el Responsable de la sede activa (ADR-0162). Mirando otra sede con
 //     `?ubicacion=`, nada que escriba ni nada que trabaje sobre la sede activa (etiquetas, historial) se ofrece.
-//   · Módulo: cada escritura es del módulo que la nombra (ADR-0240, opción A; ADR-0250 sumó el último): reponer y
-//     retirar → «Bajada al piso», apartar y pedir a otra sede → «Apartados», trasladar → «Traslados», ajustar →
-//     «Ajustar stock». La base pide lo mismo.
+//   · Módulo (ADR-0306): quien ve un módulo hace todo lo que hay dentro. Reponer, retirar y ajustar → Existencias
+//     (ajustar también Conteos o Traslados); apartar y pedir a otra sede → «Apartados» y trasladar → «Traslados»,
+//     que sí tienen entrada propia en el menú. La base pide lo mismo.
 //   · Piso y almacén: reponer, retirar y apartar necesitan saber de dónde; solo donde la ubicación los separa.
 //   · Eliminar el producto (ADR-0252, actualización): SOLO un Admin, y solo mirando la sede activa como todo lo que
 //     escribe. En Catálogo ▸ Productos lo ve también un Líder porque allí hay productos que nunca se movieron; aquí no:
@@ -21,11 +21,11 @@ export type EntradaPermisos = {
   separaPisoAlmacen: boolean;
   /** Lo que se mira es la sede activa de la cabecera. */
   enSedeActiva: boolean;
-  /** Su rol ve «Bajada al piso» (y la página ya comprobó que es su sede y que separa piso y almacén). */
+  /** Su rol ve Existencias (ADR-0306: bajar al piso es una función suya) (y la página ya comprobó que es su sede y que separa piso y almacén). */
   puedeBajarAlPiso: boolean;
   /** Su rol ve «Apartados». */
   veApartados: boolean;
-  /** Puede ajustar stock (`puede(persona, "ajustarStock")`; ADR-0250: módulo propio, ya no ve Existencias/Conteos/Traslados). */
+  /** Puede ajustar stock (`puede(persona, "ajustarStock")`; ADR-0306: función de Existencias, Conteos y Traslados, no un módulo). */
   puedeAjustar: boolean;
   /** Su rol ve «Traslados». */
   veTraslados: boolean;
@@ -44,8 +44,6 @@ export type PermisosDelDetalle = {
   etiquetasEHistorial: boolean;
   /** «Pedir para una clienta» a otra tienda (ADR-0233, `pedir_prenda_para_apartar`). */
   pedirAOtraSede: boolean;
-  /** En su sede, con piso y almacén, pero sin «Bajada al piso»: la talla por colgar lo explica en vez de callar. */
-  explicarSinModuloBajada: boolean;
   /** «Eliminar el producto» (ADR-0252): abre la ventana que pregunta a la base; borra el producto entero, en todas las sedes. */
   eliminar: boolean;
 };
@@ -60,7 +58,6 @@ export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
     trasladar: aqui && e.veTraslados,
     etiquetasEHistorial: aqui,
     pedirAOtraSede: aqui && e.esTienda && e.veApartados,
-    explicarSinModuloBajada: conPiso && !e.puedeBajarAlPiso,
     eliminar: aqui && e.esAdmin,
   };
 }

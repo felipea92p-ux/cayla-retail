@@ -16,7 +16,7 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 // colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
 export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
-  const persona = await exigirModulo("bajada_piso");
+  const persona = await exigirModulo("existencias");
   const sede = persona.ubicacionEtiqueta;
   // En paralelo: casi siempre es una tienda que separa piso y almacén, y así no se espera dos viajes a la base.
   const [sububicaciones, filas, params] = await Promise.all([getSububicaciones(persona.ubicacionId), getStockPorUbicacion(persona.ubicacionId), searchParams]);

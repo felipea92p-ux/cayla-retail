@@ -21,15 +21,13 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
       trasladar: true,
       etiquetasEHistorial: true,
       pedirAOtraSede: true,
-      explicarSinModuloBajada: false,
       eliminar: true,
     });
   });
 
-  it("sin «Bajada al piso» no hay Reponer ni Retirar, y la talla por colgar lo explica", () => {
+  it("sin poder bajar al piso (otra sede o sin piso y almacén en su tienda) no hay Reponer ni Retirar", () => {
     const p = permisosDelDetalle({ ...TODO, puedeBajarAlPiso: false });
     expect(p.reponerYRetirar).toBe(false);
-    expect(p.explicarSinModuloBajada).toBe(true);
     expect(p.apartar).toBe(true);
   });
 
@@ -48,7 +46,6 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
       trasladar: false,
       etiquetasEHistorial: false,
       pedirAOtraSede: false,
-      explicarSinModuloBajada: false,
       eliminar: false,
     });
   });
@@ -57,7 +54,6 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     const p = permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false });
     expect(p.reponerYRetirar).toBe(false);
     expect(p.apartar).toBe(false);
-    expect(p.explicarSinModuloBajada).toBe(false);
     expect(p.ajustar).toBe(true);
     expect(p.trasladar).toBe(true);
     expect(p.pedirAOtraSede).toBe(false);

@@ -1830,7 +1830,7 @@ describe("7. sin precio ni costo, sin jerga y sin veredictos", () => {
 describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del nombre", () => {
   const BLOQUE_DE: Partial<Record<string, string>> = { categoria: "categoria", nombre: "nombre", tejido: "tela", patron: "tela", tallas: "tallas", precio: "precio", stock: "stock" };
 
-  it("el orden de pantalla: la marca va antes del nombre y nunca está por hacer ni retiene la luz; «Sigue aquí» va al primer requerido", () => {
+  it("el orden de pantalla: la marca va antes del nombre y nunca está por hacer; sin elegirla, la guía pausa ahí antes del nombre (Felipe, 2026-10-02)", () => {
     const estado: EstadoAlta = {
       categoriaId: "c", referencia: "", comprobandoNombre: false, nombreBloqueado: false, nombreSinConfirmar: false, categoriaSinTallas: false, tallasElegidas: 3, exigeTejidoPatron: true,
       hayTejidosEnCategoria: true, hayPatronesEnCategoria: true, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "", costoBase: "", stockTotal: 0, stockInvalidas: 0, sinStock: false,
@@ -1840,9 +1840,17 @@ describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del n
       const paso2 = campos.filter((c) => c.paso === 2).map((c) => c.id);
       expect(paso2.slice(0, 2)).toEqual(["marca", "nombre"]);
       expect(faltanDelPaso(campos, 2).map((c) => c.id)).toEqual(["nombre", "tejido", "patron"]);
-      expect(estadosDeCampos(campos, 2).nombre).toBe("ahora");
-      expect(estadosDeCampos(campos, 2, "marca").nombre).toBe("ahora"); // escribir en la marca no mueve la luz
-      expect(estadosDeCampos(campos, 2).marca).toBe(marcaElegida ? "hecho" : "opcional");
+      if (marcaElegida) {
+        // Ya elegida: no hay pausa, «Sigue aquí» va directo al nombre.
+        expect(estadosDeCampos(campos, 2).marca).toBe("hecho");
+        expect(estadosDeCampos(campos, 2).nombre).toBe("ahora");
+      } else {
+        // Sin elegir y el paso intacto: la guía se detiene en marca y proveedor antes de seguir al nombre.
+        expect(estadosDeCampos(campos, 2).marca).toBe("ahora");
+        expect(estadosDeCampos(campos, 2).nombre).toBe("falta");
+        // Apenas se teclea en el nombre, la pausa termina: la luz no le gana a la persona.
+        expect(estadosDeCampos(campos, 2, "nombre").nombre).toBe("ahora");
+      }
     }
   });
 

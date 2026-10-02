@@ -11,6 +11,9 @@
 
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
 
+/** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
+const CANTIDAD_MAXIMA = 9999;
+
 /** Clave de una fila (color) o columna (talla) en los totales: `null` (sin color / sin talla) se guarda como "". */
 export const claveEje = (v: string | null) => v ?? "";
 
@@ -47,6 +50,20 @@ export function llenarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet
   // «007» se escribe «7»: es lo que la persona ve después en cada celda.
   const normal = String(Number(limpio));
   return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: normal }));
+}
+
+/** El reverso de `llenarTodas`: al borrar la caja «Llenar todas con», deja vacías las mismas celdas que habría tocado
+ *  (las que siguen en la tabla). Ya no hay un «Aplicar» que mis-clickear, así que una caja vacía borra de verdad. */
+export function vaciarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet<string>): { clave: string; valor: string }[] {
+  return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: "" }));
+}
+
+/** Los botones «−» / «+» junto a una celda: suman o restan 1 al entero leído (vacío cuenta 0), sin pasar de
+ *  0 a 9999. El resultado vuelve a texto con la misma convención que tipear a mano: 0 se guarda vacío. */
+export function pasoCantidad(valor: string, delta: -1 | 1): string {
+  const actual = leerCantidad(valor) ?? 0;
+  const siguiente = Math.min(CANTIDAD_MAXIMA, Math.max(0, actual + delta));
+  return siguiente === 0 ? "" : String(siguiente);
 }
 
 /** Lo que admite la caja de precio de una celda mientras se tipea: dígitos y UN separador decimal (la coma se vuelve

@@ -57,8 +57,9 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   return [
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
     // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
-    // escriba una letra. Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió. El orden no cambia nada de eso:
-    // `siguienteDe` solo retiene campos requeridos o sugeridos, así que «Sigue aquí» sigue yendo al nombre.
+    // escriba una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el paso 2 recién abierto,
+    // `campoAhora` la hace la primera parada de «Sigue aquí» (Felipe, 2026-10-02): la persona la revisa antes de escribir el nombre, y la pausa termina
+    // sola apenas teclea en el nombre o en cualquier otro campo del paso — nunca le gana a la persona.
     { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "nombre",
@@ -130,9 +131,19 @@ const porHacer = (c: CampoGuia) => !c.hecho && (c.requerido || c.sugerido);
  * `enFoco` es el campo donde la persona está escribiendo AHORA (una caja de texto: nombre, precio, una cantidad). Mientras siga ahí
  * conserva la luz aunque ya cuente como hecho: con una letra el nombre ya lo es, y con un dígito el precio, y una luz que salta al
  * siguiente campo a media palabra estorba. La regla es la de los modales (`siguienteDe`, lib/guia-campos.ts).
+ *
+ * Excepción de marca y proveedor (Felipe, 2026-10-02): aunque son opcionales y `siguienteDe` nunca los retiene (no son requeridos
+ * ni sugeridos), la guía hace una PAUSA ahí antes de seguir al nombre — pero solo mientras el paso 2 sigue intacto: si lo que
+ * seguiría de verdad es el nombre (nada más se tocó) y nadie está tecleando ya en otro campo. Apenas la persona escribe en el
+ * nombre (o en cualquier campo del paso), la pausa termina y la luz sigue como siempre: nunca le gana a la persona.
  */
 export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): CampoAlta | null {
-  const ahora = siguienteDe(campos.filter((c) => c.paso === pasoAbierto), enFoco);
+  const delPaso = campos.filter((c) => c.paso === pasoAbierto);
+  const ahora = siguienteDe(delPaso, enFoco);
+  if (ahora?.id === "nombre" && (!enFoco || enFoco === "marca")) {
+    const marca = delPaso.find((c) => c.id === "marca");
+    if (marca && !marca.hecho) return "marca";
+  }
   return ahora ? (ahora.id as CampoAlta) : null;
 }
 

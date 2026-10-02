@@ -91,7 +91,7 @@ export default async function EditarProductoPage({
         ubicacionId: persona.ubicacionId,
         sede: persona.ubicacionEtiqueta,
         sububicaciones,
-        puedeBajarAlPiso: veModulo(persona, "bajada_piso") && separaPisoAlmacen,
+        puedeBajarAlPiso: veModulo(persona, "existencias") && separaPisoAlmacen,
       }
     : null;
 

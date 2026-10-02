@@ -138,13 +138,15 @@ rollback;
 
 /**
  * La escena de inventario (misma que la del candado de líder): una variante y el piso de venta de Trujillo.
- * ADR-0250 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
- * siembra de 20260923030000 no le da a ningún rol de terminal (ese módulo no existía todavía). Estos casos SIGUEN
- * probando el candado de responsable (D-13/ADR-0162) sobre `registrar_movimiento`, no el módulo: se le da el módulo
- * nuevo a la terminal administrativa aquí, igual que ya se le daba «Bajada al piso» o «Apartados» en otros arneses.
+ * ADR-0306 (2026-10-02): «Ajustar» es una función de Existencias/Conteos/Traslados (el módulo «Ajustar stock» de
+ * ADR-0250 ya no existe). Estos casos SIGUEN probando el candado de responsable (D-13/ADR-0162) sobre
+ * `registrar_movimiento`, no el módulo: se asegura Existencias en la terminal administrativa aquí, sea cual sea la
+ * siembra, igual que en otros arneses se le daba «Apartados».
  */
 const BASE_INVENTARIO = `
-insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_administrativa'), 'ajustar_stock');
+insert into retail.rol_modulos (rol_id, modulo)
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'trujillo', 'Piso de venta', 'piso_venta'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'trujillo' and tipo = 'piso_venta');
@@ -240,10 +242,10 @@ select :'r' || '|' || (select estado from retail.cajas where id = :'caja');`)),
 /* ------------------------------------------------------------------ */
 
 verificar(
-  // La terminal de ventas no recibe «Ajustar stock» en BASE_INVENTARIO (solo la administrativa): sigue sin ajustar.
+  // La terminal de ventas no recibe Existencias en BASE_INVENTARIO (solo la administrativa): sigue sin ajustar.
   "inventario: la terminal de ventas NO ajusta stock",
   correr(escena(`${BASE_INVENTARIO}${cambiaA(T_VENTAS)}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''prueba terminales'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
-  /Tu rol no tiene el módulo «Ajustar stock»/
+  /Tu rol no puede ajustar stock/
 );
 
 verificar(
