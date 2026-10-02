@@ -8,6 +8,7 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
+import { estadoDeUrl, estadoParaBase } from "@/lib/productos-filtros";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
@@ -223,7 +224,8 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     marcaId: filtroDeMarcaOProveedor(p.marca),
     proveedorId: filtroDeMarcaOProveedor(p.proveedor),
     colorCodigo: p.color?.trim() || undefined,
-    estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
+    // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
+    estado: estadoParaBase(estadoDeUrl(p.estado)),
     precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
     precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
     stock:

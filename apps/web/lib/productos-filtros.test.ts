@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  chipsDeFiltros,
+  contarFiltrosActivos,
+  estadoDeUrl,
+  estadoParaBase,
   cambiosTipeados,
   consultaConCambios,
   consultaSinFiltros,
@@ -59,5 +63,43 @@ describe("productos-filtros — cajas que se escriben", () => {
     expect(sinCajas({ q: "blu", precioMin: "20" }, ["precioMin", "precioMax"])).toEqual({ q: "blu" });
     const t = { q: "blu" };
     expect(sinCajas(t, ["precioMin"])).toBe(t);
+  });
+});
+
+describe("productos-filtros — estado, conteo y chips", () => {
+  it("al entrar se ven las activas; «Todos» se escribe en la URL y a la base no le llega estado", () => {
+    expect(estadoDeUrl(undefined)).toBe("activo");
+    expect(estadoDeUrl("raro")).toBe("activo");
+    expect(estadoParaBase(estadoDeUrl("todos"))).toBeUndefined();
+    expect(estadoParaBase(estadoDeUrl("descontinuado"))).toBe("descontinuado");
+    expect(estadoParaBase(estadoDeUrl(null))).toBe("activo");
+  });
+
+  it("«Filtros · N» cuenta lo que quita prendas: ni el orden, ni la búsqueda, ni la vista, ni el estado de fábrica", () => {
+    expect(contarFiltrosActivos("orden=precio_asc&q=blusa&vista=tabla&pagina=2")).toBe(0);
+    expect(contarFiltrosActivos("estado=activo")).toBe(0);
+    expect(contarFiltrosActivos("estado=todos")).toBe(1);
+    expect(contarFiltrosActivos("cat=a&color=NEG&precioMin=10&precioMax=80")).toBe(3); // el precio cuenta una vez
+  });
+
+  it("cada chip dice «Nombre: valor»; el orden no es un chip", () => {
+    const nombres = { categoria: () => "Blusas", marca: () => "Adidas", proveedor: () => "Adidas", color: () => "Negro" };
+    const chips = chipsDeFiltros("q=top&cat=a&marca=m&proveedor=sin&color=NEG&estado=todos&stock=reponer&precioMax=80&orden=precio_asc", nombres);
+    expect(chips.map((c) => c.texto)).toEqual([
+      "«top»",
+      "Categoría: Blusas",
+      "Marca: Adidas",
+      "Proveedor: sin proveedor",
+      "Color: Negro",
+      "Estado: Todos",
+      "Stock: Pedir a proveedor",
+      "Precio: Hasta S/80",
+    ]);
+    expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
+  });
+
+  it("un id que ya no existe se lee «—», no rompe", () => {
+    const vacio = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined };
+    expect(chipsDeFiltros("cat=zzz", vacio)[0].texto).toBe("Categoría: —");
   });
 });

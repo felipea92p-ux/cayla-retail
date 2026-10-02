@@ -2,14 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { avisar } from "@/components/ui/Avisos";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
-import { ORDENES_DESPLEGABLE, ROTULO_ORDEN_PRODUCTOS, leerOrdenProductos } from "@/lib/productos-orden";
+import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
+  ESTADOS_LISTADO,
+  ESTADO_POR_DEFECTO,
+  ROTULO_ESTADO,
+  chipsDeFiltros,
+  contarFiltrosActivos,
+  estadoDeUrl,
   cambiosTipeados,
   consultaConCambios,
   consultaSinFiltros,
@@ -42,12 +48,15 @@ export function FiltrosProductos({
   colores,
   marcas,
   proveedores,
+  totalProductos,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
   /** Marcas y proveedores activos (ADR-0109): filtrar el catálogo por de quién es y quién lo trae. */
   marcas: Opcion[];
   proveedores: Opcion[];
+  /** Cuántos productos calzan con lo filtrado (todas las páginas): el conteo de arriba. */
+  totalProductos: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -127,52 +136,31 @@ export function FiltrosProductos({
   const marca = params.get("marca");
   const proveedor = params.get("proveedor");
   const color = params.get("color");
-  const estado = params.get("estado");
+  const estado = estadoDeUrl(params.get("estado"));
   const stock = params.get("stock");
-  const orden = params.get("orden");
+  const orden = ordenDeUrl(params.get("orden"));
 
-  const chips: { texto: string; quitar: Record<string, string> }[] = [];
-  const q = params.get("q");
-  if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
-  const ordenLeido = leerOrdenProductos(orden);
-  if (ordenLeido) chips.push({ texto: ROTULO_ORDEN_PRODUCTOS[ordenLeido], quitar: { orden: "" } });
-  if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
-  // Con prefijo: una marca y su proveedor pueden llamarse igual («Adidas» / «Adidas»), y dos botones que dicen lo mismo no se distinguen.
-  // `sin` = los productos que todavía no tienen marca / proveedor (ADR-0283).
-  if (marca) chips.push({ texto: `Marca: ${marca === SIN_EN_URL ? "sin marca" : (marcas.find((m) => m.id === marca)?.nombre ?? "—")}`, quitar: { marca: "" } });
-  if (proveedor) chips.push({ texto: `Proveedor: ${proveedor === SIN_EN_URL ? "sin proveedor" : (proveedores.find((p) => p.id === proveedor)?.nombre ?? "—")}`, quitar: { proveedor: "" } });
-  if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
-  if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
-  if (stock) {
-    chips.push({
-      texto: stock === "sin_stock" ? "Sin stock" : stock === "bajo" ? "Stock bajo" : "Pedir a proveedor",
-      quitar: { stock: "" },
-    });
-  }
-  // El chip del precio lee la URL, no la caja: dice lo que la lista de verdad está filtrando.
-  const minEnUrl = params.get("precioMin");
-  const maxEnUrl = params.get("precioMax");
-  if (minEnUrl || maxEnUrl) {
-    chips.push({
-      texto:
-        minEnUrl && maxEnUrl
-          ? `S/${minEnUrl} – S/${maxEnUrl}`
-          : minEnUrl
-            ? `Desde S/${minEnUrl}`
-            : `Hasta S/${maxEnUrl}`,
-      quitar: { precioMin: "", precioMax: "" },
-    });
-  }
+  // Los chips leen la URL (lo que de verdad filtra la lista), siempre «Nombre: valor» como la píldora (`lib/productos-filtros.ts`).
+  const chips = chipsDeFiltros(
+    consultaUrl,
+    {
+      categoria: (id) => categorias.find((c) => c.id === id)?.nombre,
+      marca: (id) => marcas.find((m) => m.id === id)?.nombre,
+      proveedor: (id) => proveedores.find((p) => p.id === id)?.nombre,
+      color: (id) => colores.find((c) => c.id === id)?.nombre,
+    },
+    SIN_EN_URL,
+  );
 
   const bloqueChips = chips.length > 0 && (
     <div className="flex flex-wrap items-center gap-2">
       {chips.map((c) => (
         <button
-          key={Object.keys(c.quitar).join("|")}
+          key={c.quitar.join("|")}
           type="button"
           onClick={() => {
-            setTipeado((t) => sinCajas(t, Object.keys(c.quitar) as CajaTipeada[]));
-            aplicar(c.quitar);
+            setTipeado((t) => sinCajas(t, c.quitar as CajaTipeada[]));
+            aplicar(Object.fromEntries(c.quitar.map((k) => [k, ""])));
           }}
           className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           aria-label={`Quitar filtro ${c.texto}`}
@@ -194,7 +182,49 @@ export function FiltrosProductos({
     </div>
   );
 
-  const activos = [cat, marca, proveedor, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
+  const activos = contarFiltrosActivos(consultaUrl);
+
+  /** El enlace de esta misma lista, para mandarlo a otra sede (Felipe, 2026-10-02): todo lo filtrado vive en la URL. */
+  async function copiarEnlace() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve esta misma lista, con los mismos filtros." });
+    } catch {
+      avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
+    }
+  }
+
+  // Conteo arriba y un solo «Ordenar por», fuera del panel (Felipe, 2026-10-02): ordenar no quita prendas, solo las acomoda.
+  // Vive aquí (y no en la página) para que el orden y lo tecleado se apliquen sobre la misma URL vigente (`consultaVigente`).
+  const barraResultados = (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <p className="text-sm text-tinta/70" aria-live="polite">
+        <strong className="font-semibold text-tinta">{totalProductos.toLocaleString("es-PE")}</strong>{" "}
+        {totalProductos === 1 ? "producto" : "productos"}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={copiarEnlace}
+          className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
+        >
+          <Link2 aria-hidden className="h-3.5 w-3.5" />
+          Copiar enlace
+        </button>
+        <div className="rounded-lg bg-sand/50 p-0.5">
+          <DesplegablePildora
+            icono={ArrowUpDown}
+            etiqueta="Ordenar por"
+            valor={orden}
+            valorPorDefecto={ORDEN_POR_DEFECTO}
+            onValor={(v) => aplicar({ orden: v === ORDEN_POR_DEFECTO ? "" : v })}
+            opciones={ORDENES_MENU.map((o) => ({ valor: o as string, texto: ROTULO_ORDEN_PRODUCTOS[o] }))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-2">
@@ -224,21 +254,6 @@ export function FiltrosProductos({
 
       {panelAbierto && (
         <PanelPildoras>
-          <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
-
-          {/* Recientes, antiguos y vendidos (Felipe, 2026-09-29). El mismo parámetro `orden` que las flechas de precio: si
-              hay una de precio activa, aquí queda «Por nombre», que es apagar cualquiera de las dos. */}
-          <DesplegablePildora
-            icono={ArrowUpDown}
-            etiqueta="Ordenar"
-            valor={(ORDENES_DESPLEGABLE as readonly string[]).includes(orden ?? "") ? (orden as string) : TODOS}
-            onValor={(v) => aplicar({ orden: v === TODOS ? "" : v })}
-            opciones={[
-              { valor: TODOS, texto: "Por nombre (A–Z)" },
-              ...ORDENES_DESPLEGABLE.map((o) => ({ valor: o as string, texto: ROTULO_ORDEN_PRODUCTOS[o] })),
-            ]}
-          />
-
           <DesplegablePildora
             icono={Shirt}
             etiqueta="Categoría"
@@ -278,16 +293,14 @@ export function FiltrosProductos({
             ]}
           />
 
+          {/* «Activos» es lo que vale sola (Felipe, 2026-10-02): se ve «Estado: Activos» en reposo y «Todos» se elige a propósito. */}
           <DesplegablePildora
             icono={CircleCheck}
             etiqueta="Estado"
-            valor={estado ?? TODOS}
-            onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}
-            opciones={[
-              { valor: TODOS, texto: "Todos" },
-              { valor: "activo", texto: "Activo" },
-              { valor: "descontinuado", texto: "Descontinuado" },
-            ]}
+            valor={estado}
+            valorPorDefecto={ESTADO_POR_DEFECTO}
+            onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
+            opciones={ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] }))}
           />
 
           <DesplegablePildora
@@ -312,56 +325,8 @@ export function FiltrosProductos({
       )}
 
       {bloqueChips}
+      {barraResultados}
     </div>
-  );
-}
-
-/** Orden por precio (2026-09-17, pedido de Felipe: nada de texto tipo
- *  "Relevancia" — dos flechas, cada una clicable por separado, cada una
- *  sabe si está activa). Clic en la activa la apaga (vuelve al orden de
- *  siempre); clic en la otra la reemplaza — nunca las dos a la vez, es
- *  lo mismo que ya hacía el desplegable que reemplaza. El color (rojo
- *  cuando está activa) es la única marca visual; el tooltip (mismo
- *  patrón que ya usa `PuntoDeVentaCatalogo.tsx`) dice qué hace cada una
- *  para quien no lo adivine solo con la flecha. */
-function BotonesOrdenPrecio({ orden, onOrden }: { orden: string | null; onOrden: (v: string) => void }) {
-  return (
-    <TooltipProvider delayDuration={250}>
-      <div className="flex shrink-0 items-center px-1.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => onOrden(orden === "precio_asc" ? "" : "precio_asc")}
-              aria-pressed={orden === "precio_asc"}
-              aria-label="Ordenar por precio: menor a mayor"
-              className={`flex h-9 w-7 items-center justify-center transition-colors ${
-                orden === "precio_asc" ? "text-rojo" : "text-tinta/40 hover:text-tinta/70"
-              }`}
-            >
-              <ArrowUp aria-hidden className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={4}>Precio: menor a mayor</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => onOrden(orden === "precio_desc" ? "" : "precio_desc")}
-              aria-pressed={orden === "precio_desc"}
-              aria-label="Ordenar por precio: mayor a menor"
-              className={`flex h-9 w-7 items-center justify-center transition-colors ${
-                orden === "precio_desc" ? "text-rojo" : "text-tinta/40 hover:text-tinta/70"
-              }`}
-            >
-              <ArrowDown aria-hidden className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={4}>Precio: mayor a menor</TooltipContent>
-        </Tooltip>
-      </div>
-    </TooltipProvider>
   );
 }
 

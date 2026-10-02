@@ -95,12 +95,17 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
   // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
-  const [reposicion, existencias] = await Promise.all([
+  // Y si la lista de activas sale vacía, cuántas descontinuadas sí calzan (solo entonces se pregunta; si falla, no se avisa).
+  const preguntarDescontinuadas = resultado.totalProductos === 0 && filtros.estado === "activo" && !filtros.stock;
+  const [reposicion, existencias, descontinuadas] = await Promise.all([
     resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
+    preguntarDescontinuadas
+      ? getResumenProductos({ ...filtros, estado: "descontinuado" }).then((r) => r.totalProductos, () => 0)
+      : Promise.resolve(0),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -196,6 +201,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         colores={coloresOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
+        totalProductos={resultado.totalProductos}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
@@ -208,7 +214,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
             puedeEliminar={persona.rol === "lider"}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             tamanoInicial={tamanoGrilla}
           />
         ) : (
@@ -221,7 +227,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veExistencias={veModulo(persona, "existencias")}
             puedeEliminar={persona.rol === "lider"}
             veDinero={puede(persona, "verDineroCompras")}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
           />
         )}
 

@@ -8,24 +8,42 @@
 export const ORDENES_PRODUCTOS = ["recientes", "antiguos", "vendidos_desc", "vendidos_asc", "precio_asc", "precio_desc"] as const;
 export type OrdenProductos = (typeof ORDENES_PRODUCTOS)[number];
 
-/** Las que van en el desplegable «Ordenar». Las de precio siguen siendo las dos flechas del panel (Felipe, 2026-09-17: «nada
- *  de texto tipo Relevancia»): una sola URL (`orden`), dos controles, nunca las dos a la vez. */
-export const ORDENES_DESPLEGABLE = ["recientes", "antiguos", "vendidos_desc", "vendidos_asc"] as const satisfies readonly OrdenProductos[];
+/** Lo que se elige en el único «Ordenar por» de la pantalla (Felipe, 2026-10-02): las seis de la base más «nombre», que
+ *  en la base es «sin orden» (por referencia). Antes había dos controles para el mismo dato (flechas de precio + desplegable)
+ *  dentro del panel de filtros; ahora es uno, fuera del panel, junto al conteo. En el orden en que se leen en la lista. */
+export const ORDENES_MENU = ["recientes", "nombre", "precio_asc", "precio_desc", "antiguos", "vendidos_desc", "vendidos_asc"] as const;
+export type OrdenListado = (typeof ORDENES_MENU)[number];
+
+/** Con qué abre la lista (Felipe, 2026-10-02: «Más recientes primero»): la carga del catálogo sigue y quien carga ve
+ *  enseguida lo que acaba de crear. Va SIN escribirse en la URL, así que «Nombre (A–Z)» sí se escribe (`orden=nombre`). */
+export const ORDEN_POR_DEFECTO: OrdenListado = "recientes";
 
 /** Lo que dice cada opción en el desplegable y en el chip. «Más vendidos» son las unidades que salieron por venta en los
  *  últimos 30 días, en toda la red: es la misma ventana que usa «Pedir a proveedor», así que las dos pantallas hablan igual. */
-export const ROTULO_ORDEN_PRODUCTOS: Record<OrdenProductos, string> = {
+export const ROTULO_ORDEN_PRODUCTOS: Record<OrdenListado, string> = {
   recientes: "Más recientes",
+  nombre: "Nombre (A–Z)",
   antiguos: "Más antiguos",
   vendidos_desc: "Más vendidos (30 días)",
   vendidos_asc: "Menos vendidos (30 días)",
-  precio_asc: "Precio: menor a mayor",
-  precio_desc: "Precio: mayor a menor",
+  // Sin «Precio: …»: en la píldora se lee «Ordenar por: Precio más bajo», no «Ordenar por: Precio: menor a mayor».
+  precio_asc: "Precio más bajo",
+  precio_desc: "Precio más alto",
 };
 
-/** El orden de la URL, o `undefined` (por nombre) si falta o no es una opción: una URL a mano no rompe la pantalla. */
+/** El orden que pide la URL; si falta o no es una opción (una URL a mano), el de fábrica: la pantalla no se rompe. */
+export function ordenDeUrl(valor: string | null | undefined): OrdenListado {
+  return (ORDENES_MENU as readonly string[]).includes(valor ?? "") ? (valor as OrdenListado) : ORDEN_POR_DEFECTO;
+}
+
+/** Lo que entiende `fn_productos`: «nombre» es su orden sin parámetro (por referencia). */
+export function ordenParaBase(orden: OrdenListado): OrdenProductos | undefined {
+  return orden === "nombre" ? undefined : orden;
+}
+
+/** El orden de la URL tal como lo pide la base (`undefined` = por nombre). */
 export function leerOrdenProductos(valor: string | null | undefined): OrdenProductos | undefined {
-  return (ORDENES_PRODUCTOS as readonly string[]).includes(valor ?? "") ? (valor as OrdenProductos) : undefined;
+  return ordenParaBase(ordenDeUrl(valor));
 }
 
 /** Las de ventas piden a la base sumar movimientos; las demás salen de columnas del producto. Sirve a quien quiera avisar
