@@ -47,7 +47,7 @@ export type DatosFicha = {
   precio: number | null;
   margen: number | null;
   /** La campaña con descuento que rige hoy sobre la prenda (la misma que saldrá en la etiqueta impresa), o null. */
-  campana: { nombre: string; pct: number; hasta: string | null; precioFinal: number } | null;
+  campana: { nombre: string; pct: number; hasta: string | null; precioFinal: number; otras: { nombre: string; pct: number }[] } | null;
   colores: { codigo: string; hex: string | null }[];
   /** Vista previa local de la foto que quedaría de principal. */
   foto: string | null;
@@ -139,20 +139,40 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             <dd className="text-[17px] font-medium tabular-nums text-tinta">{d.hoy ?? <Vacio />}</dd>
           </div>
         </dl>
-        <div className="mt-3 flex items-baseline justify-between border-t border-sand pt-3">
-          <span className="text-[13px] text-taupe">Precio{d.margen !== null && ` · margen ${Math.round(d.margen)} %`}</span>
-          <span className="font-display text-[22px] tabular-nums text-tinta">{d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}</span>
-        </div>
-        {d.campana && (
-          <div className="mt-2 flex items-baseline justify-between gap-3 rounded-lg bg-hueso px-2.5 py-2">
-            <span className="text-[13px] text-tinta">
-              {d.campana.nombre} · −{d.campana.pct} %
-              {d.campana.hasta && <span className="text-taupe"> · hasta {fechaCorta(d.campana.hasta)}</span>}
-              <span className="block text-[11px] text-taupe">Lo que cobra la caja y dice la etiqueta.</span>
+        <div className="mt-3 border-t border-sand pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[13px] text-taupe">Precio{d.margen !== null && ` · margen ${Math.round(d.margen)} %`}</span>
+            <span className="flex items-baseline gap-2 whitespace-nowrap">
+              {d.campana && d.precio !== null && <span className="text-sm tabular-nums text-taupe line-through">{soles(d.precio)}</span>}
+              <span className="font-display text-[22px] tabular-nums text-tinta">
+                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}
+              </span>
             </span>
-            <span className="font-display shrink-0 whitespace-nowrap text-[22px] tabular-nums text-tinta">{soles(d.campana.precioFinal)}</span>
           </div>
-        )}
+          {d.campana && (
+            <p className="relative mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-taupe">
+              <span className="rounded-full bg-hueso px-2 py-px text-tinta">−{d.campana.pct} %</span>
+              <span>
+                {d.campana.nombre}
+                {d.campana.hasta && ` · hasta ${fechaCorta(d.campana.hasta)}`}
+              </span>
+              {d.campana.otras.length > 0 && (
+                <span className="group" tabIndex={0} aria-label={`Otras campañas vigentes: ${d.campana.otras.map((o) => `${o.nombre} ${o.pct} %`).join(", ")}`}>
+                  <span className="cursor-default rounded-full border border-sand px-1.5 py-px">+{d.campana.otras.length}</span>
+                  <span role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-1 hidden w-max max-w-full rounded-lg border border-sand bg-papel px-2.5 py-2 text-[12px] leading-snug text-tinta group-hover:block group-focus:block">
+                    {d.campana.otras.map((o) => (
+                      <span key={o.nombre} className="flex justify-between gap-4">
+                        <span>{o.nombre}</span>
+                        <span className="tabular-nums text-taupe">−{o.pct} %</span>
+                      </span>
+                    ))}
+                    <span className="mt-1 block text-taupe">La caja cobra solo la mayor.</span>
+                  </span>
+                </span>
+              )}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
