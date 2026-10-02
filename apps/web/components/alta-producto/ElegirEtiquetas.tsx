@@ -137,7 +137,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
           onClose={() => setHoja(false)}
           // «+ Nueva etiqueta» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
           acciones={
-            <button type="button" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="btn-cayla btn-secundario h-9 whitespace-nowrap">
+            <button type="button" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="btn-cayla btn-primario h-9 whitespace-nowrap">
               + Nueva etiqueta
             </button>
           }
