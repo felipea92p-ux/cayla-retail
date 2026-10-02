@@ -143,3 +143,10 @@ begin
   end if;
 end
 $migracion$;
+
+-- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
+-- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).
+-- Copia el archivo COMPLETO (en la terminal: `pbcopy < supabase/migrations/<archivo>`) y vuelve a pegarlo: es seguro repetirlo.
+select '20261003130000 · registrar_venta acepta el redondeo' as parte,
+       case when exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta' and p.prosrc like '%venta_redondeo_invalido%')
+            then 'QUEDÓ BIEN' else 'REVISAR: falta alguna parte anterior o el texto se pegó cortado' end as resultado;

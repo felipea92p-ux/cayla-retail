@@ -81,3 +81,10 @@ begin
     raise exception 'redondeo del efectivo: hay montos que no quedan en múltiplo de 0.10';
   end if;
 end $$;
+
+-- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
+-- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).
+-- Copia el archivo COMPLETO (en la terminal: `pbcopy < supabase/migrations/<archivo>`) y vuelve a pegarlo: es seguro repetirlo.
+select '20261003100000 · la regla del redondeo' as parte,
+       case when retail.fn_redondeo_efectivo(100.19) = 0.09 and retail.fn_redondeo_efectivo(100.12) = 0.02
+            then 'QUEDÓ BIEN' else 'REVISAR: falta alguna parte anterior o el texto se pegó cortado' end as resultado;

@@ -89,3 +89,10 @@ comment on constraint venta_pagos_redondeo_valido on retail.venta_pagos is
   'ADR-0310: el redondeo del efectivo es menor de S/ 0.10 (la moneda más chica que circula). Mayor que cero lo exige venta_pagos_monto_check.';
 comment on index retail.venta_pagos_un_redondeo_por_venta is
   'ADR-0310: una venta tiene a lo más UNA fila de redondeo del efectivo.';
+
+-- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
+-- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).
+-- Copia el archivo COMPLETO (en la terminal: `pbcopy < supabase/migrations/<archivo>`) y vuelve a pegarlo: es seguro repetirlo.
+select '20261003110000 · el candado de venta_pagos para el medio redondeo' as parte,
+       case when exists (select 1 from pg_constraint c where c.conrelid = 'retail.venta_pagos'::regclass and c.conname = 'venta_pagos_metodo_check' and pg_get_constraintdef(c.oid) like '%''redondeo''%') and exists (select 1 from pg_constraint c where c.conrelid = 'retail.venta_pagos'::regclass and c.conname = 'venta_pagos_redondeo_valido') and exists (select 1 from pg_indexes where schemaname = 'retail' and indexname = 'venta_pagos_un_redondeo_por_venta')
+            then 'QUEDÓ BIEN' else 'REVISAR: falta alguna parte anterior o el texto se pegó cortado' end as resultado;

@@ -171,3 +171,10 @@ begin$n$);
   end if;
 end
 $migracion$;
+
+-- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
+-- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).
+-- Copia el archivo COMPLETO (en la terminal: `pbcopy < supabase/migrations/<archivo>`) y vuelve a pegarlo: es seguro repetirlo.
+select '20261003111000 · los lectores de caja (cuenta sellada, resumen de caja y ventas del día)' as parte,
+       case when (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_cuenta_sellada', 'fn_resumen_caja', 'fn_ventas_del_dia') and p.prosrc like '%''redondeo''%') = 3
+            then 'QUEDÓ BIEN' else 'REVISAR: falta alguna parte anterior o el texto se pegó cortado' end as resultado;

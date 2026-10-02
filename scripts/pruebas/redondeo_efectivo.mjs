@@ -590,6 +590,52 @@ rollback;`);
   const r35c = correr(`begin;\ndrop function retail.fn_redondeo_efectivo(numeric);\n${entrega}\nrollback;`);
   esperar("el parche de entregar_separacion aborta si falta la regla de la que depende", !r35c.ok && r35c.mensaje.includes("falta retail.fn_redondeo_efectivo"), r35c.ok ? "pasó y debía abortar" : r35c.mensaje);
 
+  // =====================================================================================================================
+  // EL PEGADO EN EL SQL EDITOR DE SUPABASE (2026-10-02): Felipe pegó `registrar_venta` y le llegó el texto CORTADO en la línea 96: «unterminated
+  // dollar-quoted string». Peor es el corte que cae entre dos instrucciones: Postgres lo acepta, el editor dice «Success» y no se aplicó nada
+  // (le pasó a la parte del diario: quedó la cuenta 6598 y la función sin parchar). Por eso cada archivo termina con una fila «QUEDÓ BIEN».
+  // El editor manda todo el texto como UNA sola consulta (se analiza entero antes de ejecutar nada): `psql -c` hace lo mismo.
+  // =====================================================================================================================
+  const pegarComoEditor = (texto) => {
+    try {
+      return { ok: true, salida: execFileSync("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-c", texto], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim() };
+    } catch (e) {
+      return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
+    }
+  };
+  const PARTES_A_PEGAR = [
+    "20261003100000_redondeo_efectivo_regla", "20261003110000_venta_pagos_candado_redondeo", "20261003111000_redondeo_lectores", "20261003120000_redondeo_diario",
+    "20261003130000_registrar_venta_redondeo", "20261003135000_entregar_separacion_redondeo", "20261003140000_acepta_redondeo_efectivo",
+  ];
+  const textoDe = (parte) => readFileSync(`supabase/migrations/${parte}.sql`, "utf8");
+
+  // ---- 36. Cada parte, pegada ENTERA como un solo texto, termina con su fila «QUEDÓ BIEN» ----
+  for (const parte of PARTES_A_PEGAR) {
+    const r = pegarComoEditor(textoDe(parte));
+    esperar(`${parte.slice(0, 14)} pegada entera (como la pega el editor) termina con su fila «QUEDÓ BIEN»`, r.ok && r.salida.split("\n").filter((l) => l.includes("QUEDÓ BIEN") && l.startsWith(parte.slice(0, 14))).length === 1, r.ok ? r.salida.slice(-400) : r.mensaje);
+  }
+
+  // ---- 37. NINGÚN texto cortado puede pasar por pegado completo: en cada archivo, los cortes que caen donde una instrucción termina (los
+  //          «silenciosos» que Postgres acepta) y unos cuantos más repartidos NO dan jamás la fila «QUEDÓ BIEN» ----
+  let cortes = 0;
+  let silenciosos = 0;
+  const falsosOk = [];
+  for (const parte of PARTES_A_PEGAR) {
+    const lineas = textoDe(parte).replace(/\n$/, "").split("\n"); // sin la línea vacía final: el corte del ÚLTIMO renglón sería el archivo entero
+    const candidatos = new Set();
+    lineas.forEach((l, i) => { if (i + 1 < lineas.length && /;\s*$/.test(l)) candidatos.add(i + 1); });
+    for (let k = 1; k <= 8; k++) candidatos.add(Math.floor((lineas.length * k) / 9));
+    for (const n of [...candidatos].sort((a, b) => a - b)) {
+      const corte = lineas.slice(0, n).join("\n");
+      // dentro de una transacción que se revierte: el efecto no queda; la ausencia de la fila es lo que se prueba
+      const r = pegarComoEditor(`begin;\n${corte}\nrollback;`);
+      cortes++;
+      if (r.ok && r.salida.includes("QUEDÓ BIEN")) falsosOk.push(`${parte.slice(0, 14)}:${n}`);
+      if (r.ok) silenciosos++;
+    }
+  }
+  esperar(`${cortes} textos cortados (${silenciosos} que Postgres acepta sin quejarse, ${cortes - silenciosos} que rechaza) no dan NUNCA «QUEDÓ BIEN»: un pegado cortado se nota`, cortes > 100 && falsosOk.length === 0, falsosOk.join(" "));
+
   // ---- 14. AUDITORÍA: toda función que lee venta_pagos o separacion_pagos está revisada pensando en el redondeo ----
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.

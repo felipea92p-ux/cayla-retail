@@ -259,6 +259,36 @@ conserva la venta con su redondeo. *Persona sin contexto:* la cajera no elige na
 5. `pnpm datos:generar:produccion` y `pnpm datos:comparar` (hoy el comparador marca `fn_acepta_redondeo_efectivo` como «no está en la foto»: es lo esperado hasta pegar).
 Para **apagar** el redondeo: `create or replace function retail.fn_acepta_redondeo_efectivo()` devolviendo `false`.
 
+### Cómo se pega (y cómo se sabe que se pegó) — 2026-10-02
+
+El primer intento de pegar `registrar_venta` llegó al editor **cortado** (las líneas 14 a 96 de 145: una selección a mano) y Postgres respondió «unterminated
+dollar-quoted string»; ese error es el bueno, porque no aplica nada. El malo es el corte que cae entre dos instrucciones: el editor de Supabase manda todo como UNA
+consulta, Postgres la acepta, dice «Success» y no se aplicó casi nada (le pasó a la parte del diario: quedó la cuenta 6598 y `fn_asiento_cuenta_de_medio` sin parchar).
+Dos arreglos:
+
+- **Copiar el archivo entero, nunca seleccionarlo a mano:** `pbcopy < <ruta absoluta del archivo>` en la terminal deja en el portapapeles el archivo completo.
+- **Cada archivo termina con una fila «QUEDÓ BIEN»** (su última instrucción, un `select` que mira el efecto real). Si al pegar no aparece esa fila, el texto llegó cortado o
+  falta una parte anterior: se vuelve a copiar y a pegar, que es seguro repetir. `redondeo_efectivo.mjs` lo prueba: pega cada archivo como el editor (un solo texto) y
+  comprueba que **ninguno de 312 textos cortados** (61 de los cuales Postgres acepta sin quejarse) produce esa fila; con la fila puesta al principio la prueba cae.
+
+Ensayo del pegado real en una base idéntica a producción hoy (`registrar_venta` `525479a9…`, `entregar_separacion` `7d38028b…`, `fn_asiento_cuenta_de_medio` `9d9d0c71…`,
+con la cuenta 6598 ya puesta): los siete archivos en orden, cada uno como un solo texto, dan siete «QUEDÓ BIEN».
+
+**¿Qué falta pegar?** (solo lectura; cada columna es una parte, `true` = ya está):
+
+```sql
+select
+  to_regprocedure('retail.fn_redondeo_efectivo(numeric)') is not null                                                                                   as p100000_regla,
+  exists (select 1 from pg_constraint c where c.conrelid = 'retail.venta_pagos'::regclass and c.conname = 'venta_pagos_redondeo_valido')               as p110000_candado,
+  (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_cuenta_sellada','fn_resumen_caja','fn_ventas_del_dia') and p.prosrc like '%''redondeo''%') = 3 as p111000_lectores,
+  coalesce((select retail.fn_asiento_cuenta_de_medio('redondeo') = '6598'), false)                                                                      as p120000_diario,
+  exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta' and p.prosrc like '%venta_redondeo_invalido%')     as p130000_registrar_venta,
+  exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'entregar_separacion' and p.prosrc like '%venta_redondeo_invalido%') as p135000_entregar_separacion,
+  coalesce((select retail.fn_acepta_redondeo_efectivo()), false)                                                                                        as p140000_bandera_encendida;
+```
+
+(Si falta la primera parte, `fn_asiento_cuenta_de_medio('redondeo')` devuelve `104` y no `6598`; y si no existe la bandera, la consulta falla con «function does not exist»: también es un «falta».)
+
 ### Actividad 6 — Apartados (2026-10-02)
 
 **Qué se redondea.** Solo el **saldo que se paga al entregar** (`entregar_separacion`). Los céntimos de un apartado nacen del PRECIO de las prendas; el adelanto y

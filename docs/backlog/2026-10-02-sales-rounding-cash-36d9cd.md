@@ -8,6 +8,7 @@ Investigación y diseño: `docs/investigacion/2026-10-02-redondeo-del-efectivo.m
 3. `20261003130000` (`registrar_venta`) → `20261003135000` (`entregar_separacion`) → `20261003140000` (la bandera, **al final**).
 4. Recargar (F5) Vender y Apartados en cada caja; después `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 Huellas, consultas de verificación y cómo apagarlo: `docs/adr/0310-redondeo-del-efectivo.md` §8.
+**Copiar cada archivo con `pbcopy < <ruta absoluta>` (no seleccionar a mano) y comprobar que termina con su fila «QUEDÓ BIEN»; el 2-oct el primer intento llegó cortado (ADR-0310 §8, «Cómo se pega»), y la consulta «¿qué falta pegar?» está ahí. Ensayo: siete archivos en orden sobre una base idéntica a producción, siete «QUEDÓ BIEN». La bandera (`…140000`) se pega DESPUÉS de fusionar el PR: es lo que enciende el redondeo en cuanto la web nueva está publicada.**
 
 **Decisiones** (Felipe aprobó el diseño y la lista el 2026-10-02 con «hazlo»; lo demás sigue las recomendaciones del ADR-0310 §7 y es provisional)
 - [x] Diseño (fila `metodo='redondeo'` en `venta_pagos`) y lista de actividades: aprobados.

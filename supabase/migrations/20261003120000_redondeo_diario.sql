@@ -111,3 +111,10 @@ begin
     raise exception 'redondeo: la cuenta 6598 no está como gasto de operación activo.';
   end if;
 end $$;
+
+-- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
+-- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).
+-- Copia el archivo COMPLETO (en la terminal: `pbcopy < supabase/migrations/<archivo>`) y vuelve a pegarlo: es seguro repetirlo.
+select '20261003120000 · el diario contable (cuenta 6598 y su asiento)' as parte,
+       case when retail.fn_asiento_cuenta_de_medio('redondeo') = '6598' and exists (select 1 from retail.cuentas where codigo = '6598' and tipo = 'gasto' and activo)
+            then 'QUEDÓ BIEN' else 'REVISAR: falta alguna parte anterior o el texto se pegó cortado' end as resultado;
