@@ -10,7 +10,6 @@
 import type { MetodoPago } from "@cayla-retail/shared";
 import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
-import type { ClubEnElTicket } from "./club-qr-reglas";
 
 /** Solo lo que Vender emite hoy. Una nota de venta (sin valor tributario) no existe todavía
  *  como opción en la pantalla — ver ADR-0114. */
@@ -54,9 +53,6 @@ export type ReciboVenta = {
   vueltoTotal: number;
   /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
   atendio?: string | null;
-  /** El QR del club al pie (ADR-0288 act. g; `clubEnElTicket` en `club-qr-reglas.ts`): la página de registro de la tienda de
-   *  la venta. Ausente/`null` si la clienta ya recibe novedades, o en una reimpresión (el historial no sabe del club). */
-  club?: ClubEnElTicket | null;
   /** El cumpleaños del club que canjeó la venta (ADR-0288 D-5): el descuento de cada prenda ya lo trae (es el TOTAL de
    *  `venta_items`), y el papel dice cuánto de eso es del club. Ausente/`null` sin canje o en una reimpresión (el historial
    *  no lo lee todavía). */
@@ -97,8 +93,6 @@ export function armarRecibo(entrada: {
   tasaIgv: number;
   /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
   atendio?: string | null;
-  /** El QR del club al pie; ver `clubEnElTicket` en `club-qr-reglas.ts`. */
-  club?: ClubEnElTicket | null;
   /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
   cumple?: { pct: number; monto: number } | null;
   /** El vale de aniversario usado en esta venta: igual que el cumpleaños. */
@@ -134,7 +128,6 @@ export function armarRecibo(entrada: {
     pagos,
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
-    club: entrada.club ?? null,
     cumple: entrada.cumple && entrada.cumple.monto > 0 ? entrada.cumple : null,
     vale: entrada.vale && entrada.vale.monto > 0 ? entrada.vale : null,
   };

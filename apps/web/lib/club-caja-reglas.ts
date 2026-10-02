@@ -1,5 +1,5 @@
 // El club en la CAJA (ADR-0288, tandas 1b y 1g): qué muestra la caja de la clienta en Cobrar, qué pide «Registrar clienta»
-// (en Cobrar y en /clientas) y qué QR sale en el ticket impreso. Lógica pura, sin React ni red: la usan la página de Vender
+// (en Cobrar y en /clientas). Lógica pura, sin React ni red: la usan la página de Vender
 // (servidor), `PuntoDeVenta`, `ClientaDelTicket` y `NuevaClientaModal`. El cumpleaños tiene su propia regla
 // (`lib/club-cumple-reglas.ts`), y sus canjes, las suyas (`club-cumple-canje-reglas.ts`, `club-aniversario-canje-reglas.ts`).
 //
@@ -13,7 +13,7 @@
 // CONTRATO
 //   PROMETE: decir qué se ofrece en caja según lo que la base contestó (`resumen_clienta_caja`, `fn_club_textos_vigentes`,
 //            `ubicaciones.whatsapp_numero`), validar lo que la asesora escribe al registrarla (y la guía de foco de esa hoja,
-//            que sale de la MISMA validación), decir hasta cuándo la tarjeta pregunta si ya se unió y armar el QR del ticket.
+//            que sale de la MISMA validación), decir hasta cuándo la tarjeta pregunta si ya se unió.
 //   ASUME:   quien decide si alguien ES socia es la base: se une desde la página del cartel (`registrarse_en_el_club`).
 //   NO HACE: no une al club ni registra la publicidad: ese permiso solo nace de un acto de ELLA, en la página del cartel
 //            (D-4, Ley 32323; G-12: la casilla es opcional).
@@ -228,5 +228,4 @@ export function filaDelCartel(v: { sinDocumento: boolean; espera: EsperaDelCarte
   return { destacado, bajada: `${porQue} · se actualiza sola`, ayuda, actualizar: false, consultar: v.espera === "esperando" };
 }
 
-// El QR del ticket impreso vive desde la tanda 1g en `lib/club-qr-reglas.ts` (`clubEnElTicket`): abre la página de registro de
-// la tienda de la venta (ADR-0288 act. g, G-1).
+// El ticket impreso no lleva QR del club (ADR-0288 act. j, Felipe 2026-10-01): la clienta se une con el QR del cartel.
