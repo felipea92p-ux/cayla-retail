@@ -4,8 +4,7 @@ import { fechaCorta } from "./compras-reglas";
 
 // Reglas de la pantalla de Cotizaciones de maquila (D-82): en qué estado está la cotización
 // vigente de cada categoría, con qué chip, qué línea de detalle y en qué orden se listan.
-// Puras y sin servidor: "hoy" entra por parámetro (la fecha de Lima, `hoyLima`), igual que
-// `facturacion-codigos-reglas.ts` — mismo criterio, mismo dispositivo, otra tabla.
+// Puras y sin servidor: "hoy" entra por parámetro (la fecha de Lima, `hoyLima`).
 
 /** El aviso pide actuar cuando quedan hasta este número de días — pedido explícito de la
  *  tarea ("a 30 días o menos"), más largo que el de un código de descuento (7 días) porque
@@ -47,8 +46,7 @@ export type ChipDeCotizacion = { tono: "verde" | "ambar" | "rojo"; texto: string
 // A diferencia de un código de descuento vencido (que simplemente deja de aplicar, sin
 // consecuencia), una cotización de maquila vencida SÍ es una falla activa: D-31 dice que el
 // Taller se mide contra ella, y sin ninguna vigente `fn_cotizacion_maquila_vigente` devuelve
-// null — la medición se queda sin punto de comparación. Por eso, a diferencia de
-// `facturacion-codigos-reglas.ts`, acá "vencida" sí lleva rojo.
+// null — la medición se queda sin punto de comparación. Por eso acá "vencida" lleva rojo.
 const CHIP: Record<EstadoCotizacion, ChipDeCotizacion> = {
   vigente: { tono: "verde", texto: "Vigente" },
   porVencer: { tono: "ambar", texto: "Por vencer" },
