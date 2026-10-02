@@ -5,6 +5,7 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
+import { UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -230,25 +231,64 @@ export function pasoDelApartado(e: Partial<Record<CampoApartado, string>>): Paso
   return 2;
 }
 
-/** Los pagos tal como los espera `separar_prendas` (y `entregar_separacion`). */
-export function pagosParaRpcApartado(pagos: readonly PagoAdelanto[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
-  return pagos.map((p) =>
-    p.metodo === "efectivo" && p.recibido !== undefined && p.recibido > p.monto
-      ? { metodo: p.metodo, monto: p.monto, recibido: p.recibido }
-      : { metodo: p.metodo, monto: p.monto },
-  );
+/** Los pagos tal como los espera `separar_prendas`, `abonar_separacion` y `entregar_separacion`.
+ *
+ *  `redondear` SOLO lo pasa la entrega del saldo (ADR-0310 §7): el adelanto y los abonos son montos que el cliente elige, no un total que
+ *  pagar, y la base los rechaza si traen una fila de redondeo. Con `redondear`, el efectivo viaja YA cobrado en monedas (múltiplo de
+ *  S/ 0.10, hacia abajo) y, aparte, la fila `redondeo` con lo que no se cobró: la suma de todo sigue siendo el saldo exacto y la base
+ *  verifica que el redondeo sea el de la ley. */
+export type PagoApartadoParaRpc = { metodo: MetodoPago | "redondeo"; monto: number; recibido?: number };
+
+export function pagosParaRpcApartado(pagos: readonly PagoAdelanto[], redondear = false): PagoApartadoParaRpc[] {
+  let redondeo = 0;
+  const filas = pagos.map((p): PagoApartadoParaRpc => {
+    const monto = p.metodo === "efectivo" && redondear ? efectivoACobrar(p.monto) : p.monto;
+    if (p.metodo === "efectivo" && redondear) redondeo = Math.round((redondeo + redondeoDelEfectivo(p.monto)) * 100) / 100;
+    return p.metodo === "efectivo" && p.recibido !== undefined && p.recibido > monto
+      ? { metodo: p.metodo, monto, recibido: p.recibido }
+      : { metodo: p.metodo, monto };
+  });
+  if (!redondear) return filas;
+  // Un efectivo que se queda en cero (menos de una moneda) no viaja: `venta_pagos` exige montos > 0 y la pantalla ya lo bloquea.
+  const cobradas = filas.filter((f) => f.monto > 0);
+  return redondeo > 0 ? [...cobradas, { metodo: "redondeo", monto: redondeo }] : cobradas;
 }
 
-/** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. */
-export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number): { falta: number; vuelto: number; excede: boolean; listo: boolean } {
+export type CobroDelSaldo = {
+  falta: number;
+  vuelto: number;
+  excede: boolean;
+  listo: boolean;
+  /** El efectivo del saldo, con la ley: lo que se debe, lo que se cobra en monedas y lo que no se cobra. `null` sin efectivo. */
+  efectivo: { deuda: number; aCobrar: number; redondeo: number } | null;
+  /** Con el redondeo, un efectivo de menos de S/ 0.10 no se puede entregar (no hay moneda): se cobra con otro medio. */
+  sinMoneda: boolean;
+  /** Lo recibido en efectivo no alcanza a lo que se cobra. */
+  noAlcanza: boolean;
+};
+
+/** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. Con `redondear` (ADR-0310) el efectivo se cobra
+ *  al múltiplo de S/ 0.10, hacia abajo, y el vuelto sale de lo que se cobra en monedas, no de la deuda exacta. El saldo y la
+ *  boleta final siguen exactos: el redondeo es del cobro. */
+export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number, redondear = false): CobroDelSaldo {
   const pagado = adelantoDe(pagos);
-  const hayEfectivo = pagos.some((p) => p.metodo === "efectivo");
+  const pagoEfectivo = pagos.find((p) => p.metodo === "efectivo");
   const falta = Math.max(0, Math.round((saldo - pagado) * 100) / 100);
-  const recibidoEfectivo = pagos.reduce((a, p) => a + (p.metodo === "efectivo" ? (p.recibido ?? p.monto) : 0), 0);
-  const vuelto = hayEfectivo ? Math.max(0, Math.round((recibidoEfectivo - pagos.find((p) => p.metodo === "efectivo")!.monto) * 100) / 100) : 0;
+  const efectivo = pagoEfectivo
+    ? redondear
+      ? { deuda: pagoEfectivo.monto, aCobrar: efectivoACobrar(pagoEfectivo.monto), redondeo: redondeoDelEfectivo(pagoEfectivo.monto) }
+      : { deuda: pagoEfectivo.monto, aCobrar: pagoEfectivo.monto, redondeo: 0 }
+    : null;
+  const recibidoEfectivo = pagos.reduce((a, p) => a + (p.metodo === "efectivo" ? (p.recibido ?? efectivo?.aCobrar ?? p.monto) : 0), 0);
+  const vuelto = efectivo ? Math.max(0, Math.round((recibidoEfectivo - efectivo.aCobrar) * 100) / 100) : 0;
   const excede = pagado > saldo + 0.001;
-  return { falta, vuelto, excede, listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0) };
+  const sinMoneda = redondear && efectivo !== null && efectivo.deuda > 0 && efectivo.aCobrar <= 0;
+  const noAlcanza = efectivo !== null && pagoEfectivo?.recibido !== undefined && pagoEfectivo.recibido < efectivo.aCobrar;
+  return { falta, vuelto, excede, listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0 && !sinMoneda), efectivo, sinMoneda, noAlcanza };
 }
+
+/** Lo que se le dice a quien cobra cuando el efectivo del saldo no llega a una moneda de S/ 0.10 (los 0.07 que sobran tras un Yape). */
+export const AVISO_EFECTIVO_SIN_MONEDA = `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
 
 /** Texto de «cómo se le devuelve», para la boleta y las listas. El CCI nunca se muestra completo. */
 export function textoDevolucion(a: Pick<Apartado, "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">): string {

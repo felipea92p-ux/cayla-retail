@@ -43,6 +43,8 @@ type Props = {
   /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Entregar» con ese apartado elegido; ya
    *  cerrado → «Todos» buscándolo por su código. Un id que no está en la lista no cambia nada. */
   abrir?: string | null;
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0310): la entrega cobra el saldo en monedas de S/ 0.10. */
+  redondeoEfectivo?: boolean;
 };
 
 /**
@@ -156,7 +158,7 @@ export function ApartadosPanel(props: Props) {
         />
       )}
       {vista === "entregar" && (
-        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} />
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
       )}
       {vista === "todos" && (
         <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}

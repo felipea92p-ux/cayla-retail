@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adelantoDe,
+  AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
   cobroDelSaldo,
   coincide,
@@ -132,6 +133,63 @@ describe("dinero", () => {
     expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 100 }], 89)).toMatchObject({ falta: 0, vuelto: 11, listo: true });
     expect(cobroDelSaldo([{ metodo: "yape", monto: 100 }], 89)).toMatchObject({ excede: true, listo: false });
     expect(cobroDelSaldo([], 0).listo).toBe(true);
+  });
+});
+
+describe("redondeo del efectivo al entregar el saldo (ADR-0310)", () => {
+  const efectivo = (monto: number, recibido?: number) => ({ metodo: "efectivo" as const, monto, ...(recibido !== undefined ? { recibido } : {}) });
+
+  it("el saldo de 29.88 en efectivo se cobra 29.80 y viaja la fila de redondeo de 0.08", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)], true)).toEqual([{ metodo: "efectivo", monto: 29.8, recibido: 30 }, { metodo: "redondeo", monto: 0.08 }]);
+  });
+  it("solo el efectivo se redondea: el Yape del mismo saldo va exacto", () => {
+    expect(pagosParaRpcApartado([{ metodo: "yape", monto: 10 }, efectivo(19.88)], true)).toEqual([
+      { metodo: "yape", monto: 10 },
+      { metodo: "efectivo", monto: 19.8 },
+      { metodo: "redondeo", monto: 0.08 },
+    ]);
+  });
+  it("un saldo que ya es múltiplo de 0.10 no lleva fila de redondeo", () => {
+    expect(pagosParaRpcApartado([efectivo(29.9)], true)).toEqual([{ metodo: "efectivo", monto: 29.9 }]);
+  });
+  it("sin el redondeo activo (la base todavía no lo acepta) los pagos viajan exactos, como siempre", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)])).toEqual([{ metodo: "efectivo", monto: 29.88, recibido: 30 }]);
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)], false)).toEqual([{ metodo: "efectivo", monto: 29.88, recibido: 30 }]);
+  });
+  it("lo recibido solo viaja si supera lo que se cobra en monedas (la base rechaza un recibido menor)", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 29.8)], true)).toEqual([{ metodo: "efectivo", monto: 29.8 }, { metodo: "redondeo", monto: 0.08 }]);
+  });
+  it("el vuelto sale de las monedas que se cobran, no de la deuda exacta: 29.88 con 30 → vuelto 0.20", () => {
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88, true)).toMatchObject({ falta: 0, vuelto: 0.2, listo: true, sinMoneda: false, noAlcanza: false });
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88, true).efectivo).toEqual({ deuda: 29.88, aCobrar: 29.8, redondeo: 0.08 });
+    // sin redondeo, el mismo caso da el vuelto de siempre
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88)).toMatchObject({ vuelto: 0.12, listo: true });
+  });
+  it("30 en la mano para un efectivo de 29.88 alcanza (29.80); 29.70 no", () => {
+    expect(cobroDelSaldo([efectivo(29.88, 29.8)], 29.88, true).noAlcanza).toBe(false);
+    expect(cobroDelSaldo([efectivo(29.88, 29.7)], 29.88, true).noAlcanza).toBe(true);
+  });
+  it("un efectivo menor de S/ 0.10 no se puede entregar (no hay moneda): hay que cobrarlo con otro medio", () => {
+    const c = cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88, true);
+    expect(c).toMatchObject({ sinMoneda: true, listo: false, falta: 0 });
+    expect(AVISO_EFECTIVO_SIN_MONEDA).toContain("S/ 0.10");
+    // sin el redondeo activo, el mismo cobro se entrega como siempre
+    expect(cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88).listo).toBe(true);
+  });
+  it("un efectivo sin otro medio que cubra el saldo sigue faltando lo que falta", () => {
+    expect(cobroDelSaldo([efectivo(10)], 29.88, true)).toMatchObject({ falta: 19.88, listo: false });
+  });
+  it("PROPIEDAD: en los 29 999 saldos de S/ 0.01 a S/ 299.99 la suma de lo que viaja es el saldo exacto y el efectivo es múltiplo de 0.10", () => {
+    for (let c = 1; c < 30000; c++) {
+      const saldo = c / 100;
+      const filas = pagosParaRpcApartado([efectivo(saldo)], true);
+      const suma = filas.reduce((a, f) => a + Math.round(f.monto * 100), 0);
+      const ef = filas.find((f) => f.metodo === "efectivo");
+      const red = filas.find((f) => f.metodo === "redondeo");
+      expect(suma).toBe(c);
+      expect(ef === undefined || Math.round(ef.monto * 100) % 10 === 0).toBe(true);
+      expect(red === undefined || (red.monto > 0 && red.monto < 0.1)).toBe(true);
+    }
   });
 });
 

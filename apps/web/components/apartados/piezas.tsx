@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
+import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { money } from "@/components/PuntoDeVenta";
 import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
@@ -103,7 +104,7 @@ export function fechaNumerica(iso: string) {
  * Mientras el envío de anticipos a SUNAT no esté activo (ADR-0166) no lleva QR: dice que la boleta electrónica queda
  * registrada y se envía después.
  */
-export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[] }) {
+export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0310); el comprobante sigue por el saldo exacto. */ redondeo?: number }) {
   const a = apartado;
   const cuerpo = (
     <div id="comprobante-print">
@@ -147,6 +148,12 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: 
           {(pagadoHoy ?? []).map((p, i) => (
             <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
           ))}
+          {redondeo > 0 && (
+            <>
+              <p className="rt-fila"><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
+              <p className="rt-centro">{LEY_REDONDEO_TICKET}</p>
+            </>
+          )}
           <p className="rt-fila rt-total"><span>APARTADO LIQUIDADO</span><span>{money(a.total)}</span></p>
         </>
       )}

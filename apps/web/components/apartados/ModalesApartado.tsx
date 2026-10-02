@@ -34,7 +34,7 @@ import {
   type Apartado,
   type MedioDevolucionReal,
 } from "@/lib/separaciones-reglas";
-import { NOMBRE_METODO } from "@/lib/recibo-reglas";
+import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -174,7 +174,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   );
 }
 
-export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; sede: string; onClose: () => void }) {
+export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0310). */ redondeo?: number; sede: string; onClose: () => void }) {
   const a = apartado;
   useTituloDeImpresion(a.codigo);
   return (
@@ -200,10 +200,13 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, sede, onCl
             {pagadoHoy.map((p, i) => (
               <p key={i} className="flex justify-between tabular-nums text-tinta"><span>Hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
             ))}
+            {redondeo > 0 && (
+              <p className="flex justify-between tabular-nums text-tinta/70" data-redondeo><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
+            )}
             <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».</p>
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
-          <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} />
+          <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
         </div>
       )}
     </Modal>

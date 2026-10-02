@@ -1,4 +1,4 @@
-## 🗂️ Redondeo del efectivo (2026-10-02) — investigado, **sin construir y sin aprobar**; rama `claude/sales-rounding-cash-36d9cd`
+## 🗂️ Redondeo del efectivo (2026-10-02) — **actividades 1 a 6 construidas y empujadas, sin pegar en producción**; rama `claude/sales-rounding-cash-36d9cd`
 
 Investigación y diseño: `docs/investigacion/2026-10-02-redondeo-del-efectivo.md`. Regla: S/ 0.10, solo efectivo, solo hacia abajo, una vez sobre el total a pagar en efectivo (100.02 → 100.00, 100.12 → 100.10, 100.19 → 100.10). ADR-0310 y las migraciones `20261003100000`–`20261003190000` están **propuestos en el documento, no reservados** en ningún otro lado: volver a barrer ramas antes de usarlos.
 
@@ -16,7 +16,7 @@ Investigación y diseño: `docs/investigacion/2026-10-02-redondeo-del-efectivo.m
 - [x] 3. Diario y estado de resultados (hecha 2026-10-02; **migración `20261003120000` SIN PEGAR en producción**): `fn_asiento_cuenta_de_medio` manda `redondeo` a la cuenta de gasto **6598** (provisional hasta el contador); `fn_asientos` no se tocó. Pendiente del contador: código y nombre de la cuenta, y el tratamiento del IGV de un comprobante exacto.
 - [x] 4. Papel y reimpresión (hecha 2026-10-02; solo web, sin migración): ticket de 80 mm, boleta A4, modal «Venta registrada» y detalle del Historial. Verificado en el navegador con datos reales el ticket y la A4; **falta ver los dos modales y todo a 375 px** (PL-105) en el PR final.
 - [x] 5. Vender cobra en efectivo redondeado de punta a punta (hecha 2026-10-02; **migraciones `20261003130000` y `20261003140000` SIN PEGAR en producción**): `registrar_venta` verifica el redondeo, hoja de cobro, cola sin conexión, bandera; probado en la pantalla real, a 375 px y con la red cortada. **Orden de pegado y cómo apagarlo: ADR-0310 §8.** Tras pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
-- [ ] 6. Apartados: el saldo en efectivo al entregar (`entregar_separacion`); abonos y adelanto no se redondean.
+- [x] 6. Apartados (hecha 2026-10-02; **migración `20261003135000` SIN PEGAR en producción**, va entre `…130000` y la bandera `…140000`): `entregar_separacion` acepta la fila de redondeo en el saldo que se paga al entregar y verifica que sea la de la ley; el adelanto y los abonos no se redondean (nacen de un monto que el cliente elige, no del precio). La bandera ahora exige también esta función. Probado con la RPC real (82/82, con mutación), en la pantalla real (vuelto S/20.20, boleta 29.88), a 375 px y con la bandera apagada. Huellas: «antes» `7d38028b…` (producción 2026-10-02), «después» `e2f37e61…`.
 - [ ] 7. Cambios y devoluciones en efectivo (depende de las respuestas de arriba).
 - [ ] 8. Condicional: declarar el redondeo en el comprobante SUNAT, solo spike en el sandbox de Lucode.
 

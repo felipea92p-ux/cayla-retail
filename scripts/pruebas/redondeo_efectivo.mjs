@@ -43,6 +43,7 @@ const MIGRACION_CANDADO = "supabase/migrations/20261003110000_venta_pagos_candad
 const MIGRACION_LECTORES = "supabase/migrations/20261003111000_redondeo_lectores.sql";
 const MIGRACION_DIARIO = "supabase/migrations/20261003120000_redondeo_diario.sql";
 const MIGRACION_VENTA = "supabase/migrations/20261003130000_registrar_venta_redondeo.sql";
+const MIGRACION_ENTREGA = "supabase/migrations/20261003135000_entregar_separacion_redondeo.sql";
 const MIGRACION_BANDERA = "supabase/migrations/20261003140000_acepta_redondeo_efectivo.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 
@@ -445,6 +446,9 @@ alter table retail.venta_pagos add constraint venta_pagos_metodo_check check (me
   sinParte("la bandera dice false si registrar_venta perdió la validación del redondeo (p. ej. se recreó desde un archivo viejo)",
     `do $x$ begin execute replace(pg_get_functiondef('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)'::regprocedure), 'venta_redondeo_invalido', 'otra_cosa'); end $x$;`);
 
+  sinParte("la bandera dice false si entregar_separacion perdió la validación del redondeo (Apartados cobra con la misma bandera)",
+    `do $x$ begin execute replace(pg_get_functiondef('retail.entregar_separacion(uuid,jsonb,uuid)'::regprocedure), 'venta_redondeo_invalido', 'otra_cosa'); end $x$;`);
+
   // ---- 28. Las dos partes: se pegan dos veces, dejan la huella prometida, abortan si falta una parte de la que dependen o si registrar_venta cambió ----
   const venta = readFileSync(MIGRACION_VENTA, "utf8");
   const bandera = readFileSync(MIGRACION_BANDERA, "utf8");
@@ -480,13 +484,119 @@ rollback;`);
     esperar(`la caja (redondeoDelEfectivo) y la base (fn_redondeo_efectivo) dan lo mismo en ${filas29.length} montos de S/ 0.01 a 999.99: 0 diferencias`, filas29.length === 99999 && dif29.length === 0, dif29.join(" · ") || `solo ${filas29.length} filas`);
   }
 
+
+  // =====================================================================================================================
+  // ACTIVIDAD 6 — Apartados: el SALDO que se paga al entregar se redondea; el adelanto y los abonos no. `entregar_separacion` REAL.
+  // =====================================================================================================================
+  // Un apartado de 79.90 con 50.02 de adelanto en Yape: el saldo (29.88) trae los céntimos que nacen del precio. El adelanto es un monto
+  // que el cliente elige; por eso solo el saldo se redondea.
+  const APARTADO = `${PREPARACION}
+select retail.separar_prendas(p_ubicacion_id => :'ubic',
+  p_items => jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'precio'::numeric)),
+  p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 50.02)),
+  p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '987 111 222', p_devolucion_medio => 'yape') as sep \\gset`;
+  const entregar = (pagos, token = "null") =>
+    `select retail.entregar_separacion(:'sep', '${JSON.stringify(pagos)}'::jsonb, ${token}) as venta \\gset`;
+
+  // ---- 30. El saldo de 29.88 en efectivo: cobra 29.80 (recibió 30) + 0.08 de redondeo; la boleta final sigue por el saldo exacto ----
+  const r30 = correr(`${APARTADO}
+${entregar([{ metodo: "efectivo", monto: 29.8, recibido: 30 }, { metodo: "redondeo", monto: 0.08 }])}
+select 'filas|' || string_agg(metodo || '=' || monto || coalesce('/' || recibido, ''), ' ' order by metodo) from retail.venta_pagos where venta_id = :'venta';
+select 'suma|' || (select sum(monto) from retail.venta_pagos where venta_id = :'venta') || '|' || (select sum(subtotal) from retail.venta_items where venta_id = :'venta');
+select 'boleta|' || total || '|' || subtotal || '|' || igv from retail.comprobantes where venta_id = :'venta';
+select 'estado|' || estado || '|' || (venta_id = :'venta') from retail.separaciones where id = :'sep';
+select 'esperado|' || esperado from retail.fn_calcular_esperado_caja(:'caja_id');
+select 'resumen|' || (retail.fn_resumen_caja(:'caja_id'))::text;
+select 'verifica|' || (select count(*) from retail.fn_verificar_separaciones()) || '|' || (select count(*) from retail.fn_verificar_apartados());
+select 'diario6598|' || coalesce(sum(debe - haber), 0) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where origen_id = :'venta' and cuenta = '6598';
+select 'descuadrados|' || count(*) from retail.fn_asientos_descuadrados(${HOY}, ${HOY}, :'ubic');
+rollback;`);
+  if (!r30.ok) {
+    esperar("entregar_separacion acepta el saldo redondeado (29.88 = 29.80 efectivo + 0.08)", false, r30.mensaje);
+  } else {
+    const l30 = Object.fromEntries(r30.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.slice(l.indexOf("|") + 1)]));
+    const resumen30 = JSON.parse(l30.resumen);
+    esperar("entregar_separacion: guarda anticipo 50.02, efectivo 29.80 (recibió 30) y redondeo 0.08; la suma de las filas es el total del apartado (79.90)", l30.filas === "anticipo=50.02 efectivo=29.80/30.00 redondeo=0.08" && l30.suma === "79.90|79.90", JSON.stringify(l30));
+    esperar("la boleta final sale por el saldo EXACTO (29.88): el redondeo no toca el comprobante", l30.boleta === "29.88|25.32|4.56", l30.boleta);
+    esperar("el apartado queda entregado y ligado a la venta; los verificadores de apartados dan 0 problemas", l30.estado === "entregada|true" && l30.verifica === "0|0", `${l30.estado} ${l30.verifica}`);
+    esperar("Caja: «Efectivo en el cajón» = 100.00 + 29.80 (el adelanto fue Yape) y el redondeo viaja aparte (0.08)", l30.esperado === "129.80" && Number(resumen30.redondeo) === 0.08, `${l30.esperado} ${l30.resumen}`);
+    esperar("el diario asienta los 0.08 contra la cuenta 6598 (gasto) y todos los asientos cuadran", Number(l30.diario6598) === 0.08 && l30.descuadrados === "0", `${l30.diario6598} ${l30.descuadrados}`);
+  }
+
+  // ---- 31. Un pago mixto: solo el efectivo del saldo se redondea; y compatibilidad con el efectivo exacto de siempre ----
+  const aceptaEntrega = (nombre, pagos, esperado) => {
+    const r = correr(`${APARTADO}
+${entregar(pagos)}
+select 'filas|' || string_agg(metodo || '=' || monto, ' ' order by metodo) from retail.venta_pagos where venta_id = :'venta';
+rollback;`);
+    esperar(nombre, r.ok && r.salida === `filas|${esperado}`, r.ok ? r.salida : r.mensaje);
+  };
+  aceptaEntrega("saldo mixto: Yape 10.00 exacto + efectivo 19.80 + redondeo 0.08", [{ metodo: "yape", monto: 10 }, { metodo: "efectivo", monto: 19.8 }, { metodo: "redondeo", monto: 0.08 }], "anticipo=50.02 efectivo=19.80 redondeo=0.08 yape=10.00");
+  aceptaEntrega("una entrega con el efectivo exacto (29.88, sin fila de redondeo) se sigue aceptando: nada de lo que funcionaba se rompe", [{ metodo: "efectivo", monto: 29.88 }], "anticipo=50.02 efectivo=29.88");
+  aceptaEntrega("el saldo en tarjeta va exacto, sin redondeo", [{ metodo: "tarjeta", monto: 29.88 }], "anticipo=50.02 tarjeta=29.88");
+
+  // ---- 32. Lo que la base RECHAZA: cada intento de cobrar de más, de redondear mal o de guardar un estado imposible ----
+  const rechazaEntrega = (nombre, pagos, texto) => {
+    const r = correr(`${APARTADO}\n${entregar(pagos)}\nrollback;`);
+    esperar(nombre, !r.ok && r.mensaje.includes(texto), r.ok ? `pasó y debía fallar con «${texto}»` : r.mensaje);
+  };
+  rechazaEntrega("cobrar DE MÁS no se puede: efectivo 29.90 con un «redondeo» negativo", [{ metodo: "efectivo", monto: 29.9 }, { metodo: "redondeo", monto: -0.02 }], "mayor a cero");
+  rechazaEntrega("un efectivo de 29.90 para un saldo de 29.88 no cuadra (la suma no es el saldo)", [{ metodo: "efectivo", monto: 29.9 }], "no cuadran con el saldo del apartado");
+  rechazaEntrega("un redondeo que no es el de la ley no se acepta (29.81 + 0.07 no son efectivo en monedas)", [{ metodo: "efectivo", monto: 29.81 }, { metodo: "redondeo", monto: 0.07 }], "venta_redondeo_invalido");
+  rechazaEntrega("el efectivo con redondeo se cobra en monedas que existen: 29.85 + 0.03 se rechaza", [{ metodo: "efectivo", monto: 29.85 }, { metodo: "redondeo", monto: 0.03 }], "múltiplos de S/ 0.10");
+  rechazaEntrega("un «redondeo» de S/ 0.18 no es un redondeo (efectivo 29.70 + 0.18)", [{ metodo: "efectivo", monto: 29.7 }, { metodo: "redondeo", monto: 0.18 }], "no es el de la ley");
+  rechazaEntrega("un redondeo sin efectivo no existe: Yape 29.80 + redondeo 0.08", [{ metodo: "yape", monto: 29.8 }, { metodo: "redondeo", monto: 0.08 }], "solo existe junto a UN pago en efectivo");
+  rechazaEntrega("dos pagos en efectivo con redondeo es ambiguo: se rechaza", [{ metodo: "efectivo", monto: 10 }, { metodo: "efectivo", monto: 19.8 }, { metodo: "redondeo", monto: 0.08 }], "solo existe junto a UN pago en efectivo");
+  rechazaEntrega("dos redondeos en una entrega serían redondear dos veces", [{ metodo: "efectivo", monto: 29.8 }, { metodo: "redondeo", monto: 0.04 }, { metodo: "redondeo", monto: 0.04 }], "a lo más un redondeo");
+  rechazaEntrega("el redondeo no puede ser todo el pago: solo la fila de redondeo", [{ metodo: "redondeo", monto: 29.88 }], "solo existe junto a UN pago en efectivo");
+
+  // ---- 33. El adelanto y los abonos NO se redondean: separar_prendas y abonar_separacion siguen rechazando el medio ----
+  const r33 = correr(`${PREPARACION}
+select retail.separar_prendas(p_ubicacion_id => :'ubic',
+  p_items => jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'precio'::numeric)),
+  p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 50.00), jsonb_build_object('metodo', 'redondeo', 'monto', 0.02)),
+  p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '987 111 222', p_devolucion_medio => 'yape');
+rollback;`);
+  esperar("apartar con una fila de redondeo en el adelanto se rechaza (el adelanto no se redondea)", !r33.ok && r33.mensaje.includes("Medio de pago no reconocido"), r33.ok ? "pasó y debía fallar" : r33.mensaje);
+  const r33b = correr(`${APARTADO}
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 5.00), jsonb_build_object('metodo', 'redondeo', 'monto', 0.02)));
+rollback;`);
+  esperar("abonar con una fila de redondeo se rechaza (el abono no se redondea)", !r33b.ok && r33b.mensaje.includes("Medio de pago no reconocido"), r33b.ok ? "pasó y debía fallar" : r33b.mensaje);
+
+  // ---- 34. Idempotencia: la misma entrega dos veces (el reintento de una pantalla que no recibió respuesta) es UNA venta, con UN redondeo ----
+  const r34 = correr(`${APARTADO}
+select gen_random_uuid() as tok \\gset
+${entregar([{ metodo: "efectivo", monto: 29.8, recibido: 30 }, { metodo: "redondeo", monto: 0.08 }], ":'tok'")}
+select :'venta' as venta1 \\gset
+${entregar([{ metodo: "efectivo", monto: 29.8, recibido: 30 }, { metodo: "redondeo", monto: 0.08 }], ":'tok'")}
+select 'misma|' || (:'venta' = :'venta1') || '|redondeos|' || (select count(*) from retail.venta_pagos where venta_id = :'venta' and metodo = 'redondeo') || '|ventas|' || (select count(*) from retail.ventas where id = :'venta');
+rollback;`);
+  esperar("reintentar la misma entrega (mismo token) devuelve LA misma venta, con un solo redondeo", r34.ok && r34.salida === "misma|true|redondeos|1|ventas|1", r34.ok ? r34.salida : r34.mensaje);
+
+  // ---- 35. La migración: se pega dos veces, deja la huella prometida y UNA firma; aborta si la función cambió o si falta una parte ----
+  const entrega = readFileSync(MIGRACION_ENTREGA, "utf8");
+  const huellaEntrega = (entrega.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
+  const r35 = correr(`begin;\n${entrega}\n${entrega}
+select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
+  from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'entregar_separacion';
+select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'entregar_separacion';
+rollback;`);
+  esperar("la migración de entregar_separacion es re-ejecutable, deja la huella prometida y UNA sola firma", r35.ok && r35.salida.includes(`h|${huellaEntrega}`) && r35.salida.includes("sobrecargas|1"), r35.ok ? r35.salida : r35.mensaje);
+  const r35b = correr(`begin;
+do $x$ begin execute replace(pg_get_functiondef('retail.entregar_separacion(uuid,jsonb,uuid)'::regprocedure), 'Ese apartado no existe', 'Ese apartado no existe (cambiado en vivo)'); end $x$;
+${entrega}
+rollback;`);
+  esperar("el parche de entregar_separacion aborta si la función cambió desde que se escribió (no la pisa a ciegas)", !r35b.ok && r35b.mensaje.includes("cambió desde que se escribió esta migración"), r35b.ok ? "pasó y debía abortar" : r35b.mensaje);
+  const r35c = correr(`begin;\ndrop function retail.fn_redondeo_efectivo(numeric);\n${entrega}\nrollback;`);
+  esperar("el parche de entregar_separacion aborta si falta la regla de la que depende", !r35c.ok && r35c.mensaje.includes("falta retail.fn_redondeo_efectivo"), r35c.ok ? "pasó y debía abortar" : r35c.mensaje);
+
   // ---- 14. AUDITORÍA: toda función que lee venta_pagos o separacion_pagos está revisada pensando en el redondeo ----
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
   const REVISADAS = {
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0310 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
-    entregar_separacion: "ACTIVIDAD 6: el saldo en efectivo al entregar se redondea (por ahora rechaza el medio redondeo).",
+    entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",

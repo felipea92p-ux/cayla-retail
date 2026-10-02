@@ -90,12 +90,14 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
   redondeo en «Forma de pago»; el total, el subtotal, el IGV y el QR de SUNAT siguen por el precio exacto.
 - [x] **5. Vender cobra en efectivo redondeado de punta a punta** (§8): la RPC `registrar_venta` verifica el redondeo, la hoja de cobro lo
   muestra, la cola sin conexión lo soporta y la bandera `fn_acepta_redondeo_efectivo` lo enciende. Probado en la pantalla real.
-- [ ] 6. Apartados: el saldo en efectivo al entregar (abonos y adelanto no se redondean).
+- [x] **6. Apartados** (§8): `entregar_separacion` acepta la fila de redondeo en el saldo que se paga al entregar y verifica que sea la de la ley;
+  el adelanto y los abonos no se redondean. La pantalla de entrega, el modal «Apartado entregado» y la boleta final lo dicen; la boleta sale por el
+  saldo exacto. La bandera `fn_acepta_redondeo_efectivo` ahora exige las dos funciones (Vender y Apartados cobran con la misma).
 - [ ] 7. Cambios y devoluciones en efectivo.
 - [ ] 8. Condicional: declarar el redondeo en el comprobante SUNAT, solo prueba en el sandbox de Lucode.
 
 **Orden en producción** (lo pega Felipe, nunca esta sesión): partes de las actividades 2 y 3 → publicar la web → `registrar_venta`
-(actividad 5) → bandera `fn_acepta_redondeo_efectivo` al final → recargar las tablets.
+(actividad 5) → `entregar_separacion` (actividad 6) → bandera `fn_acepta_redondeo_efectivo` al final → recargar las tablets.
 
 ## 7. Decisiones tomadas con la recomendación (Felipe dijo «hazlo» sin contestar una por una)
 
@@ -250,12 +252,47 @@ conserva la venta con su redondeo. *Persona sin contexto:* la cajera no elige na
 1. `20261003100000` (la regla) → `20261003110000` (candado de `venta_pagos`) → `20261003111000` (lectores) → `20261003120000` (diario).
 2. Publicar la web (fusionar el PR).
 3. `20261003130000` (`registrar_venta`; huella «antes» `525479a95e59063b5f9e86f63119e27e`, la de producción hoy; «después» `6783f3971aff6967ca2ab54c07a4202a`).
-4. `20261003140000` (la bandera) **al final**; después **recargar Vender (F5) en cada caja**: la bandera se lee al cargar.
+3b. `20261003135000` (`entregar_separacion`, actividad 6; huella «antes» `7d38028b2cdf10ec50984b659cfbe63c`, la de producción el 2026-10-02; «después» `e2f37e6167abff613891c00c1c9a2ebb`).
+4. `20261003140000` (la bandera) **al final** (ahora pregunta por `registrar_venta` Y `entregar_separacion`: sin la 3b dice `false` y las dos pantallas cobran exacto); después **recargar Vender (F5) en cada caja**: la bandera se lee al cargar.
 5. `pnpm datos:generar:produccion` y `pnpm datos:comparar` (hoy el comparador marca `fn_acepta_redondeo_efectivo` como «no está en la foto»: es lo esperado hasta pegar).
 Para **apagar** el redondeo: `create or replace function retail.fn_acepta_redondeo_efectivo()` devolviendo `false`.
 
+### Actividad 6 — Apartados (2026-10-02)
+
+**Qué se redondea.** Solo el **saldo que se paga al entregar** (`entregar_separacion`). Los céntimos de un apartado nacen del PRECIO de las prendas; el adelanto y
+los abonos son montos que el cliente elige (nadie «debe» 50.02 de adelanto), así que no hay un total a pagar que redondear en ellos. `separar_prendas` y
+`abonar_separacion` **no se tocaron** y siguen rechazando una fila de redondeo con «Medio de pago no reconocido» (probado).
+
+**Base** (`20261003135000_entregar_separacion_redondeo.sql`, parche anclado con huella como el de `registrar_venta`): la lista de medios acepta `redondeo` y,
+con una fila de redondeo, exige UN efectivo en múltiplos de S/ 0.10 y que el redondeo sea EXACTAMENTE `fn_redondeo_efectivo(efectivo + redondeo)`; sin fila se acepta
+como siempre. La boleta final se emite por `v_saldo` exacto; `venta_pagos` queda `anticipo + efectivo (monedas) + redondeo` y suma el total del apartado.
+Pruebas (`pnpm pruebas:redondeo-efectivo`, ahora **82/82**): la entrega de 29.88 = 29.80 (recibió 30) + 0.08 por la RPC real; boleta 29.88 (25.32 + 4.56); Caja
+«Efectivo en el cajón» 129.80 con el redondeo aparte; el diario asienta 0.08 en la 6598 y todo cuadra; mixto, tarjeta exacta y efectivo exacto de siempre (compatibilidad);
+9 rechazos (cobrar de más, redondeo que no es el de la ley, 29.85 + 0.03, sin efectivo, dos efectivos, dos redondeos, solo redondeo…); apartar y abonar con la fila se rechazan;
+la misma entrega dos veces (mismo token) es UNA venta con UN redondeo; la migración se pega dos veces, deja la huella y UNA firma, aborta si la función cambió o si falta la regla.
+**Control de mutación:** sin la validación del redondeo caen 8 escenarios; con la lista de medios sin `redondeo`, 12. Con la función real, 82/82. `separaciones.mjs` (78) y
+`totales_caja_e_historial` siguen en verde.
+
+**La bandera ya no es solo de Vender.** `fn_acepta_redondeo_efectivo` (20261003140000) ahora pregunta además por `entregar_separacion`: Apartados lee la misma bandera
+(`vender/apartados/page.tsx`) y no puede ofrecer un redondeo que la base rechazaría. La migración del apartado lleva el número `…135000` para que, aplicando en orden, la bandera siga yendo
+última.
+
+**Web.** `cobroDelSaldo(pagos, saldo, redondear)` y `pagosParaRpcApartado(pagos, redondear)` (`lib/separaciones-reglas.ts`; el `redondear` solo lo pasa la entrega): el vuelto sale de las
+monedas que se cobran, y un efectivo menor de S/ 0.10 no se puede entregar. 38 pruebas, entre ellas la invariante «en los 29 999 saldos de 0.01 a 299.99 lo que viaja suma exactamente el
+saldo y el efectivo es múltiplo de 0.10». Con la bandera apagada todo viaja exacto, como antes.
+
+**Verificado en la pantalla real** (`EntregarVista` montada contra PostgREST + la base desechable, con la RPC real): el saldo de 29.88 en efectivo muestra «Cobra S/29.80 en efectivo ·
+Redondeo de efectivo −S/0.08 · Ley 29571…»; con S/50 el vuelto es **S/20.20**; la RPC recibió `[efectivo 29.8 (recibido 50), redondeo 0.08]` y la base quedó con
+`anticipo 50.02 + efectivo 29.80/50.00 + redondeo 0.08`, boleta de **S/29.88**, apartado entregado y «esperado» de la caja en 129.80. El modal «Apartado entregado» y la boleta impresa traen
+«Redondeo de efectivo S/0.08» y la ley. Yape 29.81 + efectivo 0.07: «No hay moneda para S/0.07… Cóbralo con otro medio» y el botón apagado con la misma frase. **375 px:** sin desborde
+(375 de 375), el recuadro se lee entero. **Bandera apagada (`?r=0`):** sin recuadro, viaja `[efectivo 29.88]` y el modal no dice redondeo. Sin errores en consola.
+
+**Las tres preguntas de CLAUDE.md.** *Concurrencia:* la RPC ya tomaba `for update` sobre el apartado (la segunda caja lo ve entregado) y el índice único impide un segundo redondeo en la venta.
+*Caída externa:* SUNAT/Lucode no ven el redondeo (la boleta final sale exacta, como antes); si no responden, el comprobante se encola igual y nada de esto cambia. *Persona sin contexto:* quien entrega
+no elige nada: el recuadro le dice cuánto cobrar en efectivo y por qué, y el botón le dice qué falta.
+
 ## 9. Lo que queda
 
-Las actividades 2 a 8. Pendientes que salieron de la investigación y no son de esta lista: el cierre de caja se cierra
+Las actividades 7 y 8. Pendientes que salieron de la investigación y no son de esta lista: el cierre de caja se cierra
 tecleando la cifra del sistema (desde ADR-0186 el esperado se ve antes de contar); y 77 de 84 líneas vendidas en producción son
 «Prenda sin registrar» con precio tecleado a mano (de ahí salen céntimos como 62.15 y 309.59).

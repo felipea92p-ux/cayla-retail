@@ -1046,6 +1046,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`
   sale optimizada solo si `fotoOptimizable` (`lib/foto-prenda-reglas.ts`) y `next.config.ts` → `images.remotePatterns` lo permiten.
+  **Redondeo del efectivo al entregar (ADR-0310, actividad 6):** `page.tsx` lee `fn_acepta_redondeo_efectivo` (la misma bandera de Vender) →
+  `ApartadosPanel` → `EntregarVista`: con la bandera, el efectivo del SALDO se cobra al múltiplo de S/ 0.10, hacia abajo
+  (`cobroDelSaldo(pagos, saldo, redondear)` y `pagosParaRpcApartado(pagos, redondear)` en `lib/separaciones-reglas.ts`, sobre
+  `lib/redondeo-efectivo-reglas.ts`) y `entregar_separacion` recibe el efectivo en monedas más una fila `metodo = 'redondeo'` que VERIFICA
+  (20261003135000). El adelanto y los abonos NO se redondean (`separar_prendas` y `abonar_separacion` rechazan la fila). La boleta final
+  sale por el saldo exacto; el modal «Apartado entregado» y `ReciboApartado` dicen el redondeo.
 
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
