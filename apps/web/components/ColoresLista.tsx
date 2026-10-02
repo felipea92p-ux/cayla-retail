@@ -2,6 +2,7 @@
 
 import { bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
+import { partirEnGamas } from "@/lib/color-escala";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
@@ -92,7 +93,8 @@ function ordenar(lista: Color[]) {
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
 // propia fila — la de "Estampado" con 3 colores se ve completa, no como el
 // resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
-// viene dado por `ordenar()` (escala: gama y de claro a oscuro).
+// viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
+// pura y la claridad nunca «sube» a mitad de una fila (ADR-0313).
 function gruposPorFamilia(lista: Color[]) {
   const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
     familia: f.valor,
@@ -421,37 +423,39 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
               {texto}
             </TituloGrupo>
-            <div className={GRILLA_ATRIBUTOS}>
-              {coloresDeLaFamilia.map((c) => (
-                <TarjetaAtributo
-                  key={c.codigo}
-                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
-                  nombre={c.nombre}
-                  notas={c.notas}
-                  insignia={c.estado === "pendiente" ? "Pendiente" : null}
-                  detalle={<DetalleColor c={c} />}
-                >
-                  {puedeEditar && (
-                    <>
-                      {c.estado === "pendiente" && (
-                        <BotonesPendiente
-                          aprobando={aprobandoCodigo === c.codigo}
-                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
-                          onRechazar={() => {
-                            setRechazandoAbierto(c.codigo);
-                            setMotivoRechazo("");
-                          }}
-                        />
-                      )}
-                      {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
-                      <PieTarjeta>
-                        <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
-                      </PieTarjeta>
-                    </>
-                  )}
-                </TarjetaAtributo>
-              ))}
-            </div>
+            {partirEnGamas(coloresDeLaFamilia).map((gama, k) => (
+              <div key={k} className={GRILLA_ATRIBUTOS}>
+                {gama.map((c) => (
+                  <TarjetaAtributo
+                    key={c.codigo}
+                    muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
+                    nombre={c.nombre}
+                    notas={c.notas}
+                    insignia={c.estado === "pendiente" ? "Pendiente" : null}
+                    detalle={<DetalleColor c={c} />}
+                  >
+                    {puedeEditar && (
+                      <>
+                        {c.estado === "pendiente" && (
+                          <BotonesPendiente
+                            aprobando={aprobandoCodigo === c.codigo}
+                            onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
+                            onRechazar={() => {
+                              setRechazandoAbierto(c.codigo);
+                              setMotivoRechazo("");
+                            }}
+                          />
+                        )}
+                        {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
+                        <PieTarjeta>
+                          <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
+                        </PieTarjeta>
+                      </>
+                    )}
+                  </TarjetaAtributo>
+                ))}
+              </div>
+            ))}
           </section>
         ))}
       </div>
