@@ -25,7 +25,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
         <p className="label-cayla text-[11px] text-tinta/65">
           Búsqueda
           <Ayuda titulo="Búsqueda">
-            Para responderle a una clienta sin ir al almacén a ciegas. Te dice cuánto hay de esa
+            Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
             prenda y en qué ubicación. Puedes escribir la referencia, el SKU, la talla o el
             color, o escanear la etiqueta con la pistola: es lo mismo, la pistola solo escribe
             el código por ti.

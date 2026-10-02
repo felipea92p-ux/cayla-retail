@@ -814,7 +814,7 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta" campo="nombre" estado={est.nombre}>
+          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a un cliente" campo="nombre" estado={est.nombre}>
             <div className="space-y-2">
               <CampoTexto
                 id="nombre-producto"

@@ -403,7 +403,12 @@ Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
-encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). **En pantalla
+encargado de sede", "sede/tienda/boutique", "cliente" (comprador final). **En pantalla se dice
+"cliente/clientes" y, en el club, "miembro" — nunca "clienta" ni "socia" (Felipe 2026-10-02,
+ADR-0288 act. k):** un texto para el cliente le habla igual a un hombre que a una mujer
+(«Te damos la bienvenida», no «Bienvenida»). Los nombres que ya existen en el código y la
+base (`retail.clientas`, `clienta_id`, la ruta `/clientas`, la clave de módulo `clientas`)
+NO se renombran. **En pantalla
 y en negocio manda "sede"; en la base la tabla es `ubicaciones`** (no `sedes`, que no
 existe). La columna de rol es `colaboradores.rol` (no `personas.rol`: `personas` es de
 Dynamic, no de retail). **En producción solo acepta `lider` y `colaborador`**

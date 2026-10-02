@@ -170,7 +170,7 @@ export function EntregarVista({
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
                 <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
-                  Otra clienta
+                  Otro cliente
                 </button>
               </div>
             </div>
@@ -198,7 +198,7 @@ export function EntregarVista({
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
-                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta de la clienta coinciden.
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta del cliente coinciden.
               </span>
             </p>
           </article>

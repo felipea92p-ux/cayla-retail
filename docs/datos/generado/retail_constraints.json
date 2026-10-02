@@ -5816,7 +5816,7 @@
  },
  {
   "conname": "venta_pagos_metodo_check",
-  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text])))",
+  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))",
   "tabla": "retail.venta_pagos"
  },
  {

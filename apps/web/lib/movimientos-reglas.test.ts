@@ -388,9 +388,9 @@ describe("partesOrigenDestino", () => {
 
   it("una venta sale del piso hacia la clienta; una devolución vuelve", () => {
     expect(partesOrigenDestino(movimiento({ tipo: "salida", categoria: "salida", motivo: "venta", delta: -1, sububicacion: piso })))
-      .toEqual({ origen: "Piso", destino: "Clienta" });
+      .toEqual({ origen: "Piso", destino: "Cliente" });
     expect(partesOrigenDestino(movimiento({ motivo: "devolucion", delta: 1, sububicacion: piso })))
-      .toEqual({ origen: "Clienta", destino: "Piso" });
+      .toEqual({ origen: "Cliente", destino: "Piso" });
   });
 
   it("una recepción llega del proveedor al almacén", () => {
@@ -400,9 +400,9 @@ describe("partesOrigenDestino", () => {
   });
 
   it("un cambio mira el signo: entra de la clienta o sale hacia ella", () => {
-    expect(partesOrigenDestino(movimiento({ motivo: "cambio", delta: 1, sububicacion: piso }))).toEqual({ origen: "Clienta", destino: "Piso" });
+    expect(partesOrigenDestino(movimiento({ motivo: "cambio", delta: 1, sububicacion: piso }))).toEqual({ origen: "Cliente", destino: "Piso" });
     expect(partesOrigenDestino(movimiento({ tipo: "salida", categoria: "salida", motivo: "cambio", delta: -1, sububicacion: piso })))
-      .toEqual({ origen: "Piso", destino: "Clienta" });
+      .toEqual({ origen: "Piso", destino: "Cliente" });
   });
 
   it("interno y transferencia usan sus dos puntas reales; un ajuste no tiene destino", () => {

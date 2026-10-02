@@ -83,7 +83,7 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
     case "en_almacen":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está en el almacén` };
     case "apartada":
-      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para una clienta` };
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para un cliente` };
     case "tope":
       return (r.almacen ?? 0) > 0
         ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }

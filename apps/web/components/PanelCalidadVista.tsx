@@ -163,7 +163,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           </li>
           <li>
             <strong>Devuelta:</strong> devolución aprobada (no pendiente ni rechazada). <strong>Dañada:</strong> volvió a
-            reparar o a donar. <strong>Al proveedor:</strong> se manda de vuelta. <strong>Cambio:</strong> la clienta la cambió
+            reparar o a donar. <strong>Al proveedor:</strong> se manda de vuelta. <strong>Cambio:</strong> el cliente la cambió
             por otra prenda.
           </li>
           <li>
@@ -174,7 +174,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           </li>
           <li>
             <strong>Muestra chica:</strong> una fila con menos de {MUESTRA_MINIMA} unidades vendidas. Su tasa no dice nada
-            todavía (con 2 ventas, una sola clienta cambia el resultado) y va al final.
+            todavía (con 2 ventas, un solo cliente cambia el resultado) y va al final.
           </li>
           <li>
             <strong>Requiere atención:</strong> tasa de al menos {FACTOR_ATENCION} veces la del RESTO de las filas de esa misma tabla (no la del

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ACCIONES_SIN_RESPONSABLE, ENCABEZADO_OMITIDO, encabezadosOmitidos, firmaOmitida } from "./responsable-omitido";
 import { encabezadosResponsable, firmaDeEncabezados, firmar } from "./responsable-reglas";
@@ -9,6 +9,16 @@ import { encabezadosResponsable, firmaDeEncabezados, firmar } from "./responsabl
 //  2. La firma omitida sale como UN encabezado con la clave; la firma de siempre no cambió.
 
 const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260929230000_acciones_sin_responsable.sql", import.meta.url), "utf8");
+// La descripción vigente de cada clave: la de la siembra, con los `update … set descripcion` de migraciones posteriores encima
+// (20261002160000: «clienta» → «cliente», ADR-0288 act. k).
+const DIR = new URL("../../../supabase/migrations/", import.meta.url);
+const DESCRIPCION_VIGENTE = new Map([...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'([^']*)'\)/gm)].map((m) => [m[1]!, m[2]!]));
+for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x > "20260929230000").sort()) {
+  const sql = readFileSync(new URL(f, DIR), "utf8");
+  for (const m of sql.matchAll(/update retail\.acciones_sin_responsable set descripcion = '([^']*)' where clave = '([a-z0-9_]+)'/g)) {
+    DESCRIPCION_VIGENTE.set(m[2]!, m[1]!);
+  }
+}
 
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
@@ -18,9 +28,9 @@ describe("acciones sin responsable", () => {
     expect([...clavesBase].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
   });
 
-  it("cada clave lleva la misma descripción en la web y en la base", () => {
+  it("cada clave lleva la misma descripción en la web y en la base (la siembra, con sus cambios posteriores)", () => {
     for (const [clave, texto] of Object.entries(ACCIONES_SIN_RESPONSABLE)) {
-      expect(MIGRACION, clave).toContain(`('${clave}', '${texto}')`);
+      expect(DESCRIPCION_VIGENTE.get(clave), clave).toBe(texto);
     }
   });
 

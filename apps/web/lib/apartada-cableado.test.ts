@@ -96,7 +96,7 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   {
     archivo: "components/PuntoDeVentaCatalogo.tsx",
     cable: "la talla sin piso dice su motivo en el aria-label y en el tooltip (`tooltipTallaSinPiso`)",
-    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para una clienta"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
+    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para un cliente"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
   },
   {
     archivo: "components/ElegirTallaModal.tsx",
@@ -105,8 +105,8 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   },
   {
     archivo: "components/ElegirTallaModal.tsx",
-    cable: "la casilla de talla dice «Apartada para una clienta» cuando el motivo es `apartada`",
-    patron: /apartada\s*\?\s*"Apartada para una clienta"/,
+    cable: "la casilla de talla dice «Apartada para un cliente» cuando el motivo es `apartada`",
+    patron: /apartada\s*\?\s*"Apartada para un cliente"/,
   },
   // ---- Cambios ----
   {

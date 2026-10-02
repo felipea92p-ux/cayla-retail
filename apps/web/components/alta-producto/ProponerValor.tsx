@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
 import { sugerirValorNuevo } from "@/lib/sugerencias-alta-producto";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
-// "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
+// "+ Nueva talla / tejido / patrón" sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
 //
 // Son DOS escrituras y se dicen así, porque la segunda puede fallar sola:
@@ -32,13 +33,17 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 //
 // Agregar un valor es un guardado aparte del producto; lo firma quien inició el alta (`useFirmaDeMitad`), sin combo
 // propio desde 2026-09-29. Vive dentro de las hojas de tallas y muestras, de ahí el aviso `enHoja`.
+//
+// Desde 2026-10-02 (Felipe) el botón es un botón de verdad y se pone donde se ve: en la cabecera de la hoja de tejidos y
+// patrones (`<Modal acciones=…>`), no como un enlace al fondo; y abre su propio modal corto en vez de desplegar el campo en
+// línea. El formulario es el mismo; solo cambió dónde se pide.
 
 // El ejemplo de la caja ya no vive aquí: sigue a la familia de la categoría y evita lo que ya existe
 // (`lib/sugerencias-alta-producto.ts`, skill `/sugerir`). «Ej. 44» le decía «talla de zapato» a quien armaba una casaca.
-const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string }> = {
-  tallas: { boton: "+ Nueva talla", singular: "talla" },
-  tejidos: { boton: "+ Nuevo tejido", singular: "tejido" },
-  patrones: { boton: "+ Nuevo patrón", singular: "patrón" },
+const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string; titulo: string }> = {
+  tallas: { boton: "+ Nueva talla", singular: "talla", titulo: "Nueva talla" },
+  tejidos: { boton: "+ Nuevo tejido", singular: "tejido", titulo: "Nuevo tejido" },
+  patrones: { boton: "+ Nuevo patrón", singular: "patrón", titulo: "Nuevo patrón" },
 };
 
 type Props = {
@@ -55,14 +60,25 @@ type Props = {
 
 export function ProponerValor(props: Props) {
   const [abierto, setAbierto] = useState(false);
-  if (!abierto) {
-    return (
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-        {TEXTOS[props.tipo].boton}
+  const t = TEXTOS[props.tipo];
+  return (
+    <>
+      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-primario h-9 whitespace-nowrap">
+        {t.boton}
       </button>
-    );
-  }
-  return <ProponerValorAbierto {...props} onCerrar={() => setAbierto(false)} />;
+      {abierto && (
+        <Modal
+          variante="hoja"
+          ancho="max-w-md"
+          titulo={t.titulo}
+          subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
+          onClose={() => setAbierto(false)}
+        >
+          {(cerrar) => <ProponerValorAbierto {...props} onCerrar={cerrar} />}
+        </Modal>
+      )}
+    </>
+  );
 }
 
 function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, universo, onCreado, onCerrar }: Props & { onCerrar: () => void }) {
@@ -119,7 +135,7 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
-          Nombre de la {t.singular} nueva
+          Nombre {tipo === "tallas" ? "de la" : "del"} {t.singular} nuev{tipo === "tallas" ? "a" : "o"}
         </label>
         <input
           id={`nuevo-${tipo}`}
@@ -136,18 +152,20 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
           }}
           placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
           disabled={trabajando}
-          className="h-9 w-44 border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-tinta"
+          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
         />
+      </div>
+      <div className="flex flex-wrap items-center gap-2.5">
         <button
           type="button"
           onClick={() => void agregar()}
           disabled={!texto.trim() || trabajando || !firma.listo}
           title={firma.motivo ?? undefined}
-          className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
+          className="btn-cayla btn-primario"
         >
           {trabajando ? "Guardando…" : "Agregar"}
         </button>
-        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-sutil">
           Cancelar
         </button>
       </div>

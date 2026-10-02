@@ -935,13 +935,13 @@
   "tablename": "productos"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)",
-  "indexname": "productos_pkey",
+  "indexdef": "CREATE UNIQUE INDEX productos_marca_referencia_clave_unica ON retail.productos USING btree (marca_id, retail.fn_clave_referencia(referencia)) NULLS NOT DISTINCT WHERE (estado_alta <> 'rechazado'::text)",
+  "indexname": "productos_marca_referencia_clave_unica",
   "tablename": "productos"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX productos_referencia_clave_unica ON retail.productos USING btree (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)",
-  "indexname": "productos_referencia_clave_unica",
+  "indexdef": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)",
+  "indexname": "productos_pkey",
   "tablename": "productos"
  },
  {

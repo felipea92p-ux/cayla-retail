@@ -251,7 +251,7 @@ export function NuevaProformaModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Segmentado
-                etiqueta="Documento de la clienta"
+                etiqueta="Documento del cliente"
                 valor={tipoDoc}
                 onValor={(t) => {
                   setTipoDoc(t);
@@ -264,7 +264,7 @@ export function NuevaProformaModal({
               />
               <ConsultaDocumento tipo={tipoDoc} obligatorio={false} numero={clienteDoc} onNumero={setClienteDoc} nombre={clienteNombre} onNombre={setClienteNombre} disparo="boton" />
               <CampoTexto etiqueta="Vale por (días)" type="number" min="1" max="60" inputMode="numeric" value={dias} onChange={(e) => setDias(e.target.value)} />
-              <CampoTexto etiqueta="Nota para la clienta" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
+              <CampoTexto etiqueta="Nota para el cliente" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
             </div>
             <dl className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
               <div className="flex justify-between text-tinta/70">

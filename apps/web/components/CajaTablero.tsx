@@ -49,6 +49,7 @@ const COLOR_METODO: Record<string, string> = {
   tarjeta: "var(--color-metodo-tarjeta)",
   yape: "var(--color-metodo-yape)",
   transferencia: "var(--color-metodo-transferencia)",
+  qr: "var(--color-metodo-qr)",
   otro: "var(--color-taupe)",
 };
 

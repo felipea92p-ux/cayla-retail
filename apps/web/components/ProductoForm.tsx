@@ -897,7 +897,7 @@ export function ProductoForm({
               etiqueta="Descripción (opcional)"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Detalle interno, no se muestra a la clienta"
+              placeholder="Detalle interno, no se muestra al cliente"
               className="sm:col-span-2"
               pie={antesDe("descripcion")}
               tono={tonoDe("descripcion")}

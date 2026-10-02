@@ -110,7 +110,7 @@ export function CambiosFlujo({
   // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
   // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
   // Lo apartado en el piso se corrige igual (`ajustesApartado`): con el stock al día pero lo apartado de la carga, una
-  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para una clienta».
+  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para un cliente».
   const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
   const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
@@ -313,7 +313,7 @@ export function CambiosFlujo({
           <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
-              <legend className="sr-only">Prenda que la clienta quiere cambiar</legend>
+              <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
                   const estado = estadoPrendaVendida(l, ahora);
@@ -408,7 +408,7 @@ export function CambiosFlujo({
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
-                <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
+                <Dato titulo="Cliente">{compra.clienta ?? "No quedó registrado en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
                 {/* Con el combo (ADR-0161) lo registra el responsable elegido, no la cuenta de la sesión. */}
                 <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>

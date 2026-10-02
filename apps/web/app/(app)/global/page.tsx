@@ -32,7 +32,7 @@ const ACCESOS: { modulo: ClaveModulo | "lider"; href: string; pregunta: string; 
   { modulo: "reportes_financieros", href: "/finanzas/reportes", pregunta: "¿Ganamos este mes?", donde: "Estado de resultados de cada sede y de CAYLA entera" },
   { modulo: "lider", href: "/comercial", pregunta: "¿Cómo van las ventas?", donde: "Cada tienda contra su meta: hoy, en la semana y en el mes" },
   { modulo: "configuracion", href: "/configuracion", pregunta: "Metas y presupuesto", donde: "La meta de venta y el tope de gasto de cada tienda" },
-  { modulo: "clientas", href: "/clientas", pregunta: "Clientas", donde: "Una sola lista para todas las sedes" },
+  { modulo: "clientas", href: "/clientas", pregunta: "Clientes", donde: "Una sola lista para todas las sedes" },
 ];
 
 const entero = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
@@ -93,7 +93,7 @@ export default async function SaludDelNegocioPage() {
                     </span>
                     <span className={celda("izq", "text-tinta/75")}>
                       <span className="text-taupe sm:hidden">Vende desde </span>
-                      {f.tipo === "tienda" ? fechaCorta(f.primeraVenta) : "No vende a clientas"}
+                      {f.tipo === "tienda" ? fechaCorta(f.primeraVenta) : "No vende a clientes"}
                     </span>
                     <span className={celda("der")}>
                       <span className="text-taupe sm:hidden">Ventas en 30 días: </span>

@@ -10,7 +10,7 @@ const COLUMNAS = [
   "Hora",
   "Tienda",
   "Vendedor",
-  "Clienta",
+  "Cliente",
   "Prendas",
   "Unidades",
   "Total (S/)",

@@ -1,4 +1,4 @@
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { EstadoComprobante, TipoComprobante } from "./comprobantes-reglas";
 import {
   filtrosDesdeParams as filtrosDeMovimientos,
@@ -35,7 +35,7 @@ export type ComprobanteFiltro = "todos" | "con" | "sin" | "por_enviar" | "factur
 /** El período de Historial: los de Movimientos más «hoy» (el atajo que más usa el mostrador). */
 export type PeriodoHistorial = PeriodoMovimientos | "hoy";
 /** Los pagos que se filtran: los del mostrador más el «anticipo» de un apartado entregado (ADR-0196). */
-export type MetodoFiltro = MetodoPago | "anticipo";
+export type MetodoFiltro = MetodoPagoVenta | "anticipo";
 
 /** Parámetros de la URL. `sede` y `vendedor` solo los honra un líder (una integrante ve su tienda: lo decide la RLS). */
 export type ParamsHistorial = {
@@ -50,7 +50,7 @@ export type ParamsHistorial = {
   cursor?: string;
   /** «1» incluye los datos de prueba (D-54) en la lista; ausente o cualquier otro valor los deja fuera. */
   prueba?: string;
-  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda, código o nº de operación). Busca en TODAS las fechas. */
+  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda o código). Busca en TODAS las fechas. */
   q?: string;
   /** «1»: solo las ventas de quien mira (atajo «Mis ventas»). Sirve a cualquiera, no solo al líder. */
   mias?: string;
@@ -90,7 +90,7 @@ export type CursorVentas = CursorMovimientos;
 export const leerCursorVentas = leerCursorMovimientos;
 export const serializarCursorVentas = serializarCursorMovimientos;
 
-const METODOS: MetodoFiltro[] = [...(Object.keys(NOMBRE_METODO) as MetodoPago[]), "anticipo"];
+const METODOS: MetodoFiltro[] = [...(Object.keys(NOMBRE_METODO) as MetodoPagoVenta[]), "anticipo"];
 const COMPROBANTES: ComprobanteFiltro[] = ["con", "sin", "por_enviar", "factura"];
 
 /** El nombre de cada forma de pago en Historial: las del mostrador y el anticipo de un apartado. */

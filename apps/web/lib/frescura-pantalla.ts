@@ -214,7 +214,7 @@ const TEXTO_ESPECIAL = {
   clasico: "Clásico: no envejece",
   clasico_fuera: "Clásico, espera su estación",
   dudosa: "Sus números no cuadran",
-  apartada: "Apartada para clientas",
+  apartada: "Apartada para clientes",
 } as const;
 
 export function estadoVista(p: FrescuraPrenda): EstadoVista {
@@ -427,7 +427,7 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     vendio: dudosa ? null : p.ventasRecientes,
     vendioTexto: dudosa ? null : `vendió ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}`,
     sugerencias: p.estado.sugerencias.map((s) => ({ clave: s, texto: textoSugerencia(s, p, ctx) })),
-    nada: apartada ? "Nada: tiene dueña" : dudosa ? "Revisa su stock primero" : "Nada por ahora",
+    nada: apartada ? "Nada: tiene dueño" : dudosa ? "Revisa su stock primero" : "Nada por ahora",
     porDecidir: p.porDecidir,
   };
 }
@@ -794,7 +794,7 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   const deCategoria = `las prendas de ${p.categoriaNombre}`;
   if (presenciaDe(p) === "apartada") {
     const iba = e.tipo === "semaforo" ? `, cuando iba en ${NOMBRE_TRAMO[e.tramo]}` : "";
-    return `Todo lo que tenía colgado está apartado para clientas (${p.apartadasPisoHoy}). Mientras siga apartado no envejece: su reloj se detuvo en **${textoDias(d)}**${iba}, y sigue desde ahí si alguna se libera. Lo apartado cuenta como vendido.`;
+    return `Todo lo que tenía colgado está apartado para clientes (${p.apartadasPisoHoy}). Mientras siga apartado no envejece: su reloj se detuvo en **${textoDias(d)}**${iba}, y sigue desde ahí si alguna se libera. Lo apartado cuenta como vendido.`;
   }
   if (e.tipo === "dudosa")
     return "El historial de movimientos del piso de alguna de sus tallas no cuadra con lo que hay. Con los números así, cualquier juicio sería inventado: no se mide mientras no cuadre.";
@@ -896,7 +896,7 @@ function porqueRecientes(p: FrescuraPrenda): TextoRico | null {
   const d = diasDe(p.reloj.segundos);
   const cuando = cuandoRecientes(p);
   const nada = p.ventasRecientes === 0 && d >= DIAS_CALLADA ? " Son días con algo colgado: lo que estuvo agotado o guardado no cuenta." : "";
-  return `${cuando.charAt(0).toUpperCase()}${cuando.slice(1)} vendió **${decimal(p.ventasRecientes)}** (lo apartado para una clienta cuenta como vendido).${nada}`;
+  return `${cuando.charAt(0).toUpperCase()}${cuando.slice(1)} vendió **${decimal(p.ventasRecientes)}** (lo apartado para un cliente cuenta como vendido).${nada}`;
 }
 
 const lineasTraslado = (p: FrescuraPrenda) =>
@@ -1058,7 +1058,7 @@ export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleV
     recientes: porqueRecientes(p),
     tallas: p.tallas.map((t) => ({ varianteId: t.varianteId, talla: t.talla ?? "Única", piso: t.pisoHoy, almacen: t.almacenHoy, apartadas: t.apartadasHoy })),
     acciones,
-    sinAcciones: acciones.length > 0 ? null : apartada ? "Nada: tiene dueña. Vuelve a medirse si alguna se libera." : "Nada por ahora.",
+    sinAcciones: acciones.length > 0 ? null : apartada ? "Nada: tiene dueño. Vuelve a medirse si alguna se libera." : "Nada por ahora.",
     apoyo,
   };
 }

@@ -257,7 +257,7 @@ export function ResumenStockOverlay({
         )}
 
         {separa && delStock.esperando.prendas > 0 && (
-          <Seccion titulo="Esperando en el almacén" bajada="Tienen stock atrás y ninguna en el piso: la clienta todavía no las ve.">
+          <Seccion titulo="Esperando en el almacén" bajada="Tienen stock atrás y ninguna en el piso: el cliente todavía no las ve.">
             <ul className="divide-y divide-tinta/10">
               {delStock.esperando.lista.map((p) => (
                 <FilaPrenda

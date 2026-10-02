@@ -22,16 +22,16 @@ import type { TonoChip } from "@/components/ui/Chip";
 
 export type FiltroLista = "todas" | "socias" | "frecuentes" | "con_publicidad" | "sin_publicidad" | "sin_celular" | "cumplen_este_mes" | "archivadas";
 
-/** En el orden del spike (`fichasHTML`), con «Archivadas» al final: es la única que mira fuera de las fichas activas. */
+/** En el orden del spike (`fichasHTML`), con «Archivados» al final: es la única que mira fuera de las fichas activas. */
 export const FILTROS_LISTA: readonly { valor: FiltroLista; texto: string }[] = [
-  { valor: "todas", texto: "Todas" },
-  { valor: "socias", texto: "Socias" },
+  { valor: "todas", texto: "Todos" },
+  { valor: "socias", texto: "Miembros" },
   { valor: "frecuentes", texto: "Frecuentes" },
   { valor: "con_publicidad", texto: "Con publicidad" },
   { valor: "sin_publicidad", texto: "Sin publicidad" },
   { valor: "sin_celular", texto: "Sin celular" },
   { valor: "cumplen_este_mes", texto: "Cumplen este mes" },
-  { valor: "archivadas", texto: "Archivadas" },
+  { valor: "archivadas", texto: "Archivados" },
 ];
 
 /** Cuántas fichas trae cada página. */
@@ -152,13 +152,13 @@ export function aClientaDeLista(f: FilaListaClienta): ClientaDeLista {
 
 export type Insignia = { texto: string; tono: TonoChip };
 
-/** La columna «Estado» (spike: `estadoClienta`): Identificada, Socia o Socia frecuente; una ficha fuera de la libreta dice por
- *  qué (archivada, anonimizada o unida). «Frecuente» sin ser socia no se pinta: es de las del club (CL-16), y el filtro
+/** La columna «Estado» (spike: `estadoClienta`): Identificado, Miembro o Miembro frecuente; una ficha fuera de la libreta dice
+ *  por qué (archivado, anonimizado o unido a otra ficha). «Frecuente» sin ser socia no se pinta: es de las del club (CL-16), y el filtro
  *  «Frecuentes» igual la encuentra para invitarla. */
 export function estadoDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimizada" | "fusionadaEnId" | "clubDesde" | "esFrecuente">): Insignia {
-  if (c.archivadaEn) return { texto: c.anonimizada && !c.fusionadaEnId ? "Anonimizada" : c.fusionadaEnId ? "Unida a otra" : "Archivada", tono: "apagado" };
-  if (!c.clubDesde) return { texto: "Identificada", tono: "pizarra" };
-  return c.esFrecuente ? { texto: "Socia frecuente", tono: "verde" } : { texto: "Socia", tono: "neutro" };
+  if (c.archivadaEn) return { texto: c.anonimizada && !c.fusionadaEnId ? "Anonimizado" : c.fusionadaEnId ? "Unido a otra ficha" : "Archivado", tono: "apagado" };
+  if (!c.clubDesde) return { texto: "Identificado", tono: "pizarra" };
+  return c.esFrecuente ? { texto: "Miembro frecuente", tono: "verde" } : { texto: "Miembro", tono: "neutro" };
 }
 
 /** La columna «Publicidad» (spike: `chipPub`): solo una socia activa tiene algo que decir; las demás, «—» (null). La que
@@ -255,14 +255,14 @@ export function cuentaDelFiltro(c: CifrasClientas, filtro: FiltroLista): number 
   }
 }
 
-/** «40 % de las identificadas» (o «Todavía ninguna» si no hay fichas). */
+/** «40 % de los identificados» (o «Todavía ninguno» si no hay fichas). */
 export function detalleSocias(c: Pick<CifrasClientas, "identificadas" | "socias">): string {
-  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} % de las identificadas` : "Todavía ninguna";
+  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} % de los identificados` : "Todavía ninguno";
 }
 
-/** «3 socias sin publicidad» / «1 socia sin publicidad». */
+/** «3 miembros sin publicidad» / «1 miembro sin publicidad». */
 export function detallePublicidad(c: Pick<CifrasClientas, "sinPublicidad">): string {
-  return `${c.sinPublicidad} socia${c.sinPublicidad === 1 ? "" : "s"} sin publicidad`;
+  return `${c.sinPublicidad} miembro${c.sinPublicidad === 1 ? "" : "s"} sin publicidad`;
 }
 
 /** «3 compras en 6 meses»: el umbral de `clienta-actividad-reglas.ts`, el mismo que usa la base. */
@@ -274,8 +274,8 @@ export function detalleFrecuentes(): string {
  *  filtro y la búsqueda; de cuántas: las fichas activas (o las archivadas, en ese filtro). */
 export function pieLista(total: number, filtro: FiltroLista, c: CifrasClientas | null): string {
   const deCuantas = c ? (filtro === "archivadas" ? c.archivadas : c.identificadas) : null;
-  const cuantas = deCuantas === null ? `${total} clienta${total === 1 ? "" : "s"}` : `${total} de ${deCuantas} ${filtro === "archivadas" ? "archivadas" : "clientas"}`;
-  return `${cuantas} · todas las cuentas con el módulo ven a todas`;
+  const cuantas = deCuantas === null ? `${total} cliente${total === 1 ? "" : "s"}` : `${total} de ${deCuantas} ${filtro === "archivadas" ? "archivados" : "clientes"}`;
+  return `${cuantas} · todas las cuentas con el módulo ven a todos`;
 }
 
 /* ------------------------------------------------------------------
