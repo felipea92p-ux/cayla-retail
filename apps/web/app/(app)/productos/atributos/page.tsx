@@ -34,7 +34,7 @@ async function cargarTemporadas(supabase: Supabase): Promise<{ datos: DatosPesta
 }
 
 async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestanaTemporadas } | { nota: string }> {
-  const [resTemporadas, resCalendario, resEfectiva, resCategorias, resProductos, resColores] = await Promise.all([
+  const [resTemporadas, resCalendario, resEfectiva, resCategorias, resProductos, resColores, resMarcas, resProveedores] = await Promise.all([
     supabase.rpc("fn_temporadas"),
     supabase.rpc("fn_calendario_estaciones"),
     // Una fila por modelo+color: pasa de 1.000 con el catálogo completo, así que se pide por páginas (`leerTodas`), en
@@ -43,20 +43,45 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
     // Todas (no solo las activas): el nombre de la categoría de una prenda de «Sin temporada» puede ser de una desactivada.
     supabase.from("categorias").select("id, nombre, temporada, categoria_padre_id, activo").order("nombre"),
     leerTodas((desde, hasta) =>
-      supabase.from("productos").select("id, referencia, codigo, categoria_id").eq("estado", "activo").order("id").range(desde, hasta)
+      supabase.from("productos").select("id, referencia, codigo, categoria_id, marca_id, proveedor_id").eq("estado", "activo").order("id").range(desde, hasta)
     ),
     // Los nombres de color de la lista «Sin temporada» (con los desactivados: una prenda vieja puede tener uno).
     supabase.from("colores").select("codigo, nombre"),
+    // Marca y proveedor de cada prenda de esa lista (con los desactivados, igual que los colores). Se leen aparte y por
+    // nombre, como los colores y las categorías: si alguna de las dos lecturas falla, la pestaña lo dice (nota) en vez de
+    // mostrar «Sin marca», que afirma otra cosa: que nadie la registró (ADR-0283).
+    supabase.from("marcas").select("id, nombre"),
+    supabase.from("proveedores").select("id, nombre"),
   ]);
-  const error = resTemporadas.error ?? resCalendario.error ?? resEfectiva.error ?? resCategorias.error ?? resProductos.error ?? resColores.error;
-  if (error || !resTemporadas.data || !resCalendario.data || !resEfectiva.data || !resCategorias.data || !resProductos.data || !resColores.data) {
+  const error =
+    resTemporadas.error ?? resCalendario.error ?? resEfectiva.error ?? resCategorias.error ?? resProductos.error ?? resColores.error ?? resMarcas.error ?? resProveedores.error;
+  if (
+    error ||
+    !resTemporadas.data ||
+    !resCalendario.data ||
+    !resEfectiva.data ||
+    !resCategorias.data ||
+    !resProductos.data ||
+    !resColores.data ||
+    !resMarcas.data ||
+    !resProveedores.data
+  ) {
     if (error) console.error("Temporadas (Atributos):", error.message);
     return { nota: motivoSinTemporadas(error) };
   }
 
   const filas = resEfectiva.data as TemporadaEfectiva[];
   const categorias = resCategorias.data.map((c) => ({ id: c.id, nombre: c.nombre, temporada: c.temporada, padreId: c.categoria_padre_id, activo: c.activo }));
-  const productos: ProductoParaTemporadas[] = resProductos.data.map((p) => ({ id: p.id, nombre: p.referencia, codigo: p.codigo, categoriaId: p.categoria_id }));
+  const nombreMarca = new Map(resMarcas.data.map((m) => [m.id, m.nombre]));
+  const nombreProveedor = new Map(resProveedores.data.map((x) => [x.id, x.nombre]));
+  const productos: ProductoParaTemporadas[] = resProductos.data.map((p) => ({
+    id: p.id,
+    nombre: p.referencia,
+    codigo: p.codigo,
+    categoriaId: p.categoria_id,
+    marca: p.marca_id ? (nombreMarca.get(p.marca_id) ?? null) : null,
+    proveedor: p.proveedor_id ? (nombreProveedor.get(p.proveedor_id) ?? null) : null,
+  }));
   return {
     datos: {
       temporadas: resTemporadas.data as Temporada[],
