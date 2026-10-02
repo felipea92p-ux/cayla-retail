@@ -2,12 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { TODOS, textoPildora } from "@/lib/pildora-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -20,8 +21,7 @@ import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
    tenían por qué divergir también en cómo se ve el control.
    ==================================================================== */
 
-/** El "sin selección" — en la URL "" ya significa "sin filtro", este sentinel hace de puente. */
-export const TODOS = "__todos__";
+export { TODOS };
 
 /** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
  *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
@@ -82,12 +82,16 @@ export function DesplegablePildora({
   valor,
   onValor,
   opciones,
+  valorPorDefecto = TODOS,
 }: {
   icono: LucideIcon;
+  /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
   etiqueta: string;
   valor: string;
   onValor: (v: string) => void;
   opciones: readonly OpcionCombo<string>[];
+  /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
+  valorPorDefecto?: string;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -97,7 +101,8 @@ export function DesplegablePildora({
   const disparador = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
-  const activa = valor !== TODOS;
+  // Puesta = distinta de lo que vale sola: solo entonces se marca y lleva la ✕ para volver a su valor de siempre.
+  const activa = valor !== valorPorDefecto;
 
   // Regla global de combos (ADR-0209): con más de 8 opciones, un buscador; si no, la lista de siempre.
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
@@ -114,6 +119,8 @@ export function DesplegablePildora({
   const capa = useRef<HTMLDivElement>(null);
   const listaVisible = abierto && !!posLista;
   const elegida = opciones.find((o) => o.valor === valor) ?? null;
+  const texto = textoPildora(etiqueta, elegida);
+  const puedeQuitar = activa && opciones.some((o) => o.valor === valorPorDefecto);
 
   function abrir() {
     setBusqueda("");
@@ -192,25 +199,46 @@ export function DesplegablePildora({
   }
 
   return (
-    <div className="relative" ref={contenedor}>
+    <div className="relative flex items-center" ref={contenedor}>
       <button
         ref={disparador}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={abierto}
-        aria-label={etiqueta}
+        aria-label={texto.valor ? `${etiqueta}: ${texto.valor}` : etiqueta}
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
-          activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
-        }`}
+        className={`label-cayla group relative flex h-9 min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
+          puedeQuitar ? "pl-3 pr-1" : "px-3"
+        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
       >
         <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
-        <span>{elegida?.texto ?? etiqueta}</span>
-        <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />
+        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
+            se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
+        <span className={activa ? "text-tinta/55" : undefined}>
+          {etiqueta}
+          {texto.valor && ":"}
+        </span>
+        {texto.valor && (
+          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""}`}>
+            {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
+            <span className="truncate">{texto.valor}</span>
+          </span>
+        )}
+        {!puedeQuitar && <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />}
         <Hilo activo={abierto} reposo={false} />
       </button>
+      {puedeQuitar && (
+        <button
+          type="button"
+          onClick={() => onValor(valorPorDefecto)}
+          aria-label={`Quitar filtro ${etiqueta}`}
+          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
+        >
+          <X aria-hidden className="h-3 w-3" />
+        </button>
+      )}
 
       {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
@@ -220,7 +248,15 @@ export function DesplegablePildora({
         createPortal(
           <div
             ref={capa}
-            style={{ position: "fixed", ...posLista }}
+            style={{
+              position: "fixed",
+              ...posLista,
+              // Al ancho de su texto, no al de la píldora: con la píldora de 90 px los nombres de marca se partían en tres
+              // líneas. Como `Desplegable` (`campos.tsx`), sin salirse de la ventana.
+              width: "max-content",
+              minWidth: Math.max(posLista.width, 208),
+              maxWidth: Math.min(360, window.innerWidth - posLista.left - 8),
+            }}
             className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg"
           >
           {mostrarBuscador && (

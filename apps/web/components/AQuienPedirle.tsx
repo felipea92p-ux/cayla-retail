@@ -19,7 +19,8 @@ export function AQuienPedirle({ reposicion, proveedorId }: { reposicion: Reposic
       <div className="rounded-lg bg-sand/50 p-0.5">
         <DesplegablePildora
           icono={Truck}
-          etiqueta="A quién pedirle"
+          // La píldora ya dice su nombre (FiltrosPildora): «A quién pedirle» está escrito al lado, aquí va qué se elige.
+          etiqueta="Proveedor"
           valor={valor}
           onValor={(v) => router.push(v === TODOS ? "/productos?stock=reponer" : `/productos?stock=reponer&proveedor=${v}`)}
           opciones={[

@@ -238,7 +238,9 @@ export function FiltrosHistorialVentas({
               icono={Store}
               etiqueta="Tienda"
               valor={sede || "todas"}
-              // Volver a la tienda de la cabecera deja la URL limpia; «Todas» se escribe a propósito.
+              // Lo que vale sola es la tienda de la cabecera: así no se ve «puesta» sin que nadie la eligiera (antes siempre lo
+              // parecía), y su ✕ vuelve a esa tienda. Volver a ella deja la URL limpia; «Todas» se escribe a propósito.
+              valorPorDefecto={sedePorDefecto}
               onValor={(v) => aplicar({ sede: v === sedePorDefecto ? "" : v })}
               opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
             />
