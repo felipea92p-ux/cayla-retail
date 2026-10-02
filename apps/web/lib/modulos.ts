@@ -101,7 +101,7 @@ export const MODULOS: readonly Modulo[] = [
   // ADR-0207 (20260926090000): el historial de cada módulo. No es una pantalla del lateral: se abre desde la cabecera
   // (botón «Actividad»). Nace sin rol; con el módulo, una cuenta ve la actividad de SU tienda; el líder, la de todas.
   // Solo para personas (`MODULOS_SOLO_PERSONAS`): una terminal compartida no revisa lo que hacen las demás.
-  { clave: "actividad", grupo: "Gestión", nombre: "Actividad", incluye: "Ver quién hizo qué en cada módulo de su tienda: ventas, caja, cambios, apartados, existencias, conteos y traslados, con fecha, hora y persona" },
+  { clave: "actividad", grupo: "Gestión", nombre: "Actividad", incluye: "Ver quién hizo qué en cada módulo de su tienda: ventas, caja, cambios, apartados, existencias, conteos, traslados y productos, con fecha, hora y persona" },
   // ADR-0275 (20260929140000, Felipe 2026-09-28): la vista de toda la empresa, desde el selector de sede. Excepción a «un
   // módulo nuevo nace visible para el líder»: nace QUITADO al Líder de equipo (`lider_modulos_ocultos`), así que al nacer
   // solo la ve el Admin, y solo un Admin la da (`fn_exigir_modulos_dentro_de_lo_mio`). Qué se usa ahí: `lib/vista-global.ts`.

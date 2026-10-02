@@ -338,6 +338,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-inventario
 
+      # Actividad de Productos (ADR-0207, act. 2026-10-02): alta con su stock, ediciones con antes → después en una línea
+      # por guardado, cambios en bloque, el costo sin montos; si anotar falla, el guardado sigue. ROLLBACK.
+      - name: pruebas:actividad-productos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad-productos
+
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja

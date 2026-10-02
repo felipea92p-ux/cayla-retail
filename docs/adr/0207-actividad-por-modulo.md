@@ -117,3 +117,26 @@ Actividad; las demás comprobaciones diferidas siguen al final). Una prueba nuev
 crear los disparadores: pegar fuera del horario de tienda; `lock_timeout = 3s`. **Aplicada el 2026-10-02** (18:01 Lima,
 a pedido de Felipe), y A4 enseguida en un segundo paso; las 133 líneas de Existencias reconstruidas entre los dos pasos
 quedaron con la descripción larga (decisión pendiente de Felipe: rehacerlas o dejarlas).
+
+### Etapa Productos (2026-10-02, mismo día)
+
+Migración `20261002234500_actividad_productos.sql`; prueba `pnpm pruebas:actividad-productos`. **Cada línea va en la sede
+de quien la hizo** (Felipe): el catálogo no tiene sede.
+
+- **P1 — Crear:** una línea con variantes (tallas y colores), precio y el stock que nació con la prenda (el que
+  Existencias deja fuera). Persona, sede y terminal salen de `producto_origen` (ADR-0283). Una prenda propuesta dice
+  «propuso … · por aprobar»; aprobarla o rechazarla después es su propia línea.
+- **P2 — Editar, desde `historial_producto_cambios`:** ya guarda cada campo con su antes y su después. Se agrupa por
+  transacción (igual que Existencias). Un guardado de una prenda: «editó «Blusa Alba»: precio S/ 89.00 → S/ 79.00 en 6
+  variantes y categoría Blusas → Tops». En bloque, la frase del negocio: «asignó la temporada Verano a 8 productos»,
+  «descontinuó 5 productos», «pasó 3 productos a la categoría Tops». Nombre y descripción no quedaban en el historial:
+  un disparador nuevo (`productos_nombre_historial`) los suma.
+- **P3 — El costo no se escribe.** Solo lo ve el líder o quien tiene permiso de dinero de compras (20260923193700), y
+  la línea la lee la líder de tienda: «corrigió el costo de 3 variantes», sin montos ni en el texto ni en `detalle`. El
+  costo que cambia al recibir una compra o cerrar una producción no es una edición de Productos y se deja fuera.
+- **P4 — Eliminar:** `eliminar_producto_con_historia` ya anotaba; `eliminar_producto` (sin historia) se anota desde su
+  fila «eliminado» del historial, sin repetir la otra.
+- **P5 — Tallas en orden de tienda** (`fn_actividad_peso_talla`, la misma regla que `ordenTalla` de la web).
+
+Lo mismo que en Existencias: los disparadores de alta y de historial son diferidos. Una prueba que inserte productos o
+historial y luego altere esas tablas en la misma transacción tiene que dispararlos antes.
