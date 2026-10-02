@@ -1,6 +1,7 @@
 # ADR-0308 — La barra de filtros de Productos dice la verdad
 
-**Fecha:** 2026-10-02 · **Estado:** tanda 1 construida y verificada en local (sin migración); tanda 2 diseñada, por construir ·
+**Fecha:** 2026-10-02 · **Estado:** tanda 1 construida y verificada (PR #723, sin migración); tanda 2 construida y verificada en una base
+local al día, **SQL por pegar** (`20261002200000`, `20261002200100`) ·
 **Decide:** Felipe (las 19 decisiones de negocio y de forma, en preguntas del 2026-10-02); Claude (lo técnico) ·
 **Rama:** `claude/filtro-pantalla-mejora-dba838` · **Análisis:** `docs/pantallas/productos-filtros.md`
 
@@ -90,16 +91,59 @@ están corregidos y reproducidos en el navegador (commit `fix(catalogo): lo que 
 Medido sin desborde horizontal a 375, 768, 1024, 1280, 1440 y 1920 px. A 768 el menú lateral deja ~420 px: el bloque de
 precio se parte en dos líneas y el nombre de la fila va arriba.
 
-## 4. Tanda 2 (por construir): la base
+## 4. Tanda 2: la base (rama `claude/filtro-productos-tanda2`)
 
 Funciones **nuevas** al lado de `fn_productos`/`fn_productos_resumen`, no reemplazos: así la web publicada sigue funcionando en el
-rato entre que Felipe pega el SQL y se fusiona el PR (el error del #444). Las viejas se borran en una limpieza posterior.
+rato entre que Felipe pega el SQL y se fusiona el PR (el error del #444). Las viejas se borran en una limpieza posterior, cuando
+nada las llame (`fn_productos_resumen` ya no la llama esta pantalla).
 
-- Listado nuevo: sin variantes desactivadas en precio y color (hoy el resumen cuenta 580 variantes y la lista 578), buscador sin
-  tildes, por categoría y color y con `%`/`_` literales, Talla y Color con varias opciones (color por familia), Temporada,
-  «Por completar» y Disponibilidad en la sede y en la red.
-- Facetas: conteo disyuntivo por opción (cada filtro cuenta con todos los demás menos el suyo) en una sola pasada (3,7 ms medidos
-  en producción hoy), límites y tramos de precio exactos. Reemplaza a `getPreciosExtremos`.
+```
+DECIDÍ:    una sola definición de qué cumple cada filtro, `fn_productos_filtro`: una fila por variante visible con una marca por
+           filtro. Una prenda pasa si UNA MISMA variante cumple color, talla, precio, temporada y «hay en la sede». La leen el
+           listado (`fn_productos_listado`) y los conteos (`fn_productos_facetas`), así un número nunca contradice a la lista.
+DESCARTÉ:  (a) evaluar cada filtro de variante por separado, como `fn_productos` (∃ negra ∧ ∃ hasta S/ 80): trae una blusa cuya
+           negra cuesta S/ 120 — con conjuntos, la intersección tiene que ser sobre la misma variante, no sobre la prenda;
+           (b) calcular los conteos con una consulta por filtro: 10 pasadas sobre las mismas filas por lo que una da en ~4 ms;
+           (c) contar cada opción con su propio filtro puesto: al elegir «Blusas» las otras categorías dirían 0 y no se podría
+           cambiar sin limpiar (por eso el conteo es disyuntivo: todos los filtros menos el suyo).
+SE ROMPE SI: el catálogo pasa de ~3 000 prendas con stock en varias sedes y se pide «sin stock en ninguna» / «reponer»: el stock
+           de la red (~340 ms a 3 000 productos) se calcula para la lista y para los conteos. Ahí, los conteos de disponibilidad
+           se piden aparte, después de la lista.
+```
+
+```
+DECIDÍ:    tramos de precio cortados en los cuartiles del precio más bajo de cada prenda, redondeados a 10; con menos de 4
+           prendas, sin tramos. Cada tramo cuenta exactamente lo que trae como filtro (el primero «hasta», el último «desde»).
+DESCARTÉ:  tramos de igual ancho (como Ripley/Uniqlo): con 21 precios distintos y 17 prendas a S/ 39,90, un tramo queda lleno y
+           otro vacío; los cuartiles reparten las prendas parejo (es la idea del `variable_width_histogram` de Elastic, sin el
+           motor). Y la escalera fija de Falabella (50/100/250…): pensada para miles de precios, aquí deja casi todo en un tramo.
+SE ROMPE SI: casi todas las prendas tienen el mismo precio: los cuartiles coinciden, se deduplican y quedan 1 o 2 tramos (no se
+           inventan cortes donde no hay precios).
+```
+
+- **Buscador** (`fn_productos_buscar_palabras`): cada palabra en cualquier campo (nombre, código, marca, proveedor, categoría, sku,
+  código y color de cada variante), sin tildes con `fn_clave_texto` (la del repo, sin extensiones), con `strpos` (los símbolos son
+  literales) y quitando el -a/-o/-as/-os final de las palabras de 4 letras o más («negra» encuentra «Negro»).
+- **Disponibilidad**: Hay en [sede] · Sin stock en [sede] (las de la sede, por variante) · Sin stock en ninguna sede · Stock bajo ·
+  Pedir a proveedor (las de la red, como siempre). Sin sede elegida (CAYLA Global) solo las de la red.
+- **Pruebas**: `pruebas:productos-listado` (34 casos, con controles contra `fn_productos` que prueban cada defecto corregido) y
+  `pruebas:productos-facetas` (17 casos: cada conteo es el total del listado al elegir esa opción, en nueve escenas). En el CI.
+- **Revisión adversaria** (4 lentes y escépticos): 3 defectos confirmados, ninguno refutado. El grave: Postgres copiaba el CTE del
+  buscador en cada fila y la búsqueda corría **dos veces por variante** (~5 s con 86 prendas; más de 8 s, el límite de PostgREST,
+  con ~130: la pantalla se caía al buscar). Con el CTE `materialized`, 31 ms; la prueba exige UNA llamada al buscador por listado
+  y por conteo, sin depender del volumen (con 11 prendas de prueba no se veía). Los otros dos: la «variante visible» pasa a ser la
+  de la pantalla (las activas; todas si no queda ninguna) y Talla/Color de varias suman los clics seguidos. Los 6 casos nuevos
+  fallan con el SQL anterior (mutación comprobada).
+
+```
+SE ROMPE SI: el catálogo llega a ~3 000 prendas y se busca seguido: el buscador por palabras normaliza el texto de TODAS las
+           prendas en cada búsqueda (medido en la revisión: ~390 ms el listado y ~610 ms los conteos con 3 000 prendas). Ahí se
+           guarda el texto normalizado en una columna con índice trigram (`pg_trgm` ya está en producción), no antes.
+```
+
+**Pegado en producción** (Felipe, ANTES de fusionar el PR de la tanda 2): `20261002200000` y después `20261002200100`, cada uno en
+una sola pegada (solo crean funciones: sin `alter` de tablas en uso ni políticas). Una sonda de solo lectura del 2026-10-02 confirmó
+que todo lo que usan existe en producción y que los nombres nuevos aún no.
 
 ## 5. Referentes
 

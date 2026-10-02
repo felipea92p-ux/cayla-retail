@@ -467,8 +467,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Tabla, con `?variantes=`).
 
 **Productos (catálogo V2, integración final 2026-09-15)**
-- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
-  filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
+- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getFacetasProductos`,
+  filtros en la URL + Postgres; desde ADR-0308 tanda 2, RPC `fn_productos_listado`/`fn_productos_facetas` sobre
+  `fn_productos_filtro` (`20261002200000`, `20261002200100`); antes `fn_productos`/`fn_productos_resumen`,
   `20260915160000_productos_listado_filtros.sql`) → cabecera `EncabezadoPagina` + `ResumenSede` (ADR-0254) →
   `FiltrosProductos.tsx` (ADR-0308: buscador con atajo «/», panel abierto en la computadora —cookie `lib/panel-filtros.ts`— en
   filas «Prenda / Gestión» de `FiltrosPildora.tsx`, hoja `<Modal>` en el celular, cajas de precio con límites reales de

@@ -11,11 +11,15 @@ Análisis: `docs/pantallas/productos-filtros.md` (12 tareas). Decisiones de Feli
 - [x] #11 (web) Atajo «/». #12 «Activos» por defecto y «Copiar enlace».
 - [x] Revisión adversaria (10 agentes): 6 defectos confirmados + 5 menores, corregidos y reproducidos en el navegador (espacio entre palabras, navegación descartada, URL pedida, lista fuera de la ventana, «A quién pedirle» → «Pedir a», página fuera de rango).
 
-**Tanda 2 (migraciones: Felipe las pega ANTES de fusionar su PR)**
-- [ ] #4 Precio y color sin variantes desactivadas (función de listado nueva al lado de `fn_productos`).
-- [ ] #5 Facetas: conteo por opción, sin opciones vacías, tramos de precio; reemplaza `getPreciosExtremos`.
-- [ ] #6 Disponibilidad en la sede y en la red.
-- [ ] #8 Talla y Color con varias opciones; color por familia.
-- [ ] #10 Temporada y «Por completar».
-- [ ] #11 (base) Buscador sin tildes, por categoría y color, `%`/`_` literales.
-- [ ] Limpieza posterior: borrar `fn_productos`/`fn_productos_resumen` viejas cuando nada las llame.
+**Tanda 2 (rama `claude/filtro-productos-tanda2`; migraciones POR PEGAR: Felipe las pega ANTES de fusionar su PR)**
+- [x] #4 Precio y color sin variantes desactivadas, y la regla «la misma variante» (`fn_productos_listado`).
+- [x] #5 Facetas: conteo por opción, sin opciones vacías, tramos de precio (`fn_productos_facetas`); reemplaza `getPreciosExtremos` y el resumen viejo en esta pantalla.
+- [x] #6 Disponibilidad en la sede y en la red.
+- [x] #8 Talla y Color con varias opciones; color por familia.
+- [x] #10 Temporada y «Por completar».
+- [x] #11 (base) Buscador sin tildes, por categoría y color, símbolos literales.
+- [x] Revisión adversaria de la tanda 2: el buscador corría dos veces por variante (~5 s; se habría caído con ~130 prendas) → 31 ms; variante visible = la de la pantalla; clics seguidos en Talla/Color; tramos con «sin stock en la sede». Los casos nuevos fallan con el SQL anterior.
+- [ ] Con ~3 000 prendas, guardar el texto normalizado del buscador en una columna con índice trigram (hoy ~390 ms a ese volumen, medido).
+- [ ] **POR PEGAR (2026-10-02):** `20261002200000_productos_listado_por_variante.sql` y después `20261002200100_productos_facetas.sql`. Huellas en el PR.
+- [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`) después de pegar: `datos:comparar` hoy marca las dos funciones como «sin respaldo» (esperado).
+- [ ] Limpieza posterior: borrar `fn_productos`/`fn_productos_resumen`/`fn_productos_buscar` cuando nada las llame (hoy `fn_productos` la usan otras lecturas: buscar antes).
