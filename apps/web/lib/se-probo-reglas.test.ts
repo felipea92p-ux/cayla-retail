@@ -3,13 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   MOTIVOS_PEDIDO,
   OPCIONES_RAZON,
-  PREGUNTA_SE_PROBO,
   RAZONES_SE_PROBO,
   TEXTO_MOTIVO,
   TEXTO_RAZON,
   argsRegistrarPedido,
   avisoAnotado,
-  datosSeProbo,
   describirMotivo,
   descripcionDePrenda,
   esMotivoPedido,
@@ -17,8 +15,6 @@ import {
   esRazonSeProbo,
   leerMotivo,
   leerRazon,
-  prendaQuitadaDeLinea,
-  textoPrendaQuitada,
 } from "./se-probo-reglas";
 
 // La base manda (ADR-0288 D-6): los valores de aquí tienen que ser los del candado y los de la función. Se leen de la
@@ -58,7 +54,6 @@ describe("textos", () => {
   it("las opciones de razón siguen el orden y los textos del spike (No le quedó, Precio, Color, Lo piensa)", () => {
     expect(OPCIONES_RAZON.map((o) => o.valor)).toEqual(["no_le_quedo", "precio", "color", "lo_piensa"]);
     expect(OPCIONES_RAZON.map((o) => o.texto)).toEqual(["No le quedó", "Precio", "Color", "Lo piensa"]);
-    expect(PREGUNTA_SE_PROBO).toBe("¿Se la probó y no la llevó?");
   });
 
   it("describirMotivo: el motivo, y la razón en minúscula si la dijo", () => {
@@ -172,43 +167,13 @@ describe("argsRegistrarPedido", () => {
   });
 });
 
-describe("«¿Se la probó y no la llevó?» al quitar una prenda del ticket", () => {
+describe("anotar «se la probó y no la llevó» (filas ya guardadas)", () => {
   const U = "11111111-1111-4111-8111-111111111111";
 
-  it("la prenda quitada: nombre, color y talla del catálogo de la caja", () => {
-    expect(prendaQuitadaDeLinea({ referencia: "Blusa Carlita" }, { color: "Blanco", talla: "M" })).toEqual({
-      referencia: "Blusa Carlita",
-      color: "Blanco",
-      talla: "M",
-    });
-  });
-
-  it("sin detalle de la variante, o con talla vacía, va sin color ni talla", () => {
-    expect(prendaQuitadaDeLinea({ referencia: "Blusa Carlita" })).toEqual({ referencia: "Blusa Carlita", color: null, talla: null });
-    expect(prendaQuitadaDeLinea({ referencia: "Blusa Carlita" }, { color: " ", talla: "" })).toEqual({ referencia: "Blusa Carlita", color: null, talla: null });
-  });
-
-  it("una «Prenda sin registrar» va con su descripción, sin color ni talla (no tiene variante en el catálogo)", () => {
-    expect(prendaQuitadaDeLinea({ referencia: "Casaca jean sin etiqueta", prendaLibre: { descripcion: "Casaca jean sin etiqueta" } }, { color: "Azul", talla: "S" })).toEqual({
-      referencia: "Casaca jean sin etiqueta",
-      color: null,
-      talla: null,
-    });
-  });
-
-  it("sin nombre no hay nada que preguntar", () => {
-    expect(prendaQuitadaDeLinea({ referencia: "  " }, { color: "Blanco", talla: "M" })).toBeNull();
-  });
-
-  it("el texto de la pregunta es el del spike, con la talla entre paréntesis si se sabe", () => {
-    expect(textoPrendaQuitada({ referencia: "Blusa Carlita", color: "Blanco", talla: "M" })).toBe("Quitaste «Blusa Carlita» (M). Anótalo para Compras: es opcional.");
-    expect(textoPrendaQuitada({ referencia: "Casaca jean", color: null, talla: null })).toBe("Quitaste «Casaca jean». Anótalo para Compras: es opcional.");
-  });
-
-  it("tocar una razón anota «se la probó y no la llevó» con la prenda (nombre · color), la talla y la clienta", () => {
-    const datos = datosSeProbo({ referencia: "Blusa Carlita", color: "Blanco", talla: "M" }, "precio", U, "c1");
-    expect(datos).toEqual({ ubicacionId: U, motivo: "se_probo_no_llevo", razon: "precio", descripcion: "Blusa Carlita · Blanco", talla: "M", clientaId: "c1" });
-    expect(argsRegistrarPedido(datos)).toEqual({
+  it("la llamada lleva el motivo, la razón, la talla y la clienta", () => {
+    expect(
+      argsRegistrarPedido({ ubicacionId: U, motivo: "se_probo_no_llevo", razon: "precio", descripcion: "Blusa Carlita · Blanco", talla: "M", clientaId: "c1" })
+    ).toEqual({
       p_ubicacion_id: U,
       p_motivo: "se_probo_no_llevo",
       p_razon: "precio",
@@ -216,16 +181,5 @@ describe("«¿Se la probó y no la llevó?» al quitar una prenda del ticket", (
       p_talla: "M",
       p_clienta_id: "c1",
     });
-  });
-
-  it("sin clienta también se anota (sigue siendo demanda para Compras)", () => {
-    const args = argsRegistrarPedido(datosSeProbo({ referencia: "Falda", color: null, talla: "S" }, "no_le_quedo", U, null));
-    expect(args).toEqual({ p_ubicacion_id: U, p_motivo: "se_probo_no_llevo", p_razon: "no_le_quedo", p_descripcion_libre: "Falda", p_talla: "S" });
-  });
-
-  it("cada una de las cuatro razones viaja tal cual", () => {
-    for (const { valor } of OPCIONES_RAZON) {
-      expect(argsRegistrarPedido(datosSeProbo({ referencia: "Falda", color: null, talla: null }, valor, U, null))?.p_razon).toBe(valor);
-    }
   });
 });

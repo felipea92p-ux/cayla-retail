@@ -51,3 +51,44 @@ describe("familiaDeTejido — nombres que un Líder podría agregar mañana", ()
     expect(familiaDeTejido("")).toBeNull();
   });
 });
+
+// Los tejidos que producción tenía el 2026-10-02 y que salían «Sin muestra» en Atributos ▸ Tejidos, más los nombres que
+// ya se dibujaban pero cambiaron de familia al sumar las nuevas (Hilo de algodón dejó de ser un algodón liso).
+describe("familiaDeTejido — el vocabulario de producción (2026-10-02)", () => {
+  it.each([
+    ["Aterciopelada", "terciopelo"],
+    ["franela", "franela"],
+    ["Gasa", "gasa"],
+    ["Hilo", "hilo"],
+    ["Hilo de algodón", "hilo"],
+    ["Macramé", "macrame"],
+    ["Oxford", "oxford"],
+    ["Sastre", "sastre"],
+    ["Seersucker", "seersucker"],
+    ["Suplex", "suplex"],
+    ["Tela", "tela"],
+    ["Tela mojada", "mojado"],
+    // Ya se dibujaban y siguen igual:
+    ["lana", "alpaca"],
+    ["Satín", "seda"],
+    ["Rayón", "viscosa"],
+    ["Algodón alicrado", "algodon"],
+    ["Mix Algodón & Poliéster", "poliester"],
+  ] as const)("%s → %s", (nombre, familia) => {
+    expect(familiaDeTejido(nombre)).toBe(familia);
+  });
+
+  it("«Tela» solo es el tejido genérico cuando es el nombre entero", () => {
+    // Una frase de «Generar dibujo» dice «tela» sin querer decir ese tejido: no puede taparle la palabra «sarga».
+    expect(familiaDeTejido("tela gruesa de sarga")).toBeNull();
+    expect(familiaDeTejido("Tela de algodón")).toBe("algodon");
+    expect(familiaDeTejido("  TELA ")).toBe("tela");
+  });
+
+  it("una familia nueva no le quita su dibujo a las que ya existían", () => {
+    expect(familiaDeTejido("Oxford de algodón")).toBe("oxford");
+    expect(familiaDeTejido("Algodón orgánico")).toBe("algodon");
+    expect(familiaDeTejido("Poliéster")).toBe("poliester");
+    expect(familiaDeTejido("Jersey")).toBe("jersey");
+  });
+});
