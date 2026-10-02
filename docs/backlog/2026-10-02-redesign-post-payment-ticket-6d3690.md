@@ -5,6 +5,7 @@
 - [x] Lógica pura con pruebas: `montosSugeridos`, «el resto» con 3+ medios (`pagosTrasEditarMonto`), F1–F6 (`metodoDeAtajo`), «Elige el comprobante.» (`motivoBloqueoCobro`).
 - [x] QR en la web solo si la base lo acepta (`fn_acepta_pago_qr`); en Caja va en el grupo digital; color `--color-metodo-qr`.
 - [ ] **Pegar en producción** `supabase/migrations/20261002120000_venta_pagos_qr.sql`, en sus dos partes por separado. Hasta entonces la hoja muestra cinco medios. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [x] **Dónde cae el dinero del QR:** es el QR de Izipay y su abono llega aparte de las tarjetas (Felipe, 2026-10-02) → se sella en la cuenta de cobro de transferencia de la sede, en su propia línea del libro («Cobros con QR · sede»).
 - [ ] **Configurar** en cada sede la cuenta de cobro de transferencia si no existe: el QR se sella en ella.
 - [ ] **Decidir** si la búsqueda por Nº de operación de Ventas ▸ Historial (ADR-0230) se retira, ahora que la caja ya no lo pide.
 - [ ] **Sin probar:** un cobro real con QR (requiere la migración aplicada); el lector de código de barras con la hoja abierta en tienda.

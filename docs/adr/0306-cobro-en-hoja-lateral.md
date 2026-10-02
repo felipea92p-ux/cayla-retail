@@ -48,7 +48,8 @@ SE ROMPE SI: la migración del QR no está en producción (la hoja muestra cinco
 3. **El Nº de operación ya no se pide en la caja** («nunca se ingresan», Felipe). La columna `venta_pagos.referencia` y su
    búsqueda en Ventas ▸ Historial (ADR-0230) siguen para las ventas que ya lo tienen; las nuevas llegan sin él. Retirar también
    la búsqueda es otra decisión.
-4. **QR, sexto medio de una venta.** Solo en Vender. En Finanzas el cobro con QR se sella en la cuenta de cobro de
+4. **QR, sexto medio de una venta.** Es el QR de **Izipay** y su abono llega **aparte** de las tarjetas (Felipe, 2026-10-02):
+   por eso no va con la tarjeta. Solo en Vender. En Finanzas el cobro con QR se sella en la cuenta de cobro de
    **transferencia** de la sede (`fn_cuenta_sellada` ya manda ahí todo medio que no es Yape, Plin ni tarjeta) y aparece en el
    libro de cuentas como «Cobros con QR · sede». En Caja va en el grupo digital de la dona. Color: tinta (`--color-metodo-qr`),
    como un código impreso.
