@@ -3,6 +3,7 @@ import type { EtiquetaAlta } from "./alta-producto-datos";
 import {
   claveEtiqueta,
   agruparEtiquetas,
+  campanaDelAlta,
   coincideConTexto,
   etiquetasALaVista,
   fraseDeExistente,
@@ -191,5 +192,23 @@ describe("unirEtiquetas", () => {
   it("si la página se releyó y ya trae la etiqueta (por id o por nombre), no la duplica", () => {
     expect(unirEtiquetas([NUEVA, PRIMAVERA], [PRIMAVERA])).toHaveLength(2);
     expect(unirEtiquetas([NUEVA], [et("otro-id", "  nueva COLECCIÓN ")])).toHaveLength(1);
+  });
+});
+
+describe("campanaDelAlta", () => {
+  const desc = (p: number, pct: number) => Math.round(p * pct) / 100;
+  const hoy = "2026-10-02";
+  it("sin precio o sin descuento no anuncia nada", () => {
+    expect(campanaDelAlta([et("a", "Liquidar", { descuentoPct: 30 })], null, hoy, desc)).toBeNull();
+    expect(campanaDelAlta([et("a", "Nuevo")], 100, hoy, desc)).toBeNull();
+  });
+  it("elige la de mayor % y calcula el precio final", () => {
+    const c = campanaDelAlta([et("a", "Verano", { descuentoPct: 10 }), et("b", "Liquidar", { descuentoPct: 30 })], 100, hoy, desc);
+    expect(c).toMatchObject({ nombre: "Liquidar", pct: 30, descuento: 30, precioFinal: 70 });
+  });
+  it("ignora la que ya terminó o aún no empieza", () => {
+    expect(campanaDelAlta([et("a", "Vieja", { descuentoPct: 50, vigenteHasta: "2026-10-01" })], 100, hoy, desc)).toBeNull();
+    expect(campanaDelAlta([et("a", "Futura", { descuentoPct: 50, vigenteDesde: "2026-10-03" })], 100, hoy, desc)).toBeNull();
+    expect(campanaDelAlta([et("a", "Hoy", { descuentoPct: 50, vigenteHasta: hoy })], 100, hoy, desc)?.precioFinal).toBe(50);
   });
 });
