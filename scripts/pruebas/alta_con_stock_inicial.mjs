@@ -13,7 +13,7 @@
  *   F4 doble clic: el mismo token devuelve el mismo producto y no carga dos veces.
  *   F5 sin cantidades: el alta de siempre, sin tienda y sin movimientos.
  *   F6 cantidades mal escritas (decimal, negativa, texto, 10000): no se crea nada.
- *   F7 todo o nada: cantidades sin tienda, otra tienda, un Taller sin piso con «al piso», un rol sin «Bajada al piso»:
+ *   F7 todo o nada: cantidades sin tienda, otra tienda, un Taller sin piso con «al piso», un rol sin Existencias (bajar al piso es de Existencias, ADR-0306):
  *      en todos, ni producto ni stock.
  *   F8 permisos: integrante con Productos carga en SU tienda (firma ella); sin Productos no crea nada.
  *   F9 terminal: con responsable presente firma la responsable; sin responsable, 42501 y nada.
@@ -395,7 +395,14 @@ ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
   (l) => error(l.at(-2), "carga_sin_tienda") && l.at(-1) === "t"
 );
 caso(
-  "F8 · integrante con Productos pero SIN «Bajada al piso», pidiendo «al piso» → rechazada por la bajada y nada",
+  "F8 · integrante con Productos y Existencias, pidiendo «al piso» → carga y deja las prendas en el piso, firmada por ella",
+  `${soloModulos("integrante", ["productos", "existencias"])}${sesion(MICAELA)}${COMO_API}select ${crear(REF, celdas(2, 0, 0, 0), ":'tok1'", "tru", true)} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${cant("t1", "c1", "piso_t")}, ${cant("t1", "c1", "alm_t")},
+  (select count(*) from retail.bajadas_piso where token_cliente = :'tok1' and persona_id = :'micaela'));`,
+  "true,2,0,1"
+);
+caso(
+  "F8 · integrante con Productos pero SIN Existencias, pidiendo «al piso» → rechazada por la bajada y nada",
   `${soloModulos("integrante", ["productos"])}select ${CONTADORES} as antes \\gset
 ${sesion(MICAELA)}${COMO_API}select ${crear(REF, celdas(2, 0, 0, 0), ":'tok1'", "tru", true)};
 ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,

@@ -381,12 +381,12 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
     expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });
 
-  it("y el camino de vuelta es «Subir a almacén», en Existencias, y dice quién lo ve; ya no manda al menú «⋯» que no existe", () => {
+  it("y el camino de vuelta es «Subir a almacén», en Existencias, y no manda a un módulo que no existe; ya no manda al menú «⋯» que no existe", () => {
     // Sin esta frase, quien quiere guardar entra a Ajustar y arma a mano «Otro» −N en el piso y «Reposición» +N en el
     // almacén: un retiro sin rastro ni nota (revisión del bloque 2 de ADR-0208).
     expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «Subir a almacén».");
     expect(NOTA_REPOSICION_CERRADA).toContain("en Existencias");
-    expect(NOTA_REPOSICION_CERRADA).toContain("módulo «Bajada al piso»");
+    expect(NOTA_REPOSICION_CERRADA).not.toContain("Bajada al piso"); // ADR-0306: ya no es un módulo
     expect(NOTA_REPOSICION_CERRADA).not.toContain("Retirar del piso");
     // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
     expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);

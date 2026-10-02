@@ -56,7 +56,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
  *                            Existencias/Conteos/Traslados no es «el líder decidió dar el módulo de ajustar».
  *  - ajustarStock:           el botón «Ajustar» de Existencias, Productos y Movimientos (fn_puede_ajustar_stock,
- *                            ADR-0250): SOLO el módulo «Ajustar stock», nace sin rol.
+ *                            ADR-0306): lo mismo que ajustarInventario; ajustar es una función de Existencias, no un módulo.
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
