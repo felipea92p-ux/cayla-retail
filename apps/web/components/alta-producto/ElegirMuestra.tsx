@@ -90,6 +90,21 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
           titulo={t.titulo}
           subtitulo={`${todos.length} en el catálogo. Arriba, los que ya usa ${categoriaNombre}.`}
           onClose={() => setHoja(false)}
+          // «+ Nuevo tejido / patrón» arriba a la derecha, a la vista (Felipe 2026-10-02): antes era un enlace al pie de la hoja.
+          acciones={
+            <ProponerValor
+              tipo={tipo}
+              categoriaId={categoriaId}
+              familia={familia}
+              ejesActuales={ejesActuales}
+              universo={universo}
+              onCreado={(v) => {
+                onOfrecido(v);
+                onElegir(v.id);
+                setHoja(false);
+              }}
+            />
+          }
         >
           {(cerrar) => (
             <HojaMuestras
@@ -100,7 +115,6 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
               elegidoId={elegidoId}
               categoriaId={categoriaId}
               categoriaNombre={categoriaNombre}
-              familia={familia}
               ejesActuales={ejesActuales}
               onElegir={(id) => {
                 onElegir(id);
@@ -170,7 +184,6 @@ function HojaMuestras({
   elegidoId,
   categoriaId,
   categoriaNombre,
-  familia,
   ejesActuales,
   onElegir,
   onOfrecido,
@@ -182,7 +195,6 @@ function HojaMuestras({
   elegidoId: string;
   categoriaId: string;
   categoriaNombre: string;
-  familia?: string | null;
   ejesActuales: EjeIds;
   onElegir: (id: string) => void;
   onOfrecido: (v: ValorVocabulario) => void;
@@ -294,16 +306,6 @@ function HojaMuestras({
         )}
       </div>
 
-      <div
-        className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-sand pt-3"
-        // ProponerValor cierra su campo con Escape pero no corta el evento: sin esto, el mismo Escape cerraría la hoja entera.
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && (e.target as HTMLElement).tagName === "INPUT") e.stopPropagation();
-        }}
-      >
-        <p className="text-[12.5px] text-taupe">¿No está? Propón uno. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe.</p>
-        <ProponerValor tipo={tipo} categoriaId={categoriaId} familia={familia} ejesActuales={ejesActuales} universo={universo} onCreado={onOfrecido} />
-      </div>
     </>
   );
 }
