@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261002190000 — Colores: Neutro más corto, Nude, Beige y Arena pasan a Tierra (ADR-0313)
+-- 20261002190000 — Colores: Neutro más corto, Nude, Beige y Arena pasan a Tierra (ADR-0314)
 --
 -- EL PROBLEMA
 --   Con la migración 20261002180000, Neutro quedó en 13 colores en una sola fila (la más larga

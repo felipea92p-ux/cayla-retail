@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261002191000 — Colores: el #hex de Perla y de Amarillo mantequilla, más distinguibles (ADR-0313)
+-- 20261002191000 — Colores: el #hex de Perla y de Amarillo mantequilla, más distinguibles (ADR-0314)
 --
 -- EL PROBLEMA
 --   Perla (#EAE6DD) y Crudo (#F3ECE0) estaban a ΔE2000 2,1: en pantalla, el mismo color

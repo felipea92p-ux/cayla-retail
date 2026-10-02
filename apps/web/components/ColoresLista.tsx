@@ -94,7 +94,7 @@ function ordenar(lista: Color[]) {
 // propia fila — la de "Estampado" con 3 colores se ve completa, no como el
 // resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
 // viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
-// pura y la claridad nunca «sube» a mitad de una fila (ADR-0313).
+// pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {
   const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
     familia: f.valor,

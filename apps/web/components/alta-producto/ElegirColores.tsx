@@ -181,7 +181,7 @@ export function ElegirColores({
       )}
 
       {carta && (
-        // La carta de color (ADR-0312, ADR-0313). Cada familia es un bloque y cada gama, una FILA propia: cada fila es una escala
+        // La carta de color (ADR-0312, ADR-0314). Cada familia es un bloque y cada gama, una FILA propia: cada fila es una escala
         // pura de claro a oscuro (la claridad nunca «sube» a mitad de una fila). Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
         // que lo rodea, y uno chico se ve peor. El color adentro es EXACTO (el #hex de la base, sin velo); el borde es el mismo
         // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto

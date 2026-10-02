@@ -118,7 +118,7 @@ describe("la carta de colores de CAYLA", () => {
     ]);
   });
 
-  // «Mejor distinción» (Felipe, 2026-10-02, ADR-0313): el 2026-10-02, Crudo y Perla estaban a ΔE2000 2,1 —a simple vista, el mismo
+  // «Mejor distinción» (Felipe, 2026-10-02, ADR-0314): el 2026-10-02, Crudo y Perla estaban a ΔE2000 2,1 —a simple vista, el mismo
   // color— y Mantequilla a 7,2 de Limón. Se afinó el #hex de los dos colores creados a mano (Perla y Amarillo mantequilla) y el
   // par más cercano sin metálicos pasó a ser Beige–Arena, 6,03, la pareja canónica que ya se aceptaba. Los metálicos quedan fuera:
   // su reflejo los distingue aunque el hex plano se parezca (como Plata vieja y Gris).

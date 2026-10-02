@@ -1,4 +1,4 @@
-# ADR-0313 — La carta de colores: Neutro sin tinte, una gama por fila y hex distinguibles
+# ADR-0314 — La carta de colores: Neutro sin tinte, una gama por fila y hex distinguibles
 
 **Fecha:** 2026-10-02 · **Decidió:** Felipe, con preguntas de opción · **Continúa:** ADR-0312 (reemplaza solo dos cosas: la regla
 «Arena → neutro» y la fila única por familia ancha).
