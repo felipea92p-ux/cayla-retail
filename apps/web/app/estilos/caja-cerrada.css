@@ -1,4 +1,4 @@
-/* VENDER CON LA CAJA CERRADA: LA PERSIANA (ADR-0299; maqueta B, docs/maquetas/caja-cerrada-2026-10/).
+/* VENDER CON LA CAJA CERRADA: LA PERSIANA (ADR-0301; maqueta B, docs/maquetas/caja-cerrada-2026-10/).
    Con la caja cerrada, el área de trabajo se desenfoca, baja una persiana oscura y se cuelga un cartel «Cerrado»; al abrir,
    el cartel gira a «Abierto» y la persiana sube. Lo dibuja `components/punto-de-venta/CajaCerrada.tsx`, que pone `data-fase`:
      cerrada  → entra (velo, persiana que baja, cartel que se cuelga, texto en cascada) y se queda;
@@ -411,6 +411,21 @@
   .caja-cerrada-cartel { width: 280px; height: 108px; }
   .caja-cerrada-palabra { font-size: 46px; }
   .caja-cerrada-titulo { margin-top: 22px; font-size: 34px; }
+}
+
+/* Pantalla grande (un monitor de caja de 24" o más): todo crece un escalón para que se lea de lejos. */
+@media (min-width: 1800px) and (min-height: 1000px) {
+  .caja-cerrada-cuerdas { width: 260px; height: 72px; }
+  .caja-cerrada-cartel { width: 380px; height: 150px; }
+  .caja-cerrada-palabra { font-size: 64px; }
+  .caja-cerrada-sede { max-width: 340px; font-size: 11.5px; }
+  .caja-cerrada-cara::before { left: 64px; }
+  .caja-cerrada-cara::after { right: 64px; }
+  .caja-cerrada-texto { max-width: 600px; }
+  .caja-cerrada-titulo { font-size: 48px; }
+  .caja-cerrada-bajada { font-size: 17px; max-width: 520px; }
+  .caja-cerrada-boton { max-width: 440px; height: 68px; font-size: 13.5px; }
+  .caja-cerrada-info { font-size: 13.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

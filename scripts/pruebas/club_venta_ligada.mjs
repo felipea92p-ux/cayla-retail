@@ -119,23 +119,27 @@ if (!VERSIONES_1C.some((w) => w.firma === REGISTRAR_VENTA) || cortadas1c.length)
   console.error(`✗ La tabla de versiones de la 1c debería tener la firma de registrar_venta de esta migración con su «después» como «antes».`);
   process.exit(1);
 }
-/** La registrar_venta que vive HOY: la que creó la 1c. */
-const REGISTRAR_VENTA_HOY = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
-// 20261001150000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar la registrar_venta de la 1c (le quitó el
-// código de descuento), partiendo de su «después».
-const SIN_CODIGO = readFileSync(join(RAIZ, "supabase", "migrations", "20261001150000_descuento_sin_codigo.sql"), "utf8");
-const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
-const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
-if (!SIN_CODIGO_ANTES || VERSIONES_1C.find((w) => w.firma === REGISTRAR_VENTA_HOY)?.despues !== SIN_CODIGO_ANTES) {
-  console.error(`✗ El «antes» de 20261001150000 debería ser el «después» de la 1c para ${REGISTRAR_VENTA_HOY}.`);
+// La tanda 1g del club (ADR-0288 act. g, 20261001210700) volvió a cambiar la firma de registrar_venta (soltó la de 17 y
+// creó la de 18, con p_canjear_aniversario) y rehízo archivar_clienta (la rutina de anonimizar pasó a fn_clienta_anonimizar).
+// Su tabla de versiones, igual que las de la 1b y la 1c; la cadena no se corta.
+const PASO_1G = readFileSync(join(RAIZ, "supabase", "migrations", "20261001210700_club_paso1g_parte8_funciones.sql"), "utf8");
+const VERSIONES_1G = [
+  ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const RV_1C = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
+const cortadas1g = [...VERSIONES_1C, ...VERSIONES_1B].filter((v) => v.despues && VERSIONES_1G.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (!VERSIONES_1G.some((w) => w.firma === RV_1C && w.antes) || cortadas1g.length) {
+  console.error(`✗ La tabla de versiones de la 1g debería partir del «después» de la 1c (registrar_venta) y de la 1b (archivar_clienta); no calzan: ${cortadas1g.map((v) => v.firma).join(", ")}.`);
   process.exit(1);
 }
-/** El md5 que cada firma tiene que tener HOY: el «después» de la última que la tocó (sin código, 1c, 1b), o el de esta migración. */
+/** La registrar_venta que vive HOY: la que creó la 1g (la de 18). */
+const REGISTRAR_VENTA_HOY = VERSIONES_1G.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
+/** El md5 que cada firma tiene que tener HOY: el «después» de la última tanda que la tocó (1g, 1c, 1b), o el de esta migración. */
 const despuesHoy = (firma, despues) => {
-  if (firma === REGISTRAR_VENTA_HOY) return SIN_CODIGO_DESPUES;
+  const g = VERSIONES_1G.find((x) => x.firma === firma);
   const c = VERSIONES_1C.find((x) => x.firma === firma);
   const b = VERSIONES_1B.find((x) => x.firma === firma);
-  return (c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
+  return (g ? g.despues : c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
 };
 // Las firmas de registrar_clienta y editar_clienta que viven hoy (las de la 1b).
 const REGISTRAR_HOY = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
@@ -593,7 +597,7 @@ end $fn$;
   "zz_lee_dni"
 );
 caso(
-  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la 1b en las tres que la 1b volvió a cambiar, y registrar_venta de 16 ya no existe: la 1c la reemplazó); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
+  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la última tanda que la tocó: la 1b en buscar_clienta y unir_clientas, la 1g en archivar_clienta; y registrar_venta de 16 ya no existe: la 1c la reemplazó, y la 1g a esa); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join("") +

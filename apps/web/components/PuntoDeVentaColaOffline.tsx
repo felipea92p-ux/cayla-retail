@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CloudOff, TriangleAlert } from "lucide-react";
 import { money } from "@/components/PuntoDeVenta";
 import { type VentaEncolada } from "@/lib/ventas-offline";
+import { totalDeLineas } from "@/lib/vender-reglas";
 
 type Props = {
   cola: VentaEncolada[];
@@ -11,7 +12,7 @@ type Props = {
 };
 
 function totalDe(venta: VentaEncolada): number {
-  return venta.params.p_items.reduce((acc, it) => acc + it.cantidad * (it.precio_unitario - it.descuento_unitario), 0);
+  return totalDeLineas(venta.params.p_items.map((it) => ({ cantidad: it.cantidad, precioUnitario: it.precio_unitario, descuentoUnitario: it.descuento_unitario })));
 }
 
 /**

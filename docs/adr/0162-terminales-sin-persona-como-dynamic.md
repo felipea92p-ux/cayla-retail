@@ -183,7 +183,7 @@ Esto **reemplaza** dos cosas de arriba: el `tipo` de «Las piezas» (punto 1) y 
 
 Esto **reemplaza** la decisión del 2026-09-22 «la terminal PIDE CÓDIGO de descuento». Desde el 2026-09-25 todo descuento
 a mano que pase el 15 % pide un argumento escrito, lo aplique quien lo aplique (`20260925230000`); Felipe: «con el argumento
-bastaba». `20261001150000_descuento_sin_codigo.sql` corta de `registrar_venta` el bloque del código
+bastaba». `20261002100000_descuento_sin_codigo.sql` corta de `registrar_venta` el bloque del código
 (`venta_descuento_requiere_codigo`, `venta_codigo_descuento_invalido`, `venta_descuento_supera_codigo`) y la caja deja de
 mostrar el campo «Código de descuento». Vale para la terminal y para una colaboradora con su propia cuenta.
 

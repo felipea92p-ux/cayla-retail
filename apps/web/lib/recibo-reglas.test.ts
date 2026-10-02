@@ -71,6 +71,35 @@ describe("armarRecibo con el cumpleaños del club", () => {
   });
 });
 
+// Tanda 1g: el vale de aniversario viaja igual que el cumpleaños.
+describe("armarRecibo con el vale de aniversario del club", () => {
+  const conVale = (vale: { monto: number } | null) =>
+    armarRecibo({
+      comprobante,
+      sede: "Tienda Lima",
+      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
+      // 79.90 + 40.10 con un vale de S/ 30: 19.98 y 10.02 de club.
+      lineas: [
+        { cantidad: 1, referencia: "Blusa Aurora", codigo: null, precioUnitario: 79.9, descuentoUnitario: 19.98 },
+        { cantidad: 1, referencia: "Falda Lía", codigo: null, precioUnitario: 40.1, descuentoUnitario: 10.02 },
+      ],
+      pagos: [{ metodo: "yape", monto: 90 }],
+      tasaIgv: 0.18,
+      vale,
+    });
+
+  it("el total es lo cobrado, y el papel sabe cuánto fue del vale", () => {
+    const r = conVale({ monto: 30 });
+    expect(r.total).toBe(90);
+    expect(r.vale).toEqual({ monto: 30 });
+    expect(r.cumple).toBeNull();
+  });
+  it("sin vale (o en 0) no dice nada", () => {
+    expect(conVale(null).vale).toBeNull();
+    expect(conVale({ monto: 0 }).vale).toBeNull();
+  });
+});
+
 describe("textoNumeroRecibo", () => {
   it("serie y número de 6 dígitos", () => {
     expect(textoNumeroRecibo({ serie: "B001", numero: 2 })).toBe("B001-000002");
@@ -183,12 +212,9 @@ describe("armarRecibo — quién atendió", () => {
     expect(armarRecibo(entrada).atendio).toBeNull();
   });
 
-  // ADR-0288 tanda 1b: el QR del club viaja tal cual lo armó `clubEnElTicket`; sin él (sin número de tienda, o una
-  // reimpresión desde el historial) el ticket sale como antes.
-  it("lleva el QR del club si la caja lo armó, y null si no", () => {
-    const club = { enlace: "https://wa.me/51987654321?text=Hola", titulo: "Club CAYLA", linea: "¿Novedades por WhatsApp?" };
-    expect(armarRecibo({ ...entrada, club }).club).toEqual(club);
-    expect(armarRecibo(entrada).club).toBeNull();
+  // ADR-0288 act. j (Felipe 2026-10-01): el papel ya no lleva QR del club; la clienta se une con el QR del cartel.
+  it("no lleva QR del club", () => {
+    expect("club" in armarRecibo(entrada)).toBe(false);
   });
 });
 

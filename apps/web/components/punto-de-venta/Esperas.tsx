@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { CirclePause, Play } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { haceCuanto, NOMBRE_ESPERA_MAX, nombreDeEspera } from "@/lib/vender-hoy-reglas";
+import { totalDeLineas } from "@/lib/vender-reglas";
 
 type Espera = { id: string; nombre?: string; creadoEn: string; carrito: { cantidad: number; precioUnitario: number; descuentoUnitario: number }[] };
 
-const totalDe = (t: Espera) => t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
+const totalDe = (t: Espera) => totalDeLineas(t.carrito);
 
 /**
  * La tira de tickets en espera arriba del ticket (spike 2026-09-26, hallazgo 6; referentes: los «tickets abiertos» de

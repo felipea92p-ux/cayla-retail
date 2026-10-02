@@ -6,6 +6,7 @@ import { Camera, Clock, Info, ScanBarcode, UserRound, X } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
+import { BotonAplicarTodos, ConfirmarAplicarTodos } from "@/components/conteo/AplicarTodosCompletos";
 import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
@@ -22,6 +23,7 @@ import {
   agruparConteo,
   coincidenciasPorCodigo,
   filtrarConteo,
+  pendientesParaCompletar,
   sumarLectura,
   type DetalleConteo,
   type PrendaConteo,
@@ -283,21 +285,45 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta: «encontré todo este producto tal como CAYLA esperaba». Cada talla que SIGUE pendiente se
-   * cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo responsable,
-   * mismo guardado agrupado y en serie, mismo estado y progreso). Las tallas que ya tienen número no se tocan. Si falta el
-   * responsable, se avisa una sola vez y no se anota ninguna.
+   * «Completar todo» de una tarjeta (y «Aplicar todos completos» de la pantalla): «encontré todo tal como CAYLA esperaba». Cada variante
+   * que SIGUE pendiente se cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo
+   * responsable, mismo guardado agrupado y en serie, mismo estado y progreso). Las que ya tienen número no se tocan
+   * (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Devuelve cuántas anotó.
    */
   const completarTodo = useCallback(
-    (varianteIds: string[]) => {
-      for (const id of varianteIds) {
+    (varianteIds: string[]): number => {
+      let anotadas = 0;
+      for (const id of pendientesParaCompletar(varianteIds, control.linea)) {
         const l = control.linea(id);
-        if (!l || l.contada !== null) continue;
-        if (!alConfirmar(id, l.debeHaber)) break;
+        if (!l || !alConfirmar(id, l.debeHaber)) break;
+        anotadas++;
       }
+      return anotadas;
     },
     [control, alConfirmar]
   );
+
+  // «Aplicar todos completos»: las que SIGUEN pendientes entre las que se ven (la lista acotada y, si hay texto, lo que deja el buscador).
+  // La pregunta de confirmación lleva la cuenta: `porAplicar` son las variantes que se anotarían.
+  const [porAplicar, setPorAplicar] = useState<string[] | null>(null);
+  const pedirAplicarTodos = useCallback(() => {
+    const visibles = coincidencias === null ? acotadas : acotadas.filter((p) => coincidencias.has(p.varianteId));
+    const ids = pendientesParaCompletar(
+      visibles.map((p) => p.varianteId),
+      control.linea
+    );
+    if (ids.length === 0) {
+      setAviso({ tipo: "texto", texto: "No queda ninguna variante pendiente en esta lista." });
+      return;
+    }
+    setPorAplicar(ids);
+  }, [acotadas, coincidencias, control]);
+  const aplicarTodos = useCallback(() => {
+    const ids = porAplicar ?? [];
+    const n = completarTodo(ids);
+    // Después del bucle: cada anotación borra el aviso de texto anterior (`alConfirmar`), y este es el que debe quedar.
+    if (n > 0) setAviso({ tipo: "texto", texto: `Se anotaron ${n.toLocaleString("es-PE")} ${n === 1 ? "variante" : "variantes"} con lo que CAYLA esperaba. Revisa y confirma al terminar.` });
+  }, [porAplicar, completarTodo]);
 
   const alInvalido = useCallback((t: string) => setAviso({ tipo: "texto", texto: `«${t.trim()}» no es una cantidad. Escribe un número entero: 0 o más.` }), []);
 
@@ -552,7 +578,10 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
               <span>Los productos se muestran en tarjetas. Cada tarjeta crece según el número de tallas del producto.</span>
             )}
           </p>
-          {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
+            {hayVariantes && !vaciaPorAcotar && <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />}
+          </div>
         </div>
 
         {!hayVariantes ? (
@@ -588,6 +617,8 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       </div>
 
       <PieContar control={control} aviso={contenidoAviso} preparando={preparando} alRevisar={() => void revisar()} alCamara={abrirCamara} />
+
+      {porAplicar && <ConfirmarAplicarTodos cuantas={porAplicar.length} alConfirmar={aplicarTodos} onClose={() => setPorAplicar(null)} />}
 
       {alta && (
         <AltaAlVuelo

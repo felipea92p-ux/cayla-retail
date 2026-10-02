@@ -69,10 +69,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     supabase.rpc("campanas_vigentes"),
     // Listas cerradas del modal «Prenda sin registrar» (ADR-0179). Si alguna no carga, la caja
     // sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
-    supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),
     supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
-    // Las tallas de cada categoría (`categoria_tallas`). Si no cargan, el modal ofrece todas: la caja no se cae por esto.
+    // Las tallas de cada categoría (`categoria_tallas`) y sus habituales. Si no cargan, el modal ofrece todas: la caja no se cae por esto.
     getEjesPorCategoria().catch(() => null),
     // Las ventas de hoy de esta sede: la píldora «Hoy» de la cabecera y su lista (spike 2026-09-26). Secundario: si
     // falla, la caja vende igual y la lista lo dice. Siempre esta sede, no un consolidado (para eso está Facturación).
@@ -174,7 +174,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   }
 
   // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
-  // El mismo cierre le dice al cartel «Cerrado» desde cuándo y quién cerró (ADR-0299).
+  // El mismo cierre le dice al cartel «Cerrado» desde cuándo y quién cerró (ADR-0301).
   const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
   const fondoUltimoCierre = ultimoCierre?.montoFondo ?? null;
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
@@ -184,7 +184,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const listasPrendaLibre: ListasPrendaLibre = {
     categorias: categoriasLibre,
     tallas: [...(resTallas.data ?? [])].sort((a, b) => ordenTalla(a.valor, b.valor)),
-    tallasPorCategoria: ejes?.tallas ?? {},
+    tallasPorCategoria: ejes?.tallas ?? null,
+    habitualesPorCategoria: ejes?.habituales ?? {},
     colores: coloresLibre,
     usoColores: usoDeColores(variantes, categoriasLibre, coloresLibre),
   };

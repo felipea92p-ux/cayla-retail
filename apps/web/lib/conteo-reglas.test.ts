@@ -38,6 +38,7 @@ import {
   textoSeActualizaran,
   textoTerminado,
   type LineaConteo,
+  pendientesParaCompletar,
 } from "./conteo-reglas";
 
 // Las reglas del conteo rediseñado que se rompen calladas si nadie las fija:
@@ -1061,5 +1062,23 @@ describe("línea ya ajustada y sin volver a contar (Confirmar no la anuncia como
     // Conteo que nunca se cerró, o pendiente: nada que excluir.
     expect(yaAjustadaSinTocar({ contada: 2, ajustadoTotal: 0, ajustadoAntes: 0 })).toBe(false);
     expect(yaAjustadaSinTocar({ contada: null, ajustadoTotal: -1, ajustadoAntes: 0 })).toBe(false);
+  });
+});
+
+describe("pendientesParaCompletar: a quién llega «Completar todo» y «Aplicar todos completos»", () => {
+  const lineas: Record<string, { contada: number | null }> = { a: { contada: null }, b: { contada: 3 }, c: { contada: 0 }, d: { contada: null } };
+  const lineaDe = (id: string) => lineas[id];
+
+  it("solo las que siguen sin cantidad, en el orden dado", () => {
+    expect(pendientesParaCompletar(["d", "a", "b"], lineaDe)).toEqual(["d", "a"]);
+  });
+  it("un cero ya escrito es una cantidad: no se pisa con lo que debe haber", () => {
+    expect(pendientesParaCompletar(["c"], lineaDe)).toEqual([]);
+  });
+  it("una variante que no está en el conteo no se inventa", () => {
+    expect(pendientesParaCompletar(["zzz", "a"], lineaDe)).toEqual(["a"]);
+  });
+  it("sin variantes no hay nada que completar", () => {
+    expect(pendientesParaCompletar([], lineaDe)).toEqual([]);
   });
 });

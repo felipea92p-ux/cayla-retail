@@ -14,7 +14,7 @@
 
 import { sumarDias } from "./fechas-lima";
 import { LIMITE_HISTORIAL_CONTEO } from "./conteo-inicio-reglas";
-import type { ConteoResumen } from "./conteo-reglas";
+import { resultadoConteo, type ConteoResumen } from "./conteo-reglas";
 
 /**
  * Cuántos conteos pide la página a la base para poder filtrar por día. Una sede hace del orden de 100 conteos al año, así que
@@ -54,29 +54,20 @@ export function textoDiaLargo(dia: string, hoy?: string): string {
   return hoy && dia.slice(0, 4) !== hoy.slice(0, 4) ? `${base} de ${f.getUTCFullYear()}` : base;
 }
 
-/** «Hoy» / «Ayer» / `null`: la palabra que va antes de la fecha en la banda del día. */
-export function rotuloDelDia(dia: string, hoy: string): "Hoy" | "Ayer" | null {
-  if (dia === hoy) return "Hoy";
-  if (dia === sumarDias(hoy, -1)) return "Ayer";
-  return null;
-}
-
 export type GrupoDia = {
+  /** `aaaa-mm-dd`, día de Lima. La lista lo rotula con `etiquetaDia` (la misma de Movimientos): «Hoy», «Ayer», «Sábado, 26 de setiembre». */
   dia: string;
-  rotulo: "Hoy" | "Ayer" | null;
-  /** «miércoles 30 de setiembre». */
-  titulo: string;
   conteos: ConteoResumen[];
 };
 
 /** Junta filas consecutivas del mismo día (Lima), conservando el orden que trae la base. */
-export function agruparPorDia(conteos: readonly ConteoResumen[], hoy: string): GrupoDia[] {
+export function agruparPorDia(conteos: readonly ConteoResumen[]): GrupoDia[] {
   const grupos: GrupoDia[] = [];
   for (const c of conteos) {
     const dia = diaLimaDe(c.creadoEn);
     const ultimo = grupos[grupos.length - 1];
     if (ultimo && ultimo.dia === dia) ultimo.conteos.push(c);
-    else grupos.push({ dia, rotulo: rotuloDelDia(dia, hoy), titulo: textoDiaLargo(dia, hoy), conteos: [c] });
+    else grupos.push({ dia, conteos: [c] });
   }
   return grupos;
 }
@@ -147,11 +138,52 @@ export function hrefRecientes(dia: string | null, variantes: readonly string[] =
   return partes.length === 0 ? "/inventario/conteo" : `/inventario/conteo?${partes.join("&")}`;
 }
 
+/** «Cerrado 11:52», o «Cerrado 01/10 09:05» si cerró otro día que el de apertura; `null` si no cerró (en curso, cancelado). */
+export function textoCierre(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado">): string | null {
+  if (c.estado !== "cerrado" || !c.cerradoEn) return null;
+  const mismoDia = diaLimaDe(c.cerradoEn) === diaLimaDe(c.creadoEn);
+  const [, m, d] = diaLimaDe(c.cerradoEn).split("-");
+  return `Cerrado ${mismoDia ? "" : `${d}/${m} `}${horaLimaDe(c.cerradoEn)}`;
+}
+
 /** «Abierto 11:43 · cerrado 11:52» (al pasar el mouse por la fila). Si cerró otro día, dice cuál: «cerrado 01/10 09:05». */
 export function textoAperturaCierre(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado">): string {
   const abierto = `Abierto ${horaLimaDe(c.creadoEn)}`;
-  if (c.estado !== "cerrado" || !c.cerradoEn) return abierto;
-  const mismoDia = diaLimaDe(c.cerradoEn) === diaLimaDe(c.creadoEn);
-  const [, m, d] = diaLimaDe(c.cerradoEn).split("-");
-  return `${abierto} · cerrado ${mismoDia ? "" : `${d}/${m} `}${horaLimaDe(c.cerradoEn)}`;
+  const cierre = textoCierre(c);
+  return cierre ? `${abierto} · ${cierre.charAt(0).toLowerCase()}${cierre.slice(1)}` : abierto;
+}
+
+/**
+ * La línea de apoyo bajo el resultado: cuándo cerró un conteo cerrado, «Sigue abierto» uno en curso y nada en uno cancelado (no hay
+ * nada que decir de lo que se tiró). Es el equivalente a la ruta «Almacén → Piso» bajo el proceso en Movimientos.
+ */
+export function apoyoDeResultado(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado" | "lineas" | "lineasConDiferencia" | "parcial" | "variantes">): string | null {
+  return resultadoConteo(c) === "en_curso" ? "Sigue abierto" : textoCierre(c);
+}
+
+/**
+ * La cifra de la derecha de la fila, el equivalente a «+1 / quedan 5» de Movimientos: cuántas variantes se verificaron («15»), o «20 de
+ * 37» en un conteo en curso o parcial, que no terminó de verificar todo. Un conteo cancelado no tiene cifra: lo contado se perdió.
+ */
+export function cifraDeConteo(c: Pick<ConteoResumen, "estado" | "lineas" | "lineasConDiferencia" | "parcial" | "variantes">): { cifra: string; unidad: string } | null {
+  const r = resultadoConteo(c);
+  if (r === "cancelado") return null;
+  const incompleto = r === "en_curso" || r === "parcial";
+  const n = incompleto ? c.variantes : c.lineas;
+  return { cifra: incompleto ? `${c.lineas} de ${c.variantes}` : String(c.lineas), unidad: n === 1 ? "variante" : "variantes" };
+}
+
+/** «—» es lo que la lectura pone cuando no sabe el nombre (`conteoResumenDesdeFila`): para esta pantalla es «no hay nombre». */
+const sinNombre = (n: string | null | undefined): boolean => !n || n.trim() === "" || n.trim() === "—";
+
+/**
+ * Quién aparece en la fila del historial. `abrio` es la persona responsable del conteo (la que lo abrió y firma). `cerro` solo
+ * viene cuando un conteo CERRADO tiene el nombre de quien lo cerró y es otra persona: si no se sabe, o es la misma, la fila
+ * dice una sola vez el nombre y no repite «Cerró —». El conteo cerrado con la cuenta de tienda no guarda quién lo cerró
+ * (ADR-0280): eso sigue siendo un hueco de la base, no se «arregla» escondiéndolo aquí; el detalle del conteo lo muestra.
+ */
+export function responsablesDeConteo(c: Pick<ConteoResumen, "estado" | "abiertoPorNombre" | "cerradoPorNombre">): { abrio: string | null; cerro: string | null } {
+  const abrio = sinNombre(c.abiertoPorNombre) ? null : c.abiertoPorNombre.trim();
+  const cerro = c.estado === "cerrado" && !sinNombre(c.cerradoPorNombre) && c.cerradoPorNombre.trim() !== abrio ? c.cerradoPorNombre.trim() : null;
+  return { abrio, cerro };
 }

@@ -61,6 +61,16 @@
  *      de los candados (ficha → invitación); y, con BASE_DESECHABLE=1, dos confirmaciones del mismo enlace a la vez en dos
  *      conexiones reales (un solo evento).
  *
+ * TANDA 1g (ADR-0288 «Actualización 2026-10-01 (g)», 20261001210000…210700). El club ya no se arma en caja ni por el QR
+ * personal: `unirse_al_club`, `registrar_mensaje_publicidad`, `registrar_desde_whatsapp` y `crear_invitacion_club` perdieron
+ * el EXECUTE de `authenticated`, y `fn_invitacion_club` y `confirmar_invitacion_club` el de `anon` y `authenticated` (retiro
+ * SIN borrar las funciones: la historia del club las cita). Esta prueba sigue cuidando su lógica: el PRELUDIO de cada caso
+ * les DEVUELVE el EXECUTE dentro de su transacción, que termina en ROLLBACK (DEVOLVER_RETIRADAS). Los casos de permisos lo
+ * miran ANTES de devolverlo, con la regla nueva. Además la 1g reescribió `archivar_clienta` (la rutina de anonimizar pasó a
+ * fn_clienta_anonimizar), `registrar_baja_whatsapp` (también con «Avisos del club») y `resumen_clienta_caja`, y le sumó tipos
+ * a `club_textos` y el medio `pagina_cartel` a `club_permisos`: pegar HOY esta migración aborta en su candado (la sección
+ * l lo prueba así) y el legado (k) se prueba corriendo solo su bloque. Lo de la 1g: club_registro_cartel.mjs.
+ *
  * USO
  *   pnpm pruebas:club-permisos                   → contra la base `postgres` del stack local (la del CI)
  *   pnpm pruebas:club-permisos --base cayla_x    → contra otra base del mismo contenedor
@@ -112,17 +122,63 @@ const CREADAS = [...MIGRACION.matchAll(/create or replace function (retail\.[a-z
 // el tipo de retorno: lo prueba club_cumpleanos.mjs), así que los casos que vuelven a pegar la 1b (k y l) empiezan por
 // dejar esa función como la dejó la 1b (ANTES_DE_LA_1C, dentro de la transacción que se revierte).
 const PASO_1C = readFileSync(join(RAIZ, "supabase", "migrations", "20260930230200_club_paso1c_parte3_cumpleanos.sql"), "utf8");
-const REHECHAS_1C = ["retail.resumen_clienta_caja"];
-const ANTES_DE_LA_1C = `reset role;\ndrop function if exists retail.resumen_clienta_caja(uuid);\n`;
-/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1c, si
- *  la 1c la rehízo). */
+// La tanda 1g (20261001210700) rehízo resumen_clienta_caja (otra vez: le sumó el vale de aniversario), archivar_clienta y
+// registrar_baja_whatsapp. Su cuerpo vivo es el de ese archivo, y su md5 «después» el de su tabla de versiones.
+const PASO_1G = readFileSync(join(RAIZ, "supabase", "migrations", "20261001210700_club_paso1g_parte8_funciones.sql"), "utf8");
+const VERSIONES_1G = [...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)].map((m) => ({
+  firma: m[1],
+  antes: m[3] ?? null,
+  despues: m[5] ?? null,
+}));
+const REHECHAS_1G = {
+  "retail.resumen_clienta_caja": "create function",
+  "retail.archivar_clienta": "create or replace function",
+  "retail.registrar_baja_whatsapp": "create or replace function",
+};
+// La cadena no se corta: lo que la 1g dice que había antes de archivar_clienta y registrar_baja_whatsapp es lo que dejó la 1b.
+for (const f of ["retail.archivar_clienta(uuid,text,boolean,integer)", "retail.registrar_baja_whatsapp(text,uuid)"]) {
+  const antes1g = VERSIONES_1G.find((v) => v.firma === f)?.antes;
+  const cuerpo1b = (() => {
+    const ini = MIGRACION.indexOf(`create or replace function ${f.slice(0, f.indexOf("("))}(`);
+    const a = MIGRACION.indexOf("$$", ini) + 2;
+    return MIGRACION.slice(a, MIGRACION.indexOf("$$", a));
+  })();
+  const normalizado = cuerpo1b.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "").replace(/\s+/g, "");
+  const md5 = (await import("node:crypto")).createHash("md5").update(normalizado).digest("hex");
+  if (!antes1g || antes1g !== md5) {
+    console.error(`✗ La tabla de versiones de la 1g debería tener como «antes» de ${f} el md5 de su cuerpo en la 1b (${md5}) y tiene ${antes1g}.`);
+    process.exit(1);
+  }
+}
+/** El md5 que cada firma tiene que tener HOY: el «después» de la 1g si la rehízo, o el de esta migración. */
+const despuesHoy = (firma, despues) => {
+  const g = VERSIONES_1G.find((x) => x.firma === firma);
+  return (g ? g.despues : despues) ?? "NO_EXISTE";
+};
+/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g, si
+ *  la 1g la rehízo). */
 const cuerpoDe = (nombre) => {
-  const [texto, crea] = REHECHAS_1C.includes(nombre) ? [PASO_1C, "create function"] : [MIGRACION, "create or replace function"];
+  const [texto, crea] = nombre in REHECHAS_1G ? [PASO_1G, REHECHAS_1G[nombre]] : [MIGRACION, "create or replace function"];
   const ini = texto.indexOf(`${crea} ${nombre}(`);
   const a = texto.indexOf("$$", ini) + 2;
   return texto.slice(a, texto.indexOf("$$", a));
 };
+// El bloque del legado (sección 18), solo: con la 1g encima, la migración entera ya no se puede volver a pegar.
+const BLOQUE_LEGADO = MIGRACION.slice(MIGRACION.indexOf("do $legado$"), MIGRACION.indexOf("$legado$;") + "$legado$;".length);
+if (!BLOQUE_LEGADO.startsWith("do $legado$")) {
+  console.error("✗ No encontré el bloque del legado (do $legado$ … $legado$;) en la migración.");
+  process.exit(1);
+}
 
+// Las que la 1g retiró de la API (sin borrarlas): ni authenticated ni anon.
+const RETIRADAS_1G = [
+  UNIRSE,
+  "retail.registrar_mensaje_publicidad(uuid,text,uuid)",
+  "retail.registrar_desde_whatsapp(text,text,text,text,uuid)",
+  CREAR_INVITACION,
+  LEER_INVITACION,
+  CONFIRMAR_INVITACION,
+];
 // Las que llama la web (EXECUTE solo para authenticated) y los ayudantes internos (sin EXECUTE para la API).
 const DE_LA_WEB = [
   UNIRSE,
@@ -191,7 +247,7 @@ function correr(sql) {
 }
 
 /** Lo que todo caso necesita, dentro de su transacción. */
-const PRELUDIO = `
+const PRELUDIO_BASE = `
 begin;
 set local search_path = retail, public, extensions;
 -- Intenta una sentencia y devuelve «SQLSTATE|hint» si el hint es uno de los nuestros (un identificador estable como
@@ -217,6 +273,12 @@ select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
 `;
+/** Tanda 1g: les devuelve el EXECUTE a las funciones retiradas, dentro de la transacción del caso (que termina en ROLLBACK). */
+const DEVOLVER_RETIRADAS = `reset role;
+grant execute on function ${RETIRADAS_1G.slice(0, 4).join(", ")} to authenticated;
+grant execute on function ${RETIRADAS_1G.slice(4).join(", ")} to anon, authenticated;
+`;
+const PRELUDIO_SIN_DEVOLVER = PRELUDIO_BASE;
 
 /** Cambia de cuenta (sin responsable en el combo). */
 const como = (auth) => `reset role;
@@ -256,8 +318,9 @@ function registrar(nombre, bien, obtenido, esperadoTexto) {
     console.log(`✓ ${nombre}`);
   }
 }
-function caso(nombre, sql, esperadoCaso) {
-  const r = correr(`${PRELUDIO}${sql}\nrollback;`);
+const PRELUDIO = PRELUDIO_SIN_DEVOLVER + DEVOLVER_RETIRADAS;
+function caso(nombre, sql, esperadoCaso, preludio = PRELUDIO) {
+  const r = correr(`${preludio}${sql}\nrollback;`);
   const obtenido = r.ok ? r.salida : `ERROR_DE_SCRIPT ${r.mensaje.split("\n").find((l) => l.includes("ERROR")) ?? r.mensaje}`;
   const bien = typeof esperadoCaso === "function" ? esperadoCaso(obtenido) : obtenido === esperadoCaso;
   registrar(nombre, bien, obtenido, typeof esperadoCaso === "function" ? "(condición)" : esperadoCaso);
@@ -549,17 +612,21 @@ select count(*) from pg_policy where polrelid in ('retail.club_permisos'::regcla
   "0\nclub_permisos:true,club_textos:true\n0\n42501|permission denied for table club_permisos\n42501|permission denied for table club_textos"
 );
 caso(
-  "(d) los ayudantes no los ejecuta nadie de la API (ni PUBLIC); las funciones de la web, solo authenticated (no anon)",
+  "(d) los ayudantes no los ejecuta nadie de la API (ni PUBLIC); las funciones de la web, solo authenticated (no anon); las que retiró la 1g, nadie",
   `select bool_or(has_function_privilege('anon', f::regprocedure, 'execute') or has_function_privilege('authenticated', f::regprocedure, 'execute'))
   from unnest(array[${AYUDANTES.map((f) => `'${f}'`).join(", ")}]) f;
 select bool_or(a.grantee = 0) from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
  where p.oid in (${[...AYUDANTES, ...DE_LA_WEB, ...DE_LA_PAGINA].map((f) => `'${f}'::regprocedure`).join(", ")}) and a.privilege_type = 'EXECUTE';
 select bool_and(has_function_privilege('authenticated', f::regprocedure, 'execute')), bool_or(has_function_privilege('anon', f::regprocedure, 'execute'))
-  from unnest(array[${DE_LA_WEB.map((f) => `'${f}'`).join(", ")}]) f;
+  from unnest(array[${DE_LA_WEB.filter((f) => !RETIRADAS_1G.includes(f)).map((f) => `'${f}'`).join(", ")}]) f;
 select bool_and(prosecdef) from pg_proc where oid in (${AYUDANTES.map((f) => `'${f}'::regprocedure`).join(", ")});
 select bool_and(prosecdef and array_to_string(proconfig, ',') = 'search_path=retail, public, extensions') from pg_proc where oid in (${DE_LA_WEB.map((f) => `'${f}'::regprocedure`).join(", ")});
+-- Tanda 1g: las retiradas, ni authenticated ni anon (la regla nueva; este caso corre SIN devolverles el EXECUTE).
+select bool_or(has_function_privilege('anon', f::regprocedure, 'execute') or has_function_privilege('authenticated', f::regprocedure, 'execute'))
+  from unnest(array[${RETIRADAS_1G.map((f) => `'${f}'`).join(", ")}]) f;
 `,
-  "f\nf\nt|f\nf\nt"
+  "f\nf\nt|f\nf\nt\nf",
+  PRELUDIO_SIN_DEVOLVER
 );
 
 // =====================================================================================================================
@@ -757,7 +824,7 @@ caso(
   `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
     como(MICAELA) +
     `select tipo || '|' || version || '|' || (texto = case tipo when 'club' then $t$${TEXTO_CLUB}$t$ when 'mensaje_personal' then $t$${TEXTO_PERSONAL}$t$ when 'pagina_publicidad' then $t$${TEXTO_PAGINA}$t$ else $t$${TEXTO_GENERICO}$t$ end)
-  from retail.fn_club_textos_vigentes() order by tipo;
+  from retail.fn_club_textos_vigentes() where tipo in ('club', 'mensaje_personal', 'mensaje_generico', 'pagina_publicidad') order by tipo;
 ` + comoAnon + intento(`select * from retail.fn_club_textos_vigentes()`),
   (s) => {
     const l = s.split("\n");
@@ -831,7 +898,7 @@ function correrConAvisos(sql) {
 }
 {
   const nombre =
-    "(k) legado: el permiso marcado en caja pasa a socia SIN publicidad (su fecha como club_desde, código, celular normalizado y un evento `legado` con esa fecha); sin celular válido o sin documento queda fuera, y el aviso los cuenta";
+    "(k) legado (su bloque, la sección 18, corrido dos veces: con la 1g encima la migración entera ya no se vuelve a pegar): el permiso marcado en caja pasa a socia SIN publicidad (su fecha como club_desde, código, celular normalizado y un evento `legado` con esa fecha); sin celular válido o sin documento queda fuera, y el aviso los cuenta";
   const r = correrConAvisos(
     `${PRELUDIO}insert into retail.clientas (documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en) values
   ('90661001', 'Legado Bien Prueba', '+51 966 100 101', '2026-06-01 10:00-05') returning id as bien \\gset
@@ -839,13 +906,14 @@ insert into retail.clientas (documento_numero, nombre, telefono_whatsapp, whatsa
   values ('90661002', 'Legado Sin Celular Prueba', '12345', now()) returning id as sin_cel \\gset
 insert into retail.clientas (nombre, telefono_whatsapp, whatsapp_consentimiento_en)
   values ('Legado Sin Documento Prueba', '966100301', now()) returning id as sin_doc \\gset
-${ANTES_DE_LA_1C}${MIGRACION}
+reset role;
+${BLOQUE_LEGADO}
 set local search_path = retail, public, extensions;
 select telefono_whatsapp, club_desde = '2026-06-01 10:00-05'::timestamptz, codigo_club ~ '^C-[0-9]{4,}$', publicidad_desde is null from retail.clientas where id = :'bien';
 select finalidad || ':' || accion || ':' || medio, created_at = '2026-06-01 10:00-05'::timestamptz, texto_version is null, registrado_por is null, nota
   from retail.club_permisos where clienta_id = :'bien';
 select count(*) from retail.clientas where id in (:'sin_cel', :'sin_doc') and club_desde is null;
-${MIGRACION}
+${BLOQUE_LEGADO}
 select ${EVENTOS("bien")};
 rollback;
 `
@@ -1181,7 +1249,7 @@ caso(
   "usada|true\nusada\n0|t"
 );
 caso(
-  "(o) anon (ni authenticated) no lee ni escribe club_invitaciones ni club_permisos directo; club_invitaciones con RLS y sin políticas; la página: EXECUTE para anon y authenticated, crear solo authenticated; las tres security definer con su search_path, la lectura stable; y anon entra al schema retail",
+  "(o) anon (ni authenticated) no lee ni escribe club_invitaciones ni club_permisos directo; club_invitaciones con RLS y sin políticas; la página y crear: retiradas por la 1g (ni anon ni authenticated); las tres security definer con su search_path, la lectura stable; y anon entra al schema retail",
   `select ${["club_invitaciones", "club_permisos"]
     .flatMap((t) => ["anon", "authenticated"].flatMap((r) => ["select", "insert", "update", "delete"].map((p) => `has_table_privilege('${r}', 'retail.${t}', '${p}')`)))
     .map((e) => `(${e})::int`)
@@ -1193,18 +1261,19 @@ select bool_and(prosecdef and array_to_string(proconfig, ',') = 'search_path=ret
        string_agg(proname || ':' || provolatile::text, ',' order by proname)
   from pg_proc where oid in ('${CREAR_INVITACION}'::regprocedure, '${LEER_INVITACION}'::regprocedure, '${CONFIRMAR_INVITACION}'::regprocedure);
 select has_schema_privilege('anon', 'retail', 'usage');
-` +
+` + DEVOLVER_RETIRADAS +
     como(FELIPE) + SOCIA("f", "90663001", "Acceso Directo Prueba", "966300101") + INVITAR("f") + comoAnon +
     intento(`select count(*) from retail.club_invitaciones`) +
     intento(`select count(*) from retail.club_permisos`) +
     intentoCon(`update retail.club_invitaciones set usada_en = now(), texto_version = 1 where token = %L`, ":'f_token'") +
     intentoCon(`insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version) values (%L, 'publicidad_whatsapp', 'otorga', 'qr_web', 'pagina_publicidad', 1)`, ":'f'") +
     como(FELIPE) + intento(`select count(*) from retail.club_invitaciones`),
-  "0\nt|0\nanon:true,authenticated:true,anon:false,authenticated:true,anon:true,authenticated:true\n" +
+  "0\nt|0\nanon:false,authenticated:false,anon:false,authenticated:false,anon:false,authenticated:false\n" +
     "t|confirmar_invitacion_club:v,crear_invitacion_club:v,fn_invitacion_club:s\nt\n" +
     "42501|permission denied for table club_invitaciones\n42501|permission denied for table club_permisos\n" +
     "42501|permission denied for table club_invitaciones\n42501|permission denied for table club_permisos\n" +
-    "42501|permission denied for table club_invitaciones"
+    "42501|permission denied for table club_invitaciones",
+  PRELUDIO_SIN_DEVOLVER
 );
 {
   const QR = (cols, vals) => `insert into retail.club_permisos (clienta_id, finalidad, accion, medio${cols}) values (%L, ${vals})`;
@@ -1272,14 +1341,14 @@ caso(
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
-  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen)",
+  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen; archivar_clienta, con el de la 1g, que la rehízo)",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
-  VERSIONES.map((v) => v.despues ?? "NO_EXISTE").join("\n")
+  VERSIONES.map((v) => despuesHoy(v.firma, v.despues)).join("\n")
 );
 caso(
-  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una)`,
+  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una; las tres que rehízo la 1g, con el suyo)`,
   CREADAS.map(
     (f) =>
       `select '${f}' || ':' || count(*) || ':' || bool_and(${md5Norm("p.prosrc")} = ${md5Norm(`$cuerpo_1b$${cuerpoDe(f)}$cuerpo_1b$`)}) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = '${f.slice(7)}';\n`
@@ -1316,20 +1385,28 @@ select md5(string_agg(x, '|' order by x)) from (
 ) f(x);
 `;
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
+// POR QUÉ CAMBIÓ CON LA TANDA 1g. Hasta la 1g, aquí se pegaba la migración otra vez sobre la base (idempotencia). Con la 1g
+// encima, pegarla otra vez YA NO debe funcionar: su candado ve archivar_clienta con el md5 de la 1g (ni su «antes» ni su
+// «después») y aborta. Es lo correcto: si pasara, le devolvería a archivar_clienta y a club_textos/club_permisos su forma de
+// la 1b (sin la rutina de anonimizar del cron, sin los textos ni el medio de la página del cartel). La idempotencia de la
+// 1g la prueba club_registro_cartel.mjs. Lo que queda aquí: que pegar HOY esta migración aborta y no pisa nada, y que la
+// PARTE 1 (solo `ubicaciones`), que no tiene nada que la 1g cambiara, sigue pegándose dos veces sin cambiar nada.
 caso(
-  "(l) pegarla otra vez (entera, las dos partes) deja todo igual: funciones, permisos, columnas, candados, índices, disparadores, RLS y textos (sobre la base como la dejó la 1b)",
-  ANTES_DE_LA_1C + PEGAR + FOTO + PEGAR + FOTO,
-  (s) => {
-    const l = s.split("\n").filter(Boolean);
-    return l.length === 2 && l[0] === l[1];
-  }
+  "(l) pegar HOY la migración entera (con la 1g encima) aborta en su candado: archivar_clienta ya es la de la 1g",
+  PEGAR,
+  (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("retail.archivar_clienta(uuid,text,boolean,integer) cambió desde que se escribió esta migración")
 );
 caso(
-  "(l) y cada parte por separado, en orden y dos veces (como en el SQL Editor), también",
-  ANTES_DE_LA_1C + PEGAR + FOTO + `reset role;\n${PARTE_1}\n${PARTE_1}\n${PARTE_2}\n${PARTE_2}\nset local search_path = retail, public, extensions;\n` + FOTO,
+  "(l) …y no pisa NADA: funciones, permisos, columnas, candados, índices, disparadores, RLS y textos como estaban; y la PARTE 1 sola, dos veces, tampoco cambia nada",
+  FOTO +
+    `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${MIGRACION}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+    `set local search_path = retail, public, extensions;\n` +
+    FOTO +
+    `reset role;\n${PARTE_1}\n${PARTE_1}\nset local search_path = retail, public, extensions;\n` +
+    FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
-    return l.length === 2 && l[0] === l[1];
+    return l.length === 3 && l[0] === l[1] && l[1] === l[2];
   }
 );
 // Una función cambiada en vivo (md5 que no es ni «antes» ni «después»): la migración aborta con un mensaje claro y no pisa.
@@ -1365,15 +1442,19 @@ caso(
   (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("Falta la PARTE 1")
 );
 caso(
-  "(l) las funciones nuevas que guardan empiezan por el módulo «Clientas» y firman con el responsable del combo (fn_actor_persona_id(true)); la de la tienda, con el permiso de Configuración",
+  "(l) las funciones nuevas que guardan empiezan por el módulo «Clientas» y firman con el responsable del combo (fn_actor_persona_id(true)); la de la tienda, con el permiso de Configuración; la BAJA (tanda 1g), con «Clientas» o «Avisos del club»",
   `select string_agg(p.proname || ':' || (regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
             ~ '^(#variable_conflictuse_column)?declare.*?beginperformretail\\.fn_exigir_modulo\\(''clientas''\\);v_persona:=retail\\.fn_actor_persona_id\\(true\\);'), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace
-   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_baja_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'unir_clientas', 'crear_invitacion_club');
+   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'unir_clientas', 'crear_invitacion_club');
+-- Tanda 1g (G-7): la BAJA, con el módulo «Clientas» o «Avisos del club», y después el responsable del combo.
+select regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
+         ~ '^declare.*?beginifnot\\(retail\\.fn_ve_modulo\\(''clientas''\\)orretail\\.fn_ve_modulo\\(''avisos_club''\\)\\)thenperformretail\\.fn_exigir_modulo\\(''clientas''\\);endif;v_persona:=retail\\.fn_actor_persona_id\\(true\\);'
+  from pg_proc p where p.oid = 'retail.registrar_baja_whatsapp(text,uuid)'::regprocedure;
 select prosrc ~ 'if not retail\\.fn_puede_configurar\\(\\) then' and prosrc ~ 'fn_actor_persona_id\\(true\\)' from pg_proc where oid = 'retail.guardar_whatsapp_tienda(uuid,text)'::regprocedure;
 select prosrc !~ 'fn_exigir_modulo' from pg_proc where oid = 'retail.fn_club_textos_vigentes()'::regprocedure;
 `,
-  "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_baja_whatsapp:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unir_clientas:true,unirse_al_club:true\nt\nt"
+  "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unir_clientas:true,unirse_al_club:true\nt\nt\nt"
 );
 
 // Sin base de datos: lo que el SQL Editor ve del archivo. Fuera de los cuerpos `$…$` y de los comentarios: los textos entre
@@ -1478,7 +1559,8 @@ const cajaA = (app, ficha, celular, fin) => `set application_name = '${app}';
 begin;
 set local search_path = retail, public, extensions;
 update retail.configuracion_empresa set exige_responsable = false;
-${como(FELIPE)}select codigo_club from retail.unirse_al_club('${ficha}', '${celular}');
+${como(FELIPE)}reset role;
+select codigo_club from retail.unirse_al_club('${ficha}', '${celular}');
 select pg_sleep(3);
 ${fin};
 `;
@@ -1520,7 +1602,8 @@ exception when others then
 end $f$;
 grant execute on function pg_temp.donde_espera(text) to authenticated;
 set local lock_timeout = '1s';
-${como(FELIPE)}select pg_temp.donde_espera($q$select * from retail.unirse_al_club('${id}', '${celular}')$q$);
+${como(FELIPE)}reset role;
+select pg_temp.donde_espera($q$select * from retail.unirse_al_club('${id}', '${celular}')$q$);
 rollback;
 `);
     const ra = await a;
@@ -1546,7 +1629,8 @@ if (process.env.BASE_DESECHABLE === "1") {
       const b = await psqlEnParalelo(`${esperarA(app)}begin;
 set local search_path = retail, public, extensions;
 update retail.configuracion_empresa set exige_responsable = false;
-${como(FELIPE)}select codigo_club from retail.unirse_al_club('${id}', '${celular}');
+${como(FELIPE)}reset role;
+select codigo_club from retail.unirse_al_club('${id}', '${celular}');
 commit;
 `);
       const ra = await a;
@@ -1574,6 +1658,7 @@ if (process.env.BASE_DESECHABLE === "1") {
 set local search_path = retail, public, extensions;
 update retail.configuracion_empresa set exige_responsable = false;
 ${como(FELIPE)}select retail.registrar_clienta('dni', '${doc}', 'Prueba Carrera Pagina Socia', '${cel}') as f \\gset
+reset role;
 select codigo_club as c from retail.unirse_al_club(:'f', '${cel}') \\gset
 select :'f' || '|' || token from retail.crear_invitacion_club(:'f', null);
 commit;`);
@@ -1582,13 +1667,15 @@ commit;`);
       const app = `club_pagina_a_${Date.now()}`;
       const a = psqlEnParalelo(`set application_name = '${app}';
 begin;
-${comoAnon}select retail.confirmar_invitacion_club('${token}', 1);
+reset role;
+select retail.confirmar_invitacion_club('${token}', 1);
 select pg_sleep(3);
 commit;
 `);
       await dormir(100);
       const b = await psqlEnParalelo(`${esperarA(app)}begin;
-${comoAnon}select clock_timestamp() as t0 \\gset
+reset role;
+select clock_timestamp() as t0 \\gset
 select retail.confirmar_invitacion_club('${token}', 1);
 select extract(epoch from clock_timestamp() - :'t0'::timestamptz) > 1;
 commit;

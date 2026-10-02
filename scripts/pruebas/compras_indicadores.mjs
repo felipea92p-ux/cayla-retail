@@ -31,6 +31,8 @@
  * todavía «hoy») hay pruebas que REEMPLAZAN `fn_hoy_lima()` dentro de la transacción
  * (`create or replace function`, transaccional en Postgres: el ROLLBACK la devuelve a como
  * estaba y otras sesiones nunca la ven). Así el borde se prueba a cualquier hora del día.
+ * Las fechas escritas a mano (25-sep, 28-dic, 25-feb, 1-sep, 1-mar) solo aparecen con el reloj
+ * fijado así: dicen lo mismo el día que corra la prueba.
  *
  * HALLAZGOS. Una prueba marcada `[HALLAZGO Hn]` afirma lo que la función DEBERÍA hacer según
  * su propia documentación y hoy no lo hace. No cuenta como fallo del script (sale con ⚠ y se

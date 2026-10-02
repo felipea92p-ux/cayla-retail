@@ -658,7 +658,7 @@ Y dos reglas que van encima del porcentaje:
 > 2026-09-15, por decisión explícita de Felipe, **la base no autoriza un descuento mayor a 35% para nadie, ni
 > siquiera para Felipe** (la razón de entonces: la base solo distinguía líder de colaborador; desde el 2026-09-23
 > sí distingue al Admin con `fn_es_admin()`, ADR-0178, pero la regla de más de 35% no se volvió a revisar); superarlo de verdad se resuelve fuera del sistema, en Studio. **Desde el 2026-10-01 ya no hay código de descuento**
-> (`20261001150000_descuento_sin_codigo.sql`, Felipe: «con el argumento bastaba»): una colaboradora o una terminal de caja
+> (`20261002100000_descuento_sin_codigo.sql`, Felipe: «con el argumento bastaba»): una colaboradora o una terminal de caja
 > descuenta con motivo y, pasado el 15 %, argumento; sin tope de %, solo el costo de la prenda. Además,
 > desde el 2026-09-22 (D-67) existe un segundo candado, a nivel de VENTA y no de línea: `colaboradores.tope_descuento_pct`
 > (10% por defecto para cada colaboradora, sin tope para el líder), que exige autorización de un líder activo para

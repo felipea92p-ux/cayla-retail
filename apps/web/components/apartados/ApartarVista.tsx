@@ -17,7 +17,7 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
@@ -76,9 +76,9 @@ const BOTON_PRINCIPAL =
 const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
-// Misma regla que la caja y que `separar_prendas`: el precio rebajado se redondea hacia abajo a .90 (ADR-0182).
+// Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
 const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
-const precioFinal = (p: VarianteBusqueda) => p.precio - descuentoCampana(p);
+const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
 
 const FORMULARIO_VACIO = {
   nombres: "",
@@ -208,7 +208,12 @@ export function ApartarVista({
   // queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
-  const total = lineas.reduce((a, l) => a + precioFinal(porId.get(l.varianteId)!) * l.cantidad, 0);
+  const total = totalDeLineas(
+    lineas.map((l) => {
+      const p = porId.get(l.varianteId)!;
+      return { cantidad: l.cantidad, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) };
+    }),
+  );
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
@@ -657,7 +662,7 @@ export function ApartarVista({
                             </button>
                           </span>
                           <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(precioFinal(pr) * l.cantidad)}</span>
+                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
                         </div>
                         <p className="mt-2 text-[11px] text-taupe-profundo">
                           {pedido && l.varianteId === pedido.varianteId

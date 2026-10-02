@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Cake, ChevronDown, ChevronUp, Lock, Search, UserPlus, UserRound, X } from "lucide-react";
+import { Cake, ChevronDown, ChevronUp, Gift, Lock, QrCode, Search, UserPlus, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -12,23 +12,21 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Chip } from "@/components/ui/Chip";
-import { InvitarAlClub, QrDeLaSociaHoja } from "@/components/punto-de-venta/InvitarAlClub";
-import { CampoCelular, CamposCumpleanos } from "@/components/clientas/club-piezas";
 import type { ClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useEsperaDelCartel } from "@/components/punto-de-venta/useEsperaDelCartel";
 import {
   cajaDelClub,
   camposDeRegistrar,
-  celularParaInvitar,
-  cumpleDelResumen,
   estadoEnLaLibreta,
+  filaDelCartel,
   lineaDeLaClientaEnCaja,
-  problemaCelularOpcional,
+  nombreSuficiente,
   type CajaDelClub,
-  type ClubDeLaCaja,
   type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
-import { CUMPLE_VACIO, cajaDelProblemaCumple, cumpleParaGuardar, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
+import { codigoClubLegible } from "@/lib/club-reglas";
 import { ayudaCumpleFueraDeMes, filaDelCumple, type AccionCumple, type FilaCumple } from "@/lib/club-cumple-canje-reglas";
+import { filaDelVale, type AccionVale, type FilaVale } from "@/lib/club-aniversario-canje-reglas";
 import {
   altaDesdeBusqueda,
   filaDeClienta,
@@ -51,7 +49,7 @@ const BOTON_CHICO_PRIMARIO =
   "label-cayla h-7 shrink-0 rounded-md bg-tinta px-2.5 text-[10.5px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BOTON_CHICO_SECUNDARIO =
   "label-cayla h-7 shrink-0 rounded-md border border-tinta/25 bg-papel px-2.5 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50";
-/** Con lo del club plegado, sus acciones como píldoras (spike, `accion` de `partesClub`): «Canjear 10 %». */
+/** Con lo del club plegado, sus acciones como píldoras (spike, `accion` de `partesClub`): «Canjear 10 %», «Usar vale S/ 30». */
 const PILDORA_ACCION =
   "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-xs leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
@@ -61,27 +59,25 @@ const PILDORA_ACCION =
  * comprobante (`onElegir`), la venta queda en su ficha (`p_cliente_id`, ADR-0288 D-1), y la proforma o el apartado ya saben
  * a nombre de quién van.
  *
- * Registrar en el ticket (ADR-0288 D-9): si no está en la libreta, se registra en la misma hoja, sin salir del cobro —tipo
- * de documento (DNI por defecto) y número; con DNI el nombre llega del padrón y, si el padrón no responde, se escribe a mano
- * (principio 9)—, con su celular y su cumpleaños si los da, y queda elegida para esta venta. Registrarse NO es unirse al
- * club: eso es «Invitar», dentro de su caja.
+ * Registrar en el ticket (ADR-0288 D-9 y tanda 1g, G-2): si no está en la libreta, se registra en la misma hoja, sin salir
+ * del cobro, SOLO con su documento —tipo (DNI por defecto) y número; con DNI el nombre llega del padrón y, si el padrón no
+ * responde, se escribe a mano (principio 9); con carné o pasaporte, el nombre se escribe—, y queda elegida para esta venta.
+ * El celular y el cumpleaños los escribe ella al unirse desde el cartel.
  *
  * `puedeBuscar` (ADR-0249, actualización 2026-09-28): la libreta es del módulo «Clientas». Qué se muestra sin él lo decide
  * `filaDeClienta` (lib/clienta-ticket-reglas.ts, con pruebas): sin clienta, la fila no aparece y se vende igual.
  *
- * El club (ADR-0288, tanda 1b), dibujado como el spike del club (`clientaDelTicketHTML` de `45-club-caja.js`, rama
- * `claude/spyke-club-clientas-visual-631f7a`): UNA sola caja con el nombre, el documento y el estado arriba («Identificada»
- * o «Socia» y su publicidad), y lo del club DENTRO de la misma caja:
- *   · socia: su cumpleaños, plegado por defecto (la flecha lo abre). Sin publicidad, su chip abre su QR (camino B: la
- *     página de CAYLA donde ella la pide; la hoja se actualiza sola y el chip pasa a «Publicidad», ADR-0288 act. c).
- *     En su mes (tanda 1c, D-5), la fila del cumpleaños trae «Canjear 10 %» —y plegada, la misma acción como píldora—;
- *     canjeado, el candado. Qué dice lo decide `filaDelCumple` (lib/club-cumple-canje-reglas.ts); si está aplicado lo sabe
- *     el Punto de venta (`clubDeLaClienta`), porque el ticket y el cobro lo usan cuando esta caja ya no está;
- *   · no socia: «No es del club todavía — Invitar / Ahora no», en cada compra (CL-8); «Ahora no» deja solo el enlace
- *     «Invitar al club» en esta venta.
- * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas); lo que se sabe de ella vive en
- * `PuntoDeVenta` (`useClubDeLaClienta`), porque esta caja se desmonta al pasar a cobrar. Si la lectura falla, la caja queda
- * como antes del club y la venta sigue (principio 9).
+ * El club, dibujado como el spike del club (`clientaDelTicketHTML` de `45-club-caja.js`, commit 94f2dece): UNA sola caja con
+ * el nombre, el documento y el estado arriba («Identificada» o «Socia» y su publicidad), y lo del club DENTRO de la misma caja:
+ *   · socia: su cumpleaños y su vale de aniversario, plegados por defecto (la flecha los abre). En su mes (tanda 1c, D-5), la
+ *     fila del cumpleaños trae «Canjear 10 %»; con un vale disponible (tanda 1g, G-13), «Usar vale» —y plegada, las mismas
+ *     acciones como píldoras—. Va una sola ventaja del club por compra: con una puesta, la otra se apaga y dice por qué. Qué
+ *     dicen lo deciden `filaDelCumple` y `filaDelVale`; si están aplicados lo sabe el Punto de venta (`clubDeLaClienta`),
+ *     porque el ticket y el cobro los usan cuando esta caja ya no está;
+ *   · no socia (tanda 1g, G-2): «Pídele que escanee el cartel del club», en cada compra. Mientras la caja está a la vista,
+ *     vuelve a leer su resumen cada 3 s (`useEsperaDelCartel`) y, cuando ella se une con ese documento, pasa sola a «Socia».
+ * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas). Si la lectura falla, la caja queda como antes
+ * del club y la venta sigue (principio 9).
  */
 export function ClientaDelTicket({
   clienta,
@@ -91,9 +87,7 @@ export function ClientaDelTicket({
   puedeBuscar,
   responsable,
   onHojaAbierta,
-  club,
   clubDeLaClienta,
-  ubicacionId,
 }: {
   clienta: ClientaDelTicket | null;
   onElegir: (c: ClientaDelTicket) => void;
@@ -104,35 +98,35 @@ export function ClientaDelTicket({
   responsable: ControlResponsable;
   /** Avisa si la hoja está abierta: mientras lo esté, el Punto de venta no manda teclas al escáner ni atiende F1–F5. */
   onHojaAbierta?: (abierta: boolean) => void;
-  /** Los textos del club y el WhatsApp de esta tienda, leídos por el servidor (vacíos si fallaron: sin «Invitar» ni QR). */
-  club: ClubDeLaCaja;
   /** Lo que se sabe de la clienta elegida frente al club (`useClubDeLaClienta`, en el Punto de venta). */
   clubDeLaClienta: ClubDeLaClienta;
-  ubicacionId: string;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [invitando, setInvitando] = useState(false);
-  const [viendoQr, setViendoQr] = useState(false);
   const fila = filaDeClienta(clienta, puedeBuscar);
   const lectura = clubDeLaClienta.lectura;
   const resumen = lectura.estado === "listo" ? lectura.resumen : null;
-  const caja: CajaDelClub = clienta
-    ? cajaDelClub({ lectura, puedeInvitar: puedeBuscar, club, ahoraNo: clubDeLaClienta.ahoraNo, ficha: clienta })
-    : { tipo: "nada" };
-  // La hoja de invitar no depende de `caja`: al unirse, la caja pasa a «Socia» y la MISMA hoja tiene que seguir abierta
-  // para mostrar su QR.
-  const invitandoA = invitando && clienta ? clienta : null;
-  // Tampoco depende de su publicidad: cuando ella confirma, el chip pasa a «Publicidad» y la hoja sigue abierta en «Listo».
-  const qrDe = viendoQr && clienta && caja.tipo === "socia" ? { clienta, codigo: caja.codigo } : null;
+  const caja: CajaDelClub = clienta ? cajaDelClub({ lectura, ficha: clienta }) : { tipo: "nada" };
   const buscando = abierto && (fila === "agregar" || fila === "elegida");
-  const hojaVisible = buscando || invitandoA !== null || qrDe !== null;
+
+  // Mientras la caja de una clienta que no es socia está a la vista, se pregunta si ya se unió desde el cartel (G-2).
+  const espera = useEsperaDelCartel({
+    clientaId: clienta?.id ?? null,
+    activa: caja.tipo === "identificada" && !caja.sinDocumento,
+    onSocia: (nuevo) => {
+      clubDeLaClienta.seUnio(nuevo);
+      const codigo = codigoClubLegible(nuevo.codigoClub);
+      avisar.exito(`${clienta ? lineaDeClienta(clienta).titulo : "La clienta"} ya es del club`, {
+        detalle: codigo ? `Se unió desde el cartel. Su código: ${codigo}.` : "Se unió desde el cartel.",
+      });
+    },
+  });
 
   // La limpieza cubre también que la fila se desmonte con la hoja abierta (el ticket pasa a «cobrar», o de columna a hoja).
   useEffect(() => {
-    if (!hojaVisible || !onHojaAbierta) return;
+    if (!buscando || !onHojaAbierta) return;
     onHojaAbierta(true);
     return () => onHojaAbierta(false);
-  }, [hojaVisible, onHojaAbierta]);
+  }, [buscando, onHojaAbierta]);
 
   if (fila === "nada") return null;
 
@@ -140,8 +134,18 @@ export function ClientaDelTicket({
   const hayFilas = caja.tipo === "socia";
   const abiertaLaCaja = hayFilas && clubDeLaClienta.abierta;
   // El canje del cumpleaños (tanda 1c): null = nada del canje, la fila sigue con lo de la 1b (su fecha o «Sin cumpleaños»).
-  const filaCumple = caja.tipo === "socia" ? filaDelCumple(clubDeLaClienta.cumple, clubDeLaClienta.cumpleAplicado, resumen?.cumpleCanjeadoEl ?? null) : null;
+  const filaCumple =
+    caja.tipo === "socia"
+      ? filaDelCumple(clubDeLaClienta.cumple, clubDeLaClienta.cumpleAplicado, resumen?.cumpleCanjeadoEl ?? null, undefined, clubDeLaClienta.valeAplicado)
+      : null;
+  // El vale de aniversario (tanda 1g): null = no tiene un vale disponible.
+  const filaVale = caja.tipo === "socia" ? filaDelVale(clubDeLaClienta.vale, clubDeLaClienta.valeAplicado, clubDeLaClienta.cumpleAplicado) : null;
   const alCumple = (accion: AccionCumple) => (accion === "canjear" ? clubDeLaClienta.canjearCumple() : clubDeLaClienta.quitarCumple());
+  const alVale = (accion: AccionVale) => (accion === "usar" ? clubDeLaClienta.usarVale() : clubDeLaClienta.quitarVale());
+  const pildoras = [
+    filaCumple?.tipo === "canje" ? { clave: "cumple", icono: Cake, ...filaCumple.pildora, ayuda: filaCumple.ayuda, alTocar: () => filaCumple.pildora.accion && alCumple(filaCumple.pildora.accion) } : null,
+    filaVale ? { clave: "vale", icono: Gift, ...filaVale.pildora, ayuda: filaVale.ayuda, alTocar: () => filaVale.pildora.accion && alVale(filaVale.pildora.accion) } : null,
+  ].filter((p) => p !== null);
 
   return (
     <div className="px-5 pt-3">
@@ -160,7 +164,7 @@ export function ClientaDelTicket({
               {caja.tipo !== "nada" && (
                 <span className="anim-revelar mt-1 flex flex-wrap gap-1">
                   {caja.tipo === "socia" ? <Chip tono="neutro">Socia</Chip> : <Chip tono="pizarra">Identificada</Chip>}
-                  {caja.tipo === "socia" && <ChipPublicidad publicidad={caja.publicidad} onQr={() => setViendoQr(true)} bloqueado={bloqueado} />}
+                  {caja.tipo === "socia" && <ChipPublicidad publicidad={caja.publicidad} />}
                 </span>
               )}
             </div>
@@ -188,8 +192,8 @@ export function ClientaDelTicket({
           </div>
 
           {caja.tipo === "socia" && abiertaLaCaja && (
-            // Las filas de adentro (spike, `filaTarjeta`): su cumpleaños, con el canje en su mes (1c). El regalo de
-            // aniversario (paso 5) y «su pedido» (1d) vendrán como filas iguales a esta.
+            // Las filas de adentro (spike, `filaTarjeta`): su cumpleaños, con el canje en su mes (1c), y su vale de aniversario
+            // (1g). «Su pedido» (1d) vendrá como otra fila igual.
             <div className="anim-revelar">
               {filaCumple ? (
                 <FilaCumpleDelClub fila={filaCumple} bloqueado={bloqueado} onAccion={alCumple} />
@@ -202,27 +206,28 @@ export function ClientaDelTicket({
                   <b className="font-semibold">Sin cumpleaños</b>
                 </FilaDelClub>
               )}
+              {filaVale && <FilaValeDelClub fila={filaVale} bloqueado={bloqueado} onAccion={alVale} />}
             </div>
           )}
 
-          {caja.tipo === "socia" && !abiertaLaCaja && filaCumple?.tipo === "canje" && (
-            // Plegada, la acción a la vista como píldora (spike: «la tarjeta nace plegada y las acciones son botones»).
+          {caja.tipo === "socia" && !abiertaLaCaja && pildoras.length > 0 && (
+            // Plegada, las acciones a la vista como píldoras (spike: «la tarjeta nace plegada y las acciones son botones»).
             <div className="anim-revelar flex flex-wrap gap-1.5 border-t border-sand px-3 py-1.5">
-              <button
-                type="button"
-                onClick={() => filaCumple.pildora.accion && alCumple(filaCumple.pildora.accion)}
-                disabled={bloqueado || filaCumple.pildora.accion === null}
-                title={filaCumple.ayuda}
-                className={PILDORA_ACCION}
-              >
-                <Cake className="h-3 w-3" aria-hidden />
-                {filaCumple.pildora.texto}
-              </button>
+              {pildoras.map(({ clave, icono: Icono, texto, accion, ayuda, alTocar }) => (
+                <button key={clave} type="button" onClick={alTocar} disabled={bloqueado || accion === null} title={ayuda} className={PILDORA_ACCION}>
+                  <Icono className="h-3 w-3" aria-hidden />
+                  {texto}
+                </button>
+              ))}
             </div>
           )}
 
-          {caja.tipo === "identificada" && caja.invitar && (
-            <TarjetaInvitar invitar={caja.invitar} bloqueado={bloqueado} onInvitar={() => setInvitando(true)} onAhoraNo={clubDeLaClienta.callarEnEstaVenta} />
+          {caja.tipo === "identificada" && (
+            <FilaDelCartel
+              fila={filaDelCartel({ sinDocumento: caja.sinDocumento, espera: espera.espera, cumplePct: resumen?.cumplePct ?? null })}
+              revisando={espera.revisando}
+              onActualizar={espera.actualizar}
+            />
           )}
         </div>
       ) : (
@@ -248,81 +253,69 @@ export function ClientaDelTicket({
           onClose={() => setAbierto(false)}
         />
       )}
-
-      {invitandoA && (
-        <InvitarAlClub
-          clientaId={invitandoA.id}
-          nombre={lineaDeClienta(invitandoA).titulo}
-          celularInicial={celularParaInvitar(resumen, invitandoA.celular)}
-          cumpleInicial={cumpleDelResumen(resumen)}
-          club={club}
-          ubicacionId={ubicacionId}
-          responsable={responsable}
-          onUnida={clubDeLaClienta.unida}
-          onPublicidad={clubDeLaClienta.recargar}
-          onClose={() => setInvitando(false)}
-        />
-      )}
-
-      {qrDe && (
-        <QrDeLaSociaHoja
-          clientaId={qrDe.clienta.id}
-          nombre={lineaDeClienta(qrDe.clienta).titulo}
-          codigo={qrDe.codigo}
-          celular={resumen?.celular ?? qrDe.clienta.celular}
-          club={club}
-          ubicacionId={ubicacionId}
-          responsable={responsable}
-          onPublicidad={clubDeLaClienta.recargar}
-          onClose={() => setViendoQr(false)}
-        />
-      )}
     </div>
   );
 }
 
-/** El chip de su publicidad (spike, `chipPub`): verde si ya la pidió; si no, tocable para mostrarle su QR. */
-function ChipPublicidad({ publicidad, onQr, bloqueado }: { publicidad: PublicidadEnCaja; onQr: () => void; bloqueado: boolean }) {
-  if (publicidad === "activa") return <Chip tono="verde">Publicidad</Chip>;
-  return (
-    <button
-      type="button"
-      onClick={onQr}
-      disabled={bloqueado}
-      title="Mostrar su QR. Solo ella puede pedir la publicidad: en la página de CAYLA que abre, marcando la casilla."
-      className="rounded-full transition-opacity hover:opacity-75"
-    >
-      <Chip tono="neutro">Sin publicidad · QR</Chip>
-    </button>
-  );
+/** El chip de su publicidad: verde si la pidió al unirse desde el cartel; si no, «Sin publicidad» (ya no es tocable: no hay
+ *  QR personal, G-1). */
+function ChipPublicidad({ publicidad }: { publicidad: PublicidadEnCaja }) {
+  return publicidad === "activa" ? <Chip tono="verde">Publicidad</Chip> : <Chip tono="neutro">Sin publicidad</Chip>;
 }
 
 /** Una fila de adentro de la caja = una línea (spike, `filaTarjeta`); la segunda (`sm`) solo cuando ayuda, y su botón a la
- *  derecha (`accion`) si tiene uno. */
+ *  derecha (`accion`) si tiene uno. `smEntera`: la segunda línea se parte en dos si no cabe (a 375 px), en vez de cortarse. */
 function FilaDelClub({
   icono,
   sm,
+  smEntera = false,
   titulo,
   accion,
+  fondo = false,
   children,
 }: {
   icono: React.ReactNode;
   sm?: string;
+  smEntera?: boolean;
   titulo?: string;
   accion?: React.ReactNode;
+  /** En hueso: la fila del cartel, que pide algo a quien atiende. */
+  fondo?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div title={titulo} className="flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-[12.5px]">
+    <div title={titulo} className={`flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-[12.5px] ${fondo ? "bg-hueso" : ""}`}>
       <span className="text-taupe" aria-hidden>
         {icono}
       </span>
       <div className="min-w-0 flex-1 leading-snug text-tinta">
         {children}
-        {sm && <span className="block truncate text-[11px] text-tinta/60">{sm}</span>}
+        {sm && <span className={`block text-[11px] text-tinta/60 ${smEntera ? "" : "truncate"}`}>{sm}</span>}
       </div>
       {accion}
     </div>
+  );
+}
+
+/** El botón chico de la derecha de una fila: primario (oscuro) o de borde; sin acción, apagado. */
+function BotonDeFila<A extends string>({
+  boton,
+  bloqueado,
+  onAccion,
+}: {
+  boton: { texto: string; primario: boolean; accion: A | null };
+  bloqueado: boolean;
+  onAccion: (a: A) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => boton.accion && onAccion(boton.accion)}
+      disabled={bloqueado || boton.accion === null}
+      className={boton.primario ? BOTON_CHICO_PRIMARIO : BOTON_CHICO_SECUNDARIO}
+    >
+      {boton.texto}
+    </button>
   );
 }
 
@@ -344,74 +337,60 @@ function FilaCumpleDelClub({ fila, bloqueado, onAccion }: { fila: FilaCumple; bl
       </FilaDelClub>
     );
   }
-  const { boton } = fila;
   return (
     <FilaDelClub
       icono={<Cake className="h-3.5 w-3.5 shrink-0" />}
       sm={fila.bajada}
+      // Apagado, la bajada dice por qué (sin conexión, o ya usa su vale): se lee entera también a 375 px.
+      smEntera={fila.boton.accion === null}
       titulo={fila.ayuda}
-      accion={
-        <button
-          type="button"
-          onClick={() => boton.accion && onAccion(boton.accion)}
-          disabled={bloqueado || boton.accion === null}
-          className={boton.primario ? BOTON_CHICO_PRIMARIO : BOTON_CHICO_SECUNDARIO}
-        >
-          {boton.texto}
-        </button>
-      }
+      accion={<BotonDeFila boton={fila.boton} bloqueado={bloqueado} onAccion={onAccion} />}
     >
       {texto}
     </FilaDelClub>
   );
 }
 
-/**
- * «No es del club todavía — Invitar / Ahora no», dentro de la caja (spike, `partesClub`): se ofrece en cada compra (CL-8).
- * Con «Ahora no» en esta venta queda solo el enlace. Sin documento o sin nombre en su ficha no se puede unir desde aquí (la
- * base lo exige, CL-1): «Invitar» se apaga y dice dónde completarlos.
- */
-function TarjetaInvitar({
-  invitar,
-  bloqueado,
-  onInvitar,
-  onAhoraNo,
-}: {
-  invitar: { callada: boolean; falta: "celular" | "documento" | null };
-  bloqueado: boolean;
-  onInvitar: () => void;
-  onAhoraNo: () => void;
-}) {
-  const sinDocumento = invitar.falta === "documento";
-  if (invitar.callada) {
-    return (
-      <div className="anim-revelar flex items-center gap-2 border-t border-sand px-3 py-1.5 text-[12px] text-tinta/65">
-        <button type="button" onClick={onInvitar} disabled={bloqueado || sinDocumento} className="label-cayla text-[10.5px] text-tinta underline underline-offset-2 hover:text-rojo disabled:opacity-50">
-          Invitar al club
-        </button>
-        <span>· se le ofrece en cada compra</span>
-      </div>
-    );
-  }
+/** La fila del vale de aniversario (tanda 1g, G-13): «Vale de aniversario · S/ 30 · hasta el 30 nov» con «Usar vale»,
+ *  «Quitar» o «Sin conexión». Los textos y la acción salen de `filaDelVale`. */
+function FilaValeDelClub({ fila, bloqueado, onAccion }: { fila: FilaVale; bloqueado: boolean; onAccion: (a: AccionVale) => void }) {
   return (
-    <div title="Beneficios del club, avisos de su apartado y de la talla que pida." className="anim-revelar flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-sand bg-hueso px-3 py-2">
-      <p className="min-w-0 flex-1 text-[12.5px] text-tinta">
-        <b className="font-semibold">No es del club todavía</b>
-        {invitar.falta === "celular" && <span className="text-tinta/60"> · falta su celular</span>}
-        {sinDocumento && <span className="text-tinta/60"> · su ficha necesita documento y nombre</span>}
-      </p>
-      <button
-        type="button"
-        onClick={onInvitar}
-        disabled={bloqueado || sinDocumento}
-        title={sinDocumento ? "Para ser del club, su ficha necesita documento y nombre: complétalos en Clientas." : undefined}
-        className={BOTON_CHICO_PRIMARIO}
+    <FilaDelClub
+      icono={<Gift className="h-3.5 w-3.5 shrink-0" />}
+      sm={fila.bajada}
+      smEntera={fila.boton.accion === null}
+      titulo={fila.ayuda}
+      accion={<BotonDeFila boton={fila.boton} bloqueado={bloqueado} onAccion={onAccion} />}
+    >
+      <b className="font-semibold">{fila.destacado}</b> · {fila.resto}
+    </FilaDelClub>
+  );
+}
+
+/**
+ * «Pídele que escanee el cartel del club» (tanda 1g, G-2), dentro de la caja de una clienta que no es socia, en cada compra.
+ * Dice por qué le conviene en una línea y que se actualiza sola; a los 10 minutos, «Actualizar». Sin animación en bucle
+ * (ADR-0136): nada late mientras espera.
+ */
+function FilaDelCartel({ fila, revisando, onActualizar }: { fila: ReturnType<typeof filaDelCartel>; revisando: boolean; onActualizar: () => void }) {
+  return (
+    <div className="anim-revelar">
+      <FilaDelClub
+        icono={<QrCode className="h-3.5 w-3.5 shrink-0" />}
+        sm={fila.bajada}
+        smEntera
+        titulo={fila.ayuda}
+        fondo
+        accion={
+          fila.actualizar ? (
+            <button type="button" onClick={onActualizar} disabled={revisando} className={BOTON_CHICO_SECUNDARIO}>
+              {revisando ? "Revisando…" : "Actualizar"}
+            </button>
+          ) : undefined
+        }
       >
-        Invitar
-      </button>
-      <button type="button" onClick={onAhoraNo} disabled={bloqueado} className={BOTON_CHICO_SECUNDARIO}>
-        Ahora no
-      </button>
+        <b className="font-semibold">{fila.destacado}</b>
+      </FilaDelClub>
     </div>
   );
 }
@@ -448,7 +427,6 @@ function BuscarClientaModal({
   const [estado, setEstado] = useState<Estado>({ tipo: "inicio" });
   // La misma hoja tiene dos caras: buscar en la libreta y, si no está, registrarla (ADR-0288 D-9). `null` = buscando.
   const [alta, setAlta] = useState<AltaEnTicket | null>(null);
-  const [cumple, setCumple] = useState<CumpleEscrito>(CUMPLE_VACIO);
   const [enfocarNumero, setEnfocarNumero] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const campo = useRef<HTMLInputElement>(null);
@@ -457,7 +435,6 @@ function BuscarClientaModal({
   function irARegistrar() {
     const inicial = altaDesdeBusqueda(texto);
     setAlta(inicial);
-    setCumple(CUMPLE_VACIO);
     // Sin número traído del buscador, el cursor espera en él; con un DNI, el padrón trae el nombre solo.
     setEnfocarNumero(inicial.documentoNumero === "");
   }
@@ -502,7 +479,7 @@ function BuscarClientaModal({
       titulo={alta ? "Registrar clienta" : "Clienta de esta venta"}
       subtitulo={
         alta
-          ? "Con su celular y su cumpleaños, unirla al club después es un toque. Registrarla no la une al club."
+          ? "Solo su documento. Para ser del club, se une ella escaneando el cartel."
           : "Opcional. Sus datos pasan solos al comprobante y la compra queda en su ficha."
       }
       variante="hoja"
@@ -518,8 +495,6 @@ function BuscarClientaModal({
             // Funcional a propósito: el padrón responde tarde (`onNombre`) y no debe pisar lo escrito mientras tanto; si ya
             // se volvió a buscar, no revive el formulario.
             onCambiar={(parte) => setAlta((a) => (a ? { ...a, ...parte } : a))}
-            cumple={cumple}
-            onCumple={setCumple}
             enfocarNumero={enfocarNumero}
             responsable={responsable}
             guardando={guardando}
@@ -605,17 +580,15 @@ function BuscarClientaModal({
 }
 
 /**
- * El alta del ticket (ADR-0288 D-9), dibujada como el spike del club (`modalRegistrar`) y con la misma regla que el alta de
- * /clientas (`NuevaClientaModal`): documento y nombre (con DNI, el nombre llega del padrón en el mismo bloque); el celular
- * y el cumpleaños, sugeridos —con ellos, «Invitar» llega con ambos precargados—; y quién registra, con el combo del ticket:
- * lo que se elija aquí vale también para la venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar`
- * (lib/club-caja-reglas.ts, con pruebas): la guía y el botón miran la misma regla.
+ * El alta del ticket (ADR-0288 D-9 y tanda 1g, G-2), dibujada como el spike del club (`modalRegistrar`) y con la misma regla
+ * que el alta de /clientas (`NuevaClientaModal`): SOLO el documento (con DNI, el nombre llega del padrón en el mismo bloque;
+ * con carné o pasaporte, se escribe) y quién registra, con el combo del ticket: lo que se elija aquí vale también para la
+ * venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas): la guía y el botón miran
+ * la misma regla.
  */
 function RegistrarClientaEnTicket({
   alta,
   onCambiar,
-  cumple,
-  onCumple,
   enfocarNumero,
   responsable,
   guardando,
@@ -625,8 +598,6 @@ function RegistrarClientaEnTicket({
 }: {
   alta: AltaEnTicket;
   onCambiar: (parte: Partial<AltaEnTicket>) => void;
-  cumple: CumpleEscrito;
-  onCumple: (c: CumpleEscrito) => void;
   /** Llegó sin número: el cursor espera en él. Con un DNI ya traído del buscador, el padrón trae el nombre solo. */
   enfocarNumero: boolean;
   responsable: ControlResponsable;
@@ -636,26 +607,19 @@ function RegistrarClientaEnTicket({
   onRegistrada: (c: ClientaDelTicket) => void;
 }) {
   const formulario = useRef<HTMLFormElement>(null);
-  const [anioActual] = useState(() => new Date().getFullYear());
   const tipo = alta.documentoTipo;
   const esDni = tipo === "dni";
   const numero = normalizarNumeroDocumento(alta.documentoNumero);
 
   // Guía de foco (CLAUDE.md «Guía de foco», ADR-0284): `camposDeRegistrar` es la MISMA regla que apaga «Registrar».
-  const campos = camposDeRegistrar(
-    {
-      documentoTipo: tipo,
-      documentoNumero: alta.documentoNumero,
-      nombre: alta.nombre,
-      celular: alta.celular,
-      cumple,
-      responsableListo: responsable.listo,
-      responsableMotivo: responsable.motivo,
-    },
-    anioActual
-  );
+  const campos = camposDeRegistrar({
+    documentoTipo: tipo,
+    documentoNumero: alta.documentoNumero,
+    nombre: alta.nombre,
+    responsableListo: responsable.listo,
+    responsableMotivo: responsable.motivo,
+  });
   const guia = useGuiaCampos(campos);
-  const pCelular = problemaCelularOpcional(alta.celular);
 
   useEffect(() => {
     // El primer campo de texto del formulario es el número (el combo de tipo es un botón).
@@ -670,27 +634,22 @@ function RegistrarClientaEnTicket({
     if (guardando) return;
     if (!sePuedeConfirmar(campos)) {
       const problema = problemaDocumento(tipo, alta.documentoNumero);
-      const pCumple = problemaCumple(cumple, anioActual);
       if (numero === "" || problema) return void avisar.error(problema ?? "Elige el tipo y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
-      if (!alta.nombre.trim()) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
-      if (pCelular) return void avisar.error(pCelular, { enfocar: ID_CELULAR });
-      if (pCumple) return void avisar.error(pCumple, { enfocar: cajaDelProblemaCumple(cumple, anioActual) === "anio" ? ID_ANIO : ID_DIA });
+      if (!nombreSuficiente(alta.nombre)) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
 
     onGuardando(true);
-    const fecha = cumpleParaGuardar(cumple);
-    const texto = (n: number | null) => (n === null ? "" : String(n));
     const { id, error } = await registrarClienta(
       {
         documentoTipo: tipo,
         documentoNumero: numero,
         nombre: alta.nombre,
-        telefonoWhatsapp: alta.celular,
-        // Registrarse no es unirse al club (ADR-0288 D-4 y D-9): el cumpleaños se guarda en su ficha y «Invitar» lo trae.
-        cumpleDia: texto(fecha.cumpleDia),
-        cumpleMes: texto(fecha.cumpleMes),
-        cumpleAnio: texto(fecha.cumpleAnio),
+        // Tanda 1g (G-2): en caja solo el documento. El celular y el cumpleaños los escribe ella al unirse desde el cartel.
+        telefonoWhatsapp: "",
+        cumpleDia: "",
+        cumpleMes: "",
+        cumpleAnio: "",
       },
       responsable.firma(),
     );
@@ -705,9 +664,9 @@ function RegistrarClientaEnTicket({
       nombre: alta.nombre.trim() || null,
       documentoTipo: tipo,
       documentoNumero: numero || null,
-      celular: alta.celular.trim() || null,
+      celular: null,
     };
-    avisar.exito("Clienta registrada", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Registrarla no la une al club.` });
+    avisar.exito("Clienta registrada", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
     onRegistrada(nueva);
   }
 
@@ -759,14 +718,6 @@ function RegistrarClientaEnTicket({
         </CampoGuiado>
       )}
 
-      <CampoGuiado id="celular" guia={guia} titulo="Celular de WhatsApp" ayuda="Sin él queda identificada, no socia">
-        <CampoCelular id={ID_CELULAR} caja valor={alta.celular} onValor={(celular) => onCambiar({ celular })} problema={pCelular} deshabilitado={guardando} />
-      </CampoGuiado>
-
-      <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Sin él no hay beneficio · el año es opcional">
-        <CamposCumpleanos idDia={ID_DIA} idAnio={ID_ANIO} cumple={cumple} onCumple={onCumple} anioActual={anioActual} deshabilitado={guardando} />
-      </CampoGuiado>
-
       <CampoGuiado id="responsable" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={guardando} />
         {/* «Nadie de turno» y «no se pudo leer» ya los explica el combo con su recuadro; aquí, solo lo que falta elegir. */}
@@ -789,6 +740,3 @@ function RegistrarClientaEnTicket({
 }
 
 const ID_NOMBRE = "ticket-clienta-nombre";
-const ID_CELULAR = "ticket-clienta-celular";
-const ID_DIA = "ticket-clienta-cumple-dia";
-const ID_ANIO = "ticket-clienta-cumple-anio";

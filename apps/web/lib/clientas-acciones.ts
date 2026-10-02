@@ -17,7 +17,6 @@ import {
 } from "@/lib/clientas-reglas";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
-import { ajustarCelular } from "@/lib/club-reglas";
 import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
@@ -31,9 +30,10 @@ import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-r
 // Candado optimista (ADR-0193 reusado): cada acción que edita manda `version`, y si la base
 // devuelve PT409, `error-escritura.ts` ya lo traduce sin que esta capa haga nada especial.
 //
-// ADR-0288 tanda 1b (D-4 reescrita): el alta y la edición YA NO marcan ningún permiso de WhatsApp. Ser socia del club
-// es `unirseAlClub` y la publicidad solo nace de un mensaje de ella (`club-acciones.ts`); por eso `DatosAlta` perdió
-// `aceptaWhatsapp` y `DatosEdicion` perdió `revocaWhatsapp`. El cumpleaños ganó su año (opcional, CL-3).
+// ADR-0288 tanda 1b (D-4 reescrita): el alta y la edición YA NO marcan ningún permiso de WhatsApp; por eso `DatosAlta`
+// perdió `aceptaWhatsapp` y `DatosEdicion` perdió `revocaWhatsapp`. El cumpleaños ganó su año (opcional, CL-3). Desde la
+// tanda 1g (G-2), ser socia y la publicidad nacen de ella, en la página del cartel: el alta de la caja y de /clientas manda
+// solo el documento (y el nombre), y «Editar» de la ficha sigue corrigiendo el celular y el cumpleaños.
 export type DatosAlta = {
   /** ADR-0288 D-2: DNI por defecto, carné de extranjería o pasaporte. */
   documentoTipo: TipoDocumentoClienta;
@@ -61,26 +61,6 @@ function smallintOVacio(texto: string): number | undefined {
 export async function buscarClienta(termino: string, incluirArchivadas = false): Promise<ResultadoBusqueda> {
   const { data, error } = await createClient().rpc("buscar_clienta", { p_termino: termino, p_incluir_archivadas: incluirArchivadas });
   return { clientas: (data ?? []).map(aClienta), error };
-}
-
-/**
- * Las fichas ACTIVAS con ese celular («Llegó un mensaje de WhatsApp», ADR-0288 tanda 1b). `buscar_clienta` ya compara el
- * celular normalizado, pero también busca el término en el nombre y el documento: aquí solo quedan las que de verdad tienen
- * ese número (los mismos 9 dígitos, aunque una ficha vieja lo guarde con espacios o con +51).
- */
-export async function buscarPorCelular(celular: string): Promise<ResultadoBusqueda> {
-  const numero = ajustarCelular(celular);
-  const { clientas, error } = await buscarClienta(numero);
-  return { clientas: clientas.filter((c) => ajustarCelular(c.telefonoWhatsapp ?? "") === numero), error };
-}
-
-/**
- * La socia ACTIVA de ese código («C-0142»), o null. `buscar_clienta` busca también por código (tanda 1b); aquí se queda
- * solo la que lo tiene de verdad (el mismo término podría calzar en un nombre). `codigo_club` es único.
- */
-export async function buscarPorCodigoClub(codigo: string): Promise<{ clienta: Clienta | null; error: ErrorEscritura }> {
-  const { clientas, error } = await buscarClienta(codigo);
-  return { clienta: clientas.find((c) => c.codigoClub?.toUpperCase() === codigo.toUpperCase()) ?? null, error };
 }
 
 /**

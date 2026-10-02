@@ -3,7 +3,7 @@
  * Pruebas de `retail.registrar_venta` contra el Postgres local — CAYLA V2.
  *
  * EL PROBLEMA QUE RESUELVE. `registrar_venta` (0003_funciones.sql, extendida por
- * 0008_caja_y_pagos, 0011_venta_con_comprobante, candado_precio_venta, codigos_descuento (ya sin código: 20261001150000),
+ * 0008_caja_y_pagos, 0011_venta_con_comprobante, candado_precio_venta, codigos_descuento (ya sin código: 20261002100000),
  * nota_en_ventas, inventario_piso_almacen y descuento_motivo_y_escalonado — hoy 11
  * parámetros) es la función más tocada del repo: cada venta real de las 3 tiendas pasa
  * por acá. Valida precio, sede, descuento y pagos ANTES de tocar stock, todo en una sola
@@ -484,7 +484,7 @@ select retail.registrar_venta(:'ubic',
 
 // ---------------------------------------------------------------------------
 // 17-22: descuentos de una Colaboradora — sin código (Felipe, 2026-10-01,
-// 20261001150000_descuento_sin_codigo.sql): lo mismo que a cualquiera, motivo, argumento
+// 20261002100000_descuento_sin_codigo.sql): lo mismo que a cualquiera, motivo, argumento
 // pasado el 15 % y nunca bajo el costo, sin tope de %. Micaela opera en SU sede
 // (Trujillo), nunca en Lima (ver escenario 2)
 // ---------------------------------------------------------------------------

@@ -343,7 +343,8 @@ export function PuntoDeVentaCatalogo({
             onClick={() => onPrendaSinRegistrar()}
             disabled={bloqueado}
             // En el teléfono son tres botones en la fila: el texto se parte en dos líneas en vez de robarle ancho a la cámara.
-            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 max-sm:w-[6.75rem] max-sm:leading-snug transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
+            // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
+            className="label-cayla shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] text-crema max-sm:w-[6.75rem] max-sm:leading-snug transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/85 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
           >
             Prenda sin registrar
           </button>

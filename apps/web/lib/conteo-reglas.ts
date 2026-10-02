@@ -640,6 +640,15 @@ export function acotarALista<T extends { varianteId: string }>(filas: readonly T
   return filas.filter((f) => ids.has(f.varianteId));
 }
 
+/**
+ * «Completar todo» de una tarjeta y «Aplicar todos completos» de la pantalla: de las variantes dadas, las que SIGUEN pendientes (sin
+ * ninguna cantidad). Solo esas se cuentan con lo que debe haber: lo que alguien ya escribió, escaneó o recontó no se toca nunca, y una
+ * variante que no está en el conteo no se inventa. Una sola regla para los dos botones: si cambia, cambia en ambos.
+ */
+export function pendientesParaCompletar(ids: readonly string[], lineaDe: (varianteId: string) => { contada: number | null } | undefined): string[] {
+  return ids.filter((id) => lineaDe(id)?.contada === null);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // 6. Escribir y escanear una cantidad
 // ---------------------------------------------------------------------------------------------------------------

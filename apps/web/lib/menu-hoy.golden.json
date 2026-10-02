@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve).",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre.",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -127,9 +127,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -277,9 +289,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -557,9 +581,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -781,9 +817,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -1009,9 +1057,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -1181,9 +1241,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -1478,9 +1550,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -1719,9 +1803,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -1925,9 +2021,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -2075,9 +2183,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -2355,9 +2475,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",
@@ -2579,9 +2711,21 @@
       ]
      },
      {
+      "grupo": "clientas",
       "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       }
+      ]
      },
      {
       "etiqueta": "Rendimiento",

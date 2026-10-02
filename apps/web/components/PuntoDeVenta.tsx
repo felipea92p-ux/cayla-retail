@@ -27,6 +27,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
   limpiarOperacion,
@@ -86,7 +87,7 @@ import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/Acces
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
-import { CLUB_APAGADO, clubEnElTicket, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
+import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import {
   avisoCumpleApagado,
   canjeSinConexion,
@@ -94,6 +95,7 @@ import {
   rechazoDelCanje,
   ticketConCumple,
 } from "@/lib/club-cumple-canje-reglas";
+import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
@@ -223,6 +225,9 @@ export type VentaOk = {
   /** El cumpleaños que canjeó esta venta (ADR-0288 D-5): «Cumpleaños canjeado (−S/46.12)…». Nunca en una venta sin
    *  conexión (no se encola con canje). */
   cumple?: { pct: number; monto: number } | null;
+  /** El vale de aniversario que usó esta venta (tanda 1g, G-13): «Vale de aniversario usado (−S/30.00)…». Tampoco sin
+   *  conexión. */
+  vale?: { monto: number } | null;
 };
 
 const MAX_RESULTADOS = 6;
@@ -244,7 +249,7 @@ type Props = {
   cajaId: string | null;
   /** Lo que dejó en el cajón el último cierre de la sede (ADR-0186), para verificar la apertura. `null` si no se sabe. */
   fondoUltimoCierre?: number | null;
-  /** Cuándo y quién cerró la caja la última vez, para el cartel «Cerrado» (ADR-0299). `null` si la caja está abierta o la sede nunca cerró. */
+  /** Cuándo y quién cerró la caja la última vez, para el cartel «Cerrado» (ADR-0301). `null` si la caja está abierta o la sede nunca cerró. */
   cierreAnterior?: CierreAnterior | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
@@ -296,7 +301,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
-  // El botón grande de la persiana «Caja cerrada» (ADR-0299): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
+  // El botón grande de la persiana «Caja cerrada» (ADR-0301): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
   const botonAbrirCaja = useRef<HTMLButtonElement>(null);
   // A dónde vuelve el foco al cerrarse «Abrir caja». Se decide AL CERRARSE, no al dibujar el modal: cuando la caja abre, el
   // modal se desmonta con las props de su último render (todavía con la caja cerrada) y Radix devuelve el foco un instante
@@ -1062,7 +1067,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Un canje que no regala nada (todo a S/ 0) no se manda: la base lo rechazaría (`cumple_sin_monto`) y gastaría su año.
   const cumpleDelTicket =
     pctCumple !== null && conCumple.totalCumple > 0 ? { pct: pctCumple, monto: conCumple.totalCumple, totalSinCumple: conCumple.totalSinCumple } : null;
-  const total = cumpleDelTicket ? conCumple.total : carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
+  // El vale de aniversario (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie y el reparto por prenda
+  // (`ticketConVale`, proporcional a lo que cobra cada una, en céntimos exactos). Va una sola ventaja del club por compra:
+  // `useClubDeLaClienta` no deja poner las dos. Un vale que no descuenta nada no se manda (`aniversario_sin_monto`).
+  const montoVale = clubDeLaClienta.montoVale;
+  const conVale = useMemo(() => ticketConVale(carrito, montoVale), [carrito, montoVale]);
+  const valeDelTicket =
+    montoVale !== null && conVale.totalVale > 0 ? { vale: montoVale, monto: conVale.totalVale, totalSinVale: conVale.totalSinVale } : null;
+  // Las líneas con la parte del club (la de la ventaja que esté puesta; sin ninguna, en 0): las que viajan y se imprimen.
+  const lineasConClub = valeDelTicket ? conVale.lineas : conCumple.lineas;
+  const conVentajaDelClub = cumpleDelTicket !== null || valeDelTicket !== null;
+  const total = cumpleDelTicket
+    ? conCumple.total
+    : valeDelTicket
+      ? conVale.total
+      : totalDeLineas(carrito);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
 
   // Se apagó SOLO (sin conexión, o su resumen ya no lo da por disponible): el total subió sin que nadie tocara «Quitar», y
@@ -1073,6 +1092,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const { titulo, detalle } = avisoCumpleApagado(cumpleSeApago.motivo, cumpleSeApago.pct);
     avisar.aviso(titulo, { detalle });
   }, [cumpleSeApago]);
+  const valeSeApago = clubDeLaClienta.valeSeApago;
+  useEffect(() => {
+    if (!valeSeApago) return;
+    const { titulo, detalle } = avisoValeApagado(valeSeApago.motivo, valeSeApago.monto);
+    avisar.aviso(titulo, { detalle });
+  }, [valeSeApago]);
 
   // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
@@ -1229,13 +1254,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     const params: ParamsRegistrarVenta = {
       p_ubicacion_id: ubicacionId,
-      p_items: conCumple.lineas.map((it) => ({
+      p_items: lineasConClub.map((it) => ({
         variante_id: it.varianteId,
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
-        // Con el cumpleaños, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al céntimo) y
-        // `descuento_club_unitario` la parte del club, que la base recalcula. Sin canje, el ítem va como siempre.
-        ...(cumpleDelTicket ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario) : { descuento_unitario: it.descuentoUnitario }),
+        // Con el cumpleaños o el vale, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al
+        // céntimo) y `descuento_club_unitario` la parte del club, que la base recalcula. Sin ventaja del club, el ítem va
+        // como siempre.
+        ...(conVentajaDelClub ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario) : { descuento_unitario: it.descuentoUnitario }),
         // Sin descuento viajan como `undefined` (la clave ni aparece en el jsonb) — la
         // RPC los lee con `coalesce(..., '')` y no le importa la diferencia. El motivo describe el descuento SIN el club:
         // una prenda cuyo único descuento es el cumpleaños no lleva motivo (ADR-0288, «Contrato de la tanda 1c»).
@@ -1266,6 +1292,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       p_asesora_id: responsable.elegidoId ?? undefined,
       // El canje del cumpleaños (ADR-0288 D-5). Sin canje no viaja: la base lo toma como `false`.
       p_canjear_cumpleanos: cumpleDelTicket ? true : undefined,
+      // El vale de aniversario (tanda 1g, G-13). Sin vale no viaja: la base lo toma como `false`.
+      p_canjear_aniversario: valeDelTicket ? true : undefined,
     };
 
     const supabase = createClient();
@@ -1279,9 +1307,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // Con el cumpleaños NO se encola (D-5): otra tienda podría canjearlo a la vez, y la clienta ya se habría ido con el
         // precio rebajado cuando la base la rechazara. Se queda el mismo `p_token`: si la venta alcanzó a guardarse y solo
         // se perdió la respuesta, volver a confirmar devuelve ESA venta en vez de duplicarla.
-        if (cumpleDelTicket && llevaCanje(params)) {
+        if (conVentajaDelClub && llevaCanje(params)) {
           setLoading(false);
-          const { titulo, detalle } = canjeSinConexion(cumpleDelTicket.pct);
+          const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeSinConexion();
           avisar.error(titulo, { detalle });
           return;
         }
@@ -1327,6 +1355,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       if (rechazoCumple) {
         clubDeLaClienta.apagarCumpleTrasRechazo(rechazoCumple.releer);
         avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoCumple.detalle });
+        responsable.despues(error);
+        return;
+      }
+      // Lo mismo con el vale de aniversario (tanda 1g): se apaga, se relee si la base sabe algo que la caja no, y se dice.
+      const rechazoVale = valeDelTicket ? rechazoDelVale(error.hint) : null;
+      if (rechazoVale) {
+        clubDeLaClienta.apagarValeTrasRechazo(rechazoVale.releer);
+        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoVale.detalle });
         responsable.despues(error);
         return;
       }
@@ -1391,23 +1427,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           comprobante: { tipo: comp.tipo, serie: comp.serie, numero: comp.numero, created_at: comp.created_at },
           sede: ubicacionEtiqueta,
           cliente: { tipoDoc: clienteTipoDoc, numDoc: clienteNumDoc || null, nombre: clienteNombre.trim() || null },
-          // Con el cumpleaños, cada prenda con su descuento TOTAL (el de `venta_items`): el papel dice lo que se cobró.
-          lineas: conCumple.lineas.map((it) => ({
+          // Con el cumpleaños o el vale, cada prenda con su descuento TOTAL (el de `venta_items`): el papel dice lo que se cobró.
+          lineas: lineasConClub.map((it) => ({
             cantidad: it.cantidad,
             referencia: it.referencia,
             codigo: codigoPrenda(it),
             precioUnitario: it.precioUnitario,
-            descuentoUnitario: cumpleDelTicket
+            descuentoUnitario: conVentajaDelClub
               ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario).descuento_unitario
               : it.descuentoUnitario,
           })),
           pagos,
           tasaIgv: 0.18,
           atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
-          // El QR del club al pie: el personal si es socia (con su código), el genérico si no. Sin número de tienda, nada.
-          club: clubEnElTicket(club, clubDeLaClienta.lectura.estado === "listo" ? clubDeLaClienta.lectura.resumen : null),
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
           cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
+          // Lo mismo con el vale de aniversario: cuánto del descuento de las prendas es del vale.
+          vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
         });
       }
     }
@@ -1417,7 +1453,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     responsable.despues(null);
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
-    setOk({ total, prendas, recibo, estado, offline: false, cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null });
+    setOk({
+      total,
+      prendas,
+      recibo,
+      estado,
+      offline: false,
+      cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
+      vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+    });
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
     limpiarComprobante();
@@ -1465,6 +1509,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             total={total}
             prendas={prendas}
             cumple={cumpleDelTicket}
+            vale={valeDelTicket}
             pagos={pagos}
             restante={restante}
             vuelto={vuelto}
@@ -1506,9 +1551,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 puedeBuscar={puedeBuscarClienta}
                 responsable={responsable}
                 onHojaAbierta={setHojaClientaAbierta}
-                club={club}
                 clubDeLaClienta={clubDeLaClienta}
-                ubicacionId={ubicacionId}
               />
               {quitada && (
                 <SeProboNoLlevo
@@ -1535,7 +1578,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
-          Con la caja cerrada, todo esto queda tras la persiana de `CajaCerrada` (ADR-0299) y `inert`: ni el mouse ni el
+          Con la caja cerrada, todo esto queda tras la persiana de `CajaCerrada` (ADR-0301) y `inert`: ni el mouse ni el
           teclado llegan, y el único camino es su botón «Abrir caja». La cabecera (sede) y el menú quedan nítidos.
           `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles nunca encogen por debajo de su
           contenido y el scroll interno de cada uno no se activa. */}
@@ -1783,7 +1826,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
-      {/* Caja cerrada (ADR-0299): persiana y cartel sobre todo el área de trabajo. Abrir la caja lo puede cualquiera
+      {/* Caja cerrada (ADR-0301): persiana y cartel sobre todo el área de trabajo. Abrir la caja lo puede cualquiera
           (D-13) y es lo primero que se hace, por eso es el único botón. Al abrir, el cartel gira y la persiana sube sola. */}
       <CajaCerrada
         cerrada={bloqueado}
@@ -1796,8 +1839,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       />
 
       {modalAbrirVisible && (
-        <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} />
+        // Ancha (`max-w-xl`): angosta, con el aviso «Nadie de turno» pasaba los 800 px de alto (Felipe 2026-10-01).
+        <Modal titulo="Abrir caja" ancho="max-w-xl" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
+          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja />
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (

@@ -263,12 +263,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295: la prenda entera con todas sus tallas y UNA llamada a `bajar_al_piso`, todo o nada, con
-  marca; la lógica pura en `lib/reponer-prenda-reglas.ts`, los errores los interpreta `lib/bajada-reglas.ts`) y «Retirar del
-  piso» sigue en `ReponerPisoModal.tsx` (RPC `mover_entre_piso_y_almacen` desde ADR-0240 —`mover_interno` + el módulo «Bajada
-  al piso»— con `sentido: "retirar"`, desde el bloque 2 de ADR-0208; **hoy sin entrada en pantalla** desde el cajón lateral,
-  ver ADR-0295); ambos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
-  `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
-  `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
+  marca) y «Subir a almacén» (entre «Reponer» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
+  (la prenda entera y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
+  alcanza, y cada talla es un `mover_interno` piso→almacén con una marca derivada de la de la lista; nota opcional y aviso de
+  «Existencias va a pedir bajar de nuevo»). Las dos ventanas comparten `SelectorDeTallas.tsx`; su lógica pura vive en
+  `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
+  de la tarjeta es un icono con tooltip. Ambas solo si la sede que se mira es la activa, porque firman con su Responsable;
+  `<Modal bloqueado>` no deja cerrar mientras guarda, y tras un corte de red las cifras quedan fijas hasta «Confirmar de nuevo»; y
+  `AjustarInventarioModal.tsx` (filas por talla con `SelectorDeAjuste.tsx`, mismo lenguaje que Reponer y Subir a almacén, ADR-0300; RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
   dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
   `PedirOtraSedeModal` de Apartados (RPC `pedir_prenda_para_apartar`, ADR-0233; tarea #9 del análisis); lo que decide cada
   botón del detalle vive en `lib/existencias-permisos.ts`;
@@ -293,10 +295,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   prenda. Reponer y Ajustar de la tarjeta abren las mismas ventanas, con `permisosDelDetalle`. Solo web, sin RPC ni migración.
   **Prioridades de hoy (2026-09-29):** las cuatro tarjetas van en este orden —Resumen disponible, «Reponer a piso hoy»
   (`components/TarjetaReponerAPiso.tsx`: hasta tres prendas que piden piso, las de `ordenarPorUrgencia`; tocar una filtra la lista),
-  En camino hacia acá e Incidencias—. «Resumen disponible» abre `ResumenComercialOverlay.tsx` («Cómo se mueve el stock»: ventas de
-  7 días, cobertura, lo que sale rápido, lo que no vendió con stock toda la semana y por categoría), con las cuentas puras en
-  `lib/existencias-comercial.ts` sobre `filasSemana`; el valor a precio de venta solo lo ve un líder. `DisponibleTotalOverlay.tsx`
-  queda en el repo sin usar. Solo web, sin RPC ni migración.
+  En camino hacia acá e Incidencias—. «Resumen disponible» abre `ResumenStockOverlay.tsx` («Resumen del stock», ADR-0303, 2026-10-01: tabla de prendas por categoría en
+  almacén y piso con lo vendido en el mes, lo que más se vende, de lo que más hay y lo que espera en el almacén; sin cobertura). Lo que hay sale
+  del `stock` que el panel ya trae (cuentas puras en `lib/existencias-resumen.ts`); lo vendido se lee al abrir con
+  `lib/useVentasDelMes.ts` → `GET /api/existencias/ventas-del-mes` (`getVentasDelMesDeSede`: del día 1 del mes a hoy, hora de Lima, así que
+  vuelve a cero solo cada día 1). `DisponibleTotalOverlay.tsx` queda en el repo sin usar. Solo web, sin RPC ni migración.
 - `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
   `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
   `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
@@ -338,7 +341,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`HINTS_CONTEO`); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`, la usa Análisis). Kit compartido en `components/conteo/` (`EstadoLinea`,
   `ResumenConteo`, `PasosConteo`). **Sin** prioridad por valor, sin conteo a ciegas y sin costos. `cerrar_conteo` exige, en este orden: permiso, `conteo_vacio` (nada
   verificado), `conteo_pendientes` (salvo cierre parcial) y `diferencias_sin_confirmar`.
-  - **«Conteos recientes» por día** (ADR-0296, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa en bandas por día (primera columna = hora) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
+  - **«Conteos recientes» por día** (ADR-0296, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa por día y dibuja cada una con **la misma fila que Movimientos** (`components/ui/lista-actividad.tsx`: hora · punto del resultado · ficha «Conteo N» · resultado · quién · variantes · flecha; el día lo rotula `etiquetaDia`; ADR-0296 act. 2026-10-01 b) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
   `layout.tsx` con `exigirModulo("frescura")`; sexta fila de Inventario en `lib/menu.ts`) → `page.tsx` →
   `lib/frescura.ts:getFrescuraPantalla` (el líder: `armarFrescuraLider` = RPC `fn_frescura_sede` por cada tienda en
@@ -667,9 +670,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `/vender?proforma=<id>` (ADR-0167): `getProformaParaCobrar` + `lib/proforma-al-carrito.ts` arman el carrito
   inicial (precio de hoy + lo prometido como descuento; `precioAlCobrarDeLaProforma`), la franja «Cobrando la
   proforma» y, tras `registrar_venta`, RPC `marcar_proforma_cobrada`.
-  Descuento de campaña (ADR-0108, redondeo ADR-0182): la caja lo calcula con `descuentoDeCampana` (`lib/vender-reglas.ts`:
-  el precio rebajado baja al .90, en enteros) y la base lo verifica con `retail.fn_descuento_campana`, la misma regla al
-  céntimo, que usan `registrar_venta` y `separar_prendas` (la separación la calcula en `ApartarVista.tsx`). También la
+  Descuento de campaña (ADR-0108; exacto desde ADR-0302, antes el .90 de ADR-0182): la caja lo calcula con
+  `descuentoDeCampana` (`lib/vender-reglas.ts`: el % sobre el precio al céntimo, en enteros; es la misma cuenta que el %
+  manual, `descuentoUnitarioPorPorcentaje`) y la base lo verifica con `retail.fn_descuento_campana`, la misma regla al
+  céntimo, que usan `registrar_venta`, `separar_prendas` y `editar_separacion` (la separación la calcula en `ApartarVista.tsx`). También la
   usa el aviso «quedaría bajo costo» al configurar una campaña (`prendasBajoCosto`). Prueba cruzada: `pnpm pruebas:campana-redondeo`.
   «Prenda sin registrar» (ADR-0179; antes «Monto manual»): el modal del POS (`lib/prenda-sin-registrar-reglas.ts`,
   listas de `categorias`/`tallas`/`colores` que carga `vender/page.tsx`) agrega una línea de la variante centinela
@@ -681,7 +685,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
-  botón abre `AbrirCajaFormV2`; textos en `lib/caja-cerrada-reglas.ts` con el último cierre de `getUltimoCierre`, ADR-0299);
+  botón abre `AbrirCajaFormV2`; textos en `lib/caja-cerrada-reglas.ts` con el último cierre de `getUltimoCierre`, ADR-0301);
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
   página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
   (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
@@ -753,10 +757,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
   **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**
   - la ficha lee `club_desde`, `publicidad_desde` y `codigo_club`;
-  - las acciones viven en `lib/club-acciones.ts`: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»),
-    `registrar_desde_whatsapp` (cartel), `registrar_baja_whatsapp`, `crear_invitacion_club` (camino B) y
-    `fn_club_textos_vigentes`;
-  - «Llegó un mensaje de WhatsApp» → `components/clientas/LlegoMensajeWhatsappModal.tsx`;
+  - las acciones viven en `lib/club-acciones.ts`: `registrar_baja_whatsapp` («Registrar su BAJA», en la ficha) y
+    `resumen_clienta_caja`. Desde la tanda 1g (ADR-0288 act. g) ella se une sola desde el cartel: la web ya no llama
+    `unirse_al_club`, `registrar_mensaje_publicidad`, `registrar_desde_whatsapp` ni `crear_invitacion_club`, y se retiró
+    «Llegó un mensaje de WhatsApp» (G-7). El alta (`NuevaClientaModal`) pide solo el documento (`camposDeRegistrar`,
+    `lib/club-caja-reglas.ts`, la misma regla que Cobrar);
   - cartel imprimible → `/clientas/cartel` (`components/clientas/CartelClub.tsx`);
   - reglas puras en `lib/club-reglas.ts` y `lib/club-clientas-reglas.ts`.
   **Tanda 1f del club (ADR-0288 act. (f), `20260930210000`, sin pegar):** la lista ya no es
@@ -770,13 +775,47 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
   vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
   `fn_club_compras_netas`, `fn_club_resumen_compras`.
+- `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
+  esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g, reemplazan a `/club/[token]`) → la clienta se une sola desde
+  el QR del cartel o del ticket: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `components/clientas/RegistroClub.tsx`
+  (guía de foco `lib/club-registro-guia.ts`) y `PaginaLegalClub.tsx`. Acciones de servidor `app/actions/club-registro.ts`
+  (`consultarNombre`, `registrarme`) con la llave de servicio → `club_intento` (ip y documento en huella con sal,
+  `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`.
+- QR del club (ADR-0288 act. g, G-1): uno por tienda, a `/club/<uuid>`, solo en el cartel `/clientas/cartel` (`CartelClub.tsx`),
+  que arma su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`); el ticket impreso ya no lleva QR del club (act. j). El cartel es el
+  diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
+  escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
+  para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
+- `/clientas/avisos` (ADR-0288 act. g, G-8; tanda 1g, módulo **`avisos_club`**, sin pegar): Clientas pasa a GRUPO del menú
+  (Fichas · Avisos). `app/(app)/clientas/layout.tsx` es la puerta del grupo (`clientas` o `avisos_club`); las fichas
+  (`page.tsx`) piden `clientas` y `avisos/layout.tsx` pide `avisos_club`. En CAYLA Global no se abre (manda desde UNA
+  tienda: `RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL`). `lib/club-avisos.ts` (server) → RPC `fn_club_avisos_pendientes`
+  (sede activa) y, solo al líder, `fn_club_pagina` como `anon` (beneficios vigentes) → `components/clientas/AvisosClubPanel.tsx`
+  («Enviar» abre `web.whatsapp.com/send` y anota con `registrar_aviso_enviado`; «Deshacer» 10 min con
+  `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
+  `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
+  `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
+- `GET /api/club/conservacion` (cron diario 08:00 UTC = 03:00 Lima, `vercel.json`; ADR-0288 G-15) → `crearClienteAdmin()` →
+  `fn_club_anonimizar_inactivas()`. `CRON_SECRET` lo comprueban la ruta y `proxy.ts` (`lib/rutas-cron.ts`, que también
+  sirve al cron de SUNAT).
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
 - Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada) +
   `InvitarAlClub.tsx` + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader), `unirse_al_club`,
   `crear_invitacion_club`. La página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero`. El
-  ticket impreso lleva el QR del club (camino A: el WhatsApp de la tienda). Reglas en `lib/club-caja-reglas.ts`.
+  ticket impreso lleva el QR del club (desde la tanda 1g, el registro de la tienda: `lib/club-qr-reglas.ts`). Reglas en
+  `lib/club-caja-reglas.ts`.
+- `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
+  confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
+  `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
+- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada; alta
+  solo con el documento) + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader) + `useEsperaDelCartel.ts`
+  (tanda 1g: si no es socia, «Pídele que escanee el cartel» y relee `resumen_clienta_caja` cada 3 s hasta 10 min). El
+  cumpleaños (`lib/club-cumple-canje-reglas.ts`, `p_canjear_cumpleanos`) y el vale de aniversario
+  (`lib/club-aniversario-canje-reglas.ts`, `p_canjear_aniversario`, tanda 1g) van a `registrar_venta`, uno por compra. La
+  página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero` para el QR del ticket impreso. Reglas
+  en `lib/club-caja-reglas.ts`.
 - Configuración ▸ Tiendas y caja ▸ «WhatsApp de cada tienda» → RPC `guardar_whatsapp_tienda`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
