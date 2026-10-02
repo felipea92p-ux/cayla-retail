@@ -575,6 +575,7 @@ describe("permisos de una terminal: salen de su rol", () => {
     expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.ventas)].sort()).toEqual(["facturar", "gestionarCaja"]);
     expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.administrativa)].sort()).toEqual([
       "ajustarInventario",
+      "ajustarStock",
       "editarCatalogo",
       "editarCuentasProveedor",
     ]);

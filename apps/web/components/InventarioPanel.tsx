@@ -1472,7 +1472,6 @@ export function InventarioPanel({
           separa={separa}
           puedeReponer={puedeReponer}
           enSedeActiva={permisos.etiquetasEHistorial}
-          sinModuloBajada={permisos.explicarSinModuloBajada}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
           puedeEliminar={permisos.eliminar}

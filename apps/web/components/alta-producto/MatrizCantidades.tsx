@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, type CeldaAlta } from "@/lib/alta-producto";
-import { claveEje, limpiarPrecio, llenarTodas, precioDistinto, textoPrecioBase, totalesCantidades } from "@/lib/tabla-alta-reglas";
+import { fondoDeMuestra } from "@/lib/colores-familias";
+import { claveEje, limpiarPrecio, llenarTodas, pasoCantidad, precioDistinto, textoPrecioBase, totalesCantidades, vaciarTodas } from "@/lib/tabla-alta-reglas";
 
 // La tabla de la prenda en el paso 4 de Nuevo producto (spike v2, 2026-09-28): la MISMA tabla color × talla del paso 3,
 // ahora con una caja por celda. Misma forma a propósito: quien acaba de armar la tabla reconoce cada celda sin volver
@@ -19,6 +21,9 @@ import { claveEje, limpiarPrecio, llenarTodas, precioDistinto, textoPrecioBase, 
 // Encabezado y columna del color fijos, como en el paso 3; en celular la tabla se desliza de lado dentro de su caja.
 
 type Modo = "cantidades" | "precios";
+
+const BOTON_PASO =
+  "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
 
 export function MatrizCantidades({
   celdas,
@@ -60,8 +65,12 @@ export function MatrizCantidades({
   const conFilaTotal = enCantidades && filas.length > 1;
   const base = Number(precioBase) > 0 ? Number(precioBase).toFixed(2) : "0.00";
 
-  function aplicarRelleno() {
-    for (const { clave, valor } of llenarTodas(celdas, excluidas, relleno)) onCantidad(clave, valor);
+  // Se aplica (o se borra) sola, en cada tecla: ya no hay un «Aplicar» que presionar ni que mis-clickear.
+  function escribirRelleno(valor: string) {
+    const limpio = limpiarCantidad(valor);
+    setRelleno(limpio);
+    const cambios = limpio === "" ? vaciarTodas(celdas, excluidas) : llenarTodas(celdas, excluidas, limpio);
+    for (const { clave, valor: v } of cambios) onCantidad(clave, v);
   }
 
   return (
@@ -100,19 +109,14 @@ export function MatrizCantidades({
             placeholder="1"
             value={relleno}
             tabIndex={enCantidades ? undefined : -1}
-            onChange={(e) => setRelleno(limpiarCantidad(e.target.value))}
+            onChange={(e) => escribirRelleno(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
             onKeyDown={(e) => {
-              // Enter aplica (y nunca envía el formulario del alta).
-              if (e.key === "Enter") {
-                e.preventDefault();
-                aplicarRelleno();
-              }
+              // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
+              if (e.key === "Enter") e.preventDefault();
             }}
-            className="h-8 w-[52px] rounded-[7px] border border-transparent bg-hueso px-1.5 text-center tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
+            className="h-10 w-[72px] rounded-[9px] border border-transparent bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
           />
-          <button type="button" onClick={aplicarRelleno} disabled={relleno === ""} tabIndex={enCantidades ? undefined : -1} className="btn-cayla btn-secundario px-2.5 py-1 text-[12.5px]">
-            Aplicar
-          </button>
         </div>
       </div>
 
@@ -139,20 +143,35 @@ export function MatrizCantidades({
                 </th>
               ))}
               {conColumnaTotal && (
-                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso py-2 pl-1 pr-1.5 text-right text-xs font-semibold text-taupe sm:px-3">
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
                   Total
                 </th>
               )}
             </tr>
           </thead>
           <tbody>
-            {filas.map((color) => {
+            {filas.map((color, i) => {
               const c = colores.find((x) => x.codigo === color);
               const nombre = c?.nombre ?? "Sin color";
               const totalFila = totales.porFila[claveEje(color)] ?? 0;
+              // Franja de color (decisión con Felipe, 2026-10-02 — maqueta B de docs/maquetas/matriz-color-identificacion-2026-10/):
+              // la zebra sola no bastaba para no perder la fila de vista al mirar de lejos — se suma el propio color de
+              // la fila como franja pegada al nombre. El anillo interior (no el color) es lo que la hace legible incluso
+              // en blanco, hueso o crema: sin él, esos colores desaparecen contra el papel.
+              const conZebra = i % 2 === 1;
+              const franja = c ? (fondoDeMuestra(c.hex, c.familiaColor) ?? "var(--color-sand)") : "var(--color-sand)";
+              const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
               return (
                 <tr key={color ?? "sin-color"}>
-                  <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left text-[12.5px] font-semibold text-tinta sm:py-2 sm:pl-3 sm:pr-2.5 sm:text-[13.5px]">
+                  <th
+                    scope="row"
+                    className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-[13.5px] ${conZebra ? "bg-hueso/40" : "bg-papel"}`}
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]"
+                      style={{ background: franja }}
+                    />
                     <span className="flex items-center gap-1.5">
                       {c && <Punto hex={c.hex} familia={c.familiaColor} />}
                       {nombre}
@@ -160,10 +179,10 @@ export function MatrizCantidades({
                   </th>
                   {columnas.map((talla) => {
                     const cel = celda(color, talla);
-                    if (!cel) return <td key={talla ?? "x"} className="border-t border-sand" />;
+                    if (!cel) return <td key={talla ?? "x"} className={`border-t border-sand ${fondoFila}`} />;
                     if (excluidas.has(cel.clave)) {
                       return (
-                        <td key={cel.clave} className="border-t border-sand p-0">
+                        <td key={cel.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
                           <span
                             title="Esta combinación no existe (la quitaste en el paso 3)"
                             className={`flex h-12 min-w-11 items-center justify-center sm:h-[52px] sm:min-w-[54px] ${RAYADO_FUERA}`}
@@ -175,23 +194,45 @@ export function MatrizCantidades({
                     }
                     const etiqueta = `${nombre} en ${textoTalla(talla)}`;
                     const propio = precios[cel.clave] ?? "";
+                    const valorCelda = cantidades[cel.clave] ?? "";
                     return (
-                      <td key={cel.clave} className="border-t border-sand p-0">
-                        <span className="flex h-12 min-w-11 items-center justify-center px-0.5 sm:h-[52px] sm:min-w-[54px]">
+                      <td key={cel.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
+                        <span className={`flex h-12 items-center justify-center px-0.5 sm:h-[52px] ${enCantidades ? "min-w-[88px] sm:min-w-[98px]" : "min-w-11 sm:min-w-[54px]"}`}>
                           {enCantidades ? (
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={4}
-                              autoComplete="off"
-                              aria-label={`Cuántas tienes de ${etiqueta}`}
-                              placeholder="0"
-                              value={cantidades[cel.clave] ?? ""}
-                              onChange={(e) => onCantidad(cel.clave, limpiarCantidad(e.target.value))}
-                              onFocus={(e) => e.currentTarget.select()}
-                              className="w-10 rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/25 focus:border-taupe focus:bg-papel sm:w-12 sm:px-1"
-                            />
+                            <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-transparent bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
+                              <button
+                                type="button"
+                                tabIndex={-1}
+                                disabled={valorCelda === ""}
+                                aria-label={`Restar a ${etiqueta}`}
+                                onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, -1))}
+                                className={BOTON_PASO}
+                              >
+                                <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                              </button>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={4}
+                                autoComplete="off"
+                                aria-label={`Cuántas tienes de ${etiqueta}`}
+                                placeholder="0"
+                                value={valorCelda}
+                                onChange={(e) => onCantidad(cel.clave, limpiarCantidad(e.target.value))}
+                                onFocus={(e) => e.currentTarget.select()}
+                                className="w-8 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/25 sm:w-9"
+                              />
+                              <button
+                                type="button"
+                                tabIndex={-1}
+                                aria-label={`Sumar a ${etiqueta}`}
+                                onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, 1))}
+                                className={BOTON_PASO}
+                              >
+                                <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                              </button>
+                            </span>
                           ) : (
                             <input
                               type="text"
@@ -212,7 +253,7 @@ export function MatrizCantidades({
                     );
                   })}
                   {conColumnaTotal && (
-                    <td className="border-l border-t border-sand pl-1 pr-1.5 text-right tabular-nums text-taupe sm:px-3">{totalFila || ""}</td>
+                    <td className={`border-l border-t border-sand px-2 text-center tabular-nums text-taupe sm:px-3 ${fondoFila}`}>{totalFila || ""}</td>
                   )}
                 </tr>
               );
@@ -230,7 +271,7 @@ export function MatrizCantidades({
                   </td>
                 ))}
                 {conColumnaTotal && (
-                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso py-2 pl-1 pr-1.5 text-right font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
+                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
                 )}
               </tr>
             </tfoot>

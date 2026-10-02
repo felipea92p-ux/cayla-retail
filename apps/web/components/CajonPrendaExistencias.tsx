@@ -86,7 +86,6 @@ export function CajonPrendaExistencias({
   separa,
   puedeReponer,
   enSedeActiva,
-  sinModuloBajada,
   puedeAjustar,
   veTraslados,
   puedeEliminar = false,
@@ -98,12 +97,11 @@ export function CajonPrendaExistencias({
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
   separa: boolean;
-  /** ¿Puede reponer aquí? Su módulo «Bajada al piso» y su sede activa (`permisosDelDetalle`). */
+  /** ¿Puede reponer aquí? Su módulo Existencias y su sede activa (`permisosDelDetalle`). */
   puedeReponer: boolean;
   /** ¿Lo que se mira es la sede activa? Etiquetas e Historial trabajan SIEMPRE sobre la sede activa (sus pantallas no reciben otra). */
   enSedeActiva: boolean;
   /** En su sede, pero su rol no tiene «Bajada al piso» (ADR-0240): lo dice en vez de callar. */
-  sinModuloBajada: boolean;
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
@@ -277,7 +275,6 @@ export function CajonPrendaExistencias({
                       {puedeReponer && hayQueSubir && <Accion icono={Warehouse} texto="Subir a almacén" onClick={() => onSubir(prenda)} />}
                       {hrefTrasladar && <Accion icono={ArrowLeftRight} texto="Trasladar" href={hrefTrasladar} />}
                     </div>
-                    {sinModuloBajada && hayQueReponer && <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>}
                   </Grupo>
                 )}
 

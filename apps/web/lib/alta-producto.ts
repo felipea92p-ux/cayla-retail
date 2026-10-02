@@ -265,7 +265,7 @@ export function resumenStock(cantidades: Readonly<Record<string, string>>, clave
 }
 
 /** A dónde entra el stock de hoy: la tienda donde está parada la persona (la de la cabecera), si separa piso y almacén, y si
- *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide el módulo «Bajada al piso»). */
+ *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide Existencias, ADR-0306). */
 export type DestinoStock = { ubicacionId: string; etiqueta: string; separaPiso: boolean; puedeBajar: boolean };
 
 /** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. */

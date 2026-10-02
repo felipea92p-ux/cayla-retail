@@ -126,7 +126,7 @@ export default async function InventarioPage({
   // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
-  const puedeBajarAlPiso = veModulo(persona, "bajada_piso") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.

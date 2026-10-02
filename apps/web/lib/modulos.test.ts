@@ -53,6 +53,10 @@ describe("el catálogo de la web es el de la base", () => {
         porClave.set(m[1]!, { clave: m[1]!, orden: Number(m[2]), soloLider: m[3] === "true", delegable: m[4] === "true" });
       }
     }
+    // Un módulo retirado (ADR-0306: Bajada al piso y Ajustar stock pasaron a ser funciones de Existencias).
+    for (const del of sql.matchAll(/^delete from retail\.modulos where clave in \(([^)]*)\);/gim)) {
+      for (const c of del[1]!.matchAll(/'([a-z_]+)'/g)) porClave.delete(c[1]!);
+    }
     for (const up of sql.matchAll(/update retail\.modulos set (?:solo_lider = (true|false),\s*)?delegable = (true|false)\s+where clave in \(([^)]*)\)/gi)) {
       for (const c of up[3]!.matchAll(/'([a-z_]+)'/g)) {
         const fila = porClave.get(c[1]!);
@@ -231,8 +235,9 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
 
   it("completo: cada capacidad sale de CUALQUIERA de sus módulos (igual que la base)", () => {
     const con = (...cs: ClaveModulo[]) => permisosDeModulos("integrante", cs.map((clave) => ({ clave, completo: true })));
-    expect(con("conteos")).toEqual(["ajustarInventario"]);
-    expect(con("traslados")).toEqual(["ajustarInventario"]);
+    // ADR-0306: ajustar stock es una función de Existencias, Conteos y Traslados, no un módulo aparte.
+    expect(con("conteos")).toEqual(["ajustarInventario", "ajustarStock"]);
+    expect(con("traslados")).toEqual(["ajustarInventario", "ajustarStock"]);
     expect(con("atributos")).toEqual(["editarCatalogo"]);
     expect(con("caja")).toEqual(["gestionarCaja"]);
     expect(con("vender", "historial", "movimientos", "recibir")).toEqual([]);
@@ -374,5 +379,31 @@ describe("REGLA: lo que nace quitado al líder es lo mismo en la web y en las mi
     const claves = modulosDeHoy("lider").map((m) => m.clave);
     for (const c of NACEN_QUITADOS_AL_LIDER) expect(claves).not.toContain(c);
     expect(claves).toHaveLength(CLAVES_MODULO.length - NACEN_QUITADOS_AL_LIDER.length);
+  });
+});
+
+// REGLA (Felipe, 2026-10-02, ADR-0306 — CLAUDE.md «Módulos y roles»): un módulo de Roles y accesos es una entrada del menú
+// izquierdo. Lo que vive DENTRO de una pantalla (bajar al piso, ajustar stock, reponer, retirar…) es una función del módulo
+// donde está su botón, no otro módulo; y quien ve un módulo hace todo lo que hay dentro. Nació de «Bajada al piso» y «Ajustar
+// stock»: módulos sin menú, sin rol, que dejaron al terminal con Existencias sin poder reponer.
+describe("un módulo es una entrada del menú, no una función suelta (ADR-0306)", () => {
+  const MENU = readFileSync(new URL("./menu.ts", import.meta.url), "utf8");
+  /** Los únicos módulos SIN entrada en el menú lateral: cada uno tiene su propia pantalla, abierta desde otro lugar fijo. */
+  const PANTALLA_PROPIA_FUERA_DEL_LATERAL: Record<string, string> = {
+    colaboradores: "menú de Administración (AppShell, `veAdministracion`)",
+    roles: "menú de Administración (AppShell, `veAdministracion`)",
+    configuracion: "botón de Configuración de la cabecera (AppShell, `veConfiguracion`)",
+    actividad: "botón de Actividad de la cabecera (`BotonActividad`)",
+  };
+
+  it("cada módulo del catálogo tiene su entrada en el menú, o es una de las cuatro pantallas declaradas", () => {
+    const sinEntrada = CLAVES_MODULO.filter(
+      (c) => !new RegExp(`modulo(?:Alterno)?: "${c}"`).test(MENU) && !(c in PANTALLA_PROPIA_FUERA_DEL_LATERAL),
+    );
+    expect(sinEntrada, `módulos sin entrada de menú: ${sinEntrada.join(", ")}. ¿Es una función de otro módulo? No la des de alta como módulo.`).toEqual([]);
+  });
+
+  it("la lista de excepciones no guarda módulos que ya no existen", () => {
+    for (const c of Object.keys(PANTALLA_PROPIA_FUERA_DEL_LATERAL)) expect(CLAVES_MODULO as readonly string[]).toContain(c);
   });
 });

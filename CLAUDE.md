@@ -249,6 +249,16 @@ accesos.** Quien ve un módulo hace todo lo que hay en él, salvo lo «siempre s
 `fn_es_lider()`). Por eso **todo módulo nuevo que se desarrolle tiene que aparecer en Roles y accesos, y nace disponible SOLO
 para el líder**: el líder decide después a qué rol se lo da. Nunca se asigna un módulo a un rol desde el código.
 
+**Un módulo es una entrada del menú izquierdo — lo de adentro no es otro módulo (ADR-0306, Felipe 2026-10-02).** Si es una pantalla
+u opción del menú, es módulo y aparece en Roles y accesos. Si es un botón o una acción DENTRO de una pantalla (reponer, bajar al piso,
+retirar, ajustar stock, apartar desde Existencias…), es una función del módulo donde vive su botón y **no se da de alta como módulo**:
+quien ve el módulo la hace, sin pedir otro. Nació del 2026-10-02: «Bajada al piso» y «Ajustar stock» eran módulos sin menú y sin rol;
+el Terminal de ventas tenía Existencias y no podía reponer, así que bajaba prendas sin registrarlo y Vender no las dejaba vender.
+Las únicas pantallas con módulo FUERA del lateral son Colaboradores, Roles (menú de Administración), Configuración y Actividad (botones
+de la cabecera); `lib/modulos.test.ts` («un módulo es una entrada del menú») falla si aparece otro. Lo que sí sigue siendo «solo del
+líder» vive en la función con `fn_es_lider()`. Una acción delicada no se protege con un módulo escondido: se protege con `fn_es_lider()`
+a la vista, o se acepta que quien ve el módulo la hace.
+
 Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR:
 1. **Base:** una migración propia con `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)`
    — `incluye` en palabras del negocio; `delegable = false` si sus funciones todavía exigen `fn_es_lider()` (sale como «Solo

@@ -101,9 +101,15 @@ beforeEach(() => {
 describe("useParecidasAlta: lo que le pide a la base y a la lectura", () => {
   it("la base comprueba el nombre de ahora, y solo con categoría elegida", () => {
     render({ nombre: "Wide Leg", categoriaId: "c-jeans" });
-    expect(dobles.llamadasBase.at(-1)).toEqual({ nombre: "Wide Leg", activo: true });
+    // Un nombre es único POR MARCA (ADR-0294): la base se consulta con la marca elegida, igual que el candado de la base.
+    expect(dobles.llamadasBase.at(-1)).toEqual({ nombre: "Wide Leg", activo: true, marcaId: "m-jirish" });
     render({ nombre: "Wide Leg", categoriaId: "", categoriaNombre: null });
-    expect(dobles.llamadasBase.at(-1)).toEqual({ nombre: "Wide Leg", activo: false });
+    expect(dobles.llamadasBase.at(-1)).toEqual({ nombre: "Wide Leg", activo: false, marcaId: "m-jirish" });
+  });
+
+  it("sin marca elegida, la base se consulta «sin marca» (cadena vacía), no «todas las marcas»", () => {
+    render({ nombre: "Wide Leg", categoriaId: "c-jeans", marcaId: "", marcaNombre: "" });
+    expect(dobles.llamadasBase.at(-1)).toEqual({ nombre: "Wide Leg", activo: true, marcaId: "" });
   });
 
   it("no lee lo que ya existe sin categoría ni sin red", () => {
