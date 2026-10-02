@@ -3,7 +3,8 @@
 --
 -- La hoja de cobro de Vender ofrece seis medios: los cinco de siempre y el QR. Esta migración deja que una venta lo
 -- registre y que el dinero cobrado con QR aparezca donde aparece el de Yape, Plin y la transferencia:
---   · `venta_pagos.metodo` acepta 'qr' (el candado que antes lo rechazaba entero).
+--   · `venta_pagos.metodo` acepta 'qr' (el candado que antes lo rechazaba entero). Se conserva 'anticipo' (el adelanto de
+--     un apartado entregado, 20260923090000_separaciones.sql): rehacer el candado sin él rompería la entrega de apartados.
 --   · `fn_acepta_pago_qr()`: la web pregunta por ella antes de mostrar el cuadrado QR. Si la función no existe (esta
 --     migración aún no está en producción), la hoja sigue con los cinco medios: nunca ofrece algo que la base rechaza.
 --   · Finanzas: el cobro con QR se sella solo en la cuenta de cobro de TRANSFERENCIA de la sede (`fn_cuenta_sellada` ya
@@ -23,7 +24,8 @@
 set lock_timeout = '3s';
 alter table retail.venta_pagos drop constraint if exists venta_pagos_metodo_check;
 alter table retail.venta_pagos
-  add constraint venta_pagos_metodo_check check (metodo in ('efectivo', 'tarjeta', 'yape', 'plin', 'transferencia', 'qr'));
+  add constraint venta_pagos_metodo_check
+  check (metodo in ('efectivo', 'tarjeta', 'yape', 'plin', 'transferencia', 'anticipo', 'qr'));
 
 -- ============================== PARTE 2 · funciones ==============================
 set lock_timeout = '3s';

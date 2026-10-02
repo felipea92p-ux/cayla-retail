@@ -50,7 +50,7 @@ export type ParamsHistorial = {
   cursor?: string;
   /** «1» incluye los datos de prueba (D-54) en la lista; ausente o cualquier otro valor los deja fuera. */
   prueba?: string;
-  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda, código o nº de operación). Busca en TODAS las fechas. */
+  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda o código). Busca en TODAS las fechas. */
   q?: string;
   /** «1»: solo las ventas de quien mira (atajo «Mis ventas»). Sirve a cualquiera, no solo al líder. */
   mias?: string;

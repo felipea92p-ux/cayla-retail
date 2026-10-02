@@ -1,7 +1,7 @@
 # ADR-0306 — El cobro sale del ticket: hoja lateral sobre el catálogo
 
 **Fecha:** 2026-10-02 · **Estado:** construido y probado en local (escritorio y 375 px); la migración del QR
-(`20261002120000_venta_pagos_qr.sql`) **no está en producción** · **Decide:** Felipe (la hoja, su forma «tal cual» la maqueta,
+(`20261002120000_venta_pagos_qr.sql`) **aplicada en producción el 2026-10-02** (ver §7) · **Decide:** Felipe (la hoja, su forma «tal cual» la maqueta,
 el comprobante sin valor por defecto, el QR con su migración, quitar el Nº de operación de la caja, siempre «Confirmar» y no
 el cobro de un toque); Claude (el reparto del «resto», la marca `fn_acepta_pago_qr`, dónde va el QR en Finanzas, el resto
 de lo técnico) · **Rama:** `claude/redesign-post-payment-ticket-6d3690` · **Maqueta:**
@@ -45,9 +45,9 @@ SE ROMPE SI: la migración del QR no está en producción (la hoja muestra cinco
 2. **«El resto» con tres o más medios.** Con dos medios ya existía: el otro toma lo que falta. Ahora, con tres o más, el primer
    medio que la cajera no escribió a mano se queda con el resto (`PagoAplicado.fijo`, `pagosTrasEditarMonto`). El segundo medio
    que se toca se lleva el cursor a su monto.
-3. **El Nº de operación ya no se pide en la caja** («nunca se ingresan», Felipe). La columna `venta_pagos.referencia` y su
-   búsqueda en Ventas ▸ Historial (ADR-0230) siguen para las ventas que ya lo tienen; las nuevas llegan sin él. Retirar también
-   la búsqueda es otra decisión.
+3. **El Nº de operación ya no se pide en la caja** («nunca se ingresan», Felipe) **ni se busca**: el buscador de Ventas ▸
+   Historial (que también usan Cambios y Devoluciones, `idsDeVentasBuscadas`) dejó de buscar por él (Felipe, 2026-10-02). La
+   columna `venta_pagos.referencia` queda con lo que ya tenía y el detalle de esas ventas lo sigue mostrando.
 4. **QR, sexto medio de una venta.** Es el QR de **Izipay** y su abono llega **aparte** de las tarjetas (Felipe, 2026-10-02):
    por eso no va con la tarjeta. Solo en Vender. En Finanzas el cobro con QR se sella en la cuenta de cobro de
    **transferencia** de la sede (`fn_cuenta_sellada` ya manda ahí todo medio que no es Yape, Plin ni tarjeta) y aparece en el
@@ -83,3 +83,16 @@ En local (`/vender`, 1440 × 900, menú lateral abierto y cerrado): Yape por F3,
 escritos → Yape pasa solo a S/54.80; S/200 recibido → vuelto S/100.00; Boleta; «Confirmar cobro» de la hoja registró la venta
 B001-000002 con los dos medios y su vuelto. Sin scroll en la hoja y sin texto cortado (medido). A 375 px: la hoja dentro del
 ticket, sin desborde horizontal. QR y Factura probados forzando la marca en local (sin aplicar la migración en la base compartida).
+
+## 7. Producción (2026-10-02)
+
+Aplicada por Claude a pedido explícito de Felipe, con `apply_migration` del MCP de Supabase sobre `vovjyyiafkxteijimpuy`
+(schema `retail`), en sus dos partes por separado: `venta_pagos_qr_parte1_candado` y `venta_pagos_qr_parte2_funciones`
+(quedan en `supabase_migrations.schema_migrations` con su propia fecha como versión). Antes, en solo lectura: el cuerpo de
+`fn_dinero_libro`, `fn_flujo_caja_proyeccion`, `fn_cuenta_sirve`, `fn_cuenta_sellada` y `fn_venta_pagos_sellar` en producción
+era idéntico byte a byte (md5) al del repo. **Hallazgo que corrigió la migración antes de aplicarla:** el candado de
+`venta_pagos.metodo` en producción también acepta `'anticipo'` (el adelanto de un apartado entregado, 20260923090000); la
+primera versión de la migración lo rehacía sin él y habría roto la entrega de apartados. La migración conserva `'anticipo'`.
+Después, verificado: `fn_acepta_pago_qr()` = true (y `authenticated` puede ejecutarla), `fn_cuenta_sirve('cobro','qr','banco')`
+= true, el candado con los siete medios y `fn_dinero_libro(hoy)` respondiendo. El QR aparece en las tiendas cuando esta rama
+llegue a `main` (la web publicada todavía no tiene la hoja de cobro).

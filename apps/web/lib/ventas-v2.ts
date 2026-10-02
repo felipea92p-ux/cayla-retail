@@ -87,18 +87,6 @@ async function ventasPorClienta(ubicacionId: string, campo: "documento" | "nombr
   return [...new Set(filas.map((f) => f.venta_id as string))];
 }
 
-/** Ventas pagadas con ese nº de operación (Yape, Plin o transferencia; `venta_pagos.referencia`, ADR-0230): la clienta
- *  perdió la boleta pero tiene la captura del pago. Mientras la columna no esté en la base (42703) no encuentra nada, sin
- *  error: la búsqueda por boleta o DNI sigue igual. */
-async function ventasPorOperacion(ubicacionId: string, texto: string, todasLasSedes: boolean): Promise<string[]> {
-  const supabase = await createClient();
-  let query = supabase.from("venta_pagos").select("venta_id, venta:ventas!inner ( ubicacion_id )").eq("referencia", texto);
-  if (!todasLasSedes) query = query.eq("venta.ubicacion_id", ubicacionId);
-  const res = await query.limit(LIMITE_BUSQUEDA);
-  if (res.error?.code === "42703") return [];
-  return [...new Set(exigir(res, "las ventas de ese nº de operación").map((f) => f.venta_id as string))];
-}
-
 /** Variantes de las prendas cuyo nombre contiene el texto ("blusa emma"). Tope de 10
  *  prendas: sus variantes viajan después en un `in (...)` dentro de la URL. */
 async function variantesPorNombreDePrenda(texto: string): Promise<string[]> {
@@ -140,13 +128,13 @@ async function buscarVentas(
   if (busqueda.tipo === "comprobante") {
     (await buscarVentaIdsPorComprobante(ubicacionId, busqueda.serie, busqueda.numero, todasLasSedes)).forEach((id) => candidatas.add(id));
   } else if (busqueda.tipo === "numero") {
-    // "45879632" puede ser el N° de una boleta, el DNI de la clienta o el nº de operación de su Yape: se buscan los tres.
-    const [porNumero, porDocumento, porOperacion] = await Promise.all([
+    // "45879632" puede ser el N° de una boleta o el DNI de la clienta: se buscan los dos. El nº de operación de Yape o Plin
+    // ya no (Felipe, 2026-10-02, ADR-0306): la caja dejó de pedirlo porque nunca se anotaba.
+    const [porNumero, porDocumento] = await Promise.all([
       busqueda.numero !== null ? buscarVentaIdsPorComprobante(ubicacionId, null, busqueda.numero, todasLasSedes) : Promise.resolve([]),
       ventasPorClienta(ubicacionId, "documento", busqueda.texto, todasLasSedes),
-      ventasPorOperacion(ubicacionId, busqueda.texto, todasLasSedes),
     ]);
-    [...porNumero, ...porDocumento, ...porOperacion].forEach((id) => candidatas.add(id));
+    [...porNumero, ...porDocumento].forEach((id) => candidatas.add(id));
   } else {
     // Una etiqueta exacta gana: si se escaneó una prenda, no hace falta adivinar más.
     variantesQueCalzan = await buscarVarianteIdsPorCodigo(busqueda.texto);
