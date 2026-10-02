@@ -138,5 +138,9 @@ de quien la hizo** (Felipe): el catálogo no tiene sede.
   fila «eliminado» del historial, sin repetir la otra.
 - **P5 — Tallas en orden de tienda** (`fn_actividad_peso_talla`, la misma regla que `ordenTalla` de la web).
 
+**Aplicada en producción el 2026-10-02** (a pedido de Felipe). El primer intento abortó entero: había ediciones de
+prendas eliminadas después y su texto quedaba vacío. Ahora esas prendas se nombran «una prenda eliminada», y un
+guardado cuyas variantes ya no existen no deja línea.
+
 Lo mismo que en Existencias: los disparadores de alta y de historial son diferidos. Una prueba que inserte productos o
 historial y luego altere esas tablas en la misma transacción tiene que dispararlos antes.

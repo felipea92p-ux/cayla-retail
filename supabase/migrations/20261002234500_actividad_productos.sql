@@ -58,11 +58,12 @@ begin
 end;
 $fn$;
 
--- «Top con Escote y Amarre» — el nombre (referencia) de un producto.
+-- «Top con Escote y Amarre» — el nombre (referencia) de un producto. Una prenda que ya se eliminó (en producción hay
+-- ediciones de prendas borradas después) se nombra así, nunca con un vacío que anule la línea entera.
 create or replace function retail.fn_actividad_producto(p_producto_id uuid) returns text
 language sql stable security definer set search_path = retail, public, extensions as $$
-  select coalesce(nullif(btrim(p.referencia), ''), nullif(btrim(p.descripcion), ''), p.codigo, 'una prenda')
-    from retail.productos p where p.id = p_producto_id;
+  select coalesce((select coalesce(nullif(btrim(p.referencia), ''), nullif(btrim(p.descripcion), ''), p.codigo, 'una prenda')
+                     from retail.productos p where p.id = p_producto_id), 'una prenda eliminada');
 $$;
 
 -- Un valor del historial como se lee: el nombre de la categoría, de la marca, de la temporada, el precio en soles…
@@ -282,6 +283,8 @@ begin
   select array_agg(distinct g.producto_id) into v_productos
     from retail.fn_actividad_historial_del_guardado(h.created_at, h.usuario_id) g where g.producto_id is not null;
   v_n := coalesce(cardinality(v_productos), 0);
+  -- Las variantes de una prenda ya eliminada no dicen de qué prenda eran: sin prenda, no hay línea.
+  if v_n = 0 then return; end if;
 
   -- Cada campo del guardado, con su antes y su después (o cuántas variantes, si no es el mismo cambio en todas).
   for r in
@@ -349,6 +352,7 @@ begin
       || ': ' || retail.fn_actividad_enumerar(array(select distinct e from unnest(v_etiquetas) e order by e));
   end if;
 
+  if v_texto is null then return; end if;
   perform retail.fn_actividad_anotar(
     'productos', v_accion, v_texto,
     h.usuario_id, case when p_origen = 'vivo' then retail.fn_actividad_terminal_ahora() end,
