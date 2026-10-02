@@ -43,6 +43,7 @@ export function SwatchesColor({
   onFijar,
   tamano = "h-4 w-4",
   max,
+  onMas,
 }: {
   colores: ColorDisponible[];
   activo: string | null;
@@ -50,6 +51,8 @@ export function SwatchesColor({
   onFijar: (nombre: string) => void;
   tamano?: string;
   max?: number;
+  /** Si viene, el «+N» es un botón que lo llama (ej. abrir la vista rápida con todos los colores). */
+  onMas?: () => void;
 }) {
   if (colores.length === 0) return null;
   const visibles = max ? colores.slice(0, max) : colores;
@@ -92,7 +95,22 @@ export function SwatchesColor({
           style={{ background: c.hex }}
         />
       ))}
-      {resto > 0 && <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>}
+      {resto > 0 &&
+        (onMas ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMas();
+            }}
+            title="Ver todos los colores"
+            className="text-[11px] tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
+          >
+            +{resto} más
+          </button>
+        ) : (
+          <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>
+        ))}
     </div>
   );
 }
