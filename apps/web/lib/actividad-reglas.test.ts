@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   MODULOS_CON_ACTIVIDAD,
@@ -81,12 +81,29 @@ describe("el módulo de la pantalla donde uno está parado", () => {
   });
 });
 
+// Todas las migraciones, para saber en qué módulos se anota de verdad.
+const DIR_MIGRACIONES = new URL("../../../supabase/migrations/", import.meta.url);
+const TODAS = readdirSync(DIR_MIGRACIONES)
+  .filter((f) => /^\d{14}_.+\.sql$/.test(f))
+  .map((f) => readFileSync(new URL(f, DIR_MIGRACIONES), "utf8"))
+  .join("\n");
+/** Los módulos que alguna migración anota: el primer argumento de cada `fn_actividad_anotar('<módulo>', …)`. */
+const ANOTADOS_EN_LA_BASE = new Set([...TODAS.matchAll(/fn_actividad_anotar\(\s*'([a-z_]+)'/g)].map((m) => m[1]));
+
 describe("los módulos que ya anotan su actividad", () => {
-  it("existen en el catálogo y la migración los anota", () => {
+  it("existen en el catálogo y alguna migración los anota", () => {
     for (const m of MODULOS_CON_ACTIVIDAD) {
       expect(CLAVES_MODULO).toContain(m);
-      expect(MIGRACION, m).toContain(`'${m}', '`);
+      expect([...ANOTADOS_EN_LA_BASE], m).toContain(m);
     }
+  });
+
+  it("todo módulo que la base anota está en la lista (si no, el panel dice «todavía no anota» y no muestra nada)", () => {
+    expect([...ANOTADOS_EN_LA_BASE].filter((m) => !MODULOS_CON_ACTIVIDAD.includes(m as never)).sort()).toEqual([]);
+  });
+
+  it("la receta del ADR-0207 sigue en su migración", () => {
+    expect(MIGRACION).toContain("'vender', 'venta_registrada'");
   });
 });
 
@@ -98,9 +115,9 @@ describe("los combos: lo elegido siempre está en la lista", () => {
   });
 
   it("«Módulo»: parado en uno que todavía no anota, también está (si no, el combo diría «Elegir»)", () => {
-    const opciones = opcionesDeModulo("existencias");
-    expect(opciones.map((o) => o.valor)).toEqual(["", ...MODULOS_CON_ACTIVIDAD, "existencias"]);
-    expect(opciones.at(-1)?.texto).toBe("Existencias");
+    const opciones = opcionesDeModulo("etiquetas");
+    expect(opciones.map((o) => o.valor)).toEqual(["", ...MODULOS_CON_ACTIVIDAD, "etiquetas"]);
+    expect(opciones.at(-1)?.texto).toBe("Etiquetas");
   });
 
   it("«Persona»: la elegida sigue aunque ya no tenga actividad en lo que se mira, y no se repite", () => {

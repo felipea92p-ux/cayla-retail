@@ -194,6 +194,10 @@ insert into retail.apartados (variante_id, ubicacion_id, sububicacion_id, cantid
 select pg_temp.mov(:'a2', :'tienda', :'piso', 'entrada', 5, 'carga_inicial', :'yo') as _m \\gset
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'tienda', :'pa');
 select pg_temp.mov(:'b1', :'tienda', :'almacen', 'entrada', 4, 'carga_inicial', :'yo') as m_b \\gset
+-- En producción la escena ya estaría confirmada cuando el Admin elimina: se disparan aquí los disparadores diferidos
+-- (Actividad, ADR-0207), o el «alter table … disable trigger» del borrado choca con sus eventos pendientes. Solo los de
+-- Actividad: las demás comprobaciones diferidas siguen al final, como en producción.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate;
 `;
 
 let fallos = 0;

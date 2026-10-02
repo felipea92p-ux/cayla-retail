@@ -68,3 +68,49 @@ Existencias (ajustes), Productos (precio: con antes/después), Colaboradores y R
 Una sola parte (no hay políticas: la tabla solo se lee por funciones `security definer`). Toma candados breves de
 `ventas`, `cajas`, `caja_movimientos`, `caja_traslados` y `cambios` al crear los disparadores: pegarla fuera del horario
 de tienda. `lock_timeout = 3s`: si una tienda está cobrando, falla sin trabar y se vuelve a pegar.
+
+## Actualización 2026-10-02 — Existencias, Conteos y Traslados anotan su actividad
+
+**Decide:** Felipe, 2026-10-02: «que abarque más módulos… donde haya bastante movimiento». Medido en producción ese día:
+~117 cargas de stock, 26 bajadas al piso, 31 ajustes, 29 conteos y 4 traslados, ninguno en Actividad. Felipe eligió
+Existencias, Conteos y Traslados para esta etapa; Productos queda para la siguiente, y cuando llegue **se ve en la sede de
+quien hizo el cambio** (el catálogo no tiene sede; Felipe eligió esa opción frente a «solo Líder» y «todas las sedes»).
+
+Migración `20261002233000_actividad_existencias_conteos_traslados.sql`; prueba `pnpm pruebas:actividad-inventario`.
+
+- **A1 — Una línea por operación, no por prenda.** Bajar 14 prendas son 14 filas de `movimientos` y una línea: «bajó al
+  piso 14 prendas de 6 modelos» (hasta tres prendas se nombran). Lo que tiene cabecera (`conteos`, `transferencias`)
+  cuelga de ella. Lo que no (ajustar, subir al almacén, cargar stock) se agrupa por **transacción**: los movimientos de
+  una misma llamada comparten exactamente `created_at` (`now()` es la hora de inicio de la transacción). Al confirmar,
+  un disparador diferido sobre `movimientos` corre por fila y **solo el primero del grupo (menor id) anota**: sin tabla de
+  pendientes ni candados, y la carga de lo pasado usa la misma regla. El `when` del disparador deja fuera, sin llamar a
+  nada, los movimientos que no son de Existencias (venta, cambio, compra, traslado, conteo).
+- **A2 — De qué módulo es cada cosa** (D6, la pantalla que lo guarda). Existencias: carga desde «Ajustar stock», bajar
+  al piso, subir al almacén, ajustar (también el que se hace desde la ficha del producto: es el mismo
+  `ajustar_inventario` y la base no los distingue). Conteos: abrir, cerrar (cuántas con diferencia y en qué sentido),
+  reabrir, cancelar; el ajuste del cierre NO sale también en Existencias. Traslados: enviar, recibir (todo o con
+  faltantes), cerrar con diferencia, anular; las dos sedes lo ven. **El stock que nace con un producto nuevo no se anota
+  en Existencias**: es de Productos y se reconstruirá de `movimientos` cuando llegue esa etapa.
+- **A3 — Firma.** La de cada tabla (el responsable del combo, ADR-0162). Recibir un traslado y cerrar un conteo pueden
+  ir con firma omitida en una terminal: la línea queda sin persona y dice el aparato (se toma la terminal de la sesión
+  que guarda, no la de la cabecera, que es la de quien envió o abrió). Reabrir un conteo no guarda quién: se toma el
+  responsable de la sesión en el momento; por eso esa línea no se reconstruye de lo pasado.
+- **A4 — La prenda cae a su referencia** si el producto no tiene descripción (`fn_actividad_prenda`): 23 de 91
+  productos en producción no la tienen y salían como «S · Blanco».
+- **A5 — La web reconoce lo que la base anota.** Clientes, Avisos del club y Productos anotaban desde setiembre, pero
+  `MODULOS_CON_ACTIVIDAD` no los listaba: el panel decía «todavía no anota» y no mostraba nada. Ahora la lista sale en el
+  orden del catálogo y `actividad-reglas.test.ts` lee TODAS las migraciones y falla si una anota en un módulo que la web
+  no reconoce.
+
+**Lo que cuesta.** Un disparador diferido sobre `movimientos` deja eventos pendientes hasta el `commit`, y Postgres no
+deja hacer `alter table movimientos …` en una transacción con eventos pendientes. Ninguna función ni script de producción
+inserta movimientos y después altera la tabla en la misma transacción (`eliminar_producto_con_historia` solo borra; el
+script de restaurar usa `session_replication_role = replica`), pero las pruebas que preparan datos y luego desactivan el
+candado de `movimientos` sí: llaman antes a `set constraints retail.trg_actividad_movimientos, … immediate` (solo los de
+Actividad; las demás comprobaciones diferidas siguen al final). Una prueba nueva con ese patrón tiene que hacer lo mismo.
+
+**Siguientes por valor:** Productos (altas, precio/costo/temporada/categoría con antes→después desde
+`historial_producto_cambios`, una línea por guardado), Colaboradores y Roles, Recibir mercadería, Devoluciones.
+
+**Producción.** Una sola parte (sin políticas). Toma candados breves de `movimientos`, `conteos` y `transferencias` al
+crear los disparadores: pegar fuera del horario de tienda; `lock_timeout = 3s`.

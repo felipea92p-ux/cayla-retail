@@ -197,6 +197,7 @@ select pg_temp.huella(:'va');`);
 {
   const r = correr(`${ESCENA}
 -- Producción no tiene los movimientos de siembra del seed local: se los quito (solo en esta transacción) para reproducirlo.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 delete from retail.movimientos where variante_id = '22222222-2222-4222-8222-222222222222';
 delete from retail.stock where variante_id = '22222222-2222-4222-8222-222222222222';

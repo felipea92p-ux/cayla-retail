@@ -1,0 +1,6 @@
+# 2026-10-02 · Actividad suma Existencias, Conteos y Traslados (ADR-0207, actualización)
+
+## 2026-10-02 (La líder ve quién cargó, bajó, ajustó, contó y trasladó)
+Qué hice: migración `20261002233000` con disparadores sobre `movimientos`, `conteos` y `transferencias` (sin tocar ninguna función que guarda) y carga de lo pasado; una línea por operación, no por prenda («bajó al piso 2 × «Blusa…» y «Casaca…»», «recibió el traslado 4 de Taller: llegaron 10 de 12, faltan 2»). La web reconoce también Clientes, Avisos y Productos, que ya anotaban y el panel decía que no; una prueba lo vigila desde las migraciones.
+Por qué así: agrupar por transacción (`created_at` idéntico) da una línea legible sin tabla de pendientes, y el mismo código sirve para lo vivo y lo pasado; el stock que nace con un producto nuevo queda para Productos (siguiente etapa, visible en la sede de quien lo hizo).
+Felipe se lleva: en local, «Actividad» desde Existencias, Conteo o Traslados ya muestra lo de cada uno; falta pegar la migración en producción (una parte, fuera de horario) y desplegar la web.
