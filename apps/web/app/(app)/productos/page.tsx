@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,7 @@ import {
   getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
+  getPreciosExtremos,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
@@ -23,6 +25,8 @@ import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
+import { limitesRedondeados } from "@/lib/productos-filtro-precio";
+import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -63,7 +67,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
   // pintura ya salga con las columnas correctas (ver `lib/tamano-grilla.ts`).
-  const tamanoGrilla = leerTamanoGrilla((await cookies()).get(COOKIE_TAMANO_GRILLA)?.value);
+  const galletas = await cookies();
+  const tamanoGrilla = leerTamanoGrilla(galletas.get(COOKIE_TAMANO_GRILLA)?.value);
+  // Si el panel de filtros nace abierto o cerrado en este equipo (Felipe, 2026-10-02: abierto, salvo que aquí se cerró).
+  const panelFiltros = leerPanelFiltros(galletas.get(COOKIE_PANEL_FILTROS)?.value);
   const supabase = await createClient();
 
   // Grilla ⇄ tabla (ADR-0077): reconstruye la URL con todos los filtros vigentes, solo
@@ -81,7 +88,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -91,16 +98,32 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
+    // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
+    getPreciosExtremos(filtros).catch(() => null),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
   // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
-  const [reposicion, existencias] = await Promise.all([
+  // Una página que ya no existe (se descontinuó lo único que había en la 2, se volvió con «← Productos» a una página vieja):
+  // a la primera, con los mismos filtros. Sin esto la pantalla decía «0 productos», escondía la paginación y avisaba de
+  // descontinuadas aunque hubiera activas en la página 1.
+  if (resultado.productos.length === 0 && pagina > 1) {
+    const p = new URLSearchParams();
+    for (const [k, val] of Object.entries(params)) if (val && k !== "pagina") p.set(k, val);
+    redirect(p.size > 0 ? `/productos?${p.toString()}` : "/productos");
+  }
+
+  // Y si la lista de activas sale vacía, cuántas descontinuadas sí calzan (solo entonces se pregunta; si falla, no se avisa).
+  const preguntarDescontinuadas = resultado.totalProductos === 0 && filtros.estado === "activo" && !filtros.stock;
+  const [reposicion, existencias, descontinuadas] = await Promise.all([
     resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
+    preguntarDescontinuadas
+      ? getResumenProductos({ ...filtros, estado: "descontinuado" }).then((r) => r.totalProductos, () => 0)
+      : Promise.resolve(0),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -196,6 +219,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         colores={coloresOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
+        totalProductos={resultado.totalProductos}
+        limitesPrecio={limitesRedondeados(precios)}
+        panelInicial={panelFiltros}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
@@ -208,7 +234,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
             puedeEliminar={persona.rol === "lider"}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             tamanoInicial={tamanoGrilla}
           />
         ) : (
@@ -221,7 +247,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veExistencias={veModulo(persona, "existencias")}
             puedeEliminar={persona.rol === "lider"}
             veDinero={puede(persona, "verDineroCompras")}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
           />
         )}
 

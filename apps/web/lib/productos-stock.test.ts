@@ -173,3 +173,12 @@ describe("hrefEnExistencias — el Catálogo enlaza a donde se ajusta (ADR-0270,
     expect(hrefEnExistencias([])).toBe("/inventario");
   });
 });
+
+describe("mensajeSinResultados — la lista abre con las activas", () => {
+  it("si lo buscado está descontinuado, lo dice en vez de dejar creer que no existe", () => {
+    expect(mensajeSinResultados({ estado: "activo" }, { descontinuadas: 1 })).toContain("hay 1 descontinuada que sí");
+    expect(mensajeSinResultados({ estado: "activo" }, { descontinuadas: 3 })).toContain("hay 3 descontinuadas que sí");
+    expect(mensajeSinResultados({ estado: "activo" }, { descontinuadas: 0 })).toBe(MENSAJE_SIN_RESULTADOS);
+    expect(mensajeSinResultados({ estado: "activo" })).toBe(MENSAJE_SIN_RESULTADOS);
+  });
+});
