@@ -457,7 +457,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +
   `lib/etiqueta-precio-reglas.ts` (puro: sumar por prenda, tallas del modelo, respaldo de SKU, mejor campaña, fecha de
   alcance, textos de la pantalla, cantidades, URL) → `ImprimirEtiquetasPrecio.tsx` (cantidades, vista previa, `window.print()`; la
-  hoja `#etiquetas-precio-print` va por portal a `<body>`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio`,
+  hoja `#etiquetas-precio-print` va por portal a `<body>`; en una Mac con el ayudante local, ADR-0304, la misma hoja va por `POST http://127.0.0.1:9631/imprimir` armada con `lib/mac-etiquetas.ts`, y el ayudante `public/mac-etiquetas/servidor.sh` la pasa a PDF con Chrome sin ventana y la imprime con `lp -o media=Custom.62x40.1mm`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio`,
   una etiqueta de 44 × 62 mm para el cartón de 5 × 8 cm, impresa girada en `@page etiqueta-precio` de 62 × 44 mm (`.etq-hoja`,
   con `contain`) en `globals.css`; QR con `CodigoQR` a 22 mm, 20 con campaña). Se llega desde `EnvioRecibido.tsx`
   (Recibir: los `lotes` que devuelve `recibir_envio`), `RecepcionFormV2.tsx` (Ingreso sin comprobante: el id que devuelve

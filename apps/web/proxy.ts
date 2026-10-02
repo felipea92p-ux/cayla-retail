@@ -136,5 +136,7 @@ export const config = {
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
   // `quitar-fondo.worker.js` (ADR-0228), igual: es código público; redirigido al login, el navegador recibía HTML
   // donde esperaba JavaScript y el recortador no arrancaba.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
+  // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

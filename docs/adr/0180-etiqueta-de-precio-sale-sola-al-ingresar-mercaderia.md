@@ -257,7 +257,7 @@ Windows de la tienda (fotos de Felipe, 2026-09-26, guardadas en `apps/web/public
   etiqueta** y Cortar al final → Aplicar. **Cerrar Chrome por completo** (Chrome lee el papel al abrirse). Al imprimir, en el
   **diálogo de Chrome** (no en el del sistema): destino Brother, tamaño 62mm, páginas por hoja 1, márgenes **Ninguno**,
   escala **Personalizado 100**, forma **A (girada)**.
-- **Mac — SIN PROBAR contra la Brother real:** ⌥⌘P (diálogo del sistema) → Tamaño del papel → «Gestionar tamaños
+- **Mac — REEMPLAZADO el 2026-10-01 por el ADR-0304:** probado contra la Brother real, el papel personalizado NO sirve: la Mac le entrega cualquier hoja más ancha que larga girada a vertical (40,1 × 62) y la etiqueta sale larga. En una Mac se imprime por el ayudante local de etiquetas (`public/mac-etiquetas/`), que manda `media=Custom.62x40.1mm`. Lo que sigue queda como historia: **(texto original, sin probar)** ⌥⌘P (diálogo del sistema) → Tamaño del papel → «Gestionar tamaños
   personalizados…» → «+» → «CAYLA 62 x 40,1», 62 × 40,1 mm, área no imprimible definida por el usuario en 0 → OK; escala
   100 %; guardar como preajuste «Etiquetas CAYLA». Si al probarlo algo difiere, se corrige en `GuiaImpresion.tsx`.
 
