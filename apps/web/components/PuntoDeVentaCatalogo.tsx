@@ -8,6 +8,8 @@ import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
@@ -97,15 +99,6 @@ function IconoQr({ className }: { className?: string }) {
     </svg>
   );
 }
-
-/** «Blusa Emma» → «BE»: lo que ocupa el hueco de la foto mientras el catálogo no tenga fotos. */
-const iniciales = (referencia: string) =>
-  referencia
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join("");
 
 /**
  * Panel izquierdo de Vender. La encargada de sede tiene lector: su ruta real es
@@ -491,7 +484,7 @@ export function PuntoDeVentaCatalogo({
                     className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 disabled:cursor-default"
                   />
                   {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
-                      color no tenga foto, las iniciales siguen de plan B — nunca un ícono
+                      color no tenga foto, el dibujo de su categoría es el plan B — nunca un ícono
                       de "foto rota". */}
                   {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
                       de la tarjeta y se comía el clic. */}
@@ -500,9 +493,19 @@ export function PuntoDeVentaCatalogo({
                       <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
-                    // Sin foto: iniciales discretas y la categoría abajo, en vez de iniciales gigantes que no decían qué era.
-                    <div aria-hidden className={`relative mb-2.5 flex aspect-square items-center justify-center rounded-lg bg-gradient-to-b from-sand/30 to-hueso ${soloEnAlmacen ? "opacity-55" : ""}`}>
-                      <span className="font-display text-xl text-tinta/25">{iniciales(g.referencia)}</span>
+                    // Sin foto: el dibujo de su categoría en el tono de su familia (el mismo de Catálogo ▸ Categorías) y
+                    // su nombre abajo. Antes eran las iniciales de la prenda, que no decían qué era (Felipe 2026-10-02).
+                    // `pointer-events-none` por lo mismo que la foto: este div es `relative` y tapaba el botón de la tarjeta.
+                    <div
+                      aria-hidden
+                      className={`pointer-events-none relative mb-2.5 flex aspect-square items-center justify-center rounded-lg ${soloEnAlmacen ? "opacity-55" : ""}`}
+                      style={{ backgroundColor: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).fondo, color: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).acento }}
+                    >
+                      <IconoCategoria
+                        prefijo={g.tallas[0]?.variante.categoriaPrefijo}
+                        familia={g.tallas[0]?.variante.categoriaFamilia ?? null}
+                        className="h-2/5 w-2/5 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.06]"
+                      />
                       {g.tallas[0]?.variante.categoria && (
                         <span className="label-cayla absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-papel/80 px-1.5 py-0.5 text-[9.5px] text-tinta/60">
                           {g.tallas[0].variante.categoria}

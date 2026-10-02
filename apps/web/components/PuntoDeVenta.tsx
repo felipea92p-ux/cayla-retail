@@ -120,12 +120,15 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  lo registra en `codigos_barras`. */
   codigo: string | null;
   categoria: string | null;
+  /** Prefijo y familia de la categoría: dibujan su ícono en la tarjeta sin foto. Ausentes = el ícono de reserva. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   precio: number;
   /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
    *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
   campana?: CampanaLinea | null;
   /** Foto de esta variante por su color (20260917190000) — null si ese color no
-   *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
+   *  tiene foto todavía; la tarjeta cae al dibujo de su categoría. */
   fotoUrl: string | null;
   stockAqui: number;
   /** Lo que hay en el ALMACÉN de esta misma sede, sin lo apartado (`almacenDeLaSede`). No se cobra desde la caja
