@@ -9,11 +9,11 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
   ["BLA", "Blanco", "#F4F9FF", "neutro"],
   ["CRU", "Crudo", "#F3ECE0", "neutro"],
   ["PER", "Perla", "#EAE6DD", "neutro"],
-  ["NUD", "Nude", "#F2D3BC", "neutro"],
+  ["NUD", "Nude", "#F2D3BC", "tierra"],
   ["GRP", "Gris perla", "#C5C5C5", "neutro"],
-  ["BEI", "Beige", "#D5BA98", "neutro"],
+  ["BEI", "Beige", "#D5BA98", "tierra"],
   ["GPI", "Gris piedra", "#C3BDAB", "neutro"],
-  ["ARN", "Arena", "#CCA67F", "neutro"],
+  ["ARN", "Arena", "#CCA67F", "tierra"],
   ["GRM", "Gris melange", "#A2A2A1", "neutro"],
   ["GRI", "Gris", "#848587", "neutro"],
   ["TOP", "Topo", "#82776B", "neutro"],
@@ -85,8 +85,8 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
 
 // Cada fila como se ve en la carta: las gamas separadas, de menor a mayor matiz; dentro de cada una, de claro a oscuro.
 const ESPERADO: Record<string, string[][]> = {
-  neutro: [["BLA", "CRU", "PER", "NUD", "GRP", "BEI", "GPI", "ARN", "GRM", "GRI", "TOP", "GRA", "NEG"]],
-  tierra: [["CAQ", "CAM", "MOK", "TOS", "TER", "MAC", "MAR", "CHO"]],
+  neutro: [["BLA", "CRU", "PER", "GRP", "GPI", "GRM", "GRI", "TOP", "GRA", "NEG"]],
+  tierra: [["NUD", "BEI", "ARN", "CAQ", "CAM", "MOK", "TOS", "TER", "MAC", "MAR", "CHO"]],
   rosado: [["ROS", "PAL", "FUC"]],
   rojo: [["COR", "ROJ", "FRA", "CER", "VIN"]],
   naranja: [["DUR", "SAL", "MAN", "NAR"]],

@@ -9,10 +9,11 @@ import { enEscala, type ColorEnEscala } from "./color-escala";
 //
 // QUÉ ENTRA EN CADA FAMILIA — tres criterios con una prioridad escrita, de mayor a menor:
 //   1. ACABADO: metálico (el color es el metal; da igual su matiz) y estampado (no tiene un tono).
-//   2. ROL: neutro (sin matiz, o un blanco/arena roto: de Blanco a Negro, con Crudo, Nude, Beige y Arena) y tierra (los
-//      marrones apagados de matiz cálido, de Caqui a Chocolate). Entre uno y otro no hay un hueco natural de matiz —es un
-//      continuo— y la frontera se puso donde el salto entre vecinos es mayor (Arena→Camel, ΔE2000 9,3), no en medio de una
-//      pareja que se confunde (Beige–Arena, 6,0).
+//   2. ROL: neutro = SIN TINTE (croma OKLab < 0,03: blancos, grises y negro, con Crudo, Perla, Gris piedra y Topo; el más
+//      cargado es Gris piedra, 0,026) y tierra = lo cálido CON tinte (croma ≥ 0,035: del Nude, Beige y Arena hasta el
+//      Chocolate; el más suave es Chocolate, 0,035). La frontera es el hueco de croma entre 0,026 y 0,035, no un criterio de
+//      gusto: así Neutro no se alarga con cada beige nuevo (2026-10-02 eran 13 en una fila; con la regla, 10) y Beige y Arena
+//      —los que se confunden, ΔE2000 6,0— siguen juntos.
 //   3. MATIZ: todo lo demás, por el ángulo que ocupa en el círculo (OKLCH). Rosado = rojos claros o magenta vivo; naranja =
 //      el matiz entre el rojo y el amarillo, vivo o pastel.
 // Si un color cumple dos, manda el de menor número.
