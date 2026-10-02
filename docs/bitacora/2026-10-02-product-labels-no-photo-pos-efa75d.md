@@ -1,0 +1,14 @@
+## 2026-10-02 (Vender: la tarjeta de una prenda sin foto se toca entera y muestra el dibujo de su categoría)
+Qué hice: en el catálogo de Vender, el recuadro de una prenda sin foto tapaba el botón de la tarjeta (era `relative` sin `pointer-events-none`, el mismo arreglo que ya tenía la foto), así que tocar donde salían las dos letras no abría la talla; ahora sí. Y en vez de las iniciales, dibuja el ícono de su categoría (`IconoCategoria`, por prefijo) en el tono de su familia, el mismo de Catálogo ▸ Categorías; `getCatalogo()` trae ahora el prefijo y la familia de la categoría.
+Por qué así: el ícono se elige por `categorias.prefijo`, nunca por el nombre visible (se renombra), y una categoría nueva sin dibujo cae al de su familia. Se agregó al catálogo compartido y no se buscó por nombre en Vender: dos columnas más por variante, sin otra consulta.
+Felipe se lleva: probado en el navegador a escritorio y a 375 px: tocar el dibujo abre «Elige la talla».
+
+## 2026-10-02 (Apartados: el mismo dibujo de categoría donde la prenda no tiene foto)
+Qué hice: `FotoPrenda` (`components/apartados/piezas.tsx`) dibuja el ícono de la categoría en el tono de su familia en vez de las iniciales, en sus siete usos (buscador, ficha recién escaneada, escaneadas hace poco, Entregar, Todos, pedidos entre tiendas y Editar prendas). La página de Apartados pasa el prefijo y la familia que ya trae `getCatalogo()`.
+Por qué así: es el mismo plan B que el catálogo de Vender; una pantalla no puede decir «blusa» con un dibujo y la de al lado con «BE». Si la foto existe pero no carga, también cae al dibujo, nunca a una imagen rota.
+Felipe se lleva: probado en el navegador a escritorio y a 375 px (lista del buscador y ficha grande de Blusa Emma, sin foto).
+
+## 2026-10-02 (Vender y Apartados se acomodan bien en celular y en una ventana achicada)
+Qué hice: el ticket de Vender pasó de 420 px fijos a `clamp(320px, 40%, 420px)`: en una laptop de 1024 con el lateral abierto el catálogo quedaba en 190 px (buscador hecho una pastilla, tarjetas de 90 px) y ahora tiene 350. «Prenda sin registrar» se parte en dos líneas según el ancho del panel (`@container`), no de la ventana. En la tarjeta sin foto, el dibujo y el nombre de la categoría van centrados juntos (el nombre baja a dos líneas en vez de cortarse) y el nombre de la prenda admite dos líneas. En Apartados, la ficha recién escaneada se apila centrada mientras la tarjeta mida menos de 32rem, y la fila del buscador baja precio y stock bajo el nombre cuando la lista es angosta.
+Por qué así: lo que se descuadraba dependía del ancho del PANEL, no de la pantalla, y los cortes por `sm`/`lg` no lo veían; las consultas de contenedor ya eran la regla del catálogo de Vender.
+Felipe se lleva: medido en el navegador a 320, 375, 414, 768, 1024, 1280, 1440 y 1920: el dibujo queda centrado a 0 px de desvío, sin texto cortado y sin scroll horizontal.
