@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { TipoAviso } from "@/lib/club-avisos-reglas";
 import { escalaParaGuardar, type BeneficiosClub } from "@/lib/club-beneficios-reglas";
 
@@ -12,7 +13,7 @@ import { escalaParaGuardar, type BeneficiosClub } from "@/lib/club-beneficios-re
  *  id del envío, que es lo que pide «Deshacer». */
 export async function registrarAvisoEnviado(
   aviso: { clientaId: string; tipo: TipoAviso; referencia: string; texto: string; ubicacionId: string },
-  firma: Firma | null,
+  firma: Firma | FirmaOmitida | null,
 ): Promise<{ id: string | null; error: ErrorEscritura }> {
   const supabase = createClient();
   const { data, error } = await firmar(
@@ -29,7 +30,7 @@ export async function registrarAvisoEnviado(
 }
 
 /** «Deshacer» (dentro de 10 minutos): el aviso vuelve a la lista de por mandar. La base rechaza pasado el plazo. */
-export async function deshacerAvisoEnviado(id: string, firma: Firma | null): Promise<{ error: ErrorEscritura }> {
+export async function deshacerAvisoEnviado(id: string, firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorEscritura }> {
   const supabase = createClient();
   const { error } = await firmar(supabase.rpc("deshacer_aviso_enviado", { p_id: id }), firma);
   return { error };

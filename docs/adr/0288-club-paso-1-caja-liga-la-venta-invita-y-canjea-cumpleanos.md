@@ -1053,3 +1053,14 @@ que decir «clientes», no «clientas». Lo decidido con él:
   renombra el módulo a «Clientes». Los textos v2 están en `docs/club/texto-legal-registro-v2.md`; el v1 queda como historia.
 - **Queda para un segundo paso:** unas 25 funciones de la base cuyos mensajes de error dicen «clienta» o «socia», entre ellas
   `registrar_venta`. Cambiarlas exige reescribir cada función viva con su candado de versión, y se hace aparte.
+
+## Actualización 2026-10-02 (l): Avisos del club sin elegir «Quién envía»
+
+Felipe, 2026-10-02: en Clientes ▸ Avisos no hace falta elegir quién envía. «Enviar», «Deshacer» y «Pidió BAJA» pasan a la lista
+de acciones sin responsable (`retail.acciones_sin_responsable`, ADR-0280): `aviso_club_enviar`, `aviso_club_deshacer` y
+`aviso_club_baja`. Las suma la migración `20261002170000_avisos_club_sin_responsable.sql`, y `lib/responsable-omitido.ts` es su
+espejo.
+- **Con la cuenta de una persona**, la pantalla no pinta el combo y cada acción firma a su nombre.
+- **Con una terminal** (la cuenta de la tienda, sin persona), el combo sigue. `club_avisos_enviados.enviado_por` es obligatorio y
+  `registrar_aviso_enviado` rechaza un actor vacío. Es la misma excepción que «Apartar prenda».
+- No cambia ninguna función de la base: el único punto de decisión es `fn_actor_persona_id`.
