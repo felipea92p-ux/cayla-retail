@@ -3,6 +3,8 @@
 > Numerado 0312 y no 0310 a propósito: el 0310 ya lo reclaman DOS ramas (`cambio-emisora-b002-b004-76656e`, «Serie 04 de
 > AQP», y `sales-rounding-cash-36d9cd`, «Redondeo del efectivo») y, si una se renumera, caerá en el 0311.
 
+> **Estado (2026-10-02):** la migración está en producción, pegada por Felipe y verificada en vivo; la web va en el PR de la rama `claude/color-scales-families-c7513c`.
+
 **Problema.** La carta de colores tenía 9 familias que mezclaban tres criterios sin prioridad —matiz (azul, rojo…), rol
 (neutro, tierra) y acabado (metálico)— y su orden no seguía nada (Azul antes que Rojo). Medido sobre los 75 colores de
 producción (OKLCH, 2026-10-02):

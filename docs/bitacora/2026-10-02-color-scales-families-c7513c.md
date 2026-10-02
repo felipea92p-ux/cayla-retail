@@ -8,6 +8,6 @@ Por qué así: «Azul medio» y «Azul Intermedio» son nombres de un escalón d
 gente inventa colores. Un orden que sale del color no se desordena cuando alguien agrega uno; el número guardado a mano sí.
 Medí también la captura de Felipe: el círculo ya pinta el color exacto (0,9 de 255 de diferencia); lo apagado era su perfil
 Wide Gamut.
-Felipe se lleva: una migración lista y ensayada (`20261002180000`) que él pega en producción **antes** de fusionar la web, y tres
+Felipe se lleva: una migración ensayada (`20261002180000`) que él pegó en producción el mismo día y que verifiqué en vivo (75 activos, conteos 13/8/3/5/4/5/9/11/9/8, orden idéntico al de la prueba), y tres
 ajustes de familia que puede revertir color por color (Coral, Mora, Salmón). El ADR es el 0312 porque el 0310 ya lo reclaman dos
 ramas. Los 4 colores creados a mano no se tocan: ya tienen 23 variantes con stock.
