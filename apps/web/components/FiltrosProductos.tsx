@@ -9,6 +9,18 @@ import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/compon
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { ORDENES_DESPLEGABLE, ROTULO_ORDEN_PRODUCTOS, leerOrdenProductos } from "@/lib/productos-orden";
+import {
+  cambiosTipeados,
+  consultaConCambios,
+  consultaSinFiltros,
+  hrefDeConsulta,
+  mismaConsulta,
+  sinCajas,
+  tipeadoPendiente,
+  valorDeCaja,
+  type CajaTipeada,
+  type Tipeado,
+} from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
@@ -40,11 +52,17 @@ export function FiltrosProductos({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
-  const [precioMin, setPrecioMin] = useState(params.get("precioMin") ?? "");
-  const [precioMax, setPrecioMax] = useState(params.get("precioMax") ?? "");
+  const consultaUrl = params.toString();
+  // Solo lo que se está escribiendo ahora (buscador y precio); lo demás se lee de la URL (`lib/productos-filtros.ts`).
+  const [tipeado, setTipeado] = useState<Tipeado>({});
+  const busqueda = valorDeCaja(tipeado, "q", consultaUrl);
+  const precioMin = valorDeCaja(tipeado, "precioMin", consultaUrl);
+  const precioMax = valorDeCaja(tipeado, "precioMax", consultaUrl);
   const [panelAbierto, setPanelAbierto] = useState(false);
-  const primera = useRef(true);
+  // La última URL pedida que todavía no llegó. Un clic justo después de teclear (o el temporizador justo después de un
+  // clic) se aplica sobre ella y no sobre la URL vieja: antes el segundo pisaba al primero y el orden recién elegido se
+  // perdía. Vence a los 3 s, por si una navegación nunca llega.
+  const pedida = useRef<{ consulta: string; en: number } | null>(null);
   const { buscando, buscar } = useBusquedaEnUrl();
   const etiquetaBuscar = (
     <span className="flex items-baseline justify-between gap-2">
@@ -53,38 +71,57 @@ export function FiltrosProductos({
     </span>
   );
 
-  /** `tipeado`: viene del buscador o del precio (se escribió o se arrastró): navega sin el loader, con «Buscando…». */
-  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
-    const p = new URLSearchParams(params.toString());
-    for (const [k, v] of Object.entries(cambios)) {
-      if (v) p.set(k, v);
-      else p.delete(k);
-    }
-    p.delete("pagina");
-    const qs = p.toString();
-    const href = qs ? `${pathname}?${qs}` : pathname;
-    if (tipeado) buscar(href);
+  /** Se lee al momento de usarla, nunca de la URL que había al pintar: el temporizador del buscador se programa antes de
+   *  un clic y se dispara después, y con la URL de entonces borraba lo que el clic acababa de poner. */
+  function consultaVigente() {
+    const p = pedida.current;
+    return p && Date.now() - p.en < 3000 ? p.consulta : window.location.search.replace(/^\?/, "");
+  }
+
+  /** `teclado`: viene del buscador o del precio (se escribió o se arrastró): navega sin el loader, con «Buscando…», y
+   *  reemplaza la entrada del historial en vez de sumar una por pausa (Atrás ya no recorre precios intermedios). */
+  function navegar(consulta: string, { teclado = false } = {}) {
+    pedida.current = { consulta, en: Date.now() };
+    const href = hrefDeConsulta(pathname, consulta);
+    if (teclado) buscar(href, { reemplazar: true });
     else router.push(href);
   }
 
-  // Búsqueda y precio se mandan solos al dejar de tipear/arrastrar (350 ms) —
-  // el slider de precio solo llama a `setPrecioMin`/`setPrecioMax` en cada
-  // paso, este mismo efecto hace de debounce para los dos, sin lógica propia.
+  function aplicar(cambios: Record<string, string>, opciones: { teclado?: boolean } = {}) {
+    navegar(consultaConCambios(consultaVigente(), cambios), opciones);
+  }
+
+  // La URL llegó: lo que ya dice deja de «escribirse» (se ajusta al pintar, como manda React para un estado que sigue a una
+  // prop) y la URL pedida, si es esta, ya no está pendiente.
+  const [urlVista, setUrlVista] = useState(consultaUrl);
+  if (urlVista !== consultaUrl) {
+    setUrlVista(consultaUrl);
+    setTipeado((t) => tipeadoPendiente(consultaUrl, t));
+  }
   useEffect(() => {
-    if (primera.current) {
-      primera.current = false;
-      return;
-    }
+    if (pedida.current && mismaConsulta(pedida.current.consulta, consultaUrl)) pedida.current = null;
+  }, [consultaUrl]);
+
+  // Atrás / Adelante: manda la URL del historial, no la última que se pidió aquí.
+  useEffect(() => {
+    const olvidar = () => {
+      pedida.current = null;
+      setTipeado({});
+    };
+    window.addEventListener("popstate", olvidar);
+    return () => window.removeEventListener("popstate", olvidar);
+  }, []);
+
+  // Búsqueda y precio se mandan solos al dejar de tipear o arrastrar (350 ms). El slider de precio solo anota lo tipeado en
+  // cada paso; este mismo efecto hace de espera para los dos.
+  useEffect(() => {
     const t = setTimeout(() => {
-      const cambios: Record<string, string> = {};
-      if ((params.get("q") ?? "") !== busqueda.trim()) cambios.q = busqueda.trim();
-      if ((params.get("precioMin") ?? "") !== precioMin.trim()) cambios.precioMin = precioMin.trim();
-      if ((params.get("precioMax") ?? "") !== precioMax.trim()) cambios.precioMax = precioMax.trim();
-      if (Object.keys(cambios).length > 0) aplicar(cambios, { tipeado: true });
+      const cambios = cambiosTipeados(consultaVigente(), tipeado);
+      if (Object.keys(cambios).length > 0) aplicar(cambios, { teclado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busqueda, precioMin, precioMax]);
+  }, [tipeado]);
 
   const cat = params.get("cat");
   const marca = params.get("marca");
@@ -112,14 +149,17 @@ export function FiltrosProductos({
       quitar: { stock: "" },
     });
   }
-  if (precioMin || precioMax) {
+  // El chip del precio lee la URL, no la caja: dice lo que la lista de verdad está filtrando.
+  const minEnUrl = params.get("precioMin");
+  const maxEnUrl = params.get("precioMax");
+  if (minEnUrl || maxEnUrl) {
     chips.push({
       texto:
-        precioMin && precioMax
-          ? `S/${precioMin} – S/${precioMax}`
-          : precioMin
-            ? `Desde S/${precioMin}`
-            : `Hasta S/${precioMax}`,
+        minEnUrl && maxEnUrl
+          ? `S/${minEnUrl} – S/${maxEnUrl}`
+          : minEnUrl
+            ? `Desde S/${minEnUrl}`
+            : `Hasta S/${maxEnUrl}`,
       quitar: { precioMin: "", precioMax: "" },
     });
   }
@@ -131,11 +171,7 @@ export function FiltrosProductos({
           key={Object.keys(c.quitar).join("|")}
           type="button"
           onClick={() => {
-            if ("q" in c.quitar) setBusqueda("");
-            if ("precioMin" in c.quitar) {
-              setPrecioMin("");
-              setPrecioMax("");
-            }
+            setTipeado((t) => sinCajas(t, Object.keys(c.quitar) as CajaTipeada[]));
             aplicar(c.quitar);
           }}
           className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
@@ -148,10 +184,8 @@ export function FiltrosProductos({
       <button
         type="button"
         onClick={() => {
-          setBusqueda("");
-          setPrecioMin("");
-          setPrecioMax("");
-          router.push(pathname);
+          setTipeado({});
+          navegar(consultaSinFiltros(consultaVigente()));
         }}
         className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
       >
@@ -169,7 +203,10 @@ export function FiltrosProductos({
             etiqueta={etiquetaBuscar}
             trabajando={buscando}
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              const q = e.target.value;
+              setTipeado((t) => ({ ...t, q }));
+            }}
             placeholder="Prenda, código o código de barras…"
             autoComplete="off"
             type="search"
@@ -269,10 +306,7 @@ export function FiltrosProductos({
           <PildoraPrecio
             precioMin={precioMin}
             precioMax={precioMax}
-            onCambiar={(min, max) => {
-              setPrecioMin(min);
-              setPrecioMax(max);
-            }}
+            onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
           />
         </PanelPildoras>
       )}
