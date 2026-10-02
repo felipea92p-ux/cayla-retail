@@ -8,7 +8,9 @@ import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
   fechaHoraLima,
   montoEnLetras,
+  LEY_REDONDEO_TICKET,
   NOMBRE_METODO,
+  TEXTO_REDONDEO,
   textoNumeroRecibo,
   textoQrSunat,
   TITULO_DOCUMENTO,
@@ -149,6 +151,17 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           )}
         </div>
       ))}
+      {(recibo.redondeo ?? 0) > 0 && (
+        <div>
+          <div className="rt-fila">
+            <span>{TEXTO_REDONDEO}</span>
+            <span>{s(recibo.redondeo ?? 0)}</span>
+          </div>
+          <div className="rt-fila rt-detalle">
+            <span>{LEY_REDONDEO_TICKET}</span>
+          </div>
+        </div>
+      )}
 
       {qr && (
         <div className="rt-centro rt-qr">

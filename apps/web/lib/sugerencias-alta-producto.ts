@@ -166,7 +166,9 @@ export function sugerirValorNuevo(tipo: TipoValorNuevo, familia: string | null |
 const NOMBRES_DE_COLOR: Readonly<Record<string, readonly string[]>> = {
   neutro: ["Marfil", "Gris humo", "Ostra"],
   azul: ["Azul acero", "Azul noche", "Azul rey"],
-  rojo: ["Rojo ladrillo", "Granate", "Rosa pastel"],
+  rosado: ["Rosa pastel", "Rosa chicle", "Chicle"],
+  rojo: ["Rojo ladrillo", "Granate", "Carmín"],
+  naranja: ["Naranja quemado", "Zanahoria", "Ámbar"],
   amarillo: ["Girasol", "Maíz", "Amarillo pollito"],
   verde: ["Verde bosque", "Menta", "Jade"],
   morado: ["Uva", "Glicina", "Morado royal"],

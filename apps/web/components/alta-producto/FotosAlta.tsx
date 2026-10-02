@@ -39,7 +39,7 @@ export function FotosAlta({
   disabled = false,
 }: {
   /** Los colores elegidos, en su orden: una casilla por color. */
-  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
+  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null }[];
   fotos: FotoPendiente[];
   onFotos: (f: FotoPendiente[]) => void;
   disabled?: boolean;
@@ -52,7 +52,7 @@ export function FotosAlta({
   // (`fotoDeVariante`, decidido con Felipe el 2026-09-26: «una foto general y luego escoger la gama de colores»). Con
   // colores se llama «Todos los colores» para que se entienda eso; las casillas por color quedan para quien sí tenga
   // la foto de ese color.
-  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [
+  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null }[] = [
     { codigo: null, nombre: colores.length ? "Todos los colores" : "Fotos", hex: null },
     ...colores,
   ];
@@ -65,7 +65,7 @@ export function FotosAlta({
           return (
             <div key={c.codigo ?? "general"} className="rounded-xl border border-sand bg-crema p-2">
               <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-tinta">
-                {c.codigo && <Punto hex={c.hex} familia={c.familiaColor} />}
+                {c.codigo && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                 <span className="min-w-0 truncate">{c.nombre}</span>
                 {suyas.length > 0 && <span className="ml-auto shrink-0 tabular-nums text-taupe">{suyas.length}</span>}
               </p>

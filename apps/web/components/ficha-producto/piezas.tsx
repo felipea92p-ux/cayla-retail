@@ -53,7 +53,7 @@ export const SIN_COLOR = "sin-color";
 export function PuntoColor({ codigo, colores }: { codigo: string | null; colores: readonly ColorAlta[] }) {
   const c = codigo ? colores.find((x) => x.codigo === codigo) : null;
   if (!c) return <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-dashed border-tinta/40" />;
-  return <Punto hex={c.hex} familia={c.familiaColor} />;
+  return <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />;
 }
 
 /** Elegir UN color (para corregir): buscando por nombre o sinónimo, con su punto. «Sin color» solo si se ofrece. */
@@ -75,7 +75,7 @@ export function ElegirUnColor({
 }) {
   const opciones = [
     ...(ofrecerSinColor ? [{ valor: SIN_COLOR, texto: "Sin color", icono: <PuntoColor codigo={null} colores={colores} /> }] : []),
-    ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} /> })),
+    ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> })),
   ];
   const elegido = valor && valor !== SIN_COLOR ? colores.find((c) => c.codigo === valor) : null;
   return (
