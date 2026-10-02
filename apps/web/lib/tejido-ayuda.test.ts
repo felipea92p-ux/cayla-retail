@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ayudaDeTejido } from "./tejido-ayuda";
+import { ayudaDeTejido, datosEnTexto } from "./tejido-ayuda";
 import { familiaDeTejido } from "./tejido-visual";
 
 // El vocabulario de tejidos aprobados y activos de producción al 2026-10-02 (consulta de solo lectura). Cada uno tiene que
@@ -54,10 +54,17 @@ describe("ayudaDeTejido — cubre todo el vocabulario real", () => {
       expect(ayuda.queEs.trim().length, nombre).toBeGreaterThan(20);
       // La burbuja mide 16 rem: más de ~170 caracteres por frase es un párrafo, no una ayuda.
       expect(ayuda.queEs.length, nombre).toBeLessThanOrEqual(175);
-      expect(ayuda.datos.at(-1), nombre).toMatch(/^Cuidado: .{10,}/);
-      expect(ayuda.datos[0], nombre).toMatch(/^(Ideal para|Ojo): .{10,}/);
-      for (const dato of ayuda.datos) expect(dato.length, nombre).toBeLessThanOrEqual(150);
+      expect(ayuda.datos.at(-1)?.etiqueta, nombre).toBe("Cuidado");
+      expect(["Ideal para", "Ojo"], nombre).toContain(ayuda.datos[0].etiqueta);
+      for (const dato of ayuda.datos) {
+        expect(dato.texto.length, nombre).toBeGreaterThanOrEqual(10);
+        expect(dato.texto.length, nombre).toBeLessThanOrEqual(150);
+      }
     }
+  });
+
+  it("el texto corrido de celular repite cada dato con su título", () => {
+    expect(datosEnTexto(ayudaDeTejido("Seda")!)).toMatch(/^Ideal para: .+ Cuidado: .+/);
   });
 });
 
@@ -67,7 +74,7 @@ describe("ayudaDeTejido — un nombre que contiene otra tela no se describe como
     const alicrado = ayudaDeTejido("Algodón alicrado")!;
     expect(alicrado).not.toBe(liso);
     expect(alicrado.queEs).toMatch(/licra/i);
-    expect(alicrado.datos.join(" ")).toMatch(/secadora/);
+    expect(datosEnTexto(alicrado)).toMatch(/secadora/);
   });
 
   it("«algodón con licra» y «elastizado» caen en lo mismo que «alicrado»", () => {
@@ -111,7 +118,7 @@ describe("ayudaDeTejido — lo que no se reconoce se calla", () => {
   it("«Tela» genérica avisa que no dice la fibra, en vez de inventar una", () => {
     const ayuda = ayudaDeTejido("Tela")!;
     expect(ayuda.queEs).toMatch(/genérico/i);
-    expect(ayuda.datos[0]).toMatch(/^Ojo:/);
+    expect(ayuda.datos[0].etiqueta).toBe("Ojo");
   });
 
   it("ignora mayúsculas, tildes y espacios de más", () => {

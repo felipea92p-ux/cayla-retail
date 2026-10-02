@@ -13,7 +13,7 @@ import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { aLaVista, seccionesMuestras, unirSinRepetir } from "@/lib/muestras-alta-reglas";
-import { ayudaDeTejido } from "@/lib/tejido-ayuda";
+import { ayudaDeTejido, datosEnTexto } from "@/lib/tejido-ayuda";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // Las filas «Tejido» y «Patrón» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
@@ -93,7 +93,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
 
       {elegido && ayudaElegido && (
         <p role="status" className="mt-2 text-xs text-taupe [@media(hover:hover)]:hidden">
-          <strong className="text-tinta">{elegido.texto}:</strong> {ayudaElegido.queEs} {ayudaElegido.datos.join(" ")}
+          <strong className="text-tinta">{elegido.texto}:</strong> {ayudaElegido.queEs} {datosEnTexto(ayudaElegido)}
         </p>
       )}
 
@@ -205,8 +205,8 @@ function TarjetaMuestra({
         <p className="font-semibold">{valor.texto}</p>
         <p className="mt-0.5">{ayuda.queEs}</p>
         {ayuda.datos.map((d) => (
-          <p key={d} className="mt-1 opacity-75">
-            {d}
+          <p key={d.etiqueta} className="mt-1 opacity-75">
+            {d.etiqueta}: {d.texto}
           </p>
         ))}
       </TooltipContent>
