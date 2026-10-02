@@ -6,7 +6,9 @@ import { Modal } from "@/components/ui/Modal";
 import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
-import { fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
+import { coloresParecidos } from "@/lib/color-parecido";
+import { bordeDeMuestra, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { useEnLinea } from "@/lib/useEnLinea";
 
 // Elegir los colores de un producto (spike producto-nuevo-v2, Felipe 2026-09-28).
@@ -18,9 +20,10 @@ import { useEnLinea } from "@/lib/useEnLinea";
 // Se elige de una sola manera, con dos entradas:
 //   1. el buscador («petróleo», «coral», o un sinónimo): la opción «+ Crear el color «X»» va primera y fija arriba de
 //      la lista, para que nadie baje 76 colores hasta el final para crear el que falta;
-//   2. la carta de colores, abierta de entrada: un renglón por familia, de claro a oscuro. El nombre sale al instante
-//      bajo la carta al pasar el mouse, al llegar con Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en
-//      tablet no salía). El elegido lleva anillo y ✓.
+//   2. la carta de colores, abierta de entrada: un renglón por familia (en el orden del espectro), de claro a oscuro y con un
+//      respiro entre gamas (`lib/color-escala.ts`). El nombre sale al instante bajo la carta al pasar el mouse, al llegar con
+//      Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en tablet no salía), junto con su Pantone —la referencia real
+//      de la tela— y con qué otro color se confunde. El elegido lleva anillo y ✓.
 // «+ Nuevo color» abre un modal (`NuevoColorAlta`) sin salir de la pantalla; el color creado
 // queda elegido (lo hace quien recibe `onCreado`: suma el color a su lista y lo elige).
 //
@@ -81,7 +84,7 @@ export function ElegirColores({
               key={c.codigo}
               className="inline-flex min-h-9 items-center gap-[7px] rounded-full border border-tinta bg-tinta/[0.07] py-1 pl-3 pr-1.5 text-[13.5px] text-tinta"
             >
-              <Punto hex={c.hex} familia={c.familiaColor} />
+              <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />
               {c.nombre}
               <button
                 type="button"
@@ -119,7 +122,7 @@ export function ElegirColores({
             texto: c.nombre,
             detalle: elegidos.includes(c.codigo) ? "elegido" : undefined,
             claves: c.sinonimos,
-            icono: <Punto hex={c.hex} familia={c.familiaColor} />,
+            icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />,
           }))}
           crearArriba
           crear={{
@@ -178,11 +181,12 @@ export function ElegirColores({
       )}
 
       {carta && (
-        // La carta de color: cada familia es un renglón, de claro a oscuro (`colores.orden`, una centena por familia:
-        // 20260926210000). Todos los renglones tienen las MISMAS columnas —tantas de 26 px como quepan en el ancho
-        // (`auto-fill`)—, así que el tono se lee también de arriba abajo, y una familia más corta deja su hueco al final
-        // en vez de correr los círculos. Si el BLOQUE es angosto (`@container`, no la ventana), el nombre de la familia
-        // va arriba de sus círculos; si es muy ancho, las familias van en dos columnas (spike: desde ~900 px).
+        // La carta de color (ADR-0312). Cada familia es un renglón y dentro de cada renglón los colores van por gamas —un respiro
+        // entre una y otra— y de claro a oscuro. Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
+        // que lo rodea, y uno chico se ve peor. El color adentro es EXACTO (el #hex de la base, sin velo); el borde es el mismo
+        // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto
+        // (`@container`, no la ventana), el nombre de la familia va arriba de sus círculos; si es muy ancho, las familias van en
+        // dos columnas (spike: desde ~900 px).
         <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-1.5">
           <div className="grid @4xl:grid-cols-2 @4xl:gap-x-6">
             {grupos.map((g, i) => (
@@ -193,71 +197,83 @@ export function ElegirColores({
                 }`}
               >
                 <p className="text-[11.5px] text-taupe">{g.texto}</p>
-                <div className="grid grid-cols-[repeat(auto-fill,26px)] gap-1.5">
-                  {g.colores.map((c) => {
-                    const elegido = elegidos.includes(c.codigo);
-                    return (
-                      <button
-                        key={c.codigo}
-                        type="button"
-                        onClick={() => onAlternar(c.codigo)}
-                        aria-pressed={elegido}
-                        aria-label={c.nombre}
-                        onMouseEnter={() => setSenalado(c)}
-                        onMouseLeave={() => setSenalado(null)}
-                        onFocus={() => setSenalado(c)}
-                        onBlur={() => setSenalado(null)}
-                        style={{ background: fondoDeMuestra(c.hex, c.familiaColor) ?? "transparent" }}
-                        className={`grid h-[26px] w-[26px] place-items-center rounded-full border border-tinta/25 text-[11px] font-bold transition-transform duration-150 hover:scale-110 ${
-                          elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
-                        } ${esClaro(c.hex) ? "text-tinta" : "text-crema"}`}
-                      >
-                        {elegido && <span aria-hidden>✓</span>}
-                        {!c.hex && !elegido && <span aria-hidden className="text-[9px] text-taupe">?</span>}
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  {partirEnGamas(g.colores).map((gama, k) => (
+                    <div key={k} className="flex flex-wrap gap-1.5">
+                      {gama.map((c) => {
+                        const elegido = elegidos.includes(c.codigo);
+                        return (
+                          <button
+                            key={c.codigo}
+                            type="button"
+                            onClick={() => onAlternar(c.codigo)}
+                            aria-pressed={elegido}
+                            aria-label={c.nombre}
+                            onMouseEnter={() => setSenalado(c)}
+                            onMouseLeave={() => setSenalado(null)}
+                            onFocus={() => setSenalado(c)}
+                            onBlur={() => setSenalado(null)}
+                            style={{ background: fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "transparent", borderColor: bordeDeMuestra(c.hex) }}
+                            className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-[12px] font-bold transition-transform duration-150 hover:scale-110 ${
+                              elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
+                            } ${esColorClaro(c.hex) ? "text-tinta" : "text-crema"}`}
+                          >
+                            {elegido && <span aria-hidden>✓</span>}
+                            {!c.hex && !elegido && <span aria-hidden className="text-[9px] text-taupe">?</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
           {/* Alto fijo: el pie no empuja la carta al aparecer o cambiar de nombre. `aria-hidden` porque cada círculo ya
               se anuncia con su `aria-label`; leerlo dos veces sería ruido para un lector de pantalla. */}
-          <p aria-hidden className="mt-1 flex h-7 items-center gap-1.5 border-t border-sand pt-1 text-[12px]">
-            {senalado ? (
-              <>
-                <Punto hex={senalado.hex} familia={senalado.familiaColor} />
-                <span className="text-tinta">{senalado.nombre}</span>
-                <span className="text-taupe">
-                  · {textoDeFamilia(senalado.familiaColor)}
-                  {elegidos.includes(senalado.codigo) ? " · elegido" : ""}
-                </span>
-              </>
-            ) : (
-              <span className="text-taupe">Pasa el mouse o toca un círculo: aquí sale su nombre.</span>
-            )}
-          </p>
+          <PieDeLaCarta senalado={senalado} elegido={senalado ? elegidos.includes(senalado.codigo) : false} colores={colores} />
         </div>
       )}
     </div>
   );
 }
 
-export function Punto({ hex, familia }: { hex: string | null; familia?: string | null }) {
+/**
+ * Lo que dice la carta del color señalado: su muestra grande, el nombre, la familia y el código Pantone —la referencia real de la
+ * tela: el círculo es una aproximación en pantalla— y, si lo hay, con qué otro color se confunde (ΔE2000 < 8, `color-parecido.ts`),
+ * para que nadie elija el «Perla» creyendo que es distinto del «Crudo». Una sola línea, de alto fijo.
+ */
+function PieDeLaCarta({ senalado, elegido, colores }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[] }) {
+  const parecidos = senalado ? coloresParecidos(senalado.hex, senalado.familiaColor, colores, { excluir: senalado.codigo }).slice(0, 2) : [];
   return (
-    <span
-      aria-hidden
-      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/20"
-      style={{ background: fondoDeMuestra(hex, familia) ?? "transparent" }}
-    />
+    <p aria-hidden className="mt-1 flex h-9 items-center gap-2 border-t border-sand pt-1 text-[12px]">
+      {senalado ? (
+        <>
+          <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />
+          <span className="min-w-0 truncate">
+            <span className="text-tinta">{senalado.nombre}</span>
+            <span className="text-taupe">
+              {" "}
+              · {textoDeFamilia(senalado.familiaColor)}
+              {senalado.pantoneTcx ? ` · ${senalado.pantoneTcx}` : ""}
+              {elegido ? " · elegido" : ""}
+            </span>
+            {parecidos.length > 0 && <span className="text-ambar-profundo"> · se confunde con {parecidos.map((p) => p.color.nombre).join(" y ")}</span>}
+          </span>
+        </>
+      ) : (
+        <span className="text-taupe">Pasa el mouse o toca un círculo: aquí sale su nombre.</span>
+      )}
+    </p>
   );
 }
 
-/** Para decidir si el ✓ va en tinta o en crema encima del color. Sin hex, se trata como claro. */
-function esClaro(hex: string | null): boolean {
-  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return true;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 150;
+export function Punto({ hex, familia, tipo, grande = false }: { hex: string | null; familia?: string | null; tipo?: string | null; grande?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block shrink-0 rounded-full border border-tinta/20 ${grande ? "h-5 w-5" : "h-2.5 w-2.5"}`}
+      style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "transparent", borderColor: bordeDeMuestra(hex) }}
+    />
+  );
 }
