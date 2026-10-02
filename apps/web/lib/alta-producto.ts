@@ -105,12 +105,15 @@ export function codigosRepetidos(codigos: readonly (string | null)[]): number[] 
 }
 
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
- *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos. */
+ *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos.
+ *  `tipo`: `colores.tipo` («solido» | «textura» | «estampado»); `fondoDeMuestra` lo usa para que «Gris melange» no se pinte como «Gris».
+ *  Ausente = liso, que es lo que la base pone por defecto. */
 export type ColorAlta = {
   codigo: string;
   nombre: string;
   hex: string | null;
   familiaColor: string;
+  tipo?: string | null;
   sinonimos?: readonly string[];
   pantoneTcx?: string | null;
 };

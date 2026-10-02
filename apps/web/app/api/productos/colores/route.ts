@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("colores")
     .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })
-    .select("codigo, nombre, familia_color, hex, notas, estado, pantone_tcx, sinonimos")
+    .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos")
     .single();
 
   if (error) {
@@ -215,7 +215,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
+    .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
     .single();
 
   if (error) {

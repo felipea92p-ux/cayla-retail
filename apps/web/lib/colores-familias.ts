@@ -55,6 +55,37 @@ export function textoDeFamilia(valor: string | null | undefined): string {
   return FAMILIAS_COLOR.find((f) => f.valor === valor)?.texto ?? "Sin familia";
 }
 
+/** Una mota de luz (crema) o de sombra (tinta) a cierta opacidad: con lo único que se dibuja el jaspeado sobre el #hex. */
+const luz = (pct: number) => `color-mix(in srgb, var(--color-crema) ${pct}%, transparent)`;
+const sombra = (pct: number) => `color-mix(in srgb, var(--color-tinta) ${pct}%, transparent)`;
+
+/**
+ * El jaspeado de una tela melange (`colores.tipo = 'textura'`): motas de luz (crema) y de sombra (tinta) regadas sobre el hex, como
+ * las fibras claras y oscuras que se hilan juntas. Un fondo CSS no puede tirar dados, así que el «azar» sale de apilar OCHO capas de
+ * puntos, cada una rala y de baja opacidad, con baldosas de lado primo (5, 7, 11, 13, 17, 19, 23 y 29 px: el patrón junto no se repite
+ * en ninguna muestra) y con el punto en un lugar distinto de su baldosa. Se probó con 3 a 6 capas de baldosas chicas y densas: cada
+ * una es una rejilla regular y juntas se leen como malla o moiré, no como fibra (2026-10-02, ADR-0312 act. b).
+ *
+ * Medido en el navegador (300×300 px, el CSS real renderizado a un canvas): sobre el hex de Gris melange (#A2A2A1) el color promedio
+ * se mueve +1 de 255 —el liso ya se aceptó con 0,9 de diferencia— y la desviación de la claridad es de 14 (grano visible, no sucio).
+ * El equilibrio entre luz y sombra es el de un tono medio: sobre un azul marino (#1F2A44) el promedio sube 9 y sobre un perla
+ * (#EAE6DD) baja 3. Hoy el único `textura` es un gris medio; el día que haya una textura muy oscura o muy clara, la mezcla se ajusta
+ * por su claridad (`claridadDeHex`).
+ */
+const MOTAS: ReadonlyArray<readonly [color: string, enLaBaldosa: string, baldosa: number, pleno: number, suave: number]> = [
+  [luz(46), "23% 31%", 5, 0.5, 0.95],
+  [sombra(31), "66% 71%", 7, 0.55, 1],
+  [luz(36), "31% 82%", 11, 0.6, 1.1],
+  [sombra(26), "81% 24%", 13, 0.65, 1.15],
+  [luz(41), "52% 46%", 17, 0.7, 1.2],
+  [sombra(29), "12% 60%", 19, 0.7, 1.2],
+  [luz(34), "64% 14%", 23, 0.8, 1.3],
+  [sombra(24), "38% 67%", 29, 0.85, 1.35],
+];
+const JASPEADO = MOTAS.map(
+  ([color, en, lado, pleno, suave]) => `radial-gradient(circle at ${en}, ${color} 0 ${pleno}px, transparent ${suave}px) 0 0 / ${lado}px ${lado}px`
+);
+
 /**
  * Fondo CSS de una muestra de color. Un color liso va EXACTO, sin velo ni degradado: es el #hex que guarda la base (medido el
  * 2026-10-02 contra una captura convertida a sRGB: diferencia media de 0,9 sobre 255). Un metálico lleva además el reflejo de un
@@ -62,19 +93,27 @@ export function textoDeFamilia(valor: string | null | undefined): string {
  * «Plata vieja» es el mismo gris que «Gris» y «Champán» el mismo beige que «Beige» (ΔE2000 3 y 4, revisión del 2026-09-25), y la
  * muestra tiene que decir «esto es metal» antes de que alguien lea el nombre. El reflejo sale de los tokens de la paleta (crema y
  * tinta), no de un color suelto.
+ *
+ * Lo mismo pasa con `tipo` (`colores.tipo`, ADR-0312 act. b): «Gris melange» es una textura y «Gris» es liso, y con el mismo
+ * tono eran dos círculos iguales. Una `textura` lleva el jaspeado de arriba sobre su hex. `estampado` no se dibuja: un dibujo no
+ * se deduce de un #hex (esa foto es `imagen_muestra_url`, aún sin leer) y se queda liso. Si el color cumple dos acabados manda el
+ * metálico, la misma prioridad con que se eligió su familia: una muestra dice UNA cosa. Sin `tipo` (o 'solido') va liso.
  */
-export function fondoDeMuestra(hex: string | null, familiaColor?: string | null): string | undefined {
+export function fondoDeMuestra(hex: string | null, familiaColor?: string | null, tipo?: string | null): string | undefined {
   if (!hex) return undefined;
-  if (familiaColor !== "metalico") return hex;
-  return [
-    "linear-gradient(115deg,",
-    "color-mix(in srgb, var(--color-crema) 78%, transparent) 0%,",
-    "transparent 24%,",
-    "color-mix(in srgb, var(--color-crema) 52%, transparent) 40%,",
-    "transparent 54%,",
-    "color-mix(in srgb, var(--color-tinta) 20%, transparent) 76%,",
-    `color-mix(in srgb, var(--color-tinta) 38%, transparent) 100%), ${hex}`,
-  ].join(" ");
+  if (familiaColor === "metalico") {
+    return [
+      "linear-gradient(115deg,",
+      "color-mix(in srgb, var(--color-crema) 78%, transparent) 0%,",
+      "transparent 24%,",
+      "color-mix(in srgb, var(--color-crema) 52%, transparent) 40%,",
+      "transparent 54%,",
+      "color-mix(in srgb, var(--color-tinta) 20%, transparent) 76%,",
+      `color-mix(in srgb, var(--color-tinta) 38%, transparent) 100%), ${hex}`,
+    ].join(" ");
+  }
+  if (tipo === "textura") return [...JASPEADO, hex].join(", ");
+  return hex;
 }
 
 /**
