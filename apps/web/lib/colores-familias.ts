@@ -1,7 +1,7 @@
 import { enEscala, type ColorEnEscala } from "./color-escala";
 
 // Familias de color: la agrupación que ven todas las pantallas que muestran colores (Nuevo producto, Agregar colores,
-// Atributos → Colores) y la que valida la API. Vive aparte, UNA sola vez, para que agrupen igual (ADR-0310).
+// Atributos → Colores) y la que valida la API. Vive aparte, UNA sola vez, para que agrupen igual (ADR-0312).
 //
 // EL ORDEN DE LAS FILAS es el del espectro: los dos neutros primero (la base de casi toda prenda), luego rosado → rojo →
 // naranja → amarillo → verde → azul → morado, que es el círculo cromático, y al final lo que no es un matiz (metálico y

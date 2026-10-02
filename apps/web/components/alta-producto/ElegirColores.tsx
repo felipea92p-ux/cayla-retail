@@ -181,7 +181,7 @@ export function ElegirColores({
       )}
 
       {carta && (
-        // La carta de color (ADR-0310). Cada familia es un renglón y dentro de cada renglón los colores van por gamas —un respiro
+        // La carta de color (ADR-0312). Cada familia es un renglón y dentro de cada renglón los colores van por gamas —un respiro
         // entre una y otra— y de claro a oscuro. Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
         // que lo rodea, y uno chico se ve peor. El color adentro es EXACTO (el #hex de la base, sin velo); el borde es el mismo
         // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto

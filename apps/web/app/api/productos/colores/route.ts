@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   // orden=2000: un color agregado desde esta pantalla entra al final de cualquier lista que todavía ordene por
   // `colores.orden`. Las pantallas de colores ya no lo usan: la carta y Atributos ordenan por la escala del color
-  // (`lib/color-escala.ts`, ADR-0310), así que el nuevo cae en su lugar solo, por su familia y su claridad.
+  // (`lib/color-escala.ts`, ADR-0312), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
     .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })

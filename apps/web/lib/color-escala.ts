@@ -1,4 +1,4 @@
-// La escala de un color: en qué gama de su familia cae y qué tan claro es (Felipe, 2026-10-02, ADR-0310).
+// La escala de un color: en qué gama de su familia cae y qué tan claro es (Felipe, 2026-10-02, ADR-0312).
 //
 // PROMETE: un único orden para toda pantalla que muestre colores de una familia — la carta de Nuevo producto, Agregar
 //   colores y Atributos → Colores. Dentro de una familia, de MENOR a MAYOR matiz (las gamas, como el círculo cromático) y,

@@ -116,7 +116,7 @@ export type ColorAlta = {
 };
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
-// que un color recién creado dejaba fuera de lugar, ni en el brillo del RGB, que subestima los azules (ADR-0310).
+// que un color recién creado dejaba fuera de lugar, ni en el brillo del RGB, que subestima los azules (ADR-0312).
 
 /** Los `max` colores más usados en la categoría (solo los que tienen uso) al frente; el resto agrupado por familia de color, en el orden de `familias`. */
 export function ordenarColores(

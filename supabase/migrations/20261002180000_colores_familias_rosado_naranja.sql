@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261002180000 — Colores: familias Rosado y Naranja, y el orden de la carta (ADR-0310)
+-- 20261002180000 — Colores: familias Rosado y Naranja, y el orden de la carta (ADR-0312)
 --
 -- EL PROBLEMA
 --   Las 9 familias de color mezclaban tres criterios sin prioridad (matiz, rol y acabado):
