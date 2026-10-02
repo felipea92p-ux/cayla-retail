@@ -167,6 +167,22 @@ describe("ordenarColores", () => {
   });
 });
 
+describe("ordenarColores · cada familia va del más claro al más oscuro", () => {
+  const azul = (codigo: string, nombre: string, hex: string | null) => ({ codigo, nombre, hex, familiaColor: "azul" });
+  it("ordena por claridad sin importar cómo llegaron, y los sin tono van al final", () => {
+    const llegada = [azul("MAR", "Marino", "#0b1d3a"), azul("SIN", "Sin tono", null), azul("CEL", "Celeste", "#bfe0f5"), azul("ELE", "Eléctrico", "#1e5fd8"), azul("HIE", "Hielo", "#f2f8fc")];
+    const g = ordenarColores(llegada, {}, FAMILIAS_COLOR).grupos.find((x) => x.familia === "azul")!;
+    expect(g.colores.map((c) => c.codigo)).toEqual(["HIE", "CEL", "ELE", "MAR", "SIN"]);
+  });
+  it("es estable: el mismo resultado con la lista al revés", () => {
+    const llegada = [azul("A", "Uno", "#336699"), azul("B", "Dos", "#336699"), azul("C", "Tres", "#99ccff")];
+    const a = ordenarColores(llegada, {}, FAMILIAS_COLOR).grupos[0].colores.map((c) => c.codigo);
+    const b = ordenarColores([...llegada].reverse(), {}, FAMILIAS_COLOR).grupos[0].colores.map((c) => c.codigo);
+    expect(a).toEqual(b);
+    expect(a[0]).toBe("C");
+  });
+});
+
 describe("problemasAlta — qué falta, en frases de la persona", () => {
   it("un estado completo no tiene problemas", () => {
     expect(problemasAlta(base)).toEqual([]);
