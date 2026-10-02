@@ -11,6 +11,7 @@
 //  - Qué vista del historial y qué tarjetas trae cada quien por defecto.
 
 import type { CierreCaja, ResumenCaja } from "@/lib/caja";
+import { ORDEN_METODOS, type MetodoRitmo } from "./caja-panel-reglas";
 
 /* ------------------------------------------------------------------
    Cobrado en el turno
@@ -78,11 +79,47 @@ export function piezasDelCajon(apertura: number, r: Pick<ResumenCaja, "ventasEfe
 
 export type FiltroMovimientos = "todo" | "ventas" | "cajon";
 
+type EventoFiltrable = { icono: "venta" | "ingreso" | "egreso"; titulo: string; metodos?: readonly MetodoRitmo[] };
+
 /** ¿El evento pasa el filtro? «Mueve el cajón» = movimientos manuales y ventas con algo en efectivo. */
-export function pasaFiltroMovimiento(e: { icono: "venta" | "ingreso" | "egreso"; titulo: string }, filtro: FiltroMovimientos): boolean {
+export function pasaFiltroMovimiento(e: EventoFiltrable, filtro: FiltroMovimientos): boolean {
   if (filtro === "todo") return true;
   if (filtro === "ventas") return e.icono === "venta";
   return e.icono !== "venta" || e.titulo.toLowerCase().includes("efectivo");
+}
+
+/**
+ * El filtro de «Movimientos del turno» es UNA sola elección: la vista (Todo / Ventas / Mueve el cajón) y, solo dentro de
+ * «Ventas», el medio de pago. Un ingreso o un egreso del cajón no se pagó con tarjeta ni con Yape: «Mueve el cajón +
+ * Tarjeta» sería siempre una lista vacía. Por eso el estado imposible no se puede armar: elegir un medio lleva a «Ventas»
+ * y elegir otra vista suelta el medio (Norman: si la persona se equivoca, es del diseño).
+ */
+export type FiltroMov = { vista: FiltroMovimientos; metodo: MetodoRitmo | null };
+export const FILTRO_MOV_INICIAL: FiltroMov = { vista: "todo", metodo: null };
+
+export function elegirVista(vista: FiltroMovimientos): FiltroMov {
+  return { vista, metodo: null };
+}
+
+/** Tocar el medio que ya estaba elegido lo suelta (queda «Ventas», sin medio); otro medio lo reemplaza. */
+export function elegirMetodo(actual: FiltroMov, metodo: MetodoRitmo): FiltroMov {
+  return { vista: "ventas", metodo: actual.metodo === metodo ? null : metodo };
+}
+
+/** ¿El evento pasa la vista y el medio? Una venta de pago mixto («efectivo + yape») pasa por cualquiera de sus medios. */
+export function pasaFiltroMov(e: EventoFiltrable, f: FiltroMov): boolean {
+  if (!pasaFiltroMovimiento(e, f.vista)) return false;
+  return f.metodo === null || (e.icono === "venta" && (e.metodos ?? []).includes(f.metodo));
+}
+
+/** Los medios que sí se usaron en el turno, en el orden de siempre, con cuántas ventas pasaron por cada uno. Sin ventas, nada. */
+export function metodosDelTurno(eventos: readonly EventoFiltrable[]): { clave: MetodoRitmo; ventas: number }[] {
+  const cuenta = new Map<MetodoRitmo, number>();
+  for (const e of eventos) {
+    if (e.icono !== "venta") continue;
+    for (const m of e.metodos ?? []) cuenta.set(m, (cuenta.get(m) ?? 0) + 1);
+  }
+  return ORDEN_METODOS.filter((m) => cuenta.has(m)).map((m) => ({ clave: m, ventas: cuenta.get(m)! }));
 }
 
 /* ------------------------------------------------------------------
