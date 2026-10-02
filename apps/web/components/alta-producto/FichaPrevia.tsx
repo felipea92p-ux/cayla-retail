@@ -150,16 +150,16 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             </span>
           </div>
           {d.campana && (
-            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-taupe">
+            <p className="relative mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] text-taupe">
               <span className="rounded-full bg-hueso px-2 py-px text-tinta">−{d.campana.pct} %</span>
               <span>
                 {d.campana.nombre}
                 {d.campana.hasta && ` · hasta ${fechaCorta(d.campana.hasta)}`}
               </span>
               {d.campana.otras.length > 0 && (
-                <span className="group relative" tabIndex={0} aria-label={`Otras campañas vigentes: ${d.campana.otras.map((o) => `${o.nombre} ${o.pct} %`).join(", ")}`}>
+                <span className="group" tabIndex={0} aria-label={`Otras campañas vigentes: ${d.campana.otras.map((o) => `${o.nombre} ${o.pct} %`).join(", ")}`}>
                   <span className="cursor-default rounded-full border border-sand px-1.5 py-px">+{d.campana.otras.length}</span>
-                  <span role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-1 hidden w-max max-w-[15rem] rounded-lg border border-sand bg-papel px-2.5 py-2 text-[12px] leading-snug text-tinta group-hover:block group-focus:block">
+                  <span role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-1 hidden w-max max-w-full rounded-lg border border-sand bg-papel px-2.5 py-2 text-[12px] leading-snug text-tinta group-hover:block group-focus:block">
                     {d.campana.otras.map((o) => (
                       <span key={o.nombre} className="flex justify-between gap-4">
                         <span>{o.nombre}</span>
