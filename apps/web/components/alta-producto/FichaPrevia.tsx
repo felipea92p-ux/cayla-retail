@@ -4,6 +4,7 @@ import { useState, type ComponentProps } from "react";
 import { AlertaParecidas } from "@/components/alta-producto/AlertaParecidas";
 import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
 import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
+import { fechaCorta } from "@/lib/etiqueta-vigencia";
 import type { AlertaVista } from "@/lib/parecidas-alta-vista";
 
 // «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va entre la ficha y «Avance» (escritorio), la tira
@@ -45,6 +46,8 @@ export type DatosFicha = {
   hoy: number | null;
   precio: number | null;
   margen: number | null;
+  /** La campaña con descuento que rige hoy sobre la prenda (la misma que saldrá en la etiqueta impresa), o null. */
+  campana: { nombre: string; pct: number; hasta: string | null; precioFinal: number } | null;
   colores: { codigo: string; hex: string | null }[];
   /** Vista previa local de la foto que quedaría de principal. */
   foto: string | null;
@@ -140,6 +143,16 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           <span className="text-[13px] text-taupe">Precio{d.margen !== null && ` · margen ${Math.round(d.margen)} %`}</span>
           <span className="font-display text-[22px] tabular-nums text-tinta">{d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}</span>
         </div>
+        {d.campana && (
+          <div className="mt-2 flex items-baseline justify-between gap-3 rounded-lg bg-hueso px-2.5 py-2">
+            <span className="text-[13px] text-tinta">
+              {d.campana.nombre} · −{d.campana.pct} %
+              {d.campana.hasta && <span className="text-taupe"> · hasta {fechaCorta(d.campana.hasta)}</span>}
+              <span className="block text-[11px] text-taupe">Lo que cobra la caja y dice la etiqueta.</span>
+            </span>
+            <span className="font-display shrink-0 whitespace-nowrap text-[22px] tabular-nums text-tinta">{soles(d.campana.precioFinal)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
