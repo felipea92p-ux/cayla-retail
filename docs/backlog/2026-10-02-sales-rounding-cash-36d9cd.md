@@ -2,16 +2,16 @@
 
 Investigación y diseño: `docs/investigacion/2026-10-02-redondeo-del-efectivo.md`. Regla: S/ 0.10, solo efectivo, solo hacia abajo, una vez sobre el total a pagar en efectivo (100.02 → 100.00, 100.12 → 100.10, 100.19 → 100.10). ADR-0310 y las migraciones `20261003100000`–`20261003190000` están **propuestos en el documento, no reservados** en ningún otro lado: volver a barrer ramas antes de usarlos.
 
-**Esperando decisión de Felipe**
-- [ ] Aprobar el diseño (fila `metodo='redondeo'` en `venta_pagos`) y la lista de actividades de abajo.
-- [ ] Contador: ¿qué cuenta recibe el redondeo (provisional; 6599 es faltantes y 659 es mermas) y cómo trata el IGV de un comprobante exacto?
-- [ ] ¿Se autoriza el spike en el sandbox de Lucode para declarar el redondeo en el XML (sin emisión real)?
-- [ ] Cambios y devoluciones: dirección del redondeo cuando CAYLA entrega efectivo (la ley no lo cubre; se recomienda hacia arriba) y tope del reembolso (lo pagado de verdad en efectivo).
-- [ ] Coordinación: esperar #722 (Caja) y #719 («cliente»/«miembro»); decidir quién porta la rama local `top-30-pendientes-erp` (comparte `ParamsRegistrarVenta`).
+**Decisiones** (Felipe aprobó el diseño y la lista el 2026-10-02 con «hazlo»; lo demás sigue las recomendaciones del ADR-0310 §7 y es provisional)
+- [x] Diseño (fila `metodo='redondeo'` en `venta_pagos`) y lista de actividades: aprobados.
+- [ ] Contador: ¿qué cuenta recibe el redondeo (provisional, propia y de gasto; 6599 es faltantes y 659 es mermas) y cómo trata el IGV de un comprobante exacto? Hasta que conteste, la cuenta es provisional.
+- [ ] ¿Se autoriza el spike en el sandbox de Lucode para declarar el redondeo en el XML (sin emisión real)? Sin su OK explícito no se hace (actividad 8).
+- [ ] Confirmar con un abogado: la regla «solo hacia abajo» (lectura de textos oficiales) y, en cambios y devoluciones, que se redondee hacia ARRIBA a favor del cliente cuando CAYLA entrega efectivo (ninguna norma lo trata). Provisional.
+- [ ] Coordinación: #719 ya está en `main`; esperar #722 (Caja) antes de la actividad 2 si sigue abierto; decidir quién porta la rama local `top-30-pendientes-erp` (comparte `ParamsRegistrarVenta`).
 
 **Actividades (cortes verticales; orden de construcción = orden de la lista)**
-- [ ] Paso 0, terreno: llevar la rama a `origin/main` (estaba 21 commits atrás, sin `HojaDeCobro.tsx`), fila en `SESIONES-ACTIVAS`, Postgres desechable con las migraciones de main (la base local compartida tiene 365 y `registrar_venta` de 16 parámetros), sonda de huellas md5 de las funciones a parchar (`registrar_venta` vivo: `525479a95e59063b5f9e86f63119e27e`).
-- [ ] 1. Regla única `redondeoEfectivo` / `retail.fn_redondeo_efectivo`, con paridad TS/SQL sobre los 99 999 montos de 0.01 a 999.99, y el ADR.
+- [x] Paso 0, terreno (hecho 2026-10-02: rama al día con `main`, base desechable con 410 migraciones, fila en `SESIONES-ACTIVAS`; las huellas de producción se sondean al empezar cada parche): llevar la rama a `origin/main` (estaba 21 commits atrás, sin `HojaDeCobro.tsx`), fila en `SESIONES-ACTIVAS`, Postgres desechable con las migraciones de main (la base local compartida tiene 365 y `registrar_venta` de 16 parámetros), sonda de huellas md5 de las funciones a parchar (`registrar_venta` vivo: `525479a95e59063b5f9e86f63119e27e`).
+- [x] 1. Regla en la base `retail.fn_redondeo_efectivo` (hecha 2026-10-02, ADR-0310 escrito), verificada en los 99 999 montos de 0.01 a 999.99. **Pendiente para la actividad 5:** su gemela TS `redondeoDelEfectivo` y la paridad caja ↔ base (el repo no admite una regla sin pantalla que la use; copia lista en el scratchpad de la sesión).
 - [ ] 2. Los lectores entienden «redondeo»: CHECK de medios (rehecho desde la definición viva, sin soltar `qr` ni `anticipo`), `fn_resumen_caja`, `fn_totales_historial_ventas`, `fn_ventas_del_dia`, `fn_cuenta_sellada`, y una prueba que lista toda función que lee `venta_pagos`.
 - [ ] 3. Diario y estado de resultados: `fn_asiento_cuenta_de_medio` manda `redondeo` a una cuenta de gasto propia (hoy un medio desconocido cae en la 104, banco).
 - [ ] 4. Papel y reimpresión: el recibo dice el redondeo; la boleta y el QR siguen exactos.
