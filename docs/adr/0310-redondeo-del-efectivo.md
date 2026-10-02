@@ -83,7 +83,9 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
 - [x] **2. Los lectores entienden «redondeo»** (dos partes SQL + web, §8): el CHECK de medios y sus candados, `fn_cuenta_sellada`,
   `fn_resumen_caja` y `fn_ventas_del_dia` (Caja y la lista de ventas del día), Historial, y una prueba que obliga a revisar toda
   función que lea `venta_pagos`.
-- [ ] 3. Diario y estado de resultados: el redondeo cuadra y se ve, con una cuenta provisional hasta el contador.
+- [x] **3. Diario y estado de resultados** (§8): el redondeo se asienta contra una cuenta de gasto propia (**6598**, provisional hasta
+  el contador) y no contra el banco; el asiento cuadra solo, el Estado de resultados lo muestra y la anulación lo revierte.
+  `fn_asientos` no se tocó.
 - [ ] 4. Papel y reimpresión: el recibo dice el redondeo; la boleta y el QR siguen exactos.
 - [ ] 5. Vender cobra en efectivo redondeado de punta a punta (RPC, hoja de cobro, cola sin conexión, bandera).
 - [ ] 6. Apartados: el saldo en efectivo al entregar (abonos y adelanto no se redondean).
@@ -164,6 +166,29 @@ transacción, sobre un Postgres desechable con las 410 migraciones del repo (má
 4. Sin filas de redondeo no cambia ni un número; con la web vieja o con la nueva no pasa nada (la clave `redondeo` que trae
    `fn_resumen_caja` la web vieja la ignora).
 
+
+### Actividad 3 — el diario
+
+Con la misma venta sembrada (79.88 = 79.80 efectivo + 0.08 redondeo), `pnpm pruebas:redondeo-efectivo` **31/31**:
+
+- **Antes (línea base medida):** el asiento traía `104: 0.08` — una plata «en el banco» que nunca llegó — y la pérdida no llegaba al
+  Estado de resultados. **Después:** `101: 79.80 · 6598: 0.08` contra el Haber de la venta (7011 + 4011): **cuadra sin una línea de
+  ajuste** y no hay asientos descuadrados; ninguna línea cae en 104.
+- **Estado de resultados:** el gasto «Redondeo de efectivo (a favor del cliente)» (6598) muestra 0.08, con 0 descuadrados.
+- **Cierre de mes:** el chequeo «diario» sigue en verde (0 descuadrados): el redondeo no bloquea el mes.
+- **Anular la venta** revierte el redondeo contra 6598 y Caja contra 101: queda en cero.
+- Los demás medios no cambian de cuenta (efectivo 101, tarjeta 105, yape/plin/transferencia/qr 104, anticipo 122, saldo a favor 421).
+- La migración se pega dos veces, deja una sola cuenta 6598 y la huella prometida; y **aborta si la función cambió** desde que se escribió.
+- **Control de mutación:** con el redondeo cayendo otra vez en 104, la prueba da **26/31** (fallan el asiento, el «no es banco», el
+  Estado de resultados, la anulación y la huella); con el parche, 31/31.
+- Regresión de Finanzas en verde: `balance` 69, `cierre-mes` 104, `estado-resultados` 73, `presupuesto` 78, `resumen-finanzas` 68,
+  `roles-lider-editable` 13. Web: `resultados-reglas` 30 pruebas (la cuenta tiene su nombre y su «de dónde sale»), `tsc` y eslint.
+  **No se probó en el navegador** la pantalla del Estado de resultados (el cambio web es un nombre y un texto, cubiertos por prueba).
+
+**Para pegar en producción** (Felipe, SOLA, después de las dos partes de la actividad 2 y antes de publicar la web): huella «antes» de
+`fn_asiento_cuenta_de_medio` `9d9d0c71a9867ab1f4f7262ba7f13c7a` (verificada hoy, solo lectura); «después» `6b4982f3847cb817c3a26155f043f047`.
+En producción el plan de cuentas es el mismo: 6598 y el orden 46 están libres. **Pendiente del contador:** el código y el nombre de la
+cuenta (si pide otro, se renombra ANTES del primer cierre de mes: el cierre congela la huella del diario con su código).
 
 ## 9. Lo que queda
 

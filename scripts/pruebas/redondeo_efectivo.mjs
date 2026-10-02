@@ -13,6 +13,9 @@
  * el cajón» sigue siendo lo físico, que el redondeo no cuenta como cobrado ni como «Otro», que no queda sellado a un banco, que
  * el esquema rechaza lo que nunca debe existir y que TODA función que lee `venta_pagos` está revisada pensando en el redondeo.
  *
+ * ACTIVIDAD 3 (diario). `20261003120000_redondeo_diario.sql`: el redondeo se asienta contra la cuenta de gasto 6598 (no contra el
+ * banco), el asiento cuadra, el Estado de resultados lo muestra, la anulación lo revierte y el Cierre de mes no se bloquea.
+ *
  * (La caja tendrá su gemela en TypeScript cuando Vender la use —actividad 5—; entonces esta prueba también compara las dos en
  * los 99 999 montos. Hoy ninguna pantalla la llama y el repo no admite una regla sin uso.)
  *
@@ -33,6 +36,7 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
 const MIGRACION_CANDADO = "supabase/migrations/20261003110000_venta_pagos_candado_redondeo.sql";
 const MIGRACION_LECTORES = "supabase/migrations/20261003111000_redondeo_lectores.sql";
+const MIGRACION_DIARIO = "supabase/migrations/20261003120000_redondeo_diario.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 
 // Uno o varios archivos separados por coma (las partes de una migración se aplican en orden).
@@ -251,6 +255,88 @@ ${parte2}
 rollback;`);
   esperar("el parche de lectores aborta si una función cambió desde que se escribió (no la pisa a ciegas)", !r13.ok && r13.mensaje.includes("cambió desde que se escribió esta migración"), r13.ok ? "pasó y debía abortar" : r13.mensaje);
 
+  // =====================================================================================================================
+  // ACTIVIDAD 3 — el diario asienta el redondeo contra la cuenta de gasto 6598 y todo sigue cuadrando.
+  // =====================================================================================================================
+  const HOY = "retail.fn_hoy_lima()";
+
+  // ---- 15. El asiento de la venta: Caja con lo físico, el redondeo como gasto (no como banco), y cuadra ----
+  const r15 = correr(`${VENTA_REDONDEADA}
+select 'cuentas|' || string_agg(cuenta || ':' || debe || '/' || haber, ' ' order by cuenta, debe) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where asiento = 'venta:' || :'venta';
+select 'cuadra|' || (select round(sum(debe), 2) = round(sum(haber), 2) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where asiento = 'venta:' || :'venta');
+select 'descuadrados|' || count(*) from retail.fn_asientos_descuadrados(${HOY}, ${HOY}, :'ubic');
+rollback;`);
+  if (!r15.ok) {
+    esperar("el diario asienta la venta redondeada", false, r15.mensaje);
+  } else {
+    const l15 = Object.fromEntries(r15.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.slice(l.indexOf("|") + 1)]));
+    esperar("diario: el efectivo entra a Caja (101) con lo físico, 79.80, y el redondeo va a la cuenta de gasto 6598 con 0.08", l15.cuentas.includes("101:79.80/0") && l15.cuentas.includes("6598:0.08/0"), l15.cuentas);
+    esperar("diario: el redondeo NO queda como plata en el banco (ninguna línea en 104)", !/(^| )104:/.test(l15.cuentas), l15.cuentas);
+    esperar("diario: el asiento de la venta cuadra (Debe = Haber) sin una línea de ajuste, y no hay asientos descuadrados", l15.cuadra === "true" && l15.descuadrados === "0", JSON.stringify(l15));
+  }
+
+  // ---- 16. El Estado de resultados lo muestra como un gasto aparte, sin descuadrados ----
+  const r16 = correr(`${VENTA_REDONDEADA}
+select 'er|' || asientos_descuadrados || '|' || detalle_gastos::text from retail.fn_estado_resultados(${HOY}, ${HOY}, :'ubic') where ubicacion_id = :'ubic';
+rollback;`);
+  if (!r16.ok) {
+    esperar("el Estado de resultados con una venta redondeada", false, r16.mensaje);
+  } else {
+    const [, descuadrados, detalle] = r16.salida.split("|");
+    const fila = JSON.parse(detalle).find((d) => d.cuenta === "6598");
+    esperar("Estado de resultados: el gasto «Redondeo de efectivo (a favor del cliente)» (6598) muestra 0.08, sin asientos descuadrados", descuadrados === "0" && fila && Number(fila.monto) === 0.08, r16.salida);
+  }
+
+  // ---- 17. El Cierre de mes no se bloquea por el diario ----
+  const r17 = correr(`${VENTA_REDONDEADA}
+select 'cierre|' || c.chequeos::text from retail.fn_cierre_mes_estado(date_trunc('month', ${HOY})::date) c where c.ubicacion_id = :'ubic';
+rollback;`);
+  if (!r17.ok) {
+    esperar("el Cierre de mes con una venta redondeada", false, r17.mensaje);
+  } else {
+    const checks = JSON.parse(r17.salida.slice("cierre|".length));
+    const diario = checks.find((c) => c.clave === "diario");
+    esperar("Cierre de mes: el chequeo «diario» sigue en verde (0 asientos descuadrados): el redondeo no bloquea el mes", diario && diario.ok === true && Number(diario.datos.descuadrados) === 0, JSON.stringify(diario));
+  }
+
+  // ---- 18. Anular la venta revierte el redondeo contra la misma cuenta: queda en cero ----
+  const r18 = correr(`${VENTA_REDONDEADA}
+select vi.id as item from retail.venta_items vi where vi.venta_id = :'venta' limit 1 \\gset
+select retail.anular_venta(:'venta', 'prueba automatizada', jsonb_build_array(jsonb_build_object('venta_item_id', :'item', 'condicion', 'vendible'))) as _a \\gset
+select 'neto6598|' || coalesce(sum(debe - haber), 0) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where origen_id = :'venta' and cuenta = '6598';
+select 'neto101|' || coalesce(sum(debe - haber), 0) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where origen_id = :'venta' and cuenta = '101';
+select 'revierte|' || count(*) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where asiento = 'anulacion:' || :'venta' and cuenta = '6598' and haber = 0.08;
+select 'descuadrados|' || count(*) from retail.fn_asientos_descuadrados(${HOY}, ${HOY}, :'ubic');
+rollback;`);
+  if (!r18.ok) {
+    esperar("anular una venta redondeada", false, r18.mensaje);
+  } else {
+    const l18 = Object.fromEntries(r18.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.split("|")[1]]));
+    esperar("anular la venta revierte el redondeo contra 6598 (queda en 0) y Caja (101) también; sin asientos descuadrados",
+      Number(l18.neto6598) === 0 && Number(l18.neto101) === 0 && l18.revierte === "1" && l18.descuadrados === "0", r18.salida);
+  }
+
+  // ---- 19. La migración del diario se pega dos veces y deja la huella prometida ----
+  const diario = readFileSync(MIGRACION_DIARIO, "utf8");
+  const huellaDiario = (diario.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
+  const r19 = correr(`begin;\n${diario}\n${diario}
+select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
+  from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_asiento_cuenta_de_medio';
+select 'cuentas|' || count(*) from retail.cuentas where codigo = '6598';
+rollback;`);
+  esperar("la migración del diario es re-ejecutable, deja una sola cuenta 6598 y la huella prometida de fn_asiento_cuenta_de_medio",
+    r19.ok && r19.salida.includes(`h|${huellaDiario}`) && r19.salida.includes("cuentas|1"), r19.ok ? r19.salida : r19.mensaje);
+
+  // ---- 20. Los demás medios siguen yendo a su cuenta, y si alguien cambió la función el parche aborta ----
+  const r20 = correr(`select 'm|' || retail.fn_asiento_cuenta_de_medio('efectivo') || retail.fn_asiento_cuenta_de_medio('tarjeta') || retail.fn_asiento_cuenta_de_medio('yape') || retail.fn_asiento_cuenta_de_medio('plin')
+  || retail.fn_asiento_cuenta_de_medio('transferencia') || retail.fn_asiento_cuenta_de_medio('qr') || retail.fn_asiento_cuenta_de_medio('anticipo') || retail.fn_asiento_cuenta_de_medio('saldo_a_favor');`);
+  esperar("los demás medios no cambiaron de cuenta (efectivo 101, tarjeta 105, yape/plin/transferencia/qr 104, anticipo 122, saldo a favor 421)", r20.ok && r20.salida === "m|101105104104104104122421", r20.ok ? r20.salida : r20.mensaje);
+  const r20b = correr(`begin;
+do $x$ begin execute replace(pg_get_functiondef('retail.fn_asiento_cuenta_de_medio(text,text)'::regprocedure), 'saldo_a_favor', 'saldo_a_favor_x'); end $x$;
+${diario}
+rollback;`);
+  esperar("el parche del diario aborta si fn_asiento_cuenta_de_medio cambió desde que se escribió (no la pisa a ciegas)", !r20b.ok && r20b.mensaje.includes("cambió desde que se escribió esta migración"), r20b.ok ? "pasó y debía abortar" : r20b.mensaje);
+
   // ---- 14. AUDITORÍA: toda función que lee venta_pagos o separacion_pagos está revisada pensando en el redondeo ----
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
@@ -258,7 +344,7 @@ rollback;`);
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0310 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     entregar_separacion: "ACTIVIDAD 6: el saldo en efectivo al entregar se redondea (por ahora rechaza el medio redondeo).",
-    fn_asientos: "ACTIVIDAD 3: cada fila de venta_pagos genera su Debe, así que el asiento cuadra; falta la cuenta del medio redondeo.",
+    fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
