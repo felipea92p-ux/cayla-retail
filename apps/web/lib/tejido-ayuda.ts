@@ -20,15 +20,29 @@ import { familiaDeTejido, type FamiliaTejido } from "./tejido-visual";
 // poliéster se dibujan como algodón y poliéster), pero la descripción no puede agruparse igual: «algodón con licra» no
 // se cuida ni se usa como el algodón liso, y «Satín» no es seda. Esas pocas reglas van primero y se explican una a una.
 
+/** Un dato con su título: la burbuja lo escribe en línea («Cuidado: …») y el detalle del tejido, como fila con título. */
+export type DatoTejido = { etiqueta: string; texto: string };
+
 export type AyudaTejido = {
   /** Qué es y cómo se siente, en una o dos frases. */
   queEs: string;
-  /** «Ideal para: …» y «Cuidado: …» (y, en un nombre genérico, un «Ojo: …»). */
-  datos: string[];
+  /** «Ideal para» y «Cuidado» (y, en un nombre genérico, un «Ojo»), en ese orden. */
+  datos: DatoTejido[];
 };
 
 function ficha(queEs: string, idealPara: string, cuidado: string): AyudaTejido {
-  return { queEs, datos: [`Ideal para: ${idealPara}`, `Cuidado: ${cuidado}`] };
+  return {
+    queEs,
+    datos: [
+      { etiqueta: "Ideal para", texto: idealPara },
+      { etiqueta: "Cuidado", texto: cuidado },
+    ],
+  };
+}
+
+/** Los datos como texto corrido («Ideal para: … Cuidado: …»): para donde no hay lugar para filas con título (el celular). */
+export function datosEnTexto(ayuda: AyudaTejido): string {
+  return ayuda.datos.map((d) => `${d.etiqueta}: ${d.texto}`).join(" ");
 }
 
 // Nombres que contienen la palabra de OTRA tela pero no son esa tela. Van antes que la familia; el orden importa.
@@ -208,8 +222,8 @@ const POR_FAMILIA: Readonly<Record<FamiliaTejido, AyudaTejido>> = {
   tela: {
     queEs: "Es un nombre genérico: no dice de qué fibra es.",
     datos: [
-      "Ojo: si conoces la fibra, elige o agrega el tejido específico (Algodón, Poliéster, Viscosa…) para que la prenda quede bien descrita.",
-      "Cuidado: el de la etiqueta del proveedor.",
+      { etiqueta: "Ojo", texto: "si conoces la fibra, elige o agrega el tejido específico (Algodón, Poliéster, Viscosa…) para que la prenda quede bien descrita." },
+      { etiqueta: "Cuidado", texto: "el de la etiqueta del proveedor." },
     ],
   },
   terciopelo: ficha(
