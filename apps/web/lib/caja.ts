@@ -23,6 +23,9 @@ export type CajaAbierta = {
 export type ResumenCaja = {
   ventasEfectivo: number;
   ventasOtros: number;
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0310). No es una forma de pago:
+   *  no está en `ventasOtros` ni en `porMetodo`. `ventasEfectivo + ventasOtros + redondeo` es lo vendido (la suma de ítems). */
+  redondeo: number;
   ingresos: number;
   egresos: number;
   /** Devoluciones aprobadas con reembolso en efectivo de ESTA caja (`devoluciones.
@@ -105,6 +108,8 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
 type ResumenCajaDeLaBase = {
   ventas_efectivo: number | string;
   ventas_otros: number | string;
+  /** Falta en una base anterior a `20261003111000_redondeo_lectores.sql`: sin esa clave no hay redondeo. */
+  redondeo?: number | string | null;
   ingresos: number | string;
   egresos: number | string;
   reembolsos_efectivo: number | string;
@@ -129,6 +134,7 @@ export async function getTableroCaja(cajaId: string): Promise<{ resumen: Resumen
     resumen: {
       ventasEfectivo: Number(t.ventas_efectivo),
       ventasOtros: Number(t.ventas_otros),
+      redondeo: Number(t.redondeo ?? 0),
       ingresos: Number(t.ingresos),
       egresos: Number(t.egresos),
       reembolsosEfectivo: Number(t.reembolsos_efectivo),

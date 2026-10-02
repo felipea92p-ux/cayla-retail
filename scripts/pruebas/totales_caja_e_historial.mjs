@@ -192,13 +192,15 @@ with v as (select id, created_at from retail.ventas where caja_id = :'caja' and 
 p as (select vp.metodo, vp.monto, extract(hour from v.created_at at time zone 'America/Lima')::int hora from retail.venta_pagos vp join v on v.id = vp.venta_id)
 select jsonb_build_object(
   'ventas_efectivo', (select coalesce(sum(monto), 0) from p where metodo = 'efectivo'),
-  'ventas_otros', (select coalesce(sum(monto), 0) from p where metodo <> 'efectivo'),
+  'ventas_otros', (select coalesce(sum(monto), 0) from p where metodo not in ('efectivo', 'redondeo')),
+  -- ADR-0310: el redondeo del efectivo no es «otro» ni una forma de pago: viaja aparte.
+  'redondeo', (select coalesce(sum(monto), 0) from p where metodo = 'redondeo'),
   'ingresos', (select coalesce(sum(monto), 0) from retail.caja_movimientos where caja_id = :'caja' and tipo = 'ingreso'),
   'egresos', (select coalesce(sum(monto), 0) from retail.caja_movimientos where caja_id = :'caja' and tipo = 'egreso'),
   'reembolsos_efectivo', (select coalesce(sum(reembolso_monto), 0) from retail.devoluciones where caja_id = :'caja' and estado = 'aprobada' and reembolso_metodo = 'efectivo'),
   'cambios_efectivo', (select coalesce(sum(diferencia), 0) from retail.cambios where caja_id = :'caja' and metodo_pago_diferencia = 'efectivo'),
-  'por_metodo', (select coalesce(jsonb_object_agg(metodo, s), '{}') from (select metodo, sum(monto) s from p group by metodo) m),
-  'por_hora', (select coalesce(jsonb_agg(jsonb_build_object('hora', hora, 'efectivo', e, 'otros', o) order by hora), '[]') from (select hora, coalesce(sum(monto) filter (where metodo = 'efectivo'), 0) e, coalesce(sum(monto) filter (where metodo <> 'efectivo'), 0) o from p group by hora) h)
+  'por_metodo', (select coalesce(jsonb_object_agg(metodo, s), '{}') from (select metodo, sum(monto) s from p where metodo <> 'redondeo' group by metodo) m),
+  'por_hora', (select coalesce(jsonb_agg(jsonb_build_object('hora', hora, 'efectivo', e, 'otros', o) order by hora), '[]') from (select hora, coalesce(sum(monto) filter (where metodo = 'efectivo'), 0) e, coalesce(sum(monto) filter (where metodo not in ('efectivo', 'redondeo')), 0) o from p group by hora) h)
 )`;
     const r = correr(`${SEMILLA}
 ${comoCuenta(FELIPE)}

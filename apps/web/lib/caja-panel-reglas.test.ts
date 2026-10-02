@@ -51,6 +51,10 @@ describe("metodosDe", () => {
   it("lo que no reconoce cae en 'otro', no se pierde", () => {
     expect(metodosDe("cheque")).toEqual(["otro"]);
   });
+  it("el redondeo del efectivo (ADR-0310) no es una forma de pago: no sale ni como 'otro'", () => {
+    expect(metodosDe("efectivo + redondeo")).toEqual(["efectivo"]);
+    expect(metodosDe("redondeo")).toEqual([]);
+  });
 });
 
 describe("ritmoDelDia", () => {

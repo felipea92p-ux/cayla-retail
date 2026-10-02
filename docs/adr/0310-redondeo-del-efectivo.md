@@ -80,7 +80,9 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
 - [x] **1. Regla en la base** `retail.fn_redondeo_efectivo`, verificada en los 99 999 montos de 0.01 a 999.99 (§8). Su gemela en
   TypeScript (`redondeoDelEfectivo`, en céntimos enteros) y la **paridad caja ↔ base** entran en la actividad 5: el repo no admite
   una función de reglas que solo usa su prueba (`lib/reglas-sin-uso.test.ts`) y ninguna pantalla la llama hasta entonces.
-- [ ] 2. Los lectores entienden «redondeo»: Caja, Historial, cuenta sellada y el CHECK de medios, con una venta sembrada.
+- [x] **2. Los lectores entienden «redondeo»** (dos partes SQL + web, §8): el CHECK de medios y sus candados, `fn_cuenta_sellada`,
+  `fn_resumen_caja` y `fn_ventas_del_dia` (Caja y la lista de ventas del día), Historial, y una prueba que obliga a revisar toda
+  función que lea `venta_pagos`.
 - [ ] 3. Diario y estado de resultados: el redondeo cuadra y se ve, con una cuenta provisional hasta el contador.
 - [ ] 4. Papel y reimpresión: el recibo dice el redondeo; la boleta y el QR siguen exactos.
 - [ ] 5. Vender cobra en efectivo redondeado de punta a punta (RPC, hoja de cobro, cola sin conexión, bandera).
@@ -107,7 +109,9 @@ Quedan provisionales y se pueden revertir; cada una se anota de nuevo en la acti
   contador. **Comprobante exacto** (el céntimo no cobrado es gasto): que el contador lo confirme por escrito.
 - **Actividad 8 (SUNAT):** no se hace sin el OK explícito de Felipe y el sandbox de Lucode; mientras tanto el comprobante sale exacto.
 
-## 8. Verificación de la actividad 1 (2026-10-02)
+## 8. Verificación (2026-10-02)
+
+### Actividad 1 — la regla
 
 - Postgres desechable con las 410 migraciones del repo y el seed (más la nueva): `pnpm pruebas:redondeo-efectivo` **6/6**:
   27 ejemplos de la ley (INDECOPI y Felipe), y en **los 99 999 montos de 0.01 a 999.99**: redondeo de 0.00 a 0.09, efectivo en
@@ -117,6 +121,49 @@ Quedan provisionales y se pueden revertir; cada una se anota de nuevo en la acti
   **4/6** (fallan los ejemplos de la ley y los 99 999 montos); con la regla real, 6/6.
 - `lib/reglas-sin-uso.test.ts` en verde: no se agregó ninguna regla sin pantalla. Verificadores del repo: `adr:numeros`,
   `migraciones:versiones` y `migraciones:sin-drop-trigger` en verde.
+
+### Actividad 2 — los lectores
+
+Una venta de 79.88 (79.90 con 0.02 de descuento) pagada con **79.80 en efectivo y 0.08 de redondeo**, sembrada dentro de una
+transacción, sobre un Postgres desechable con las 410 migraciones del repo (más las tres nuevas): `pnpm pruebas:redondeo-efectivo`
+**22/22**.
+
+- **Caja:** «Efectivo en el cajón» = 100.00 + 79.80 = **179.80**, una cifra que sí cabe en un cajón; las ventas en otros medios
+  son 0 (el redondeo no es «Otro»); el redondeo viaja aparte (0.08) y «Cobrado en el turno» lista solo el efectivo.
+  `fn_calcular_esperado_caja` **no se tocó**: la fila de efectivo ya trae lo físico.
+- **Lista de ventas del día:** la venta dice «efectivo», no «efectivo + redondeo», y su total sigue siendo 79.88.
+- **Historial:** «cómo se pagó» lista efectivo 79.80 y redondeo 0.08, y **suma el total vendido** (79.88) — por eso el redondeo es
+  ahí una fila más, a propósito.
+- **Cuenta sellada:** la fila de redondeo queda sin cuenta (no es plata); sembrando un banco para «transferencia» se comprueba que
+  sin el parche habría caído en él.
+- **El esquema rechaza lo que nunca debe existir:** redondeo de 0.10 o más, con `recibido`, con referencia, de 0, dos en una
+  venta y un medio que no existe; y acepta los 8 medios (los 7 de antes, incluidos `qr` y `anticipo`, y `redondeo`).
+- **Candado de huella:** si alguien cambió `fn_cuenta_sellada` desde que se escribió el parche, la parte 2 aborta en vez de pisarla.
+- **Auditoría de lectores:** las 17 funciones que leen `venta_pagos` o `separacion_pagos` están anotadas una por una con lo que
+  hacen con el redondeo; una función nueva que lea los pagos pone la prueba en rojo hasta que alguien la revise.
+- **Control de mutación:** sin el parche de las tres funciones la prueba da **17/22** (fallan Caja, «cobrado», la lista del día,
+  la cuenta sellada y las huellas); con un lector nuevo sin revisar, **21/22**; con los parches, 22/22.
+- **Navegador:** las tarjetas reales de Caja con los datos reales de `fn_resumen_caja` (PostgREST local con JWT del líder):
+  «Efectivo en el cajón ahora S/ 179.80», «Cobrado en el turno S/ 79.80» y la nota «− S/ 0.08 de redondeo en efectivo: se cobra al
+  múltiplo de S/ 0.10, hacia abajo, y no suma a lo cobrado». Sin errores en la consola.
+- **Web:** vitest 127 pruebas de las reglas tocadas en verde (`cobradoDelTurno`, `notaDeRedondeo`, `metodosDe`, `mezclaDePagos`);
+  `tsc` y eslint en verde. Regresión SQL: `totales-caja-historial` (su reconstrucción «de antes» ganó la clave `redondeo`: el
+  contrato cambió a propósito), `caja-cierre-traslado`, `cuenta-sellada` 76, `flujo-caja` 55, `cuentas-dinero` 88,
+  `estado-resultados` 73, `balance` 69, `cierre-mes` 104, `separaciones` 78, `aprobar-devolucion-caja` 5, `registrar-cambio` 21 y
+  `ventas-del-dia` 11, todas en verde.
+
+**Para pegar en producción** (lo pega Felipe; las dos partes SOLAS y en este orden, antes de publicar la web):
+
+1. Huellas de hoy (solo lectura, 2026-10-02) — son las que el parche exige, y coinciden con las de la base desechable: `fn_cuenta_sellada`
+   `cbaaccb42a59272a88b854aa79bd9746`, `fn_resumen_caja` `72dab7b74ac3da0d541d6a575680b0ca`, `fn_ventas_del_dia`
+   `3ab77169d3cc381e46db6b5b0e3e6f4e`. El CHECK de medios vivo trae los 7 medios (con `qr`).
+2. Parte 1: `20261003110000_venta_pagos_candado_redondeo.sql` (toma la tabla unos milisegundos; con `lock_timeout = 3s` falla sin
+   tocar nada si una venta la tiene tomada: se vuelve a pegar).
+3. Parte 2: `20261003111000_redondeo_lectores.sql`. Huellas «después»: `fn_cuenta_sellada` `ebe23eeff86c0814d4faf0e78521bc00`,
+   `fn_resumen_caja` `ab7495db3cc96abda90b61eb977e106b`, `fn_ventas_del_dia` `cde71227a0b7b41aae8ab1a8b67b49db`.
+4. Sin filas de redondeo no cambia ni un número; con la web vieja o con la nueva no pasa nada (la clave `redondeo` que trae
+   `fn_resumen_caja` la web vieja la ignora).
+
 
 ## 9. Lo que queda
 
