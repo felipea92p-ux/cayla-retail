@@ -1,0 +1,538 @@
+/* EDITAR PRODUCTO · «PANEL DEL TALLER» (maqueta B, docs/maquetas/producto-editar-rediseno-2026-10/b-taller.html, elegida por
+   Felipe el 2026-10-02). Las medidas y el movimiento son los de la maqueta; los colores, solo tokens de globals.css (ADR-0169).
+   Movimiento (ADR-0136): respuestas a lo que la persona hace —la celda que se tocó destella una vez, la barra crece al llegar, la
+   foto cambia con un fundido—, con `--ease-cayla`, sin rebote ni bucle. La maqueta hacía girar el borde punteado del color sin
+   foto: aquí queda quieto (no está en la lista de bucles permitidos). Todo se apaga con `prefers-reduced-motion`. */
+
+/* ---- Secciones plegables de la columna izquierda ---- */
+.taller-sec {
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: 16px;
+}
+.taller-sec-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  width: 100%;
+  text-align: left;
+}
+.taller-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-tinta) 25%, transparent);
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--color-tinta) 60%, transparent);
+  transition: background-color 240ms var(--ease-cayla), border-color 240ms var(--ease-cayla), color 240ms var(--ease-cayla);
+}
+.taller-sec[data-hecho="true"] .taller-num {
+  background: var(--color-verde);
+  border-color: var(--color-verde);
+  color: var(--color-crema);
+}
+.taller-chev {
+  flex: none;
+  color: color-mix(in oklab, var(--color-tinta) 45%, transparent);
+  transition: transform 220ms var(--ease-cayla);
+}
+.taller-sec[data-abierta="true"] .taller-chev {
+  transform: rotate(180deg);
+}
+.taller-sec-cuerpo {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 320ms var(--ease-cayla);
+}
+.taller-sec[data-abierta="true"] .taller-sec-cuerpo {
+  grid-template-rows: 1fr;
+}
+.taller-sec-cuerpo > div {
+  min-height: 0;
+  overflow: hidden;
+}
+/* Abierta, lo de adentro puede asomar (listas flotantes de un combo, el halo de la guía). */
+.taller-sec[data-abierta="true"] .taller-sec-cuerpo > div {
+  overflow: visible;
+}
+.taller-sec[data-abierta="false"] .taller-sec-cuerpo > div {
+  visibility: hidden;
+  transition: visibility 0s linear 320ms;
+}
+
+/* ---- La matriz color × talla ---- */
+.taller-matriz {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 5px;
+  font-size: 12.5px;
+  margin: 0 -5px;
+}
+.taller-matriz th {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-tinta) 45%, transparent);
+  font-weight: 600;
+  padding: 6px 8px;
+  text-align: center;
+}
+.taller-matriz th:first-child {
+  text-align: left;
+}
+.taller-matriz td {
+  padding: 0;
+}
+.taller-celda {
+  position: relative;
+  border: 1px solid var(--color-sand);
+  border-radius: 10px;
+  padding: 7px 6px 6px;
+  text-align: center;
+  background: var(--color-hueso);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.taller-celda[data-tocada="true"] {
+  animation: taller-destello 480ms var(--ease-cayla);
+}
+.taller-celda[data-nueva="true"] {
+  outline: 1.5px dashed var(--color-ambar);
+  outline-offset: -1.5px;
+  background: color-mix(in srgb, var(--color-ambar) 7%, var(--color-hueso));
+}
+.taller-celda-vacia {
+  border: 1px dashed var(--color-sand);
+  border-radius: 10px;
+  height: 100%;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  color: color-mix(in oklab, var(--color-tinta) 30%, transparent);
+}
+@keyframes taller-destello {
+  0%,
+  100% {
+    background: var(--color-hueso);
+  }
+  30% {
+    background: color-mix(in srgb, var(--color-ambar) 16%, var(--color-hueso));
+  }
+}
+
+/* El stepper: el mismo control redondo de la maqueta (y del alta), el número es el stock de HOY. */
+.taller-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-sand);
+  border-radius: 999px;
+  background: var(--color-papel);
+  overflow: hidden;
+}
+.taller-stepper button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-taupe-profundo);
+  line-height: 1;
+  transition: background-color 150ms, color 150ms;
+}
+.taller-stepper button:hover:not(:disabled) {
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+}
+.taller-stepper button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.taller-stepper .taller-val {
+  min-width: 22px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.taller-stepper[data-mini="true"] {
+  background: var(--color-hueso);
+}
+.taller-stepper[data-mini="true"] button {
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+}
+.taller-stepper[data-mini="true"] button:hover:not(:disabled) {
+  background: var(--color-papel);
+}
+.taller-precio {
+  color: var(--color-taupe-profundo);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px dashed transparent;
+  line-height: 1.3;
+}
+.taller-precio:hover:not(:disabled) {
+  border-bottom-color: currentColor;
+}
+.taller-precio[data-cambiado="true"] {
+  color: var(--color-ambar-profundo);
+  font-weight: 600;
+}
+.taller-precio-caja {
+  width: 58px;
+  border: 1px solid var(--color-taupe);
+  border-radius: 6px;
+  background: var(--color-papel);
+  padding: 1px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.taller-total {
+  font-weight: 600;
+  color: var(--color-taupe-profundo);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.taller-fila-total td {
+  padding-top: 9px;
+  border-top: 1.5px solid var(--color-sand);
+  font-weight: 700;
+  color: var(--color-tinta);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.taller-fila-total td:first-child {
+  text-align: left;
+}
+.taller-fila-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 3px 5px;
+  margin: -3px -5px;
+  text-align: left;
+  transition: background-color 160ms;
+}
+.taller-fila-color:hover {
+  background: var(--color-hueso);
+}
+.taller-fila-color[aria-pressed="true"] {
+  background: var(--color-hueso);
+}
+.taller-fila-nueva {
+  animation: anim-revelar-taller 320ms var(--ease-cayla) both;
+}
+@keyframes anim-revelar-taller {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.taller-agregar-color {
+  margin-top: 12px;
+  border: 1.5px dashed var(--color-sand);
+  border-radius: 10px;
+  padding: 10px;
+  width: 100%;
+  color: var(--color-taupe-profundo);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: border-color 160ms, color 160ms;
+}
+.taller-agregar-color:hover:not(:disabled) {
+  border-color: var(--color-taupe);
+  color: var(--color-tinta);
+}
+.taller-banner-nueva {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-ambar) 40%, var(--color-sand));
+  background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel));
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--color-ambar-profundo);
+  animation: anim-revelar-taller 300ms var(--ease-cayla) both;
+}
+.taller-banner-nueva > span:nth-child(2) {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.taller-banner-nueva button {
+  flex: none;
+  margin-left: auto;
+  background: var(--color-ambar);
+  color: var(--color-crema);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- El panel de la derecha ---- */
+.taller-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: anim-revelar-taller 420ms var(--ease-cayla) 80ms both;
+}
+.taller-panel-foto {
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.taller-foto-grande {
+  height: 210px;
+  position: relative;
+  background: var(--color-hueso);
+}
+.taller-foto-img {
+  animation: taller-fundido 340ms var(--ease-cayla) both;
+}
+@keyframes taller-fundido {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.taller-foto-grande[data-flash="true"] {
+  animation: taller-pulso-foto 460ms var(--ease-cayla);
+}
+@keyframes taller-pulso-foto {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: inset 0 0 0 3px var(--color-papel);
+  }
+}
+.taller-foto-vacia {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--color-ambar-profundo);
+  text-align: center;
+  padding: 0 28px;
+  background: color-mix(in srgb, var(--color-ambar) 6%, var(--color-hueso));
+}
+.taller-tagcolor {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: color-mix(in srgb, var(--color-papel) 94%, transparent);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-tinta);
+}
+.taller-btn-foto {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  background: color-mix(in srgb, var(--color-tinta) 74%, transparent);
+  color: var(--color-crema);
+  border: 1px solid color-mix(in srgb, var(--color-papel) 35%, transparent);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 11.5px;
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+  transition: background-color 150ms var(--ease-cayla), transform 150ms var(--ease-cayla);
+}
+.taller-btn-foto:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-tinta) 90%, transparent);
+  transform: translateY(-1px);
+}
+.taller-btn-foto[data-sin-foto="true"] {
+  background: var(--color-ambar);
+  border-color: transparent;
+}
+.taller-swatches {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  flex-wrap: wrap;
+}
+.taller-swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1.5px var(--color-sand);
+  transition: box-shadow 180ms var(--ease-cayla), transform 180ms var(--ease-cayla);
+}
+.taller-swatch:hover {
+  transform: translateY(-2px);
+}
+.taller-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--color-tinta);
+}
+.taller-swatch[data-sin-foto="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1.5px dashed var(--color-ambar);
+  border-radius: 999px;
+}
+.taller-tarjeta {
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: 14px;
+  padding: 13px 14px;
+}
+.taller-tit {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--color-tinta) 60%, transparent);
+}
+.taller-barra-talla {
+  display: grid;
+  grid-template-columns: 28px 1fr 22px auto;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+.taller-barra-talla:last-child {
+  margin-bottom: 0;
+}
+.taller-pista {
+  height: 8px;
+  background: var(--color-hueso);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.taller-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-verde);
+  transition: width 320ms var(--ease-cayla);
+  animation: taller-crece 560ms var(--ease-cayla) both;
+}
+.taller-relleno[data-tono="bajo"] {
+  background: var(--color-ambar);
+}
+.taller-relleno[data-tono="cero"] {
+  background: color-mix(in oklab, var(--color-tinta) 15%, transparent);
+}
+@keyframes taller-crece {
+  from {
+    width: 0;
+  }
+}
+.taller-rango {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--color-tinta);
+}
+.taller-guia {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--color-taupe-profundo);
+  text-align: left;
+  width: 100%;
+}
+.taller-guia b {
+  color: var(--color-tinta);
+}
+.taller-hilo {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--color-tinta);
+  flex: none;
+  position: relative;
+}
+.taller-hilo::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: var(--color-crema);
+}
+.taller-hilo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-tinta);
+  animation: taller-pulso 900ms var(--ease-cayla) 0.12s 1 both;
+}
+@keyframes taller-pulso {
+  from {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.taller-guia[data-completa="true"] {
+  color: var(--color-verde);
+}
+.taller-guia[data-completa="true"] .taller-hilo {
+  background: var(--color-verde);
+}
+.taller-guia[data-completa="true"] .taller-hilo::after {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taller-celda[data-tocada="true"],
+  .taller-fila-nueva,
+  .taller-banner-nueva,
+  .taller-panel,
+  .taller-relleno,
+  .taller-hilo::after,
+  .taller-foto-grande[data-flash="true"],
+  .taller-foto-img {
+    animation: none;
+  }
+  .taller-sec-cuerpo,
+  .taller-chev,
+  .taller-relleno,
+  .taller-swatch {
+    transition: none;
+  }
+}

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  faltaDeUrl,
+  temporadaDeUrl,
+  disponibilidadDeUrl,
+  rotuloDisponibilidad,
+  marcadosDeColor,
+  opcionesDeColor,
+  separarColor,
+  listaDeUrl,
+  listaParaUrl,
   chipsDeFiltros,
   contarFiltrosActivos,
   estadoDeUrl,
@@ -103,7 +112,7 @@ describe("productos-filtros — estado, conteo y chips", () => {
       "Proveedor: sin proveedor",
       "Color: Negro",
       "Estado: Todos",
-      "Stock: Pedir a proveedor",
+      "Disponibilidad: Pedir a proveedor",
       "Precio: Hasta S/ 80",
     ]);
     expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
@@ -112,5 +121,100 @@ describe("productos-filtros — estado, conteo y chips", () => {
   it("un id que ya no existe se lee «—», no rompe", () => {
     const vacio = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined };
     expect(chipsDeFiltros("cat=zzz", vacio)[0].texto).toBe("Categoría: —");
+  });
+});
+
+describe("productos-filtros — varias opciones", () => {
+  it("la lista de la URL, sin vacíos ni repetidos; vacía borra la clave", () => {
+    expect(listaDeUrl("M,L,,M")).toEqual(["M", "L"]);
+    expect(listaDeUrl(null)).toEqual([]);
+    expect(listaDeUrl("NEG")).toEqual(["NEG"]); // un enlace viejo con un solo color sigue sirviendo
+    expect(listaParaUrl(["M", "L", "M"])).toBe("M,L");
+    expect(listaParaUrl([])).toBe("");
+  });
+
+  it("color y familia son UN filtro: cuentan una vez; la talla, otra", () => {
+    expect(contarFiltrosActivos("color=NEG,ROS&familia=azul")).toBe(1);
+    expect(contarFiltrosActivos("talla=a,b&familia=azul")).toBe(2);
+  });
+
+  it("los chips dicen todas las tallas y colores, con la familia por su nombre", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: (c: string) => ({ NEG: "Negro" })[c], talla: (t: string) => ({ a: "M", b: "L" })[t], familia: () => "Azul" };
+    expect(chipsDeFiltros("talla=a,b&color=NEG&familia=azul", nombres).map((c) => c.texto)).toEqual(["Talla: M, L", "Color: Familia Azul, Negro"]);
+    expect(chipsDeFiltros("color=NEG&familia=azul", nombres)[0].quitar).toEqual(["color", "familia"]);
+  });
+});
+
+describe("productos-filtros — color agrupado por familia", () => {
+  const colores = [
+    { id: "NEG", nombre: "Negro", familia: "neutro" },
+    { id: "AZM", nombre: "Azul marino", familia: "azul" },
+    { id: "CEL", nombre: "Celeste", familia: "azul" },
+    { id: "RARO", nombre: "Raro", familia: null },
+  ];
+  const familias = [
+    { valor: "neutro", texto: "Neutro" },
+    { valor: "azul", texto: "Azul" },
+    { valor: "verde", texto: "Verde" },
+  ];
+
+  it("cada familia con colores abre su grupo con «Toda la familia …»; sin colores, no aparece", () => {
+    expect(opcionesDeColor(colores, familias).map((o) => o.texto)).toEqual([
+      "Toda la familia Neutro",
+      "Negro",
+      "Toda la familia Azul",
+      "Azul marino",
+      "Celeste",
+      "Raro",
+    ]);
+  });
+
+  it("lo marcado va a la URL separado y vuelve igual (ida y vuelta)", () => {
+    const marcado = ["familia:azul", "NEG"];
+    const url = separarColor(marcado);
+    expect(url).toEqual({ color: "NEG", familia: "azul" });
+    expect(marcadosDeColor(`color=${url.color}&familia=${url.familia}`)).toEqual(marcado);
+    expect(separarColor([])).toEqual({ color: "", familia: "" });
+  });
+});
+
+describe("productos-filtros — disponibilidad en la sede y en la red", () => {
+  it("«sin_stock» de los enlaces viejos es la de la red; lo desconocido no filtra", () => {
+    expect(disponibilidadDeUrl("sin_stock", true)).toBe("sin_red");
+    expect(disponibilidadDeUrl("en_sede", true)).toBe("en_sede");
+    expect(disponibilidadDeUrl("raro", true)).toBeUndefined();
+  });
+
+  it("sin sede (CAYLA Global) no se aplican las de la sede", () => {
+    expect(disponibilidadDeUrl("en_sede", false)).toBeUndefined();
+    expect(disponibilidadDeUrl("reponer", false)).toBe("reponer");
+  });
+
+  it("cada opción dice de qué sede habla, nunca «aquí»", () => {
+    expect(rotuloDisponibilidad("en_sede", "Tienda Lima")).toBe("Hay en Tienda Lima");
+    expect(rotuloDisponibilidad("sin_sede", "Tienda Lima")).toBe("Sin stock en Tienda Lima");
+    expect(rotuloDisponibilidad("sin_red", "Tienda Lima")).toBe("Sin stock en ninguna sede");
+  });
+
+  it("el chip lo dice entero", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, sede: "Tienda Lima" };
+    expect(chipsDeFiltros("stock=en_sede", nombres)[0].texto).toBe("Disponibilidad: Hay en Tienda Lima");
+  });
+});
+
+describe("productos-filtros — temporada y «por completar»", () => {
+  it("lee solo valores con forma; lo raro no filtra", () => {
+    expect(temporadaDeUrl("primavera_verano")).toBe("primavera_verano"); // las claves reales de `fn_temporadas` llevan «_»
+    expect(temporadaDeUrl("sin")).toBe("sin");
+    expect(temporadaDeUrl("'; drop")).toBeUndefined();
+    expect(faltaDeUrl("foto")).toBe("foto");
+    expect(faltaDeUrl("precio")).toBeUndefined();
+  });
+
+  it("los chips dicen el nombre de la temporada y qué falta, y cuentan como filtros", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, temporada: () => "Otoño-invierno" };
+    expect(chipsDeFiltros("temporada=otono-invierno&falta=foto", nombres).map((c) => c.texto)).toEqual(["Temporada: Otoño-invierno", "Por completar: Sin foto"]);
+    expect(chipsDeFiltros("temporada=sin", nombres)[0].texto).toBe("Sin temporada");
+    expect(contarFiltrosActivos("temporada=sin&falta=foto")).toBe(2);
   });
 });

@@ -467,8 +467,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Tabla, con `?variantes=`).
 
 **Productos (catálogo V2, integración final 2026-09-15)**
-- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
-  filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
+- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getFacetasProductos`,
+  filtros en la URL + Postgres; desde ADR-0308 tanda 2, RPC `fn_productos_listado`/`fn_productos_facetas` sobre
+  `fn_productos_filtro` (`20261002200000`, `20261002200100`); antes `fn_productos`/`fn_productos_resumen`,
   `20260915160000_productos_listado_filtros.sql`) → cabecera `EncabezadoPagina` + `ResumenSede` (ADR-0254) →
   `FiltrosProductos.tsx` (ADR-0308: buscador con atajo «/», panel abierto en la computadora —cookie `lib/panel-filtros.ts`— en
   filas «Prenda / Gestión» de `FiltrosPildora.tsx`, hoja `<Modal>` en el celular, cajas de precio con límites reales de
@@ -532,6 +533,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   color»; sus fotos suben a la ficha por `VariantesFicha.onFotosDeColores` → `ProductoForm.sumarFotosDeColores`). Recibe las
   fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
   `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
+  **Maqueta B (ADR-0313 y su actualización, 2026-10-02):** la ficha son cuatro secciones plegables (`ficha-producto/SeccionFicha.tsx`)
+  y, en «Variantes y precios», la matriz color × talla (`ficha-producto/MatrizStockFicha.tsx`, reglas en `lib/matriz-ficha-reglas.ts`)
+  con un stepper por celda. Cada toque es un ajuste de inventario por `ajustar_inventario` (`ficha-producto/useStockFicha.ts`: lotes de
+  900 ms, `x-espera: no`, motivo/lugar/responsable de la visita), leyendo el stock con `leerVariantesParaAjuste` de
+  `AjustarInventarioModal.tsx` (la única lectura de `stock` para ajustar, ADR-0270). A la derecha, `ficha-producto/PanelDelTaller.tsx`
+  (foto por color con subida directa, colores, barras de stock con stepper, precio, «Falta …»). Lo que no está en la matriz (corregir,
+  agregar talla, etiquetas, margen) sigue en `VariantesFicha` modo `detalle`, plegado. Lo que subió de stock va al
+  `RecordatorioEtiquetasProvider` (`app/(app)/productos/layout.tsx`) al salir de la ficha.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de

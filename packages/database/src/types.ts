@@ -6893,6 +6893,78 @@ export type Database = {
         }[]
       }
       fn_productos_buscar: { Args: { p_busqueda: string }; Returns: string[] }
+      fn_productos_buscar_palabras: { Args: { p_busqueda: string }; Returns: string[] }
+      fn_productos_facetas: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_colores?: string[]
+          p_disponibilidad?: string
+          p_estado?: string
+          p_falta?: string
+          p_familias?: string[]
+          p_marca_id?: string
+          p_precio_max?: number
+          p_precio_min?: number
+          p_proveedor_id?: string
+          p_tallas?: string[]
+          p_temporada?: string
+          p_ubicacion_id?: string
+        }
+        Returns: Json
+      }
+      fn_productos_listado: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_colores?: string[]
+          p_disponibilidad?: string
+          p_estado?: string
+          p_falta?: string
+          p_familias?: string[]
+          p_marca_id?: string
+          p_orden?: string
+          p_pagina?: number
+          p_por_pagina?: number
+          p_precio_max?: number
+          p_precio_min?: number
+          p_proveedor_id?: string
+          p_tallas?: string[]
+          p_temporada?: string
+          p_ubicacion_id?: string
+        }
+        Returns: {
+          activo: boolean
+          categoria_id: string
+          categoria_nombre: string
+          codigo: string
+          codigos_barras: string[]
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          costo: number
+          demanda_diaria: number
+          estado: string
+          foto_url: string
+          lead_time_dias: number
+          marca_id: string | null
+          marca_nombre: string | null
+          precio: number
+          producto_id: string
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          punto_reorden: number
+          referencia: string
+          reponer_de_proveedor: boolean
+          sku: string
+          stock_minimo: number
+          stock_total: number
+          talla: string
+          total_productos: number
+          variante_codigo: string
+          variante_id: string
+        }[]
+      }
       fn_productos_resumen: {
         Args: {
           p_busqueda?: string
