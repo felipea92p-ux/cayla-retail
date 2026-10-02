@@ -5,7 +5,7 @@ import { ArrowLeft, Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { montosSugeridos, type PagoAplicado } from "@/lib/vender-reglas";
-import { NOMBRE_METODO } from "@/lib/recibo-reglas";
+import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
@@ -45,6 +45,7 @@ export function HojaDeCobro({
   pagos,
   restante,
   vuelto,
+  cobroEfectivo,
   onTocarMedio,
   onMontoPago,
   onRecibido,
@@ -66,6 +67,9 @@ export function HojaDeCobro({
   pagos: PagoAplicado[];
   restante: number;
   vuelto: number;
+  /** El cobro en efectivo con el redondeo de la ley (ADR-0310): la deuda exacta, lo que se cobra en monedas y lo que no se cobra
+   *  (`cobroEnEfectivo`). Con el redondeo apagado, `aCobrar` es la deuda y `redondeo` 0. `null` si no hay efectivo. */
+  cobroEfectivo: { deuda: number; aCobrar: number; redondeo: number } | null;
   /** Tocar un medio: si no está, lo agrega con lo que falta; si está, lo quita (su monto pasa al siguiente). */
   onTocarMedio: (metodo: MetodoPagoVenta) => void;
   onMontoPago: (indice: number, monto: number) => void;
@@ -93,9 +97,13 @@ export function HojaDeCobro({
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
   const apagado = bloqueado || motivoBloqueo !== null || loading;
-  const sugeridos = efectivo ? montosSugeridos(efectivo.monto) : [];
+  // Lo que se entrega en monedas y billetes: con el redondeo (ADR-0310) la deuda bajada a S/ 0.10; los billetes sugeridos, el
+  // «Exacto» y el vuelto salen de eso.
+  const aCobrar = cobroEfectivo?.aCobrar ?? efectivo?.monto ?? 0;
+  const redondeo = cobroEfectivo?.redondeo ?? 0;
+  const sugeridos = efectivo ? montosSugeridos(aCobrar) : [];
   const recibido = efectivo?.recibido;
-  const enSugeridos = recibido !== undefined && (recibido === efectivo?.monto || sugeridos.includes(recibido));
+  const enSugeridos = recibido !== undefined && (recibido === aCobrar || sugeridos.includes(recibido));
 
   const estadoPago = !pagos.length
     ? null
@@ -191,43 +199,62 @@ export function HojaDeCobro({
               </p>
             ) : efectivo ? (
               <div className="anim-revelar">
-                <p className="label-cayla mb-2.5 text-[13px] font-bold text-tinta">{varios ? "Efectivo recibido" : "¿Con cuánto paga?"}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[efectivo.monto, ...sugeridos].map((v, i) => (
-                    <button
-                      key={v}
-                      type="button"
-                      disabled={bloqueado}
-                      title={i === 0 ? "Exacto" : undefined}
-                      onClick={() => onRecibido(recibido === v ? null : v)}
-                      style={{ animationDelay: `${i * 40}ms` }}
-                      className={`hoja-cobro-billete anim-revelar ${recibido === v ? "es-elegido" : ""}`}
-                    >
-                      {corto(v)}
-                    </button>
-                  ))}
-                  <label className={`hoja-cobro-billete es-otro ${recibido !== undefined && !enSugeridos ? "es-escrito" : ""}`}>
-                    <span className="text-xs text-tinta/50">S/</span>
-                    <input
-                      aria-label="Otro monto recibido"
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
-                      placeholder="Otro" // sugerir-fijo: es la casilla para un monto que no está en los billetes sugeridos
-                      value={recibido !== undefined && !enSugeridos ? recibido : ""}
-                      onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
-                      disabled={bloqueado}
-                      className="w-full min-w-0 bg-transparent text-right font-display text-2xl text-tinta outline-none placeholder:text-tinta/35 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                  </label>
-                </div>
-                <p className={`mt-4 flex items-baseline justify-between ${recibido === undefined ? "invisible" : ""}`}>
-                  <span className="label-cayla text-[13px] text-tinta/70">{vuelto > 0 ? "Vuelto" : recibido !== undefined && recibido < efectivo.monto ? "Faltan" : "Exacto"}</span>
-                  <span key={vuelto} className={`anim-asentar font-display text-4xl leading-none tabular-nums @[640px]:text-5xl ${recibido !== undefined && recibido < efectivo.monto ? "text-ambar-profundo" : "text-tinta"}`}>
-                    {vuelto > 0 ? money(vuelto) : recibido !== undefined && recibido < efectivo.monto ? money(efectivo.monto - recibido) : "✓"}
-                  </span>
-                </p>
+                {redondeo > 0 && aCobrar > 0 && (
+                  <p className="mb-2.5 rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug text-tinta/80" data-redondeo>
+                    Cobra <b className="font-semibold text-tinta tabular-nums">{money(aCobrar)}</b> en efectivo
+                    <span className="block text-[12px] text-tinta/60">
+                      {TEXTO_REDONDEO} −{money(redondeo)} · {LEY_REDONDEO}
+                    </span>
+                  </p>
+                )}
+                {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado (`motivoBloqueoCobro`). */}
+                {redondeo > 0 && aCobrar <= 0 && (
+                  <p className="mb-2.5 rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
+                    No hay moneda para <b className="font-semibold tabular-nums">{money(cobroEfectivo?.deuda ?? 0)}</b>: la más chica es S/ 0.10. Cóbralo con otro medio.
+                  </p>
+                )}
+                {/* Sin nada que cobrar en monedas (menos de S/ 0.10) no hay billetes ni vuelto que anotar. */}
+                {aCobrar > 0 && (
+                  <>
+                    <p className="label-cayla mb-2.5 text-[13px] font-bold text-tinta">{varios ? "Efectivo recibido" : "¿Con cuánto paga?"}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[aCobrar, ...sugeridos].map((v, i) => (
+                        <button
+                          key={v}
+                          type="button"
+                          disabled={bloqueado}
+                          title={i === 0 ? "Exacto" : undefined}
+                          onClick={() => onRecibido(recibido === v ? null : v)}
+                          style={{ animationDelay: `${i * 40}ms` }}
+                          className={`hoja-cobro-billete anim-revelar ${recibido === v ? "es-elegido" : ""}`}
+                        >
+                          {corto(v)}
+                        </button>
+                      ))}
+                      <label className={`hoja-cobro-billete es-otro ${recibido !== undefined && !enSugeridos ? "es-escrito" : ""}`}>
+                        <span className="text-xs text-tinta/50">S/</span>
+                        <input
+                          aria-label="Otro monto recibido"
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          placeholder="Otro" // sugerir-fijo: es la casilla para un monto que no está en los billetes sugeridos
+                          value={recibido !== undefined && !enSugeridos ? recibido : ""}
+                          onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
+                          disabled={bloqueado}
+                          className="w-full min-w-0 bg-transparent text-right font-display text-2xl text-tinta outline-none placeholder:text-tinta/35 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </label>
+                    </div>
+                    <p className={`mt-4 flex items-baseline justify-between ${recibido === undefined ? "invisible" : ""}`}>
+                      <span className="label-cayla text-[13px] text-tinta/70">{vuelto > 0 ? "Vuelto" : recibido !== undefined && recibido < aCobrar ? "Faltan" : "Exacto"}</span>
+                      <span key={vuelto} className={`anim-asentar font-display text-4xl leading-none tabular-nums @[640px]:text-5xl ${recibido !== undefined && recibido < aCobrar ? "text-ambar-profundo" : "text-tinta"}`}>
+                        {vuelto > 0 ? money(vuelto) : recibido !== undefined && recibido < aCobrar ? money(aCobrar - recibido) : "✓"}
+                      </span>
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <p className="pt-1 text-[15px] leading-relaxed text-tinta/60">

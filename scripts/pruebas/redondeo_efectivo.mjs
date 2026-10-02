@@ -16,9 +16,13 @@
  * ACTIVIDAD 3 (diario). `20261003120000_redondeo_diario.sql`: el redondeo se asienta contra la cuenta de gasto 6598 (no contra el
  * banco), el asiento cuadra, el Estado de resultados lo muestra, la anulación lo revierte y el Cierre de mes no se bloquea.
  *
- * (La caja tendrá su gemela en TypeScript cuando Vender la use —actividad 5—; entonces esta prueba también compara las dos en
- * los 99 999 montos. Hoy ninguna pantalla la llama y el repo no admite una regla sin uso.)
+ * ACTIVIDAD 5 (Vender). `20261003130000_registrar_venta_redondeo.sql` (la RPC real acepta la fila de redondeo y verifica que sea la de
+ * la ley) y `20261003140000_acepta_redondeo_efectivo.sql` (la bandera). Con `registrar_venta` de verdad: la venta de 79.88 con 79.80 en
+ * efectivo + 0.08, las mixtas, la venta vieja con efectivo exacto (la cola sin conexión no pierde nada), cada rechazo —también el intento
+ * de cobrar DE MÁS—, la idempotencia por token, la anulación, y la paridad de la regla de la caja con la de la base en los 99 999 montos.
  *
+ * La caja tiene su gemela en TypeScript (`redondeoDelEfectivo`, apps/web/lib/redondeo-efectivo-reglas.ts): la prueba de paridad las compara
+ * en los 99 999 montos de S/ 0.01 a S/ 999.99.
  * CÓMO. El patrón de `campana_redondeo.mjs`: todo dentro de una transacción con ROLLBACK, contra la base real. Nunca se
  * commitea nada en el Postgres local que comparten los worktrees.
  *
@@ -31,12 +35,15 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { efectivoACobrar, redondeoDelEfectivo } from "../../apps/web/lib/redondeo-efectivo-reglas.ts";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
 const MIGRACION_CANDADO = "supabase/migrations/20261003110000_venta_pagos_candado_redondeo.sql";
 const MIGRACION_LECTORES = "supabase/migrations/20261003111000_redondeo_lectores.sql";
 const MIGRACION_DIARIO = "supabase/migrations/20261003120000_redondeo_diario.sql";
+const MIGRACION_VENTA = "supabase/migrations/20261003130000_registrar_venta_redondeo.sql";
+const MIGRACION_BANDERA = "supabase/migrations/20261003140000_acepta_redondeo_efectivo.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 
 // Uno o varios archivos separados por coma (las partes de una migración se aplican en orden).
@@ -337,6 +344,142 @@ ${diario}
 rollback;`);
   esperar("el parche del diario aborta si fn_asiento_cuenta_de_medio cambió desde que se escribió (no la pisa a ciegas)", !r20b.ok && r20b.mensaje.includes("cambió desde que se escribió esta migración"), r20b.ok ? "pasó y debía abortar" : r20b.mensaje);
 
+  // =====================================================================================================================
+  // ACTIVIDAD 5 — Vender cobra en efectivo redondeado: la RPC REAL acepta la fila de redondeo y verifica que sea la de la ley.
+  // =====================================================================================================================
+  const PREPARACION = VENTA_REDONDEADA.slice(0, VENTA_REDONDEADA.indexOf("select retail.registrar_venta("));
+  // Una venta de 79.90 − d con los pagos dados (p_pagos tal como los manda la caja). `token` fija el p_token para probar la idempotencia.
+  const vender = (d, pagos, { token = "gen_random_uuid()", tipo = "'boleta'" } = {}) =>
+    `select retail.registrar_venta(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'precio', 'descuento_unitario', ${d}${d > 0 ? ", 'motivo_descuento', 'cerrar_venta'" : ""})),
+       '${JSON.stringify(pagos)}'::jsonb, null, ${token}, ${tipo}) as venta \\gset`;
+
+  // ---- 21. La venta de 79.88: efectivo 79.80 (recibió 80) + redondeo 0.08, por la RPC real ----
+  const r21 = correr(`${PREPARACION}
+${vender(0.02, [{ metodo: "efectivo", monto: 79.8, recibido: 80 }, { metodo: "redondeo", monto: 0.08 }])}
+select 'filas|' || string_agg(metodo || '=' || monto || coalesce('/' || recibido, ''), ' ' order by metodo) from retail.venta_pagos where venta_id = :'venta';
+select 'suma|' || (select sum(monto) from retail.venta_pagos where venta_id = :'venta') || '|' || (select sum(subtotal) from retail.venta_items where venta_id = :'venta');
+select 'boleta|' || total || '|' || subtotal || '|' || igv from retail.comprobantes where venta_id = :'venta';
+select 'esperado|' || esperado from retail.fn_calcular_esperado_caja(:'caja_id');
+select 'resumen|' || (retail.fn_resumen_caja(:'caja_id'))::text;
+rollback;`);
+  if (!r21.ok) {
+    esperar("registrar_venta acepta la venta redondeada (79.88 = 79.80 efectivo + 0.08)", false, r21.mensaje);
+  } else {
+    const l21 = Object.fromEntries(r21.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.slice(l.indexOf("|") + 1)]));
+    const resumen = JSON.parse(l21.resumen);
+    esperar("registrar_venta: guarda efectivo 79.80 (recibió 80) y redondeo 0.08; la suma de las filas es la suma de los ítems (79.88)", l21.filas === "efectivo=79.80/80.00 redondeo=0.08" && l21.suma === "79.88|79.88", JSON.stringify(l21));
+    esperar("la boleta sale por el precio EXACTO (79.88), con subtotal + IGV = total: el redondeo no toca el comprobante", l21.boleta === "79.88|67.69|12.19", l21.boleta);
+    esperar("Caja: «Efectivo en el cajón» = 100.00 + 79.80, y el redondeo viaja aparte (0.08)", l21.esperado === "179.80" && Number(resumen.redondeo) === 0.08 && Number(resumen.ventas_efectivo) === 79.8, `${l21.esperado} ${l21.resumen}`);
+  }
+
+  // ---- 22. Los bordes del redondeo (0.01 y 0.09) y el pago mixto: solo la parte en efectivo se redondea ----
+  const acepta = (nombre, d, pagos, esperado) => {
+    const r = correr(`${PREPARACION}
+${vender(d, pagos)}
+select 'filas|' || string_agg(metodo || '=' || monto, ' ' order by metodo) from retail.venta_pagos where venta_id = :'venta';
+rollback;`);
+    esperar(nombre, r.ok && r.salida === `filas|${esperado}`, r.ok ? r.salida : r.mensaje);
+  };
+  acepta("redondeo de un céntimo: 79.81 = efectivo 79.80 + 0.01", 0.09, [{ metodo: "efectivo", monto: 79.8 }, { metodo: "redondeo", monto: 0.01 }], "efectivo=79.80 redondeo=0.01");
+  acepta("redondeo de nueve céntimos: 79.69 = efectivo 79.60 + 0.09", 0.21, [{ metodo: "efectivo", monto: 79.6 }, { metodo: "redondeo", monto: 0.09 }], "efectivo=79.60 redondeo=0.09");
+  acepta("pago mixto: solo el efectivo se redondea (Yape 30.05 exacto + efectivo 49.80 + redondeo 0.03 = 79.88)", 0.02,
+    [{ metodo: "yape", monto: 30.05 }, { metodo: "efectivo", monto: 49.8 }, { metodo: "redondeo", monto: 0.03 }], "efectivo=49.80 redondeo=0.03 yape=30.05");
+  acepta("la tarjeta siempre exacta: 79.88 con tarjeta 40.00 + efectivo 39.80 + redondeo 0.08", 0.02,
+    [{ metodo: "tarjeta", monto: 40 }, { metodo: "efectivo", monto: 39.8 }, { metodo: "redondeo", monto: 0.08 }], "efectivo=39.80 redondeo=0.08 tarjeta=40.00");
+
+  // ---- 23. Compatibilidad: una venta SIN fila de redondeo se acepta como siempre (la cola sin conexión de una caja vieja no pierde ventas) ----
+  acepta("una venta vieja con el efectivo exacto (79.88, sin fila de redondeo) se sigue aceptando", 0.02, [{ metodo: "efectivo", monto: 79.88 }], "efectivo=79.88");
+  acepta("una venta sin nada que redondear (79.90 en efectivo) no necesita fila de redondeo", 0, [{ metodo: "efectivo", monto: 79.9 }], "efectivo=79.90");
+
+  // ---- 24. Lo que la base RECHAZA: cada intento de cobrar de más, de redondear mal o de guardar un estado imposible ----
+  const rechazaVenta = (nombre, d, pagos, texto) => {
+    const r = correr(`${PREPARACION}\n${vender(d, pagos)}\nrollback;`);
+    esperar(nombre, !r.ok && r.mensaje.includes(texto), r.ok ? `pasó y debía fallar con «${texto}»` : r.mensaje);
+  };
+  rechazaVenta("cobrar DE MÁS no se puede: efectivo 79.90 con un «redondeo» de −0.02 para una venta de 79.88", 0.02, [{ metodo: "efectivo", monto: 79.9 }, { metodo: "redondeo", monto: -0.02 }], "venta_redondeo_invalido");
+  rechazaVenta("un efectivo de 79.90 para una venta de 79.88 no cuadra (la suma no es la de los ítems)", 0.02, [{ metodo: "efectivo", monto: 79.9 }], "no cuadran con el total de la venta");
+  rechazaVenta("un redondeo que no es el de la ley no se acepta (la suma cuadra, pero 0.07 + 79.81 no son efectivo en monedas)", 0.02, [{ metodo: "efectivo", monto: 79.81 }, { metodo: "redondeo", monto: 0.07 }], "venta_redondeo_invalido");
+  rechazaVenta("el efectivo con redondeo se cobra en monedas que existen: 79.85 + 0.03 se rechaza", 0.02, [{ metodo: "efectivo", monto: 79.85 }, { metodo: "redondeo", monto: 0.03 }], "múltiplos de S/ 0.10");
+  rechazaVenta("un «redondeo» de S/ 0.18 no es un redondeo (efectivo 79.70 + 0.18)", 0.02, [{ metodo: "efectivo", monto: 79.7 }, { metodo: "redondeo", monto: 0.18 }], "no es el de la ley");
+  rechazaVenta("un redondeo sin efectivo no existe: Yape 79.80 + redondeo 0.08", 0.02, [{ metodo: "yape", monto: 79.8 }, { metodo: "redondeo", monto: 0.08 }], "solo existe junto a UN pago en efectivo");
+  rechazaVenta("dos pagos en efectivo con redondeo es ambiguo: se rechaza", 0.02, [{ metodo: "efectivo", monto: 40 }, { metodo: "efectivo", monto: 39.8 }, { metodo: "redondeo", monto: 0.08 }], "solo existe junto a UN pago en efectivo");
+  rechazaVenta("dos redondeos en una venta serían redondear dos veces", 0.02, [{ metodo: "efectivo", monto: 79.8 }, { metodo: "redondeo", monto: 0.04 }, { metodo: "redondeo", monto: 0.04 }], "a lo más un redondeo");
+  rechazaVenta("el redondeo no puede ser todo el pago: solo la fila de redondeo", 0.02, [{ metodo: "redondeo", monto: 79.88 }], "solo existe junto a UN pago en efectivo");
+
+  // ---- 25. Idempotencia: la misma venta dos veces (el reintento de una cola sin conexión) es UNA venta, con UN redondeo ----
+  const r25 = correr(`${PREPARACION}
+select gen_random_uuid() as tok \\gset
+${vender(0.02, [{ metodo: "efectivo", monto: 79.8, recibido: 80 }, { metodo: "redondeo", monto: 0.08 }], { token: ":'tok'" })}
+select :'venta' as venta1 \\gset
+${vender(0.02, [{ metodo: "efectivo", monto: 79.8, recibido: 80 }, { metodo: "redondeo", monto: 0.08 }], { token: ":'tok'" })}
+select 'misma|' || (:'venta' = :'venta1') || '|redondeos|' || (select count(*) from retail.venta_pagos where venta_id = :'venta' and metodo = 'redondeo') || '|ventas|' || (select count(*) from retail.ventas where id = :'venta');
+rollback;`);
+  esperar("reintentar la misma venta (mismo token) devuelve LA misma venta, con un solo redondeo", r25.ok && r25.salida === "misma|true|redondeos|1|ventas|1", r25.ok ? r25.salida : r25.mensaje);
+
+  // ---- 26. Anular la venta redondeada por la RPC real: el redondeo se revierte contra su cuenta y todo queda en cero ----
+  const r26 = correr(`${PREPARACION}
+${vender(0.02, [{ metodo: "efectivo", monto: 79.8, recibido: 80 }, { metodo: "redondeo", monto: 0.08 }])}
+select vi.id as item from retail.venta_items vi where vi.venta_id = :'venta' limit 1 \\gset
+select retail.anular_venta(:'venta', 'prueba automatizada', jsonb_build_array(jsonb_build_object('venta_item_id', :'item', 'condicion', 'vendible'))) as _a \\gset
+select 'neto|' || coalesce(sum(debe - haber), 0) from retail.fn_asientos(${HOY}, ${HOY}, :'ubic') where origen_id = :'venta' and cuenta in ('101', '6598');
+select 'esperado|' || esperado from retail.fn_calcular_esperado_caja(:'caja_id');
+select 'descuadrados|' || count(*) from retail.fn_asientos_descuadrados(${HOY}, ${HOY}, :'ubic');
+rollback;`);
+  if (!r26.ok) {
+    esperar("anular una venta redondeada hecha por la RPC real", false, r26.mensaje);
+  } else {
+    const l26 = Object.fromEntries(r26.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.split("|")[1]]));
+    esperar("anular la venta redondeada: Caja vuelve a la apertura (100.00), el diario queda en cero y sin descuadrados", Number(l26.neto) === 0 && l26.esperado === "100.00" && l26.descuadrados === "0", r26.salida);
+  }
+
+  // ---- 27. La bandera dice true solo si la base de verdad puede recibir el redondeo ----
+  const r27 = correr(`select 'b|' || retail.fn_acepta_redondeo_efectivo() || '|' || has_function_privilege('anon', 'retail.fn_acepta_redondeo_efectivo()', 'execute') || '|' || has_function_privilege('authenticated', 'retail.fn_acepta_redondeo_efectivo()', 'execute');`);
+  esperar("fn_acepta_redondeo_efectivo() dice true, no la ejecuta anon y sí authenticated", r27.ok && r27.salida === "b|true|false|true", r27.ok ? r27.salida : r27.mensaje);
+  const sinParte = (nombre, mutacion) => {
+    const r = correr(`begin;\n${mutacion}\nselect 'b|' || retail.fn_acepta_redondeo_efectivo();\nrollback;`);
+    esperar(nombre, r.ok && r.salida === "b|false", r.ok ? r.salida : r.mensaje);
+  };
+  sinParte("la bandera dice false si venta_pagos todavía no acepta el medio redondeo",
+    `alter table retail.venta_pagos drop constraint venta_pagos_metodo_check;
+alter table retail.venta_pagos add constraint venta_pagos_metodo_check check (metodo in ('efectivo', 'tarjeta', 'yape', 'plin', 'transferencia', 'anticipo', 'qr'));`);
+  sinParte("la bandera dice false si registrar_venta perdió la validación del redondeo (p. ej. se recreó desde un archivo viejo)",
+    `do $x$ begin execute replace(pg_get_functiondef('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)'::regprocedure), 'venta_redondeo_invalido', 'otra_cosa'); end $x$;`);
+
+  // ---- 28. Las dos partes: se pegan dos veces, dejan la huella prometida, abortan si falta una parte de la que dependen o si registrar_venta cambió ----
+  const venta = readFileSync(MIGRACION_VENTA, "utf8");
+  const bandera = readFileSync(MIGRACION_BANDERA, "utf8");
+  const huellaVenta = (venta.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
+  const r28 = correr(`begin;\n${venta}\n${venta}\n${bandera}\n${bandera}
+select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
+  from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
+select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_venta';
+rollback;`);
+  esperar("las dos partes son re-ejecutables, dejan la huella prometida de registrar_venta y UNA sola firma (la de 18 parámetros)", r28.ok && r28.salida.includes(`h|${huellaVenta}`) && r28.salida.includes("sobrecargas|1"), r28.ok ? r28.salida : r28.mensaje);
+  const r28b = correr(`begin;
+do $x$ begin execute replace(pg_get_functiondef('retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)'::regprocedure), 'El carrito está vacío', 'El carrito está vacío (cambiado en vivo)'); end $x$;
+${venta}
+rollback;`);
+  esperar("el parche de registrar_venta aborta si la función cambió desde que se escribió (no la pisa a ciegas)", !r28b.ok && r28b.mensaje.includes("cambió desde que se escribió esta migración"), r28b.ok ? "pasó y debía abortar" : r28b.mensaje);
+  const r28c = correr(`begin;\ndrop function retail.fn_redondeo_efectivo(numeric);\n${venta}\nrollback;`);
+  esperar("el parche de registrar_venta aborta si falta la regla de la que depende (no deja una función que llama a algo que no existe)", !r28c.ok && r28c.mensaje.includes("falta retail.fn_redondeo_efectivo"), r28c.ok ? "pasó y debía abortar" : r28c.mensaje);
+
+  // ---- 29. Paridad caja ↔ base en los 99 999 montos: si dieran distinto, la base rechazaría en el mostrador la venta que la caja armó ----
+  const r29 = correr(`begin;\n${APLICAR_ANTES}\nselect g || '|' || (retail.fn_redondeo_efectivo(g / 100.0) * 100)::int from generate_series(1, 99999) g;\nrollback;`);
+  if (!r29.ok) {
+    esperar("paridad caja ↔ base en 99 999 montos", false, r29.mensaje);
+  } else {
+    const filas29 = r29.salida.split("\n").filter(Boolean);
+    const dif29 = [];
+    for (const l of filas29) {
+      const [g, redBase] = l.split("|").map(Number);
+      const redCaja = Math.round(redondeoDelEfectivo(g / 100) * 100);
+      const cobraCaja = Math.round(efectivoACobrar(g / 100) * 100);
+      if (redCaja !== redBase || cobraCaja + redBase !== g) dif29.push(`S/ ${g / 100}: caja ${redCaja}, base ${redBase}`);
+      if (dif29.length >= 5) break;
+    }
+    esperar(`la caja (redondeoDelEfectivo) y la base (fn_redondeo_efectivo) dan lo mismo en ${filas29.length} montos de S/ 0.01 a 999.99: 0 diferencias`, filas29.length === 99999 && dif29.length === 0, dif29.join(" · ") || `solo ${filas29.length} filas`);
+  }
+
   // ---- 14. AUDITORÍA: toda función que lee venta_pagos o separacion_pagos está revisada pensando en el redondeo ----
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
@@ -344,6 +487,7 @@ rollback;`);
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0310 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     entregar_separacion: "ACTIVIDAD 6: el saldo en efectivo al entregar se redondea (por ahora rechaza el medio redondeo).",
+    fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
@@ -355,7 +499,7 @@ rollback;`);
     fn_ventas_del_dia: "PARCHADA (20261003111000): la lista de medios de la venta no incluye el redondeo.",
     fn_verificar_separaciones: "Suma TODAS las filas de la venta contra el total del apartado: el redondeo cuenta (la suma de filas sigue igualando el total).",
     liquidar_prenda_danada: "Valida su propio medio (efectivo, tarjeta, yape, plin, transferencia): no acepta redondeo.",
-    registrar_venta: "ACTIVIDAD 5: es la que escribe la fila de redondeo, y exige que sea el redondeo exacto de la ley.",
+    registrar_venta: "PARCHADA (20261003130000, actividad 5): acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     resumen_separaciones: "Apartados: lectura de separacion_pagos.",
     separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0310 §7); solo escribe separacion_pagos.",
   };

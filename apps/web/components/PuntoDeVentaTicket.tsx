@@ -222,6 +222,8 @@ type Props = {
   /** Los pagos puestos: el pago y el comprobante se eligen en la hoja de cobro (`HojaDeCobro`); el ticket solo los usa para
    *  saber si «Confirmar cobro» ya está listo. */
   pagos: PagoAplicado[];
+  /** El redondeo del efectivo está activo (ADR-0310): lo recibido alcanza si cubre lo que se cobra en monedas, no la deuda exacta. */
+  redondeoEfectivo?: boolean;
   /** El comprobante elegido (o ninguno todavía): la nota de venta no desglosa IGV en el pie. */
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta"> | null;
   /** En el celular, la hoja de cobro entera: va dentro del ticket (y de su formulario) mientras se cobra. */
@@ -280,6 +282,7 @@ export function PuntoDeVentaTicket({
   motivoBloqueo,
   responsable,
   pagos,
+  redondeoEfectivo = false,
   tipoComprobante,
   cuerpoCobro,
   loading,
@@ -344,7 +347,7 @@ export function PuntoDeVentaTicket({
   const desglose = desgloseIgv(total, TASA_IGV);
   const apagado = bloqueado || motivoBloqueo !== null;
   // El paso que la pantalla resalta (solo guía) y si «Confirmar cobro» ya se puede: se enciende.
-  const paso = pasoDelCobro(pagos, total);
+  const paso = pasoDelCobro(pagos, total, redondeoEfectivo);
   const listoParaConfirmar = cobrando && paso === "comprobante" && !apagado;
 
   // Lo que ya se descontó (suma de todas las líneas), para la fila sobre el total.

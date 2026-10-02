@@ -20,7 +20,9 @@ import {
   descuentoUnitarioPorPorcentaje,
   esperaAlCargar,
   metodoDeAtajo,
+  cobroEnEfectivo,
   motivoBloqueoCobro,
+  pagosCobrados,
   pagosParaRpc,
   pagosTrasEditarMonto,
   quitarPagoTraspasando,
@@ -281,6 +283,10 @@ type Props = {
   /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0310): el efectivo se cobra al
+   *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
+   *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
+  redondeoEfectivoDisponible?: boolean;
 };
 
 /** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
@@ -301,7 +307,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1113,7 +1119,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
   const restante = restanteDePagos(total, pagos);
-  const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
+  // Los pagos de pantalla son EXACTOS (cubren el total); el redondeo del efectivo (ADR-0310) se aplica en el borde: lo que se cobra
+  // en monedas, el vuelto y lo que viaja a la base salen de `pagosCobrados`.
+  const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p, redondeoEfectivoDisponible), 0);
+  const cobroEfectivo = cobroEnEfectivo(pagos, redondeoEfectivoDisponible);
   // Sin responsable vigente no se cobra (ni se pasa a «cobrar»): su frase explica el botón apagado.
   const motivoBloqueo = motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
@@ -1124,6 +1133,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     facturaSinRuc,
     problemaDocumento: tipoComprobante ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) : null,
     sinComprobante: tipoComprobante === null,
+    redondeoEfectivo: redondeoEfectivoDisponible,
     motivoResponsable: responsable.motivo,
     proformaVencidaSinConfirmar: proformaActiva?.confirmacion != null && !confirmoVencida,
   });
@@ -1298,7 +1308,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       })),
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
-      p_pagos: pagosParaRpc(pagos),
+      p_pagos: pagosParaRpc(pagos, redondeoEfectivoDisponible),
       p_token: token.current,
       p_tipo_comprobante: tipoComprobante,
       p_cliente_tipo_doc: clienteTipoDoc,
@@ -1457,7 +1467,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario).descuento_unitario
               : it.descuentoUnitario,
           })),
-          pagos,
+          // Lo que se registró: el efectivo ya cobrado en monedas y, aparte, el redondeo (ADR-0310). El total y el IGV siguen exactos.
+          pagos: pagosCobrados(pagos, redondeoEfectivoDisponible).pagos,
+          redondeo: pagosCobrados(pagos, redondeoEfectivoDisponible).redondeo,
           tasaIgv: 0.18,
           atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
@@ -1515,6 +1527,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       pagos={pagos}
       restante={restante}
       vuelto={vuelto}
+      cobroEfectivo={cobroEfectivo}
       onTocarMedio={tocarMedio}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
@@ -1578,6 +1591,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             cumple={cumpleDelTicket}
             vale={valeDelTicket}
             pagos={pagos}
+            redondeoEfectivo={redondeoEfectivoDisponible}
             tipoComprobante={tipoComprobante}
             cuerpoCobro={enHoja ? hojaDeCobro(true) : undefined}
             loading={loading}

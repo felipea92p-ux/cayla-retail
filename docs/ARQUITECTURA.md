@@ -665,6 +665,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
+  **Redondeo del efectivo (ADR-0310):** si `page.tsx` lee `fn_acepta_redondeo_efectivo` = true (la base ya puede recibirlo),
+  el efectivo se cobra al múltiplo de S/ 0.10, hacia abajo (la ley): `lib/redondeo-efectivo-reglas.ts` (la regla, en céntimos
+  enteros, gemela de `retail.fn_redondeo_efectivo`) → `lib/vender-reglas.ts` (`pagosCobrados`, `cobroEnEfectivo`; `pagosParaRpc`,
+  `vueltoDe`, `pasoDelCobro` y `motivoBloqueoCobro` reciben el flag) → `HojaDeCobro` («Cobra S/ 79.80 en efectivo · redondeo −S/ 0.08»,
+  billetes y vuelto sobre eso). El estado de pantalla `pagos` sigue EXACTO; `registrar_venta` recibe el efectivo ya redondeado más una
+  fila `metodo = 'redondeo'` y la VERIFICA (la de la ley, un efectivo, múltiplos de 0.10); una venta sin la fila (cola sin conexión
+  vieja) se acepta como siempre. El comprobante y el QR siguen por el precio exacto; el papel lo dice (`ReciboVenta.redondeo`).
   Desde ADR-0163 el ticket lleva la fila «Atendió» (`VendedorasFila.tsx`): la lee el navegador cada
   minuto (`lib/useVendedorasDeTurno.ts` → `fn_asesoras_de_turno`, la asistencia de Dynamic) y
   `vendedorasDeTurno` deja solo a las presentes (o a todas las de la sede si nadie marcó hoy). Con 2 o

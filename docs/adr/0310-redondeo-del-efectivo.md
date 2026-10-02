@@ -88,7 +88,8 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
   `fn_asientos` no se tocó.
 - [x] **4. Papel y reimpresión** (§8): el ticket de 80 mm, la boleta A4, el modal «Venta registrada» y el detalle del Historial dicen el
   redondeo en «Forma de pago»; el total, el subtotal, el IGV y el QR de SUNAT siguen por el precio exacto.
-- [ ] 5. Vender cobra en efectivo redondeado de punta a punta (RPC, hoja de cobro, cola sin conexión, bandera).
+- [x] **5. Vender cobra en efectivo redondeado de punta a punta** (§8): la RPC `registrar_venta` verifica el redondeo, la hoja de cobro lo
+  muestra, la cola sin conexión lo soporta y la bandera `fn_acepta_redondeo_efectivo` lo enciende. Probado en la pantalla real.
 - [ ] 6. Apartados: el saldo en efectivo al entregar (abonos y adelanto no se redondean).
 - [ ] 7. Cambios y devoluciones en efectivo.
 - [ ] 8. Condicional: declarar el redondeo en el comprobante SUNAT, solo prueba en el sandbox de Lucode.
@@ -206,6 +207,52 @@ cuenta (si pide otro, se renombra ANTES del primer cierre de mes: el cierre cong
 - **No verificado visualmente:** el modal «Venta registrada» (`VentaRegistradaModal`) y el detalle del Historial (`DetalleVentaModal`)
   — son una fila más en listas que ya existían, con los mismos datos (`r.redondeo`, `d.redondeo`) que sí se probaron — y **ninguna
   pantalla a 375 px** (PL-105): el PR final de Vender (actividad 5) lleva su casillero y su captura.
+
+### Actividad 5 — Vender
+
+**La base** (`20261003130000` parche de `registrar_venta`, `20261003140000` la bandera). `pnpm pruebas:redondeo-efectivo` **58/58** con la RPC real:
+- Venta de 79.88 = efectivo 79.80 (recibió 80) + redondeo 0.08: la suma de las filas es la suma de los ítems, la **boleta sale por 79.88
+  exacto** (subtotal 67.69 + IGV 12.19), «Efectivo en el cajón» es 100.00 + 79.80, los bordes (0.01 y 0.09), el pago mixto (Yape 30.05 exacto +
+  efectivo 49.80 + 0.03) y la tarjeta siempre exacta.
+- **Compatibilidad:** una venta con el efectivo exacto y sin fila de redondeo (la cola sin conexión de una caja vieja) se **sigue aceptando**.
+- **Lo que rechaza** (cada uno con el hint `venta_redondeo_invalido`): cobrar DE MÁS (efectivo 79.90 con un «redondeo» de −0.02), un redondeo
+  que no es el de la ley, un efectivo que no es múltiplo de 0.10, un «redondeo» de 0.18, un redondeo sin efectivo, dos pagos en efectivo, dos
+  redondeos y el redondeo como único pago.
+- Mismo `p_token` dos veces = **una** venta con **un** redondeo; anular la venta deja Caja en la apertura y el diario en cero.
+- La bandera dice `true` solo si la base de verdad puede recibirlo (el medio en el CHECK, la regla y la validación de `registrar_venta`) y cae a
+  `false` sola si falta alguna; las dos partes se pegan dos veces, dejan la huella `6783f397…` y **una sola firma de 18 parámetros**; el parche
+  aborta si la función cambió o si falta la regla. **Paridad caja ↔ base: 0 diferencias en los 99 999 montos.**
+- **Control de mutación:** con la validación del redondeo apagada dentro de `registrar_venta`, **49/58** (caen 9: todos los rechazos).
+- Regresión: `registrar-venta` 28, `campana-redondeo` 9, `venta-contrato-ampliado` 13, los cuatro del Club (33, 30, 34, 29), caja, finanzas,
+  separaciones, devoluciones y cambios, todos en verde. `club_registro_cartel` fija la huella viva de `registrar_venta`: ahora sigue la cadena
+  (`20261002100000` → `20261003130000`) y exige que no se corte.
+
+**La pantalla**, probada en el navegador con la **pantalla real de Vender** (`PuntoDeVenta` + `HojaDeCobro`) hablando con la **RPC real** por PostgREST local:
+- Una prenda de S/ 79.88, Efectivo: «**Cobra S/79.80 en efectivo** · Redondeo de efectivo −S/0.08 · Ley 29571…», billetes 79.80 (exacto), 80, 90, 100, 200, y
+  con S/100 el **vuelto es S/20.20**, una cifra que se puede dar en monedas. La boleta sale por **S/79.88** y el modal «Venta registrada» muestra el redondeo.
+  La RPC recibió `[efectivo 79.8 (recibido 100), redondeo 0.08]` y la base quedó con exactamente eso.
+- **Pago mixto:** Yape 30.05 queda exacto y al efectivo le quedan 49.83 → «Cobra S/49.80 · redondeo −S/0.03»; vuelto de 50 = S/0.20; registrado como
+  `yape 30.05 + efectivo 49.80/50 + redondeo 0.03`.
+- **Efectivo menor de S/ 0.10** (los 0.07 tras un Yape): no hay billetes que anotar, el recuadro dice «No hay moneda para S/0.07… Cóbralo con otro medio» y el botón queda
+  apagado con la misma frase. Con 0.18 cobra 0.10 y redondea −0.08.
+- **Celular, 375 px:** sin desborde horizontal (375 de 375); el recuadro y los billetes envuelven limpio.
+- **Cola sin conexión:** con la red cortada para `registrar_venta`, la venta se guarda con el redondeo adentro («guardada sin conexión»), y al volver la red sube
+  **sola, una vez**, con su fila de redondeo; la cola queda vacía.
+- **Bandera apagada:** la caja cobra exacto como antes (sin recuadro de redondeo, el primer billete es S/79.88).
+- **Web:** 166 pruebas de `vender-reglas` (incluida la invariante «lo que viaja suma EXACTAMENTE el total» en 9 999 totales, solo en efectivo y repartido), suite
+  completa 303 archivos / 154 751 pruebas, `tsc` y eslint en verde.
+
+**Las tres preguntas de CLAUDE.md.** *Concurrencia:* no se agregó estado compartido; el redondeo vive en la misma transacción de la venta, un índice único por venta
+impide el segundo y la caja se toma `for share` como siempre. *Caída externa:* SUNAT/Lucode no ven el redondeo (el comprobante sale exacto); sin red, la cola
+conserva la venta con su redondeo. *Persona sin contexto:* la cajera no elige nada: el recuadro le dice cuánto cobrar y por qué, y el botón le dice qué falta.
+
+**Para pegar en producción** — lo pega Felipe, cada parte SOLA y en este orden (la web puede publicarse antes: sin la bandera cobra exacto):
+1. `20261003100000` (la regla) → `20261003110000` (candado de `venta_pagos`) → `20261003111000` (lectores) → `20261003120000` (diario).
+2. Publicar la web (fusionar el PR).
+3. `20261003130000` (`registrar_venta`; huella «antes» `525479a95e59063b5f9e86f63119e27e`, la de producción hoy; «después» `6783f3971aff6967ca2ab54c07a4202a`).
+4. `20261003140000` (la bandera) **al final**; después **recargar Vender (F5) en cada caja**: la bandera se lee al cargar.
+5. `pnpm datos:generar:produccion` y `pnpm datos:comparar` (hoy el comparador marca `fn_acepta_redondeo_efectivo` como «no está en la foto»: es lo esperado hasta pegar).
+Para **apagar** el redondeo: `create or replace function retail.fn_acepta_redondeo_efectivo()` devolviendo `false`.
 
 ## 9. Lo que queda
 

@@ -13,9 +13,11 @@ import {
   esDescuentoDeCampana,
   esperaAlCargar,
   hayDescuentoManual,
+  cobroEnEfectivo,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
   pasoDelDescuento,
+  pagosCobrados,
   pagosParaRpc,
   pagosTrasEditarMonto,
   pasoDelCobro,
@@ -876,5 +878,103 @@ describe("textoSinStock — «agotada» o «apartada para un cliente»", () => {
   it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
     expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
     expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
+  });
+});
+
+// ---- El redondeo del efectivo en Vender (ADR-0310). La pantalla sigue trabajando con los pagos EXACTOS (cubren el total al
+// céntimo); el redondeo —el efectivo al múltiplo de S/ 0.10, hacia abajo, la ley— es del borde: lo que se cobra, el vuelto y lo que
+// viaja a `registrar_venta`. Todo apagado (`redondear = false`) es como era antes: la base todavía no lo acepta.
+
+describe("pagosCobrados — los pagos exactos como se cobran", () => {
+  it("apagado: queda igual y no hay redondeo", () => {
+    const pagos: PagoAplicado[] = [{ metodo: "efectivo", monto: 79.88 }];
+    expect(pagosCobrados(pagos, false)).toEqual({ pagos, redondeo: 0 });
+  });
+  it("activo: el efectivo baja al múltiplo de 0.10 y el redondeo es lo que no se cobra (79.88 → 79.80 y 0.08)", () => {
+    expect(pagosCobrados([{ metodo: "efectivo", monto: 79.88, recibido: 80 }], true)).toEqual({ pagos: [{ metodo: "efectivo", monto: 79.8, recibido: 80 }], redondeo: 0.08 });
+  });
+  it("solo el efectivo se redondea: Yape, tarjeta y transferencia quedan exactos (pago mixto)", () => {
+    const r = pagosCobrados([{ metodo: "yape", monto: 30.05 }, { metodo: "efectivo", monto: 49.83 }, { metodo: "tarjeta", monto: 0.12 }], true);
+    expect(r.pagos.map((p) => [p.metodo, p.monto])).toEqual([["yape", 30.05], ["efectivo", 49.8], ["tarjeta", 0.12]]);
+    expect(r.redondeo).toBe(0.03);
+  });
+  it("sin efectivo, o con un efectivo en cero, no hay nada que redondear", () => {
+    expect(pagosCobrados([{ metodo: "yape", monto: 79.88 }], true).redondeo).toBe(0);
+    expect(pagosCobrados([{ metodo: "efectivo", monto: 0 }, { metodo: "yape", monto: 79.88 }], true).redondeo).toBe(0);
+  });
+});
+
+describe("pagosParaRpc con el redondeo del efectivo", () => {
+  it("apagado, viaja exacto como siempre (lo que hace la caja hasta que la base lo acepte)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 80 }])).toEqual([{ metodo: "efectivo", monto: 79.88, recibido: 80 }]);
+  });
+  it("activo: el efectivo ya cobrado en monedas y, aparte, la fila de redondeo", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 80 }], true)).toEqual([
+      { metodo: "efectivo", monto: 79.8, recibido: 80 },
+      { metodo: "redondeo", monto: 0.08 },
+    ]);
+  });
+  it("lo recibido solo viaja si alcanza para lo que se cobra en monedas (la base rechaza TODA la venta si no)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 79.7 }], true)[0]).toEqual({ metodo: "efectivo", monto: 79.8 });
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 79.8 }], true)[0]).toEqual({ metodo: "efectivo", monto: 79.8, recibido: 79.8 }); // exacto en monedas
+  });
+  it("un efectivo que ya es múltiplo de 0.10 no lleva fila de redondeo", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.9 }], true)).toEqual([{ metodo: "efectivo", monto: 79.9 }]);
+  });
+  it("pago mixto: Yape exacto con su operación, efectivo en monedas y el redondeo al final", () => {
+    expect(pagosParaRpc([{ metodo: "yape", monto: 30.05, referencia: "ab-123" }, { metodo: "efectivo", monto: 49.83 }], true)).toEqual([
+      { metodo: "yape", monto: 30.05, referencia: "ab123" }, // el nº de operación se limpia: sin guiones
+      { metodo: "efectivo", monto: 49.8 },
+      { metodo: "redondeo", monto: 0.03 },
+    ]);
+  });
+  it("INVARIANTE: lo que viaja suma EXACTAMENTE el total, en cada total de S/ 0.01 a S/ 99.99 y con el efectivo solo o repartido", () => {
+    for (let c = 1; c <= 9999; c++) {
+      const total = c / 100;
+      const soloEfectivo = pagosParaRpc([{ metodo: "efectivo", monto: total }], true);
+      expect(Math.round(soloEfectivo.reduce((a, p) => a + p.monto * 100, 0))).toBe(c);
+      // la mitad en Yape y el resto en efectivo
+      const yape = Math.round(c / 2) / 100;
+      const resto = Math.round((c - Math.round(c / 2))) / 100;
+      const mixto = pagosParaRpc([{ metodo: "yape", monto: yape }, { metodo: "efectivo", monto: resto }], true);
+      expect(Math.round(mixto.reduce((a, p) => a + p.monto * 100, 0))).toBe(c);
+    }
+  });
+});
+
+describe("vueltoDe y pasoDelCobro con el redondeo", () => {
+  const p: PagoAplicado = { metodo: "efectivo", monto: 79.88, recibido: 80 };
+  it("el vuelto sale de lo que se cobra en monedas: 80.00 − 79.80 = 0.20 (sin redondeo sería 0.12, que no se puede dar)", () => {
+    expect(vueltoDe(p, true)).toBe(0.2);
+    expect(vueltoDe(p)).toBe(0.12);
+  });
+  it("lo recibido alcanza si cubre lo que se cobra en monedas: 79.80 sobre un total de 79.88 ya es «comprobante»", () => {
+    const entrega: PagoAplicado[] = [{ metodo: "efectivo", monto: 79.88, recibido: 79.8 }];
+    expect(pasoDelCobro(entrega, 79.88, true)).toBe("comprobante");
+    expect(pasoDelCobro(entrega, 79.88)).toBe("recibido");
+  });
+});
+
+describe("cobroEnEfectivo — lo que se le dice a la cajera", () => {
+  it("activo: la deuda exacta, lo que cobra en monedas y lo que no se cobra", () => {
+    expect(cobroEnEfectivo([{ metodo: "efectivo", monto: 79.88 }], true)).toEqual({ deuda: 79.88, aCobrar: 79.8, redondeo: 0.08 });
+  });
+  it("apagado: se cobra la deuda tal cual; sin efectivo, nada", () => {
+    expect(cobroEnEfectivo([{ metodo: "efectivo", monto: 79.88 }], false)).toEqual({ deuda: 79.88, aCobrar: 79.88, redondeo: 0 });
+    expect(cobroEnEfectivo([{ metodo: "yape", monto: 79.88 }], true)).toBeNull();
+  });
+});
+
+describe("motivoBloqueoCobro con el redondeo del efectivo", () => {
+  const mixto = (efectivo: number): PagoAplicado[] => [{ metodo: "yape", monto: Math.round((listo.total - efectivo) * 100) / 100 }, { metodo: "efectivo", monto: efectivo }];
+  it("un efectivo de menos de S/ 0.10 (los 0.07 que sobran tras un Yape) no se puede entregar: se cobra con otro medio", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07), redondeoEfectivo: true })).toBe("El efectivo no puede ser menos de S/ 0.10: cóbralo con otro medio.");
+  });
+  it("sin el redondeo activo ese efectivo se cobra como siempre", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07) })).toBeNull();
+  });
+  it("desde S/ 0.10 de efectivo ya hay moneda: no bloquea", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.1), redondeoEfectivo: true })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.19), redondeoEfectivo: true })).toBeNull();
   });
 });
