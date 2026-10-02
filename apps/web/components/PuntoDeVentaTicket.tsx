@@ -9,7 +9,6 @@ import {
   CirclePause,
   CreditCard,
   FileText,
-  KeyRound,
   Landmark,
   MessageSquareText,
   Percent,
@@ -188,10 +187,6 @@ type Props = {
   onAbrirDescuento: (claves: string[] | null) => void;
   onAplicarDescuento: () => void;
   onQuitarDescuento: () => void;
-  /** Un Líder no ve el campo «Código»; una Colaboradora lo necesita para descontar. */
-  esLider: boolean;
-  codigoDescuento: string;
-  onCodigoDescuento: (v: string) => void;
   // Nota del ticket — una línea, hasta 200; vive con las líneas (momento «armar»)
   nota: string;
   onNota: (v: string) => void;
@@ -278,9 +273,6 @@ export function PuntoDeVentaTicket({
   onAbrirDescuento,
   onAplicarDescuento,
   onQuitarDescuento,
-  esLider,
-  codigoDescuento,
-  onCodigoDescuento,
   nota,
   onNota,
   enEspera,
@@ -442,8 +434,6 @@ export function PuntoDeVentaTicket({
     razonOtro: descuento.razonOtro,
     pideArgumento: mostrarArgumento,
     argumento: descuento.argumento,
-    pideCodigo: !esLider,
-    codigo: codigoDescuento,
     prendas: elegidasCuenta,
   });
   const luz = (p: PasoDescuento) => descontando && pasoDescuento === p;
@@ -685,9 +675,9 @@ export function PuntoDeVentaTicket({
                 )}
               </fieldset>
 
-              {/* Argumento escrito (R-45): solo aparece pasado el 20 % de un Líder — la
-                  Colaboradora sigue con su código, sin esto. El candado real vive en la
-                  base; acá se pide antes de que llegue a rechazarlo. */}
+              {/* Argumento escrito: aparece pasado el 15 %, lo aplique quien lo aplique, y es lo
+                  único que se pide (Felipe, 2026-10-01: sin código de descuento). El candado real
+                  vive en la base; acá se pide antes de que llegue a rechazarlo. */}
               {mostrarArgumento && (
                 <fieldset className="anim-revelar space-y-2 border-t border-sand pt-4">
                   <legend className="text-[11px] text-tinta/50">
@@ -706,38 +696,6 @@ export function PuntoDeVentaTicket({
                     rows={2}
                     className={`w-full resize-none rounded-lg border bg-crema px-3 py-2 text-sm text-tinta outline-none transition-[border-color,box-shadow] placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("argumento") ? LUZ_CAMPO : "border-sand"}`}
                   />
-                </fieldset>
-              )}
-
-              {/* Código: solo para quien no es Líder. La base (registrar_venta) es la que
-                  exige que exista, esté vigente y que el % no pase su tope — acá solo se
-                  escribe; el error, si lo hay, llega por avisar.error al confirmar el cobro. */}
-              {!esLider && (
-                <fieldset className="space-y-2 border-t border-sand pt-4">
-                  <legend className="text-[11px] text-tinta/50">
-                    <span className="flex items-center gap-1.5">
-                      <KeyRound className={ICONO_CHICO} aria-hidden />
-                      Código de descuento
-                    </span>
-                  </legend>
-                  <label
-                    data-paso-descuento="codigo"
-                    className={`flex h-11 items-center gap-2 rounded-lg border bg-crema px-3 transition-[border-color,box-shadow] focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("codigo") ? LUZ_CAMPO : "border-sand"}`}
-                  >
-                    <input
-                      aria-label="Código de descuento"
-                      onKeyDown={siguienteConEnter}
-                      type="text"
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      value={codigoDescuento}
-                      onChange={(e) => onCodigoDescuento(e.target.value.toUpperCase())}
-                      placeholder="Pídeselo a un Líder"
-                      disabled={bloqueado}
-                      className="min-w-0 flex-1 bg-transparent font-mono text-sm font-semibold tracking-wider text-tinta outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-tinta/40"
-                    />
-                  </label>
                 </fieldset>
               )}
 

@@ -191,7 +191,9 @@ export type TicketEnEspera = {
   creadoEn: string;
   carrito: ItemCarrito[];
   nota: string;
-  codigoDescuento: string;
+  /** Código de descuento: ya no se pide (Felipe, 2026-10-01). Queda opcional solo porque tickets viejos en localStorage
+   *  pueden traerlo; no se lee. */
+  codigoDescuento?: string;
   /** Quién atendía (fila «Atendió», ADR-0163). Ya no se guarda ni se restaura: el responsable se elige en cada
    *  cobro (ADR-0161, A6). Queda en el tipo solo porque tickets viejos en localStorage pueden traerlo. */
   vendedoraId?: string | null;
@@ -235,9 +237,7 @@ export const money = (n: number) => `S/${n.toFixed(2)}`;
 type Props = {
   ubicacionId: string;
   ubicacionEtiqueta: string;
-  /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
-  esLider: boolean;
-  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). `esLider` queda para lo que sigue siendo del líder (descuentos). */
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). */
   puedeCerrarCaja: boolean;
   /** Null si no hay caja abierta — el POS queda tras la persiana de «Caja cerrada» y desactivado
    *  (ver `bloqueado` más abajo). */
@@ -292,7 +292,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -360,8 +360,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
   const [pagos, setPagos] = useState<PagoAplicado[]>([]);
   const [descuento, setDescuento] = useState<DescuentoForm>(DESCUENTO_VACIO);
-  // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
-  const [codigoDescuento, setCodigoDescuento] = useState("");
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
@@ -949,7 +947,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setQuitada(null);
     quitarClienta();
     setNota("");
-    setCodigoDescuento("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
@@ -973,7 +970,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, nombre: nombre || undefined, clienta }]);
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, nombre: nombre || undefined, clienta }]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -982,7 +979,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, clienta } : null;
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, clienta } : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -993,7 +990,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
-    setCodigoDescuento(ticket.codigoDescuento);
     // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
@@ -1265,7 +1261,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       // La clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Va dentro de `params`, así que también viaja
       // en la cola sin conexión.
       p_cliente_id: clienta?.id ?? undefined,
-      p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
       // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
       p_asesora_id: responsable.elegidoId ?? undefined,
@@ -1441,7 +1436,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
-    setCodigoDescuento("");
     setNota("");
     responsable.limpiar();
     setMomento("armar");
@@ -1462,9 +1456,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             onAbrirDescuento={abrirDescuento}
             onAplicarDescuento={aplicarDescuentoAlTicket}
             onQuitarDescuento={quitarDescuentoDelTicket}
-            esLider={esLider}
-            codigoDescuento={codigoDescuento}
-            onCodigoDescuento={setCodigoDescuento}
             nota={nota}
             onNota={setNota}
             enEspera={enEspera}

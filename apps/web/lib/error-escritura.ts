@@ -164,6 +164,8 @@ const HUELLAS: Huella[] = [
   },
   {
     // 20260914215103_codigos_descuento.sql — una Colaboradora solo descuenta con código.
+    // Estas tres ya no las lanza la base desde 20261001150000_descuento_sin_codigo.sql (Felipe, 2026-10-01); quedan
+    // para el rato en que la web nueva conviva con una base que todavía no tiene esa migración.
     marca: "venta_descuento_requiere_codigo",
     frase: "Para aplicar un descuento necesitas un código válido. Pídeselo a un Líder, o quita el descuento.",
   },

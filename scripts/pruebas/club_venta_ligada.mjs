@@ -121,8 +121,18 @@ if (!VERSIONES_1C.some((w) => w.firma === REGISTRAR_VENTA) || cortadas1c.length)
 }
 /** La registrar_venta que vive HOY: la que creó la 1c. */
 const REGISTRAR_VENTA_HOY = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
-/** El md5 que cada firma tiene que tener HOY: el «después» de la última tanda que la tocó (1c, 1b), o el de esta migración. */
+// 20261001150000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar la registrar_venta de la 1c (le quitó el
+// código de descuento), partiendo de su «después».
+const SIN_CODIGO = readFileSync(join(RAIZ, "supabase", "migrations", "20261001150000_descuento_sin_codigo.sql"), "utf8");
+const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+if (!SIN_CODIGO_ANTES || VERSIONES_1C.find((w) => w.firma === REGISTRAR_VENTA_HOY)?.despues !== SIN_CODIGO_ANTES) {
+  console.error(`✗ El «antes» de 20261001150000 debería ser el «después» de la 1c para ${REGISTRAR_VENTA_HOY}.`);
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el «después» de la última que la tocó (sin código, 1c, 1b), o el de esta migración. */
 const despuesHoy = (firma, despues) => {
+  if (firma === REGISTRAR_VENTA_HOY) return SIN_CODIGO_DESPUES;
   const c = VERSIONES_1C.find((x) => x.firma === firma);
   const b = VERSIONES_1B.find((x) => x.firma === firma);
   return (c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";

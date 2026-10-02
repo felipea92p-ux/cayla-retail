@@ -205,7 +205,6 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       ubicacionId={persona.ubicacionId}
       // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
       // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
-      esLider={persona.rol === "lider"}
       puedeCerrarCaja={puede(persona, "gestionarCaja")}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}

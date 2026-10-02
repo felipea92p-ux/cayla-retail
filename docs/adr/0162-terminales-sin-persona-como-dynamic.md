@@ -136,7 +136,8 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 - **Descuentos desde la terminal: sin tope y sin autorización.** El tope sigue siendo de la CUENTA (una persona con su
   propia cuenta conserva su tope de D-67); la terminal no tiene tope (`NULL`, como un líder). No se toma el tope del
   responsable, porque sin PIN cualquiera podría elegir a quien más tope tiene.
-- **Descuento a mano sobre una prenda (el que usa el Punto de venta): la terminal PIDE CÓDIGO de descuento**, igual
+- ~~**Descuento a mano sobre una prenda (el que usa el Punto de venta): la terminal PIDE CÓDIGO de descuento**~~ (ya no:
+  ver «Actualización 2026-10-01»), igual
   que una colaboradora (`venta_descuento_requiere_codigo`). El código lo crea una líder y fija hasta cuánto se rebaja:
   es el único límite en un aparato que usa cualquiera sin PIN. (Felipe, 2026-09-22, opción a.)
 - **Apartados: la terminal libera siempre** (entregar la prenda o soltar un apartado vencido). Una persona con su
@@ -177,6 +178,24 @@ Esto **reemplaza** dos cosas de arriba: el `tipo` de «Las piezas» (punto 1) y 
   tienda (al 2026-09-23 faltaban 7 llamadas: anular venta, aprobar y rechazar devolución, anular y liberar comprobante,
   archivar serie, registrar clienta), y recién después se enciende el dato en producción. Encenderlo antes rompe esas
   pantallas.
+
+## Actualización 2026-10-01 — el descuento a mano ya no pide código (Felipe)
+
+Esto **reemplaza** la decisión del 2026-09-22 «la terminal PIDE CÓDIGO de descuento». Desde el 2026-09-25 todo descuento
+a mano que pase el 15 % pide un argumento escrito, lo aplique quien lo aplique (`20260925230000`); Felipe: «con el argumento
+bastaba». `20261001150000_descuento_sin_codigo.sql` corta de `registrar_venta` el bloque del código
+(`venta_descuento_requiere_codigo`, `venta_codigo_descuento_invalido`, `venta_descuento_supera_codigo`) y la caja deja de
+mostrar el campo «Código de descuento». Vale para la terminal y para una colaboradora con su propia cuenta.
+
+- **Lo que queda, para todos:** motivo de la lista (y su detalle si es «Otro»), argumento pasado el 15 %, nunca bajo el
+  costo de la prenda, y no menos que la campaña. El 35 % sigue siendo un tope solo del Líder.
+- **Sin tope de % para la caja.** Se le ofreció a Felipe extender el 35 % del Líder a todos y eligió no hacerlo: el freno
+  que queda en un aparato sin PIN es el argumento escrito y el costo. Trade-off aceptado: una terminal puede rebajar hasta el
+  costo con una frase; el argumento queda en `venta_items.argumento_descuento` para revisarlo después.
+- `p_codigo_descuento` sigue en la firma sin leerse (una venta encolada sin conexión puede traerlo) y `codigos_descuento`
+  queda como historial: nada se borra.
+- **Orden en producción:** primero la migración, después la web. Con la web nueva y la base vieja, una caja que descuente
+  sería rechazada por falta de código.
 
 ## Abierto
 

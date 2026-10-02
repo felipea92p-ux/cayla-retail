@@ -26,8 +26,8 @@
  *      `clienta_anonimizada`; sin clienta → `cumple_sin_clienta`. En ningún rechazo queda venta, canje ni stock movido.
  *   e. El monto: manipulado → `cumple_descuento_distinto` (1 céntimo de holgura, 2 no); una parte del club sin canjear →
  *      `cumple_sin_canje`; un canje sin nada que descontar → `cumple_sin_monto`.
- *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el código de descuento, el 35 % del líder y el
- *      argumento sobre el 15 %.
+ *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el 35 % del líder y el argumento sobre el 15 % (el
+ *      código de descuento ya no existe desde 20261001150000).
  *   g. Anular la venta libera el canje (con la hora y la persona de la anulación) y se puede volver a canjear; una
  *      devolución NO lo libera.
  *   h. `resumen_clienta_caja`: disponible, % y canjeado, antes y después del canje y de anularlo.
@@ -83,6 +83,14 @@ const RV_NUEVA = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,te
 const DESPUES_1A = /\('retail\.registrar_venta\([^']*\)',\s+'[0-9a-f]{32}',\s+'([0-9a-f]{32})'\)/.exec(
   leer("supabase", "migrations", "20260930160000_club_paso1a_venta_ligada_y_documento.sql")
 )?.[1];
+
+// 20261001150000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar registrar_venta de 17: le quitó el código de
+// descuento. Su candado parte del «después» de esta PARTE 3 (la cadena no se corta) y deja el suyo: el md5 vivo de HOY.
+const SIN_CODIGO = leer("supabase", "migrations", "20261001150000_descuento_sin_codigo.sql");
+const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 17) o el de esta PARTE 3. */
+const despuesHoy = (v) => (v.despues !== null && v.firma === RV_NUEVA ? SIN_CODIGO_DESPUES : v.despues) ?? "NO_EXISTE";
 
 // La tabla de paridad de la web (la MISMA que prueba la regla en vitest): [precio, descuento sin club, %, Postgres].
 const TEST_WEB = leer("apps", "web", "lib", "club-cumple-canje-reglas.test.ts");
@@ -522,17 +530,15 @@ select v.descuento_pct, k.monto from retail.ventas v join retail.club_canjes k o
   }
 );
 caso(
-  "(f) el código de Micaela (10 %) cubre su descuento a mano de 10 % (7.99) aunque con el cumpleaños (7.19) la prenda quede en 19 %; sin el canje, un 19 % a mano sigue pasándose del código",
-  SEDE("Tienda Trujillo") + `reset role;
-insert into retail.codigos_descuento (codigo, porcentaje, activo) values ('ZZCUMPLE10', 10, true);
-` + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
-    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true", codigo: "'ZZCUMPLE10'" }) +
-    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })), codigo: "'ZZCUMPLE10'" }) +
-    `select :'r1';
+  "(f) sin código (20261001150000): Micaela da un 10 % a mano (7.99) y canjea el cumpleaños (7.19) → pasa; y un 19 % a mano (15.18) con argumento, sin canje, también pasa: ya no hay tope de código",
+  SEDE("Tienda Trujillo") + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
+    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })) }) +
+    `select :'r1' not like 'ERROR%';
 reset role;
 select descuento_unitario, descuento_club_unitario from retail.venta_items where venta_id::text = :'ok';
 `,
-  "ERROR|P0001|venta_descuento_supera_codigo\n15.18|7.19"
+  "t\n15.18|7.19"
 );
 caso(
   "(f) el líder: 35 % a mano (27.96, con argumento) + cumpleaños (5.19) = 41 % → pasa; y 12 % a mano (9.59) + cumpleaños (7.03) = 21 % → pasa SIN argumento escrito",
@@ -633,13 +639,14 @@ explain select retail.registrar_venta(p_ubicacion_id => gen_random_uuid(), p_ite
   (s) => s.startsWith("1|t|t\n") && s.includes("Result")
 );
 caso(
-  `(i) los md5 «después» de la sección 0 son los de las funciones vivas; el «antes» de registrar_venta es el «después» de la tanda 1a (${DESPUES_1A})`,
+  `(i) los md5 «después» de la sección 0 son los de las funciones vivas (registrar_venta de 17, el de 20261001150000, que parte del de aquí); el «antes» de registrar_venta es el «después» de la tanda 1a (${DESPUES_1A})`,
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
   (s) =>
-    s === VERSIONES.map((v) => v.despues ?? "NO_EXISTE").join("\n") &&
-    VERSIONES.find((v) => v.firma === RV_VIEJA)?.antes === DESPUES_1A
+    s === VERSIONES.map(despuesHoy).join("\n") &&
+    VERSIONES.find((v) => v.firma === RV_VIEJA)?.antes === DESPUES_1A &&
+    VERSIONES.find((v) => v.firma === RV_NUEVA)?.despues === SIN_CODIGO_ANTES
 );
 caso(
   "(i) permisos: registrar_venta y resumen_clienta_caja solo para authenticated (sin PUBLIC ni anon); el disparador no lo ejecuta la API",
@@ -701,9 +708,16 @@ select md5(string_agg(x, '|' order by x)) from (
 select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
 `;
 const PEGAR_TODO = PARTES.map((p) => `${p}\n`).join("") + "set local search_path = retail, public, extensions;\n";
+// POR QUÉ ESTE CASO CAMBIÓ CON 20261001150000 (descuento sin código). Hasta ahí, pegar las tres partes otra vez dejaba todo
+// igual. Desde que esa migración cambió registrar_venta, la PARTE 3 ve un md5 que no es ni su «antes» ni su «después» y
+// aborta en su candado: es lo correcto (si pasara, le devolvería a la caja el código de descuento). Lo que se prueba ahora:
+// pegar HOY las tres partes por error no pisa nada. Sin ON_ERROR_STOP y dentro de un savepoint: si no abortara, la foto lo delata.
 caso(
-  "(i) pegar las tres partes OTRA VEZ deja todo igual (funciones, permisos, columnas, candados, índices, disparadores, RLS) y una sola firma",
-  FOTO + PEGAR_TODO + FOTO,
+  "(i) pegar HOY las tres partes (con 20261001150000 encima) aborta en la PARTE 3 y no pisa nada (funciones, permisos, columnas, candados, índices, disparadores, RLS); una sola firma",
+  FOTO +
+    `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PEGAR_TODO}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+    `set local search_path = retail, public, extensions;\n` +
+    FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
     return l.length === 4 && l[0] === l[2] && l[1] === l[3] && l[1].endsWith("numeric,uuid,text,boolean)") && !l[1].includes("),");

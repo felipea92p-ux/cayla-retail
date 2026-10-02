@@ -380,8 +380,6 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
     razonOtro: "",
     pideArgumento: false,
     argumento: "",
-    pideCodigo: false,
-    codigo: "",
     prendas: 2,
   };
   it("sin % falta el valor, aunque lo demás esté puesto", () => {
@@ -396,8 +394,7 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
     expect(pasoDelDescuento({ ...completo, pideArgumento: true })).toBe("argumento");
     expect(pasoDelDescuento({ ...completo, pideArgumento: true, argumento: "Se lleva 4 prendas" })).toBe("listo");
   });
-  it("el código solo para quien lo necesita, y luego las prendas", () => {
-    expect(pasoDelDescuento({ ...completo, pideCodigo: true })).toBe("codigo");
+  it("después del argumento, las prendas: nadie pide código (Felipe, 2026-10-01)", () => {
     expect(pasoDelDescuento({ ...completo, prendas: 0 })).toBe("prendas");
   });
   it("con todo puesto, listo para aplicar", () => {
