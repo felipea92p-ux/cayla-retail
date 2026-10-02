@@ -25,7 +25,7 @@ export type FilaVentaItem = {
     producto: { referencia: string } | null;
   } | null;
 };
-/** Una fila de `venta_pagos`. `redondeo` (ADR-0310) no es una forma de pago: es lo que no se cobró por redondear el efectivo. */
+/** Una fila de `venta_pagos`. `redondeo` (ADR-0311) no es una forma de pago: es lo que no se cobró por redondear el efectivo. */
 export type FilaVentaPago = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido: number | null };
 export type FilaComprobante = {
   tipo: string;
@@ -59,7 +59,7 @@ export type VentaDetalle = {
   prendas: number;
   lineas: LineaDetalle[];
   pagos: PagoRecibo[];
-  /** Lo que no se cobró por redondear el efectivo (ADR-0310); 0 si no hubo. `pagos` no lo incluye: es un renglón aparte. */
+  /** Lo que no se cobró por redondear el efectivo (ADR-0311); 0 si no hubo. `pagos` no lo incluye: es un renglón aparte. */
   redondeo: number;
   vueltoTotal: number;
   comprobante: { tipo: string; serie: string; numero: number; estado: EstadoComprobante; hash: string | null; motivoRechazo: string | null } | null;
@@ -88,7 +88,7 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   });
   const total = redondear2(lineas.reduce((a, l) => a + l.importe, 0));
 
-  // El redondeo del efectivo viaja como una fila más de `venta_pagos` (ADR-0310), pero no es una forma de pago: se separa de los
+  // El redondeo del efectivo viaja como una fila más de `venta_pagos` (ADR-0311), pero no es una forma de pago: se separa de los
   // pagos reales (el efectivo ya viene redondeado) y se dice aparte. `pagos + redondeo = total`.
   const pagosReales = filas.pagos.filter((p): p is FilaVentaPago & { metodo: MetodoPagoVenta } => p.metodo !== "redondeo");
   const redondeo = redondear2(filas.pagos.filter((p) => p.metodo === "redondeo").reduce((a, p) => a + p.monto, 0));

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003111000_redondeo_lectores.sql — CAYLA V2 (ADR-0310, actividad 2, PARTE 2 de 2)
+-- 20261003111000_redondeo_lectores.sql — CAYLA V2 (ADR-0311, actividad 2, PARTE 2 de 2)
 --
 -- EL CAMBIO. Tres funciones que leen `venta_pagos` aprenden que el medio 'redondeo' (lo que no se cobró por redondear el
 -- efectivo al múltiplo de S/ 0.10, hacia abajo) NO es dinero que entró ni una forma de pago. Se parchan ANTES de que exista la
@@ -81,7 +81,7 @@ begin
     v_def := pg_get_functiondef(c_sellada::regprocedure);
     v_def := pg_temp.redondeo_reemplazar(v_def,
       $a$if p_medio is null or p_medio in ('anticipo', 'saldo_a_favor') then$a$,
-      $n$-- ADR-0310: el redondeo del efectivo (lo que no se cobró por llegar a la moneda de S/ 0.10) tampoco mueve plata.
+      $n$-- ADR-0311: el redondeo del efectivo (lo que no se cobró por llegar a la moneda de S/ 0.10) tampoco mueve plata.
   if p_medio is null or p_medio in ('anticipo', 'saldo_a_favor', 'redondeo') then$n$);
     execute v_def;
     v_md5 := pg_temp.redondeo_md5(c_sellada);
@@ -128,7 +128,7 @@ begin$n$);
     v_def := pg_temp.redondeo_reemplazar(v_def,
       $a$'ventas_otros', v_otros,$a$,
       $n$'ventas_otros', v_otros,
-    -- ADR-0310: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo. No es una forma de pago:
+    -- ADR-0311: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo. No es una forma de pago:
     -- no entra en `por_metodo`, ni en `otros`, ni en lo cobrado del turno.
     'redondeo', v_redondeo,$n$);
     execute v_def;

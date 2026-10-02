@@ -1,5 +1,5 @@
 /**
- * Redondeo del efectivo (ADR-0310) — la regla ÚNICA de la caja y su gemela en la base (`retail.fn_redondeo_efectivo`,
+ * Redondeo del efectivo (ADR-0311) — la regla ÚNICA de la caja y su gemela en la base (`retail.fn_redondeo_efectivo`,
  * migración `20261003100000_redondeo_efectivo_regla.sql`). Si las dos dan números distintos, `registrar_venta` rechaza la
  * venta en el mostrador: por eso `scripts/pruebas/redondeo_efectivo.mjs` las compara en los 99 999 montos de S/ 0.01 a
  * S/ 999.99.

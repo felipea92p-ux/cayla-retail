@@ -50,7 +50,7 @@ export type ReciboVenta = {
   igv: number;
   total: number;
   pagos: PagoRecibo[];
-  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0310): de 0.00 a 0.09, y 0 o ausente sin
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0311): de 0.00 a 0.09, y 0 o ausente sin
    *  redondeo. NO es una forma de pago ni toca el comprobante: `total`, `igv`, `subtotal` y el QR de SUNAT son por el precio exacto.
    *  `pagos` trae el efectivo ya redondeado, así que `Σ pagos + redondeo = total`. */
   redondeo?: number;
@@ -78,7 +78,7 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   transferencia: "Transferencia",
 };
 
-/** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0310). */
+/** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0311). */
 export const TEXTO_REDONDEO = "Redondeo de efectivo";
 export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/ 0.10, hacia abajo";
 /** Lo mismo, corto: una línea del ticket de 80 mm no pasa de ~44 caracteres sin salirse del papel. */
@@ -102,7 +102,7 @@ export function armarRecibo(entrada: {
   lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
   /** Los pagos TAL COMO SE REGISTRARON: con el efectivo ya redondeado si hubo redondeo. */
   pagos: readonly PagoAplicado[];
-  /** Lo que no se cobró por redondear el efectivo (ADR-0310). Ausente o 0 sin redondeo. */
+  /** Lo que no se cobró por redondear el efectivo (ADR-0311). Ausente o 0 sin redondeo. */
   redondeo?: number;
   tasaIgv: number;
   /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */

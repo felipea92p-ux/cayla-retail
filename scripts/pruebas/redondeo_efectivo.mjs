@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas del REDONDEO DEL EFECTIVO (ADR-0310) contra el Postgres local — CAYLA V2.
+ * Pruebas del REDONDEO DEL EFECTIVO (ADR-0311) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. `20261003100000_redondeo_efectivo_regla.sql`: la regla `retail.fn_redondeo_efectivo` — lo que se cobra de menos
  * al pagar en efectivo. S/ 0.10 es la moneda más chica que circula y la ley solo permite bajar: 100.19 → se cobra 100.10
@@ -640,7 +640,7 @@ rollback;`);
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
   const REVISADAS = {
-    abonar_separacion: "Apartados: los abonos no se redondean (ADR-0310 §7); solo lee separacion_pagos.",
+    abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
@@ -657,7 +657,7 @@ rollback;`);
     liquidar_prenda_danada: "Valida su propio medio (efectivo, tarjeta, yape, plin, transferencia): no acepta redondeo.",
     registrar_venta: "PARCHADA (20261003130000, actividad 5): acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     resumen_separaciones: "Apartados: lectura de separacion_pagos.",
-    separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0310 §7); solo escribe separacion_pagos.",
+    separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0311 §7); solo escribe separacion_pagos.",
   };
   const r14 = correr(`select p.proname from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and (p.prosrc ilike '%venta_pagos%' or p.prosrc ilike '%separacion_pagos%') order by 1;`);

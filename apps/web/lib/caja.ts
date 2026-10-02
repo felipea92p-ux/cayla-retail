@@ -23,7 +23,7 @@ export type CajaAbierta = {
 export type ResumenCaja = {
   ventasEfectivo: number;
   ventasOtros: number;
-  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0310). No es una forma de pago:
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0311). No es una forma de pago:
    *  no está en `ventasOtros` ni en `porMetodo`. `ventasEfectivo + ventasOtros + redondeo` es lo vendido (la suma de ítems). */
   redondeo: number;
   ingresos: number;

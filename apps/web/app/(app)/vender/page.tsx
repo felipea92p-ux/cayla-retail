@@ -84,7 +84,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // ¿La base ya acepta el QR como medio de una venta? (20261002130000). Si la función no existe todavía, el error deja
     // la hoja de cobro con los cinco medios de siempre.
     supabase.rpc("fn_acepta_pago_qr"),
-    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo? (20261003140000, ADR-0310). Si la función no existe todavía o
+    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo? (20261003140000, ADR-0311). Si la función no existe todavía o
     // dice false, la caja cobra exacto como siempre: nunca manda algo que la base rechazaría.
     supabase.rpc("fn_acepta_redondeo_efectivo"),
   ]);

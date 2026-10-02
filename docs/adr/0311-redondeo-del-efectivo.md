@@ -1,4 +1,4 @@
-# ADR-0310 — Redondeo del efectivo: S/ 0.10, solo hacia abajo, y el redondeo es una fila visible
+# ADR-0311 — Redondeo del efectivo: S/ 0.10, solo hacia abajo, y el redondeo es una fila visible
 
 **Fecha:** 2026-10-02 · **Estado:** **EN CONSTRUCCIÓN** (actividad 1 de 8, §6); nada pegado en producción · **Decide:** Felipe
 (aprobó el diseño y la lista de actividades el 2026-10-02: «hazlo») · **Rama:** `claude/sales-rounding-cash-36d9cd` ·

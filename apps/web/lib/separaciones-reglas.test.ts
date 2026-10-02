@@ -136,7 +136,7 @@ describe("dinero", () => {
   });
 });
 
-describe("redondeo del efectivo al entregar el saldo (ADR-0310)", () => {
+describe("redondeo del efectivo al entregar el saldo (ADR-0311)", () => {
   const efectivo = (monto: number, recibido?: number) => ({ metodo: "efectivo" as const, monto, ...(recibido !== undefined ? { recibido } : {}) });
 
   it("el saldo de 29.88 en efectivo se cobra 29.80 y viaja la fila de redondeo de 0.08", () => {

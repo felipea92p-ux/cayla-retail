@@ -669,7 +669,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
-  **Redondeo del efectivo (ADR-0310):** si `page.tsx` lee `fn_acepta_redondeo_efectivo` = true (la base ya puede recibirlo),
+  **Redondeo del efectivo (ADR-0311):** si `page.tsx` lee `fn_acepta_redondeo_efectivo` = true (la base ya puede recibirlo),
   el efectivo se cobra al múltiplo de S/ 0.10, hacia abajo (la ley): `lib/redondeo-efectivo-reglas.ts` (la regla, en céntimos
   enteros, gemela de `retail.fn_redondeo_efectivo`) → `lib/vender-reglas.ts` (`pagosCobrados`, `cobroEnEfectivo`; `pagosParaRpc`,
   `vueltoDe`, `pasoDelCobro` y `motivoBloqueoCobro` reciben el flag) → `HojaDeCobro` («Cobra S/ 79.80 en efectivo · redondeo −S/ 0.08»,
@@ -1050,7 +1050,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`
   sale optimizada solo si `fotoOptimizable` (`lib/foto-prenda-reglas.ts`) y `next.config.ts` → `images.remotePatterns` lo permiten.
-  **Redondeo del efectivo al entregar (ADR-0310, actividad 6):** `page.tsx` lee `fn_acepta_redondeo_efectivo` (la misma bandera de Vender) →
+  **Redondeo del efectivo al entregar (ADR-0311, actividad 6):** `page.tsx` lee `fn_acepta_redondeo_efectivo` (la misma bandera de Vender) →
   `ApartadosPanel` → `EntregarVista`: con la bandera, el efectivo del SALDO se cobra al múltiplo de S/ 0.10, hacia abajo
   (`cobroDelSaldo(pagos, saldo, redondear)` y `pagosParaRpcApartado(pagos, redondear)` en `lib/separaciones-reglas.ts`, sobre
   `lib/redondeo-efectivo-reglas.ts`) y `entregar_separacion` recibe el efectivo en monedas más una fila `metodo = 'redondeo'` que VERIFICA

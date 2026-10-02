@@ -42,7 +42,7 @@ export function cobradoDelTurno(porMetodo: Partial<Record<string, number>>): { t
       anticipo += monto;
       continue;
     }
-    // El redondeo del efectivo no es una forma de pago ni dinero que entró (ADR-0310): la base ya no lo manda en `por_metodo`,
+    // El redondeo del efectivo no es una forma de pago ni dinero que entró (ADR-0311): la base ya no lo manda en `por_metodo`,
     // pero si llegara, no suma a lo cobrado ni cae en «Otro».
     if (metodo === "redondeo") continue;
     const clave: MetodoCobrado["clave"] =
@@ -53,7 +53,7 @@ export function cobradoDelTurno(porMetodo: Partial<Record<string, number>>): { t
   return { total: redondear(metodos.reduce((a, m) => a + m.monto, 0)), anticipo: redondear(anticipo), metodos };
 }
 
-/** La nota del redondeo del efectivo bajo «Cobrado en el turno» (ADR-0310): solo si hubo, con la cifra en la moneda de la pantalla
+/** La nota del redondeo del efectivo bajo «Cobrado en el turno» (ADR-0311): solo si hubo, con la cifra en la moneda de la pantalla
  *  (`soles`). El redondeo no es una forma de pago: no suma a lo cobrado, y la nota lo dice para que nadie busque esos céntimos. */
 export function notaDeRedondeo(redondeo: number, soles: (n: number) => string): string | null {
   if (!(redondeo > 0)) return null;

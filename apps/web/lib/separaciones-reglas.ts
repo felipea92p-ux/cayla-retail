@@ -233,7 +233,7 @@ export function pasoDelApartado(e: Partial<Record<CampoApartado, string>>): Paso
 
 /** Los pagos tal como los espera `separar_prendas`, `abonar_separacion` y `entregar_separacion`.
  *
- *  `redondear` SOLO lo pasa la entrega del saldo (ADR-0310 §7): el adelanto y los abonos son montos que el cliente elige, no un total que
+ *  `redondear` SOLO lo pasa la entrega del saldo (ADR-0311 §7): el adelanto y los abonos son montos que el cliente elige, no un total que
  *  pagar, y la base los rechaza si traen una fila de redondeo. Con `redondear`, el efectivo viaja YA cobrado en monedas (múltiplo de
  *  S/ 0.10, hacia abajo) y, aparte, la fila `redondeo` con lo que no se cobró: la suma de todo sigue siendo el saldo exacto y la base
  *  verifica que el redondeo sea el de la ley. */
@@ -267,7 +267,7 @@ export type CobroDelSaldo = {
   noAlcanza: boolean;
 };
 
-/** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. Con `redondear` (ADR-0310) el efectivo se cobra
+/** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. Con `redondear` (ADR-0311) el efectivo se cobra
  *  al múltiplo de S/ 0.10, hacia abajo, y el vuelto sale de lo que se cobra en monedas, no de la deuda exacta. El saldo y la
  *  boleta final siguen exactos: el redondeo es del cobro. */
 export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number, redondear = false): CobroDelSaldo {

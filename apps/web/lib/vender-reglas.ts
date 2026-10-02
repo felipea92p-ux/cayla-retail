@@ -123,7 +123,7 @@ export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: nu
  *  hay vuelto que mostrar — lo que falta lo dice `motivoBloqueoCobro`. */
 export function vueltoDe(pago: PagoAplicado, redondear = false): number {
   if (pago.metodo !== "efectivo" || pago.recibido === undefined) return 0;
-  // Con el redondeo del efectivo (ADR-0310) lo que se cobra son las monedas: el vuelto sale de eso, no de la deuda exacta.
+  // Con el redondeo del efectivo (ADR-0311) lo que se cobra son las monedas: el vuelto sale de eso, no de la deuda exacta.
   const cobra = redondear ? efectivoACobrar(pago.monto) : pago.monto;
   return Math.max(0, redondear2(pago.recibido - cobra));
 }
@@ -161,7 +161,7 @@ export type PasoCobro = "medio" | "recibido" | "comprobante";
 export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number, redondear = false): PasoCobro {
   if (pagos.length === 0 || restanteDePagos(total, pagos) !== 0) return "medio";
   const efectivo = pagos.find((p) => p.metodo === "efectivo" && p.monto > 0);
-  // Con el redondeo del efectivo (ADR-0310) alcanza con lo que se cobra en monedas.
+  // Con el redondeo del efectivo (ADR-0311) alcanza con lo que se cobra en monedas.
   const cobra = efectivo ? (redondear ? efectivoACobrar(efectivo.monto) : efectivo.monto) : 0;
   if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < cobra)) return "recibido";
   return "comprobante";
@@ -174,7 +174,7 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number, redo
 export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string };
 
 export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false): PagoParaRpc[] {
-  // Con el redondeo del efectivo (ADR-0310) viaja el efectivo YA cobrado en monedas y, aparte, la fila de redondeo: la suma de todo
+  // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila de redondeo: la suma de todo
   // sigue igualando los ítems y la base verifica que el redondeo sea el de la ley.
   const { pagos: cobrados, redondeo } = pagosCobrados(pagos, redondear);
   const filas = cobrados
@@ -189,7 +189,7 @@ export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false):
   return redondeo > 0 ? [...filas, { metodo: "redondeo", monto: redondeo }] : filas;
 }
 
-/** Los pagos de pantalla —exactos: cubren el total al céntimo— como se COBRAN. Con el redondeo del efectivo activo (ADR-0310) el
+/** Los pagos de pantalla —exactos: cubren el total al céntimo— como se COBRAN. Con el redondeo del efectivo activo (ADR-0311) el
  *  efectivo se cobra al múltiplo de S/ 0.10, hacia abajo, y lo que no se cobra es el `redondeo` (de 0.00 a 0.09). Sin él (la base
  *  todavía no lo acepta, o no hay efectivo) los pagos quedan como están. La pantalla sigue trabajando con los pagos exactos
  *  (`restanteDePagos`, `pagosTrasEditarMonto`…): el redondeo es del borde, no del estado que la cajera edita. */
@@ -245,7 +245,7 @@ export function motivoBloqueoCobro(v: {
   /** Todavía no se eligió boleta, factura ni nota de venta: desde la hoja de cobro ninguno viene marcado (Felipe,
    *  2026-10-02), para que siempre se elija. Ausente = ya hay uno. */
   sinComprobante?: boolean;
-  /** El redondeo del efectivo está activo (`fn_acepta_redondeo_efectivo`, ADR-0310): un efectivo menor de S/ 0.10 no se puede entregar. */
+  /** El redondeo del efectivo está activo (`fn_acepta_redondeo_efectivo`, ADR-0311): un efectivo menor de S/ 0.10 no se puede entregar. */
   redondeoEfectivo?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";

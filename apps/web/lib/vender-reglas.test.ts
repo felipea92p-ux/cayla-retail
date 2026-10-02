@@ -881,7 +881,7 @@ describe("textoSinStock — «agotada» o «apartada para un cliente»", () => {
   });
 });
 
-// ---- El redondeo del efectivo en Vender (ADR-0310). La pantalla sigue trabajando con los pagos EXACTOS (cubren el total al
+// ---- El redondeo del efectivo en Vender (ADR-0311). La pantalla sigue trabajando con los pagos EXACTOS (cubren el total al
 // céntimo); el redondeo —el efectivo al múltiplo de S/ 0.10, hacia abajo, la ley— es del borde: lo que se cobra, el vuelto y lo que
 // viaja a `registrar_venta`. Todo apagado (`redondear = false`) es como era antes: la base todavía no lo acepta.
 

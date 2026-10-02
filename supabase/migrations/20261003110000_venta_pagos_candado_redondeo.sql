@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003110000_venta_pagos_candado_redondeo.sql — CAYLA V2 (ADR-0310, actividad 2, PARTE 1 de 2)
+-- 20261003110000_venta_pagos_candado_redondeo.sql — CAYLA V2 (ADR-0311, actividad 2, PARTE 1 de 2)
 --
 -- EL CAMBIO. Prepara `venta_pagos` para una fila de redondeo del efectivo: S/ 0.10 es la moneda más chica que circula y la ley
 -- solo permite redondear hacia abajo (100.19 → se cobra 100.10 y el 0.09 que no se cobra queda como una fila
@@ -86,9 +86,9 @@ end
 $migracion$;
 
 comment on constraint venta_pagos_redondeo_valido on retail.venta_pagos is
-  'ADR-0310: el redondeo del efectivo es menor de S/ 0.10 (la moneda más chica que circula). Mayor que cero lo exige venta_pagos_monto_check.';
+  'ADR-0311: el redondeo del efectivo es menor de S/ 0.10 (la moneda más chica que circula). Mayor que cero lo exige venta_pagos_monto_check.';
 comment on index retail.venta_pagos_un_redondeo_por_venta is
-  'ADR-0310: una venta tiene a lo más UNA fila de redondeo del efectivo.';
+  'ADR-0311: una venta tiene a lo más UNA fila de redondeo del efectivo.';
 
 -- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si al terminar no ves una fila con esta parte y «QUEDÓ BIEN», el texto se
 -- pegó cortado (el editor de Supabase no avisa si el corte cae entre dos instrucciones: «Success» no quiere decir que se aplicó todo).

@@ -72,7 +72,7 @@ export type ItemRegistrarVenta = {
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
-  /** Los pagos como viajan a `registrar_venta`, con la fila `redondeo` cuando el efectivo se cobró redondeado (ADR-0310). */
+  /** Los pagos como viajan a `registrar_venta`, con la fila `redondeo` cuando el efectivo se cobró redondeado (ADR-0311). */
   p_pagos: { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";

@@ -49,7 +49,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),
     getUbicaciones(),
-    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo, al entregar el saldo? (20261003135000 y 20261003140000, ADR-0310).
+    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo, al entregar el saldo? (20261003135000 y 20261003140000, ADR-0311).
     // Si la función no existe todavía, o dice false, la entrega cobra exacto como siempre: nunca se ofrece algo que la base rechazaría.
     supabase.rpc("fn_acepta_redondeo_efectivo"),
   ]);

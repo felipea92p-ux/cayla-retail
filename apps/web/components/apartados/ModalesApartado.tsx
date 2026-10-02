@@ -174,7 +174,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   );
 }
 
-export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0310). */ redondeo?: number; sede: string; onClose: () => void }) {
+export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
   const a = apartado;
   useTituloDeImpresion(a.codigo);
   return (

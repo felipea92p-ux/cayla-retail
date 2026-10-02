@@ -67,7 +67,7 @@ export function HojaDeCobro({
   pagos: PagoAplicado[];
   restante: number;
   vuelto: number;
-  /** El cobro en efectivo con el redondeo de la ley (ADR-0310): la deuda exacta, lo que se cobra en monedas y lo que no se cobra
+  /** El cobro en efectivo con el redondeo de la ley (ADR-0311): la deuda exacta, lo que se cobra en monedas y lo que no se cobra
    *  (`cobroEnEfectivo`). Con el redondeo apagado, `aCobrar` es la deuda y `redondeo` 0. `null` si no hay efectivo. */
   cobroEfectivo: { deuda: number; aCobrar: number; redondeo: number } | null;
   /** Tocar un medio: si no está, lo agrega con lo que falta; si está, lo quita (su monto pasa al siguiente). */
@@ -97,7 +97,7 @@ export function HojaDeCobro({
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
   const apagado = bloqueado || motivoBloqueo !== null || loading;
-  // Lo que se entrega en monedas y billetes: con el redondeo (ADR-0310) la deuda bajada a S/ 0.10; los billetes sugeridos, el
+  // Lo que se entrega en monedas y billetes: con el redondeo (ADR-0311) la deuda bajada a S/ 0.10; los billetes sugeridos, el
   // «Exacto» y el vuelto salen de eso.
   const aCobrar = cobroEfectivo?.aCobrar ?? efectivo?.monto ?? 0;
   const redondeo = cobroEfectivo?.redondeo ?? 0;

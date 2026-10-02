@@ -285,7 +285,7 @@ type Props = {
   /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
-  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0310): el efectivo se cobra al
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
    *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
    *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
   redondeoEfectivoDisponible?: boolean;
@@ -1113,7 +1113,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
   const restante = restanteDePagos(total, pagos);
-  // Los pagos de pantalla son EXACTOS (cubren el total); el redondeo del efectivo (ADR-0310) se aplica en el borde: lo que se cobra
+  // Los pagos de pantalla son EXACTOS (cubren el total); el redondeo del efectivo (ADR-0311) se aplica en el borde: lo que se cobra
   // en monedas, el vuelto y lo que viaja a la base salen de `pagosCobrados`.
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p, redondeoEfectivoDisponible), 0);
   const cobroEfectivo = cobroEnEfectivo(pagos, redondeoEfectivoDisponible);
@@ -1461,7 +1461,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario).descuento_unitario
               : it.descuentoUnitario,
           })),
-          // Lo que se registró: el efectivo ya cobrado en monedas y, aparte, el redondeo (ADR-0310). El total y el IGV siguen exactos.
+          // Lo que se registró: el efectivo ya cobrado en monedas y, aparte, el redondeo (ADR-0311). El total y el IGV siguen exactos.
           pagos: pagosCobrados(pagos, redondeoEfectivoDisponible).pagos,
           redondeo: pagosCobrados(pagos, redondeoEfectivoDisponible).redondeo,
           tasaIgv: 0.18,

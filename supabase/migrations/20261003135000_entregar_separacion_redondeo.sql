@@ -1,12 +1,12 @@
 -- ============================================================================
--- 20261003135000_entregar_separacion_redondeo.sql — CAYLA V2 (ADR-0310, actividad 6)
+-- 20261003135000_entregar_separacion_redondeo.sql — CAYLA V2 (ADR-0311, actividad 6)
 --
 -- EL CAMBIO. `entregar_separacion` acepta una fila `metodo = 'redondeo'` entre los pagos del SALDO: lo que no se cobró por llevar el
 -- efectivo de hoy al múltiplo de S/ 0.10, hacia abajo (la moneda más chica que circula; Ley 29571 art. 44). El saldo de 29.88
 -- pagado en efectivo se cobra con efectivo 29.80 + redondeo 0.08. La suma de las filas de la venta sigue igualando el total del
 -- apartado, sin tolerancia, y la boleta final sigue por el saldo exacto: el redondeo es del cobro, no del precio.
 --
--- QUÉ SE REDONDEA Y QUÉ NO (ADR-0310 §7). Solo el saldo que se paga hoy al entregar. El adelanto y los abonos NO: los céntimos de un
+-- QUÉ SE REDONDEA Y QUÉ NO (ADR-0311 §7). Solo el saldo que se paga hoy al entregar. El adelanto y los abonos NO: los céntimos de un
 -- apartado nacen del PRECIO de las prendas, y el adelanto o el abono es un monto que el cliente elige (nadie «debe» 50.02 de
 -- adelanto), así que no hay un total a pagar que redondear ahí; por eso `separar_prendas` y `abonar_separacion` no se tocan.
 --
@@ -65,7 +65,7 @@ declare
   c_bloque constant text := $n$    raise exception 'Los pagos (S/%) no cuadran con el saldo del apartado (S/%)', round(v_pagado, 2), v_saldo;
   end if;
 
-  -- ADR-0310: el redondeo del efectivo del saldo. La suma de TODAS las filas ya igualó al saldo; aquí se exige que la fila de
+  -- ADR-0311: el redondeo del efectivo del saldo. La suma de TODAS las filas ya igualó al saldo; aquí se exige que la fila de
   -- redondeo sea exactamente lo que la ley permite (hacia abajo, al múltiplo de S/ 0.10) y que viaje junto a UN efectivo ya cobrado
   -- en monedas. Un saldo sin fila de redondeo (efectivo exacto) se acepta como siempre.
   v_n_redondeo := (select count(*) from jsonb_array_elements(p_pagos) e where e ->> 'metodo' = 'redondeo');

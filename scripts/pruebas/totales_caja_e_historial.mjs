@@ -193,7 +193,7 @@ p as (select vp.metodo, vp.monto, extract(hour from v.created_at at time zone 'A
 select jsonb_build_object(
   'ventas_efectivo', (select coalesce(sum(monto), 0) from p where metodo = 'efectivo'),
   'ventas_otros', (select coalesce(sum(monto), 0) from p where metodo not in ('efectivo', 'redondeo')),
-  -- ADR-0310: el redondeo del efectivo no es «otro» ni una forma de pago: viaja aparte.
+  -- ADR-0311: el redondeo del efectivo no es «otro» ni una forma de pago: viaja aparte.
   'redondeo', (select coalesce(sum(monto), 0) from p where metodo = 'redondeo'),
   'ingresos', (select coalesce(sum(monto), 0) from retail.caja_movimientos where caja_id = :'caja' and tipo = 'ingreso'),
   'egresos', (select coalesce(sum(monto), 0) from retail.caja_movimientos where caja_id = :'caja' and tipo = 'egreso'),

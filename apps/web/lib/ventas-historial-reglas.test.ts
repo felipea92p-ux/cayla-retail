@@ -381,7 +381,7 @@ describe("mezclaDePagos", () => {
     expect(mezclaDePagos([])).toEqual([]);
   });
 
-  it("el redondeo del efectivo (ADR-0310) es una fila más de «cómo se pagó», y la lista suma el total vendido", () => {
+  it("el redondeo del efectivo (ADR-0311) es una fila más de «cómo se pagó», y la lista suma el total vendido", () => {
     // 79.90 con 0.02 de descuento = 79.88: 79.80 en efectivo y 0.08 de redondeo
     const lista = mezclaDePagos([{ anulada: false, pagos: [{ metodo: "efectivo", monto: 79.8 }, { metodo: "redondeo", monto: 0.08 }] }]);
     expect(lista).toEqual([

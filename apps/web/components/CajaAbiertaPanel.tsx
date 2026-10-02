@@ -171,7 +171,7 @@ export function CajaAbiertaPanel({
     });
   }, [ventasNuevas.nuevos]);
 
-  // Lo vendido (la suma de ítems): lo cobrado en efectivo y en otros medios más lo que no se cobró por redondear (ADR-0310). En
+  // Lo vendido (la suma de ítems): lo cobrado en efectivo y en otros medios más lo que no se cobró por redondear (ADR-0311). En
   // céntimos: una suma suelta en coma flotante deja 79.88000000000001.
   const totalVentas = (Math.round(resumen.ventasEfectivo * 100) + Math.round(resumen.ventasOtros * 100) + Math.round(resumen.redondeo * 100)) / 100;
   const metaPct = metaVentaDiaria ? Math.min(100, Math.round((totalVentas / metaVentaDiaria) * 100)) : null;

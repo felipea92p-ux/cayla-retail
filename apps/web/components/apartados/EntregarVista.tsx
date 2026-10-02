@@ -61,7 +61,7 @@ export function EntregarVista({
   apagadas?: string[];
   /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
   cabecera?: React.ReactNode;
-  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0310): el saldo en efectivo se cobra al múltiplo
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): el saldo en efectivo se cobra al múltiplo
    *  de S/ 0.10, hacia abajo. Con `false` (la base todavía no lo acepta) se cobra exacto, como antes. */
   redondeoEfectivo?: boolean;
 }) {
@@ -107,7 +107,7 @@ export function EntregarVista({
   async function entregar() {
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
-    // Con el redondeo del efectivo (ADR-0310) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
+    // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
     // saldo exacto, que es lo que la boleta final documenta.
     const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
     const { error } = await firmar(
@@ -304,7 +304,7 @@ export function EntregarVista({
                         ))}
                       </div>
                     )}
-                    {/* El efectivo del saldo con la ley: lo que se cobra en monedas y lo que no (ADR-0310). Es la misma frase de la hoja de Vender. */}
+                    {/* El efectivo del saldo con la ley: lo que se cobra en monedas y lo que no (ADR-0311). Es la misma frase de la hoja de Vender. */}
                     {cobro.efectivo && cobro.efectivo.redondeo > 0 && cobro.efectivo.aCobrar > 0 && (
                       <p className="anim-revelar rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-tinta/80" data-redondeo>
                         Cobra <b className="font-semibold text-tinta tabular-nums">{money(cobro.efectivo.aCobrar)}</b> en efectivo

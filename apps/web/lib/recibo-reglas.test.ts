@@ -42,7 +42,7 @@ describe("armarRecibo — lo que se imprime sale de la venta que se cobró", () 
   });
 });
 
-// ADR-0310: el redondeo del efectivo. Una venta de 79.88 (79.90 con 0.02 de descuento) pagada con 79.80 en efectivo y 0.08 de
+// ADR-0311: el redondeo del efectivo. Una venta de 79.88 (79.90 con 0.02 de descuento) pagada con 79.80 en efectivo y 0.08 de
 // redondeo: el papel dice lo que se cobró y lo que no, y el comprobante —el total, el IGV, el QR— sigue por el precio EXACTO.
 describe("armarRecibo con el redondeo del efectivo", () => {
   const conRedondeo = (redondeo?: number) =>

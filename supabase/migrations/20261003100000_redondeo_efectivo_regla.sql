@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003100000_redondeo_efectivo_regla.sql — CAYLA V2 (ADR-0310, actividad 1)
+-- 20261003100000_redondeo_efectivo_regla.sql — CAYLA V2 (ADR-0311, actividad 1)
 --
 -- EL CAMBIO. Una función, y nada más: la regla del redondeo del efectivo. Todavía NO la usa ninguna otra función, ninguna
 -- tabla ni ninguna pantalla: las actividades siguientes (lectores, diario, papel, Vender) la irán llamando. Sola, no cambia
@@ -14,7 +14,7 @@
 --
 -- Se aplica UNA vez, a la parte de la cuenta que se paga en efectivo; nunca a un precio, a un descuento ni al IGV, y nunca
 -- a la tarjeta, Yape/Plin o transferencia. La caja tendrá su gemela en TypeScript, en céntimos enteros, cuando Vender la use
--- (ADR-0310, actividad 5: el repo no admite una regla sin pantalla que la use); entonces
+-- (ADR-0311, actividad 5: el repo no admite una regla sin pantalla que la use); entonces
 -- `scripts/pruebas/redondeo_efectivo.mjs` también las compara en los 99 999 montos de S/ 0.01 a S/ 999.99. Mientras tanto
 -- esa prueba verifica la regla en la base en los mismos 99 999 montos.
 --
@@ -44,7 +44,7 @@ as $$
 $$;
 
 comment on function retail.fn_redondeo_efectivo(numeric) is
-  'Redondeo del efectivo (ADR-0310): lo que se cobra de MENOS al pagar en efectivo, de 0.00 a 0.09. S/ 0.10 es la moneda más chica que circula y la ley (Ley 29571 art. 44) solo permite redondear hacia abajo: 100.19 → 0.09 (se cobra 100.10). La caja tendrá la misma cuenta en TypeScript (actividad 5).';
+  'Redondeo del efectivo (ADR-0311): lo que se cobra de MENOS al pagar en efectivo, de 0.00 a 0.09. S/ 0.10 es la moneda más chica que circula y la ley (Ley 29571 art. 44) solo permite redondear hacia abajo: 100.19 → 0.09 (se cobra 100.10). La caja tendrá la misma cuenta en TypeScript (actividad 5).';
 
 revoke all on function retail.fn_redondeo_efectivo(numeric) from public, anon;
 grant execute on function retail.fn_redondeo_efectivo(numeric) to authenticated;

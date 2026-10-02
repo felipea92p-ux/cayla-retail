@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003140000_acepta_redondeo_efectivo.sql — CAYLA V2 (ADR-0310, actividad 5, PARTE 2 de 2: la bandera, VA ÚLTIMA)
+-- 20261003140000_acepta_redondeo_efectivo.sql — CAYLA V2 (ADR-0311, actividad 5, PARTE 2 de 2: la bandera, VA ÚLTIMA)
 --
 -- EL CAMBIO. `retail.fn_acepta_redondeo_efectivo()`: la pantalla de Vender la pregunta al cargar. Si dice `true`, la hoja de cobro
 -- redondea el efectivo al múltiplo de S/ 0.10, hacia abajo (la ley) y manda la fila de redondeo; si dice `false` —o la función no existe
@@ -50,7 +50,7 @@ language sql stable set search_path = retail, public, extensions as $$
 $$;
 
 comment on function retail.fn_acepta_redondeo_efectivo() is
-  'ADR-0310: ¿la base ya recibe el redondeo del efectivo? (el medio redondeo en venta_pagos, la regla y la validación de registrar_venta y de entregar_separacion). Vender y Apartados la preguntan al cargar; con false cobra exacto. Para apagar el redondeo: create or replace devolviendo false.';
+  'ADR-0311: ¿la base ya recibe el redondeo del efectivo? (el medio redondeo en venta_pagos, la regla y la validación de registrar_venta y de entregar_separacion). Vender y Apartados la preguntan al cargar; con false cobra exacto. Para apagar el redondeo: create or replace devolviendo false.';
 
 revoke all on function retail.fn_acepta_redondeo_efectivo() from public, anon;
 grant execute on function retail.fn_acepta_redondeo_efectivo() to authenticated;

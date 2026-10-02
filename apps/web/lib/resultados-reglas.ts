@@ -141,7 +141,7 @@ const NOMBRE_GASTO: Record<string, string> = {
   "655": "Bajas de activos fijos",
   // F7: lo que sobra o falta al cerrar o abrir una caja (un sobrante resta).
   "6599": "Faltantes y sobrantes de caja",
-  // ADR-0310: lo que CAYLA cede al cobrar el efectivo al múltiplo de S/ 0.10, hacia abajo (la ley). Cuenta provisional hasta el contador.
+  // ADR-0311: lo que CAYLA cede al cobrar el efectivo al múltiplo de S/ 0.10, hacia abajo (la ley). Cuenta provisional hasta el contador.
   "6598": "Redondeo de efectivo",
 };
 /** Siempre se muestran (aunque estén en cero, con «—»): lo que un mes normal tiene. Las demás, solo si hay algo. */

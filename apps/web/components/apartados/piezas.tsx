@@ -111,7 +111,7 @@ export function fechaNumerica(iso: string) {
  * Mientras el envío de anticipos a SUNAT no esté activo (ADR-0166) no lleva QR: dice que la boleta electrónica queda
  * registrada y se envía después.
  */
-export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0310); el comprobante sigue por el saldo exacto. */ redondeo?: number }) {
+export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0311); el comprobante sigue por el saldo exacto. */ redondeo?: number }) {
   const a = apartado;
   const cuerpo = (
     <div id="comprobante-print">

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003130000_registrar_venta_redondeo.sql — CAYLA V2 (ADR-0310, actividad 5, PARTE 1 de 2)
+-- 20261003130000_registrar_venta_redondeo.sql — CAYLA V2 (ADR-0311, actividad 5, PARTE 1 de 2)
 --
 -- EL CAMBIO. `registrar_venta` acepta una fila `metodo = 'redondeo'` entre los pagos de una venta: lo que NO se cobró por redondear
 -- el efectivo al múltiplo de S/ 0.10, hacia abajo (la moneda más chica que circula; Ley 29571 art. 44). La venta de 79.88 se cobra con
@@ -66,7 +66,7 @@ declare
   c_bloque constant text := $n$    raise exception 'Los pagos (S/%) no cuadran con el total de la venta (S/%)', v_total_pagos, v_total_items;
   end if;
 
-  -- ADR-0310: el redondeo del efectivo. La suma de TODAS las filas ya igualó a los ítems; aquí se exige que la fila de redondeo sea
+  -- ADR-0311: el redondeo del efectivo. La suma de TODAS las filas ya igualó a los ítems; aquí se exige que la fila de redondeo sea
   -- exactamente lo que la ley permite (hacia abajo, al múltiplo de S/ 0.10) y que viaje junto a UN efectivo ya cobrado en monedas.
   -- Una venta sin fila de redondeo (efectivo exacto) se acepta como siempre: la cola sin conexión de una caja vieja no pierde ventas.
   v_n_redondeo := (select count(*) from jsonb_array_elements(p_pagos) e where e ->> 'metodo' = 'redondeo');

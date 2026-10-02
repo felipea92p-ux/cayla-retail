@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003120000_redondeo_diario.sql — CAYLA V2 (ADR-0310, actividad 3)
+-- 20261003120000_redondeo_diario.sql — CAYLA V2 (ADR-0311, actividad 3)
 --
 -- EL CAMBIO. El diario contable (Finanzas) aprende a asentar el redondeo del efectivo: lo que no se cobró por llegar a la moneda
 -- de S/ 0.10, hacia abajo (una fila `metodo = 'redondeo'` en `venta_pagos`). Es un GASTO de CAYLA (cede ese céntimo por la ley),
@@ -60,7 +60,7 @@ declare
   c_despues constant text := '6b4982f3847cb817c3a26155f043f047';
   c_ancla constant text := $a$when p_medio = 'saldo_a_favor' then '421'$a$;
   c_nuevo constant text := $n$when p_medio = 'saldo_a_favor' then '421'
-    when p_medio = 'redondeo' then '6598'   -- ADR-0310: lo que no se cobró por redondear el efectivo (gasto; cuenta provisional)$n$;
+    when p_medio = 'redondeo' then '6598'   -- ADR-0311: lo que no se cobró por redondear el efectivo (gasto; cuenta provisional)$n$;
   v_md5 text;
   v_def text;
 begin

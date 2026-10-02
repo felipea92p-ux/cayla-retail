@@ -46,7 +46,7 @@ export function metodosDe(texto: string | null): MetodoRitmo[] {
     .toLowerCase()
     .split("+")
     .map((t) => t.trim())
-    // El redondeo del efectivo no es una forma de pago (ADR-0310): la base ya no lo manda aquí, pero si llegara no sería «Otro».
+    // El redondeo del efectivo no es una forma de pago (ADR-0311): la base ya no lo manda aquí, pero si llegara no sería «Otro».
     .filter((t) => Boolean(t) && !t.includes("redondeo"))
     .map((t): MetodoRitmo =>
       t.includes("efectivo")

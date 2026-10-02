@@ -77,7 +77,7 @@ const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text
 const SIN_CODIGO = leer("supabase", "migrations", "20261002100000_descuento_sin_codigo.sql");
 const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
 const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
-// 20261003130000_registrar_venta_redondeo.sql (ADR-0310, Felipe 2026-10-02) volvió a cambiar la registrar_venta de 18 (acepta la fila
+// 20261003130000_registrar_venta_redondeo.sql (ADR-0311, Felipe 2026-10-02) volvió a cambiar la registrar_venta de 18 (acepta la fila
 // de redondeo del efectivo), partiendo del «después» de la anterior: la cadena sigue y su «después» es el md5 vivo de HOY.
 const REDONDEO = leer("supabase", "migrations", "20261003130000_registrar_venta_redondeo.sql");
 const REDONDEO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(REDONDEO)?.[1];

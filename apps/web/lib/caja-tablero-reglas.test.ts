@@ -37,7 +37,7 @@ describe("cobradoDelTurno", () => {
     expect(cobradoDelTurno({ credito: 10 }).metodos).toEqual([{ clave: "otro", texto: "Otro", monto: 10 }]);
   });
 
-  it("el redondeo del efectivo (ADR-0310) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {
+  it("el redondeo del efectivo (ADR-0311) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {
     const r = cobradoDelTurno({ efectivo: 79.8, tarjeta: 120, redondeo: 0.08 });
     expect(r.total).toBe(199.8);
     expect(r.metodos.map((m) => m.clave)).toEqual(["efectivo", "tarjeta"]);

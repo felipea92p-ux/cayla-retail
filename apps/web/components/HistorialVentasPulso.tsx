@@ -33,7 +33,7 @@ const conSemana = (fecha: string) => partes(fecha).toLocaleDateString("es-PE", {
 const sinSemana = (fecha: string) => partes(fecha).toLocaleDateString("es-PE", { day: "numeric", month: "short" }).replace(/\./g, "");
 
 const colorMetodo = (metodo: string) => `var(--color-metodo-${metodo})`;
-// «Redondeo de efectivo» (ADR-0310) va aquí y no en NOMBRE_METODO_HISTORIAL: ese diccionario arma las opciones del filtro «cómo
+// «Redondeo de efectivo» (ADR-0311) va aquí y no en NOMBRE_METODO_HISTORIAL: ese diccionario arma las opciones del filtro «cómo
 // pagó» y el redondeo no es una forma de pago que se pueda elegir.
 const NOMBRE_ESPECIAL: Record<string, string> = { anticipo: "Anticipo de apartados", redondeo: "Redondeo de efectivo" };
 const nombreMetodo = (metodo: string) => NOMBRE_ESPECIAL[metodo] ?? NOMBRE_METODO_HISTORIAL[metodo] ?? metodo;

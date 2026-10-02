@@ -174,7 +174,7 @@ describe("las filas del cuadro", () => {
     expect([planilla.nombre, planilla.cuenta]).toEqual(["Planilla (Dynamic)", "62"]);
     expect(conceptos.find((k) => k.clave === "g639")!.nombre).toBe("Comisiones bancarias");
   });
-  it("el redondeo de efectivo (ADR-0310) sale como su gasto, con su cuenta, y dice de dónde viene", () => {
+  it("el redondeo de efectivo (ADR-0311) sale como su gasto, con su cuenta, y dice de dónde viene", () => {
     const conRedondeo: FilaER = { ...TRU, detalleGastos: [...TRU.detalleGastos, { cuenta: "6598", nombre: "Redondeo de efectivo (a favor del cliente)", monto: 0.08 }] };
     const k = conceptosER([conRedondeo]).find((c) => c.clave === "g6598")!;
     expect([k.nombre, k.cuenta]).toEqual(["Redondeo de efectivo", "6598"]);

@@ -1,6 +1,6 @@
 # Redondeo del efectivo — investigación (2026-10-02)
 
-**Estado:** investigación terminada; la decisión de diseño está propuesta y **espera la aprobación de Felipe** (ADR-0310 reservado,
+**Estado:** investigación terminada; la decisión de diseño está propuesta y **espera la aprobación de Felipe** (ADR-0311 reservado,
 sin escribir). Nada de esto está construido. Hechos verificados el 2026-10-02 contra `origin/main` (5883513f) y producción
 (solo lectura, solo agregados).
 
@@ -107,7 +107,7 @@ de gasto propia, **provisional hasta que el contador la valide** (6599 es «Dife
 Paso 0, terreno: llevar la rama a `origin/main` (hoy 21 commits atrás: no tiene `HojaDeCobro.tsx`), fila en `SESIONES-ACTIVAS`,
 Postgres desechable con las 393 migraciones, sonda de huellas md5 de las funciones a parchar.
 
-1. Regla única `redondeoEfectivo` / `retail.fn_redondeo_efectivo` con paridad exhaustiva (0.01 a 999.99) y ADR-0310.
+1. Regla única `redondeoEfectivo` / `retail.fn_redondeo_efectivo` con paridad exhaustiva (0.01 a 999.99) y ADR-0311.
 2. Los lectores entienden «redondeo» (Caja, Historial, cuenta sellada, CHECK de medios) con una venta sembrada.
 3. Diario y estado de resultados: cuadra y se ve, cuenta provisional.
 4. Papel y reimpresión: el recibo dice el redondeo; la boleta sigue exacta.

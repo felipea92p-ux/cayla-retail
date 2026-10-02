@@ -126,7 +126,7 @@ describe("puedeImprimir — un papel que parece válido y no lo es, es peor que 
   });
 });
 
-// ADR-0310: reimprimir una venta con redondeo da el MISMO papel que salió al cobrarla. La fila de redondeo de `venta_pagos` no es
+// ADR-0311: reimprimir una venta con redondeo da el MISMO papel que salió al cobrarla. La fila de redondeo de `venta_pagos` no es
 // una forma de pago: se separa de los pagos reales y se dice aparte.
 describe("armarDetalleVenta con el redondeo del efectivo", () => {
   const blusa = { sku: "BLU-EMMA-NEG-M", codigo: null, talla: { valor: "M" }, color: { nombre: "Negro" }, producto: { referencia: "Blusa Emma" } };

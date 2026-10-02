@@ -43,7 +43,7 @@ type Props = {
   /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Entregar» con ese apartado elegido; ya
    *  cerrado → «Todos» buscándolo por su código. Un id que no está en la lista no cambia nada. */
   abrir?: string | null;
-  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0310): la entrega cobra el saldo en monedas de S/ 0.10. */
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): la entrega cobra el saldo en monedas de S/ 0.10. */
   redondeoEfectivo?: boolean;
 };
 
