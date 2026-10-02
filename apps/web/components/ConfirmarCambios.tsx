@@ -26,6 +26,7 @@ export function ConfirmarCambios({
   onConfirmar,
   onClose,
   avisos = [],
+  notaAgregan,
 }: {
   nombre: string;
   resumen: ResumenCambios;
@@ -33,6 +34,9 @@ export function ConfirmarCambios({
   onClose: () => void;
   /** Lo que no impide guardar pero conviene leer justo antes de confirmar. */
   avisos?: readonly string[];
+  /** Lo que se dice de las variantes que se agregan cuando NO nacen en 0: la ficha (maqueta B) deja poner su stock con el stepper
+   *  y entra como stock inicial al guardar. Sin esto, la nota de siempre («Nacen sin unidades…»). */
+  notaAgregan?: string;
 }) {
   const [enCurso, setEnCurso] = useState(false);
   const grupos = agruparCambios(resumen.cambios);
@@ -69,7 +73,9 @@ export function ConfirmarCambios({
                     </li>
                   ))}
                 </ul>
-                {g.nota && <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.nota}</p>}
+                {(g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota) && (
+                  <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
+                )}
               </section>
             ))}
           </div>
