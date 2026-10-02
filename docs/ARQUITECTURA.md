@@ -1058,6 +1058,13 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
   no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
+- `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
+  su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
+  minuto la «Isla» (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en
+  `lib/recordatorio-cierre-reglas.ts`, lecturas en `lib/recordatorio-cierre.ts`), porque el layout no se vuelve a pintar al
+  navegar y una caja cerrada desde otra terminal no le llegaría. Si la base no responde devuelve 503 y la isla conserva lo
+  que sabía: «no pude preguntar» nunca se lee como «ya cerraron». «Cerrar caja» lleva a `/caja?cerrar=1` (o, ya en Caja,
+  dispara el evento `cayla:cerrar-caja`) y `CajaAbiertaPanel` abre `CerrarCajaModalV2`. ADR-0303.
 - `/api/padron` → consulta de DNI/RUC. El token del proveedor nunca sale del
   servidor. Devuelve siempre 200 con `fuente` (`padron` | `historial` | `ninguna`)
   y, si vino del padrón, `via` (`sunat_publico` | `proveedor`) — "no pude

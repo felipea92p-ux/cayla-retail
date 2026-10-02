@@ -10,6 +10,7 @@ import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimiento
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
+import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import {
   AccesosCajaEscritorio,
@@ -90,6 +91,7 @@ export function CajaAbiertaPanel({
   contexto,
   accesos,
   gasto = null,
+  abrirCierre = false,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -122,8 +124,19 @@ export function CajaAbiertaPanel({
     esLider: boolean;
     hoy: string;
   } | null;
+  /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0303): el cierre ya sale abierto. */
+  abrirCierre?: boolean;
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | null>(null);
+  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
+  // El recordatorio de cierre (ADR-0303) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
+  // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
+  useEffect(() => {
+    if (abrirCierre) window.history.replaceState(null, "", window.location.pathname);
+    if (!puedeCerrar) return;
+    const abrir = () => setModal("cerrar");
+    window.addEventListener(EVENTO_CERRAR_CAJA, abrir);
+    return () => window.removeEventListener(EVENTO_CERRAR_CAJA, abrir);
+  }, [abrirCierre, puedeCerrar]);
   const [filtroMov, setFiltroMov] = useState<FiltroMovimientos>("todo");
   // La vista de «Cierres anteriores» decide el ancho de su tarjeta: tabla y gráfico piden todo el ancho.
   const [modoCierres, setModoCierres] = useState<ModoCierres | null>(null);

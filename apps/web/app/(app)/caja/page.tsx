@@ -18,8 +18,10 @@ import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPane
 // Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
 // posible es abrirla — `registrar_venta` la exige (0008_caja_y_pagos.sql),
 // así que ofrecer otra cosa acá sería un enlace que la RPC igual rechazaría.
-export default async function CajaPage() {
+export default async function CajaPage({ searchParams }: { searchParams: Promise<{ cerrar?: string }> }) {
   const persona = await requirePersonaActualV2();
+  // `?cerrar=1`: se llegó desde «Cerrar caja» del recordatorio de cierre (ADR-0303) y el cierre sale ya abierto.
+  const abrirCierre = (await searchParams).cerrar === "1";
   const caja = await getCajaAbierta(persona.ubicacionId);
   // Sin caja (ADR-0186): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
   const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
@@ -57,13 +59,21 @@ export default async function CajaPage() {
           />
         </div>
       ) : (
-        <CajaConDatos caja={caja} persona={persona} />
+        <CajaConDatos caja={caja} persona={persona} abrirCierre={abrirCierre} />
       )}
     </div>
   );
 }
 
-async function CajaConDatos({ caja, persona }: { caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>; persona: PersonaActualV2 }) {
+async function CajaConDatos({
+  caja,
+  persona,
+  abrirCierre,
+}: {
+  caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
+  persona: PersonaActualV2;
+  abrirCierre: boolean;
+}) {
   const supabase = await createClient();
   const puedeCerrar = puede(persona, "gestionarCaja");
   const registraGastos = puede(persona, "registrarGastos");
@@ -117,6 +127,7 @@ async function CajaConDatos({ caja, persona }: { caja: NonNullable<Awaited<Retur
 
   return (
     <CajaAbiertaPanel
+      abrirCierre={abrirCierre}
       ubicacionNombre={persona.ubicacionEtiqueta}
       personaNombre={persona.nombre}
       personaRol={persona.rol}

@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
 import { SinConexion } from "@/components/SinConexion";
+import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
+import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -18,9 +20,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // total (nunca lanza) — este layout no tiene `error.tsx` propio, así que una excepción acá
   // dejaría sin pantalla a toda la app por un número.
   // ADR-0275: quien ve CAYLA Global sin ser líder también tiene selector, con su propia sede y la vista global.
-  const [todasLasUbicaciones, trasladosPorAtender] = await Promise.all([
+  // El recordatorio de cierre de caja (ADR-0303): total como el contador, solo para quien puede cerrar la caja de una tienda.
+  const recibeRecordatorio = recibeRecordatorioCierre(persona);
+  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
+    recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
   ]);
 
   const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -63,6 +68,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
+        {/* «Es hora de cerrar caja» (ADR-0303): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
+        {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>
     </AppShell>
   );
