@@ -26,8 +26,8 @@
  *      `clienta_anonimizada`; sin clienta → `cumple_sin_clienta`. En ningún rechazo queda venta, canje ni stock movido.
  *   e. El monto: manipulado → `cumple_descuento_distinto` (1 céntimo de holgura, 2 no); una parte del club sin canjear →
  *      `cumple_sin_canje`; un canje sin nada que descontar → `cumple_sin_monto`.
- *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el código de descuento, el 35 % del líder y el
- *      argumento sobre el 15 %.
+ *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el 35 % del líder y el argumento sobre el 15 % (el
+ *      código de descuento ya no existe desde 20261002100000).
  *   g. Anular la venta libera el canje (con la hora y la persona de la anulación) y se puede volver a canjear; una
  *      devolución NO lo libera.
  *   h. `resumen_clienta_caja`: disponible, % y canjeado, antes y después del canje y de anularlo.
@@ -546,17 +546,15 @@ select v.descuento_pct, k.monto from retail.ventas v join retail.club_canjes k o
   }
 );
 caso(
-  "(f) el código de Micaela (10 %) cubre su descuento a mano de 10 % (7.99) aunque con el cumpleaños (7.19) la prenda quede en 19 %; sin el canje, un 19 % a mano sigue pasándose del código",
-  SEDE("Tienda Trujillo") + `reset role;
-insert into retail.codigos_descuento (codigo, porcentaje, activo) values ('ZZCUMPLE10', 10, true);
-` + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
-    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true", codigo: "'ZZCUMPLE10'" }) +
-    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })), codigo: "'ZZCUMPLE10'" }) +
-    `select :'r1';
+  "(f) sin código (20261002100000): Micaela da un 10 % a mano (7.99) y canjea el cumpleaños (7.19) → pasa; y un 19 % a mano (15.18) con argumento, sin canje, también pasa: ya no hay tope de código",
+  SEDE("Tienda Trujillo") + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
+    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })) }) +
+    `select :'r1' not like 'ERROR%';
 reset role;
 select descuento_unitario, descuento_club_unitario from retail.venta_items where venta_id::text = :'ok';
 `,
-  "ERROR|P0001|venta_descuento_supera_codigo\n15.18|7.19"
+  "t\n15.18|7.19"
 );
 caso(
   "(f) el líder: 35 % a mano (27.96, con argumento) + cumpleaños (5.19) = 41 % → pasa; y 12 % a mano (9.59) + cumpleaños (7.03) = 21 % → pasa SIN argumento escrito",

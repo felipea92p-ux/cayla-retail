@@ -226,30 +226,6 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
   });
 
-  it("descuento sin código: dice a quién pedírselo", () => {
-    const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
-    expect(salida).not.toContain("venta_descuento_requiere_codigo");
-    expect(salida).toContain("código");
-    expect(salida).toContain("Líder");
-  });
-
-  it("código inválido: repite el código que se escribió", () => {
-    const salida = traducirError(
-      { message: "venta_codigo_descuento_invalido", details: "CAYLA10", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("CAYLA10");
-    expect(salida).toContain("no es válido");
-  });
-
-  it("descuento por encima del código: dice el tope", () => {
-    const salida = traducirError(
-      { message: "venta_descuento_supera_codigo", details: "15", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("hasta un 15 %");
-  });
-
   it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_motivo", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },

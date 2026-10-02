@@ -72,6 +72,13 @@ if (VERSIONES.length < 20) {
   process.exit(1);
 }
 const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)";
+// 20261002100000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar la registrar_venta de 18 (le quitó el código
+// de descuento), partiendo del «después» de la PARTE 8: la cadena no se corta y su «después» es el md5 vivo de HOY.
+const SIN_CODIGO = leer("supabase", "migrations", "20261002100000_descuento_sin_codigo.sql");
+const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18) o el de la PARTE 8. */
+const despuesHoy = (v) => (v.firma === RV_HOY ? SIN_CODIGO_DESPUES : v.despues) ?? "NO_EXISTE";
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
 
 // Los textos aprobados (docs/club/texto-legal-registro-v1.md), como los sembró la PARTE 4: el cuerpo de cada sección.
@@ -603,10 +610,11 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
-  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe) y los «antes» son los de producción el 2026-10-01`,
+  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, y la de 18 tiene el de 20261002100000, que parte del de aquí) y los «antes» son los de producción el 2026-10-01`,
   VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
-    s === VERSIONES.map((v) => v.despues ?? "NO_EXISTE").join("\n") &&
+    s === VERSIONES.map(despuesHoy).join("\n") &&
+    VERSIONES.find((v) => v.firma === RV_HOY)?.despues === SIN_CODIGO_ANTES &&
     VERSIONES.find((v) => v.firma.endsWith("text,boolean)") && v.firma.startsWith("retail.registrar_venta"))?.antes === "2b55a94a754e7708f5b133008f30469f" &&
     VERSIONES.find((v) => v.firma === "retail.resumen_clienta_caja(uuid)")?.antes === "fa690d7f1a5e1fa2412f9be78cb784a6"
 );
@@ -642,9 +650,16 @@ select md5(string_agg(x, '|' order by x)) from (
 select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
 `;
 const PEGAR_TODO = PARTES.map((p) => `reset role;\n${p}\n`).join("") + "set local search_path = retail, public, extensions;\n";
+// POR QUÉ ESTE CASO CAMBIÓ CON 20261002100000 (descuento sin código). Hasta ahí, pegar las ocho partes otra vez dejaba todo
+// igual. Desde que esa migración cambió registrar_venta, la PARTE 8 ve un md5 que no es ni su «antes» ni su «después» y
+// aborta en su candado: es lo correcto (si pasara, le devolvería a la caja el código de descuento). Lo que se prueba ahora:
+// pegar HOY las ocho partes por error no pisa nada. Sin ON_ERROR_STOP y dentro de un savepoint: si no abortara, la foto lo delata.
 caso(
-  "(l) pegar las ocho partes OTRA VEZ, en orden (como en el SQL Editor), deja todo igual: funciones, permisos, comentarios, columnas, candados, índices, disparadores, RLS, textos, la escala y el módulo; y una sola firma de registrar_venta, la de 18",
-  FOTO + PEGAR_TODO + FOTO,
+  "(l) pegar HOY las ocho partes, en orden (con 20261002100000 encima), aborta en la PARTE 8 y no pisa nada: funciones, permisos, comentarios, columnas, candados, índices, disparadores, RLS, textos, la escala y el módulo; y una sola firma de registrar_venta, la de 18",
+  FOTO +
+    `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PEGAR_TODO}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+    `set local search_path = retail, public, extensions;\n` +
+    FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
     return l.length === 4 && l[0] === l[2] && l[1] === l[3] && l[1] === RV_HOY.slice(7);

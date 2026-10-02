@@ -37,11 +37,11 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(Object.values(est).filter((s) => s === "ahora")).toHaveLength(1);
   });
 
-  it("paso 2 recién abierto: el nombre sigue, tejido y patrón faltan, y la descripción y la marca son opcionales", () => {
+  it("paso 2 recién abierto: la guía se detiene en marca y proveedor antes del nombre; tejido y patrón faltan después", () => {
     const est = estadosDeCampos(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false }), 2);
-    expect(est.nombre).toBe("ahora");
+    expect(est.marca).toBe("ahora");
+    expect(est.nombre).toBe("falta");
     expect(est.descripcion).toBe("opcional");
-    expect(est.marca).toBe("opcional");
     expect(est.tejido).toBe("falta");
     expect(est.patron).toBe("falta");
   });
@@ -63,15 +63,20 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(estadosDeCampos(guia({}, { marcaElegida: true }), 2).marca).toBe("hecho");
   });
 
-  it("la marca va ANTES del nombre en pantalla (Felipe, 2026-09-30) y aun así «Sigue aquí» va al nombre, que es lo primero que falta", () => {
+  it("la marca va ANTES del nombre en pantalla y la guía pasa por ahí antes de saltar al nombre (Felipe, 2026-10-02)", () => {
     const campos = guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false });
     const ids = campos.filter((c) => c.paso === 2).map((c) => c.id);
     expect(ids.indexOf("marca")).toBeLessThan(ids.indexOf("nombre"));
-    expect(campoAhora(campos, 2)).toBe("nombre");
-    // Ni siquiera escribiendo en la marca (el combo con foco): una marca opcional no retiene la luz.
-    expect(campoAhora(campos, 2, "marca")).toBe("nombre");
-    expect(estadosDeCampos(campos, 2, "marca").marca).toBe("opcional");
-    // Y el orden no cambia lo que falta: la marca nunca está por hacer.
+    // Paso 2 recién abierto, nada tocado todavía: la pausa en marca y proveedor va ANTES que «Sigue aquí» llegue al nombre.
+    expect(campoAhora(campos, 2)).toBe("marca");
+    expect(estadosDeCampos(campos, 2).marca).toBe("ahora");
+    expect(estadosDeCampos(campos, 2).nombre).toBe("falta");
+    // Apenas la persona teclea en el nombre, la pausa termina: la luz no le gana a la persona.
+    expect(campoAhora(campos, 2, "nombre")).toBe("nombre");
+    expect(estadosDeCampos(campos, 2, "nombre").marca).toBe("opcional");
+    // Con la marca ya elegida no hay pausa: la guía va directa al nombre, como antes de esta excepción.
+    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: true }), 2)).toBe("nombre");
+    // Y el orden no cambia lo que falta ni lo que bloquea: la marca nunca está por hacer ni se lista como «falta».
     expect(idsPorHacer(campos, 2)).toEqual(["nombre", "tejido", "patron"]);
   });
 

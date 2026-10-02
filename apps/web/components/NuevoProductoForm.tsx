@@ -455,8 +455,9 @@ export function NuevoProductoForm({
       guia.alAbrirPaso();
       return;
     }
-    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa a la marca (el tinte se
-    // mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil.
+    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
+    // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
+    // pantalla táctil.
     if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
   }, [paso, ahoraCampo, guia]);
 
