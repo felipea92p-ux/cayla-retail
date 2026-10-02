@@ -74,6 +74,7 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
+import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import { ConMarca, TiraFicha } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
@@ -830,9 +831,13 @@ export function ProductoForm({
   }
   const tonoDe = (campo: CampoDato) => (cambioDeDato(resumen, campo) ? ("aviso" as const) : undefined);
 
+  // Panel del taller (2026-10-02, decisión de Felipe tras 3 maquetas en docs/maquetas/producto-editar-rediseno-2026-10/):
+  // el panel derecho usa el ancho que ADR-0257 dejó libre — es un espejo de solo lectura, nunca un segundo lugar para
+  // guardar (eso sigue siendo solo la barra de abajo).
+  const marcaNombre = marcaId ? (marcas.marcas.find((m) => m.id === marcaId)?.nombre ?? (marcaId === producto?.marcaId ? producto?.marcaNombre : null) ?? null) : null;
+  const tejidoNombre = tejidoId ? (opcionesTejido.find((o) => o.valor === tejidoId)?.texto ?? null) : null;
+
   return (
-    // Sin panel a la derecha (ADR-0257): la ficha usa el ancho que hay, hasta 1080 px, y guarda desde la barra de abajo. El
-    // relleno de abajo deja aire para que la barra no tape la última fila.
     <form
       onSubmit={revisar}
       // Revisar es un acto explícito: Enter dentro de un campo —cerrar un precio, corregir el nombre— no abre la hoja de
@@ -840,8 +845,9 @@ export function ProductoForm({
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
       }}
-      className="max-w-[1080px] pb-28 sm:pb-24"
+      className="pb-28 sm:pb-24"
     >
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
       <div className="min-w-0 space-y-6">
         <TiraFicha pendientes={pendientes} completadaAqui={pendientesAlAbrir.size > 0} onIr={irAPendiente} />
 
@@ -1120,6 +1126,22 @@ export function ProductoForm({
           deshabilitado={loading}
           resumen={resumen}
         />
+      </div>
+
+      <PanelDelTaller
+        identidad={{
+          codigo: producto?.codigo ?? null,
+          nombre: referencia,
+          categoria: categoriaActual?.nombre ?? null,
+          marca: marcaNombre,
+          tejido: tejidoNombre,
+        }}
+        ctx={ctx}
+        filas={filas}
+        fotosVista={fotosVista}
+        nombreColor={nombres.color}
+        nombreTalla={nombres.talla}
+      />
       </div>
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
