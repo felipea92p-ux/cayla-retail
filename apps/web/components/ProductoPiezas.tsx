@@ -106,7 +106,7 @@ export function SwatchesColor({
             title="Ver todos los colores"
             className="text-[11px] tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
           >
-            +{resto} más
+            +{resto}
           </button>
         ) : (
           <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>
