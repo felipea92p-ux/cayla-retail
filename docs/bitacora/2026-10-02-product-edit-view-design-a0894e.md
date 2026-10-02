@@ -62,3 +62,44 @@ interrumpe el trabajo; juntarlo y ofrecerlo una sola vez, al cerrar la visita, e
 `guardar()`) — no un patrón nuevo, el mismo aplicado a este caso.
 Felipe se lleva: el artifact republicado y probado (stepper → sin aviso de imprimir; «Revisar y guardar» → aviso
 consolidado con la lista de talla·color). Nada se implementó todavía en `ProductoForm.tsx` real.
+
+## 2026-10-02 (B implementada en el repo real, en tres pasos verificables)
+Qué hice: «implementa tal cual al local para probarlo» — construí la maqueta B sobre `ProductoForm.tsx` real, pero
+tal cual chocaba con dos piezas que YA existen y son más sofisticadas que lo que dibujé en HTML estático; en vez de
+reemplazarlas, frené y le pregunté a Felipe (protocolo de pregunta, `~/.claude/CLAUDE.md`), que confirmó las dos
+opciones recomendadas: (1) el stock se sigue ajustando con el `AjustarInventarioModal` real (motivo + sede +
+responsable + reporte CSV), no con el stepper simplificado de la maqueta — ese stepper era una simulación de lo que
+ya existe, no una mejora; y (2) las variantes de la izquierda se quedan como lista agrupada por color
+(`VariantesFicha.tsx`), no como grilla — cambiarlas a grilla era puro remaquetado sin beneficio real y tocaba un
+componente de 693 líneas sin necesidad.
+Tres commits, cada uno un corte vertical probado en el navegador:
+1. `941d3f4f` — `PanelDelTaller.tsx` nuevo: columna derecha de solo lectura (foto por color reusando
+   `vistaDeFotos()`, swatches, identidad, stock por talla con el MISMO `AjusteDeStock`/`AjustarInventarioModal` que
+   ya vive en la lista de abajo, precio). `ProductoForm.tsx` pasa a grid `minmax(0,1fr) 340px`. «Cambiar foto» no
+   duplica el subidor de `FotosPorColor` — solo hace scroll a `#fotos` con el mismo ancla que ya usa la guía de foco.
+2. `6f6a823a` — la sección «Producto» se parte en dos bloques numerados («① Identidad y categoría», «② Tejido,
+   patrón y estado») dentro de LA MISMA card, sin colapsar ni usar `<section>` separados: un acordeón habría
+   escondido `data-campo="tejido"`/`data-campo="patron"` detrás de un clic, rompiendo el scroll-to-campo-pendiente de
+   `TiraFicha.tsx` (ADR-0284) — un riesgo real de guía de foco por una mejora puramente visual.
+3. `1ca9f941` — `RecordatorioEtiquetas.tsx` nuevo: Felipe pidió que el aviso de «Imprimir etiquetas» (ya diseñado en
+   la ronda anterior) «sea bastante visible y que no desaparezca hasta cambiar de módulo» — más persistente que un
+   aviso de `avisar.exito` (que se apaga solo en 4-8 s). En vez de forzar un modo permanente nuevo en `Avisos.tsx`
+   (arquitectura de toast, no de banner) o inventar persistencia con `localStorage` (esto es de la visita, no de
+   mañana), usé el ciclo de vida que ya tiene `app/(app)/productos/layout.tsx`: se queda montado mientras se
+   navega DENTRO de Productos (lista, ficha, Nuevo producto) y se desmonta al salir a otro módulo — exactamente lo
+   que pedía Felipe, sin estado nuevo que mantener. `AjustarInventarioModal.tsx` llama a
+   `agregarRecordatorioEtiquetas()` cuando alguna talla sube de stock, justo antes de `router.refresh()`.
+Por qué así: las dos decisiones de reuso (no el stepper simulado, no la grilla) bajan el riesgo de romper
+`AjustarInventarioModal` (motivo/sede/responsable, principio 4) o `VariantesFicha.tsx` (693 líneas probadas) solo
+para calzar con una maqueta — el espíritu del pedido («implementa tal cual») era el RESULTADO visual y funcional de
+B, no una reescritura literal del HTML.
+Verificado en el navegador local (`cayla-retail-dev-3070`, puerto 3070): ajuste real de stock con motivo
+«Reposición» desde el panel del taller → aviso «1 variante ajustada» (toast) + franja «1 prenda nueva sin etiquetar ·
+Blanco · M» (banner) en el mismo instante, orden correcto (ADR-0149) → la franja persiste al navegar con el Link
+«← Productos» a la lista → desaparece al entrar a Inventario por el menú lateral (layout de Productos desmontado).
+`tsc --noEmit` y `eslint` en verde en los tres commits (hook de pre-commit); `lib/guia-de-foco.test.ts` y
+`lib/sugerir.test.ts` siguen en verde (el panel nuevo no agrega campos editables propios ni ejemplos escritos a
+mano).
+Felipe se lleva: Editar producto con el panel del taller operativo en local, el recordatorio de etiquetas persistente
+probado de punta a punta, y las dos superficies de ajuste de stock (panel + lista de variantes) compartiendo el
+mismo `AjustarInventarioModal` y ahora también el mismo recordatorio.
