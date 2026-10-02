@@ -131,7 +131,37 @@ export function listaParaUrl(lista: readonly string[]): string {
   return [...new Set(lista)].join(",");
 }
 
-export const ROTULO_STOCK: Record<string, string> = { sin_stock: "Sin stock", bajo: "Stock bajo", reponer: "Pedir a proveedor" };
+// ── Disponibilidad (Felipe, 2026-10-02: las dos medidas, la de la sede y la de la red, cada una rotulada) ────────────────
+/** En la URL sigue siendo `stock=` (los enlaces de «A quién pedirle» y los viejos siguen sirviendo). */
+export const DISPONIBILIDADES = ["en_sede", "sin_sede", "sin_red", "bajo", "reponer"] as const;
+export type Disponibilidad = (typeof DISPONIBILIDADES)[number];
+/** Las que miran la sede elegida: sin sede (la vista CAYLA Global) no se ofrecen ni se aplican. */
+export const DISPONIBILIDAD_DE_SEDE: readonly Disponibilidad[] = ["en_sede", "sin_sede"];
+
+/** La disponibilidad de la URL; `sin_stock` (antes de 2026-10-02) es la de la red. Sin sede, las de la sede no valen. */
+export function disponibilidadDeUrl(valor: string | null | undefined, haySede: boolean): Disponibilidad | undefined {
+  const v = valor === "sin_stock" ? "sin_red" : valor;
+  if (!(DISPONIBILIDADES as readonly string[]).includes(v ?? "")) return undefined;
+  if (!haySede && DISPONIBILIDAD_DE_SEDE.includes(v as Disponibilidad)) return undefined;
+  return v as Disponibilidad;
+}
+
+/** Lo que dice cada opción, con el nombre de la sede: «Hay en Tienda Lima», nunca «aquí» (en un enlace compartido
+ *  «aquí» sería otra tienda). */
+export function rotuloDisponibilidad(d: Disponibilidad, sede: string | null): string {
+  switch (d) {
+    case "en_sede":
+      return `Hay en ${sede ?? "la sede"}`;
+    case "sin_sede":
+      return `Sin stock en ${sede ?? "la sede"}`;
+    case "sin_red":
+      return "Sin stock en ninguna sede";
+    case "bajo":
+      return "Stock bajo";
+    case "reponer":
+      return "Pedir a proveedor";
+  }
+}
 
 /** Un chip por cosa puesta, siempre «Nombre: valor» (como la píldora): «Blusas» suelto no decía si era categoría o etiqueta.
  *  `quitar` son las claves que lo apagan. `nombres` resuelve ids a nombres; un id que ya no existe dice «—». */
@@ -144,6 +174,8 @@ export function chipsDeFiltros(
     color: (id: string) => string | undefined;
     talla?: (id: string) => string | undefined;
     familia?: (valor: string) => string | undefined;
+    /** La sede elegida arriba (`null` en CAYLA Global): da nombre a «Hay en …». */
+    sede?: string | null;
   },
   sin = "sin",
 ): { texto: string; quitar: string[] }[] {
@@ -166,8 +198,8 @@ export function chipsDeFiltros(
   if (colores.length) chips.push({ texto: `Color: ${colores.join(", ")}`, quitar: ["color", "familia"] });
   const estado = estadoDeUrl(p.get("estado"));
   if (estado !== ESTADO_POR_DEFECTO) chips.push({ texto: `Estado: ${ROTULO_ESTADO[estado]}`, quitar: ["estado"] });
-  const stock = p.get("stock");
-  if (stock && ROTULO_STOCK[stock]) chips.push({ texto: `Stock: ${ROTULO_STOCK[stock]}`, quitar: ["stock"] });
+  const disp = disponibilidadDeUrl(p.get("stock"), nombres.sede != null);
+  if (disp) chips.push({ texto: `Disponibilidad: ${rotuloDisponibilidad(disp, nombres.sede ?? null)}`, quitar: ["stock"] });
   const precio = textoRangoPrecio(p.get("precioMin"), p.get("precioMax"));
   if (precio) chips.push({ texto: `Precio: ${precio}`, quitar: ["precioMin", "precioMax"] });
   return chips;

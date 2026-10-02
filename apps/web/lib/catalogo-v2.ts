@@ -8,7 +8,7 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
-import { estadoDeUrl, estadoParaBase, listaDeUrl } from "@/lib/productos-filtros";
+import { disponibilidadDeUrl, estadoDeUrl, estadoParaBase, listaDeUrl, type Disponibilidad } from "@/lib/productos-filtros";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
@@ -188,10 +188,11 @@ export type FiltrosProductos = {
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
-  /** "reponer" = punto de reorden (20260916100000): demanda × tiempo de
-   *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
-   *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
-  stock?: "sin_stock" | "bajo" | "reponer";
+  /** Disponibilidad (ADR-0308): en la sede elegida (`en_sede`, `sin_sede`) o en la red (`sin_red`, `bajo`, `reponer`). «reponer» =
+   *  punto de reorden (20260916100000): demanda × tiempo de entrega + stock_minimo. */
+  stock?: Disponibilidad;
+  /** La sede elegida arriba: la que miran `en_sede` y `sin_sede`. La pone la página (no viene de la URL). */
+  ubicacionId?: string;
   /** Orden del catálogo (20260917180000; recientes, antiguos y vendidos: 20260929180000) — null/undefined = por
    *  referencia, el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen` no pagina, así que nunca le llega
    *  (ver `paramsFiltrosProductos`). Las opciones y sus rótulos: `lib/productos-orden.ts`. */
@@ -223,6 +224,12 @@ export const PRODUCTOS_POR_PAGINA = 20;
 
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 
+/** La sede elegida, para los filtros que la miran. Sin sede (CAYLA Global), «Hay en …» y «Sin stock en …» no se aplican. */
+export function conSede(filtros: FiltrosProductos, ubicacionId: string | null): FiltrosProductos {
+  if (ubicacionId) return { ...filtros, ubicacionId };
+  return filtros.stock === "en_sede" || filtros.stock === "sin_sede" ? { ...filtros, stock: undefined } : filtros;
+}
+
 /** Traduce la URL a filtros, descartando cualquier valor que no calce con su forma. */
 export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosProductos {
   return {
@@ -239,8 +246,8 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
     precioMin: leerMonto(p.precioMin ?? "") ?? undefined,
     precioMax: leerMonto(p.precioMax ?? "") ?? undefined,
-    stock:
-      p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
+    // Las de la sede se validan otra vez en la página, que sabe si hay sede elegida (`conSede`).
+    stock: disponibilidadDeUrl(p.stock, true),
     orden: leerOrdenProductos(p.orden),
   };
 }
@@ -337,9 +344,6 @@ export async function getPreciosExtremos(filtros: FiltrosProductos): Promise<{ m
   return { min: Math.min(...bajos), max: Math.max(...altos) };
 }
 
-/** Lo que `stock=` de la URL pide en el contrato nuevo (`fn_productos_listado`, 20261002200000): «sin stock» es el de la
- *  red, como siempre. */
-const DISPONIBILIDAD_DE_STOCK = { sin_stock: "sin_red", bajo: "bajo", reponer: "reponer" } as const;
 
 /** Los `p_*` de `fn_productos_listado` (20261002200000, ADR-0308): el listado que filtra por VARIANTE (color, precio y
  *  stock se exigen a la misma), sin variantes desactivadas. Se omite la clave en vez de mandar `null` (Args opcionales). */
@@ -355,7 +359,8 @@ function paramsListado(filtros: FiltrosProductos) {
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
-    ...(filtros.stock ? { p_disponibilidad: DISPONIBILIDAD_DE_STOCK[filtros.stock] } : {}),
+    ...(filtros.stock ? { p_disponibilidad: filtros.stock } : {}),
+    ...(filtros.ubicacionId ? { p_ubicacion_id: filtros.ubicacionId } : {}),
   };
 }
 

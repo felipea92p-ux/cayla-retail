@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
   filtrosProductosDesdeParams,
+  conSede,
   paginaProductosDesdeParams,
   listarProductos,
   getResumenProductos,
@@ -63,7 +64,9 @@ import { compararTallas } from "@/lib/tallas";
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
-  const filtros = filtrosProductosDesdeParams(params);
+  // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
+  const enSede = persona.vista !== "global";
+  const filtros = conSede(filtrosProductosDesdeParams(params), enSede ? persona.ubicacionId : null);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
@@ -229,6 +232,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         totalProductos={resultado.totalProductos}
         limitesPrecio={limitesRedondeados(precios)}
         panelInicial={panelFiltros}
+        sede={enSede ? persona.ubicacionEtiqueta : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}

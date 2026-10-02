@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  disponibilidadDeUrl,
+  rotuloDisponibilidad,
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
@@ -108,7 +110,7 @@ describe("productos-filtros — estado, conteo y chips", () => {
       "Proveedor: sin proveedor",
       "Color: Negro",
       "Estado: Todos",
-      "Stock: Pedir a proveedor",
+      "Disponibilidad: Pedir a proveedor",
       "Precio: Hasta S/ 80",
     ]);
     expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
@@ -171,5 +173,29 @@ describe("productos-filtros — color agrupado por familia", () => {
     expect(url).toEqual({ color: "NEG", familia: "azul" });
     expect(marcadosDeColor(`color=${url.color}&familia=${url.familia}`)).toEqual(marcado);
     expect(separarColor([])).toEqual({ color: "", familia: "" });
+  });
+});
+
+describe("productos-filtros — disponibilidad en la sede y en la red", () => {
+  it("«sin_stock» de los enlaces viejos es la de la red; lo desconocido no filtra", () => {
+    expect(disponibilidadDeUrl("sin_stock", true)).toBe("sin_red");
+    expect(disponibilidadDeUrl("en_sede", true)).toBe("en_sede");
+    expect(disponibilidadDeUrl("raro", true)).toBeUndefined();
+  });
+
+  it("sin sede (CAYLA Global) no se aplican las de la sede", () => {
+    expect(disponibilidadDeUrl("en_sede", false)).toBeUndefined();
+    expect(disponibilidadDeUrl("reponer", false)).toBe("reponer");
+  });
+
+  it("cada opción dice de qué sede habla, nunca «aquí»", () => {
+    expect(rotuloDisponibilidad("en_sede", "Tienda Lima")).toBe("Hay en Tienda Lima");
+    expect(rotuloDisponibilidad("sin_sede", "Tienda Lima")).toBe("Sin stock en Tienda Lima");
+    expect(rotuloDisponibilidad("sin_red", "Tienda Lima")).toBe("Sin stock en ninguna sede");
+  });
+
+  it("el chip lo dice entero", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, sede: "Tienda Lima" };
+    expect(chipsDeFiltros("stock=en_sede", nombres)[0].texto).toBe("Disponibilidad: Hay en Tienda Lima");
   });
 });

@@ -19,6 +19,10 @@ import {
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
+  DISPONIBILIDADES,
+  DISPONIBILIDAD_DE_SEDE,
+  disponibilidadDeUrl,
+  rotuloDisponibilidad,
   ESTADOS_LISTADO,
   ESTADO_POR_DEFECTO,
   ROTULO_ESTADO,
@@ -58,6 +62,7 @@ export function FiltrosProductos({
   totalProductos,
   limitesPrecio,
   panelInicial,
+  sede,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
@@ -72,6 +77,8 @@ export function FiltrosProductos({
   limitesPrecio: LimitesPrecio | null;
   /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
   panelInicial: EstadoPanelFiltros;
+  /** El nombre de la sede elegida arriba, para «Hay en Tienda Lima»; `null` en CAYLA Global (no hay una sede). */
+  sede: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -217,7 +224,7 @@ export function FiltrosProductos({
   const marca = params.get("marca");
   const proveedor = params.get("proveedor");
   const estado = estadoDeUrl(params.get("estado"));
-  const stock = params.get("stock");
+  const disponibilidad = disponibilidadDeUrl(params.get("stock"), sede != null);
   const orden = ordenDeUrl(params.get("orden"));
 
   // Los chips leen la URL (lo que de verdad filtra la lista), siempre «Nombre: valor» como la píldora (`lib/productos-filtros.ts`).
@@ -230,6 +237,7 @@ export function FiltrosProductos({
       color: (id) => colores.find((c) => c.id === id)?.nombre,
       talla: (id) => tallas.find((t) => t.id === id)?.nombre,
       familia: (f) => textoDeFamilia(f),
+      sede,
     },
     SIN_EN_URL,
   );
@@ -378,16 +386,19 @@ export function FiltrosProductos({
             />
       </FilaPildoras>
       <FilaPildoras titulo="Gestión">
+            {/* La sede y la red, cada una rotulada (Felipe, 2026-10-02): «¿hay en mi tienda?» es la del mostrador; «sin stock en
+                ninguna», la del líder que le pide al proveedor. Sin sede elegida (CAYLA Global) solo las de la red. */}
             <DesplegablePildora
               icono={PackageSearch}
-              etiqueta="Stock"
-              valor={stock ?? TODOS}
+              etiqueta="Disponibilidad"
+              valor={disponibilidad ?? TODOS}
               onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
               opciones={[
-                { valor: TODOS, texto: "Todos" },
-                { valor: "sin_stock", texto: "Sin stock" },
-                { valor: "bajo", texto: "Stock bajo" },
-                { valor: "reponer", texto: "Pedir a proveedor" },
+                { valor: TODOS, texto: "Todas" },
+                ...DISPONIBILIDADES.filter((d) => sede != null || !DISPONIBILIDAD_DE_SEDE.includes(d)).map((d) => ({
+                  valor: d as string,
+                  texto: rotuloDisponibilidad(d, sede),
+                })),
               ]}
             />
             <DesplegablePildora
