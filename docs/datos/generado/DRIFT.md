@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 411 llamadas `.rpc` de `apps/web` contra 745 funciones del schema `retail` en producción: 352 con los parámetros leídos (se comparan uno por uno), 50 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 9 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-02 15:53 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 413 llamadas `.rpc` de `apps/web` contra 746 funciones del schema `retail` en producción: 354 con los parámetros leídos (se comparan uno por uno), 50 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 9 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-02 17:33 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (512 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (513 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 161 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 351 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 162 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 351 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -31,7 +31,7 @@ migración define la función: se pegó en producción después de la foto, o to
 ### `fn_global_cobertura` — no está en la foto
 
 - **Dónde:** `apps/web/lib/cayla-global.ts:13`
-- **Qué pasa:** la función `fn_global_cobertura` no está en la foto de producción (2026-10-02 15:53 UTC)
+- **Qué pasa:** la función `fn_global_cobertura` no está en la foto de producción (2026-10-02 17:33 UTC)
 - **Migración que la crea:** `supabase/migrations/20260929140000_cayla_global_modulo_solo_admin.sql` (se pegó después de la foto, o todavía no)
 - **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
 
@@ -39,7 +39,7 @@ migración define la función: se pegó en producción después de la foto, o to
 
 Ninguna. Cada función tiene una sola firma en producción.
 
-## Avisos — 33
+## Avisos — 34
 
 - `fn_temporada_efectiva` · `apps/web/app/(app)/productos/atributos/page.tsx:42` — no manda `p_producto_id` (normal si tienen valor por defecto)
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
@@ -73,6 +73,7 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_campanas_reporte` · `apps/web/lib/resultados.ts:27` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `crear_rol` · `apps/web/lib/roles-acciones.ts:33` — no manda `p_descripcion` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:48` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
+- `buscar_productos_parecidos` · `apps/web/lib/use-parecidos.ts:41` — no manda `p_marca_id`, `p_por_marca` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
 ## No analizadas — 74
@@ -111,8 +112,8 @@ foto ni ninguna migración del repo conocen.
 - `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:322` — los parámetros no van escritos ahí mismo
 - `desactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `reactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:610` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1305` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:618` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1320` — los parámetros no van escritos ahí mismo
 - `reasignar_reparto_compra` · `apps/web/components/ReasignarReparto.tsx:146` — el objeto se arma con «...», no se puede leer entero
 - `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:669` — los parámetros no van escritos ahí mismo
 - `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:139` — los parámetros no van escritos ahí mismo

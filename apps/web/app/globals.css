@@ -100,6 +100,9 @@
   --color-metodo-yape: #6d3fa3;
   --color-metodo-plin: #1c6b56;
   --color-metodo-transferencia: #2f6aa3;
+  /* QR (cobro en hoja lateral, 2026-10-02): en tinta, como el código impreso; se distingue de la tarjeta (pizarra) por el
+     ícono y el tono, y nunca se confunde con los tres colores de las billeteras. */
+  --color-metodo-qr: var(--color-tinta);
   /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
      de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
   --color-metodo-anticipo: var(--color-taupe);
@@ -2353,6 +2356,7 @@ html[data-buscando] [data-resultados] {
   .metodo-yape { --c: var(--color-metodo-yape); --cd: var(--color-metodo-yape); }
   .metodo-plin { --c: var(--color-metodo-plin); --cd: var(--color-metodo-plin); }
   .metodo-transferencia { --c: var(--color-metodo-transferencia); --cd: var(--color-metodo-transferencia); }
+  .metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
   [class*="metodo-"] { --ct: color-mix(in srgb, var(--c) 22%, var(--color-papel)); }
 
   /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s) y vuelve
@@ -2512,4 +2516,209 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
       width: var(--ancho-lateral);
     }
   }
+}
+
+/* ==================================================================
+   Hoja de cobro (Felipe, 2026-10-02; `components/punto-de-venta/HojaDeCobro.tsx`, maqueta
+   `docs/maquetas/cobro-hoja-lateral-2026-10/`). Al tocar «Cobrar» el cobro entra como una hoja ancha
+   sobre el catálogo (que queda atenuado detrás). Seis medios en cuadrados con el ícono llenando el
+   cuadro; «¿Con cuánto paga?» en billetes del dorado del efectivo; boleta/factura/nota sin ninguna
+   marcada al empezar. Movimiento: la hoja entra desde la derecha con `--ease-cayla` (sin rebote),
+   el velo aparece detrás; con `prefers-reduced-motion`, nada se mueve.
+   ================================================================== */
+@layer components {
+  .hoja-cobro-velo {
+    background: color-mix(in srgb, var(--color-crema) 45%, transparent);
+    backdrop-filter: blur(2px);
+    animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
+  }
+  .hoja-cobro {
+    box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
+  }
+
+  /* Cada paso; el que sigue se enciende (guía de foco, ADR-0284): un tinte terracota suave y su borde. */
+  .hoja-cobro-paso {
+    margin-inline: -0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1.5px solid transparent;
+    border-radius: 1.1rem;
+    transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla);
+  }
+  .hoja-cobro-paso.sigue-aqui {
+    background: color-mix(in srgb, var(--color-rojo) 4%, var(--color-papel));
+    border-color: color-mix(in srgb, var(--color-rojo) 28%, transparent);
+  }
+
+  /* Un medio: cuadrado, con la franja de su color arriba y el ícono ocupando casi todo el cuadro. */
+  .hoja-cobro-medio {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    border: 1.5px solid var(--color-sand);
+    border-radius: 1.1rem;
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 350ms var(--ease-cayla), border-color 300ms, color 300ms, transform 350ms var(--ease-cayla);
+  }
+  .hoja-cobro-medio::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: var(--c);
+  }
+  .hoja-cobro-medio:hover { border-color: var(--c); transform: translateY(-3px); }
+  .hoja-cobro-medio:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  /* El cuadrado es su propio contenedor: el nombre cabe entero aunque la hoja sea angosta (menú lateral abierto). */
+  .hoja-cobro-medio { container-type: inline-size; }
+  .hoja-cobro-nombre { font-size: min(13px, 9cqi); letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
+  .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
+  .hoja-cobro-icono svg { stroke-width: 1.25; }
+  .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
+  .hoja-cobro-medio.es-elegido .hoja-cobro-icono { color: var(--color-crema); }
+  /* Las letras de adentro de las burbujas, elegido el medio. Yape: la burbuja va RELLENA (crema), así que su «S/» va en
+     el morado del cuadro; Plin: la burbuja es solo borde, así que su «plin» sigue en crema, como el borde. `!important`
+     porque el «S/» de Yape trae `fill-papel` (una utilidad, que le gana a esta capa) y quedaba blanco sobre blanco. */
+  .hoja-cobro-medio.es-elegido.metodo-yape .hoja-cobro-icono text { fill: var(--cd) !important; }
+  .hoja-cobro-medio.es-elegido.metodo-plin .hoja-cobro-icono text { fill: var(--color-crema) !important; }
+  .hoja-cobro-medio.con-monto { justify-content: flex-start; padding-top: 0.85rem; gap: 0.3rem; }
+  .hoja-cobro-medio.con-monto .hoja-cobro-icono { width: 40%; height: 40%; }
+  .hoja-cobro-marca {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.6rem;
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--color-crema);
+    color: var(--cd);
+    animation: cayla-revelar 240ms var(--ease-cayla) both;
+  }
+  .hoja-cobro-resto {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.7rem;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-crema) 80%, transparent);
+  }
+  .hoja-cobro-monto {
+    margin-top: auto;
+    margin-bottom: 0.4rem;
+    width: calc(100% - 0.8rem);
+    height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    border-radius: 0.6rem;
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    cursor: text;
+  }
+  .hoja-cobro-monto:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-rojo) 30%, transparent); }
+
+  /* «¿Con cuánto paga?»: billetes en el dorado del efectivo; el elegido, lleno; «Otro», punteado. */
+  .hoja-cobro-billete {
+    --c: var(--color-metodo-efectivo);
+    --cd: var(--color-metodo-efectivo-tinta);
+    height: 3.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+    border: 1.5px solid color-mix(in srgb, var(--c) 55%, var(--color-sand));
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, var(--c) 16%, var(--color-papel));
+    box-shadow: inset 0 0 0 3px var(--color-papel), inset 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent);
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+    transition: background-color 250ms var(--ease-cayla), border-color 250ms, color 250ms, transform 250ms var(--ease-cayla);
+  }
+  .hoja-cobro-billete:hover:not(:disabled) { border-color: var(--cd); transform: translateY(-2px); }
+  .hoja-cobro-billete.es-elegido {
+    background: var(--cd);
+    border-color: var(--cd);
+    color: var(--color-crema);
+    box-shadow: inset 0 0 0 3px var(--cd), inset 0 0 0 4px color-mix(in srgb, var(--color-crema) 35%, transparent);
+  }
+  .hoja-cobro-billete.es-otro { background: var(--color-papel); border-style: dashed; box-shadow: none; cursor: text; }
+  .hoja-cobro-billete.es-otro:focus-within,
+  .hoja-cobro-billete.es-escrito { border-style: solid; border-color: var(--cd); }
+
+  /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
+  .hoja-cobro-comprobante {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    height: 3.3rem;
+    padding-inline: 0.9rem;
+    border: 1.5px dashed color-mix(in srgb, var(--color-tinta) 32%, transparent);
+    border-radius: 0.9rem;
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    text-align: left;
+    transition: background-color 300ms var(--ease-cayla), border-color 300ms, color 300ms, opacity 300ms;
+  }
+  .hoja-cobro-comprobante:hover:not(:disabled) { border-style: solid; border-color: var(--color-tinta); }
+  .hoja-cobro-comprobante.es-elegido { border-style: solid; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
+  .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--color-hueso); }
+  .hoja-cobro-comprobante.es-elegido > .hoja-cobro-comprobante-icono { background: color-mix(in srgb, var(--color-crema) 14%, transparent); }
+
+  /* El documento de la clienta en UNA fila (tipo de documento | número con su consulta), como en la maqueta: apilado
+     empujaba «Confirmar cobro» bajo el pliegue de un laptop. Va sobre `DocumentoDelComprobante` sin tocarlo. */
+  @container (min-width: 34rem) {
+    .hoja-cobro-doc > fieldset > div:has(> :nth-child(2)) {
+      display: grid;
+      grid-template-columns: 12rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: start;
+    }
+    .hoja-cobro-doc > fieldset > div:has(> :nth-child(2)) > * { margin-block: 0; }
+    /* Dentro, el número y el nombre (o el RUC y la razón social) también lado a lado. */
+    .hoja-cobro-doc > fieldset > div > div:nth-child(2):has(> :nth-child(2)) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: start;
+    }
+    .hoja-cobro-doc > fieldset > div > div:nth-child(2):has(> :nth-child(2)) > * { margin-block: 0; }
+  }
+  .hoja-cobro-comprobante.es-otro { opacity: 0.55; border-style: solid; border-color: var(--color-sand); }
+  .hoja-cobro-comprobante.es-otro:hover { opacity: 1; }
+  /* Angosta, el comprobante deja el ícono y se queda con el nombre entero («Nota de venta»). */
+  @container (max-width: 44rem) {
+    .hoja-cobro-comprobante-icono { display: none; }
+    .hoja-cobro-comprobante { justify-content: center; padding-inline: 0.5rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hoja-cobro, .hoja-cobro-velo, .hoja-cobro-marca { animation: none; }
+    .hoja-cobro-medio, .hoja-cobro-billete, .hoja-cobro-comprobante, .hoja-cobro-paso { transition: none; }
+    .hoja-cobro-medio:hover, .hoja-cobro-billete:hover { transform: none; }
+  }
+}
+@keyframes hoja-cobro-entra {
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hoja-cobro-velo {
+  from { opacity: 0; }
 }

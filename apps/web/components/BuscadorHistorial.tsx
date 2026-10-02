@@ -6,8 +6,8 @@ import { Search, X } from "lucide-react";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 
 // El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
-// número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda, el código de la etiqueta o el nº de operación
-// de su Yape—. Busca en TODAS las fechas (lo dice la página al mostrar el resultado) con la misma búsqueda que Cambios y
+// número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda o el código de la etiqueta—. El nº de operación de
+// Yape o Plin ya no se busca (ADR-0307: la caja dejó de pedirlo). Busca en TODAS las fechas (lo dice la página al mostrar el resultado) con la misma búsqueda que Cambios y
 // Devoluciones (`idsDeVentasBuscadas`), así que una clienta se encuentra igual en las tres pantallas.
 //
 // Vive en la URL (`?q=`) como el resto de filtros: se escribe con una pausa corta para no pedir a la base en cada letra,
@@ -78,9 +78,9 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
         autoComplete="off"
         spellCheck={false}
         aria-label="Buscar una venta"
-        // Corto para que quepa a 375 px; el nº de operación y el código de etiqueta también se buscan (lo dice el título).
+        // Corto para que quepa a 375 px; el código de etiqueta también se busca (lo dice el título).
         placeholder="Boleta, DNI, cliente o prenda"
-        title="Busca por comprobante, DNI o RUC, cliente, prenda, código de etiqueta o nº de operación de Yape o Plin"
+        title="Busca por comprobante, DNI o RUC, cliente, prenda o código de etiqueta"
         className="min-w-0 flex-1 bg-transparent text-[15px] text-tinta outline-none placeholder:text-tinta/50 [&::-webkit-search-cancel-button]:hidden"
       />
       <SenalBuscando activo={buscando} className="shrink-0" />
