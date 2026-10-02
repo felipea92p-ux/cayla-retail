@@ -657,7 +657,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
   `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
-  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0306 la
+  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0307 la
   `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
   ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
   (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);

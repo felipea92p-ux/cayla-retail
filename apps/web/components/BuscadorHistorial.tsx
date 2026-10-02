@@ -7,7 +7,7 @@ import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 
 // El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
 // número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda o el código de la etiqueta—. El nº de operación de
-// Yape o Plin ya no se busca (ADR-0306: la caja dejó de pedirlo). Busca en TODAS las fechas (lo dice la página al mostrar el resultado) con la misma búsqueda que Cambios y
+// Yape o Plin ya no se busca (ADR-0307: la caja dejó de pedirlo). Busca en TODAS las fechas (lo dice la página al mostrar el resultado) con la misma búsqueda que Cambios y
 // Devoluciones (`idsDeVentasBuscadas`), así que una clienta se encuentra igual en las tres pantallas.
 //
 // Vive en la URL (`?q=`) como el resto de filtros: se escribe con una pausa corta para no pedir a la base en cada letra,

@@ -1,4 +1,4 @@
-# ADR-0306 — El cobro sale del ticket: hoja lateral sobre el catálogo
+# ADR-0307 — El cobro sale del ticket: hoja lateral sobre el catálogo
 
 **Fecha:** 2026-10-02 · **Estado:** construido y probado en local (escritorio y 375 px); la migración del QR
 (`20261002130000_venta_pagos_qr.sql`) **aplicada en producción el 2026-10-02** (ver §7) · **Decide:** Felipe (la hoja, su forma «tal cual» la maqueta,
@@ -101,3 +101,5 @@ llegue a `main` (la web publicada todavía no tiene la hoja de cobro).
 misma versión (`20261002120000_bajada_y_ajuste_dentro_de_existencias.sql`). Se renombró a `20261002130000`; en producción quedó
 registrada por `apply_migration` con su propia versión, así que el cambio de nombre no la toca. El `comment on function` de
 `fn_acepta_pago_qr` todavía dice «20261002120000»: es el texto que tiene producción y se deja igual a propósito.
+El número de este ADR también cambió al fusionar: nació como 0306, y `main` ya tenía el 0306 («Bajada y ajuste son funciones de
+Existencias»).

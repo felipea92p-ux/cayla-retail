@@ -129,7 +129,7 @@ async function buscarVentas(
     (await buscarVentaIdsPorComprobante(ubicacionId, busqueda.serie, busqueda.numero, todasLasSedes)).forEach((id) => candidatas.add(id));
   } else if (busqueda.tipo === "numero") {
     // "45879632" puede ser el N° de una boleta o el DNI de la clienta: se buscan los dos. El nº de operación de Yape o Plin
-    // ya no (Felipe, 2026-10-02, ADR-0306): la caja dejó de pedirlo porque nunca se anotaba.
+    // ya no (Felipe, 2026-10-02, ADR-0307): la caja dejó de pedirlo porque nunca se anotaba.
     const [porNumero, porDocumento] = await Promise.all([
       busqueda.numero !== null ? buscarVentaIdsPorComprobante(ubicacionId, null, busqueda.numero, todasLasSedes) : Promise.resolve([]),
       ventasPorClienta(ubicacionId, "documento", busqueda.texto, todasLasSedes),
