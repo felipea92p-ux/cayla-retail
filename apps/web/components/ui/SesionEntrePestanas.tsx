@@ -7,7 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { avisoGuardado, CLAVE_AVISO_DE_SESION, decidirAccionDeSesion, DESTINO_DE_ACCION } from "@/lib/sesion-entre-pestanas-reglas";
 
 /* ====================================================================
-   SesionEntrePestanas · una cuenta por navegador (ADR-0307)
+   SesionEntrePestanas · una cuenta por navegador (ADR-0309)
 
    Montado UNA vez en `app/layout.tsx`. La sesión vive en cookies compartidas: si en una pestaña alguien sale y entra con
    otra cuenta, las demás seguían mostrando el menú y los datos de la anterior. Acá cada pestaña recuerda con qué cuenta

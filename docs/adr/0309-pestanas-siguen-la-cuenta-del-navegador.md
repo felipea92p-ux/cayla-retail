@@ -1,4 +1,7 @@
-# ADR-0307 — Las pestañas siguen la cuenta del navegador (2026-10-02)
+# ADR-0309 — Las pestañas siguen la cuenta del navegador (2026-10-02)
+
+> Renumerado de 0307 a 0309 el 2026-10-02: el 0307 ya era «El cobro sale del ticket» (entraron los dos a main el mismo día)
+> y el 0308 lo usa otra rama.
 
 **Problema.** La sesión vive en cookies compartidas. Si alguien sale y entra con otra cuenta en una pestaña, las demás
 quedaban dibujadas con el menú y los datos de la cuenta anterior, aunque cada petición ya viajara como la nueva (la base
