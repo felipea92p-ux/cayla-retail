@@ -56,7 +56,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
  *                            Existencias/Conteos/Traslados no es «el líder decidió dar el módulo de ajustar».
  *  - ajustarStock:           el botón «Ajustar» de Existencias, Productos y Movimientos (fn_puede_ajustar_stock,
- *                            ADR-0250): SOLO el módulo «Ajustar stock», nace sin rol.
+ *                            ADR-0306): lo mismo que ajustarInventario; ajustar es una función de Existencias, no un módulo.
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
@@ -387,7 +387,7 @@ export const ARBOL: readonly Nodo[] = [
   // «Posventa»): quien solo ve las fichas sigue viendo la misma fila, con el mismo ícono, porque un
   // grupo con una sola hija se disuelve en ella con el nombre del grupo (`construirFila`).
   {
-    id: "clientas", etiqueta: "Clientas", estado: "viva", icono: "club", raiz: "/clientas", pajaro: "07 Colibrí",
+    id: "clientas", etiqueta: "Clientes", estado: "viva", icono: "club", raiz: "/clientas", pajaro: "07 Colibrí",
     hijos: [
       { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
@@ -405,7 +405,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "configuracion.empresa", etiqueta: "Empresa y facturación", estado: "futura", pajaro: "08 Cuervo", nota: "`configuracion_empresa`, `series_comprobantes`, `ubicacion_datos_fiscales`." },
     ],
   },
-  { id: "apartados", etiqueta: "Apartados", estado: "futura", pajaro: "05 Halcón", nota: "Stock apartado para una clienta." },
+  { id: "apartados", etiqueta: "Apartados", estado: "futura", pajaro: "05 Halcón", nota: "Stock apartado para un cliente." },
   { id: "comercial", etiqueta: "Comercial", estado: "futura", pajaro: "13 Águila", nota: "Inteligencia comercial: lee lo de los demás." },
 ];
 

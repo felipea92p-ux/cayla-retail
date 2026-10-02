@@ -1,5 +1,10 @@
 [
  {
+  "indexdef": "CREATE UNIQUE INDEX acciones_sin_responsable_pkey ON retail.acciones_sin_responsable USING btree (clave)",
+  "indexname": "acciones_sin_responsable_pkey",
+  "tablename": "acciones_sin_responsable"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX actividad_pkey ON retail.actividad USING btree (id)",
   "indexname": "actividad_pkey",
   "tablename": "actividad"
@@ -145,8 +150,13 @@
   "tablename": "categorias_gasto"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX clientas_dni_unico ON retail.clientas USING btree (dni) WHERE (dni IS NOT NULL)",
-  "indexname": "clientas_dni_unico",
+  "indexdef": "CREATE UNIQUE INDEX clientas_codigo_club_unico ON retail.clientas USING btree (codigo_club)",
+  "indexname": "clientas_codigo_club_unico",
+  "tablename": "clientas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX clientas_documento_unico ON retail.clientas USING btree (documento_tipo, documento_numero) WHERE (documento_numero IS NOT NULL)",
+  "indexname": "clientas_documento_unico",
   "tablename": "clientas"
  },
  {
@@ -158,6 +168,71 @@
   "indexdef": "CREATE UNIQUE INDEX clientas_fusiones_pkey ON retail.clientas_fusiones USING btree (id)",
   "indexname": "clientas_fusiones_pkey",
   "tablename": "clientas_fusiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_aniversario_escala_pkey ON retail.club_aniversario_escala USING btree (anio)",
+  "indexname": "club_aniversario_escala_pkey",
+  "tablename": "club_aniversario_escala"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_avisos_enviados_pkey ON retail.club_avisos_enviados USING btree (id)",
+  "indexname": "club_avisos_enviados_pkey",
+  "tablename": "club_avisos_enviados"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_avisos_enviados_uno_vivo ON retail.club_avisos_enviados USING btree (clienta_id, tipo, referencia) WHERE (deshecho_en IS NULL)",
+  "indexname": "club_avisos_enviados_uno_vivo",
+  "tablename": "club_avisos_enviados"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_canjes_aniversario_uno_vivo ON retail.club_canjes USING btree (clienta_id, anio_club) WHERE ((tipo = 'aniversario'::text) AND (anulado_en IS NULL))",
+  "indexname": "club_canjes_aniversario_uno_vivo",
+  "tablename": "club_canjes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_canjes_pkey ON retail.club_canjes USING btree (id)",
+  "indexname": "club_canjes_pkey",
+  "tablename": "club_canjes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_canjes_uno_vivo_por_anio ON retail.club_canjes USING btree (clienta_id, tipo, anio) WHERE (anulado_en IS NULL)",
+  "indexname": "club_canjes_uno_vivo_por_anio",
+  "tablename": "club_canjes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_etiquetas_pkey ON retail.club_etiquetas USING btree (id)",
+  "indexname": "club_etiquetas_pkey",
+  "tablename": "club_etiquetas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_etiquetas_unico ON retail.club_etiquetas USING btree (grupo, valor)",
+  "indexname": "club_etiquetas_unico",
+  "tablename": "club_etiquetas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_intentos_registro_pkey ON retail.club_intentos_registro USING btree (id)",
+  "indexname": "club_intentos_registro_pkey",
+  "tablename": "club_intentos_registro"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_invitaciones_pkey ON retail.club_invitaciones USING btree (id)",
+  "indexname": "club_invitaciones_pkey",
+  "tablename": "club_invitaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_invitaciones_token_unico ON retail.club_invitaciones USING btree (token)",
+  "indexname": "club_invitaciones_token_unico",
+  "tablename": "club_invitaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_permisos_pkey ON retail.club_permisos USING btree (id)",
+  "indexname": "club_permisos_pkey",
+  "tablename": "club_permisos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX club_textos_pkey ON retail.club_textos USING btree (tipo, version)",
+  "indexname": "club_textos_pkey",
+  "tablename": "club_textos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX codigos_barras_codigo_key ON retail.codigos_barras USING btree (codigo)",
@@ -540,6 +615,31 @@
   "tablename": "familias"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_pkey ON retail.frescura_decisiones USING btree (id)",
+  "indexname": "frescura_decisiones_pkey",
+  "tablename": "frescura_decisiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_renglon ON retail.frescura_decisiones USING btree (id, ubicacion_id, producto_id, color_clave, accion)",
+  "indexname": "frescura_decisiones_renglon",
+  "tablename": "frescura_decisiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_token_unico ON retail.frescura_decisiones USING btree (token_cliente)",
+  "indexname": "frescura_decisiones_token_unico",
+  "tablename": "frescura_decisiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_una_cabeza ON retail.frescura_decisiones USING btree (ubicacion_id, producto_id, color_clave) WHERE (anterior_id IS NULL)",
+  "indexname": "frescura_decisiones_una_cabeza",
+  "tablename": "frescura_decisiones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_una_respuesta ON retail.frescura_decisiones USING btree (anterior_id)",
+  "indexname": "frescura_decisiones_una_respuesta",
+  "tablename": "frescura_decisiones"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX gastos_compra_vigente_uq ON retail.gastos USING btree (compra_id) WHERE ((estado = 'vigente'::text) AND (compra_id IS NOT NULL))",
   "indexname": "gastos_compra_vigente_uq",
   "tablename": "gastos"
@@ -658,6 +758,11 @@
   "indexdef": "CREATE UNIQUE INDEX medios_de_cobro_pkey ON retail.medios_de_cobro USING btree (id)",
   "indexname": "medios_de_cobro_pkey",
   "tablename": "medios_de_cobro"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX metas_persona_ajustes_pkey ON retail.metas_persona_ajustes USING btree (id)",
+  "indexname": "metas_persona_ajustes_pkey",
+  "tablename": "metas_persona_ajustes"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX modulos_pkey ON retail.modulos USING btree (clave)",
@@ -820,18 +925,23 @@
   "tablename": "producto_fotos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX producto_origen_pkey ON retail.producto_origen USING btree (producto_id)",
+  "indexname": "producto_origen_pkey",
+  "tablename": "producto_origen"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX productos_codigo_unico ON retail.productos USING btree (codigo)",
   "indexname": "productos_codigo_unico",
   "tablename": "productos"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)",
-  "indexname": "productos_pkey",
+  "indexdef": "CREATE UNIQUE INDEX productos_marca_referencia_clave_unica ON retail.productos USING btree (marca_id, retail.fn_clave_referencia(referencia)) NULLS NOT DISTINCT WHERE (estado_alta <> 'rechazado'::text)",
+  "indexname": "productos_marca_referencia_clave_unica",
   "tablename": "productos"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX productos_referencia_clave_unica ON retail.productos USING btree (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)",
-  "indexname": "productos_referencia_clave_unica",
+  "indexdef": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)",
+  "indexname": "productos_pkey",
   "tablename": "productos"
  },
  {
@@ -995,8 +1105,8 @@
   "tablename": "separaciones"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_activa_por_tienda_y_tipo ON retail.series_comprobantes USING btree (ubicacion_id, tipo) WHERE (archivada_at IS NULL)",
-  "indexname": "series_comprobantes_activa_por_tienda_y_tipo",
+  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_activa_por_tienda_tipo_y_letra ON retail.series_comprobantes USING btree (ubicacion_id, tipo, (\nCASE\n    WHEN (tipo = ANY (ARRAY['nota_credito'::text, 'nota_debito'::text])) THEN \"left\"(serie, 1)\n    ELSE ''::text\nEND)) WHERE (archivada_at IS NULL)",
+  "indexname": "series_comprobantes_activa_por_tienda_tipo_y_letra",
   "tablename": "series_comprobantes"
  },
  {
@@ -1160,13 +1270,13 @@
   "tablename": "variantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX variantes_pkey ON retail.variantes USING btree (id)",
-  "indexname": "variantes_pkey",
+  "indexdef": "CREATE UNIQUE INDEX variantes_identidad_unica ON retail.variantes USING btree (producto_id, talla_id, color_codigo) NULLS NOT DISTINCT",
+  "indexname": "variantes_identidad_unica",
   "tablename": "variantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX variantes_producto_talla_color_unico ON retail.variantes USING btree (producto_id, talla_id, color_codigo)",
-  "indexname": "variantes_producto_talla_color_unico",
+  "indexdef": "CREATE UNIQUE INDEX variantes_pkey ON retail.variantes USING btree (id)",
+  "indexname": "variantes_pkey",
   "tablename": "variantes"
  },
  {

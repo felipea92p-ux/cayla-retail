@@ -38,7 +38,10 @@ export const AVIARIO = [
       // no el módulo que se abre. Asignadas en el refresco del volcado del 2026-09-23.
       "roles", "modulos", "rol_modulos", "roles_historial", "terminales",
       // ADR-0253: lo que se le quitó al rol Líder de equipo (el resto lo ve). Refresco del 2026-09-28.
-      "lider_modulos_ocultos"] },
+      "lider_modulos_ocultos",
+      // Las acciones que Felipe soltó del combo «Responsable» (ADR-0162): es qué firma cada cuenta, o sea identidad y acceso.
+      // Refresco del volcado del 2026-10-02.
+      "acciones_sin_responsable"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
@@ -55,6 +58,9 @@ export const AVIARIO = [
       // el catálogo (ADR-0246 §"quién decide"), igual que colores/tallas/tejidos arriba. Asignadas en el refresco del
       // volcado del 2026-09-27.
       "temporada_fechas", "temporadas", "producto_color_temporadas",
+      // ADR-0292: en qué sede se registró cada producto. Es un dato del producto (el catálogo es global), no de la sede.
+      // Refresco del volcado del 2026-10-02.
+      "producto_origen",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -74,6 +80,9 @@ export const AVIARIO = [
       // La marca de reintento de `ajustar_inventario` (ADR-0240): un ajuste reenviado tras un corte no se aplica dos veces.
       // Misma razón que la de arriba: es parte del movimiento. Asignada en el refresco del 2026-09-26 (noche).
       "ajustes_inventario_intentos",
+      // Frescura del piso (ADR-0208, paso 4b): la libreta de «Ya decidí» por prenda y sede. Vive en Inventario ▸ Frescura y
+      // responde por lo que pasa con la ropa en el piso. Refresco del volcado del 2026-10-02.
+      "frescura_decisiones",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },
@@ -101,6 +110,14 @@ export const AVIARIO = [
       // `separaciones`. Asignadas en el refresco del volcado del 2026-09-26.
       "separacion_abonos", "separacion_avisos", "separacion_ediciones", "separacion_items_retirados", "separacion_pedidos",
       "apartados_opciones",
+      // El club de clientas (ADR-0288, tandas 1b–1g): sus permisos de la Ley 29733, los textos aprobados, invitaciones,
+      // canjes de cumpleaños y aniversario con su escala, avisos enviados, intentos de registro y las listas de preferencias
+      // de la ficha. Son de quien responde por `clientas`. Refresco del volcado del 2026-10-02.
+      "club_permisos", "club_textos", "club_invitaciones", "club_canjes", "club_aniversario_escala", "club_avisos_enviados",
+      "club_intentos_registro", "club_etiquetas",
+      // La meta de cada persona por mes y sus ajustes, junto a la de la tienda (`ubicacion_metas_dia`). OJO: está en
+      // producción (0 filas el 2026-10-02) pero NINGUNA migración del repo la crea: se pegó a mano. Refresco del 2026-10-02.
+      "metas_persona_ajustes",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",

@@ -69,12 +69,12 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
     setGuardando(false);
     responsable.despues(error);
     if (error || !id) {
-      avisar.error(traducirError(error, "registrar la clienta"));
+      avisar.error(traducirError(error, "registrar al cliente"));
       return;
     }
     const numero = normalizarNumeroDocumento(alta.documentoNumero) || null;
     const quien = alta.nombre.trim() || documentoLegible(alta.documentoTipo, numero, false) || "sin nombre";
-    avisar.exito("Clienta registrada", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
+    avisar.exito("Cliente registrado", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
     onCreada({
       id,
       documentoTipo: alta.documentoTipo,
@@ -99,7 +99,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
   }
 
   return (
-    <Modal titulo="Registrar clienta" subtitulo="Solo su documento: vino, preguntó, se probó. Para ser del club, se une ella escaneando el cartel." onClose={onClose} variante="hoja">
+    <Modal titulo="Registrar cliente" subtitulo="Solo su documento: vino, preguntó, se probó. Para ser del club, se une por su cuenta escaneando el cartel." onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form onSubmit={onRegistrar} className="space-y-6">
           <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">

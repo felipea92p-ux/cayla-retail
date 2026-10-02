@@ -13,7 +13,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 
 /** Lo que hace falta para ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es de
  *  la SEDE ACTIVA: el ajuste escribe un movimiento allí, con su motivo y su responsable, como en Existencias. Solo llega si la
- *  cuenta tiene el módulo «Ajustar stock» (`puede(persona, "ajustarStock")`), que es lo mismo que exige la base. */
+ *  cuenta puede ajustar stock (`puede(persona, "ajustarStock")`), que es lo mismo que exige la base. */
 export type AjusteStockFicha = {
   productoId: string;
   ubicacionId: string;
@@ -42,7 +42,7 @@ export type ContextoFicha = {
   /** La base sabe corregir el color y la talla (tiene `fn_variantes_estado` y el resto del SQL de ADR-0263). Sin eso no
    *  se ofrece corregir: una base vieja ignoraba la corrección pero guardaba las fotos que se movieron con ella. */
   puedeCorregir: boolean;
-  /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no tiene el módulo «Ajustar stock»: no se ofrece. */
+  /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
 };
 

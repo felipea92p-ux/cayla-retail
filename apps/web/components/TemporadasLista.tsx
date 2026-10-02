@@ -859,9 +859,23 @@ function VistaCategorias({
 
 // ---- 1. Por completar -------------------------------------------------------------------------------------------------
 
-// En celular la casilla va al lado del nombre (no sola en su renglón) y los colores, debajo del nombre.
-const PLANTILLA_SIN = "grid-cols-[2rem_minmax(0,1fr)] sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,14rem)]";
-const PLANTILLA_SIN_LECTURA = "sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]";
+// En celular la casilla va al lado del nombre (no sola en su renglón) y los colores, debajo del nombre. La marca y el
+// proveedor tienen cada uno su columna cuando la TARJETA mide 768 px o más (`@3xl`, no la ventana: con el menú lateral
+// abierto una ventana de 1.000 px deja ~800 a la tarjeta); con menos, bajan a una línea rotulada bajo el código.
+const PLANTILLA_SIN =
+  "grid-cols-[2rem_minmax(0,1fr)] sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,14rem)] @3xl:grid-cols-[2rem_minmax(0,1fr)_minmax(0,8rem)_minmax(0,8rem)_minmax(0,11rem)]";
+const PLANTILLA_SIN_LECTURA =
+  "sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)] @3xl:grid-cols-[minmax(0,1fr)_minmax(0,8rem)_minmax(0,8rem)_minmax(0,11rem)]";
+
+// Los títulos de la lista: sin ellos, un nombre suelto a la derecha («Vino», «Zara») no dice si es color, marca o proveedor.
+const COLUMNAS_MARCA = "hidden @3xl:block";
+const COLUMNAS_SIN: Columna[] = [
+  { titulo: "Prenda" },
+  { titulo: "Marca", clase: COLUMNAS_MARCA },
+  { titulo: "Proveedor", clase: COLUMNAS_MARCA, ayuda: "A quién se le compra habitualmente este modelo." },
+  { titulo: "Colores", ayuda: "Los colores de la prenda que todavía no tienen temporada propia." },
+];
+const COLUMNAS_SIN_EDITA: Columna[] = [{ titulo: <span className="sr-only">Marcar</span> }, ...COLUMNAS_SIN];
 
 function VistaPorCompletar({
   datos,
@@ -1024,7 +1038,7 @@ function VistaPorCompletar({
             type="text"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Nombre, código, categoría o color…"
+            placeholder="Nombre, código, categoría, marca o color…"
             aria-label="Buscar entre las prendas sin temporada"
             autoComplete="off"
             className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
@@ -1153,7 +1167,7 @@ function GrupoPorCompletar({
     >
       <div className="min-h-0 overflow-hidden">
         <div className="pb-3">
-          <div className="card-cayla overflow-hidden transition-colors hover:border-taupe/35">
+          <div className="card-cayla @container overflow-hidden transition-colors hover:border-taupe/35">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-sand/45 px-5 py-3">
               <p className="text-[15px] font-semibold text-tinta">
                 {g.categoria}
@@ -1177,6 +1191,7 @@ function GrupoPorCompletar({
                 </p>
               )}
             </div>
+            <Encabezado columnas={puedeEditar ? COLUMNAS_SIN_EDITA : COLUMNAS_SIN} plantilla={plantilla} />
             {g.prendas.map((p) => {
               const marcada = marcadas.has(p.productoId);
               const colores = p.todosSusColores ? p.colores.join(", ") : `Solo ${p.colores.join(", ")}`;
@@ -1191,6 +1206,20 @@ function GrupoPorCompletar({
                       <span className="block truncate text-tinta">{p.nombre}</span>
                     )}
                     {p.codigo && <span className="block truncate font-mono text-xs text-taupe">{p.codigo}</span>}
+                    {/* Sin columnas de marca y proveedor (tarjeta < @3xl), bajan aquí, cada una con su rótulo. */}
+                    <span
+                      className="block truncate text-xs text-taupe @3xl:hidden"
+                      title={`Marca: ${p.marca ?? "sin registrar"} · Proveedor: ${p.proveedor ?? "sin registrar"}`}
+                    >
+                      Marca: {p.marca ?? "sin registrar"} · Proveedor: {p.proveedor ?? "sin registrar"}
+                    </span>
+                  </span>
+                  {/* Lo que falta sale como chip ámbar, igual que en Productos (ADR-0283): una prenda puede no tener marca o proveedor. */}
+                  <span className={celda("izq", "hidden text-tinta/80 @3xl:block")} title={p.marca ?? "Sin marca"}>
+                    {p.marca ?? <Chip tono="ambar" versalitas={false}>Sin marca</Chip>}
+                  </span>
+                  <span className={celda("izq", "hidden text-tinta/80 @3xl:block")} title={p.proveedor ?? "Sin proveedor"}>
+                    {p.proveedor ?? <Chip tono="ambar" versalitas={false}>Sin proveedor</Chip>}
                   </span>
                   <span className={celda("izq", `text-tinta/75 ${puedeEditar ? "col-start-2 sm:col-start-auto" : ""}`)} title={p.colores.join(", ")}>
                     <span className="text-taupe sm:hidden">Colores: </span>

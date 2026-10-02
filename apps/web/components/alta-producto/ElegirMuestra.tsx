@@ -5,6 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
@@ -12,6 +13,7 @@ import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { guardarEjesCategoria, sumarAlEje, type EjeIds } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { aLaVista, seccionesMuestras, unirSinRepetir } from "@/lib/muestras-alta-reglas";
+import { ayudaDeTejido } from "@/lib/tejido-ayuda";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 
 // Las filas «Tejido» y «Patrón» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
@@ -29,6 +31,11 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 // categoría y no solo el producto.
 //
 // La muestra es la FOTO o el DIBUJO real del tejido/patrón que se eligió en Atributos (ADR-0256): `imagenes` id → URL.
+//
+// Al pasar el mouse por un TEJIDO sale su ayuda (`lib/tejido-ayuda.ts`: qué es, para qué prendas sirve, cómo se cuida), la misma
+// burbuja que ya tienen las etiquetas. Pasar el mouse no existe en el celular y lo que solo se ve al pasar el mouse no existe para
+// quien usa el teléfono (Don Norman: el error es del diseño): por eso la ayuda del tejido ELEGIDO también se lee bajo la fila,
+// solo donde no hay mouse. Los patrones no tienen ayuda: su dibujo ya dice qué son.
 
 type Tipo = "tejidos" | "patrones";
 
@@ -65,9 +72,10 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
   const elegido = elegidoId ? (todos.find((v) => v.id === elegidoId) ?? null) : null;
   const visibles = aLaVista(deLaCategoria, elegido);
   const t = TEXTOS[tipo];
+  const ayudaElegido = tipo === "tejidos" && elegido ? ayudaDeTejido(elegido.texto) : null;
 
   return (
-    <>
+    <TooltipProvider delayDuration={250}>
       <GrillaMuestras>
         {visibles.map((v) => (
           <TarjetaMuestra
@@ -83,6 +91,12 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
         <TileVerTodos total={todos.length} singular={t.singular} plural={t.plural} onClick={() => setHoja(true)} />
       </GrillaMuestras>
 
+      {elegido && ayudaElegido && (
+        <p role="status" className="mt-2 text-xs text-taupe [@media(hover:hover)]:hidden">
+          <strong className="text-tinta">{elegido.texto}:</strong> {ayudaElegido.queEs} {ayudaElegido.datos.join(" ")}
+        </p>
+      )}
+
       {hoja && (
         <Modal
           variante="hoja"
@@ -90,6 +104,21 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
           titulo={t.titulo}
           subtitulo={`${todos.length} en el catálogo. Arriba, los que ya usa ${categoriaNombre}.`}
           onClose={() => setHoja(false)}
+          // «+ Nuevo tejido / patrón» arriba a la derecha, a la vista (Felipe 2026-10-02): antes era un enlace al pie de la hoja.
+          acciones={
+            <ProponerValor
+              tipo={tipo}
+              categoriaId={categoriaId}
+              familia={familia}
+              ejesActuales={ejesActuales}
+              universo={universo}
+              onCreado={(v) => {
+                onOfrecido(v);
+                onElegir(v.id);
+                setHoja(false);
+              }}
+            />
+          }
         >
           {(cerrar) => (
             <HojaMuestras
@@ -100,7 +129,6 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
               elegidoId={elegidoId}
               categoriaId={categoriaId}
               categoriaNombre={categoriaNombre}
-              familia={familia}
               ejesActuales={ejesActuales}
               onElegir={(id) => {
                 onElegir(id);
@@ -116,7 +144,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
           )}
         </Modal>
       )}
-    </>
+    </TooltipProvider>
   );
 }
 
@@ -147,8 +175,17 @@ function TarjetaMuestra({
   motivo?: string;
 }) {
   const Muestra = tipo === "tejidos" ? MuestraTejido : MuestraPatron;
-  return (
-    <TarjetaMuestraBase elegido={elegido} guardando={guardando} deshabilitado={deshabilitado} onClick={onClick} title={motivo ?? (enHoja ? undefined : valor.texto)}>
+  const ayuda = tipo === "tejidos" ? ayudaDeTejido(valor.texto) : null;
+  // Con ayuda, la burbuja ya trae el nombre entero (en la fila se corta con «…»), así que el `title` nativo sobra y se
+  // encimaría con ella; queda solo cuando `motivo` explica por qué la tarjeta está apagada (un botón apagado no abre la burbuja).
+  const tarjeta = (
+    <TarjetaMuestraBase
+      elegido={elegido}
+      guardando={guardando}
+      deshabilitado={deshabilitado}
+      onClick={onClick}
+      title={motivo ?? (enHoja || ayuda ? undefined : valor.texto)}
+    >
       <Muestra nombre={valor.texto} imagenUrl={imagenUrl ?? null} className="h-10 w-full" />
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
@@ -160,6 +197,21 @@ function TarjetaMuestra({
       </span>
     </TarjetaMuestraBase>
   );
+  if (!ayuda) return tarjeta;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{tarjeta}</TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6} collisionPadding={8} className="max-w-[16rem] leading-snug">
+        <p className="font-semibold">{valor.texto}</p>
+        <p className="mt-0.5">{ayuda.queEs}</p>
+        {ayuda.datos.map((d) => (
+          <p key={d} className="mt-1 opacity-75">
+            {d}
+          </p>
+        ))}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function HojaMuestras({
@@ -170,7 +222,6 @@ function HojaMuestras({
   elegidoId,
   categoriaId,
   categoriaNombre,
-  familia,
   ejesActuales,
   onElegir,
   onOfrecido,
@@ -182,7 +233,6 @@ function HojaMuestras({
   elegidoId: string;
   categoriaId: string;
   categoriaNombre: string;
-  familia?: string | null;
   ejesActuales: EjeIds;
   onElegir: (id: string) => void;
   onOfrecido: (v: ValorVocabulario) => void;
@@ -294,16 +344,6 @@ function HojaMuestras({
         )}
       </div>
 
-      <div
-        className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-sand pt-3"
-        // ProponerValor cierra su campo con Escape pero no corta el evento: sin esto, el mismo Escape cerraría la hoja entera.
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && (e.target as HTMLElement).tagName === "INPUT") e.stopPropagation();
-        }}
-      >
-        <p className="text-[12.5px] text-taupe">¿No está? Propón uno. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe.</p>
-        <ProponerValor tipo={tipo} categoriaId={categoriaId} familia={familia} ejesActuales={ejesActuales} universo={universo} onCreado={onOfrecido} />
-      </div>
     </>
   );
 }

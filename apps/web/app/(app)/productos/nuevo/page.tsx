@@ -24,7 +24,7 @@ export default async function NuevoProductoPage() {
     ubicacionId: persona.ubicacionId,
     etiqueta: persona.ubicacionEtiqueta,
     separaPiso: encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null,
-    puedeBajar: veModulo(persona, "bajada_piso"),
+    puedeBajar: veModulo(persona, "existencias"),
   };
 
   return (

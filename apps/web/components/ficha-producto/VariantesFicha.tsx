@@ -26,6 +26,7 @@ import {
   margenDeFila,
   nombreVariante,
   quitarNueva,
+  desactivarColor,
   textoChoque,
   textosCostoFijo,
   textoSedes,
@@ -308,6 +309,17 @@ export function VariantesFicha({
                     className="btn-cayla btn-enlace ml-auto text-[12.5px]"
                   >
                     {verbo} color
+                  </button>
+                )}
+                {activasGrupo > 0 && (
+                  <button
+                    type="button"
+                    disabled={deshabilitado}
+                    title={`Desactivar el color ${n.color(g.colorCodigo)} con todas sus tallas: dejan de venderse y se conservan con su historia`}
+                    onClick={() => onFilas(desactivarColor(filas, g.filas.map((f) => f.clave)))}
+                    className={`btn-cayla btn-enlace text-[12.5px] ${ctx.puedeCorregir ? "" : "ml-auto"}`}
+                  >
+                    Desactivar color
                   </button>
                 )}
                 {ctx.puedeCorregir && bloqueo && <p className="w-full text-[11.5px] text-taupe">{bloqueo}</p>}

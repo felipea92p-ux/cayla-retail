@@ -1031,3 +1031,47 @@ Felipe, 2026-10-01, después de ver la página publicada:
 - **El ticket impreso ya no lleva QR del club.** Se fueron `clubEnElTicket`, el campo `club` del recibo y el bloque del QR en
   `ReciboTermico`. El papel lleva solo el QR de SUNAT. La clienta se une con el QR del cartel del mostrador (G-1), que sigue
   igual.
+
+## Actualización 2026-10-02 (k): clientes y miembros, sin género, y casillas breves
+
+Felipe, 2026-10-02, mirando la página publicada: el club le tiene que hablar igual a un hombre que a una mujer, y el ERP tiene
+que decir «clientes», no «clientas». Lo decidido con él:
+- **«clientas» → «clientes» en todo el ERP**, en lo que se ve: menú, pantallas, avisos y textos. Las tablas, columnas, rutas y
+  claves no cambian (`retail.clientas`, `clienta_id`, `/clientas`, módulo `clientas`): no se ven, y renombrarlas arriesga datos.
+  La regla de vocabulario de CLAUDE.md pasa a decir «cliente».
+- **«socia» → «miembro»**: «Ya eres miembro», «Código de miembro», el sello «MIEMBRO» de la tarjeta, «Miembro desde…».
+  «¡Bienvenida, Rosa!» pasa a «¡Te damos la bienvenida, Rosa!», y «Casi lista» a «Ya casi».
+- **Cartel «Te invitamos»** (antes «Estás invitada»), con la bajada «a ser parte del club. Es gratis.».
+- **Casillas breves:** «Acepto la Política de privacidad y los Términos del Club CAYLA.» y «Quiero recibir por WhatsApp
+  novedades y promociones de CAYLA.», con «Opcional.» como única nota. Lo demás (finalidades, envío según compras y talla, la
+  BAJA) lo dice la Política que enlaza la casilla. Se suelta el candado `club_textos_casilla_con_baja`. Los avisos siguen
+  cerrando con «responde BAJA».
+- **La letra chica bajo el botón ya no dice «Brasil».** La Política (2.5) sí lo sigue diciendo, porque la Ley 29733 pide
+  informar el flujo transfronterizo.
+- **En la base**, la migración `20261002160000_club_textos_v2_sin_genero.sql` publica la v2 de `terminos`, `privacidad`,
+  `casilla_publicidad`, `aviso_cumpleanos` y `aviso_novedades`, con un candado que exige que la v1 sea la del 2026-10-01. Además
+  renombra el módulo a «Clientes». Los textos v2 están en `docs/club/texto-legal-registro-v2.md`; el v1 queda como historia.
+- **Queda para un segundo paso:** unas 25 funciones de la base cuyos mensajes de error dicen «clienta» o «socia», entre ellas
+  `registrar_venta`. Cambiarlas exige reescribir cada función viva con su candado de versión, y se hace aparte.
+
+## Actualización 2026-10-02 (l): Avisos del club sin elegir «Quién envía»
+
+Felipe, 2026-10-02: en Clientes ▸ Avisos no hace falta elegir quién envía. «Enviar», «Deshacer» y «Pidió BAJA» pasan a la lista
+de acciones sin responsable (`retail.acciones_sin_responsable`, ADR-0280): `aviso_club_enviar`, `aviso_club_deshacer` y
+`aviso_club_baja`. Las suma la migración `20261002170000_avisos_club_sin_responsable.sql`, y `lib/responsable-omitido.ts` es su
+espejo.
+- **Con la cuenta de una persona**, la pantalla no pinta el combo y cada acción firma a su nombre.
+- **Con una terminal** (la cuenta de la tienda, sin persona), el combo sigue. `club_avisos_enviados.enviado_por` es obligatorio y
+  `registrar_aviso_enviado` rechaza un actor vacío. Es la misma excepción que «Apartar prenda».
+- No cambia ninguna función de la base: el único punto de decisión es `fn_actor_persona_id`.
+
+## Actualización 2026-10-02 (m): se retira la pregunta «¿Se la probó y no la llevó?» del ticket
+
+Felipe, 2026-10-02: la pregunta que salía al quitar una prenda del ticket (D-6, tanda 1d) se retira. Solo aparecía si la vendedora
+agregaba la prenda y luego la quitaba, un paso sin otro motivo para hacerse; y saltaba también cuando se quitaba por un error de
+escaneo. Basta con «¿Qué talla pidió?» en el modal de talla («Anotar que no había»), que sí tiene una puerta propia.
+- **Web:** `PuntoDeVenta.tsx` ya no guarda la prenda quitada ni la pregunta; se borra `components/punto-de-venta/SeProboNoLlevo.tsx`.
+- **Se queda igual:** la tabla `pedidos_no_atendidos` con su motivo `se_probo_no_llevo` y sus razones, `registrar_pedido_no_atendido`
+  y `lib/se-probo-reglas.ts`. Las filas ya guardadas se siguen leyendo y describiendo; no hay migración.
+- **Se pierde:** ya no hay dónde anotar «Precio», «Color», «No le quedó» o «Lo piensa» (el informe CL-14 de razones queda sin
+  datos nuevos). Si hace falta, se agrega otra puerta, no esta.

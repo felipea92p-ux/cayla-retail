@@ -126,7 +126,7 @@ export default async function InventarioPage({
   // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
-  const puedeBajarAlPiso = veModulo(persona, "bajada_piso") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
@@ -206,7 +206,7 @@ export default async function InventarioPage({
                     Apartados
                     {/* Sin número (tarea #7): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva lista
                         separaciones (una por ticket): «3» aquí y 1 ticket al entrar. La cifra buena vive en Apartados; dentro de
-                        Existencias queda «N apartadas para clientas», que cuenta prendas y abre su lista. */}
+                        Existencias queda «N apartadas para clientes», que cuenta prendas y abre su lista. */}
                   </Link>
                 )}
               </nav>

@@ -21,7 +21,7 @@ const garamondCursiva = EB_Garamond({ subsets: ["latin"], style: ["italic"], var
 export const metadata: Metadata = {
   // Raya larga con espacios, como «Retail — CAYLA»: la pestaña de ella dice qué es, no el nombre del sistema interno.
   title: "Club — CAYLA",
-  description: "Únete al Club CAYLA: descuento en tu cumpleaños y un vale de compra por cada año con nosotras.",
+  description: "Únete al Club CAYLA: descuento en tu cumpleaños y un vale de compra por cada año en CAYLA.",
   // Una página de registro por tienda: ningún buscador la indexa (se llega por el QR, no buscando).
   robots: { index: false, follow: false },
 };

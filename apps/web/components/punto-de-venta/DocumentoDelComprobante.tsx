@@ -58,7 +58,10 @@ export function DocumentoDelComprobante({
       {identidad === "dni" ? (
         <ConsultaDocumento tipo="dni" obligatorio={false} numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} sinNumero={sinNumero} />
       ) : (
-        <>
+        // Un solo `div` con el número y el nombre, igual que `ConsultaDocumento` con el DNI: la hoja de cobro
+        // (`.hoja-cobro-doc` en globals.css) los acomoda lado a lado por esa forma. Con un Fragment, los dos
+        // campos quedaban sueltos junto al combo y la grilla de tres columnas rompía la línea del número.
+        <div className="space-y-1">
           <CampoTexto
             id={ID_NUMERO_DOC_COMPROBANTE}
             etiqueta={
@@ -76,8 +79,8 @@ export function DocumentoDelComprobante({
             pie={problema ?? (!numero && sinNumero ? sinNumero : "Sin guiones ni espacios. Solo el DNI consulta el padrón: el nombre va a mano.")}
             tono={problema ? "error" : "neutro"}
           />
-          <CampoTexto id="comprobante-documento-nombre" etiqueta="Nombre de la clienta" value={nombre} onChange={(e) => onNombre(e.target.value)} />
-        </>
+          <CampoTexto id="comprobante-documento-nombre" etiqueta="Nombre del cliente" value={nombre} onChange={(e) => onNombre(e.target.value)} />
+        </div>
       )}
     </div>
   );

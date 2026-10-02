@@ -5322,6 +5322,7 @@ export type Database = {
 
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
+      fn_acepta_pago_qr: { Args: never; Returns: boolean }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
       fn_variantes_estado: { Args: { p_producto_id: string }; Returns: Json }
       fn_vencer_separaciones: {
@@ -5891,7 +5892,7 @@ export type Database = {
         Returns: number
       }
       buscar_productos_parecidos: {
-        Args: { p_excluir_id?: string; p_referencia: string }
+        Args: { p_excluir_id?: string; p_marca_id?: string; p_por_marca?: boolean; p_referencia: string }
         Returns: {
           categoria: string
           categoria_id: string

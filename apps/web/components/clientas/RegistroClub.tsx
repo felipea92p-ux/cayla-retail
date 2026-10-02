@@ -46,7 +46,7 @@ import {
    escrito no se pierde al volver al inicio. El primero y el último los dibuja `club-publico-pasos.tsx`; aquí vive el formulario
    y quién decide el paso. El aspecto y el movimiento: `app/estilos/club-publico.css`.
 
-   Los textos del formulario son los aprobados (`docs/club/texto-legal-registro-v1.md`); la política, los términos, la casilla
+   Los textos del formulario son los aprobados (`docs/club/texto-legal-registro-v2.md`); la política, los términos, la casilla
    de WhatsApp y el saludo llegan de la base con su versión.
 
    Guía de foco (ADR-0284): cada campo es una tarjeta que se marca con ✓ al quedar hecha; la que sigue se enciende («Sigue
@@ -341,7 +341,7 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="9xx xxx xxx" // sugerir-fijo: formato del celular peruano; es el mismo para cualquier clienta
+              placeholder="9xx xxx xxx" // sugerir-fijo: formato del celular peruano; es el mismo para cualquier cliente
               value={celularLegible(r.celular)}
               disabled={enviando}
               aria-invalid={errorCelular ? true : undefined}
@@ -444,7 +444,7 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
                 etiqueta="Acepto la Política de privacidad y los Términos del Club CAYLA"
                 deshabilitada={enviando}
               >
-                {casillaTerminos(EMISOR.razonSocial).map((t, k) =>
+                {casillaTerminos().map((t, k) =>
                   typeof t === "string" ? (
                     <span key={k}>{t}</span>
                   ) : (
@@ -461,7 +461,7 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
                 etiqueta={textoPublicidad}
                 deshabilitada={enviando}
               >
-                {textoPublicidad} <span className="club-nota">Opcional. Sin esta casilla eres socia igual, con tus beneficios en tienda y sin mensajes.</span>
+                {textoPublicidad} <span className="club-nota">Opcional.</span>
               </FilaCasilla>
             </div>
           </div>

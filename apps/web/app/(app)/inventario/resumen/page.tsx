@@ -49,7 +49,7 @@ export default async function ResumenInventarioPage({
   // que termina en «Sin acceso» no se muestra. «Pedir a otra sede» lo acepta la base con Traslados o con Análisis
   // (`pedir_a_otra_sede`, ADR-0242 D-7): quien analiza su sede puede pedir lo que se le agotó.
   const acceso: AccesoAnalisis = {
-    bajar: veModulo(persona, "bajada_piso"),
+    bajar: veModulo(persona, "existencias"),
     traslados: veModulo(persona, "traslados"),
     pedir: veModulo(persona, "traslados") || veModulo(persona, "analisis"),
     compras: veModulo(persona, "facturas_compra") && puede(persona, "verDineroCompras"),

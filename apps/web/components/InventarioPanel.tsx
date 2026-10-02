@@ -738,7 +738,7 @@ export function InventarioPanel({
               onClick={() => setViendoApartados(true)}
               className={`label-cayla text-[11px] hover:underline ${resumenApartados.vencidos > 0 ? "text-rojo-profundo" : "text-taupe hover:text-rojo"}`}
             >
-              {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientas
+              {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
               {resumenApartados.vencidos > 0 && ` · ${resumenApartados.vencidos} ${resumenApartados.vencidos === 1 ? "vencido" : "vencidos"}`}
             </button>
           )}
@@ -1175,7 +1175,7 @@ export function InventarioPanel({
               { titulo: "" },
               ...(separa
                 ? [
-                    { titulo: "Stock actual", subtitulo: "(Piso / Almacén)", alinear: "centro" as const, ayuda: "Lo utilizable de hoy en esta sede — nunca cuarentena, nunca lo apartado para clientas" },
+                    { titulo: "Stock actual", subtitulo: "(Piso / Almacén)", alinear: "centro" as const, ayuda: "Lo utilizable de hoy en esta sede — nunca cuarentena, nunca lo apartado para clientes" },
                     { titulo: "Cobertura piso", alinear: "centro" as const, ayuda: "Cuánto dura el piso de hoy al Ritmo reciente" },
                     { titulo: "Ritmo reciente", alinear: "centro" as const, ayuda: "Ventas comerciales ÷ días de exposición en piso, últimos 7 días — toca para ver el detalle" },
                     { titulo: "En camino", alinear: "centro" as const },
@@ -1268,7 +1268,7 @@ export function InventarioPanel({
                     className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-[15px] tabular-nums")}
                     title={
                       separa
-                        ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientas: ${f.apartado}` : ""}`
+                        ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientes: ${f.apartado}` : ""}`
                         : undefined
                     }
                   >
@@ -1283,7 +1283,7 @@ export function InventarioPanel({
                       <span className="font-semibold text-tinta">{f.disponible}</span>
                     )}
                     {f.apartado > 0 && (
-                      <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientas: no se pueden vender">
+                      <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientes: no se pueden vender">
                         {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
                       </span>
                     )}
@@ -1348,7 +1348,7 @@ export function InventarioPanel({
                         {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
                         {f.apartado > 0 && (
                           <Chip tono="ambar">
-                            <span title="Apartadas para clientas: siguen aquí, pero no se pueden vender ni mover">Apartado · {f.apartado}</span>
+                            <span title="Apartadas para clientes: siguen aquí, pero no se pueden vender ni mover">Apartado · {f.apartado}</span>
                           </Chip>
                         )}
                         {/* Solo en escritorio con la tarjeta angosta (< 1070 px): «En la red» no tiene columna propia y va aquí, debajo.
@@ -1472,7 +1472,6 @@ export function InventarioPanel({
           separa={separa}
           puedeReponer={puedeReponer}
           enSedeActiva={permisos.etiquetasEHistorial}
-          sinModuloBajada={permisos.explicarSinModuloBajada}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
           puedeEliminar={permisos.eliminar}

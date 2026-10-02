@@ -189,6 +189,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
+  "components/FiltrosProductos.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Productos en el celular (ADR-0308): cada control filtra la lista al tocarlo y el botón dice cuántas prendas quedan; no hay nada que completar ni pasos que seguir." },
   "components/FiltrosMovimientos.tsx": PENDIENTE, // 3 controles
   "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
@@ -238,6 +239,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
+  "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
+  "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
   "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },

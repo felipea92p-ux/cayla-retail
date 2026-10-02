@@ -100,8 +100,9 @@ export function FiltrosHistorialVentas({
   const actual = Object.fromEntries(params.entries());
   const visibles = atajosVisibles(misAtajos).filter((a) => puedeMias || a.clave !== "mias");
   const cubiertoPorAtajo = (k: string) => visibles.some((a) => atajoActivo(a, actual) && k in a.params);
-  // La tienda cuenta como filtro solo si se eligió en la URL: la de la cabecera por defecto no es un filtro puesto.
-  const sedeEnUrl = params.get("sede") ?? "";
+  // La tienda cuenta como filtro solo si se eligió en la URL y es OTRA que la de la cabecera: la misma regla que la píldora
+  // (`valorPorDefecto`). Si después se cambia la cabecera a esa misma tienda, ni el contador ni el chip dicen que hay filtro.
+  const sedeEnUrl = (params.get("sede") ?? "") === sedePorDefecto ? "" : (params.get("sede") ?? "");
   const activos = [
     sedeEnUrl,
     vendedor && !cubiertoPorAtajo("mias") ? vendedor : "",
@@ -238,7 +239,9 @@ export function FiltrosHistorialVentas({
               icono={Store}
               etiqueta="Tienda"
               valor={sede || "todas"}
-              // Volver a la tienda de la cabecera deja la URL limpia; «Todas» se escribe a propósito.
+              // Lo que vale sola es la tienda de la cabecera: así no se ve «puesta» sin que nadie la eligiera (antes siempre lo
+              // parecía), y su ✕ vuelve a esa tienda. Volver a ella deja la URL limpia; «Todas» se escribe a propósito.
+              valorPorDefecto={sedePorDefecto}
               onValor={(v) => aplicar({ sede: v === sedePorDefecto ? "" : v })}
               opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
             />

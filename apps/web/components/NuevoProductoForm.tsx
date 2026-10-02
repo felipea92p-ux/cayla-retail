@@ -42,7 +42,9 @@ import {
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
-import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { campanaDelAlta, repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -211,7 +213,7 @@ export function NuevoProductoForm({
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
   // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
-  // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  // (la base hace la bajada con `bajar_al_piso`, que pide Existencias, ADR-0306): si no, van al almacén.
   // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
   // hereda por no mirar la pregunta.
   const puedePiso = destino.separaPiso && destino.puedeBajar;
@@ -455,8 +457,9 @@ export function NuevoProductoForm({
       guia.alAbrirPaso();
       return;
     }
-    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa a la marca (el tinte se
-    // mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil.
+    // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
+    // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
+    // pantalla táctil.
     if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
   }, [paso, ahoraCampo, guia]);
 
@@ -487,6 +490,14 @@ export function NuevoProductoForm({
     const et = vocabEtiquetas.find((x) => x.id === id);
     return et ? !campanasQueAplican.some((c) => c.id === et.id) : false;
   });
+
+  // Lo que la caja cobrará hoy (y la etiqueta impresa dirá): las elegidas a mano más las que la categoría aplica sola.
+  const campanaHoy = campanaDelAlta(
+    [...etiquetasAManda.map((id) => vocabEtiquetas.find((x) => x.id === id)).filter((x): x is NonNullable<typeof x> => Boolean(x)), ...campanasQueAplican],
+    precioNum > 0 ? precioNum : null,
+    hoyLima(),
+    descuentoDeCampana,
+  );
 
   const nombresEtiquetas = etiquetasAManda.map((id) => vocabEtiquetas.find((e) => e.id === id)?.nombre).filter((n): n is string => Boolean(n));
 
@@ -813,7 +824,7 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a una clienta" campo="nombre" estado={est.nombre}>
+          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a un cliente" campo="nombre" estado={est.nombre}>
             <div className="space-y-2">
               <CampoTexto
                 id="nombre-producto"
@@ -1080,7 +1091,7 @@ export function NuevoProductoForm({
                   </div>
                   {!puedePiso && (
                     <p className="text-xs text-taupe">
-                      Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
+                      Entran al almacén. Para colgarlas después, usa «Reponer» en Existencias.
                     </p>
                   )}
                 </div>
@@ -1189,6 +1200,7 @@ export function NuevoProductoForm({
                 hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
                 precio: precioNum > 0 ? precioNum : null,
                 margen,
+                campana: campanaHoy,
                 colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
                 foto: fotosOrdenadas[0]?.vista ?? null,
                 fotos: fotos.length,

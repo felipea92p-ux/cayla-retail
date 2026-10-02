@@ -11,6 +11,7 @@ import {
   avisoDesactivar,
   bloqueoPorVenta,
   cambiarFila,
+  desactivarColor,
   choqueDeCorreccion,
   clasificarCombinaciones,
   codigoPrevisto,
@@ -168,6 +169,22 @@ describe("filasDeProducto y agruparPorColor — la prenda por ejes, como en el a
     expect(agruparPorColor(filas, N).desactivadas).toEqual([]);
   });
 
+  it("«Desactivar color» desactiva todas las tallas del color: las que existen se desactivan, no se borran", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m"), variante("c", "AZU", "t-s")], N);
+    const r = desactivarColor(filas, filas.filter((f) => f.colorCodigo === "NEG").map((f) => f.clave));
+    expect(r).toHaveLength(3);
+    expect(r.filter((f) => !f.activo).map((f) => f.id)).toEqual(["a", "b"]);
+    expect(r.find((f) => f.id === "c")!.activo).toBe(true);
+  });
+
+  it("«Desactivar color» quita las filas nuevas (todavía no existen) y desactiva las guardadas", () => {
+    const base = filasDeProducto([variante("a", "NEG", "t-s")], N);
+    const nueva = { ...base[0], clave: "nueva-1", id: null, guardada: undefined } as unknown as typeof base[0];
+    const r = desactivarColor([...base, nueva], [base[0].clave, "nueva-1"]);
+    expect(r.map((f) => f.id)).toEqual(["a"]);
+    expect(r[0].activo).toBe(false);
+  });
+
   it("los ejes son lo que se VENDE: variantes activas, tallas ordenadas", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-l"), variante("b", "NEG", "t-s"), variante("c", "AZU", "t-m", { activo: false })], N);
     expect(ejesDeLaPrenda(filas, N)).toEqual({ colores: ["NEG"], tallas: ["t-s", "t-l"] });
@@ -277,7 +294,7 @@ describe("bloqueoPorVenta (D-136): vendida = solo un líder", () => {
     // Nombra SOLO lo que cuenta (venta, separación con abonos, cambio): «Apartar» de Existencias no bloquea, y la fila que
     // lo muestra («· 1 ap.») queda corrigiéndose al lado (revisión 2026-09-28).
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).toBe(
-      "BOD-0003-L ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
+      "BOD-0003-L ya salió con un cliente (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
     );
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).not.toMatch(/apartó/);
     expect(bloqueoPorVenta(filas, ESTADO_BOD, true, N)).toBeNull();

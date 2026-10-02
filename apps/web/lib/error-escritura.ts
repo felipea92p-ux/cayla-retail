@@ -120,6 +120,12 @@ const HUELLAS: Huella[] = [
   {
     // 20260918230000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
     // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
+    // 20261002120000 (ADR-0294): pasó a ser único POR MARCA (`productos_marca_referencia_clave_unica`); el nombre viejo queda por si
+    // una base todavía no recibió esa migración.
+    marca: "productos_marca_referencia_clave_unica",
+    frase: "Ya existe un producto con ese nombre en esa marca (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
+  },
+  {
     marca: "productos_referencia_clave_unica",
     frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
   },
@@ -134,7 +140,7 @@ const HUELLAS: Huella[] = [
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo
     // avisa con su propio hint (`documento_de_otra_ficha`); esto es la red si algún camino inserta directo.
     marca: "clientas_documento_unico",
-    frase: "Ya hay una clienta con ese documento. Búscala arriba en vez de crearla de nuevo.",
+    frase: "Ya hay un cliente con ese documento. Búscalo arriba en vez de crearlo de nuevo.",
   },
   {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
@@ -161,21 +167,6 @@ const HUELLAS: Huella[] = [
     // corta en 200, esto es por si llega por otro camino.
     marca: "ventas_nota_corta",
     frase: "La nota es muy larga: hasta 200 caracteres. Acórtala y vuelve a cobrar.",
-  },
-  {
-    // 20260914215103_codigos_descuento.sql — una Colaboradora solo descuenta con código.
-    marca: "venta_descuento_requiere_codigo",
-    frase: "Para aplicar un descuento necesitas un código válido. Pídeselo a un Líder, o quita el descuento.",
-  },
-  {
-    // Misma migración — el código no existe, está inactivo, venció o es de otra sede.
-    marca: "venta_codigo_descuento_invalido",
-    frase: (codigo) => `El código ${codigo} no es válido o ya venció. Revísalo o pídele otro a un Líder.`,
-  },
-  {
-    // Misma migración — el % del código es el tope de cada línea.
-    marca: "venta_descuento_supera_codigo",
-    frase: (tope) => `Ese código permite hasta un ${tope} % de descuento. Baja el descuento o usa otro código.`,
   },
   {
     // 20260915140000_descuento_motivo_y_escalonado.sql — cualquier descuento > 0 pide un
@@ -493,29 +484,29 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `aniversario_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
-  ["documento_invalido", "El documento de la clienta no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
-  ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son la misma clienta, únelas desde su ficha."],
-  ["clienta_anonimizada", "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta."],
-  ["clienta_no_existe", "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla."],
-  ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle a la clienta, así que no se puede registrar su «sí». Avisa al líder."],
+  ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
+  ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son el mismo cliente, únelas desde su ficha."],
+  ["clienta_anonimizada", "Este cliente pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítalo del ticket y vende sin cliente."],
+  ["clienta_no_existe", "Ese cliente ya no está en la libreta. Quítalo del ticket y vuelve a buscarlo."],
+  ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle al cliente, así que no se puede registrar su «sí». Avisa al líder."],
   ["celular_invalido", "El celular tiene 9 dígitos y empieza en 9, sin +51 ni espacios. Revísalo y vuelve a intentar."],
-  ["no_es_socia", "Esta clienta todavía no es socia del club: primero únela al club y después registra su mensaje."],
-  ["socia_sin_celular", "Una socia del club necesita su celular: no se puede dejar vacío."],
+  ["no_es_socia", "Este cliente todavía no es miembro del club: primero únelo al club y después registra su mensaje."],
+  ["socia_sin_celular", "Un miembro del club necesita su celular: no se puede dejar vacío."],
   ["whatsapp_tienda_invalido", "El WhatsApp de la tienda tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío."],
-  ["socia_sin_documento", "Para unirla al club, su ficha necesita documento y nombre: complétalos primero."],
-  ["club_texto_cambio", "El texto del club cambió mientras la invitabas: vuelve a leérselo."],
+  ["socia_sin_documento", "Para unirlo al club, su ficha necesita documento y nombre: complétalos primero."],
+  ["club_texto_cambio", "El texto del club cambió mientras lo invitabas: vuelve a leérselo."],
   ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
   ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
-  ["cumple_sin_clienta", "El cumpleaños es de una socia del club: elige a la clienta en el ticket antes de canjearlo."],
-  ["cumple_no_socia", "El descuento de cumpleaños es para las socias del club: esta clienta no es socia."],
+  ["cumple_sin_clienta", "El cumpleaños es de un miembro del club: elige al cliente en el ticket antes de canjearlo."],
+  ["cumple_no_socia", "El descuento de cumpleaños es para los miembros del club: este cliente no es miembro."],
   ["cumple_fuera_de_mes", "El descuento de cumpleaños se canjea solo en el mes de su cumpleaños, y este no es."],
-  ["cumple_ya_canjeado", "Esta socia ya canjeó su cumpleaños este año."],
+  ["cumple_ya_canjeado", "Este miembro ya canjeó su cumpleaños este año."],
   ["cumple_descuento_distinto", "El descuento de cumpleaños no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
   ["cumple_sin_canje", "Esta venta trae un descuento de cumpleaños sin canjearlo. Vuelve a tocar «Canjear» o quítalo."],
   ["cumple_sin_monto", "En esta venta no queda nada que descontar por el cumpleaños: no se canjea."],
   ["club_un_cupon_por_compra", "Va una sola ventaja del club por compra: el cupón de cumpleaños o el vale de aniversario, no los dos."],
-  ["aniversario_no_disponible", "Esta socia no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
-  ["aniversario_ya_canjeado", "Esta socia ya usó su vale de aniversario de este año de club."],
+  ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
+  ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
   ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
   ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
   ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],

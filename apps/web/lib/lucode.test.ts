@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { emitirDocumentoLucode, interpretarEstadoAnulacion, type DatosComprobante } from "./lucode";
+import { emitirDocumentoLucode, fechaDeLima, interpretarEstadoAnulacion, type DatosComprobante } from "./lucode";
 
 // El vocabulario de anulación de Lucode NO es el de emisión. Estos casos
 // existen porque `traducirEstado` (el de emisión) manda a PENDIENTE todo lo
@@ -104,5 +104,38 @@ describe("emitirDocumentoLucode: tipo de documento de quien compra (catálogo 06
   it("sin documento, o un tipo sin número, sigue saliendo «1» con el comodín 99999999", async () => {
     expect(await boletaA("sin_documento", null)).toEqual({ tipo: "1", numero: "99999999" });
     expect(await boletaA("pasaporte", null)).toEqual({ tipo: "1", numero: "99999999" });
+  });
+});
+
+// La fecha de emisión (2026-10-02): salía de `new Date().toISOString()`, que es UTC. Una boleta cobrada desde las 19:00 de
+// Lima iba con la fecha de mañana y Lucode la rechazaba; la que se reenviaba al día siguiente salía con la fecha del reenvío.
+describe("fechaDeLima y fecha_de_emision", () => {
+  it("a las 21:30 de Lima del 1-oct (02:30 UTC del 2-oct) sigue siendo 1-oct", () => {
+    expect(fechaDeLima(new Date("2026-10-02T02:30:00Z"))).toBe("2026-10-01");
+  });
+  it("a las 00:10 de Lima ya es el día nuevo", () => {
+    expect(fechaDeLima(new Date("2026-10-02T05:10:00Z"))).toBe("2026-10-02");
+  });
+
+  async function fechaQueSale(fechaEmision?: string) {
+    let cuerpo: Record<string, unknown> = {};
+    vi.stubEnv("LUCODE_TOKEN", "t");
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      cuerpo = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ payload: { estado: "ACEPTADO" } }), { status: 200 });
+    });
+    await emitirDocumentoLucode({
+      tipo: "boleta", serie: "B004", numero: 4, moneda: "PEN", clienteTipoDoc: "sin_documento", clienteNumDoc: null, clienteNombre: null,
+      total: 11.8, items: [{ descripcion: "x", cantidad: 1, precio_unitario: 10 }], fechaEmision,
+    });
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    return cuerpo.fecha_de_emision;
+  }
+  it("un reenvío lleva el día de la venta, no el de hoy", async () => {
+    expect(await fechaQueSale("2026-09-30")).toBe("2026-09-30");
+  });
+  it("sin día explícito sale el de hoy en Lima", async () => {
+    expect(await fechaQueSale()).toBe(fechaDeLima());
   });
 });

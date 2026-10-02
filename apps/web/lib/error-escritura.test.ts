@@ -45,6 +45,15 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("Ya existe un producto con ese nombre");
   });
 
+  it("el mismo nombre en la misma marca (índice por marca, ADR-0294) dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "productos_marca_referencia_clave_unica"', code: "23505" },
+      "crear el producto",
+    );
+    expect(salida).not.toContain("productos_marca_referencia_clave_unica");
+    expect(salida).toContain("en esa marca");
+  });
+
   it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
     expect(salida).not.toContain("etiquetas_clave_unica");
@@ -224,30 +233,6 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
       "registrar el traslado"
     );
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
-  });
-
-  it("descuento sin código: dice a quién pedírselo", () => {
-    const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
-    expect(salida).not.toContain("venta_descuento_requiere_codigo");
-    expect(salida).toContain("código");
-    expect(salida).toContain("Líder");
-  });
-
-  it("código inválido: repite el código que se escribió", () => {
-    const salida = traducirError(
-      { message: "venta_codigo_descuento_invalido", details: "CAYLA10", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("CAYLA10");
-    expect(salida).toContain("no es válido");
-  });
-
-  it("descuento por encima del código: dice el tope", () => {
-    const salida = traducirError(
-      { message: "venta_descuento_supera_codigo", details: "15", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("hasta un 15 %");
   });
 
   it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
@@ -607,7 +592,7 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
       { message: 'duplicate key value violates unique constraint "clientas_documento_unico"', code: "23505" },
       "registrar la clienta",
     );
-    expect(salida).toContain("Ya hay una clienta con ese documento");
+    expect(salida).toContain("Ya hay un cliente con ese documento");
     expect(salida).not.toContain("clientas_documento_unico");
   });
 

@@ -186,7 +186,7 @@ describe("«Conteo físico» pregunta cuántas hay, no cuánto cambia (Felipe, 2
     expect(textoApartadoTalla(2, "contado")).toBe(" · 2 apartadas (cuéntalas)");
     const [bajo] = lineasDeAjuste([m], { "2": "0" }, "piso", "contado");
     expect(textoProblemaTalla(bajo, "contado")).toBe(
-      "Contaste 0 y hay 1 apartada para clientas. Cuéntalas también; si de verdad falta, libera ese apartado primero."
+      "Contaste 0 y hay 1 apartada para clientes. Cuéntalas también; si de verdad falta, libera ese apartado primero."
     );
   });
 
@@ -230,7 +230,7 @@ describe("lo apartado: la fila de Existencias muestra lo libre, el modal lo fís
 
   it("el ajuste que deja menos que lo apartado se frena en la fila, sin el código de la etiqueta", () => {
     const linea = { variante: {} as never, delta: -1, actual: 1, resultado: 0, apartado: 1 };
-    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero.");
+    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientes. Libera o resuelve esos apartados primero.");
   });
 
   it("sin la columna de apartados (filas viejas de las pruebas), cuenta 0", () => {
@@ -381,12 +381,12 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
     expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });
 
-  it("y el camino de vuelta es «Subir a almacén», en Existencias, y dice quién lo ve; ya no manda al menú «⋯» que no existe", () => {
+  it("y el camino de vuelta es «Subir a almacén», en Existencias, y no manda a un módulo que no existe; ya no manda al menú «⋯» que no existe", () => {
     // Sin esta frase, quien quiere guardar entra a Ajustar y arma a mano «Otro» −N en el piso y «Reposición» +N en el
     // almacén: un retiro sin rastro ni nota (revisión del bloque 2 de ADR-0208).
     expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «Subir a almacén».");
     expect(NOTA_REPOSICION_CERRADA).toContain("en Existencias");
-    expect(NOTA_REPOSICION_CERRADA).toContain("módulo «Bajada al piso»");
+    expect(NOTA_REPOSICION_CERRADA).not.toContain("Bajada al piso"); // ADR-0306: ya no es un módulo
     expect(NOTA_REPOSICION_CERRADA).not.toContain("Retirar del piso");
     // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
     expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);

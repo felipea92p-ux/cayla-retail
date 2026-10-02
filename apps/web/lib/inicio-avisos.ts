@@ -167,7 +167,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       cantidad: n,
       nivel: nivelDe(n, "info"),
       ahora: n ? `Mira ${n} ${plural(n, "pedido no atendido", "pedidos no atendidos")}` : "",
-      detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna clienta pidió algo que no había." : "Clientas que pidieron una talla o un color que no había.",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Ningún cliente pidió algo que no había." : "Clientes que pidieron una talla o un color que no había.",
       href: "/pedidos-no-atendidos",
       ocultable: true,
     });

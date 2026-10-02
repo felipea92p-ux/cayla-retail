@@ -53,9 +53,9 @@ export function BuscadorClientas({ params }: { params: ParamsLista }) {
         enterKeyHint="search"
         autoComplete="off"
         spellCheck={false}
-        aria-label="Buscar clienta"
+        aria-label="Buscar cliente"
         placeholder="DNI, celular o nombre…" // sugerir-fijo: dice qué se puede buscar en la libreta; no depende de nada elegido antes
-        title="Busca por documento (DNI, carné o pasaporte), celular, código de socia (C-0142) o parte del nombre"
+        title="Busca por documento (DNI, carné o pasaporte), celular, código de miembro (C-0142) o parte del nombre"
         className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
       />
       <SenalBuscando activo={buscando} className="shrink-0" />

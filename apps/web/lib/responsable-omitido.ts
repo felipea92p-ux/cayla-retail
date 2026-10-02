@@ -24,8 +24,8 @@
 
 /** Clave → lo que hace, en palabras del negocio. Las claves son las de `retail.acciones_sin_responsable`. */
 export const ACCIONES_SIN_RESPONSABLE = {
-  apartar_prenda: "Apartar una prenda para una clienta (desde Existencias)",
-  aviso_apartado: "Dejar el aviso o recordatorio a la clienta de un apartado",
+  apartar_prenda: "Apartar una prenda para un cliente (desde Existencias)",
+  aviso_apartado: "Dejar el aviso o recordatorio al cliente de un apartado",
   traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado",
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias",
   regularizar_prenda: "Regularizar una prenda por regularizar",
@@ -52,6 +52,10 @@ export const ACCIONES_SIN_RESPONSABLE = {
   etiqueta_rechazar: "Rechazar una etiqueta propuesta",
   etiqueta_campana: "Ponerle campaña a una etiqueta",
   catalogo_confirmar_estado: "Aprobar, desactivar o reactivar un valor del Catálogo con un solo clic",
+  // Avisos del club (Felipe, 2026-10-02; migración 20261002170000): con la cuenta de una persona no se elige quién envía.
+  aviso_club_enviar: "Anotar un aviso del club como enviado por WhatsApp",
+  aviso_club_deshacer: "Deshacer un aviso del club anotado como enviado",
+  aviso_club_baja: "Registrar que un cliente pidió BAJA de los mensajes del club",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

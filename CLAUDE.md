@@ -249,6 +249,16 @@ accesos.** Quien ve un módulo hace todo lo que hay en él, salvo lo «siempre s
 `fn_es_lider()`). Por eso **todo módulo nuevo que se desarrolle tiene que aparecer en Roles y accesos, y nace disponible SOLO
 para el líder**: el líder decide después a qué rol se lo da. Nunca se asigna un módulo a un rol desde el código.
 
+**Un módulo es una entrada del menú izquierdo — lo de adentro no es otro módulo (ADR-0306, Felipe 2026-10-02).** Si es una pantalla
+u opción del menú, es módulo y aparece en Roles y accesos. Si es un botón o una acción DENTRO de una pantalla (reponer, bajar al piso,
+retirar, ajustar stock, apartar desde Existencias…), es una función del módulo donde vive su botón y **no se da de alta como módulo**:
+quien ve el módulo la hace, sin pedir otro. Nació del 2026-10-02: «Bajada al piso» y «Ajustar stock» eran módulos sin menú y sin rol;
+el Terminal de ventas tenía Existencias y no podía reponer, así que bajaba prendas sin registrarlo y Vender no las dejaba vender.
+Las únicas pantallas con módulo FUERA del lateral son Colaboradores, Roles (menú de Administración), Configuración y Actividad (botones
+de la cabecera); `lib/modulos.test.ts` («un módulo es una entrada del menú») falla si aparece otro. Lo que sí sigue siendo «solo del
+líder» vive en la función con `fn_es_lider()`. Una acción delicada no se protege con un módulo escondido: se protege con `fn_es_lider()`
+a la vista, o se acepta que quien ve el módulo la hace.
+
 Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR:
 1. **Base:** una migración propia con `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)`
    — `incluye` en palabras del negocio; `delegable = false` si sus funciones todavía exigen `fn_es_lider()` (sale como «Solo
@@ -393,7 +403,12 @@ Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
-encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). **En pantalla
+encargado de sede", "sede/tienda/boutique", "cliente" (comprador final). **En pantalla se dice
+"cliente/clientes" y, en el club, "miembro" — nunca "clienta" ni "socia" (Felipe 2026-10-02,
+ADR-0288 act. k):** un texto para el cliente le habla igual a un hombre que a una mujer
+(«Te damos la bienvenida», no «Bienvenida»). Los nombres que ya existen en el código y la
+base (`retail.clientas`, `clienta_id`, la ruta `/clientas`, la clave de módulo `clientas`)
+NO se renombran. **En pantalla
 y en negocio manda "sede"; en la base la tabla es `ubicaciones`** (no `sedes`, que no
 existe). La columna de rol es `colaboradores.rol` (no `personas.rol`: `personas` es de
 Dynamic, no de retail). **En producción solo acepta `lider` y `colaborador`**

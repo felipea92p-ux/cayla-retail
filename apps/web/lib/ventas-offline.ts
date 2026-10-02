@@ -34,7 +34,7 @@
  * componente con estado del módulo), con el mismo patrón que ya usa `enEspera`.
  */
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
 import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 import type { Firma } from "./responsable-reglas";
@@ -72,7 +72,7 @@ export type ItemRegistrarVenta = {
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
-  p_pagos: { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[];
+  p_pagos: { metodo: MetodoPagoVenta; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";
   p_cliente_tipo_doc: TipoDocComprobante;
@@ -82,6 +82,8 @@ export type ParamsRegistrarVenta = {
    *  si al subir la ficha ya se unió a otra, la base la liga a la que quedó, y si se anonimizó, la rechaza
    *  (`clienta_anonimizada`) y la cola la muestra como rechazo, igual que una caja cerrada (ADR-0036). */
   p_cliente_id?: string;
+  /** Ya no se manda (Felipe, 2026-10-01: el descuento no pide código). Queda opcional porque una venta encolada antes
+   *  puede traerlo; la base lo acepta y no lo lee. */
   p_codigo_descuento?: string;
   p_nota?: string;
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que

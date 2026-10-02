@@ -236,14 +236,14 @@ export function avisoValeApagado(motivo: MotivoValeApagado, monto: number): { ti
   const titulo = `Se quitó el vale de aniversario (${solesDelVale(monto)})`;
   return motivo === "sin_conexion"
     ? { titulo, detalle: "Sin conexión no se usa: otra tienda podría usarlo a la vez. Cuando vuelva la conexión, tócalo otra vez." }
-    : { titulo, detalle: "Ya no está disponible para esta clienta (pudo usarlo en otra tienda, o venció). El total volvió a su precio." };
+    : { titulo, detalle: "Ya no está disponible para este cliente (pudo usarlo en otra tienda, o venció). El total volvió a su precio." };
 }
 
 /** Los `hint` de `registrar_venta` que rechazan el vale (ADR-0288, «Contrato de la tanda 1g»). */
 const RECHAZOS_DEL_VALE: ReadonlyMap<string, { releer: boolean; queHacer: string }> = new Map([
   // La base ya sabe algo que la caja no: se vuelve a leer su resumen para que la fila diga lo que es.
-  ["aniversario_ya_canjeado", { releer: true, queHacer: "Pudo usarlo en otra caja o tienda. Quité el vale: revisa el total con ella y vuelve a confirmar el cobro." }],
-  ["aniversario_no_disponible", { releer: true, queHacer: "Quité el vale (pudo vencer): revisa el total con ella y vuelve a confirmar el cobro." }],
+  ["aniversario_ya_canjeado", { releer: true, queHacer: "Pudo usarlo en otra caja o tienda. Quité el vale: revisa el total con el cliente y vuelve a confirmar el cobro." }],
+  ["aniversario_no_disponible", { releer: true, queHacer: "Quité el vale (pudo vencer): revisa el total con el cliente y vuelve a confirmar el cobro." }],
   ["club_un_cupon_por_compra", { releer: true, queHacer: "Va una sola ventaja del club por compra. Quité el vale: elige una y vuelve a confirmar el cobro." }],
   // No depende de ella: la pantalla lo evita, y si igual llega, se apaga y se dice.
   ["aniversario_sin_monto", { releer: false, queHacer: "En esta venta no queda nada que descontar: el vale queda para otra compra." }],
@@ -268,6 +268,6 @@ export function valeSinConexion(): { titulo: string; detalle: string } {
   return {
     titulo: "Se cortó la conexión: el vale de aniversario no se usa sin internet",
     detalle:
-      "Otra tienda podría usarlo a la vez. Cuando vuelva la conexión, confirma otra vez: si ya se había guardado, el sistema la reconoce y no la duplica. Si la clienta no puede esperar, quita el vale y cobra el total completo.",
+      "Otra tienda podría usarlo a la vez. Cuando vuelva la conexión, confirma otra vez: si ya se había guardado, el sistema la reconoce y no la duplica. Si el cliente no puede esperar, quita el vale y cobra el total completo.",
   };
 }

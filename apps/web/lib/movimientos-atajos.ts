@@ -97,7 +97,7 @@ export function atajosDeMovimiento(m: Movimiento, accesos: AccesosAtajos, aparta
 
   // Lo que llegó: colgarlo (si quedó en el almacén) y etiquetarlo.
   if (esLlegada(m)) {
-    const bajar = zonaDeLaSede(m) === "almacen_tienda" && ve("bajada_piso") ? hrefBajarAlPiso([m.varianteId]) : null;
+    const bajar = zonaDeLaSede(m) === "almacen_tienda" && ve("existencias") ? hrefBajarAlPiso([m.varianteId]) : null;
     if (bajar) atajos.push({ clave: "bajar", texto: "Bajar al piso", detalle: "llega con esta talla cargada", href: bajar, principal: true });
     const etiquetas = hrefEtiquetas([m.varianteId]);
     if (etiquetas) atajos.push({ clave: "etiquetas", texto: "Imprimir etiqueta", detalle: [m.talla, m.color].filter(Boolean).join(" · ") || "de esta prenda", href: etiquetas });
@@ -137,7 +137,7 @@ export function atajosDeOperacion(filas: readonly Movimiento[], accesos: Accesos
   const ids = [...new Set(llegadas.map((m) => m.varianteId))];
   const atajos: Atajo[] = [];
   const alAlmacen = llegadas.filter((m) => zonaDeLaSede(m) === "almacen_tienda").map((m) => m.varianteId);
-  const bajar = alAlmacen.length > 0 && ve("bajada_piso") ? hrefBajarAlPiso(alAlmacen) : null;
+  const bajar = alAlmacen.length > 0 && ve("existencias") ? hrefBajarAlPiso(alAlmacen) : null;
   const nBajar = new Set(alAlmacen).size;
   if (bajar) atajos.push({ clave: "bajar", texto: `Bajar ${nBajar === 1 ? "esta" : `estas ${nBajar}`} al piso`, detalle: "", href: bajar, principal: true });
   const etiquetas = hrefEtiquetas(ids);

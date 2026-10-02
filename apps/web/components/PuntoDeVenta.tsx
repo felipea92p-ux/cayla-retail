@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { MetodoPago } from "@cayla-retail/shared";
+import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
@@ -30,7 +30,6 @@ import {
   totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
-  limpiarOperacion,
   type CampanaLinea,
   type DetalleDescuento,
   type MomentoTicket,
@@ -46,6 +45,8 @@ import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { ElegirTallaModal } from "@/components/ElegirTallaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
+import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
+import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
 import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -98,8 +99,7 @@ import {
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
-import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
-import { descripcionDePrenda, prendaQuitadaDeLinea, type PrendaQuitada } from "@/lib/se-probo-reglas";
+import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
@@ -133,7 +133,7 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  `null` sin almacén (Taller); ausente para quien arme variantes sin este dato: se comporta como antes. */
   almacenAqui?: number | null;
   /** Lo APARTADO para clientas en el piso de esta sede (`apartadoEnPiso`): con el piso y el almacén en 0, es lo que
-   *  distingue «apartada para una clienta» de «agotada» (`motivoNoCobrable`). Ausente = 0: se comporta como antes. */
+   *  distingue «apartada para un cliente» de «agotada» (`motivoNoCobrable`). Ausente = 0: se comporta como antes. */
   apartadoAqui?: number | null;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
@@ -193,7 +193,9 @@ export type TicketEnEspera = {
   creadoEn: string;
   carrito: ItemCarrito[];
   nota: string;
-  codigoDescuento: string;
+  /** Código de descuento: ya no se pide (Felipe, 2026-10-01). Queda opcional solo porque tickets viejos en localStorage
+   *  pueden traerlo; no se lee. */
+  codigoDescuento?: string;
   /** Quién atendía (fila «Atendió», ADR-0163). Ya no se guarda ni se restaura: el responsable se elige en cada
    *  cobro (ADR-0161, A6). Queda en el tipo solo porque tickets viejos en localStorage pueden traerlo. */
   vendedoraId?: string | null;
@@ -240,9 +242,7 @@ export const money = (n: number) => `S/${n.toFixed(2)}`;
 type Props = {
   ubicacionId: string;
   ubicacionEtiqueta: string;
-  /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
-  esLider: boolean;
-  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). `esLider` queda para lo que sigue siendo del líder (descuentos). */
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). */
   puedeCerrarCaja: boolean;
   /** Null si no hay caja abierta — el POS queda tras la persiana de «Caja cerrada» y desactivado
    *  (ver `bloqueado` más abajo). */
@@ -277,6 +277,9 @@ type Props = {
   avisoProforma?: string | null;
   /** «Volver a vender» desde Ventas ▸ Historial (`/vender?repetir=<id>`, ADR-0230): el ticket arranca con esas prendas. */
   repeticion?: RepeticionDeVenta | null;
+  /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
+   *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
+  qrDisponible?: boolean;
 };
 
 /** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
@@ -297,7 +300,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -365,8 +368,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
   const [pagos, setPagos] = useState<PagoAplicado[]>([]);
   const [descuento, setDescuento] = useState<DescuentoForm>(DESCUENTO_VACIO);
-  // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
-  const [codigoDescuento, setCodigoDescuento] = useState("");
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
@@ -387,15 +388,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
   // Una proforma a nombre de una empresa (RUC) se cobra con factura; lo demás, boleta.
-  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>(proforma?.clienteDoc?.length === 11 ? "factura" : "boleta");
+  // Ningún comprobante marcado al empezar (hoja de cobro, Felipe 2026-10-02): se elige siempre, y sin elegir no se cobra
+  // (`motivoBloqueoCobro`). Una proforma con RUC ya trae la respuesta: la factura de esa empresa.
+  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta"> | null>(
+    proforma?.clienteDoc?.length === 11 ? "factura" : null,
+  );
+  // Los medios de la hoja de cobro, en el orden de los atajos F1–F6: con QR solo si la base ya lo acepta.
+  const mediosCobro: readonly MetodoPagoVenta[] = qrDisponible ? METODOS_PAGO_VENTA : METODOS_PAGO;
   const [clienteNumDoc, setClienteNumDoc] = useState(proforma?.clienteDoc ?? "");
   // DNI, carné de extranjería o pasaporte, en una boleta o nota de venta (ADR-0288 D-3). La factura siempre es RUC.
   const [clienteDocIdentidad, setClienteDocIdentidad] = useState<TipoDocumentoClienta>("dni");
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
-  // La prenda recién quitada del ticket, para «¿Se la probó y no la llevó?» (ADR-0288 D-6, spike del club): `clave` es la
-  // línea quitada, así la pregunta vuelve a empezar si se quita otra.
-  const [quitada, setQuitada] = useState<{ clave: string; prenda: PrendaQuitada } | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -424,7 +428,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Sin releerlo, la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar.
   const [ajustesAlmacen, setAjustesAlmacen] = useState<Map<string, number | null>>(() => new Map());
   // Lo apartado en el piso, releído con las MISMAS lecturas: aparte del stock porque una venta nunca lo toca. Sin
-  // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para una clienta».
+  // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para un cliente».
   const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
@@ -744,7 +748,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     flipState.current = null;
   }, [carrito.length]);
 
-  const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc, clienteDocIdentidad);
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante ?? "boleta", clienteNumDoc, clienteDocIdentidad);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
@@ -759,7 +763,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const datosAviso = { nombre: nombreVariante, sede: ubicacionEtiqueta, stockAqui: v.stockAqui, almacenAqui: v.almacenAqui, apartadoAqui: v.apartadoAqui };
     // Con el piso en 0 no entra al ticket (la venta descuenta el piso), pero no es lo mismo «agotada» que «está en el
-    // almacén de esta tienda» ni que «apartada para una clienta»: el aviso dice cuál y qué hacer (D-40,
+    // almacén de esta tienda» ni que «apartada para un cliente»: el aviso dice cuál y qué hacer (D-40,
     // `lib/vender-stock-local.ts`).
     const motivo = motivoNoCobrable(v);
     if (motivo !== "cobrable") {
@@ -886,9 +890,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   function quitar(claveLinea: string) {
     capturarFlip();
-    const linea = carrito.find((it) => it.claveLinea === claveLinea);
-    const prenda = linea ? prendaQuitadaDeLinea(linea, detallesDelTicket.get(linea.varianteId)) : null;
-    setQuitada(prenda ? { clave: claveLinea, prenda } : null);
     setCarrito((actual) => actual.filter((it) => it.claveLinea !== claveLinea));
     setAviso(null);
   }
@@ -951,10 +952,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   }
   function limpiarTicket() {
     setCarrito([]);
-    setQuitada(null);
     quitarClienta();
     setNota("");
-    setCodigoDescuento("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
@@ -978,7 +977,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, nombre: nombre || undefined, clienta }]);
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, nombre: nombre || undefined, clienta }]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -987,7 +986,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, clienta } : null;
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, clienta } : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -998,14 +997,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
-    setCodigoDescuento(ticket.codigoDescuento);
     // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
     // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
     responsable.limpiar();
     setPagos([]);
-    setQuitada(null);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
@@ -1116,7 +1113,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     total,
     pagos,
     facturaSinRuc,
-    problemaDocumento: problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc),
+    problemaDocumento: tipoComprobante ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) : null,
+    sinComprobante: tipoComprobante === null,
     motivoResponsable: responsable.motivo,
     proformaVencidaSinConfirmar: proformaActiva?.confirmacion != null && !confirmoVencida,
   });
@@ -1145,7 +1143,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
-  function agregarPago(metodo: MetodoPago) {
+  function agregarPago(metodo: MetodoPagoVenta) {
     if (pagos.some((p) => p.metodo === metodo)) return;
     setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
   }
@@ -1153,10 +1151,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   function cambiarMontoPago(indice: number, monto: number) {
     setPagos((actual) => pagosTrasEditarMonto(actual, indice, monto, total));
   }
-  // Quitar un medio (el basurero o tocarlo otra vez arriba) pasa su monto al siguiente: si no,
-  // quitar el que llevaba el total dejaba al resto en 0 y la cajera lo reescribía.
+  // Quitar un medio (tocarlo otra vez) pasa su monto al siguiente: si no, quitar el que llevaba
+  // el total dejaba al resto en 0 y la cajera lo reescribía.
   function quitarPago(indice: number) {
     setPagos((actual) => quitarPagoTraspasando(actual, indice));
+  }
+  // Un cuadrado de la hoja de cobro (o su F1–F6): si el medio no está, lo agrega con lo que falta; si está, lo quita.
+  function tocarMedio(metodo: MetodoPagoVenta) {
+    const i = pagos.findIndex((p) => p.metodo === metodo);
+    if (i !== -1) return quitarPago(i);
+    agregarPago(metodo);
+    // El segundo medio (o más) se lleva el cursor a su monto: escribirlo es lo único que falta, y el primero se queda con
+    // el resto. Sin esto, los dígitos caían en el escáner (`teclaSueltaVaAlEscaner`) y buscaban una prenda.
+    if (pagos.length >= 1) {
+      requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-monto-medio="${metodo}"]`)?.focus());
+    }
   }
   // Atajos F1–F5 (ver `metodoDeAtajo`): la cajera no suelta el lector para pagar.
   //  · En «cobrar» la tecla hace lo mismo que tocar el medio: lo agrega con lo que falta, y si ya
@@ -1170,13 +1179,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   useEffect(() => {
     if (bloqueado || hayModal || grupoElegido) return;
     function alAtajo(e: KeyboardEvent) {
-      const metodo = metodoDeAtajo(e);
+      // Esc cierra la hoja de cobro y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
+      if (e.key === "Escape" && momento === "cobrar" && !e.defaultPrevented) {
+        setMomento("armar");
+        return;
+      }
+      const metodo = metodoDeAtajo(e, mediosCobro);
       if (!metodo) return;
       if (momento === "cobrar") {
         e.preventDefault(); // F1 abriría la ayuda de Chrome; F5 recargaría y perdería el ticket
-        const i = pagos.findIndex((p) => p.metodo === metodo);
-        if (i === -1) agregarPago(metodo);
-        else quitarPago(i);
+        tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
         setPagos([{ metodo, monto: Math.max(0, total) }]);
@@ -1190,17 +1202,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Lo que la clienta entregó en efectivo. Viaja a la RPC en su propia clave (`recibido`,
   // aparte de `monto`, que es lo que cubre) solo si alcanza — ver `pagosParaRpc` — para poder
   // reimprimir el ticket con su vuelto.
-  /** El nº de operación de un pago digital (ADR-0230). Opcional: no frena el cobro. */
-  function cambiarOperacion(indice: number, texto: string) {
-    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, referencia: limpiarOperacion(texto) } : p)));
-  }
-
   function cambiarRecibido(monto: number | null) {
     setPagos((actual) => actual.map((p) => (p.metodo === "efectivo" ? { ...p, recibido: monto ?? undefined } : p)));
   }
 
   function limpiarComprobante() {
-    setTipoComprobante("boleta");
+    setTipoComprobante(null);
     setClienteNumDoc("");
     setClienteDocIdentidad("dni");
     setClienteNombre("");
@@ -1250,7 +1257,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
     // El mismo motivo que apaga el botón frena acá.
-    if (momento !== "cobrar" || motivoBloqueo !== null) {
+    if (momento !== "cobrar" || motivoBloqueo !== null || tipoComprobante === null) {
       if (motivoBloqueo) avisar.error(motivoBloqueo);
       return;
     }
@@ -1291,7 +1298,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       // La clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Va dentro de `params`, así que también viaja
       // en la cola sin conexión.
       p_cliente_id: clienta?.id ?? undefined,
-      p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
       // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
       p_asesora_id: responsable.elegidoId ?? undefined,
@@ -1485,11 +1491,57 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
-    setCodigoDescuento("");
     setNota("");
     responsable.limpiar();
     setMomento("armar");
   }
+
+  // La hoja de cobro (Felipe, 2026-10-02): en escritorio entra sobre el catálogo y confirma el formulario del ticket desde
+  // afuera; en el celular va dentro de la hoja del ticket (`compacta`), donde ese formulario ya la contiene.
+  const hojaDeCobro = (compacta: boolean) => (
+    <HojaDeCobro
+      total={total}
+      prendas={prendas}
+      medios={mediosCobro}
+      pagos={pagos}
+      restante={restante}
+      vuelto={vuelto}
+      onTocarMedio={tocarMedio}
+      onMontoPago={cambiarMontoPago}
+      onRecibido={cambiarRecibido}
+      tipoComprobante={tipoComprobante}
+      onTipoComprobante={setTipoComprobante}
+      documento={
+        tipoComprobante && (
+          <fieldset disabled={bloqueado}>
+            <DocumentoDelComprobante
+              tipoComprobante={tipoComprobante}
+              identidad={clienteDocIdentidad}
+              onIdentidad={setClienteDocIdentidad}
+              numero={clienteNumDoc}
+              onNumero={setClienteNumDoc}
+              nombre={clienteNombre}
+              onNombre={setClienteNombre}
+              sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
+            />
+          </fieldset>
+        )
+      }
+      faltaDocumento={
+        facturaSinRuc
+          ? "Falta el RUC"
+          : tipoComprobante
+            ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc)
+            : null
+      }
+      motivoBloqueo={motivoBloqueo}
+      loading={loading}
+      bloqueado={bloqueado}
+      formId="ticket-pos"
+      onVolver={() => setMomento("armar")}
+      compacta={compacta}
+    />
+  );
 
   // El ticket, una sola vez: en su columna (escritorio) o dentro de la hoja del celular. Mismas props en los dos lados.
   const ticketNodo = (enHoja: boolean) => (
@@ -1506,9 +1558,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             onAbrirDescuento={abrirDescuento}
             onAplicarDescuento={aplicarDescuentoAlTicket}
             onQuitarDescuento={quitarDescuentoDelTicket}
-            esLider={esLider}
-            codigoDescuento={codigoDescuento}
-            onCodigoDescuento={setCodigoDescuento}
             nota={nota}
             onNota={setNota}
             enEspera={enEspera}
@@ -1520,30 +1569,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             cumple={cumpleDelTicket}
             vale={valeDelTicket}
             pagos={pagos}
-            restante={restante}
-            vuelto={vuelto}
-            onAgregarPago={agregarPago}
-            onMontoPago={cambiarMontoPago}
-            onQuitarPago={quitarPago}
-            onRecibido={cambiarRecibido}
-            onOperacion={cambiarOperacion}
             tipoComprobante={tipoComprobante}
-            onTipoComprobante={setTipoComprobante}
-            clienteNumDoc={clienteNumDoc}
-            onClienteNumDoc={setClienteNumDoc}
-            clienteDocIdentidad={clienteDocIdentidad}
-            onClienteDocIdentidad={setClienteDocIdentidad}
-            clienteNombre={clienteNombre}
-            onClienteNombre={setClienteNombre}
-            facturaSinRuc={facturaSinRuc}
+            cuerpoCobro={enHoja ? hojaDeCobro(true) : undefined}
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => {
-              // Al pasar a cobrar, la pregunta de la prenda quitada se va sin anotar (como en el spike).
-              setQuitada(null);
-              setMomento("cobrar");
-            }}
+            onIrACobrar={() => setMomento("cobrar")}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
@@ -1562,16 +1593,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
               />
-              {quitada && (
-                <SeProboNoLlevo
-                  key={quitada.clave}
-                  prenda={quitada.prenda}
-                  ubicacionId={ubicacionId}
-                  clientaId={clienta?.id ?? null}
-                  responsable={responsable}
-                  onCerrar={() => setQuitada(null)}
-                />
-              )}
             </>
           }
         />
@@ -1597,7 +1618,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
         inert={bloqueado}
       >
-        <div className="flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
+        <div className="relative flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
           <div className="anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
             <p className="label-cayla mr-2 w-full text-[11px] text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
             {puedeApartar && <BotonApartados prendas={prendas} onApartar={apartarDesdeTicket} deshabilitado={bloqueado} />}
@@ -1738,6 +1759,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           carrito={carrito}
         />
           </div>
+
+          {/* La hoja de cobro sobre el catálogo (escritorio). El velo deja ver el catálogo atenuado; tocarlo vuelve al
+              ticket, igual que «Volver» o Esc. */}
+          {!apilado && momento === "cobrar" && !bloqueado && (
+            <>
+              <div aria-hidden onClick={() => setMomento("armar")} className="hoja-cobro-velo absolute inset-0 z-30" />
+              <section
+                aria-label="Cobro"
+                className="hoja-cobro scroll-cayla absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-y-auto rounded-3xl border border-sand bg-papel px-6 pt-3 pb-4"
+              >
+                {hojaDeCobro(false)}
+              </section>
+            </>
+          )}
         </div>
 
         {!apilado && ticketNodo(false)}

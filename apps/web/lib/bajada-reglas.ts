@@ -479,8 +479,8 @@ export function textoDeLectura(l: Lectura, sede: string): string {
     }
     case "todo_apartado":
       return l.apartadas === 1
-        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para una clienta y no se puede mover.`
-        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientas y no se pueden mover.`;
+        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover.`
+        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover.`;
     case "tope":
       return l.disponible === 1
         ? `${nombreDePrenda(l.prenda)}: en el almacén hay 1 y ya la tienes en la lista. No se puede bajar más.`

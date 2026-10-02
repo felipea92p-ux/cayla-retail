@@ -470,7 +470,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
   filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
   `20260915160000_productos_listado_filtros.sql`) → cabecera `EncabezadoPagina` + `ResumenSede` (ADR-0254) →
-  `FiltrosProductos.tsx` (una sola forma, plegable, en las dos vistas) → `ProductosGrilla.tsx` (`?vista=grilla`, default)
+  `FiltrosProductos.tsx` (ADR-0308: buscador con atajo «/», panel abierto en la computadora —cookie `lib/panel-filtros.ts`— en
+  filas «Prenda / Gestión» de `FiltrosPildora.tsx`, hoja `<Modal>` en el celular, cajas de precio con límites reales de
+  `getPreciosExtremos` + `lib/productos-filtro-precio.ts`, chips, «N productos», un solo «Ordenar por» —`lib/productos-orden.ts`,
+  «Más recientes» por defecto— y «Copiar enlace»; estado de la URL en `lib/productos-filtros.ts`, «Activos» por defecto) →
+  `ProductosGrilla.tsx` (`?vista=grilla`, default)
   o `ProductosTabla.tsx` (`?vista=tabla`, ADR-0254: una fila por modelo con foto, colores, tallas, precio, costo, margen,
   stock y estado; debajo de 768 px de tabla, una tarjeta por prenda; clic → ficha de variantes). Las dos usan
   `ProductoPiezas.tsx` y `lib/productos-vista.ts` (colores, tallas en curva, margen con `UMBRAL_MARGEN_BAJO`). La Tabla abre
@@ -665,8 +669,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
   `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
-  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
-  boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
+  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0307 la
+  `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
+  ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
+  (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
+  su botón envía el formulario del ticket (`form="ticket-pos"`), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
@@ -1110,6 +1117,13 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
   no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
+- `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
+  su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
+  minuto la «Isla» (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en
+  `lib/recordatorio-cierre-reglas.ts`, lecturas en `lib/recordatorio-cierre.ts`), porque el layout no se vuelve a pintar al
+  navegar y una caja cerrada desde otra terminal no le llegaría. Si la base no responde devuelve 503 y la isla conserva lo
+  que sabía: «no pude preguntar» nunca se lee como «ya cerraron». «Cerrar caja» lleva a `/caja?cerrar=1` (o, ya en Caja,
+  dispara el evento `cayla:cerrar-caja`) y `CajaAbiertaPanel` abre `CerrarCajaModalV2`. ADR-0305.
 - `/api/padron` → consulta de DNI/RUC. El token del proveedor nunca sale del
   servidor. Devuelve siempre 200 con `fuente` (`padron` | `historial` | `ninguna`)
   y, si vino del padrón, `via` (`sunat_publico` | `proveedor`) — "no pude

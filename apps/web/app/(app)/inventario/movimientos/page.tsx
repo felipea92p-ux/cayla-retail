@@ -191,7 +191,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
 /** Las pantallas a las que llevan los atajos de un movimiento (ADR-0241). Etiquetas de precio no es un módulo: la
  *  protege la RLS de lo que muestra. */
-const MODULOS_DE_ATAJOS = ["cambios", "devoluciones", "bajada_piso", "conteos", "existencias", "apartados"] as const;
+const MODULOS_DE_ATAJOS = ["cambios", "devoluciones", "conteos", "existencias", "apartados"] as const;
 
 // Tres tarjetas leídas desde la tienda (ADR-0234; mismo lenguaje visual que «Prioridades de hoy» de Existencias):
 // lo que ENTRÓ a la sede (del proveedor, del Taller, de una devolución…), lo que SALIÓ y los ajustes. Cada una nombra la

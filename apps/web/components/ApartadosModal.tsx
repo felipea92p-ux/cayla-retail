@@ -75,7 +75,7 @@ export function ApartadosModal({
   const subtitulo =
     apartados.length === 0
       ? "Ninguna prenda apartada"
-      : `${resumen.unidades} ${resumen.unidades === 1 ? "prenda" : "prendas"} para ${resumen.abiertos} ${resumen.abiertos === 1 ? "clienta" : "clientas"}${
+      : `${resumen.unidades} ${resumen.unidades === 1 ? "prenda" : "prendas"} para ${resumen.abiertos} ${resumen.abiertos === 1 ? "cliente" : "clientes"}${
           resumen.vencidos > 0 ? ` · ${resumen.vencidos} ${resumen.vencidos === 1 ? "vencido" : "vencidos"}` : ""
         }`;
 
@@ -120,7 +120,7 @@ export function ApartadosModal({
           </form>
         ) : apartados.length === 0 ? (
           <div className="mt-2 space-y-4">
-            <p className="text-sm text-tinta/65">Cuando apartes una prenda para una clienta, aparece aquí con su fecha límite.</p>
+            <p className="text-sm text-tinta/65">Cuando apartes una prenda para un cliente, aparece aquí con su fecha límite.</p>
             <Boton type="button" onClick={cerrar} className="w-full">
               Cerrar
             </Boton>

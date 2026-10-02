@@ -1,5 +1,15 @@
 [
  {
+  "conname": "acciones_sin_responsable_clave_check",
+  "definicion": "CHECK ((clave ~ '^[a-z0-9_]+$'::text))",
+  "tabla": "retail.acciones_sin_responsable"
+ },
+ {
+  "conname": "acciones_sin_responsable_pkey",
+  "definicion": "PRIMARY KEY (clave)",
+  "tabla": "retail.acciones_sin_responsable"
+ },
+ {
   "conname": "actividad_accion_check",
   "definicion": "CHECK ((accion ~ '^[a-z_]+$'::text))",
   "tabla": "retail.actividad"
@@ -600,8 +610,18 @@
   "tabla": "retail.clientas"
  },
  {
+  "conname": "clientas_anonimizada_sin_club",
+  "definicion": "CHECK (((NOT anonimizada) OR ((club_desde IS NULL) AND (publicidad_desde IS NULL) AND (codigo_club IS NULL) AND (cumple_anio IS NULL))))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_anonimizada_sin_correo",
+  "definicion": "CHECK (((NOT anonimizada) OR ((correo IS NULL) AND (club_ubicacion_id IS NULL))))",
+  "tabla": "retail.clientas"
+ },
+ {
   "conname": "clientas_anonimizada_sin_datos_personales",
-  "definicion": "CHECK (((NOT anonimizada) OR ((dni IS NULL) AND (telefono_whatsapp IS NULL) AND (whatsapp_consentimiento_en IS NULL) AND (cumple_dia IS NULL) AND (cumple_mes IS NULL) AND (tallas IS NULL) AND (COALESCE(nombre, ''::text) = 'Clienta anonimizada'::text))))",
+  "definicion": "CHECK (((NOT anonimizada) OR ((documento_numero IS NULL) AND (telefono_whatsapp IS NULL) AND (whatsapp_consentimiento_en IS NULL) AND (cumple_dia IS NULL) AND (cumple_mes IS NULL) AND (tallas IS NULL) AND (COALESCE(nombre, ''::text) = 'Clienta anonimizada'::text))))",
   "tabla": "retail.clientas"
  },
  {
@@ -615,8 +635,38 @@
   "tabla": "retail.clientas"
  },
  {
+  "conname": "clientas_club_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (club_ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_club_ubicacion_solo_socia",
+  "definicion": "CHECK (((club_ubicacion_id IS NULL) OR (club_desde IS NOT NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_codigo_club_formato",
+  "definicion": "CHECK (((codigo_club IS NULL) OR (codigo_club ~ '^C-[0-9]{4,}$'::text)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_codigo_si_y_solo_si_club",
+  "definicion": "CHECK (((codigo_club IS NULL) = (club_desde IS NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_correo_formato",
+  "definicion": "CHECK (((correo IS NULL) OR ((correo = lower(btrim(correo))) AND (char_length(correo) <= 254) AND (correo ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'::text))))",
+  "tabla": "retail.clientas"
+ },
+ {
   "conname": "clientas_created_por_fkey",
   "definicion": "FOREIGN KEY (created_por) REFERENCES personas(id)",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_cumple_anio_valido",
+  "definicion": "CHECK (((cumple_anio IS NULL) OR ((cumple_anio >= 1900) AND (cumple_anio <= 2100))))",
   "tabla": "retail.clientas"
  },
  {
@@ -630,8 +680,18 @@
   "tabla": "retail.clientas"
  },
  {
-  "conname": "clientas_dni_no_vacio",
-  "definicion": "CHECK (((dni IS NULL) OR (btrim(dni) <> ''::text)))",
+  "conname": "clientas_documento_formato",
+  "definicion": "CHECK (((documento_numero IS NULL) OR ((documento_tipo = 'dni'::text) AND (documento_numero ~ '^[0-9]{8}$'::text)) OR ((documento_tipo = ANY (ARRAY['carne_extranjeria'::text, 'pasaporte'::text])) AND (documento_numero ~ '^[A-Z0-9]{6,12}$'::text))))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_documento_no_vacio",
+  "definicion": "CHECK (((documento_numero IS NULL) OR (btrim(documento_numero) <> ''::text)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_documento_tipo_valido",
+  "definicion": "CHECK ((documento_tipo = ANY (ARRAY['dni'::text, 'carne_extranjeria'::text, 'pasaporte'::text])))",
   "tabla": "retail.clientas"
  },
  {
@@ -652,6 +712,36 @@
  {
   "conname": "clientas_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_preferencias_forma",
+  "definicion": "CHECK ((jsonb_typeof(preferencias) = 'object'::text))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_preferencias_solo_socia",
+  "definicion": "CHECK (((preferencias = '{}'::jsonb) OR (club_desde IS NOT NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_publicidad_exige_club",
+  "definicion": "CHECK (((publicidad_desde IS NULL) OR (club_desde IS NOT NULL)))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_registro_origen_valido",
+  "definicion": "CHECK ((registro_origen = ANY (ARRAY['caja'::text, 'cartel'::text])))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_socia_con_celular",
+  "definicion": "CHECK (((club_desde IS NULL) OR ((telefono_whatsapp IS NOT NULL) AND (telefono_whatsapp ~ '^9[0-9]{8}$'::text))))",
+  "tabla": "retail.clientas"
+ },
+ {
+  "conname": "clientas_socia_con_documento_y_nombre",
+  "definicion": "CHECK (((club_desde IS NULL) OR ((documento_numero IS NOT NULL) AND (NULLIF(btrim(nombre), ''::text) IS NOT NULL))))",
   "tabla": "retail.clientas"
  },
  {
@@ -678,6 +768,346 @@
   "conname": "clientas_fusiones_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.clientas_fusiones"
+ },
+ {
+  "conname": "club_aniversario_escala_anio_valido",
+  "definicion": "CHECK (((anio >= 1) AND (anio <= 5)))",
+  "tabla": "retail.club_aniversario_escala"
+ },
+ {
+  "conname": "club_aniversario_escala_monto_valido",
+  "definicion": "CHECK (((monto > (0)::numeric) AND (monto <= (100000)::numeric)))",
+  "tabla": "retail.club_aniversario_escala"
+ },
+ {
+  "conname": "club_aniversario_escala_pkey",
+  "definicion": "PRIMARY KEY (anio)",
+  "tabla": "retail.club_aniversario_escala"
+ },
+ {
+  "conname": "club_avisos_enviados_clienta_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_deshecho_completo",
+  "definicion": "CHECK (((deshecho_en IS NULL) = (deshecho_por IS NULL)))",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_deshecho_por_fkey",
+  "definicion": "FOREIGN KEY (deshecho_por) REFERENCES personas(id)",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_enviado_por_fkey",
+  "definicion": "FOREIGN KEY (enviado_por) REFERENCES personas(id)",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_referencia_no_vacia",
+  "definicion": "CHECK (((btrim(referencia) <> ''::text) AND (char_length(referencia) <= 200)))",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_tipo_valido",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['cumpleanos'::text, 'aniversario'::text, 'novedades'::text, 'rebaja'::text])))",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.club_avisos_enviados"
+ },
+ {
+  "conname": "club_canjes_anio_club_valido",
+  "definicion": "CHECK ((((tipo = 'aniversario'::text) = (anio_club IS NOT NULL)) AND ((anio_club IS NULL) OR ((anio_club >= 1) AND (anio_club <= 200)))))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_anio_valido",
+  "definicion": "CHECK (((anio >= 2026) AND (anio <= 2200)))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_anulado_completo",
+  "definicion": "CHECK (((anulado_por IS NULL) OR (anulado_en IS NOT NULL)))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_anulado_por_fkey",
+  "definicion": "FOREIGN KEY (anulado_por) REFERENCES personas(id)",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_clienta_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_monto_valido",
+  "definicion": "CHECK ((monto > (0)::numeric))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_pct_valido",
+  "definicion": "CHECK ((((tipo = 'cumpleanos'::text) AND (pct IS NOT NULL) AND (pct >= (1)::numeric) AND (pct <= (50)::numeric)) OR ((tipo = 'aniversario'::text) AND (pct IS NULL))))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_registrado_por_fkey",
+  "definicion": "FOREIGN KEY (registrado_por) REFERENCES personas(id)",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_tipo_no_vacio",
+  "definicion": "CHECK ((btrim(tipo) <> ''::text))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_tipo_valido",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['cumpleanos'::text, 'aniversario'::text])))",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_canjes_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.club_canjes"
+ },
+ {
+  "conname": "club_etiquetas_grupo_valido",
+  "definicion": "CHECK ((grupo = ANY (ARRAY['ocasion'::text, 'estilo'::text, 'evita'::text])))",
+  "tabla": "retail.club_etiquetas"
+ },
+ {
+  "conname": "club_etiquetas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_etiquetas"
+ },
+ {
+  "conname": "club_etiquetas_unico",
+  "definicion": "UNIQUE (grupo, valor)",
+  "tabla": "retail.club_etiquetas"
+ },
+ {
+  "conname": "club_etiquetas_valor_limpio",
+  "definicion": "CHECK (((valor = btrim(valor)) AND (valor <> ''::text) AND (char_length(valor) <= 40)))",
+  "tabla": "retail.club_etiquetas"
+ },
+ {
+  "conname": "club_intentos_registro_celular_formato",
+  "definicion": "CHECK (((celular IS NULL) OR (celular ~ '^[0-9]{9}$'::text)))",
+  "tabla": "retail.club_intentos_registro"
+ },
+ {
+  "conname": "club_intentos_registro_documento_corto",
+  "definicion": "CHECK (((documento_hash IS NULL) OR (char_length(documento_hash) <= 128)))",
+  "tabla": "retail.club_intentos_registro"
+ },
+ {
+  "conname": "club_intentos_registro_ip_no_vacia",
+  "definicion": "CHECK (((btrim(ip_hash) <> ''::text) AND (char_length(ip_hash) <= 128)))",
+  "tabla": "retail.club_intentos_registro"
+ },
+ {
+  "conname": "club_intentos_registro_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_intentos_registro"
+ },
+ {
+  "conname": "club_intentos_registro_tipo_valido",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['consulta'::text, 'registro'::text])))",
+  "tabla": "retail.club_intentos_registro"
+ },
+ {
+  "conname": "club_invitaciones_clienta_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_creada_por_fkey",
+  "definicion": "FOREIGN KEY (creada_por) REFERENCES personas(id)",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_token_formato",
+  "definicion": "CHECK ((token ~ '^[A-Za-z0-9_-]{16}$'::text))",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_usada_antes_de_vencer",
+  "definicion": "CHECK (((usada_en IS NULL) OR (usada_en <= vence_en)))",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_usada_con_texto",
+  "definicion": "CHECK (((usada_en IS NULL) = (texto_version IS NULL)))",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_invitaciones_vigencia",
+  "definicion": "CHECK (((vence_en >= creada_en) AND (vence_en <= (creada_en + '7 days'::interval))))",
+  "tabla": "retail.club_invitaciones"
+ },
+ {
+  "conname": "club_permisos_accion_valida",
+  "definicion": "CHECK ((accion = ANY (ARRAY['otorga'::text, 'revoca'::text])))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_clienta_id_fkey",
+  "definicion": "FOREIGN KEY (clienta_id) REFERENCES retail.clientas(id)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_con_quien_registra",
+  "definicion": "CHECK (((medio = ANY (ARRAY['legado'::text, 'qr_web'::text, 'pagina_cartel'::text])) OR (registrado_por IS NOT NULL) OR ((medio = 'anonimizar'::text) AND (NULLIF(btrim(nota), ''::text) IS NOT NULL))))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_finalidad_valida",
+  "definicion": "CHECK ((finalidad = ANY (ARRAY['club'::text, 'publicidad_whatsapp'::text])))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_legado_con_nota",
+  "definicion": "CHECK (((medio <> 'legado'::text) OR (NULLIF(btrim(nota), ''::text) IS NOT NULL)))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_medio_coherente",
+  "definicion": "CHECK ((((medio = ANY (ARRAY['caja_palabra'::text, 'ficha'::text])) AND (finalidad = 'club'::text) AND (accion = 'otorga'::text)) OR ((medio = 'whatsapp_propio'::text) AND (accion = 'otorga'::text)) OR ((medio = 'qr_web'::text) AND (finalidad = 'publicidad_whatsapp'::text) AND (accion = 'otorga'::text)) OR ((medio = 'pagina_cartel'::text) AND (accion = 'otorga'::text)) OR ((medio = 'pagina_cartel'::text) AND (finalidad = 'publicidad_whatsapp'::text) AND (accion = 'revoca'::text)) OR ((medio = ANY (ARRAY['baja_whatsapp'::text, 'cambio_celular'::text])) AND (finalidad = 'publicidad_whatsapp'::text) AND (accion = 'revoca'::text)) OR ((medio = 'anonimizar'::text) AND (accion = 'revoca'::text)) OR ((medio = 'legado'::text) AND (finalidad = 'club'::text) AND (accion = 'otorga'::text))))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_medio_valido",
+  "definicion": "CHECK ((medio = ANY (ARRAY['caja_palabra'::text, 'ficha'::text, 'whatsapp_propio'::text, 'qr_web'::text, 'pagina_cartel'::text, 'baja_whatsapp'::text, 'cambio_celular'::text, 'anonimizar'::text, 'legado'::text])))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_otorga_con_texto",
+  "definicion": "CHECK (((accion <> 'otorga'::text) OR (medio = 'legado'::text) OR (texto_version IS NOT NULL)))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_pagina_cartel_lo_registra_ella",
+  "definicion": "CHECK (((medio <> 'pagina_cartel'::text) OR (registrado_por IS NULL)))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_publicidad_solo_por_su_mensaje",
+  "definicion": "CHECK (((NOT ((finalidad = 'publicidad_whatsapp'::text) AND (accion = 'otorga'::text))) OR (medio = ANY (ARRAY['whatsapp_propio'::text, 'qr_web'::text, 'pagina_cartel'::text]))))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_qr_web_lo_registra_ella",
+  "definicion": "CHECK (((medio <> 'qr_web'::text) OR (registrado_por IS NULL)))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_registrado_por_fkey",
+  "definicion": "FOREIGN KEY (registrado_por) REFERENCES personas(id)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_texto_completo",
+  "definicion": "CHECK (((texto_tipo IS NULL) = (texto_version IS NULL)))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_texto_del_medio",
+  "definicion": "CHECK (((texto_tipo IS NULL) OR ((medio = ANY (ARRAY['caja_palabra'::text, 'ficha'::text])) AND (texto_tipo = 'club'::text)) OR ((medio = 'whatsapp_propio'::text) AND (texto_tipo = ANY (ARRAY['mensaje_personal'::text, 'mensaje_generico'::text]))) OR ((medio = 'qr_web'::text) AND (texto_tipo = 'pagina_publicidad'::text)) OR ((medio = 'pagina_cartel'::text) AND (finalidad = 'club'::text) AND (texto_tipo = 'terminos'::text)) OR ((medio = 'pagina_cartel'::text) AND (finalidad = 'publicidad_whatsapp'::text) AND (texto_tipo = 'casilla_publicidad'::text))))",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_texto_existe",
+  "definicion": "FOREIGN KEY (texto_tipo, texto_version) REFERENCES retail.club_textos(tipo, version)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_permisos_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.club_permisos"
+ },
+ {
+  "conname": "club_textos_aviso_con_baja",
+  "definicion": "CHECK (((tipo <> ALL (ARRAY['aviso_cumpleanos'::text, 'aviso_aniversario'::text, 'aviso_novedades'::text, 'aviso_rebaja'::text])) OR ((POSITION(('{nombre}'::text) IN (texto)) > 0) AND (\"right\"(texto, 50) = 'Si no quieres recibir más mensajes, responde BAJA.'::text))))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_casilla_con_baja",
+  "definicion": "CHECK (((tipo <> 'casilla_publicidad'::text) OR (POSITION(('BAJA'::text) IN (texto)) > 0)))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_no_vacio",
+  "definicion": "CHECK ((btrim(texto) <> ''::text))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_pagina_con_celular",
+  "definicion": "CHECK (((tipo <> 'pagina_publicidad'::text) OR (POSITION(('{celular}'::text) IN (texto)) > 0)))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_personal_con_codigo",
+  "definicion": "CHECK (((tipo <> 'mensaje_personal'::text) OR (POSITION(('{codigo}'::text) IN (texto)) > 0)))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_pkey",
+  "definicion": "PRIMARY KEY (tipo, version)",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_saludo_con_codigo",
+  "definicion": "CHECK (((tipo <> 'saludo'::text) OR (POSITION(('{codigo}'::text) IN (texto)) > 0)))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_tipo_valido",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['club'::text, 'mensaje_personal'::text, 'mensaje_generico'::text, 'pagina_publicidad'::text, 'terminos'::text, 'privacidad'::text, 'casilla_publicidad'::text, 'saludo'::text, 'aviso_cumpleanos'::text, 'aviso_aniversario'::text, 'aviso_novedades'::text, 'aviso_rebaja'::text])))",
+  "tabla": "retail.club_textos"
+ },
+ {
+  "conname": "club_textos_version_positiva",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.club_textos"
  },
  {
   "conname": "codigos_barras_codigo_key",
@@ -1390,8 +1820,13 @@
   "tabla": "retail.comprobantes"
  },
  {
+  "conname": "comprobantes_carne_pasaporte_formato",
+  "definicion": "CHECK (((cliente_tipo_doc <> ALL (ARRAY['carne_extranjeria'::text, 'pasaporte'::text])) OR (COALESCE(cliente_num_doc, ''::text) ~ '^[A-Z0-9]{6,12}$'::text)))",
+  "tabla": "retail.comprobantes"
+ },
+ {
   "conname": "comprobantes_cliente_tipo_doc_check",
-  "definicion": "CHECK ((cliente_tipo_doc = ANY (ARRAY['dni'::text, 'ruc'::text, 'sin_documento'::text])))",
+  "definicion": "CHECK ((cliente_tipo_doc = ANY (ARRAY['dni'::text, 'ruc'::text, 'carne_extranjeria'::text, 'pasaporte'::text, 'sin_documento'::text])))",
   "tabla": "retail.comprobantes"
  },
  {
@@ -1740,6 +2175,16 @@
   "tabla": "retail.conciliaciones"
  },
  {
+  "conname": "configuracion_empresa_club_aniversario_valido",
+  "definicion": "CHECK ((((club_aniversario_compras >= 1) AND (club_aniversario_compras <= 100)) AND (club_aniversario_monto > (0)::numeric) AND (club_aniversario_monto <= (100000)::numeric) AND ((club_aniversario_dias >= 1) AND (club_aniversario_dias <= 180))))",
+  "tabla": "retail.configuracion_empresa"
+ },
+ {
+  "conname": "configuracion_empresa_club_cumple_pct_valido",
+  "definicion": "CHECK (((club_cumple_pct >= (1)::numeric) AND (club_cumple_pct <= (50)::numeric)))",
+  "tabla": "retail.configuracion_empresa"
+ },
+ {
   "conname": "configuracion_empresa_id_check",
   "definicion": "CHECK (id)",
   "tabla": "retail.configuracion_empresa"
@@ -1757,6 +2202,21 @@
  {
   "conname": "conteo_items_cantidad_contada_check",
   "definicion": "CHECK ((cantidad_contada >= 0))",
+  "tabla": "retail.conteo_items"
+ },
+ {
+  "conname": "conteo_items_cantidad_foto_check",
+  "definicion": "CHECK ((cantidad_foto >= 0))",
+  "tabla": "retail.conteo_items"
+ },
+ {
+  "conname": "conteo_items_confirmada_coherente",
+  "definicion": "CHECK (((confirmada_en IS NULL) OR (cantidad_contada IS NOT NULL)))",
+  "tabla": "retail.conteo_items"
+ },
+ {
+  "conname": "conteo_items_contada_anterior_check",
+  "definicion": "CHECK ((contada_anterior >= 0))",
   "tabla": "retail.conteo_items"
  },
  {
@@ -2330,6 +2790,91 @@
   "tabla": "retail.familias"
  },
  {
+  "conname": "frescura_decisiones_accion_valida",
+  "definicion": "CHECK ((accion = ANY (ARRAY['cambie_lugar'::text, 'hasta_agotar'::text, 'traslade'::text, 'rebaje'::text, 'anulacion'::text])))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_anterior_coherente",
+  "definicion": "CHECK ((((anterior_id IS NULL) = (anterior_accion IS NULL)) AND (anterior_id IS DISTINCT FROM id)))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_anula_una_decision",
+  "definicion": "CHECK (((accion <> 'anulacion'::text) OR ((anterior_accion = ANY (ARRAY['cambie_lugar'::text, 'hasta_agotar'::text, 'traslade'::text, 'rebaje'::text])) IS TRUE)))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_color_codigo_fkey",
+  "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_misma_prenda",
+  "definicion": "FOREIGN KEY (anterior_id, ubicacion_id, producto_id, color_clave, anterior_accion) REFERENCES retail.frescura_decisiones(id, ubicacion_id, producto_id, color_clave, accion)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_nota",
+  "definicion": "CHECK (((nota IS NULL) OR ((char_length(btrim(nota)) >= 1) AND (char_length(btrim(nota)) <= 280))))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_plazo",
+  "definicion": "CHECK ((((accion = 'anulacion'::text) = (plazo_dias IS NULL)) AND ((plazo_dias IS NULL) OR ((plazo_dias >= 1) AND (plazo_dias <= 30)))))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_renglon",
+  "definicion": "UNIQUE (id, ubicacion_id, producto_id, color_clave, accion)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_token_unico",
+  "definicion": "UNIQUE (token_cliente)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_transferencia_id_fkey",
+  "definicion": "FOREIGN KEY (transferencia_id) REFERENCES retail.transferencias(id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_traslado",
+  "definicion": "CHECK (((accion = 'traslade'::text) = (transferencia_id IS NOT NULL)))",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
+  "conname": "frescura_decisiones_una_respuesta",
+  "definicion": "UNIQUE (anterior_id)",
+  "tabla": "retail.frescura_decisiones"
+ },
+ {
   "conname": "gastos_anulacion_coherente",
   "definicion": "CHECK ((((estado = 'vigente'::text) AND (motivo_anulacion IS NULL) AND (anulado_por IS NULL) AND (anulado_en IS NULL)) OR ((estado = 'anulado'::text) AND (motivo_anulacion IS NOT NULL) AND (TRIM(BOTH FROM motivo_anulacion) <> ''::text) AND (anulado_en IS NOT NULL))))",
   "tabla": "retail.gastos"
@@ -2760,6 +3305,61 @@
   "tabla": "retail.medios_de_cobro"
  },
  {
+  "conname": "metas_ajustes_automatica_sin_valor",
+  "definicion": "CHECK (((motivo = 'automatica'::text) = (meta IS NULL)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_ajustes_otro_con_detalle",
+  "definicion": "CHECK (((motivo <> 'otro'::text) OR (detalle IS NOT NULL)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_cambiado_por_fkey",
+  "definicion": "FOREIGN KEY (cambiado_por) REFERENCES personas(id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_detalle_check",
+  "definicion": "CHECK (((detalle IS NULL) OR ((char_length(btrim(detalle)) >= 1) AND (char_length(btrim(detalle)) <= 80))))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_mes_check",
+  "definicion": "CHECK ((mes = (date_trunc('month'::text, (mes)::timestamp with time zone))::date))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_meta_antes_check",
+  "definicion": "CHECK ((meta_antes >= (0)::numeric))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_meta_check",
+  "definicion": "CHECK (((meta IS NULL) OR (meta > (0)::numeric)))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['cambia_horario'::text, 'capacitacion'::text, 'cubre_otra_tienda'::text, 'vuelve_de_descanso'::text, 'otro'::text, 'automatica'::text])))",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.metas_persona_ajustes"
+ },
+ {
   "conname": "modulos_clave_check",
   "definicion": "CHECK ((clave ~ '^[a-z_]+$'::text))",
   "tabla": "retail.modulos"
@@ -3125,6 +3725,11 @@
   "tabla": "retail.pedidos_no_atendidos"
  },
  {
+  "conname": "pedidos_no_atendidos_motivo_valido",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['no_habia_talla'::text, 'se_probo_no_llevo'::text])))",
+  "tabla": "retail.pedidos_no_atendidos"
+ },
+ {
   "conname": "pedidos_no_atendidos_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.pedidos_no_atendidos"
@@ -3137,6 +3742,11 @@
  {
   "conname": "pedidos_no_atendidos_producto_o_descripcion",
   "definicion": "CHECK (((producto_id IS NOT NULL) OR (NULLIF(btrim(COALESCE(descripcion_libre, ''::text)), ''::text) IS NOT NULL)))",
+  "tabla": "retail.pedidos_no_atendidos"
+ },
+ {
+  "conname": "pedidos_no_atendidos_razon_solo_si_se_probo",
+  "definicion": "CHECK (((razon IS NULL) OR ((motivo = 'se_probo_no_llevo'::text) AND (razon = ANY (ARRAY['no_le_quedo'::text, 'precio'::text, 'color'::text, 'lo_piensa'::text])))))",
   "tabla": "retail.pedidos_no_atendidos"
  },
  {
@@ -3573,6 +4183,31 @@
   "conname": "producto_fotos_producto_id_fkey",
   "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
   "tabla": "retail.producto_fotos"
+ },
+ {
+  "conname": "producto_origen_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.producto_origen"
+ },
+ {
+  "conname": "producto_origen_pkey",
+  "definicion": "PRIMARY KEY (producto_id)",
+  "tabla": "retail.producto_origen"
+ },
+ {
+  "conname": "producto_origen_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE",
+  "tabla": "retail.producto_origen"
+ },
+ {
+  "conname": "producto_origen_terminal_id_fkey",
+  "definicion": "FOREIGN KEY (terminal_id) REFERENCES retail.terminales(id)",
+  "tabla": "retail.producto_origen"
+ },
+ {
+  "conname": "producto_origen_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.producto_origen"
  },
  {
   "conname": "productos_aprobado_por_fkey",
@@ -5020,6 +5655,11 @@
   "tabla": "retail.ubicaciones"
  },
  {
+  "conname": "ubicaciones_whatsapp_numero_formato",
+  "definicion": "CHECK (((whatsapp_numero IS NULL) OR (whatsapp_numero ~ '^9[0-9]{8}$'::text)))",
+  "tabla": "retail.ubicaciones"
+ },
+ {
   "conname": "variante_etiquetas_etiqueta_id_fkey",
   "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
   "tabla": "retail.variante_etiquetas"
@@ -5060,8 +5700,8 @@
   "tabla": "retail.variantes"
  },
  {
-  "conname": "variantes_producto_talla_color_unico",
-  "definicion": "UNIQUE (producto_id, talla_id, color_codigo)",
+  "conname": "variantes_sin_mezcla_de_color",
+  "definicion": "TRIGGER DEFERRABLE",
   "tabla": "retail.variantes"
  },
  {
@@ -5115,6 +5755,11 @@
   "tabla": "retail.venta_items"
  },
  {
+  "conname": "venta_items_descuento_club_valido",
+  "definicion": "CHECK (((descuento_club_unitario >= (0)::numeric) AND (descuento_club_unitario <= descuento_unitario)))",
+  "tabla": "retail.venta_items"
+ },
+ {
   "conname": "venta_items_descuento_etiqueta_id_fkey",
   "definicion": "FOREIGN KEY (descuento_etiqueta_id) REFERENCES retail.etiquetas(id)",
   "tabla": "retail.venta_items"
@@ -5131,7 +5776,7 @@
  },
  {
   "conname": "venta_items_motivo_coherente_con_descuento",
-  "definicion": "CHECK ((((descuento_unitario = (0)::numeric) AND (motivo_descuento IS NULL)) OR ((descuento_unitario > (0)::numeric) AND (motivo_descuento IS NOT NULL)))) NOT VALID",
+  "definicion": "CHECK (((((descuento_unitario - descuento_club_unitario) = (0)::numeric) AND (motivo_descuento IS NULL)) OR (((descuento_unitario - descuento_club_unitario) > (0)::numeric) AND (motivo_descuento IS NOT NULL)))) NOT VALID",
   "tabla": "retail.venta_items"
  },
  {
@@ -5171,7 +5816,7 @@
  },
  {
   "conname": "venta_pagos_metodo_check",
-  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text])))",
+  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))",
   "tabla": "retail.venta_pagos"
  },
  {

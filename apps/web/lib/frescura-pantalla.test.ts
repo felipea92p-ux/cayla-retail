@@ -201,7 +201,7 @@ describe("colores A (Felipe, 2026-09-28): ninguna fila en rojo", () => {
     expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toMatchObject({ texto: "Clásico, espera su estación", tono: "pizarra" });
     expect(estadoVista(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }))).toMatchObject({ texto: "Sus números no cuadran", tono: "apagado", icono: true });
     const apartada = prenda({ pisoHoy: 0, apartadasHoy: 3, apartadasPisoHoy: 3, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
-    expect(estadoVista(apartada)).toMatchObject({ texto: "Apartada para clientas", tono: "neutro", previo: "iba en Vigente · 3 apartadas" });
+    expect(estadoVista(apartada)).toMatchObject({ texto: "Apartada para clientes", tono: "neutro", previo: "iba en Vigente · 3 apartadas" });
   });
 });
 
@@ -257,7 +257,7 @@ describe("dónde está cada prenda: la tabla es lo colgado (o apartado desde el 
     const delPiso = prenda({ pisoHoy: 0, almacenHoy: 2, apartadasHoy: 3, apartadasPisoHoy: 1, estado: iba });
     expect(presenciaDe(delPiso)).toBe("apartada");
     expect(estadoVista(delPiso).previo).toBe("iba en Vigente · 1 apartada");
-    expect(detalleVista(delPiso, ctx()).porque).toContain("está apartado para clientas (1)");
+    expect(detalleVista(delPiso, ctx()).porque).toContain("está apartado para clientes (1)");
   });
 
   it("en la sede real, la que solo está en el almacén no entra a la tabla y se nombra al pie", () => {
@@ -496,7 +496,7 @@ describe("la hoja de detalle", () => {
     expect(dudosa.dias).toBeNull();
     const apartada = detalleVista(prenda({ pisoHoy: 0, apartadasHoy: 2, apartadasPisoHoy: 2, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } }), ctx());
     expect(apartada.acciones).toEqual([]);
-    expect(apartada.sinAcciones).toBe("Nada: tiene dueña. Vuelve a medirse si alguna se libera.");
+    expect(apartada.sinAcciones).toBe("Nada: tiene dueño. Vuelve a medirse si alguna se libera.");
     expect(apartada.pausa).toBe(true);
   });
 

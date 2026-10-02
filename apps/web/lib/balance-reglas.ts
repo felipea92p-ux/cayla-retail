@@ -240,7 +240,7 @@ const QUE_ES: Record<string, [string, string]> = {
   "201": ["mercaderías", "el stock × costo de cada prenda"],
   "33": ["activos fijos", "la suma de los activos fijos"],
   "421": ["facturas por pagar", "la suma de las facturas"],
-  "122": ["adelantos de clientas", "la suma de las separaciones pendientes"],
+  "122": ["adelantos de clientes", "la suma de las separaciones pendientes"],
 };
 
 /** El texto de una causa sin su aclaración entre paréntesis (para la franja de «Causa probable»). */
@@ -320,7 +320,7 @@ const NOMBRE_LINEA: Record<string, string> = {
   "421": "Facturas por pagar",
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
-  "122": "Adelantos de clientas",
+  "122": "Adelantos de clientes",
   "50": "Capital",
   "52": "Aportes del dueño",
   "591": "Utilidades acumuladas",

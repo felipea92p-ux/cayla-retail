@@ -204,26 +204,43 @@ ${K("interna", "not has_function_privilege('authenticated', 'retail.fn_cargar_st
   },
 );
 
-// La integrante de la siembra (TRU) ve Existencias, Conteos y Traslados, así que `fn_puede_ajustar_inventario()` le da
-// `true` — la carga inicial (`cargar_stock_inicial`) acepta esa capacidad O «editarCatalogo», SIN CAMBIO por ADR-0250
-// (2026-09-27: «Ajustar stock» es otro módulo, pero cargar una prenda nueva no es ajustar, ADR-0235). Su rol NO tiene
-// «Bajada al piso». «Colgadas en el piso» es una bajada y la pide (ADR-0212): la base la frena, y por eso «Ajustar» le
+// La carga inicial (`cargar_stock_inicial`) acepta `fn_puede_ajustar_inventario()` (Existencias, Conteos o Traslados) O
+// «editarCatalogo», SIN CAMBIO por ADR-0250/0306 (cargar una prenda nueva no es ajustar, ADR-0235). «Colgadas en el piso»
+// es una bajada y desde ADR-0306 (2026-10-02) la pide Existencias —«Bajada al piso» ya no es un módulo—: con Existencias
+// la carga puede entrar al piso; con Conteos y Traslados pero sin Existencias la base la frena, y por eso «Ajustar» le
 // manda sus prendas nuevas al almacén (`cargaInicialAlPiso`, ajuste-reglas.ts) en vez de dejarla con este error al
-// confirmar.
+// confirmar. Los módulos del rol integrante se fijan en cada caso: la prueba no depende de cómo esté la siembra.
 const INTEGRANTE = "22222222-2222-4222-8222-000000000003";
-correr(
-  "7. Sin el módulo «Bajada al piso»: la carga inicial entra al almacén; al piso, la base la frena",
-  `set local request.jwt.claim.sub = '${INTEGRANTE}';
+const conModulos = (...modulos) => `${COMO_POSTGRES}delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('integrante'), unnest(array[${modulos.map((m) => `'${m}'`).join(", ")}]);
+set local request.jwt.claim.sub = '${INTEGRANTE}';
 set local request.jwt.claims = '{"sub":"${INTEGRANTE}","role":"authenticated"}';
-${COMO_API}${K("ajusta", "retail.fn_puede_ajustar_inventario()")}
-${K("baja", "retail.fn_ve_modulo('bajada_piso')")}
+${COMO_API}`;
+correr(
+  "7a. Con Existencias: la carga inicial puede entrar al piso (con su bajada) y al almacén",
+  `${conModulos("existencias")}${K("ajusta", "retail.fn_puede_ajustar_inventario()")}
+${K("ve", "retail.fn_ve_modulo('existencias')")}
+${K("al_piso", carga(items(["v1", 2]), true))}
+${K("al_almacen", carga(items(["v2", 2]), false))}
+${COMO_POSTGRES}${K("piso_v1", stock("v1", "piso"))}
+${K("alm_v2", stock("v2", "alm"))}`,
+  (d) => {
+    afirmar("la integrante puede ajustar y ve Existencias", d.ajusta === "true" && d.ve === "true", `ajusta=${d.ajusta} ve=${d.ve}`);
+    afirmar("al piso pasa y deja las 2 prendas en el piso", j(d.al_piso)?.ok === true && d.piso_v1 === "2", `${d.al_piso} piso=${d.piso_v1}`);
+    afirmar("al almacén entra sin problema", j(d.al_almacen)?.ok === true && d.alm_v2 === "2", `${d.al_almacen} alm=${d.alm_v2}`);
+  },
+);
+
+correr(
+  "7b. Sin Existencias (Conteos y Traslados): la carga inicial entra al almacén; al piso, la base la frena",
+  `${conModulos("conteos", "traslados")}${K("ajusta", "retail.fn_puede_ajustar_inventario()")}
+${K("ve", "retail.fn_ve_modulo('existencias')")}
 ${K("al_piso", carga(items(["v1", 2]), true))}
 ${K("al_almacen", carga(items(["v2", 2]), false))}
 ${COMO_POSTGRES}${K("v1", movs("v1"))}
 ${K("alm_v2", stock("v2", "alm"))}`,
   (d) => {
-    afirmar("(la siembra) la integrante puede ajustar stock", d.ajusta === "true", `ajusta=${d.ajusta}`);
-    afirmar("(la siembra) y su rol no tiene «Bajada al piso»", d.baja === "false", `baja=${d.baja}`);
+    afirmar("puede ajustar (Conteos y Traslados) pero no ve Existencias", d.ajusta === "true" && d.ve === "false", `ajusta=${d.ajusta} ve=${d.ve}`);
     const piso = j(d.al_piso);
     afirmar("al piso se rechaza con `bajada_sin_modulo`", piso && piso.ok === false && piso.hint === "bajada_sin_modulo", d.al_piso);
     afirmar("y no queda nada a medias (ni la entrada al almacén)", d.v1 === "0", `movimientos v1=${d.v1}`);

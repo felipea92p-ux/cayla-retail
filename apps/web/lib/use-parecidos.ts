@@ -20,11 +20,24 @@ import type { Parecido } from "@/components/alta-producto/AvisoParecidos";
 type Resultado = { clave: string; items: Parecido[]; fallo: boolean };
 const SIN_RESULTADO: Resultado = { clave: "", items: [], fallo: false };
 
-export function useParecidos({ nombre, activo, excluirId }: { nombre: string; activo: boolean; excluirId?: string }) {
+export function useParecidos({
+  nombre,
+  activo,
+  excluirId,
+  marcaId,
+}: {
+  nombre: string;
+  activo: boolean;
+  excluirId?: string;
+  /** Un nombre es único POR MARCA (ADR-0294): con este dato (`""` = sin marca) solo cuentan los productos de esa marca, igual que la base. Sin él, todas. */
+  marcaId?: string;
+}) {
   const peticion = useRef(0);
   const [resultado, setResultado] = useState<Resultado>(SIN_RESULTADO);
   const [reintento, setReintento] = useState(0);
   const [confirmoPara, setConfirmoPara] = useState("");
+  // Un resultado vale para ese nombre Y esa marca: cambiar la marca cambia la respuesta de la base.
+  const clave = `${nombre}\u0000${marcaId ?? "*"}`;
 
   useEffect(() => {
     if (!activo || !nombre) return;
@@ -38,18 +51,23 @@ export function useParecidos({ nombre, activo, excluirId }: { nombre: string; ac
       try {
         // Parámetros LITERALES (no un spread): `pnpm datos:comparar` los lee del código para avisar si la base no los acepta.
         const { data, error } = await createClient()
-          .rpc("buscar_productos_parecidos", { p_referencia: nombre, p_excluir_id: excluirId })
+          .rpc("buscar_productos_parecidos", {
+            p_referencia: nombre,
+            p_excluir_id: excluirId,
+            p_marca_id: marcaId || undefined,
+            p_por_marca: marcaId !== undefined,
+          })
           .abortSignal(control.signal);
         resultadoNuevo =
           error || !data
-            ? { clave: nombre, items: [], fallo: true }
+            ? { clave, items: [], fallo: true }
             : {
-                clave: nombre,
+                clave,
                 fallo: false,
                 items: data.map((p) => ({ id: p.id, referencia: p.referencia, categoria: p.categoria, nivel: p.nivel as Parecido["nivel"] })),
               };
       } catch {
-        resultadoNuevo = { clave: nombre, items: [], fallo: true };
+        resultadoNuevo = { clave, items: [], fallo: true };
       } finally {
         clearTimeout(corte);
       }
@@ -57,15 +75,15 @@ export function useParecidos({ nombre, activo, excluirId }: { nombre: string; ac
       setResultado(resultadoNuevo);
     }, 350);
     return () => clearTimeout(espera);
-  }, [nombre, activo, excluirId, reintento]);
+  }, [nombre, activo, excluirId, marcaId, clave, reintento]);
 
   // Un resultado solo vale para el nombre con el que se pidió.
-  const vigente = resultado.clave === nombre ? resultado : SIN_RESULTADO;
+  const vigente = resultado.clave === clave ? resultado : SIN_RESULTADO;
   return {
     items: vigente.items,
     fallo: vigente.fallo,
     /** Todavía no se sabe si el nombre es duplicado: quien lo usa debe mantener cerrado lo que sigue. */
-    comprobando: activo && nombre !== "" && resultado.clave !== nombre,
+    comprobando: activo && nombre !== "" && resultado.clave !== clave,
     hayIdentico: vigente.items.some((p) => p.nivel === "identico"),
     hayUnaLetra: vigente.items.some((p) => p.nivel === "una_letra"),
     confirmo: confirmoPara === nombre,

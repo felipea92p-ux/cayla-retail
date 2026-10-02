@@ -103,15 +103,15 @@ function camposDeLaGuia(
           nombre: problema ? "Documento completo" : "Documento",
           requerido: problema !== null || socia,
           hecho: e.documentoNumero !== "" && problema === null,
-          pendiente: problema ?? "Es socia del club: su documento no se puede dejar vacío.",
+          pendiente: problema ?? "Es miembro del club: su documento no se puede dejar vacío.",
         },
-        { id: "nombre", nombre: "Nombre", requerido: socia, hecho: e.nombre.trim() !== "", pendiente: "Es socia del club: su nombre no se puede dejar vacío." },
+        { id: "nombre", nombre: "Nombre", requerido: socia, hecho: e.nombre.trim() !== "", pendiente: "Es miembro del club: su nombre no se puede dejar vacío." },
         {
           id: "celular",
           nombre: "Celular",
           requerido: c.clubDesde !== null,
           hecho: e.telefonoWhatsapp.trim() !== "",
-          pendiente: "Es socia del club: su celular no se puede dejar vacío.",
+          pendiente: "Es miembro del club: su celular no se puede dejar vacío.",
         },
         cumple(cumpleDeEdicion(e)),
         quien,
@@ -124,7 +124,7 @@ function camposDeLaGuia(
         quien,
       ];
     case "unir":
-      return [{ id: "otra", nombre: "La otra ficha", requerido: true, hecho: estado.aFusionar !== null, pendiente: "Busca y elige la otra ficha de esta clienta." }, quien];
+      return [{ id: "otra", nombre: "La otra ficha", requerido: true, hecho: estado.aFusionar !== null, pendiente: "Busca y elige la otra ficha de este cliente." }, quien];
     case "baja":
       return [quien];
     case "ver":
@@ -171,7 +171,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
     const { ficha, error } = await cargarFichaClienta(id);
     setCargando(false);
     if (error || !ficha) {
-      avisar.error(traducirError(error, "abrir la ficha de la clienta"));
+      avisar.error(traducirError(error, "abrir la ficha del cliente"));
       onClose();
       return;
     }
@@ -181,7 +181,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
   if (cargando || !ficha) {
     return (
-      <Modal titulo="Clienta" subtitulo="Cargando…" onClose={onClose} variante="hoja">
+      <Modal titulo="Cliente" subtitulo="Cargando…" onClose={onClose} variante="hoja">
         <p className="text-sm text-tinta/65">Un momento…</p>
       </Modal>
     );
@@ -235,11 +235,11 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
       return;
     }
     if (c.clubDesde !== null && edicion.telefonoWhatsapp.trim() === "") {
-      avisar.error("Es socia del club: su celular no se puede dejar vacío.", { enfocar: ID_CELULAR_CLUB });
+      avisar.error("Es miembro del club: su celular no se puede dejar vacío.", { enfocar: ID_CELULAR_CLUB });
       return;
     }
     if (c.clubDesde !== null && (edicion.documentoNumero.trim() === "" || edicion.nombre.trim() === "")) {
-      avisar.error("Es socia del club: su documento y su nombre no se pueden dejar vacíos.", edicion.documentoNumero.trim() === "" ? { enfocar: ID_NUMERO_DOCUMENTO } : undefined);
+      avisar.error("Es miembro del club: su documento y su nombre no se pueden dejar vacíos.", edicion.documentoNumero.trim() === "" ? { enfocar: ID_NUMERO_DOCUMENTO } : undefined);
       return;
     }
     const cumpleEditado = cumpleDeEdicion(edicion);
@@ -255,27 +255,27 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
       "editar la ficha",
       () =>
         avisar.exito("Ficha actualizada", {
-          detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir ella, escaneando el cartel del club." : undefined,
+          detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir escaneando el cartel del club." : undefined,
         }),
     );
   }
 
   async function onArchivar(anonimizando: boolean) {
     if (motivoArchivo.trim() === "") {
-      avisar.error("Escribe un motivo antes de archivar a esta clienta.");
+      avisar.error("Escribe un motivo antes de archivar a este cliente.");
       return;
     }
     const firma = responsable.firma();
     await guardarAccion(
       () => archivarClienta(id, motivoArchivo, anonimizando, c.version, firma),
       anonimizando ? "anonimizar la ficha" : "archivar la ficha",
-      () => avisar.exito(anonimizando ? "Ficha anonimizada" : "Clienta archivada"),
+      () => avisar.exito(anonimizando ? "Ficha anonimizada" : "Cliente archivado"),
     );
   }
 
   async function onReactivar() {
     const firma = responsable.firma();
-    await guardarAccion(() => reactivarClienta(id, c.version, firma), "reactivar la ficha", () => avisar.exito("Clienta reactivada"));
+    await guardarAccion(() => reactivarClienta(id, c.version, firma), "reactivar la ficha", () => avisar.exito("Cliente reactivado"));
   }
 
   async function onBuscarParaUnir(e: React.FormEvent) {
@@ -318,7 +318,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
       "registrar su BAJA",
       () =>
         avisar.exito("BAJA registrada", {
-          detalle: fichas > 1 ? `Sin novedades por WhatsApp desde hoy, en las ${fichas} fichas con ese celular. Sigue siendo socia.` : "Sin novedades por WhatsApp desde hoy. Sigue siendo socia.",
+          detalle: fichas > 1 ? `Sin novedades por WhatsApp desde hoy, en las ${fichas} fichas con ese celular. Sigue siendo miembro.` : "Sin novedades por WhatsApp desde hoy. Sigue siendo miembro.",
         }),
     );
   }
@@ -338,7 +338,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             ? "Ficha anonimizada — sin datos personales (Ley 29733)"
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
-              : `Archivada: ${c.motivoArchivo}`
+              : `Ficha archivada: ${c.motivoArchivo}`
           : [documento, c.telefonoWhatsapp, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
       }
       onClose={onClose}
@@ -354,7 +354,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                   registrar y la historia del permiso (tanda 1f, `fn_clienta_permisos`). */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
-                <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es socia"} />
+                <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es miembro"} />
                 <Dato etiqueta="Frecuente" valor={frecuente.esFrecuente ? "Sí" : `Falta ${frecuente.faltanParaFrecuente}`} tono={frecuente.esFrecuente ? "verde" : undefined} />
                 <Dato etiqueta="Su sede" valor={suSede.valor} detalle={suSede.detalle} />
               </div>
@@ -362,9 +362,9 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               {!c.anonimizada && (
                 <div className="flex flex-wrap gap-1.5">
                   {enClub === "no_socia" ? (
-                    <Chip tono="pizarra">Identificada</Chip>
+                    <Chip tono="pizarra">Identificado</Chip>
                   ) : (
-                    <Chip tono={frecuente.esFrecuente ? "verde" : "neutro"}>{frecuente.esFrecuente ? "Socia frecuente" : "Socia"}</Chip>
+                    <Chip tono={frecuente.esFrecuente ? "verde" : "neutro"}>{frecuente.esFrecuente ? "Miembro frecuente" : "Miembro"}</Chip>
                   )}
                   {enClub === "socia_con_publicidad" && <Chip tono="verde">Publicidad</Chip>}
                   {/* Ya no es tocable (tanda 1g, G-1): sin QR personal, la publicidad la pide ella desde el cartel. */}
@@ -393,14 +393,14 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 (enClub === "no_socia" ? (
                   <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
                     <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
-                    {faltaParaElClub ?? "Se une ella, escaneando el cartel del club con su celular y este mismo documento."}
+                    {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
                   </div>
                 ) : (
                   <div className="card-cayla space-y-3 p-4">
                     <p className="label-cayla text-[11px] text-tinta/65">Permisos · dos cosas distintas</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="label-cayla w-32 shrink-0 text-[10.5px] text-tinta/55">Club</span>
-                      <Chip tono="verde">Socia</Chip>
+                      <Chip tono="verde">Miembro</Chip>
                       <span className="text-xs text-tinta/60">
                         desde {fecha(c.clubDesde!)}
                         {c.codigoClub ? ` · ${c.codigoClub}` : ""} · su cupón de cumpleaños y su vale de aniversario, en tienda
@@ -411,12 +411,12 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                       {c.publicidadDesde ? (
                         <>
                           <Chip tono="verde">Con publicidad</Chip>
-                          <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)} · la pidió ella</span>
+                          <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)} · la pidió por su cuenta</span>
                         </>
                       ) : (
                         <>
                           <Chip tono="neutro">Sin publicidad</Chip>
-                          <span className="text-xs text-tinta/60">no la pidió: es socia sin mensajes</span>
+                          <span className="text-xs text-tinta/60">no la pidió: es miembro sin mensajes</span>
                         </>
                       )}
                     </div>
@@ -429,7 +429,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                       </div>
                     )}
                     <p className="text-xs text-tinta/55">
-                      La publicidad solo la puede dar ella: marcando la casilla al unirse desde el cartel. Aquí no se marca. «Registrar su
+                      La publicidad solo la puede dar el cliente: marcando la casilla al unirse desde el cartel. Aquí no se marca. «Registrar su
                       BAJA» es para cuando te escribe BAJA: efecto inmediato, vale para las 3 tiendas.
                     </p>
                   </div>
@@ -609,7 +609,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
           {modo === "unir" && (
             <div className="space-y-4">
               <p className="text-sm text-tinta/70">
-                Busca la otra ficha de esta misma clienta (la que se creó con su celular, por ejemplo). Sus ventas, cambios y apartados
+                Busca la otra ficha de este mismo cliente (la que se creó con su celular, por ejemplo). Sus ventas, cambios y apartados
                 pasan a <strong>esta</strong> ficha; la otra queda anonimizada y archivada.
               </p>
               <CampoGuiado id="otra" guia={guia} titulo="La otra ficha" className="space-y-3">
@@ -666,7 +666,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             <div className="space-y-5">
               <p className="text-sm text-tinta/75">
                 Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni los avisos de sus
-                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo socia</strong>: su cupón de cumpleaños y su vale de aniversario
+                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: su cupón de cumpleaños y su vale de aniversario
                 siguen, en tienda.
               </p>
               <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {c.telefonoWhatsapp}.</p>

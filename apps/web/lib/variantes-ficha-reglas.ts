@@ -374,7 +374,7 @@ export function bloqueoPorVenta(
   if (vendidas.length === 0) return null;
   const nombres = vendidas.map((f) => f.guardada?.codigo ?? nombreVariante(f, n));
   const lista = nombres.length <= 3 ? nombres.join(", ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
-  return `${lista} ya ${vendidas.length === 1 ? "salió" : "salieron"} con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.`;
+  return `${lista} ya ${vendidas.length === 1 ? "salió" : "salieron"} con un cliente (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.`;
 }
 
 /** «Sin color» se ofrece al corregir solo si no deja a la prenda mezclando: todas las demás activas ya son «Sin color». */
@@ -672,6 +672,13 @@ export function cambiarFila(filas: readonly FilaFicha[], clave: string, cambio: 
 /** Quita una fila NUEVA (una que ya existe no se quita: se desactiva). */
 export function quitarNueva(filas: readonly FilaFicha[], clave: string): FilaFicha[] {
   return filas.filter((f) => f.clave !== clave || f.id !== null);
+}
+
+/** «Desactivar color»: desactiva TODAS las tallas del color de una vez. Las que ya existen se desactivan (nunca se borran: guardan
+ *  stock e historia); las nuevas, que todavía no existen, simplemente se quitan. */
+export function desactivarColor(filas: readonly FilaFicha[], claves: readonly string[]): FilaFicha[] {
+  const grupo = new Set(claves);
+  return filas.filter((f) => !grupo.has(f.clave) || f.id !== null).map((f) => (grupo.has(f.clave) ? { ...f, activo: false } : f));
 }
 
 // ---------------------------------------------------------------------------

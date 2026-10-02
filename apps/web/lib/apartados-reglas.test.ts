@@ -106,7 +106,7 @@ describe("validarApartar", () => {
   });
   it("exige nombre y contacto, ignorando espacios", () => {
     const e = validarApartar({ ...ok, clienta: "   ", contacto: "" }, 5, HOY);
-    expect(e.clienta).toMatch(/nombre de la clienta/);
+    expect(e.clienta).toMatch(/nombre del cliente/);
     expect(e.contacto).toMatch(/teléfono o WhatsApp/);
   });
   it("la fecha límite: obligatoria, no pasada, y con tope", () => {

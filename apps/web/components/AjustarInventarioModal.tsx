@@ -64,7 +64,7 @@ import { firmar } from "@/lib/responsable-reglas";
 // ADR-0235: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
 // (`ajuste_sin_historia`)—: su primera cantidad entra como STOCK INICIAL (`cargar_stock_inicial`, una entrada), así
 // Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
-// «En el piso» esa carga es además una bajada, que pide el módulo «Bajada al piso» (ADR-0212): sin él, lo nuevo entra al
+// «En el piso» esa carga es además una bajada, que pide Existencias (ADR-0306): sin él, lo nuevo entra al
 // almacén —como en «Nuevo producto»— y la fila lo avisa, en vez de fallar al confirmar.
 //
 // Lo que se escribe en cada talla depende del motivo (`modoDeAjuste`, Felipe 2026-09-28): con «Conteo físico», cuántas

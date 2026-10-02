@@ -53,7 +53,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
         indice={4}
         colorearCifra
         valor={<CifraAnimada valor={resumen.porVencer} />}
-        contexto={resumen.porVencer > 0 ? "Son las clientas con más chance de volver hoy a comprar." : "Ninguna vence pronto."}
+        contexto={resumen.porVencer > 0 ? "Son los clientes con más chance de volver hoy a comprar." : "Ninguna vence pronto."}
       >
         {resumen.vigentes > 0 && <Puntos encendidos={resumen.porVencer} total={resumen.vigentes} clase="g-baja" />}
       </TarjetaKpiVidrio>
@@ -65,7 +65,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
         indice={5}
         colorearCifra
         valor={<CifraAnimada valor={resumen.vencidas} />}
-        contexto={resumen.vencidas > 0 ? "Ya pasó su plazo: la clienta ya no tiene el precio que se le cotizó." : "Ninguna vencida."}
+        contexto={resumen.vencidas > 0 ? "Ya pasó su plazo: el cliente ya no tiene el precio que se le cotizó." : "Ninguna vencida."}
       >
         {enPie > 0 && <Puntos encendidos={resumen.vencidas} total={enPie} clase="g-neutro" />}
       </TarjetaKpiVidrio>

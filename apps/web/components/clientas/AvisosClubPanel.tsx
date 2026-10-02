@@ -15,6 +15,8 @@ import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BeneficiosClubModal } from "@/components/clientas/BeneficiosClubModal";
 import { useResponsable } from "@/lib/useResponsable";
+import { useSedeActiva } from "@/components/SedeActiva";
+import { firmaOmitida, type ClaveSinResponsable } from "@/lib/responsable-omitido";
 import { traducirError } from "@/lib/error-escritura";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
@@ -84,6 +86,13 @@ export function AvisosClubPanel({
 }) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId: sede.id, etiqueta: sede.nombre });
+  // Con la cuenta de una PERSONA, los avisos firman a su nombre sin elegir a nadie (Felipe, 2026-10-02): «Enviar», «Deshacer» y
+  // «Pidió BAJA» son acciones sin responsable (`lib/responsable-omitido.ts`). Una terminal (la cuenta de la tienda, sin persona)
+  // sigue eligiendo quién envía: la base anota a una persona en cada aviso (`club_avisos_enviados.enviado_por` es obligatorio).
+  const esPersona = Boolean(useSedeActiva()?.personaSesionId);
+  const listo = esPersona || responsable.listo;
+  const motivo = esPersona ? null : responsable.motivo;
+  const firmaDe = (clave: ClaveSinResponsable) => (esPersona ? firmaOmitida(clave) : responsable.firma());
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [envios, setEnvios] = useState<Record<string, Envio>>({});
   // Los avisos que se tocaron (enviados o deshechos) siguen a la vista aunque una relectura de la base ya no los traiga.
@@ -95,11 +104,13 @@ export function AvisosClubPanel({
   const [pidioBaja, setPidioBaja] = useState<AvisoPendiente | null>(null);
   const [beneficiosAbierto, setBeneficiosAbierto] = useState(false);
   const [ahora, setAhora] = useState(relojMs);
-  // Guía de foco (CLAUDE.md «Guía de foco»): lo único que se llena aquí es quién envía. Sin nadie elegido (una terminal llega vacía)
-  // el combo se enciende y dice que es lo que sigue; «Enviar» ya dice lo mismo en su `title` mientras está apagado.
-  const guia = useGuiaCampos([{ id: "responsable", nombre: "Quién envía", requerido: true, hecho: responsable.listo, pendiente: "Elige quién envía los avisos." }], {
-    enModal: false,
-  });
+  // Guía de foco (CLAUDE.md «Guía de foco»): lo único que se llena aquí, y solo en una terminal, es quién envía. Sin nadie elegido
+  // el combo se enciende y dice que es lo que sigue; «Enviar» ya dice lo mismo en su `title` mientras está apagado. Con la cuenta de
+  // una persona no hay nada que llenar.
+  const guia = useGuiaCampos(
+    esPersona ? [] : [{ id: "responsable", nombre: "Quién envía", requerido: true, hecho: responsable.listo, pendiente: "Elige quién envía los avisos." }],
+    { enModal: false },
+  );
 
   const todas = useMemo(() => {
     const llegaron = new Set(avisos.map((a) => a.clave));
@@ -121,10 +132,10 @@ export function AvisosClubPanel({
 
   async function anotar(a: AvisoPendiente, texto: string) {
     setEnCurso(a.clave);
-    const { id, error } = await registrarAvisoEnviado({ clientaId: a.clientaId, tipo: a.tipo, referencia: a.referencia, texto, ubicacionId: sede.id }, responsable.firma());
+    const { id, error } = await registrarAvisoEnviado({ clientaId: a.clientaId, tipo: a.tipo, referencia: a.referencia, texto, ubicacionId: sede.id }, firmaDe("aviso_club_enviar"));
     setEnCurso(null);
     if (error || !id) {
-      if (error) responsable.despues(error);
+      if (error && !esPersona) responsable.despues(error);
       setSinAnotar((s) => ({ ...s, [a.clave]: texto }));
       avisar.error(traducirError(error, "anotar el aviso como enviado"), { detalle: "WhatsApp ya se abrió: cuando lo mandes, toca «Anotar como enviado»." });
       return;
@@ -146,8 +157,8 @@ export function AvisosClubPanel({
       avisar.error(problema ?? "Este aviso no se puede mandar.");
       return;
     }
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
+    if (!listo) {
+      if (motivo) avisar.error(motivo);
       return;
     }
     const pestana = window.open(enlace, "_blank");
@@ -166,15 +177,15 @@ export function AvisosClubPanel({
   async function deshacer(a: AvisoPendiente) {
     const envio = envios[a.clave];
     if (!envio) return;
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
+    if (!listo) {
+      if (motivo) avisar.error(motivo);
       return;
     }
     setEnCurso(a.clave);
-    const { error } = await deshacerAvisoEnviado(envio.id, responsable.firma());
+    const { error } = await deshacerAvisoEnviado(envio.id, firmaDe("aviso_club_deshacer"));
     setEnCurso(null);
     if (error) {
-      responsable.despues(error);
+      if (!esPersona) responsable.despues(error);
       avisar.error(traducirError(error, "deshacer el envío"));
       return;
     }
@@ -184,13 +195,13 @@ export function AvisosClubPanel({
 
   async function registrarBaja(a: AvisoPendiente) {
     if (!a.telefono) return;
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
+    if (!listo) {
+      if (motivo) avisar.error(motivo);
       return;
     }
-    const { fichas, error } = await registrarBajaWhatsapp(a.telefono, sede.id, responsable.firma());
+    const { fichas, error } = await registrarBajaWhatsapp(a.telefono, sede.id, firmaDe("aviso_club_baja"));
     if (error) {
-      responsable.despues(error);
+      if (!esPersona) responsable.despues(error);
       avisar.error(traducirError(error, "registrar la BAJA"));
       return;
     }
@@ -207,7 +218,7 @@ export function AvisosClubPanel({
       <EncabezadoPagina
         sede={sede.nombre}
         titulo="Avisos"
-        subtitulo="Los mensajes por mandar a cada socia del club desde el WhatsApp de esta tienda."
+        subtitulo="Los mensajes por mandar a cada miembro del club desde el WhatsApp de esta tienda."
         acciones={
           beneficios ? (
             <Boton onClick={() => setBeneficiosAbierto(true)} title="El % del cumpleaños, el aniversario y su vale">
@@ -221,7 +232,7 @@ export function AvisosClubPanel({
         <div className="anim-sube grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" style={{ "--i": 1 } as CSSProperties}>
           {TIPOS_AVISO.map((t) => (
             <TarjetaCifra key={t} etiqueta={INFO_TIPO_AVISO[t].titulo} valor={cuenta[t]}>
-              {INFO_TIPO_AVISO[t].promocional ? "Promoción: máximo 2 al mes por socia" : "Por mandar · no cuenta para el tope"}
+              {INFO_TIPO_AVISO[t].promocional ? "Promoción: máximo 2 al mes por miembro" : "Por mandar · no cuenta para el tope"}
             </TarjetaCifra>
           ))}
           <TarjetaCifra etiqueta="Enviados" valor={enviados} punto={enviados ? "verde" : undefined} className="col-span-2 sm:col-span-1">
@@ -248,9 +259,11 @@ export function AvisosClubPanel({
                   </button>
                 ))}
               </nav>
-              <CampoGuiado id="responsable" guia={guia} titulo="Quién envía" className="w-full sm:w-72">
-                <ComboResponsable control={responsable} deshabilitado={ocupado} />
-              </CampoGuiado>
+              {!esPersona && (
+                <CampoGuiado id="responsable" guia={guia} titulo="Quién envía" className="w-full sm:w-72">
+                  <ComboResponsable control={responsable} deshabilitado={ocupado} />
+                </CampoGuiado>
+              )}
             </div>
           )}
 
@@ -280,7 +293,7 @@ export function AvisosClubPanel({
                       ahora={ahora}
                       enCurso={enCurso === a.clave}
                       ocupado={ocupado}
-                      motivoResponsable={responsable.listo ? null : responsable.motivo}
+                      motivoResponsable={listo ? null : motivo}
                       onEnviar={() => enviar(a)}
                       onAnotar={() => void anotar(a, sinAnotar[a.clave]!)}
                       onDeshacer={() => void deshacer(a)}
@@ -299,8 +312,8 @@ export function AvisosClubPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
-        La lista la arma la base: solo socias que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por socia
-        (cumpleaños y aniversario no cuentan), y 1 de cada 5 socias no recibe novedades ni rebajas para medir si los avisos sirven. Si una socia
+        La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por miembro
+        (cumpleaños y aniversario no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
         responde <b>BAJA</b>, regístralo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
       </p>
 
@@ -309,7 +322,7 @@ export function AvisosClubPanel({
           confirmacion={{
             titulo: `¿${pidioBaja.nombre} pidió BAJA?`,
             bajada:
-              "Desde hoy no recibe ningún mensaje del club por WhatsApp, en las 3 tiendas: ni novedades, ni rebajas, ni los avisos de sus cupones. Sigue siendo socia y usa sus beneficios en la tienda.",
+              "Desde hoy no recibe ningún mensaje del club por WhatsApp, en las 3 tiendas: ni novedades, ni rebajas, ni los avisos de sus cupones. Sigue siendo miembro y usa sus beneficios en la tienda.",
             verbo: "Registrar BAJA",
             accion: () => registrarBaja(pidioBaja),
           }}

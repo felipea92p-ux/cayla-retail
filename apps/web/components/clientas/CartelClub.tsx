@@ -58,7 +58,7 @@ export function CartelClub({
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Cartel del club"
-        subtitulo="Una hoja A4 por tienda para el mostrador: la clienta escanea el QR y se registra en el Club CAYLA desde su celular."
+        subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR y se registra en el Club CAYLA desde su celular."
         pie={volver}
         acciones={
           <button type="button" className="btn-cayla btn-primario" disabled={!hay || !textos || !origen} onClick={() => window.print()}>
