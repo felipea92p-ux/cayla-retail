@@ -252,6 +252,50 @@ describe("fondoDeMuestra y bordeDeMuestra — cómo se ve una muestra", () => {
     for (const [, , hex, familia] of CARTA) if (familia !== "metalico") expect(fondoDeMuestra(hex, familia)).toBe(hex);
   });
 
+  it("un color liso sigue EXACTO aunque se le diga su tipo: sólido, estampado, sin tipo o con un tipo que la base no conoce", () => {
+    for (const [, , hex, familia] of CARTA) {
+      if (familia === "metalico") continue;
+      for (const tipo of ["solido", "estampado", null, undefined, "otra-cosa"]) expect(fondoDeMuestra(hex, familia, tipo)).toBe(hex);
+    }
+  });
+
+  it("una textura (Gris melange) lleva el jaspeado y sigue pintando su hex debajo", () => {
+    const [, , hex, familia] = CARTA.find(([codigo]) => codigo === "GRM")!;
+    const f = fondoDeMuestra(hex, familia, "textura")!;
+    expect(f).toContain("radial-gradient");
+    expect(f.endsWith(`, ${hex}`)).toBe(true);
+    expect(f).not.toBe(hex);
+    // Mismo tono, distinta muestra: era la queja (el melange se pintaba como el Gris liso).
+    expect(f).not.toBe(fondoDeMuestra(hex, familia, "solido"));
+  });
+
+  it("el jaspeado sale de tokens: sin un color suelto (solo el hex de la base y la paleta)", () => {
+    const f = fondoDeMuestra("#A2A2A1", "neutro", "textura")!;
+    expect(f).toContain("var(--color-crema)");
+    expect(f).toContain("var(--color-tinta)");
+    expect(f.match(/#[0-9a-f]{3,8}\b/gi)).toEqual(["#A2A2A1"]);
+    expect(f).not.toMatch(/rgba?\(|hsla?\(|oklch\(|\b(white|black)\b/i);
+  });
+
+  it("cualquier textura de la carta se pinta jaspeada, sea cual sea su familia (tipo es ortogonal a la familia)", () => {
+    for (const [, , hex, familia] of CARTA) {
+      if (familia === "metalico") continue;
+      const f = fondoDeMuestra(hex, familia, "textura")!;
+      expect(f.startsWith("radial-gradient")).toBe(true);
+      expect(f.endsWith(hex)).toBe(true);
+    }
+  });
+
+  it("si es metálico y textura manda el metálico: una muestra dice una sola cosa", () => {
+    expect(fondoDeMuestra("#C8A951", "metalico", "textura")).toBe(fondoDeMuestra("#C8A951", "metalico"));
+    expect(fondoDeMuestra("#C8A951", "metalico", "textura")).not.toContain("radial-gradient");
+  });
+
+  it("una textura sin hex no tiene fondo; y es pura: el mismo pedido da el mismo CSS", () => {
+    expect(fondoDeMuestra(null, "neutro", "textura")).toBeUndefined();
+    expect(fondoDeMuestra("#A2A2A1", "neutro", "textura")).toBe(fondoDeMuestra("#A2A2A1", "neutro", "textura"));
+  });
+
   it("un metálico lleva reflejo y sigue pintando su hex debajo", () => {
     for (const [, , hex, familia] of CARTA) {
       if (familia !== "metalico") continue;

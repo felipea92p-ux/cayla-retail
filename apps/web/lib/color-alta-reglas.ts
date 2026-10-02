@@ -73,6 +73,7 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       nombre: c.nombre,
       hex: typeof c.hex === "string" ? c.hex : null,
       familiaColor: typeof c.familia_color === "string" ? c.familia_color : "",
+      tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
       pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
     },

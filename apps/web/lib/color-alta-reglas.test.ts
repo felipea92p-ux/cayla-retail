@@ -72,6 +72,12 @@ describe("colorDeRespuesta", () => {
     const r = colorDeRespuesta({ color: { codigo: "FRA", nombre: "Frambuesa", familia_color: "rojo", hex: "#A52350", estado: "aprobado", pantone_tcx: "19-2039 TCX" } });
     expect(r?.color.pantoneTcx).toBe("19-2039 TCX");
   });
+  it("trae el tipo del color (una textura se pinta jaspeada) y, si la API no lo dice, lo deja ausente: liso", () => {
+    const base = { codigo: "GRM", nombre: "Gris melange", familia_color: "neutro", hex: "#A2A2A1", estado: "aprobado" };
+    expect(colorDeRespuesta({ color: { ...base, tipo: "textura" } })?.color.tipo).toBe("textura");
+    expect(colorDeRespuesta({ color: base })?.color.tipo).toBeUndefined();
+    expect(colorDeRespuesta({ color: { ...base, tipo: 3 } })?.color.tipo).toBeUndefined();
+  });
   it("una respuesta sin color no se inventa", () => {
     expect(colorDeRespuesta(null)).toBeNull();
     expect(colorDeRespuesta({ error: "x" })).toBeNull();

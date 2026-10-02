@@ -53,6 +53,8 @@ type Color = {
   codigo: string;
   nombre: string;
   familiaColor: string | null;
+  /** `colores.tipo` («solido» | «textura» | «estampado»): una textura (Gris melange) se pinta jaspeada, no como un liso del mismo tono. */
+  tipo: string;
   hex: string | null;
   orden: number;
   activo: boolean;
@@ -109,9 +111,11 @@ function gruposPorFamilia(lista: Color[]) {
 
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
-// así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, familia, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
+// así que un color es nombre, familia y hex; lo único que se suma es que un
+// color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
+// jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
+function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "#e8e0d0", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
@@ -274,6 +278,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             codigo: datos.color.codigo,
             nombre: datos.color.nombre,
             familiaColor: datos.color.familia_color,
+            tipo: datos.color.tipo,
             hex: datos.color.hex,
             orden: 2000,
             activo: true,
@@ -420,7 +425,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               {coloresDeLaFamilia.map((c) => (
                 <TarjetaAtributo
                   key={c.codigo}
-                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                   nombre={c.nombre}
                   notas={c.notas}
                   insignia={c.estado === "pendiente" ? "Pendiente" : null}
@@ -561,7 +566,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             {desactivadosVisibles.map((c) => (
               <TarjetaAtributo
                 key={c.codigo}
-                muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                 nombre={c.nombre}
                 insignia={c.estado === "rechazado" ? "Rechazado" : null}
                 detalle={
@@ -708,6 +713,7 @@ function ColorEditarModal({
         codigo: datos.color.codigo,
         nombre: datos.color.nombre,
         familiaColor: datos.color.familia_color,
+        tipo: datos.color.tipo,
         hex: datos.color.hex,
         orden: datos.color.orden,
         activo: datos.color.activo,
