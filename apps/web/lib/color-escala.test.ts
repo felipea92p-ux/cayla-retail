@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { enEscala, esColorClaro, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
 import { bordeDeMuestra, enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR, fondoDeMuestra } from "./colores-familias";
+import { distanciaEntreHex } from "./color-parecido";
 
 // La carta de CAYLA al 2026-10-02: los 75 colores activos de producción, cada uno con la familia que le da la migración
 // 20261002180000. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
@@ -8,7 +9,7 @@ import { bordeDeMuestra, enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR, fondoDeMue
 const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string, familia: string]> = [
   ["BLA", "Blanco", "#F4F9FF", "neutro"],
   ["CRU", "Crudo", "#F3ECE0", "neutro"],
-  ["PER", "Perla", "#EAE6DD", "neutro"],
+  ["PER", "Perla", "#DBDDD9", "neutro"],
   ["NUD", "Nude", "#F2D3BC", "tierra"],
   ["GRP", "Gris perla", "#C5C5C5", "neutro"],
   ["BEI", "Beige", "#D5BA98", "tierra"],
@@ -39,7 +40,7 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
   ["SAL", "Salmón", "#FAA181", "naranja"],
   ["MAN", "Mandarina", "#EE9626", "naranja"],
   ["NAR", "Naranja", "#E8703A", "naranja"],
-  ["AMM", "Amarrillo mantequilla", "#FFE68A", "amarillo"],
+  ["AMM", "Amarrillo mantequilla", "#FEDF87", "amarillo"],
   ["VAI", "Vainilla", "#F2E6B1", "amarillo"],
   ["AML", "Amarillo limón", "#EADA4F", "amarillo"],
   ["AMA", "Amarillo", "#F0C05A", "amarillo"],
@@ -90,7 +91,7 @@ const ESPERADO: Record<string, string[][]> = {
   rosado: [["ROS", "PAL", "FUC"]],
   rojo: [["COR", "ROJ", "FRA", "CER", "VIN"]],
   naranja: [["DUR", "SAL", "MAN", "NAR"]],
-  amarillo: [["AMM", "VAI", "AML", "AMA", "MOS"]],
+  amarillo: [["VAI", "AMM", "AML", "AMA", "MOS"]],
   // oliva y limón (matiz bajo) antes que verde y agua (matiz alto): la fila avanza por el círculo cromático.
   verde: [["PIS", "VEL", "SAV", "VOL", "VEM"], ["VEA", "ESM", "VER", "VEB"]],
   azul: [["CEL", "TUR", "AZP"], ["AZC", "AZD", "AZE", "AZI", "AME", "COB", "IND", "AZM"]],
@@ -115,6 +116,22 @@ describe("la carta de colores de CAYLA", () => {
     expect(FAMILIAS_COLOR.map((f) => f.valor)).toEqual([
       "neutro", "tierra", "rosado", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "metalico", "estampado",
     ]);
+  });
+
+  // «Mejor distinción» (Felipe, 2026-10-02, ADR-0313): el 2026-10-02, Crudo y Perla estaban a ΔE2000 2,1 —a simple vista, el mismo
+  // color— y Mantequilla a 7,2 de Limón. Se afinó el #hex de los dos colores creados a mano (Perla y Amarillo mantequilla) y el
+  // par más cercano sin metálicos pasó a ser Beige–Arena, 6,03, la pareja canónica que ya se aceptaba. Los metálicos quedan fuera:
+  // su reflejo los distingue aunque el hex plano se parezca (como Plata vieja y Gris).
+  it("dos colores que no son metálicos nunca quedan a menos de 6,0 de distancia (ΔE2000)", () => {
+    const planos = CARTA.filter((c) => c[3] !== "metalico");
+    const cercanas: string[] = [];
+    for (let i = 0; i < planos.length; i++) {
+      for (let j = i + 1; j < planos.length; j++) {
+        const d = distanciaEntreHex(planos[i][2], planos[j][2]);
+        if (d < 6.0) cercanas.push(`${planos[i][1]} ~ ${planos[j][1]}: ${d.toFixed(2)}`);
+      }
+    }
+    expect(cercanas).toEqual([]);
   });
 
   for (const [familia, esperado] of Object.entries(ESPERADO)) {
