@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { textoQuedan } from "@/lib/movimientos-saldo";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
-import type { TonoChip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { ColumnaHora, FILA_ACTIVIDAD, PUNTO_ACTIVIDAD } from "@/components/ui/lista-actividad";
 import {
   etiquetaConDireccion,
   nombreCortoSububicacion,
@@ -29,33 +29,20 @@ import {
 //
 // Forma (rediseño 2026-09-22, elegida por Felipe en la demo de
 // docs/maquetas/movimientos-rediseno-2026-09/): la lista de la guía oficial, no una tabla.
-// Cada fila: punto de color · prenda (foto, nombre y debajo talla · color · hora · dónde) · proceso (y
-// debajo, de dónde a dónde) · referencia · cantidad. La tabla de seis columnas no cabía en
+// Cada fila: hora (primera columna, aparte de la prenda) · punto de color · prenda (foto, nombre y debajo
+// talla · color · dónde) · proceso (y debajo, de dónde a dónde) · referencia · cantidad. La tabla de seis columnas no cabía en
 // ~650 px; la lista se lee de corrido en escritorio y en celular pasa a dos líneas —prenda y
 // cantidad arriba, proceso y referencia abajo— sin desplazarse de lado. Ya no hay
 // «Responsable»: la autoría sigue guardada y se ve en el detalle.
 //
+// La rejilla de la fila, el punto y la columna de hora viven en `ui/lista-actividad.tsx`: Conteos recientes se lee igual y las usa de ahí.
+//
 // La fila NO es un <button>: la referencia es un enlace y un enlace dentro de un botón
 // no es HTML válido. El botón que abre el detalle cubre la fila entera (`absolute
 // inset-0`) y el enlace queda encima (`relative z-10`).
-export const FILA_MOVIMIENTO =
-  "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 sm:grid-cols-[0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] sm:items-center sm:gap-x-4 sm:px-2";
-
 /** La fila de origen del cajón abierto (diseño aprobado 2026-09-28): un lavado suave, nunca un color fuerte — se
- *  agrega AL LADO de `FILA_MOVIMIENTO`, no lo reemplaza, así sigue reaccionando al hover igual que cualquier otra. */
+ *  agrega AL LADO de `FILA_ACTIVIDAD`, no lo reemplaza, así sigue reaccionando al hover igual que cualquier otra. */
 const FILA_SELECCIONADA = "bg-hueso/70";
-
-// El tono que antes llevaba el chip de categoría, ahora como un punto: sobrio, y no
-// obliga a que «Entrada · Traslado recibido» quepa en un chip de versalitas.
-export const PUNTO_MOVIMIENTO: Record<TonoChip, string> = {
-  neutro: "bg-tinta/30",
-  ambar: "bg-ambar",
-  verde: "bg-verde",
-  rojo: "bg-rojo",
-  pizarra: "bg-pizarra",
-  apagado: "bg-tinta/15",
-  tinta: "bg-tinta",
-};
 
 /** Lo que una fila necesita saber de la pantalla, igual para todas. */
 export type ContextoFila = {
@@ -102,7 +89,7 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const seleccionada = ctx.abiertoId === m.id;
   return (
-    <li className={`${FILA_MOVIMIENTO} ${dentroDeOperacion ? "sm:pl-6" : ""} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
+    <li className={`${FILA_ACTIVIDAD} ${dentroDeOperacion ? "sm:pl-6" : ""} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(m)}
@@ -110,17 +97,20 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
         className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
 
-      <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO[tonoCategoria(m.categoria, m.delta)]}`} />
+      <ColumnaHora desde={dentroDeOperacion ? null : m.hora} />
+
+      <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD[tonoCategoria(m.categoria, m.delta)]}`} />
 
       {/* Prenda: la foto (en una tienda de ropa, la prenda se reconoce por la foto antes que por el nombre), el nombre y
-          debajo talla · color · hora · dónde. El SKU queda en el título (y la búsqueda lo encuentra). */}
+          debajo talla · color · dónde (y la hora, solo en celular). El SKU queda en el título (y la búsqueda lo encuentra). */}
       <span className="flex min-w-0 items-center gap-2.5" title={m.sku}>
         <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
         <span className="min-w-0">
           <span className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
-          <span className="block truncate text-xs tabular-nums text-taupe">
+          <span className="block truncate text-xs tabular-nums text-taupe sm:hidden">
             {[variante, dentroDeOperacion ? null : m.hora, donde].filter(Boolean).join(" · ")}
           </span>
+          <span className="hidden truncate text-xs tabular-nums text-taupe sm:block">{[variante, donde].filter(Boolean).join(" · ")}</span>
         </span>
       </span>
 
@@ -128,13 +118,13 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
           línea bajo la prenda (col-start-2 col-span-2); desde sm cada uno tiene su columna. */}
       {!dentroDeOperacion && (
         <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
-          <span className="min-w-0 sm:col-start-3 sm:row-start-1">
+          <span className="min-w-0 sm:col-start-4 sm:row-start-1">
             {/* El proceso y la dirección son lo que se viene a leer: si no caben se parten, no se
                 cortan con «…» («Entrada · Traslado rec…» no dice si llegó o salió). */}
             <span className="block break-words text-[13px] leading-snug text-tinta">{etiqueta}</span>
             <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{destino ? `${origen} → ${destino}` : origen}</span>
           </span>
-          <span className="min-w-0 sm:col-start-4 sm:row-start-1">
+          <span className="min-w-0 sm:col-start-5 sm:row-start-1">
             {m.venta && ctx.enlaceVentas ? (
               <BotonReferencia texto={referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(m)} />
             ) : (
@@ -145,7 +135,7 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
       )}
 
       <span
-        className={`col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-5 ${
+        className={`col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-6 ${
           m.delta > 0 ? "text-verde" : interno ? "font-medium text-taupe" : "text-tinta"
         }`}
       >
@@ -191,17 +181,19 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const seleccionada = op.filas.some((m) => m.id === ctx.abiertoId);
   return (
     <li>
-      <div className={`${FILA_MOVIMIENTO} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
+      <div className={`${FILA_ACTIVIDAD} ${seleccionada ? FILA_SELECCIONADA : ""}`}>
         <button
           type="button"
           onClick={() => ctx.onAbrir(primera)}
           aria-label={`Ver el detalle: las ${r.variantes} prendas de ${r.etiqueta}, ${textoCantidadOperacion(r)}`}
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
+        <ColumnaHora desde={op.hora} />
+
         {/* Un cambio entra y sale a la vez: ni verde ni rojo. */}
         <span
           aria-hidden
-          className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO[r.entran > 0 && r.salen > 0 ? "neutro" : tonoCategoria(primera.categoria, r.entran - r.salen)]}`}
+          className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD[r.entran > 0 && r.salen > 0 ? "neutro" : tonoCategoria(primera.categoria, r.entran - r.salen)]}`}
         />
 
         <span className="flex min-w-0 items-center gap-2.5">
@@ -216,18 +208,21 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             <span className="block truncate text-[13.5px] font-semibold text-tinta" title={r.productos.join(", ")}>
               {productos}
             </span>
-            <span className="block truncate text-xs tabular-nums text-taupe">
+            <span className="block truncate text-xs tabular-nums text-taupe sm:hidden">
               {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, op.hora, donde].filter(Boolean).join(" · ")}
+            </span>
+            <span className="hidden truncate text-xs tabular-nums text-taupe sm:block">
+              {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, donde].filter(Boolean).join(" · ")}
             </span>
           </span>
         </span>
 
         <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
-          <span className="min-w-0 sm:col-start-3 sm:row-start-1">
+          <span className="min-w-0 sm:col-start-4 sm:row-start-1">
             <span className="block break-words text-[13px] leading-snug text-tinta">{r.etiqueta}</span>
             <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{r.destino ? `${r.origen} → ${r.destino}` : r.origen}</span>
           </span>
-          <span className="min-w-0 sm:col-start-4 sm:row-start-1">
+          <span className="min-w-0 sm:col-start-5 sm:row-start-1">
             {primera.venta && ctx.enlaceVentas ? (
               <BotonReferencia texto={r.referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(primera)} />
             ) : (
@@ -236,7 +231,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
           </span>
         </span>
 
-        <span className={`col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-5 ${r.entran > 0 && r.salen === 0 ? "text-verde" : r.entran + r.salen === 0 && (r.movidas > 0 || r.apartadas > 0 || r.liberadas > 0) ? "font-medium text-taupe" : "text-tinta"}`}>
+        <span className={`col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-6 ${r.entran > 0 && r.salen === 0 ? "text-verde" : r.entran + r.salen === 0 && (r.movidas > 0 || r.apartadas > 0 || r.liberadas > 0) ? "font-medium text-taupe" : "text-tinta"}`}>
           <span className="whitespace-nowrap">{textoCantidadOperacion(r)}</span>
           <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
         </span>
@@ -246,39 +241,34 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
 }
 
 /** Las bajadas al piso de un día, plegadas en una fila (ADR-0241): en «Todos» no cambian el total y ocupaban un tercio
- *  de la lista. Se despliega en sus operaciones, cada una como siempre. Solo existe en «Todos» sin búsqueda: con la
- *  píldora «Piso ↔ almacén» o buscando una prenda, cada bajada es su fila (quien viene a confirmar «¿la bajé?» la ve). */
+ *  de la lista. Al tocarla abre el cajón lateral con todas (antes se desplegaba hacia abajo y empujaba la lista).
+ *  Solo existe en «Todos» sin búsqueda: con la píldora «Piso ↔ almacén» o buscando una prenda, cada bajada es su fila
+ *  (quien viene a confirmar «¿la bajé?» la ve). `abierta`: el cajón de ESTAS bajadas está a la vista. */
 export function FilaBajadas({
-  clave,
   operaciones,
   prendas,
-  ctx,
   abierta,
-  onAlternar,
+  onAbrir,
 }: {
-  clave: string;
   operaciones: OperacionMovimiento[];
   prendas: Record<string, PrendaDeMovimiento>;
-  ctx: ContextoFila;
   abierta: boolean;
-  onAlternar: () => void;
+  onAbrir: () => void;
 }) {
   const r = resumirBajadas(operaciones);
   const fotos = [...new Set(operaciones.flatMap((op) => op.filas.map((m) => prendas[m.varianteId]?.fotoUrl ?? null)))].slice(0, 3);
-  const detalleId = clave.replace(/[^a-zA-Z0-9-]/g, "");
   const horas = r.desde === r.hasta ? r.hasta : `${r.desde}–${r.hasta}`;
   return (
     <li>
-      <div className={FILA_MOVIMIENTO}>
+      <div className={FILA_ACTIVIDAD}>
         <button
           type="button"
-          onClick={onAlternar}
-          aria-expanded={abierta}
-          aria-controls={detalleId}
-          aria-label={`${abierta ? "Ocultar" : "Ver"} las ${r.veces} ${r.etiqueta.toLowerCase()}: ${r.tallas} tallas, ${r.unidades} unidades`}
+          onClick={onAbrir}
+          aria-label={`Ver el detalle de ${r.etiqueta.toLowerCase()}: ${r.veces} veces, ${r.unidades} unidades`}
           className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
         />
-        <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_MOVIMIENTO.ambar}`} />
+        <ColumnaHora desde={r.desde} hasta={r.hasta} />
+        <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO_ACTIVIDAD.ambar}`} />
         <span className="flex min-w-0 items-center gap-2.5">
           <span aria-hidden className="flex shrink-0 -space-x-3">
             {fotos.map((url, i) => (
@@ -290,32 +280,22 @@ export function FilaBajadas({
           <span className="min-w-0">
             <span className="block truncate text-[13.5px] font-semibold text-tinta">{r.etiqueta}</span>
             <span className="block truncate text-xs tabular-nums text-taupe">
-              {r.veces} veces · {r.tallas} {r.tallas === 1 ? "talla" : "tallas"} · {horas}
+              {r.veces} veces · {r.tallas} {r.tallas === 1 ? "talla" : "tallas"}
+              <span className="sm:hidden"> · {horas}</span>
             </span>
           </span>
         </span>
         <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
-          <span className="min-w-0 sm:col-start-3 sm:row-start-1">
+          <span className="min-w-0 sm:col-start-4 sm:row-start-1">
             <span className="block text-[13px] leading-snug text-tinta">Dentro de la sede</span>
             <span className="block text-xs leading-snug text-taupe">No cambian el total</span>
           </span>
         </span>
-        <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-medium tabular-nums text-taupe sm:col-start-5">
+        <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-medium tabular-nums text-taupe sm:col-start-6">
           ⇄ {r.unidades}
-          <ChevronDown aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/40 transition-transform duration-200 motion-reduce:transition-none ${abierta ? "rotate-180" : ""}`} />
+          <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
         </span>
       </div>
-      {abierta && (
-        <ul id={detalleId} className="mb-2 ml-2 divide-y divide-sand/70 border-l-2 border-sand pl-2">
-          {operaciones.map((op) =>
-            op.filas.length === 1 ? (
-              <FilaMovimiento key={op.clave} m={op.filas[0]} prenda={prendas[op.filas[0].varianteId]} ctx={ctx} />
-            ) : (
-              <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} />
-            )
-          )}
-        </ul>
-      )}
     </li>
   );
 }

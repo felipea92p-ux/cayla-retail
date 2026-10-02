@@ -3,8 +3,9 @@
 import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { ConNumero, Control, FotoConMarcas, ListaAbierta, Renglon, RutaDeClics, Ventana, type Marca } from "@/components/GuiaImpresionVisuales";
+import { ConNumero, Control, FotoConMarcas, Renglon, RutaDeClics, Ventana, type Marca } from "@/components/GuiaImpresionVisuales";
 import { MEDIDAS, sistemaDelEquipo, type Sistema } from "@/lib/guia-impresion-reglas";
+import { COMANDO_INSTALAR } from "@/lib/mac-etiquetas";
 
 /* ====================================================================
    Guía de impresión de etiquetas (ADR-0180, «Guía de impresión», 2026-09-26)
@@ -17,8 +18,6 @@ import { MEDIDAS, sistemaDelEquipo, type Sistema } from "@/lib/guia-impresion-re
 
 const { anchoRollo, largoCorte, largoCorteTexto, escala } = MEDIDAS;
 const PAPEL = `${anchoRollo} × ${largoCorteTexto} mm`;
-const NOMBRE_PAPEL_MAC = `CAYLA ${anchoRollo} x ${largoCorteTexto}`;
-const NOMBRE_PREAJUSTE_MAC = "Etiquetas CAYLA";
 
 type Accion = { marca?: number; texto: ReactNode };
 /** Un síntoma del diagnóstico final: lo que se ve en la etiqueta, qué lo arregla y a qué paso volver. */
@@ -242,171 +241,55 @@ const PASOS_WINDOWS: Paso[] = [
   ]),
 ];
 
-/* ---------- Mac ---------- */
+/* ---------- Mac (ADR-0304) ---------- */
 
-/** El diálogo del sistema de la Mac (⌥⌘P), dibujado. `abierto` despliega la lista que ese paso necesita. */
-function DialogoMac({
-  activa,
-  onActiva,
-  papel,
-  abierto,
-  marcas,
-}: {
-  activa: number | null;
-  onActiva: (n: number | null) => void;
-  papel: string;
-  abierto?: "papel" | "preajustes";
-  marcas: Partial<Record<"impresora" | "preajustes" | "papel" | "escala" | "imprimir", number>>;
-}) {
-  const r = { activa, onActiva };
-  return (
-    <Ventana titulo="Imprimir" mac pie="Dibujo del diálogo de impresión de la Mac (⌥⌘P). Según la versión de macOS, algún rótulo puede estar en otro orden.">
-      <div className="space-y-1">
-        <Renglon rotulo="Impresora:" marca={marcas.impresora} {...r}>
-          <Control resaltado={activa === marcas.impresora}>Brother QL-1110NWB</Control>
-        </Renglon>
-        <Renglon rotulo="Preajustes:" marca={marcas.preajustes} {...r}>
-          <Control resaltado={activa === marcas.preajustes}>{abierto === "preajustes" ? "Configuración por omisión" : marcas.preajustes ? NOMBRE_PREAJUSTE_MAC : "Configuración por omisión"}</Control>
-          {abierto === "preajustes" && (
-            <ListaAbierta opciones={["Configuración por omisión", "Última configuración usada", null, "Guardar configuración actual como preajuste…", "Mostrar preajustes…"]} elegida="Guardar configuración actual como preajuste…" />
-          )}
-        </Renglon>
-        <Renglon rotulo="Copias:" {...r}>
-          <Control tipo="campo">1</Control>
-        </Renglon>
-        <Renglon rotulo="Tamaño del papel:" marca={marcas.papel} {...r}>
-          <Control resaltado={activa === marcas.papel}>{papel}</Control>
-          {abierto === "papel" && <ListaAbierta opciones={["62mm", "29mm", "62mm x 100mm", null, "Gestionar tamaños personalizados…"]} elegida="Gestionar tamaños personalizados…" />}
-        </Renglon>
-        <Renglon rotulo="Escala:" marca={marcas.escala} {...r}>
-          <span className="inline-flex items-center gap-1.5">
-            <Control tipo="campo" resaltado={activa === marcas.escala}>{escala}</Control> %
-          </span>
-        </Renglon>
-      </div>
-      <div className="mt-3 flex items-center justify-end gap-2 border-t border-sand pt-3">
-        <Control tipo="boton">Cancelar</Control>
-        {marcas.imprimir !== undefined ? (
-          <ConNumero n={marcas.imprimir} {...r}>
-            <Control tipo="boton" resaltado>Imprimir</Control>
-          </ConNumero>
-        ) : (
-          <Control tipo="boton">Imprimir</Control>
-        )}
-      </div>
-    </Ventana>
-  );
-}
+// En la Mac no hay papel que configurar: Chrome entrega cualquier hoja más ancha que larga girada a vertical y la Brother
+// la saca larga (medido el 2026-10-01 con papel personalizado, papel de la cola y las dos formas). Se imprime por el
+// ayudante de etiquetas, que manda el tamaño exacto. Por eso aquí son dos pasos y ningún diálogo.
 
 const PASOS_MAC: Paso[] = [
-  pasoEnElErp("sigue con el paso 2."),
   {
-    titulo: "Pasa al diálogo de impresión de la Mac",
+    titulo: "Instala el ayudante de etiquetas (una vez por Mac)",
     visual: ({ activa, onActiva }) => (
-      <FotoConMarcas
-        {...FOTO_CHROME}
-        alt="Diálogo de impresión de Chrome; abajo, el enlace Imprimir mediante el sistema de diálogo"
-        marcas={[{ n: 1, x: 55, y: 78.1 }]}
-        activa={activa}
-        onActiva={onActiva}
-        pie="El diálogo de Chrome es igual en la Mac; allí el atajo dice ⌥⌘P en vez de Ctrl+Shift+P."
-      />
+      <Ventana titulo="Terminal" mac pie="Así se ve Terminal con la línea pegada. Al presionar Enter, la última línea dice «Listo».">
+        <div className="space-y-2 font-mono text-[12px] text-tinta">
+          <ConNumero n={2} activa={activa} onActiva={onActiva}>
+            <span className={`block break-all rounded px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "bg-hueso"}`}>{COMANDO_INSTALAR}</span>
+          </ConNumero>
+          <ConNumero n={3} activa={activa} onActiva={onActiva}>
+            <span className="block text-tinta/80">Instalando el ayudante de etiquetas CAYLA…<br />Listo. El ayudante responde en esta Mac.</span>
+          </ConNumero>
+        </div>
+      </Ventana>
     ),
     acciones: [
-      { marca: 1, texto: <>En el diálogo de Chrome, baja y haz clic en {b("Imprimir mediante el sistema de diálogo…")}. Atajo: {b("⌥ Opción + ⌘ Comando + P")}.</> },
-      { texto: <>Se abre el diálogo propio de la Mac, con otro aspecto. Todo lo que sigue se hace ahí.</> },
+      { marca: 1, texto: <>Abre {b("Terminal")}: presiona {b("⌘ Comando + Espacio")}, escribe «Terminal» y presiona Enter.</> },
+      { marca: 2, texto: <>Pega la línea de arriba ({b("Copiar")} en la pantalla de Etiquetas de precio, o selecciónala aquí) y presiona {b("Enter")}.</> },
+      { marca: 3, texto: <>Espera a que diga {b("«Listo. El ayudante responde en esta Mac.»")} y cierra Terminal.</> },
     ],
-    porQue: <>En la Mac, el «62mm» de la lista corta cada 100 mm y la etiqueta sale a lo largo. El papel de {PAPEL} hay que crearlo, y solo el diálogo de la Mac deja crear un tamaño propio; el de Chrome no lo muestra.</>,
+    porQue: <>En la Mac, Chrome le entrega la hoja de {PAPEL} girada a la Brother y sale larga, con papel de sobra, elijas el papel que elijas. El ayudante se salta ese camino y manda el tamaño exacto. No pide contraseña y se instala {b("una sola vez por Mac")}.</>,
+    ojo: <>La primera vez que imprimas, Chrome puede preguntar si la página puede {b("acceder a dispositivos de tu red local")}: elige {b("Permitir")}. Si te equivocas, el candado de la barra de direcciones lo deja cambiar.</>,
   },
   {
-    titulo: "Abre «Gestionar tamaños personalizados»",
-    visual: ({ activa, onActiva }) => <DialogoMac activa={activa} onActiva={onActiva} papel="62mm" abierto="papel" marcas={{ impresora: 1, papel: 2 }} />,
+    titulo: "En el ERP, presiona Imprimir",
+    visual: ({ activa, onActiva }) => (
+      <Ventana titulo="Etiquetas de precio · ERP CAYLA" pie="Con el ayudante, Imprimir no abre ningún diálogo: la Brother empieza sola.">
+        <Renglon rotulo="Arriba a la derecha:" marca={1} activa={activa} onActiva={onActiva}>
+          <span className="btn-cayla btn-primario pointer-events-none">Imprimir etiquetas</span>
+        </Renglon>
+      </Ventana>
+    ),
     acciones: [
-      { marca: 1, texto: <>{b("Impresora")}: {b("Brother QL-1110NWB")}.</> },
-      { marca: 2, texto: <>Abre {b("Tamaño del papel")} y elige la última opción: {b("Gestionar tamaños personalizados…")}</> },
+      { marca: 1, texto: <>Presiona {b("Imprimir etiquetas")}. Sin diálogo: la Brother imprime y corta cada etiqueta, y arriba a la derecha sale {b("«Etiquetas enviadas a la Brother»")}.</> },
+      { texto: <>Si en vez de eso se abre el diálogo de Chrome, el ayudante no está respondiendo: cierra el diálogo y vuelve al paso 1.</> },
     ],
-    porQue: <>Esto se hace {b("una sola vez por Mac")}: el tamaño queda guardado y aparece en la lista para siempre.</>,
-  },
-  {
-    titulo: `Crea el papel «${NOMBRE_PAPEL_MAC}»`,
-    visual: ({ activa, onActiva }) => {
-      const r = { activa, onActiva };
-      return (
-        <Ventana titulo="Tamaños personalizados" mac>
-          <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-            <div className="flex flex-col overflow-hidden rounded-md border border-sand">
-              <span className="p-1">
-                <ConNumero n={2} {...r}>
-                  <span className={`rounded px-1.5 py-0.5 ${activa === 2 ? "bg-tinta font-semibold text-crema" : "bg-hueso font-semibold"}`}>{NOMBRE_PAPEL_MAC}</span>
-                </ConNumero>
-              </span>
-              <span className="min-h-12 flex-1" />
-              <span className="flex items-center gap-1 border-t border-sand bg-hueso/60 px-1.5 py-1">
-                <ConNumero n={1} {...r}>
-                  <Control tipo="boton" resaltado={activa === 1}>+</Control>
-                </ConNumero>
-                <Control tipo="boton">−</Control>
-              </span>
-            </div>
-            <div className="space-y-1">
-              <p className="px-1 text-xs font-semibold text-tinta/70">Tamaño del papel</p>
-              <Renglon rotulo="Anchura:" marca={3} {...r}>
-                <Control tipo="campo" resaltado={activa === 3}>{anchoRollo} mm</Control>
-              </Renglon>
-              <Renglon rotulo="Altura:" marca={4} {...r}>
-                <Control tipo="campo" resaltado={activa === 4}>{largoCorteTexto} mm</Control>
-              </Renglon>
-              <p className="px-1 pt-2 text-xs font-semibold text-tinta/70">Área no imprimible</p>
-              <ConNumero n={5} {...r}>
-                <Control resaltado={activa === 5}>Definido por el usuario</Control>
-              </ConNumero>
-              <ConNumero n={6} {...r}>
-                <span className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-tinta/70">
-                  {["Superior", "Inferior", "Izquierda", "Derecha"].map((borde) => (
-                    <span key={borde} className="flex items-center justify-between gap-1.5">
-                      {borde} <Control tipo="campo" resaltado={activa === 6}>0 mm</Control>
-                    </span>
-                  ))}
-                </span>
-              </ConNumero>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-end gap-2 border-t border-sand pt-3">
-            <Control tipo="boton">Cancelar</Control>
-            <ConNumero n={7} {...r}>
-              <Control tipo="boton" resaltado>OK</Control>
-            </ConNumero>
-          </div>
-        </Ventana>
-      );
-    },
-    acciones: [
-      { marca: 1, texto: <>Presiona {b("+")} abajo de la lista. Aparece un tamaño «Sin título».</> },
-      { marca: 2, texto: <>Haz doble clic en «Sin título» y escribe {b(NOMBRE_PAPEL_MAC)}.</> },
-      { marca: 3, texto: <>{b("Anchura")}: {b(anchoRollo)} mm.</> },
-      { marca: 4, texto: <>{b("Altura")}: {b(largoCorteTexto)} mm.</> },
-      { marca: 5, texto: <>{b("Área no imprimible")}: elige {b("Definido por el usuario")}.</> },
-      { marca: 6, texto: <>Pon {b("0")} en los cuatro bordes: superior, inferior, izquierda y derecha.</> },
-      { marca: 7, texto: <>Presiona {b("OK")}.</> },
-    ],
-    ojo: <>Si la Mac no acepta 0 en algún borde y lo sube sola, déjalo en lo mínimo que acepte.</>,
-  },
-  {
-    titulo: "Elige el papel nuevo y guárdalo como preajuste",
-    visual: ({ activa, onActiva }) => <DialogoMac activa={activa} onActiva={onActiva} papel={NOMBRE_PAPEL_MAC} abierto="preajustes" marcas={{ papel: 1, escala: 2, preajustes: 3, imprimir: 4 }} />,
-    acciones: [
-      { marca: 1, texto: <>{b("Tamaño del papel")}: elige {b(NOMBRE_PAPEL_MAC)}, el que acabas de crear.</> },
-      { marca: 2, texto: <>{b("Escala")}: {b(`${escala} %`)}.</> },
-      { marca: 3, texto: <>Abre {b("Preajustes")} → {b("Guardar configuración actual como preajuste…")}, nómbralo {b(NOMBRE_PREAJUSTE_MAC)} y guárdalo.</> },
-      { marca: 4, texto: <>Presiona {b("Imprimir")}.</> },
-    ],
-    porQue: <>Con el preajuste, las próximas veces basta con ⌥⌘P, elegir {b(NOMBRE_PREAJUSTE_MAC)} en Preajustes e Imprimir.</>,
+    porQue: <>La pantalla pregunta al abrirse si esta Mac tiene el ayudante. Si no lo tiene, lo dice en una nota amarilla con la línea para instalarlo.</>,
   },
   pasoResultado([
-    { sintoma: "Sale larga o corta cada 100 mm", arreglo: <>El papel elegido es «62mm» y no «{NOMBRE_PAPEL_MAC}».</>, paso: 5 },
-    { sintoma: "Sale chica, con mucho blanco alrededor", arreglo: <>Escala en {escala} % y bordes del papel en 0.</>, paso: 4 },
-    { sintoma: "Sale girada o cortada a lo largo", arreglo: <>Cambia a la forma B en el ERP y prueba otra vez.</>, paso: 1 },
-    { sintoma: "No encuentro «Gestionar tamaños personalizados»", arreglo: <>Estás en el diálogo de Chrome: pasa al de la Mac con ⌥⌘P.</>, paso: 2 },
+    { sintoma: "Se abre el diálogo de Chrome", arreglo: <>El ayudante no está instalado o no responde: instálalo (o vuelve a instalarlo) y recarga la página.</>, paso: 1 },
+    { sintoma: "Sale larga o sobra papel después de la etiqueta", arreglo: <>Se imprimió por el diálogo de Chrome y no por el ayudante.</>, paso: 1 },
+    { sintoma: "Aviso «El ayudante no encuentra la Brother»", arreglo: <>Agrega la Brother en Ajustes del Sistema ▸ Impresoras y escáneres, con el cable conectado y la impresora encendida.</>, paso: 1 },
+    { sintoma: "Aviso «No se pudo hablar con el ayudante»", arreglo: <>Recarga la página; si Chrome preguntó por la red local y elegiste Bloquear, cámbialo a Permitir en el candado de la barra.</>, paso: 1 },
   ]),
 ];
 

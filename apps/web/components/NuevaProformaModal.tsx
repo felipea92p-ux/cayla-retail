@@ -7,7 +7,7 @@ import { Minus, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
-import { RAZONES_DESCUENTO } from "@/lib/vender-reglas";
+import { descuentoUnitarioPorPorcentaje, RAZONES_DESCUENTO } from "@/lib/vender-reglas";
 import { venceDentroDe } from "@/lib/facturacion-proformas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { traducirError } from "@/lib/error-escritura";
@@ -25,7 +25,7 @@ export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; pre
 type Fila = { prenda: PrendaParaProforma; cantidad: number; pct: number; motivo: string; detalle: string };
 
 const PCT_MAX = Math.round(TOPE_DESCUENTO_PROFORMA * 100);
-const descuentoDe = (f: Fila) => Math.round(f.prenda.precio * f.pct) / 100;
+const descuentoDe = (f: Fila) => descuentoUnitarioPorPorcentaje(f.prenda.precio, f.pct);
 const CONTROL = "rounded-md border border-tinta/15 bg-white/60 px-1.5 py-1 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60";
 
 // «Nueva proforma» (spec 2026-09-22): prendas del catálogo con cantidad y descuento (hasta 20 %, con motivo),

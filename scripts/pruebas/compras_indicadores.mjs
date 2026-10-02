@@ -31,6 +31,8 @@
  * todavía «hoy») hay pruebas que REEMPLAZAN `fn_hoy_lima()` dentro de la transacción
  * (`create or replace function`, transaccional en Postgres: el ROLLBACK la devuelve a como
  * estaba y otras sesiones nunca la ven). Así el borde se prueba a cualquier hora del día.
+ * Las fechas escritas a mano (25-sep, 28-dic, 25-feb, 1-sep, 1-mar) solo aparecen con el reloj
+ * fijado así: dicen lo mismo el día que corra la prueba.
  *
  * HALLAZGOS. Una prueba marcada `[HALLAZGO Hn]` afirma lo que la función DEBERÍA hacer según
  * su propia documentación y hoy no lo hace. No cuenta como fallo del script (sale con ⚠ y se
@@ -141,7 +143,7 @@ function compra(v, { prov = "prov1", destino = "taller", lineas = [24], costo = 
     .map((l) => {
       const [c, k] = Array.isArray(l) ? l : [l, costo];
       const [p, va] = prodVar;
-      return `jsonb_build_object('producto_id', :'${p}', ${va ? `'variante_id', :'${va}', ` : ""}'cantidad', ${c}, 'costo_unitario', ${k})`;
+      return `jsonb_build_object('producto_id', :'${p}', ${va ? `'variante_id', :'${va}', ` : ""}'cantidad', ${c}, 'costo_unitario', ${k}, 'confirma_costo', true)`;
     })
     .join(", ");
   return `
@@ -157,7 +159,7 @@ select documento as ${v}_doc from retail.compras where id = :'${v}' \\gset
 /** Como `compra`, pero AL CONTADO y pagada por completo al registrarse (total 1,416.00 con los valores por defecto). */
 function compraContado(v, { prov = "prov1", destino = "taller", lineas = [24], costo = 50 } = {}) {
   const items = lineas
-    .map((c) => `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', ${c}, 'costo_unitario', ${costo})`)
+    .map((c) => `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', ${c}, 'costo_unitario', ${costo}, 'confirma_costo', true)`)
     .join(", ");
   const total = lineas.reduce((a, c) => a + c, 0) * costo * 1.18;
   return `
@@ -973,7 +975,7 @@ exito(
     FELIPE,
     `${BASE}${nuevoProv("prov3")}
 select count(retail.registrar_compra(:'prov3', 'TST', 'B' || g || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), 'credito', :'taller',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', 1, 'costo_unitario', 10)),
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', 1, 'costo_unitario', 10, 'confirma_costo', true)),
   p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() - 1)) as _n from generate_series(1, 60) g \\gset
 select (select comprobantes from retail.por_pagar_tramos(p_proveedor_id => :'prov3') where tramo = 'vencidas'),
   (select saldo from retail.por_pagar_tramos(p_proveedor_id => :'prov3') where tramo = 'vencidas'),

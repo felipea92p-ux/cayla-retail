@@ -340,8 +340,9 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
-      # Precio de campaña bajado al .90 (ADR-0182): la base da lo mismo que la caja, registrar_venta y separar_prendas
-      # aceptan el descuento redondeado y rechazan el de antes, y la migración se puede pegar dos veces. ROLLBACK.
+      # Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
+      # registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
+      # dos veces. ROLLBACK.
       - name: pruebas:campana-redondeo
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:campana-redondeo
@@ -390,6 +391,14 @@ jobs:
       - name: pruebas:bajada-al-piso
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-al-piso
+
+      # «Subir a almacén» (ADR-0300): `retirar_del_piso` sube varias tallas del piso al almacén en UNA transacción (el movimiento
+      # contrario a `bajar_al_piso`). Todo o nada (una talla que no alcanza no deja subir ni la que sí), una marca por lista que
+      # hace seguro reenviar tras un corte, mismo módulo y mismo Responsable que «Retirar del piso», y la misma fila del libro
+      # que escribe `mover_entre_piso_y_almacen`. Cada caso termina en ROLLBACK.
+      - name: pruebas:retirar-del-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:retirar-del-piso
 
       # Nuevo producto con su stock de hoy (ADR-0212): el producto y la carga inicial son todo o nada (sin tienda, otra tienda,
       # un Taller «al piso» o un rol sin «Bajada al piso» no dejan ni el producto), las cantidades entran como «carga_inicial»
@@ -930,6 +939,36 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:club-lista-y-ficha
 
+      # Club de clientas, tanda 1g (ADR-0288 «Actualización 2026-10-01 (g)»): ella se une sola desde el cartel. El registro sin
+      # sesión (`registrarse_en_el_club`, solo service_role): ficha nueva o reemplazo de sus datos sin moverle `club_desde` ni
+      # el código, la prueba del consentimiento (pagina_cartel citando los términos y la casilla, sin persona), menor de 18,
+      # versiones de los textos, celular nuevo que revoca y vuelve a dar la publicidad, archivada (no se reactiva) y anonimizada
+      # (nunca se reusa); los límites del cartel (`club_intento`); quién puede llamar (anon y authenticated NO); la página y los
+      # textos legales EXACTOS del documento aprobado; guardar_beneficios_club con su versión nueva de los términos; la
+      # conservación de 3 años; md5 «después» = vivas, pegar las ocho partes dos veces deja lo mismo, con registrar_venta
+      # cambiada en vivo aborta sin pisar, y cada `alter` de una tabla en uso en su parte. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-registro-cartel
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-registro-cartel
+
+      # Club de clientas, tanda 1g (G-9, G-13): el vale de aniversario. El reparto en `registrar_venta` con
+      # `p_canjear_aniversario`, igual al de la web (tabla de ejemplos) y exacto al céntimo; el umbral (6 compras o S/ 600 en
+      # compras NETAS), la pausa y la escala (el quinto se repite), los 60 días; el canje (monto aplicado, año de club), uno por
+      # compra con el cumpleaños, uno por año de club, el vale que cubre toda la compra (aniversario_cubre_todo); anular libera,
+      # una devolución no; y dos cajas a la vez (la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK
+      # (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:club-aniversario
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-aniversario
+
+      # Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
+      # casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
+      # su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
+      # avisos_club (nace sin rol) y la BAJA desde Avisos; anonimizar borra teléfono y texto. Cada caso termina en ROLLBACK.
+      - name: pruebas:club-avisos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:club-avisos
+
       # Club de clientas, tanda 1e (ADR-0288 D-3): el comprobante acepta carné de extranjería y pasaporte. Boleta y nota de
       # venta guardan el tipo y el número limpio; fuera de formato (o sin número) → `documento_invalido` sin venta, sin stock
       # movido ni correlativo gastado; la factura sigue exigiendo RUC; el candado de la tabla frena un insert directo; la
@@ -1189,6 +1228,54 @@ jobs:
       - name: pruebas:costo-hasta-primera-compra
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
+
+      # La regla del «costo atípico» (20260930120000, Felipe 2026-09-30): función pura que dice si un costo por prenda merece
+      # una segunda mirada (sin costo, mayor que el precio, sube a más de 2× o baja a menos de 2/3 del vigente). Fronteras
+      # exactas, sin referencia no hay opinión relativa, el orden de los motivos, interna (sin execute para la API) y
+      # llamable desde una SECURITY DEFINER; se puede pegar dos veces. Ninguna escritura.
+      - name: pruebas:costo-fuera-de-banda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-fuera-de-banda
+
+      # Cerrar una orden del Taller pide confirmación si el costo por prenda es atípico (20260930121000, Felipe 2026-09-30): un
+      # líder recibe `costo_atipico` con el dato en `detail` y la orden queda intacta (todo o nada: sin buenas, sin
+      # movimientos, sin historial de costo); confirma con `p_confirma_costo_atipico` y el costo entra al promedio ponderado
+      # exacto con constancia SIN montos en la nota; un integrante (no ve montos) recibe `costo_atipico_sin_lider` sin cifras
+      # y mandar la confirmación por la API directa no cambia nada; una talla con cero buenas no cuenta; una muestra no
+      # pregunta; una sola función (sin sobrecargas); `anon` no la ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:produccion-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-costo-atipico
+
+      # Recibir un lote sin factura pide confirmación si el costo de una línea es atípico (20260930122000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con las líneas raras que faltan por confirmar en `detail.items` (numeradas; las normales no) y no
+      # se escribe nada (sin lote, sin movimientos, sin historial); la confirmación viaja EN CADA LÍNEA (`confirma_costo`): una marca
+      # parcial vuelve a preguntar solo por lo no marcado y una marca en una línea normal no hace nada; el rechazo no consume el
+      # token (el reintento con las marcas es un solo lote); con las marcas entra al promedio ponderado exacto y el lote deja
+      # constancia SIN montos; un integrante recibe `costo_atipico_sin_lider` sin cifras y no puede forzarlo por la API; sin costo y
+      # costo 0 (obsequio) no se juzgan; la firma de seis parámetros no cambió; se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:lote-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:lote-costo-atipico
+
+      # Registrar una factura pide confirmación si el costo de una línea es atípico (20260930123000, Felipe 2026-09-30): el costo se
+      # compara con el de la variante que la línea nombra (o la mediana de las del producto, y el precio más bajo); el aviso numera
+      # las líneas que faltan por confirmar y no se escribe nada (sin compra, sin líneas, sin token); la confirmación viaja EN CADA
+      # LÍNEA (`confirma_costo`), sin cambiar la firma de 15 parámetros; la constancia sale SIN montos en la nota; registrar NO mueve
+      # `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
+      # de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
+      - name: pruebas:factura-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:factura-costo-atipico
+
+      # Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
+      # líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se
+      # escribe nada (ni el envío, ni la línea de comprobante, ni el token); la confirmación viaja EN CADA EXTRA (`confirma_costo`),
+      # sin cambiar la firma de 9 parámetros; un integrante recibe `costo_atipico_sin_lider` sin cifras y no puede forzarlo; regalo,
+      # sin costo y costo 0 (obsequio) no se juzgan; las líneas DE comprobante no se vuelven a preguntar; se puede pegar dos veces.
+      - name: pruebas:envio-costo-atipico
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:envio-costo-atipico
 
       # Corregir el color y la talla de una variante que ya existe, siempre (20260929045000, ADR-0263 D-136/137/138; corre
       # después de 20260928235500, ADR-0258, y reemplaza su regla «solo sin historia»): una prenda «Sin color» con carga

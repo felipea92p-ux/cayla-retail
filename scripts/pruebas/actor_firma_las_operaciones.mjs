@@ -370,7 +370,7 @@ caso(
   "Compras (registrar_compra, true desde 20260923230000): Felipe con x-responsable Rosa → la compra la firma Rosa, igual que una de tienda",
   `insert into retail.proveedores (nombre, activo) values ('ZZ Prueba actor ' || substr(md5(random()::text), 1, 8), true) returning id as prov \\gset
 ${sesion(FELIPE, { resp: "rosa", ubicacion: "tru" })}select retail.registrar_compra(:'prov', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 3, 'costo_unitario', 10)),
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 3, 'costo_unitario', 10, 'confirma_costo', true)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
 select ${AJUSTE} as mov \\gset
 select concat_ws(',', (select usuario_id = :'rosa' from retail.compras where id = :'compra'), (select usuario_id = :'rosa' from retail.movimientos where id = :'mov'));`,

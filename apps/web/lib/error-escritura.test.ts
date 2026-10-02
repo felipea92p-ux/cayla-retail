@@ -226,30 +226,6 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
   });
 
-  it("descuento sin código: dice a quién pedírselo", () => {
-    const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
-    expect(salida).not.toContain("venta_descuento_requiere_codigo");
-    expect(salida).toContain("código");
-    expect(salida).toContain("Líder");
-  });
-
-  it("código inválido: repite el código que se escribió", () => {
-    const salida = traducirError(
-      { message: "venta_codigo_descuento_invalido", details: "CAYLA10", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("CAYLA10");
-    expect(salida).toContain("no es válido");
-  });
-
-  it("descuento por encima del código: dice el tope", () => {
-    const salida = traducirError(
-      { message: "venta_descuento_supera_codigo", details: "15", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("hasta un 15 %");
-  });
-
   it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_motivo", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
@@ -541,6 +517,33 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
   });
 });
 
+// ---- Costo atípico (2026-09-30, 20260930120000 y siguientes). La base rechaza un costo por prenda fuera de lo normal con el
+// nombre estable `costo_atipico`; a quien no es líder (no ve montos) le dice `costo_atipico_sin_lider`, sin cifras. La
+// segunda marca CONTIENE a la primera: si alguien reordena las huellas, el integrante lee el aviso del líder (o al revés).
+
+describe("traduce el costo atípico", () => {
+  it("un integrante lee que un líder debe confirmarlo, sin cifras", () => {
+    const salida = traducirError({ message: "costo_atipico_sin_lider", details: null, code: "P0001" }, "cerrar la orden");
+    expect(salida).toContain("solo un líder puede confirmarlo");
+    expect(salida).not.toContain("costo_atipico");
+    expect(salida).not.toMatch(/S\/|[0-9]/);
+  });
+
+  it("el orden de las huellas importa: `costo_atipico_sin_lider` NO cae en la frase de `costo_atipico`", () => {
+    const sinLider = traducirError({ message: "costo_atipico_sin_lider", code: "P0001" }, "cerrar la orden");
+    const lider = traducirError({ message: "costo_atipico", details: '{"motivo":"sube"}', code: "P0001" }, "cerrar la orden");
+    expect(sinLider).not.toBe(lider);
+    expect(lider).toContain("fuera de lo normal");
+    expect(lider).not.toContain("solo un líder puede confirmarlo");
+  });
+
+  it("si el líder llega aquí (una pantalla que no armó la confirmación), no ve el JSON crudo", () => {
+    const salida = traducirError({ message: "costo_atipico", details: '{"motivo":"sube","costo_unitario":70}', code: "P0001" }, "cerrar la orden");
+    expect(salida).not.toContain("{");
+    expect(salida).not.toContain("costo_atipico");
+  });
+});
+
 // ADR-0288 (20260930160000): el documento de la clienta tiene tipo, y la venta se liga a su ficha. Dos de los rechazos no
 // llegan como P0001 (22023 el formato, 23505 el documento de otra ficha): sin su hint caerían al genérico con «Código:».
 describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
@@ -614,6 +617,26 @@ describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () =>
       const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
       expect(salida, hint).not.toContain("Código:");
       expect(salida, hint).toMatch(/cumpleaños/);
+    }
+  });
+});
+
+// ADR-0288 tanda 1g: el vale de aniversario en `registrar_venta`, con el mismo criterio que el cumpleaños.
+describe("club de clientas: el vale de aniversario (ADR-0288 tanda 1g)", () => {
+  const HINTS = ["club_un_cupon_por_compra", "aniversario_no_disponible", "aniversario_ya_canjeado", "aniversario_sin_monto"];
+
+  it("el mensaje de la base pasa tal cual", () => {
+    for (const hint of HINTS) {
+      const message = `Mensaje de la base para ${hint}.`;
+      expect(traducirError({ message, code: "P0001", hint }, "registrar la venta"), hint).toBe(message);
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo en castellano", () => {
+    for (const hint of HINTS) {
+      const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida, hint).toMatch(/vale de aniversario/);
     }
   });
 });

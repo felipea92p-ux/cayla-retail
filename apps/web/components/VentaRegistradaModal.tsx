@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Cake, Printer } from "lucide-react";
+import { Cake, Gift, Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { money, type VentaOk } from "@/components/PuntoDeVenta";
@@ -12,6 +12,7 @@ import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas"
 import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
+import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
 
 type Props = {
   ok: VentaOk;
@@ -174,6 +175,13 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
               <Cake className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>{textoCumpleCobrado(ok.cumple.monto)}</span>
+            </p>
+          )}
+          {/* El vale de aniversario (tanda 1g): se usó, y es de una sola vez. */}
+          {ok.vale && ok.vale.monto > 0 && (
+            <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
+              <Gift className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>{textoValeCobrado(ok.vale.monto)}</span>
             </p>
           )}
 

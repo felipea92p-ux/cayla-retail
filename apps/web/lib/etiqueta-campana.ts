@@ -4,7 +4,7 @@
 // `actualizar_campana_etiqueta`); esto solo las dice con una frase clara ANTES
 // de ir a la base, y sirve igual en el navegador y en la API.
 
-import { descuentoDeCampana } from "./vender-reglas";
+import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -49,8 +49,8 @@ export type PrendaConCosto = { id: string; categoriaId: string | null; precio: n
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
  *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las
- *  categorías elegidas. El precio es el que de verdad se cobra: bajado al .90 con la misma
- *  regla que la caja y `registrar_venta` (`descuentoDeCampana`, ADR-0182). */
+ *  categorías elegidas. El precio es el que de verdad se cobra: el % exacto, con la misma
+ *  cuenta que la caja y `registrar_venta` (`descuentoDeCampana`, ADR-0302). */
 export function prendasBajoCosto(
   pct: number | null,
   prendas: readonly PrendaConCosto[],
@@ -60,6 +60,7 @@ export function prendasBajoCosto(
   if (pct === null || pct <= 0) return [];
   return prendas.filter((p) => {
     const alcanzada = varianteIdsManuales.has(p.id) || (p.categoriaId !== null && categoriaIds.has(p.categoriaId));
-    return alcanzada && p.precio - descuentoDeCampana(p.precio, pct) < p.costo;
+    // En céntimos: en coma flotante 19.90 − 3.98 = 15.919999… y avisaba bajo un costo de 15.92 que se cobra exacto.
+    return alcanzada && totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoDeCampana(p.precio, pct) }]) < p.costo;
   });
 }

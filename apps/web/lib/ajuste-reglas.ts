@@ -89,7 +89,14 @@ export function armarVariantesAjuste(
 /** La prenda desde la que se abre el modal. En Existencias y Movimientos cada fila es UNA prenda: un modelo en un color
  *  (`clavePercha`). Si el modal cargaba el modelo entero, la fila decía «12 en el piso» y adentro aparecían los cuatro
  *  colores con 78 (Felipe, 2026-09-28). Productos lo abre sin prenda: su fila es el modelo con todos sus colores. */
-export type PrendaAjuste = { color: string | null };
+export type PrendaAjuste = {
+  color: string | null;
+  /** El color en #hex, solo para el puntito junto al nombre de la prenda: no decide qué tallas se muestran. */
+  colorHex?: string | null;
+  /** La foto de la prenda, para el costado de la ventana. `undefined` = quien lo abre no la tiene (la ficha del producto en edición):
+   *  la ventana va sin foto y con su ancho de antes; `null` = la prenda no tiene foto (se dibuja el marcador). */
+  fotoUrl?: string | null;
+};
 
 /** Solo las variantes del color de la prenda; sin prenda, todas. Compara por NOMBRE porque es lo que trae la fila de
  *  Existencias, y en la base es único (`colores_clave_unica`). Deja pasar las tallas del color que nunca estuvieron en la
@@ -197,20 +204,97 @@ function conSigno(n: number): string {
   return n > 0 ? `+${n}` : `−${-n}`;
 }
 
-/** Cómo queda la talla, al lado de su stock: «→ 6». Al contar, también la diferencia, que es lo que queda en Movimientos
- *  («→ 3 (−1)»). */
-export function textoCambioTalla(l: LineaAjuste | undefined, modo: ModoAjuste): string {
+/** Lo que se ve bajo una talla cuando ya se escribió algo: cómo queda. Al contar, también la diferencia, que es lo que queda en
+ *  Movimientos («Quedará en 3 (−1)»). */
+export function textoQuedara(l: LineaAjuste | undefined, modo: ModoAjuste): string {
   if (!l) return "";
-  return modo === "contado" ? ` → ${l.resultado} (${conSigno(l.delta)})` : ` → ${l.resultado}`;
+  return modo === "contado" ? `Quedará en ${l.resultado} (${conSigno(l.delta)})` : `Quedará en ${l.resultado}`;
 }
 
-/** Las tallas que quedarían en negativo: `fn_aplicar_movimiento` las rechaza; el modal lo dice antes, con los números de
- *  la primera. */
-export function textoNegativas(negativas: readonly LineaAjuste[], modo: ModoAjuste): string {
-  const codigos = negativas.map((l) => l.variante.sku).join(", ");
-  if (modo === "contado") return `${codigos}: lo contado no puede ser negativo.`;
-  const [primera] = negativas;
-  return `${codigos}: el ajuste dejaría el stock en negativo — hay ${primera.actual} y se pide ${primera.delta}.`;
+/** Por qué una talla no se puede ajustar con lo escrito, en voz de tienda y SIN códigos: son las dos reglas que
+ *  `fn_aplicar_movimiento` también exige (no dejar el stock en negativo ni por debajo de lo apartado para clientas), dichas
+ *  antes de confirmar y en la fila de la talla. `null`: está bien. */
+export function textoProblemaTalla(l: LineaAjuste, modo: ModoAjuste): string | null {
+  if (l.resultado < 0) {
+    return modo === "contado" ? "Lo contado no puede ser negativo." : `Solo hay ${l.actual}: no se pueden restar ${-l.delta}.`;
+  }
+  if (l.resultado < l.apartado) {
+    // Al contar, lo más probable es que la apartada esté guardada aparte y no se contó: se dice antes de mandar a liberar nada.
+    return modo === "contado"
+      ? `Contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Cuéntalas también; si de verdad falta, libera ese apartado primero.`
+      : `Quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Libera o resuelve esos apartados primero.`;
+  }
+  return null;
+}
+
+/** La pregunta sobre las tallas, en voz de tienda: lo que se escribe en cada una depende del motivo (`modoDeAjuste`). Al contar
+ *  nombra el lugar: contar el piso con el almacén elegido SUMARÍA al almacén lo que está colgado. */
+export function preguntaCantidades(modo: ModoAjuste, lugar: LugarAjuste): string {
+  if (modo === "diferencia") return "¿Cuántas sumas o restas de cada talla?";
+  const donde = lugar === "piso" ? " en el piso" : lugar === "almacen" ? " en el almacén" : "";
+  return `¿Cuántas contaste${donde} de cada talla?`;
+}
+
+/** El piso de cada talla en los botones «−»: más abajo la base lo rechazaría. Una prenda nueva en la tienda no baja de cero y lo
+ *  apartado para clientas no se puede dejar de contar. Al sumar o restar es un cambio (negativo o cero); al contar, una cantidad. */
+export function minimoDeAjuste(v: VarianteAjuste, lugar: LugarAjuste, modo: ModoAjuste): number {
+  if (v.sinHistoria) return 0;
+  const apartado = apartadoEn(v, lugar);
+  return modo === "contado" ? apartado : 0 - Math.max(0, stockEn(v, lugar) - apartado);
+}
+
+/** Lo que queda escrito en una talla al tocar «−» (paso −1) o «+» (paso +1); `null`: ya no se puede bajar más. Al sumar o
+ *  restar, vacío es 0 y volver a 0 deja la talla sin ajuste (vacía). Al contar, vacío es «no la conté»: el primer toque parte de lo
+ *  que dice el sistema, no de cero. */
+export function textoTrasPaso(texto: string, paso: 1 | -1, modo: ModoAjuste, actual: number, minimo: number): string | null {
+  const t = texto.trim();
+  const escrito = t !== "" && Number.isInteger(Number(t)) ? Number(t) : null;
+  const siguiente = (escrito ?? (modo === "contado" ? actual : 0)) + paso;
+  if (siguiente < minimo) return null;
+  if (modo === "diferencia" && siguiente === 0) return "";
+  return String(siguiente);
+}
+
+/** Lo que se acepta al teclear en la cajita de una talla: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos. */
+export function limpiarTextoAjuste(crudo: string, modo: ModoAjuste): string {
+  const normal = crudo.replace(/[−–]/g, "-");
+  const digitos = normal.replace(/\D/g, "");
+  if (modo === "contado") return digitos;
+  return normal.trimStart().startsWith("-") ? `-${digitos}` : digitos;
+}
+
+/** La primera línea de una talla: cuánto hay en el lugar que se ajusta («2 en el almacén», «Nada en el piso»). Si el modal muestra
+ *  varios colores a la vez (sin prenda), el color va delante: sin él, dos «M» no se distinguen. */
+export function textoStockTalla(v: VarianteAjuste, lugar: LugarAjuste, conColor: boolean): string {
+  const n = stockEn(v, lugar);
+  const donde = lugar === "piso" ? "el piso" : lugar === "almacen" ? "el almacén" : "la sede";
+  const base = n > 0 ? `${n} en ${donde}` : `Nada en ${donde}`;
+  return conColor && v.color ? `${v.color} · ${base}` : base;
+}
+
+/** La segunda línea de una talla: lo que pasa con ella y lo que hay que saber. Cómo queda (o que coincide con el sistema, al
+ *  contar), lo apartado para clientas y, si nunca estuvo en la tienda, dónde entra su primera cantidad. */
+export function detalleDeTalla(o: {
+  variante: VarianteAjuste;
+  linea: LineaAjuste | undefined;
+  /** Lo escrito en la talla, tal cual. */
+  texto: string;
+  modo: ModoAjuste;
+  lugar: LugarAjuste;
+  ubicado: "piso" | "almacen";
+  separaPisoAlmacen: boolean;
+  puedeBajarAlPiso: boolean;
+}): string {
+  const { variante, linea, texto, modo, lugar } = o;
+  const escrito = texto.trim();
+  const coincide = !linea && modo === "contado" && escrito !== "" && Number.isInteger(Number(escrito)) && Number(escrito) === stockEn(variante, lugar);
+  const partes = [
+    textoQuedara(linea, modo),
+    coincide ? "Coincide con el sistema" : "",
+    textoApartadoTalla(apartadoEn(variante, lugar), modo).replace(/^ · /, ""),
+    variante.sinHistoria ? textoPrendaNueva(o.ubicado, o.separaPisoAlmacen, o.puedeBajarAlPiso) : "",
+  ];
+  return partes.filter(Boolean).join(" · ");
 }
 
 /** Lo apartado de una talla, al lado de su stock («stock 2 · 1 apartada»); vacío si no tiene. Al contar, pide contarlas:
@@ -219,19 +303,6 @@ export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
   if (apartado === 0) return "";
   if (modo === "contado") return ` · ${apartadas(apartado)} (${apartado === 1 ? "cuéntala" : "cuéntalas"})`;
   return ` · ${apartadas(apartado)}`;
-}
-
-/** Un ajuste no puede dejar menos prendas que las apartadas: `fn_aplicar_movimiento` lo rechaza. El modal lo dice antes, con
- *  el código de la etiqueta (el error de la base usa el `sku`, que casi siempre es NULL, ADR-0058). Al contar, lo más
- *  probable es que la apartada esté guardada aparte y no se contó: lo dice antes de mandar a liberar nada. */
-export function textoBajoApartado(
-  l: { variante: Pick<VarianteAjuste, "sku">; resultado: number; apartado: number },
-  modo: ModoAjuste
-): string {
-  if (modo === "contado") {
-    return `${l.variante.sku}: contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Las apartadas siguen en la tienda: cuéntalas también; si de verdad falta, libera ese apartado primero.`;
-  }
-  return `${l.variante.sku}: quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Libera o resuelve esos apartados primero.`;
 }
 
 // Motivos del ajuste. «Reposición» no se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
@@ -257,9 +328,10 @@ export function motivosAjusteDisponibles(
   return reposicionCerrada(ubicado, separaPisoAlmacen) ? MOTIVOS_AJUSTE.filter((m) => m.valor !== "reposicion") : MOTIVOS_AJUSTE;
 }
 
-// Nombra el retiro: sin él, quien guarda prendas del piso lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
+// Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
+// «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "Subir al piso: «Bajar al piso» o «Reponer». Guardar en el almacén: «⋯» ▸ «Retirar del piso». Todo en Existencias (si no ves «Bajar al piso», pídele al líder ese módulo). Prendas de más al contar: «Conteo físico».";
+  "Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias (si no los ves, pídele al líder el módulo «Bajada al piso»). Prendas de más al contar: «Conteo físico».";
 
 /** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad

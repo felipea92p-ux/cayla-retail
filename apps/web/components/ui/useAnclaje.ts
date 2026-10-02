@@ -100,9 +100,10 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
 
    La hoja en reposo no crea containing block para `fixed` (sin transform ni
    containment), así que la posición medida por `usePosicionLista` sigue
-   valiendo contra la ventana. Solo durante su animación de entrada lleva
-   transform, y eso ya lo cubre la medición cuadro a cuadro de arriba: es
-   como vivían estas listas dentro del modal antes del #442.
+   valiendo contra la ventana. Durante su animación de entrada SÍ lleva
+   transform, y la medición cuadro a cuadro sola no alcanzaba (la lista salía
+   corrida y saltaba al terminar la entrada): `marcoDelFijo` convierte la
+   posición al marco de la hoja mientras dura (2026-10-01).
 
    Dentro de la hoja, en su CAPA de listas (`[data-capa-flotante]`, la monta
    `<Modal>`), no suelta en la hoja (2026-09-26). Suelta, la lista era hija
@@ -127,6 +128,45 @@ export function useDestinoFlotante(control: RefObject<HTMLElement | null>, abier
   return destino;
 }
 
+/**
+ * El bloque contenedor de una lista `fixed` colgada dentro de una hoja que ESTÁ ENTRANDO (2026-10-01).
+ *
+ * Mientras la hoja de `<Modal>` anima su entrada (escala de 96,5 % a 100 % y 18 px que sube, ~500 ms) lleva `transform`, y un
+ * ancestro con `transform` se vuelve el bloque contenedor de todo `position: fixed` de adentro: las coordenadas de la ventana se
+ * leían desde la esquina de la hoja. Un combo con `autoFocus` (que se abre en ese instante, como «Categoría» en Prenda sin
+ * registrar) mostraba su lista ~120 px a la derecha y ~70 px abajo, y al terminar la entrada saltaba a su lugar: el «movimiento
+ * raro hacia la derecha» que vio Felipe. La medición cuadro a cuadro no alcanzaba: medía bien el control, pero lo aplicaba en el
+ * marco equivocado. Con esto se convierte al marco de la hoja mientras dura la entrada; en reposo devuelve `null` y nada cambia.
+ *
+ * Se busca desde la hoja (`[role="dialog"]`) hacia arriba porque la lista vive en la hoja (`useDestinoFlotante`), no junto al
+ * control: las piezas de la cascada que envuelven al control también llevan `transform`, pero no son ancestros de la lista.
+ */
+function marcoDelFijo(control: HTMLElement): { x: (vx: number) => number; y: (vy: number) => number; escala: number; alto: number } | null {
+  let el = control.closest<HTMLElement>('[role="dialog"]');
+  while (el && el !== document.body && el !== document.documentElement) {
+    const cs = getComputedStyle(el);
+    const atrapa =
+      cs.transform !== "none" ||
+      cs.perspective !== "none" ||
+      cs.filter !== "none" ||
+      (cs.backdropFilter ?? "none") !== "none" ||
+      /transform|perspective|filter/.test(cs.willChange) ||
+      /paint|layout|strict|content/.test(cs.contain);
+    if (atrapa) {
+      const caja = el.getBoundingClientRect();
+      const escala = el.offsetWidth > 0 ? caja.width / el.offsetWidth : 1;
+      // El origen es la caja de relleno (sin el borde) y, como en un `absolute`, se desplaza con el scroll de la hoja.
+      const x0 = caja.left + el.clientLeft * escala;
+      const y0 = caja.top + el.clientTop * escala;
+      const sl = el.scrollLeft;
+      const st = el.scrollTop;
+      return { x: (vx) => (vx - x0) / escala + sl, y: (vy) => (vy - y0) / escala + st, escala, alto: el.clientHeight };
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
 export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
 
 export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto: boolean, alto: number, separacion = 6): PosicionLista | null {
@@ -142,12 +182,19 @@ export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto
       const margen = 8;
       const abajo = window.innerHeight - r.bottom - separacion - margen;
       const arriba = r.top - separacion - margen;
-      const base = { left: r.left, width: r.width };
       // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
-      const nueva: PosicionLista =
-        abajo >= Math.min(alto, 160) || abajo >= arriba
-          ? { ...base, top: r.bottom + separacion, maxHeight: Math.min(alto, Math.max(abajo, 120)) }
-          : { ...base, bottom: window.innerHeight - r.top + separacion, maxHeight: Math.min(alto, arriba) };
+      const haciaAbajo = abajo >= Math.min(alto, 160) || abajo >= arriba;
+      const maxHeight = haciaAbajo ? Math.min(alto, Math.max(abajo, 120)) : Math.min(alto, arriba);
+      const marco = marcoDelFijo(control.current);
+      // En reposo: coordenadas de la ventana, tal cual se midieron.
+      const nueva: PosicionLista = !marco
+        ? haciaAbajo
+          ? { left: r.left, width: r.width, top: r.bottom + separacion, maxHeight }
+          : { left: r.left, width: r.width, bottom: window.innerHeight - r.top + separacion, maxHeight }
+        : // Con la hoja entrando (transform): coordenadas de la hoja, en su escala. Visualmente, el mismo lugar.
+          haciaAbajo
+          ? { left: marco.x(r.left), width: r.width / marco.escala, top: marco.y(r.bottom + separacion), maxHeight: maxHeight / marco.escala }
+          : { left: marco.x(r.left), width: r.width / marco.escala, bottom: marco.alto - marco.y(r.top - separacion), maxHeight: maxHeight / marco.escala };
       const clave = JSON.stringify(nueva);
       if (clave !== previa) {
         previa = clave;

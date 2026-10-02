@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   acotarCantidad,
   detalleDeLoBajado,
+  filasDelSelector,
   leerCantidadTecleada,
   lineasDeReponer,
   nombreDePrendaParaReponer,
@@ -108,5 +109,21 @@ describe("los textos", () => {
     expect(textoFilaSinAlcance(1, "sin_alcance")).toBe("Solo queda 1 libre en el almacén.");
     expect(textoFilaSinAlcance(2, "sin_alcance")).toBe("Solo quedan 2 libres en el almacén.");
     expect(textoFilaSinAlcance(0, "archivada")).toMatch(/archivada/);
+  });
+});
+
+describe("filasDelSelector: la misma lista, con el lado que manda según el rumbo", () => {
+  const tallas = tallasParaReponer([S, L]); // S: piso 0, almacén 1 · L: piso 3, almacén 0
+
+  it("al BAJAR manda el almacén: el tope es lo que hay atrás y la cifra principal es la del almacén", () => {
+    const [s, l] = filasDelSelector(tallas, "bajar");
+    expect(s).toEqual({ varianteId: S.varianteId, talla: "S", tope: 1, principal: "1 en almacén", secundaria: "Nada en el piso" });
+    expect(l).toEqual({ varianteId: L.varianteId, talla: "L", tope: 0, principal: "Nada en almacén", secundaria: "3 en el piso" });
+  });
+
+  it("al SUBIR manda el piso: la talla con prendas colgadas se puede subir y la que no tiene nada en el piso no", () => {
+    const [s, l] = filasDelSelector(tallas, "subir");
+    expect(s).toEqual({ varianteId: S.varianteId, talla: "S", tope: 0, principal: "Nada en el piso", secundaria: "1 en almacén" });
+    expect(l).toEqual({ varianteId: L.varianteId, talla: "L", tope: 3, principal: "3 en el piso", secundaria: "Nada en almacén" });
   });
 });

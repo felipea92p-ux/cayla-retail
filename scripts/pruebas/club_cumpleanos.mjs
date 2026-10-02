@@ -26,8 +26,8 @@
  *      `clienta_anonimizada`; sin clienta → `cumple_sin_clienta`. En ningún rechazo queda venta, canje ni stock movido.
  *   e. El monto: manipulado → `cumple_descuento_distinto` (1 céntimo de holgura, 2 no); una parte del club sin canjear →
  *      `cumple_sin_canje`; un canje sin nada que descontar → `cumple_sin_monto`.
- *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el código de descuento, el 35 % del líder y el
- *      argumento sobre el 15 %.
+ *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el 35 % del líder y el argumento sobre el 15 % (el
+ *      código de descuento ya no existe desde 20261002100000).
  *   g. Anular la venta libera el canje (con la hora y la persona de la anulación) y se puede volver a canjear; una
  *      devolución NO lo libera.
  *   h. `resumen_clienta_caja`: disponible, % y canjeado, antes y después del canje y de anularlo.
@@ -41,6 +41,15 @@
  *      lectura de la ficha (sin COMMIT). Con BASE_DESECHABLE=1, además y con COMMIT: (j2) dos canjes a la misma socia →
  *      pasa uno y el otro recibe `cumple_ya_canjeado`; (j3) una venta SIN canje a esa socia no espera al canje; (j4) la
  *      misma venta reintentada (mismo token) mientras se guarda → la misma venta y un solo canje.
+ *
+ * TANDA 1g (ADR-0288 «Actualización 2026-10-01 (g)», 20261001210000…210700). `registrar_venta` sumó
+ * `p_canjear_aniversario` (18 parámetros: la de 17 ya no existe) y `resumen_clienta_caja` el vale de aniversario; los dos
+ * con el md5 «después» de la 1g. Lo que esta prueba mira del cumpleaños no cambia; lo que cambia es la estructura (i): una
+ * sola firma, la de 18; los md5 de hoy, los de la 1g; y pegar HOY esta tanda ya NO funciona (su candado ve
+ * resumen_clienta_caja con el md5 de la 1g y aborta sin pisar nada), como la 1b sobre la 1c. Además `unirse_al_club` se
+ * retiró de la API (sin EXECUTE para authenticated, sin borrarla): para armar a una socia, esta prueba la llama como
+ * `postgres` con los claims de la cuenta puestos (la misma lógica y la misma firma del responsable). El vale de
+ * aniversario: club_aniversario.mjs.
  *
  * USO
  *   pnpm pruebas:club-cumpleanos                   → contra la base `postgres` del stack local (la del CI)
@@ -79,6 +88,20 @@ if (VERSIONES.length !== 4) {
 }
 const RV_VIEJA = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text)";
 const RV_NUEVA = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean)";
+// La tanda 1g (20261001210700) soltó la de 17 y creó la de 18 (p_canjear_aniversario), y rehízo resumen_clienta_caja. Su
+// tabla de versiones dice el md5 que cada una tiene HOY; la cadena no se corta: su «antes» es el «después» de esta tanda.
+const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)";
+const PASO_1G = leer("supabase", "migrations", "20261001210700_club_paso1g_parte8_funciones.sql");
+const VERSIONES_1G = [...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)].map((m) => ({
+  firma: m[1],
+  antes: m[3] ?? null,
+  despues: m[5] ?? null,
+}));
+/** El md5 que cada firma tiene que tener HOY: el «después» de la 1g si la 1g la tocó, o el de esta tanda. */
+const despuesHoy = (firma, despues) => {
+  const g = VERSIONES_1G.find((x) => x.firma === firma);
+  return (g ? g.despues : despues) ?? "NO_EXISTE";
+};
 // La cadena no se corta: el «antes» de registrar_venta aquí es el «después» de la tanda 1a (el que está en producción).
 const DESPUES_1A = /\('retail\.registrar_venta\([^']*\)',\s+'[0-9a-f]{32}',\s+'([0-9a-f]{32})'\)/.exec(
   leer("supabase", "migrations", "20260930160000_club_paso1a_venta_ligada_y_documento.sql")
@@ -225,7 +248,7 @@ select id as talla from retail.tallas where activo and estado = 'aprobado' order
 select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
 `;
 
-/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.90: descuento 16.00). Deja :etq. Como postgres. */
+/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.92: descuento 15.98, exacto, ADR-0302). Deja :etq. Como postgres. */
 const CAMPANA_20 = `reset role;
 insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
   values ('ZZ Cumple Campaña (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
@@ -248,7 +271,8 @@ const ALTA = (alias, { numero = null, nombre = null, celular = null } = {}) =>
  */
 const SOCIA = (alias, numero, nombre, celular, mes = ":'mes_hoy'") =>
   ALTA(alias, { numero, nombre, celular }) +
-  `select codigo_club as ${alias}_codigo from retail.unirse_al_club(p_clienta_id => :'${alias}', p_telefono_whatsapp => '${celular}', p_cumple_dia => ${mes === "null" ? "null" : "15::smallint"}, p_cumple_mes => ${mes}::smallint, p_ubicacion_id => :'ubic') \\gset\n`;
+  // Tanda 1g: unirse_al_club ya no la ejecuta authenticated: como postgres, con los claims de la cuenta (la misma lógica).
+  `reset role;\nselect codigo_club as ${alias}_codigo from retail.unirse_al_club(p_clienta_id => :'${alias}', p_telefono_whatsapp => '${celular}', p_cumple_dia => ${mes === "null" ? "null" : "15::smallint"}, p_cumple_mes => ${mes}::smallint, p_ubicacion_id => :'ubic') \\gset\nset local role authenticated;\n`;
 
 /** Una línea de `p_items`: `sinClub` es el descuento sin el cumpleaños y `club` su parte (null = la clave no viaja). */
 const item = ({ v = ":'v1'", precio = ":'v1_precio'", sinClub = 0, club = null, cant = 1, motivo = null, etq = null, argumento = null, libre = false } = {}) => {
@@ -361,10 +385,10 @@ select a.modulo, a.accion, a.tabla, a.registro_id = :'venta', a.persona_id = :'p
   "vender|cumpleanos_canjeado|ventas|t|t|10.00|7.99|t"
 );
 caso(
-  "(a) la cascada (CL-11): la prenda con campaña de 20 % (16.00) suma 6.39 y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50) entran en el mismo canje: monto 17.28",
+  "(a) la cascada (CL-11): la prenda con campaña de 20 % (15.98) suma 6.39 y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50) entran en el mismo canje: monto 17.28",
   SEDE() + CAMPANA_20 + como(FELIPE) + SOCIA("f", "90990103", "Cumple Cascada Prueba", "966990103") +
     VENDER("venta", {
-      lineas: items(item({ sinClub: 16, club: 6.39, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
+      lineas: items(item({ sinClub: 15.98, club: 6.39, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
       clienta: ":'f'",
       canjear: "true",
     }) +
@@ -375,7 +399,7 @@ select monto from retail.club_canjes where venta_id::text = :'venta';
 select sum(monto) from retail.venta_pagos where venta_id::text = :'venta';
 select precio_cobrado from retail.prendas_por_regularizar p join retail.venta_items vi on vi.id = p.venta_item_id where vi.venta_id::text = :'venta';
 `,
-  "22.39/6.39/campana/28 4.50/4.50/-/10\n17.28\n155.52\n40.50"
+  "22.37/6.39/campana/28 4.50/4.50/-/10\n17.28\n155.56\n40.50"
 );
 caso(
   "(a) el medio céntimo de la base sube (75.45 × 10 % = 7.545 → 7.55, como la web), y el % sale de configuracion_empresa (12.5 %: 79.90 → 9.9875 → 9.99)",
@@ -522,17 +546,15 @@ select v.descuento_pct, k.monto from retail.ventas v join retail.club_canjes k o
   }
 );
 caso(
-  "(f) el código de Micaela (10 %) cubre su descuento a mano de 10 % (7.99) aunque con el cumpleaños (7.19) la prenda quede en 19 %; sin el canje, un 19 % a mano sigue pasándose del código",
-  SEDE("Tienda Trujillo") + `reset role;
-insert into retail.codigos_descuento (codigo, porcentaje, activo) values ('ZZCUMPLE10', 10, true);
-` + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
-    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true", codigo: "'ZZCUMPLE10'" }) +
-    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })), codigo: "'ZZCUMPLE10'" }) +
-    `select :'r1';
+  "(f) sin código (20261002100000): Micaela da un 10 % a mano (7.99) y canjea el cumpleaños (7.19) → pasa; y un 19 % a mano (15.18) con argumento, sin canje, también pasa: ya no hay tope de código",
+  SEDE("Tienda Trujillo") + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
+    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })) }) +
+    `select :'r1' not like 'ERROR%';
 reset role;
 select descuento_unitario, descuento_club_unitario from retail.venta_items where venta_id::text = :'ok';
 `,
-  "ERROR|P0001|venta_descuento_supera_codigo\n15.18|7.19"
+  "t\n15.18|7.19"
 );
 caso(
   "(f) el líder: 35 % a mano (27.96, con argumento) + cumpleaños (5.19) = 41 % → pasa; y 12 % a mano (9.59) + cumpleaños (7.03) = 21 % → pasa SIN argumento escrito",
@@ -623,8 +645,8 @@ insert into retail.configuracion_empresa (ruc, razon_social, club_cumple_pct) va
 // i. Estructura
 // =====================================================================================================================
 caso(
-  "(i) una sola firma de registrar_venta (la de 17, con p_canjear_cumpleanos) y la llamada de la web resuelve (explain por nombre, sin «is not unique»)",
-  `select count(*), to_regprocedure('${RV_NUEVA}') is not null, to_regprocedure('${RV_VIEJA}') is null
+  "(i) una sola firma de registrar_venta (desde la 1g, la de 18: p_canjear_cumpleanos y p_canjear_aniversario) y la llamada de la web resuelve (explain por nombre, sin «is not unique»)",
+  `select count(*), to_regprocedure('${RV_HOY}') is not null and to_regprocedure('${RV_NUEVA}') is null, to_regprocedure('${RV_VIEJA}') is null
   from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_venta';
 explain select retail.registrar_venta(p_ubicacion_id => gen_random_uuid(), p_items => '[]'::jsonb, p_pagos => '[]'::jsonb,
   p_token => gen_random_uuid(), p_tipo_comprobante => 'boleta', p_cliente_tipo_doc => 'dni', p_cliente_id => null,
@@ -633,17 +655,19 @@ explain select retail.registrar_venta(p_ubicacion_id => gen_random_uuid(), p_ite
   (s) => s.startsWith("1|t|t\n") && s.includes("Result")
 );
 caso(
-  `(i) los md5 «después» de la sección 0 son los de las funciones vivas; el «antes» de registrar_venta es el «después» de la tanda 1a (${DESPUES_1A})`,
+  `(i) los md5 «después» de la sección 0 son los de las funciones vivas (registrar_venta de 17 ya no existe y resumen_clienta_caja es la de la 1g, que las rehízo); el «antes» de registrar_venta es el «después» de la tanda 1a (${DESPUES_1A}), y el «antes» que la 1g escribió es el «después» de esta tanda`,
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
   (s) =>
-    s === VERSIONES.map((v) => v.despues ?? "NO_EXISTE").join("\n") &&
-    VERSIONES.find((v) => v.firma === RV_VIEJA)?.antes === DESPUES_1A
+    s === VERSIONES.map((v) => despuesHoy(v.firma, v.despues)).join("\n") &&
+    VERSIONES.find((v) => v.firma === RV_VIEJA)?.antes === DESPUES_1A &&
+    VERSIONES_1G.find((v) => v.firma === RV_NUEVA)?.antes === VERSIONES.find((v) => v.firma === RV_NUEVA)?.despues &&
+    VERSIONES_1G.find((v) => v.firma === "retail.resumen_clienta_caja(uuid)")?.antes === VERSIONES.find((v) => v.firma === "retail.resumen_clienta_caja(uuid)")?.despues
 );
 caso(
   "(i) permisos: registrar_venta y resumen_clienta_caja solo para authenticated (sin PUBLIC ni anon); el disparador no lo ejecuta la API",
-  `select proacl::text from pg_proc where oid = '${RV_NUEVA}'::regprocedure;
+  `select proacl::text from pg_proc where oid = '${RV_HOY}'::regprocedure;
 select proacl::text from pg_proc where oid = 'retail.resumen_clienta_caja(uuid)'::regprocedure;
 select has_function_privilege('authenticated', 'retail.fn_club_canje_libera_al_anular()', 'execute'),
        has_function_privilege('anon', 'retail.fn_club_canje_libera_al_anular()', 'execute');
@@ -701,21 +725,30 @@ select md5(string_agg(x, '|' order by x)) from (
 select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_venta';
 `;
 const PEGAR_TODO = PARTES.map((p) => `${p}\n`).join("") + "set local search_path = retail, public, extensions;\n";
+// POR QUÉ CAMBIÓ CON LA TANDA 1g. Hasta la 1g, aquí se pegaban las tres partes otra vez (idempotencia). Con la 1g encima,
+// la PARTE 3 YA NO debe pasar: su candado ve resumen_clienta_caja con el md5 de la 1g y aborta. Si pasara, le quitaría a la
+// caja el vale de aniversario y dejaría DOS firmas de registrar_venta (la de 17 al lado de la de 18). La idempotencia de la
+// 1g la prueba club_registro_cartel.mjs. Lo que queda aquí: las PARTES 1 y 2 (solo venta_items y configuracion_empresa) se
+// siguen pegando sin cambiar nada, y la 3 aborta y no pisa nada.
 caso(
-  "(i) pegar las tres partes OTRA VEZ deja todo igual (funciones, permisos, columnas, candados, índices, disparadores, RLS) y una sola firma",
-  FOTO + PEGAR_TODO + FOTO,
+  "(i) pegar HOY las tres partes (con la 1g encima): la 1 y la 2 no cambian nada, la 3 aborta en su candado y no pisa nada (funciones, permisos, columnas, candados, índices, disparadores, RLS) y queda una sola firma, la de 18",
+  FOTO +
+    `reset role;\n${PARTES[0]}\n${PARTES[1]}\n` +
+    `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE3}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+    `set local search_path = retail, public, extensions;\n` +
+    FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
-    return l.length === 4 && l[0] === l[2] && l[1] === l[3] && l[1].endsWith("numeric,uuid,text,boolean)") && !l[1].includes("),");
+    return l.length === 4 && l[0] === l[2] && l[1] === l[3] && l[1].endsWith("numeric,uuid,text,boolean,boolean)") && !l[1].includes("),");
   }
 );
 // Con una función cambiada en vivo (alguien la corrigió en producción después de escribir esto), la PARTE 3 no la pisa:
 // aborta en el candado y no toca nada. Sin ON_ERROR_STOP y dentro de un savepoint: si abortara a medias, la foto lo delata.
 caso(
-  "(i) con registrar_venta cambiada en vivo, la PARTE 3 aborta con un mensaje claro y no toca nada",
+  "(i) con registrar_venta cambiada en vivo (la de hoy, la de 18), la PARTE 3 aborta igual y no toca nada",
   `reset role;
 do $cambio$ begin
-  execute replace(pg_get_functiondef('${RV_NUEVA}'::regprocedure), 'El carrito está vacío', 'El carrito está vacío (cambiado en vivo)');
+  execute replace(pg_get_functiondef('${RV_HOY}'::regprocedure), 'El carrito está vacío', 'El carrito está vacío (cambiado en vivo)');
 end $cambio$;
 ` +
     FOTO +
@@ -747,23 +780,22 @@ caso(
 {
   const r = correr(`${PRELUDIO}reset role;\n${PASO_1B}\nrollback;`);
   registrar(
-    "(i) …porque no puede cambiarle el tipo de retorno a resumen_clienta_caja",
-    !r.ok && r.mensaje.includes("cannot change return type of existing function"),
+    "(i) …porque su candado ve archivar_clienta con el md5 de la 1g (antes de la 1g, lo frenaba el tipo de retorno de resumen_clienta_caja)",
+    !r.ok && r.mensaje.includes("retail.archivar_clienta(uuid,text,boolean,integer) cambió desde que se escribió esta migración"),
     r.ok ? "no abortó" : r.mensaje.split("\n").find((x) => x.includes("ERROR")),
-    "ERROR: cannot change return type of existing function"
+    "ERROR: retail.archivar_clienta(uuid,text,boolean,integer) cambió desde que se escribió esta migración …"
   );
 }
 {
   // El mensaje del candado (el caso «con registrar_venta cambiada en vivo» lo corre sin ON_ERROR_STOP: aquí se lee aparte).
+  // Con la 1g encima, el candado de la PARTE 3 ya no llega a registrar_venta (la de 17 no existe: para él es «después»):
+  // frena antes en resumen_clienta_caja, que es la de la 1g. El mensaje dice cuál y que se rehaga sobre la versión viva.
   const r = correr(`${PRELUDIO}reset role;
-do $cambio$ begin
-  execute replace(pg_get_functiondef('${RV_NUEVA}'::regprocedure), 'El carrito está vacío', 'El carrito está vacío (cambiado en vivo)');
-end $cambio$;
 ${PARTE3}
 rollback;`);
   registrar(
-    "(i) con registrar_venta cambiada en vivo, el mensaje dice qué función cambió y que se rehaga sobre la versión viva",
-    !r.ok && r.mensaje.includes(`${RV_NUEVA} cambió desde que se escribió esta migración`) && r.mensaje.includes("lee su definición viva"),
+    "(i) pegar HOY la PARTE 3: el mensaje dice qué función cambió (resumen_clienta_caja, la de la 1g) y que se rehaga sobre la versión viva",
+    !r.ok && r.mensaje.includes("retail.resumen_clienta_caja(uuid) cambió desde que se escribió esta migración") && r.mensaje.includes("lee su definición viva"),
     r.ok ? "no abortó" : r.mensaje.split("\n").find((x) => x.includes("ERROR")),
     "ERROR: … cambió desde que se escribió esta migración … lee su definición viva …"
   );
@@ -888,8 +920,9 @@ await carrera(
     const app = `club_cumpleanos_a_${Date.now()}`;
     // A: la hace socia en su mes (dentro de su transacción), canjea y duerme sin confirmar.
     const a = psqlEnParalelo(`set application_name = '${app}';
-${PRELUDIO_BASE}${SEDE()}${como(FELIPE)}
+${PRELUDIO_BASE}${SEDE()}${como(FELIPE)}reset role;
 select codigo_club as _c from retail.unirse_al_club(p_clienta_id => '${ficha.salida}', p_telefono_whatsapp => '966999001', p_cumple_dia => 15::smallint, p_cumple_mes => :'mes_hoy'::smallint) \\gset
+set local role authenticated;
 ${VENDER("venta", { lineas: LINEA_CUMPLE, clienta: `'${ficha.salida}'`, canjear: "true" })}select :'venta' ~ '^[0-9a-f-]{36}$';
 select pg_sleep(3);
 rollback;
@@ -915,7 +948,7 @@ if (process.env.BASE_DESECHABLE === "1") {
     const r = correr(`begin;
 set local search_path = retail, public, extensions;
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-${como(FELIPE)}${ALTA("f", { numero: dni, nombre: "Prueba Carrera Cumple", celular: cel })}
+${como(FELIPE)}${ALTA("f", { numero: dni, nombre: "Prueba Carrera Cumple", celular: cel })}reset role;
 select codigo_club as _c from retail.unirse_al_club(p_clienta_id => :'f', p_telefono_whatsapp => '${cel}', p_cumple_dia => 15::smallint,
   p_cumple_mes => extract(month from retail.fn_hoy_lima())::smallint) \\gset
 select :'f';

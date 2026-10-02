@@ -1,0 +1,1191 @@
+/* LA PÁGINA PÚBLICA DEL CLUB CAYLA (ADR-0288 act. g): `/club/<tienda>`, la que abre la clienta al escanear el QR, en tres pasos
+   —al escanear, sus datos y ya es socia— y sus páginas de privacidad y términos. Diseño aprobado por Felipe el 2026-10-01
+   (tres pantallas de celular a 390 px, con sus animaciones). Lo dibujan `components/clientas/piezas-club-publico.tsx`,
+   `club-publico-pasos.tsx` y `RegistroClub.tsx`; las cifras y frases salen de `lib/club-publico-reglas.ts`.
+
+   MOVIMIENTO. Esta página la ven las clientas, no el equipo: Felipe aprobó para ella un lenguaje más vistoso que la regla de
+   modales del ERP (ADR-0136): el colibrí que entra volando, el hilo rojo que se dibuja, tarjetas que suben en cascada, el botón
+   con su destello y su latido, la tarjeta «¿Eres …?» que asoma con un pequeño salto, el ✓ que se dibuja, pétalos y la tarjeta
+   de socia que entra girando. Los `@keyframes` y los tiempos son los del diseño. Límites que no se negocian:
+     - el ÚNICO bucle es el colibrí del inicio flotando; todo lo demás pasa una vez (el latido y el destello del botón, dos);
+     - con «reducir movimiento» se apaga TODO (animaciones y transiciones) y cada cosa queda en su estado final, visible: por eso
+       el estado sin animar de cada pieza ES el final (el destello vive fuera del botón, el trazo dibujado, la tarjeta de frente)
+       y los pétalos, que no tienen un final que mostrar, no se dibujan.
+   Colores SOLO de los tokens de globals.css (ADR-0169). Este archivo va sin @layer, como los demás de `estilos/`: sus reglas le
+   ganan a las utilidades de Tailwind, así que aquí se dibuja la página y en el JSX solo se ubica (sin utilidades que choquen). */
+
+.club-pagina {
+  /* La curva del diseño: arranca rápido y se posa largo. */
+  --club-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --club-subir: 18px;
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--color-crema);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+/* Una columna pensada para el celular (375 px primero); en escritorio, centrada y con un ancho cómodo de leer. */
+.club-hoja {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+  padding: 22px 22px 32px;
+}
+@media (min-width: 640px) {
+  .club-hoja {
+    max-width: 32rem;
+    padding-top: 40px;
+    padding-bottom: 56px;
+  }
+}
+.club-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.club-paso-datos {
+  gap: 20px;
+}
+.club-paso-socia {
+  align-items: center;
+  gap: 20px;
+  padding-top: 4px;
+  text-align: center;
+}
+.club-paso-inicio {
+  --club-subir: 20px;
+}
+
+/* ---- Lo que entra: sube y aparece. `--r` es cuándo (la cascada) y `--d` cuánto dura; los pone el JSX. ---- */
+.club-entra {
+  animation: club-subir var(--d, 550ms) var(--club-ease) var(--r, 0ms) both;
+}
+@keyframes club-subir {
+  from {
+    opacity: 0;
+    transform: translateY(var(--club-subir));
+  }
+}
+
+/* ---- Enlaces y botones ---- */
+.club-enlace {
+  color: var(--color-rojo-profundo);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (hover: hover) {
+  .club-enlace:hover {
+    color: var(--color-tinta);
+  }
+}
+.club-enlace:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Un enlace suelto al pie: 44 px de alto para el dedo sin agrandar el renglón (el relleno se lo come el margen negativo). */
+.club-enlace-amplio {
+  display: inline-block;
+  padding-block: 13px;
+  margin-block: -13px;
+}
+
+.club-boton {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla), transform 120ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .club-boton:not(:disabled):hover {
+    background: var(--color-rojo-profundo);
+  }
+}
+.club-boton:not(:disabled):active {
+  transform: scale(0.98);
+}
+.club-boton:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 3px;
+}
+.club-boton:disabled {
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--color-tinta) 32%, var(--color-crema));
+}
+.club-boton[aria-busy="true"] {
+  cursor: progress;
+}
+.club-boton-texto {
+  position: relative;
+}
+/* La capa del destello: recorta lo que pasa por dentro del botón sin recortar el aro de «listo» ni el latido, que van afuera. */
+.club-boton-capa {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* El destello: una franja clara que cruza el botón. Quieta, espera FUERA (a la izquierda, recortada): sin animación no se ve. */
+.club-brillo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-crema) 28%, transparent), transparent);
+  transform: translateX(-140%) skewX(-20deg);
+}
+.club-boton-icono {
+  position: relative;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.club-boton-chico {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+}
+.club-boton-chico:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 2px;
+}
+.club-boton-chico-primario {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.club-boton-chico-secundario {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  color: var(--color-tinta);
+}
+@media (hover: hover) {
+  .club-boton-chico-primario:hover {
+    background: var(--color-rojo-profundo);
+  }
+  .club-boton-chico-secundario:hover {
+    border-color: var(--color-tinta);
+  }
+}
+
+/* ---- La cabecera: el colibrí, «CAYLA · CLUB» y la tienda del cartel ---- */
+.club-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.club-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.club-marca-colibri {
+  flex: none;
+  width: 36px;
+  height: auto;
+  aspect-ratio: 223 / 150;
+  color: var(--color-rojo);
+}
+.club-marca-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1;
+}
+.club-marca-cayla {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+}
+.club-marca-club {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  color: var(--color-rojo);
+}
+.club-cabeza-tienda {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-align: right;
+  color: var(--color-taupe);
+}
+
+/* ==================================================================
+   PASO 1 · AL ESCANEAR
+   ================================================================== */
+.club-heroe {
+  position: relative;
+  padding-top: 70px;
+}
+/* El colibrí grande: entra volando desde abajo a la izquierda y se queda flotando (el único bucle de la página). */
+.club-colibri {
+  position: absolute;
+  top: 0;
+  right: -6px;
+  width: 158px;
+  height: auto;
+  aspect-ratio: 223 / 150;
+  color: var(--color-rojo);
+  animation:
+    club-volar 1200ms var(--club-ease) 150ms both,
+    club-flotar 3200ms ease-in-out 1400ms infinite alternate;
+}
+@keyframes club-volar {
+  from {
+    opacity: 0;
+    transform: translate(-150px, 60px) rotate(-14deg) scale(0.78);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes club-flotar {
+  from {
+    transform: translateY(0) rotate(0);
+  }
+  to {
+    transform: translateY(-9px) rotate(-2deg);
+  }
+}
+.club-antetitulo {
+  position: relative;
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-taupe);
+}
+.club-titulo {
+  position: relative;
+  margin: 10px 0 0;
+  font-family: var(--font-serif);
+  font-size: 56px;
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+}
+/* «tu regalo.» en la cursiva de verdad de la Garamond (la carga `app/club/[tienda]/page.tsx`); sin ella, la del sistema. */
+.club-titulo em {
+  font-family: var(--font-garamond-cursiva, var(--font-serif));
+  font-style: italic;
+  font-weight: 400;
+}
+/* El hilo rojo que se dibuja bajo el título. `pathLength="100"`: el trazo mide 100 a cualquier ancho. */
+.club-hilo {
+  display: block;
+  width: 100%;
+  max-width: 346px;
+  height: auto;
+  aspect-ratio: 346 / 26;
+  margin-top: 4px;
+  overflow: visible;
+}
+.club-hilo path {
+  fill: none;
+  stroke: var(--color-rojo);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  animation: club-trazo 1300ms cubic-bezier(0.4, 0, 0.2, 1) 900ms both;
+}
+@keyframes club-trazo {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.club-bajada {
+  margin: 10px 0 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-taupe);
+}
+
+/* Las tres tarjetas de lo que recibe. */
+.club-beneficios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.club-beneficio {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.club-beneficio strong {
+  font-weight: 700;
+}
+.club-beneficio-lado {
+  flex: none;
+  min-width: 86px;
+}
+.club-beneficio-cifra {
+  font-family: var(--font-serif);
+  font-size: 46px;
+  line-height: 0.9;
+  white-space: nowrap;
+  color: var(--color-rojo);
+}
+/* La mini escalera del vale: una barra por año, la última en rojo. */
+.club-escalera {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 46px;
+}
+.club-escalera span {
+  display: block;
+  width: 12px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-tinta);
+}
+.club-escalera span:last-child {
+  background: var(--color-rojo);
+}
+.club-beneficio-icono {
+  display: flex;
+  justify-content: center;
+}
+.club-beneficio-icono svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: var(--color-tinta);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.club-unirme {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+/* «Quiero unirme»: el destello cruza dos veces y el botón late dos veces, después de que todo entró. */
+.club-boton-unirme {
+  animation: club-latido-rojo 1100ms ease-out 2000ms 2;
+}
+.club-boton-unirme .club-brillo {
+  animation: club-brillo 1300ms ease-in-out 1700ms 2 both;
+}
+@keyframes club-brillo {
+  from {
+    transform: translateX(-140%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(260%) skewX(-20deg);
+  }
+}
+@keyframes club-latido-rojo {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-rojo) 0%, transparent);
+  }
+}
+.club-bajo-boton {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-taupe);
+}
+.club-nota-umbral {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-taupe);
+}
+
+/* ==================================================================
+   PASO 2 · SUS DATOS
+   ================================================================== */
+.club-avance-cabeza {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* «‹ Club CAYLA»: vuelve al inicio sin perder lo escrito. 44 px de alto; el margen negativo lo deja donde lo pone el diseño. */
+.club-volver {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin: -10px 0 -10px -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-rojo-profundo);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .club-volver:hover {
+    color: var(--color-tinta);
+  }
+}
+.club-volver:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 0;
+}
+.club-avance-textos {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-taupe);
+}
+.club-avance {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--color-sand);
+}
+/* Se llena al entrar (desde cero) y después sigue lo que ella completa. `backwards`: al terminar, la transición manda. */
+.club-avance-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--color-rojo);
+  transition: width 600ms var(--club-ease);
+  animation: club-llenar 1100ms var(--club-ease) 300ms backwards;
+}
+@keyframes club-llenar {
+  from {
+    width: 0;
+  }
+}
+.club-datos-titulo {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1;
+}
+.club-datos-titulo:focus,
+.club-socia-titulo:focus,
+.club-titulo:focus {
+  outline: none;
+}
+.club-datos-bajada {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--color-taupe);
+}
+
+/* ---- Cada campo, una tarjeta ---- */
+.club-tarjeta {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  transition: border-color 260ms var(--ease-cayla), box-shadow 260ms var(--ease-cayla);
+}
+.club-tarjeta-opcional {
+  border-style: dashed;
+  /* El tono del punteado del diseño: el único token que lo tiene (aquí es un borde, nunca texto). */
+  border-color: var(--color-grafico-neutro);
+}
+/* LA GUÍA DE FOCO (ADR-0284): la tarjeta de lo que sigue se enciende con el borde rojo y un halo que se abre dos veces. Sin
+   bucle: el halo vuelve a abrirse solo cuando la luz llega a otra tarjeta (el `::after` nace con ella). El rojo es del diseño
+   aprobado para esta página; el resto del ERP guía sin rojo. */
+.club-tarjeta[data-estado="ahora"] {
+  border-color: var(--color-rojo);
+  box-shadow: 0 0 0 0.5px var(--color-rojo);
+}
+.club-tarjeta[data-estado="ahora"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: club-halo 1200ms ease-out 400ms 2;
+}
+@keyframes club-halo {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 30%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-rojo) 0%, transparent);
+  }
+}
+/* Cuando un «Falta: …» la lleva a una tarjeta, la tarjeta destella una vez (como la fila del alta, sobre su papel). */
+.club-tarjeta[data-llamado] {
+  animation: club-llamado 1100ms var(--ease-cayla) 1;
+}
+@keyframes club-llamado {
+  0%,
+  100% {
+    background-color: var(--color-papel);
+  }
+  30% {
+    background-color: var(--color-hueso);
+  }
+}
+/* «SIGUE AQUÍ», sentado en el borde de arriba de la tarjeta: aparece y se va sin mover nada de lugar. */
+.club-sigue {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  z-index: 1;
+  padding: 5px 10px;
+  border-radius: 99px;
+  background: var(--color-hueso);
+  color: var(--color-rojo-profundo);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: translateY(-50%);
+  animation: club-sigue 320ms var(--club-ease) both;
+}
+@keyframes club-sigue {
+  from {
+    opacity: 0;
+    transform: translateY(-20%);
+  }
+}
+.club-tarjeta-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+}
+.club-tarjeta-titulo {
+  font-size: 14px;
+  font-weight: 700;
+}
+.club-opcional {
+  font-weight: 500;
+  color: var(--color-taupe);
+}
+/* El estado de la tarjeta, a la derecha de su título: un aro mientras falta, el ✓ verde que se dibuja al quedar hecha. */
+.club-pendiente {
+  flex: none;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
+  border-radius: 99px;
+}
+.club-visto {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.club-visto circle {
+  fill: var(--color-verde);
+}
+.club-visto path {
+  fill: none;
+  stroke: var(--color-crema);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  animation: club-trazo 500ms ease-out 80ms both;
+}
+
+/* ---- Los controles ---- */
+.club-etiqueta {
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+.club-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--color-sand);
+  border-radius: 12px;
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+  font: inherit;
+  font-size: 18px;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.club-input::placeholder {
+  font-size: 16px;
+  letter-spacing: normal;
+  color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+}
+.club-input:focus {
+  border-color: var(--color-taupe);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-taupe) 25%, transparent);
+}
+.club-input[aria-invalid="true"] {
+  border-color: var(--color-rojo-profundo);
+}
+.club-input:disabled {
+  opacity: 0.6;
+}
+.club-cifra {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+/* Lo que dice cada campo debajo: su ayuda o lo que está mal. El alto está reservado: que aparezca un aviso no corre nada. */
+.club-pie {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-taupe);
+}
+.club-pie[data-tono="error"] {
+  color: var(--color-rojo-profundo);
+}
+
+/* El tipo de documento: tres botones segmentados (un grupo de radio). */
+.club-segmento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--color-hueso);
+}
+.club-segmento button {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-tinta);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+}
+.club-segmento button[aria-checked="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.club-segmento button:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 2px;
+}
+.club-segmento button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* La fecha de nacimiento: día, mes (el combo del sistema, en su caja) y año, tres cajas iguales. */
+.club-fecha {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.club-fecha .club-input {
+  padding: 0 8px;
+  text-align: center;
+}
+.club-fecha .caja-cayla {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 18px;
+}
+.club-fecha .caja-cayla:focus-visible {
+  border-color: var(--color-taupe);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-taupe) 25%, transparent);
+}
+
+/* «¿Eres Mariela Q. R.?»: asoma con un pequeño salto bajo el DNI. */
+.club-eres {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-sand);
+  border-radius: 14px;
+  background: var(--color-crema);
+  animation: club-asomar 520ms var(--club-ease) both;
+}
+@keyframes club-asomar {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.club-eres-fila,
+.club-eres-confirmada {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* Confirmado: una sola fila, con «No soy yo» a la derecha. */
+.club-eres-confirmada {
+  flex-direction: row;
+}
+.club-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 99px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+}
+.club-eres-pregunta {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.club-eres-confirmado {
+  color: var(--color-verde);
+}
+.club-eres-ayuda {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-taupe);
+}
+.club-eres-botones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.club-buscando {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-taupe);
+}
+.club-error-texto {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-rojo-profundo);
+}
+
+/* ---- Las casillas ---- */
+.club-casillas {
+  gap: 4px;
+}
+.club-casilla-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 4px;
+  margin-inline: -4px;
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.club-casilla-fila[data-deshabilitada] {
+  cursor: default;
+  opacity: 0.6;
+}
+/* La casilla del sistema (`components/ui/Casilla.tsx`), a 22 px como el diseño. */
+.club-casilla {
+  width: 22px;
+  height: 22px;
+}
+.club-casilla svg {
+  width: 14px;
+  height: 14px;
+}
+.club-nota {
+  color: var(--color-taupe);
+}
+.club-aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-hueso);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ---- Al pie: «Falta: …», el botón y la letra chica ---- */
+.club-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Los «Falta: …» de la guía: el chip se ve como en el resto del ERP, pero el dedo tiene 44 px de alto para tocarlo. */
+.club-acciones .hilo-chip {
+  position: relative;
+  min-height: 34px;
+}
+.club-acciones .hilo-chip::before {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+.club-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--color-rojo-profundo);
+}
+.club-letra-chica {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-taupe);
+}
+
+/* ==================================================================
+   PASO 3 · YA ES SOCIA
+   ================================================================== */
+/* Pétalos que caen UNA vez. Sin animación no tienen un final que mostrar: con «reducir movimiento» no se dibujan. */
+.club-petalos {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.club-petalo {
+  position: absolute;
+  top: 0;
+  border-radius: 60% 0 60% 0;
+  animation-name: club-caer;
+  animation-timing-function: cubic-bezier(0.3, 0.1, 0.6, 1);
+  animation-fill-mode: both;
+}
+@keyframes club-caer {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) rotate(0);
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(880px) rotate(560deg);
+  }
+}
+/* El ✓ grande: el círculo y después el visto se dibujan. */
+.club-listo {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin-top: 10px;
+}
+.club-listo circle,
+.club-listo path {
+  fill: none;
+  stroke: var(--color-verde);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+}
+.club-listo circle {
+  stroke-width: 3;
+  transform: rotate(-90deg);
+  transform-origin: 38px 38px;
+  animation: club-trazo 700ms ease-out 150ms both;
+}
+.club-listo path {
+  stroke-width: 4;
+  animation: club-trazo 600ms ease-out 700ms both;
+}
+.club-socia-encabezado {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.club-socia-titulo {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+}
+.club-socia-bajada {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-taupe);
+}
+
+/* La tarjeta de socia digital: entra girando, el hilo rojo se dibuja y un destello la cruza una vez. */
+.club-tarjeta-socia-marco {
+  position: relative;
+  width: 100%;
+  perspective: 900px;
+}
+.club-tarjeta-socia {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 22px 22px 20px;
+  border-radius: 22px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  text-align: left;
+  animation: club-girar 900ms var(--club-ease) 1200ms both;
+}
+@keyframes club-girar {
+  from {
+    opacity: 0;
+    transform: rotateY(78deg) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.club-tarjeta-socia-hilo {
+  position: absolute;
+  top: 18px;
+  right: -10px;
+  width: 260px;
+  height: 90px;
+  overflow: visible;
+}
+.club-tarjeta-socia-hilo path {
+  fill: none;
+  stroke: var(--color-rojo);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  animation: club-trazo 1300ms cubic-bezier(0.4, 0, 0.2, 1) 1900ms both;
+}
+.club-tarjeta-socia-cabeza {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.club-tarjeta-socia-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+}
+.club-tarjeta-socia-marca svg {
+  flex: none;
+  width: 38px;
+  height: auto;
+  aspect-ratio: 223 / 150;
+  color: var(--color-rojo);
+}
+.club-tarjeta-socia-pildora {
+  padding: 5px 10px;
+  border: 1px solid var(--color-sand);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+.club-tarjeta-socia-datos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 18px;
+}
+.club-tarjeta-socia-nombre {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  line-height: 1;
+}
+.club-tarjeta-socia-codigo {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  font-variant-numeric: tabular-nums;
+}
+.club-tarjeta-socia-pie {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--color-sand);
+}
+.club-tarjeta-socia-brillo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-crema) 16%, transparent), transparent);
+  transform: translateX(-160%) skewX(-18deg);
+  pointer-events: none;
+  animation: club-brillo-tarjeta 1200ms ease-in-out 2300ms both;
+}
+@keyframes club-brillo-tarjeta {
+  from {
+    transform: translateX(-160%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+
+/* «¡Este mes es tu cumpleaños!» */
+.club-aviso-cumple {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: left;
+}
+.club-aviso-cumple svg {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--color-rojo);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.club-aviso-cumple strong {
+  font-weight: 700;
+}
+
+/* «Último paso: salúdanos por WhatsApp»: el botón late dos veces, cuando ya se leyó lo de arriba. */
+.club-saludo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.club-saludo-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.club-saludo-boton {
+  letter-spacing: 0.08em;
+  animation: club-latido-tinta 1100ms ease-out 3000ms 2;
+}
+@keyframes club-latido-tinta {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-tinta) 35%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-tinta) 0%, transparent);
+  }
+}
+.club-saludo-nota {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-taupe);
+}
+
+/* ==================================================================
+   REDUCIR MOVIMIENTO: se apaga TODO. Cada pieza queda en su estado final (el de sin animar), visible; los pétalos, fuera.
+   ================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .club-pagina *,
+  .club-pagina *::before,
+  .club-pagina *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .club-petalos {
+    display: none;
+  }
+}

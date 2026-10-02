@@ -7,6 +7,7 @@ import type { Ubicacion as UbicacionApp } from "@/lib/ubicaciones";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
 import { mapearFila, type FilaCruda } from "@/lib/resumen-mapeo";
 import { hoyEnLima, sumarDias, type Rango } from "@/lib/resumen-periodo";
+import { mesEnCursoDe } from "@/lib/existencias-resumen";
 import type { ParametrosResumen } from "@/lib/resumen-armado";
 import { armarComparacion, mapearFilaComparacion, rangosDeLaComparacion, type ComparacionParaPantalla, type FilaComparacion, type FilaCrudaComparacion } from "@/lib/resumen-comparacion";
 import { armarDesempeno, mitadesDelDesempeno, type DesempenoParaPantalla } from "@/lib/resumen-desempeno";
@@ -70,6 +71,14 @@ export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date =
 export async function getFilasSemanaDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
   const hoy = hoyEnLima(ahora);
   return getFilasVariantes(ubicacionId, sumarDias(hoy, -6), hoy);
+}
+
+/** Lo vendido en el MES EN CURSO de todas las prendas de una sede (hora de Lima): «Resumen disponible» de Existencias. La misma lectura
+ *  que `getFilasSemanaDeSede`, con otra ventana: arranca el día 1, así que el contador vuelve a cero solo cuando empieza el mes
+ *  (`mesEnCurso`). Se pide al abrir la ventana (`/api/existencias/ventas-del-mes`), no al cargar Existencias. */
+export async function getVentasDelMesDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
+  const { desde, hasta } = mesEnCursoDe(ahora);
+  return getFilasVariantes(ubicacionId, desde, hasta);
 }
 
 /**

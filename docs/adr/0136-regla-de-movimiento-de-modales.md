@@ -173,3 +173,42 @@ note»: quieto, un círculo de rayas se leía como adorno y no como «esto puede
 - Al pasar el campo a «hecho», «sigue aquí» o «falta», la marca se vuelve a montar con su estado y deja de girar.
 - Se anima con `transform`, que no repinta ni recalcula el layout: decenas de marcas a la vez (un alta con muchos campos opcionales) no pesan.
 Si en una pantalla con muchos opcionales el movimiento cansa, lo siguiente es bajar la velocidad o girar solo el campo que sigue, no quitarlo.
+
+## Actualización 2026-10-01 (d) — la persiana de «Caja cerrada»: un rebote y tres bucles, con nombre propio
+
+Felipe eligió la maqueta B de «Vender con la caja cerrada» (ADR-0301, `docs/maquetas/caja-cerrada-2026-10/`) sabiendo que traía
+movimiento fuera de esta regla. Quedan como excepciones **solo de esa pieza** (`components/punto-de-venta/CajaCerrada.tsx`,
+`app/estilos/caja-cerrada.css`); no se copian a otra pantalla:
+- **Un rebote amortiguado, una sola vez:** el cartel «Cerrado» cae colgado de su clavo y se mece hasta quedar quieto.
+- **Tres bucles mientras la caja sigue cerrada:** el punto rojo del cartel que late (señal, como el del chip «Vencida»), un
+  reflejo que cruza la persiana cada 8 s y el cartel que se mece ±0,9°. Se paran en cuanto la caja abre.
+- **Con `prefers-reduced-motion`, nada de eso:** la capa aparece y desaparece sin movimiento.
+Por qué se acepta aquí: no es un modal ni una respuesta a una acción. Es un estado de la tienda que tiene que leerse de lejos y
+sin leer («la tienda está cerrada»), y que dura lo que tarda alguien en abrir la caja.
+
+## Actualización 2026-10-01 (e) — `<Modal lateral>`: la foto de la prenda a la izquierda de la hoja
+
+Felipe pidió que Reponer, Subir a almacén y Ajustar inventario muestren la **foto de la prenda** a un costado: más intuitivo, y no deja
+duda de sobre cuál prenda se está operando. El `Modal` gana una opción, `lateral`, que pone algo a la izquierda de toda la hoja (título,
+bajada y contenido quedan a su derecha, igual que antes).
+- **La hoja crece justo lo que ocupa el costado y el resto no se mueve:** `.hoja-con-lateral` (`app/globals.css`) suma al máximo de la hoja
+  el ancho del costado (11 rem) y su separación (1,25 rem), y el relleno izquierdo lo absorbe. Medido en el navegador: la columna de la
+  derecha queda en 334 px en Reponer y Subir (antes 336) y en 400 px en Ajustar (como `max-w-md`). Va en **`@layer utilities`** (no en `components`, ADR-0105): tiene que ganarle a `p-6` y
+  `max-w-*`, y lo hace por especificidad (dos clases por selector). Funciona con `ancho` = `max-w-sm | md | lg`.
+- **Movimiento:** ninguno propio. El costado va con `data-sin-cascada`, llega con la hoja y se coloca con `position: absolute`, así que no
+  corre el orden de la cascada. La hoja nunca es más baja que la foto (`min-height`).
+- **Solo escritorio (≥ 640 px):** en celular, donde la hoja sube desde abajo, el costado no se muestra (no se probó ahí, a pedido).
+- **La pieza:** `components/ui/FotoDePrenda.tsx` (3:4, recortada con `object-cover`; sin foto, el isotipo y un punto con el color).
+- **Ajustar sin foto cuando quien lo abre no la tiene:** la ficha del producto en edición (`AjusteDeStock`) no sabe la foto del color, así
+  que ahí la ventana va como antes (`PrendaAjuste.fotoUrl` indefinido = sin costado).
+
+## Actualización 2026-10-01 (f) — la página pública del Club CAYLA tiene su propio movimiento
+
+**Alcance:** esta regla gobierna el ERP (lo que usa el equipo). La página a la que llega una clienta al escanear el cartel del
+club (`/club/<tienda>`, ADR-0288 act. g e i) es una pieza de marca para clientas, y Felipe aprobó el 2026-10-01 un movimiento
+más vistoso: el colibrí que entra volando y queda flotando, el hilo rojo que se dibuja, tarjetas que suben en cascada, un
+destello y un latido en el botón principal, pétalos que caen una vez y la tarjeta de socia que entra girando.
+- **Lo que se mantiene:** sin rebotes exagerados; cada efecto pasa una o dos veces y se detiene; el único bucle es el colibrí
+  flotando; colores solo con tokens; con `prefers-reduced-motion` todo se apaga y cada pieza queda en su estado final.
+- **Dónde vive:** `apps/web/app/estilos/club-publico.css` (sus `@keyframes`), sin tocar la «REGLA DE MODALES» de
+  `globals.css`. No se copia a pantallas del ERP.

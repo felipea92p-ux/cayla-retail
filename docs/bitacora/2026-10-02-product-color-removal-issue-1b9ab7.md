@@ -1,0 +1,4 @@
+## 2026-10-02 (Desactivar un color completo desde la ficha del producto)
+Qué hice: agregué «Desactivar color» en el encabezado de cada color de la ficha (Editar producto): desactiva de una vez todas sus tallas (`desactivarColor` en `lib/variantes-ficha-reglas.ts`, con prueba). Las tallas guardadas quedan desactivadas; las recién agregadas sin guardar se quitan.
+Por qué así: antes solo se podía desactivar talla por talla y parecía que «no dejaba quitar el color». Felipe pidió que siga siendo desactivar (no un estado «eliminada» ni borrar) para no romper el flujo: sin cambio de esquema, sin migración, y desactivar sigue permitido con stock (la fila avisa que las unidades siguen en el inventario).
+Felipe se lleva: un botón para sacar un color de la venta en un clic, con su stock e historial intactos; «Guardar cambios» lo confirma y «Deshacer» lo revierte por talla.

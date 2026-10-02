@@ -263,12 +263,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295: la prenda entera con todas sus tallas y UNA llamada a `bajar_al_piso`, todo o nada, con
-  marca; la lógica pura en `lib/reponer-prenda-reglas.ts`, los errores los interpreta `lib/bajada-reglas.ts`) y «Retirar del
-  piso» sigue en `ReponerPisoModal.tsx` (RPC `mover_entre_piso_y_almacen` desde ADR-0240 —`mover_interno` + el módulo «Bajada
-  al piso»— con `sentido: "retirar"`, desde el bloque 2 de ADR-0208; **hoy sin entrada en pantalla** desde el cajón lateral,
-  ver ADR-0295); ambos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
-  `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
-  `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
+  marca) y «Subir a almacén» (entre «Reponer» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
+  (la prenda entera y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
+  alcanza, y cada talla es un `mover_interno` piso→almacén con una marca derivada de la de la lista; nota opcional y aviso de
+  «Existencias va a pedir bajar de nuevo»). Las dos ventanas comparten `SelectorDeTallas.tsx`; su lógica pura vive en
+  `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
+  de la tarjeta es un icono con tooltip. Ambas solo si la sede que se mira es la activa, porque firman con su Responsable;
+  `<Modal bloqueado>` no deja cerrar mientras guarda, y tras un corte de red las cifras quedan fijas hasta «Confirmar de nuevo»; y
+  `AjustarInventarioModal.tsx` (filas por talla con `SelectorDeAjuste.tsx`, mismo lenguaje que Reponer y Subir a almacén, ADR-0300; RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
   dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
   `PedirOtraSedeModal` de Apartados (RPC `pedir_prenda_para_apartar`, ADR-0233; tarea #9 del análisis); lo que decide cada
   botón del detalle vive en `lib/existencias-permisos.ts`;
@@ -293,10 +295,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   prenda. Reponer y Ajustar de la tarjeta abren las mismas ventanas, con `permisosDelDetalle`. Solo web, sin RPC ni migración.
   **Prioridades de hoy (2026-09-29):** las cuatro tarjetas van en este orden —Resumen disponible, «Reponer a piso hoy»
   (`components/TarjetaReponerAPiso.tsx`: hasta tres prendas que piden piso, las de `ordenarPorUrgencia`; tocar una filtra la lista),
-  En camino hacia acá e Incidencias—. «Resumen disponible» abre `ResumenComercialOverlay.tsx` («Cómo se mueve el stock»: ventas de
-  7 días, cobertura, lo que sale rápido, lo que no vendió con stock toda la semana y por categoría), con las cuentas puras en
-  `lib/existencias-comercial.ts` sobre `filasSemana`; el valor a precio de venta solo lo ve un líder. `DisponibleTotalOverlay.tsx`
-  queda en el repo sin usar. Solo web, sin RPC ni migración.
+  En camino hacia acá e Incidencias—. «Resumen disponible» abre `ResumenStockOverlay.tsx` («Resumen del stock», ADR-0303, 2026-10-01: tabla de prendas por categoría en
+  almacén y piso con lo vendido en el mes, lo que más se vende, de lo que más hay y lo que espera en el almacén; sin cobertura). Lo que hay sale
+  del `stock` que el panel ya trae (cuentas puras en `lib/existencias-resumen.ts`); lo vendido se lee al abrir con
+  `lib/useVentasDelMes.ts` → `GET /api/existencias/ventas-del-mes` (`getVentasDelMesDeSede`: del día 1 del mes a hoy, hora de Lima, así que
+  vuelve a cero solo cada día 1). `DisponibleTotalOverlay.tsx` queda en el repo sin usar. Solo web, sin RPC ni migración.
 - `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
   `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
   `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
@@ -338,7 +341,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`HINTS_CONTEO`); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`, la usa Análisis). Kit compartido en `components/conteo/` (`EstadoLinea`,
   `ResumenConteo`, `PasosConteo`). **Sin** prioridad por valor, sin conteo a ciegas y sin costos. `cerrar_conteo` exige, en este orden: permiso, `conteo_vacio` (nada
   verificado), `conteo_pendientes` (salvo cierre parcial) y `diferencias_sin_confirmar`.
-  - **«Conteos recientes» por día** (ADR-0296, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa en bandas por día (primera columna = hora) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
+  - **«Conteos recientes» por día** (ADR-0296, 2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima). `page.tsx` pide `LIMITE_CONTEOS_FILTRABLES` (300) conteos a `fn_conteos_resumen` (sin SQL nuevo), `vistaDeRecientes` (`lib/conteo-recientes-reglas.ts`) decide qué filas se dibujan, `ConteosLista` las agrupa por día y dibuja cada una con **la misma fila que Movimientos** (`components/ui/lista-actividad.tsx`: hora · punto del resultado · ficha «Conteo N» · resultado · quién · variantes · flecha; el día lo rotula `etiquetaDia`; ADR-0296 act. 2026-10-01 b) y `FiltroConteosRecientes` (Todos · Hoy · Ayer · `CampoFecha` con los días con conteos marcados) cambia la URL.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
   `layout.tsx` con `exigirModulo("frescura")`; sexta fila de Inventario en `lib/menu.ts`) → `page.tsx` →
   `lib/frescura.ts:getFrescuraPantalla` (el líder: `armarFrescuraLider` = RPC `fn_frescura_sede` por cada tienda en
@@ -454,7 +457,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +
   `lib/etiqueta-precio-reglas.ts` (puro: sumar por prenda, tallas del modelo, respaldo de SKU, mejor campaña, fecha de
   alcance, textos de la pantalla, cantidades, URL) → `ImprimirEtiquetasPrecio.tsx` (cantidades, vista previa, `window.print()`; la
-  hoja `#etiquetas-precio-print` va por portal a `<body>`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio`,
+  hoja `#etiquetas-precio-print` va por portal a `<body>`; en una Mac con el ayudante local, ADR-0304, la misma hoja va por `POST http://127.0.0.1:9631/imprimir` armada con `lib/mac-etiquetas.ts`, y el ayudante `public/mac-etiquetas/servidor.sh` la pasa a PDF con Chrome sin ventana y la imprime con `lp -o media=Custom.62x40.1mm`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio`,
   una etiqueta de 44 × 62 mm para el cartón de 5 × 8 cm, impresa girada en `@page etiqueta-precio` de 62 × 44 mm (`.etq-hoja`,
   con `contain`) en `globals.css`; QR con `CodigoQR` a 22 mm, 20 con campaña). Se llega desde `EnvioRecibido.tsx`
   (Recibir: los `lotes` que devuelve `recibir_envio`), `RecepcionFormV2.tsx` (Ingreso sin comprobante: el id que devuelve
@@ -667,9 +670,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `/vender?proforma=<id>` (ADR-0167): `getProformaParaCobrar` + `lib/proforma-al-carrito.ts` arman el carrito
   inicial (precio de hoy + lo prometido como descuento; `precioAlCobrarDeLaProforma`), la franja «Cobrando la
   proforma» y, tras `registrar_venta`, RPC `marcar_proforma_cobrada`.
-  Descuento de campaña (ADR-0108, redondeo ADR-0182): la caja lo calcula con `descuentoDeCampana` (`lib/vender-reglas.ts`:
-  el precio rebajado baja al .90, en enteros) y la base lo verifica con `retail.fn_descuento_campana`, la misma regla al
-  céntimo, que usan `registrar_venta` y `separar_prendas` (la separación la calcula en `ApartarVista.tsx`). También la
+  Descuento de campaña (ADR-0108; exacto desde ADR-0302, antes el .90 de ADR-0182): la caja lo calcula con
+  `descuentoDeCampana` (`lib/vender-reglas.ts`: el % sobre el precio al céntimo, en enteros; es la misma cuenta que el %
+  manual, `descuentoUnitarioPorPorcentaje`) y la base lo verifica con `retail.fn_descuento_campana`, la misma regla al
+  céntimo, que usan `registrar_venta`, `separar_prendas` y `editar_separacion` (la separación la calcula en `ApartarVista.tsx`). También la
   usa el aviso «quedaría bajo costo» al configurar una campaña (`prendasBajoCosto`). Prueba cruzada: `pnpm pruebas:campana-redondeo`.
   «Prenda sin registrar» (ADR-0179; antes «Monto manual»): el modal del POS (`lib/prenda-sin-registrar-reglas.ts`,
   listas de `categorias`/`tallas`/`colores` que carga `vender/page.tsx`) agrega una línea de la variante centinela
@@ -680,6 +684,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
+  caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
+  botón abre `AbrirCajaFormV2`; textos en `lib/caja-cerrada-reglas.ts` con el último cierre de `getUltimoCierre`, ADR-0301);
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
   página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
   (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
@@ -751,10 +757,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
   **Club (ADR-0288, tanda 1b, migración `20260930200000`/`200100`):**
   - la ficha lee `club_desde`, `publicidad_desde` y `codigo_club`;
-  - las acciones viven en `lib/club-acciones.ts`: `unirse_al_club`, `registrar_mensaje_publicidad` («Llegó su mensaje»),
-    `registrar_desde_whatsapp` (cartel), `registrar_baja_whatsapp`, `crear_invitacion_club` (camino B) y
-    `fn_club_textos_vigentes`;
-  - «Llegó un mensaje de WhatsApp» → `components/clientas/LlegoMensajeWhatsappModal.tsx`;
+  - las acciones viven en `lib/club-acciones.ts`: `registrar_baja_whatsapp` («Registrar su BAJA», en la ficha) y
+    `resumen_clienta_caja`. Desde la tanda 1g (ADR-0288 act. g) ella se une sola desde el cartel: la web ya no llama
+    `unirse_al_club`, `registrar_mensaje_publicidad`, `registrar_desde_whatsapp` ni `crear_invitacion_club`, y se retiró
+    «Llegó un mensaje de WhatsApp» (G-7). El alta (`NuevaClientaModal`) pide solo el documento (`camposDeRegistrar`,
+    `lib/club-caja-reglas.ts`, la misma regla que Cobrar);
   - cartel imprimible → `/clientas/cartel` (`components/clientas/CartelClub.tsx`);
   - reglas puras en `lib/club-reglas.ts` y `lib/club-clientas-reglas.ts`.
   **Tanda 1f del club (ADR-0288 act. (f), `20260930210000`, sin pegar):** la lista ya no es
@@ -768,13 +775,47 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
   vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
   `fn_club_compras_netas`, `fn_club_resumen_compras`.
+- `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
+  esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g, reemplazan a `/club/[token]`) → la clienta se une sola desde
+  el QR del cartel o del ticket: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `components/clientas/RegistroClub.tsx`
+  (guía de foco `lib/club-registro-guia.ts`) y `PaginaLegalClub.tsx`. Acciones de servidor `app/actions/club-registro.ts`
+  (`consultarNombre`, `registrarme`) con la llave de servicio → `club_intento` (ip y documento en huella con sal,
+  `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`.
+- QR del club (ADR-0288 act. g, G-1): uno por tienda, a `/club/<uuid>`, solo en el cartel `/clientas/cartel` (`CartelClub.tsx`),
+  que arma su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`); el ticket impreso ya no lleva QR del club (act. j). El cartel es el
+  diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
+  escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
+  para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
+- `/clientas/avisos` (ADR-0288 act. g, G-8; tanda 1g, módulo **`avisos_club`**, sin pegar): Clientas pasa a GRUPO del menú
+  (Fichas · Avisos). `app/(app)/clientas/layout.tsx` es la puerta del grupo (`clientas` o `avisos_club`); las fichas
+  (`page.tsx`) piden `clientas` y `avisos/layout.tsx` pide `avisos_club`. En CAYLA Global no se abre (manda desde UNA
+  tienda: `RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL`). `lib/club-avisos.ts` (server) → RPC `fn_club_avisos_pendientes`
+  (sede activa) y, solo al líder, `fn_club_pagina` como `anon` (beneficios vigentes) → `components/clientas/AvisosClubPanel.tsx`
+  («Enviar» abre `web.whatsapp.com/send` y anota con `registrar_aviso_enviado`; «Deshacer» 10 min con
+  `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
+  `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
+  `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
+- `GET /api/club/conservacion` (cron diario 08:00 UTC = 03:00 Lima, `vercel.json`; ADR-0288 G-15) → `crearClienteAdmin()` →
+  `fn_club_anonimizar_inactivas()`. `CRON_SECRET` lo comprueban la ruta y `proxy.ts` (`lib/rutas-cron.ts`, que también
+  sirve al cron de SUNAT).
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
 - Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada) +
   `InvitarAlClub.tsx` + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader), `unirse_al_club`,
   `crear_invitacion_club`. La página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero`. El
-  ticket impreso lleva el QR del club (camino A: el WhatsApp de la tienda). Reglas en `lib/club-caja-reglas.ts`.
+  ticket impreso lleva el QR del club (desde la tanda 1g, el registro de la tienda: `lib/club-qr-reglas.ts`). Reglas en
+  `lib/club-caja-reglas.ts`.
+- `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
+  confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
+  `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
+- Cobrar ▸ club: `components/punto-de-venta/ClientaDelTicket.tsx` (caja de la clienta con el club adentro, plegada; alta
+  solo con el documento) + `useClubDeLaClienta.ts` → `resumen_clienta_caja` (lectura, sin loader) + `useEsperaDelCartel.ts`
+  (tanda 1g: si no es socia, «Pídele que escanee el cartel» y relee `resumen_clienta_caja` cada 3 s hasta 10 min). El
+  cumpleaños (`lib/club-cumple-canje-reglas.ts`, `p_canjear_cumpleanos`) y el vale de aniversario
+  (`lib/club-aniversario-canje-reglas.ts`, `p_canjear_aniversario`, tanda 1g) van a `registrar_venta`, uno por compra. La
+  página de `/vender` lee `fn_club_textos_vigentes` y `ubicaciones.whatsapp_numero` para el QR del ticket impreso. Reglas
+  en `lib/club-caja-reglas.ts`.
 - Configuración ▸ Tiendas y caja ▸ «WhatsApp de cada tienda» → RPC `guardar_whatsapp_tienda`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
@@ -835,12 +876,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   **Recepción ya no registra notas** (ADR-0142): solo avisa con un chip al módulo; `recibir_envio` sigue aceptando
   `p_notas_credito` pero la pantalla lo manda vacío.
 - **Recibir mercadería por envío** (2026-09-18, ADR-0113): `/recibir` (NO bajo `/compras`, que es solo
-  líder; `/compras/recibir` redirige) → `lib/envio.ts` (traslados en tránsito hacia la sede) +
-  `lib/envio-reglas.ts` (reglas puras: bloques por comprobante, totales, escaneo, el pedido a la RPC) →
+  líder; `/compras/recibir` redirige) → `lib/envio.ts` (solo `getEnviosDeLotes`) +
+  `lib/envio-reglas.ts` (reglas puras: bloques por comprobante, totales, escaneo, el pedido a la RPC, y `trasladosHaciaAca`) →
   `RecepcionEnvio` + `KpisRecibir` (+ `ResumenPrevioEnvio`, `EnvioRecibido`, `RecepcionesCompraLista` con
   `RecepcionVistaRapida`, y desde ADR-0129 el diseño por ancho del panel) → RPC atómica e idempotente `recibir_envio` (llama a `recibir_compras` una
-  vez por proveedor, `registrar_recepcion_traslado`/`confirmar_traslado`, `cerrar_linea_compra` y
-  `registrar_nota_credito_compra`, esto último ya sin uso desde ADR-0142).
+  vez por proveedor, `cerrar_linea_compra` y `registrar_nota_credito_compra`, esto último ya sin uso desde ADR-0142).
+  **Recibir mercadería es de proveedores; los traslados entre sedes se reciben en Traslados** (ADR-0299, 2026-10-01): `recibir_envio` rechaza
+  `p_traslados` no vacío antes de escribir nada, y la pantalla solo avisa (`AvisoTrasladosEnCamino`, leyendo `getTrasladosEnCurso` de
+  `lib/traslados.ts`, tolerante a fallo) que hay traslados en camino hacia la sede y lleva a `/inventario/traslados`. La tabla
+  `envio_traslados` queda como historia (0 filas); nada nuevo escribe en ella.
   **Pestaña «Por regularizar»** (`/recibir?vista=por-regularizar`, ADR-0179) → `lib/por-regularizar.ts` (lectura de
   `prendas_por_regularizar` + `fn_nombres_personas`; el líder ve todas sus sedes) + `lib/por-regularizar-reglas.ts`
   (vencida a los `DIAS_PARA_VENCER` = 2 días, tipo de diferencia, cifras del mes) → `PorRegularizarLista.tsx` → RPC
@@ -1058,6 +1102,13 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
   no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
+- `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
+  su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
+  minuto la «Isla» (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en
+  `lib/recordatorio-cierre-reglas.ts`, lecturas en `lib/recordatorio-cierre.ts`), porque el layout no se vuelve a pintar al
+  navegar y una caja cerrada desde otra terminal no le llegaría. Si la base no responde devuelve 503 y la isla conserva lo
+  que sabía: «no pude preguntar» nunca se lee como «ya cerraron». «Cerrar caja» lleva a `/caja?cerrar=1` (o, ya en Caja,
+  dispara el evento `cayla:cerrar-caja`) y `CajaAbiertaPanel` abre `CerrarCajaModalV2`. ADR-0305.
 - `/api/padron` → consulta de DNI/RUC. El token del proveedor nunca sale del
   servidor. Devuelve siempre 200 con `fuente` (`padron` | `historial` | `ninguna`)
   y, si vino del padrón, `via` (`sunat_publico` | `proveedor`) — "no pude
@@ -1165,7 +1216,7 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `registrar_aviso_separacion` / `fn_avisos_separaciones` (2026-09-26, ADR-0227; migración `20260926233000`) | Recordar en lote: `registrar_aviso_separacion` anota que se le escribió a la clienta por WhatsApp (tabla append-only `separacion_avisos`, firma el responsable, exige el módulo Apartados); `fn_avisos_separaciones` da por apartado abierto cuántos avisos, el último y quién. La lee `lib/separaciones.ts`; la escribe `RecordarModal` (`components/apartados/ModalesApartado.tsx`) desde «Todos» |
 | `abonar_separacion` / `editar_separacion` / `guardar_opciones_apartados` / `fn_opciones_apartados` (2026-09-26, ADR-0236; migraciones `20260927100000`–`130000`) | Abonos (pago más del apartado, con su anticipo; `comprobante_anticipos` lista lo que descuenta la boleta final), editar prendas (todo o nada; lo quitado va a `separacion_items_retirados`), opciones de pantalla por tienda (solo el líder). `buscar_separaciones` suma `estante` y el id de cada prenda. Actividad: disparadores sobre `separaciones`, `separacion_abonos`, `separacion_avisos` y `separacion_ediciones`. Web: `AbonarModal`, `EditarApartadoModal`, `OpcionesApartadosModal` (`components/apartados/ModalesApartado.tsx`) |
 | `pedir_prenda_para_apartar` / `enviar_pedido_para_apartar` / `cancelar_pedido_para_apartar` / `separar_pedido_para_apartar` / `fn_pedidos_para_apartar` (2026-09-26, ADR-0233; migración `20260927140000`) | Apartar de otra sede: la tienda de la clienta pide, la otra envía con `iniciar_traslado`, el disparador `pedidos_para_apartar_al_llegar` (sobre `transferencias`, al cerrar) la guarda con `apartar_stock`, y con el adelanto se suelta, pasa al piso (`mover_interno`) y se aparta con `separar_prendas`, todo junto. Web: `PedirOtraSedeModal`, `EnviarPedidoModal`, `CancelarPedidoModal`; «Pedidos entre tiendas» en Todos |
-| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
+| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift. Desde ADR-0298 pide confirmar un costo atípico (`"confirma_costo": true` en la línea; solo un líder) |
 | `crear_proforma` | Proforma con prendas (ADR-0167): valida cada línea (prenda activa, cantidad entera, precio de catálogo, descuento ≤ 20 % con motivo), copia descripción y código, calcula subtotal/IGV/total. **Una sola firma** (la vieja con subtotal/igv/total se borró) |
 | `marcar_proforma_cobrada` | Enlaza la proforma a la venta con que se cobró (`estado = convertida`, `venta_id`); idempotente; exige vigente, venta completada y misma tienda. La llama `PuntoDeVenta` después de `registrar_venta` |
 | `registrar_venta` | Venta + N movimientos de salida; guarda `venta_pagos.recibido` (efectivo entregado) desde 2026-09-19 (ADR-0137); desde 2026-09-22 recibe `p_asesora_id` y 4 más (16 parámetros, **una sola firma**, ADR-0153) y guarda `ventas.asesora_id` sin validarla contra la sede (la llena la fila «Atendió», ADR-0163) |
@@ -1183,7 +1234,7 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
 | `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. Documento: DNI, RUC, carné de extranjería o pasaporte (estos dos, limpios y con su formato vía `fn_documento_clienta`, ADR-0288 D-3). No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
-| `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
+| `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock (y **no** deshace el costo de la prenda). Desde ADR-0298 `cerrar_produccion` pide confirmar un costo atípico (`p_confirma_costo_atipico`; solo un líder) |
 | `mover_interno(p_ubicacion_id, p_variante_id, p_cantidad, p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota, p_token)` (`p_token` desde 2026-09-26, en producción; V1: `bajar_a_piso` / `devolver_a_almacen`, que ya no existen) | Mueve UNA prenda entre dos sububicaciones de la misma ubicación, en los dos sentidos (bajar = almacén → piso; retirar = al revés). Escribe una fila `traslado` con motivo `movimiento_interno` y `fn_aplicar_movimiento` mueve el saldo. Movimientos la nombra por el par de sububicaciones: «Bajada al piso» (almacén → piso) o «Retiro del piso» (piso → almacén); otro par, «Movimiento interno», que es también el nombre del filtro (`etiquetaMovimiento`, decidido por la categoría `interno`, no por el motivo; ADR-0208). Firma con `fn_actor_persona_id(true)`; solo pregunta `fn_puede_operar_ubicacion`, sin módulo. `p_token` opcional (ADR-0208, «la marca de `mover_interno`»): la misma marca con los mismos datos devuelve el mismo movimiento sin mover; con otros datos, `hint` `mover_interno_token_reusado`; se mira antes del responsable y se anota en `movimientos_internos_intentos`. La usan «Reponer» y «Retirar del piso» (`ReponerPisoModal.tsx`, con `sentido` y una marca por modal) y `bajar_al_piso` (sin marca: tiene la suya por bajada) |
 | `bajar_al_piso(p_ubicacion_id, p_items jsonb, p_token uuid) → jsonb` (2026-09-25, ADR-0208 bloque 1; **`0200` pegada en producción** según Felipe, 2026-09-25) | La pantalla `/inventario/bajar`: baja del almacén al piso de ESA tienda una lista de 1 a 300 prendas, todo o nada. Token obligatorio + huella md5 de la lista (mismo token y misma lista = `ya_registrada`, sin mover; otra lista = error `bajada_token_reusado`, «Esa bajada ya se guardó a las HH:MM con N prendas…», con `detail` = arreglo JSON `[{cantidad, variante_id}]` de lo ya guardado, que la pantalla resta). Candado de módulo dentro (`fn_ve_modulo('bajada_piso')`, sin que Existencias lo implique), `fn_bloquear_en_orden`, valida todo con las prendas bloqueadas y llama a `mover_interno` por prenda (la misma fila que «Reponer»). Si una prenda no alcanza, no baja ninguna y las nombra todas (`hint` `bajada_sin_alcance`, `detail` JSON). Errores P0001 con `hint` estable. Escribe `bajadas_piso` y `bajada_piso_items` |
 | `fn_variantes_con_historia(p_ids uuid[]) → uuid[]` y el disparador `variantes_identidad_sin_historia` (2026-09-28, ADR-0258, `20260928235500`; **pegada en producción**; **la supera ADR-0263**) | Historia: la ficha del 0258 preguntaba qué variantes tenían historia y solo a esas les negaba corregir color y talla (renombrando su código de barras). `20260929045000` (fila siguiente de `fn_corregir_identidad_variante`) borra `fn_variantes_con_historia` y `fn_identidad_variante_sin_historia`, renombra el disparador a `variantes_identidad_solo_por_funcion` con la regla nueva y reescribe `fn_corregir_identidad_variante` con la misma firma. La ficha ya no tiene combos de color y talla por fila ni `conHistoria`: corrige desde `components/ficha-producto/CorregirVarianteModal.tsx` |

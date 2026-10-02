@@ -67,6 +67,13 @@ describe("la barrera de rutas y el menú dicen lo mismo", () => {
     expect(rutaDeLaVistaGlobal("/global")).toBe(true);
   });
 
+  it("Clientas sí, pero Clientas ▸ Avisos no: manda desde el WhatsApp de UNA tienda (ADR-0288 act. g)", () => {
+    expect(rutaDeLaVistaGlobal("/clientas")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/clientas/cartel")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/clientas/avisos")).toBe(false);
+    expect(rutaDeLaVistaGlobal("/clientas/avisosx")).toBe(true);
+  });
+
   it("las rutas de API no son pantallas: la barrera no las toca", () => {
     expect(rutaDeLaVistaGlobal("/api/lucode/reintentar")).toBe(true);
   });
