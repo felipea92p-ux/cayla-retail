@@ -1,6 +1,6 @@
 "use client";
 
-import { bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
+import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
@@ -94,19 +94,10 @@ function ordenar(lista: Color[]) {
 // resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
 // viene dado por `ordenar()` (escala: gama y de claro a oscuro).
 function gruposPorFamilia(lista: Color[]) {
-  const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
-    familia: f.valor,
-    texto: f.texto,
-    colores: lista.filter((c) => c.familiaColor === f.valor),
-  })).filter((g) => g.colores.length > 0);
-
-  // Defensivo: un color sin familia asignada (dato viejo, o el select vacío
-  // en algún camino que no la exige) no debe desaparecer de la pantalla.
-  const sinFamilia = lista.filter((c) => !FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor));
-  if (sinFamilia.length > 0) {
-    grupos.push({ familia: "sin-familia", texto: "Sin familia", colores: sinFamilia });
-  }
-  return grupos;
+  // Un solo agrupador para todas las pantallas de colores (`agruparPorFamilia`, lib/colores-familias.ts). Una familia que esta pantalla aún
+  // no conoce —la base la agregó antes de que el código se desplegara— sale con su propio nombre, no escondida en «Sin familia»: «Sin
+  // familia» es solo para el color que de verdad no tiene (el 2-oct se vieron «Sin familia 7» que eran Rosado y Naranja).
+  return agruparPorFamilia(lista, (c) => c.familiaColor);
 }
 
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
@@ -201,7 +192,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const activos = colores.filter((c) => c.activo);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
-  const familiaDe = (c: Color) => (FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor) ? c.familiaColor : "sin-familia");
+  const familiaDe = (c: Color) => c.familiaColor || "sin-familia";
   const pasaFamilia = (c: Color) => familia === "todas" || familiaDe(c) === familia;
   const activosVisibles = filtrarColores(activos, busqueda).filter(pasaFamilia);
   const desactivadosVisibles = filtrarColores(desactivados, busqueda).filter(pasaFamilia);

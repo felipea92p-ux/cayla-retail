@@ -162,7 +162,9 @@ describe("ordenarColores", () => {
   });
   it("agrupa por familia en el orden de la lista (el del espectro: rojo antes que azul) y no pierde un color sin familia", () => {
     const r = ordenarColores(colores, {}, FAMILIAS_COLOR);
-    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "rojo", "azul", "sin-familia"]);
+    // «inexistente» es una familia que el código no conoce: sale con su propio nombre, no escondida.
+    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "rojo", "azul", "inexistente"]);
+    expect(r.grupos[3].texto).toBe("Inexistente");
     expect(r.grupos.flatMap((g) => g.colores)).toHaveLength(colores.length);
   });
 });

@@ -2,13 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, Minus, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
-import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias } from "@/lib/pildora-reglas";
+import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -100,7 +100,20 @@ export function FilaPildoras({ titulo, children }: { titulo: string; children: R
 type UnaOpcion = { valor: string; onValor: (v: string) => void; varias?: undefined };
 /** Varias opciones a la vez (Talla, Color; Felipe, 2026-10-02): la lista queda abierta, cada opción se marca o desmarca, y
  *  la ✕ vacía todo. */
-type VariasOpciones = { varias: { valores: readonly string[]; onValores: (v: string[]) => void }; valor?: undefined; onValor?: undefined };
+type VariasOpciones = {
+  varias: {
+    valores: readonly string[];
+    onValores: (v: string[]) => void;
+    /** Qué queda marcado al tocar `valor`, si no es simplemente «alternarlo» (Color: tocar una familia marca todos sus tonos). */
+    alternar?: (actual: readonly string[], valor: string) => string[];
+  };
+  valor?: undefined;
+  onValor?: undefined;
+};
+
+/** Una opción de la lista. `cantidad`: cuántas prendas trae (Productos, ADR-0308). `grupo` / `hijo`: la fila es el encabezado de un
+ *  grupo marcable (una familia) o un elemento dentro de él; `estado` dice cómo se ve su casilla cuando la lista tiene esa jerarquía. */
+type OpcionPildora = OpcionCombo<string> & { cantidad?: number; grupo?: boolean; hijo?: boolean; estado?: EstadoCasilla };
 
 export function DesplegablePildora({
   icono: Icono,
@@ -111,12 +124,16 @@ export function DesplegablePildora({
   opciones,
   valorPorDefecto = TODOS,
   encoger = false,
+  rotuloCantidad,
 }: (UnaOpcion | VariasOpciones) & {
   icono: LucideIcon;
   /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
   etiqueta: string;
   /** `cantidad`: cuántas prendas trae esa opción (Productos, ADR-0308); se lee a la derecha. Sin ella, la lista de siempre. */
-  opciones: readonly (OpcionCombo<string> & { cantidad?: number })[];
+  opciones: readonly OpcionPildora[];
+  /** Qué cuenta el número de la derecha («Prendas · una con varios colores cuenta en cada uno»): una línea fija sobre la lista, solo
+   *  si alguna opción trae `cantidad`. Sin ella, el número se lee solo por su `aria-label`. */
+  rotuloCantidad?: string;
   /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
   valorPorDefecto?: string;
   /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
@@ -169,7 +186,7 @@ export function DesplegablePildora({
 
   function elegir(o: OpcionCombo<string>) {
     if (varias) {
-      varias.onValores(alternarEnLista(varias.valores, o.valor)); // la lista sigue abierta para marcar otra
+      varias.onValores((varias.alternar ?? alternarEnLista)(varias.valores, o.valor)); // la lista sigue abierta para marcar otra
       return;
     }
     onValor(o.valor);
@@ -309,6 +326,9 @@ export function DesplegablePildora({
               className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
             />
           )}
+          {rotuloCantidad && opciones.some((o) => o.cantidad != null) && (
+            <p className="shrink-0 px-3 pb-0.5 pt-2 text-[11px] leading-snug text-tinta/55">{rotuloCantidad}</p>
+          )}
           <ul
             id={`${id}-lista`}
             ref={lista}
@@ -326,37 +346,53 @@ export function DesplegablePildora({
                 {opciones.length === 0 ? "Con los filtros puestos no queda ninguna para elegir. Quita otro filtro." : `Nada coincide con «${busqueda.trim()}».`}
               </li>
             ) : (
-              mostradas.map((o, i) => (
-                <li
-                  key={o.valor}
-                  data-i={i}
-                  role="option"
-                  aria-selected={marcadas.includes(o.valor)}
-                  onMouseEnter={() => setActivo(i)}
-                  onClick={() => elegir(o)}
-                  className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
-                    i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
-                  } ${!varias && o.valor === valor ? "font-semibold" : ""}`}
-                >
-                  {varias && (
-                    <span
-                      aria-hidden
-                      className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
-                        marcadas.includes(o.valor) ? "border-tinta bg-tinta text-crema" : "border-tinta/30"
-                      }`}
-                    >
-                      {marcadas.includes(o.valor) && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-                    </span>
-                  )}
-                  {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
-                  <span className="align-middle">{o.texto}</span>
-                  {o.cantidad != null && (
-                    <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
-                      {o.cantidad}
-                    </span>
-                  )}
-                </li>
-              ))
+              mostradas.map((o, i) => {
+                // Con jerarquía (Color), la casilla dice lo que hace la base: familia marcada ⇒ sus tonos ya van incluidos.
+                const marcada = o.estado ? o.estado === "marcada" || o.estado === "cubierta" : marcadas.includes(o.valor);
+                const parcial = o.estado === "parcial";
+                return (
+                  <li
+                    key={o.valor}
+                    data-i={i}
+                    role="option"
+                    aria-selected={marcada || parcial}
+                    onMouseEnter={() => setActivo(i)}
+                    onClick={() => elegir(o)}
+                    className={`relative flex cursor-pointer select-none items-center rounded-md py-2 pr-3 text-sm outline-none transition-colors ${
+                      o.hijo ? "pl-8" : "pl-3"
+                    } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
+                      i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
+                    } ${!varias && o.valor === valor ? "font-semibold" : ""} ${o.grupo ? "font-medium" : ""}`}
+                  >
+                    {varias && (
+                      <span
+                        aria-hidden
+                        className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
+                          o.estado === "cubierta"
+                            ? "border-tinta/45 bg-tinta/45 text-crema"
+                            : marcada
+                              ? "border-tinta bg-tinta text-crema"
+                              : parcial
+                                ? "border-tinta bg-tinta/10 text-tinta"
+                                : "border-tinta/30"
+                        }`}
+                      >
+                        {marcada && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                        {parcial && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
+                      </span>
+                    )}
+                    {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
+                    <span className="align-middle">{o.texto}</span>
+                    {parcial && <span className="sr-only">, algunos tonos marcados</span>}
+                    {o.estado === "cubierta" && <span className="sr-only">, ya incluido en la familia marcada</span>}
+                    {o.cantidad != null && (
+                      <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
+                        {o.cantidad}
+                      </span>
+                    )}
+                  </li>
+                );
+              })
             )}
           </ul>
         </div>,
