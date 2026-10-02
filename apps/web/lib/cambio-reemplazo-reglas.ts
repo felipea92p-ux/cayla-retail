@@ -23,7 +23,7 @@ export type VarianteCatalogo = {
   precio: number;
   /** Piso de ESTA sede: lo único que `registrar_cambio` deja entregar. */
   stockAqui: number;
-  /** Lo apartado para clientas en ese mismo piso: con `stockAqui` en 0, es «apartada para una clienta» y no «no queda». */
+  /** Lo apartado para clientas en ese mismo piso: con `stockAqui` en 0, es «apartada para un cliente» y no «no queda». */
   apartadoAqui: number;
   /** Dónde más hay — «no queda L aquí, pero hay 2 en Trujillo». */
   stockOtrasSedes: SedeConStock[];
@@ -94,7 +94,7 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
   // del producto ELEGIDO (`variantes`, todas comparten referencia), no la de la línea: puede haber elegido otra prenda.
   const descripcionNueva = varianteLegible({ talla: tallaEfectiva, color: colorEfectivo }) || (variantes[0]?.referencia ?? linea.referencia);
   const otrasSedes = varianteNueva ? textoOtrasSedes(varianteNueva.stockOtrasSedes) : null;
-  // «apartada para una clienta» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null.
+  // «apartada para un cliente» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null.
   const textoApartada = varianteNueva !== null && sinStockPorApartado(varianteNueva) ? textoSinStock(varianteNueva) : null;
   return {
     esLaMisma: s.productoId === linea.productoId,
@@ -108,7 +108,7 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     stockAqui: (t: string | null, c: string | null) =>
       variantes.filter((v) => (t === null || v.talla === t) && (c === null || v.color === c)).reduce((suma, v) => suma + Math.max(0, v.stockAqui), 0),
     /** Lo que se dice de una talla y color sin nada libre en el piso (se llama cuando `hayAqui` es falso):
-     *  «apartada para una clienta» si lo que queda está apartado, y si no, «no queda aquí». Con talla o color sin fijar
+     *  «apartada para un cliente» si lo que queda está apartado, y si no, «no queda aquí». Con talla o color sin fijar
      *  suma lo apartado de todas las que cubre. */
     sinStockTexto: (t: string | null, c: string | null) =>
       textoSinStock(

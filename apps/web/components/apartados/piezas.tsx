@@ -118,7 +118,7 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: 
       <p className="rt-centro rt-numero">{tipo === "anticipo" ? a.comprobanteAnticipo : (a.comprobanteFinal ?? "")}</p>
       <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>
       <div className="rt-datos">
-        <p>Clienta: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
+        <p>Cliente: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
         <p>Cel.: {a.celular}{a.asesora ? ` · Atendió: ${a.asesora}` : ""}</p>
       </div>
       {a.prendas.map((p) => (

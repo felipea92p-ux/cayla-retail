@@ -7,7 +7,7 @@ import { CONSULTA_CARTEL_CADA_MS, esperaDelCartel, type EsperaDelCartel } from "
 /**
  * «Pídele que escanee el cartel del club» (ADR-0288, tanda 1g, G-2): mientras la tarjeta de una clienta que no es socia está a
  * la vista (`activa`), pregunta `resumen_clienta_caja` cada 3 s (lectura `resumen_`: no abre el loader). Cuando ella se une
- * desde el cartel con ese documento, avisa con su resumen nuevo (`onSocia`) y la tarjeta pasa sola a «Socia». Deja de
+ * desde el cartel con ese documento, avisa con su resumen nuevo (`onSocia`) y la tarjeta pasa sola a «Miembro». Deja de
  * preguntar al desmontarse, con la pestaña oculta (sigue sola al volver) y a los 10 minutos: entonces la fila ofrece
  * «Actualizar», que pregunta una vez y, si todavía no, vuelve a esperar otros 10. Un fallo de red no cambia nada: la siguiente
  * vuelta pregunta de nuevo. La regla de cuándo pregunta es `esperaDelCartel` (lib/club-caja-reglas.ts, con pruebas).

@@ -187,7 +187,7 @@ export function motivoBloqueoCobro(v: {
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
-  if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
+  if (v.pagos.length === 0) return "Elige cómo pagó el cliente.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
   if (restante < 0) return "Los pagos superan el total.";
@@ -230,7 +230,7 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
 /** Los cinco motivos que `registrar_venta` acepta — la base manda; agregar uno acá sin
  *  agregarlo también en la migración deja a la venta rechazándose con el error genérico. */
 export const RAZONES_DESCUENTO = [
-  { valor: "cumpleanos_clienta_top", etiqueta: "Cumpleaños clienta top" },
+  { valor: "cumpleanos_clienta_top", etiqueta: "Cumpleaños cliente top" },
   { valor: "prenda_con_desperfecto", etiqueta: "Prenda con desperfecto" },
   { valor: "liquidacion_temporada", etiqueta: "Liquidación de temporada" },
   { valor: "cerrar_venta", etiqueta: "Cerrar la venta" },
@@ -427,7 +427,7 @@ export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null
   return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
 }
 
-// ---- «Agotada» o «apartada para una clienta» ------------------------------------------------------------------------
+// ---- «Agotada» o «apartada para un cliente» ------------------------------------------------------------------------
 // Una prenda con todo el piso apartado NO está agotada: sigue ahí, en el piso, y es de una clienta. Decirle «agotada» a
 // la colaboradora que mira la bodega del piso es decirle que no ve lo que ve. La regla vive en UN solo lugar,
 // `motivoNoCobrable` (`lib/vender-stock-local.ts`, D-40): cobrable > «está en el almacén» > «apartada» > «agotada». Vender
@@ -447,9 +447,9 @@ export function sinStockPorApartado(p: SinStockAqui): boolean {
   return motivoNoCobrable(p) === "apartada";
 }
 
-/** La frase de una prenda que no se puede vender aquí: «apartada para una clienta» si lo único que queda en el piso es
+/** La frase de una prenda que no se puede vender aquí: «apartada para un cliente» si lo único que queda en el piso es
  *  de otra clienta, y si no, `agotada` (el texto de siempre de cada pantalla). Se llama cuando `stockAqui <= 0`. La
- *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para una clienta»), para
+ *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para un cliente»), para
  *  que la pantalla no tenga que cuidar el caso.
  *
  *  La palabra describe el piso —lo que la caja puede cobrar—, igual que «agotada» lo describe cuando el piso está en 0;
@@ -458,5 +458,5 @@ export function sinStockPorApartado(p: SinStockAqui): boolean {
 export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   if (!sinStockPorApartado(p)) return agotada;
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
-  return empiezaEnMayuscula ? "Apartada para una clienta" : "apartada para una clienta";
+  return empiezaEnMayuscula ? "Apartada para un cliente" : "apartada para un cliente";
 }

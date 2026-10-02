@@ -224,7 +224,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
           <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
             <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
-            sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
+            sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
           </p>
         </div>
 

@@ -57,10 +57,10 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir y exportar" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
-  { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
+  { clave: "clientas", grupo: "Ventas", nombre: "Clientes", incluye: "Registrar, editar y archivar clientes; ver sus compras" },
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.
-  { clave: "avisos_club", grupo: "Ventas", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a las socias con WhatsApp de su tienda (cumpleaños, aniversario, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  { clave: "avisos_club", grupo: "Ventas", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (cumpleaños, aniversario, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Ajustar stock» SALIÓ de este texto el 2026-09-27 (ADR-0250): ahora es su propio módulo, ver más abajo.
   { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, apartar prendas" },

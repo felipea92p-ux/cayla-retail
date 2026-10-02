@@ -583,7 +583,7 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
       { message: 'duplicate key value violates unique constraint "clientas_documento_unico"', code: "23505" },
       "registrar la clienta",
     );
-    expect(salida).toContain("Ya hay una clienta con ese documento");
+    expect(salida).toContain("Ya hay un cliente con ese documento");
     expect(salida).not.toContain("clientas_documento_unico");
   });
 

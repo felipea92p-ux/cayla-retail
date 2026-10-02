@@ -299,7 +299,7 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
     const riel = menuPara(ahora({ nombre: "tv", rol: "integrante" }, "tienda", tv, true)).riel;
     // Es la caja del mostrador: lo de Ventas sale suelto (2026-09-25); Inventario sigue siendo un grupo. Clientas
     // (2026-09-27) mantiene su lugar en el ARBOL, después de Inventario/Catálogo/Compras/Finanzas.
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Clientas"]);
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Clientes"]);
   });
 
   // La caja de TRU tal como la mostró Felipe (2026-09-25): ventas + catálogo + inventario. Lo de Ventas va primero y
@@ -310,7 +310,7 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
     const caja = [...MODULOS_DE_HOY.ventas, ...extra.map((clave) => ({ clave, completo: true }))];
     const riel = menuPara(ahora({ nombre: "caja", rol: "integrante" }, "tienda", caja, true)).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual([
-      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Catálogo", "Clientas",
+      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Catálogo", "Clientes",
     ]);
     expect(riel.filter(esGrupoMenu).map((f) => f.etiqueta)).toEqual(["Inventario", "Catálogo"]);
   });

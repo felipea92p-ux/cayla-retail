@@ -51,7 +51,7 @@ export const VENTANA_TARDIA_SEGUNDOS = 10 * 60;
 /**
  * La ventana de la entrega de algo apartado (revisión 8): una liberación seguida de una venta de la misma talla dentro
  * de estos segundos es la entrega a su clienta. Entregar una separación libera y vende en la misma operación (0
- * segundos); «Se la entrego a la clienta ahora» de Apartados libera y se cobra enseguida en Vender.
+ * segundos); «Se la entrego al cliente ahora» de Apartados libera y se cobra enseguida en Vender.
  */
 export const VENTANA_ENTREGA_SEGUNDOS = 10 * 60;
 /** Índice de rapidez de una prenda que se vende igual que su categoría a la misma edad. */
@@ -489,7 +489,7 @@ export function recortarEventos(eventos: readonly EventoPiso[], inicio: string):
  * una sola separación a la vez, lo normal, es exacto):
  *   · lo que sigue apartado hoy → una VENTA a la hora en que se apartó;
  *   · lo que se liberó y se vendió en los `VENTANA_ENTREGA_SEGUNDOS` siguientes (la entrega: entregar una separación
- *     libera y vende en una sola operación, y «Se la entrego a la clienta ahora» de Apartados se cobra enseguida en
+ *     libera y vende en una sola operación, y «Se la entrego al cliente ahora» de Apartados se cobra enseguida en
  *     Vender) → una venta a la hora en que se apartó, y a la venta de la entrega se le quita esa unidad (ya se contó);
  *   · lo que se liberó sin venderse enseguida (la clienta no vino, un error) → una PAUSA, como guardarla en el almacén:
  *     no suma días colgada mientras estuvo apartada y vuelve con la edad que tenía (la vuelta es la misma entrada interna

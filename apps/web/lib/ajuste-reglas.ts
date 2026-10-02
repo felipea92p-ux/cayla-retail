@@ -221,8 +221,8 @@ export function textoProblemaTalla(l: LineaAjuste, modo: ModoAjuste): string | n
   if (l.resultado < l.apartado) {
     // Al contar, lo más probable es que la apartada esté guardada aparte y no se contó: se dice antes de mandar a liberar nada.
     return modo === "contado"
-      ? `Contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Cuéntalas también; si de verdad falta, libera ese apartado primero.`
-      : `Quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Libera o resuelve esos apartados primero.`;
+      ? `Contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientes. Cuéntalas también; si de verdad falta, libera ese apartado primero.`
+      : `Quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientes. Libera o resuelve esos apartados primero.`;
   }
   return null;
 }

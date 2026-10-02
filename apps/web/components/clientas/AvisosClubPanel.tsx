@@ -207,7 +207,7 @@ export function AvisosClubPanel({
       <EncabezadoPagina
         sede={sede.nombre}
         titulo="Avisos"
-        subtitulo="Los mensajes por mandar a cada socia del club desde el WhatsApp de esta tienda."
+        subtitulo="Los mensajes por mandar a cada miembro del club desde el WhatsApp de esta tienda."
         acciones={
           beneficios ? (
             <Boton onClick={() => setBeneficiosAbierto(true)} title="El % del cumpleaños, el aniversario y su vale">
@@ -221,7 +221,7 @@ export function AvisosClubPanel({
         <div className="anim-sube grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" style={{ "--i": 1 } as CSSProperties}>
           {TIPOS_AVISO.map((t) => (
             <TarjetaCifra key={t} etiqueta={INFO_TIPO_AVISO[t].titulo} valor={cuenta[t]}>
-              {INFO_TIPO_AVISO[t].promocional ? "Promoción: máximo 2 al mes por socia" : "Por mandar · no cuenta para el tope"}
+              {INFO_TIPO_AVISO[t].promocional ? "Promoción: máximo 2 al mes por miembro" : "Por mandar · no cuenta para el tope"}
             </TarjetaCifra>
           ))}
           <TarjetaCifra etiqueta="Enviados" valor={enviados} punto={enviados ? "verde" : undefined} className="col-span-2 sm:col-span-1">
@@ -299,8 +299,8 @@ export function AvisosClubPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
-        La lista la arma la base: solo socias que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por socia
-        (cumpleaños y aniversario no cuentan), y 1 de cada 5 socias no recibe novedades ni rebajas para medir si los avisos sirven. Si una socia
+        La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por miembro
+        (cumpleaños y aniversario no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
         responde <b>BAJA</b>, regístralo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
       </p>
 
@@ -309,7 +309,7 @@ export function AvisosClubPanel({
           confirmacion={{
             titulo: `¿${pidioBaja.nombre} pidió BAJA?`,
             bajada:
-              "Desde hoy no recibe ningún mensaje del club por WhatsApp, en las 3 tiendas: ni novedades, ni rebajas, ni los avisos de sus cupones. Sigue siendo socia y usa sus beneficios en la tienda.",
+              "Desde hoy no recibe ningún mensaje del club por WhatsApp, en las 3 tiendas: ni novedades, ni rebajas, ni los avisos de sus cupones. Sigue siendo miembro y usa sus beneficios en la tienda.",
             verbo: "Registrar BAJA",
             accion: () => registrarBaja(pidioBaja),
           }}

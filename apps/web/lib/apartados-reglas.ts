@@ -33,8 +33,8 @@ export type Apartado = {
 
 /** Por qué se libera un apartado — los mismos cuatro valores que valida `liberar_apartado`. */
 export const MOTIVOS_LIBERACION = [
-  { valor: "clienta_no_vino", texto: "La clienta no vino" },
-  { valor: "entregada", texto: "Se la entrego a la clienta ahora (luego se cobra en Vender)" },
+  { valor: "clienta_no_vino", texto: "El cliente no vino" },
+  { valor: "entregada", texto: "Se la entrego al cliente ahora (luego se cobra en Vender)" },
   { valor: "error_de_carga", texto: "Me equivoqué al apartar" },
   { valor: "otro", texto: "Otro motivo" },
 ] as const;
@@ -100,7 +100,7 @@ export function validarApartar(
   } else if (cantidad > maximo) {
     errores.cantidad = maximo <= 0 ? "No hay prendas disponibles para apartar aquí." : `Solo ${maximo === 1 ? "hay 1 disponible" : `hay ${maximo} disponibles`} para apartar.`;
   }
-  if (!form.clienta.trim()) errores.clienta = "Anota el nombre de la clienta.";
+  if (!form.clienta.trim()) errores.clienta = "Anota el nombre del cliente.";
   if (!form.contacto.trim()) errores.contacto = "Anota un teléfono o WhatsApp para avisarle.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.fecha)) {
     errores.fecha = "Elige hasta cuándo se la guardas.";

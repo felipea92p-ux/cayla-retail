@@ -206,7 +206,7 @@ export default async function InventarioPage({
                     Apartados
                     {/* Sin número (tarea #7): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva lista
                         separaciones (una por ticket): «3» aquí y 1 ticket al entrar. La cifra buena vive en Apartados; dentro de
-                        Existencias queda «N apartadas para clientas», que cuenta prendas y abre su lista. */}
+                        Existencias queda «N apartadas para clientes», que cuenta prendas y abre su lista. */}
                   </Link>
                 )}
               </nav>

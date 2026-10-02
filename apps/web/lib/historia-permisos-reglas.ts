@@ -29,8 +29,8 @@ export const MEDIO_LEGIBLE: Readonly<Record<string, string>> = {
   ficha: "desde la ficha",
   qr_web: "desde la página de su QR",
   // Tanda 1g (G-1, G-10): ella se unió sola, escaneando el cartel de la tienda (sin quién registró: lo hizo ella).
-  pagina_cartel: "se registró ella desde el cartel",
-  whatsapp_propio: "ella escribió a la tienda",
+  pagina_cartel: "se registró por su cuenta desde el cartel",
+  whatsapp_propio: "escribió por su cuenta a la tienda",
   baja_whatsapp: "escribió BAJA",
   cambio_celular: "cambió su celular",
   anonimizar: "se borraron sus datos",

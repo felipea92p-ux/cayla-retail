@@ -1031,3 +1031,25 @@ Felipe, 2026-10-01, después de ver la página publicada:
 - **El ticket impreso ya no lleva QR del club.** Se fueron `clubEnElTicket`, el campo `club` del recibo y el bloque del QR en
   `ReciboTermico`. El papel lleva solo el QR de SUNAT. La clienta se une con el QR del cartel del mostrador (G-1), que sigue
   igual.
+
+## Actualización 2026-10-02 (k): clientes y miembros, sin género, y casillas breves
+
+Felipe, 2026-10-02, mirando la página publicada: el club le tiene que hablar igual a un hombre que a una mujer, y el ERP tiene
+que decir «clientes», no «clientas». Lo decidido con él:
+- **«clientas» → «clientes» en todo el ERP**, en lo que se ve: menú, pantallas, avisos y textos. Las tablas, columnas, rutas y
+  claves no cambian (`retail.clientas`, `clienta_id`, `/clientas`, módulo `clientas`): no se ven, y renombrarlas arriesga datos.
+  La regla de vocabulario de CLAUDE.md pasa a decir «cliente».
+- **«socia» → «miembro»**: «Ya eres miembro», «Código de miembro», el sello «MIEMBRO» de la tarjeta, «Miembro desde…».
+  «¡Bienvenida, Rosa!» pasa a «¡Te damos la bienvenida, Rosa!», y «Casi lista» a «Ya casi».
+- **Cartel «Te invitamos»** (antes «Estás invitada»), con la bajada «a ser parte del club. Es gratis.».
+- **Casillas breves:** «Acepto la Política de privacidad y los Términos del Club CAYLA.» y «Quiero recibir por WhatsApp
+  novedades y promociones de CAYLA.», con «Opcional.» como única nota. Lo demás (finalidades, envío según compras y talla, la
+  BAJA) lo dice la Política que enlaza la casilla. Se suelta el candado `club_textos_casilla_con_baja`. Los avisos siguen
+  cerrando con «responde BAJA».
+- **La letra chica bajo el botón ya no dice «Brasil».** La Política (2.5) sí lo sigue diciendo, porque la Ley 29733 pide
+  informar el flujo transfronterizo.
+- **En la base**, la migración `20261002160000_club_textos_v2_sin_genero.sql` publica la v2 de `terminos`, `privacidad`,
+  `casilla_publicidad`, `aviso_cumpleanos` y `aviso_novedades`, con un candado que exige que la v1 sea la del 2026-10-01. Además
+  renombra el módulo a «Clientes». Los textos v2 están en `docs/club/texto-legal-registro-v2.md`; el v1 queda como historia.
+- **Queda para un segundo paso:** unas 25 funciones de la base cuyos mensajes de error dicen «clienta» o «socia», entre ellas
+  `registrar_venta`. Cambiarlas exige reescribir cada función viva con su candado de versión, y se hace aparte.

@@ -60,7 +60,7 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
     const problema = "El pasaporte tiene de 6 a 12 letras o números, sin guiones.";
     expect(motivoBloqueoCobro({ ...listo, problemaDocumento: problema })).toBe(problema);
     expect(motivoBloqueoCobro({ ...listo, momento: "armar", problemaDocumento: problema })).toBeNull();
-    expect(motivoBloqueoCobro({ ...listo, pagos: [], problemaDocumento: problema })).toBe("Elige cómo pagó la clienta.");
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], problemaDocumento: problema })).toBe("Elige cómo pagó el cliente.");
     expect(motivoBloqueoCobro({ ...listo, problemaDocumento: null })).toBeNull();
   });
 
@@ -73,7 +73,7 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
   });
 
   it("al cobrar sin ningún pago dice exactamente qué falta", () => {
-    expect(motivoBloqueoCobro({ ...listo, pagos: [] })).toBe("Elige cómo pagó la clienta.");
+    expect(motivoBloqueoCobro({ ...listo, pagos: [] })).toBe("Elige cómo pagó el cliente.");
   });
 
   it("con pagos que no llegan al total dice cuánto falta cubrir", () => {
@@ -780,7 +780,7 @@ describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
   });
 });
 
-describe("textoSinStock — «agotada» o «apartada para una clienta»", () => {
+describe("textoSinStock — «agotada» o «apartada para un cliente»", () => {
   it("sin nada apartado, agotada es agotada", () => {
     expect(textoSinStock({ stockAqui: 0, apartadoAqui: 0 })).toBe("agotada");
     // Quien no trae `apartadoAqui` (una pantalla sin esta lectura) dice lo de siempre.
@@ -788,18 +788,18 @@ describe("textoSinStock — «agotada» o «apartada para una clienta»", () => 
     expect(sinStockPorApartado({ stockAqui: 0 })).toBe(false);
   });
 
-  it("piso en 0 con 1 apartada para una clienta: no está agotada, está apartada", () => {
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+  it("piso en 0 con 1 apartada para un cliente: no está agotada, está apartada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para un cliente");
     expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
     // Varias apartadas dicen lo mismo: la frase habla de la prenda, no de cuántas.
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para un cliente");
   });
 
   it("cada pantalla conserva su texto de siempre para agotada, y la frase abre igual que él", () => {
     expect(textoSinStock({ stockAqui: 0 }, "sin stock aquí")).toBe("sin stock aquí");
     expect(textoSinStock({ stockAqui: 0 }, "Sin stock aquí")).toBe("Sin stock aquí");
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para una clienta");
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para un cliente");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para un cliente");
   });
 
   it("con stock libre en el almacén gana «en el almacén» (motivoNoCobrable): esto NO es «apartada»", () => {

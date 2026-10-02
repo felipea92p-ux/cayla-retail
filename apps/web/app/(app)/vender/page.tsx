@@ -111,8 +111,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       // Del MISMO mapa, sin otra lectura: lo guardado en el almacén de esta sede. No se cobra (la venta descuenta el
       // piso), pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
       almacenAqui: almacenDeLaSede(stockAqui.get(v.varianteId)),
-      // Del MISMO mapa: lo apartado para clientas en el piso. Con el piso y el almacén en 0 distingue «apartada para una
-      // clienta» de «agotada» (`motivoNoCobrable`).
+      // Del MISMO mapa: lo apartado para clientas en el piso. Con el piso y el almacén en 0 distingue «apartada para un
+      // cliente» de «agotada» (`motivoNoCobrable`).
       apartadoAqui: apartadoEnPiso(stockAqui.get(v.varianteId)),
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));

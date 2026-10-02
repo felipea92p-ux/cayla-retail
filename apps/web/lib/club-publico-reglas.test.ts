@@ -109,8 +109,8 @@ describe("paso 2: la barra de avance dice lo mismo que la guía de foco", () => 
     expect(avance(VACIO)).toMatchObject({ hechos: 0, total: 5, fraccion: 0, estado: "Empecemos", falta: "0 de 5 listos" });
   });
 
-  it("como el diseño: todo menos aceptar → «Casi lista» / «Te falta aceptar»", () => {
-    expect(avance({ ...BIEN, aceptaTerminos: false })).toMatchObject({ hechos: 4, total: 5, fraccion: 0.8, estado: "Casi lista", falta: "Te falta aceptar" });
+  it("como el diseño: todo menos aceptar → «Ya casi» / «Te falta aceptar»", () => {
+    expect(avance({ ...BIEN, aceptaTerminos: false })).toMatchObject({ hechos: 4, total: 5, fraccion: 0.8, estado: "Ya casi", falta: "Te falta aceptar" });
   });
 
   it("todo listo: la barra llena y se puede unir, igual que el botón (sin correo ni WhatsApp, que son opcionales)", () => {
@@ -135,7 +135,7 @@ describe("paso 2: la barra de avance dice lo mismo que la guía de foco", () => 
       estado: "Vas bien",
       falta: "2 de 5 listos",
     });
-    expect(avance({ ...BIEN, mayorDeEdad: false, aceptaTerminos: false })).toMatchObject({ estado: "Casi lista", falta: "3 de 5 listos" });
+    expect(avance({ ...BIEN, mayorDeEdad: false, aceptaTerminos: false })).toMatchObject({ estado: "Ya casi", falta: "3 de 5 listos" });
   });
 
   it("nunca dice «Te falta» con un campo que la guía no conoce sin nombrarlo", () => {
@@ -175,10 +175,10 @@ describe("paso 3: el cumpleaños y la fecha de socia, con el calendario de Lima"
   });
 
   it("«Socia desde oct. 2026», en hora de Lima", () => {
-    expect(sociaDesde("2026-10-01T15:00:00Z")).toBe("Socia desde oct. 2026");
+    expect(sociaDesde("2026-10-01T15:00:00Z")).toBe("Miembro desde oct. 2026");
     // 9 p. m. del 30 de setiembre en Lima = 2 a. m. del 1 de octubre en UTC: para ella sigue siendo setiembre.
-    expect(sociaDesde("2026-10-01T02:00:00Z")).toBe("Socia desde set. 2026");
-    expect(sociaDesde("2026-03-12")).toBe("Socia desde mar. 2026");
+    expect(sociaDesde("2026-10-01T02:00:00Z")).toBe("Miembro desde set. 2026");
+    expect(sociaDesde("2026-03-12")).toBe("Miembro desde mar. 2026");
     expect(sociaDesde(null)).toBeNull();
     expect(sociaDesde("no es fecha")).toBeNull();
   });

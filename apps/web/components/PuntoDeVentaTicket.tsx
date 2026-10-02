@@ -380,7 +380,7 @@ export function PuntoDeVentaTicket({
   const faltaPago = !cobrando
     ? null
     : pagos.length === 0
-      ? "Elige cómo pagó la clienta"
+      ? "Elige cómo pagó el cliente"
       : restante > 0
         ? `Falta cubrir ${money(restante)}`
         : restante < 0
@@ -788,7 +788,7 @@ export function PuntoDeVentaTicket({
                       </Ayuda>
                     )}
                     <Wallet className={ICONO_CHICO} aria-hidden />
-                    Cómo pagó la clienta
+                    Cómo pagó el cliente
                     {paso === "medio" && <PastillaPaso>Siguiente paso</PastillaPaso>}
                   </span>
                 </legend>
@@ -964,7 +964,7 @@ export function PuntoDeVentaTicket({
                     <span className="flex items-center gap-1">
                       {facturaSinRuc && (
                         <Ayuda tono="falta" titulo="Escribe el RUC de la empresa">
-                          La factura sale a nombre de una empresa y SUNAT exige su RUC. Si la clienta no lo tiene a
+                          La factura sale a nombre de una empresa y SUNAT exige su RUC. Si el cliente no lo tiene a
                           mano, cambia a boleta: admite DNI opcional o ningún documento.
                         </Ayuda>
                       )}

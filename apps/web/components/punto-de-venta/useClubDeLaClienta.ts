@@ -17,7 +17,7 @@ export type ClubDeLaClienta = {
   /** Vuelve a leer su resumen. */
   recargar: () => void;
   /** Se unió desde el cartel mientras su tarjeta estaba a la vista (tanda 1g): la tarjeta trae su resumen nuevo y la caja
-   *  pasa a «Socia» al instante, con su cumpleaños y su vale si los tiene, sin volver a preguntar. */
+   *  pasa a «Miembro» al instante, con su cumpleaños y su vale si los tiene, sin volver a preguntar. */
   seUnio: (resumen: ResumenClientaCaja) => void;
   /** El canje del cumpleaños (tanda 1c, ADR-0288 D-5), como lo dice su caja: disponible, sin conexión, canjeado o nada. */
   cumple: CumpleEnCaja;

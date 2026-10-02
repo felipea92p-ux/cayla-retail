@@ -136,7 +136,7 @@ export function AnalisisGrupos({
             <span className="hidden font-display text-[1.75rem] leading-tight tabular-nums text-tinta min-[1100px]:block">
               {pedidosNoAtendidos} <span className="font-sans text-xs text-taupe">{pedidosNoAtendidos === 1 ? "pedido" : "pedidos"}</span>
             </span>
-            <span className="text-xs leading-snug text-taupe">Lo que la clienta buscó y esta sede no tenía</span>
+            <span className="text-xs leading-snug text-taupe">Lo que el cliente buscó y esta sede no tenía</span>
             <span className="mt-auto hidden items-center gap-1 pt-1 text-[12.5px] font-semibold text-tinta sm:flex">
               Ver pedidos <ArrowRight aria-hidden className="h-3.5 w-3.5" />
             </span>

@@ -35,7 +35,7 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-7">
-      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Devoluciones" subtitulo="Registra las devoluciones de la clienta y aprueba las que esperan.">
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Devoluciones" subtitulo="Registra las devoluciones del cliente y aprueba las que esperan.">
         {/* «Por aprobar» primero y tocable: es lo único de la fila que pide algo a alguien. Las otras
             tres son de las devoluciones APROBADAS de ESTA sede. */}
         <ResumenSede

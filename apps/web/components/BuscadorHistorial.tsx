@@ -79,8 +79,8 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
         spellCheck={false}
         aria-label="Buscar una venta"
         // Corto para que quepa a 375 px; el nº de operación y el código de etiqueta también se buscan (lo dice el título).
-        placeholder="Boleta, DNI, clienta o prenda"
-        title="Busca por comprobante, DNI o RUC, clienta, prenda, código de etiqueta o nº de operación de Yape o Plin"
+        placeholder="Boleta, DNI, cliente o prenda"
+        title="Busca por comprobante, DNI o RUC, cliente, prenda, código de etiqueta o nº de operación de Yape o Plin"
         className="min-w-0 flex-1 bg-transparent text-[15px] text-tinta outline-none placeholder:text-tinta/50 [&::-webkit-search-cancel-button]:hidden"
       />
       <SenalBuscando activo={buscando} className="shrink-0" />

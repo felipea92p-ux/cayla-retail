@@ -24,8 +24,8 @@
 
 /** Clave → lo que hace, en palabras del negocio. Las claves son las de `retail.acciones_sin_responsable`. */
 export const ACCIONES_SIN_RESPONSABLE = {
-  apartar_prenda: "Apartar una prenda para una clienta (desde Existencias)",
-  aviso_apartado: "Dejar el aviso o recordatorio a la clienta de un apartado",
+  apartar_prenda: "Apartar una prenda para un cliente (desde Existencias)",
+  aviso_apartado: "Dejar el aviso o recordatorio al cliente de un apartado",
   traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado",
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias",
   regularizar_prenda: "Regularizar una prenda por regularizar",

@@ -294,7 +294,7 @@ describe("bloqueoPorVenta (D-136): vendida = solo un líder", () => {
     // Nombra SOLO lo que cuenta (venta, separación con abonos, cambio): «Apartar» de Existencias no bloquea, y la fila que
     // lo muestra («· 1 ap.») queda corrigiéndose al lado (revisión 2026-09-28).
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).toBe(
-      "BOD-0003-L ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
+      "BOD-0003-L ya salió con un cliente (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
     );
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).not.toMatch(/apartó/);
     expect(bloqueoPorVenta(filas, ESTADO_BOD, true, N)).toBeNull();
