@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleMinus, CirclePlus, ShoppingBag } from "lucide-react";
+import type { MetodoRitmo } from "@/lib/caja-panel-reglas";
 
 export type EventoCaja = {
   id: string;
@@ -11,6 +12,8 @@ export type EventoCaja = {
   meta: string;
   monto: number;
   color: string;
+  /** Con qué medios se pagó la venta (vacío o ausente en un ingreso/egreso manual): lo que usa el filtro por medio de pago. */
+  metodos?: readonly MetodoRitmo[];
 };
 
 const money = (n: number) => "S/" + n.toFixed(2);

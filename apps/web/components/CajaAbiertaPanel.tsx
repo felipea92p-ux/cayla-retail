@@ -30,7 +30,7 @@ import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, Cierre
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
-import { pasaFiltroMovimiento, piezasDelCajon, type FiltroMovimientos, type ModoCierres } from "@/lib/caja-tablero-reglas";
+import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -139,7 +139,7 @@ export function CajaAbiertaPanel({
     window.addEventListener(EVENTO_CERRAR_CAJA, abrir);
     return () => window.removeEventListener(EVENTO_CERRAR_CAJA, abrir);
   }, [abrirCierre, puedeCerrar]);
-  const [filtroMov, setFiltroMov] = useState<FiltroMovimientos>("todo");
+  const [filtroMov, setFiltroMov] = useState<FiltroMov>(FILTRO_MOV_INICIAL);
   // La vista de «Cierres anteriores» decide el ancho de su tarjeta: tabla y gráfico piden todo el ancho.
   const [modoCierres, setModoCierres] = useState<ModoCierres | null>(null);
   const alCambiarModo = useCallback((m: ModoCierres) => setModoCierres(m), []);
@@ -208,6 +208,7 @@ export function CajaAbiertaPanel({
       minutos: minutosDeHora(v.hora),
       horaTexto: v.hora,
       icono: "venta" as const,
+      metodos: metodosDe(v.metodosPago),
       titulo: `Venta${v.metodosPago ? ` · ${v.metodosPago}` : ""}`,
       meta: v.vendedor ?? "—",
       monto: v.total,
@@ -229,7 +230,10 @@ export function CajaAbiertaPanel({
     }),
   ].sort((a, b) => b.minutos - a.minutos);
   // La tarjeta muestra las más recientes del filtro elegido; «Ver todo» abre el resto sin alargar el tablero.
-  const filtrados = todosLosEventos.filter((e) => pasaFiltroMovimiento(e, filtroMov));
+  const filtrados = todosLosEventos.filter((e) => pasaFiltroMov(e, filtroMov));
+  const metodosUsados = metodosDelTurno(todosLosEventos);
+  // Una venta de pago mixto sale en cada uno de sus medios: si la lista filtrada trae alguna, se avisa para que no parezca un doble conteo.
+  const hayMixtas = filtroMov.metodo !== null && filtrados.some((e) => (e.metodos?.length ?? 0) > 1);
   const eventos = filtrados.slice(0, LIMITE_TARJETA);
   const cierresUbicacion = cierresRecientes.filter((c) => c.ubicacionId === caja.ubicacionId);
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
@@ -366,15 +370,34 @@ export function CajaAbiertaPanel({
                   <button
                     key={clave}
                     type="button"
-                    aria-pressed={filtroMov === clave}
-                    onClick={() => setFiltroMov(clave)}
-                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
+                    aria-pressed={filtroMov.vista === clave}
+                    onClick={() => setFiltroMov(elegirVista(clave))}
+                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
                   >
                     {texto}
                   </button>
                 ))}
               </div>
             </div>
+            {metodosUsados.length > 0 && (
+              <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
+                {metodosUsados.map(({ clave, ventas }) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    aria-pressed={filtroMov.metodo === clave}
+                    onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
+                    className="pildora-cayla !px-3 !py-1 !text-[12px]"
+                  >
+                    <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
+                    {METODO_RITMO[clave].texto}
+                    <span className="font-normal tabular-nums opacity-70">{ventas}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
             {eventos.length === 0 ? (
               <p className="py-6 text-center text-xs text-tinta/50">{todosLosEventos.length === 0 ? "Todavía no hay movimientos." : "Nada con este filtro."}</p>
             ) : (
@@ -416,7 +439,7 @@ export function CajaAbiertaPanel({
       )}
       {modal === "todos" && (
         <MovimientosCajaModal
-          eventos={todosLosEventos}
+          eventos={filtrados}
           idsNuevos={idsNuevos}
           ubicacionNombre={ubicacionNombre}
           onAbrirVenta={setVentaAbiertaId}
