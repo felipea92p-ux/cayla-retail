@@ -1,6 +1,6 @@
 "use client";
 
-import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
@@ -53,6 +53,8 @@ type Color = {
   codigo: string;
   nombre: string;
   familiaColor: string | null;
+  /** `colores.tipo` («solido» | «textura» | «estampado»): una textura (Gris melange) se pinta jaspeada, no como un liso del mismo tono. */
+  tipo: string;
   hex: string | null;
   orden: number;
   activo: boolean;
@@ -77,8 +79,10 @@ function pieDePantone(texto: string, ocupados: Map<string, string>): string {
   return p ? `Se guarda como ${p}` : "Opcional: el código para pedir la tela al taller o al proveedor.";
 }
 
+// El orden lo da la propia paleta (familia en el espectro, luego gama y claridad: `lib/color-escala.ts`), el mismo de la carta de
+// Nuevo producto. `colores.orden` ya no decide nada aquí: un color recién creado cae en su lugar sin que alguien lo numere.
 function ordenar(lista: Color[]) {
-  return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+  return [...lista].sort(enLaCarta);
 }
 
 // Agrupa la grilla por familia de color (Neutro, Azul, Rojo...) en vez de una
@@ -87,8 +91,8 @@ function ordenar(lista: Color[]) {
 // "colgando" al final en vez de junto a sus parecidos, y la última fila
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
 // propia fila — la de "Estampado" con 3 colores se ve completa, no como el
-// resto de una grilla de 5 que faltó llenar. `orden` sigue ordenando DENTRO
-// de cada sección (`ordenar()` ya corrió antes de llamar a esto).
+// resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
+// viene dado por `ordenar()` (escala: gama y de claro a oscuro).
 function gruposPorFamilia(lista: Color[]) {
   const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
     familia: f.valor,
@@ -107,9 +111,11 @@ function gruposPorFamilia(lista: Color[]) {
 
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
-// así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, familia, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+// así que un color es nombre, familia y hex; lo único que se suma es que un
+// color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
+// jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
+function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "#e8e0d0", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
@@ -183,7 +189,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   // Mientras nadie toque el código, sigue al nombre. Si la persona lo escribe,
   // deja de pisarlo; si lo borra por completo, vuelve a seguir al nombre.
   const [codigoTocado, setCodigoTocado] = useState(false);
-  const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
+  const [familiaColor, setFamiliaColor] = useState<FamiliaColor>("neutro");
   // «Neutro» viene de fábrica: sin esto la guía nunca pasaría por el combo (un valor de fábrica ya cuenta como «lleno») y la
   // familia quedaría en Neutro sin que nadie la mirara. Elegir en el combo —aunque sea Neutro otra vez— es «ya la miré».
   const [familiaElegida, setFamiliaElegida] = useState(false);
@@ -205,7 +211,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setBusqueda("");
     setAnimar(true);
   };
-  // Las píldoras: solo las familias que tienen algún color activo, en el orden de siempre (Neutro, Azul, Rojo…).
+  // Las píldoras: solo las familias que tienen algún color activo, en el orden del espectro (Neutro, Tierra, Rosado, Rojo…).
   const familiasConColores = gruposPorFamilia(activos);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
@@ -272,6 +278,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             codigo: datos.color.codigo,
             nombre: datos.color.nombre,
             familiaColor: datos.color.familia_color,
+            tipo: datos.color.tipo,
             hex: datos.color.hex,
             orden: 2000,
             activo: true,
@@ -418,7 +425,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               {coloresDeLaFamilia.map((c) => (
                 <TarjetaAtributo
                   key={c.codigo}
-                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                   nombre={c.nombre}
                   notas={c.notas}
                   insignia={c.estado === "pendiente" ? "Pendiente" : null}
@@ -559,7 +566,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             {desactivadosVisibles.map((c) => (
               <TarjetaAtributo
                 key={c.codigo}
-                muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                 nombre={c.nombre}
                 insignia={c.estado === "rechazado" ? "Rechazado" : null}
                 detalle={
@@ -628,7 +635,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 }
 
 // ---------------------------------------------------------------------------
-// Edición: nombre, familia, orden, hex y notas. El HEX arranca bloqueado detrás de
+// Edición: nombre, familia, hex, Pantone, sinónimos y notas. El orden ya no se edita: lo calcula la escala del color. El HEX arranca bloqueado detrás de
 // "Cambiar color" a propósito — no es un candado técnico (nada en
 // `movimientos`/`ventas` guarda una copia del hex; catálogo, inventario y
 // producción lo resuelven en vivo desde `colores.hex`), es solo para que no
@@ -653,10 +660,7 @@ function ColorEditarModal({
   onDesactivado: (codigo: string) => void;
 }) {
   const [nombre, setNombre] = useState(color.nombre);
-  const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>(
-    (color.familiaColor as (typeof FAMILIAS_COLOR)[number]["valor"]) ?? "neutro"
-  );
-  const [orden, setOrden] = useState(String(color.orden));
+  const [familiaColor, setFamiliaColor] = useState<FamiliaColor>((color.familiaColor as FamiliaColor) ?? "neutro");
   const [hex, setHex] = useState(color.hex ?? "#c9b79c");
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
@@ -675,14 +679,10 @@ function ColorEditarModal({
     return () => clearTimeout(t);
   }, [confirmandoDesactivar]);
 
-  const ordenNumero = Number(orden);
-  const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
-
-  // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, orden, Pantone) y quién firma. El color ya viene elegido.
+  // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, Pantone) y quién firma. El color ya viene elegido.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
-    { id: "orden", nombre: "Orden", requerido: true, hecho: ordenValido, pendiente: "El orden es un número entero de 0 para arriba." },
     {
       id: "pantone",
       nombre: "Pantone",
@@ -694,13 +694,13 @@ function ColorEditarModal({
   ]);
 
   async function guardar() {
-    if (!nombre.trim() || !ordenValido) return;
+    if (!nombre.trim()) return;
     setGuardando(true);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -713,6 +713,7 @@ function ColorEditarModal({
         codigo: datos.color.codigo,
         nombre: datos.color.nombre,
         familiaColor: datos.color.familia_color,
+        tipo: datos.color.tipo,
         hex: datos.color.hex,
         orden: datos.color.orden,
         activo: datos.color.activo,
@@ -763,22 +764,9 @@ function ColorEditarModal({
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
               quedaban el doble de grandes que los de Notas hacia abajo. */}
           <div className="space-y-1">
-            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-              <CampoGuiado id="nombre" guia={guia}>
-                <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
-              </CampoGuiado>
-              <CampoGuiado id="orden" guia={guia}>
-              <CampoTexto
-                etiqueta={guia.etiqueta("orden", "Orden")}
-                mono
-                inputMode="numeric"
-                value={orden}
-                onChange={(e) => setOrden(e.target.value)}
-                tono={ordenValido ? undefined : "error"}
-                pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
-              />
-              </CampoGuiado>
-            </div>
+            <CampoGuiado id="nombre" guia={guia}>
+              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            </CampoGuiado>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
             <CampoGuiado id="pantone" guia={guia}>
@@ -834,7 +822,7 @@ function ColorEditarModal({
               peso="primario"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
+              disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >

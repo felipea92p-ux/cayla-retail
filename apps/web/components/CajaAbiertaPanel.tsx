@@ -171,7 +171,9 @@ export function CajaAbiertaPanel({
     });
   }, [ventasNuevas.nuevos]);
 
-  const totalVentas = resumen.ventasEfectivo + resumen.ventasOtros;
+  // Lo vendido (la suma de ítems): lo cobrado en efectivo y en otros medios más lo que no se cobró por redondear (ADR-0311). En
+  // céntimos: una suma suelta en coma flotante deja 79.88000000000001.
+  const totalVentas = (Math.round(resumen.ventasEfectivo * 100) + Math.round(resumen.ventasOtros * 100) + Math.round(resumen.redondeo * 100)) / 100;
   const metaPct = metaVentaDiaria ? Math.min(100, Math.round((totalVentas / metaVentaDiaria) * 100)) : null;
   const faltaMeta = metaVentaDiaria ? Math.max(0, metaVentaDiaria - totalVentas) : 0;
   // 0 = lunes, igual que la base (isodow − 1).
@@ -283,7 +285,7 @@ export function CajaAbiertaPanel({
         {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
         <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
-          <TarjetaCobrado porMetodo={series.porMetodo} indice={2} />
+          <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
             <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
             <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>

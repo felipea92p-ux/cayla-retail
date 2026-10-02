@@ -11,8 +11,8 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
@@ -47,6 +47,7 @@ export function EntregarVista({
   onElegir,
   apagadas = [],
   cabecera,
+  redondeoEfectivo = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -60,6 +61,9 @@ export function EntregarVista({
   apagadas?: string[];
   /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
   cabecera?: React.ReactNode;
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): el saldo en efectivo se cobra al múltiplo
+   *  de S/ 0.10, hacia abajo. Con `false` (la base todavía no lo acepta) se cobra exacto, como antes. */
+  redondeoEfectivo?: boolean;
 }) {
   const router = useRouter();
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
@@ -72,7 +76,7 @@ export function EntregarVista({
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
-  const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
+  const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; redondeo: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
   // (módulo Punto de venta: no propone a quien inició sesión).
@@ -88,7 +92,7 @@ export function EntregarVista({
   const encontrados = abiertos.filter((a) => coincide(a, texto)).sort((x, y) => x.venceEl.localeCompare(y.venceEl));
   const a = elegido ? abiertos.find((x) => x.id === elegido) ?? null : null;
   const saldo = a ? a.saldo : 0;
-  const cobro = cobroDelSaldo(pagos, saldo);
+  const cobro = cobroDelSaldo(pagos, saldo, redondeoEfectivo);
   const efectivo = pagos.find((p) => p.metodo === "efectivo");
 
   function tocarMedio(m: MetodoPago) {
@@ -103,10 +107,13 @@ export function EntregarVista({
   async function entregar() {
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
+    // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
+    // saldo exacto, que es lo que la boleta final documenta.
+    const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
     const { error } = await firmar(
       createClient().rpc("entregar_separacion", {
         p_separacion_id: a.id,
-        p_pagos: pagosParaRpcApartado(pagos),
+        p_pagos: pagosRpc,
         p_token: token.current,
       }),
       responsable.firma(),
@@ -119,8 +126,9 @@ export function EntregarVista({
       return;
     }
     token.current = crypto.randomUUID();
-    const pagadoHoy = pagos.map((p) => ({ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }));
-    setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto });
+    const pagadoHoy = pagosRpc.flatMap((p) => (p.metodo === "redondeo" ? [] : [{ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }]));
+    const redondeo = pagosRpc.find((p) => p.metodo === "redondeo")?.monto ?? 0;
+    setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
     avisar.exito(`Venta de ${money(a.total)} registrada`, { detalle: `Apartado ${a.codigo} entregado` });
     setPagos([]);
     elegir(null);
@@ -296,7 +304,22 @@ export function EntregarVista({
                         ))}
                       </div>
                     )}
-                    {efectivo && (
+                    {/* El efectivo del saldo con la ley: lo que se cobra en monedas y lo que no (ADR-0311). Es la misma frase de la hoja de Vender. */}
+                    {cobro.efectivo && cobro.efectivo.redondeo > 0 && cobro.efectivo.aCobrar > 0 && (
+                      <p className="anim-revelar rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-tinta/80" data-redondeo>
+                        Cobra <b className="font-semibold text-tinta tabular-nums">{money(cobro.efectivo.aCobrar)}</b> en efectivo
+                        <span className="block text-[11.5px] text-tinta/60">
+                          {TEXTO_REDONDEO} −{money(cobro.efectivo.redondeo)} · {LEY_REDONDEO}
+                        </span>
+                      </p>
+                    )}
+                    {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado. */}
+                    {cobro.sinMoneda && (
+                      <p className="rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
+                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/ 0.10. Cóbralo con otro medio.
+                      </p>
+                    )}
+                    {efectivo && (cobro.efectivo?.aCobrar ?? 0) > 0 && (
                       <div className="space-y-2">
                         <p className="text-[11px] text-tinta/55">Con cuánto paga en efectivo (toca los billetes)</p>
                         <div className="flex flex-wrap gap-1.5">
@@ -313,7 +336,7 @@ export function EntregarVista({
                     )}
                     {cobro.excede && <p className="text-xs text-rojo-profundo">Con esos medios no hay vuelto: cobra justo {money(saldo)}.</p>}
                     {cobro.falta > 0 && pagos.length > 0 && <p className="text-xs text-rojo-profundo tabular-nums">Falta {money(cobro.falta)}</p>}
-                    {efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto && <p className="text-xs text-rojo-profundo">Lo recibido no alcanza.</p>}
+                    {cobro.noAlcanza && <p className="text-xs text-rojo-profundo">Lo recibido no alcanza.</p>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
@@ -358,7 +381,7 @@ export function EntregarVista({
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button
                 type="button"
-                disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+                disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
                 title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined}
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
@@ -366,7 +389,7 @@ export function EntregarVista({
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
-              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
+              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
             </div>
           </>
         )}
@@ -378,7 +401,7 @@ export function EntregarVista({
           monto={saldo}
           accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
-          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}
         />
       )}
@@ -386,7 +409,7 @@ export function EntregarVista({
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
-      {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
     </div>
   );
 }

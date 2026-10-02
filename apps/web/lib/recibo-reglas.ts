@@ -50,6 +50,10 @@ export type ReciboVenta = {
   igv: number;
   total: number;
   pagos: PagoRecibo[];
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0311): de 0.00 a 0.09, y 0 o ausente sin
+   *  redondeo. NO es una forma de pago ni toca el comprobante: `total`, `igv`, `subtotal` y el QR de SUNAT son por el precio exacto.
+   *  `pagos` trae el efectivo ya redondeado, así que `Σ pagos + redondeo = total`. */
+  redondeo?: number;
   vueltoTotal: number;
   /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
   atendio?: string | null;
@@ -74,6 +78,12 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   transferencia: "Transferencia",
 };
 
+/** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0311). */
+export const TEXTO_REDONDEO = "Redondeo de efectivo";
+export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/ 0.10, hacia abajo";
+/** Lo mismo, corto: una línea del ticket de 80 mm no pasa de ~44 caracteres sin salirse del papel. */
+export const LEY_REDONDEO_TICKET = "Ley 29571: múltiplo de S/ 0.10, hacia abajo";
+
 /** `B001-000002`: el mismo formato de 6 dígitos que ya muestra el resto de la app. */
 export function textoNumeroRecibo(r: { serie: string; numero: number }): string {
   return `${r.serie}-${String(r.numero).padStart(6, "0")}`;
@@ -90,7 +100,10 @@ export function armarRecibo(entrada: {
   sede: string;
   cliente: ReciboVenta["cliente"];
   lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
+  /** Los pagos TAL COMO SE REGISTRARON: con el efectivo ya redondeado si hubo redondeo. */
   pagos: readonly PagoAplicado[];
+  /** Lo que no se cobró por redondear el efectivo (ADR-0311). Ausente o 0 sin redondeo. */
+  redondeo?: number;
   tasaIgv: number;
   /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
   atendio?: string | null;
@@ -127,6 +140,7 @@ export function armarRecibo(entrada: {
     igv,
     total,
     pagos,
+    redondeo: redondear2(Math.max(0, entrada.redondeo ?? 0)),
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
     cumple: entrada.cumple && entrada.cumple.monto > 0 ? entrada.cumple : null,

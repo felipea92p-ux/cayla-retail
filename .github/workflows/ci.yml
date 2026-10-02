@@ -353,6 +353,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:campana-redondeo
 
+      # Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
+      # La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
+      - name: pruebas:redondeo-efectivo
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:redondeo-efectivo
+
       # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
       # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
       - name: pruebas:vendedora-en-venta
