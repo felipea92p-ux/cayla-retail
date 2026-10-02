@@ -86,15 +86,16 @@ describe("armarCategorias — la cifra que se muestra ANTES de cambiarle la temp
 
 describe("armarSinTemporada — la lista para completar", () => {
   const productos = new Map<string, ProductoParaTemporadas>([
-    ["p1", { id: "p1", nombre: "Blusa Lino", codigo: "BLU-001", categoriaId: "c-blusa" }],
-    ["p2", { id: "p2", nombre: "Abrigo Paño", codigo: null, categoriaId: null }],
+    ["p1", { id: "p1", nombre: "Blusa Lino", codigo: "BLU-001", categoriaId: "c-blusa", marca: "Costanera", proveedor: "Textiles del Valle" }],
+    // Sin marca ni proveedor: pasa (ADR-0283) y la lista lo dice con `null`, no con un texto inventado.
+    ["p2", { id: "p2", nombre: "Abrigo Paño", codigo: null, categoriaId: null, marca: null, proveedor: null }],
   ]);
   const colores = new Map([
     ["NEG", "Negro"],
     ["ROJ", "Rojo"],
   ]);
   const categorias = new Map([["c-blusa", "Blusas"]]);
-  it("nombra prenda, código, categoría y colores; marca si solo algunos colores faltan", () => {
+  it("nombra prenda, código, categoría, marca, proveedor y colores; marca si solo algunos colores faltan", () => {
     const filas = [
       fila("p1", "ROJ", null, null),
       fila("p1", "NEG", null, null),
@@ -103,19 +104,39 @@ describe("armarSinTemporada — la lista para completar", () => {
       fila("p3", "NEG", null, null, "descontinuado"), // ya no se vende: no se pide
     ];
     expect(armarSinTemporada(filas, productos, colores, categorias)).toEqual([
-      { productoId: "p1", nombre: "Blusa Lino", codigo: "BLU-001", categoriaId: "c-blusa", categoria: "Blusas", colores: ["Negro", "Rojo"], todosSusColores: true },
-      { productoId: "p2", nombre: "Abrigo Paño", codigo: null, categoriaId: null, categoria: null, colores: ["Sin color"], todosSusColores: false },
+      {
+        productoId: "p1",
+        nombre: "Blusa Lino",
+        codigo: "BLU-001",
+        categoriaId: "c-blusa",
+        categoria: "Blusas",
+        marca: "Costanera",
+        proveedor: "Textiles del Valle",
+        colores: ["Negro", "Rojo"],
+        todosSusColores: true,
+      },
+      { productoId: "p2", nombre: "Abrigo Paño", codigo: null, categoriaId: null, categoria: null, marca: null, proveedor: null, colores: ["Sin color"], todosSusColores: false },
     ]);
   });
   it("vacía cuando todas tienen temporada", () => {
     expect(armarSinTemporada([fila("p1", "NEG", "verano", "producto")], productos, colores, categorias)).toEqual([]);
   });
-  it("se busca sin tildes por nombre, código, categoría o color", () => {
+  it("se busca sin tildes por nombre, código, categoría, marca, proveedor o color", () => {
     const lista = armarSinTemporada([fila("p1", "ROJ", null, null), fila("p2", null, null, null)], productos, colores, categorias);
     expect(filtrarSinTemporada(lista, "pano").map((p) => p.productoId)).toEqual(["p2"]);
     expect(filtrarSinTemporada(lista, "blu-001").map((p) => p.productoId)).toEqual(["p1"]);
     expect(filtrarSinTemporada(lista, "rojo").map((p) => p.productoId)).toEqual(["p1"]);
+    expect(filtrarSinTemporada(lista, "COSTANERA").map((p) => p.productoId)).toEqual(["p1"]);
+    expect(filtrarSinTemporada(lista, "textiles del valle").map((p) => p.productoId)).toEqual(["p1"]);
     expect(filtrarSinTemporada(lista, "  ")).toHaveLength(2);
+  });
+  it("una prenda sin marca ni proveedor, o fuera de la lista de activas, queda con `null` y no con un texto inventado", () => {
+    const sola = new Map<string, ProductoParaTemporadas>([["p9", { id: "p9", nombre: "Falda", codigo: null, categoriaId: null, marca: null, proveedor: null }]]);
+    const [p] = armarSinTemporada([fila("p9", "NEG", null, null)], sola, colores, categorias);
+    expect([p.marca, p.proveedor]).toEqual([null, null]);
+    // Y una prenda que ni está en el mapa de productos (quedó fuera de la lista de activas) tampoco inventa nada.
+    const [huerfana] = armarSinTemporada([fila("p10", "NEG", null, null)], sola, colores, categorias);
+    expect([huerfana.marca, huerfana.proveedor]).toEqual([null, null]);
   });
 });
 
@@ -278,6 +299,8 @@ describe("las cuatro vistas de la pestaña", () => {
     codigo: null,
     categoriaId,
     categoria,
+    marca: null,
+    proveedor: null,
     colores: ["Negro"],
     todosSusColores: true,
   });

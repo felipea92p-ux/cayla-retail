@@ -1053,3 +1053,25 @@ que decir «clientes», no «clientas». Lo decidido con él:
   renombra el módulo a «Clientes». Los textos v2 están en `docs/club/texto-legal-registro-v2.md`; el v1 queda como historia.
 - **Queda para un segundo paso:** unas 25 funciones de la base cuyos mensajes de error dicen «clienta» o «socia», entre ellas
   `registrar_venta`. Cambiarlas exige reescribir cada función viva con su candado de versión, y se hace aparte.
+
+## Actualización 2026-10-02 (l): Avisos del club sin elegir «Quién envía»
+
+Felipe, 2026-10-02: en Clientes ▸ Avisos no hace falta elegir quién envía. «Enviar», «Deshacer» y «Pidió BAJA» pasan a la lista
+de acciones sin responsable (`retail.acciones_sin_responsable`, ADR-0280): `aviso_club_enviar`, `aviso_club_deshacer` y
+`aviso_club_baja`. Las suma la migración `20261002170000_avisos_club_sin_responsable.sql`, y `lib/responsable-omitido.ts` es su
+espejo.
+- **Con la cuenta de una persona**, la pantalla no pinta el combo y cada acción firma a su nombre.
+- **Con una terminal** (la cuenta de la tienda, sin persona), el combo sigue. `club_avisos_enviados.enviado_por` es obligatorio y
+  `registrar_aviso_enviado` rechaza un actor vacío. Es la misma excepción que «Apartar prenda».
+- No cambia ninguna función de la base: el único punto de decisión es `fn_actor_persona_id`.
+
+## Actualización 2026-10-02 (m): se retira la pregunta «¿Se la probó y no la llevó?» del ticket
+
+Felipe, 2026-10-02: la pregunta que salía al quitar una prenda del ticket (D-6, tanda 1d) se retira. Solo aparecía si la vendedora
+agregaba la prenda y luego la quitaba, un paso sin otro motivo para hacerse; y saltaba también cuando se quitaba por un error de
+escaneo. Basta con «¿Qué talla pidió?» en el modal de talla («Anotar que no había»), que sí tiene una puerta propia.
+- **Web:** `PuntoDeVenta.tsx` ya no guarda la prenda quitada ni la pregunta; se borra `components/punto-de-venta/SeProboNoLlevo.tsx`.
+- **Se queda igual:** la tabla `pedidos_no_atendidos` con su motivo `se_probo_no_llevo` y sus razones, `registrar_pedido_no_atendido`
+  y `lib/se-probo-reglas.ts`. Las filas ya guardadas se siguen leyendo y describiendo; no hay migración.
+- **Se pierde:** ya no hay dónde anotar «Precio», «Color», «No le quedó» o «Lo piensa» (el informe CL-14 de razones queda sin
+  datos nuevos). Si hace falta, se agrega otra puerta, no esta.
