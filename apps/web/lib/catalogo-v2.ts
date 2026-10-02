@@ -295,6 +295,32 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
   };
 }
 
+/** El precio más bajo y el más alto de lo que se está viendo, SIN el propio filtro de precio: si lo contara, el rango se
+ *  encogería solo cada vez que se mueve. Reemplaza al tope escrito a mano (S/ 999, con la prenda más cara a S/ 119).
+ *  Provisorio (tanda 1 del filtro, ADR-0306): son dos páginas de UN producto de `fn_productos`, ordenadas por precio, y el
+ *  máximo es el de la prenda cuyo precio más bajo es el más alto (con tallas a distinto precio puede quedarse corto; el tope
+ *  del control igual manda «sin tope»). La tanda 2 lo reemplaza por la función de facetas, exacta.
+ *  `null` si no se pudo saber: el control de arrastre no se dibuja y las cajas «Desde / Hasta» siguen funcionando. */
+export async function getPreciosExtremos(filtros: FiltrosProductos): Promise<{ min: number; max: number } | null> {
+  const supabase = await createClient();
+  const base = {
+    ...paramsFiltrosProductos({ ...filtros, precioMin: undefined, precioMax: undefined }),
+    ...(filtros.stock ? { p_stock: filtros.stock } : {}),
+    p_pagina: 1,
+    p_por_pagina: 1,
+  };
+  const [bajo, alto] = await Promise.all([
+    supabase.rpc("fn_productos", { ...base, p_orden: "precio_asc" }),
+    supabase.rpc("fn_productos", { ...base, p_orden: "precio_desc" }),
+  ]);
+  if (bajo.error || alto.error) return null;
+  const precios = (filas: { activo: boolean; precio: number }[] | null) => (filas ?? []).filter((f) => f.activo).map((f) => Number(f.precio));
+  const bajos = precios(bajo.data);
+  const altos = precios(alto.data);
+  if (bajos.length === 0 || altos.length === 0) return null;
+  return { min: Math.min(...bajos), max: Math.max(...altos) };
+}
+
 /** Catálogo filtrado y paginado (por producto) server-side, para /productos. */
 export async function listarProductos(filtros: FiltrosProductos, pagina: number): Promise<PaginaProductos> {
   const supabase = await createClient();

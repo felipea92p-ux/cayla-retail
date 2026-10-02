@@ -52,6 +52,14 @@ describe("productos-filtros — cajas que se escriben", () => {
     expect(cambiosTipeados("stock=reponer", { q: "b" })).toEqual({ q: "b" });
   });
 
+  it("el precio se manda normalizado y a medio escribir se espera, sin borrar el filtro", () => {
+    expect(cambiosTipeados("", { precioMax: "39,90" })).toEqual({ precioMax: "39.9" });
+    expect(cambiosTipeados("precioMax=60", { precioMax: "39," })).toEqual({}); // a medio escribir: no se toca la URL
+    expect(cambiosTipeados("precioMax=60", { precioMax: "" })).toEqual({ precioMax: "" });
+    expect(tipeadoPendiente("precioMax=39.9", { precioMax: "39,90" })).toEqual({});
+    expect(tipeadoPendiente("precioMax=60", { precioMax: "39," })).toEqual({ precioMax: "39," });
+  });
+
   it("la caja deja de «escribirse» cuando la URL ya dice lo mismo", () => {
     const t = { q: "blusa", precioMax: "80" };
     expect(tipeadoPendiente("q=blusa", t)).toEqual({ precioMax: "80" });
@@ -93,7 +101,7 @@ describe("productos-filtros — estado, conteo y chips", () => {
       "Color: Negro",
       "Estado: Todos",
       "Stock: Pedir a proveedor",
-      "Precio: Hasta S/80",
+      "Precio: Hasta S/ 80",
     ]);
     expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
   });

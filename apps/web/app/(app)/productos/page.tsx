@@ -12,6 +12,7 @@ import {
   getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
+  getPreciosExtremos,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
@@ -23,6 +24,7 @@ import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
+import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -81,7 +83,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -91,6 +93,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
+    // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
+    getPreciosExtremos(filtros).catch(() => null),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
@@ -202,6 +206,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
         totalProductos={resultado.totalProductos}
+        limitesPrecio={limitesRedondeados(precios)}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}

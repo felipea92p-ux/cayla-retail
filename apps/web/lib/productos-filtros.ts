@@ -1,3 +1,5 @@
+import { leerMonto, textoRangoPrecio } from "./productos-filtro-precio";
+
 // La barra de filtros de /productos guarda TODO en la URL (ADR-0254): la URL es la única fuente de verdad y la pantalla
 // solo la lee. Aquí vive lo que se hace con esa URL, sin React, para que se pueda probar y para que la pantalla no tenga
 // dos verdades (el estado local de las cajas y la URL) que se separan. Análisis: docs/pantallas/productos-filtros.md #1.
@@ -54,13 +56,21 @@ export function valorDeCaja(tipeado: Tipeado, caja: CajaTipeada, consulta: strin
   return tipeado[caja] ?? new URLSearchParams(consulta).get(caja) ?? "";
 }
 
+/** Lo que una caja manda a la URL. El precio se normaliza («39,90» → «39.9»: la URL solo acepta el punto y con la coma
+ *  ignoraba el filtro en silencio); a medio escribir («39,») devuelve `null` y se espera, en vez de borrar el filtro. */
+function valorParaUrl(caja: CajaTipeada, texto: string): string | null {
+  if (caja === "q" || texto.trim() === "") return texto.trim();
+  const n = leerMonto(texto);
+  return n == null ? null : String(n);
+}
+
 /** Lo escrito que todavía no está en la URL, listo para `consultaConCambios`. Vacío = nada que mandar. */
 export function cambiosTipeados(consulta: string, tipeado: Tipeado): Record<string, string> {
   const p = new URLSearchParams(consulta);
   const cambios: Record<string, string> = {};
   for (const [k, v] of Object.entries(tipeado) as [CajaTipeada, string][]) {
-    const limpio = v.trim();
-    if ((p.get(k) ?? "") !== limpio) cambios[k] = limpio;
+    const limpio = valorParaUrl(k, v);
+    if (limpio != null && (p.get(k) ?? "") !== limpio) cambios[k] = limpio;
   }
   return cambios;
 }
@@ -68,8 +78,9 @@ export function cambiosTipeados(consulta: string, tipeado: Tipeado): Record<stri
 /** Cuando la URL ya dice lo escrito, la caja deja de «estar escribiéndose» y vuelve a mostrar la URL. Devuelve el mismo
  *  objeto si nada cambió (para no volver a pintar de gusto). */
 export function tipeadoPendiente(consulta: string, tipeado: Tipeado): Tipeado {
-  const pendientes = cambiosTipeados(consulta, tipeado);
-  const quedan = (Object.keys(tipeado) as CajaTipeada[]).filter((k) => k in pendientes);
+  const p = new URLSearchParams(consulta);
+  // Sigue «escribiéndose» lo que la URL todavía no dice (incluido lo que está a medio escribir, como «39,»).
+  const quedan = (Object.keys(tipeado) as CajaTipeada[]).filter((k) => valorParaUrl(k, tipeado[k] as string) !== (p.get(k) ?? ""));
   if (quedan.length === Object.keys(tipeado).length) return tipeado;
   return Object.fromEntries(quedan.map((k) => [k, tipeado[k] as string])) as Tipeado;
 }
@@ -136,11 +147,7 @@ export function chipsDeFiltros(
   if (estado !== ESTADO_POR_DEFECTO) chips.push({ texto: `Estado: ${ROTULO_ESTADO[estado]}`, quitar: ["estado"] });
   const stock = p.get("stock");
   if (stock && ROTULO_STOCK[stock]) chips.push({ texto: `Stock: ${ROTULO_STOCK[stock]}`, quitar: ["stock"] });
-  const min = p.get("precioMin");
-  const max = p.get("precioMax");
-  if (min || max) {
-    const texto = min && max ? `S/${min} – S/${max}` : min ? `Desde S/${min}` : `Hasta S/${max}`;
-    chips.push({ texto: `Precio: ${texto}`, quitar: ["precioMin", "precioMax"] });
-  }
+  const precio = textoRangoPrecio(p.get("precioMin"), p.get("precioMax"));
+  if (precio) chips.push({ texto: `Precio: ${precio}`, quitar: ["precioMin", "precioMax"] });
   return chips;
 }

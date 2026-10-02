@@ -8,6 +8,7 @@ import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { avisar } from "@/components/ui/Avisos";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
   ESTADOS_LISTADO,
@@ -36,8 +37,6 @@ import { SIN_EN_URL } from "@/lib/marcas";
 type Opcion = { id: string; nombre: string };
 type OpcionColor = Opcion & { hex: string | null };
 
-const PRECIO_MIN = 0;
-const PRECIO_MAX = 999;
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
  *  de píldoras, en la Grilla y en la Tabla. Nació como el modo `compacto` de la Grilla (2026-09-17, tres pasadas: a
@@ -49,6 +48,7 @@ export function FiltrosProductos({
   marcas,
   proveedores,
   totalProductos,
+  limitesPrecio,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
@@ -57,6 +57,8 @@ export function FiltrosProductos({
   proveedores: Opcion[];
   /** Cuántos productos calzan con lo filtrado (todas las páginas): el conteo de arriba. */
   totalProductos: number;
+  /** El precio real más bajo y más alto de lo que se está viendo, redondeados; `null` = no se pudo saber. */
+  limitesPrecio: LimitesPrecio | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,8 +67,8 @@ export function FiltrosProductos({
   // Solo lo que se está escribiendo ahora (buscador y precio); lo demás se lee de la URL (`lib/productos-filtros.ts`).
   const [tipeado, setTipeado] = useState<Tipeado>({});
   const busqueda = valorDeCaja(tipeado, "q", consultaUrl);
-  const precioMin = valorDeCaja(tipeado, "precioMin", consultaUrl);
-  const precioMax = valorDeCaja(tipeado, "precioMax", consultaUrl);
+  const precioMin = tipeado.precioMin ?? montoParaCaja(params.get("precioMin") ?? "");
+  const precioMax = tipeado.precioMax ?? montoParaCaja(params.get("precioMax") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
   // La última URL pedida que todavía no llegó. Un clic justo después de teclear (o el temporizador justo después de un
   // clic) se aplica sobre ella y no sobre la URL vieja: antes el segundo pisaba al primero y el orden recién elegido se
@@ -316,9 +318,10 @@ export function FiltrosProductos({
             ]}
           />
 
-          <PildoraPrecio
+          <BloquePrecio
             precioMin={precioMin}
             precioMax={precioMax}
+            limites={limitesPrecio}
             onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
           />
         </PanelPildoras>
@@ -330,51 +333,80 @@ export function FiltrosProductos({
   );
 }
 
-/** Precio como rango de arrastre en vez de dos casillas — pedido de Felipe.
- *  `value`/`onCambiar` van directo a `precioMin`/`precioMax` (texto, como ya
- *  vivían): en los extremos manda "" (sin tope), como ya hacía el par de
- *  `CampoTexto` que reemplaza. Un thumb en cada punta cuando no hay filtro. */
-function PildoraPrecio({
+/** Precio (Felipe, 2026-10-02): cajas «Desde / Hasta» para escribir el monto que dice la clienta, y el control de arrastre
+ *  entre el precio real más bajo y el más alto de lo que se está viendo (`lib/productos-filtro-precio.ts`), nunca un tope
+ *  inventado. Si no se pudo saber el rango, el control no se dibuja y las cajas siguen. */
+function BloquePrecio({
   precioMin,
   precioMax,
+  limites,
   onCambiar,
 }: {
   precioMin: string;
   precioMax: string;
+  limites: LimitesPrecio | null;
   onCambiar: (min: string, max: string) => void;
 }) {
-  const lo = precioMin ? Number(precioMin) : PRECIO_MIN;
-  const hi = precioMax ? Number(precioMax) : PRECIO_MAX;
   const activa = Boolean(precioMin || precioMax);
-
   return (
-    <div className={`flex h-9 shrink-0 items-center gap-2.5 px-3 ${activa ? "text-tinta" : "text-tinta/60"}`}>
-      <Banknote aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40"}`} />
-      <Slider.Root
-        className="relative flex h-4 w-24 shrink-0 touch-none select-none items-center sm:w-32"
-        min={PRECIO_MIN}
-        max={PRECIO_MAX}
-        step={5}
-        value={[lo, hi]}
-        onValueChange={([nuevoLo, nuevoHi]) =>
-          onCambiar(nuevoLo > PRECIO_MIN ? String(nuevoLo) : "", nuevoHi < PRECIO_MAX ? String(nuevoHi) : "")
-        }
-      >
-        <Slider.Track className="relative h-[3px] grow rounded-full bg-tinta/15">
-          <Slider.Range className="absolute h-full rounded-full bg-rojo" />
-        </Slider.Track>
-        <Slider.Thumb
-          aria-label="Precio mínimo"
-          className="block h-3.5 w-3.5 rounded-full border-2 border-rojo bg-papel outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-rojo/40"
-        />
-        <Slider.Thumb
-          aria-label="Precio máximo"
-          className="block h-3.5 w-3.5 rounded-full border-2 border-rojo bg-papel outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-rojo/40"
-        />
-      </Slider.Root>
-      <span className="label-cayla shrink-0 text-[11px] tabular-nums text-tinta/65">
-        S/{lo}–{hi}
-      </span>
+    <div className={`flex h-9 shrink-0 items-center gap-2 px-3 ${activa ? "text-tinta" : "text-tinta/60"}`} role="group" aria-label="Precio">
+      <Banknote aria-hidden className={`h-3.5 w-3.5 shrink-0 ${activa ? "text-tinta/70" : "text-tinta/40"}`} />
+      <span className="label-cayla text-[11px]">Precio</span>
+      <CajaMonto
+        valor={precioMin}
+        // Ejemplo derivado de los precios reales de lo que se está viendo (ADR-0290), no un número fijo.
+        sugerido={limites ? String(limites.min) : "Desde"}
+        etiqueta="Precio desde"
+        onCambiar={(v) => onCambiar(v, precioMax)}
+      />
+      <span aria-hidden className="text-tinta/40">–</span>
+      <CajaMonto valor={precioMax} sugerido={limites ? String(limites.max) : "Hasta"} etiqueta="Precio hasta" onCambiar={(v) => onCambiar(precioMin, v)} />
+      {limites && (
+        <Slider.Root
+          className="relative ml-1 flex h-4 w-24 shrink-0 touch-none select-none items-center sm:w-28"
+          min={limites.min}
+          max={limites.max}
+          step={pasoDePrecio(limites)}
+          value={posicionEnControl(precioMin, precioMax, limites)}
+          onValueChange={([lo, hi]) => {
+            const r = rangoDesdeControl(lo, hi, limites);
+            onCambiar(r.precioMin, r.precioMax);
+          }}
+        >
+          <Slider.Track className="relative h-[3px] grow rounded-full bg-tinta/15">
+            <Slider.Range className="absolute h-full rounded-full bg-rojo" />
+          </Slider.Track>
+          {(["mínimo", "máximo"] as const).map((cual, i) => (
+            <Slider.Thumb
+              key={cual}
+              aria-label={`Precio ${cual}`}
+              aria-valuetext={solesFiltro(posicionEnControl(precioMin, precioMax, limites)[i])}
+              className="block h-3.5 w-3.5 rounded-full border-2 border-rojo bg-papel outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-rojo/40"
+            />
+          ))}
+        </Slider.Root>
+      )}
     </div>
+  );
+}
+
+/** Una caja de monto con «S/» delante. Texto (no `type=number`): acepta «39,90» y no cambia el valor con la rueda del
+ *  mouse al pasar por encima. */
+function CajaMonto({ valor, sugerido, etiqueta, onCambiar }: { valor: string; sugerido: string; etiqueta: string; onCambiar: (v: string) => void }) {
+  return (
+    <label className="flex h-7 w-[4.75rem] shrink-0 items-center gap-1 rounded-md border border-tinta/15 bg-papel/70 px-2 focus-within:border-tinta/40">
+      <span aria-hidden className="text-[11px] text-tinta/45">
+        S/
+      </span>
+      <input
+        value={valor}
+        onChange={(e) => onCambiar(e.target.value)}
+        placeholder={sugerido}
+        inputMode="decimal"
+        autoComplete="off"
+        aria-label={etiqueta}
+        className="w-full min-w-0 bg-transparent text-[12px] tabular-nums text-tinta outline-none placeholder:text-tinta/35"
+      />
+    </label>
   );
 }
