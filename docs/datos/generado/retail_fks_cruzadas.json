@@ -70,6 +70,41 @@
   "src_table": "clientas_fusiones"
  },
  {
+  "conname": "club_avisos_enviados_deshecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_enviados"
+ },
+ {
+  "conname": "club_canjes_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_canjes"
+ },
+ {
+  "conname": "club_canjes_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_canjes"
+ },
+ {
+  "conname": "club_invitaciones_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_invitaciones"
+ },
+ {
+  "conname": "club_permisos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_permisos"
+ },
+ {
+  "conname": "club_textos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_textos"
+ },
+ {
   "conname": "codigos_descuento_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "codigos_descuento"
@@ -290,6 +325,11 @@
   "src_table": "etiquetas"
  },
  {
+  "conname": "frescura_decisiones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "frescura_decisiones"
+ },
+ {
   "conname": "gastos_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gastos"
@@ -333,6 +373,16 @@
   "conname": "medios_de_cobro_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "medios_de_cobro"
+ },
+ {
+  "conname": "metas_persona_ajustes_cambiado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
  },
  {
   "conname": "movimientos_usuario_id_fkey",
@@ -413,6 +463,11 @@
   "conname": "producto_color_temporadas_asignado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_color_temporadas"
+ },
+ {
+  "conname": "producto_origen_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_origen"
  },
  {
   "conname": "productos_aprobado_por_fkey",
