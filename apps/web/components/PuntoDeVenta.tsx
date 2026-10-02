@@ -99,8 +99,7 @@ import {
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
-import { SeProboNoLlevo } from "@/components/punto-de-venta/SeProboNoLlevo";
-import { descripcionDePrenda, prendaQuitadaDeLinea, type PrendaQuitada } from "@/lib/se-probo-reglas";
+import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
@@ -401,9 +400,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [clienteDocIdentidad, setClienteDocIdentidad] = useState<TipoDocumentoClienta>("dni");
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
-  // La prenda recién quitada del ticket, para «¿Se la probó y no la llevó?» (ADR-0288 D-6, spike del club): `clave` es la
-  // línea quitada, así la pregunta vuelve a empezar si se quita otra.
-  const [quitada, setQuitada] = useState<{ clave: string; prenda: PrendaQuitada } | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -894,9 +890,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   function quitar(claveLinea: string) {
     capturarFlip();
-    const linea = carrito.find((it) => it.claveLinea === claveLinea);
-    const prenda = linea ? prendaQuitadaDeLinea(linea, detallesDelTicket.get(linea.varianteId)) : null;
-    setQuitada(prenda ? { clave: claveLinea, prenda } : null);
     setCarrito((actual) => actual.filter((it) => it.claveLinea !== claveLinea));
     setAviso(null);
   }
@@ -959,7 +952,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
   function limpiarTicket() {
     setCarrito([]);
-    setQuitada(null);
     quitarClienta();
     setNota("");
     setPagos([]);
@@ -1011,7 +1003,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
     responsable.limpiar();
     setPagos([]);
-    setQuitada(null);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
@@ -1583,11 +1574,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => {
-              // Al pasar a cobrar, la pregunta de la prenda quitada se va sin anotar (como en el spike).
-              setQuitada(null);
-              setMomento("cobrar");
-            }}
+            onIrACobrar={() => setMomento("cobrar")}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
@@ -1606,16 +1593,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
               />
-              {quitada && (
-                <SeProboNoLlevo
-                  key={quitada.clave}
-                  prenda={quitada.prenda}
-                  ubicacionId={ubicacionId}
-                  clientaId={clienta?.id ?? null}
-                  responsable={responsable}
-                  onCerrar={() => setQuitada(null)}
-                />
-              )}
             </>
           }
         />
