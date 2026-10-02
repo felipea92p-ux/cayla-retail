@@ -2,12 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { TODOS, textoPildora } from "@/lib/pildora-reglas";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -20,8 +21,7 @@ import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
    tenían por qué divergir también en cómo se ve el control.
    ==================================================================== */
 
-/** El "sin selección" — en la URL "" ya significa "sin filtro", este sentinel hace de puente. */
-export const TODOS = "__todos__";
+export { TODOS };
 
 /** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
  *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
@@ -51,13 +51,34 @@ export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; 
  *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
  *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
  *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
-export function PanelPildoras({ children }: { children: ReactNode }) {
+export function PanelPildoras({ children, filas = false }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean }) {
+  if (filas) {
+    return (
+      <div id="filtros-panel" className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+        {children}
+      </div>
+    );
+  }
   return (
     <div
       id="filtros-panel"
       className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
     >
       {children}
+    </div>
+  );
+}
+
+/** Una fila del panel con su nombre a la izquierda («Prenda», «Gestión»): con más de 6–8 filtros una sola fila se partía
+ *  donde el ancho quisiera (Baymard pone ahí el límite de una barra horizontal), y así cada persona sabe en qué fila mirar.
+ *  En una pantalla angosta el nombre va arriba y las píldoras se acomodan debajo. */
+export function FilaPildoras({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={titulo} className="flex min-w-0 flex-col gap-0.5 py-1 lg:flex-row lg:items-center lg:gap-1 lg:py-0.5">
+      <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-[10px] text-tinta/45 lg:w-[5.5rem] lg:pt-0">
+        {titulo}
+      </span>
+      <div className="flex min-w-0 flex-wrap items-center divide-x divide-tinta/10">{children}</div>
     </div>
   );
 }
@@ -82,12 +103,20 @@ export function DesplegablePildora({
   valor,
   onValor,
   opciones,
+  valorPorDefecto = TODOS,
+  encoger = false,
 }: {
   icono: LucideIcon;
+  /** El nombre del filtro («Categoría», «Proveedor»): se LEE en la píldora, no solo lo oye un lector de pantalla. */
   etiqueta: string;
   valor: string;
   onValor: (v: string) => void;
   opciones: readonly OpcionCombo<string>[];
+  /** Lo que la píldora vale sin que nadie elija nada. Casi siempre `TODOS`; en Historial, la tienda de la cabecera. */
+  valorPorDefecto?: string;
+  /** Que la píldora pueda achicarse y cortar su valor con «…» (fuera de un panel, en una fila angosta: «Ordenar por» a
+   *  375 px). En el riel del panel no: ahí cada píldora conserva su ancho y el riel se desliza. */
+  encoger?: boolean;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -97,7 +126,8 @@ export function DesplegablePildora({
   const disparador = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
-  const activa = valor !== TODOS;
+  // Puesta = distinta de lo que vale sola: solo entonces se marca y lleva la ✕ para volver a su valor de siempre.
+  const activa = valor !== valorPorDefecto;
 
   // Regla global de combos (ADR-0209): con más de 8 opciones, un buscador; si no, la lista de siempre.
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
@@ -114,6 +144,8 @@ export function DesplegablePildora({
   const capa = useRef<HTMLDivElement>(null);
   const listaVisible = abierto && !!posLista;
   const elegida = opciones.find((o) => o.valor === valor) ?? null;
+  const texto = textoPildora(etiqueta, elegida);
+  const puedeQuitar = activa && opciones.some((o) => o.valor === valorPorDefecto);
 
   function abrir() {
     setBusqueda("");
@@ -192,25 +224,50 @@ export function DesplegablePildora({
   }
 
   return (
-    <div className="relative" ref={contenedor}>
+    <div className={`relative flex items-center ${encoger ? "min-w-0" : ""}`} ref={contenedor}>
       <button
         ref={disparador}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={abierto}
-        aria-label={etiqueta}
+        aria-label={texto.valor ? `${etiqueta}: ${texto.valor}` : etiqueta}
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
-          activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
-        }`}
+        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
+          puedeQuitar ? "pl-3 pr-1" : "px-3"
+        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
       >
         <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
-        <span>{elegida?.texto ?? etiqueta}</span>
-        <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />
+        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
+            se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
+        <span className={activa ? "text-tinta/55" : undefined}>
+          {etiqueta}
+          {texto.valor && ":"}
+        </span>
+        {texto.valor && (
+          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""}`}>
+            {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
+            <span className="truncate">{texto.valor}</span>
+          </span>
+        )}
+        {!puedeQuitar && <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />}
         <Hilo activo={abierto} reposo={false} />
       </button>
+      {puedeQuitar && (
+        <button
+          type="button"
+          onClick={() => {
+            // La ✕ desaparece al quitar el filtro: el foco vuelve a la píldora, no se pierde en la página (teclado).
+            disparador.current?.focus();
+            onValor(valorPorDefecto);
+          }}
+          aria-label={`Quitar filtro ${etiqueta}`}
+          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
+        >
+          <X aria-hidden className="h-3 w-3" />
+        </button>
+      )}
 
       {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
@@ -220,7 +277,7 @@ export function DesplegablePildora({
         createPortal(
           <div
             ref={capa}
-            style={{ position: "fixed", ...posLista }}
+            style={{ position: "fixed", ...posLista, ...anchoDeLista(posLista.left, posLista.width, window.innerWidth) }}
             className="anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg"
           >
           {mostrarBuscador && (
@@ -276,4 +333,15 @@ export function DesplegablePildora({
         )}
     </div>
   );
+}
+
+/** La lista flotante, al ancho de su texto y no al de la píldora (con la píldora de 90 px los nombres de marca se partían en
+ *  tres líneas), como `Desplegable` (`campos.tsx`). Mínimo 208 px, máximo 360, y SIEMPRE dentro de la ventana: si la píldora
+ *  está cerca del borde derecho, la lista se corre a la izquierda en vez de salirse (antes el mínimo le ganaba al máximo y
+ *  la lista quedaba cortada, sin scroll que la alcanzara). */
+function anchoDeLista(left: number, anchoPildora: number, anchoVentana: number) {
+  const margen = 8;
+  const minimo = Math.min(Math.max(anchoPildora, 208), anchoVentana - 2 * margen);
+  const izquierda = Math.max(margen, Math.min(left, anchoVentana - margen - minimo));
+  return { left: izquierda, width: "max-content" as const, minWidth: minimo, maxWidth: Math.min(360, anchoVentana - izquierda - margen) };
 }
