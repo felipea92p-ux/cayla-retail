@@ -336,7 +336,7 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
       <Superficie className="anim-sube">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que las clientas le escriben desde el QR del club (el cartel, el ticket y la caja). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+          bajada="El número al que las clientas le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
         >
           <Link href="/clientas/cartel" className="btn-cayla btn-secundario btn-chico">
             Ver el cartel del club

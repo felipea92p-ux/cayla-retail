@@ -84,9 +84,9 @@ const TEXTO_PRIVACIDAD = seccion("### 2.1 Quién es responsable");
 const TEXTO_TERMINOS = seccion("1. **Quién puede ser socia:**");
 const TEXTO_CASILLA =
   "Acepto que CAYLA S.A.C. me envíe por WhatsApp, al número que registro, novedades, promociones y avisos de mis cupones, elegidos según mis compras y mi talla. Puedo dejar de recibirlos cuando quiera escribiendo BAJA al WhatsApp de cualquier tienda CAYLA.";
-// El documento escribe {código}; el marcador del sistema va sin tilde.
+// El documento escribe {código}; el marcador del sistema va sin tilde. Es la versión 2 (ADR-0288 act. j): sin la frase de la BAJA.
 const TEXTO_SALUDO =
-  "Hola CAYLA, soy {nombre}. Me acabo de unir al Club CAYLA ({codigo}) y quiero recibir sus novedades y promociones por este WhatsApp. Sé que me doy de baja escribiendo BAJA.";
+  "Hola CAYLA, soy {nombre}. Me acabo de unir al Club CAYLA ({codigo}) y quiero recibir sus novedades y promociones por este WhatsApp.";
 // La casilla y el saludo, como están en el documento (con sus saltos de línea y el «> » de la cita): los mismos textos.
 const DOC_PLANO = DOC.replace(/\n>\s*/g, "\n").replace(/\s+/g, " ");
 if (
@@ -479,7 +479,7 @@ caso(
 // i. La página
 // =====================================================================================================================
 caso(
-  "(i) fn_club_pagina (como anon): la tienda, su WhatsApp, el % (10), la escala 20/30/40/50/60, el umbral (6, 600, 60) y los cuatro textos v1 EXACTOS del documento aprobado, con su fecha; el Taller o una tienda que no existe → null",
+  "(i) fn_club_pagina (como anon): la tienda, su WhatsApp, el % (10), la escala 20/30/40/50/60, el umbral (6, 600, 60) y los cuatro textos EXACTOS del documento aprobado (v1; el saludo en su v2, sin la frase de la BAJA: act. j), con su fecha; el Taller o una tienda que no existe → null",
   `reset role;\nupdate retail.ubicaciones set whatsapp_numero = '966000111' where id = :'ubic';\n` + comoAnon +
     `select p ->> 'tienda', p ->> 'whatsapp', p ->> 'pct', (select string_agg((e ->> 'anio') || '=' || (e ->> 'monto'), ',') from jsonb_array_elements(p -> 'escala') e),
        p ->> 'compras', p ->> 'monto_minimo', p ->> 'dias',
@@ -488,7 +488,7 @@ caso(
        p -> 'textos' -> 'privacidad' ->> 'texto' = $t$${TEXTO_PRIVACIDAD}$t$,
        p -> 'textos' -> 'casilla_publicidad' ->> 'texto' = $t$${TEXTO_CASILLA}$t$,
        p -> 'textos' -> 'saludo' ->> 'texto' = $t$${TEXTO_SALUDO}$t$,
-       (select bool_and((v ->> 'version') = '1' and (v ->> 'vigente_desde') ~ '^\\d{4}-\\d{2}-\\d{2}$') from jsonb_each(p -> 'textos') t(k, v))
+       (select bool_and((v ->> 'version') = (case k when 'saludo' then '2' else '1' end) and (v ->> 'vigente_desde') ~ '^\\d{4}-\\d{2}-\\d{2}$') from jsonb_each(p -> 'textos') t(k, v))
   from (select retail.fn_club_pagina(:'ubic') as p) x;
 select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_random_uuid()) is null, retail.fn_club_pagina(null) is null;
 `,

@@ -69,7 +69,10 @@ activos. (Solo si marcó la casilla 3; si no la marcó, la página termina en su
 Botón: «Saludar a CAYLA por WhatsApp» → abre el WhatsApp de {tienda} con este mensaje, que envía ella:
 
 > Hola CAYLA, soy {nombre}. Me acabo de unir al Club CAYLA ({código}) y quiero recibir sus novedades y promociones por este
-> WhatsApp. Sé que me doy de baja escribiendo BAJA.
+> WhatsApp.
+
+(Saludo versión 2, 2026-10-01, ADR-0288 act. j: Felipe quitó la frase final «Sé que me doy de baja escribiendo BAJA.». Cómo
+darse de baja lo siguen diciendo la casilla 3 y la sección 2.8.)
 
 ### Si su documento ya era socia
 

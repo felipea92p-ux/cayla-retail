@@ -212,12 +212,9 @@ describe("armarRecibo — quién atendió", () => {
     expect(armarRecibo(entrada).atendio).toBeNull();
   });
 
-  // ADR-0288 tanda 1b: el QR del club viaja tal cual lo armó `clubEnElTicket`; sin él (sin número de tienda, o una
-  // reimpresión desde el historial) el ticket sale como antes.
-  it("lleva el QR del club si la caja lo armó, y null si no", () => {
-    const club = { enlace: "https://wa.me/51987654321?text=Hola", titulo: "Club CAYLA", linea: "¿Novedades por WhatsApp?" };
-    expect(armarRecibo({ ...entrada, club }).club).toEqual(club);
-    expect(armarRecibo(entrada).club).toBeNull();
+  // ADR-0288 act. j (Felipe 2026-10-01): el papel ya no lleva QR del club; la clienta se une con el QR del cartel.
+  it("no lleva QR del club", () => {
+    expect("club" in armarRecibo(entrada)).toBe(false);
   });
 });
 
