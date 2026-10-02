@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
 import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
@@ -19,6 +19,11 @@ import {
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
+  FALTAS,
+  ROTULO_FALTA,
+  SIN_TEMPORADA,
+  faltaDeUrl,
+  temporadaDeUrl,
   DISPONIBILIDADES,
   DISPONIBILIDAD_DE_SEDE,
   disponibilidadDeUrl,
@@ -63,6 +68,7 @@ export function FiltrosProductos({
   limitesPrecio,
   panelInicial,
   sede,
+  temporadas,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
@@ -79,6 +85,8 @@ export function FiltrosProductos({
   panelInicial: EstadoPanelFiltros;
   /** El nombre de la sede elegida arriba, para «Hay en Tienda Lima»; `null` en CAYLA Global (no hay una sede). */
   sede: string | null;
+  /** La lista cerrada de temporadas (`fn_temporadas`); `null` si la base aún no la tiene: la píldora no se dibuja. */
+  temporadas: Opcion[] | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -225,6 +233,8 @@ export function FiltrosProductos({
   const proveedor = params.get("proveedor");
   const estado = estadoDeUrl(params.get("estado"));
   const disponibilidad = disponibilidadDeUrl(params.get("stock"), sede != null);
+  const temporada = temporadaDeUrl(params.get("temporada"));
+  const falta = faltaDeUrl(params.get("falta"));
   const orden = ordenDeUrl(params.get("orden"));
 
   // Los chips leen la URL (lo que de verdad filtra la lista), siempre «Nombre: valor» como la píldora (`lib/productos-filtros.ts`).
@@ -238,6 +248,7 @@ export function FiltrosProductos({
       talla: (id) => tallas.find((t) => t.id === id)?.nombre,
       familia: (f) => textoDeFamilia(f),
       sede,
+      temporada: (clave) => temporadas?.find((t) => t.id === clave)?.nombre,
     },
     SIN_EN_URL,
   );
@@ -423,6 +434,27 @@ export function FiltrosProductos({
               valorPorDefecto={ESTADO_POR_DEFECTO}
               onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
               opciones={ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] }))}
+            />
+            {temporadas && (
+              <DesplegablePildora
+                icono={CalendarRange}
+                etiqueta="Temporada"
+                valor={temporada ?? TODOS}
+                onValor={(v) => aplicar({ temporada: v === TODOS ? "" : v })}
+                opciones={[
+                  { valor: TODOS, texto: "Todas" },
+                  ...temporadas.map((t) => ({ valor: t.id, texto: t.nombre })),
+                  { valor: SIN_TEMPORADA, texto: "Sin temporada" },
+                ]}
+              />
+            )}
+            {/* Lo que le falta a la ficha, en un solo lugar: el filtro de quien carga el catálogo (Felipe, 2026-10-02). */}
+            <DesplegablePildora
+              icono={ClipboardList}
+              etiqueta="Por completar"
+              valor={falta ?? TODOS}
+              onValor={(v) => aplicar({ falta: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...FALTAS.map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] }))]}
             />
       </FilaPildoras>
     </PanelPildoras>

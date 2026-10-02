@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  faltaDeUrl,
+  temporadaDeUrl,
   disponibilidadDeUrl,
   rotuloDisponibilidad,
   marcadosDeColor,
@@ -197,5 +199,22 @@ describe("productos-filtros — disponibilidad en la sede y en la red", () => {
   it("el chip lo dice entero", () => {
     const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, sede: "Tienda Lima" };
     expect(chipsDeFiltros("stock=en_sede", nombres)[0].texto).toBe("Disponibilidad: Hay en Tienda Lima");
+  });
+});
+
+describe("productos-filtros — temporada y «por completar»", () => {
+  it("lee solo valores con forma; lo raro no filtra", () => {
+    expect(temporadaDeUrl("primavera_verano")).toBe("primavera_verano"); // las claves reales de `fn_temporadas` llevan «_»
+    expect(temporadaDeUrl("sin")).toBe("sin");
+    expect(temporadaDeUrl("'; drop")).toBeUndefined();
+    expect(faltaDeUrl("foto")).toBe("foto");
+    expect(faltaDeUrl("precio")).toBeUndefined();
+  });
+
+  it("los chips dicen el nombre de la temporada y qué falta, y cuentan como filtros", () => {
+    const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, temporada: () => "Otoño-invierno" };
+    expect(chipsDeFiltros("temporada=otono-invierno&falta=foto", nombres).map((c) => c.texto)).toEqual(["Temporada: Otoño-invierno", "Por completar: Sin foto"]);
+    expect(chipsDeFiltros("temporada=sin", nombres)[0].texto).toBe("Sin temporada");
+    expect(contarFiltrosActivos("temporada=sin&falta=foto")).toBe(2);
   });
 });

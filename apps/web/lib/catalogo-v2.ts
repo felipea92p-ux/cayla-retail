@@ -8,7 +8,7 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
-import { disponibilidadDeUrl, estadoDeUrl, estadoParaBase, listaDeUrl, type Disponibilidad } from "@/lib/productos-filtros";
+import { disponibilidadDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
@@ -185,6 +185,11 @@ export type FiltrosProductos = {
   colores: string[];
   familias: string[];
   tallas: string[];
+  /** Clave de `fn_temporadas()` o `sin`: la temporada de cada color (la del color, si no la del producto, si no la de su
+   *  categoría), exigida a la misma variante que los demás filtros. */
+  temporada?: string;
+  /** Lo que le falta a la ficha («Por completar»). */
+  falta?: Falta;
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
@@ -209,6 +214,8 @@ export type ParamsProductosListado = {
   color?: string;
   familia?: string;
   talla?: string;
+  temporada?: string;
+  falta?: string;
   estado?: string;
   precioMin?: string;
   precioMax?: string;
@@ -241,6 +248,8 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     colores: listaDeUrl(p.color).filter((c) => /^[A-Za-z0-9_-]{1,20}$/.test(c)),
     familias: listaDeUrl(p.familia).filter((f) => FAMILIAS_COLOR.some((x) => x.valor === f)),
     tallas: listaDeUrl(p.talla).filter(esUuid),
+    temporada: temporadaDeUrl(p.temporada),
+    falta: faltaDeUrl(p.falta),
     // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
     estado: estadoParaBase(estadoDeUrl(p.estado)),
     // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
@@ -356,6 +365,8 @@ function paramsListado(filtros: FiltrosProductos) {
     ...(filtros.colores.length ? { p_colores: filtros.colores } : {}),
     ...(filtros.familias.length ? { p_familias: filtros.familias } : {}),
     ...(filtros.tallas.length ? { p_tallas: filtros.tallas } : {}),
+    ...(filtros.temporada ? { p_temporada: filtros.temporada } : {}),
+    ...(filtros.falta ? { p_falta: filtros.falta } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),

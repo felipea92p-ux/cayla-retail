@@ -15,6 +15,7 @@ import {
   getExistenciasProductos,
   getSinTemporadaResumen,
   getPreciosExtremos,
+  getTemporadasCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
@@ -92,7 +93,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios, resTallas] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada, precios, resTallas, temporadas] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -105,6 +106,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // Los límites del filtro de precio, de los precios reales (no el S/ 999 de antes). `null` si no se pudo: solo cajas.
     getPreciosExtremos(filtros).catch(() => null),
     supabase.from("tallas").select("id, valor").eq("activo", true),
+    // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
+    getTemporadasCatalogo().catch(() => null),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
@@ -233,6 +236,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         limitesPrecio={limitesRedondeados(precios)}
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
+        temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}

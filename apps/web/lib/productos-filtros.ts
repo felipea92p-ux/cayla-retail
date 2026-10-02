@@ -112,7 +112,7 @@ export function estadoParaBase(estado: EstadoListado): "activo" | "descontinuado
 export function contarFiltrosActivos(consulta: string): number {
   const p = new URLSearchParams(consulta);
   // Color y familia son un mismo filtro (el de color, con su lista agrupada por familia): cuentan una vez.
-  const claves = ["cat", "marca", "proveedor", "stock", "talla"].filter((k) => p.get(k));
+  const claves = ["cat", "marca", "proveedor", "stock", "talla", "temporada", "falta"].filter((k) => p.get(k));
   if (p.get("color") || p.get("familia")) claves.push("color");
   // El precio cuenta solo si se entiende, con la misma regla que aplica el servidor (`leerMonto`): «abc» no filtra ni cuenta.
   const precio = leerMonto(p.get("precioMin") ?? "") != null || leerMonto(p.get("precioMax") ?? "") != null ? 1 : 0;
@@ -163,6 +163,23 @@ export function rotuloDisponibilidad(d: Disponibilidad, sede: string | null): st
   }
 }
 
+// ── Temporada y «Por completar» (Felipe, 2026-10-02) ──────────────────────────────────────────────────────────────────
+/** `temporada=sin` = las prendas con algún color sin temporada (la misma cuenta que el aviso «N prendas sin temporada»). */
+export const SIN_TEMPORADA = "sin";
+
+export function temporadaDeUrl(valor: string | null | undefined): string | undefined {
+  return valor && /^[a-z0-9_-]{1,40}$/.test(valor) ? valor : undefined;
+}
+
+/** Lo que le falta a la ficha: el filtro de quien carga el catálogo (76 de 86 prendas sin foto el 2026-10-02). */
+export const FALTAS = ["foto", "temporada", "marca", "proveedor"] as const;
+export type Falta = (typeof FALTAS)[number];
+export const ROTULO_FALTA: Record<Falta, string> = { foto: "Sin foto", temporada: "Sin temporada", marca: "Sin marca", proveedor: "Sin proveedor" };
+
+export function faltaDeUrl(valor: string | null | undefined): Falta | undefined {
+  return (FALTAS as readonly string[]).includes(valor ?? "") ? (valor as Falta) : undefined;
+}
+
 /** Un chip por cosa puesta, siempre «Nombre: valor» (como la píldora): «Blusas» suelto no decía si era categoría o etiqueta.
  *  `quitar` son las claves que lo apagan. `nombres` resuelve ids a nombres; un id que ya no existe dice «—». */
 export function chipsDeFiltros(
@@ -176,6 +193,7 @@ export function chipsDeFiltros(
     familia?: (valor: string) => string | undefined;
     /** La sede elegida arriba (`null` en CAYLA Global): da nombre a «Hay en …». */
     sede?: string | null;
+    temporada?: (clave: string) => string | undefined;
   },
   sin = "sin",
 ): { texto: string; quitar: string[] }[] {
@@ -198,6 +216,12 @@ export function chipsDeFiltros(
   if (colores.length) chips.push({ texto: `Color: ${colores.join(", ")}`, quitar: ["color", "familia"] });
   const estado = estadoDeUrl(p.get("estado"));
   if (estado !== ESTADO_POR_DEFECTO) chips.push({ texto: `Estado: ${ROTULO_ESTADO[estado]}`, quitar: ["estado"] });
+  const temporada = temporadaDeUrl(p.get("temporada"));
+  if (temporada) {
+    chips.push({ texto: temporada === SIN_TEMPORADA ? "Sin temporada" : `Temporada: ${nombres.temporada?.(temporada) ?? temporada}`, quitar: ["temporada"] });
+  }
+  const falta = faltaDeUrl(p.get("falta"));
+  if (falta) chips.push({ texto: `Por completar: ${ROTULO_FALTA[falta]}`, quitar: ["falta"] });
   const disp = disponibilidadDeUrl(p.get("stock"), nombres.sede != null);
   if (disp) chips.push({ texto: `Disponibilidad: ${rotuloDisponibilidad(disp, nombres.sede ?? null)}`, quitar: ["stock"] });
   const precio = textoRangoPrecio(p.get("precioMin"), p.get("precioMax"));
