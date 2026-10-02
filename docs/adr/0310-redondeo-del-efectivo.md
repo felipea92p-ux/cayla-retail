@@ -86,7 +86,8 @@ comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin c
 - [x] **3. Diario y estado de resultados** (§8): el redondeo se asienta contra una cuenta de gasto propia (**6598**, provisional hasta
   el contador) y no contra el banco; el asiento cuadra solo, el Estado de resultados lo muestra y la anulación lo revierte.
   `fn_asientos` no se tocó.
-- [ ] 4. Papel y reimpresión: el recibo dice el redondeo; la boleta y el QR siguen exactos.
+- [x] **4. Papel y reimpresión** (§8): el ticket de 80 mm, la boleta A4, el modal «Venta registrada» y el detalle del Historial dicen el
+  redondeo en «Forma de pago»; el total, el subtotal, el IGV y el QR de SUNAT siguen por el precio exacto.
 - [ ] 5. Vender cobra en efectivo redondeado de punta a punta (RPC, hoja de cobro, cola sin conexión, bandera).
 - [ ] 6. Apartados: el saldo en efectivo al entregar (abonos y adelanto no se redondean).
 - [ ] 7. Cambios y devoluciones en efectivo.
@@ -189,6 +190,22 @@ Con la misma venta sembrada (79.88 = 79.80 efectivo + 0.08 redondeo), `pnpm prue
 `fn_asiento_cuenta_de_medio` `9d9d0c71a9867ab1f4f7262ba7f13c7a` (verificada hoy, solo lectura); «después» `6b4982f3847cb817c3a26155f043f047`.
 En producción el plan de cuentas es el mismo: 6598 y el orden 46 están libres. **Pendiente del contador:** el código y el nombre de la
 cuenta (si pide otro, se renombra ANTES del primer cierre de mes: el cierre congela la huella del diario con su código).
+
+### Actividad 4 — el papel
+
+- **Reglas:** `ReciboVenta` gana `redondeo` (aparte: `Σ pagos + redondeo = total`, con el efectivo ya redondeado) y `armarRecibo` lo
+  recibe; la reimpresión (`armarDetalleVenta`) **separa la fila `redondeo` de `venta_pagos` de los pagos reales** (sin eso el papel
+  habría impreso un renglón con el nombre vacío). 67 pruebas en verde: el vuelto sale del efectivo ya cobrado (80.00 − 79.80 = 0.20),
+  `total`, `subtotal`, `igv` y el texto del QR son **idénticos con y sin redondeo**, y sin redondeo el papel queda como siempre.
+- **Navegador, con datos reales:** `leerVentaDetalle` (el mismo camino de la reimpresión) sobre la venta sembrada, contra PostgREST
+  local con el JWT del líder, dibujando `ReciboTermico` y `BoletaA4` reales. Ticket: «TOTAL S/ 79.88 · SON: SETENTA Y NUEVE CON 88/100
+  SOLES · Forma de pago: Efectivo S/ 79.80 · Redondeo de efectivo S/ 0.08 · Ley 29571: múltiplo de S/ 0.10, hacia abajo». Boleta A4:
+  igual en su columna de pago, con importe de venta 79.88, IGV 12.19 y TOTAL 79.88 intactos. **Hallazgo del navegador:** la primera
+  versión de la línea de la ley (67 caracteres) se salía del papel de 80 mm; se acortó a 43 (`LEY_REDONDEO_TICKET`, con una prueba
+  del largo) y ahora la fila mide 240 de 240 px.
+- **No verificado visualmente:** el modal «Venta registrada» (`VentaRegistradaModal`) y el detalle del Historial (`DetalleVentaModal`)
+  — son una fila más en listas que ya existían, con los mismos datos (`r.redondeo`, `d.redondeo`) que sí se probaron — y **ninguna
+  pantalla a 375 px** (PL-105): el PR final de Vender (actividad 5) lleva su casillero y su captura.
 
 ## 9. Lo que queda
 

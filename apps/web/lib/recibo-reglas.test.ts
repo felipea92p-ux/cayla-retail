@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, desglosaIgv, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
+import { armarRecibo, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -39,6 +39,53 @@ describe("armarRecibo — lo que se imprime sale de la venta que se cobró", () 
     expect(recibo.pagos[0]).toMatchObject({ recibido: 150, vuelto: 50 });
     expect(recibo.pagos[1]).toMatchObject({ recibido: null, vuelto: 0 });
     expect(recibo.vueltoTotal).toBe(50);
+  });
+});
+
+// ADR-0310: el redondeo del efectivo. Una venta de 79.88 (79.90 con 0.02 de descuento) pagada con 79.80 en efectivo y 0.08 de
+// redondeo: el papel dice lo que se cobró y lo que no, y el comprobante —el total, el IGV, el QR— sigue por el precio EXACTO.
+describe("armarRecibo con el redondeo del efectivo", () => {
+  const conRedondeo = (redondeo?: number) =>
+    armarRecibo({
+      comprobante,
+      sede: "Tienda Lima",
+      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
+      lineas: [{ cantidad: 1, referencia: "Blusa Emma", codigo: null, precioUnitario: 79.9, descuentoUnitario: 0.02 }],
+      pagos: [{ metodo: "efectivo", monto: 79.8, recibido: 80 }],
+      ...(redondeo === undefined ? {} : { redondeo }),
+      tasaIgv: 0.18,
+    });
+
+  it("dice el redondeo aparte; el efectivo ya es lo cobrado y el vuelto sale de eso (80.00 − 79.80)", () => {
+    const r = conRedondeo(0.08);
+    expect(r.redondeo).toBe(0.08);
+    expect(r.pagos).toEqual([{ metodo: "efectivo", monto: 79.8, recibido: 80, vuelto: 0.2 }]);
+    expect(r.vueltoTotal).toBe(0.2);
+  });
+
+  it("lo cobrado más el redondeo es el total: nada se pierde en el papel", () => {
+    const r = conRedondeo(0.08);
+    expect(Math.round((r.pagos.reduce((a, p) => a + p.monto, 0) + (r.redondeo ?? 0)) * 100)).toBe(Math.round(r.total * 100));
+  });
+
+  it("el total, el subtotal, el IGV y el QR de SUNAT son por el precio exacto: el redondeo no los toca", () => {
+    const con = conRedondeo(0.08);
+    const sin = conRedondeo();
+    expect([con.total, con.subtotal, con.igv]).toEqual([sin.total, sin.subtotal, sin.igv]);
+    expect(con.total).toBe(79.88);
+    expect(Math.round((con.subtotal + con.igv) * 100)).toBe(Math.round(con.total * 100));
+    expect(textoQrSunat(con, "20123456789")).toBe(textoQrSunat(sin, "20123456789"));
+    expect(textoQrSunat(con, "20123456789")).toContain("|79.88|");
+  });
+
+  it("la línea de la ley cabe en el ticket de 80 mm (medido en el navegador: más de ~44 caracteres se sale del papel)", () => {
+    expect(LEY_REDONDEO_TICKET.length).toBeLessThanOrEqual(44);
+  });
+
+  it("sin redondeo (o con un valor que no es un redondeo) el papel queda como siempre", () => {
+    expect(conRedondeo().redondeo).toBe(0);
+    expect(conRedondeo(0).redondeo).toBe(0);
+    expect(conRedondeo(-0.05).redondeo).toBe(0); // nunca un redondeo negativo: la ley solo permite bajar
   });
 });
 
