@@ -51,13 +51,34 @@ export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; 
  *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
  *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
  *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
-export function PanelPildoras({ children }: { children: ReactNode }) {
+export function PanelPildoras({ children, filas = false }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean }) {
+  if (filas) {
+    return (
+      <div id="filtros-panel" className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+        {children}
+      </div>
+    );
+  }
   return (
     <div
       id="filtros-panel"
       className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
     >
       {children}
+    </div>
+  );
+}
+
+/** Una fila del panel con su nombre a la izquierda («Prenda», «Gestión»): con más de 6–8 filtros una sola fila se partía
+ *  donde el ancho quisiera (Baymard pone ahí el límite de una barra horizontal), y así cada persona sabe en qué fila mirar.
+ *  En una pantalla angosta el nombre va arriba y las píldoras se acomodan debajo. */
+export function FilaPildoras({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={titulo} className="flex min-w-0 flex-col gap-0.5 py-1 lg:flex-row lg:items-center lg:gap-1 lg:py-0.5">
+      <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-[10px] text-tinta/45 lg:w-[5.5rem] lg:pt-0">
+        {titulo}
+      </span>
+      <div className="flex min-w-0 flex-wrap items-center divide-x divide-tinta/10">{children}</div>
     </div>
   );
 }

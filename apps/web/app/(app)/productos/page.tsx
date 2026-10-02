@@ -25,6 +25,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
+import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -65,7 +66,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
   // pintura ya salga con las columnas correctas (ver `lib/tamano-grilla.ts`).
-  const tamanoGrilla = leerTamanoGrilla((await cookies()).get(COOKIE_TAMANO_GRILLA)?.value);
+  const galletas = await cookies();
+  const tamanoGrilla = leerTamanoGrilla(galletas.get(COOKIE_TAMANO_GRILLA)?.value);
+  // Si el panel de filtros nace abierto o cerrado en este equipo (Felipe, 2026-10-02: abierto, salvo que aquí se cerró).
+  const panelFiltros = leerPanelFiltros(galletas.get(COOKIE_PANEL_FILTROS)?.value);
   const supabase = await createClient();
 
   // Grilla ⇄ tabla (ADR-0077): reconstruye la URL con todos los filtros vigentes, solo
@@ -207,6 +211,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         proveedores={exigir(resProveedores, "los proveedores")}
         totalProductos={resultado.totalProductos}
         limitesPrecio={limitesRedondeados(precios)}
+        panelInicial={panelFiltros}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}

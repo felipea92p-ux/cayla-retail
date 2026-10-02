@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CircleCheck, Link2, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
-import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { Modal } from "@/components/ui/Modal";
+import { guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { avisar } from "@/components/ui/Avisos";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
@@ -49,6 +51,7 @@ export function FiltrosProductos({
   proveedores,
   totalProductos,
   limitesPrecio,
+  panelInicial,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
@@ -59,6 +62,8 @@ export function FiltrosProductos({
   totalProductos: number;
   /** El precio real más bajo y más alto de lo que se está viendo, redondeados; `null` = no se pudo saber. */
   limitesPrecio: LimitesPrecio | null;
+  /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
+  panelInicial: EstadoPanelFiltros;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -69,7 +74,11 @@ export function FiltrosProductos({
   const busqueda = valorDeCaja(tipeado, "q", consultaUrl);
   const precioMin = tipeado.precioMin ?? montoParaCaja(params.get("precioMin") ?? "");
   const precioMax = tipeado.precioMax ?? montoParaCaja(params.get("precioMax") ?? "");
-  const [panelAbierto, setPanelAbierto] = useState(false);
+  // Abierto en la computadora salvo que en este equipo se haya cerrado (la cookie la lee el servidor: sin salto al pintar).
+  const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
+  // En el celular los filtros no van en la página (empujarían los productos bajo el pliegue): van en una hoja.
+  const [hojaAbierta, setHojaAbierta] = useState(false);
+  const esEscritorio = useEsEscritorio();
   // La última URL pedida que todavía no llegó. Un clic justo después de teclear (o el temporizador justo después de un
   // clic) se aplica sobre ella y no sobre la URL vieja: antes el segundo pisaba al primero y el orden recién elegido se
   // perdía. Vence a los 3 s, por si una navegación nunca llega.
@@ -77,10 +86,40 @@ export function FiltrosProductos({
   const { buscando, buscar } = useBusquedaEnUrl();
   const etiquetaBuscar = (
     <span className="flex items-baseline justify-between gap-2">
-      Buscar
+      <span>
+        Buscar
+        {/* El atajo de Shopify y GitHub (Felipe, 2026-10-02): «/» desde cualquier parte de la pantalla. */}
+        <kbd className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">/</kbd>
+      </span>
       <SenalBuscando activo={buscando} />
     </span>
   );
+
+  // «/» lleva el cursor al buscador, salvo que la persona ya esté escribiendo en otra caja.
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
+      const caja = document.getElementById(ID_BUSCADOR) as HTMLInputElement | null;
+      if (!caja) return;
+      e.preventDefault();
+      caja.focus();
+      caja.select();
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, []);
+
+  function alTocarFiltros() {
+    if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
+      const nuevo = !panelAbierto;
+      setPanelAbierto(nuevo);
+      guardarPanelFiltros(nuevo ? "abierto" : "cerrado");
+    } else {
+      setHojaAbierta(true);
+    }
+  }
 
   /** Se lee al momento de usarla, nunca de la URL que había al pintar: el temporizador del buscador se programa antes de
    *  un clic y se dispara después, y con la URL de entonces borraba lo que el clic acababa de poner. */
@@ -154,8 +193,10 @@ export function FiltrosProductos({
     SIN_EN_URL,
   );
 
+  // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se
+  // ven con el panel cerrado y en el celular (donde el panel vive en la hoja).
   const bloqueChips = chips.length > 0 && (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
         <button
           key={c.quitar.join("|")}
@@ -200,18 +241,35 @@ export function FiltrosProductos({
   // Vive aquí (y no en la página) para que el orden y lo tecleado se apliquen sobre la misma URL vigente (`consultaVigente`).
   const barraResultados = (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <p className="text-sm text-tinta/70" aria-live="polite">
-        <strong className="font-semibold text-tinta">{totalProductos.toLocaleString("es-PE")}</strong>{" "}
-        {totalProductos === 1 ? "producto" : "productos"}
+      <p className="flex items-baseline gap-3 text-sm text-tinta/70">
+        <span aria-live="polite">
+          <strong className="font-semibold text-tinta">{totalProductos.toLocaleString("es-PE")}</strong>{" "}
+          {totalProductos === 1 ? "producto" : "productos"}
+        </span>
+        {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
+        {panelAbierto && chips.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setTipeado({});
+              navegar(consultaSinFiltros(consultaVigente()));
+            }}
+            className="label-cayla hidden text-[10px] text-tinta/55 hover:text-rojo md:inline"
+          >
+            Limpiar filtros
+          </button>
+        )}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+        {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no cabían juntos en 375 px. */}
         <button
           type="button"
           onClick={copiarEnlace}
-          className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
+          aria-label="Copiar enlace de esta lista"
+          className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
         >
           <Link2 aria-hidden className="h-3.5 w-3.5" />
-          Copiar enlace
+          <span className="hidden sm:inline">Copiar enlace</span>
         </button>
         <div className="rounded-lg bg-sand/50 p-0.5">
           <DesplegablePildora
@@ -227,6 +285,79 @@ export function FiltrosProductos({
     </div>
   );
 
+  // Dos filas con nombre (Felipe, 2026-10-02): arriba lo que pide la clienta en el mostrador, abajo lo del líder (reponer,
+  // completar, de quién es). El mismo panel va abierto en la página (computadora) o dentro de la hoja (celular), nunca los dos.
+  const panel = (
+    <PanelPildoras filas>
+      <FilaPildoras titulo="Prenda">
+            <DesplegablePildora
+              icono={Shirt}
+              etiqueta="Categoría"
+              valor={cat ?? TODOS}
+              onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
+            />
+            <DesplegablePildora
+              icono={Palette}
+              etiqueta="Color"
+              valor={color ?? TODOS}
+              onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                ...colores.map((c) => ({
+                  valor: c.id,
+                  texto: c.nombre,
+                  icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
+                })),
+              ]}
+            />
+            <BloquePrecio
+              precioMin={precioMin}
+              precioMax={precioMax}
+              limites={limitesPrecio}
+              onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
+            />
+      </FilaPildoras>
+      <FilaPildoras titulo="Gestión">
+            <DesplegablePildora
+              icono={PackageSearch}
+              etiqueta="Stock"
+              valor={stock ?? TODOS}
+              onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                { valor: "sin_stock", texto: "Sin stock" },
+                { valor: "bajo", texto: "Stock bajo" },
+                { valor: "reponer", texto: "Pedir a proveedor" },
+              ]}
+            />
+            <DesplegablePildora
+              icono={Tag}
+              etiqueta="Marca"
+              valor={marca ?? TODOS}
+              onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, { valor: SIN_EN_URL, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+            />
+            <DesplegablePildora
+              icono={Truck}
+              etiqueta="Proveedor"
+              valor={proveedor ?? TODOS}
+              onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todos" }, { valor: SIN_EN_URL, texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+            />
+            {/* «Activos» es lo que vale sola (Felipe, 2026-10-02): se ve «Estado: Activos» en reposo y «Todos» se elige a propósito. */}
+            <DesplegablePildora
+              icono={CircleCheck}
+              etiqueta="Estado"
+              valor={estado}
+              valorPorDefecto={ESTADO_POR_DEFECTO}
+              onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
+              opciones={ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] }))}
+            />
+      </FilaPildoras>
+    </PanelPildoras>
+  );
+
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-2">
@@ -239,6 +370,7 @@ export function FiltrosProductos({
               const q = e.target.value;
               setTipeado((t) => ({ ...t, q }));
             }}
+            id={ID_BUSCADOR}
             placeholder="Prenda, código o código de barras…"
             autoComplete="off"
             type="search"
@@ -250,81 +382,34 @@ export function FiltrosProductos({
           <span aria-hidden className="label-cayla block text-[11px] text-transparent">
             {" "}
           </span>
-          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
         </div>
       </div>
 
-      {panelAbierto && (
-        <PanelPildoras>
-          <DesplegablePildora
-            icono={Shirt}
-            etiqueta="Categoría"
-            valor={cat ?? TODOS}
-            onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
-            opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
-          />
+      {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
+      {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
 
-          <DesplegablePildora
-            icono={Tag}
-            etiqueta="Marca"
-            valor={marca ?? TODOS}
-            onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
-            opciones={[{ valor: TODOS, texto: "Todas" }, { valor: SIN_EN_URL, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-          />
-
-          <DesplegablePildora
-            icono={Truck}
-            etiqueta="Proveedor"
-            valor={proveedor ?? TODOS}
-            onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
-            opciones={[{ valor: TODOS, texto: "Todos" }, { valor: SIN_EN_URL, texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-          />
-
-          <DesplegablePildora
-            icono={Palette}
-            etiqueta="Color"
-            valor={color ?? TODOS}
-            onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
-            opciones={[
-              { valor: TODOS, texto: "Todos" },
-              ...colores.map((c) => ({
-                valor: c.id,
-                texto: c.nombre,
-                icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
-              })),
-            ]}
-          />
-
-          {/* «Activos» es lo que vale sola (Felipe, 2026-10-02): se ve «Estado: Activos» en reposo y «Todos» se elige a propósito. */}
-          <DesplegablePildora
-            icono={CircleCheck}
-            etiqueta="Estado"
-            valor={estado}
-            valorPorDefecto={ESTADO_POR_DEFECTO}
-            onValor={(v) => aplicar({ estado: v === ESTADO_POR_DEFECTO ? "" : v })}
-            opciones={ESTADOS_LISTADO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO[e] }))}
-          />
-
-          <DesplegablePildora
-            icono={PackageSearch}
-            etiqueta="Stock"
-            valor={stock ?? TODOS}
-            onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
-            opciones={[
-              { valor: TODOS, texto: "Todos" },
-              { valor: "sin_stock", texto: "Sin stock" },
-              { valor: "bajo", texto: "Stock bajo" },
-              { valor: "reponer", texto: "Pedir a proveedor" },
-            ]}
-          />
-
-          <BloquePrecio
-            precioMin={precioMin}
-            precioMax={precioMax}
-            limites={limitesPrecio}
-            onCambiar={(min, max) => setTipeado((t) => ({ ...t, precioMin: min, precioMax: max }))}
-          />
-        </PanelPildoras>
+      {hojaAbierta && (
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">
+          {panel}
+          <div className="pie-hoja-fijo mt-4 flex items-center gap-2">
+            {activos > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTipeado({});
+                  navegar(consultaSinFiltros(consultaVigente()));
+                }}
+                className="btn-cayla btn-sutil"
+              >
+                Limpiar
+              </button>
+            )}
+            <button type="button" onClick={() => setHojaAbierta(false)} className="btn-cayla btn-primario flex-1">
+              Ver {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto" : "productos"}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {bloqueChips}
@@ -349,7 +434,8 @@ function BloquePrecio({
 }) {
   const activa = Boolean(precioMin || precioMax);
   return (
-    <div className={`flex h-9 shrink-0 items-center gap-2 px-3 ${activa ? "text-tinta" : "text-tinta/60"}`} role="group" aria-label="Precio">
+    // Se parte en dos líneas si no cabe (cajas arriba, control abajo): a 768 px con el menú lateral quedan ~420 px de panel.
+    <div className={`flex min-h-9 min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1 ${activa ? "text-tinta" : "text-tinta/60"}`} role="group" aria-label="Precio">
       <Banknote aria-hidden className={`h-3.5 w-3.5 shrink-0 ${activa ? "text-tinta/70" : "text-tinta/40"}`} />
       <span className="label-cayla text-[11px]">Precio</span>
       <CajaMonto
@@ -408,5 +494,23 @@ function CajaMonto({ valor, sugerido, etiqueta, onCambiar }: { valor: string; su
         className="w-full min-w-0 bg-transparent text-[12px] tabular-nums text-tinta outline-none placeholder:text-tinta/35"
       />
     </label>
+  );
+}
+
+const ID_BUSCADOR = "buscar-productos";
+/** Desde aquí el panel vive en la página; debajo, en una hoja (Tailwind `md`). */
+const MEDIA_ESCRITORIO = "(min-width: 768px)";
+
+/** ¿Pantalla de computadora? En el servidor se responde «no» y el navegador corrige al hidratar: solo decide si el botón
+ *  «Filtros» se ve encendido, nunca qué se pinta (eso lo hace el CSS con `md:`). */
+function useEsEscritorio(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      const m = window.matchMedia(MEDIA_ESCRITORIO);
+      m.addEventListener("change", avisar);
+      return () => m.removeEventListener("change", avisar);
+    },
+    () => window.matchMedia(MEDIA_ESCRITORIO).matches,
+    () => false,
   );
 }

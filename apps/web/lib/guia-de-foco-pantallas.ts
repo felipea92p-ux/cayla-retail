@@ -189,6 +189,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
+  "components/FiltrosProductos.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Productos en el celular (ADR-0306): cada control filtra la lista al tocarlo y el botón dice cuántas prendas quedan; no hay nada que completar ni pasos que seguir." },
   "components/FiltrosMovimientos.tsx": PENDIENTE, // 3 controles
   "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
