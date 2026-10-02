@@ -132,3 +132,36 @@ cambios». Las decisiones 1 y 2 de arriba (lápiz al modal, lista agrupada por c
 
 Motivos del ajuste: los reales (`MOTIVOS_AJUSTE`: Reposición, Merma, Conteo físico, Otro), no los cuatro inventados de la maqueta; viene
 elegido «Conteo físico», como en la maqueta.
+
+## Actualización 2026-10-02 (noche): la tabla de «Unidades de hoy» y el stock que espera a guardar
+
+Felipe pidió que «Variantes y precios» tenga **el diseño de «Unidades de hoy» de Nuevo producto**, con todo lo que Editar ya hace, y que
+**el stock tocado con − / + muestre el botón de guardar**: «luego de guardados, el sistema te sugiere imprimir ese ticket en caso hayas
+añadido cantidad». Eso reemplaza el punto «El stepper ES el ajuste de inventario, no un campo» de la actualización de la tarde:
+
+- **La tabla** (`MatrizStockFicha.tsx`) es la de `MatrizCantidades`: cabecera y columna «Color» fijas, franja y punto del color,
+  filas alternadas, la caja − N + (que también se escribe: `fijarCelda` en `lib/matriz-ficha-reglas.ts`), columna y fila «Total».
+  Encima, las pestañas **Unidades de hoy · Precios · Costos** (Costos solo si la cuenta ve el dinero); en Precios y Costos va
+  «Cambiar en bloque» sin su selector propio (lo decide la pestaña) y cada celda es una caja de precio o de costo. Se mantiene lo de
+  Editar: variante nueva en ámbar punteado, el color que se toca para verlo en el panel, la talla que faltó en un conteo (su «+»
+  abre el modal, ADR-0291) y lo que cambió en ámbar hasta guardarlo.
+- **El stock espera a «Revisar y guardar»** (`useStockFicha.ts`): ya no hay lote a los 900 ms. Lo tocado cuenta en la barra
+  («Tienes N cambios sin guardar»), va en la hoja como grupo «Stock» («S · Plateado 3 → 5», con el motivo y el lugar) y sale en UNA
+  llamada a `ajustar_inventario` al confirmar, con el motivo, el lugar y el responsable de la visita (si falta el responsable,
+  «Revisar y guardar» lo pide antes de abrir la hoja). Si solo cambió el stock, no se llama a `catalogo_actualizar_producto`.
+  «Descartar» lo suelta (y «Deshacer» lo devuelve). Si la respuesta no llega, se relee la base y lo tocado se suelta (no se
+  reenvía a ciegas); si la base dice que no, lo tocado queda para volver a guardar. El modal «Ajustar stock» sigue guardando al
+  confirmarlo: es su propio formulario.
+- **Etiquetas de lo que entró:** el aviso de «guardado» ofrece «Imprimir N etiquetas» y, al volver a Productos, queda la franja
+  «prendas nuevas sin etiquetar». Las dos llevan a `/etiquetas-de-precio?unidades=id:n` (nuevo, `unidadesDeParam`): **una etiqueta
+  por unidad que entró**, no por todo el stock de la talla (las que ya estaban en la tienda ya tienen la suya). La pantalla lo dice
+  («Productos · Lo que entró», columna «Entraron») y vuelve a Productos.
+
+Por qué cambió de opinión el diseño: con el guardado al instante, la barra de cambios no aparecía al tocar el stock y no había un
+momento claro de «listo, guardé»; tampoco había dónde ofrecer las etiquetas. Ahora la ficha entera, stock incluido, se guarda con el
+mismo gesto. Lo que se pierde: un ajuste ya no queda registrado si la persona cierra la pestaña sin guardar (la ficha lo pregunta
+antes de salir, `useSalidaSinGuardar`, igual que con un precio).
+
+Cómo verificarlo: en una ficha con stock, + dos veces en una talla y escribir un número en otra → barra «Tienes 2 cambios» → «Revisar y
+guardar» → la hoja lista «Stock 2» con «3 → 5» → confirmar → aviso «stock ajustado en 2 tallas · Imprimir 4 etiquetas» y franja en
+Productos → la página de etiquetas propone 2 + 2.

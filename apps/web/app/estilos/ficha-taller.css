@@ -44,8 +44,12 @@
 .taller-sec[data-abierta="true"] .taller-chev {
   transform: rotate(180deg);
 }
+/* La columna es `minmax(0, 1fr)` y el hijo lleva `min-width: 0`: con la columna `auto` de fábrica, la grilla crecía hasta el
+   ancho mínimo de lo más ancho de adentro (la matriz de tallas) y todo el cuerpo se salía de la tarjeta por la derecha; el
+   `overflow-x-auto` de la matriz nunca llegaba a actuar. Así el cuerpo mide lo que la tarjeta y lo ancho se desplaza adentro. */
 .taller-sec-cuerpo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 0fr;
   transition: grid-template-rows 320ms var(--ease-cayla);
 }
@@ -54,6 +58,7 @@
 }
 .taller-sec-cuerpo > div {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 /* Abierta, lo de adentro puede asomar (listas flotantes de un combo, el halo de la guía). */
@@ -65,57 +70,22 @@
   transition: visibility 0s linear 320ms;
 }
 
-/* ---- La matriz color × talla ---- */
-.taller-matriz {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 5px;
-  font-size: 12.5px;
-  margin: 0 -5px;
+/* ---- La matriz color × talla ----
+   La tabla es la de «Unidades de hoy» del alta (`MatrizCantidades`, clases de Tailwind en `MatrizStockFicha.tsx`). Aquí solo lo que
+   Editar le suma a la caja − N + de cada celda: el borde ámbar de lo que cambió y espera a «Revisar y guardar», el punteado de una
+   variante nueva y el destello de la celda que se acaba de tocar. */
+.matriz-paso {
+  border-color: transparent;
 }
-.taller-matriz th {
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in oklab, var(--color-tinta) 45%, transparent);
-  font-weight: 600;
-  padding: 6px 8px;
-  text-align: center;
+.matriz-paso[data-cambiada="true"] {
+  border-color: var(--color-ambar);
 }
-.taller-matriz th:first-child {
-  text-align: left;
-}
-.taller-matriz td {
-  padding: 0;
-}
-.taller-celda {
-  position: relative;
-  border: 1px solid var(--color-sand);
-  border-radius: 10px;
-  padding: 7px 6px 6px;
-  text-align: center;
-  background: var(--color-hueso);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.taller-celda[data-tocada="true"] {
-  animation: taller-destello 480ms var(--ease-cayla);
-}
-.taller-celda[data-nueva="true"] {
+.matriz-paso[data-nueva="true"] {
   outline: 1.5px dashed var(--color-ambar);
-  outline-offset: -1.5px;
-  background: color-mix(in srgb, var(--color-ambar) 7%, var(--color-hueso));
+  outline-offset: 1px;
 }
-.taller-celda-vacia {
-  border: 1px dashed var(--color-sand);
-  border-radius: 10px;
-  height: 100%;
-  min-height: 52px;
-  display: grid;
-  place-items: center;
-  color: color-mix(in oklab, var(--color-tinta) 30%, transparent);
+.matriz-paso[data-tocada="true"] {
+  animation: taller-destello 480ms var(--ease-cayla);
 }
 @keyframes taller-destello {
   0%,
@@ -173,65 +143,6 @@
 }
 .taller-stepper[data-mini="true"] button:hover:not(:disabled) {
   background: var(--color-papel);
-}
-.taller-precio {
-  color: var(--color-taupe-profundo);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  border-bottom: 1px dashed transparent;
-  line-height: 1.3;
-}
-.taller-precio:hover:not(:disabled) {
-  border-bottom-color: currentColor;
-}
-.taller-precio[data-cambiado="true"] {
-  color: var(--color-ambar-profundo);
-  font-weight: 600;
-}
-.taller-precio-caja {
-  width: 58px;
-  border: 1px solid var(--color-taupe);
-  border-radius: 6px;
-  background: var(--color-papel);
-  padding: 1px 4px;
-  text-align: center;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  outline: none;
-}
-.taller-total {
-  font-weight: 600;
-  color: var(--color-taupe-profundo);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-.taller-fila-total td {
-  padding-top: 9px;
-  border-top: 1.5px solid var(--color-sand);
-  font-weight: 700;
-  color: var(--color-tinta);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.taller-fila-total td:first-child {
-  text-align: left;
-}
-.taller-fila-color {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 3px 5px;
-  margin: -3px -5px;
-  text-align: left;
-  transition: background-color 160ms;
-}
-.taller-fila-color:hover {
-  background: var(--color-hueso);
-}
-.taller-fila-color[aria-pressed="true"] {
-  background: var(--color-hueso);
 }
 .taller-fila-nueva {
   animation: anim-revelar-taller 320ms var(--ease-cayla) both;
@@ -519,7 +430,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .taller-celda[data-tocada="true"],
+  .matriz-paso[data-tocada="true"],
   .taller-fila-nueva,
   .taller-banner-nueva,
   .taller-panel,

@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { hrefEtiquetasDeSubidas, juntarSubidas } from "@/lib/matriz-ficha-reglas";
+import { conDesde } from "@/lib/vuelta-productos";
 
 // Recordatorio de «Imprimir etiquetas» (2026-10-02, Felipe: «que sea bastante visible y que no desaparezca hasta
 // cambiar de módulo»). Cuando un ajuste de stock desde la ficha de un producto SUBE alguna talla, hay una prenda más
@@ -15,11 +17,12 @@ import Link from "next/link";
 // se navega DENTRO de Productos y se desmonta al salir a otro módulo (Inventario, Ventas…) — es el mismo ciclo de
 // vida que pedía Felipe, sin inventar persistencia nueva (nada de localStorage: esto es de la VISITA, no de mañana).
 
-type LineaAumento = { varianteId: string; color: string | null; talla: string | null };
+/** `unidades`: cuántas entraron (Editar producto lo sabe al guardar); sin él, la etiqueta se pide por todo el stock de la talla. */
+type LineaAumento = { varianteId: string; color: string | null; talla: string | null; unidades?: number };
 
 type RecordatorioEtiquetasValor = {
   pendientes: readonly LineaAumento[];
-  /** Suma las variantes que subieron de stock en este ajuste (ignora las que ya estaban en la lista). */
+  /** Suma las variantes que subieron de stock en este ajuste; si ya estaban en la lista, se suman sus unidades. */
   agregar: (lineas: readonly LineaAumento[]) => void;
   limpiar: () => void;
 };
@@ -38,9 +41,15 @@ export function RecordatorioEtiquetasProvider({ children }: { children: ReactNod
 
   const agregar = useCallback((lineas: readonly LineaAumento[]) => {
     setPendientes((actual) => {
-      const yaVistas = new Set(actual.map((l) => l.varianteId));
-      const nuevas = lineas.filter((l) => !yaVistas.has(l.varianteId));
-      return nuevas.length > 0 ? [...actual, ...nuevas] : actual;
+      const conUnidades = lineas.filter((l) => l.unidades !== undefined);
+      const sinUnidades = lineas.filter((l) => l.unidades === undefined && !actual.some((a) => a.varianteId === l.varianteId));
+      if (conUnidades.length === 0 && sinUnidades.length === 0) return actual;
+      // Las de Editar producto traen cuántas: se suman a las que ya estaban (dos guardados en la misma visita = una etiqueta por unidad).
+      const sumadas = juntarSubidas(
+        actual.filter((a) => a.unidades !== undefined).map((a) => ({ ...a, unidades: a.unidades! })),
+        conUnidades.map((l) => ({ ...l, unidades: l.unidades! }))
+      );
+      return [...actual.filter((a) => a.unidades === undefined), ...sinUnidades, ...sumadas];
     });
   }, []);
   const limpiar = useCallback(() => setPendientes([]), []);
@@ -55,12 +64,18 @@ export function RecordatorioEtiquetasProvider({ children }: { children: ReactNod
 
 function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly LineaAumento[]; onLimpiar: () => void }) {
   if (pendientes.length === 0) return null;
-  const href = `/etiquetas-de-precio?variantes=${pendientes.map((l) => l.varianteId).join(",")}`;
+  // Si todas dicen cuántas entraron, se imprime justo eso; si alguna no lo sabe (vino del modal de ajuste), todo el stock de cada talla.
+  // La franja vive en Productos: «Volver» de Etiquetas regresa a Productos, no a Existencias.
+  const href = conDesde(
+    (pendientes.every((l) => l.unidades !== undefined) ? hrefEtiquetasDeSubidas(pendientes.map((l) => ({ ...l, unidades: l.unidades! }))) : null) ??
+      `/etiquetas-de-precio?variantes=${pendientes.map((l) => l.varianteId).join(",")}`,
+    "/productos"
+  );
   const detalle = pendientes.map((l) => `${l.color ?? "Sin color"} · ${l.talla ?? "Sin talla"}`).join(", ");
 
   // Sin `sticky`: la cabecera de la app ya es translúcida A PROPÓSITO para que el contenido pase por debajo al hacer
   // scroll (comentario de `AppShell.tsx` junto al `<header>`) — una segunda franja fija competiría con eso. Este
-  // banner vive en el flujo normal, arriba de cada pantalla de Productos, igual que `RevisarAltaBanner`.
+  // banner vive en el flujo normal, arriba de cada pantalla de Productos.
   return (
     <div role="status" className="anim-revelar mb-4 -mt-1 rounded-xl border border-ambar/50 bg-[color-mix(in_srgb,var(--color-ambar)_10%,var(--color-papel))] px-4 py-3 sm:px-5">
       <div className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-x-3 gap-y-1.5">
