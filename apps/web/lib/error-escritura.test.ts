@@ -45,6 +45,15 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("Ya existe un producto con ese nombre");
   });
 
+  it("el mismo nombre en la misma marca (índice por marca, ADR-0294) dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "productos_marca_referencia_clave_unica"', code: "23505" },
+      "crear el producto",
+    );
+    expect(salida).not.toContain("productos_marca_referencia_clave_unica");
+    expect(salida).toContain("en esa marca");
+  });
+
   it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
     expect(salida).not.toContain("etiquetas_clave_unica");
