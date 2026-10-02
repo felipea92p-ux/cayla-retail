@@ -8,8 +8,10 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
-import { estadoDeUrl, estadoParaBase } from "@/lib/productos-filtros";
+import { disponibilidadDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
+import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
@@ -19,7 +21,7 @@ import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 // `supabase/migrations/0002_esquema.sql`). `productos.stock_minimo` sí se
 // sumó (20260915160000_productos_listado_filtros.sql, decisión de Felipe)
 // como umbral de "stock bajo" en /productos — lo usan `listarProductos`/
-// `getResumenProductos` más abajo, y se edita desde `ProductoForm.tsx`.
+// `getFacetasProductos` más abajo, y se edita desde `ProductoForm.tsx`.
 export type VarianteCatalogo = {
   varianteId: string;
   sku: string;
@@ -185,17 +187,27 @@ export type FiltrosProductos = {
   /** De qué marca y/o qué proveedor lo trae (20260918231300). Los dos se pueden combinar: la base solo deja parejas válidas. */
   marcaId?: string;
   proveedorId?: string;
-  colorCodigo?: string;
+  /** Varios colores y familias a la vez (ADR-0308): la prenda pasa si tiene UNA variante de alguno de esos colores o de
+   *  alguna de esas familias, que además cumpla talla, precio y stock (`fn_productos_listado`, 20261002200000). */
+  colores: string[];
+  familias: string[];
+  tallas: string[];
+  /** Clave de `fn_temporadas()` o `sin`: la temporada de cada color (la del color, si no la del producto, si no la de su
+   *  categoría), exigida a la misma variante que los demás filtros. */
+  temporada?: string;
+  /** Lo que le falta a la ficha («Por completar»). */
+  falta?: Falta;
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
-  /** "reponer" = punto de reorden (20260916100000): demanda × tiempo de
-   *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
-   *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
-  stock?: "sin_stock" | "bajo" | "reponer";
+  /** Disponibilidad (ADR-0308): en la sede elegida (`en_sede`, `sin_sede`) o en la red (`sin_red`, `bajo`, `reponer`). «reponer» =
+   *  punto de reorden (20260916100000): demanda × tiempo de entrega + stock_minimo. */
+  stock?: Disponibilidad;
+  /** La sede elegida arriba: la que miran `en_sede` y `sin_sede`. La pone la página (no viene de la URL). */
+  ubicacionId?: string;
   /** Orden del catálogo (20260917180000; recientes, antiguos y vendidos: 20260929180000) — null/undefined = por
-   *  referencia, el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen` no pagina, así que nunca le llega
-   *  (ver `paramsFiltrosProductos`). Las opciones y sus rótulos: `lib/productos-orden.ts`. */
+   *  referencia, el de siempre. Solo lo entiende el listado; los conteos (`fn_productos_facetas`) no paginan, así que
+   *  nunca les llega. Las opciones y sus rótulos: `lib/productos-orden.ts`. */
   orden?: OrdenProductos;
 };
 
@@ -205,7 +217,12 @@ export type ParamsProductosListado = {
   cat?: string;
   marca?: string;
   proveedor?: string;
+  /** Una o varias, separadas por coma (`color=NEG,AZM`); lo mismo `familia` y `talla` (ids). */
   color?: string;
+  familia?: string;
+  talla?: string;
+  temporada?: string;
+  falta?: string;
   estado?: string;
   precioMin?: string;
   precioMax?: string;
@@ -221,6 +238,12 @@ export const PRODUCTOS_POR_PAGINA = 20;
 
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 
+/** La sede elegida, para los filtros que la miran. Sin sede (CAYLA Global), «Hay en …» y «Sin stock en …» no se aplican. */
+export function conSede(filtros: FiltrosProductos, ubicacionId: string | null): FiltrosProductos {
+  if (ubicacionId) return { ...filtros, ubicacionId };
+  return filtros.stock === "en_sede" || filtros.stock === "sin_sede" ? { ...filtros, stock: undefined } : filtros;
+}
+
 /** Traduce la URL a filtros, descartando cualquier valor que no calce con su forma. */
 export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosProductos {
   return {
@@ -229,14 +252,18 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     // `sin` = los que no tienen (ADR-0283): a la base llega como el uuid nulo, que `fn_productos` entiende como «sin marca».
     marcaId: filtroDeMarcaOProveedor(p.marca),
     proveedorId: filtroDeMarcaOProveedor(p.proveedor),
-    colorCodigo: p.color?.trim() || undefined,
+    colores: listaDeUrl(p.color).filter((c) => /^[A-Za-z0-9_-]{1,20}$/.test(c)),
+    familias: listaDeUrl(p.familia).filter((f) => FAMILIAS_COLOR.some((x) => x.valor === f)),
+    tallas: listaDeUrl(p.talla).filter(esUuid),
+    temporada: temporadaDeUrl(p.temporada),
+    falta: faltaDeUrl(p.falta),
     // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
     estado: estadoParaBase(estadoDeUrl(p.estado)),
     // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
     precioMin: leerMonto(p.precioMin ?? "") ?? undefined,
     precioMax: leerMonto(p.precioMax ?? "") ?? undefined,
-    stock:
-      p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
+    // Las de la sede se validan otra vez en la página, que sabe si hay sede elegida (`conSede`).
+    stock: disponibilidadDeUrl(p.stock, true),
     orden: leerOrdenProductos(p.orden),
   };
 }
@@ -276,69 +303,48 @@ export type PaginaProductos = {
   pagina: number;
 };
 
-export type ResumenProductos = {
-  totalProductos: number;
-  totalVariantes: number;
-  stockBajo: number;
-  sinStock: number;
-  reponerDeProveedor: number;
-};
 
-/** Los `p_*` que `fn_productos` y `fn_productos_resumen` comparten. Se
- *  omite la clave en vez de mandar `null`: los Args generados los tipan
- *  `string | undefined` (opcionales), no `string | null`. `orden` se excluye
- *  a propósito (como `stock`): `fn_productos_resumen` no lo acepta — no
- *  pagina, no hay nada que "ordenar". */
-function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">) {
+
+
+
+/** Los `p_*` de `fn_productos_listado` (20261002200000, ADR-0308): el listado que filtra por VARIANTE (color, precio y
+ *  stock se exigen a la misma), sin variantes desactivadas. Se omite la clave en vez de mandar `null` (Args opcionales). */
+function paramsListado(filtros: FiltrosProductos) {
   return {
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
     ...(filtros.marcaId ? { p_marca_id: filtros.marcaId } : {}),
     ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-    ...(filtros.colorCodigo ? { p_color_codigo: filtros.colorCodigo } : {}),
+    ...(filtros.colores.length ? { p_colores: filtros.colores } : {}),
+    ...(filtros.familias.length ? { p_familias: filtros.familias } : {}),
+    ...(filtros.tallas.length ? { p_tallas: filtros.tallas } : {}),
+    ...(filtros.temporada ? { p_temporada: filtros.temporada } : {}),
+    ...(filtros.falta ? { p_falta: filtros.falta } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
+    ...(filtros.stock ? { p_disponibilidad: filtros.stock } : {}),
+    ...(filtros.ubicacionId ? { p_ubicacion_id: filtros.ubicacionId } : {}),
   };
 }
 
-/** El precio más bajo y el más alto de lo que se está viendo, SIN el propio filtro de precio: si lo contara, el rango se
- *  encogería solo cada vez que se mueve. Reemplaza al tope escrito a mano (S/ 999, con la prenda más cara a S/ 119).
- *  Provisorio (tanda 1 del filtro, ADR-0308): son dos páginas de UN producto de `fn_productos`, ordenadas por precio, y el
- *  máximo es el de la prenda cuyo precio más bajo es el más alto (con tallas a distinto precio puede quedarse corto; el tope
- *  del control igual manda «sin tope»). La tanda 2 lo reemplaza por la función de facetas, exacta.
- *  `null` si no se pudo saber: el control de arrastre no se dibuja y las cajas «Desde / Hasta» siguen funcionando. */
-export async function getPreciosExtremos(filtros: FiltrosProductos): Promise<{ min: number; max: number } | null> {
+/** Cuántas prendas hay en cada opción del filtro, el rango real del precio y sus tramos (`fn_productos_facetas`,
+ *  20261002200100; ADR-0308), con los MISMOS filtros que la lista. Reemplaza al resumen viejo (`fn_productos_resumen`) y a
+ *  la consulta provisoria de los límites de precio. `null` si no se pudo: la pantalla muestra todas las opciones sin número
+ *  y el precio solo con sus cajas (se degrada, nunca se cae). */
+export async function getFacetasProductos(filtros: FiltrosProductos): Promise<FacetasProductos | null> {
   const supabase = await createClient();
-  // Sin `p_stock`: con él, cada una de las dos llamadas calcula el stock de TODO el catálogo (la parte cara). Los límites salen
-  // del catálogo con los demás filtros; el control igual manda «sin tope» en sus puntas.
-  const base = {
-    ...paramsFiltrosProductos({ ...filtros, precioMin: undefined, precioMax: undefined }),
-    p_pagina: 1,
-    p_por_pagina: 1,
-  };
-  const [bajo, alto] = await Promise.all([
-    supabase.rpc("fn_productos", { ...base, p_orden: "precio_asc" }),
-    supabase.rpc("fn_productos", { ...base, p_orden: "precio_desc" }),
-  ]);
-  if (bajo.error || alto.error) return null;
-  // Todas las variantes, activas o no: es el mismo criterio con que la base eligió ese producto y con que aplica el filtro
-  // de precio. Contar solo las activas daba un mínimo que no era el de ningún producto. La tanda 2 deja afuera las inactivas
-  // en los dos lados a la vez.
-  const precios = (filas: { precio: number }[] | null) => (filas ?? []).map((f) => Number(f.precio));
-  const bajos = precios(bajo.data);
-  const altos = precios(alto.data);
-  if (bajos.length === 0 || altos.length === 0) return null;
-  return { min: Math.min(...bajos), max: Math.max(...altos) };
+  const { data, error } = await supabase.rpc("fn_productos_facetas", paramsListado(filtros));
+  if (error) return null;
+  return leerFacetas(data);
 }
 
 /** Catálogo filtrado y paginado (por producto) server-side, para /productos. */
 export async function listarProductos(filtros: FiltrosProductos, pagina: number): Promise<PaginaProductos> {
   const supabase = await createClient();
   const filas = exigir(
-    await supabase.rpc("fn_productos", {
-      ...paramsFiltrosProductos(filtros),
-      ...(filtros.stock ? { p_stock: filtros.stock } : {}),
+    await supabase.rpc("fn_productos_listado", {
+      ...paramsListado(filtros),
       ...(filtros.orden ? { p_orden: filtros.orden } : {}),
       p_pagina: pagina,
       p_por_pagina: PRODUCTOS_POR_PAGINA,
@@ -419,13 +425,13 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
 }
 
 /** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
- *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos`
- *  con `stock = reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
+ *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos_listado`
+ *  con la disponibilidad `reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
  *  definición de "hay que reponer".
  *
- *  Recibe LOS MISMOS filtros que la tarjeta «Pedir a proveedor» (`getResumenProductos`), para que
- *  la suma de este bloque sea exactamente el número de esa tarjeta: dos cifras distintas para lo
- *  mismo en una misma pantalla es lo que hace que nadie confíe en ninguna.
+ *  Recibe LOS MISMOS filtros que el conteo «Pedir a proveedor» del filtro (`getFacetasProductos`), para que
+ *  la suma de este bloque sea exactamente ese número: dos cifras distintas para lo mismo en una misma
+ *  pantalla es lo que hace que nadie confíe en ninguna.
  *
  *  Es un complemento de la pantalla, no la pantalla: si la consulta falla (p. ej. el SQL de
  *  proveedores todavía no está en producción y `fn_productos` no devuelve `proveedor_id`), el bloque
@@ -437,9 +443,9 @@ export async function getReposicionPorProveedor(
   const supabase = await createClient();
   const filas: FilaReposicion[] = [];
   for (let pagina = 1; pagina <= 3; pagina++) {
-    const { data, error } = await supabase.rpc("fn_productos", {
-      ...paramsFiltrosProductos(filtros),
-      p_stock: "reponer",
+    const { data, error } = await supabase.rpc("fn_productos_listado", {
+      ...paramsListado({ ...filtros, stock: undefined }),
+      p_disponibilidad: "reponer",
       p_pagina: pagina,
       p_por_pagina: 100,
     });
@@ -468,26 +474,6 @@ export async function getExistenciasProductos(productoIds: string[], ubicacionId
   return leerExistenciasProductos(data);
 }
 
-/** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`
- *  menos `stock`/`orden`: esas dos cifras (stock bajo/sin stock) son lo que
- *  el resumen calcula, no algo que ya llega filtrado (igual que Movimientos
- *  no le pasa la categoría a su propio resumen), y "orden" no significa nada
- *  sin paginado. */
-export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">): Promise<ResumenProductos> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase.rpc("fn_productos_resumen", paramsFiltrosProductos(filtros)),
-    "el resumen del catálogo"
-  );
-  const r = filas[0];
-  return {
-    totalProductos: Number(r?.total_productos ?? 0),
-    totalVariantes: Number(r?.total_variantes ?? 0),
-    stockBajo: Number(r?.stock_bajo ?? 0),
-    sinStock: Number(r?.sin_stock ?? 0),
-    reponerDeProveedor: Number(r?.reponer_de_proveedor ?? 0),
-  };
-}
 
 /** Una variante dentro de la ficha de edición — a diferencia de
  *  `VarianteCatalogo`, trae `colorCodigo`/`codigo` (hacen falta para

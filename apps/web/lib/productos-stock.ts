@@ -177,8 +177,10 @@ export const MENSAJE_SIN_RESULTADOS = "Ningún producto calza con esos filtros."
  * dejaría a una persona sin contexto pensando que el catálogo está vacío.
  */
 export function mensajeSinResultados(filtros: { estado?: string; stock?: string }, { descontinuadas = 0 }: { descontinuadas?: number } = {}): string {
-  if (filtros.estado === "descontinuado" && filtros.stock) {
-    return "Las prendas descontinuadas no cuentan como sin stock, con stock bajo ni para pedir. Quita el filtro de stock para verlas.";
+  // Solo las disponibilidades que exigen una prenda que se vende (sin stock aquí o en la red, bajo, pedir): «Hay en [sede]»
+  // sí trae descontinuadas con stock.
+  if (filtros.estado === "descontinuado" && filtros.stock && filtros.stock !== "en_sede") {
+    return "Las prendas descontinuadas no cuentan como sin stock, con stock bajo ni para pedir. Quita el filtro de Disponibilidad para verlas.";
   }
   // Desde el 2026-10-02 la lista abre solo con las activas: si lo buscado está descontinuado, se dice, en vez de dejar creer
   // que la prenda no existe.
