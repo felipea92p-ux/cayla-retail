@@ -163,21 +163,6 @@ const HUELLAS: Huella[] = [
     frase: "La nota es muy larga: hasta 200 caracteres. Acórtala y vuelve a cobrar.",
   },
   {
-    // 20260914215103_codigos_descuento.sql — una Colaboradora solo descuenta con código.
-    marca: "venta_descuento_requiere_codigo",
-    frase: "Para aplicar un descuento necesitas un código válido. Pídeselo a un Líder, o quita el descuento.",
-  },
-  {
-    // Misma migración — el código no existe, está inactivo, venció o es de otra sede.
-    marca: "venta_codigo_descuento_invalido",
-    frase: (codigo) => `El código ${codigo} no es válido o ya venció. Revísalo o pídele otro a un Líder.`,
-  },
-  {
-    // Misma migración — el % del código es el tope de cada línea.
-    marca: "venta_descuento_supera_codigo",
-    frase: (tope) => `Ese código permite hasta un ${tope} % de descuento. Baja el descuento o usa otro código.`,
-  },
-  {
     // 20260915140000_descuento_motivo_y_escalonado.sql — cualquier descuento > 0 pide un
     // motivo de la lista (R-45). El detalle es «referencia (sku)».
     marca: "venta_descuento_requiere_motivo",

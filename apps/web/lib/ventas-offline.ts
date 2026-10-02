@@ -82,6 +82,8 @@ export type ParamsRegistrarVenta = {
    *  si al subir la ficha ya se unió a otra, la base la liga a la que quedó, y si se anonimizó, la rechaza
    *  (`clienta_anonimizada`) y la cola la muestra como rechazo, igual que una caja cerrada (ADR-0036). */
   p_cliente_id?: string;
+  /** Ya no se manda (Felipe, 2026-10-01: el descuento no pide código). Queda opcional porque una venta encolada antes
+   *  puede traerlo; la base lo acepta y no lo lee. */
   p_codigo_descuento?: string;
   p_nota?: string;
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que

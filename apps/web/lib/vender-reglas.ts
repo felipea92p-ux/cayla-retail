@@ -296,7 +296,7 @@ export function esDescuentoDeCampana(l: { descuentoUnitario: number; razonDescue
   return l.descuentoUnitario > 0 && l.razonDescuento === RAZON_CAMPANA;
 }
 
-/** ¿Hay algún descuento puesto A MANO? Solo ese pide código a una colaboradora. */
+/** ¿Hay algún descuento puesto A MANO? Solo ese se puede quitar desde el ticket. */
 export function hayDescuentoManual(carrito: readonly { descuentoUnitario: number; razonDescuento: string }[]): boolean {
   return carrito.some((l) => l.descuentoUnitario > 0 && l.razonDescuento !== RAZON_CAMPANA);
 }
@@ -391,7 +391,7 @@ export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitar
 }
 
 /** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
-export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "codigo" | "prendas" | "listo";
+export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "prendas" | "listo";
 
 /** El primer campo que falta llenar del apartado «Descuento»: la pantalla lo ilumina y, al
  *  terminar uno, lleva el foco al siguiente. Solo GUÍA: lo que impide aplicar sigue siendo
@@ -402,15 +402,12 @@ export function pasoDelDescuento(e: {
   razonOtro: string;
   pideArgumento: boolean;
   argumento: string;
-  pideCodigo: boolean;
-  codigo: string;
   prendas: number;
 }): PasoDescuento {
   if (!e.valorValido) return "valor";
   if (e.razon === "") return "motivo";
   if (e.razon === "otro" && e.razonOtro.trim() === "") return "motivoOtro";
   if (e.pideArgumento && e.argumento.trim() === "") return "argumento";
-  if (e.pideCodigo && e.codigo.trim() === "") return "codigo";
   if (e.prendas === 0) return "prendas";
   return "listo";
 }
