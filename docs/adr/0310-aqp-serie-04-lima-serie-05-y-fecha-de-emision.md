@@ -1,6 +1,6 @@
 # ADR-0310 — Arequipa pasa a la serie 04, Lima a la 05, y la fecha de emisión es la de la venta
 
-**Fecha:** 2026-10-02 · **Estado:** decidido por Felipe con lo que le dijo Lucode; script **hecho y probado en local, SIN pegar en producción** (lo pega Felipe) · Relacionado: ADR-0278 (series de la SUNAT real), ADR-0165, ADR-0093, ADR-0016.
+**Fecha:** 2026-10-02 · **Estado:** decidido por Felipe con lo que le dijo Lucode; script **probado en local y PEGADO en producción el 2026-10-02** (con el ok de Felipe, después de desplegar el arreglo de la fecha) · Relacionado: ADR-0278 (series de la SUNAT real), ADR-0165, ADR-0093, ADR-0016.
 
 ## Contexto
 
