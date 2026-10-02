@@ -160,9 +160,9 @@ describe("ordenarColores", () => {
     const r = ordenarColores(colores, { NEG: 5, AZM: 4, VIN: 3 }, FAMILIAS_COLOR, 2);
     expect(r.frecuentes).toHaveLength(2);
   });
-  it("agrupa por familia en el orden de la lista y no pierde un color sin familia", () => {
+  it("agrupa por familia en el orden de la lista (el del espectro: rojo antes que azul) y no pierde un color sin familia", () => {
     const r = ordenarColores(colores, {}, FAMILIAS_COLOR);
-    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "azul", "rojo", "sin-familia"]);
+    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "rojo", "azul", "sin-familia"]);
     expect(r.grupos.flatMap((g) => g.colores)).toHaveLength(colores.length);
   });
 });

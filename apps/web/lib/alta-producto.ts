@@ -13,6 +13,8 @@
 //   NO HACE: no valida contra la base (duplicados, vocabulario aprobado) —
 //            eso lo hacen `buscar_productos_parecidos` y la RPC de alta.
 
+import { enEscala } from "./color-escala";
+
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
 /** Espejo de `retail.fn_titulo_referencia`: "  blusa  CAMILA " → "Blusa Camila". */
@@ -105,28 +107,8 @@ export function codigosRepetidos(codigos: readonly (string | null)[]): number[] 
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
 export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
 
-/** Qué tan claro se ve un color, de 0 (negro) a 255 (blanco), con los pesos de visión humana (verde pesa más que azul). Sin #hex válido
- *  devuelve `null`: ese color no tiene tono que ordenar y se va al final. */
-export function claridadDeHex(hex: string | null | undefined): number | null {
-  if (!hex || !/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return null;
-  const c = hex.length === 4 ? hex.slice(1).replace(/./g, "$&$&") : hex.slice(1);
-  const r = parseInt(c.slice(0, 2), 16);
-  const g = parseInt(c.slice(2, 4), 16);
-  const b = parseInt(c.slice(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000;
-}
-
-/** El orden de la carta DENTRO de una familia (Felipe, 2026-10-02): del más claro al más oscuro. Se calcula del tono y no se confía
- *  en `colores.orden`: un color recién creado entraba con cualquier posición y quedaba fuera de lugar. Sin tono, al final; el empate
- *  se desempata por nombre para que el orden sea siempre el mismo. */
-export function deClaroAOscuro(a: ColorAlta, b: ColorAlta): number {
-  const ca = claridadDeHex(a.hex);
-  const cb = claridadDeHex(b.hex);
-  if (ca === null && cb === null) return a.nombre.localeCompare(b.nombre, "es");
-  if (ca === null) return 1;
-  if (cb === null) return -1;
-  return cb - ca || a.nombre.localeCompare(b.nombre, "es");
-}
+// El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
+// que un color recién creado dejaba fuera de lugar, ni en el brillo del RGB, que subestima los azules (ADR-0310).
 
 /** Los `max` colores más usados en la categoría (solo los que tienen uso) al frente; el resto agrupado por familia de color, en el orden de `familias`. */
 export function ordenarColores(
@@ -140,11 +122,11 @@ export function ordenarColores(
     .sort((a, b) => (usoEnCategoria[b.codigo] ?? 0) - (usoEnCategoria[a.codigo] ?? 0) || a.nombre.localeCompare(b.nombre, "es"))
     .slice(0, max);
   const grupos = familias
-    .map((f) => ({ familia: f.valor, texto: f.texto, colores: colores.filter((c) => c.familiaColor === f.valor).sort(deClaroAOscuro) }))
+    .map((f) => ({ familia: f.valor, texto: f.texto, colores: colores.filter((c) => c.familiaColor === f.valor).sort(enEscala) }))
     .filter((g) => g.colores.length > 0);
   const conocidas = new Set(familias.map((f) => f.valor));
   // Un color sin familia conocida (dato viejo) no debe desaparecer de la pantalla.
-  const huerfanos = colores.filter((c) => !conocidas.has(c.familiaColor)).sort(deClaroAOscuro);
+  const huerfanos = colores.filter((c) => !conocidas.has(c.familiaColor)).sort(enEscala);
   if (huerfanos.length > 0) grupos.push({ familia: "sin-familia", texto: "Otros", colores: huerfanos });
   return { frecuentes, grupos };
 }
