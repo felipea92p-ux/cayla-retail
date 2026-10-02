@@ -9,7 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/productos-vista";
+import { coloresDe, mezclar, rangoSoles, variantesQueSeVenden, type ColorDisponible } from "@/lib/productos-vista";
 import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
 import {
   alertaDeStock,
@@ -190,7 +190,7 @@ function TarjetaProducto({
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(producto.variantes.map((v) => v.precio)) ?? "—"}</span>
+          <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}</span>
           <span
             title={EXPLICACION_STOCK_TOTAL}
             className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}
@@ -351,7 +351,7 @@ function VistaRapidaModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand">
-                {producto.variantes.map((v) => (
+                {variantesQueSeVenden(producto.variantes).map((v) => (
                   <tr key={v.varianteId} className={v.activo ? "" : "opacity-50"}>
                     <td className="py-2 pr-3 text-tinta/80">{v.talla ?? "—"}</td>
                     <td className="py-2 pr-3 text-tinta/80">{v.color ?? "—"}</td>

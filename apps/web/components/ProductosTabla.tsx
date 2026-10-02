@@ -36,6 +36,7 @@ import {
   UMBRAL_MARGEN_BAJO,
   type ColorDisponible,
   type MargenProducto,
+  variantesQueSeVenden,
 } from "@/lib/productos-vista";
 import { margenPorcentaje } from "@/lib/alta-producto";
 import { useResponsable } from "@/lib/useResponsable";
@@ -120,9 +121,9 @@ export function ProductosTabla({
         p,
         colores: coloresDe(p.variantes),
         tallas: tallasDe(p.variantes),
-        precio: rangoSoles(p.variantes.map((v) => v.precio)) ?? "—",
-        costo: rangoSoles(p.variantes.map((v) => (tieneCosto(v.costo) ? v.costo : null))),
-        margen: margenDe(p.variantes),
+        precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+        costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
+        margen: margenDe(variantesQueSeVenden(p.variantes)),
         alerta: alertaDeStock(p),
         lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
         rotacion: describirRotacion(p.demandaDiaria),
@@ -677,7 +678,7 @@ function FichaVariantes({
     <div className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[10.5px] text-tinta/60">
-          {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
+          {variantesQueSeVenden(p.variantes).length} {variantesQueSeVenden(p.variantes).length === 1 ? "variante" : "variantes"}
           {fila.colores.length > 0 && ` · ${fila.colores.length} ${fila.colores.length === 1 ? "color" : "colores"}`}
           {fila.tallas.length > 0 && ` · ${fila.tallas.length} ${fila.tallas.length === 1 ? "talla" : "tallas"}`}
         </p>
@@ -691,7 +692,7 @@ function FichaVariantes({
         </p>
       </div>
       <ul className="grid gap-2 @xl:grid-cols-2 @5xl:grid-cols-3">
-        {ordenarVariantes(p.variantes).map((v) => {
+        {ordenarVariantes(variantesQueSeVenden(p.variantes)).map((v) => {
           const m = costoPorVariante && tieneCosto(v.costo) ? margenPorcentaje(v.precio, v.costo) : null;
           const descripcion = [v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante");
           return (
