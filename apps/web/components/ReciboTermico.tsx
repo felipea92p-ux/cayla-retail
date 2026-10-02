@@ -34,7 +34,8 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *    lo que necesita SUNAT (serie-número, QR) va aparte y no compite con eso.
  *  · El logo es el isotipo del colibrí en negro (`filter: brightness(0)`), no el PNG terracota.
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
- *  · Al final, el QR del club (`recibo.club`, armado en `lib/club-qr-reglas.ts`): la página de registro de la tienda.
+ *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
+ *    QR del cartel del mostrador.
  */
 export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
@@ -176,22 +177,6 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         <p className="rt-negrita">¡Gracias por tu compra!</p>
       </footer>
 
-      {/* El QR del club (ADR-0288 act. g, G-1): después del pie y lejos del de SUNAT, para que nadie escanee uno por el otro.
-          Abre la página de registro del Club CAYLA de la tienda de la venta, el mismo QR del cartel: ahí ella se une sola y,
-          si quiere, marca la casilla de WhatsApp (Ley 32323). El enlace pesa ~70 bytes (origen + /club/ + uuid): a nivel L y
-          30 mm cada módulo mide cerca de 1 mm, holgado para la térmica. */}
-      {recibo.club && (
-        <>
-          <div className="rt-linea" />
-          <div className="rt-centro rt-pie">
-            <p className="rt-negrita">{recibo.club.titulo}</p>
-            <p>{recibo.club.linea}</p>
-            <div className="rt-qr">
-              <QRCodeSVG value={recibo.club.enlace} size={256} level="L" marginSize={0} style={{ width: "30mm", height: "30mm", margin: "0 auto" }} />
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

@@ -1019,3 +1019,15 @@ Felipe pidió un cartel más llamativo y una página mejor, con animaciones, y e
   opcional) con una barra de avance; el final entrega una **tarjeta de socia digital** (nombre, código, desde cuándo) y, si es
   su mes, el aviso del cupón de cumpleaños.
 - **Movimiento:** propio de esta página, documentado en ADR-0136 act. (f).
+
+## Actualización 2026-10-01 (j): el saludo sin la frase de la BAJA, y el ticket sin QR del club
+
+Felipe, 2026-10-01, después de ver la página publicada:
+- **El saludo, versión 2** (`20261001223000_club_saludo_v2_sin_baja.sql`). El mensaje que ella envía a la tienda al unirse ya
+  no termina con «Sé que me doy de baja escribiendo BAJA.». Como `club_textos` no se edita, es una versión nueva. Cómo darse
+  de baja lo siguen diciendo la casilla de WhatsApp y la Política de privacidad (2.8), que es lo que ella acepta. Los
+  **avisos** de la tienda siguen cerrando con «responde BAJA»: el candado `club_textos_aviso_con_baja` sigue igual, porque
+  cada mensaje promocional tiene que decir cómo dejar de recibirlos.
+- **El ticket impreso ya no lleva QR del club.** Se fueron `clubEnElTicket`, el campo `club` del recibo y el bloque del QR en
+  `ReciboTermico`. El papel lleva solo el QR de SUNAT. La clienta se une con el QR del cartel del mostrador (G-1), que sigue
+  igual.
