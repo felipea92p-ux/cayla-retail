@@ -97,7 +97,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -132,7 +132,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color }));
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))

@@ -21,6 +21,11 @@ export function textoPildoraVarias(etiqueta: string, elegidas: readonly string[]
   return { etiqueta, valor: elegidas.length > 2 ? `${primeras} +${elegidas.length - 2}` : primeras };
 }
 
+/** Cómo se ve la casilla de una opción en una lista de varias que tiene jerarquía (Color: familia y tonos): `marcada` (elegida),
+ *  `cubierta` (un tono dentro de una familia marcada: ya está incluido), `parcial` (una familia con algunos de sus tonos marcados, no
+ *  todos) o `libre`. Una lista sin jerarquía no lo usa: la casilla sale de `valores`, como siempre. */
+export type EstadoCasilla = "libre" | "marcada" | "parcial" | "cubierta";
+
 /** Marcar o desmarcar una opción dentro de una píldora de varias. */
 export function alternarEnLista(lista: readonly string[], valor: string): string[] {
   return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
