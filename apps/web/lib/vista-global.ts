@@ -48,6 +48,11 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
  *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). */
 export const RUTAS_DE_LA_VISTA_GLOBAL = ["/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso"] as const;
 
+/** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
+ *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde
+ *  dónde enviar, aunque las fichas sí sean de toda la empresa. */
+export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos"] as const;
+
 /** Adónde se manda a quien abre, estando en CAYLA Global, una pantalla que trabaja en una sede. */
 export const RUTA_ELEGIR_SEDE = "/global/elige-sede";
 
@@ -67,10 +72,12 @@ export function modulosEnLaVista<T extends { clave: ClaveModulo }>(vista: Vista,
 }
 
 /** ¿Esta ruta se puede abrir en CAYLA Global? La propia ruta o cualquiera que cuelgue de ella (`/finanzas/gastos`), nunca
- *  una que solo empiece igual (`/finanzasx`). Las de API no son pantallas: las decide cada una. */
+ *  una que solo empiece igual (`/finanzasx`) ni una de las de sede de adentro (`/clientas/avisos`). Las de API no son
+ *  pantallas: las decide cada una. */
 export function rutaDeLaVistaGlobal(pathname: string): boolean {
   if (pathname.startsWith("/api/")) return true;
-  return RUTAS_DE_LA_VISTA_GLOBAL.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+  const cuelga = (r: string) => pathname === r || pathname.startsWith(`${r}/`);
+  return RUTAS_DE_LA_VISTA_GLOBAL.some(cuelga) && !RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL.some(cuelga);
 }
 
 /** El alcance por defecto de una pantalla de Finanzas: en CAYLA Global, «todas» las sedes; parado en una sede, el de

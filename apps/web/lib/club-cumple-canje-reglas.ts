@@ -227,9 +227,16 @@ export type FilaCumple =
 /**
  * Qué muestra la fila del cumpleaños. null = nada del canje: la caja sigue con lo de la tanda 1b («Cumple el 18 de
  * setiembre» o «Sin cumpleaños»). `aplicado`: la asesora tocó «Canjear» en esta venta (y sigue disponible). `canjeadoEl`: el
- * día del canje (`cumple_canjeado_el`); sin él la fila dice «este año».
+ * día del canje (`cumple_canjeado_el`); sin él la fila dice «este año». `valeAplicado` (tanda 1g, G-13): el vale de
+ * aniversario ya está en esta compra, y va una sola ventaja del club por compra: el botón se apaga y dice por qué.
  */
-export function filaDelCumple(estado: CumpleEnCaja, aplicado: boolean, canjeadoEl: string | null, ahora: Date = new Date()): FilaCumple | null {
+export function filaDelCumple(
+  estado: CumpleEnCaja,
+  aplicado: boolean,
+  canjeadoEl: string | null,
+  ahora: Date = new Date(),
+  valeAplicado = false
+): FilaCumple | null {
   if (estado.tipo === "canjeado") {
     const dia = diaYMesCorto(canjeadoEl);
     return {
@@ -250,6 +257,14 @@ export function filaDelCumple(estado: CumpleEnCaja, aplicado: boolean, canjeadoE
       bajada: "Sin conexión el botón se apaga",
       boton: { texto: "Sin conexión", primario: false, accion: null },
       pildora: { texto: "Sin conexión", accion: null },
+    };
+  }
+  if (valeAplicado && !aplicado) {
+    return {
+      ...base,
+      bajada: "Ya usa su vale de aniversario: una sola ventaja del club por compra",
+      boton: { texto: textoBotonCumple(estado.pct), primario: false, accion: null },
+      pildora: { texto: textoBotonCumple(estado.pct), accion: null },
     };
   }
   return {
@@ -302,6 +317,8 @@ const RECHAZOS_DEL_CANJE: ReadonlyMap<string, { releer: boolean; queHacer: (pct:
   ["cumple_fuera_de_mes", { releer: true, queHacer: (p: string) => `Su mes ya terminó (hora de Lima). Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
   ["cumple_no_socia", { releer: true, queHacer: (p: string) => `Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
   ["cumple_descuento_distinto", { releer: true, queHacer: (p: string) => `El % del club pudo cambiar mientras cobrabas. Quité el ${p} %: vuelve a tocar «Canjear» para calcularlo de nuevo.` }],
+  // Tanda 1g: una sola ventaja del club por compra (la caja no manda las dos; si igual llega, se apaga y se relee).
+  ["club_un_cupon_por_compra", { releer: true, queHacer: (p: string) => `Va una sola ventaja del club por compra. Quité el ${p} %: elige una y vuelve a confirmar el cobro.` }],
   // Estos no dependen de ella: la pantalla los evita, y si igual llegan, se apaga y se dice.
   ["cumple_sin_clienta", { releer: false, queHacer: (p: string) => `Quité el ${p} %: elige a la clienta y vuelve a tocar «Canjear».` }],
   ["cumple_sin_canje", { releer: false, queHacer: (p: string) => `Quité el ${p} %: vuelve a tocar «Canjear» y confirma otra vez.` }],

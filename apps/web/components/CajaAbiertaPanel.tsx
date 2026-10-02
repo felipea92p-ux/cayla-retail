@@ -124,11 +124,11 @@ export function CajaAbiertaPanel({
     esLider: boolean;
     hoy: string;
   } | null;
-  /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0303): el cierre ya sale abierto. */
+  /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
-  // El recordatorio de cierre (ADR-0303) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
+  // El recordatorio de cierre (ADR-0305) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
   // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
   useEffect(() => {
     if (abrirCierre) window.history.replaceState(null, "", window.location.pathname);

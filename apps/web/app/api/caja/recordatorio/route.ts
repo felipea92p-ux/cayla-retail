@@ -1,7 +1,7 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCifrasRecordatorio, leerRecordatorioCierre } from "@/lib/recordatorio-cierre";
 
-// GET /api/caja/recordatorio[?cifras=1] → la hora de cierre de la sede y su caja abierta, para el recordatorio de cierre (ADR-0303).
+// GET /api/caja/recordatorio[?cifras=1] → la hora de cierre de la sede y su caja abierta, para el recordatorio de cierre (ADR-0305).
 //
 // PROMETE: `{ datos }` con la caja abierta de LA SEDE de quien pregunta (la sede sale de la sesión, nunca de un parámetro), o
 //   `datos: null` si la cuenta no recibe el recordatorio. Con `?cifras=1` suma `{ cifras }`: el efectivo esperado y las ventas

@@ -108,17 +108,17 @@ export function ConteoVista({
       {/* Sin `overflow-hidden` en la tarjeta: el calendario del filtro se abre hacia abajo y una tarjeta que recorta lo cortaría. La
           lista lleva su propio recorte para sus esquinas. */}
       <section className="card-cayla @container" aria-labelledby="conteos-recientes">
-        <div className="space-y-3 px-4 pb-3 pt-3.5 @[36rem]:px-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 id="conteos-recientes" className="font-display text-lg text-tinta">
-              Conteos recientes
-            </h2>
-            {recientes.mostrados.length > 0 && (
-              <p className="text-xs text-taupe" aria-live="polite">
-                {textoTotalRecientes(recientes)}
-              </p>
-            )}
-          </div>
+        {/* Título y filtro en UNA fila (se acomodan en dos cuando no caben). El total de conteos ya no va arriba a la derecha: cada
+            día dice cuántos trae y el pie dice qué se está viendo; aquí queda solo para el lector de pantalla, que oye el cambio. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pb-4 pt-4 @[36rem]:px-5">
+          <h2 id="conteos-recientes" className="font-display text-lg text-tinta">
+            Conteos recientes
+          </h2>
+          {recientes.mostrados.length > 0 && (
+            <p className="sr-only" aria-live="polite">
+              {textoTotalRecientes(recientes)}
+            </p>
+          )}
           {(conteos.length > 0 || recientes.dia !== null) && (
             <FiltroConteosRecientes
               dia={recientes.dia}
@@ -134,7 +134,7 @@ export function ConteoVista({
         <div className="overflow-hidden rounded-b-xl">
           {recientes.mostrados.length > 0 ? (
             <>
-              <ConteosLista grupos={agruparPorDia(recientes.mostrados, recientes.hoy)} />
+              <ConteosLista grupos={agruparPorDia(recientes.mostrados)} hoy={recientes.hoy} />
               <p className="border-t border-sand px-4 py-2.5 text-xs text-taupe @[36rem]:px-5">{textoPieRecientes(recientes)}</p>
             </>
           ) : recientes.dia !== null ? (

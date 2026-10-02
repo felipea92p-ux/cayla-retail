@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faltaEnPrendaSinRegistrar, opcionesDeColor, pasoSiguiente, sugerirDescripcion, tallasDeCategoria, usoDeColores } from "./prenda-sin-registrar-reglas";
+import { faltaEnPrendaSinRegistrar, opcionesDeColor, pasoSiguiente, gruposDeTallas, sugerirDescripcion, tallasDeCategoria, usoDeColores } from "./prenda-sin-registrar-reglas";
 
 const completa = { descripcion: "Blusa lino beige", categoriaId: "c", tallaId: "t", colorCodigo: "BEI", precio: 50 };
 
@@ -20,13 +20,42 @@ describe("faltaEnPrendaSinRegistrar", () => {
 });
 
 describe("tallasDeCategoria", () => {
-  const todas = [{ id: "s", valor: "S" }, { id: "m", valor: "M" }, { id: "28", valor: "28" }, { id: "xs", valor: "XS" }];
+  const todas = [{ id: "s", valor: "S" }, { id: "m", valor: "M" }, { id: "28", valor: "28" }, { id: "xs", valor: "XS" }, { id: "u", valor: "Única" }];
   it("solo las de la categoría, en el orden de la grilla", () => {
     expect(tallasDeCategoria([{ id: "m", texto: "M" }, { id: "xs", texto: "XS" }, { id: "s", texto: "S" }], todas).map((t) => t.valor)).toEqual(["XS", "S", "M"]);
   });
-  it("una categoría sin tallas configuradas ofrece todas (se puede vender igual)", () => {
-    expect(tallasDeCategoria(undefined, todas).map((t) => t.valor)).toEqual(["XS", "S", "M", "28"]);
-    expect(tallasDeCategoria([], todas)).toHaveLength(4);
+  it("una categoría sin tallas configuradas ofrece solo «Única»: nunca una talla ajena (Felipe, 2026-10-01)", () => {
+    expect(tallasDeCategoria(undefined, todas).map((t) => t.valor)).toEqual(["Única"]);
+    expect(tallasDeCategoria([], todas).map((t) => t.valor)).toEqual(["Única"]);
+  });
+  it("si categoria_tallas no cargó, ofrece todas: la caja no se cae por una lista secundaria", () => {
+    expect(tallasDeCategoria(undefined, todas, false)).toHaveLength(5);
+  });
+});
+
+describe("gruposDeTallas", () => {
+  const t = (v: string) => ({ id: v, valor: v });
+  const ropa = ["XS", "S", "M", "L", "XL", "XXL", "Estándar"].map(t);
+  it("habituales adelante, las otras después y «Estándar» aparte", () => {
+    const g = gruposDeTallas(ropa, ["S", "M", "L"]);
+    expect(g.unica).toBeNull();
+    expect(g.habituales.map((x) => x.valor)).toEqual(["S", "M", "L"]);
+    expect(g.otras.map((x) => x.valor)).toEqual(["XS", "XL", "XXL"]);
+    expect(g.estandar?.valor).toBe("Estándar");
+  });
+  it("una sola talla (aretes: «Única») se pone sola", () => {
+    expect(gruposDeTallas([t("Única")], ["Única"]).unica?.valor).toBe("Única");
+  });
+  it("sin curva habitual, todas adelante", () => {
+    const g = gruposDeTallas([t("26"), t("28")], undefined);
+    expect(g.habituales.map((x) => x.valor)).toEqual(["26", "28"]);
+    expect(g.otras).toEqual([]);
+    expect(g.estandar).toBeNull();
+  });
+  it("no repite ni pierde tallas", () => {
+    const g = gruposDeTallas(ropa, ["S", "M", "L"]);
+    const juntas = [...g.habituales, ...g.otras, ...(g.estandar ? [g.estandar] : [])].map((x) => x.valor).sort();
+    expect(juntas).toEqual(ropa.map((x) => x.valor).sort());
   });
 });
 

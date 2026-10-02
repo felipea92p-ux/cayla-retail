@@ -39,3 +39,24 @@ Candados en la base: `anular_venta` salta la línea pendiente y la tabla pasa a 
 ## Cómo se verifica
 
 `pnpm pruebas:prendas-por-regularizar` (15 casos con ROLLBACK contra el Postgres local): datos incompletos, cantidad 2, fila pendiente, anular pendiente, cambio bloqueado, venta normal sin fila, las dos formas de regularizar con su efecto en stock, diferencia negativa y positiva, doble regularización, forma inválida, centinela como destino, sin stock para descontar, otra sede y anular una regularizada. Vitest: `prenda-sin-registrar-reglas`, `por-regularizar-reglas`, `transmision-reglas` e `inicio-reglas`. En el navegador (local, 2026-09-23): el modal de caja y la línea en el ticket, la pestaña con una vencida y una regularizada, y la cola en el inicio del líder.
+
+## Actualización 2026-10-01 — el modal se rediseña («etiqueta en vivo») y las tallas son las de la categoría
+
+Felipe eligió entre tres maquetas (`docs/maquetas/prenda-sin-registrar-2026-10/`) la **C, «Etiqueta en vivo»**, más ancha y con más
+íconos: a la izquierda se elige, a la derecha se arma la etiqueta provisional que almacén va a recibir (ícono de la categoría con el
+tono de su familia, talla grande, color, precio y la descripción). En celular la etiqueta es una franja arriba. Íconos por **prefijo**
+(`IconoCategoria`, nunca por nombre), también en la lista del combo junto a las tallas habituales de cada categoría.
+
+**Tallas acordes a la categoría** (Felipe, 2026-10-01):
+
+- Solo las de `categoria_tallas`; las **habituales** (`categoria_tallas.habitual`: S·M·L, 28·30·32, 35–40) adelante, las demás de esa
+  categoría más tenues debajo, y **«Estándar»** aparte, donde la categoría la tiene (`gruposDeTallas`).
+- Una categoría con **una sola talla** («Única»: aretes, bolsos, relojes… 15 en producción) la pone sola y la guía pasa al color.
+- Al cambiar de categoría, la talla elegida se borra si la nueva no la ofrece.
+- **Categoría sin tallas configuradas → solo «Única»** (antes: todas). Nunca una talla ajena a la categoría; la venta no se traba y
+  almacén corrige al regularizar. Si `categoria_tallas` ni siquiera cargó, se siguen ofreciendo todas (principio 9: la caja no se cae
+  por una lista secundaria). Al 2026-10-01 ninguna categoría activa de producción está sin tallas.
+- Dato raro visto en producción (solo lectura, 2026-10-01): «Pantalones» tiene la talla **44** junto a 26–34. No se tocó; queda para Felipe.
+
+Movimiento (ADR-0136): cada dato entra en la etiqueta con `anim-revelar` (240 ms), el ícono se asienta (`anim-asentar`), el borde pasa
+a verde cuando está lista; nada en bucle y todo se apaga con `prefers-reduced-motion`. No cambió qué se puede agregar al ticket.

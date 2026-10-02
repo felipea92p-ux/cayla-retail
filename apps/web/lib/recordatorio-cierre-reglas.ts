@@ -1,4 +1,4 @@
-// El recordatorio de cierre de caja (ADR-0303, maqueta «Isla» de `docs/maquetas/recordatorio-cierre-caja-2026-10/`).
+// El recordatorio de cierre de caja (ADR-0305, maqueta «Isla» de `docs/maquetas/recordatorio-cierre-caja-2026-10/`).
 //
 // PROMETE: dado el instante actual, la hora de cierre de la tienda (`ubicaciones.hora_cierre`, hora de Lima) y cuándo se
 //   abrió la caja que sigue abierta, dice en qué nivel está el recordatorio y cuántos minutos pasaron de la hora:

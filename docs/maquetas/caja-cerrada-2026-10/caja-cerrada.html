@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caja cerrada · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Vender con la caja cerrada (2026-10-01)
+   Pedido de Felipe: con la caja cerrada, el POS ya no solo se apaga
+   (opacity .5): todo el fondo se desenfoca y en el medio aparece un aviso
+   grande de «Abrir caja», sofisticado y con mucho movimiento.
+   Tres maquetas para elegir: A Vitrina · B Persiana · C Pulso.
+   Fondo = el POS del spike «ticket a lo alto» (docs/maquetas/punto-venta-ticket-alto-2026-09/).
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);--ease:cubic-bezier(.32,.72,.24,1);--telon:cubic-bezier(.6,.02,.2,1)}
+@property --r{syntax:'<length>';inherits:false;initial-value:0px}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.l{width:22px;height:22px}
+
+/* ---------- barra del spike ---------- */
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.75)}
+.spk .acc{height:30px;padding:0 12px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);color:var(--crema);font-size:12.5px}
+.spk .acc:hover{background:rgba(245,240,232,.08)}
+.escena{padding:22px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.ley{max-width:1320px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--t80)}.ley b{font-weight:600;color:var(--tinta)}
+.ley h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;color:var(--tinta);margin-bottom:2px}
+.ley ul{margin:6px 0 0 18px}.ley li{margin:2px 0}
+.ley .ojo{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--hueso);font-size:12.5px}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.desk{margin:0 auto}
+
+/* ---------- el POS de fondo (escritorio) ---------- */
+.desk{width:1320px;height:820px;flex:none;position:relative;overflow:hidden;border-radius:14px;background:var(--crema);border:1px solid var(--t30);box-shadow:0 30px 60px -30px rgba(26,26,24,.45)}
+.top{position:relative;z-index:45;height:54px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:10px;padding:0 22px;font-size:11px;letter-spacing:.12em;color:var(--t65);background:var(--crema)}
+.top .marca{font-weight:700;letter-spacing:.24em;color:var(--tinta);margin-right:auto;display:flex;align-items:center;gap:10px}
+.top .sede{height:30px;display:flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta);font-weight:600}
+.pos{position:absolute;inset:72px 22px 18px;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+.lugar{color:var(--taupe);font-size:11px;white-space:nowrap}
+.b{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;color:var(--t80);white-space:nowrap}
+.b.fuerte{background:var(--tinta);color:var(--crema);border-color:var(--tinta);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px}
+.cat{min-height:0;overflow:hidden;padding:14px 18px;display:flex;flex-direction:column}
+.fila-cat{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.fila-cat .hoy-t{margin-left:auto;font-size:12px;color:var(--t65);display:flex;align-items:center;gap:5px}
+.busca-f{display:flex;gap:8px}.busca{flex:1;display:flex;align-items:center;gap:10px;height:50px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t50);font-size:15px}
+.busca.foco{border-color:var(--tinta);animation:foco 1.4s var(--ease) both}
+@keyframes foco{0%{box-shadow:0 0 0 0 rgba(26,26,24,.18)}40%{box-shadow:0 0 0 6px rgba(26,26,24,.10)}100%{box-shadow:0 0 0 3px rgba(26,26,24,.06)}}
+.busca .cursor{width:1.5px;height:20px;background:var(--tinta);margin-left:-6px;order:-1;animation:parpadeo 1.1s steps(1) infinite}
+@keyframes parpadeo{50%{opacity:0}}
+.sinreg{height:50px;padding:0 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.filt{display:flex;align-items:center;gap:10px;margin:12px 0 8px;font-size:11.5px;color:var(--t65)}.sw{width:34px;height:19px;border-radius:10px;background:var(--tinta);position:relative}.sw::after{content:"";position:absolute;right:3px;top:3px;width:13px;height:13px;border-radius:50%;background:var(--crema)}
+.pills{display:flex;gap:6px;margin-bottom:12px}.pl{height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center}.pl.on{background:var(--tinta);color:var(--crema)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:9px;position:relative}
+.foto{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:22px;color:rgba(26,26,24,.35);position:relative}
+.foto .c{position:absolute;left:6px;bottom:6px;font:600 9px 'DM Sans';letter-spacing:.12em;color:var(--t65);background:rgba(251,248,242,.8);padding:2px 5px;border-radius:4px}
+.card h4{font-weight:500;font-size:13.5px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card .co{font-size:11.5px;color:var(--t65)}
+.tl{display:flex;gap:4px;margin:6px 0}.t{min-width:22px;height:21px;padding:0 5px;border-radius:5px;border:1px solid var(--sand);background:var(--hueso);font-size:10px;font-weight:600;display:grid;place-items:center}
+.pie{display:flex;justify-content:space-between;font-size:13px}.pie b{font-weight:600}.pie span{font-size:10.5px;color:var(--t65)}
+.tk{min-height:0;display:flex;flex-direction:column;background:var(--papel);border-left:1px solid var(--sand)}
+.tk-cab{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--sand);flex:none}
+.tk-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}
+.cli{margin:10px 18px 0;display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px dashed var(--t30);border-radius:12px;font-size:13px;color:var(--t65);flex:none}.cli span{margin-left:auto;font-size:11px;color:var(--t50)}
+.vacio{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--t65);font-size:13px}.vacio b{color:var(--tinta);font-weight:500;font-size:14px}
+.tpie{padding:10px 18px 16px;border-top:1px solid var(--sand);flex:none}
+.tot{display:flex;align-items:flex-end}.tot .d{font-size:12px;color:var(--t65);line-height:1.6}.tot .g{margin-left:auto;text-align:right}.tot .g .v{font-family:'EB Garamond',serif;font-size:42px;line-height:1;font-weight:500}
+.cobrar{margin-top:10px;width:100%;height:54px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;padding:0 18px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.4}.cobrar b{margin-left:auto;font-family:'EB Garamond',serif;font-size:21px;letter-spacing:0;font-weight:500}
+/* el POS «vuelve a la vida» al abrir */
+.vive .card{animation:vive .55s var(--ease) both;animation-delay:calc(var(--i) * 45ms + 80ms)}
+.vive .fila-cat,.vive .busca-f,.vive .filt,.vive .pills{animation:vive .5s var(--ease) both}
+.vive .busca-f{animation-delay:40ms}.vive .filt{animation-delay:80ms}.vive .pills{animation-delay:120ms}
+.vive .tk{animation:vive-x .6s .1s var(--ease) both}
+@keyframes vive{from{opacity:0;transform:translate3d(0,10px,0)}}
+@keyframes vive-x{from{opacity:0;transform:translate3d(14px,0,0)}}
+
+/* ---------- celular ---------- */
+.tels{display:flex;gap:30px;flex-wrap:wrap;justify-content:center}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+.pn{width:375px;height:796px;border-radius:39px;overflow:hidden;position:relative;background:var(--crema)}
+.mtop{position:relative;z-index:45;height:50px;padding:14px 16px 0;display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;font-weight:600;background:var(--crema)}.mtop .sd{margin-left:auto;font-size:10.5px;letter-spacing:.1em;border:1px solid var(--sand);border-radius:8px;padding:5px 9px;background:var(--papel)}
+.pn .sc{position:absolute;inset:50px 0 0;overflow:hidden}
+.mcab{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px 4px}
+.mcab .lugar{width:100%;margin:0 0 4px 2px}
+.mcab .hoy-m{margin-left:auto;font-size:11.5px;color:var(--t65)}
+.mbusca{display:flex;gap:6px;padding:6px 12px}.mqr{flex:1;height:48px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}.mi{width:48px;height:48px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center}
+.mqr.foco{animation:foco 1.4s var(--ease) both}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px}
+.mgrid .card h4{font-size:13px}
+
+/* =====================================================================
+   LA CAPA DE «CAJA CERRADA» (común a las tres)
+   Cubre todo lo que está bajo la barra de arriba. La barra (menú y sede)
+   queda nítida a propósito: con la caja cerrada se puede cambiar de sede.
+   ===================================================================== */
+.capa{position:absolute;left:0;right:0;bottom:0;top:54px;z-index:40;overflow:hidden}
+.pn .capa{top:50px}
+.capa .velo{position:absolute;inset:0}
+.cas{animation:cascada .55s var(--ease) both}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+@keyframes aparece{from{opacity:0}}
+@keyframes entra{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+kbd{font:600 11px 'DM Sans';border:1px solid var(--sand);border-bottom-width:2px;border-radius:6px;padding:1px 6px;background:var(--crema);color:var(--tinta)}
+.atajo{margin-top:10px;font-size:12px;color:var(--t65)}
+.punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rojo);position:relative;flex:none}
+.punto.bucle::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--rojo);animation:late 2.4s var(--ease) infinite}
+@keyframes late{0%{transform:scale(1);opacity:.55}70%,100%{transform:scale(2.8);opacity:0}}
+
+/* ---------- el formulario «Abrir caja» (el de hoy, AbrirCajaFormV2) ---------- */
+.form{text-align:left}
+.eti-f{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.h-f{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.1;margin-top:2px}
+.baj-f{font-size:13.5px;color:var(--t80);margin-top:8px}.baj-f b{font-weight:600;color:var(--tinta);white-space:nowrap}
+.ops{display:grid;gap:8px;margin-top:14px}
+.op{display:flex;align-items:flex-start;gap:12px;text-align:left;padding:13px 14px;border:1px solid var(--sand);border-radius:14px;background:var(--crema);transition:border-color .2s,background .2s}
+.op small{display:block;font-size:12px;color:var(--t65)}
+.op .rd{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--t30);margin-top:1px;flex:none;position:relative;transition:border-color .2s}
+.op .rd::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--tinta);transform:scale(0);transition:transform .3s var(--ease)}
+.op.on{border-color:var(--tinta);background:var(--papel)}.op.on .rd{border-color:var(--tinta)}.op.on .rd::after{transform:scale(1)}
+.op b{font-weight:600}
+.lab-f{display:block;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-top:14px}
+.inp{display:flex;align-items:center;gap:8px;height:52px;margin-top:6px;padding:0 14px;border-radius:12px;background:var(--hueso);border:1px solid var(--sand)}
+.inp span{color:var(--t65)}.inp input{flex:1;border:0;background:transparent;outline:0;font-family:'EB Garamond',serif;font-size:26px}
+.inp:focus-within{border-color:var(--tinta);background:var(--papel)}
+.otro{overflow:hidden;animation:cascada .35s var(--ease) both}
+.pie-f{display:flex;gap:8px;margin-top:18px}
+.sec{height:50px;padding:0 18px;border-radius:12px;border:1px solid rgba(26,26,24,.25);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.prim{flex:1;height:50px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;transition:background .25s}
+.prim b{font-family:'EB Garamond',serif;font-size:18px;letter-spacing:0;font-weight:500;text-transform:none}
+.prim:hover{background:var(--rojo)}
+.prim:disabled{opacity:.4;pointer-events:none}
+
+/* ---------- la hoja (modal estándar de la casa, para B y C) ---------- */
+.modal-capa{position:absolute;inset:0;z-index:5;display:flex;justify-content:center;align-items:flex-start;padding-top:70px}
+.modal-capa .velo2{position:absolute;inset:0;background:rgba(26,26,24,.22);backdrop-filter:blur(3px);animation:aparece .22s both}
+.modal-capa .hoja{position:relative;width:460px;background:var(--papel);border-radius:20px;padding:24px 26px;animation:entra .42s var(--ease) both;box-shadow:0 30px 64px -22px rgba(26,26,24,.35)}
+.modal-capa .hoja>*{animation:cascada .5s var(--ease) both}
+.modal-capa.abajo{align-items:flex-end;padding:0}
+.modal-capa.abajo .hoja{width:100%;border-radius:22px 22px 0 0;animation:hoja-sube .38s var(--ease) both;padding:22px 18px 26px}
+@keyframes hoja-sube{from{transform:translateY(100%)}}
+.modal-capa.sale .velo2{animation:aparece .22s reverse both}
+.modal-capa.sale .hoja{animation:hoja-sale .22s var(--ease) both}
+@keyframes hoja-sale{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+.modal-capa.abajo.sale .hoja{animation:hoja-baja .26s var(--ease) both}
+@keyframes hoja-baja{to{transform:translateY(100%)}}
+
+/* ---------- aviso de éxito (sale DESPUÉS de que la capa se va, ADR-0149) ---------- */
+.aviso{position:absolute;right:28px;top:66px;z-index:60;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 16px 12px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 18px 44px -14px rgba(26,26,24,.25);animation:aviso .45s var(--ease) both;font-size:13px}
+.aviso .ok{width:28px;height:28px;border-radius:50%;background:rgba(72,96,63,.14);color:var(--verde);display:grid;place-items:center}
+.aviso small{display:block;color:var(--t65);font-size:12px}
+.aviso.fuera{animation:aviso-sale .3s var(--ease) both}
+.pn .aviso{left:12px;right:12px;top:58px}
+@keyframes aviso{from{opacity:0;transform:translate3d(16px,0,0)}}
+@keyframes aviso-sale{to{opacity:0;transform:translate3d(0,-8px,0)}}
+.visto path{stroke-dasharray:1;stroke-dashoffset:1;animation:dibuja .5s .1s var(--ease) both}
+
+/* =====================================================================
+   A · VITRINA — vidrio empañado crema + tarjeta de papel que se vuelve el formulario
+   ===================================================================== */
+@keyframes A-velo{from{-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1);background:rgba(245,240,232,0)}to{-webkit-backdrop-filter:blur(18px) saturate(.7);backdrop-filter:blur(18px) saturate(.7);background:rgba(245,240,232,.52)}}
+@keyframes A-velo-out{from{-webkit-backdrop-filter:blur(18px) saturate(.7);backdrop-filter:blur(18px) saturate(.7);background:rgba(245,240,232,.52)}to{-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1);background:rgba(245,240,232,0)}}
+.A .velo{animation:A-velo .9s var(--ease) both}
+.A.fuera .velo{animation:A-velo-out .85s var(--ease) both}
+.A .luz{position:absolute;left:50%;top:50%;width:1000px;height:1000px;margin:-500px 0 0 -500px;border-radius:50%;background:radial-gradient(closest-side,rgba(251,248,242,.9),rgba(251,248,242,0));animation:aparece 1.2s .2s both;pointer-events:none}
+.A.fuera .luz{animation:aparece .5s reverse both}
+.A .centro{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:24px}
+.A .tarjeta{width:min(540px,100%);background:var(--papel);border:1px solid var(--sand);border-radius:28px;padding:34px 40px 30px;text-align:center;box-shadow:0 40px 80px -30px rgba(26,26,24,.28),0 0 0 8px rgba(251,248,242,.55);animation:entra .62s .25s var(--ease) both;overflow:hidden;transition:height .48s var(--ease)}
+.A .tarjeta.cambia>*{transition:opacity .18s,transform .18s;opacity:0;transform:translateY(-6px)}
+.A .tarjeta.sale-t{animation:t-sale .45s var(--ease) both}
+@keyframes t-sale{to{opacity:0;transform:translate3d(0,-14px,0) scale(.97)}}
+.ilus{width:150px;height:112px;margin:0 auto 4px;position:relative}
+.ilus svg{width:100%;height:100%;overflow:visible;position:relative}
+.ilus .aura{position:absolute;left:50%;top:56%;width:190px;height:190px;margin:-95px 0 0 -95px;border-radius:50%;background:radial-gradient(closest-side,rgba(184,65,45,.10),rgba(184,65,45,0));animation:aparece 1s .9s both}
+.ilus .aura.bucle{animation:aparece 1s .9s both,respira 4.5s 1.9s ease-in-out infinite alternate}
+@keyframes respira{from{transform:scale(.9);opacity:.7}to{transform:scale(1.12);opacity:1}}
+.dib{fill:none;stroke:var(--tinta);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:dibuja 1.1s var(--ease) both}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+.candado .dib{stroke:var(--rojo-p);stroke-width:1.9}
+.candado .cuerpo{fill:var(--papel)}
+.grillete{transform-origin:132px 80px;transition:transform .6s var(--ease)}
+.ilus.abierta .grillete{transform:translateY(-6px) rotate(28deg)}
+.ilus.abierta .candado .dib{stroke:var(--verde);transition:stroke .4s}
+.A .eti{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--taupe);margin-top:6px}
+.A .eti i{height:1px;width:46px;background:var(--taupe);opacity:.55;transform:scaleX(0);animation:hilo .8s .7s var(--ease) both}
+.A .eti i:first-child{transform-origin:right}.A .eti i:last-child{transform-origin:left}
+@keyframes hilo{to{transform:scaleX(1)}}
+.tit{text-wrap:balance;font-family:'EB Garamond',serif;font-weight:500;font-size:44px;line-height:1.06;letter-spacing:-.01em;margin-top:10px}
+.w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em}
+.w>span{display:inline-block;animation:palabra .75s var(--ease) both}
+@keyframes palabra{from{transform:translateY(108%)}}
+.A .baj{text-wrap:balance;font-size:14.5px;color:var(--t80);margin:12px auto 0;max-width:410px}
+.datos{display:grid;grid-template-columns:repeat(3,1fr);margin-top:22px;border:1px solid var(--sand);border-radius:16px;background:var(--crema);text-align:center}
+.datos>div{padding:12px 8px}.datos>div+div{border-left:1px solid var(--sand)}
+.datos small{display:block;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.datos b{display:block;font-family:'EB Garamond',serif;font-size:22px;font-weight:500;line-height:1.2;margin-top:3px;white-space:nowrap}
+.datos span{font-size:11.5px;color:var(--t65)}
+.cta{position:relative;overflow:hidden;margin-top:22px;width:100%;height:62px;border-radius:16px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:12px;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;transition:background .25s,transform .25s var(--ease)}
+.cta:hover{background:var(--rojo)}.cta:active{transform:scale(.985)}
+.cta .flecha{transition:transform .3s var(--ease)}.cta:hover .flecha{transform:translateX(5px)}
+.cta .brillo{position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(245,240,232,.22) 50%,transparent 65%);transform:translateX(-100%);animation:brillo 1.1s 1.9s var(--ease) both;pointer-events:none}
+.cta .brillo.bucle{animation:brillo-b 6s 1.9s var(--ease) infinite}
+@keyframes brillo{to{transform:translateX(100%)}}
+@keyframes brillo-b{0%{transform:translateX(-100%)}20%,100%{transform:translateX(100%)}}
+.listo{text-align:center}
+.listo h3{font-family:'EB Garamond',serif;font-weight:500;font-size:34px;margin-top:6px}
+.listo p{color:var(--t65);font-size:14px}
+.sello{width:46px;height:46px;border-radius:50%;background:rgba(72,96,63,.14);color:var(--verde);display:grid;place-items:center;margin:8px auto 0;animation:entra .4s .3s var(--ease) both}
+.sello svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* celular */
+.A.movil .centro{padding:16px;align-items:center}
+.A.movil .tarjeta{padding:26px 20px 22px;border-radius:24px}
+.A.movil .ilus{width:118px;height:88px}
+.A.movil .eti{gap:8px;white-space:nowrap}.A.movil .eti i{width:18px}
+.A.movil .tit{font-size:31px}
+.A.movil .baj{font-size:13.5px}
+.A.movil .datos b{font-size:18px}.A.movil .datos small{font-size:8.5px}
+.A.movil .cta{height:58px}
+.A.movil .atajo{display:none}
+
+/* =====================================================================
+   B · PERSIANA — la tienda baja la persiana y cuelga el cartel «Cerrado»
+   ===================================================================== */
+@keyframes B-velo{from{-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1);background:rgba(26,26,24,0)}to{-webkit-backdrop-filter:blur(12px) saturate(.55);backdrop-filter:blur(12px) saturate(.55);background:rgba(26,26,24,.56)}}
+@keyframes B-velo-out{from{-webkit-backdrop-filter:blur(12px) saturate(.55);backdrop-filter:blur(12px) saturate(.55);background:rgba(26,26,24,.56)}to{-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1);background:rgba(26,26,24,0)}}
+.B .velo{animation:B-velo .8s var(--ease) both}
+.B.fuera .velo{animation:B-velo-out .9s .25s var(--ease) both}
+.B .persiana{position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(26,26,24,.30) 0 21px,rgba(245,240,232,.10) 21px 22px,rgba(26,26,24,.48) 22px 26px);transform:translateY(-101%);animation:baja 1.05s .1s var(--telon) both}
+.B .persiana::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(#2c2a27,#1a1a18);border-top:1px solid rgba(245,240,232,.14)}
+.B .persiana .manija{position:absolute;bottom:11px;left:50%;width:76px;height:8px;margin-left:-38px;border-radius:4px;background:rgba(245,240,232,.22);z-index:1}
+@keyframes baja{to{transform:none}}
+.B.fuera .persiana,.B.fuera .escenario{animation:sube-p 1s var(--telon) both}
+@keyframes sube-p{from{transform:none}to{transform:translateY(-101%)}}
+.B .barrido{position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 42%,rgba(245,240,232,.07) 50%,transparent 58%);background-size:260% 100%;background-position:130% 0;opacity:0}
+.B .barrido.bucle{opacity:1;animation:barre 8s 2.4s linear infinite}
+@keyframes barre{from{background-position:130% 0}to{background-position:-30% 0}}
+.B .escenario{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px 40px;color:var(--crema);text-align:center}
+.colgante{display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;animation:cuelga 1.7s .85s cubic-bezier(.3,.6,.3,1) both}
+@keyframes cuelga{0%{opacity:0;transform:translateY(-90px) rotate(-9deg)}28%{opacity:1;transform:translateY(0) rotate(6deg)}50%{transform:rotate(-3.4deg)}70%{transform:rotate(1.6deg)}86%{transform:rotate(-.6deg)}100%{transform:none}}
+.meneo{display:flex;flex-direction:column;align-items:center;transform-origin:50% 0}
+.meneo.bucle{animation:meneo 5s 2.6s ease-in-out infinite alternate}
+@keyframes meneo{from{transform:rotate(-.9deg)}to{transform:rotate(.9deg)}}
+.clavo{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f5f0e8,#9d9488);box-shadow:0 2px 4px rgba(0,0,0,.4)}
+.cuerdas{width:220px;height:62px;margin-top:-6px;overflow:visible}
+.cuerdas path{fill:none;stroke:rgba(245,240,232,.55);stroke-width:1.4}
+.cartel-wrap{perspective:900px;margin-top:-4px}
+.cartel{width:320px;height:128px;position:relative;transform-style:preserve-3d;transition:transform .9s var(--ease)}
+.cartel.vuelta{transform:rotateY(180deg)}
+.cara{position:absolute;inset:0;border-radius:18px;background:var(--papel);color:var(--tinta);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 34px 50px -22px rgba(0,0,0,.6);border:1px solid var(--sand)}
+.cara::before,.cara::after{content:"";position:absolute;top:9px;width:7px;height:7px;border-radius:50%;background:var(--hueso);box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.cara::before{left:52px}.cara::after{right:52px}
+.cara b{font-family:'EB Garamond',serif;font-weight:500;font-size:54px;line-height:1;display:flex;align-items:center;gap:14px;letter-spacing:-.01em}
+.cara small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.cara .punto{width:12px;height:12px}
+.dorso{transform:rotateY(180deg)}.dorso .punto{background:var(--verde)}
+.B .texto h2{text-wrap:balance;font-family:'EB Garamond',serif;font-weight:500;font-size:40px;line-height:1.1;margin-top:34px}
+.B .texto p{font-size:15px;color:rgba(245,240,232,.85);margin:10px auto 0;max-width:440px}
+.B .cta{max-width:380px;margin:26px auto 0;background:var(--crema);color:var(--tinta)}
+.B .cta:hover{background:var(--rojo);color:var(--crema)}
+.B .cta .brillo{background:linear-gradient(105deg,transparent 35%,rgba(184,65,45,.14) 50%,transparent 65%)}
+.B .info{margin-top:16px;font-size:12.5px;color:rgba(245,240,232,.65);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.B .info i{width:3px;height:3px;border-radius:50%;background:rgba(245,240,232,.45)}
+.B .atajo{color:rgba(245,240,232,.55)}.B kbd{background:transparent;color:var(--crema);border-color:rgba(245,240,232,.35)}
+.B .texto{transition:opacity .35s var(--ease),transform .35s var(--ease)}
+.B.abierto .texto{opacity:0;transform:translate3d(0,8px,0)}
+/* celular */
+.B.movil .escenario{padding:0 16px 40px}
+.B.movil .cuerdas{width:170px;height:48px}
+.B.movil .cartel{width:250px;height:104px}
+.B.movil .cara b{font-size:42px}.B.movil .cara::before{left:40px}.B.movil .cara::after{right:40px}
+.B.movil .texto h2{font-size:29px;margin-top:26px}
+.B.movil .texto p{font-size:14px}
+.B.movil .atajo{display:none}
+
+/* =====================================================================
+   C · PULSO — texto grande, un botón redondo que late, tres pasos; sale como un iris
+   ===================================================================== */
+@keyframes C-velo{from{-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1);opacity:0}to{-webkit-backdrop-filter:blur(22px) saturate(.6);backdrop-filter:blur(22px) saturate(.6);opacity:1}}
+.C .velo{background:radial-gradient(ellipse 60% 55% at 50% 50%,rgba(245,240,232,.72),rgba(245,240,232,.9) 75%);animation:C-velo 1s var(--ease) both;--cx:50%;--cy:50%;
+  -webkit-mask:radial-gradient(circle at var(--cx) var(--cy),transparent calc(var(--r) - 90px),#000 var(--r));mask:radial-gradient(circle at var(--cx) var(--cy),transparent calc(var(--r) - 90px),#000 var(--r));transition:--r 1.15s var(--telon)}
+.C .velo.iris{--r:1700px}
+.C .centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;transition:opacity .45s var(--ease),transform .6s var(--ease)}
+.C.fuera .centro{opacity:0;transform:scale(1.04)}
+.C .saludo{display:flex;align-items:center;gap:10px;color:var(--taupe)}
+.C .saludo .reloj{font-variant-numeric:tabular-nums}
+.C .gigante{font-family:'EB Garamond',serif;font-weight:500;font-size:70px;line-height:1;letter-spacing:-.018em;margin-top:16px}
+.C .gigante .l{display:inline-block;white-space:pre;animation:letra .9s var(--ease) both}
+@keyframes letra{from{opacity:0;filter:blur(10px);transform:translate3d(0,16px,0)}}
+.C .baj{text-wrap:balance;font-size:16px;color:var(--t80);max-width:470px;margin-top:14px}
+.pulso{position:relative;width:184px;height:184px;margin:30px auto 0;display:grid;place-items:center;transition:opacity .3s,transform .4s var(--ease)}
+.pulso.apagado{opacity:0;transform:scale(.9);pointer-events:none}
+.onda{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(26,26,24,.4);opacity:0}
+.onda.bucle{animation:onda 3.3s var(--ease) infinite}
+.onda.bucle:nth-child(2){animation-delay:1.1s}.onda.bucle:nth-child(3){animation-delay:2.2s}
+@keyframes onda{0%{transform:scale(.64);opacity:0}14%{opacity:.6}100%{transform:scale(1.4);opacity:0}}
+.disco{position:relative;width:136px;height:136px;border-radius:50%;background:var(--tinta);color:var(--crema);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;box-shadow:0 24px 40px -16px rgba(26,26,24,.55);animation:disco .8s 1.2s var(--ease) both;transition:transform .3s var(--ease),background .3s}
+.disco:hover{background:var(--rojo);transform:scale(1.04)}.disco:active{transform:scale(.97)}
+.disco svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.disco.ok{background:var(--verde);animation:none}
+@keyframes disco{from{opacity:0;transform:scale(.7)}}
+.pasos{list-style:none;display:flex;align-items:flex-start;gap:0;margin-top:30px}
+.paso{width:170px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;font-size:13px;color:var(--t65)}
+.paso .n{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--t30);display:grid;place-items:center;font-weight:600;font-size:12.5px;background:var(--crema);position:relative;z-index:1;transition:all .35s var(--ease)}
+.paso+.paso::before{content:"";position:absolute;top:15px;right:calc(50% + 15px);width:calc(100% - 30px);height:1.5px;background:var(--t10)}
+.paso+.paso::after{content:"";position:absolute;top:15px;right:calc(50% + 15px);width:calc(100% - 30px);height:1.5px;background:var(--verde);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+.paso.hecho+.paso::after{transform:scaleX(1)}
+.paso b{color:var(--tinta);font-weight:600}
+.paso .eti-p{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;height:18px;display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;opacity:0;transition:opacity .3s}
+.paso.ahora .n{border-color:var(--tinta);background:var(--tinta);color:var(--crema);box-shadow:0 0 0 5px rgba(26,26,24,.08)}
+.paso.ahora .eti-p{opacity:1;background:var(--hueso);color:var(--tinta)}
+.paso.hecho .n{border-color:var(--verde);background:var(--verde);color:var(--crema)}
+.paso.hecho .eti-p{opacity:1;color:var(--verde)}
+/* celular */
+.C.movil .centro{padding:16px}
+.C.movil .gigante{font-size:44px}
+.C.movil .baj{font-size:14px}
+.C.movil .pulso{width:156px;height:156px;margin-top:24px}
+.C.movil .disco{width:118px;height:118px}
+.C.movil .paso{width:110px;font-size:12px}
+.C.movil .atajo{display:none}
+
+/* ---------- interruptores de la barra ---------- */
+.sin-bucle .bucle{animation:none!important}
+.sin-bucle .onda.bucle{opacity:0}
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-book" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="i-bar" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena" id="esc"></div>
+<script>
+/* ---------- estado del spike ---------- */
+const S={m:'A',vista:'escritorio',fondo:true,bucle:true,rm:false,fase:'cerrada',vivo:false,posAbierta:false,op:'igual',monto:''};
+const D={sede:'Tienda TRU',persona:'Carla',cierre:'ayer, 21:04',quien:'Rosa',fondo:200};
+const $=(s,r=document)=>r.querySelector(s);
+const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const T=ms=>S.rm?20:ms;
+const soles=n=>'S/ '+Number(n).toFixed(2);
+const hora=()=>new Date().toLocaleTimeString('es-PE',{hour:'numeric',minute:'2-digit'});
+const hoy=()=>new Date().toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short'}).replace(/\./g,'');
+const saludo=()=>{const h=new Date().getHours();return h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'};
+const movil=()=>S.vista==='celular';
+const B=()=>S.bucle?' bucle':'';
+let timers=[];const luego=(f,ms)=>timers.push(setTimeout(f,T(ms)));
+const limpiar=()=>{timers.forEach(clearTimeout);timers=[]};
+/* monto con el que se abre: lo que eligió en el formulario */
+const montoApertura=()=>S.fondo&&S.op==='igual'?D.fondo:(parseFloat(S.monto.replace(',','.'))||0);
+
+const MAQ={
+  A:{nombre:'A · Vitrina',idea:'El POS se empaña como un vidrio de vitrina y una tarjeta de papel dice qué pasa y qué hacer. Es la más sobria de las tres: crema sobre crema, sin oscurecer la tienda.',
+     mov:['El vidrio se empaña en 0,9 s (desenfoque 0 → 18 px) y una luz suave se abre detrás de la tarjeta.','La caja registradora y su candado se dibujan solos, trazo a trazo.','El hilo taupe se traza a los lados de «Caja cerrada»; el título sube palabra por palabra; la cifra del cajón cuenta de S/ 0 a S/ 200.','Al tocar «Abrir caja», <b>la misma tarjeta se transforma en el formulario</b> (crece hasta su nuevo alto, sin otra ventana encima).','Al confirmar, el candado se abre y se pone verde, el vidrio se aclara y el catálogo entra en cascada con el cursor listo en el buscador.'],
+     bucle:'un halo rojo muy tenue que respira detrás del candado, el punto rojo de «Caja cerrada» que late y un brillo que cruza el botón cada 6 s.'},
+  B:{nombre:'B · Persiana',idea:'La metáfora de la tienda física: baja una persiana oscura sobre el POS y se cuelga un cartel «Cerrado», como en la puerta de la boutique. Se entiende sin leer una palabra.',
+     mov:['La persiana baja en 1 s sobre el POS desenfocado (oscuro, desenfoque 12 px), con su barra y su manija al pie.','El cartel cae colgado de su clavo y se mece hasta quedar quieto.','Debajo entran el texto y el botón, en crema sobre la persiana.','Al tocar «Abrir caja» sube la hoja estándar de la casa (la de hoy) para contar el cajón.','Al confirmar, <b>el cartel gira y dice «Abierto»</b>, la persiana sube llevándose el cartel y la tienda aparece nítida.'],
+     bucle:'un reflejo de luz que barre la persiana cada 8 s, el cartel que se mece apenas (±0,9°) y el punto rojo que late.'},
+  C:{nombre:'C · Pulso',idea:'Sin tarjeta: el texto grande flota sobre el POS empañado y un solo botón redondo late en el centro. Abajo, los tres pasos del día con la guía de foco («Sigue aquí» en el que toca, ADR-0284).',
+     mov:['El POS se empaña con una viñeta (más claro al centro, desenfoque 22 px).','«La caja está cerrada» aparece letra por letra, de borroso a nítido.','El botón redondo crece y de él salen ondas, como un sonar.','Al tocarlo, <b>el formulario nace del propio botón</b> y crece hasta ser la hoja; el paso 1 queda en verde y el «Sigue aquí» pasa a «Cuenta el cajón».','Al confirmar, la hoja vuelve al botón, que se pone verde con su visto, y <b>el POS reaparece desde el botón hacia afuera, como un iris</b>.'],
+     bucle:'las ondas que salen del botón (una cada 1,1 s) y el punto rojo que late.'}
+};
+
+/* ---------- barra ---------- */
+function barra(){
+  const seg=(k,o)=>`<div class="seg">${o.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="cambia('${k}','${v}')">${t}</button>`).join('')}</div>`;
+  $('#spk').innerHTML=`<span class="tag">Spike · Caja cerrada</span>
+  ${seg('m',[['A','A · Vitrina'],['B','B · Persiana'],['C','C · Pulso']])}
+  ${seg('vista',[['escritorio','Escritorio'],['celular','Celular 375']])}
+  <label>Último cierre ${seg('fondo',[['true','Dejó S/ 200'],['false','No hay']])}</label>
+  <label><input type="checkbox" ${S.bucle?'checked':''} onchange="S.bucle=this.checked;repetir()" style="accent-color:var(--rojo)"> Movimiento continuo</label>
+  <label><input type="checkbox" ${S.rm?'checked':''} onchange="S.rm=this.checked;repetir()" style="accent-color:var(--rojo)"> Movimiento reducido</label>
+  <button class="acc" onclick="repetir()">↺ Ver la entrada otra vez</button>
+  <button class="acc" onclick="cerrarCaja()">Cerrar caja y ver cómo llega</button>`;
+}
+function cambia(k,v){S[k]=v==='true'?true:v==='false'?false:v;limpiar();S.fase='cerrada';S.vivo=false;S.posAbierta=false;S.op='igual';S.monto='';pinta()}
+
+/* ---------- el POS de fondo ---------- */
+const TONOS=[['#e7dccb','#d9c9b0'],['#dfe2dc','#c9cfc4'],['#ece2d4','#ddd0bc'],['#dde1e6','#c7ced6'],['#e9dfd6','#d8c6b8']];
+const CARDS=[['PB','Polo Básico M/corta','Arena','Polos','S/39.90','1 en piso'],['BL','Blusa Lucía','Blanco','Camisas','S/90.00','8 en piso'],['JB','Jean Baggy','Azul claro','Jeans','S/99.00','3 en piso'],['VM','Vestido Mar','Esmeralda','Vestidos','S/129.00','4 en piso'],['BA','Bailarina Alba','Coral','Bailarinas','S/79.00','6 en piso'],['BZ','Blazer Sol','Beige','Blazers','S/159.00','2 en piso'],['PB','Polo Básico M/corta','Blanco','Polos','S/39.90','12 en piso'],['PA','Pantalón Ana','Negro','Pantalones','S/109.00','5 en piso'],['BL','Blusa Lucía','Celeste','Camisas','S/90.00','2 en piso'],['VM','Vestido Mar','Coral','Vestidos','S/129.00','3 en piso']];
+function tarjeta(c,i){const t=TONOS[i%TONOS.length];return `<div class="card" style="--i:${i}"><div class="foto" style="background:linear-gradient(160deg,${t[0]},${t[1]})">${c[0]}<span class="c">${c[3].toUpperCase()}</span></div><h4>${c[1]}</h4><div class="co">${c[2]}</div><div class="tl"><span class="t">S</span><span class="t">M</span><span class="t">L</span></div><div class="pie"><b>${c[4]}</b><span>${c[5]}</span></div></div>`}
+function posEscritorio(){
+  const ab=S.fase==='abierta'||S.posAbierta;
+  return `<div class="pos ${ab&&S.vivo?'vive':''}"><div class="cuerpo"><section class="cat">
+    <div class="fila-cat"><span class="lbl lugar" style="margin-right:12px">Venta en tienda · ${D.sede}</span><button class="b">${ic('book','s')}Apartados</button><button class="b">${ic('grid','s')}Más</button>${ab?'':`<button class="b fuerte">Abrir caja</button>`}<span class="hoy-t">${ic('clock','s')} Hoy S/0.00 · 0%</span></div>
+    <div class="busca-f"><div class="busca ${ab?'foco':''}">${ic('bar')} ${ab?'<span class="cursor"></span>':''}Escanea la etiqueta o busca la prenda</div><button class="sinreg">Prenda sin registrar</button></div>
+    <div class="filt"><span class="sw"></span><span class="lbl" style="font-size:10.5px;color:var(--tinta)">Solo con stock</span><span style="margin-left:auto">35 prendas ocultas (10 con stock en el almacén)</span></div>
+    <div class="pills">${['Todo','Bailarinas','Blazers','Camisas y blusas','Jeans','Pantalones','Polos','Vestidos'].map((c,i)=>`<span class="pl ${i?'':'on'}">${c}</span>`).join('')}</div>
+    <div class="grid">${CARDS.map(tarjeta).join('')}</div></section>
+    <aside class="tk"><div class="tk-cab">${ic('bag','l')}<h3>Ticket actual</h3></div>
+      <div class="cli">${ic('user','s')} Agregar clienta<span>DNI, celular o nombre · opcional</span></div>
+      <div class="vacio"><b>El ticket está vacío</b>Escanea una etiqueta o elige una prenda del catálogo.</div>
+      <div class="tpie"><div class="tot"><div class="d">0 prendas<br>Subtotal S/0.00<br>IGV (18%) S/0.00</div><div class="g"><div class="lbl" style="font-size:10px;color:var(--t65)">Total</div><div class="v">S/0.00</div></div></div>
+      <button class="cobrar">${ic('wallet','s')} Cobrar <b>S/0.00</b></button></div></aside>
+  </div></div>`;
+}
+function posMovil(){
+  const ab=S.fase==='abierta'||S.posAbierta;
+  return `<div class="sc ${ab&&S.vivo?'vive':''}">
+    <div class="mcab fila-cat"><span class="lbl lugar">Venta · ${D.sede}</span><button class="b">${ic('book','s')}Apartados</button><button class="b">${ic('grid','s')}Más</button>${ab?'':`<button class="b fuerte">Abrir caja</button>`}<span class="hoy-m">Hoy S/0 · 0%</span></div>
+    <div class="mbusca busca-f"><div class="mqr ${ab?'foco':''}">${ic('scan','s')} Escanear QR</div><div class="mi">${ic('search','s')}</div><div class="mi">${ic('plus','s')}</div></div>
+    <div class="mgrid">${CARDS.slice(0,6).map(tarjeta).join('')}</div></div>`;
+}
+
+/* ---------- ilustración de A: la caja registradora con su candado ---------- */
+function ilus(an,abierta){
+  const d=i=>an?`style="animation-delay:${450+i*130}ms"`:'style="animation:none;stroke-dashoffset:0"';
+  return `<div class="ilus${abierta?' abierta':''}"><span class="aura${an?B():''}"></span><svg viewBox="0 0 160 120" aria-hidden="true">
+    <path class="dib" ${d(0)} pathLength="1" d="M40 44V30a6 6 0 0 1 6-6h68a6 6 0 0 1 6 6v14"/>
+    <path class="dib" ${d(1)} pathLength="1" d="M56 34h48"/>
+    <path class="dib" ${d(0)} pathLength="1" d="M22 44h116a8 8 0 0 1 8 8v44a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V52a8 8 0 0 1 8-8z"/>
+    <path class="dib" ${d(1)} pathLength="1" d="M14 64h132"/>
+    <path class="dib" ${d(2)} pathLength="1" d="M50 84h36"/>
+    <g class="candado">
+      <path class="dib grillete" ${d(3)} pathLength="1" d="M112 80v-8a10 10 0 0 1 20 0v8"/>
+      <path class="dib cuerpo" ${d(4)} pathLength="1" d="M112 80h20a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6h-20a6 6 0 0 1-6-6V86a6 6 0 0 1 6-6z"/>
+      <path class="dib" ${d(5)} pathLength="1" d="M122 89v6"/>
+    </g></svg></div>`;
+}
+/* el título que sube palabra por palabra */
+function palabras(txt,desde,paso){return txt.split(' ').map((w,i)=>`<span class="w"><span style="animation-delay:${desde+i*paso}ms">${w}</span></span>`).join(' ')}
+function letras(txt,desde,paso){return [...txt].map((l,i)=>`<span class="l" style="animation-delay:${desde+i*paso}ms">${l}</span>`).join('')}
+
+function tarjetaA(an){
+  const c=(ms)=>an?`class="cas" style="animation-delay:${ms}ms"`:'class="cas" style="animation-delay:0ms"';
+  const f=S.fondo;
+  return `${ilus(an,false)}
+  <p class="eti lbl" ${an?'':'style="animation:none"'}><i ${an?'':'style="animation:none;transform:none"'}></i><span class="punto${B()}"></span> Caja cerrada · ${D.sede}<i ${an?'':'style="animation:none;transform:none"'}></i></p>
+  <h2 class="tit">${an?palabras('Abre la caja para empezar a vender',820,70):'Abre la caja para empezar a vender'}</h2>
+  <p ${c(1250)}><span class="baj" style="display:block">Mientras esté cerrada no se puede cobrar, apartar ni hacer cambios. Cuenta el cajón y empieza.</span></p>
+  <div ${c(1310)}><div class="datos">
+    <div><small>Último cierre</small><b>${f?'Ayer':'—'}</b><span>${f?'21:04 · '+D.quien:'Sin cierres aún'}</span></div>
+    <div><small>En el cajón</small><b class="cuenta" data-a="${f?D.fondo:0}">${f?(an?'S/ 0.00':soles(D.fondo)):'—'}</b><span>${f?'según el cierre':'lo cuentas al abrir'}</span></div>
+    <div><small>Hoy</small><b>${hora()}</b><span>${hoy()}</span></div></div></div>
+  <div ${c(1370)}><button class="cta" onclick="abrir()"><span class="brillo${B()}"></span>${ic('unlock','s')} Abrir caja <span class="flecha">${ic('arrow','s')}</span></button>
+  <p class="atajo">o presiona <kbd>Enter</kbd></p></div>`;
+}
+
+function capaHTML(){
+  const mv=movil()?' movil':'';
+  if(S.m==='A') return `<div class="capa A${mv}" role="dialog" aria-modal="true" aria-label="La caja está cerrada"><div class="velo"></div><div class="luz"></div>
+    <div class="centro"><div class="tarjeta">${tarjetaA(true)}</div></div></div>`;
+  if(S.m==='B') return `<div class="capa B${mv}" role="dialog" aria-modal="true" aria-label="La caja está cerrada"><div class="velo"></div>
+    <div class="persiana"><span class="manija"></span></div><div class="barrido${B()}"></div>
+    <div class="escenario">
+      <div class="colgante"><div class="meneo${B()}"><span class="clavo"></span>
+        <svg class="cuerdas" viewBox="0 0 220 62" preserveAspectRatio="none"><path d="M110 2 L54 60"/><path d="M110 2 L166 60"/></svg>
+        <div class="cartel-wrap"><div class="cartel" id="cartel">
+          <div class="cara frente"><b><span class="punto${B()}"></span>Cerrado</b><small>${D.sede} · ${S.fondo?'desde ayer, 21:04':'aún sin abrir'}</small></div>
+          <div class="cara dorso"><b><span class="punto"></span>Abierto</b><small>${D.sede} · desde las <span class="hora-ab">${hora()}</span></small></div>
+        </div></div></div></div>
+      <div class="texto">
+        <h2 class="cas" style="animation-delay:1500ms">Abre la caja para empezar a vender</h2>
+        <p class="cas" style="animation-delay:1580ms">Mientras esté cerrada no se puede cobrar, apartar ni hacer cambios.</p>
+        <div class="cas" style="animation-delay:1660ms"><button class="cta" onclick="abrir()"><span class="brillo${B()}"></span>${ic('unlock','s')} Abrir caja <span class="flecha">${ic('arrow','s')}</span></button></div>
+        <p class="info cas" style="animation-delay:1740ms">${S.fondo?`Último cierre ayer, 21:04 · ${D.quien}<i></i>En el cajón ${soles(D.fondo)}`:'Primera apertura de la sede: escribes con cuánto abres'}</p>
+        <p class="atajo cas" style="animation-delay:1800ms">o presiona <kbd>Enter</kbd></p>
+      </div></div></div>`;
+  return `<div class="capa C${mv}" role="dialog" aria-modal="true" aria-label="La caja está cerrada"><div class="velo" id="velo"></div>
+    <div class="centro">
+      <p class="saludo lbl cas" style="animation-delay:300ms"><span class="punto${B()}"></span> ${saludo()}, ${D.persona} · <span class="reloj">${hora()}</span> · ${D.sede}</p>
+      <h2 class="gigante">${letras('La caja está cerrada',420,32)}</h2>
+      <p class="baj cas" style="animation-delay:1050ms">Ábrela para cobrar, apartar y hacer cambios. Te toma un minuto: cuentas el cajón y listo.</p>
+      <div class="pulso" id="pulso"><span class="onda${B()}"></span><span class="onda${B()}"></span><span class="onda${B()}"></span>
+        <button class="disco" id="disco" onclick="abrir()">${ic('lock')}<span>Abrir caja</span></button></div>
+      <ol class="pasos cas" style="animation-delay:1500ms" id="pasos">
+        <li class="paso ahora"><span class="n">1</span><b>Abre la caja</b><span class="eti-p">Sigue aquí</span></li>
+        <li class="paso"><span class="n">2</span><b>Cuenta el cajón</b><span style="font-size:12px">${S.fondo?'deberían ser <span style="white-space:nowrap">'+soles(D.fondo)+'</span>':'escribe cuánto hay'}</span><span class="eti-p"></span></li>
+        <li class="paso"><span class="n">3</span><b>Vende</b><span class="eti-p"></span></li>
+      </ol>
+      <p class="atajo cas" style="animation-delay:1600ms">o presiona <kbd>Enter</kbd></p>
+    </div></div>`;
+}
+
+/* ---------- el formulario de hoy (AbrirCajaFormV2), sin cambios de fondo ---------- */
+function formHTML(){
+  const p=(i)=>`style="animation-delay:${120+i*55}ms"`;
+  const f=S.fondo;
+  const cuerpo=f?`<p class="baj-f cas" ${p(2)}>Según el último cierre (ayer, 21:04 · ${D.quien}), en el cajón deberían estar <b>${soles(D.fondo)}</b>. Cuéntalo antes de empezar.</p>
+    <div class="ops cas" ${p(3)} role="radiogroup" aria-label="¿Cuánto hay en el cajón?">
+      <button class="op ${S.op==='igual'?'on':''}" onclick="elegir('igual')"><span class="rd"></span><span>Conté y hay <b>${soles(D.fondo)}</b><small>Coincide con el último cierre</small></span></button>
+      <button class="op ${S.op==='otro'?'on':''}" onclick="elegir('otro')"><span class="rd"></span><span>Hay otro monto<small>Escribe cuánto contaste</small></span></button>
+    </div>
+    <div id="otro">${S.op==='otro'?campoMonto('¿Cuánto hay en el cajón?'):''}</div>`
+    :`<p class="baj-f cas" ${p(2)}>Es la primera vez que se abre la caja de esta sede. Escribe el efectivo con el que empiezas.</p><div class="cas" ${p(3)}>${campoMonto('Monto con el que abres (efectivo en el cajón)')}</div>`;
+  return `<div class="form"><p class="eti-f cas" ${p(0)}>Abrir caja · ${D.sede}</p>
+    <h3 class="h-f cas" ${p(1)}>${f?'Antes de abrir, cuenta el cajón':D.sede+' no tiene una caja abierta'}</h3>
+    ${cuerpo}
+    <div class="pie-f cas" ${p(4)}><button class="sec" onclick="volver()">Volver</button><button class="prim" id="confirmar" onclick="confirmar()" ${montoApertura()>0||(f&&S.op==='igual')?'':'disabled'}>Abrir caja con <b id="montoBtn">${soles(montoApertura())}</b></button></div></div>`;
+}
+function campoMonto(et){return `<div class="otro"><label class="lab-f" for="monto">${et}</label><div class="inp"><span>S/</span><input id="monto" inputmode="decimal" placeholder="0.00" value="${S.monto}" oninput="S.monto=this.value;actualizaMonto()"></div></div>`}
+function elegir(op){S.op=op;document.querySelectorAll('.op').forEach((b,i)=>b.classList.toggle('on',(i===0)===(op==='igual')));$('#otro').innerHTML=op==='otro'?campoMonto('¿Cuánto hay en el cajón?'):'';if(op==='otro')$('#monto').focus();actualizaMonto()}
+function actualizaMonto(){const m=montoApertura();$('#montoBtn').textContent=soles(m);$('#confirmar').disabled=!(m>0)}
+
+/* ---------- transiciones ---------- */
+/* La tarjeta de A cambia de contenido creciendo o encogiendo hasta su nuevo alto. */
+function morph(el,html,despues){
+  const h1=el.getBoundingClientRect().height;el.style.height=h1+'px';el.classList.add('cambia');
+  luego(()=>{el.innerHTML=html;el.classList.remove('cambia');el.style.height='auto';const h2=el.getBoundingClientRect().height;el.style.height=h1+'px';el.offsetHeight;el.style.height=h2+'px';
+    luego(()=>{el.style.height='';despues&&despues()},500)},180);
+}
+function contar(el,a,ms){const t0=performance.now();const paso=t=>{const k=Math.min(1,(t-t0)/T(ms));const e=1-Math.pow(1-k,3);el.textContent=soles(a*e);if(k<1)requestAnimationFrame(paso)};requestAnimationFrame(paso)}
+function marcarPaso(n){document.querySelectorAll('.paso').forEach((li,i)=>{li.classList.toggle('hecho',i<n-1);li.classList.toggle('ahora',i===n-1);const e=li.querySelector('.eti-p');e.textContent=i<n-1?'✓ Hecho':i===n-1?'Sigue aquí':''})}
+function centroRel(el,capa){const a=el.getBoundingClientRect(),c=capa.getBoundingClientRect();return {x:a.left+a.width/2-c.left,y:a.top+a.height/2-c.top}}
+/* C: la hoja nace del botón redondo (y vuelve a él). */
+function desdeDisco(hoja,volviendo){
+  const d=$('#disco').getBoundingClientRect(),h=hoja.getBoundingClientRect();
+  const dx=(d.left+d.width/2)-(h.left+h.width/2),dy=(d.top+d.height/2)-(h.top+h.height/2),s=d.width/h.width;
+  const ini={transform:`translate(${dx}px,${dy}px) scale(${s},${d.height/h.height})`,borderRadius:'50%',opacity:.4};
+  const fin={transform:'none',borderRadius:movil()?'22px 22px 0 0':'20px',opacity:1};
+  return hoja.animate(volviendo?[fin,ini]:[ini,fin],{duration:T(volviendo?420:560),easing:'cubic-bezier(.32,.72,.24,1)',fill:'both'});
+}
+
+function abrir(){
+  if(S.fase!=='cerrada')return;S.fase='contando';
+  const capa=$('.capa');
+  if(S.m==='A'){morph($('.tarjeta'),formHTML(),enfocar);return}
+  const mc=document.createElement('div');mc.className='modal-capa'+(movil()?' abajo':'');
+  mc.innerHTML=`<div class="velo2" onclick="volver()"></div><div class="hoja">${formHTML()}</div>`;
+  capa.appendChild(mc);
+  if(S.m==='C'){const hoja=$('.hoja',mc);hoja.style.animation='none';desdeDisco(hoja,false);$('#pulso').classList.add('apagado');marcarPaso(2)}
+  luego(enfocar,500);
+}
+function enfocar(){const i=$('#monto');if(i)i.focus({preventScroll:true})}
+function volver(){
+  if(S.fase!=='contando')return;S.fase='cerrada';
+  if(S.m==='A'){morph($('.tarjeta'),tarjetaA(false));return}
+  const mc=$('.modal-capa');
+  if(S.m==='C'){desdeDisco($('.hoja',mc),true).onfinish=()=>mc.remove();$('#pulso').classList.remove('apagado');marcarPaso(1);return}
+  mc.classList.add('sale');luego(()=>mc.remove(),260);
+}
+function confirmar(){
+  if(S.fase!=='contando'||!(montoApertura()>0))return;S.fase='abriendo';
+  const capa=$('.capa');
+  if(S.m==='A'){
+    morph($('.tarjeta'),`<div class="listo">${ilus(false,false)}<h3>Caja abierta</h3><p>${D.sede} · ${hora()} · ${soles(montoApertura())} en el cajón</p></div>`,null);
+    luego(()=>{const il=$('.tarjeta .ilus');il&&il.classList.add('abierta')},780);
+    luego(()=>{$('.tarjeta').classList.add('sale-t');capa.classList.add('fuera');posListo()},1900);
+    luego(fin,2650);return;
+  }
+  const mc=$('.modal-capa');
+  if(S.m==='B'){
+    mc.classList.add('sale');luego(()=>mc.remove(),260);
+    luego(()=>{$('#cartel').classList.add('vuelta');capa.classList.add('abierto')},300);
+    luego(()=>{capa.classList.add('fuera');posListo()},1500);
+    luego(fin,2600);return;
+  }
+  /* C */
+  const pulso=$('#pulso'),disco=$('#disco');
+  desdeDisco($('.hoja',mc),true).onfinish=()=>mc.remove();
+  luego(()=>{pulso.classList.remove('apagado');pulso.querySelectorAll('.onda').forEach(o=>o.remove());disco.classList.add('ok');disco.innerHTML=`<svg class="visto" viewBox="0 0 24 24"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg><span>Abierta</span>`;marcarPaso(3)},380);
+  luego(()=>{const c=centroRel(disco,capa),v=$('#velo');v.style.setProperty('--cx',c.x+'px');v.style.setProperty('--cy',c.y+'px');v.classList.add('iris');capa.classList.add('fuera');posListo()},1350);
+  luego(fin,2450);
+}
+/* Al empezar la salida, el POS de atrás ya es el abierto: el catálogo entra en cascada mientras la capa se va. */
+function posListo(){S.posAbierta=true;S.vivo=true;const dev=$('#dispositivo');const v=$(movil()?'.sc':'.pos',dev);v.outerHTML=movil()?posMovil():posEscritorio()}
+function fin(){
+  S.fase='abierta';const m=montoApertura();const c=$('.capa');c&&c.remove();
+  /* El aviso sale DESPUÉS de que la capa se fue (ADR-0149: nunca encima de la espera). */
+  luego(()=>{const a=document.createElement('div');a.className='aviso';a.innerHTML=`<span class="ok">${ic('check','s')}</span><span><b>Caja abierta con ${soles(m)}</b><small>${D.sede} · ${hora()} · ya puedes vender</small></span>`;$('#dispositivo').appendChild(a);luego(()=>a.classList.add('fuera'),3600);luego(()=>a.remove(),3950)},350);
+}
+function repetir(){limpiar();S.fase='cerrada';S.vivo=false;S.posAbierta=false;S.op='igual';S.monto='';pinta()}
+function cerrarCaja(){limpiar();S.fase='abierta';S.vivo=false;S.posAbierta=false;S.op='igual';S.monto='';pinta();luego(()=>{S.fase='cerrada';const v=$(movil()?'.sc':'.pos',$('#dispositivo'));v.outerHTML=movil()?posMovil():posEscritorio();ponerCapa()},700)}
+
+/* ---------- pintar ---------- */
+function ponerCapa(){
+  const dev=$('#dispositivo');const vieja=$('.capa',dev);vieja&&vieja.remove();
+  dev.insertAdjacentHTML('beforeend',capaHTML());
+  const c=$('.capa .cuenta');if(c&&S.fondo)luego(()=>contar(c,D.fondo,1100),1350);
+}
+function leyenda(){
+  const q=MAQ[S.m];
+  return `<div class="ley"><h2>${q.nombre}</h2>${q.idea}<ul>${q.mov.map(x=>`<li>${x}</li>`).join('')}</ul>
+  <div class="ojo"><b>Movimiento continuo</b> (se apaga con el interruptor de arriba): ${q.bucle} La regla de modales (ADR-0136) no permite bucles salvo señales; si eliges esta maqueta con bucle, queda escrito como excepción, igual que el punto que late del chip «Vencida».
+  <br><b>Igual en las tres:</b> la barra de arriba (menú y sede) queda nítida, para poder cambiar de sede o ir a otra pantalla; todo lo de abajo se desenfoca y no se puede tocar. <kbd>Enter</kbd> abre la caja y <kbd>Esc</kbd> vuelve atrás desde el formulario. El formulario de contar el cajón es el de hoy (ADR-0186): no cambia qué se pide.</div></div>`;
+}
+function pinta(){
+  barra();
+  const esc=$('#esc');esc.className='escena'+(S.bucle?'':' sin-bucle')+(S.rm?' rm':'');
+  const dev=movil()
+    ?`<div class="tels"><div class="tel"><div class="pn" id="dispositivo"><div class="mtop">${ic('menu','s')} CAYLA<span class="sd">${D.sede.toUpperCase()} ⌄</span></div>${posMovil()}</div></div></div>`
+    :`<div class="sx"><div class="desk" id="dispositivo"><div class="top"><span class="marca">${ic('menu','s')} CAYLA</span>${ic('clock','s')} ACTIVIDAD <span class="sede">${D.sede.toUpperCase()} ${ic('down','s')}</span></div>${posEscritorio()}</div></div>`;
+  esc.innerHTML=leyenda()+dev;
+  if(S.fase!=='abierta')ponerCapa();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&S.fase==='cerrada'&&!e.target.closest('.spk')){e.preventDefault();abrir()}
+  else if(e.key==='Enter'&&S.fase==='contando'&&e.target.tagName!=='BUTTON'){e.preventDefault();confirmar()}
+  else if(e.key==='Escape'&&S.fase==='contando'){volver()}
+});
+setInterval(()=>document.querySelectorAll('.reloj').forEach(r=>r.textContent=hora()),20000);
+pinta();
+</script>
+</body>
+</html>

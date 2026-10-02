@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 import { esRutaPublica } from "@/lib/rutas-publicas";
+import { pasaComoCron } from "@/lib/rutas-cron";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -21,18 +22,18 @@ import { esRutaPublica } from "@/lib/rutas-publicas";
 // archivo la haya cubierto. Toda escritura real de stock pasa además por RPC con
 // fn_puede_operar_sede (0012), que es la barrera que de verdad protege los datos.
 export async function proxy(request: NextRequest) {
-  // El trabajo programado de Vercel (PL-113) no trae sesión: trae `Bearer $CRON_SECRET`. Pasa sin tocar cookies y
-  // la ruta vuelve a comprobar la clave (esta barrera puede dejar de cubrirla si alguien cambia el matcher). Solo
-  // para SU ruta: la clave no abre ninguna otra pantalla ni API.
-  const cron = process.env.CRON_SECRET;
-  if (cron && request.nextUrl.pathname === "/api/lucode/reintentar" && request.headers.get("authorization") === `Bearer ${cron}`) {
+  // Los trabajos programados de Vercel (PL-113, la cola de SUNAT; ADR-0288 G-15, la conservación del club) no traen sesión:
+  // traen `Bearer $CRON_SECRET`. Pasan sin tocar cookies y cada ruta vuelve a comprobar la clave (esta barrera puede dejar de
+  // cubrirla si alguien cambia el matcher). Solo SUS rutas (`RUTAS_DE_CRON`): la clave no abre ninguna otra pantalla ni API.
+  if (pasaComoCron(request.nextUrl.pathname, request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.next();
   }
 
-  // La página pública del QR de una socia (`/club/<token>`, ADR-0288 act. c): la abre una clienta sin cuenta. Pasa
-  // antes de tocar la sesión —ni la pide ni la refresca— y antes de la barrera de CAYLA Global (un aparato de la
-  // tienda con la cookie «global» la abriría igual). También su acción de servidor, que viaja como POST a esa misma
-  // ruta y se valida sola (`app/actions/club.ts`). Solo `/club/<token>`: ver `lib/rutas-publicas.ts`.
+  // Las páginas públicas del Club CAYLA (ADR-0288 act. g): el registro de cada tienda (`/club/<uuid>`, al que llevan el QR
+  // del cartel y el del ticket), la política y los términos. Las abre una clienta sin cuenta. Pasan antes de tocar la
+  // sesión —ni la piden ni la refrescan— y antes de la barrera de CAYLA Global (un aparato de la tienda con la cookie
+  // «global» las abriría igual). También las acciones del registro, que viajan como POST a esa misma ruta y se validan
+  // solas (`app/actions/club-registro.ts`). Solo esas tres formas: ver `lib/rutas-publicas.ts`.
   if (esRutaPublica(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
@@ -135,5 +136,7 @@ export const config = {
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
   // `quitar-fondo.worker.js` (ADR-0228), igual: es código público; redirigido al login, el navegador recibía HTML
   // donde esperaba JavaScript y el recortador no arrancaba.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
+  // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

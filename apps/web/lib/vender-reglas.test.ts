@@ -24,6 +24,7 @@ import {
   SIN_DETALLE_DESCUENTO,
   sinStockPorApartado,
   textoSinStock,
+  totalDeLineas,
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
@@ -411,21 +412,24 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
 // que `registrar_venta` (20260918170000) acepta y rechaza — si divergen, la caja
 // mandaría algo que la base rechaza en el mostrador.
 //
-// Desde ADR-0182 el precio de campaña se redondea hacia abajo a .90: con S/ 100 y 20 % no se cobra S/ 80.00 sino
-// S/ 79.90, así que el descuento de campaña de estas pruebas es 20.10 (y 40.10 con 40 %).
+// Desde ADR-0302 (2026-10-01) el descuento de campaña es EXACTO: el % sobre el precio, al céntimo. Con S/ 100 y 20 % se
+// cobra S/ 80.00, así que el descuento de campaña de estas pruebas es 20.00 (y 40.00 con 40 %).
 
-describe("descuentoDeCampana — el precio rebajado baja al .90 (ADR-0182)", () => {
+describe("descuentoDeCampana — exacto, al céntimo (ADR-0302)", () => {
   // [precio, %, descuento esperado, precio que paga la clienta]
   it.each([
-    [89.9, 20, 18, 71.9], // 71.92 → 71.90: el ejemplo de Felipe
-    [79.9, 30, 24, 55.9], // 55.93 → 55.90
-    [95.8, 25, 24.9, 70.9], // 71.85 → 70.90: siempre hacia abajo, aunque falten 5 céntimos para 71.90
-    [159.8, 50, 79.9, 79.9], // 79.90 exacto: ya es .90, no baja
-    [99.9, 10, 10, 89.9], // 89.91 → 89.90
-    [100, 20, 20.1, 79.9], // 80.00 → 79.90: un precio redondo también baja
-    [89.9, 12.5, 12, 77.9], // % con decimales: 78.6625 → 77.90
-    [89.9, 33.33, 30, 59.9], // 59.93633… → 59.90 (sin error de coma flotante)
-    [199.9, 30, 60, 139.9], // 139.93 → 139.90
+    [39, 20, 7.8, 31.2], // la etiqueta de Luna: el papel dice −20 % y se cobra exactamente eso (con el .90 eran 30.90)
+    [89.9, 20, 17.98, 71.92],
+    [79.9, 30, 23.97, 55.93],
+    [95.8, 25, 23.95, 71.85],
+    [159.8, 50, 79.9, 79.9],
+    [100, 20, 20, 80], // un precio redondo queda redondo
+    [22, 10, 2.2, 19.8],
+    [89.9, 12.5, 11.24, 78.66], // % con decimales: 11.2375 → 11.24
+    [89.9, 33.33, 29.96, 59.94], // 29.96367 → 29.96
+    [199.9, 30, 59.97, 139.93],
+    [69.9, 15, 10.49, 59.41], // 10.485: el medio céntimo va hacia arriba, como `round(x, 2)` de Postgres
+    [19.9, 25, 4.98, 14.92], // 4.975: con coma flotante daba 4.97
   ])("S/ %d con %d %% → descuento %d (paga S/ %d)", (precio, pct, descuento, paga) => {
     expect(descuentoDeCampana(precio, pct)).toBe(descuento);
     expect(Math.round((precio - descuentoDeCampana(precio, pct)) * 100) / 100).toBe(paga);
@@ -441,21 +445,65 @@ describe("descuentoDeCampana — el precio rebajado baja al .90 (ADR-0182)", () 
     expect(descuentoDeCampana(89.9, 100)).toBe(89.9);
   });
 
-  it("un precio rebajado de menos de S/ 0.90 no se redondea (no hay un .90 por debajo)", () => {
+  it("los precios chicos también son exactos (ya no hay un caso aparte bajo S/ 0.90)", () => {
     expect(descuentoDeCampana(1, 50)).toBe(0.5);
     expect(descuentoDeCampana(1.5, 50)).toBe(0.75);
   });
 
-  it("el precio que paga la clienta siempre termina en .90 cuando pasa de S/ 0.90", () => {
-    for (let c = 90; c <= 30000; c += 37) {
-      for (const pct of [5, 10, 15, 20, 25, 30, 33.33, 40, 50, 70]) {
-        const precio = c / 100;
-        const paga = Math.round((precio - descuentoDeCampana(precio, pct)) * 100);
-        const exacto = (c * (100 - pct)) / 100;
-        if (exacto < 90) continue;
-        expect(paga % 100).toBe(90);
-        expect(paga).toBeLessThanOrEqual(exacto + 1e-6); // nunca por encima del precio exacto
-        expect(exacto - paga).toBeLessThan(100); // nunca baja más de un sol
+  it("una campaña descuenta lo mismo que un % manual: una sola cuenta en la caja", () => {
+    for (const [precio, pct] of [[39, 20], [19.9, 25], [89.9, 33.33], [0.29, 50]]) {
+      expect(descuentoDeCampana(precio, pct)).toBe(descuentoUnitarioPorPorcentaje(precio, pct));
+    }
+  });
+
+  // La propiedad, comprobada contra la cuenta exacta hecha aparte con BigInt (no con la misma fórmula que se prueba):
+  // el descuento es el céntimo más cercano a precio × % / 100, y en el empate de medio céntimo, el de arriba. Nunca da
+  // más de medio céntimo de más ni de menos, y nunca pasa del precio.
+  it("siempre el céntimo más cercano a la cuenta exacta, en miles de combinaciones", () => {
+    const MILLON = BigInt(1_000_000);
+    const MEDIO = BigInt(500_000);
+    const CERO = BigInt(0);
+    // Se juntan los casos que fallan y se comprueba una vez al final: 300 000 `expect` sueltos pasaban de los 5 s de
+    // límite cuando la suite corre en paralelo.
+    const malos: string[] = [];
+    for (let c = 1; c <= 60000; c += 7) {
+      for (const pct of [0.5, 1, 5, 7.5, 10, 12.5, 15, 20, 25, 30, 33.33, 40, 45, 50, 55, 66.67, 70, 99.99]) {
+        const descuentoC = BigInt(Math.round(descuentoDeCampana(c / 100, pct) * 100));
+        // exacto × 1 000 000 = céntimos × (% en diezmilésimas)
+        const exactoPorMillon = BigInt(c) * BigInt(Math.round(pct * 10_000));
+        const diferencia = descuentoC * MILLON - exactoPorMillon; // en millonésimas de céntimo
+        const cercano = diferencia > -MEDIO && diferencia <= MEDIO;
+        const dentroDelPrecio = descuentoC >= CERO && descuentoC <= BigInt(c);
+        if (!cercano || !dentroDelPrecio) malos.push(`S/ ${c / 100} con ${pct} % → ${descuentoDeCampana(c / 100, pct)}`);
+      }
+    }
+    expect(malos).toEqual([]);
+  });
+});
+
+describe("totalDeLineas — el total del ticket, en céntimos exactos", () => {
+  it("99.90 − 14.99 es 84.91, no 84.91000000000001 (la caja lo mostraba y Apartar no aceptaba 84.91 en efectivo)", () => {
+    expect(totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }])).toBe(84.91);
+  });
+  it("suma cantidades y líneas sin arrastrar error: 2 × 71.91 + 3 × 84.91 = 398.55", () => {
+    expect(
+      totalDeLineas([
+        { cantidad: 2, precioUnitario: 79.9, descuentoUnitario: 7.99 },
+        { cantidad: 3, precioUnitario: 99.9, descuentoUnitario: 14.99 },
+      ]),
+    ).toBe(398.55);
+  });
+  it("sin líneas, cero", () => {
+    expect(totalDeLineas([])).toBe(0);
+  });
+  it("con cualquier campaña y cantidad, el total es un número exacto de céntimos", () => {
+    for (let c = 1990; c <= 29990; c += 500) {
+      for (const pct of [5, 10, 15, 20, 25, 33.33]) {
+        for (const cantidad of [1, 2, 3, 7]) {
+          const precio = c / 100;
+          const total = totalDeLineas([{ cantidad, precioUnitario: precio, descuentoUnitario: descuentoDeCampana(precio, pct) }]);
+          expect(String(total)).toMatch(/^\d+(\.\d{1,2})?$/);
+        }
       }
     }
   });
@@ -477,20 +525,20 @@ describe("descuentoResultante — un solo descuento, el mayor", () => {
     expect(descuentoResultante(lineaCampana("a", 100), 15)).toEqual({ monto: 15, prevaleceCampana: false });
   });
   it("un manual MENOR que la campaña no la baja: prevalece la campaña", () => {
-    expect(descuentoResultante(conBF, 15)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 15)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("un manual IGUAL a la campaña tampoco cuenta como manual", () => {
-    expect(descuentoResultante(conBF, 20.1)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 20)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("quitar el descuento (0) devuelve la campaña, no un precio sin descuento", () => {
-    expect(descuentoResultante(conBF, 0)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 0)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("un manual MAYOR reemplaza a la campaña (no se suman)", () => {
     expect(descuentoResultante(conBF, 30)).toEqual({ monto: 30, prevaleceCampana: false });
   });
   it("por un centavo de diferencia sigue siendo la campaña (redondeo del navegador)", () => {
-    expect(descuentoResultante(conBF, 20.11).prevaleceCampana).toBe(true);
-    expect(descuentoResultante(conBF, 20.12).prevaleceCampana).toBe(false);
+    expect(descuentoResultante(conBF, 20.01).prevaleceCampana).toBe(true);
+    expect(descuentoResultante(conBF, 20.02).prevaleceCampana).toBe(false);
   });
 });
 
@@ -500,7 +548,7 @@ describe("aplicarDescuento con campaña", () => {
 
   it("un 10 % manual a todo el ticket deja la campaña (20 %) donde la hay y aplica 10 % donde no", () => {
     const r = aplicarDescuento(carrito, 10, [], cumple);
-    expect(r.map((l) => l.descuentoUnitario)).toEqual([20.1, 10]);
+    expect(r.map((l) => l.descuentoUnitario)).toEqual([20, 10]);
     expect(r.map((l) => l.razonDescuento)).toEqual(["campana", "cumpleanos_clienta_top"]);
   });
   it("un 30 % manual reemplaza a la campaña con su motivo", () => {
@@ -509,7 +557,7 @@ describe("aplicarDescuento con campaña", () => {
   });
   it("«Quitar descuento» (0 %) en una línea con campaña la devuelve a la campaña", () => {
     const r = aplicarDescuento(aplicarDescuento(carrito, 30, ["a"], cumple), 0, ["a"], SIN_DETALLE_DESCUENTO);
-    expect(r[0]).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana" });
+    expect(r[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
   });
 });
 
@@ -518,11 +566,11 @@ describe("conCampanas — un ticket en espera se pone al día", () => {
 
   it("una línea sin descuento recibe la campaña que ahora rige", () => {
     const [l] = conCampanas([lineaCampana("a", 100)], rige);
-    expect(l).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana", campana: blackFriday });
+    expect(l).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", campana: blackFriday });
   });
   it("si la campaña cambió de %, la línea se ajusta", () => {
     const [l] = conCampanas([conCampanas([lineaCampana("a", 100)], rige)[0]], new Map([["a", liquidacion]]));
-    expect(l.descuentoUnitario).toBe(40.1);
+    expect(l.descuentoUnitario).toBe(40);
   });
   it("si la campaña terminó, su descuento se va", () => {
     const con = conCampanas([lineaCampana("a", 100)], rige);
@@ -535,7 +583,7 @@ describe("conCampanas — un ticket en espera se pone al día", () => {
   });
   it("un descuento manual menor que la campaña cede ante ella", () => {
     const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
-    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana" });
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
   });
   it("si la campaña terminó, un descuento manual NO se toca", () => {
     const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };

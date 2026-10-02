@@ -52,8 +52,9 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
-  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del cumpleaños de la socia (ADR-0288 D-5). Solo con
-   *  `p_canjear_cumpleanos: true`; la base la recalcula y rechaza si no coincide (`cumple_descuento_distinto`). Se arma con
+  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del club: el cumpleaños de la socia (ADR-0288 D-5,
+   *  con `p_canjear_cumpleanos: true`; la base la recalcula y rechaza si no coincide, `cumple_descuento_distinto`) o su vale de
+   *  aniversario (tanda 1g, con `p_canjear_aniversario: true`; reparto de `ticketConVale`). Se arma con
    *  `descuentosParaRegistrar` de `lib/club-cumple-canje-reglas.ts`. */
   descuento_club_unitario?: number;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
@@ -63,10 +64,11 @@ export type ItemRegistrarVenta = {
   color_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (17 parámetros, hoy; la caja manda los 13 de abajo: `p_cliente_id` se sumó
- *  en la tanda 1a del club y `p_canjear_cumpleanos` en la 1c, ADR-0288). Se guarda entero en la cola y se reenvía sin
- *  cambios al subir — el `p_token` adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta
- *  pestaña o desde otra) no duplica. Una venta con el canje del cumpleaños NUNCA entra a la cola (`llevaCanje`). */
+/** El payload completo de `registrar_venta` (18 parámetros desde la tanda 1g; la caja manda los 14 de abajo: `p_cliente_id`
+ *  se sumó en la tanda 1a del club, `p_canjear_cumpleanos` en la 1c y `p_canjear_aniversario` en la 1g, ADR-0288). Se guarda
+ *  entero en la cola y se reenvía sin cambios al subir — el `p_token` adentro es el mismo que dejó el envío que falló, así que
+ *  un reintento (desde esta pestaña o desde otra) no duplica. Una venta con el cumpleaños o el vale NUNCA entra a la cola
+ *  (`llevaCanje`). */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
@@ -89,6 +91,9 @@ export type ParamsRegistrarVenta = {
    *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión, y una venta con canje no se encola
    *  (`llevaCanje`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (esperar, o quitarlo). */
   p_canjear_cumpleanos?: boolean;
+  /** Usar el vale de aniversario de la socia del ticket (tanda 1g, G-13): la base exige que esté disponible y una sola ventaja
+   *  del club por venta (`club_un_cupon_por_compra`). Igual que el cumpleaños, nunca va a la cola (`llevaCanje`). */
+  p_canjear_aniversario?: boolean;
 };
 
 export type VentaEncolada = {
@@ -168,11 +173,16 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
   return true;
 }
 
-/** ¿Esta venta canjea el cumpleaños? Entonces NO se encola (ADR-0288 D-5): sin conexión otra tienda podría canjearlo a la
- *  vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el precio rebajado. Mira las dos
- *  señales (el parámetro y la parte del club de cada ítem): la base exige que vayan juntas (`cumple_sin_canje`). */
-export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_items">): boolean {
-  return params.p_canjear_cumpleanos === true || params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0);
+/** ¿Esta venta canjea el cumpleaños o el vale de aniversario? Entonces NO se encola (ADR-0288 D-5 y tanda 1g): sin conexión
+ *  otra tienda podría usarlo a la vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el
+ *  precio rebajado. Mira las señales (los parámetros y la parte del club de cada ítem): la base exige que vayan juntas
+ *  (`cumple_sin_canje`). */
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_canjear_aniversario" | "p_items">): boolean {
+  return (
+    params.p_canjear_cumpleanos === true ||
+    params.p_canjear_aniversario === true ||
+    params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0)
+  );
 }
 
 /** Cuánto de lo encolado sin subir es en EFECTIVO. Importa porque `retail.cerrar_caja`

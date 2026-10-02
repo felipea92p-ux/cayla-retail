@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -91,6 +91,7 @@ export function CajonPrendaExistencias({
   veTraslados,
   puedeEliminar = false,
   onReponer,
+  onSubir,
   onAjustar,
   onEliminar,
   onCerrar,
@@ -111,6 +112,8 @@ export function CajonPrendaExistencias({
   puedeEliminar?: boolean;
   /** «Reponer a piso» abre la ventana de la PRENDA entera, con todas sus tallas (`ReponerPrendaModal`). */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** «Subir a almacén» abre la ventana de la PRENDA entera, con las tallas que tienen algo libre en el piso (`SubirAAlmacenModal`). */
+  onSubir: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   onAjustar: (f: FilaExistencias) => void;
   /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
   onEliminar?: () => void;
@@ -132,10 +135,12 @@ export function CajonPrendaExistencias({
   const diagnostico = separa ? queHacerPrenda(prenda.tallas) : null;
   // «Reponer a piso» se ofrece si alguna talla se puede bajar (`tallaParaReponer`); la ventana lista todas las tallas.
   const hayQueReponer = tallaParaReponer(prenda.tallas) !== null;
+  // «Subir a almacén» se ofrece si alguna talla tiene algo LIBRE en el piso (lo apartado para una clienta no se sube).
+  const hayQueSubir = prenda.tallas.some((f) => (f.pisoDisponible ?? 0) > 0);
   const hrefTrasladar = veTraslados ? urlTrasladar(prenda.tallas) : null;
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
-  const hayOperar = (puedeReponer && hayQueReponer) || hrefTrasladar !== null;
+  const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
   const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
@@ -269,6 +274,7 @@ export function CajonPrendaExistencias({
                   <Grupo titulo="Operar esta prenda" bajada="Acciones rápidas de reposición y movimiento.">
                     <div className="grid gap-2">
                       {puedeReponer && hayQueReponer && <Accion principal icono={IconoPercha} texto="Reponer a piso" onClick={() => onReponer(prenda)} />}
+                      {puedeReponer && hayQueSubir && <Accion icono={Warehouse} texto="Subir a almacén" onClick={() => onSubir(prenda)} />}
                       {hrefTrasladar && <Accion icono={ArrowLeftRight} texto="Trasladar" href={hrefTrasladar} />}
                     </div>
                     {sinModuloBajada && hayQueReponer && <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>}

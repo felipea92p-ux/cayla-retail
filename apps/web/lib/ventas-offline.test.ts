@@ -182,4 +182,8 @@ describe("llevaCanje: la venta con el cumpleaños no va a la cola", () => {
     expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: true })).toBe(true);
     expect(llevaCanje({ p_items: [{ ...item, descuento_unitario: 7.99, descuento_club_unitario: 7.99 }] })).toBe(true);
   });
+  it("con el vale de aniversario tampoco (tanda 1g)", () => {
+    expect(llevaCanje({ p_items: [item], p_canjear_aniversario: true })).toBe(true);
+    expect(llevaCanje({ p_items: [item], p_canjear_aniversario: false })).toBe(false);
+  });
 });

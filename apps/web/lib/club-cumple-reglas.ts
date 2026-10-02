@@ -42,12 +42,6 @@ export const ajustarAnio = (texto: string) => texto.replace(/\D/g, "").slice(0, 
 /** No escribió nada del cumpleaños (ni día, ni mes, ni año). */
 export const cumpleVacio = (c: CumpleEscrito) => c.dia.trim() === "" && c.mes.trim() === "" && c.anio.trim() === "";
 
-/** El de la ficha (números o null) como se escribe en la hoja. */
-export function cumpleEscrito(dia: number | null | undefined, mes: number | null | undefined, anio: number | null | undefined): CumpleEscrito {
-  const t = (n: number | null | undefined) => (n === null || n === undefined ? "" : String(n));
-  return { dia: t(dia), mes: t(mes), anio: t(anio) };
-}
-
 const DIAS_DEL_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const esBisiesto = (a: number) => (a % 4 === 0 && a % 100 !== 0) || a % 400 === 0;
 /** Nadie del club nació hace más de esto: un año más viejo es un error de tipeo. */
@@ -88,12 +82,4 @@ export function cumpleCompleto(c: CumpleEscrito, anioActual: number): boolean {
 export function cajaDelProblemaCumple(c: CumpleEscrito, anioActual: number): "dia" | "anio" | null {
   if (problemaCumple(c, anioActual) === null) return null;
   return cumpleCompleto({ ...c, anio: "" }, anioActual) ? "anio" : "dia";
-}
-
-/** Lo que viaja a la base, una vez que `problemaCumple` dio null. */
-export function cumpleParaGuardar(c: CumpleEscrito): { cumpleDia: number | null; cumpleMes: number | null; cumpleAnio: number | null } {
-  const n = (t: string) => (t.trim() === "" ? null : Number(t.trim()));
-  const dia = n(c.dia);
-  const mes = n(c.mes);
-  return { cumpleDia: dia, cumpleMes: mes, cumpleAnio: dia !== null && mes !== null ? n(c.anio) : null };
 }

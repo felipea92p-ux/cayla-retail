@@ -1,14 +1,26 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Volver } from "@/components/ui/Volver";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { avisar } from "@/components/ui/Avisos";
+import { useEsperando } from "@/components/ui/Espera";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadDeTexto, expandir, MAX_POR_PRENDA, type Encabezado as TextosPantalla, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
+import { sistemaDelEquipo } from "@/lib/guia-impresion-reglas";
+import {
+  avisoDelAyudante,
+  COMANDO_INSTALAR,
+  documentoParaAyudante,
+  estadoDelAyudante,
+  resultadoDeImpresion,
+  URL_AYUDANTE,
+  type EstadoAyudante,
+} from "@/lib/mac-etiquetas";
 
 // Color y talla van bajo el nombre (no en columnas propias): con cinco columnas fijas, en una pantalla angosta la de la
 // prenda se quedaba en 0 px y el nombre desaparecía.
@@ -70,15 +82,69 @@ export function ImprimirEtiquetasPrecio({
   const total = hoja.length;
   const visibles = etiquetas.filter((e) => (numeros[e.varianteId] ?? 0) > 0);
 
+  // En una Mac, Chrome entrega la hoja girada y la Brother la saca larga: se imprime por el ayudante local (ADR-0304).
+  const esMac = montado && sistemaDelEquipo(navigator.userAgent, navigator.platform) === "mac";
+  const [ayudante, setAyudante] = useState<EstadoAyudante>("comprobando");
+  const [enviando, setEnviando] = useState(false);
+  useEsperando(enviando, { etiqueta: "Un momento", titulo: "Imprimiendo", detalle: "Preparando las etiquetas para la Brother…" });
+  useEffect(() => {
+    if (!esMac) return;
+    let vigente = true;
+    fetch(`${URL_AYUDANTE}/estado`, { cache: "no-store", signal: AbortSignal.timeout(2500) })
+      .then((r) => r.json())
+      .then((j) => vigente && setAyudante(estadoDelAyudante(j)))
+      .catch(() => vigente && setAyudante("sin-ayudante"));
+    return () => {
+      vigente = false;
+    };
+  }, [esMac]);
+  const porAyudante = esMac && ayudante === "listo";
+
+  const imprimirEnMac = async () => {
+    const nodo = document.getElementById("etiquetas-precio-print");
+    if (!nodo) return;
+    // La hoja tal cual la dibuja la pantalla, con la forma A: allí la página sí mide 62 × 40,1 y nadie la vuelve a girar.
+    const copia = nodo.cloneNode(true) as HTMLElement;
+    copia.setAttribute("data-modo", "girada");
+    const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style, link[rel="preload"][as="font"]'), (n) => n.outerHTML);
+    const documento = documentoParaAyudante({
+      estilos,
+      base: `${location.origin}/`,
+      clases: `${document.documentElement.className} ${document.body.className}`.trim(),
+      hoja: copia.outerHTML,
+    });
+    setEnviando(true);
+    let status: number | null = null;
+    let cuerpo: unknown = null;
+    try {
+      const r = await fetch(`${URL_AYUDANTE}/imprimir`, { method: "POST", headers: { "Content-Type": "text/html" }, body: documento });
+      status = r.status;
+      cuerpo = await r.json().catch(() => null);
+    } catch {
+      status = null;
+    } finally {
+      setEnviando(false);
+    }
+    const res = resultadoDeImpresion(status, cuerpo, total);
+    if (res.ok) avisar.exito(res.texto);
+    else avisar.error(res.texto, { detalle: res.detalle });
+  };
+
   // La guía va al lado del botón que imprime: quien se traba lo hace justo ahí, con el diálogo de impresión recién visto.
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario" disabled={total === 0} onClick={() => window.print()}>
-        {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "etiqueta", "etiquetas")}`}
+      <button
+        type="button"
+        className="btn-cayla btn-primario"
+        disabled={total === 0 || enviando}
+        onClick={() => (porAyudante ? void imprimirEnMac() : window.print())}
+      >
+        {total === 0 ? "Nada que imprimir" : enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "etiqueta", "etiquetas")}`}
       </button>
     </div>
   );
+  const avisoMac = esMac ? avisoDelAyudante(ayudante) : null;
 
   if (etiquetas.length === 0) {
     return (
@@ -100,6 +166,7 @@ export function ImprimirEtiquetasPrecio({
       </div>
 
       {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
+      {avisoMac && <AvisoAyudanteMac {...avisoMac} instalar={ayudante === "sin-ayudante"} />}
 
       <Tabla>
         <Encabezado columnas={columnas(encabezado.columnaCantidad)} plantilla={PLANTILLA} />
@@ -160,15 +227,18 @@ export function ImprimirEtiquetasPrecio({
         </section>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
-        <span>Cómo la manda a la Brother:</span>
-        {(["girada", "derecha"] as const).map((m) => (
-          // La elegida la pinta `.pildora-cayla[aria-pressed]` (tinta con letra crema): un `text-tinta` encima la dejaba negra sobre negra.
-          <button key={m} type="button" className="pildora-cayla" aria-pressed={modo === m} onClick={() => elegirModo(m)}>
-            {m === "girada" ? "A · Hoja 62 × 40,1 (girada)" : "B · Hoja 40,1 × 62 (derecha)"}
-          </button>
-        ))}
-      </div>
+      {/* Con el ayudante de la Mac la forma no se elige: siempre va la A, del tamaño exacto. */}
+      {!porAyudante && (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
+          <span>Cómo la manda a la Brother:</span>
+          {(["girada", "derecha"] as const).map((m) => (
+            // La elegida la pinta `.pildora-cayla[aria-pressed]` (tinta con letra crema): un `text-tinta` encima la dejaba negra sobre negra.
+            <button key={m} type="button" className="pildora-cayla" aria-pressed={modo === m} onClick={() => elegirModo(m)}>
+              {m === "girada" ? "A · Hoja 62 × 40,1 (girada)" : "B · Hoja 40,1 × 62 (derecha)"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* La impresora y el precio van en notas separadas (2026-09-26): juntas, nadie de tienda leía la nota entera y la parte
           de la Brother —la que traba a un equipo nuevo— quedaba al final. La configuración paso a paso vive en la guía. */}
@@ -198,6 +268,31 @@ export function ImprimirEtiquetasPrecio({
           </div>,
           document.body,
         )}
+    </div>
+  );
+}
+
+/** Una Mac que todavía no puede imprimir por el ayudante (ADR-0304): qué le falta y, si es el ayudante, la línea para instalarlo. */
+function AvisoAyudanteMac({ titulo, detalle, instalar }: { titulo: string; detalle: string; instalar: boolean }) {
+  const copiar = () =>
+    navigator.clipboard.writeText(COMANDO_INSTALAR).then(
+      () => avisar.exito("Línea copiada", { detalle: "Pégala en Terminal y presiona Enter." }),
+      () => avisar.error("No se pudo copiar", { detalle: "Selecciona la línea y cópiala con ⌘C." }),
+    );
+  return (
+    <div role="status" className="nota-cayla space-y-2">
+      <p>
+        <b>{titulo}.</b> {detalle}
+      </p>
+      {instalar && (
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="select-all break-all rounded bg-papel px-2 py-1 font-mono text-xs text-tinta">{COMANDO_INSTALAR}</code>
+          <button type="button" className="btn-cayla btn-secundario" onClick={copiar}>
+            Copiar
+          </button>
+        </div>
+      )}
+      <p className="text-xs">Mientras tanto, «Imprimir» usa el diálogo de Chrome: la etiqueta sale, pero con papel de sobra.</p>
     </div>
   );
 }

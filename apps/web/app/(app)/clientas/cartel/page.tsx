@@ -1,35 +1,33 @@
+import { EB_Garamond } from "next/font/google";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTextosClub, getTiendasConWhatsapp } from "@/lib/clientas";
-import { enlaceQrClub, textoVigente } from "@/lib/club-reglas";
+import { getTextosDelCartel, getTiendasConWhatsapp } from "@/lib/clientas";
 import { Volver } from "@/components/ui/Volver";
-import { CartelClub, type CartelDeTienda } from "@/components/clientas/CartelClub";
+import { CartelClub } from "@/components/clientas/CartelClub";
 
-// El cartel del club para el mostrador (ADR-0288 tanda 1b, «Actualización 2026-09-30»): una hoja A4 por tienda con su
-// número de WhatsApp cargado, con el QR GENÉRICO — abre el WhatsApp de esa tienda con el mensaje «quiero unirme al Club
-// CAYLA…» listo para que ELLA lo envíe (sin código: todavía no tiene ficha). Cuando llega, la tienda le pide su documento
-// en ese chat y la registra con «Llegó un mensaje de WhatsApp» (Clientas).
+// El cartel del club para el mostrador (ADR-0288 act. g, G-1; diseño C «Invitación», aprobado por Felipe el 2026-10-01): una
+// hoja A4 por tienda activa con UN QR, el de la página de registro de esa tienda (`/club/<uuid>`). La clienta lo escanea y se
+// une sola desde su celular; el ticket impreso lleva el mismo. El QR no depende del WhatsApp de la tienda: una tienda sin número
+// igual tiene cartel (lo que no tiene es el saludo al final de la página, y la pantalla lo avisa).
 //
-// Hereda la puerta del módulo de `clientas/layout.tsx` (`exigirModulo("clientas")`). Sin número no hay QR (principio 9): la
-// pantalla lo dice y manda a Configuración ▸ Tiendas y caja.
+// Dos lecturas: las tiendas y los beneficios del club (una sola, para todas: son de toda la empresa). Sin beneficios no hay
+// cartel. Hereda la puerta del grupo de `clientas/layout.tsx` (Clientas o Avisos del club). La dirección del QR la arma el
+// navegador con su propio origen (`CartelClub`): es el mismo dominio donde vive la página.
+
+// La itálica de EB Garamond, solo para esta hoja: `app/layout.tsx` carga la familia en redonda (la de todo el ERP) y, sin el
+// archivo itálico, el navegador inclina la redonda a la fuerza: «Estás invitada» no se vería como en el diseño aprobado. Se
+// carga aquí y no en el layout para que el resto del ERP no descargue una fuente que no usa.
+const garamondItalica = EB_Garamond({ subsets: ["latin"], style: "italic", weight: "400", variable: "--font-eb-garamond-italica", display: "swap" });
+
 export default async function CartelClubPage() {
   await requirePersonaActualV2();
-  const [{ tiendas, falla }, textos] = await Promise.all([getTiendasConWhatsapp(), getTextosClub()]);
-  const mensaje = textoVigente(textos, "mensaje_generico");
-
-  const carteles: CartelDeTienda[] = [];
-  const sinNumero: string[] = [];
-  for (const t of tiendas) {
-    const enlace = mensaje ? enlaceQrClub(t.whatsappNumero, mensaje.texto) : null;
-    if (enlace && t.whatsappNumero) carteles.push({ id: t.id, tienda: t.nombre, numero: t.whatsappNumero, enlace });
-    else if (!enlaceQrClub(t.whatsappNumero, "")) sinNumero.push(t.nombre);
-  }
-
+  const [{ tiendas, falla }, beneficios] = await Promise.all([getTiendasConWhatsapp(), getTextosDelCartel()]);
   return (
     <CartelClub
-      carteles={carteles}
-      sinNumero={sinNumero}
-      sinMensaje={mensaje === null}
+      tiendas={tiendas}
       falla={falla}
+      textos={beneficios.textos}
+      fallaTextos={beneficios.falla}
+      fuente={garamondItalica.variable}
       volver={<Volver href="/clientas" a="Clientas" forma="boton" />}
     />
   );

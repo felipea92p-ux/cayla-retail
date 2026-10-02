@@ -16,6 +16,7 @@ import {
   type FilaSeparacion,
 } from "@/lib/clientas-reglas";
 import type { TextoClub, TipoTextoClub } from "@/lib/club-reglas";
+import { textosDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
 import {
   aCifrasClientas,
   aClientaDeLista,
@@ -86,8 +87,8 @@ export async function getFichaClienta(id: string): Promise<FichaClienta | null> 
 }
 
 /* ------------------------------------------------------------------
-   El cartel del club (ADR-0288 tanda 1b, `/clientas/cartel`): el QR genérico de cada tienda que tiene su número de
-   WhatsApp cargado (Configuración ▸ Tiendas y caja). Lecturas del servidor; el navegador usa `club-acciones.ts`.
+   El cartel del club (ADR-0288 act. g, `/clientas/cartel`): una hoja por tienda activa con el QR de SU página de registro, y
+   los beneficios vigentes del club. Lecturas del servidor; el navegador usa `club-acciones.ts`.
    ------------------------------------------------------------------ */
 
 export type TiendaWhatsapp = { id: string; nombre: string; whatsappNumero: string | null };
@@ -104,6 +105,21 @@ export async function getTiendasConWhatsapp(): Promise<{ tiendas: TiendaWhatsapp
     .order("nombre");
   if (error) return { tiendas: [], falla: `No se pudo leer el WhatsApp de las tiendas: ${error.message}` };
   return { tiendas: (data ?? []).map((u) => ({ id: u.id, nombre: u.nombre, whatsappNumero: u.whatsapp_numero ?? null })), falla: null };
+}
+
+/**
+ * Lo que el cartel dice de los beneficios (el % del cumpleaños, el vale menor y el mayor de la escala, y lo que hace contar un
+ * año), en UNA lectura para todas las tiendas: son de toda la empresa. Sale de `fn_club_textos_legales`, lo mismo que leen los
+ * términos y la página que abre el QR. Si la base no responde o no los da completos, `falla` y ningún texto: el cartel no se
+ * dibuja con cifras inventadas (principio 9).
+ */
+export async function getTextosDelCartel(): Promise<{ textos: TextosCartel | null; falla: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_club_textos_legales");
+  if (error) return { textos: null, falla: `No se pudieron leer los beneficios del club: ${error.message}` };
+  const textos = textosDelCartel(data);
+  if (!textos) return { textos: null, falla: "La base no dio completos los beneficios del club (el % del cumpleaños, el vale de cada año o lo que hace contar un año)." };
+  return { textos, falla: null };
 }
 
 /** Los textos vigentes del club (`fn_club_textos_vigentes`), leídos del servidor. Vacío si la base todavía no los tiene. */

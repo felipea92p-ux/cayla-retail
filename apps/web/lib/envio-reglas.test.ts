@@ -22,7 +22,7 @@ import {
   sumarUnidad,
   totalesEnvio,
   pendienteEnCola,
-  trasladoContadoEntero,
+  trasladosHaciaAca,
   type ExtraEnvio,
   type PedidoEnvio,
   type Reparto,
@@ -109,14 +109,15 @@ describe("totalesEnvio: Esperadas = Contadas + Sin contar + Faltantes", () => {
   it("una línea contada por encima de lo pendiente cuenta como excedida", () => {
     expect(totalesEnvio(bloques, { l1: { v1: 25 } }, []).excedidas).toBe(1);
   });
-  it("suma lo fuera de comprobante (solo las filas completas) y lo de otra sede", () => {
+  it("suma lo fuera de comprobante (solo las filas completas)", () => {
     const extras: ExtraEnvio[] = [
       { productoId: "p1", varianteId: "v1", cantidad: 3, costoUnitario: "", proveedorId: "prov2", esRegalo: true },
       { productoId: "p1", varianteId: "", cantidad: 5, costoUnitario: "", proveedorId: "prov2", esRegalo: false }, // sin prenda elegida: todavía no cuenta
     ];
-    const t = totalesEnvio(bloques, {}, extras, [{ lineas: [{ varianteId: "v1", cantidadEnviada: 5 }], conteo: { v1: 4 } }]);
+    const t = totalesEnvio(bloques, {}, extras);
     expect(t.fueraDeComprobante).toBe(3);
-    expect(t.deOtraSede).toBe(4);
+    // ADR-0299: lo de otra sede ya no se cuenta acá.
+    expect(t).not.toHaveProperty("deOtraSede");
   });
 });
 
@@ -181,7 +182,7 @@ describe("sumarUnidad", () => {
 
 describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
   const bloques = bloquesDelEnvio(COMPRAS, ["c1", "c2"], LINEAS);
-  const base = { ubicacionId: "u1", bloques, reparto: {} as Reparto, extras: [] as ExtraEnvio[], traslados: [], cierres: [], numeroGuia: "", nota: "", token: "tok-1" };
+  const base = { ubicacionId: "u1", bloques, reparto: {} as Reparto, extras: [] as ExtraEnvio[], cierres: [], numeroGuia: "", nota: "", token: "tok-1" };
 
   it("solo viaja lo contado en positivo; el 0 y lo sin contar no suman al stock", () => {
     const p = armarPedidoEnvio({ ...base, reparto: { l1: { v1: 24 }, l2: { v2: 0 }, l3: { v3: 7 } } });
@@ -214,12 +215,9 @@ describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
       { proveedor_id: "prov1", variante_id: "v3", cantidad: 1, es_regalo: false },
     ]);
   });
-  it("de un traslado viajan TODAS sus líneas enviadas: la no contada va en 0, no se omite", () => {
-    const p = armarPedidoEnvio({
-      ...base,
-      traslados: [{ transferenciaId: "t1", lineas: [{ varianteId: "v1", cantidadEnviada: 5 }, { varianteId: "v2", cantidadEnviada: 3 }], conteo: { v1: 5 } }],
-    });
-    expect(p.p_traslados).toEqual([{ transferencia_id: "t1", lineas: [{ variante_id: "v1", cantidad: 5 }, { variante_id: "v2", cantidad: 0 }] }]);
+  it("nunca viaja un traslado: `recibir_envio` lo rechaza desde ADR-0299 (se recibe en Traslados)", () => {
+    const p = armarPedidoEnvio(base);
+    expect(p).not.toHaveProperty("p_traslados");
   });
   // Recepción cuenta y cierra; la nota de crédito se reclama y se registra en `/compras/notas-credito`
   // (2026-09-19). El parámetro sigue viajando porque la RPC lo sigue aceptando, pero SIEMPRE vacío.
@@ -230,12 +228,37 @@ describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
   });
 });
 
-describe("trasladoContadoEntero: la base exige contar cada línea enviada (aunque sea 0)", () => {
-  const lineas = [{ varianteId: "v1", cantidadEnviada: 5 }, { varianteId: "v2", cantidadEnviada: 3 }];
-  it("solo cuando cada línea tiene su conteo; un 0 escrito cuenta", () => {
-    expect(trasladoContadoEntero(lineas, { v1: 5 })).toBe(false);
-    expect(trasladoContadoEntero(lineas, { v1: 5, v2: 0 })).toBe(true);
-    expect(trasladoContadoEntero([], {})).toBe(false);
+describe("trasladosHaciaAca: el aviso «esto se recibe en Traslados» (ADR-0299)", () => {
+  const t = (id: string, numero: number, over: Partial<Parameters<typeof trasladosHaciaAca>[0][number]> = {}) => ({
+    id,
+    numero,
+    estado: "en_transito",
+    ubicacionDestinoId: "tru",
+    ubicacionOrigenNombre: "Taller",
+    unidadesEnviadas: 12,
+    lineas: 3,
+    ...over,
+  });
+  it("solo lo que va hacia ESTA sede, en tránsito y con prendas, del más viejo al más nuevo", () => {
+    const r = trasladosHaciaAca(
+      [
+        t("a", 7),
+        t("b", 5, { ubicacionOrigenNombre: "Tienda AQP", unidadesEnviadas: 4, lineas: 1 }),
+        t("c", 9, { ubicacionDestinoId: "aqp" }), // va a otra sede
+        t("d", 8, { estado: "recibido_con_diferencia" }), // ya entró al stock: espera a un líder, no hay nada que contar
+        t("e", 6, { estado: "cerrada" }),
+        t("f", 4, { lineas: 0, unidadesEnviadas: 0 }), // cabecera vacía (ADR-0173): no es algo que recibir
+      ],
+      "tru",
+    );
+    expect(r).toEqual([
+      { id: "b", numero: 5, origenNombre: "Tienda AQP", unidades: 4 },
+      { id: "a", numero: 7, origenNombre: "Taller", unidades: 12 },
+    ]);
+  });
+  it("sin traslados en camino, no hay aviso", () => {
+    expect(trasladosHaciaAca([], "tru")).toEqual([]);
+    expect(trasladosHaciaAca([t("a", 1, { ubicacionDestinoId: "aqp" })], "tru")).toEqual([]);
   });
 });
 
@@ -434,42 +457,38 @@ describe("resumenPorComprobante: lo que muestra el resumen previo a recibir", ()
 describe("movimientosDelEnvio: lo que queda escrito en el stock", () => {
   const bloques = bloquesDelEnvio(COMPRAS, ["c1", "c2"], LINEAS);
   const dePrenda = (id: string) => ({ referencia: id === "v9" ? "Polo Alba" : "Blusa Emma", detalle: id === "v9" ? "M / Negro" : "S / Beige" });
-  it("primero los comprobantes, luego fuera de comprobante y por último otra sede; los ceros no son movimientos", () => {
+  it("primero los comprobantes y luego fuera de comprobante; los ceros no son movimientos", () => {
     const m = movimientosDelEnvio({
       bloques,
       reparto: { l1: { v1: 24 }, l2: { v2: 0 }, l4: { v9: 4 } },
       extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "prov1", esRegalo: true }],
-      traslados: [{ numero: 15, lineas: [{ varianteId: "v1", referencia: "Blusa Emma", talla: "M", color: "Negro" }], conteo: { v1: 10 } }],
       dePrenda,
     });
     expect(m.map((x) => [x.cantidad, x.origen])).toEqual([
       [24, "F001-000198"],
       [4, "F001-000482"],
       [2, "fuera de comprobante"],
-      [10, "traslado 15"],
     ]);
     expect(m[1].referencia).toBe("Polo Alba"); // la línea agrupada usa la variante que se anotó
     expect(m[2].detalle).toBe("M / Negro · regalo");
   });
   it("una prenda fuera de comprobante incompleta no se cuenta", () => {
-    const m = movimientosDelEnvio({ bloques, reparto: {}, extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "", esRegalo: false }], traslados: [], dePrenda });
+    const m = movimientosDelEnvio({ bloques, reparto: {}, extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "", esRegalo: false }], dePrenda });
     expect(m).toEqual([]);
   });
 });
 
 describe("pendienteEnCola (ADR-0210)", () => {
-  it("junta las líneas recibidas y cerradas, y los traslados, de los envíos que esperan en la cola", () => {
+  it("junta las líneas recibidas y cerradas de los envíos que esperan en la cola", () => {
     const r = pendienteEnCola([
-      { p_items: [{ compra_item_id: "l1", variante_id: "v1", cantidad: 2 }], p_cierres: [{ compra_item_id: "l2", cantidad: 1, motivo: "no_llego" }], p_traslados: [] },
-      { p_items: [], p_cierres: [], p_traslados: [{ transferencia_id: "t1", lineas: [] }] },
+      { p_items: [{ compra_item_id: "l1", variante_id: "v1", cantidad: 2 }], p_cierres: [{ compra_item_id: "l2", cantidad: 1, motivo: "no_llego" }] },
+      { p_items: [{ compra_item_id: "l3", variante_id: "v2", cantidad: 1 }], p_cierres: [] },
     ]);
-    expect([...r.lineas].sort()).toEqual(["l1", "l2"]);
-    expect([...r.traslados]).toEqual(["t1"]);
+    expect([...r.lineas].sort()).toEqual(["l1", "l2", "l3"]);
   });
 
   it("sin cola, no oculta nada", () => {
-    const r = pendienteEnCola([]);
-    expect(r.lineas.size + r.traslados.size).toBe(0);
+    expect(pendienteEnCola([]).lineas.size).toBe(0);
   });
 });
 
@@ -482,7 +501,6 @@ describe("confirmarExtras (costo atípico, 20260930124000)", () => {
       { proveedor_id: "p", variante_id: "v2", cantidad: 1, es_regalo: false, costo_unitario: 32 },
       { proveedor_id: "p", variante_id: "v3", cantidad: 1, es_regalo: true },
     ],
-    p_traslados: [],
     p_cierres: [],
     p_notas_credito: [],
     p_token: "t",

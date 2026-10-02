@@ -37,11 +37,6 @@ export function textoVigente(textos: readonly TextoClub[], tipo: TipoTextoClub):
   return textos.filter((t) => t.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
 }
 
-/** El mensaje personalizado que ella envía, con su código de socia en lugar de `{codigo}`. */
-export function mensajePersonal(plantilla: string, codigoClub: string): string {
-  return plantilla.split("{codigo}").join(codigoClub);
-}
-
 /**
  * El enlace que abre el WhatsApp DE LA TIENDA con el texto listo para que ELLA lo envíe (el QR lo codifica). `null` si la
  * tienda no tiene número cargado (Configuración ▸ Tiendas y caja): sin número no hay QR, y el club sigue sin publicidad.
@@ -57,36 +52,10 @@ export function codigoClubLegible(codigo: string | null): string | null {
 }
 
 /**
- * Del texto que llegó por WhatsApp (o que escribe la asesora), el código de socia que trae, normalizado: «club c-142»,
- * «(Club C-0142)» o «C0142» → «C-0142». null si no trae ninguno.
+ * La página de registro del Club CAYLA de una tienda (ADR-0288 act. g, G-1): la abren el QR del cartel y el del ticket.
+ * `origen`: el del navegador (`window.location.origin`), porque la página vive en el mismo dominio que el ERP;
+ * `ubicacionId`: el uuid de la tienda del cartel (o de la venta), que es la que la saluda y le escribe después.
  */
-export function codigoEnTexto(texto: string): string | null {
-  const m = texto.toUpperCase().match(/\bC-?\s?(\d{1,6})\b/);
-  return m ? `C-${m[1]!.padStart(4, "0")}` : null;
+export function enlacePaginaClub(origen: string, ubicacionId: string): string {
+  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(ubicacionId)}`;
 }
-
-/**
- * Camino B (ADR-0288, act. c): el QR personal abre la página pública de CAYLA donde ELLA marca la casilla. `origen` es el
- * del navegador de la caja (`window.location.origin`): la página vive en el mismo dominio que el ERP.
- */
-export function enlacePaginaClub(origen: string, token: string): string {
-  return `${origen.replace(/\/+$/, "")}/club/${encodeURIComponent(token)}`;
-}
-
-/** Estados de una invitación tal como los devuelve `fn_invitacion_club`. */
-export type EstadoInvitacion = "vigente" | "usada" | "vencida" | "no_existe";
-
-export function estadoInvitacion(valor: string | null | undefined): EstadoInvitacion {
-  return valor === "vigente" || valor === "usada" || valor === "vencida" ? valor : "no_existe";
-}
-
-/** El texto de la página con su celular a medias en lugar de `{celular}`. */
-export function textoPaginaPublicidad(plantilla: string, celularEnmascarado: string | null): string {
-  return plantilla.split("{celular}").join(celularEnmascarado ?? "tu celular");
-}
-
-/** Un token con forma válida (16 caracteres seguros para URL): la página no consulta la base con cualquier cosa. */
-export function tokenValido(token: string): boolean {
-  return /^[A-Za-z0-9_-]{16}$/.test(token);
-}
-

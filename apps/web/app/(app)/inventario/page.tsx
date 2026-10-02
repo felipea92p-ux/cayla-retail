@@ -7,7 +7,7 @@ import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
-import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categorias";
+import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
@@ -239,7 +239,6 @@ export default async function InventarioPage({
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}
         verProductos={veModulo(persona, "productos")}
-        filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         comparacionFallo={semana.fallo}
         politica={politica}

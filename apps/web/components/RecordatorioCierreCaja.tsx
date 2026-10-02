@@ -20,7 +20,7 @@ import {
   type NivelRecordatorio,
 } from "@/lib/recordatorio-cierre-reglas";
 
-// La «Isla»: el recordatorio de cierre de caja (ADR-0303; maqueta 2 de `docs/maquetas/recordatorio-cierre-caja-2026-10/`).
+// La «Isla»: el recordatorio de cierre de caja (ADR-0305; maqueta 2 de `docs/maquetas/recordatorio-cierre-caja-2026-10/`).
 // Montada UNA vez en el layout de la app: acompaña a quien puede cerrar la caja por todas las pantallas desde la hora de cierre
 // de su tienda (`ubicaciones.hora_cierre`) hasta que la caja se cierra. No tiene ✕: se pliega, pero solo se va al cerrar.
 //

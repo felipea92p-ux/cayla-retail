@@ -3,7 +3,7 @@ import { getCajaAbierta } from "@/lib/caja";
 import { puede, type PersonaActualV2 } from "@/lib/persona-actual";
 import type { CifrasRecordatorio, DatosRecordatorioCierre } from "@/lib/recordatorio-cierre-reglas";
 
-// Lo que el recordatorio de cierre de caja lee de la base (ADR-0303), todo de solo lectura. El layout usa la versión TOTAL
+// Lo que el recordatorio de cierre de caja lee de la base (ADR-0305), todo de solo lectura. El layout usa la versión TOTAL
 // (`getRecordatorioCierre`, nunca lanza): no tiene `error.tsx` propio, y una excepción aquí dejaría sin pantalla a toda la app
 // por un aviso. La ruta del sondeo usa la que lanza, para no confundir «la base no respondió» con «ya no hay caja».
 

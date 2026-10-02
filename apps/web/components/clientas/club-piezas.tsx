@@ -1,7 +1,6 @@
 "use client";
 
 import { CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { Casilla } from "@/components/ui/Casilla";
 import { ajustarCelular } from "@/lib/club-reglas";
 import { celularLegible, problemaCelularOpcional } from "@/lib/club-caja-reglas";
 import {
@@ -15,9 +14,9 @@ import {
   type CumpleEscrito,
 } from "@/lib/club-cumple-reglas";
 
-// Las piezas del club que comparten TODAS las hojas que lo tocan (ADR-0288 tanda 1b): en Cobrar, «Registrar clienta» e
-// «Invitar al club»; en /clientas, el alta, la ficha («Editar», «Unirse al club», «Llegó su mensaje») y «Llegó un mensaje
-// de WhatsApp». Una sola versión, dibujada como el spike del club (`45-club-caja.js`: `modalRegistrar` y `modalInvitar`):
+// Las piezas del club que comparten las hojas que lo tocan (ADR-0288 tanda 1b). Desde la tanda 1g (G-2) el alta pide solo el
+// documento y ella se une desde el cartel, así que hoy las usa «Editar» de la ficha de /clientas. Una sola versión, dibujada
+// como el spike del club (`45-club-caja.js`: `modalRegistrar` y `modalInvitar`):
 // cajas hundidas (`caja-cayla`), celular de a tres cifras, cumpleaños en tres cajas iguales. Solo dibujan: la regla vive en
 // `lib/club-cumple-reglas.ts` (el cumpleaños, UNA para las dos pantallas) y `lib/club-caja-reglas.ts` (el celular).
 
@@ -164,30 +163,4 @@ export function CamposCumpleanos({
       {omitido && vacio && <p className="mt-1.5 text-xs text-tinta/60">Omitido: {despues}</p>}
     </div>
   );
-}
-
-/**
- * El texto `club` vigente que la asesora LEE en voz alta antes de registrar su «sí» (D-4: el club es su sí de palabra), y la
- * casilla con que confirma que lo leyó y ella dijo que sí (spike, `modalInvitar`). La versión leída es la que viaja a
- * `unirse_al_club` (`p_texto_version`) y queda en el registro del permiso.
- */
-export function TextoDelClub({ texto, leido, onLeido, deshabilitado = false }: { texto: string; leido: boolean; onLeido: (v: boolean) => void; deshabilitado?: boolean }) {
-  return (
-    <div>
-      <div className="rounded-lg bg-hueso px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{texto}</div>
-      <p className="mt-1.5 text-xs text-tinta/60">
-        Queda guardado con la versión del texto: nunca hay un «sí» sin su texto. La publicidad por WhatsApp es aparte y la pide ella después,
-        desde su QR.
-      </p>
-      <label className={`mt-3 flex items-start gap-2.5 text-[13px] text-tinta ${deshabilitado ? "opacity-60" : "cursor-pointer"}`}>
-        <Casilla marcada={leido} onCambio={() => !deshabilitado && onLeido(!leido)} etiqueta="Se lo leí y la clienta dijo que sí" className="mt-0.5" />
-        <span>Se lo leí y la clienta dijo que sí.</span>
-      </label>
-    </div>
-  );
-}
-
-/** Sin texto `club` vigente no se ofrece el club (lo mismo que hace Cobrar con «Invitar»). */
-export function SinTextoDelClub() {
-  return <p className="nota-cayla text-sm text-tinta/75">El club todavía no tiene su texto vigente para leerle a la clienta. Mientras tanto no se la puede unir desde aquí: avisa al líder.</p>;
 }
