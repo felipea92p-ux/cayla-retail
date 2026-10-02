@@ -131,3 +131,47 @@ registrar» dibujan el hex plano: GRM sale liso ahí. Pasarlos por `fondoDeMuest
 obligatorio, PL-105). (2) Esta actualización va apilada sobre el PR #736 (`claude/color-scales-families-c7513c`: la prueba
 `color-escala.test.ts` y la reescritura de `colores-familias.ts` viven allí): **se fusiona después de #736**. Su migración
 `20261002180000` ya está pegada en producción; la mía no trae SQL.
+
+## Actualización 2026-10-02 (c): el filtro de Productos usa la misma escala y sus casillas dicen lo que hace la base
+
+**Problema.** Dejé la carta y Atributos en la escala nueva, pero el filtro de Color de Productos seguía pidiendo los colores
+`order("nombre")` (`productos/page.tsx`) y los listaba **alfabéticos** («Arena, Beige, Blanco, Crudo, Gris…»): tres pantallas, dos
+órdenes. Además la lista decía una cosa y la base hacía otra: el filtro **suma** (`color_codigo = any(colores) OR familia_color =
+any(familias)`, `fn_productos_listar`), así que marcar «Toda la familia Neutro» ya traía Beige aunque su casilla se viera vacía; el
+número de la familia (66) era menor que la suma de sus tonos (una prenda con varios colores cuenta en cada uno) sin que nada lo
+dijera; y las muestras eran de 10 px, casi iguales entre Arena y Beige.
+
+**Decisión.**
+
+1. **Un solo orden.** `opcionesDeColor` ordena los tonos de cada familia con `enEscala` (gama y claridad, `lib/color-escala.ts`), llegue
+   la lista como llegue.
+2. **Casillas como un árbol** (`estadoDeColor` y `alternarColor`, puras y probadas): familia marcada ⇒ sus tonos se ven *incluidos*;
+   algunos tonos ⇒ la familia queda *parcial* (−); tocar un tono de una familia marcada abre la familia en sus otros tonos; marcar el
+   último tono que faltaba recompone «toda la familia». La URL no cambia de forma (`color=` y `familia=`).
+3. **Jerarquía visible:** encabezado de familia en negrita con un filo arriba, tonos sangrados, muestras de 14 px con el borde de su
+   propio tono (`bordeDeMuestra`) y jaspeado para las texturas (`tipo` llega a la muestra: cierra el pendiente (1) de la actualización b).
+4. **Un rótulo sobre la lista** dice qué cuenta el número: «Prendas · una con varios colores cuenta en cada uno» (prop opcional
+   `rotuloCantidad` del desplegable; solo Color lo usa).
+5. **Una sola agrupación por familia** (`agruparPorFamilia`, `lib/colores-familias.ts`) para Nuevo producto, Atributos y el filtro. Una
+   familia que el código aún no conoce sale con **su propio nombre** («Turquesa»), no «Sin familia»/«Otros»: el 2-oct Atributos mostró
+   «SIN FAMILIA 7» —eran Rosado y Naranja— porque una pestaña abierta antes del despliegue conservaba el JavaScript anterior mientras
+   recibía los datos nuevos (la base ya tenía las 11 familias; el despliegue de #736 había salido a las 22:42Z). «Sin familia» queda solo
+   para el color que de verdad no la tiene.
+
+**Descartado.** *Esconder la jerarquía y listar solo tonos:* se pierde «todos los azules», que es el pedido real de mostrador.
+*Que tocar un tono de una familia marcada no haga nada:* un control muerto. *Expandir la familia solo en los tonos con prendas hoy:* el
+conteo depende de los otros filtros; la familia «menos Beige» tiene que seguir siendo todos los demás tonos aunque hoy den 0.
+*Cambiar la base:* no hace falta; la semántica de la base ya era la correcta, lo que estaba mal era lo que la pantalla decía de ella.
+
+**Se rompe si.** Alguien agrega un tono a una familia mientras otra persona tiene la lista abierta con la familia marcada: el tono nuevo
+queda incluido (la base lo trae) y su casilla aparece «incluida» al refrescar los conteos. Y las familias sin colores no aparecen, así
+que una familia que nunca tuvo prendas no se puede marcar entera (no hay nada que traer).
+
+**Verificación.** Pruebas puras en `lib/productos-filtros.test.ts` (37 casos: orden, familia desconocida, estados, alternar, invariante
+«tocar dos veces vuelve a lo mismo que pide la base») y `lib/colores-familias.test.ts`; dos mutaciones (el «último tono recompone» y el
+orden alfabético) las hacen fallar. El componente real `FiltrosProductos` recorrido en Chrome sin ventana con los 75 colores a 1280 y a
+375 px (dentro de la hoja): sin desborde, sin errores de página, y la URL queda `familia=neutro` → `color=…` → `familia=neutro`.
+Suite completa de la web: 312 archivos, 154.946 pruebas.
+
+**Cómo deshacerlo.** `git revert` del commit; no toca datos ni migraciones.
+

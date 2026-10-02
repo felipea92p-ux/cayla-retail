@@ -14,6 +14,7 @@
 //            eso lo hacen `buscar_productos_parecidos` y la RPC de alta.
 
 import { enEscala } from "./color-escala";
+import { agruparPorFamilia } from "./colores-familias";
 
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
@@ -132,13 +133,9 @@ export function ordenarColores(
     .filter((c) => (usoEnCategoria[c.codigo] ?? 0) > 0)
     .sort((a, b) => (usoEnCategoria[b.codigo] ?? 0) - (usoEnCategoria[a.codigo] ?? 0) || a.nombre.localeCompare(b.nombre, "es"))
     .slice(0, max);
-  const grupos = familias
-    .map((f) => ({ familia: f.valor, texto: f.texto, colores: colores.filter((c) => c.familiaColor === f.valor).sort(enEscala) }))
-    .filter((g) => g.colores.length > 0);
-  const conocidas = new Set(familias.map((f) => f.valor));
-  // Un color sin familia conocida (dato viejo) no debe desaparecer de la pantalla.
-  const huerfanos = colores.filter((c) => !conocidas.has(c.familiaColor)).sort(enEscala);
-  if (huerfanos.length > 0) grupos.push({ familia: "sin-familia", texto: "Otros", colores: huerfanos });
+  // Un solo agrupador para las tres pantallas de colores (`agruparPorFamilia`): una familia que el código aún no conoce sale con su propio
+  // nombre y un color sin familia como «Sin familia»; ninguno desaparece.
+  const grupos = agruparPorFamilia(colores, (c) => c.familiaColor, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
   return { frecuentes, grupos };
 }
 
