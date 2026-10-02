@@ -54,6 +54,13 @@ export const HORAS_PROFORMA_POR_VENCER = 48;
 export const METODOS_PAGO = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
 
+// Los medios con que se cobra una VENTA en Vender, en el orden de la hoja de cobro (y de los atajos F1–F6): los cinco
+// de siempre más el QR (cobro en hoja lateral, Felipe 2026-10-02). Va aparte de METODOS_PAGO a propósito: Apartados,
+// Cambios y Finanzas siguen aceptando solo esos cinco, y sus listas no deben ofrecer un QR que su base rechazaría.
+// Calza con `venta_pagos_metodo_check` desde 20261002120000_venta_pagos_qr.sql.
+export const METODOS_PAGO_VENTA = ["efectivo", "tarjeta", "qr", "yape", "plin", "transferencia"] as const;
+export type MetodoPagoVenta = (typeof METODOS_PAGO_VENTA)[number];
+
 // Categorías fijas de gasto OPERATIVO — revisadas con Felipe (2026-07-19) tras el
 // análisis de SINATRA, corrigiendo el enredo que él mismo señaló: las INVERSIONES
 // (muebles, herramientas, remodelación — su "IME") no son gasto del mes, van a

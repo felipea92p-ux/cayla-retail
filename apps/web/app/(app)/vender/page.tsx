@@ -56,7 +56,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda, resQr] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -81,6 +81,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // tienda. Secundario: si falla (o la migración no está en producción), Cobrar no invita ni imprime QR y vende igual.
     supabase.rpc("fn_club_textos_vigentes"),
     supabase.from("ubicaciones").select("whatsapp_numero").eq("id", persona.ubicacionId).maybeSingle(),
+    // ¿La base ya acepta el QR como medio de una venta? (20261002120000). Si la función no existe todavía, el error deja
+    // la hoja de cobro con los cinco medios de siempre.
+    supabase.rpc("fn_acepta_pago_qr"),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -222,6 +225,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
       puedeBuscarClienta={modulos.includes("clientas")}
       club={club}
+      qrDisponible={resQr.data === true}
     />
   );
 }
