@@ -528,6 +528,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   color»; sus fotos suben a la ficha por `VariantesFicha.onFotosDeColores` → `ProductoForm.sumarFotosDeColores`). Recibe las
   fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
   `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
+  **Panel del taller (ADR-0305, 2026-10-02):** a la derecha de la ficha (grid `minmax(0,1fr) 340px`, oculto bajo `lg`),
+  `components/ficha-producto/PanelDelTaller.tsx` — solo lectura (foto por color, swatches, identidad, precio) salvo el
+  stock por talla, que usa el MISMO `AjusteDeStock`/`AjustarInventarioModal` que `VariantesFicha.tsx`; no hay un
+  stepper propio ni un campo que escriba stock directo. Al subir una talla, `AjustarInventarioModal` avisa a
+  `RecordatorioEtiquetasProvider` (Context montado en `app/(app)/productos/layout.tsx`, vive y muere con la
+  navegación dentro de Productos) y una franja persistente arriba de la pantalla ofrece «Imprimir etiquetas» hasta
+  que la persona la descarta o sale del módulo.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
