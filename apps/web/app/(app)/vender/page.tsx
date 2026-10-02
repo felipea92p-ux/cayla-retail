@@ -81,7 +81,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // tienda. Secundario: si falla (o la migración no está en producción), Cobrar no invita ni imprime QR y vende igual.
     supabase.rpc("fn_club_textos_vigentes"),
     supabase.from("ubicaciones").select("whatsapp_numero").eq("id", persona.ubicacionId).maybeSingle(),
-    // ¿La base ya acepta el QR como medio de una venta? (20261002120000). Si la función no existe todavía, el error deja
+    // ¿La base ya acepta el QR como medio de una venta? (20261002130000). Si la función no existe todavía, el error deja
     // la hoja de cobro con los cinco medios de siempre.
     supabase.rpc("fn_acepta_pago_qr"),
   ]);

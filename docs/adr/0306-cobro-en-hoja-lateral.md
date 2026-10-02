@@ -1,7 +1,7 @@
 # ADR-0306 — El cobro sale del ticket: hoja lateral sobre el catálogo
 
 **Fecha:** 2026-10-02 · **Estado:** construido y probado en local (escritorio y 375 px); la migración del QR
-(`20261002120000_venta_pagos_qr.sql`) **aplicada en producción el 2026-10-02** (ver §7) · **Decide:** Felipe (la hoja, su forma «tal cual» la maqueta,
+(`20261002130000_venta_pagos_qr.sql`) **aplicada en producción el 2026-10-02** (ver §7) · **Decide:** Felipe (la hoja, su forma «tal cual» la maqueta,
 el comprobante sin valor por defecto, el QR con su migración, quitar el Nº de operación de la caja, siempre «Confirmar» y no
 el cobro de un toque); Claude (el reparto del «resto», la marca `fn_acepta_pago_qr`, dónde va el QR en Finanzas, el resto
 de lo técnico) · **Rama:** `claude/redesign-post-payment-ticket-6d3690` · **Maqueta:**
@@ -73,7 +73,7 @@ falta. Movimiento: la hoja entra desde la derecha con `--ease-cayla`, el velo ap
   `motivoBloqueoCobro({ sinComprobante })`; pruebas en `vender-reglas.test.ts`.
 - `packages/shared/src/enums.ts` — `METODOS_PAGO_VENTA` / `MetodoPagoVenta` (los cinco + QR), aparte de `METODOS_PAGO`.
 - `apps/web/app/globals.css` — `--color-metodo-qr`, `.metodo-qr` y el bloque «Hoja de cobro».
-- `supabase/migrations/20261002120000_venta_pagos_qr.sql` — el candado de `venta_pagos.metodo` acepta 'qr',
+- `supabase/migrations/20261002130000_venta_pagos_qr.sql` — el candado de `venta_pagos.metodo` acepta 'qr',
   `fn_acepta_pago_qr()`, y 'qr' en `fn_dinero_libro`, `fn_flujo_caja_proyeccion` y `fn_cuenta_sirve`. Dos partes para pegar
   por separado; validada contra la base local dentro de una transacción con `rollback`.
 
@@ -96,3 +96,8 @@ primera versión de la migración lo rehacía sin él y habría roto la entrega 
 Después, verificado: `fn_acepta_pago_qr()` = true (y `authenticated` puede ejecutarla), `fn_cuenta_sirve('cobro','qr','banco')`
 = true, el candado con los siete medios y `fn_dinero_libro(hoy)` respondiendo. El QR aparece en las tiendas cuando esta rama
 llegue a `main` (la web publicada todavía no tiene la hoja de cobro).
+
+**Nota (2026-10-02, al fusionar `main`):** la migración nació como `20261002120000_venta_pagos_qr.sql` y `main` trajo otra con la
+misma versión (`20261002120000_bajada_y_ajuste_dentro_de_existencias.sql`). Se renombró a `20261002130000`; en producción quedó
+registrada por `apply_migration` con su propia versión, así que el cambio de nombre no la toca. El `comment on function` de
+`fn_acepta_pago_qr` todavía dice «20261002120000»: es el texto que tiene producción y se deja igual a propósito.

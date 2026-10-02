@@ -57,7 +57,7 @@ export type MetodoPago = (typeof METODOS_PAGO)[number];
 // Los medios con que se cobra una VENTA en Vender, en el orden de la hoja de cobro (y de los atajos F1–F6): los cinco
 // de siempre más el QR (cobro en hoja lateral, Felipe 2026-10-02). Va aparte de METODOS_PAGO a propósito: Apartados,
 // Cambios y Finanzas siguen aceptando solo esos cinco, y sus listas no deben ofrecer un QR que su base rechazaría.
-// Calza con `venta_pagos_metodo_check` desde 20261002120000_venta_pagos_qr.sql.
+// Calza con `venta_pagos_metodo_check` desde 20261002130000_venta_pagos_qr.sql.
 export const METODOS_PAGO_VENTA = ["efectivo", "tarjeta", "qr", "yape", "plin", "transferencia"] as const;
 export type MetodoPagoVenta = (typeof METODOS_PAGO_VENTA)[number];
 

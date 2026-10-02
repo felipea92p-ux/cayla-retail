@@ -278,7 +278,7 @@ type Props = {
   avisoProforma?: string | null;
   /** «Volver a vender» desde Ventas ▸ Historial (`/vender?repetir=<id>`, ADR-0230): el ticket arranca con esas prendas. */
   repeticion?: RepeticionDeVenta | null;
-  /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002120000). Hasta que la migración esté en
+  /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
 };
