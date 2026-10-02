@@ -5,7 +5,7 @@
 - [x] Lógica pura con pruebas: `montosSugeridos`, «el resto» con 3+ medios (`pagosTrasEditarMonto`), F1–F6 (`metodoDeAtajo`), «Elige el comprobante.» (`motivoBloqueoCobro`).
 - [x] QR en la web solo si la base lo acepta (`fn_acepta_pago_qr`); en Caja va en el grupo digital; color `--color-metodo-qr`.
 - [x] **Migración en producción** (2026-10-02, a pedido de Felipe, `apply_migration` en dos partes): verificada (ADR-0306 §7). Se corrigió antes de aplicar: conserva el medio `'anticipo'` de los apartados.
-- [ ] Refrescar el volcado de producción y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [x] ~~Refrescar el volcado de producción~~ — hecho el 2026-10-02 (foto 17:33 UTC, 746 funciones, 153 relaciones): entraron el candado de `venta_pagos` con `qr`, `fn_acepta_pago_qr` y, de otras ramas, el índice de `productos` y `buscar_productos_parecidos`. `datos:comparar` solo marca `fn_global_cobertura` (ajeno a esta rama: su migración 20260929140000 no está en producción).
 - [x] **Dónde cae el dinero del QR:** es el QR de Izipay y su abono llega aparte de las tarjetas (Felipe, 2026-10-02) → se sella en la cuenta de cobro de transferencia de la sede, en su propia línea del libro («Cobros con QR · sede»).
 - [ ] **Configurar** en cada sede la cuenta de cobro de transferencia si no existe: el QR se sella en ella.
 - [x] **Búsqueda por Nº de operación retirada** del buscador de Historial, Cambios y Devoluciones (Felipe, 2026-10-02); el detalle de una venta vieja sigue mostrando su número.
