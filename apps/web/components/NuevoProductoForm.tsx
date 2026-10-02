@@ -42,7 +42,9 @@ import {
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
-import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { campanaDelAlta, repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -488,6 +490,14 @@ export function NuevoProductoForm({
     const et = vocabEtiquetas.find((x) => x.id === id);
     return et ? !campanasQueAplican.some((c) => c.id === et.id) : false;
   });
+
+  // Lo que la caja cobrará hoy (y la etiqueta impresa dirá): las elegidas a mano más las que la categoría aplica sola.
+  const campanaHoy = campanaDelAlta(
+    [...etiquetasAManda.map((id) => vocabEtiquetas.find((x) => x.id === id)).filter((x): x is NonNullable<typeof x> => Boolean(x)), ...campanasQueAplican],
+    precioNum > 0 ? precioNum : null,
+    hoyLima(),
+    descuentoDeCampana,
+  );
 
   const nombresEtiquetas = etiquetasAManda.map((id) => vocabEtiquetas.find((e) => e.id === id)?.nombre).filter((n): n is string => Boolean(n));
 
@@ -1190,6 +1200,7 @@ export function NuevoProductoForm({
                 hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
                 precio: precioNum > 0 ? precioNum : null,
                 margen,
+                campana: campanaHoy,
                 colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
                 foto: fotosOrdenadas[0]?.vista ?? null,
                 fotos: fotos.length,
