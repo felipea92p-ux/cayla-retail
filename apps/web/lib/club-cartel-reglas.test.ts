@@ -81,8 +81,8 @@ describe("el cartel «Invitación»: lo que dice sale de la base", () => {
   it("lo fijo del cartel es el texto del diseño C", () => {
     expect(CARTEL_INVITACION).toEqual({
       sello: "CLUB CAYLA",
-      titulo: "Estás invitada",
-      bajada: "a ser socia del club. Es gratis.",
+      titulo: "Te invitamos",
+      bajada: "a ser parte del club. Es gratis.",
       escanea: "Escanea y únete en un minuto",
     });
   });

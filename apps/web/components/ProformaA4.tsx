@@ -60,7 +60,7 @@ export function ProformaA4({
 
       <section className="my-[4mm] flex flex-wrap gap-x-[12mm] gap-y-[2mm]">
         <p>
-          <span className="text-black/55">Clienta</span>
+          <span className="text-black/55">Cliente</span>
           <br />
           <b>{proforma.cliente_nombre ?? "Cliente varios"}</b>
           {doc && (

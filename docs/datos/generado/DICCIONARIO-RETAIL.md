@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-10-02 15:53:26 UTC
+> **Leído el:** 2026-10-02 17:33:51 UTC
 > **Tablas y vistas encontradas:** 153
-> **Funciones en `retail`:** 745 (las firmas, en `funciones-produccion.txt`)
+> **Funciones en `retail`:** 746 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -189,7 +189,7 @@
 
 ### `modulos`
 
-*7 columnas · ~37 filas · permisos por fila **activos***
+*7 columnas · ~35 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -215,7 +215,7 @@
 
 ### `rol_modulos`
 
-*2 columnas · ~53 filas · permisos por fila **activos***
+*2 columnas · ~50 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -368,7 +368,7 @@
 - `productos_rechazado_descontinuado_check` — `CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))`
 - `productos_stock_minimo_no_negativo` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= 0)))`
 - `productos_token_cliente_key` — `UNIQUE (token_cliente)`
-- `productos_referencia_clave_unica` *(único parcial)* — `retail.productos (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)`
+- `productos_marca_referencia_clave_unica` *(único parcial)* — `retail.productos (marca_id, retail.fn_clave_referencia(referencia)) NULLS NOT DISTINCT WHERE (estado_alta <> 'rechazado'::text)`
 
 **De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(marca_id) REFERENCES retail.marcas(id)` · `(marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)` · `(patron_id) REFERENCES retail.patrones(id)` · `(propuesto_por) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(tejido_id) REFERENCES retail.tejidos(id)` · `(temporada) REFERENCES retail.temporadas(clave)`
 
@@ -494,7 +494,7 @@
 
 ### `historial_producto_cambios`
 
-*8 columnas · ~170 filas · permisos por fila **activos***
+*8 columnas · ~171 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1003,7 +1003,7 @@
 
 ### `movimientos`
 
-*22 columnas · ~579 filas · permisos por fila **activos***
+*22 columnas · ~587 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1048,7 +1048,7 @@
 
 ### `stock`
 
-*6 columnas · ~501 filas · permisos por fila **activos***
+*6 columnas · ~505 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1382,7 +1382,7 @@
 
 ### `bajadas_piso`
 
-*6 columnas · ~56 filas · permisos por fila **activos***
+*6 columnas · ~60 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1405,7 +1405,7 @@
 
 ### `bajada_piso_items`
 
-*4 columnas · ~49 filas · permisos por fila **activos***
+*4 columnas · ~53 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1448,7 +1448,7 @@
 
 ### `ajustes_inventario_intentos`
 
-*5 columnas · ~82 filas · permisos por fila **activos***
+*5 columnas · ~83 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1589,7 +1589,7 @@
 
 ### `ventas`
 
-*20 columnas · ~42 filas · permisos por fila **activos***
+*20 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1637,7 +1637,7 @@
 
 ### `venta_items`
 
-*13 columnas · ~77 filas · permisos por fila **activos***
+*13 columnas · ~85 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1680,7 +1680,7 @@
 
 ### `venta_pagos`
 
-*7 columnas · ~42 filas · permisos por fila **activos***
+*7 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1694,7 +1694,7 @@
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `venta_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text])))`
+- `venta_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))`
 - `venta_pagos_monto_check` — `CHECK ((monto > (0)::numeric))`
 - `venta_pagos_recibido_coherente` — `CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))`
 - `venta_pagos_referencia_valida` — `CHECK (((referencia IS NULL) OR ((referencia ~ '^[0-9A-Za-z]{1,40}$'::text) AND (metodo = ANY (ARRAY['yape'::text, 'plin'::text, 'transferencia'::text])))))`
@@ -2326,7 +2326,7 @@
 
 ### `prendas_por_regularizar`
 
-*17 columnas · ~71 filas · permisos por fila **activos***
+*17 columnas · ~76 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2852,7 +2852,7 @@
 
 ### `comprobantes`
 
-*41 columnas · ~43 filas · permisos por fila **activos***
+*41 columnas · ~46 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4768,7 +4768,7 @@
 
 ### `actividad`
 
-*14 columnas · ~180 filas · permisos por fila **activos***
+*14 columnas · ~183 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|

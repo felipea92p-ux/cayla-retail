@@ -565,9 +565,9 @@ export function PuntoDeVentaCatalogo({
                           <TooltipTrigger asChild>
                             <span
                               tabIndex={0}
-                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para una clienta" : "sin stock aquí"}`}
+                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para un cliente" : "sin stock aquí"}`}
                               className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
-                                // Agotada: tachada. Apartada para una clienta: SIN tachar y en el token informativo — la
+                                // Agotada: tachada. Apartada para un cliente: SIN tachar y en el token informativo — la
                                 // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
                                 motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
                               }`}

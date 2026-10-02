@@ -127,7 +127,7 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("lo único que queda en el piso está apartado para otra clienta: lo dice, no «no hay en esta tienda»", () => {
     const { lineas, faltan, faltanEnAlmacen } = lineasDelCarritoDesdeProforma(proforma([linea()]), [variante({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })]);
     expect(lineas).toEqual([]);
-    expect(faltan).toEqual(["Casaca Ximena · M · Negro (apartada para una clienta)"]);
+    expect(faltan).toEqual(["Casaca Ximena · M · Negro (apartada para un cliente)"]);
     // No hay nada en el almacén que pedir que bajen: el aviso no manda a buscar ahí.
     expect(faltanEnAlmacen).toBe(false);
     // Sin lo apartado (o sin el dato) sigue diciendo lo de siempre.
@@ -143,10 +143,10 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("piden 2, hay 1 libre y 1 apartada: dice cuántas están apartadas (no «solo hay 1» a secas)", () => {
     const { lineas, faltan } = lineasDelCarritoDesdeProforma(proforma([linea({ cantidad: 2 })]), [variante({ stockAqui: 1, almacenAqui: 0, apartadoAqui: 1 })]);
     expect(lineas[0].cantidad).toBe(1);
-    expect(faltan).toEqual(["Casaca Ximena · M · Negro (solo hay 1 de 2; 1 apartada para una clienta)"]);
+    expect(faltan).toEqual(["Casaca Ximena · M · Negro (solo hay 1 de 2; 1 apartada para un cliente)"]);
     // Plural, y solo cuenta lo que de verdad está apartado: piden 4, hay 1 libre y 2 apartadas (la otra ni existe).
     expect(lineasDelCarritoDesdeProforma(proforma([linea({ cantidad: 4 })]), [variante({ stockAqui: 1, almacenAqui: 0, apartadoAqui: 2 })]).faltan).toEqual([
-      "Casaca Ximena · M · Negro (solo hay 1 de 4; 2 apartadas para una clienta)",
+      "Casaca Ximena · M · Negro (solo hay 1 de 4; 2 apartadas para un cliente)",
     ]);
   });
 

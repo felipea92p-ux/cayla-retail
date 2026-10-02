@@ -83,7 +83,7 @@ export function MovimientoDetalle({
                 {m.categoria === "interno"
                   ? "unidades movidas"
                   : m.categoria === "apartado"
-                    ? "apartadas para una clienta"
+                    ? "apartadas para un cliente"
                     : m.categoria === "liberacion_apartado"
                       ? "vuelven a estar disponibles"
                       : m.categoria === "ajuste"
@@ -194,7 +194,7 @@ export function MovimientoDetalle({
             {m.devolucion && (
               <>
                 <Dato etiqueta="Devolución">{ETIQUETA_ESTADO_DEVOLUCION[m.devolucion.estado ?? ""] ?? m.devolucion.estado ?? "—"}</Dato>
-                {m.devolucion.motivo && <Dato etiqueta="Motivo de la clienta">{m.devolucion.motivo}</Dato>}
+                {m.devolucion.motivo && <Dato etiqueta="Motivo del cliente">{m.devolucion.motivo}</Dato>}
                 {m.venta && (
                   <Dato etiqueta="Venta original">
                     <Comprobante comprobante={m.venta.comprobante} />
@@ -225,7 +225,7 @@ export function MovimientoDetalle({
             {m.cambio && (
               <>
                 <Dato etiqueta="Cambio">
-                  {m.tipo === "entrada" ? "La prenda que la clienta devolvió" : "La prenda que se llevó a cambio"}
+                  {m.tipo === "entrada" ? "La prenda que el cliente devolvió" : "La prenda que se llevó a cambio"}
                   {m.cambio.diferencia !== null && m.cambio.diferencia !== 0 && (
                     <span className="text-tinta/65">
                       {" "}
@@ -245,7 +245,7 @@ export function MovimientoDetalle({
             {apartado && (
               <>
                 <Dato etiqueta="Apartado">{apartado.codigo}</Dato>
-                {apartado.clienta && <Dato etiqueta="Clienta">{apartado.clienta}</Dato>}
+                {apartado.clienta && <Dato etiqueta="Cliente">{apartado.clienta}</Dato>}
                 <Dato etiqueta="Estado">
                   {textoEstadoApartado(apartado.estado)}
                   {apartado.estado === "abierta" && apartado.venceEl && <span className="text-tinta/65"> · vence el {fechaCorta(apartado.venceEl)}</span>}

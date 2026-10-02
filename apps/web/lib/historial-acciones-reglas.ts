@@ -29,7 +29,7 @@ export const ATAJOS: readonly Atajo[] = [
   { clave: "posventa", etiqueta: "Con cambio o devolución", deFabrica: false, params: { posventa: "1" } },
   { clave: "apartado", etiqueta: "Desde apartado", deFabrica: false, params: { pago: "anticipo" } },
   { clave: "facturas", etiqueta: "Facturas", deFabrica: false, params: { comp: "factura" } },
-  { clave: "clienta", etiqueta: "Con clienta", deFabrica: false, params: { clienta: "1" } },
+  { clave: "clienta", etiqueta: "Con cliente", deFabrica: false, params: { clienta: "1" } },
   { clave: "anuladas", etiqueta: "Anuladas", deFabrica: false, params: { estado: "anulada" } },
   { clave: "yape", etiqueta: "Pagó con Yape", deFabrica: false, params: { pago: "yape" } },
 ];
@@ -136,7 +136,7 @@ export function accionesDeVenta(v: VentaParaAcciones, ctx: ContextoAcciones): Ac
     if (ve("cambios")) acciones.push({ clave: "cambiar", etiqueta: "Cambiar prenda", detalle: "Posventa ▸ Cambios", href: `/cambios?${params}`, destacada: !porEnviar || !ctx.puedeFacturar });
     if (ve("devoluciones")) acciones.push({ clave: "devolver", etiqueta: "Devolver", detalle: "Posventa ▸ Devoluciones", href: `/devoluciones?${params}` });
   }
-  if (v.clienta) acciones.push({ clave: "clienta", etiqueta: "Ficha de la clienta", detalle: "Sus datos y compras", href: `/clientas?${qs({ q: v.clienta })}` });
+  if (v.clienta) acciones.push({ clave: "clienta", etiqueta: "Ficha del cliente", detalle: "Sus datos y compras", href: `/clientas?${qs({ q: v.clienta })}` });
   if ((v.apartado || v.conAnticipo) && ve("apartados")) {
     // Apartados todavía no recibe una búsqueda por la URL: se llega a la pantalla y el código queda a la vista aquí.
     acciones.push({ clave: "apartado", etiqueta: "Ver el apartado", detalle: v.apartado ? `Apartados · ${v.apartado.codigo}` : "Apartados", href: "/vender/apartados" });

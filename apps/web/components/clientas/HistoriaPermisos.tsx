@@ -42,7 +42,7 @@ export function HistoriaPermisos({ clientaId, clave }: { clientaId: string; clav
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-tinta/55">No se edita: cada paso queda con el medio, la hora, la tienda y la versión del texto que ella vio.</p>
+      <p className="mt-3 text-xs text-tinta/55">No se edita: cada paso queda con el medio, la hora, la tienda y la versión del texto que vio el cliente.</p>
     </div>
   );
 }

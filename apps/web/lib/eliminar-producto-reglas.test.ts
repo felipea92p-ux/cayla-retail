@@ -94,7 +94,7 @@ describe("textos", () => {
 
   it("por qué no, según el caso", () => {
     expect(textoNoSePuede("Polo Básico", { nivel: "con_documentos", razon: "tiene líneas de venta (4), líneas de conteo (4)", prendas: 2 })).toBe(
-      "«Polo Básico» tiene líneas de venta (4), líneas de conteo (4). Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí."
+      "«Polo Básico» tiene líneas de venta (4), líneas de conteo (4). Del otro lado hay un cliente, un proveedor, otra sede o dinero, y eso no se borra desde aquí."
     );
     expect(textoNoSePuede("Prenda sin Registrar", { nivel: "sistema", razon: "es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita", prendas: 0 })).toBe(
       "«Prenda sin Registrar» es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita."

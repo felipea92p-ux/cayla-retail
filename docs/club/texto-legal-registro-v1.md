@@ -1,5 +1,8 @@
 # Club CAYLA · textos de la página de registro (borrador v1, 2026-10-01)
 
+> **Reemplazado** el 2026-10-02 por `texto-legal-registro-v2.md` (sin género, casillas breves; ADR-0288 act. k). Este
+> archivo queda como historia: es lo que aceptaron quienes se unieron con la versión 1.
+
 Para aprobar por Felipe antes de publicar (ADR-0288, actualización (g), G-11). Una vez aprobados, cada texto entra a
 `retail.club_textos` con su versión: la base guarda qué versión aceptó cada socia y a qué hora (prueba del consentimiento,
 art. 9 del reglamento de la Ley 29733).

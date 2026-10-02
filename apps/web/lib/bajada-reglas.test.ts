@@ -611,10 +611,10 @@ describe("textoDeLectura: el banner bajo el campo", () => {
 
   it("todo apartado, en plural y en singular", () => {
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 3 }, SEDE)).toBe(
-      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientas y no se pueden mover."
+      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientes y no se pueden mover."
     );
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 1 }, SEDE)).toBe(
-      "Vestido · M · Verde: la única unidad del almacén está apartada para una clienta y no se puede mover."
+      "Vestido · M · Verde: la única unidad del almacén está apartada para un cliente y no se puede mover."
     );
   });
 

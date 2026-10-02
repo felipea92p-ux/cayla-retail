@@ -122,8 +122,8 @@ export function BuscadorVentas({
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onBlur={() => setEscaneando(false)}
-            placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, clienta, prenda o código"}
-            aria-label="Buscar la venta: boleta, DNI o RUC, nombre de la clienta, nombre o código de la prenda"
+            placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+            aria-label="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
             className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/55"
           />
         </label>

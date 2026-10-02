@@ -7,7 +7,7 @@
 // aparte: `subtotal + IGV = total` al centavo con la misma cuenta que emite el comprobante
 // (`desgloseIgv`), y la suma de los importes de las líneas ES el total.
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
 
@@ -34,7 +34,7 @@ export type LineaRecibo = {
   importe: number;
 };
 
-export type PagoRecibo = { metodo: MetodoPago; monto: number; recibido: number | null; vuelto: number };
+export type PagoRecibo = { metodo: MetodoPagoVenta; monto: number; recibido: number | null; vuelto: number };
 
 export type ReciboVenta = {
   tipo: TipoReciboFiscal;
@@ -65,9 +65,10 @@ export type ReciboVenta = {
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Cómo se llama cada medio de pago frente a la clienta (en pantalla y en el papel). */
-export const NOMBRE_METODO: Record<MetodoPago, string> = {
+export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
+  qr: "QR",
   yape: "Yape",
   plin: "Plin",
   transferencia: "Transferencia",

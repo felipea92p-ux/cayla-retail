@@ -306,13 +306,13 @@ describe("validarCambio / primerBloqueo", () => {
     expect(primerBloqueo(validarCambio(apartada))).toMatchObject({
       clave: "stock",
       estado: "alerta",
-      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      titulo: "L / Negro está apartada para un cliente en Tienda Lima",
       detalle: "Hay 2 en Trujillo.",
     });
     // Apartada y sin otra sede donde buscar: lo dice sin «tampoco» (no falta la prenda, es de otra clienta).
     const sinOtrasSedes = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: null } };
     expect(primerBloqueo(validarCambio(sinOtrasSedes))).toMatchObject({
-      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      titulo: "L / Negro está apartada para un cliente en Tienda Lima",
       detalle: "No hay en otra sede.",
     });
     // Sin nada apartado sigue diciendo lo de siempre.

@@ -307,20 +307,20 @@ export function avisoCumpleApagado(motivo: MotivoCumpleApagado, pct: number): { 
   const titulo = `Se quitó el ${pctLegible(pct)} % de cumpleaños`;
   return motivo === "sin_conexion"
     ? { titulo, detalle: "Sin conexión no se canjea: otra tienda podría usarlo a la vez. Cuando vuelva la conexión, tócalo otra vez." }
-    : { titulo, detalle: "Ya no está disponible para esta clienta (pudo usarlo en otra tienda, o terminó su mes). El total volvió a su precio." };
+    : { titulo, detalle: "Ya no está disponible para este cliente (pudo usarlo en otra tienda, o terminó su mes). El total volvió a su precio." };
 }
 
 /** Los `hint` de `registrar_venta` que rechazan el canje (ADR-0288, «Contrato de la tanda 1c»). */
 const RECHAZOS_DEL_CANJE: ReadonlyMap<string, { releer: boolean; queHacer: (pct: string) => string }> = new Map([
   // La base ya sabe algo que la caja no: se vuelve a leer su resumen para que la fila diga lo que es.
-  ["cumple_ya_canjeado", { releer: true, queHacer: (p: string) => `Pudo usarlo en otra caja o tienda. Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
-  ["cumple_fuera_de_mes", { releer: true, queHacer: (p: string) => `Su mes ya terminó (hora de Lima). Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
-  ["cumple_no_socia", { releer: true, queHacer: (p: string) => `Quité el ${p} %: revisa el total con ella y vuelve a confirmar el cobro.` }],
+  ["cumple_ya_canjeado", { releer: true, queHacer: (p: string) => `Pudo usarlo en otra caja o tienda. Quité el ${p} %: revisa el total con el cliente y vuelve a confirmar el cobro.` }],
+  ["cumple_fuera_de_mes", { releer: true, queHacer: (p: string) => `Su mes ya terminó (hora de Lima). Quité el ${p} %: revisa el total con el cliente y vuelve a confirmar el cobro.` }],
+  ["cumple_no_socia", { releer: true, queHacer: (p: string) => `Quité el ${p} %: revisa el total con el cliente y vuelve a confirmar el cobro.` }],
   ["cumple_descuento_distinto", { releer: true, queHacer: (p: string) => `El % del club pudo cambiar mientras cobrabas. Quité el ${p} %: vuelve a tocar «Canjear» para calcularlo de nuevo.` }],
   // Tanda 1g: una sola ventaja del club por compra (la caja no manda las dos; si igual llega, se apaga y se relee).
   ["club_un_cupon_por_compra", { releer: true, queHacer: (p: string) => `Va una sola ventaja del club por compra. Quité el ${p} %: elige una y vuelve a confirmar el cobro.` }],
   // Estos no dependen de ella: la pantalla los evita, y si igual llegan, se apaga y se dice.
-  ["cumple_sin_clienta", { releer: false, queHacer: (p: string) => `Quité el ${p} %: elige a la clienta y vuelve a tocar «Canjear».` }],
+  ["cumple_sin_clienta", { releer: false, queHacer: (p: string) => `Quité el ${p} %: elige al cliente y vuelve a tocar «Canjear».` }],
   ["cumple_sin_canje", { releer: false, queHacer: (p: string) => `Quité el ${p} %: vuelve a tocar «Canjear» y confirma otra vez.` }],
   ["cumple_sin_monto", { releer: false, queHacer: (p: string) => `Quité el ${p} %: su cumpleaños queda para otra compra de este mes.` }],
 ]);
@@ -341,6 +341,6 @@ export function canjeSinConexion(pct: number): { titulo: string; detalle: string
   return {
     titulo: `Se cortó la conexión: el ${pctLegible(pct)} % de cumpleaños no se guarda sin internet`,
     detalle:
-      "Otra tienda podría usarlo a la vez. Cuando vuelva la conexión, confirma otra vez: si ya se había guardado, el sistema la reconoce y no la duplica. Si la clienta no puede esperar, quita el cumpleaños y cobra el total completo.",
+      "Otra tienda podría usarlo a la vez. Cuando vuelva la conexión, confirma otra vez: si ya se había guardado, el sistema la reconoce y no la duplica. Si el cliente no puede esperar, quita el cumpleaños y cobra el total completo.",
   };
 }

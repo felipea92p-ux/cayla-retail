@@ -129,7 +129,7 @@ export function SociaClub({ listo, pagina, mesNacimiento, hoy }: { listo: Listo;
         </div>
 
         <div className="club-tarjeta-socia-marco">
-          <div className="club-tarjeta-socia" role="group" aria-label="Tu tarjeta de socia">
+          <div className="club-tarjeta-socia" role="group" aria-label="Tu tarjeta de miembro">
             <svg className="club-tarjeta-socia-hilo" viewBox="0 0 346 120" aria-hidden>
               <path pathLength={100} d="M4 96 C 80 20, 150 110, 220 50 S 320 10, 342 30" />
             </svg>
@@ -138,12 +138,12 @@ export function SociaClub({ listo, pagina, mesNacimiento, hoy }: { listo: Listo;
                 <IsotipoCayla color="currentColor" />
                 CLUB CAYLA
               </span>
-              <span className="club-tarjeta-socia-pildora">SOCIA</span>
+              <span className="club-tarjeta-socia-pildora">MIEMBRO</span>
             </div>
             <div className="club-tarjeta-socia-datos">
               {listo.nombre && <span className="club-tarjeta-socia-nombre">{listo.nombre}</span>}
               <span className="club-tarjeta-socia-codigo">
-                <span className="sr-only">Tu código de socia: </span>
+                <span className="sr-only">Tu código de miembro: </span>
                 {listo.codigo}
               </span>
             </div>

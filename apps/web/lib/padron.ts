@@ -395,7 +395,7 @@ export function advertenciasDe(datos: DatosPadron): string[] {
     avisos.push(`Este RUC está "${datos.estado}" en SUNAT. Una factura a un RUC que no está activo es rechazada.`);
   }
   if (datos.condicion && datos.condicion !== "HABIDO") {
-    avisos.push(`SUNAT marca este RUC como "${datos.condicion}". La clienta no podría usar la factura como crédito fiscal.`);
+    avisos.push(`SUNAT marca este RUC como "${datos.condicion}". El cliente no podría usar la factura como crédito fiscal.`);
   }
   return avisos;
 }

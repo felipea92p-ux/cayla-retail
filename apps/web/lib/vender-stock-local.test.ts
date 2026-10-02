@@ -167,7 +167,7 @@ describe("el texto de la fila del buscador (textoStockDeFila)", () => {
   it("dice una cosa distinta por motivo: cobrable, en el almacén, apartada y agotada", () => {
     expect(textoStockDeFila({ stockAqui: 3, almacenAqui: 5 })).toBe("3 aquí");
     expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 2 })).toBe("2 en el almacén");
-    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe("apartada para un cliente");
     expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0 })).toBe("sin stock aquí");
   });
 
@@ -200,8 +200,8 @@ describe("tooltip de una talla que no se puede cobrar ni bajar (tooltipTallaSinP
   });
 
   it("apartada: lo dice, y agrega dónde más hay si lo hay (no «sin stock en ninguna sede»: la unidad existe)", () => {
-    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, null)).toBe("Apartada para una clienta");
-    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, "2 en Trujillo")).toBe("Apartada para una clienta · 2 en Trujillo");
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, null)).toBe("Apartada para un cliente");
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, "2 en Trujillo")).toBe("Apartada para un cliente · 2 en Trujillo");
   });
 });
 
@@ -230,8 +230,8 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   it("apartada: es de una clienta —no «no hay»— y no hay nada que bajar", () => {
     const aviso = avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 });
     expect(aviso).toEqual({
-      titulo: "Blusa Paracas · M está apartada para una clienta",
-      detalle: "No se vende desde aquí: es de la clienta que la apartó en Tienda TRU.",
+      titulo: "Blusa Paracas · M está apartada para un cliente",
+      detalle: "No se vende desde aquí: es del cliente que la apartó en Tienda TRU.",
     });
     // Nada de «bajar» ni de «no hay»: ninguna de las dos cosas es cierta.
     expect(aviso.detalle).not.toContain("bajen");

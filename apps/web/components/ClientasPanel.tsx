@@ -38,7 +38,7 @@ import { descargarCsv } from "@/lib/exportar-csv";
 import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clienta-reglas";
 
 // Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
-// «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nueva clienta» en una fila; cuatro cifras (identificadas,
+// «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
 // socias, con publicidad, frecuentes); el buscador y los filtros en píldoras, y la tabla, en UNA tarjeta (CLAUDE.md, ADR-0169);
 // la nota de «su sede» al pie. La lista, sus cuentas y cada columna calculada (su sede, última compra, frecuente con compra
 // neta) las da la base sobre TODAS las fichas (`fn_clientas_lista`, `fn_cifras_clientas`): la pantalla solo las pinta y
@@ -92,12 +92,12 @@ export function ClientasPanel({
     const { clientas, error } = await exportarClientas();
     setExportando(false);
     if (error) {
-      avisar.error(traducirError(error, "exportar la lista de clientas"));
+      avisar.error(traducirError(error, "exportar la lista de clientes"));
       return;
     }
     descargarCsv(
-      `clientas-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Socia desde", "Código de socia", "Novedades por WhatsApp", "Cumpleaños", "Registrada", "Estado"],
+      `clientes-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Miembro desde", "Código de miembro", "Novedades por WhatsApp", "Cumpleaños", "Registrado", "Estado"],
       clientas.map((c) => [
         c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
         c.documentoNumero ?? "",
@@ -108,10 +108,10 @@ export function ClientasPanel({
         c.publicidadDesde ? "sí" : "no",
         c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "",
         c.createdAt.slice(0, 10),
-        c.archivadaEn ? (c.anonimizada ? "anonimizada" : c.fusionadaEnId ? "unida a otra" : "archivada") : "activa",
+        c.archivadaEn ? (c.anonimizada ? "anonimizado" : c.fusionadaEnId ? "unido a otra ficha" : "archivado") : "activo",
       ]),
     );
-    avisar.exito("Lista exportada", { detalle: `${clientas.length} clienta${clientas.length === 1 ? "" : "s"}` });
+    avisar.exito("Lista exportada", { detalle: `${clientas.length} cliente${clientas.length === 1 ? "" : "s"}` });
   }
 
   /** Tras cualquier cambio (ficha, BAJA, alta): la página vuelve a leerse del servidor, con la misma URL. */
@@ -121,34 +121,34 @@ export function ClientasPanel({
 
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   const vacio = params.termino
-    ? `Sin coincidencias con «${params.termino}». Busca por el documento completo, el celular, el código de socia o parte del nombre.`
+    ? `Sin coincidencias con «${params.termino}». Busca por el documento completo, el celular, el código de miembro o parte del nombre.`
     : params.filtro === "todas"
-      ? "Todavía no hay clientas registradas."
-      : "Ninguna con ese filtro.";
+      ? "Todavía no hay clientes registrados."
+      : "Ninguno con ese filtro.";
 
   return (
     <div className="space-y-8">
       <EncabezadoPagina
         sede="Todas las sedes"
-        titulo="Clientas"
-        subtitulo="El club de CAYLA: la tienda la recuerda y le escribe solo cuando tiene algo que le sirve."
+        titulo="Clientes"
+        subtitulo="El club de CAYLA: la tienda recuerda a cada cliente y le escribe solo cuando tiene algo que le sirve."
         acciones={
           <>
-            {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nueva clienta» bajaba). */}
+            {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nuevo cliente» bajaba). */}
             <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa">
               Exportar
             </Boton>
             {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
                 «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
             <MenuAcciones
-              etiqueta="Más acciones de Clientas"
+              etiqueta="Más acciones de Clientes"
               texto="Más"
               items={[
                 { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
               ]}
             />
             <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)}>
-              + Nueva clienta
+              + Nuevo cliente
             </Boton>
           </>
         }
@@ -156,10 +156,10 @@ export function ClientasPanel({
 
       {cifras && (
         <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties}>
-          <TarjetaCifra etiqueta="Identificadas" valor={cifras.identificadas}>
+          <TarjetaCifra etiqueta="Identificados" valor={cifras.identificadas}>
             Con ficha: sus compras se ligan
           </TarjetaCifra>
-          <TarjetaCifra etiqueta="Socias del club" valor={cifras.socias}>
+          <TarjetaCifra etiqueta="Miembros del club" valor={cifras.socias}>
             {detalleSocias(cifras)}
           </TarjetaCifra>
           <TarjetaCifra etiqueta="Con publicidad" valor={cifras.conPublicidad} punto="verde">
@@ -175,7 +175,7 @@ export function ClientasPanel({
         <Tabla className="@container">
           <div className="space-y-3 p-4">
             <BuscadorClientas params={params} />
-            {/* Un filtro por clic es una acción decidida: navega con el loader de siempre (ADR-0149). «Archivadas» es una
+            {/* Un filtro por clic es una acción decidida: navega con el loader de siempre (ADR-0149). «Archivados» es una
                 píldora más, al final: mira solo las fichas fuera de la libreta (para reactivar una o revisar una fusión). */}
             <nav className="flex flex-wrap gap-2" aria-label="Filtrar la lista">
               {FILTROS_LISTA.map((f) => (
@@ -202,7 +202,7 @@ export function ClientasPanel({
               <>
                 <div className={`encabezado-tabla-cayla hidden px-5 py-2 @min-[560px]:grid ${PLANTILLA.replace("grid ", "")}`} role="row">
                   <span className={TABLA.titulo} role="columnheader">
-                    Clienta
+                    Cliente
                   </span>
                   <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader">
                     Celular
@@ -210,10 +210,10 @@ export function ClientasPanel({
                   <span className={TABLA.titulo} role="columnheader" title="Donde más compró en los últimos 12 meses">
                     Su sede
                   </span>
-                  <span className={TABLA.titulo} role="columnheader" title="Identificada: tiene ficha y sus compras se ligan. Socia: dijo que sí al club.">
+                  <span className={TABLA.titulo} role="columnheader" title="Identificado: tiene ficha y sus compras se ligan. Miembro: dijo que sí al club.">
                     Estado
                   </span>
-                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader" title="Novedades, rebajas y su saludo por WhatsApp: solo si ella lo pidió.">
+                  <span className={`${TABLA.titulo} ${SOLO_ANCHA}`} role="columnheader" title="Novedades, rebajas y su saludo por WhatsApp: solo si lo pidió.">
                     Publicidad
                   </span>
                   <span className={TABLA.titulo} role="columnheader">
@@ -253,7 +253,7 @@ export function ClientasPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties}>
-        La <b>sede</b> de cada clienta es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «Sin publicidad» son socias
+        La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «Sin publicidad» son miembros
         que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
       </p>
 
@@ -279,7 +279,7 @@ function FilaClienta({ c, hoy, onAbrir }: { c: ClientaDeLista; hoy: string; onAb
   const estado = estadoDeLaFila(c);
   const publicidad = publicidadDeLaFila(c);
   const ultima = ultimaCompraLegible(c.ultimaCompra, hoy);
-  // Como el spike: bajo el nombre, solo el documento (el código de socia se busca igual en el buscador).
+  // Como el spike: bajo el nombre, solo el documento (el código de miembro se busca igual en el buscador).
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false) ?? "Sin documento";
   const celular = c.telefonoWhatsapp ? celularLegible(c.telefonoWhatsapp) : null;
   const chipPublicidad = publicidad ? (

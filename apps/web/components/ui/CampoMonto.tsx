@@ -18,18 +18,22 @@ export function CampoMonto({
   className,
   disabled,
   "aria-label": ariaLabel,
+  "data-monto-medio": medio,
 }: {
   valor: number;
   onCambio: (monto: number) => void;
   className?: string;
   disabled?: boolean;
   "aria-label": string;
+  /** El medio de pago del monto (hoja de cobro): por él se le da el foco al agregar un segundo medio. */
+  "data-monto-medio"?: string;
 }) {
   // `null` = no se está editando: se muestra el número del padre.
   const [borrador, setBorrador] = useState<string | null>(null);
   return (
     <input
       aria-label={ariaLabel}
+      data-monto-medio={medio}
       type="number"
       inputMode="decimal"
       min={0}

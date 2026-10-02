@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cobro sin fricción · spike v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL v3 · Cobro sin fricción (2026-10-01)
+   Tercera ronda. Felipe: «lo más entendible posible, con los menores clics o
+   tecleos posibles, no tan invasivo, siempre sofisticado». Se toma el patrón
+   de los POS de referencia (Square, Shopify POS, Apple Pay/Stripe):
+   un medio por defecto, montos sugeridos de efectivo, comprobante con valor
+   por defecto en una línea, dividir el pago como opción secundaria.
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados. Solo escritorio.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--verde-p:#44583a;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);--ease:cubic-bezier(.32,.72,.24,1);
+--m-efectivo:#d19a12;--m-efectivo-t:#6b4a00;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-plin:#1c6b56;--m-transferencia:#2f6aa3}
+.m-efectivo{--c:var(--m-efectivo);--cd:var(--m-efectivo-t)}.m-tarjeta{--c:var(--m-tarjeta);--cd:var(--m-tarjeta)}.m-yape{--c:var(--m-yape);--cd:var(--m-yape)}.m-plin{--c:var(--m-plin);--cd:var(--m-plin)}.m-transferencia{--c:var(--m-transferencia);--cd:var(--m-transferencia)}
+[class*="m-"]{--ct:color-mix(in srgb,var(--c) 20%,var(--papel))}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}input{font:inherit;color:inherit}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.fd{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.mono{font-family:'DM Mono',ui-monospace,monospace}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.l{width:24px;height:24px}svg.xl{width:30px;height:30px}
+@keyframes asentar{0%{transform:scale(1.07);opacity:.55}100%{transform:none;opacity:1}}
+@keyframes sube{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+@keyframes dib{to{stroke-dashoffset:0}}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes ripple{from{transform:translate(-50%,-50%) scale(0);opacity:.35}to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+@keyframes flash{0%{background:color-mix(in srgb,var(--rojo) 16%,transparent)}100%{background:transparent}}
+@keyframes luz{0%,100%{background:var(--papel);border-color:var(--sand)}18%,34%{background:var(--ct);border-color:var(--c)}52%{background:var(--papel);border-color:var(--sand)}}
+@keyframes latido{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--tinta) 16%,transparent)}}
+@keyframes halo{from{transform:scale(.9);opacity:.5}to{transform:scale(1.55);opacity:0}}
+@keyframes tw{to{opacity:1}}
+@keyframes sello{0%{opacity:0;transform:translate(-50%,-50%) rotate(-18deg) scale(1.5)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}}
+@keyframes brillo{from{background-position:-200% 0}to{background-position:200% 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- barra del spike (no existe en el ERP) ---- */
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7);transition:background .25s,color .25s}.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .go{height:30px;padding:0 14px;border-radius:8px;background:var(--rojo);color:var(--crema);font-weight:600;font-size:12.5px}
+.spk .go.q{background:transparent;border:1px solid rgba(245,240,232,.25);font-weight:500}
+.escena{padding:18px 16px 56px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ley{max-width:1380px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--t80);display:grid;grid-template-columns:auto 1fr;gap:4px 18px}
+.ley h2{grid-row:span 2;font-size:30px;line-height:1;color:var(--rojo-p);align-self:center}.ley b{font-weight:600}.ley .p2{color:var(--t65)}
+.wrap{position:relative}.fit{position:absolute;left:0;top:0;transform-origin:0 0;width:1380px;height:820px}
+
+/* ---- la escena (pantalla Vender, escritorio) ---- */
+.scene{position:relative;width:1380px;height:820px;border-radius:18px;background:var(--crema);border:1px solid var(--t30);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 410px;box-shadow:0 30px 60px -30px rgba(26,26,24,.45)}
+.main{min-width:0;padding:22px 26px 22px;display:flex;flex-direction:column}
+.cab{height:40px;display:flex;align-items:center;gap:8px;flex:none;position:relative}
+.cab .lugar{color:var(--taupe);margin-right:8px;white-space:nowrap}
+.b{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 13px;border-radius:9px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80);white-space:nowrap}
+.b.fuerte{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.b .n{min-width:19px;height:19px;border-radius:10px;background:var(--crema);color:var(--tinta);font-size:11px;font-weight:700;display:inline-grid;place-items:center;padding:0 5px}
+.hoy{margin-left:auto;font-size:13px;color:var(--t65);display:flex;align-items:center;gap:7px}.hoy b{color:var(--tinta);font-weight:600}
+.cab-armar,.cab-cobro{transition:opacity .35s var(--ease),transform .45s var(--ease)}
+.cab-cobro{position:absolute;opacity:0;pointer-events:none;transform:translateX(-10px)}
+.scene:not([data-fase="armar"]) .cab-armar{opacity:0;pointer-events:none;transform:translateX(10px);position:absolute}
+.scene:not([data-fase="armar"]) .cab-cobro{opacity:1;pointer-events:auto;transform:none;position:static}
+.scene[data-fase="armar"] .cab-armar{position:static}
+.volver{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 14px 0 10px;border-radius:9px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80)}
+.volver:hover{background:var(--hueso)}
+/* tira de guía: qué está hecho, qué sigue (regla «Guía de foco») */
+.guia{display:flex;align-items:center;gap:6px;margin-left:12px;font-size:12px;color:var(--t65)}
+.guia .g{display:flex;align-items:center;gap:7px;padding:5px 11px 5px 6px;border-radius:999px;transition:background .4s var(--ease),color .4s}
+.guia .g i{width:20px;height:20px;border-radius:50%;border:1px solid var(--t30);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:600;transition:all .4s var(--ease)}
+.guia .g.sig{background:color-mix(in srgb,var(--rojo) 9%,transparent);color:var(--tinta)}.guia .g.sig i{border-color:var(--rojo);color:var(--rojo-p)}
+.guia .g.ok{color:var(--verde-p)}.guia .g.ok i{background:var(--verde);border-color:var(--verde);color:var(--crema);font-size:0}
+.guia .g.ok i::after{content:"✓";font-size:11px}
+.guia .sep{width:16px;height:1px;background:var(--t30)}
+.zona{position:relative;flex:1;min-height:0;margin-top:16px}
+.cat,.stage{position:absolute;inset:0}
+
+/* ---- ARMAR: el catálogo tal como está hoy ---- */
+.cat{display:flex;flex-direction:column}
+.busca-f{display:flex;gap:8px;transition:opacity .4s var(--ease),transform .5s var(--ease)}
+.busca{flex:1;display:flex;align-items:center;gap:12px;height:56px;padding:0 18px;border:1px solid var(--sand);border-radius:15px;background:var(--papel);color:var(--t50);font-size:15.5px}
+.sinreg{height:56px;padding:0 18px;border:1px solid var(--sand);border-radius:15px;background:var(--papel);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;display:flex;align-items:center}
+.filt{display:flex;align-items:center;gap:12px;margin:14px 0 10px;font-size:12px;color:var(--t65);transition:opacity .4s var(--ease),transform .5s var(--ease)}
+.sw{width:38px;height:21px;border-radius:11px;background:var(--tinta);position:relative}.sw::after{content:"";position:absolute;right:3px;top:3px;width:15px;height:15px;border-radius:50%;background:var(--crema)}
+.filt .ocultas{margin-left:auto}
+.chips{display:flex;gap:8px;overflow:hidden;padding-bottom:14px;transition:opacity .4s var(--ease),transform .5s var(--ease);-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.chip{height:36px;padding:0 15px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;flex:none;color:var(--t80)}.chip.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.grid-p{display:flex;gap:12px;flex-wrap:wrap;align-content:flex-start}
+.card-p{position:relative;width:216px;border:1px solid var(--sand);border-radius:16px;background:var(--papel);padding:12px;cursor:pointer;transition:opacity .45s var(--ease) calc(var(--i)*55ms),transform .55s var(--ease) calc(var(--i)*55ms),border-color .3s}
+.card-p:hover{border-color:var(--taupe)}
+.ph{position:relative;height:190px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(180deg,color-mix(in srgb,var(--sand) 55%,var(--papel)),var(--hueso))}
+.ph .ini{font-family:'EB Garamond',serif;font-size:32px;color:color-mix(in srgb,var(--taupe) 45%,transparent);letter-spacing:.04em}
+.ph .cat-t{position:absolute;left:8px;bottom:8px;background:var(--papel);border-radius:5px;padding:2px 8px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.ph.shirts{background:var(--papel)}.ph.shirts::before{content:"";position:absolute;left:0;right:0;top:34%;height:42%;background:linear-gradient(90deg,var(--sh1) 0 24%,var(--sh2) 24% 49%,var(--sh3) 49% 74%,var(--sh4) 74%);mask-image:repeating-linear-gradient(90deg,#000 0 6px,rgba(0,0,0,.82) 6px 9px)}
+.ph.shirts{--sh1:var(--tinta);--sh2:color-mix(in srgb,var(--rojo) 38%,var(--papel));--sh3:color-mix(in srgb,var(--pizarra) 45%,var(--papel));--sh4:color-mix(in srgb,var(--rojo) 22%,var(--hueso))}
+.badge-q{position:absolute;right:20px;top:20px;min-width:24px;height:24px;border-radius:12px;background:var(--tinta);color:var(--crema);font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 7px;transform:scale(0);transition:transform .4s var(--ease)}.badge-q.on{transform:scale(1)}
+.card-p h3{font-size:15.5px;font-weight:600;margin-top:11px;line-height:1.25}.card-p .col{font-size:13px;color:var(--t65)}
+.tallas{display:flex;gap:6px;margin-top:8px}.talla{border:1px solid var(--sand);border-radius:7px;padding:3px 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--crema)}
+.pie-c{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}.pie-c b{font-size:16px;font-weight:600}.pie-c span{font-size:11.5px;color:var(--t65)}
+.scene:not([data-fase="armar"]) .card-p{opacity:0;transform:translateY(-16px) scale(.965);pointer-events:none}
+.scene:not([data-fase="armar"]) .busca-f,.scene:not([data-fase="armar"]) .filt,.scene:not([data-fase="armar"]) .chips{opacity:0;transform:translateY(-10px);pointer-events:none}
+.scene:not([data-fase="armar"]) .cat{pointer-events:none}
+
+/* ---- escenarios del cobro ---- */
+.scene.sw .stage *{transition:none!important;animation:none!important}
+.stage{pointer-events:none;visibility:hidden}
+.scene[data-v="g"] #stG,.scene[data-v="h"] #stH,.scene[data-v="i"] #stI{visibility:visible}
+.scene:not([data-fase="armar"])[data-v="g"] #stG{pointer-events:auto}
+.st{opacity:0;transform:translate3d(0,26px,0) scale(.985);transition:opacity .35s var(--ease),transform .4s var(--ease)}
+.scene[data-fase="cobrar"] .st{opacity:1;transform:none;transition:opacity .6s var(--ease) calc(var(--i)*65ms + 140ms),transform .75s var(--ease) calc(var(--i)*65ms + 140ms)}
+.scene[data-fase="listo"] .st.keep{opacity:1;transform:none}
+.ex{opacity:0;transform:translate3d(0,18px,0);transition:opacity .3s var(--ease),transform .3s var(--ease);pointer-events:none}
+.scene[data-fase="listo"] .ex{opacity:1;transform:none;pointer-events:auto;transition:opacity .65s var(--ease) calc(var(--i)*80ms + 380ms),transform .8s var(--ease) calc(var(--i)*80ms + 380ms)}
+.h3{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.h3 .hint{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;color:var(--t50);font-size:12px}
+.tarj{border:1px solid var(--sand);border-radius:18px;background:var(--papel)}
+
+/* ======= v3 · piezas comunes (un flujo mínimo, tres formas de mostrarlo) ======= */
+.lnk{font-size:12.5px;color:var(--t65);text-decoration:underline;text-decoration-color:var(--t30);text-underline-offset:3px;transition:color .2s}.lnk:hover{color:var(--tinta)}
+kbd{font-family:'DM Sans';font-size:9.5px;font-weight:600;letter-spacing:.04em;color:var(--t50);border:1px solid var(--sand);border-radius:5px;padding:1px 5px;background:var(--papel)}
+.spk .chk{display:flex;align-items:center;gap:7px;color:rgba(245,240,232,.85);cursor:pointer}.spk .chk input{accent-color:var(--rojo)}
+.spk .toq{display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:8px;background:rgba(245,240,232,.08)}.spk .toq b{font-family:'EB Garamond';font-size:20px;font-weight:500;min-width:14px;text-align:center}
+
+/* total */
+.tl{color:var(--t65)}.tn{line-height:.95;transition:color .5s}.tn.ok{color:var(--tinta)}.ts{font-size:13px;color:var(--t50);margin-top:6px}
+
+/* comprobante: una línea + popover */
+.cmp-host{position:relative}
+.cc{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 6px 0 12px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80);transition:border-color .25s,background .25s;max-width:100%}
+.cc:hover{border-color:var(--taupe)}.cc-ic{color:var(--t65);display:grid}.cc-t{display:flex;gap:6px;min-width:0;white-space:nowrap}.cc-t b{font-weight:600;color:var(--tinta)}.cc-t span:last-child{overflow:hidden;text-overflow:ellipsis}
+.cc-c{height:26px;padding:0 10px;border-radius:999px;background:var(--hueso);font-size:11px;font-weight:600;display:grid;place-items:center;color:var(--tinta)}
+.cc.warn{border-color:color-mix(in srgb,var(--ambar) 50%,var(--sand));background:color-mix(in srgb,var(--ambar) 7%,var(--papel))}.cc.warn .cc-t span:last-child{color:var(--ambar)}
+.pop{position:absolute;left:0;top:calc(100% + 8px);width:384px;z-index:30;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 24px 48px -20px rgba(26,26,24,.35),0 2px 6px rgba(26,26,24,.06);
+ opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top left;pointer-events:none;transition:opacity .22s var(--ease),transform .32s var(--ease)}
+.cmp-host.open .pop{opacity:1;transform:none;pointer-events:auto}
+.seg3{position:relative;display:grid;grid-template-columns:repeat(3,1fr);background:var(--hueso);border-radius:11px;padding:3px}
+.seg3 button{position:relative;z-index:1;height:34px;border-radius:8px;font-size:13px;font-weight:600;color:var(--t65);text-align:center;transition:color .25s}.seg3 button.on{color:var(--tinta)}
+.seg-pill{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:8px;background:var(--papel);border:1px solid var(--sand);transform:translateX(calc(var(--idx)*100%));transition:transform .45s var(--ease)}
+.doc-campo{display:flex;align-items:center;gap:9px;height:46px;padding:0 13px;border:1px solid var(--sand);border-radius:11px;background:var(--hueso);transition:border-color .25s,box-shadow .25s,background .25s}
+.doc-campo:focus-within{border-color:var(--rojo);background:var(--papel);box-shadow:0 0 0 3px color-mix(in srgb,var(--rojo) 14%,transparent)}
+.doc-campo svg{color:var(--t50)}.doc-campo input{flex:1;border:0;outline:0;background:transparent;font-family:'DM Mono',monospace;font-size:16px;letter-spacing:.08em;min-width:0}.doc-campo input::placeholder{letter-spacing:0;font-family:'DM Sans';font-size:13.5px;color:var(--t50)}
+.doc-est{width:22px;height:22px;display:grid;place-items:center;flex:none}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--sand);border-top-color:var(--rojo);animation:gira .8s linear infinite}
+.okc{width:22px;height:22px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center}.okc svg{width:13px;height:13px;stroke-width:2.4}
+.doc-res{display:flex;align-items:center;gap:9px;max-height:0;opacity:0;overflow:hidden;transition:max-height .4s var(--ease),opacity .3s;font-size:14px;font-weight:500}.doc-res.on{max-height:30px;opacity:1}
+.doc-res .fuente{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:5px;background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde-p)}
+.tw span{opacity:0;transition:opacity .18s linear}.tw.go span{opacity:1;transition-delay:calc(var(--j)*24ms)}
+.sug{display:none;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 8px 12px;border-radius:10px;background:color-mix(in srgb,var(--pizarra) 9%,var(--papel));font-size:12.5px;color:var(--pizarra)}.sug.on{display:flex;animation:sube .35s var(--ease)}
+.sug button,.mini{height:28px;padding:0 12px;border-radius:7px;background:var(--tinta);color:var(--crema);font-size:12px;font-weight:600}
+.doc-nombre{height:40px;border:1px solid var(--sand);border-radius:10px;background:var(--hueso);padding:0 13px;outline:0;font-size:14px}.doc-nombre:focus{border-color:var(--rojo);background:var(--papel)}.doc-nombre.off{display:none}
+.pop-n{font-size:12px;color:var(--t65);min-height:16px}
+.pop-pie{display:flex;align-items:center;justify-content:space-between}
+
+/* medios */
+.mt{position:relative;cursor:pointer;user-select:none;transition:background .3s var(--ease),border-color .3s,opacity .35s,transform .35s var(--ease)}
+.mi{display:grid;place-items:center;border-radius:50%;background:var(--ct);color:var(--cd);transition:background .35s var(--ease),color .35s,transform .45s var(--ease)}
+.mt.on .mi{background:var(--cd);color:var(--crema)}
+.mn{font-weight:600;line-height:1.15}
+.ma{display:none;align-items:center;gap:3px;height:30px;padding:0 9px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:11px;color:var(--t65)}
+.ma input{width:56px;border:0;outline:0;background:transparent;text-align:right;font-weight:600;font-size:13.5px}
+.ma:focus-within{border-color:var(--rojo)}
+.mts.split .mt.on .ma{display:flex;animation:sube .35s var(--ease)}.mts.split .mt.on kbd{display:none}
+.mop,.cambiar{display:none}
+.mt-pie{display:flex;justify-content:center;margin-top:12px;min-height:20px}
+
+/* contexto: efectivo, nº de operación, pista */
+.cx-ef{display:none}.cx-ef.on{display:block;animation:sube .4s var(--ease)}
+.cx-l{font-size:12.5px;color:var(--t65);margin-bottom:9px}.cx-l span{color:var(--t50)}
+.qk{display:flex;gap:7px}
+.qa{position:relative;height:48px;min-width:74px;padding:0 13px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;transition:all .25s var(--ease);animation:sube .4s var(--ease) both;animation-delay:calc(var(--i)*40ms)}
+.qa b{font-family:'EB Garamond';font-size:20px;font-weight:500}.qa small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t50);font-weight:600}
+.qa:hover{border-color:var(--taupe);transform:translateY(-2px)}
+.qa.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.qa.on small{color:rgba(245,240,232,.6)}
+.qa.otro{flex-direction:row;gap:4px;font-size:12px;color:var(--t50);padding:0 10px;cursor:text}.qa.otro input{width:64px;border:0;outline:0;background:transparent;font-family:'EB Garamond';font-size:20px;text-align:right;color:var(--tinta)}
+.qa.otro:focus-within{border-color:var(--rojo)}.qa.otro.on{background:var(--papel);color:var(--t50);border-color:var(--tinta)}
+.vu{display:flex;align-items:baseline;gap:12px;margin-top:12px;min-height:40px}
+.vu .vl{color:var(--t65);font-size:10.5px}.vu .vv{font-size:38px;line-height:1;transition:color .3s}.vu.corto .vv,.vu.corto .vl{color:var(--ambar)}
+.cx-op{display:none;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:12px;color:var(--t65)}.cx-op.on{display:flex;animation:sube .4s var(--ease)}
+.cx-op label{display:flex;align-items:center;gap:7px}.cx-op i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.cx-op input{width:126px;height:34px;border:1px solid var(--sand);border-radius:9px;background:var(--papel);padding:0 10px;outline:0;font-family:'DM Mono',monospace;font-size:12.5px}.cx-op input:focus{border-color:var(--rojo)}
+.cx-h{font-size:13px;color:var(--t50);min-height:18px}
+
+/* confirmar (con «deshacer» en el cobro de un toque) */
+.okm{font-size:12px;color:var(--t65);text-align:center;min-height:17px;margin-bottom:7px;transition:opacity .3s}
+.okb{position:relative;overflow:hidden;width:100%;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:14px;background:var(--tinta);color:var(--crema);transition:opacity .3s,transform .2s var(--ease)}
+.okb:disabled{opacity:.28;cursor:not-allowed}.okb:not(:disabled):hover{transform:translateY(-1px)}
+.okt{position:relative;z-index:1;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;flex:1;text-align:left;white-space:nowrap}.okt u{text-decoration-color:rgba(245,240,232,.5);text-underline-offset:3px;margin-left:6px;letter-spacing:.06em}
+.okv{position:relative;z-index:1;font-size:22px}.okb kbd{position:relative;z-index:1;background:transparent;color:rgba(245,240,232,.6);border-color:rgba(245,240,232,.25)}
+.okf{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--verde)}
+.okb.auto .okf{animation:llena 1.5s linear forwards}
+@keyframes llena{to{width:100%}}
+
+/* éxito */
+.exito{display:flex;flex-direction:column;align-items:center;text-align:center}
+.ex-ring{width:88px;height:88px;position:relative}.ex-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ex-ring circle{fill:none;stroke:var(--verde);stroke-width:3;stroke-dasharray:302;stroke-dashoffset:302}.ex-ring path{fill:none;stroke:var(--verde);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60}
+.ex-ring .chk{position:absolute;inset:0}.ex-ring .chk svg{transform:none}
+.scene[data-fase="listo"] .ex-ring circle{animation:dib .8s var(--ease) .3s forwards}.scene[data-fase="listo"] .ex-ring path{animation:dib .5s var(--ease) .9s forwards}
+.exito h2{font-size:40px;line-height:1.05;margin-top:12px}.ex-sub{color:var(--t65);margin-top:4px;font-size:13.5px}
+.ex-vu{margin-top:16px;display:flex;align-items:baseline;gap:14px}.ex-vu b{font-size:44px;line-height:1}
+.ex-btns{margin-top:20px;display:flex;gap:8px}
+.btn-p{height:50px;padding:0 20px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;transition:transform .2s var(--ease)}.btn-p:hover{transform:translateY(-1px)}.btn-p kbd{background:transparent;color:rgba(245,240,232,.6);border-color:rgba(245,240,232,.25)}
+.btn-s{height:50px;padding:0 18px;border-radius:12px;border:1px solid var(--t30);background:var(--papel);font-size:13.5px}.btn-s:hover{background:var(--hueso)}
+
+/* ============================ G · MOSTRADOR (Square) ============================ */
+#stG .g-col{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding-top:34px}
+#stG .g-tot{text-align:center}#stG .tn{font-size:92px;margin-top:4px}
+#stG .g-cmp{margin-top:20px}#stG .pop{left:50%;transform:translate(-50%,-6px) scale(.98);transform-origin:top center}#stG .cmp-host.open .pop{transform:translate(-50%,0)}
+#stG .g-met{margin-top:34px;width:620px}
+#stG .mts{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+#stG .mt{height:108px;border:1px solid var(--sand);border-radius:18px;background:var(--papel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
+#stG .mt:hover{border-color:var(--c);transform:translateY(-3px)}
+#stG .mi{width:42px;height:42px}#stG .mi svg{width:21px;height:21px}#stG .mn{font-size:14px}
+#stG .mt kbd{position:absolute;top:9px;right:9px;border:0;background:none;padding:0}
+#stG .mt.on{background:var(--ct);border-color:var(--c)}#stG .mt.on .mi{transform:scale(1.06)}
+#stG .mts.uno .mt:not(.on){opacity:.42}#stG .mts.uno .mt:not(.on):hover{opacity:1}
+#stG .mts.split .mt{height:122px}
+#stG .g-ctx{margin-top:24px;width:620px;min-height:150px;display:flex;flex-direction:column;align-items:center}
+#stG .qk{justify-content:center}#stG .cx-l{text-align:center}#stG .vu{justify-content:center}#stG .cx-op{justify-content:center}
+#stG .g-ok{width:620px;margin-top:auto;margin-bottom:22px}#stG .okb{height:62px}
+#stG .g-ex{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+
+/* ============================ H · HOJA LATERAL (Shopify POS) ============================ */
+#stH{pointer-events:none!important}
+.h-scrim{position:absolute;inset:0;border-radius:16px;background:color-mix(in srgb,var(--crema) 45%,transparent);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;transition:opacity .45s var(--ease)}
+.scene:not([data-fase="armar"]) .h-scrim{opacity:1;pointer-events:auto}
+.h-sheet{position:absolute;top:0;right:0;bottom:0;width:476px;border:1px solid var(--sand);border-radius:20px;background:var(--papel);padding:22px 24px 22px;display:flex;flex-direction:column;
+ transform:translateX(calc(100% + 30px));transition:transform .55s var(--ease);box-shadow:-30px 0 60px -40px rgba(26,26,24,.35)}
+.scene:not([data-fase="armar"]) .h-sheet{transform:none;pointer-events:auto}
+.h-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#stH .tn{font-size:50px;margin-top:2px}
+.h-x{width:34px;height:34px;border-radius:10px;border:1px solid var(--sand);display:grid;place-items:center;color:var(--t65)}.h-x:hover{background:var(--hueso)}
+#stH .h-cmp{margin-top:14px}
+.h-lbl{margin:16px 0 8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);display:flex;justify-content:space-between}.h-lbl span{text-transform:none;letter-spacing:0;font-weight:400;color:var(--t50)}
+#stH .mts{display:flex;flex-direction:column;gap:5px}
+#stH .mt{height:46px;display:flex;align-items:center;gap:12px;padding:0 12px 0 10px;border:1px solid var(--sand);border-radius:13px;background:var(--papel);overflow:hidden}
+#stH .mt:hover{border-color:var(--c)}
+#stH .mi{width:32px;height:32px;flex:none}#stH .mi svg{width:17px;height:17px}#stH .mn{font-size:14.5px;flex:1}
+#stH .mt.on{background:var(--ct);border-color:var(--c)}
+#stH .mts.uno .mt:not(.on){height:0;opacity:0;margin-top:-5px;border-width:0;pointer-events:none}
+#stH .mts.uno .mt.on .cambiar{display:block;font-size:12px;color:var(--t65);text-decoration:underline;text-underline-offset:3px}#stH .mts.uno .mt.on kbd{display:none}
+#stH .mt.on .mop{display:block;width:118px;height:32px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);padding:0 9px;outline:0;font-family:'DM Mono',monospace;font-size:12px}#stH .mt.on .mop:focus{border-color:var(--rojo)}
+#stH .mt-pie{justify-content:flex-start;margin-top:8px}
+#stH .h-ctx{margin-top:12px}
+#stH .qk{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}#stH .qa{min-width:0;padding:0 4px}#stH .qa b{font-size:18px}#stH .qa.otro input{width:100%;font-size:17px}#stH .qa.otro{padding:0 8px}
+#stH .vu .vv{font-size:34px}
+.h-ok{margin-top:auto}#stH .okb{height:58px}
+.h-ex{position:absolute;inset:0;border-radius:20px;background:var(--papel);display:flex;align-items:center;justify-content:center;padding:24px}
+#stH .ex-btns{flex-direction:column;width:100%}#stH .btn-p{justify-content:center}
+
+/* ============================ I · BARRA INFERIOR (Apple Pay / Stripe) ============================ */
+#stI{pointer-events:none!important}
+.i-dock{position:absolute;left:0;right:0;bottom:0;border:1px solid var(--sand);border-radius:22px;background:var(--papel);padding:18px 20px 18px;box-shadow:0 -24px 50px -36px rgba(26,26,24,.35);
+ transform:translateY(calc(100% + 30px));transition:transform .6s var(--ease)}
+.scene:not([data-fase="armar"]) .i-dock{transform:none;pointer-events:auto}
+.i-row{display:grid;grid-template-columns:236px minmax(0,1fr) 210px;gap:18px;align-items:stretch}
+.i-left{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+#stI .tn{font-size:46px}#stI .ts{display:none}#stI .tl{font-size:10px}
+#stI .pop{top:auto;bottom:calc(100% + 10px);transform-origin:bottom left}
+#stI .mts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:var(--hueso);padding:4px;border-radius:15px}
+#stI .mt{border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:84px}
+#stI .mt:hover{background:color-mix(in srgb,var(--papel) 60%,transparent)}
+#stI .mi{width:32px;height:32px}#stI .mi svg{width:17px;height:17px}#stI .mn{font-size:13px}
+#stI .mt kbd{position:absolute;top:6px;right:7px;border:0;background:none;padding:0;font-size:9px}
+#stI .mt.on{background:var(--papel);box-shadow:inset 0 0 0 1.5px var(--c)}
+#stI .mts.split .mt{gap:4px;padding:0 4px}#stI .ma{height:26px;max-width:100%;padding:0 6px}#stI .ma input{width:100%;min-width:0;font-size:12.5px}#stI .mn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+#stI .mt-pie{justify-content:flex-start;margin-top:8px;min-height:0}
+#stI .i-ctx{margin-top:14px;padding-top:14px;border-top:1px solid var(--sand);display:flex;flex-direction:column;gap:10px}
+#stI .cx-ef.on{display:flex;align-items:center;gap:14px}#stI .cx-l{margin:0;white-space:nowrap}#stI .cx-l span{display:block}
+#stI .vu{margin:0 0 0 auto;min-height:0}#stI .vu .vv{font-size:34px}
+#stI .i-right{display:flex;flex-direction:column;justify-content:flex-end}
+#stI .okm{text-align:left;margin-bottom:6px}
+#stI .okb{height:84px;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:0 18px}#stI .okb kbd{position:absolute;right:14px;top:12px}#stI .okt{flex:none;font-size:11px}#stI .okv{font-size:26px}
+.i-ex{position:absolute;inset:0;border-radius:22px;background:var(--papel);display:flex;align-items:center;padding:0 28px}
+#stI .exito{flex-direction:row;align-items:center;gap:22px;text-align:left;width:100%}
+#stI .exito>div{width:auto!important;align-items:flex-start!important}
+#stI .ex-ring{width:64px;height:64px}#stI .exito h2{font-size:32px;margin:0}#stI .ex-tit .lbl{display:none}
+#stI .ex-vu{margin:0 0 0 auto}#stI .ex-vu b{font-size:38px}#stI .ex-btns{margin:0}
+/* el catálogo sigue a la vista en H e I (atenuado: mientras se cobra no se edita) */
+.scene[data-v="h"]:not([data-fase="armar"]) .card-p,.scene[data-v="i"]:not([data-fase="armar"]) .card-p{opacity:.42;transform:none;transition-delay:0s}
+.scene[data-v="h"]:not([data-fase="armar"]) .busca-f,.scene[data-v="h"]:not([data-fase="armar"]) .filt,.scene[data-v="h"]:not([data-fase="armar"]) .chips,
+.scene[data-v="i"]:not([data-fase="armar"]) .busca-f,.scene[data-v="i"]:not([data-fase="armar"]) .filt,.scene[data-v="i"]:not([data-fase="armar"]) .chips{opacity:.42;transform:none}
+/* ====================== TICKET (derecha, siempre visible) ====================== */
+.tk{background:var(--papel);border-left:1px solid var(--sand);display:flex;flex-direction:column;min-height:0;position:relative}
+.tk-h{height:76px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--sand)}
+.tk-h h2{font-size:27px;white-space:nowrap}.scene[data-fase="listo"] .tk-h .cand{display:none}.tk-h .cand{white-space:nowrap}.tk-h .cand{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--t65);opacity:0;transition:opacity .4s}
+.scene[data-fase="cobrar"] .tk-h .cand{opacity:1}
+.tk-body{flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
+.tk-cli{margin:14px 20px 4px;display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px dashed var(--t30);border-radius:12px;color:var(--t65);font-size:13px}.tk-cli small{margin-left:auto;font-size:11.5px;color:var(--t50)}
+.ln{padding:14px 22px;border-bottom:1px solid var(--sand);animation:sube .45s var(--ease)}
+.ln-top{display:flex;align-items:flex-start;gap:8px}.ln-top h4{font-size:15.5px;font-weight:600;line-height:1.25}.ln-top .sku{font-family:'DM Mono',monospace;font-size:12px;color:var(--taupe)}
+.ln-acc{margin-left:auto;display:flex;gap:14px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}.ln-acc .q{color:var(--rojo-p)}
+.ln-row{margin-top:10px;display:flex;align-items:flex-end;justify-content:space-between}
+.ln-row .l{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t50);margin-bottom:4px}
+.step{display:inline-flex;align-items:center;border:1px solid var(--sand);border-radius:9px;background:var(--crema);height:34px}.step button{width:32px;height:100%;display:grid;place-items:center;color:var(--t65)}.step span{min-width:24px;text-align:center;font-weight:600}
+.ln-row b{font-weight:600}.ln-row .imp{font-size:15px}
+.ln-max{margin-top:8px;font-size:11.5px;color:var(--t50)}
+.nota{padding:16px 22px;border-bottom:1px solid var(--sand)}.nota span{font-size:11.5px;color:var(--t50);display:flex;align-items:center;gap:6px}.nota div{margin-top:7px;height:40px;border:1px solid var(--sand);border-radius:10px;background:var(--crema);padding:0 12px;display:flex;align-items:center;font-size:13px;color:var(--t30)}
+/* líneas compactas mientras se cobra */
+.lc{display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid var(--sand);animation:sube .5s var(--ease) both;animation-delay:calc(var(--i)*60ms)}
+.lc .th{position:relative;width:46px;height:56px;border-radius:8px;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(180deg,color-mix(in srgb,var(--sand) 55%,var(--papel)),var(--hueso))}
+.lc .th .ini{font-family:'EB Garamond',serif;font-size:16px;color:color-mix(in srgb,var(--taupe) 55%,transparent)}
+.lc .th.shirts{background:linear-gradient(90deg,var(--tinta) 0 25%,color-mix(in srgb,var(--rojo) 38%,var(--papel)) 25% 50%,color-mix(in srgb,var(--pizarra) 45%,var(--papel)) 50% 75%,color-mix(in srgb,var(--rojo) 22%,var(--hueso)) 75%)}
+.lc .th em{position:absolute;right:3px;top:3px;min-width:17px;height:17px;border-radius:9px;background:var(--tinta);color:var(--crema);font-style:normal;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.lc .tx{flex:1;min-width:0}.lc h4{font-size:14.5px;font-weight:600;line-height:1.25}.lc p{font-size:12px;color:var(--t65)}.lc .im{font-weight:600;font-size:14.5px}
+.tk-foot{flex:none;border-top:1px solid var(--sand);padding:14px 22px 20px;background:var(--papel)}
+.tk-mix{display:none}
+.mixbar{display:flex;gap:3px;height:8px;border-radius:5px;background:var(--hueso);overflow:hidden}.mixbar i{height:100%;background:var(--c);width:0;transition:width .7s var(--ease)}
+.mixchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;min-height:28px}
+.tk-mixwrap{max-height:0;overflow:hidden;opacity:0;transition:max-height .6s var(--ease),opacity .4s}
+.scene[data-fase="cobrar"] .tk-mixwrap,.scene[data-fase="listo"] .tk-mixwrap{max-height:80px;opacity:1;margin-bottom:12px}
+.tk-acc{display:flex;justify-content:space-between;margin-bottom:11px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);overflow:hidden;max-height:30px;transition:max-height .45s var(--ease),opacity .35s,margin .45s}
+.scene:not([data-fase="armar"]) .tk-acc{max-height:0;opacity:0;margin:0}
+.tk-tot{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:11px}
+.tk-tot dl{display:grid;grid-template-columns:auto auto;gap:0 14px;font-size:12.5px;color:var(--t65);font-variant-numeric:tabular-nums}.tk-tot dd{text-align:right}.tk-tot p.pr{font-size:13px;color:var(--t65);animation:none;border:0;padding:0;background:none}
+.tk-tot .tot{text-align:right}.tk-tot .tot .lbl{color:var(--t65);font-size:11px}.tk-tot .tot b{display:block;font-size:56px;line-height:.95}
+.tk-resp{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;background:var(--hueso);font-size:12px;color:var(--t80);margin-bottom:12px}
+.tk-mot{font-size:12px;color:var(--t65);text-align:center;overflow:hidden;max-height:0;opacity:0;transition:max-height .4s var(--ease),opacity .3s,margin .4s}.tk-mot.on{max-height:30px;opacity:1;margin-bottom:9px}
+.tk-btn{position:relative;overflow:hidden;width:100%;height:56px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:space-between;padding:0 20px;transition:background .35s var(--ease),opacity .3s,transform .25s var(--ease)}
+.tk-btn .t{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}.tk-btn b{font-size:21px}
+.tk-btn:disabled{opacity:.38;cursor:not-allowed}.tk-btn.listo:not(:disabled){animation:latido 1.8s ease-in-out 4}
+.tk-btn.ok{background:var(--verde);opacity:1}.tk-btn.ok::after{display:none}
+.tk-btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(245,240,232,.28) 50%,transparent 70%);background-size:200% 100%;background-position:-200% 0;pointer-events:none}
+.tk-btn::after{opacity:0}.tk-btn.listo:not(:disabled)::after{opacity:1;animation:brillo 2.6s var(--ease) .4s 2}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-cash" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></symbol>
+<symbol id="i-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2" width="11" height="20" rx="2.2"/><path d="M10.5 18.5h3"/></symbol>
+<symbol id="i-phone2" viewBox="0 0 24 24"><rect x="6.5" y="2" width="11" height="20" rx="2.2"/><path d="M9.5 9.5a3.5 3.5 0 0 1 5 0M10.8 12a1.7 1.7 0 0 1 2.4 0"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></symbol>
+<symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-2.3-1.6L14.3 21 12 19.4 9.7 21l-2.4-1.6L5 21z"/><path d="M9 8h6M9 12h6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3.5 6h17M9 6V4h6v2M18.5 6l-.8 14H6.3L5.5 6M10 10.5v6M14 10.5v6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-3.8 3.4-6 7.5-6s7.5 2.2 7.5 6"/></symbol>
+<symbol id="i-arrow-l" viewBox="0 0 24 24"><path d="M19 12H5M11.5 5.5 5 12l6.5 6.5"/></symbol>
+<symbol id="i-printer" viewBox="0 0 24 24"><path d="M6.5 9V3h11v6M6.5 17.5H4.5A1.5 1.5 0 0 1 3 16v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a1.5 1.5 0 0 1-1.5 1.5h-2"/><rect x="6.5" y="14" width="11" height="7"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v6c0 4.7 3.2 7.6 7.5 9 4.3-1.4 7.5-4.3 7.5-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12.5H6zM9 8V6.5a3 3 0 0 1 6 0V8"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4 5v14M7.5 5v14M11 5v14M14 5v10M17.5 5v14M20.5 5v14"/></symbol>
+<symbol id="i-percent" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.3"/><circle cx="17" cy="17" r="2.3"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M21 5H9l-6.5 7L9 19h12z"/><path d="m13 10 4 4m0-4-4 4"/></symbol></defs></svg>
+
+<div class="spk">
+  <span class="tag">Spike v3 · cobro sin fricción</span>
+  <span class="seg" id="segV"><button data-v="g" class="on">G · Mostrador</button><button data-v="h">H · Hoja lateral</button><button data-v="i">I · Barra inferior</button></span>
+  <span class="seg" id="segC"><button data-c="1" class="on">1 prenda</button><button data-c="3">3 prendas</button></span>
+  <label class="chk" title="Como Square: si con un toque ya está todo, se cobra solo en 1,5 s con «Deshacer»"><input type="checkbox" id="unToque" checked>Cobro de un toque</label>
+  <span class="toq"><span class="tag">Toques</span><b id="toq">0</b></span>
+  <button class="go" id="bDemo">▶ Ver demo</button>
+  <button class="go q" id="bReset">Reiniciar</button>
+</div>
+
+<div class="escena">
+  <div class="ley" id="ley"></div>
+  <div class="wrap" id="wrap"><div class="fit" id="fit">
+  <div class="scene" id="scene" data-v="g" data-fase="armar">
+
+    <div class="main">
+      <div class="cab">
+        <span class="lugar lbl cab-armar">Venta en tienda · Tienda TRU</span>
+        <button class="b fuerte cab-armar"><svg class="ic s"><use href="#i-bookmark"/></svg>Apartar <span class="n" id="nApartar">1</span></button>
+        <button class="b cab-armar"><svg class="ic s"><use href="#i-grid"/></svg>Más</button>
+        <button class="volver cab-cobro" id="volver"><svg class="ic s"><use href="#i-arrow-l"/></svg>Seguir armando</button>
+        <div class="guia cab-cobro" id="guia">
+          <span class="g" data-g="1"><i>1</i>Cómo pagó</span><span class="sep"></span>
+          <span class="g" data-g="2"><i>2</i>Comprobante</span><span class="sep"></span>
+          <span class="g" data-g="3"><i>3</i>Confirmar</span>
+        </div>
+        <span class="hoy"><svg class="ic s"><use href="#i-clock"/></svg>Hoy <b>S/0.00</b></span>
+      </div>
+
+      <div class="zona" id="zona">
+        <!-- ARMAR -->
+        <div class="cat" id="cat">
+          <div class="busca-f"><div class="busca"><svg class="ic"><use href="#i-barcode"/></svg>Escanea la etiqueta o busca la prenda</div><div class="sinreg">Prenda sin registrar</div></div>
+          <div class="filt"><span class="sw"></span><span class="lbl" style="font-size:10.5px">Solo con stock</span><span class="ocultas">173 prendas ocultas (159 con stock en el almacén)</span></div>
+          <div class="chips"><span class="chip on">Todo</span><span class="chip">Bodys</span><span class="chip">Bolsos y carteras</span><span class="chip">Camisas y blusas</span><span class="chip">Chalecos</span><span class="chip">Conjuntos</span><span class="chip">Jeans</span><span class="chip">Pantalones</span><span class="chip">Polos</span></div>
+          <div class="grid-p" id="gridP"></div>
+        </div>
+
+        <!-- G · MOSTRADOR (patrón Square) -->
+        <section class="stage" id="stG">
+          <div class="g-col">
+            <div class="g-tot st" style="--i:0" data-c="total"></div>
+            <div class="g-cmp st" style="--i:1" data-c="comp"></div>
+            <div class="g-met st" style="--i:2" data-c="met"></div>
+            <div class="g-ctx st" style="--i:3" data-c="ctx"></div>
+            <div class="g-ok st" style="--i:4" data-c="ok"></div>
+          </div>
+          <div class="g-ex ex" style="--i:0" data-c="ex"></div>
+        </section>
+
+        <!-- H · HOJA LATERAL (patrón Shopify POS) -->
+        <section class="stage" id="stH">
+          <div class="h-scrim" data-act="volver"></div>
+          <aside class="h-sheet">
+            <div class="h-top st" style="--i:0"><div data-c="total"></div><button class="h-x" data-act="volver" aria-label="Seguir armando" title="Seguir armando (Esc)"><svg class="ic s"><use href="#i-arrow-l"/></svg></button></div>
+            <div class="h-cmp st" style="--i:1" data-c="comp"></div>
+            <div class="st" style="--i:2"><p class="h-lbl">Cómo paga<span>F1–F5</span></p><div data-c="met"></div></div>
+            <div class="h-ctx st" style="--i:3" data-c="ctx"></div>
+            <div class="h-ok st" style="--i:4" data-c="ok"></div>
+            <div class="h-ex ex" style="--i:0" data-c="ex"></div>
+          </aside>
+        </section>
+
+        <!-- I · BARRA INFERIOR (patrón Apple Pay / Stripe) -->
+        <section class="stage" id="stI">
+          <div class="i-dock">
+            <div class="i-row">
+              <div class="i-left st" style="--i:0"><div data-c="total"></div><div data-c="comp"></div></div>
+              <div class="i-mid st" style="--i:1" data-c="met"></div>
+              <div class="i-right st" style="--i:2" data-c="ok"></div>
+            </div>
+            <div class="i-ctx st" style="--i:3" data-c="ctx"></div>
+            <div class="i-ex ex" style="--i:0" data-c="ex"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- TICKET (siempre) -->
+    <aside class="tk">
+      <div class="tk-h"><svg class="ic l"><use href="#i-bag"/></svg><h2 class="fd" id="tkTit">Ticket actual</h2><span class="cand"><svg class="ic s"><use href="#i-lock"/></svg>Bloqueado mientras cobras</span></div>
+      <div class="tk-body" id="tkBody"></div>
+      <div class="tk-foot">
+        <div class="tk-acc"><span style="display:flex;gap:7px;align-items:center"><svg class="ic s"><use href="#i-percent"/></svg>Aplicar descuento</span><span style="display:flex;gap:7px;align-items:center"><svg class="ic s"><use href="#i-pause"/></svg>Dejar en espera</span></div>
+        <div class="tk-mixwrap"><div class="mixbar" id="mixBar"></div><div class="mixchips" id="mixChips"></div></div>
+        <div class="tk-tot"><div><p style="font-size:12.5px;color:var(--t65)" id="tkPrendas"></p><dl id="tkDl"></dl></div><div class="tot"><p class="lbl">Total</p><b class="fd" id="tkTotal">S/0.00</b></div></div>
+        <span class="tk-resp"><svg class="ic s"><use href="#i-shield"/></svg><span>Admin · queda a tu nombre</span></span>
+        <p class="tk-mot" id="tkMot"></p>
+        <button class="tk-btn" id="tkBtn"><span class="t"><svg class="ic"><use href="#i-cash"/></svg><span id="tkBtnT">Cobrar</span></span><b class="fd" id="tkBtnM">S/0.00</b></button>
+      </div>
+    </aside>
+  </div></div></div>
+</div>
+
+<script>
+/* =========================== datos inventados =========================== */
+const IGV=.18,r2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const money=n=>'S/'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const moneyCorto=n=>Number.isInteger(n)?'S/'+n:money(n);
+const P={
+ palazo:{n:'Palazo Billie',col:'Azul denim',sku:'PLZ-0007-AZD-30',cat:'Jeans',precio:99,stock:2,tallas:['28','30','32','34'],ini:'PB'},
+ laraR:{n:'Camisa Lara',col:'Rosado',sku:'CMS-0011-ROS-STD',cat:'Camisas y blusas',precio:59.9,stock:1,shirts:1},
+ mias:{n:'Blusa Mias Manga 3/4',col:'Marrón',sku:'BLS-0021-MAR-STD',cat:'Camisas y blusas',precio:65,stock:2,ini:'BM'},
+ laraC:{n:'Camisa Lara',col:'Celeste',sku:'CMS-0011-CEL-STD',cat:'Camisas y blusas',precio:59.9,stock:1,shirts:1}};
+const ORDEN=['palazo','laraR','mias','laraC'];
+const METODOS=[
+ {k:'efectivo',n:'Efectivo',f:1,ic:'i-cash'},{k:'tarjeta',n:'Tarjeta',f:2,ic:'i-card'},
+ {k:'yape',n:'Yape',f:3,ic:'i-phone'},{k:'plin',n:'Plin',f:4,ic:'i-phone2'},{k:'transferencia',n:'Transferencia',f:5,ic:'i-swap'}];
+const MK=Object.fromEntries(METODOS.map(m=>[m.k,m]));
+const CON_OP=['yape','plin','transferencia'];
+const TIPOS={boleta:{n:'Boleta'},factura:{n:'Factura'},nota_venta:{n:'Nota de venta'}};
+const ic=(id,c='')=>`<svg class="ic ${c}"><use href="#${id}"/></svg>`;
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const sl=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* Montos sugeridos de efectivo (como Square/Shopify): exacto + los billetes con que suele pagarse. */
+function sugerencias(m){
+  const c10=Math.ceil(m/10)*10,c=[c10,c10+10,Math.ceil(m/20)*20,Math.ceil(m/50)*50,Math.ceil(m/100)*100,Math.ceil(m/200)*200,Math.ceil(m/100)*100+100];
+  return [...new Set(c)].filter(v=>v>m+0.001).sort((a,b)=>a-b).slice(0,4);
+}
+
+/* =========================== estado =========================== */
+const S0=()=>({fase:'armar',cart:[{id:'laraC',q:1}],metodo:null,split:false,pagos:[],recibido:null,rbuf:null,ref:{},tipo:'boleta',num:'',nombre:'',look:'',ext:false,pop:false,auto:false,nro:S.nro,toques:0});
+let S={nro:13};S=S0();
+const V={v:'g',unToque:true};
+const lineas=()=>S.cart.map(l=>({...P[l.id],id:l.id,q:l.q}));
+const total=()=>r2(S.cart.reduce((s,l)=>s+P[l.id].precio*l.q,0));
+const prendas=()=>S.cart.reduce((s,l)=>s+l.q,0);
+const pagosEf=()=>S.split?S.pagos:(S.metodo?[{k:S.metodo,monto:total()}]:[]);
+const rucOk=()=>!S.ext&&S.num.length===11;
+function D(){
+  const t=total(),pg=pagosEf(),pagado=r2(pg.reduce((s,p)=>s+p.monto,0)),restante=r2(t-pagado);
+  const ef=pg.find(p=>p.k==='efectivo');
+  const vuelto=ef&&S.recibido!=null&&S.recibido>ef.monto?r2(S.recibido-ef.monto):0;
+  const corto=ef&&S.recibido!=null&&S.recibido<ef.monto?r2(ef.monto-S.recibido):0;
+  const sinNota=S.tipo==='nota_venta',sub=r2(t/(1+IGV)),igv=r2(t-sub);
+  let mot=null;
+  if(!pg.length)mot='Elige cómo paga la clienta';
+  else if(restante>0)mot='Falta asignar '+money(restante);
+  else if(restante<0)mot='Los medios pasan el total en '+money(-restante);
+  else if(S.tipo==='factura'&&!rucOk())mot='La factura necesita el RUC';
+  else if(S.tipo!=='factura'&&!S.ext&&S.num.length===11)mot='Un RUC va con factura';
+  else if(S.num&&!S.ext&&S.num.length!==8&&S.num.length!==11)mot='Revisa el documento';
+  return {t,pg,pagado,restante,ef,vuelto,corto,sinNota,sub,igv,mot,puedo:mot===null&&S.cart.length>0,ok:pg.length>0&&restante===0};
+}
+function nombreCli(){
+  if(S.ext)return S.nombre.trim();
+  if(S.look!=='ok')return '';
+  return S.num.length===11?'Textiles Andinos S.A.C.':'María Fernanda Quispe Rojas';
+}
+const nroComp=()=>(S.tipo==='boleta'?'B004':S.tipo==='factura'?'F004':'NV01')+'-'+String(S.nro).padStart(6,'0');
+const nombresCortos=()=>[...new Set(lineas().map(l=>l.n))].join(' · ');
+
+/* =========================== movimiento =========================== */
+function num(el,to,fmt=money,dur=560){
+  if(!el)return;const from=el._v===undefined?to:el._v;el._v=to;cancelAnimationFrame(el._r);
+  if(from===to){el.textContent=fmt(to);return}
+  const t0=performance.now();
+  const f=now=>{const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1)el._r=requestAnimationFrame(f);else{el.textContent=fmt(to);el.style.animation='none';void el.offsetWidth;el.style.animation='asentar .5s var(--ease)'}};
+  el._r=requestAnimationFrame(f);
+}
+function setHTML(el,h){if(el._h===h)return;el._h=h;el.innerHTML=h}
+function letras(t){return `<span class="tw">${[...t].map((c,i)=>`<span style="--j:${i}">${c===' '?'&nbsp;':c}</span>`).join('')}</span>`}
+function ripple(btn,e){const r=btn.getBoundingClientRect(),k=V.k||1,i=document.createElement('i');i.className='ripple';i.style.left=((e.clientX-r.left)/k)+'px';i.style.top=((e.clientY-r.top)/k)+'px';btn.appendChild(i);setTimeout(()=>i.remove(),800)}
+const visEl=()=>$('#st'+V.v.toUpperCase());
+
+/* =========================== acciones =========================== */
+function cancelAuto(){if(S.auto){clearTimeout(S._at);S.auto=false}}
+function intentarAuto(){
+  /* Cobro de un toque: si con este toque ya está todo, se cobra solo en 1,5 s, con «Deshacer» a la vista. */
+  if(!V.unToque||S.split)return;const d=D();if(!d.puedo)return;
+  S.auto=true;S._at=setTimeout(()=>{S.auto=false;A.confirmar()},1500);
+}
+const A={
+  agregar(id){const l=S.cart.find(x=>x.id===id);if(l){if(l.q<P[id].stock)l.q++}else S.cart.push({id,q:1});render()},
+  cant(id,d){const l=S.cart.find(x=>x.id===id);if(!l)return;l.q=Math.max(0,Math.min(P[id].stock,l.q+d));if(!l.q)S.cart=S.cart.filter(x=>x.id!==id);render()},
+  quitar(id){S.cart=S.cart.filter(x=>x.id!==id);render()},
+  cobrar(){if(!S.cart.length)return;S.fase='cobrar';render()},
+  volver(){cancelAuto();if(S.pop){S.pop=false;return render()}if(S.fase==='cobrar'){S.fase='armar';render()}},
+  metodo(k){
+    cancelAuto();
+    if(S.split){const i=S.pagos.findIndex(p=>p.k===k);
+      if(i>-1){const q=S.pagos.splice(i,1)[0];if(S.pagos.length&&q.monto>0)S.pagos[S.pagos.length-1].monto=r2(S.pagos[S.pagos.length-1].monto+q.monto)}
+      else S.pagos.push({k,monto:Math.max(0,D().restante)});
+      if(!S.pagos.some(p=>p.k==='efectivo'))S.recibido=null;
+      return render();
+    }
+    S.metodo=S.metodo===k?null:k;S.recibido=null;S.rbuf=null;render();
+    if(S.metodo&&S.metodo!=='efectivo'){intentarAuto();render()}
+  },
+  split(){cancelAuto();
+    if(!S.split){S.split=true;S.pagos=S.metodo?[{k:S.metodo,monto:total()}]:[];S.metodo=null}
+    else{S.split=false;S.metodo=S.pagos[0]?S.pagos[0].k:null;S.pagos=[];S.recibido=null}
+    render()},
+  splitMonto(k,v){const p=S.pagos.find(x=>x.k===k);if(p){p.monto=r2(Math.max(0,v||0));render()}},
+  rec(v){cancelAuto();S.recibido=S.recibido===v?null:v;S.rbuf=null;render();if(S.recibido!=null&&S.recibido>=(D().ef||{monto:0}).monto){intentarAuto();render()}},
+  tecla(c){ /* dígitos con el efectivo elegido: lo recibido sin tocar ningún campo */
+    cancelAuto();let b=S.rbuf==null?'':S.rbuf;
+    if(c==='back')b=b.slice(0,-1);else if(c==='.'){if(!b.includes('.'))b=(b||'0')+'.'}else{if(/\.\d{2}$/.test(b)||b.length>7)return;b=b==='0'?c:b+c}
+    S.rbuf=b;S.recibido=b===''?null:r2(parseFloat(b)||0);render()},
+  pop(){cancelAuto();S.pop=!S.pop;render();if(S.pop)setTimeout(()=>{const i=$('.cmp-host.open [data-in=doc]',visEl());if(i)i.focus()},60)},
+  tipo(t){cancelAuto();S.tipo=t;render()},
+  ext(){S.ext=!S.ext;S.num='';S.look='';S.nombre='';render();setTimeout(()=>{const i=$('.cmp-host.open [data-in=doc]',visEl());if(i)i.focus()},40)},
+  doc(v){
+    cancelAuto();
+    let s=S.ext?v.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,12):v.replace(/\D/g,'').slice(0,11);
+    S.num=s;S.look='';clearTimeout(S._lk);
+    if(!S.ext&&(s.length===11||(s.length===8&&S.tipo!=='factura'))){S.look='buscando';const n=s;S._lk=setTimeout(()=>{if(S.num===n){S.look='ok';render()}},900)}
+    render();
+  },
+  confirmar(){cancelAuto();if(!D().puedo)return;S.pop=false;S.fase='listo';render()},
+  ok(){if(S.auto){cancelAuto();render()}else A.confirmar()},
+  nueva(){const n=S.nro+1,cart=carrito(cartSel());S=S0();S.nro=n;S.cart=[];render();setTimeout(()=>{S.cart=cart;render()},60)},
+};
+
+/* =========================== componentes (los mismos en G, H e I; cambia la forma) =========================== */
+function mkTotal(h){
+  h.innerHTML=`<p class="lbl tl"></p><p class="tn fd"></p><p class="ts"></p>`;const tl=$('.tl',h),tn=$('.tn',h),ts=$('.ts',h);
+  return {update(d){const falta=S.split&&d.pg.length&&d.restante!==0;
+    tl.textContent=falta?(d.restante>0?'Falta asignar':'Se pasa por'):'Total a cobrar';
+    num(tn,falta?Math.abs(d.restante):d.t);ts.textContent=`${prendas()} ${prendas()===1?'prenda':'prendas'} · ${nombresCortos()}`}};
+}
+function mkComp(h){
+  h.classList.add('cmp-host');
+  h.innerHTML=`<button class="cc" data-act="pop" type="button"><span class="cc-ic">${ic('i-receipt','s')}</span><span class="cc-t"></span><span class="cc-c">Cambiar</span></button>
+  <div class="pop"><div class="seg3"><i class="seg-pill"></i>${Object.entries(TIPOS).map(([k,t])=>`<button data-act="tipo" data-t="${k}" type="button">${t.n}</button>`).join('')}</div>
+  <label class="doc-campo">${ic('i-user')}<input data-in="doc" autocomplete="off" spellcheck="false" inputmode="numeric"><span class="doc-est"></span></label>
+  <div class="doc-res"><span class="nm"></span><span class="fuente"></span></div>
+  <div class="sug"><span>Eso es un RUC.</span><button data-act="tipo" data-t="factura" type="button">Emitir factura</button></div>
+  <input class="doc-nombre off" data-in="nombre" placeholder="Nombre de la clienta" autocomplete="off">
+  <p class="pop-n"></p>
+  <div class="pop-pie"><button class="lnk" data-act="ext" type="button"></button><button class="mini" data-act="pop" type="button">Listo <kbd style="background:transparent;color:rgba(245,240,232,.6);border-color:rgba(245,240,232,.3)">⏎</kbd></button></div></div>`;
+  const cc=$('.cc',h),cct=$('.cc-t',h),seg=$('.seg3',h),inp=$('[data-in=doc]',h),est=$('.doc-est',h),res=$('.doc-res',h),nm=$('.nm',res),fu=$('.fuente',res),sug=$('.sug',h),nom=$('[data-in=nombre]',h),pn=$('.pop-n',h),ext=$('[data-act=ext]',h);let ult='';
+  return {update(d){
+    const cli=nombreCli(),falta=S.tipo==='factura'&&!rucOk();
+    setHTML(cct,`<b>${TIPOS[S.tipo].n}</b><span>·</span><span>${falta?'falta el RUC':cli||'Cliente varios'}</span>`);
+    cc.classList.toggle('warn',falta||(S.tipo!=='factura'&&!S.ext&&S.num.length===11));
+    h.classList.toggle('open',S.pop);
+    seg.style.setProperty('--idx',Object.keys(TIPOS).indexOf(S.tipo));$$('.seg3 button',h).forEach(b=>b.classList.toggle('on',b.dataset.t===S.tipo));
+    inp.placeholder=S.ext?'Nº de carné o pasaporte':S.tipo==='factura'?'RUC de la empresa':'DNI o RUC · opcional';inp.inputMode=S.ext?'text':'numeric';
+    if(document.activeElement!==inp)inp.value=S.num;
+    est.innerHTML=S.look==='buscando'?'<i class="spin"></i>':S.look==='ok'?`<span class="okc">${ic('i-check')}</span>`:'';
+    const ver=S.look==='ok'&&!S.ext;res.classList.toggle('on',ver);
+    if(ver&&ult!==cli){nm.innerHTML=letras(cli);ult=cli;const tw=$('.tw',nm);requestAnimationFrame(()=>requestAnimationFrame(()=>tw.classList.add('go')))}if(!ver)ult='';
+    fu.textContent=S.num.length===11?'SUNAT':'RENIEC';
+    sug.classList.toggle('on',!S.ext&&S.num.length===11&&S.tipo!=='factura');
+    nom.classList.toggle('off',!S.ext);if(document.activeElement!==nom)nom.value=S.nombre;
+    pn.textContent=S.look==='buscando'?(S.num.length===11?'Consultando SUNAT…':'Consultando RENIEC…'):S.tipo==='nota_venta'?'Nota de venta: interna, no va a SUNAT.':S.tipo==='factura'&&!rucOk()?'SUNAT exige el RUC de la empresa.':!S.num?'Sin documento sale a «Cliente varios».':'';
+    ext.textContent=S.ext?'Usar DNI o RUC':'Carné o pasaporte';
+  }};
+}
+function mkMet(h){
+  h.innerHTML=`<div class="mts">${METODOS.map(m=>`<div class="mt m-${m.k}" role="button" tabindex="0" data-act="metodo" data-k="${m.k}"><span class="mi">${ic(m.ic)}</span><span class="mn">${m.n}</span><kbd>F${m.f}</kbd>${CON_OP.includes(m.k)?`<input class="mop" data-in="ref" data-k="${m.k}" placeholder="Nº de operación" inputmode="numeric" autocomplete="off" aria-label="Nº de operación de ${m.n} (opcional)">`:''}<label class="ma">S/<input data-in="split" data-k="${m.k}" inputmode="decimal" aria-label="Monto en ${m.n}"></label><span class="cambiar">Cambiar</span></div>`).join('')}</div><div class="mt-pie"><button class="lnk" data-act="split" type="button"></button></div>`;
+  const mts=$('.mts',h),lnk=$('[data-act=split]',h);
+  return {update(d){
+    const pg=d.pg;mts.classList.toggle('split',S.split);mts.classList.toggle('uno',!S.split&&!!S.metodo);
+    $$('.mt',h).forEach(el=>{const p=pg.find(x=>x.k===el.dataset.k);el.classList.toggle('on',!!p);
+      const i=$('[data-in=split]',el);if(document.activeElement!==i)i.value=p&&S.split?p.monto.toFixed(2):'';
+      const o=$('.mop',el);if(o&&document.activeElement!==o)o.value=S.ref[el.dataset.k]||''});
+    lnk.textContent=S.split?'Pagar con un solo medio':'Dividir el pago entre medios';
+  }};
+}
+function mkCtx(h,conOps){
+  h.innerHTML=`<div class="cx-ef"><p class="cx-l">¿Con cuánto paga? <span>· o teclea el monto</span></p><div class="qk"></div><div class="vu"><span class="vl lbl"></span><b class="fd vv"></b></div></div><div class="cx-op"></div><p class="cx-h"></p>`;
+  const ef=$('.cx-ef',h),qk=$('.qk',h),vu=$('.vu',h),vl=$('.vl',h),vv=$('.vv',h),op=$('.cx-op',h),hint=$('.cx-h',h);let kq='',kop='';
+  return {update(d){
+    const e=d.ef;ef.classList.toggle('on',!!e);
+    if(e){const key=e.monto+'';if(key!==kq){kq=key;
+        const sug=sugerencias(e.monto);
+        qk.innerHTML=`<button class="qa" data-act="rec" data-v="${e.monto}" style="--i:0" type="button"><small>Exacto</small><b>${money(e.monto)}</b></button>`+sug.map((v,i)=>`<button class="qa" data-act="rec" data-v="${v}" style="--i:${i+1}" type="button"><b>${moneyCorto(v)}</b></button>`).join('')+`<label class="qa otro" style="--i:5">S/<input data-in="rec" inputmode="decimal" placeholder="Otro" aria-label="Otro monto recibido"></label>`}
+      let marcado=false;$$('.qa[data-v]',qk).forEach(b=>{const on=S.recibido!=null&&+b.dataset.v===S.recibido&&S.rbuf==null;b.classList.toggle('on',on);marcado=marcado||on});
+      const oi=$('.otro input',qk);if(document.activeElement!==oi)oi.value=S.rbuf!=null?S.rbuf:(!marcado&&S.recibido!=null?S.recibido.toFixed(2):'');
+      $('.otro',qk).classList.toggle('on',!marcado&&S.recibido!=null);
+      vu.classList.toggle('corto',d.corto>0);
+      vl.textContent=d.vuelto>0?'Vuelto':d.corto>0?'Faltan':S.recibido!=null?'Sin vuelto':'Vuelto';
+      if(d.vuelto>0)num(vv,d.vuelto);else if(d.corto>0)num(vv,d.corto);else{vv._v=undefined;vv.textContent=S.recibido!=null?'✓':''}
+      vu.style.visibility=S.recibido!=null?'visible':'hidden';
+    }else kq='';
+    const digs=conOps?d.pg.filter(p=>CON_OP.includes(p.k)):[];op.classList.toggle('on',digs.length>0);
+    const ko=digs.map(p=>p.k).join();if(ko!==kop){kop=ko;op.innerHTML=`<span>Nº de operación · opcional</span>`+digs.map(p=>`<label class="m-${p.k}"><i></i>${MK[p.k].n}<input data-in="ref" data-k="${p.k}" inputmode="numeric" autocomplete="off" placeholder="Ej. 01234567"></label>`).join('')}
+    $$('input',op).forEach(i=>{if(document.activeElement!==i)i.value=S.ref[i.dataset.k]||''});
+    hint.textContent=!d.pg.length?'Elige el medio. Con uno solo basta: el monto ya es el total.':!e&&!digs.length?(S.split?'':'Se cobra en su aparato; aquí solo se anota.'):'';
+    hint.style.display=hint.textContent?'':'none';
+  }};
+}
+function mkOk(h){
+  h.innerHTML=`<p class="okm"></p><button class="okb" data-act="ok" type="button"><span class="okf"></span><span class="okt"></span><b class="fd okv"></b><kbd>⏎</kbd></button>`;
+  const m=$('.okm',h),b=$('.okb',h),t=$('.okt',h),v=$('.okv',h);
+  return {update(d){
+    b.disabled=!d.puedo&&!S.auto;b.classList.toggle('auto',S.auto);
+    t.innerHTML=S.auto?`Cobrando…<u>Deshacer</u>`:'Confirmar cobro';v.textContent=money(d.t);
+    m.textContent=S.auto?'Se registra en un instante. Toca para deshacer.':d.mot?d.mot+'.':'';m.style.opacity=m.textContent?1:0;
+  }};
+}
+function mkEx(h){
+  h.innerHTML=`<div class="exito"><div class="ex" style="--i:0;display:flex;flex-direction:column;align-items:center"><div class="ex-ring"><svg viewBox="0 0 104 104"><circle cx="52" cy="52" r="48"/></svg><div class="chk"><svg viewBox="0 0 104 104"><path d="M33 54l13 13 25-27"/></svg></div></div></div>
+  <div class="ex ex-tit" style="--i:1;display:flex;flex-direction:column;align-items:center"></div>
+  <div class="ex ex-v" style="--i:2;display:flex;flex-direction:column;align-items:center"></div>
+  <div class="ex" style="--i:3;display:flex;flex-direction:column;align-items:center"><div class="ex-btns"><button class="btn-p" data-act="nueva" type="button">${ic('i-printer','s')}Imprimir y nueva venta <kbd>⏎</kbd></button><button class="btn-s" data-act="nueva" type="button">Sin imprimir</button></div></div></div>`;
+  const tit=$('.ex-tit',h),vv=$('.ex-v',h);
+  return {update(d){
+    setHTML(tit,`<p class="lbl" style="color:var(--verde-p);margin-top:14px">Listo</p><h2 class="fd">Venta registrada</h2><p class="ex-sub">${TIPOS[S.tipo].n} ${nroComp()} · ${money(d.t)} · ${d.pg.map(p=>MK[p.k].n).join(' + ')}${nombreCli()?' · '+nombreCli():''}</p>`);
+    setHTML(vv,d.vuelto>0?`<div class="ex-vu"><span class="lbl" style="color:var(--t65)">Entregar vuelto</span><b class="fd">${money(d.vuelto)}</b></div>`:'');
+  }};
+}
+function montar(st){
+  const conOps=st.id!=='stH',cs=$$('[data-c]',st).map(h=>({total:mkTotal,comp:mkComp,met:mkMet,ctx:h=>mkCtx(h,conOps),ok:mkOk,ex:mkEx})[h.dataset.c](h));
+  return {update(d){cs.forEach(c=>c.update(d))}};
+}
+
+/* =========================== catálogo y ticket =========================== */
+function pintaCatalogo(){
+  const g=$('#gridP');if(g._ok)return;g._ok=1;
+  g.innerHTML=ORDEN.map((id,i)=>{const p=P[id];return `<div class="card-p" data-act="agregar" data-id="${id}" style="--i:${i}"><div class="ph ${p.shirts?'shirts':''}">${p.ini?`<span class="ini">${p.ini}</span>`:''}<span class="cat-t">${p.cat}</span><span class="badge-q" data-badge="${id}"></span></div><h3>${p.n}</h3><p class="col">${p.col}</p><div class="tallas">${p.tallas?p.tallas.map(t=>`<span class="talla" style="${t==='30'?'border-style:dashed;border-color:var(--taupe)':''}">${t}</span>`).join(''):'<span class="talla">Estándar</span>'}</div><div class="pie-c"><b>${money(p.precio)}</b><span>${p.stock} en piso</span></div></div>`}).join('');
+}
+function actualizaCatalogo(){$$('[data-badge]').forEach(b=>{const l=S.cart.find(x=>x.id===b.dataset.badge);b.textContent=l?l.q:'';b.classList.toggle('on',!!l)});$('#nApartar').textContent=prendas()}
+const thumb=(p,c)=>`<div class="th ${p.shirts?'shirts':''}">${p.ini?`<span class="ini">${p.ini}</span>`:''}<em>${c}</em></div>`;
+function renderTicket(d){
+  const armar=S.fase==='armar',key=(armar?'a':'c')+JSON.stringify(S.cart),body=$('#tkBody');
+  if(body._k!==key){body._k=key;
+    if(!S.cart.length)body.innerHTML=`<div style="padding:70px 30px;text-align:center;animation:sube .5s var(--ease)"><p style="font-weight:600">El ticket está vacío</p><p style="color:var(--t65);font-size:13px;margin-top:4px">Escanea una etiqueta o elige una prenda del catálogo.</p></div>`;
+    else if(armar)body.innerHTML=`<div class="tk-cli">${ic('i-user')}Agregar clienta<small>Documento, celular o nombre · opcional</small></div>`+lineas().map(l=>`<div class="ln"><div class="ln-top"><div><h4>${l.n}</h4><span class="sku">${l.sku}</span></div><div class="ln-acc"><span>% Desc.</span><button class="qa" data-act="quitar" data-id="${l.id}">${ic('i-trash','s')} Quitar</button></div></div><div class="ln-row"><div><p class="l">Cantidad</p><div class="step"><button data-act="cant" data-id="${l.id}" data-d="-1">${ic('i-minus','s')}</button><span>${l.q}</span><button data-act="cant" data-id="${l.id}" data-d="1" ${l.q>=l.stock?'style="opacity:.3"':''}>${ic('i-plus','s')}</button></div></div><div><p class="l">Precio unitario</p><b>${money(l.precio)}</b></div><div style="text-align:right"><p class="l">Importe</p><b class="imp">${money(l.precio*l.q)}</b></div></div><p class="ln-max">Máximo disponible en sede: ${l.stock}</p></div>`).join('')+`<div class="nota"><span>${ic('i-note','s')}Nota para esta venta (opcional)</span><div>Lo recoge el sábado, va con arreglo de bastilla…</div></div>`;
+    else body.innerHTML=lineas().map((l,i)=>`<div class="lc" style="--i:${i}">${thumb(l,l.q)}<div class="tx"><h4>${l.n}</h4><p>${l.col} · ${l.q} × ${money(l.precio)}</p></div><span class="im">${money(l.precio*l.q)}</span></div>`).join('');
+  }
+  $('#tkTit').textContent=armar?'Ticket actual':S.fase==='cobrar'?'Cobrando':'Venta cobrada';
+  $('#tkPrendas').textContent=prendas()+(prendas()===1?' prenda':' prendas');
+  setHTML($('#tkDl'),d.sinNota?'':`<dt>Subtotal</dt><dd>${money(d.sub)}</dd><dt>IGV (18%)</dt><dd>${money(d.igv)}</dd>`);
+  num($('#tkTotal'),d.t);
+  $('#mixBar').innerHTML=METODOS.map(m=>{const p=d.pg.find(x=>x.k===m.k);return `<i class="m-${m.k}" style="width:${p&&d.t?Math.min(100,p.monto/d.t*100):0}%"></i>`}).join('');
+  setHTML($('#mixChips'),d.pg.length?d.pg.map(p=>`<span class="mchip m-${p.k}"><i></i>${MK[p.k].n} ${money(p.monto)}</span>`).join(''):`<span style="font-size:12px;color:var(--t50)">Aún sin medio de pago</span>`);
+  const btn=$('#tkBtn'),mot=$('#tkMot');
+  btn.className='tk-btn';$('#tkBtnM').textContent=money(d.t);
+  if(armar){btn.disabled=!S.cart.length;$('#tkBtnT').textContent='Cobrar';$('.ic use',btn).setAttribute('href','#i-cash');mot.classList.remove('on')}
+  else if(S.fase==='cobrar'){btn.disabled=!d.puedo&&!S.auto;$('#tkBtnT').textContent=S.auto?'Cobrando…':'Confirmar cobro';$('.ic use',btn).setAttribute('href','#i-check');mot.classList.remove('on')}
+  else{btn.disabled=true;btn.classList.add('ok');$('#tkBtnT').textContent='Venta registrada';$('.ic use',btn).setAttribute('href','#i-check');mot.classList.remove('on')}
+}
+function renderGuia(d){
+  const ok2=S.tipo!=='factura'||rucOk();
+  const est=[d.ok?'ok':'sig',d.ok?(ok2?'ok':'sig'):'',S.fase==='listo'?'ok':d.ok&&ok2?'sig':''];
+  $$('#guia .g').forEach((g,i)=>{g.className='g '+(est[i]||'')});
+}
+
+/* =========================== render =========================== */
+let VAR={};
+function render(){
+  const sc=$('#scene');sc.dataset.fase=S.fase;sc.dataset.v=V.v;
+  const d=D();pintaCatalogo();actualizaCatalogo();renderTicket(d);renderGuia(d);
+  Object.values(VAR).forEach(v=>v.update(d));
+  $('#toq').textContent=S.toques;
+}
+
+/* =========================== eventos (y contador de toques) =========================== */
+const contar=()=>{if(S.fase!=='armar')S.toques++};
+document.addEventListener('click',e=>{
+  // el popover del comprobante se cierra al tocar fuera de él
+  if(S.pop&&!e.target.closest('.cmp-host')){S.pop=false;render()}
+  const t=e.target.closest('[data-act]');if(!t||!$('#scene').contains(t))return;
+  if(e.target.closest('input')&&t.classList.contains('mt'))return;
+  const a=t.dataset.act;
+  if(a==='metodo'&&!S.split&&!e.target.closest('input'))ripple(t,e);
+  if(['agregar','cant','quitar'].indexOf(a)<0)contar();
+  ({agregar:()=>A.agregar(t.dataset.id),cant:()=>A.cant(t.dataset.id,+t.dataset.d),quitar:()=>A.quitar(t.dataset.id),metodo:()=>A.metodo(t.dataset.k),split:A.split,rec:()=>A.rec(+t.dataset.v),
+    pop:A.pop,tipo:()=>A.tipo(t.dataset.t),ext:A.ext,ok:A.ok,volver:A.volver,nueva:A.nueva})[a]?.();
+});
+$('#tkBtn').addEventListener('click',()=>{if(S.fase==='armar'){A.cobrar();S.toques=1;render()}else if(S.fase==='cobrar'){contar();A.ok()}});
+$('#volver').addEventListener('click',()=>A.volver());
+document.addEventListener('input',e=>{
+  const i=e.target.closest('[data-in]');if(!i)return;const k=i.dataset.in;
+  if(k==='split')A.splitMonto(i.dataset.k,parseFloat(i.value));
+  else if(k==='rec'){cancelAuto();S.rbuf=null;S.recibido=i.value===''?null:r2(parseFloat(i.value)||0);render()}
+  else if(k==='ref'){S.ref[i.dataset.k]=i.value.replace(/\D/g,'');render()}
+  else if(k==='doc')A.doc(i.value);
+  else if(k==='nombre'){S.nombre=i.value;render()}
+});
+document.addEventListener('keydown',e=>{
+  const enCampo=e.target.matches&&e.target.matches('input');
+  if(S.fase==='cobrar'&&/^F[1-5]$/.test(e.key)){e.preventDefault();contar();A.metodo(METODOS[+e.key[1]-1].k)}
+  else if(e.key==='Escape'&&S.fase!=='armar'){contar();A.volver()}
+  else if(e.key==='Enter'&&S.pop){e.preventDefault();contar();S.pop=false;render()}
+  else if(e.key==='Enter'&&S.fase==='listo'){A.nueva()}
+  else if(e.key==='Enter'&&S.fase==='cobrar'&&!enCampo){contar();A.ok()}
+  else if(S.fase==='cobrar'&&!enCampo&&D().ef&&/^[0-9.]$/.test(e.key)){contar();A.tecla(e.key)}
+  else if(S.fase==='cobrar'&&!enCampo&&D().ef&&e.key==='Backspace'){contar();A.tecla('back')}
+});
+
+/* =========================== variantes, escala y demo =========================== */
+const LEY={
+ g:['G','<b>Mostrador</b> <span class="p2">· patrón Square</span>. Una sola columna centrada y tranquila: el total grande, el comprobante en <b>una línea</b> (Boleta · Cliente varios) y cinco medios. Con un solo medio el monto ya es el total; en efectivo salen <b>montos sugeridos</b> (Exacto, S/60, S/70, S/100…) y el vuelto aparece solo.','<span class="p2">Venta típica: <b>Cobrar → Yape</b> (2 toques) o <b>Cobrar → Efectivo → S/100</b> (3). Dividir el pago y el documento están a un toque, sin estorbar.</span>'],
+ h:['H','<b>Hoja lateral</b> <span class="p2">· patrón Shopify POS</span>. El cobro entra como una hoja desde la derecha, pegada al ticket; el catálogo sigue a la vista, atenuado. Al elegir un medio <b>la lista se pliega</b> a ese medio y debajo aparece solo lo que hace falta (montos sugeridos o Nº de operación).','<span class="p2">La menos ruidosa de las tres en la cabeza: nunca hay más de una decisión a la vista. Esc o la flecha devuelven al catálogo.</span>'],
+ i:['I','<b>Barra inferior</b> <span class="p2">· patrón Apple Pay / Stripe</span>. Una barra sube desde abajo con total, comprobante, los cinco medios y «Confirmar»; el catálogo queda arriba, a la vista. Es la menos invasiva: ocupa un tercio de la pantalla.','<span class="p2">Ideal si se quiere seguir viendo lo que se vende mientras se cobra. Mismo flujo de 2–3 toques.</span>']};
+function setV(v){const sc=$('#scene');sc.classList.add('sw');V.v=v;cancelAuto();S.pop=false;$$('#segV button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));const l=LEY[v];$('#ley').innerHTML=`<h2 class="fd">${l[0]}</h2><div>${l[1]}</div><div>${l[2]}</div>`;render();requestAnimationFrame(()=>requestAnimationFrame(()=>sc.classList.remove('sw')))}
+function fit(){const k=Math.max(.5,Math.min(1.4,(innerWidth-32)/1380));V.k=k;$('#fit').style.transform=`scale(${k})`;$('#wrap').style.width=1380*k+'px';$('#wrap').style.height=820*k+'px'}
+addEventListener('resize',fit);
+$('#segV').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setV(b.dataset.v)});
+const carrito=n=>n===1?[{id:'laraC',q:1}]:[{id:'laraC',q:1},{id:'palazo',q:1},{id:'mias',q:1}];
+const cartSel=()=>$$('#segC button').findIndex(b=>b.classList.contains('on'))===0?1:3;
+$('#segC').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#segC button').forEach(x=>x.classList.toggle('on',x===b));stopDemo();cancelAuto();const nro=S.nro;S=S0();S.nro=nro;S.cart=carrito(+b.dataset.c);render()});
+$('#bReset').addEventListener('click',()=>{stopDemo();cancelAuto();const nro=S.nro;S=S0();S.nro=nro;S.cart=carrito(cartSel());render()});
+$('#unToque').addEventListener('change',e=>{V.unToque=e.target.checked;cancelAuto();render()});
+let demoId=0;const stopDemo=()=>{demoId++};
+$('#bDemo').addEventListener('click',async()=>{
+  const id=++demoId,ok=()=>id===demoId;cancelAuto();
+  const nro=S.nro;S=S0();S.nro=nro;S.cart=carrito(cartSel());render();
+  scrollTo({top:0,behavior:'smooth'});await sl(900);if(!ok())return;
+  A.cobrar();S.toques=1;render();await sl(1700);if(!ok())return;
+  // la clienta da su DNI: un toque en «Cambiar», teclea, Enter
+  S.toques++;A.pop();await sl(700);if(!ok())return;
+  for(const ch of '45871236'){const i=$('.cmp-host.open [data-in=doc]',visEl());if(i){i.value=S.num+ch;i.dispatchEvent(new Event('input',{bubbles:true}))}else A.doc(S.num+ch);await sl(120);if(!ok())return}
+  await sl(1500);if(!ok())return;S.toques++;S.pop=false;render();await sl(700);if(!ok())return;
+  // paga en efectivo con un billete de 100 (o 200 si no alcanza)
+  S.toques++;A.metodo('efectivo');await sl(1300);if(!ok())return;
+  const v=D().t<100?100:300,b=$(`.qa[data-v="${v}"]`,visEl())||$('.qa[data-v]:last-of-type',visEl());
+  S.toques++;A.rec(+b.dataset.v);if(!V.unToque){await sl(1200);if(!ok())return;S.toques++;A.confirmar()}
+});
+
+VAR={g:montar($('#stG')),h:montar($('#stH')),i:montar($('#stI'))};
+fit();setV('g');
+</script>
+</body>
+</html>
