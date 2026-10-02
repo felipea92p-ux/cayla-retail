@@ -47,13 +47,15 @@ update retail.modulos
 
 -- ---------- 1. Piezas comunes ----------
 
--- La prenda como se nombra en la tienda: «Blusa lino · M · Negro». Antes (20260926090000) solo miraba la descripción, y
--- una prenda sin descripción salía como «S · Blanco» (23 de 91 productos en producción, 2026-10-02): ahora cae a la
--- referencia. Huella de la definición anterior (producción y local, 2026-10-02):
+-- La prenda como se nombra en la tienda: «Top con Escote y Amarre · Estándar · Vino». El NOMBRE es `referencia`; la
+-- `descripcion` es el detalle («tirantes, sin mangas, espalda descubierta…»). Antes (20260926090000) se usaba la
+-- descripción: una prenda sin ella salía como «S · Blanco» (23 de 91 productos en producción) y las demás con su detalle
+-- largo en vez de su nombre (visto en producción al aplicar esto, 2026-10-02). Ahora: referencia, y la descripción solo
+-- si falta. Huella de la definición anterior (producción y local, 2026-10-02):
 -- md5(regexp_replace(pg_get_functiondef('retail.fn_actividad_prenda(uuid)'::regprocedure), '\s+', '', 'g')) = e81591eca9dcd94e27791d8d8cc45db9
 create or replace function retail.fn_actividad_prenda(p_variante_id uuid) returns text
 language sql stable security definer set search_path = retail, public, extensions as $$
-  select concat_ws(' · ', coalesce(nullif(btrim(p.descripcion), ''), nullif(btrim(p.referencia), '')), t.valor, c.nombre)
+  select concat_ws(' · ', coalesce(nullif(btrim(p.referencia), ''), nullif(btrim(p.descripcion), '')), t.valor, c.nombre)
     from retail.variantes v
     join retail.productos p on p.id = v.producto_id
     left join retail.tallas t on t.id = v.talla_id

@@ -95,8 +95,9 @@ Migración `20261002233000_actividad_existencias_conteos_traslados.sql`; prueba 
   ir con firma omitida en una terminal: la línea queda sin persona y dice el aparato (se toma la terminal de la sesión
   que guarda, no la de la cabecera, que es la de quien envió o abrió). Reabrir un conteo no guarda quién: se toma el
   responsable de la sesión en el momento; por eso esa línea no se reconstruye de lo pasado.
-- **A4 — La prenda cae a su referencia** si el producto no tiene descripción (`fn_actividad_prenda`): 23 de 91
-  productos en producción no la tienen y salían como «S · Blanco».
+- **A4 — La prenda se nombra por su `referencia`** («Top con Escote y Amarre · Estándar · Vino»), que es el nombre; la
+  `descripcion` es el detalle y solo se usa si falta (`fn_actividad_prenda`). Antes se usaba la descripción: 23 de 91
+  productos no la tienen y salían como «S · Blanco», y los demás con su detalle largo. Vale también para Cambios.
 - **A5 — La web reconoce lo que la base anota.** Clientes, Avisos del club y Productos anotaban desde setiembre, pero
   `MODULOS_CON_ACTIVIDAD` no los listaba: el panel decía «todavía no anota» y no mostraba nada. Ahora la lista sale en el
   orden del catálogo y `actividad-reglas.test.ts` lee TODAS las migraciones y falla si una anota en un módulo que la web
@@ -113,4 +114,6 @@ Actividad; las demás comprobaciones diferidas siguen al final). Una prueba nuev
 `historial_producto_cambios`, una línea por guardado), Colaboradores y Roles, Recibir mercadería, Devoluciones.
 
 **Producción.** Una sola parte (sin políticas). Toma candados breves de `movimientos`, `conteos` y `transferencias` al
-crear los disparadores: pegar fuera del horario de tienda; `lock_timeout = 3s`.
+crear los disparadores: pegar fuera del horario de tienda; `lock_timeout = 3s`. **Aplicada el 2026-10-02** (18:01 Lima,
+a pedido de Felipe), y A4 enseguida en un segundo paso; las 133 líneas de Existencias reconstruidas entre los dos pasos
+quedaron con la descripción larga (decisión pendiente de Felipe: rehacerlas o dejarlas).
