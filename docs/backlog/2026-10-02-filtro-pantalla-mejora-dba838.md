@@ -11,7 +11,7 @@ Análisis: `docs/pantallas/productos-filtros.md` (12 tareas). Decisiones de Feli
 - [x] #11 (web) Atajo «/». #12 «Activos» por defecto y «Copiar enlace».
 - [x] Revisión adversaria (10 agentes): 6 defectos confirmados + 5 menores, corregidos y reproducidos en el navegador (espacio entre palabras, navegación descartada, URL pedida, lista fuera de la ventana, «A quién pedirle» → «Pedir a», página fuera de rango).
 
-**Tanda 2 (rama `claude/filtro-productos-tanda2`; migraciones POR PEGAR: Felipe las pega ANTES de fusionar su PR)**
+**Tanda 2 (rama `claude/filtro-productos-tanda2`, PR #724 fusionado el 2026-10-02; migraciones pegadas antes de fusionar)**
 - [x] #4 Precio y color sin variantes desactivadas, y la regla «la misma variante» (`fn_productos_listado`).
 - [x] #5 Facetas: conteo por opción, sin opciones vacías, tramos de precio (`fn_productos_facetas`); reemplaza `getPreciosExtremos` y el resumen viejo en esta pantalla.
 - [x] #6 Disponibilidad en la sede y en la red.
@@ -22,4 +22,4 @@ Análisis: `docs/pantallas/productos-filtros.md` (12 tareas). Decisiones de Feli
 - [ ] Con ~3 000 prendas, guardar el texto normalizado del buscador en una columna con índice trigram (hoy ~390 ms a ese volumen, medido).
 - [x] **EN PRODUCCIÓN (2026-10-02):** Felipe pegó `20261002200000` y `20261002200100`; las 5 huellas coinciden y el humo con sesión de líder da 87 activas en el listado nuevo, en `fn_productos` y en los conteos.
 - [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`) después de pegar: `datos:comparar` hoy marca las dos funciones como «sin respaldo» (esperado).
-- [ ] Limpieza posterior: borrar `fn_productos`/`fn_productos_resumen`/`fn_productos_buscar` cuando nada las llame (hoy `fn_productos` la usan otras lecturas: buscar antes).
+- [ ] Limpieza posterior: retirar `fn_productos_resumen` (desde #724 ninguna pantalla la llama) y, cuando `lib/candidatas-alta-lector.ts` pase al listado nuevo, `fn_productos`/`fn_productos_buscar`. Retirar = migración con `drop function`, pegada DESPUÉS de que la web desplegada ya no la llame (buscar en los `edge_logs` que no haya llamadas en una semana).

@@ -49,7 +49,7 @@ import { SIN_EN_URL } from "@/lib/marcas";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
-// (fn_productos/fn_productos_resumen), y cambiar un filtro vuelve a la
+// (fn_productos_listado y fn_productos_facetas, ADR-0308), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
 type OpcionColor = Opcion & { hex: string | null; familia: string | null };
