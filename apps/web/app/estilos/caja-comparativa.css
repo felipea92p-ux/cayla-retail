@@ -1,0 +1,79 @@
+/* ==================================================================
+   Caja compara hoy contra ayer (ADR-0319). Solo tokens de globals.css.
+   Movimiento (ADR-0136): responde a algo (abrir, cambiar un valor); sin rebote y sin bucles. Con reduced-motion todo pasa en un instante.
+   ================================================================== */
+.cmp-heroe {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center;
+  background: var(--color-tinta); color: var(--color-crema); border-radius: 18px; padding: 26px 30px;
+}
+.cmp-heroe::before {
+  content: ""; position: absolute; right: -80px; top: -120px; width: 380px; height: 380px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-metodo-efectivo) 22%, transparent), transparent 70%);
+}
+.cmp-sobre { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-crema) 62%, transparent); }
+.cmp-frase { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 52px; line-height: 1.04; margin-top: 8px; }
+.cmp-frase em { font-style: normal; color: var(--color-metodo-efectivo); }
+.cmp-det { margin-top: 12px; max-width: 580px; font-size: 14px; color: color-mix(in srgb, var(--color-crema) 80%, transparent); }
+.cmp-det b { color: var(--color-crema); }
+.cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.cmp-chips span { border: 1px solid color-mix(in srgb, var(--color-crema) 22%, transparent); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: color-mix(in srgb, var(--color-crema) 86%, transparent); }
+.cmp-chips b { color: var(--color-crema); font-weight: 700; }
+.cmp-anillo { position: relative; width: 168px; height: 168px; flex: none; }
+.cmp-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cmp-anillo-pista { stroke: color-mix(in srgb, var(--color-crema) 14%, transparent); }
+.cmp-anillo-arco { stroke: var(--color-metodo-efectivo); stroke-linecap: round; transition: stroke-dashoffset 1.2s var(--ease-cayla); }
+.cmp-anillo-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.cmp-anillo-centro b { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 34px; line-height: 1; }
+.cmp-anillo-centro span { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
+@container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } .cmp-anillo { width: 132px; height: 132px; } }
+/* En el celular el anillo solo repite lo que dicen el titular y las etiquetas: se oculta y queda un titular más compacto. */
+@container (max-width: 560px) { .cmp-anillo { display: none; } .cmp-frase { font-size: 34px; } }
+
+/* Cambios: ▲ verde si sube, ▼ ámbar si baja ("aún no llegas" no es "vas mal": nunca rojo). */
+.cmp-delta { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.cmp-delta-sube { background: color-mix(in srgb, var(--color-verde) 12%, transparent); color: var(--color-verde-profundo); }
+.cmp-delta-baja { background: color-mix(in srgb, var(--color-ambar) 12%, transparent); color: var(--color-ambar); }
+.cmp-delta-eq { background: color-mix(in srgb, var(--color-tinta) 7%, transparent); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+.cmp-delta-info { background: color-mix(in srgb, var(--color-pizarra) 12%, transparent); color: var(--color-pizarra); }
+
+/* Gráfico */
+.cmp-eje { font-size: 10.5px; fill: color-mix(in srgb, var(--color-tinta) 52%, transparent); }
+.cmp-eje-ahora { fill: var(--color-tinta); font-weight: 600; }
+.cmp-revelar { transition: width 1.1s var(--ease-cayla); }
+.cmp-tip {
+  position: absolute; z-index: 5; pointer-events: none; transform: translate(-50%, -112%); white-space: nowrap;
+  display: flex; flex-direction: column; gap: 1px; background: var(--color-tinta); color: var(--color-crema); border-radius: 10px; padding: 8px 11px; font-size: 12px; line-height: 1.5;
+}
+.cmp-tip-sube { color: color-mix(in srgb, var(--color-verde) 40%, var(--color-crema)); }
+.cmp-tip-baja { color: color-mix(in srgb, var(--color-metodo-efectivo) 55%, var(--color-crema)); }
+.cmp-leyenda { display: inline-block; width: 18px; border-top: 2.5px solid; margin-right: 6px; vertical-align: middle; }
+.cmp-leyenda-raya { border-top-style: dashed; }
+.cmp-cuadro { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+
+/* Cómo te pagaron */
+.cmp-metodo { display: grid; grid-template-columns: 96px minmax(0, 1fr) 82px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--color-sand); }
+.cmp-metodo:first-child { border-top: 0; }
+.cmp-pista { position: relative; height: 12px; background: var(--color-hueso); border-radius: 99px; }
+.cmp-pista-barra { position: absolute; left: 0; top: 0; height: 100%; border-radius: 99px; transition: width 0.9s var(--ease-cayla); }
+.cmp-pista-marca { position: absolute; top: -3px; width: 2px; height: 18px; background: var(--color-tinta); border-radius: 1px; transition: left 0.6s var(--ease-cayla); }
+
+/* Dónde ganas y dónde pierdes */
+.cmp-horas { position: relative; display: grid; gap: 6px; height: 150px; margin: 12px 0 34px; }
+.cmp-horas-eje { position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--color-taupe); opacity: 0.5; }
+.cmp-hora { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.cmp-hora-mitad { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.cmp-hora-baja { justify-content: flex-start; }
+.cmp-hora-val { font-size: 10px; font-weight: 700; margin: 0 0 2px; }
+.cmp-hora-baja .cmp-hora-val { margin: 2px 0 0; }
+.cmp-hora-rotulo { position: absolute; bottom: -32px; font-size: 10px; text-align: center; line-height: 1.2; white-space: nowrap; color: color-mix(in srgb, var(--color-tinta) 52%, transparent); }
+.cmp-barra { display: block; width: 64%; max-width: 30px; min-height: 2px; animation: cmp-crece 0.6s var(--ease-cayla) both; animation-delay: calc(var(--j, 0) * 45ms + 200ms); }
+.cmp-barra-sube { background: var(--color-verde); border-radius: 5px 5px 0 0; transform-origin: bottom; }
+.cmp-barra-baja { background: var(--color-grafico-baja); border-radius: 0 0 5px 5px; transform-origin: top; }
+.cmp-barra-parcial.cmp-barra-sube { background: repeating-linear-gradient(135deg, var(--color-verde) 0 5px, color-mix(in srgb, var(--color-verde) 45%, transparent) 5px 10px); }
+.cmp-barra-parcial.cmp-barra-baja { background: repeating-linear-gradient(135deg, var(--color-grafico-baja) 0 5px, color-mix(in srgb, var(--color-grafico-baja) 45%, transparent) 5px 10px); }
+@keyframes cmp-crece { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cmp-anillo-arco, .cmp-revelar, .cmp-pista-barra, .cmp-pista-marca { transition-duration: 1ms !important; }
+  .cmp-barra { animation: none; }
+}
