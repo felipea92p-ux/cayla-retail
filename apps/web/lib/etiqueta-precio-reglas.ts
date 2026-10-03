@@ -23,6 +23,9 @@ export type VarianteEtiqueta = {
   precio: number;
   colorCodigo: string | null;
   color: string | null;
+  /** Con qué se pinta el color en pantalla (`fondoDeMuestra`: el hex, con su brillo si es metálico o su jaspeado si es textura).
+   *  Opcional en el tipo, como `marca`: quien arma variantes sin él no lo dibuja. */
+  colorMuestra?: string | null;
   talla: string | null;
   /** De quién es la prenda (`productos.marca_id`, siempre tiene una). Opcional en el tipo: quien arma variantes sin ella
    *  (pruebas, datos viejos) simplemente no la imprime. */
@@ -58,6 +61,10 @@ export type EtiquetaPrecio = {
   codigo: string;
   prenda: string;
   color: string | null;
+  /** Solo para la pantalla (Felipe, 2026-10-03): la franja y la cápsula del color en la lista, para saber de un vistazo qué
+   *  etiqueta se imprime cuando todas las filas son el mismo modelo. El papel no lo usa: la Brother imprime en negro. `null` =
+   *  un color sin hex (Estampado, Multicolor), que se pinta de varios tonos (`CapsulaColor`). */
+  colorMuestra?: string | null;
   talla: string | null;
   /** La marca de la prenda (Felipe, 2026-09-29): va en el pie, a la izquierda del QR y sobre el código, que es el único
    *  hueco que la etiqueta tiene con y sin campaña; sobre el nombre no cabe (con campaña sobra 1,4 mm de alto). */
@@ -236,6 +243,7 @@ export function armarEtiquetas(
       codigo,
       prenda: v.prenda,
       color: v.color,
+      colorMuestra: v.colorMuestra ?? null,
       talla: v.talla?.trim() || null,
       marca: v.marca?.trim() || null,
       tallasDelModelo: tallasDelModelo(v, hermanas),

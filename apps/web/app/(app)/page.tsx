@@ -31,6 +31,8 @@ import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
 import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
 import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
+import { Observatorio } from "@/components/observatorio/Observatorio";
 import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
@@ -49,6 +51,11 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 // La cuenta de ALMACÉN (la que recibe y registra mercadería y no vende: `esPerfilAlmacen`) tiene su propio Inicio, con la
 // cabina «Nuevo producto» (Felipe, 2026-09-30, ADR-0292; maqueta docs/maquetas/inicio-almacen-2026-09/). Usa los mismos
 // avisos, el mismo filtro «Ajustar» y las mismas reglas de arriba: solo cambia cómo se dibuja y qué más lee.
+//
+// La cuenta ADMIN (no vende: mira cómo va el negocio) tiene el Observatorio (Felipe, 2026-10-03, ADR-0322; maqueta
+// docs/maquetas/inicio-admin-v3-2026-10/): el mapa de las tiendas, cuánto vendió cada una contra su meta y lo que hay por
+// revisar. Es el único Inicio que se abre en CAYLA Global (mira toda la empresa); con una tienda elegida arriba, abre
+// acercado a esa tienda. Si su lectura falla (la función no está en la base todavía), el Admin ve el Inicio de siempre.
 
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
@@ -58,6 +65,23 @@ export default async function InicioPage() {
   const modulos = persona.modulos.map((m) => m.clave);
   const destino = aterrizajeDe({ terminal: persona.terminal, modulos, pantallaPrincipal: persona.pantallaPrincipal });
   if (destino !== "/") redirect(destino);
+  if (persona.esAdmin) {
+    const datos = await getDatosObservatorio();
+    if (datos) {
+      const focoInicial =
+        persona.vista === "sede" && persona.ubicacionTipo === "tienda" && datos.tiendas.some((t) => t.id === persona.ubicacionId)
+          ? persona.ubicacionId
+          : "TODAS";
+      const [avisosObs, taller, tiendaInicial] = await Promise.all([
+        getAvisosObservatorio(datos.tiendas),
+        getTallerObservatorio(),
+        focoInicial === "TODAS" ? Promise.resolve(undefined) : getDatosTienda(focoInicial),
+      ]);
+      return <Observatorio datosIniciales={datos} avisos={avisosObs} taller={taller} focoInicial={focoInicial} tiendaInicial={tiendaInicial} />;
+    }
+  }
+  // En CAYLA Global el Inicio de una sede no tiene sentido (mostraría la sede donde trabaja bajo «CAYLA Global»): al tablero.
+  if (persona.vista === "global") redirect("/global");
   const esLider = persona.rol === "lider";
   const ve = (m: (typeof modulos)[number]) => modulos.includes(m);
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };

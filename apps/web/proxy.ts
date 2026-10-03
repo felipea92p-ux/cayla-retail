@@ -101,8 +101,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // ADR-0275: en CAYLA Global (la cookie de la sede dice «global») una pantalla que trabaja en UNA sede no se abre con
-  // los datos de la sede donde trabaja la persona bajo el título «CAYLA Global»: el inicio lleva al tablero y el resto, a
-  // elegir sede. Una sola barrera para todas las rutas, tengan o no `exigirModulo`. Solo navegaciones GET: una Server
+  // los datos de la sede donde trabaja la persona bajo el título «CAYLA Global»: lleva a elegir sede. El Inicio sí se abre
+  // (ADR-0322: para el Admin es el Observatorio, de toda CAYLA; a quien no es Admin la página lo manda al tablero). Una sola barrera para todas las rutas, tengan o no `exigirModulo`. Solo navegaciones GET: una Server
   // Action viaja como POST a la ruta donde se usa y se valida sola. No es un permiso —la cookie «global» solo la escribe
   // `cambiarUbicacionActiva` después de preguntarle a la base, y cada pantalla vuelve a preguntar—, es la perspectiva.
   const ruta = request.nextUrl.pathname;
@@ -116,12 +116,8 @@ export async function proxy(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.search = "";
-    if (ruta === "/") {
-      url.pathname = "/global";
-    } else {
-      url.pathname = RUTA_ELEGIR_SEDE;
-      url.searchParams.set("desde", ruta);
-    }
+    url.pathname = RUTA_ELEGIR_SEDE;
+    url.searchParams.set("desde", ruta);
     const redireccion = NextResponse.redirect(url);
     // Si getClaims() refrescó la sesión en esta misma petición, las cookies nuevas viajan con la redirección.
     response.cookies.getAll().forEach((c) => redireccion.cookies.set(c));
