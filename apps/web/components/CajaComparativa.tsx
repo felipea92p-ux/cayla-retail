@@ -309,7 +309,7 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
 }
 
 /** El tramo de comparativa de la pantalla de Caja: titular, referencia, clientes y ticket, gráfico, medios de pago y horas. */
-export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon }: Props & { cajon: React.ReactNode }) {
+export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon, movimientos }: Props & { cajon: React.ReactNode; movimientos: React.ReactNode }) {
   const vendidoAyer = vendidoHasta(ayer, null);
   return (
     <div className="space-y-3">
@@ -327,7 +327,10 @@ export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon }: P
         <GraficoAcumulado hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} horaCierreMin={horaCierreMin} />
         <ComoTePagaron hoy={hoy} ayer={ayer} />
       </div>
-      <DondeGanasYPierdes hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
+      <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <DondeGanasYPierdes hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
+        {movimientos}
+      </div>
     </div>
   );
 }

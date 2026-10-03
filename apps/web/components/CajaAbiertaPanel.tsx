@@ -251,6 +251,74 @@ export function CajaAbiertaPanel({
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
   const abrirGasto = gasto ? () => setModal("gasto") : null;
 
+  // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
+  const tarjetaMovimientos = (
+          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
+                <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
+              </div>
+              <div role="group" aria-label="Filtrar movimientos" className="inline-flex rounded-lg bg-hueso p-[3px]">
+                {(
+                  [
+                    ["todo", "Todo"],
+                    ["ventas", "Ventas"],
+                    ["cajon", "Mueve el cajón"],
+                  ] as const
+                ).map(([clave, texto]) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    aria-pressed={filtroMov.vista === clave}
+                    onClick={() => setFiltroMov(elegirVista(clave))}
+                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
+                  >
+                    {texto}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {metodosUsados.length > 0 && (
+              <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
+                {metodosUsados.map(({ clave, ventas }) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    aria-pressed={filtroMov.metodo === clave}
+                    onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
+                    className="pildora-cayla !px-3 !py-1 !text-[12px]"
+                  >
+                    <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
+                    {METODO_RITMO[clave].texto}
+                    <span className="font-normal tabular-nums opacity-70">{ventas}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
+            {eventos.length === 0 ? (
+              <p className="py-6 text-center text-xs text-tinta/50">{todosLosEventos.length === 0 ? "Todavía no hay movimientos." : "Nada con este filtro."}</p>
+            ) : (
+              <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
+                {eventos.map((e) => (
+                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
+                ))}
+              </div>
+            )}
+            {filtrados.length > LIMITE_TARJETA && (
+              <button
+                type="button"
+                onClick={() => setModal("todos")}
+                className="label-cayla mt-2 self-start rounded-md px-2 py-1 text-[11px] text-taupe-profundo transition-colors hover:bg-sand/40 hover:text-tinta"
+              >
+                Ver los {filtrados.length} →
+              </button>
+            )}
+          </div>
+  );
+
   return (
     // En celular la barra fija de abajo tapa el final: se reserva su alto (como el Inicio).
     <div className="pb-28 sm:pb-8">
@@ -271,6 +339,17 @@ export function CajaAbiertaPanel({
               // En celular estas acciones viven en la barra fija de abajo. En escritorio bajan solas bajo la frase: la
               // derecha es del turno y de la cola sin conexión (`EncabezadoPagina`, ADR-0220).
               <div className="hidden items-center gap-3 sm:flex">
+                {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
+                {comparativa && abrirGasto && (
+                  <button type="button" onClick={abrirGasto} className="btn-cayla btn-secundario">
+                    Registrar gasto
+                  </button>
+                )}
+                {comparativa && (
+                  <button type="button" onClick={() => setModal("movimiento")} className="btn-cayla btn-secundario">
+                    Depósito o retiro
+                  </button>
+                )}
                 {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
                 {puedeCerrar ? (
                   <BotonCerrarCaja estado={estadoCierre} onCerrar={() => setModal("cerrar")} />
@@ -299,30 +378,8 @@ export function CajaAbiertaPanel({
               ahoraMin={ahoraMin}
               horaCierreMin={minutosLima(horaCierre)}
               cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
+              movimientos={tarjetaMovimientos}
             />
-            {puedeCerrar && fondoCierre && (
-              <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
-                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
-                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
-                <dl className="mt-3 text-[13px] text-tinta">
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Debería haber en el cajón</dt>
-                    <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Deja para el próximo turno</dt>
-                    <dd className="whitespace-nowrap font-semibold tabular-nums">{soles0(fondoCierre.monto)}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Lo demás se traslada</dt>
-                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
-                  </div>
-                </dl>
-                <p className="mt-1 text-[12.5px] text-taupe">
-                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
-                </p>
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -390,8 +447,6 @@ export function CajaAbiertaPanel({
           </div>
         )}
 
-          </>
-        )}
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
         <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
@@ -402,72 +457,11 @@ export function CajaAbiertaPanel({
 
         {/* ---------- El turno y los cierres ---------- */}
         <div className={`grid gap-3 ${cierresAncho ? "" : "@[1100px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"}`}>
-          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
-              </div>
-              <div role="group" aria-label="Filtrar movimientos" className="inline-flex rounded-lg bg-hueso p-[3px]">
-                {(
-                  [
-                    ["todo", "Todo"],
-                    ["ventas", "Ventas"],
-                    ["cajon", "Mueve el cajón"],
-                  ] as const
-                ).map(([clave, texto]) => (
-                  <button
-                    key={clave}
-                    type="button"
-                    aria-pressed={filtroMov.vista === clave}
-                    onClick={() => setFiltroMov(elegirVista(clave))}
-                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
-                  >
-                    {texto}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {metodosUsados.length > 0 && (
-              <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
-                {metodosUsados.map(({ clave, ventas }) => (
-                  <button
-                    key={clave}
-                    type="button"
-                    aria-pressed={filtroMov.metodo === clave}
-                    onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
-                    className="pildora-cayla !px-3 !py-1 !text-[12px]"
-                  >
-                    <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
-                    {METODO_RITMO[clave].texto}
-                    <span className="font-normal tabular-nums opacity-70">{ventas}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
-            {eventos.length === 0 ? (
-              <p className="py-6 text-center text-xs text-tinta/50">{todosLosEventos.length === 0 ? "Todavía no hay movimientos." : "Nada con este filtro."}</p>
-            ) : (
-              <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
-                {eventos.map((e) => (
-                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
-                ))}
-              </div>
-            )}
-            {filtrados.length > LIMITE_TARJETA && (
-              <button
-                type="button"
-                onClick={() => setModal("todos")}
-                className="label-cayla mt-2 self-start rounded-md px-2 py-1 text-[11px] text-taupe-profundo transition-colors hover:bg-sand/40 hover:text-tinta"
-              >
-                Ver los {filtrados.length} →
-              </button>
-            )}
-          </div>
+          {tarjetaMovimientos}
           <CierresAnteriores cierres={cierresUbicacion} esLider={personaRol === "lider"} indice={8} onModo={alCambiarModo} />
         </div>
+          </>
+        )}
       </div>
 
       {/* Escritorio: la barra de cierre se queda a la vista (en el celular, el «Cerrar» de la barra de abajo). */}
