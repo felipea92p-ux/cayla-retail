@@ -171,8 +171,10 @@ describe("ordenarColores", () => {
 
 describe("ordenarColores · cada familia va del más claro al más oscuro", () => {
   const azul = (codigo: string, nombre: string, hex: string | null) => ({ codigo, nombre, hex, familiaColor: "azul" });
+  // Todos de la MISMA gama azul (matiz 259–265°, lejos del corte de 236°): el orden que se prueba es solo el de claridad. Con azules de 236°
+  // —justo en el corte— el resultado dependía del corte y no de la claridad.
   it("ordena por claridad sin importar cómo llegaron, y los sin tono van al final", () => {
-    const llegada = [azul("MAR", "Marino", "#0b1d3a"), azul("SIN", "Sin tono", null), azul("CEL", "Celeste", "#bfe0f5"), azul("ELE", "Eléctrico", "#1e5fd8"), azul("HIE", "Hielo", "#f2f8fc")];
+    const llegada = [azul("MAR", "Marino", "#0b1d3a"), azul("SIN", "Sin tono", null), azul("CEL", "Celeste", "#b9cdf3"), azul("ELE", "Eléctrico", "#1e5fd8"), azul("HIE", "Hielo", "#f0f4fc")];
     const g = ordenarColores(llegada, {}, FAMILIAS_COLOR).grupos.find((x) => x.familia === "azul")!;
     expect(g.colores.map((c) => c.codigo)).toEqual(["HIE", "CEL", "ELE", "MAR", "SIN"]);
   });

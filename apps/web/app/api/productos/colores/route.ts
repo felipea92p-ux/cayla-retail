@@ -4,16 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
-import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { normalizarCombinaCon, normalizarDescripcion, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { esFamiliaDeColor } from "@/lib/colores-familias";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
 function mensajeDeError(error: ErrorEscritura, accion: string) {
   if (error?.code === "23505" && (error.message ?? "").includes("pantone")) return "Ese código Pantone ya lo tiene otro color.";
+  // El disparador `colores_valida_combina_con` (20261003190000) ya habla en español y nombra el código: «El color ZZZ no existe…».
+  if ((error?.code === "23503" || error?.code === "23514") && /combina/i.test(error.message ?? "")) return error.message ?? "Revisa los colores con que combina.";
   return traducirError(error, accion);
 }
 
 const ERROR_PANTONE = "El código Pantone tiene la forma 19-1557 TCX (o solo 19-1557).";
+const ERROR_DESCRIPCION = "La descripción tiene como máximo 300 caracteres.";
+const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su código de 3 letras.";
 
 // POST /api/productos/colores → agrega un color al vocabulario cerrado.
 //
@@ -49,6 +53,8 @@ export async function POST(request: Request) {
   const notas = typeof cuerpo?.notas === "string" && cuerpo.notas.trim() ? cuerpo.notas.trim() : null;
   const pantoneTcx = normalizarPantone(typeof cuerpo?.pantoneTcx === "string" ? cuerpo.pantoneTcx : null);
   const sinonimos = normalizarSinonimos(Array.isArray(cuerpo?.sinonimos) || typeof cuerpo?.sinonimos === "string" ? cuerpo.sinonimos : null, nombre);
+  const descripcion = normalizarDescripcion(typeof cuerpo?.descripcion === "string" ? cuerpo.descripcion : null);
+  const combinaCon = normalizarCombinaCon(cuerpo?.combinaCon, codigo);
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
@@ -67,6 +73,12 @@ export async function POST(request: Request) {
   if (pantoneTcx === "invalido") {
     return Response.json({ error: ERROR_PANTONE }, { status: 400 });
   }
+  if (descripcion === "invalido") {
+    return Response.json({ error: ERROR_DESCRIPCION }, { status: 400 });
+  }
+  if (combinaCon === "invalido") {
+    return Response.json({ error: ERROR_COMBINA_CON }, { status: 400 });
+  }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   // orden=2000: un color agregado desde esta pantalla entra al final de cualquier lista que todavía ordene por
@@ -74,8 +86,8 @@ export async function POST(request: Request) {
   // (`lib/color-escala.ts`, ADR-0312), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })
-    .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos")
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
+    .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 
   if (error) {
@@ -116,6 +128,8 @@ export async function PATCH(request: Request) {
     estado?: string;
     pantone_tcx?: string | null;
     sinonimos?: string[];
+    descripcion?: string | null;
+    combina_con?: string[];
   } = {};
 
   // Aprobar (pendiente→aprobado, o rechazado→aprobado = "reactivar retira
@@ -181,6 +195,22 @@ export async function PATCH(request: Request) {
     );
   }
 
+  if ("descripcion" in cuerpoObj) {
+    const descripcion = normalizarDescripcion(typeof cuerpoObj.descripcion === "string" ? cuerpoObj.descripcion : null);
+    if (descripcion === "invalido") {
+      return Response.json({ error: ERROR_DESCRIPCION }, { status: 400 });
+    }
+    patch.descripcion = descripcion;
+  }
+
+  if ("combinaCon" in cuerpoObj) {
+    const combinaCon = normalizarCombinaCon(cuerpoObj.combinaCon, codigo);
+    if (combinaCon === "invalido") {
+      return Response.json({ error: ERROR_COMBINA_CON }, { status: 400 });
+    }
+    patch.combina_con = combinaCon;
+  }
+
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
@@ -215,7 +245,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
+    .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 
   if (error) {

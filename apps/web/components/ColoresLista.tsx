@@ -2,8 +2,9 @@
 
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
-import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
-import { useEffect, useState } from "react";
+import { MAX_DESCRIPCION, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { CombinaConCampo, DescripcionColorCampo } from "@/components/CombinaConCampo";
+import { useEffect, useMemo, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -64,6 +65,10 @@ type Color = {
   pantoneTcx: string | null;
   /** Cómo le dicen en tienda («plomo» → Gris): el buscador los entiende. */
   sinonimos: string[];
+  /** Qué transmite y dónde funciona (hasta 300 caracteres): lo que la asesora le dice a la cliente. Null = sin escribir. */
+  descripcion: string | null;
+  /** Códigos de los colores con los que se lleva bien (hasta 8). La base rechaza uno que no exista. */
+  combinaCon: string[];
 };
 
 // El código Pantone se escribe como sea («19-1557», «19 1557 tcx») y se guarda como «19-1557 TCX». Dos colores no
@@ -110,16 +115,40 @@ function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { he
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
-function DetalleColor({ c }: { c: Color }) {
+function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<string, Color> }) {
+  // Solo se ofrecen como compañeros colores que siguen activos: uno desactivado no se recomienda.
+  const companeros = c.combinaCon.map((cod) => porCodigo.get(cod)).filter((x): x is Color => !!x && x.activo);
   return (
-    <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
-      <span className="font-mono">{c.codigo}</span>
-      {c.pantoneTcx && (
-        <span className="font-mono" title="Código Pantone para pedir la tela">
-          {c.pantoneTcx}
-        </span>
+    <div className="space-y-1.5">
+      <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+        <span className="font-mono">{c.codigo}</span>
+        {c.pantoneTcx && (
+          <span className="font-mono" title="Código Pantone para pedir la tela">
+            {c.pantoneTcx}
+          </span>
+        )}
+      </p>
+      {c.descripcion && (
+        <p className="line-clamp-4 text-[12px] leading-snug text-tinta/75" title={c.descripcion}>
+          {c.descripcion}
+        </p>
       )}
-    </p>
+      {companeros.length > 0 && (
+        <p className="flex items-center gap-1.5 text-[11px] text-tinta/60">
+          <span>Combina con</span>
+          <span className="flex items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
+            {companeros.map((x) => (
+              <span
+                key={x.codigo}
+                title={x.nombre}
+                className="inline-block h-3 w-3 rounded-full border border-tinta/15"
+                style={{ background: fondoDeMuestra(x.hex, x.familiaColor, x.tipo) ?? "transparent", borderColor: bordeDeMuestra(x.hex) }}
+              />
+            ))}
+          </span>
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -188,8 +217,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [notas, setNotas] = useState("");
   const [pantone, setPantone] = useState("");
   const [sinonimos, setSinonimos] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [combinaCon, setCombinaCon] = useState<string[]>([]);
 
   const activos = colores.filter((c) => c.activo);
+  const porCodigo = useMemo(() => new Map(colores.map((c) => [c.codigo, c])), [colores]);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
   const familiaDe = (c: Color) => c.familiaColor || "sin-familia";
@@ -247,6 +279,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setNotas("");
     setPantone("");
     setSinonimos("");
+    setDescripcion("");
+    setCombinaCon([]);
   }
 
   async function guardar() {
@@ -255,7 +289,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -277,6 +311,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             estado: datos.color.estado,
             pantoneTcx: datos.color.pantone_tcx ?? null,
             sinonimos: datos.color.sinonimos ?? [],
+            descripcion: datos.color.descripcion ?? null,
+            combinaCon: datos.color.combina_con ?? [],
           },
         ])
       );
@@ -420,7 +456,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   nombre={c.nombre}
                   notas={c.notas}
                   insignia={c.estado === "pendiente" ? "Pendiente" : null}
-                  detalle={<DetalleColor c={c} />}
+                  detalle={<DetalleColor c={c} porCodigo={porCodigo} />}
                 >
                   {puedeEditar && (
                     <>
@@ -519,6 +555,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   onChange={(e) => setSinonimos(e.target.value)}
                   placeholder="plomo, gris medio"
                 />
+                <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
+                <CombinaConCampo colores={activos} valor={combinaCon} onValor={setCombinaCon} propio={codigo} />
               </div>
               <CampoGuiado id="color" guia={guia}>
                 <SelectorColor hex={hex} onHex={setHex} etiqueta={guia.etiqueta("color", "Color")} />
@@ -538,7 +576,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || !responsable.listo}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || !responsable.listo}
                   title={responsable.motivo ?? guia.frase ?? undefined}
                   className={`flex-1 ${guia.claseConfirmar}`}
                 >
@@ -657,6 +695,8 @@ function ColorEditarModal({
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
   const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
+  const [descripcion, setDescripcion] = useState(color.descripcion ?? "");
+  const [combinaCon, setCombinaCon] = useState<string[]>(color.combinaCon);
   // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
   const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
@@ -691,7 +731,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -712,6 +752,8 @@ function ColorEditarModal({
         estado: datos.color.estado,
         pantoneTcx: datos.color.pantone_tcx ?? null,
         sinonimos: datos.color.sinonimos ?? [],
+        descripcion: datos.color.descripcion ?? null,
+        combinaCon: datos.color.combina_con ?? [],
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -781,6 +823,9 @@ function ColorEditarModal({
             />
           </div>
 
+          <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
+          <CombinaConCampo colores={vocabulario} valor={combinaCon} onValor={setCombinaCon} propio={color.codigo} />
+
           <div>
             {hexAbierto ? (
               <SelectorColor hex={hex} onHex={setHex} />
@@ -813,7 +858,7 @@ function ColorEditarModal({
               peso="primario"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
+              disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >

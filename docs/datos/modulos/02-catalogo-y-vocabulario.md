@@ -220,6 +220,8 @@ cliente. Y **directo, sin RPC**: `app/api/taxonomia/anclar/route.ts:130` escribe
 | `hex` | text | sí | — | El chip de color de la pantalla. Para Estampado, Multicolor y Animal print no significa nada y queda null. |
 | `activo` | boolean | no | `true` | Si aparece o no en el selector (`lib/conteo.ts:253-257`). |
 | `orden` | integer | no | `100` | Orden del selector. **La web ya no lo usa para ordenar** (ADR-0312): la carta y Atributos ordenan por la escala del color (`apps/web/lib/color-escala.ts`: gama y claridad OKLab, calculadas del hex). Antes de `20261002180000` era una centena por familia en otro orden (neutro 100-190, azul 200-290, rojo 300-390…, de 10 en 10: `20260926210000`). Esa migración (en producción desde el 2026-10-02) lo renumeró con el orden de la carta —neutro 100, tierra 200, rosado 300, rojo 400, naranja 500, amarillo 600, verde 700, azul 800, morado 900, metálico 1000, estampado 1100— de 5 en 5, solo para que las listas planas que aún lo leen (Vender, Conteo) no contradigan a la carta. Los creados desde Atributos entran en 2000. |
+| `descripcion` | text | sí | — | Qué transmite el color y dónde funciona (1-2 frases, hasta 300 caracteres): lo que la asesora le dice a una cliente. Null = sin escribir. **En producción desde el 2026-10-02** (`20261003190000`, ADR-0316). |
+| `combina_con` | text[] | no | `'{}'` | Códigos de OTROS colores con los que se lleva bien (hasta 8). El disparador `colores_valida_combina_con` rechaza un código inexistente, repetido o el propio. **En producción desde el 2026-10-02** (`20261003190000`). |
 | `taxonomia_valor_id` | text | sí | — | De qué color del estándar universal cuelga: Arena → Beige. Null = sin anclar. |
 | `created_at` | timestamptz | no | `now()` | Cuándo entró al vocabulario. |
 

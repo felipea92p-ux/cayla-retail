@@ -175,3 +175,8 @@ Suite completa de la web: 312 archivos, 154.946 pruebas.
 
 **Cómo deshacerlo.** `git revert` del commit; no toca datos ni migraciones.
 
+## Actualización 2026-10-02 (d): los cortes de gama cambian
+
+Los cortes de gama del punto 3 (135°, 240° y 325°) pasaron a **138°, 236° y 327°** al sumar 16 colores (ADR-0316): quedaban colores a
+menos de 5° del corte. No reasigna a ningún color existente.
+
