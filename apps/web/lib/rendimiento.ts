@@ -8,7 +8,7 @@ import {
   type FilaRankingSolesPorHora,
   type FilaRendimientoCruda,
 } from "@/lib/rendimiento-reglas";
-import { rangoDeLectura, type CambioMeta, type DiaSerie, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
+import { rangoDeLectura, type CambioMeta, type DiaSerie, type FilaDetalle, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
 
 // La parte que LEE de Postgres para Rendimiento (ADR-0219, ADR-0318). Dos cosas distintas:
 //   · los RANKINGS del mes (`fn_rendimiento_equipo`, 20260929160000): solo quien vendió, con las reglas
@@ -152,6 +152,9 @@ export type SedeDeRendimiento = {
   personas: PersonaMeta[];
   serie: DiaSerie[];
   historial: CambioMeta[];
+  /** Ventas por día y hora de la tienda (`fn_rendimiento_detalle`); `null` si la base todavía no la tiene o falló: el panel no dibuja
+   *  «ventas por hora» ni «prendas por venta» (nunca como 0) y sigue con lo demás. */
+  detalle: FilaDetalle[] | null;
   /** `false`: la base no entregó el panel de metas (todavía no existe o falló); la pantalla muestra solo los rankings. */
   panelDisponible: boolean;
 };
@@ -199,15 +202,17 @@ export async function leerPantallaRendimiento(sedeElegida: string | null): Promi
         nombre: nombres.get(ubicacionId) ?? "Tienda",
         ranking: rankings.find((r) => r.ubicacionId === ubicacionId) ?? null,
       };
-      if (metas.fallo !== null) return { ...base, personas: [], serie: [], historial: [], panelDisponible: false };
+      if (metas.fallo !== null) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
 
       const quiereHistorial = ids.length === 1 || ubicacionId === sedeElegida;
-      const [serie, historial] = await Promise.all([
+      const [serie, historial, detalle] = await Promise.all([
         supabase.rpc("fn_rendimiento_serie", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
         quiereHistorial ? supabase.rpc("fn_metas_historial", { p_ubicacion_id: ubicacionId }) : Promise.resolve(null),
+        // Un extra (etapa 2): si la función no existe todavía en la base, o falla, queda en `null` y el panel sigue sin esas dos medidas.
+        supabase.rpc("fn_rendimiento_detalle", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
       ]);
       // La serie es la base del gráfico y de las cifras: sin ella el panel no se dibuja a medias, se deja para otro día.
-      if (serie.error) return { ...base, personas: [], serie: [], historial: [], panelDisponible: false };
+      if (serie.error) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
 
       return {
         ...base,
@@ -232,6 +237,15 @@ export async function leerPantallaRendimiento(sedeElegida: string | null): Promi
           cambiadoPor: h.cambiado_por,
           creadoEn: h.creado_en,
         })),
+        detalle: detalle.error
+          ? null
+          : (detalle.data ?? []).map((d) => ({
+              fecha: String(d.fecha).slice(0, 10),
+              hora: Number(d.hora),
+              ventas: Number(d.ventas),
+              total: Number(d.total),
+              prendas: Number(d.prendas),
+            })),
         panelDisponible: true,
       };
     }),

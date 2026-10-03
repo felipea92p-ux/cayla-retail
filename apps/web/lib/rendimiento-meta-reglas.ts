@@ -182,6 +182,59 @@ export function proyectarMes(serie: DiaSerie[], hoy: string): ProyeccionMes | nu
   return { vendido, proyeccion, metaMes, pctDeMeta: avance(proyeccion, metaMes), diasQueQuedan, ritmoPorDia };
 }
 
+// ───────────────────────── ventas por hora y prendas por venta (Felipe, 2026-10-03) ─────────────────────────
+
+/** Una fila de `fn_rendimiento_detalle`: lo que vendió la TIENDA en una hora de Lima de un día (solo horas con ventas). */
+export type FilaDetalle = { fecha: string; hora: number; ventas: number; total: number; prendas: number };
+
+/** El tramo de horas que se dibuja siempre (la tienda abre de día); si hubo ventas fuera de él, el tramo se estira. */
+export const HORAS_DE_TIENDA = { desde: 9, hasta: 20 } as const;
+
+export type VentasPorHora = {
+  /** Una barra por hora, con 0 en las que no vendieron; de `desde` a `hasta` sin huecos. */
+  horas: { hora: number; ventas: number; total: number }[];
+  /** La hora con más soles (solo si vendió algo); empate: la más temprana. */
+  mejor: { hora: number; total: number; ventas: number } | null;
+  ventas: number;
+};
+
+/** Cuántas ventas y soles hizo la tienda en cada hora de la ventana de la vista. Sin ventas en la ventana: `mejor` es `null`. */
+export function ventasDeLaTiendaPorHora(detalle: FilaDetalle[], vista: Vista, hoy: string): VentasPorHora {
+  const { desde, hasta } = ventanaDeVista(vista, hoy);
+  const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
+  const porHora = new Map<number, { ventas: number; total: number }>();
+  for (const f of filas) {
+    const a = porHora.get(f.hora) ?? { ventas: 0, total: 0 };
+    porHora.set(f.hora, { ventas: a.ventas + f.ventas, total: a.total + f.total });
+  }
+  const vistas = [...porHora.keys()];
+  const h0 = Math.min(HORAS_DE_TIENDA.desde, ...vistas);
+  const h1 = Math.max(HORAS_DE_TIENDA.hasta, ...vistas);
+  const horas = Array.from({ length: h1 - h0 + 1 }, (_, i) => ({ hora: h0 + i, ventas: porHora.get(h0 + i)?.ventas ?? 0, total: porHora.get(h0 + i)?.total ?? 0 }));
+  const mejorFila = horas.reduce<(typeof horas)[number] | null>((m, h) => (h.total > 0 && (m === null || h.total > m.total) ? h : m), null);
+  return {
+    horas,
+    mejor: mejorFila ? { hora: mejorFila.hora, total: mejorFila.total, ventas: mejorFila.ventas } : null,
+    ventas: horas.reduce((s, h) => s + h.ventas, 0),
+  };
+}
+
+/** «5 p. m.», «12 m.» no: se dice «12 p. m.»; la medianoche no se usa (la tienda no abre). */
+export function etiquetaDeHora(hora: number): string {
+  return `${hora % 12 === 0 ? 12 : hora % 12} ${hora < 12 ? "a. m." : "p. m."}`;
+}
+
+export type PrendasPorVenta = { prendas: number; ventas: number; porVenta: number | null };
+
+/** Cuántas prendas se lleva cada compra en la ventana: `null` sin ventas (no se divide por cero). */
+export function prendasPorVenta(detalle: FilaDetalle[], vista: Vista, hoy: string): PrendasPorVenta {
+  const { desde, hasta } = ventanaDeVista(vista, hoy);
+  const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
+  const prendas = filas.reduce((s, f) => s + f.prendas, 0);
+  const ventas = filas.reduce((s, f) => s + f.ventas, 0);
+  return { prendas, ventas, porVenta: ventas > 0 ? prendas / ventas : null };
+}
+
 // ───────────────────────── tabla «Cómo va» ─────────────────────────
 
 export type Orden = "nombre" | "ventas" | "avance";

@@ -115,5 +115,6 @@
 - [x] Rendimiento abre en la tienda de la sesión; tarjetas comparativas del mes que son pestañas; proyección del mes. Pruebas: `proyectarMes` (6 casos).
 - [x] Inicio de la integrante: anillo del día, «Lo que va bien», «Tu mes»; accesos con «Nuevo producto» en lugar de «Apartados». Pruebas: `reconocer` y `rangoDeMiLectura`; accesos.
 - [ ] **Falta verlo en el navegador local con sesión** (el login lo inicia Felipe) y a 375 px el Inicio.
-- [ ] **Etapa 2:** «ventas por hora» y «prendas por venta» en Rendimiento (lectura nueva, SQL) y la marca de ritmo del anillo (necesita ventas por hora).
+- [x] **Etapa 2 (código):** «ventas por hora» y «prendas por venta» en Rendimiento con `fn_rendimiento_detalle` (`20261003180000`, **sin pegar en producción: Felipe**). Prueba `pnpm pruebas:rendimiento-detalle`.
+- [ ] La marca de ritmo del anillo del Inicio: pendiente de decidir de dónde sale la curva típica del día.
 - [ ] Probar las dos pantallas con 2 o 3 integrantes de TRU, sin explicarles nada.

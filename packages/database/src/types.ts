@@ -7383,6 +7383,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_rendimiento_detalle: {
+        Args: { p_desde: string; p_hasta: string; p_ubicacion_id: string }
+        Returns: {
+          fecha: string
+          hora: number
+          prendas: number
+          total: number
+          ventas: number
+        }[]
+      }
       fn_rendimiento_serie: {
         Args: { p_desde: string; p_hasta: string; p_ubicacion_id: string }
         Returns: {

@@ -71,6 +71,7 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
               nombre={elegida.nombre}
               hoy={hoy}
               serie={elegida.serie}
+              detalle={elegida.detalle}
               personas={elegida.personas}
               historial={elegida.historial}
               vistaInicial={vistaDeUrl(vista)}

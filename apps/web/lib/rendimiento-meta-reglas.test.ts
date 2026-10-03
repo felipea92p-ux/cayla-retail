@@ -11,7 +11,10 @@ import {
   ordenarPersonas,
   primerDiaDelMes,
   puedeEditarMeta,
+  etiquetaDeHora,
+  prendasPorVenta,
   proyectarMes,
+  ventasDeLaTiendaPorHora,
   rangoDeLectura,
   repartePorHoras,
   resumenDeSede,
@@ -396,5 +399,68 @@ describe("proyectarMes", () => {
     const p = proyectarMes(MES({ 1: 400, 2: 400, 3: 400, 30: 100 }), "2026-09-30")!;
     expect(p.diasQueQuedan).toBe(0);
     expect(p.proyeccion).toBe(p.vendido);
+  });
+});
+
+// ── Ventas por hora y prendas por venta ──────────────────────────────────────────────────────────
+
+describe("ventasDeLaTiendaPorHora / prendasPorVenta", () => {
+  const f = (fecha: string, hora: number, ventas: number, total: number, prendas: number) => ({ fecha, hora, ventas, total, prendas });
+  const DETALLE = [
+    f("2026-09-29", 10, 2, 180, 3),
+    f("2026-09-29", 17, 3, 420, 5),
+    f("2026-09-28", 17, 1, 100, 1),
+    f("2026-09-10", 12, 4, 300, 6),
+  ];
+  const HOY = "2026-09-29";
+
+  it("en «hoy» suma solo las horas de hoy y rellena con 0 las que no vendieron", () => {
+    const r = ventasDeLaTiendaPorHora(DETALLE, "hoy", HOY);
+    expect(r.ventas).toBe(5);
+    expect(r.horas[0].hora).toBe(9);
+    expect(r.horas.at(-1)!.hora).toBe(20);
+    expect(r.horas.find((h) => h.hora === 17)).toEqual({ hora: 17, ventas: 3, total: 420 });
+    expect(r.horas.find((h) => h.hora === 11)).toEqual({ hora: 11, ventas: 0, total: 0 });
+  });
+
+  it("la mejor franja es la hora con más soles", () => {
+    expect(ventasDeLaTiendaPorHora(DETALLE, "hoy", HOY).mejor).toEqual({ hora: 17, total: 420, ventas: 3 });
+  });
+
+  it("en «mes» junta todos los días del mes, hora por hora", () => {
+    const r = ventasDeLaTiendaPorHora(DETALLE, "mes", HOY);
+    expect(r.horas.find((h) => h.hora === 17)).toEqual({ hora: 17, ventas: 4, total: 520 });
+    expect(r.ventas).toBe(10);
+  });
+
+  it("sin ventas en la ventana no hay mejor franja y las barras van en 0", () => {
+    const r = ventasDeLaTiendaPorHora([], "hoy", HOY);
+    expect(r.mejor).toBeNull();
+    expect(r.ventas).toBe(0);
+    expect(r.horas.every((h) => h.total === 0)).toBe(true);
+  });
+
+  it("una venta fuera del horario de siempre estira el tramo en vez de perderse", () => {
+    const r = ventasDeLaTiendaPorHora([f(HOY, 22, 1, 50, 1), f(HOY, 7, 1, 30, 1)], "hoy", HOY);
+    expect(r.horas[0].hora).toBe(7);
+    expect(r.horas.at(-1)!.hora).toBe(22);
+    expect(r.horas.map((h) => h.hora)).toEqual(Array.from({ length: 16 }, (_, i) => 7 + i)); // sin huecos
+  });
+
+  it("en un empate gana la hora más temprana", () => {
+    expect(ventasDeLaTiendaPorHora([f(HOY, 15, 1, 100, 1), f(HOY, 11, 1, 100, 1)], "hoy", HOY).mejor?.hora).toBe(11);
+  });
+
+  it("prendas por venta: prendas ÷ ventas de la ventana", () => {
+    expect(prendasPorVenta(DETALLE, "hoy", HOY)).toEqual({ prendas: 8, ventas: 5, porVenta: 1.6 });
+    expect(prendasPorVenta(DETALLE, "mes", HOY).porVenta).toBeCloseTo(15 / 10, 5);
+  });
+
+  it("sin ventas no divide por cero", () => {
+    expect(prendasPorVenta([], "hoy", HOY)).toEqual({ prendas: 0, ventas: 0, porVenta: null });
+  });
+
+  it("etiquetaDeHora: «9 a. m.», «12 p. m.», «5 p. m.»", () => {
+    expect([9, 12, 17, 20].map(etiquetaDeHora)).toEqual(["9 a. m.", "12 p. m.", "5 p. m.", "8 p. m."]);
   });
 });

@@ -19,6 +19,7 @@
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:mis-ventas": "node scripts/pruebas/mis_ventas_del_dia.mjs",
     "pruebas:metas-persona": "node scripts/pruebas/metas_persona.mjs",
+    "pruebas:rendimiento-detalle": "node scripts/pruebas/rendimiento_detalle.mjs",
     "pruebas:actividad-inventario": "node scripts/pruebas/actividad_inventario.mjs",
     "pruebas:actividad-productos": "node scripts/pruebas/actividad_productos.mjs",
     "pruebas:concurrencia-linea-venta": "node scripts/pruebas/concurrencia_linea_de_venta.mjs",

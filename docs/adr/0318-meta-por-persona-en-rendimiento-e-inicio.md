@@ -262,5 +262,10 @@ SE ROMPE SI: la proyección del mes se lee como una promesa. Por eso dice «cerc
 - Accesos: en la lista del mostrador, «Nuevo producto» (quien puede dar de alta productos) retira a «Apartados»; sin ese permiso queda «Apartados». «Apartados» sigue en el menú de
   Ventas y en el aviso «Apartados que vencen» de «Te toca».
 
-**Etapa 2 (pendiente):** «ventas por hora» y «prendas por venta» en Rendimiento, con una lectura nueva de solo lectura que se pega junto al SQL pendiente. Y la **marca de ritmo** del anillo
-(«dónde solías ir a esta hora»): el spike la dibujaba con una curva típica del día que sale de las ventas por hora; sin esa lectura el anillo no la muestra y no inventa una.
+**Etapa 2 (hecha en código el mismo día, a pedido de Felipe: las tres medidas van en la interfaz):** «ventas por hora» y «prendas por venta» en el panel de Rendimiento, con **una lectura nueva
+de solo lectura**, `retail.fn_rendimiento_detalle(p_ubicacion_id, p_desde, p_hasta)` (`20261003180000`): por día y hora de LIMA, lo que vendió la TIENDA —ventas, soles con IGV y prendas—, con la misma
+definición de «venta que cuenta» que `fn_rendimiento_serie` (completada y no de prueba) y el mismo alcance (`fn_rendimiento_ubicaciones()`; otra tienda, 42501). Es de la tienda y no de una persona: sirve para
+repartir turnos, no para juzgar. Prueba: `pnpm pruebas:rendimiento-detalle` (6 casos, en el CI). Las reglas de la web (`ventasDeLaTiendaPorHora`, `prendasPorVenta`) son puras y probadas.
+**La función NO está en producción: la pega Felipe** (un solo `create or replace function`, sin partes ni candados). Si la web sale antes, el panel sigue y dice «No se pudieron leer las ventas por hora ahora»;
+nunca dibuja 0. **Sigue abierta** la marca de ritmo del anillo del Inicio («dónde solías ir a esta hora»): ahora que hay ventas por hora de la TIENDA, se podría sacar la curva típica del día, pero es otra decisión
+(cuántos días de historia, qué hacer con una tienda nueva) y no se inventó.

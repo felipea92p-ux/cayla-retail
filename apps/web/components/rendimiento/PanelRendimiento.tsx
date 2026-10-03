@@ -16,7 +16,9 @@ import {
   ETIQUETA_MOTIVO,
   lecturaDeRitmo,
   minutosEnLima,
+  etiquetaDeHora,
   ordenarPersonas,
+  prendasPorVenta,
   primerDiaDelMes,
   proyectarMes,
   puedeEditarMeta,
@@ -25,9 +27,11 @@ import {
   ritmoDelTurno,
   serieParaGrafico,
   turnoDeHoy,
+  ventasDeLaTiendaPorHora,
   VISTAS,
   type CambioMeta,
   type DiaSerie,
+  type FilaDetalle,
   type Orden,
   type PersonaMeta,
   type Vista,
@@ -64,6 +68,7 @@ export function PanelRendimiento({
   nombre,
   hoy,
   serie,
+  detalle,
   personas,
   historial,
   vistaInicial,
@@ -74,6 +79,8 @@ export function PanelRendimiento({
   nombre: string;
   hoy: string;
   serie: DiaSerie[];
+  /** Ventas por día y hora de la tienda; `null` si la base no lo entregó (no se dibujan esas dos medidas). */
+  detalle: FilaDetalle[] | null;
   personas: PersonaMeta[];
   historial: CambioMeta[];
   vistaInicial: Vista;
@@ -95,6 +102,8 @@ export function PanelRendimiento({
 
   const res = useMemo(() => resumenDeSede(serie, vista, hoy), [serie, vista, hoy]);
   const proyeccion = useMemo(() => proyectarMes(serie, hoy), [serie, hoy]);
+  const porHora = useMemo(() => (detalle ? ventasDeLaTiendaPorHora(detalle, vista, hoy) : null), [detalle, vista, hoy]);
+  const prendas = useMemo(() => (detalle ? prendasPorVenta(detalle, vista, hoy) : null), [detalle, vista, hoy]);
   const resMes = useMemo(() => resumenDeSede(serie, "mes", hoy), [serie, hoy]);
   const grafico = useMemo(() => serieParaGrafico(serie, hoy), [serie, hoy]);
   const filas = useMemo(() => ordenarPersonas(personas, vista, orden), [personas, vista, orden]);
@@ -193,21 +202,65 @@ export function PanelRendimiento({
         </TarjetaCifra>
       </div>
 
-      {proyeccion && (
-        <div className="card-cayla p-4 sm:p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Proyección del mes</p>
-          <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:text-3xl">{SOLES.format(proyeccion.proyeccion)}</p>
-          <p className="mt-1 text-xs text-tinta/65">
-            A este ritmo ({SOLES.format(proyeccion.ritmoPorDia)} por día de trabajo) {nombre} cierra el mes cerca de esa cifra
-            {proyeccion.pctDeMeta !== null && proyeccion.metaMes !== null && (
-              <>
-                : <b className="font-semibold text-tinta">{proyeccion.pctDeMeta} %</b> de su meta de {SOLES.format(proyeccion.metaMes)}
-              </>
-            )}
-            . {proyeccion.diasQueQuedan > 0 ? `Quedan ${proyeccion.diasQueQuedan} ${plural(proyeccion.diasQueQuedan, "día de trabajo", "días de trabajo")}.` : "Es el último día de trabajo del mes."}
-          </p>
+      {/* Las tres medidas de la propuesta final (Felipe, 2026-10-03): proyección del mes, prendas por venta y ventas por hora */}
+      {(proyeccion || prendas) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {proyeccion && (
+            <div className="card-cayla p-4 sm:p-5">
+              <p className="label-cayla text-[11px] text-tinta/65">Proyección del mes</p>
+              <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:text-3xl">{SOLES.format(proyeccion.proyeccion)}</p>
+              <p className="mt-1 text-xs text-tinta/65">
+                A este ritmo ({SOLES.format(proyeccion.ritmoPorDia)} por día de trabajo) {nombre} cierra el mes cerca de esa cifra
+                {proyeccion.pctDeMeta !== null && proyeccion.metaMes !== null && (
+                  <>
+                    : <b className="font-semibold text-tinta">{proyeccion.pctDeMeta} %</b> de su meta de {SOLES.format(proyeccion.metaMes)}
+                  </>
+                )}
+                . {proyeccion.diasQueQuedan > 0 ? `Quedan ${proyeccion.diasQueQuedan} ${plural(proyeccion.diasQueQuedan, "día de trabajo", "días de trabajo")}.` : "Es el último día de trabajo del mes."}
+              </p>
+            </div>
+          )}
+          {prendas && (
+            <TarjetaCifra etiqueta="Prendas por venta" valor={prendas.porVenta !== null ? prendas.porVenta.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}>
+              {prendas.porVenta !== null
+                ? `${prendas.prendas} ${plural(prendas.prendas, "prenda", "prendas")} en ${prendas.ventas} ${plural(prendas.ventas, "venta", "ventas")} ${t.enPeriodo}. Las devoluciones no restan.`
+                : "Sin ventas todavía"}
+            </TarjetaCifra>
+          )}
         </div>
       )}
+
+      {porHora && (
+        <div className="card-cayla p-4 sm:p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora ({t.periodo})</p>
+          {porHora.mejor ? (
+            <>
+              <div className="mt-3 flex h-24 items-end gap-1" role="img" aria-label={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}>
+                {porHora.horas.map((h) => {
+                  const alto = Math.max(h.total > 0 ? 6 : 2, Math.round((h.total / porHora.mejor!.total) * 100));
+                  const esMejor = h.hora === porHora.mejor!.hora;
+                  return (
+                    <div key={h.hora} className="flex h-full min-w-0 flex-1 items-end" title={`${etiquetaDeHora(h.hora)} · ${SOLES.format(h.total)} · ${h.ventas} ${plural(h.ventas, "venta", "ventas")}`}>
+                      <div className={`w-full rounded-t ${esMejor ? "bg-taupe" : h.total > 0 ? "bg-sand" : "bg-tinta/10"}`} style={{ height: `${alto}%` }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-1 flex justify-between text-[11px] text-tinta/65 tabular-nums">
+                <span>{etiquetaDeHora(porHora.horas[0].hora)}</span>
+                <span>{etiquetaDeHora(porHora.horas.at(-1)!.hora)}</span>
+              </div>
+              <p className="mt-2 text-xs text-tinta/65">
+                La mejor franja fue la de las <b className="font-semibold text-tinta">{etiquetaDeHora(porHora.mejor.hora)}</b>: {SOLES.format(porHora.mejor.total)} en{" "}
+                {porHora.mejor.ventas} {plural(porHora.mejor.ventas, "venta", "ventas")}. Sirve para repartir turnos, no para juzgar a nadie.
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-tinta/65">Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.</p>
+          )}
+        </div>
+      )}
+      {detalle === null && <p className="nota-cayla">No se pudieron leer las ventas por hora ahora. Lo demás de esta pantalla sí está al día.</p>}
 
       {res.meta === null && (
         <p className="nota-cayla">
