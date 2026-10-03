@@ -11,10 +11,11 @@
 //     (ajustar también Conteos o Traslados); apartar y pedir a otra sede → «Apartados» y trasladar → «Traslados»,
 //     que sí tienen entrada propia en el menú. La base pide lo mismo.
 //   · Piso y almacén: reponer, retirar y apartar necesitan saber de dónde; solo donde la ubicación los separa.
-//   · Eliminar el producto (ADR-0252, actualización): SOLO un Admin, y solo mirando la sede activa como todo lo que
-//     escribe. En Catálogo ▸ Productos lo ve también un Líder porque allí hay productos que nunca se movieron; aquí no:
-//     toda fila de Existencias sale de `stock`, que solo escribe un movimiento, así que todo lo que se ve ya tiene
-//     historia, y con historia la base solo deja borrar a un Admin. Un Líder vería un botón que nunca funciona.
+//   · Eliminar el producto (ADR-0252, «Actualización 2026-10-03»): quien edita el catálogo, la misma regla que la tarjeta
+//     de Catálogo ▸ Productos y que la base (`fn_puede_editar_catalogo()` en las cuatro funciones de Eliminar), y solo
+//     mirando la sede activa como todo lo que escribe. Hasta el 2026-10-03 era solo del Admin, porque toda fila de
+//     Existencias ya tiene historia de stock y con historia la base solo dejaba borrar a un Admin; desde la migración
+//     20261003232000 ya no. Qué se puede borrar lo sigue decidiendo la ventana, que le pregunta a la base.
 
 export type EntradaPermisos = {
   /** La ubicación separa piso y almacén y sus dos sububicaciones existen. */
@@ -31,8 +32,8 @@ export type EntradaPermisos = {
   veTraslados: boolean;
   /** Es una tienda (vende): solo entre tiendas se pide una prenda para una clienta (ADR-0233). */
   esTienda: boolean;
-  /** Es Admin (`fn_es_admin()`, ADR-0178): el único que puede eliminar un producto con historia de stock (ADR-0252). */
-  esAdmin: boolean;
+  /** Edita el catálogo (`puede(persona, "editarCatalogo")`, en la base `fn_puede_editar_catalogo()`): puede eliminar un producto (ADR-0252). */
+  editaCatalogo: boolean;
 };
 
 export type PermisosDelDetalle = {
@@ -58,7 +59,7 @@ export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
     trasladar: aqui && e.veTraslados,
     etiquetasEHistorial: aqui,
     pedirAOtraSede: aqui && e.esTienda && e.veApartados,
-    eliminar: aqui && e.esAdmin,
+    eliminar: aqui && e.editaCatalogo,
   };
 }
 

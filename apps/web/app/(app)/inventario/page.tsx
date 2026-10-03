@@ -232,7 +232,7 @@ export default async function InventarioPage({
         abrirVariante={variante ?? null}
         apartados={apartados}
         esLider={persona.rol === "lider"}
-        esAdmin={persona.esAdmin}
+        editaCatalogo={puede(persona, "editarCatalogo")}
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
