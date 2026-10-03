@@ -107,3 +107,11 @@ Pegadas en producción el 2026-10-02, en orden, y verificadas con consultas de s
 
 Web: `git revert` del PR (no toca datos). Base: los 16 colores se desactivan (no se borran: pueden tener variantes) con `update retail.colores
 set activo = false where codigo in (...)`; las dos columnas son inofensivas si se dejan (nadie las lee sin la web).
+
+## Actualización 2026-10-02 (ADR-0317)
+
+- Donde este ADR dice que el hueco oscuro de Neutro lo ocupa «Azul Intermedio» (un gris pizarra clasificado Azul), **Intermedio se funde en Azul
+  medio y se archiva**; Neutro no necesitaba ese color (el 0316 ya decía que no necesitaba ninguno).
+- Las fichas de Azul eléctrico, Azul medio, Violeta y Perla se **reescriben** (la migración `20261003200000`): se habían escrito para hex que el
+  0317 corrige. Las otras 87 fichas no se tocan.
+- Los 4 colores creados a mano ya no son «decisión abierta»: Perla y Mantequilla, ADR-0314; Medio e Intermedio, ADR-0317.

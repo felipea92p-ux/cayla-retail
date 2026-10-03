@@ -148,7 +148,8 @@ describe("productos-filtros — varias opciones", () => {
 });
 
 describe("productos-filtros — color agrupado por familia", () => {
-  // Llegan MEZCLADOS y por nombre (como los pide `productos/page.tsx`): la lista tiene que reordenarlos sola.
+  // Llegan MEZCLADOS y por nombre (como los pide `productos/page.tsx`): la lista tiene que reordenarlos sola. Fixture autocontenido: prueba
+  // el orden por claridad dentro de una familia, no el catálogo (en producción Beige y Arena son tierra desde el ADR-0317).
   const colores = [
     { id: "ARN", nombre: "Arena", hex: "#CCA67F", familia: "neutro" },
     { id: "BEI", nombre: "Beige", hex: "#D5BA98", familia: "neutro" },
