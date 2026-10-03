@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { agruparCatalogo, ordenTalla } from "./catalogo-grupos";
+import { agruparCatalogo, agruparPorPrenda, colorInicial, filtrarConStock, ordenTalla, puntosAVista, resumenDePrenda } from "./catalogo-grupos";
 
 // La grilla de Vender es el plan B (cuando la etiqueta no lee): la pistola trae talla,
 // color y precio sola, así que la grilla no necesita una tarjeta por variante — una por
@@ -91,5 +91,105 @@ describe("ordenTalla — el orden en que se leen las tallas en la tienda", () =>
 
   it("no distingue mayúsculas ni espacios", () => {
     expect(["m", " S", "l "].sort(ordenTalla)).toEqual([" S", "m", "l "]);
+  });
+});
+
+// ADR-0323: una tarjeta por PRENDA, con los colores adentro. Con alm = lo del almacén de la sede.
+const va = (varianteId: string, referencia: string, color: string, talla: string | null, stockAqui: number, almacenAqui = 0) => ({
+  ...v(varianteId, referencia, color, talla, stockAqui),
+  almacenAqui,
+});
+
+describe("agruparPorPrenda — una tarjeta por prenda (ADR-0323)", () => {
+  it("junta los colores de la misma prenda aunque lleguen salteados, y ordena prendas y colores por nombre", () => {
+    // El catálogo llega ordenado por `sku`, vacío en casi todas: en la práctica, al azar.
+    const prendas = agruparPorPrenda([
+      va("1", "Top Rib", "Negro", "Estándar", 1),
+      va("2", "Blusa Rayón", "Vino", "S", 1),
+      va("3", "Top Rib", "Beige", "Estándar", 1),
+      va("4", "Blusa Rayón", "Chocolate", "M", 1),
+      va("5", "blusa encaje", "Ámbar", "Estándar", 1),
+      va("6", "Blusa Rayón", "Vino", "M", 0, 1),
+    ]);
+    expect(prendas.map((p) => p.referencia)).toEqual(["blusa encaje", "Blusa Rayón", "Top Rib"]);
+    expect(prendas[1].colores.map((c) => c.color)).toEqual(["Chocolate", "Vino"]);
+    expect(prendas[1].colores[1].tallas.map((t) => t.talla)).toEqual(["S", "M"]);
+    expect(prendas[1].tallas).toEqual(["S", "M"]);
+    expect(prendas[1].tallaUnica).toBe(false);
+    expect(prendas[2].tallaUnica).toBe(true);
+  });
+
+  it("suma piso y almacén de todos los colores y guarda el rango de precio", () => {
+    const [p] = agruparPorPrenda([
+      { ...va("1", "Chaleco Cecia", "Arena", "L", 1, 3), precio: 49.9 },
+      { ...va("2", "Chaleco Cecia", "Camel", "M", 0, 3), precio: 59.9 },
+    ]);
+    expect([p.stockTotal, p.almacenTotal, p.precioMin, p.precioMax, p.separaPiso]).toEqual([1, 6, 49.9, 59.9, true]);
+  });
+
+  it("dice colores y tallas en una línea", () => {
+    const [rayon, top, gorra] = agruparPorPrenda([
+      va("1", "Blusa Rayón", "Vino", "S", 1),
+      va("2", "Blusa Rayón", "Vino", "M", 1),
+      va("3", "Top Rib", "Beige", "Estándar", 1),
+      va("4", "Top Rib", "Negro", "Estándar", 1),
+      va("5", "Zz Gorra", "Negro", null, 1),
+    ]);
+    expect(resumenDePrenda(rayon)).toBe("1 color · S M");
+    expect(resumenDePrenda(top)).toBe("2 colores · estándar");
+    expect(resumenDePrenda(gorra)).toBe("1 color · talla única");
+  });
+});
+
+describe("filtrarConStock — «Solo con stock» por color", () => {
+  const prendas = agruparPorPrenda([
+    va("1", "Polo Lucky", "Negro", "Estándar", 1),
+    va("2", "Polo Lucky", "Crudo", "Estándar", 0, 1),
+    va("3", "Polo Lucky", "Topo", "Estándar", 0, 0),
+    va("4", "Pantalón Palazo", "Beige", "Estándar", 0, 2),
+  ]);
+
+  it("esconde los colores sin piso y la prenda que se queda sin ninguno", () => {
+    const r = filtrarConStock(prendas, true);
+    expect(r.prendas.map((p) => p.referencia)).toEqual(["Polo Lucky"]);
+    expect(r.prendas[0].colores.map((c) => c.color)).toEqual(["Negro"]);
+    // Crudo y Beige están en el almacén: no están agotados, falta bajarlos (D-40). Topo sí está agotado.
+    expect([r.ocultos, r.ocultosEnAlmacen]).toEqual([3, 2]);
+  });
+
+  it("apagado muestra todo, sin contar nada", () => {
+    expect(filtrarConStock(prendas, false)).toEqual({ prendas, ocultos: 0, ocultosEnAlmacen: 0 });
+  });
+
+  it("no toca la prenda original (el padre la memoiza)", () => {
+    filtrarConStock(prendas, true);
+    expect(prendas.find((p) => p.referencia === "Polo Lucky")?.colores).toHaveLength(3);
+  });
+});
+
+describe("colorInicial y puntosAVista", () => {
+  const [p] = agruparPorPrenda([
+    va("1", "Gorra Urbana", "Azul", null, 0, 0),
+    va("2", "Gorra Urbana", "Beige", null, 0, 2),
+    va("3", "Gorra Urbana", "Celeste", null, 1),
+    va("4", "Gorra Urbana", "Gris", null, 1),
+    va("5", "Gorra Urbana", "Lila", null, 1),
+    va("6", "Gorra Urbana", "Negro", null, 1),
+    va("7", "Gorra Urbana", "Vino", null, 1),
+  ]);
+
+  it("abre en el primer color con piso; si no hay, en el del almacén", () => {
+    expect(colorInicial(p)?.color).toBe("Celeste");
+    const [sinPiso] = agruparPorPrenda([va("1", "X", "Azul", null, 0), va("2", "X", "Beige", null, 0, 1)]);
+    expect(colorInicial(sinPiso)?.color).toBe("Beige");
+  });
+
+  it("con más colores que lugares deja un «+N», y el elegido siempre a la vista", () => {
+    const nombres = (r: ReturnType<typeof puntosAVista>) => r.aVista.map((c) => c.color);
+    expect(nombres(puntosAVista(p.colores, undefined, 5))).toEqual(["Azul", "Beige", "Celeste", "Gris"]);
+    expect(puntosAVista(p.colores, undefined, 5).resto).toBe(3);
+    const vino = p.colores.find((c) => c.color === "Vino")!.clave;
+    expect(nombres(puntosAVista(p.colores, vino, 5))).toEqual(["Azul", "Beige", "Celeste", "Vino"]);
+    expect(puntosAVista(p.colores, vino, 7)).toEqual({ aVista: p.colores, resto: 0 });
   });
 });

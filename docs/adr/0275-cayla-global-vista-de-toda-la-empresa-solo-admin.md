@@ -113,3 +113,10 @@ todavía.
 5. **Existencias, Movimientos, Análisis, Traslados y Producción** entran a la vista cuando lean la red entera (cada uno
    con su prueba).
 6. **Precio de maquila de referencia por tipo de prenda** (Configuración), para medir el Taller.
+
+## Actualización 2026-10-03 — el Inicio entra a la vista (ADR-0322)
+
+El Inicio del Admin ahora es el Observatorio, que mira toda CAYLA: `inicio` está en `MODULOS_DE_LA_VISTA_GLOBAL` y `/` en
+`RUTAS_DE_LA_VISTA_GLOBAL` (nada «cuelga» de `/`: las demás rutas siguen igual), y `proxy.ts` ya no manda `/` a `/global`. Quien
+no es Admin y abre el Inicio en la vista global va a `/global` (lo decide la página). El menú de la vista global empieza por Inicio y
+sigue con «Salud del negocio»; lo vigila `lib/vista-global.test.ts`.
