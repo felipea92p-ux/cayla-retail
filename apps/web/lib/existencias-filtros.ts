@@ -1,7 +1,9 @@
 import { ORDEN_ACCION_HOY, type TipoAccionHoy } from "./existencias-recomendaciones";
 import { compararTallas } from "./tallas";
 import { porColgar } from "./inventario-reglas";
-import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
+import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, interpretarBusquedaEspecial, type DimensionesExpresadas, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
+import { listaDeUrl } from "./productos-filtros";
+import { textoDeFamilia } from "./colores-familias";
 import type { ClaveFiltro } from "./existencias-vacio";
 
 /* ====================================================================
@@ -43,21 +45,24 @@ export function coincideConFiltroDanado(unidadesDanadas: number | null | undefin
 
 /** Las claves de la URL que son filtros de Existencias. Lo demás (`ubicacion`, `variante`, `danados`) no es un filtro:
  *  ni se limpia ni se cuenta. */
-export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "accion", "estado", "orden"] as const;
+export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "familia", "accion", "estado", "orden"] as const;
 export type ClaveUrl = (typeof CLAVES_FILTRO)[number];
 
 /** «Dañado / cuarentena» y «Por colgar»: las dos opciones del filtro «Estado». */
 export const ESTADOS_FILTRO = ["danado", "por_colgar"] as const;
 export type EstadoFiltro = (typeof ESTADOS_FILTRO)[number];
 
-/** Lo que dice la URL, ya validado. `null` = sin elegir. Categoría, marca, talla y color van por su NOMBRE (lo que la
- *  fila trae): un nombre que esta sede no tiene lo descarta la pantalla, nunca filtra a escondidas. */
+/** Lo que dice la URL, ya validado. `null` o lista vacía = sin elegir. Categoría, marca, talla y color van por su NOMBRE (lo
+ *  que la fila trae; el nombre de un color es único en la base): un nombre que esta sede no tiene lo descarta la pantalla,
+ *  nunca filtra a escondidas. Talla y Color aceptan varias opciones a la vez (`talla=M,L`), como en Productos; el color
+ *  también por familia entera (`familia=azul`). */
 export type FiltrosExistencias = {
   q: string;
   categoria: string | null;
   marca: string | null;
-  talla: string | null;
-  color: string | null;
+  tallas: string[];
+  colores: string[];
+  familias: string[];
   accion: TipoAccionHoy | null;
   estado: EstadoFiltro | null;
   orden: string | null;
@@ -74,8 +79,9 @@ export function filtrosDeUrl(consulta: string, { separa }: { separa: boolean }):
     q: p.get("q") ?? "",
     categoria: texto("cat"),
     marca: texto("marca"),
-    talla: texto("talla"),
-    color: texto("color"),
+    tallas: listaDeUrl(p.get("talla")),
+    colores: listaDeUrl(p.get("color")),
+    familias: listaDeUrl(p.get("familia")),
     accion: separa && (OPCIONES_FILTRO_ACCION as readonly string[]).includes(accion ?? "") ? (accion as TipoAccionHoy) : null,
     estado: separa && (ESTADOS_FILTRO as readonly string[]).includes(estado ?? "") ? (estado as EstadoFiltro) : null,
     orden: texto("orden"),
@@ -106,6 +112,11 @@ export function valorOfrecido(valor: string | null, opciones: readonly string[])
   return valor !== null && opciones.includes(valor) ? valor : null;
 }
 
+/** Lo mismo para una lista (Talla, Color, familia): se quedan solo las que la sede ofrece. */
+export function valoresOfrecidos(valores: readonly string[], opciones: readonly string[]): string[] {
+  return valores.filter((v) => opciones.includes(v));
+}
+
 /** Las tallas de la sede en su curva (XS · S · M · L, luego la numeración), la misma que la tarjeta: antes el combo las
  *  ordenaba como texto («10, 2, 4, Estándar, L, M, S, XL, XS»). */
 export function tallasEnCurva(filas: readonly { talla: string | null }[]): string[] {
@@ -125,8 +136,9 @@ export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHo
   const chips: { texto: string; quitar: ClaveUrl[] }[] = [];
   if (f.q.trim()) chips.push({ texto: `«${f.q.trim()}»`, quitar: ["q"] });
   if (f.categoria) chips.push({ texto: `Categoría: ${f.categoria}`, quitar: ["cat"] });
-  if (f.talla) chips.push({ texto: `Talla: ${f.talla}`, quitar: ["talla"] });
-  if (f.color) chips.push({ texto: `Color: ${f.color}`, quitar: ["color"] });
+  if (f.tallas.length) chips.push({ texto: `Talla: ${f.tallas.join(", ")}`, quitar: ["talla"] });
+  const colores = [...f.familias.map((x) => `Familia ${textoDeFamilia(x)}`), ...f.colores];
+  if (colores.length) chips.push({ texto: `Color: ${colores.join(", ")}`, quitar: ["color", "familia"] });
   if (f.accion) chips.push({ texto: `Acción: ${textoAccion(f.accion)}`, quitar: ["accion"] });
   if (f.estado) chips.push({ texto: `Estado: ${ROTULO_ESTADO_FILTRO[f.estado]}`, quitar: ["estado"] });
   if (f.marca) chips.push({ texto: `Marca: ${f.marca}`, quitar: ["marca"] });
@@ -135,7 +147,9 @@ export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHo
 
 /** Cuántos filtros quitan prendas: lo dice el botón «Filtros · N». Ni la búsqueda (se ve en su caja) ni el orden (solo acomoda). */
 export function contarFiltrosActivos(f: FiltrosElegidos): number {
-  return [f.categoria, f.marca, f.talla, f.color, f.accion, f.estado].filter((v) => v !== null).length;
+  // Color y familia son un mismo filtro (el de color, con su lista agrupada por familia): cuentan una vez.
+  const color = f.colores.length > 0 || f.familias.length > 0 ? 1 : 0;
+  return [f.categoria, f.marca, f.accion, f.estado].filter((v) => v !== null).length + (f.tallas.length > 0 ? 1 : 0) + color;
 }
 
 /* ====================================================================
@@ -154,6 +168,9 @@ export type FilaFiltrable = {
   marca?: string | null;
   talla: string | null;
   color: string | null;
+  /** La familia del color (`colores.familia_color`: azul, neutro, tierra…). La pone la página con una lectura aparte y
+   *  tolerante; ausente o null = sin familia (o la lectura falló): el color se filtra solo por su nombre. */
+  colorFamilia?: string | null;
   accionHoy?: { tipo: TipoAccionHoy } | null;
   danado: number | null;
   pisoDisponible: number | null;
@@ -173,12 +190,20 @@ export function indiceDeExistencias<F extends FilaFiltrable>(filas: readonly F[]
   }));
 }
 
-/** Los filtros visuales que NO son texto ni talla/color (esos dos los resuelve el buscador, que puede mandar sobre ellos).
- *  `omitir` = los que se ignoran: el estado vacío los «relaja» de a uno para decir cuál deja la pantalla en blanco. «Acción»
- *  y «Estado» son dos ejes (2026-09-25): qué hacer hoy con la talla y en qué condición está. */
-export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>): boolean {
+/** ¿La fila es de un color elegido, o de un color de una familia elegida? Sin nada elegido, sí. */
+function coincideColor(f: FilaFiltrable, elegidos: FiltrosElegidos): boolean {
+  if (elegidos.colores.length === 0 && elegidos.familias.length === 0) return true;
+  return (f.color !== null && elegidos.colores.includes(f.color)) || (!!f.colorFamilia && elegidos.familias.includes(f.colorFamilia));
+}
+
+/** Los filtros visuales que NO son texto. `omitir` = los que se ignoran: el estado vacío los «relaja» de a uno para decir cuál
+ *  deja la pantalla en blanco, y los conteos ignoran el suyo. `dichas`: si el texto ya dice una talla o un color, el texto manda
+ *  sobre esa píldora. «Acción» y «Estado» son dos ejes (2026-09-25): qué hacer hoy con la talla y en qué condición está. */
+export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>, dichas?: DimensionesExpresadas): boolean {
   if (!omitir?.has("categoria") && elegidos.categoria !== null && f.categoria !== elegidos.categoria) return false;
   if (!omitir?.has("marca") && elegidos.marca !== null && f.marca !== elegidos.marca) return false;
+  if (!omitir?.has("talla") && !dichas?.talla && elegidos.tallas.length > 0 && !elegidos.tallas.includes(f.talla ?? "")) return false;
+  if (!omitir?.has("color") && !dichas?.color && !coincideColor(f, elegidos)) return false;
   if (!omitir?.has("accion") && !coincideConFiltroAccion(f.accionHoy?.tipo, elegidos.accion)) return false;
   if (omitir?.has("estado")) return true;
   if (!coincideConFiltroDanado(f.danado, elegidos.estado === "danado")) return false;
@@ -193,16 +218,9 @@ export function filtrarExistencias<F extends FilaFiltrable>(
   omitir?: ReadonlySet<ClaveFiltro>,
   opciones?: OpcionesDeOrden<F>
 ) {
-  return filtrarConBusquedaEspecial(
-    indice,
-    elegidos.q,
-    {
-      talla: omitir?.has("talla") ? null : elegidos.talla,
-      color: omitir?.has("color") ? null : elegidos.color,
-      otros: (f) => pasaFiltros(f, elegidos, omitir),
-    },
-    opciones
-  );
+  // Talla y Color (de varias) los aplica `pasaFiltros`; el buscador solo dice si el texto ya nombró una talla o un color.
+  const dichas = interpretarBusquedaEspecial(elegidos.q, indice.vocabulario).dimensiones;
+  return filtrarConBusquedaEspecial(indice, elegidos.q, { otros: (f) => pasaFiltros(f, elegidos, omitir, dichas) }, opciones);
 }
 
 /* ====================================================================
@@ -217,7 +235,12 @@ export const CLAVES_CONTEO: readonly ClaveFiltro[] = ["categoria", "marca", "tal
 /** filtro → { opción → cuántos productos }. Una opción que no está tiene 0. */
 export type ConteosFiltros = Record<ClaveFiltro, Record<string, number>>;
 
-/** Lo que vale una fila en cada filtro. En «Estado» puede valer dos cosas a la vez (dañada y por colgar). */
+/** Las opciones de familia en la lista de Color: el mismo prefijo que `opcionesDeColor` (`lib/productos-filtros.ts`), para que
+ *  el conteo y la opción se encuentren (lo vigila la prueba). */
+export const PREFIJO_FAMILIA = "familia:";
+
+/** Lo que vale una fila en cada filtro. En «Estado» puede valer dos cosas a la vez (dañada y por colgar); en «Color», su color
+ *  y su familia (cada una es una opción de la lista). */
 function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undefined)[] {
   switch (clave) {
     case "categoria":
@@ -227,7 +250,7 @@ function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undef
     case "talla":
       return [f.talla];
     case "color":
-      return [f.color];
+      return [f.color, f.colorFamilia ? PREFIJO_FAMILIA + f.colorFamilia : null];
     case "accion":
       return [f.accionHoy?.tipo];
     case "estado":

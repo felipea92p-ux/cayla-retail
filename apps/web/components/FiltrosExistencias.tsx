@@ -10,11 +10,14 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { TEXTO_ACCION_HOY } from "@/lib/existencias-recomendaciones";
 import { opcionesConConteo } from "@/lib/productos-facetas";
+import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
+import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
   contarFiltrosActivos,
   ESTADOS_FILTRO,
   OPCIONES_FILTRO_ACCION,
+  PREFIJO_FAMILIA,
   ROTULO_ESTADO_FILTRO,
   type ClaveUrl,
   type ConteosFiltros,
@@ -34,6 +37,10 @@ import {
 export const ID_BUSCADOR_EXISTENCIAS = "existencias-buscar";
 /** Desde aquí el panel vive en la página; debajo, en una hoja (Tailwind `md`), como en Productos. */
 const MEDIA_ESCRITORIO = "(min-width: 768px)";
+
+/** Un color de la sede, con lo que la lista necesita para agruparlo por familia y pintar su muestra. `id` es su nombre (único
+ *  en la base): es lo que va en la URL. */
+export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
 
 export type OrdenBarra = {
   valor: string;
@@ -76,7 +83,8 @@ export function FiltrosExistencias({
   categorias: readonly string[];
   /** Ya en su curva (XS · S · M · L, luego la numeración). */
   tallas: readonly string[];
-  colores: readonly string[];
+  /** Los colores de la sede con su familia (sin familia: sueltos al final de la lista). */
+  colores: readonly ColorBarra[];
   /** `null`: la píldora Marca no se dibuja (una sola marca en la sede, o la lectura de marcas falló). */
   marcas: readonly string[] | null;
   /** Lo que de verdad filtra la lista (ya resuelto contra lo que la sede ofrece). */
@@ -145,8 +153,13 @@ export function FiltrosExistencias({
   const activos = contarFiltrosActivos(elegidos);
   const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
   const opcion = (v: string) => ({ valor: v, texto: v });
-  const contar = <O extends { valor: string }>(opciones: readonly O[], clave: keyof ConteosFiltros, elegida: string | null) =>
-    opcionesConConteo(opciones, conteos[clave], elegida ? [elegida] : []);
+  const contar = <O extends { valor: string }>(opciones: readonly O[], clave: keyof ConteosFiltros, elegidas: string | null | readonly string[]) =>
+    opcionesConConteo(opciones, conteos[clave], elegidas === null ? [] : typeof elegidas === "string" ? [elegidas] : elegidas);
+  // Color agrupado por familia, como Productos: «Toda la familia Azul» y debajo sus tonos en la escala de la carta. Marcar la
+  // familia incluye todos sus tonos (las casillas lo dicen), y con algunos tonos marcados la familia queda «parcial».
+  const opcionesColor = opcionesDeColor(colores, FAMILIAS_COLOR);
+  const coloresMarcados = [...elegidos.familias.map((f) => PREFIJO_FAMILIA + f), ...elegidos.colores];
+  const estadosColor = estadoDeColor(coloresMarcados, opcionesColor);
 
   // Dos filas con nombre, como Productos: arriba lo que se pregunta de la prenda (categoría, talla, color), abajo lo de quien
   // gestiona el stock (qué hacer hoy, en qué condición está, de qué marca es). El mismo panel va en la página (computadora) o
@@ -162,21 +175,44 @@ export function FiltrosExistencias({
           onValor={(v) => onCambiar({ cat: v === TODOS ? null : v })}
           opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(categorias.map(opcion), "categoria", elegidos.categoria)]}
         />
+        {/* Talla y Color aceptan varias opciones a la vez («M o L», «negro o azul»), como en Productos. */}
         <DesplegablePildora
           icono={Ruler}
           etiqueta="Talla"
-          valor={elegidos.talla ?? TODOS}
-          onValor={(v) => onCambiar({ talla: v === TODOS ? null : v })}
+          varias={{ valores: elegidos.tallas, onValores: (v) => onCambiar({ talla: listaParaUrl(v) }) }}
           rotuloCantidad="Productos · uno con varias tallas cuenta en cada una"
-          opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(tallas.map(opcion), "talla", elegidos.talla)]}
+          opciones={contar(tallas.map(opcion), "talla", elegidos.tallas)}
         />
         <DesplegablePildora
           icono={Palette}
           etiqueta="Color"
-          valor={elegidos.color ?? TODOS}
-          onValor={(v) => onCambiar({ color: v === TODOS ? null : v })}
+          varias={{
+            valores: coloresMarcados,
+            onValores: (v) => onCambiar(separarColor(v)),
+            alternar: (actual, valor) => alternarColor(actual, valor, opcionesColor),
+          }}
           rotuloCantidad="Productos · uno con varios colores cuenta en cada uno"
-          opciones={[{ valor: TODOS, texto: "Todos" }, ...contar(colores.map(opcion), "color", elegidos.color)]}
+          opciones={contar(
+            opcionesColor.map((o) =>
+              o.familia
+                ? { valor: o.valor, texto: o.texto, grupo: true, estado: estadosColor.get(o.valor) }
+                : {
+                    valor: o.valor,
+                    texto: o.texto,
+                    hijo: o.de !== null,
+                    estado: estadosColor.get(o.valor),
+                    icono: (
+                      <span
+                        aria-hidden
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
+                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                      />
+                    ),
+                  }
+            ),
+            "color",
+            coloresMarcados
+          )}
         />
       </FilaPildoras>
       {hayGestion && (

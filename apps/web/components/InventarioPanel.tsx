@@ -37,7 +37,9 @@ import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
-import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { textoDeFamilia } from "@/lib/colores-familias";
+import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -245,6 +247,7 @@ export function InventarioPanel({
   veApartados = false,
   esTienda = false,
   panelFiltros = "abierto",
+  coloresCatalogo = [],
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -300,6 +303,9 @@ export function InventarioPanel({
   esTienda?: boolean;
   /** Si el panel de filtros entra abierto o cerrado en la computadora (cookie de este equipo, leída en el servidor). */
   panelFiltros?: EstadoPanelFiltros;
+  /** Los colores del catálogo con su familia, hex y tipo: la lista de Color va agrupada por familia y con su muestra, como en
+   *  Productos. Vacío (la lectura falló) = lista plana. */
+  coloresCatalogo?: ColorDeCatalogo[];
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -307,8 +313,6 @@ export function InventarioPanel({
   const setBusqueda = fijarBusqueda;
   const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
   const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
-  const setTalla = (v: string) => aplicar({ talla: v === TODAS ? null : v });
-  const setColor = (v: string) => aplicar({ color: v === TODAS ? null : v });
   // Dos ejes independientes (2026-09-25): «Acción» es SOLO `TipoAccionHoy` (qué debería hacer la
   // vendedora); «Estado» es la condición del inventario (dañado/cuarentena) — no son la misma
   // pregunta, y mezclarlos en un solo dropdown confundía dos clasificaciones distintas.
@@ -381,8 +385,21 @@ export function InventarioPanel({
     [stock]
   );
   const categoria = valorOfrecido(filtros.categoria, categorias) ?? TODAS;
-  const talla = valorOfrecido(filtros.talla, tallas) ?? TODAS;
-  const color = valorOfrecido(filtros.color, colores) ?? TODAS;
+  // Talla y Color de varias (2026-10-03). Una familia cuenta si algún color de esta sede es de ella.
+  // Los colores de ESTA sede con su familia, hex y tipo (la muestra), para la lista agrupada. Un color que el catálogo no trajo
+  // va con el hex de la fila y sin familia: suelto al final, nunca perdido.
+  const coloresConMuestra = useMemo(() => {
+    const deCatalogo = new Map(coloresCatalogo.map((c) => [c.nombre, c]));
+    const hexDeFila = new Map(stock.map((f) => [f.color, f.colorHex]));
+    return colores.map((nombre) => {
+      const c = deCatalogo.get(nombre);
+      return { id: nombre, nombre, hex: c?.hex ?? hexDeFila.get(nombre) ?? null, familia: c?.familia ?? null, tipo: c?.tipo ?? null };
+    });
+  }, [colores, coloresCatalogo, stock]);
+  const tallasElegidas = useMemo(() => valoresOfrecidos(filtros.tallas, tallas), [filtros.tallas, tallas]);
+  const coloresElegidos = useMemo(() => valoresOfrecidos(filtros.colores, colores), [filtros.colores, colores]);
+  const familiasDeLaSede = useMemo(() => [...new Set(stock.map((f) => f.colorFamilia).filter((x): x is string => !!x))], [stock]);
+  const familiasElegidas = useMemo(() => valoresOfrecidos(filtros.familias, familiasDeLaSede), [filtros.familias, familiasDeLaSede]);
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
   // marca, categoría, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
   // color, manda sobre el filtro visual de esa dimensión; Categoría, Marca, Acción y Estado siempre aplican (el texto no los pisa).
@@ -393,12 +410,13 @@ export function InventarioPanel({
       q: busqueda,
       categoria: categoria === TODAS ? null : categoria,
       marca: marcaEfectiva === TODAS ? null : marcaEfectiva,
-      talla: talla === TODAS ? null : talla,
-      color: color === TODAS ? null : color,
+      tallas: tallasElegidas,
+      colores: coloresElegidos,
+      familias: familiasElegidas,
       accion: filtros.accion,
       estado: filtros.estado,
     }),
-    [busqueda, categoria, marcaEfectiva, talla, color, filtros.accion, filtros.estado]
+    [busqueda, categoria, marcaEfectiva, tallasElegidas, coloresElegidos, familiasElegidas, filtros.accion, filtros.estado]
   );
   // Cuántos productos trae cada opción de la barra, con los demás filtros puestos (se esconden las que vaciarían la lista).
   const conteos = useMemo(() => conteosDeFiltros(indiceBusqueda, elegidos), [indiceBusqueda, elegidos]);
@@ -424,7 +442,7 @@ export function InventarioPanel({
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
   const [pagina, setPagina] = useState(1);
-  const firmaFiltros = [busqueda, categoria, marcaEfectiva, talla, color, accion, condicion, orden].join("\u0000");
+  const firmaFiltros = [busqueda, categoria, marcaEfectiva, tallasElegidas.join(","), coloresElegidos.join(","), familiasElegidas.join(","), accion, condicion, orden].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -617,8 +635,9 @@ export function InventarioPanel({
   const filtrosActivos: FiltroActivo[] = [];
   if (categoria !== TODAS) filtrosActivos.push({ clave: "categoria", etiqueta: "Categoría", valor: categoria });
   if (marcaEfectiva !== TODAS) filtrosActivos.push({ clave: "marca", etiqueta: "Marca", valor: marcaEfectiva });
-  if (talla !== TODAS) filtrosActivos.push({ clave: "talla", etiqueta: "Talla", valor: talla });
-  if (color !== TODAS) filtrosActivos.push({ clave: "color", etiqueta: "Color", valor: color });
+  if (tallasElegidas.length) filtrosActivos.push({ clave: "talla", etiqueta: "Talla", valor: tallasElegidas.join(", ") });
+  const coloresTexto = [...familiasElegidas.map((x) => `familia ${textoDeFamilia(x)}`), ...coloresElegidos];
+  if (coloresTexto.length) filtrosActivos.push({ clave: "color", etiqueta: "Color", valor: coloresTexto.join(", ") });
   if (accion !== TODAS) filtrosActivos.push({ clave: "accion", etiqueta: "Acción", valor: TEXTO_ACCION_HOY[accion as TipoAccionHoy] });
   if (condicion !== TODAS) filtrosActivos.push({ clave: "estado", etiqueta: "Estado", valor: condicion === DANADO ? "Dañado / cuarentena" : "Por colgar" });
   // Productos que el catálogo tiene pero esta sede NO (ni una fila de stock) y que coinciden con lo escrito. Se avisa aunque haya
@@ -646,8 +665,8 @@ export function InventarioPanel({
   function quitarFiltro(clave: ClaveFiltro) {
     if (clave === "categoria") setCategoria(TODAS);
     else if (clave === "marca") setMarca(TODAS);
-    else if (clave === "talla") setTalla(TODAS);
-    else if (clave === "color") setColor(TODAS);
+    else if (clave === "talla") aplicar({ talla: null });
+    else if (clave === "color") aplicar({ color: null, familia: null });
     else if (clave === "accion") setAccion(TODAS);
     else setCondicion(TODAS);
   }
@@ -757,7 +776,7 @@ export function InventarioPanel({
             separa={separa}
             categorias={categorias}
             tallas={tallas}
-            colores={colores}
+            colores={coloresConMuestra}
             marcas={mostrarMarca ? marcas : null}
             elegidos={elegidos}
             conteos={conteos}
@@ -819,9 +838,9 @@ export function InventarioPanel({
             nota={
               <>
                 {/* Mientras el buscador mande sobre Talla y Color (lo que escribiste gana), se dice: la píldora sigue mostrando lo elegido. */}
-                {(dichoEnLaBusqueda.talla && talla !== TODAS) || (dichoEnLaBusqueda.color && color !== TODAS) ? (
+                {(dichoEnLaBusqueda.talla && tallasElegidas.length > 0) || (dichoEnLaBusqueda.color && coloresTexto.length > 0) ? (
                   <p className="text-xs leading-snug text-taupe">
-                    {dichoEnLaBusqueda.talla && talla !== TODAS ? "Talla" : "Color"}: se usa lo que escribiste en el buscador.
+                    {dichoEnLaBusqueda.talla && tallasElegidas.length > 0 ? "Talla" : "Color"}: se usa lo que escribiste en el buscador.
                   </p>
                 ) : null}
                 {/* La aclaración de «Por colgar», solo si ese estado está elegido y hay algo por colgar (sobre una lista vacía,
