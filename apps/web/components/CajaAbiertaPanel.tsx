@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CircleCheck, TriangleAlert } from "lucide-react";
-import { Boton } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
@@ -11,6 +10,10 @@ import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
+import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
+import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
+import { ComparativaCaja } from "@/components/CajaComparativa";
+import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import {
   AccesosCajaEscritorio,
@@ -94,6 +97,7 @@ export function CajaAbiertaPanel({
   accesos,
   gasto = null,
   abrirCierre = false,
+  comparativa = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -126,6 +130,8 @@ export function CajaAbiertaPanel({
     esLider: boolean;
     hoy: string;
   } | null;
+  /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
+  comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -158,6 +164,9 @@ export function CajaAbiertaPanel({
   // En vivo: sondea la caja cada pocos segundos y, si entró algo, Next vuelve a leer la pantalla y llegan props
   // nuevas. Lo que sigue solo detecta QUÉ es nuevo para que cada pieza lo muestre; nada de esto pide datos.
   useCajaEnVivo(caja.id);
+  // El botón «Cerrar caja» cambia de nivel con la hora de cierre de la tienda (ADR-0318); se mira cada minuto.
+  const ahoraCierre = useAhora(60_000);
+  const estadoCierre = ahoraCierre ? estadoBotonCierre({ ahora: ahoraCierre, abiertaEn: caja.abiertaEn, horaCierre, puedeCerrar }) : null;
   const ventasNuevas = useIdsNuevos(ventasHoy, idVenta);
   const movimientosNuevos = useIdsNuevos(movimientos, idMovimiento);
   const idsNuevos = new Set([...ventasNuevas.ids, ...movimientosNuevos.ids]);
@@ -188,6 +197,7 @@ export function CajaAbiertaPanel({
     const id = window.setInterval(leer, 60_000);
     return () => window.clearInterval(id);
   }, []);
+  const ahoraMin = ahora ? minutosLima(ahora) : null;
   const alCierre =
     ahora && metaVentaDiaria !== null
       ? proyeccionAlCierre({ vendido: totalVentas, abrioMin: minutosLima(diaYHoraLima(caja.abiertaEn).hora) ?? 0, ahoraMin: minutosLima(ahora) ?? 0, cierreMin: minutosLima(horaCierre) })
@@ -241,120 +251,31 @@ export function CajaAbiertaPanel({
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
   const abrirGasto = gasto ? () => setModal("gasto") : null;
 
-  return (
-    // En celular la barra fija de abajo tapa el final: se reserva su alto (como el Inicio).
-    <div className="pb-28 sm:pb-8">
-      {/* La disposición decide por el ancho del PROPIO tablero (`@container`), no por el de la ventana: la barra
-          lateral y los márgenes se comen ~350 px. Los modales van FUERA de este contenedor: `container-type` aplica
-          contención de layout y ataría su `fixed` al tablero en vez de a la pantalla. Orden (spike
-          docs/maquetas/caja-tablero-spike-2026-09/, 2026-09-26): lo que hay en el cajón → lo que se hace → lo que se
-          elige ver → el turno y los cierres. */}
-      <div className="@container space-y-4">
-        {/* ---------- Encabezado ---------- */}
-        <div className="pb-1">
-          <EncabezadoPagina
-            sede={ubicacionNombre}
-            titulo="Caja"
-            subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
-            sinHora
-            acciones={
-              // En celular estas acciones viven en la barra fija de abajo. En escritorio bajan solas bajo la frase: la
-              // derecha es del turno y de la cola sin conexión (`EncabezadoPagina`, ADR-0220).
-              <div className="hidden items-center gap-3 sm:flex">
-                {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
-                {puedeCerrar ? (
-                  <Boton peso="primario" onClick={() => setModal("cerrar")}>
-                    Cerrar caja
-                  </Boton>
-                ) : (
-                  <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
-                )}
-              </div>
-            }
-          >
-            <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
-              <EstadoSync pendientes={cola.length} />
-              <TurnoCompacto abiertaEn={caja.abiertaEn} />
-            </div>
-          </EncabezadoPagina>
-        </div>
+  // En celular estas acciones viven en la barra fija de abajo. En escritorio van a la derecha del título (diseño nuevo) o bajo la frase.
+  const accionesCabecera = (
+    <div className="hidden flex-wrap items-center justify-end gap-3 sm:flex">
+      {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
+      {comparativa && abrirGasto && (
+        <button type="button" onClick={abrirGasto} className="btn-cayla btn-secundario">
+          Registrar gasto
+        </button>
+      )}
+      {comparativa && (
+        <button type="button" onClick={() => setModal("movimiento")} className="btn-cayla btn-secundario">
+          Depósito o retiro
+        </button>
+      )}
+      {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
+      {puedeCerrar ? (
+        <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
+      ) : (
+        <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+      )}
+    </div>
+  );
 
-        {/* ---------- Turno largo: una caja que pasó la noche sin cerrarse (auditoría de /caja, #3) ---------- */}
-        <AvisoTurnoLargo abiertaEn={caja.abiertaEn} esLider={personaRol === "lider"} />
-
-        {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
-        <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
-          <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
-          <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
-            <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
-            <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
-            <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
-          </div>
-        </div>
-
-        {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
-        {metaVentaDiaria !== null && metaPct !== null && (
-          <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
-            <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
-              <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
-              <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
-              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
-                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
-              </div>
-              <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
-                <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
-                <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
-                {alCierre !== null ? (
-                  <DatoMeta
-                    etiqueta="Al ritmo de hoy cierras en"
-                    valor={soles0(alCierre)}
-                    detalle={
-                      alCierre >= metaVentaDiaria
-                        ? "Llegas a la meta."
-                        : `Te quedarían ${soles0(metaVentaDiaria - alCierre)} por vender. Son las ${ahora}; cierras a las ${horaCierre}.`
-                    }
-                  />
-                ) : (
-                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
-                )}
-              </dl>
-            </div>
-            {puedeCerrar && fondoCierre && (
-              <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
-                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
-                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
-                <dl className="mt-3 text-[13px] text-tinta">
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Debería haber en el cajón</dt>
-                    <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Deja para el próximo turno</dt>
-                    <dd className="whitespace-nowrap font-semibold tabular-nums">{soles0(fondoCierre.monto)}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
-                    <dt>Lo demás se traslada</dt>
-                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
-                  </div>
-                </dl>
-                <p className="mt-1 text-[12.5px] text-taupe">
-                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
-        <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
-          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
-          <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
-          <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />
-        </div>
-
-        {/* ---------- El turno y los cierres ---------- */}
-        <div className={`grid gap-3 ${cierresAncho ? "" : "@[1100px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"}`}>
+  // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
+  const tarjetaMovimientos = (
           <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -419,9 +340,138 @@ export function CajaAbiertaPanel({
               </button>
             )}
           </div>
+  );
+
+  return (
+    // En celular la barra fija de abajo tapa el final: se reserva su alto (como el Inicio).
+    <div className="pb-28 sm:pb-8">
+      {/* La disposición decide por el ancho del PROPIO tablero (`@container`), no por el de la ventana: la barra
+          lateral y los márgenes se comen ~350 px. Los modales van FUERA de este contenedor: `container-type` aplica
+          contención de layout y ataría su `fixed` al tablero en vez de a la pantalla. Orden (spike
+          docs/maquetas/caja-tablero-spike-2026-09/, 2026-09-26): lo que hay en el cajón → lo que se hace → lo que se
+          elige ver → el turno y los cierres. */}
+      <div className="@container space-y-4">
+        {/* ---------- Encabezado ---------- */}
+        <div className="pb-1">
+          <EncabezadoPagina
+            sede={ubicacionNombre}
+            titulo="Caja"
+            subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
+            sinHora
+            acciones={comparativa ? undefined : accionesCabecera}
+          >
+            <div className="flex w-full flex-col sm:w-auto sm:items-end">
+            <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
+              <EstadoSync pendientes={cola.length} />
+              <TurnoCompacto abiertaEn={caja.abiertaEn} />
+            </div>
+            {/* Con «hoy contra ayer» las acciones suben a la derecha, bajo el estado del turno: el título queda limpio y no hay
+                un hueco entre la frase y los botones (ADR-0319). */}
+            {comparativa && <div className="mt-3 hidden sm:block">{accionesCabecera}</div>}
+            </div>
+          </EncabezadoPagina>
+        </div>
+
+        {/* ---------- Turno largo: una caja que pasó la noche sin cerrarse (auditoría de /caja, #3) ---------- */}
+        <AvisoTurnoLargo abiertaEn={caja.abiertaEn} esLider={personaRol === "lider"} />
+
+        {/* ---------- Hoy contra ayer (ADR-0319): titular, gráfico, medios de pago y horas. Sin metas diarias: la meta es ayer. ---------- */}
+        {comparativa && ahoraMin !== null ? (
+          <>
+            <ComparativaCaja
+              hoy={comparativa.hoy}
+              ayer={comparativa.ayer}
+              ahoraMin={ahoraMin}
+              horaCierreMin={minutosLima(horaCierre)}
+              cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
+              movimientos={tarjetaMovimientos}
+            />
+          </>
+        ) : (
+          <>
+        {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
+        <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
+          <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
+          <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
+            <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
+            <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
+            <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
+          </div>
+        </div>
+
+        {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
+        {metaVentaDiaria !== null && metaPct !== null && (
+          <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
+            <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
+              <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
+              <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
+              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
+                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
+              </div>
+              <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
+                <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
+                <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
+                {alCierre !== null ? (
+                  <DatoMeta
+                    etiqueta="Al ritmo de hoy cierras en"
+                    valor={soles0(alCierre)}
+                    detalle={
+                      alCierre >= metaVentaDiaria
+                        ? "Llegas a la meta."
+                        : `Te quedarían ${soles0(metaVentaDiaria - alCierre)} por vender. Son las ${ahora}; cierras a las ${horaCierre}.`
+                    }
+                  />
+                ) : (
+                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                )}
+              </dl>
+            </div>
+            {puedeCerrar && fondoCierre && (
+              <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
+                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
+                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
+                <dl className="mt-3 text-[13px] text-tinta">
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Debería haber en el cajón</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Deja para el próximo turno</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{soles0(fondoCierre.monto)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Lo demás se traslada</dt>
+                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
+                  </div>
+                </dl>
+                <p className="mt-1 text-[12.5px] text-taupe">
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+
+        {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
+        <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
+          <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
+          <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
+          <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />
+        </div>
+
+        {/* ---------- El turno y los cierres ---------- */}
+        <div className={`grid gap-3 ${cierresAncho ? "" : "@[1100px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"}`}>
+          {tarjetaMovimientos}
           <CierresAnteriores cierres={cierresUbicacion} esLider={personaRol === "lider"} indice={8} onModo={alCambiarModo} />
         </div>
+          </>
+        )}
       </div>
+
+      {/* Escritorio: la barra de cierre se queda a la vista (en el celular, el «Cerrar» de la barra de abajo). */}
+      <BarraCierreCaja estado={estadoCierre} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
