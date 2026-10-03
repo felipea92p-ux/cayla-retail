@@ -240,3 +240,55 @@ columna por su contenido: «Gris perla · NUEVA» ensanchaba la columna Color y 
 - Mínimo de la tabla = color 168 px + 80 px por talla + 60: debajo de eso se desliza de lado (color fijo a la izquierda), nunca aprieta.
 Medido con «Azul eléctrico» agregado sin guardar: las tallas en el mismo lugar antes y después, y en las cuatro pestañas. A 1024, 1280,
 1440 y 1920 la tabla entra entera sin desplazarse; a 768 y 375 se desliza dentro de su caja; la página nunca se desplaza de lado.
+
+### Cuarta vuelta del 2026-10-03: el recorrido de todos los casos
+
+Felipe: «en Stock por talla sale tapada la talla Estándar, arregla eso y haz un flujo completo […] evaluando todas las casuísticas
+posibles», y que «Agregar color» y «Agregar talla» sean más notorios. Se recorrió la ficha en el navegador (talla única, 4 tallas,
+color nuevo con huecos, quitar uno y todos los colores, volver a agregar, precio vacío y en 0, costos de compras, etiquetas, 9999
+unidades, 375/1024/1615 px) y un revisor leyó el código caso por caso. Sin migración. Lo que se corrigió:
+
+- **«Stock por talla» del panel:** la columna de la talla medía 28 px fijos y la barra tapaba «Estándar». Las filas comparten una
+  cuadrícula (`subgrid`, `.taller-tallas`): la columna mide lo que pide la talla más larga del color y todas las barras arrancan en el
+  mismo punto; un nombre que pase del 42 % del panel salta de línea. El número tocado y sin guardar va en ámbar, como en la matriz.
+  Una prenda «Sin color» ahora también lo muestra.
+- **«Agregar color» y «Agregar talla»** son botones de verdad: borde punteado en taupe, fondo hueso, el «+» en un círculo de tinta y
+  una línea que dice qué agregan («Una fila nueva, con sus tallas» / «Una columna nueva, en cada color»). Sin movimiento: al pasar el
+  mouse solo se cierra el borde.
+- **La celda «—» se toca para agregar esa combinación** (`comoLlenarHueco`, con prueba). Era lo único que la tabla no podía hacer: si
+  Crudo nació en S y M, «Crudo L» quedaba imposible —«Agregar color» no ofrece un color que ya se vende ni «Agregar talla» una talla que
+  ya se vende— y lo que este ADR decía («se reactiva con + Agregar talla») solo era cierto si la talla faltaba en TODOS los colores. Nace
+  en 0 con el precio y el costo de su color y las etiquetas comunes, o vuelve la que existió desactivada; no nace en un color inactivo
+  en Colores ni en una talla que la categoría ya no habilita (lo dice al tocarla). Verificado con un guardado real en «Blusa Lino Aurora
+  (prueba)» (Crudo S con 2 u. y Crudo L desde el hueco; después devuelto a 0 y desactivado).
+- **Sin «Ajustar stock»** la ficha leía 0 en todas las tallas (no pedía el stock): ahora lo lee de la sede (`lecturaStock`) y se ve sin
+  caja. Tampoco deja poner stock a una variante nueva (se perdía en silencio al guardar) ni muestra el cartel «toca +».
+- **Guardado a medias:** si se corrige un color y falla el stock, las fotos y la temporada ya no quedan ancladas al color viejo (el
+  reanclaje va antes de cualquier paso que pueda fallar); las variantes recién creadas se releen (antes se veían en 0); la carga de su
+  stock inicial tiene el mismo tope de 20 s y el mismo trato de «respuesta incierta» que el guardado (antes podía cargarse dos veces).
+- **La celda de stock** avisa de lo apartado al SALIR de ella, no con cada tecla (escribir «10» con 2 apartadas avisaba en el «1»), y
+  una talla que faltó en un conteo compara contra el stock de hoy (escribir «20» dejaba un −13 que nadie pidió).
+- **«Cambiar en bloque»** guarda un monto por campo: un precio escrito y sin aplicar ya no aparece en «Costos» a un Enter de volverse el
+  costo de toda la prenda; si el grupo elegido se quita, lo dice en vez de caer a «Todas». Con todos los costos de compras, en «Costos»
+  no se ofrece.
+- **Quitar un color** también suelta una corrección de color o talla hecha en la visita (si no, se guardaba la corrección de un color
+  que se quiso quitar) y, si el color nunca existió, las fotos que se le subieron.
+- **Etiquetas con descuento:** la ficha las seguía escondiendo a quien no es líder con el aviso «las pone un líder», que dejó de ser
+  cierto con ADR-0293 (la base no tiene esa guardia desde el 2026-09-30). Ahora se ofrecen todas.
+- **Textos:** los modales «Agregar color/talla» mandaban a «Recibir mercadería» mientras el cartel de la ficha decía «toca + en la
+  tabla»; ahora dicen los dos caminos (`NACEN_EN_CERO_CARGABLES`) a quien puede cargar stock. «Sus 72 u.» al quitar un color aclara que
+  cuenta todas las sedes, no la tabla. La leyenda «— = no existe» dice que se toca. Si la lectura del stock falla, «Reintentar».
+
+Lo que quedó sin hacer, con su porqué: `docs/backlog/2026-10-03-stock-talla-button-visibility-eb9a32.md`.
+
+**Tacho en la talla (Felipe, mismo día: «sí, ponle tacho a la talla»).** La cabecera de cada talla lleva su lápiz (corregirla) y un
+tacho, como la fila de un color: `quitarTalla` hace sobre una columna lo mismo que `quitarColor` sobre una fila (las dos usan
+`quitarFilas`): la talla deja de venderse en TODOS los colores, las que existen se desactivan (nunca se borran) y sueltan lo tocado
+en la visita, corrección incluida; las nuevas no se crean. Bajo la tabla, «La talla S deja de venderse en todos los colores al
+guardar… · Deshacer» (`tallasQueSeQuitan`, `devolverTalla`). Una talla recién agregada lleva «nueva» en su cabecera y su tacho la
+quita sin dejar nada pendiente. Si un color se queda sin tallas, también se dice que ese color se quita. En una columna angosta el
+tacho baja a una segunda línea en vez de empujar la tabla.
+
+**La columna Color en celular.** Con pocas tallas, a 375 px la columna Color medía su 36 % (110 px) y el lápiz y el tacho dejaban el
+nombre en una letra, aunque el mínimo declarado era 168 px. Debajo de `@lg` las tallas miden su mínimo (80 px) y el color se queda
+con el resto, que el `minWidth` de la tabla ya garantiza ≥ 168 px; desde `@lg` todo sigue igual (medido: 241 / 126 px a 1615).

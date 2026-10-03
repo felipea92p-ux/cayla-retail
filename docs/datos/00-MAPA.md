@@ -238,8 +238,9 @@ stateDiagram-v2
     end note
     note right of Vendida
         D-40: si estaba en almacén,
-        el sistema registra solo
-        el paso por el piso
+        la caja registra el paso
+        por el piso con un clic
+        (ADR-0321)
     end note
 ```
 

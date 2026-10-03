@@ -25,12 +25,13 @@ import {
 } from "@/lib/eliminar-producto-reglas";
 
 /**
- * «Eliminar» un producto (ADR-0218: Líder y Admin, sin historia; ADR-0252: solo Admin, con su historia de stock).
+ * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
+ * (`fn_puede_editar_catalogo`; hasta el 2026-10-03 era solo del Líder y, con historia, solo del Admin).
  *
  * Primero PREGUNTA a la base cómo se puede eliminar (`fn_producto_como_eliminar`) y recién con la respuesta muestra algo:
  *  - libre → qué se borra + el combo «Responsable» + Eliminar (`eliminar_producto`, todo o nada);
- *  - con historia de stock y cuenta Admin → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su
- *    historia» (`eliminar_producto_con_historia`, todo o nada). Un Líder que no es Admin ve por qué no puede y la salida;
+ *  - con historia de stock → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su historia»
+ *    (`eliminar_producto_con_historia`, todo o nada). Si la base dice que esta cuenta no puede, ve por qué y la salida;
  *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (descontinuarlo desde
  *    Editar). NUNCA un botón que la base va a rechazar;
  *  - no se pudo preguntar (la base no respondió, o todavía no tiene la función) → se dice, y no se ofrece borrar a ciegas.

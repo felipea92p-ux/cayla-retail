@@ -48,3 +48,19 @@ Terminal Almacén y el líder. Es lo que pide la regla; los ajustes siguen firma
 
 DESPUÉS de publicar la web de este PR. Una sola parte, sin políticas ni `alter` de tablas en uso (ADR-0195 no aplica),
 idempotente. Se rompe si alguien vuelve a pegar 20260926000200, 20260927180000, 20261001150000 o 20260928130000.
+
+## Actualización 2026-10-03 — la carga inicial «al piso» es de quien crea el producto
+
+- **Pedido:** Felipe, 2026-10-03: «no deben existir restricciones: si tengo un módulo, debo poder hacer todo en ese módulo, sin
+  importar si tengo Existencias o no».
+- **Problema:** Nuevo producto (paso 4) apagaba «En piso de venta» a quien ve Productos pero no Existencias, porque
+  `crear_producto_con_stock_inicial` cuelga las prendas con `bajar_al_piso` y esa pide Existencias. Era el mismo error que
+  este ADR corrigió en el lateral: un módulo que obliga a tener otro.
+- **Decidí:** `crear_producto_con_stock_inicial` y `cargar_stock_inicial` ponen, solo dentro de su transacción, la marca
+  `retail.carga_inicial = 'si'` justo antes de la bajada y la quitan justo después; `bajar_al_piso` acepta la marca además del
+  módulo. Reponer, subir y retirar por su cuenta siguen pidiendo Existencias (la prueba `F8` lo exige). La web ya no pregunta
+  por Existencias en Nuevo producto (`NuevoProductoForm`) ni en la carga inicial de Editar producto.
+- **Descarté:** darle `existencias` a quien ve `productos` (otra vez un módulo que arrastra a otro); y quitar el candado de
+  `bajar_al_piso` (la reposición del piso sin Existencias es justo lo que ADR-0306 no quiere).
+- **Migración:** `20261004000000_carga_inicial_al_piso_sin_existencias.sql`, por ancla, DESPUÉS de `20261002120000`
+  (aborta con un mensaje claro si falta). Sin pegar en producción: pide OK de Felipe.

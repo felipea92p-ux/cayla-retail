@@ -4,11 +4,11 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { SelectorDeTallas } from "@/components/SelectorDeTallas";
+import { MatrizMover } from "@/components/MatrizMover";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -27,34 +27,24 @@ import {
   type RespuestaBajada,
 } from "@/lib/bajada-reglas";
 import {
-  detalleDeLoBajado,
-  filasDelSelector,
-  lineasDeReponer,
-  nombreDePrendaParaReponer,
+  coloresConAlgo,
+  coloresParaMover,
+  detalleDeLoMovido,
+  lineasDeMoverModelo,
   sePuedeBajarTalla,
-  tallasParaReponer,
   textoBotonReponer,
   textoFilaSinAlcance,
   totalAReponer,
+  totalesDeMatriz,
   type Cantidades,
-  type FilaDeTalla,
+  type PrendaParaReponer,
 } from "@/lib/reponer-prenda-reglas";
 
 const TOPE_ESPERA_MS = 20_000;
 
-/** La prenda que se repone: un modelo en un color, con TODAS las tallas que la tarjeta muestra. */
-export type PrendaParaReponer = {
-  referencia: string;
-  color: string | null;
-  colorHex: string | null;
-  /** La foto de la prenda: va a la izquierda de la ventana. */
-  fotoUrl?: string | null;
-  tallas: readonly FilaDeTalla[];
-};
-
-// «Reponer piso» (ADR-0295): el botón «Reponer» de una prenda abre ESTA ventana, con todas sus tallas, y al confirmar llama
-// UNA vez a `bajar_al_piso` (todo o nada, con marca de reintento: ADR-0208). Antes abría una ventana de una sola talla
-// —la primera que se podía bajar— y la M no aparecía aunque también estuviera por colgar.
+// «Reponer prenda» (ADR-0295, ADR-0317): el botón de la tarjeta abre ESTA ventana con el MODELO entero —una fila por color, una
+// columna por talla— y al confirmar llama UNA vez a `bajar_al_piso` (todo o nada, con marca de reintento: ADR-0208). Antes abría
+// una ventana por color: un Polo en azul, blanco y negro eran tres búsquedas, tres ventanas y tres esperas.
 //
 // Por qué `bajar_al_piso` y no `mover_entre_piso_y_almacen` una vez por talla: con dos llamadas, la segunda puede fallar
 // con la primera ya guardada y la prenda queda repuesta a medias (ADR-0208 lo descartó: «llamar N veces desde la web no
@@ -64,13 +54,14 @@ export type PrendaParaReponer = {
 // La ventana NO sugiere cuántas bajar (ADR-0231): arranca en cero y la cifra la pone quien tiene la prenda en la mano.
 // «Retirar del piso» sigue en `ReponerPisoModal`: es una sola talla y lleva nota.
 export function ReponerPrendaModal({
-  prenda,
+  prendas,
   ubicacionId,
   sede,
   alCerrarEnfocar,
   onClose,
 }: {
-  prenda: PrendaParaReponer;
+  /** Los colores del modelo, cada uno con todas sus tallas (la prenda que se tocó va primero). */
+  prendas: readonly PrendaParaReponer[];
   ubicacionId: string;
   /** El nombre de la sede, para los textos de la base («…al piso de Tienda TRU»). */
   sede: string;
@@ -79,7 +70,8 @@ export function ReponerPrendaModal({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const tallas = tallasParaReponer(prenda.tallas);
+  const colores = coloresParaMover(prendas);
+  const modelo = prendas[0];
   const [cantidades, setCantidades] = useState<Cantidades>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,9 +89,10 @@ export function ReponerPrendaModal({
   // Mover prendas pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
 
-  const lineas = lineasDeReponer(tallas, cantidades);
+  const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
   const total = totalAReponer(lineas);
-  const hayAlgoQueBajar = tallas.some(sePuedeBajarTalla);
+  const totales = totalesDeMatriz(colores, cantidades, "bajar");
+  const hayAlgoQueBajar = colores.some((c) => c.tallas.some(sePuedeBajarTalla));
 
   // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace.
   const guia = useGuiaCampos([
@@ -220,7 +213,7 @@ export function ReponerPrendaModal({
       avisar.aviso(textoDeExito(r, sede).detalle, { detalle: sede });
     } else {
       avisar.exito(avisoDeExito(r, sede).titulo, {
-        detalle: `${nombreDePrendaParaReponer(prenda)} · ${detalleDeLoBajado(tallas, lineas)}`,
+        detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}`,
       });
     }
     router.refresh();
@@ -229,26 +222,33 @@ export function ReponerPrendaModal({
 
   return (
     <Modal
-      titulo="Reponer piso"
+      titulo="Reponer prenda"
       subtitulo="Del almacén al piso de venta"
       onClose={onClose}
       bloqueado={loading}
       alCerrarEnfocar={alCerrarEnfocar}
-      lateral={<FotoDePrenda fotoUrl={prenda.fotoUrl ?? null} colorHex={prenda.colorHex} />}
+      ancho="max-w-3xl"
     >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
-          <p className="flex items-center gap-2 text-[15px] text-tinta">
-            {prenda.colorHex && <span aria-hidden className="h-4 w-4 shrink-0 rounded-full border border-tinta/15" style={{ background: prenda.colorHex }} />}
-            <span className="font-semibold">{prenda.referencia}</span>
-            {prenda.color && <span className="text-taupe">{prenda.color}</span>}
-          </p>
+          <div className="flex items-center gap-3">
+            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" />
+            <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[15px] text-tinta">
+              <span className="font-semibold">{modelo.referencia}</span>
+              <span className="text-taupe">{colores.length === 1 ? colores[0].nombre : `${colores.length} colores`}</span>
+            </p>
+          </div>
 
-          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas bajas de cada talla?" retiene="fila">
-            {/* Todas las tallas de la prenda: la que no tiene nada en el almacén también sale, para que se vea por qué no se baja. */}
-            <SelectorDeTallas filas={filasDelSelector(tallas, "bajar")} cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
-            {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ninguna talla tiene prendas libres en el almacén para bajar.</p>}
+          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas bajas de cada color y talla?" retiene="fila">
+            {/* Todos los colores del modelo: la celda sin nada en el almacén sale rayada, para que se vea por qué no se baja. */}
+            <MatrizMover colores={colores} rumbo="bajar" cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
+            {total > 0 && (
+              <p className="mt-2 text-xs text-taupe">
+                {total} {total === 1 ? "prenda" : "prendas"} en {coloresConAlgo(colores, totales)} {coloresConAlgo(colores, totales) === 1 ? "color" : "colores"}.
+              </p>
+            )}
+            {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el almacén para bajar.</p>}
           </CampoGuiado>
 
           <CampoGuiado id="responsable" guia={guia}>
