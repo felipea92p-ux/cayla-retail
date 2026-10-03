@@ -83,6 +83,12 @@ describe("contraerSolesPorHora", () => {
   });
 });
 
+describe("construirRankingSolesPorHora: propiedades pendientes de decisión (ADR-0318, «El centro de la contracción»)", () => {
+  // Hoy se invierte en la zona de «muestra chica» (menos de 40 ventas cada una): con 100 h y 30 ventas, crudo 15 y 9, salen 11,57 y 12,43.
+  // Se activa cuando Felipe elija entre dejarlo, centrar en la tienda o ordenar por una cota prudente. No pasarla a `it` sin esa decisión.
+  it.todo("con las MISMAS horas y las MISMAS ventas, quien tiene el crudo más alto no queda por debajo de quien lo tiene más bajo");
+});
+
 describe("construirRankingSolesPorHora", () => {
   it("ordena por el número contraído, manda sin horas al final marcadas, y excluye a quien no vendió", () => {
     const filas = [

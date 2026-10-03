@@ -278,4 +278,20 @@ Auditoría local de `/rendimiento` (cuello: ninguno de velocidad; con ~54.000 ve
    y la pantalla sigue diciendo «no se pudo leer», nunca «sin datos». Probado en `rendimiento-lectura.test.ts`.
 2. **Pestañas instantáneas.** Cambiar de tienda era un enlace a `?sede=`: para la espera global una navegación es una «carga» (loader a pantalla completa y dos rondas de lecturas) para mostrar datos que ya
    estaban en memoria. Ahora es estado del navegador (`TiendasRendimiento`), igual que Hoy · Semana · Mes, y conserva la vista elegida.
-3. **Ranking de «soles por hora» que no invierte el orden** (ver abajo, «La corrección del centro»).
+3. **Ranking de «soles por hora»: PENDIENTE DE DECISIÓN DE FELIPE (no se tocó el código).** Ver el apartado siguiente.
+
+### El centro de la contracción (hallazgo de la auditoría, 2026-10-03) — decide Felipe
+
+`contraerSolesPorHora` (`rendimiento-reglas.ts`, de `main`) encoge cada número hacia el promedio del RESTO de la tienda (ADR-0219, act. 2026-09-29). Medido con las reglas reales:
+- **Invierte el orden con la misma exposición.** Dos personas con 100 h y 30 ventas cada una, crudo 15 y 9 por hora, salen con 11,57 y 12,43: la de 9 queda primera. Con dos personas la diferencia entre ambas es
+  `(2w − 1) · (crudoᵢ − crudoⱼ)`, así que el orden se invierte cuando el peso `w` de la persona es menor que 0,5; con las mismas ventas por persona eso es **exactamente cuando cada una tiene menos de 40 ventas** (la
+  «muestra chica»). En un barrido de 28 combinaciones de horas y ventas: invertido en 16 con 2 personas, 12 con 3 y 8 con 5. AQP (2 personas, menos de 40 ventas) está en esa zona.
+- **El número mostrado puede alejarse de la persona.** Con A = 8 h a S/50 por hora y B = 160 h a S/18, hoy sale A 20,94 y B **28,58**: el «resto» de B es solo A y su racha de suerte, y B termina «corregida» muy por encima de lo que vende.
+- **Pero cambiar el centro al promedio de TODA la tienda no es gratis:** conserva el orden con la misma exposición (13,29 y 10,71) y deja a B en 18,50, pero **A pasa al frente** (22,32 contra 18,50), y la prueba
+  `rendimiento-reglas.test.ts:31` escribe lo contrario como expectativa de negocio («el mes sostenido termina adelante del mes corto con un golpe de suerte»).
+
+Las dos metas —(1) con la misma exposición no se invierte, (2) la veterana queda adelante de la nueva afortunada— no las cumple ningún centro simple. Opciones, para que Felipe elija:
+- **A. Dejarlo como está** (cumple 2, incumple 1 en «muestra chica»). Ganas: nada cambia. Pagas: el orden entre quienes tienen menos de 40 ventas puede ser el contrario al crudo.
+- **B. Centro = promedio de la tienda** (cumple 1, incumple 2). Ganas: orden coherente y números cercanos a la realidad. Pagas: una nueva con una venta grande sale primera.
+- **C. Ordenar por una cota prudente** (el número contraído menos su incertidumbre: «lo que podemos asegurar»), mostrando el mismo número. Ganas: cumple las dos. Pagas: es otro método, hay que explicarlo y escribir su ADR.
+Hasta que decida, `rendimiento-reglas.test.ts` lleva una prueba pendiente (`it.todo`) con la propiedad (1).
