@@ -1090,27 +1090,22 @@ hace falta otro. Lo que estaba mal era que cada vez dejaba otra fila «club · o
 - **Descartado:** un botón «Actualizar mis datos» aparte o un código para entrar: sería otro camino con otro formulario y otras
   validaciones; el cartel ya identifica por documento. Mejorar el aviso de la página para quien ya es miembro, si hace falta, es de la web.
 
-## Actualización 2026-10-03 (o): el celular, opcional, para mandarle su boleta por WhatsApp — en «Registrar cliente» y en el paso Comprobante
+## Actualización 2026-10-03 (o): el celular para mandarle su boleta por WhatsApp, en el paso Comprobante del cobro
 
 Felipe, 2026-10-03, en el punto de venta de Caja Trujillo: «un apartado donde pueda agregar el número del cliente para que automáticamente
-pueda enviarse su boleta». Contra lo que la tanda 1g (G-2) decidió —en caja, solo el documento—, el celular vuelve a «Registrar cliente»,
-pero **con otro oficio**: ya no es del club, es el destino de su boleta. Felipe eligió (con las opciones delante): que el envío sea **de un
-toque desde el WhatsApp de la tienda** y no automático (coherente con su decisión del 2026-09-30, sin bot:
-`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`). Sobre dónde se escribe el número eligió el modal «Registrar cliente»; al ver
-que el buscador de «Agregar cliente» ya recibe «documento, celular o nombre» —y que pedirlo otra vez al registrar se sentía repetido— pidió **ver las
-dos ubicaciones**. Por eso esta rama trae las dos, y **cuál se queda está por decidir** (recomendación abajo).
+pueda enviarse su boleta». Eligió (con las opciones delante) que el envío sea **de un toque desde el WhatsApp de la tienda** y no automático,
+coherente con su decisión del 2026-09-30 de no usar bot (`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`). Sobre dónde se
+escribe el número se construyeron y probaron dos ubicaciones; **Felipe decidió B: el paso Comprobante del cobro**. «Registrar cliente» sigue
+como lo dejó la tanda 1g (G-2): solo el documento y quién registra.
 
-DECIDÍ: el celular es un campo OPCIONAL en dos lugares, y cuando la venta tiene celular «Venta registrada» ofrece «Abrir WhatsApp con la boleta»:
-- **A. «Registrar cliente»** (`ClientaDelTicket` en Cobrar y `NuevaClientaModal` en Clientas, con la misma regla `camposDeRegistrar`): se pide una sola vez, al
-  crear la ficha, y queda en ella. Solo existe para clientes nuevos.
-- **B. El paso Comprobante del cobro** (`PuntoDeVenta` → `documento`; la nota de venta no lo lleva): «Celular para enviarle la boleta por WhatsApp (opcional)»,
-  ya puesto con el de la ficha. Es el celular de ESA boleta: no se escribe en la ficha. Sirve con o sin cliente registrado. A medias bloquea el cobro, como un
-  carné mal escrito (`problemaDelComprobante` alimenta `motivoBloqueoCobro` y la hoja).
-- **Sin migración.** `registrar_clienta` ya recibía `p_telefono_whatsapp` y lo normaliza y valida (`fn_exigir_celular`: 9 dígitos, empieza en 9).
-  La web usa la misma regla (`celularValido`, `ajustarCelular`, `problemaCelularOpcional`): vacío no bloquea; a medias sí (la base rechazaría la ficha entera).
-- **No es consentimiento.** El celular de caja no une al club ni da la publicidad (ADR-0288 D-4, Ley 32323): esos permisos siguen naciendo de
-  un acto de ella en el cartel. Se verificó en la base: la ficha queda con `club_desde` y `publicidad_desde` vacíos y 0 eventos en `club_permisos`.
-  Los avisos del club los decide la base por publicidad vigente: tener celular no suscribe a nada. El campo lo dice: «Solo sirve para la boleta».
+DECIDÍ: en el paso Comprobante del cobro (`PuntoDeVenta` → `documento`; boleta y factura, la nota de venta no) va «Celular para enviarle la boleta
+por WhatsApp (opcional)», ya puesto con el celular de la ficha si el cliente lo tiene. Con celular, «Venta registrada» ofrece «Abrir WhatsApp con la boleta».
+- **Es el celular de ESA boleta, no de la ficha.** Se puede escribir o corregir en la caja y no se guarda en `clientas`: no toca el celular del club
+  (cambiarlo le quita la publicidad a una socia: `registrar_clienta` y `editar_clienta`, ajuste d). Sirve con o sin cliente registrado.
+- **Sin migración.** Usa `CampoCelular`, `celularValido`, `ajustarCelular` y `problemaCelularOpcional` (la misma regla que la base: 9 dígitos, empieza en 9).
+  Vacío no bloquea; a medias bloquea el cobro, como un carné mal escrito (`problemaDelComprobante` alimenta `motivoBloqueoCobro` y la hoja).
+- **No es consentimiento.** No une al club ni da la publicidad (ADR-0288 D-4, Ley 32323): esos permisos solo nacen de un acto de ella en el cartel.
+  Los avisos del club los decide la base por publicidad vigente: un celular de caja no suscribe a nada.
 - **Un solo mensaje, sin nombre.** `lib/comprobante-whatsapp-reglas.ts` arma «Hola, gracias por tu compra en CAYLA. Aquí está tu boleta
   B001-000123: <enlace>». Sin nombre porque el padrón trae «APELLIDO APELLIDO NOMBRE» (un «primer nombre» saludaría con el apellido) y porque
   menos datos personales viajan a un chat que puede ser el equivocado.
@@ -1121,25 +1116,21 @@ DECIDÍ: el celular es un campo OPCIONAL en dos lugares, y cuando la venta tiene
 - **Un PDF del sandbox no se manda.** Si el comprobante se transmitió a las pruebas de Lucode (`entorno_transmision <> 'produccion'`), ese PDF no
   vale ante SUNAT: la tarjeta lo dice y no ofrece el botón.
 
-DESCARTÉ: el envío automático por la API de Meta, porque cuesta (≈US$0.03 por boleta, ≈US$60 al mes con 2.000), pide cuenta verificada,
-plantilla aprobada y proveedor, sale desde un número de API y no el de la tienda, contradice la decisión del 2026-09-30 y no se podía probar sin
-credenciales. Y no se eligió todavía entre A y B: **recomiendo dejar solo B** (se pide donde se decide a dónde va la boleta, sirve a nuevos, antiguos y
-ventas sin registro, y no repite el celular que el buscador ya recibió) **y guardar el celular en la ficha al cobrar** si el cliente no tenía (actividad 2).
-Lo que cuesta B sin esa actividad: el celular no queda en la ficha y la próxima compra lo vuelve a pedir.
+DESCARTÉ: (1) el envío automático por la API de Meta, porque cuesta (≈US$0.03 por boleta, ≈US$60 al mes con 2.000), pide cuenta verificada, plantilla
+aprobada y proveedor, sale desde un número de API y no el de la tienda, contradice la decisión del 2026-09-30 y no se podía probar sin credenciales.
+(2) El celular dentro de «Registrar cliente» (variante A): se construyó, se probó y se quitó. Pedía otra vez lo que el buscador de «Agregar cliente» ya
+recibe («documento, celular o nombre»), existía solo para clientes nuevos (todos los ya registrados quedaban fuera) y mandaba el celular a la ficha del club.
 
-SE ROMPE SI: (1) alguien cambia el celular de una socia desde caja: `registrar_clienta` y `editar_clienta` le quitan la publicidad en la misma
-transacción (ajuste d); por eso en caja **solo se agrega** un celular a quien no tiene (actividad 2, pendiente: «Agregar celular» para un
-cliente ya registrado, con una función que solo llena si está vacío), nunca se cambia; (2) una venta sin cliente registrado (boleta a «Cliente
-varios») no tiene a quién ofrecerle el botón: el modal la registra primero; (3) la transmisión a SUNAT sigue en `LUCODE_ENTORNO=sandbox` y nadie lo
-nota: la tarjeta dirá «modo de pruebas» en cada boleta, que es la señal para cambiarlo; (4) el celular se escribió mal y la boleta llegó a otra persona:
-quien manda ve el nombre del contacto en su WhatsApp antes de enviar y el celular sale legible («987 654 321») en la tarjeta; el envío no se guarda
-(no hay registro de «se mandó»: se agregaría con una tabla propia si hace falta auditarlo).
+SE ROMPE SI: (1) el celular que se escribe en caja no se guarda: la próxima compra del mismo cliente lo vuelve a pedir; el remedio es **guardarlo en la
+ficha al cobrar solo si no tenía** (actividad 2, pendiente: lleva una función nueva en la base, `agregar_celular_clienta`, que solo llena si está vacío y nunca
+cambia el de una socia); (2) la transmisión a SUNAT sigue en `LUCODE_ENTORNO=sandbox` y nadie lo nota: la tarjeta dirá «modo de pruebas» en cada boleta, que es la
+señal para cambiarlo; (3) el celular se escribió mal y la boleta llegó a otra persona: quien manda ve el nombre del contacto en su WhatsApp antes de enviar y el
+celular sale legible («987 654 321») en la tarjeta; el envío no se guarda (no hay registro de «se mandó»: se agregaría con una tabla propia si hace falta auditarlo).
 
 **Lo que no se tocó:** el modelo de datos, ninguna función de la base, los permisos del club ni el flujo de «ella se une sola». **Se encontró de paso:**
 los botones «WhatsApp» de Comprobantes (`ComprobantesPanel`, `OpcionesComprobante`) escriben cada uno su propio texto (uno con el primer nombre, otro con
 el nombre completo en mayúsculas) y mandan el PDF aunque sea del sandbox: pendiente unificarlos con `mensajeDelComprobante` y la misma regla.
-**Verificado** en el navegador (escritorio y 375 px, sin desborde) contra una pila Supabase propia con todas las migraciones: registro con celular
-(precargado desde el buscador), celular a medias frena el botón (en A y en B), la ficha queda sin permisos, búsqueda por celular, B con el celular de la ficha
-ya puesto, venta completa, tarjeta «esperando» →
-«sin PDF» a los 20 s (Lucode sin credenciales) y «Abrir WhatsApp con la boleta» al simular el PDF de producción en la base; el enlace abre
-`wa.me/51987654321` con el mensaje escrito. Pruebas: 313 archivos, 154.989, verdes.
+**Verificado** en el navegador (escritorio y 375 px, sin desborde: página 375, hoja 373) contra una pila Supabase propia con todas las migraciones: el campo con el
+celular de la ficha ya puesto, celular a medias frena el cobro, venta completa, tarjeta «esperando» → «sin PDF» a los 20 s (Lucode sin credenciales) y «Abrir WhatsApp
+con la boleta» al simular el PDF de producción en la base; el enlace abre `wa.me/51987654321` con el mensaje escrito; «Registrar cliente» vuelve a pedir solo el
+documento. Pruebas: 320 archivos, 155.170, verdes.

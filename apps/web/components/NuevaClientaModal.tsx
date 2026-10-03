@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CampoCelular } from "@/components/clientas/club-piezas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -13,7 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { traducirError } from "@/lib/error-escritura";
 import { registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
-import { camposDeRegistrar, nombreSuficiente, problemaCelularOpcional } from "@/lib/club-caja-reglas";
+import { camposDeRegistrar, nombreSuficiente } from "@/lib/club-caja-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import type { Clienta } from "@/lib/clientas-reglas";
 import { ajustarNumeroAlTipo, documentoLegible, normalizarNumeroDocumento, problemaDocumento } from "@/lib/documento-clienta-reglas";
@@ -29,15 +28,13 @@ const ALTA_VACIA: DatosAlta = {
 };
 
 const ID_NOMBRE = "nueva-clienta-nombre";
-const ID_CELULAR = "nueva-clienta-celular";
 
 /** Alta de clienta (D-76/D-77), en `<Modal variante="hoja">` — antes vivía embebida en el cuerpo
  *  de `/clientas`; se separó al paso 2 del acta cuando la pantalla ganó lista, ficha y edición.
  *
  *  ADR-0288 tanda 1g (G-2): se registra SOLO con el documento, igual que en Cobrar —con DNI el nombre llega del padrón; con
- *  carné o pasaporte, se escribe— y quién registra. No pide cumpleaños ni une al club: ella se une sola escaneando el cartel,
- *  y ahí escribe su celular y su fecha de nacimiento (G-3). El celular que se anota aquí es OPCIONAL y solo sirve para mandarle
- *  su boleta por WhatsApp («Actualización 2026-10-03 (o)»): no da el club ni la publicidad. «Editar» de su ficha corrige todo.
+ *  carné o pasaporte, se escribe— y quién registra. Ya no pide celular ni cumpleaños, ni une al club: ella se une sola
+ *  escaneando el cartel, y ahí escribe su celular y su fecha de nacimiento (G-3). «Editar» de su ficha sigue corrigiéndolos.
  *  La guía y el botón miran la MISMA regla que Cobrar: `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas). */
 export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; onCreada: (clienta: Clienta) => void }) {
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
@@ -49,7 +46,6 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
     documentoTipo: alta.documentoTipo,
     documentoNumero: alta.documentoNumero,
     nombre: alta.nombre,
-    celular: alta.telefonoWhatsapp,
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
   });
@@ -63,8 +59,6 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
         avisar.error(problema ?? "Elige el tipo de documento y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
       } else if (!nombreSuficiente(alta.nombre)) {
         avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
-      } else if (problemaCelularOpcional(alta.telefonoWhatsapp)) {
-        avisar.error(problemaCelularOpcional(alta.telefonoWhatsapp)!, { enfocar: ID_CELULAR });
       } else if (responsable.motivo) {
         avisar.error(responsable.motivo);
       }
@@ -80,15 +74,13 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
     }
     const numero = normalizarNumeroDocumento(alta.documentoNumero) || null;
     const quien = alta.nombre.trim() || documentoLegible(alta.documentoTipo, numero, false) || "sin nombre";
-    avisar.exito("Cliente registrado", {
-      detalle: `${quien}.${alta.telefonoWhatsapp ? " Su boleta se le puede enviar por WhatsApp." : ""} Para ser del club, que escanee el cartel.`,
-    });
+    avisar.exito("Cliente registrado", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
     onCreada({
       id,
       documentoTipo: alta.documentoTipo,
       documentoNumero: numero,
       nombre: alta.nombre.trim() || null,
-      telefonoWhatsapp: alta.telefonoWhatsapp || null,
+      telefonoWhatsapp: null,
       tienePermisoWhatsapp: false,
       clubDesde: null,
       publicidadDesde: null,
@@ -107,7 +99,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
   }
 
   return (
-    <Modal titulo="Registrar cliente" subtitulo="Su documento y, si quiere, su celular para enviarle la boleta. Para ser del club, se une por su cuenta escaneando el cartel." onClose={onClose} variante="hoja">
+    <Modal titulo="Registrar cliente" subtitulo="Solo su documento: vino, preguntó, se probó. Para ser del club, se une por su cuenta escaneando el cartel." onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form onSubmit={onRegistrar} className="space-y-6">
           <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
@@ -138,17 +130,6 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
               <CampoTexto id={ID_NOMBRE} etiqueta="Nombre completo" caja value={alta.nombre} onChange={(e) => setAlta((a) => ({ ...a, nombre: e.target.value }))} />
             </CampoGuiado>
           )}
-          <CampoGuiado id="celular" guia={guia} titulo="Celular" ayuda="Para enviarle su boleta por WhatsApp · opcional">
-            <CampoCelular
-              caja
-              id={ID_CELULAR}
-              etiqueta="Celular"
-              valor={alta.telefonoWhatsapp}
-              onValor={(v) => setAlta((a) => ({ ...a, telefonoWhatsapp: v }))}
-              deshabilitado={guardando}
-            />
-            <p className="mt-1 text-xs text-tinta/60">Solo sirve para la boleta: no la suscribe al club ni a novedades.</p>
-          </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>

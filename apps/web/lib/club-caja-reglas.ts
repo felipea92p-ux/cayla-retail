@@ -142,8 +142,6 @@ export type HojaRegistrar = {
   documentoTipo: TipoDocumentoClienta;
   documentoNumero: string;
   nombre: string;
-  /** Opcional: el WhatsApp al que se le manda su boleta (solo dígitos, como lo deja `ajustarCelular`). Vacío = sin celular. */
-  celular: string;
   responsableListo: boolean;
   responsableMotivo: string | null;
 };
@@ -152,21 +150,16 @@ export type HojaRegistrar = {
 export const nombreSuficiente = (nombre: string) => nombre.trim().length >= 3;
 
 /**
- * Registrar a una clienta (tanda 1g, G-2): su documento. Con DNI el nombre llega del padrón DENTRO del mismo bloque (si
- * no responde, se escribe ahí); con carné o pasaporte, en su propio bloque. El cumpleaños ya no se pide: lo escribe ella al
- * unirse desde el cartel, y «Editar» de su ficha lo corrige. Y quién registra. Es la MISMA regla en Cobrar
+ * Registrar a una clienta (tanda 1g, G-2): SOLO su documento. Con DNI el nombre llega del padrón DENTRO del mismo bloque (si
+ * no responde, se escribe ahí); con carné o pasaporte, en su propio bloque. El celular y el cumpleaños ya no se piden: los
+ * escribe ella al unirse desde el cartel, y «Editar» de su ficha los corrige. Y quién registra. Es la MISMA regla en Cobrar
  * (`ClientaDelTicket`) y en Clientas ▸ Nueva clienta (`NuevaClientaModal`).
- *
- * El CELULAR (opcional, ADR-0288 «Actualización 2026-10-03 (o)»): sirve SOLO para mandarle su boleta por WhatsApp. No une al club
- * ni da la publicidad —esos permisos solo nacen de un acto de ella en el cartel—, así que no es «sugerido» ni «falta»: vacío
- * no bloquea y no se lista. Escrito a medias sí bloquea: la base lo rechazaría (`celular_invalido`) y la ficha entera con él.
  */
 export function camposDeRegistrar(h: HojaRegistrar): CampoDeGuia[] {
   const esDni = h.documentoTipo === "dni";
   const problema = problemaDocumento(h.documentoTipo, h.documentoNumero);
   const documentoBien = normalizarNumeroDocumento(h.documentoNumero) !== "" && problema === null;
   const nombreBien = nombreSuficiente(h.nombre);
-  const celularMalEscrito = problemaCelularOpcional(h.celular) !== null;
   return [
     {
       id: "documento",
@@ -177,13 +170,6 @@ export function camposDeRegistrar(h: HojaRegistrar): CampoDeGuia[] {
       pendiente: normalizarNumeroDocumento(h.documentoNumero) === "" ? "Elige el tipo y escribe el número." : (problema ?? "Escribe su nombre."),
     },
     ...(esDni ? [] : [{ id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreBien, pendiente: "Escribe su nombre." }]),
-    {
-      id: "celular",
-      nombre: "Celular",
-      requerido: celularMalEscrito,
-      hecho: h.celular.trim() !== "" && !celularMalEscrito,
-      pendiente: problemaCelularOpcional(h.celular) ?? "Escribe su celular.",
-    },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién registra." },
   ];
 }
