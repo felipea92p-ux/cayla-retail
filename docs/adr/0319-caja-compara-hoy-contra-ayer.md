@@ -12,7 +12,9 @@ Caja decía cuánto había en el cajón y cuánto se cobró, pero no si el día 
 DECIDÓ:    Caja abre con un titular («Llevas 41 % de lo que vendió ayer»), un anillo, el gráfico de venta acumulada de hoy contra
            ayer con la brecha sombreada, «Cómo te pagaron» y «Dónde ganas y dónde pierdes» (hora por hora). Se recalcula cada minuto.
            La meta es el día completo de ayer: se retiran la tarjeta «Meta de hoy», «Ritmo del turno» y «Cobrado en el turno».
-           Se conserva «Al cerrar» (el fondo del cierre no es la meta).
+           Se retiran también «Hacer», «Tu caja muestra», «Al cerrar» y «Cierres anteriores»
+           (la maqueta no los tiene; el fondo lo sigue pidiendo el modal de cierre). «Registrar gasto» y «Depósito o retiro» pasan a la
+           cabecera; «Movimientos del turno» va junto a «Dónde ganas…». Sin la lectura nueva, Caja conserva todo el diseño anterior.
 BASE:      `retail.fn_comparativa_caja(p_ubicacion_id, p_dia)`: un pago por fila con el minuto de Lima. Solo lectura, sin tocar tablas.
            Sin ventas anuladas; todas las cajas de la sede ese día; líder (cualquier sede) o la sede de la cuenta.
 DESCARTÉ:  (a) prorratear la hora en curso: se compara por minutos reales (a las 15:10, 15:00–15:10 de hoy contra 15:00–15:10 de ayer);
