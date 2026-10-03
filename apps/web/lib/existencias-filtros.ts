@@ -204,3 +204,50 @@ export function filtrarExistencias<F extends FilaFiltrable>(
     opciones
   );
 }
+
+/* ====================================================================
+   Cuántos productos trae cada opción (2026-10-03, como Productos ADR-0308): la barra esconde las opciones que dejarían la
+   lista vacía y dice cuántos hay en cada una. El conteo es DISYUNTIVO: cada filtro cuenta con todos los demás puestos menos
+   el suyo («¿cuántas Krisstell hay en cada talla?» mira la marca elegida, no la talla elegida, porque esa es la pregunta).
+   La unidad es el producto (modelo): la misma del «N productos» de arriba, así un número nunca contradice a la lista.
+   Se cuenta en el navegador sobre lo que ya llegó: TRU tiene ~2.300 tallas y seis pasadas son ~14.000 filas, milisegundos.
+   ==================================================================== */
+
+export const CLAVES_CONTEO: readonly ClaveFiltro[] = ["categoria", "marca", "talla", "color", "accion", "estado"];
+/** filtro → { opción → cuántos productos }. Una opción que no está tiene 0. */
+export type ConteosFiltros = Record<ClaveFiltro, Record<string, number>>;
+
+/** Lo que vale una fila en cada filtro. En «Estado» puede valer dos cosas a la vez (dañada y por colgar). */
+function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undefined)[] {
+  switch (clave) {
+    case "categoria":
+      return [f.categoria];
+    case "marca":
+      return [f.marca];
+    case "talla":
+      return [f.talla];
+    case "color":
+      return [f.color];
+    case "accion":
+      return [f.accionHoy?.tipo];
+    case "estado":
+      return [(f.danado ?? 0) > 0 ? "danado" : null, porColgar(f) ? "por_colgar" : null];
+  }
+}
+
+export function conteosDeFiltros<F extends FilaFiltrable>(indice: IndiceBusquedaEspecial<F>, elegidos: FiltrosElegidos): ConteosFiltros {
+  const salida = {} as ConteosFiltros;
+  for (const clave of CLAVES_CONTEO) {
+    const productos = new Map<string, Set<string>>();
+    for (const f of filtrarExistencias(indice, elegidos, new Set([clave])).filas) {
+      for (const v of valoresDe(f, clave)) {
+        if (!v) continue;
+        const s = productos.get(v);
+        if (s) s.add(f.productoId);
+        else productos.set(v, new Set([f.productoId]));
+      }
+    }
+    salida[clave] = Object.fromEntries([...productos].map(([v, s]) => [v, s.size]));
+  }
+  return salida;
+}

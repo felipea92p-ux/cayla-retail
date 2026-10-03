@@ -37,7 +37,7 @@ import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
-import { filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -400,6 +400,8 @@ export function InventarioPanel({
     }),
     [busqueda, categoria, marcaEfectiva, talla, color, filtros.accion, filtros.estado]
   );
+  // Cuántos productos trae cada opción de la barra, con los demás filtros puestos (se esconden las que vaciarían la lista).
+  const conteos = useMemo(() => conteosDeFiltros(indiceBusqueda, elegidos), [indiceBusqueda, elegidos]);
   const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
     const resultado = filtrarExistencias(
       indiceBusqueda,
@@ -758,6 +760,7 @@ export function InventarioPanel({
             colores={colores}
             marcas={mostrarMarca ? marcas : null}
             elegidos={elegidos}
+            conteos={conteos}
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
             total={modelosOrdenados.length}

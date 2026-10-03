@@ -9,6 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { TEXTO_ACCION_HOY } from "@/lib/existencias-recomendaciones";
+import { opcionesConConteo } from "@/lib/productos-facetas";
 import {
   chipsDeFiltros,
   contarFiltrosActivos,
@@ -16,6 +17,7 @@ import {
   OPCIONES_FILTRO_ACCION,
   ROTULO_ESTADO_FILTRO,
   type ClaveUrl,
+  type ConteosFiltros,
   type FiltrosElegidos,
 } from "@/lib/existencias-filtros";
 
@@ -52,6 +54,7 @@ export function FiltrosExistencias({
   colores,
   marcas,
   elegidos,
+  conteos,
   onCambiar,
   onLimpiar,
   total,
@@ -78,6 +81,9 @@ export function FiltrosExistencias({
   marcas: readonly string[] | null;
   /** Lo que de verdad filtra la lista (ya resuelto contra lo que la sede ofrece). */
   elegidos: FiltrosElegidos;
+  /** Cuántos productos trae cada opción con los demás filtros puestos (`conteosDeFiltros`): se esconden las que darían una lista
+   *  vacía, salvo la elegida (para verla y quitarla aunque hoy dé 0). */
+  conteos: ConteosFiltros;
   /** Un cambio de filtros; `null` lo quita. */
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
   onLimpiar: () => void;
@@ -139,6 +145,8 @@ export function FiltrosExistencias({
   const activos = contarFiltrosActivos(elegidos);
   const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
   const opcion = (v: string) => ({ valor: v, texto: v });
+  const contar = <O extends { valor: string }>(opciones: readonly O[], clave: keyof ConteosFiltros, elegida: string | null) =>
+    opcionesConConteo(opciones, conteos[clave], elegida ? [elegida] : []);
 
   // Dos filas con nombre, como Productos: arriba lo que se pregunta de la prenda (categoría, talla, color), abajo lo de quien
   // gestiona el stock (qué hacer hoy, en qué condición está, de qué marca es). El mismo panel va en la página (computadora) o
@@ -152,21 +160,23 @@ export function FiltrosExistencias({
           etiqueta="Categoría"
           valor={elegidos.categoria ?? TODOS}
           onValor={(v) => onCambiar({ cat: v === TODOS ? null : v })}
-          opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map(opcion)]}
+          opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(categorias.map(opcion), "categoria", elegidos.categoria)]}
         />
         <DesplegablePildora
           icono={Ruler}
           etiqueta="Talla"
           valor={elegidos.talla ?? TODOS}
           onValor={(v) => onCambiar({ talla: v === TODOS ? null : v })}
-          opciones={[{ valor: TODOS, texto: "Todas" }, ...tallas.map(opcion)]}
+          rotuloCantidad="Productos · uno con varias tallas cuenta en cada una"
+          opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(tallas.map(opcion), "talla", elegidos.talla)]}
         />
         <DesplegablePildora
           icono={Palette}
           etiqueta="Color"
           valor={elegidos.color ?? TODOS}
           onValor={(v) => onCambiar({ color: v === TODOS ? null : v })}
-          opciones={[{ valor: TODOS, texto: "Todos" }, ...colores.map(opcion)]}
+          rotuloCantidad="Productos · uno con varios colores cuenta en cada uno"
+          opciones={[{ valor: TODOS, texto: "Todos" }, ...contar(colores.map(opcion), "color", elegidos.color)]}
         />
       </FilaPildoras>
       {hayGestion && (
@@ -178,7 +188,15 @@ export function FiltrosExistencias({
               etiqueta="Acción"
               valor={elegidos.accion ?? TODOS}
               onValor={(v) => onCambiar({ accion: v === TODOS ? null : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...OPCIONES_FILTRO_ACCION.map((a) => ({ valor: a as string, texto: TEXTO_ACCION_HOY[a] }))]}
+              rotuloCantidad="Productos con alguna talla así"
+              opciones={[
+                { valor: TODOS, texto: "Todas" },
+                ...contar(
+                  OPCIONES_FILTRO_ACCION.map((a) => ({ valor: a as string, texto: TEXTO_ACCION_HOY[a] })),
+                  "accion",
+                  elegidos.accion
+                ),
+              ]}
             />
           )}
           {separa && (
@@ -187,7 +205,15 @@ export function FiltrosExistencias({
               etiqueta="Estado"
               valor={elegidos.estado ?? TODOS}
               onValor={(v) => onCambiar({ estado: v === TODOS ? null : v })}
-              opciones={[{ valor: TODOS, texto: "Todos" }, ...ESTADOS_FILTRO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO_FILTRO[e] }))]}
+              rotuloCantidad="Productos con alguna talla así"
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                ...contar(
+                  ESTADOS_FILTRO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO_FILTRO[e] })),
+                  "estado",
+                  elegidos.estado
+                ),
+              ]}
             />
           )}
           {marcas && (
@@ -196,7 +222,7 @@ export function FiltrosExistencias({
               etiqueta="Marca"
               valor={elegidos.marca ?? TODOS}
               onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map(opcion)]}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
             />
           )}
         </FilaPildoras>
