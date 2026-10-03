@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Package, ScanLine, Search, SlidersHorizontal, Table2, Tag, Truck, X } from "lucide-react";
-import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
+import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Package, ScanLine, Table2, Tag, Truck, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
-import { Desplegable } from "@/components/ui/campos";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -33,36 +31,59 @@ import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
-import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
+import { AYUDA_HOY, hoyDeTalla, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
+import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { textoDeFamilia } from "@/lib/colores-familias";
+import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
+import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
+import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
+import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
-import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar } from "@/lib/inventario-reglas";
+import { clavePercha, ordenarPorModeloColorTalla, resumirPorColgar } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
-/** «Acción hoy» (2026-09-25): un tono fijo por tipo, no por urgencia — mismo criterio que tenía
- *  `EstadoStock`, para que el color siga significando lo mismo en cada fila. «Sin acción» no lleva
- *  chip (mismo criterio de «Normal»: es la mayoría de las filas, un chip verde ahí sería decoración). */
-const TONO_ACCION_HOY: Record<Exclude<TipoAccionHoy, "sin_accion">, TonoChip> = {
-  reponer_a_piso: "ambar",
-};
-
-const AYUDA_ACCION_HOY: Record<TipoAccionHoy, string> = {
-  sin_accion: "Nada que hacer hoy con el piso de esta talla",
-  reponer_a_piso: "El piso tiene pocas unidades — regla física de piso",
-};
-
 const TODAS = "__todas__";
+
+/** El punto de la leyenda de la tabla, en el tono de cada caso de «Hoy». */
+const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde" } as const;
+
+/** El caso de «Hoy» de UNA talla (columna de la tabla «Por talla»): las mismas palabras y el mismo tono que el filtro, la tarjeta y
+ *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino. */
+function ChipHoy({ f }: { f: FilaExistencias }) {
+  const h = hoyDeTalla(f);
+  if (!h) return <span className="text-xs text-tinta/40">N/D</span>;
+  if (h === "por_colgar") {
+    const n = f.almacenDisponible ?? 0;
+    return (
+      <ChipAlerta titulo={`En el piso no queda ninguna para vender; en el almacén hay ${n} que se ${n === 1 ? "puede" : "pueden"} colgar`}>
+        {TEXTO_HOY.por_colgar} · {n} {n === 1 ? "ud" : "uds"}
+      </ChipAlerta>
+    );
+  }
+  if (h === "mantener") return <ChipMantener titulo={AYUDA_HOY.mantener}>{TEXTO_HOY.mantener}</ChipMantener>;
+  return (
+    <>
+      <Chip tono={TONO_HOY[h]} className="text-xs">
+        <span title={AYUDA_HOY[h]}>{TEXTO_HOY[h]}</span>
+      </Chip>
+      {h === "sin_stock_atras" && f.enTransito > 0 && (
+        <span className="basis-full text-[11px] leading-tight text-taupe">
+          {f.enTransito} {f.enTransito === 1 ? "ud" : "uds"} en camino
+        </span>
+      )}
+    </>
+  );
+}
 /** El buscador, para devolverle el foco cuando un botón del estado vacío (que se desmonta al volver las filas) lo tenía. */
-const ID_BUSCADOR = "existencias-buscar";
 function enfocarBuscador() {
-  requestAnimationFrame(() => document.getElementById(ID_BUSCADOR)?.focus());
+  requestAnimationFrame(() => document.getElementById(ID_BUSCADOR_EXISTENCIAS)?.focus());
 }
 /** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
  *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
@@ -75,53 +96,6 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
   const rango = `Mostrando ${p.desde}–${p.hasta} de`;
   return filtradas === total ? `${rango} ${total} ${prendas}` : `${rango} ${filtradas} (de ${total} ${prendas})`;
 }
-/** Filtro de "Dañado" (2026-09-17, separado del filtro «Acción» el 2026-09-25 — REHECHO): eje
- *  aparte de «Acción hoy» —no es una de sus categorías, es una cola operativa distinta
- *  (ADR-0071)— con su PROPIO dropdown («Estado»): mezclarlo con las categorías de `TipoAccionHoy`
- *  confundía «qué hacer hoy» con «en qué condición está el inventario» (dos preguntas
- *  distintas, decisión de Felipe). */
-const DANADO = "__danado__";
-/** Filtro «Por colgar» (Frescura del piso, ADR-0208; reexpresado sobre el dominio nuevo el 2026-09-25):
- *  eje de Estado, igual que «Dañado» — no es una Acción hoy, es una condición del inventario. La regla
- *  sigue siendo `porColgar` (`lib/inventario-reglas.ts`: piso disponible en 0 y algo disponible en
- *  almacén), que es SIEMPRE un subconjunto de la regla canónica de Acción hoy (piso <= umbral → Reponer
- *  a piso): toda fila «Por colgar» ya sale como «Reponer a piso» por la vía única, sin motor propio ni
- *  segunda regla de reposición — este filtro solo aísla, dentro de las que hay que reponer, las que hoy
- *  no tienen NADA colgado para la clienta.
- *
- *  La fila siempre muestra el chip «Por colgar» junto a su Acción hoy (son dos hechos ciertos a la vez:
- *  hoy se cuelga lo que hay atrás, y la Acción hoy sigue siendo reponer); el filtro de Estado y la
- *  píldora solo controlan qué se ve en la tabla. */
-const POR_COLGAR = "__por_colgar__";
-
-/** Los filtros visuales que NO son texto, en UN solo lugar: la tabla los aplica y el estado vacío los «relaja» de a uno para
- *  decir cuál está dejando la pantalla en blanco. `omitir` = los que se ignoran en esa cuenta. «Acción» y «Estado» son dos ejes
- *  (2026-09-25): qué hacer hoy con la talla y en qué condición está; el estado vacío puede quitar uno sin tocar el otro. */
-function pasaFiltros(
-  f: FilaExistencias,
-  filtros: { categoria: string; marca: string; accion: string; condicion: string },
-  omitir?: ReadonlySet<ClaveFiltro>
-): boolean {
-  if (!omitir?.has("categoria") && filtros.categoria !== TODAS && f.categoria !== filtros.categoria) return false;
-  if (!omitir?.has("marca") && filtros.marca !== TODAS && f.marca !== filtros.marca) return false;
-  if (!omitir?.has("accion") && !coincideConFiltroAccion(f.accionHoy?.tipo, filtros.accion === TODAS ? null : (filtros.accion as TipoAccionHoy))) return false;
-  if (omitir?.has("estado")) return true;
-  if (!coincideConFiltroDanado(f.danado, filtros.condicion === DANADO)) return false;
-  return filtros.condicion !== POR_COLGAR || porColgar(f);
-}
-
-/** El buscador ocupa su propia fila y debajo van de 3 a 6 combos (Marca solo con 2 o más marcas; Acción y Estado solo donde se separa piso y almacén). Con
- *  el buscador y los 5 combos en UNA fila, a 1440-1490 px con el lateral abierto los combos partían su texto en dos líneas y el placeholder se cortaba
- *  (medido en la revisión, 2026-09-26): la herramienta que más se usa merece el ancho completo, y los combos, uno igual a otro. */
-const COLUMNAS_FILTROS: Record<number, string> = {
-  3: "sm:grid-cols-3",
-  4: "sm:grid-cols-2 xl:grid-cols-4",
-  5: "sm:grid-cols-3 xl:grid-cols-5",
-  6: "sm:grid-cols-3 2xl:grid-cols-6",
-};
-// Los cortes salen de la cuenta, no del gusto: «Categoría: todas» necesita ~152 px, así que 5 combos piden ~850 px de tarjeta. Con el lateral
-// abierto (17 rem + márgenes) eso ocurre desde 1280 px de ventana (`xl`); a 1024 px quedan ~640 px y caben tres por fila. Seis combos (con Marca,
-// desde que Acción y Estado son dos) piden ~1.000 px: recién a 1536 px (`2xl`); antes, dos filas de tres.
 
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
@@ -235,31 +209,6 @@ function TarjetaPrioridad({
   return <div className={clase}>{contenido}</div>;
 }
 
-/** Uno de los combos de filtro de la barra (caja hundida, la misma de todo el ERP pero de 36 px de alto, como el diseño aprobado).
- *  `pie`: la aclaración de «Se usa lo que escribiste» cuando la búsqueda ya dijo esa talla o ese color. */
-function FiltroCombo({
-  etiqueta,
-  valor,
-  onValor,
-  opciones,
-  marcador,
-  pie,
-}: {
-  etiqueta: string;
-  valor: string;
-  onValor: (v: string) => void;
-  opciones: { valor: string; texto: string }[];
-  marcador: string;
-  pie?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <Desplegable valor={valor} onValor={onValor} opciones={opciones} marcador={marcador} forma="cajaBaja" etiquetaAccesible={etiqueta} />
-      {pie && <p className="mt-1 text-xs text-taupe">{pie}</p>}
-    </div>
-  );
-}
-
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
 // asume que toda ubicación separa piso y almacén — se adapta según lo que
 // `getSububicaciones` encontró para ESA ubicación (`resumen.separaPisoAlmacen`),
@@ -298,6 +247,8 @@ export function InventarioPanel({
   puedeBajarAlPiso = false,
   veApartados = false,
   esTienda = false,
+  panelFiltros = "abierto",
+  coloresCatalogo = [],
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -351,17 +302,23 @@ export function InventarioPanel({
   veApartados?: boolean;
   /** Es una tienda: entre tiendas se pide una prenda para una clienta (ADR-0233). */
   esTienda?: boolean;
+  /** Si el panel de filtros entra abierto o cerrado en la computadora (cookie de este equipo, leída en el servidor). */
+  panelFiltros?: EstadoPanelFiltros;
+  /** Los colores del catálogo con su familia, hex y tipo: la lista de Color va agrupada por familia y con su muestra, como en
+   *  Productos. Vacío (la lectura falló) = lista plana. */
+  coloresCatalogo?: ColorDeCatalogo[];
 }) {
-  const [busqueda, setBusqueda] = useState("");
-  const [categoria, setCategoria] = useState(TODAS);
-  const [marca, setMarca] = useState(TODAS);
-  const [talla, setTalla] = useState(TODAS);
-  const [color, setColor] = useState(TODAS);
-  // Dos ejes independientes (2026-09-25): «Acción» es SOLO `TipoAccionHoy` (qué debería hacer la
-  // vendedora); «Estado» es la condición del inventario (dañado/cuarentena) — no son la misma
-  // pregunta, y mezclarlos en un solo dropdown confundía dos clasificaciones distintas.
-  const [accion, setAccion] = useState(TODAS);
-  const [condicion, setCondicion] = useState(TODAS);
+  // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
+  // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
+  const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
+  const setBusqueda = fijarBusqueda;
+  const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
+  const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
+  // «Por colgar» (uno de los cuatro casos de «Hoy», `lib/existencias-hoy.ts`) se trabaja por percha: la lista va ordenada por
+  // modelo y color, y debajo de la barra se dice cuántas faltan colgar en toda la sede.
+  const porColgarElegido = filtros.hoy === "por_colgar";
+  const orden = (filtros.orden ?? "relevancia") as OrdenPrendas;
+  const setOrden = (v: OrdenPrendas) => aplicar({ orden: v === "relevancia" ? null : v });
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
   // «Reponer prenda» abre la ventana del MODELO entero (`ReponerPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
@@ -395,10 +352,6 @@ export function InventarioPanel({
   // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
   // (`abrirPorCodigo`) entra por la tabla.
   const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
-  const [orden, setOrden] = useState<OrdenPrendas>("relevancia");
-  // En el celular los combos de filtro viven plegados tras «Filtros» (tarea #6): seis cajas apiladas empujaban la primera
-  // prenda dos pantallas más abajo. En computadora siempre están a la vista (la bandera no se usa desde `sm`).
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string } | null>(() => {
@@ -419,56 +372,76 @@ export function InventarioPanel({
   const marcas = useMemo(() => marcasDeLaSede(stock), [stock]);
   const mostrarMarca = marcas.length >= 2;
   // Un filtro que no se ve no puede seguir filtrando: si la lectura de marcas falla tras un `router.refresh` (Reponer, Ajustar) el combo desaparece;
-  // sin esto la marca elegida antes seguía activa, invisible, y dejaba la tabla en blanco.
-  const marcaEfectiva = mostrarMarca && marcas.includes(marca) ? marca : TODAS;
-  const tallas = useMemo(() => Array.from(new Set(stock.map((f) => f.talla).filter((t): t is string => !!t))).sort(), [stock]);
+  // sin esto la marca elegida antes seguía activa, invisible, y dejaba la tabla en blanco. Lo mismo con un valor que llega en la URL y
+  // esta sede no tiene (un enlace de otra tienda): no filtra (`valorOfrecido`).
+  const marcaEfectiva = (mostrarMarca ? valorOfrecido(filtros.marca, marcas) : null) ?? TODAS;
+  // En su curva (XS · S · M · L, luego la numeración), como la tarjeta: antes iban como texto («10, 2, 4, L, M, S, XL, XS»).
+  const tallas = useMemo(() => tallasEnCurva(stock), [stock]);
   const colores = useMemo(
     () => Array.from(new Set(stock.map((f) => f.color).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
     [stock]
   );
+  const categoria = valorOfrecido(filtros.categoria, categorias) ?? TODAS;
+  // Talla y Color de varias (2026-10-03). Una familia cuenta si algún color de esta sede es de ella.
+  // Los colores de ESTA sede con su familia, hex y tipo (la muestra), para la lista agrupada. Un color que el catálogo no trajo
+  // va con el hex de la fila y sin familia: suelto al final, nunca perdido.
+  const coloresConMuestra = useMemo(() => {
+    const deCatalogo = new Map(coloresCatalogo.map((c) => [c.nombre, c]));
+    const hexDeFila = new Map(stock.map((f) => [f.color, f.colorHex]));
+    return colores.map((nombre) => {
+      const c = deCatalogo.get(nombre);
+      return { id: nombre, nombre, hex: c?.hex ?? hexDeFila.get(nombre) ?? null, familia: c?.familia ?? null, tipo: c?.tipo ?? null };
+    });
+  }, [colores, coloresCatalogo, stock]);
+  const tallasElegidas = useMemo(() => valoresOfrecidos(filtros.tallas, tallas), [filtros.tallas, tallas]);
+  const coloresElegidos = useMemo(() => valoresOfrecidos(filtros.colores, colores), [filtros.colores, colores]);
+  const familiasDeLaSede = useMemo(() => [...new Set(stock.map((f) => f.colorFamilia).filter((x): x is string => !!x))], [stock]);
+  const familiasElegidas = useMemo(() => valoresOfrecidos(filtros.familias, familiasDeLaSede), [filtros.familias, familiasDeLaSede]);
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
   // marca, categoría, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
   // color, manda sobre el filtro visual de esa dimensión; Categoría, Marca, Acción y Estado siempre aplican (el texto no los pisa).
-  const indiceBusqueda = useMemo(
-    () =>
-      crearIndiceBusquedaEspecial(stock, (f) => ({
-        nombre: f.referencia,
-        sku: f.sku,
-        codigosBarras: f.codigosBarras,
-        color: f.color,
-        talla: f.talla,
-        marca: f.marca,
-        categoria: f.categoria,
-      })),
-    [stock]
+  const indiceBusqueda = useMemo(() => indiceDeExistencias(stock), [stock]);
+  // Lo que de verdad filtra la lista, ya resuelto contra lo que la sede ofrece: lo leen la lista, la barra y el estado vacío.
+  const elegidos: FiltrosElegidos = useMemo(
+    () => ({
+      q: busqueda,
+      categoria: categoria === TODAS ? null : categoria,
+      marca: marcaEfectiva === TODAS ? null : marcaEfectiva,
+      tallas: tallasElegidas,
+      colores: coloresElegidos,
+      familias: familiasElegidas,
+      hoy: filtros.hoy,
+      condicion: filtros.condicion,
+    }),
+    [busqueda, categoria, marcaEfectiva, tallasElegidas, coloresElegidos, familiasElegidas, filtros.hoy, filtros.condicion]
   );
-  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
-    const resultado = filtrarConBusquedaEspecial(
+  // Cuántos productos trae cada opción de la barra, con los demás filtros puestos (se esconden las que vaciarían la lista).
+  const conteos = useMemo(() => conteosDeFiltros(indiceBusqueda, elegidos), [indiceBusqueda, elegidos]);
+  const { filas: filtradas } = useMemo(() => {
+    const resultado = filtrarExistencias(
       indiceBusqueda,
-      busqueda,
-      {
-        talla: talla === TODAS ? null : talla,
-        color: color === TODAS ? null : color,
-        otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, accion, condicion }),
-      },
+      elegidos,
+      undefined,
       // Con texto escrito, lo que mejor coincide va primero (una marca entera antes que un trozo perdido en un código), y las
       // tallas de un producto no se separan. «Por colgar» trae su propio orden (por percha) y no se toca.
-      condicion === POR_COLGAR ? {} : { ordenar: "relevancia", grupo: (f) => f.productoId }
+      porColgarElegido ? {} : { ordenar: "relevancia", grupo: (f) => f.productoId }
     );
     // «Por colgar» se trabaja por percha (un modelo en un color), no por SKU: sus tallas salen juntas y
     // en su curva, para que la encargada baje la M y la L de la misma casaca en un solo viaje.
-    return condicion === POR_COLGAR ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
-  }, [indiceBusqueda, busqueda, talla, color, categoria, marcaEfectiva, accion, condicion]);
+    return porColgarElegido ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
+  }, [indiceBusqueda, elegidos, porColgarElegido]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
   // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
   const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
+  // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
+  const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
   const [pagina, setPagina] = useState(1);
-  const firmaFiltros = [busqueda, categoria, marcaEfectiva, talla, color, accion, condicion, orden].join("\u0000");
+  const firmaFiltros = [busqueda, categoria, marcaEfectiva, tallasElegidas.join(","), coloresElegidos.join(","), familiasElegidas.join(","), filtros.hoy ?? "", filtros.condicion ?? "", orden].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -477,7 +450,7 @@ export function InventarioPanel({
   // «Por colgar» va ordenada por percha: la página se estira hasta terminar la percha en curso, para que
   // la S y la M de una casaca no queden en la página 1 y su L en la 2.
   const paginaActual =
-    condicion === POR_COLGAR ? paginarSinPartirGrupos(filtradas, pagina, FILAS_POR_PAGINA, clavePercha) : paginar(filtradas, pagina, FILAS_POR_PAGINA);
+    porColgarElegido ? paginarSinPartirGrupos(filtradas, pagina, FILAS_POR_PAGINA, clavePercha) : paginar(filtradas, pagina, FILAS_POR_PAGINA);
   // «Por prenda» pagina PRENDAS, no tallas: 15 prendas por página, cada una con todas sus tallas (que ya no se parten).
   // Sin texto escrito, primero lo que falta en el piso (análisis de Existencias, tarea #5): con 33 de 33 tallas pidiendo
   // reponer, el orden es lo único que dice por dónde empezar. Con texto, manda la relevancia de la búsqueda.
@@ -510,26 +483,13 @@ export function InventarioPanel({
     });
   }
 
-  const hayFiltrosActivos =
-    busqueda !== "" || categoria !== TODAS || marcaEfectiva !== TODAS || talla !== TODAS || color !== TODAS || accion !== TODAS || condicion !== TODAS;
-  // Cuántos combos están puestos: lo dice el botón «Filtros» del celular, para que un filtro plegado no esconda filas en silencio.
-  const combosActivos = [categoria, marcaEfectiva, talla, color, accion, condicion].filter((v) => v !== TODAS).length;
-  /** Quita todo menos el Estado (búsqueda, categoría, marca, talla, color y Acción). Es el «Ver todas» de «Por colgar»: que la
-   *  lista vuelva a ser lo que cuenta la píldora. Quitar Acción nunca esconde una talla por colgar (todas piden «Reponer a
-   *  piso»), y dejarla puesta podía trabar la lista: «Sin acción» + «Por colgar» no tiene ni una fila (dos filtros que se
-   *  vacían entre sí, lo que esta pantalla no permite). */
-  function quitarFiltrosMenosEstado() {
-    setBusqueda("");
-    setCategoria(TODAS);
-    setMarca(TODAS);
-    setTalla(TODAS);
-    setColor(TODAS);
-    setAccion(TODAS);
+  /** Quita todo menos «Hoy» (y el orden). Es el «Ver todas» de «Por colgar»: que la lista vuelva a ser lo que cuenta el
+   *  resumen de toda la sede. */
+  function quitarFiltrosMenosHoy() {
+    limpiar(["hoy", "orden"]);
   }
   function limpiarFiltros() {
-    quitarFiltrosMenosEstado();
-    setAccion(TODAS);
-    setCondicion(TODAS);
+    limpiar();
   }
 
   const separaConSububicaciones = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
@@ -618,7 +578,7 @@ export function InventarioPanel({
     // La columna «Marca» solo si la sede tiene alguna leída: con la lectura caída, una columna de «—» sería ruido.
     const conMarcaEnCsv = marcas.length > 0;
     const encabezados = conMarcaEnCsv ? ["Prenda", "Marca", "Código", "Talla", "Color", "Categoría"] : ["Prenda", "Código", "Talla", "Color", "Categoría"];
-    if (separa) encabezados.push("Piso", "Almacén", "Cobertura piso", "Ritmo reciente", "Acción hoy");
+    if (separa) encabezados.push("Piso", "Almacén", "Cobertura piso", "Ritmo reciente", "Hoy");
     encabezados.push("Disponible", "En camino", "En la red");
 
     const filas = filtradas.map((f) => {
@@ -631,7 +591,7 @@ export function InventarioPanel({
           f.almacen ?? "—",
           f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
           f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
-          f.accionHoy ? f.accionHoy.texto : "—"
+          ((h) => (h ? TEXTO_HOY[h] : "—"))(hoyDeTalla(f))
         );
       }
       fila.push(f.disponible, f.enTransito, resumenRed(f.enRed)?.detalle ?? "—");
@@ -672,17 +632,18 @@ export function InventarioPanel({
   const filtrosActivos: FiltroActivo[] = [];
   if (categoria !== TODAS) filtrosActivos.push({ clave: "categoria", etiqueta: "Categoría", valor: categoria });
   if (marcaEfectiva !== TODAS) filtrosActivos.push({ clave: "marca", etiqueta: "Marca", valor: marcaEfectiva });
-  if (talla !== TODAS) filtrosActivos.push({ clave: "talla", etiqueta: "Talla", valor: talla });
-  if (color !== TODAS) filtrosActivos.push({ clave: "color", etiqueta: "Color", valor: color });
-  if (accion !== TODAS) filtrosActivos.push({ clave: "accion", etiqueta: "Acción", valor: TEXTO_ACCION_HOY[accion as TipoAccionHoy] });
-  if (condicion !== TODAS) filtrosActivos.push({ clave: "estado", etiqueta: "Estado", valor: condicion === DANADO ? "Dañado / cuarentena" : "Por colgar" });
+  if (tallasElegidas.length) filtrosActivos.push({ clave: "talla", etiqueta: "Talla", valor: tallasElegidas.join(", ") });
+  const coloresTexto = [...familiasElegidas.map((x) => `familia ${textoDeFamilia(x)}`), ...coloresElegidos];
+  if (coloresTexto.length) filtrosActivos.push({ clave: "color", etiqueta: "Color", valor: coloresTexto.join(", ") });
+  if (filtros.hoy) filtrosActivos.push({ clave: "hoy", etiqueta: "Hoy", valor: TEXTO_HOY[filtros.hoy] });
+  if (filtros.condicion) filtrosActivos.push({ clave: "condicion", etiqueta: "Condición", valor: ROTULO_CONDICION[filtros.condicion] });
   // Productos que el catálogo tiene pero esta sede NO (ni una fila de stock) y que coinciden con lo escrito. Se avisa aunque haya
   // resultados: quien busca «cayla» y ve Top Aurora («Cayla 2») debe saber que los pantalones de la marca CAYLA existen y aquí no llegaron.
   const sinRastroAqui = useMemo(
     () => (busqueda.trim() ? sinStockQueCoincide(busqueda, indiceBusqueda.vocabulario, sinStock, { filtroMarca: filtroMarcaElegida, filtroCategoria: filtroCategoriaElegida }) : { productos: [], total: 0 }),
     [busqueda, indiceBusqueda, sinStock, filtroMarcaElegida, filtroCategoriaElegida]
   );
-  const sinNadaPorColgar = condicion === POR_COLGAR && cuentaPorColgar.tallas === 0;
+  const sinNadaPorColgar = porColgarElegido && cuentaPorColgar.tallas === 0;
   const explicacionVacio =
     filtradas.length === 0 && stock.length > 0 && !sinNadaPorColgar
       ? explicarVacio({
@@ -692,12 +653,8 @@ export function InventarioPanel({
           vocabulario: indiceBusqueda.vocabulario,
           palabras: palabrasBuscables(stock),
           // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
-          contar: (consulta, omitir) =>
-            filtrarConBusquedaEspecial(indiceBusqueda, consulta, {
-              talla: omitir.has("talla") || talla === TODAS ? null : talla,
-              color: omitir.has("color") || color === TODAS ? null : color,
-              otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, accion, condicion }, omitir),
-            }).filas.length,
+          // En productos (modelos), la misma unidad del «N productos» de arriba: «Quitar Color · 2 productos» trae 2 productos.
+          contar: (consulta, omitir) => new Set(filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.map((f) => f.productoId)).size,
           sinStock,
           filtroMarca: filtroMarcaElegida,
           filtroCategoria: filtroCategoriaElegida,
@@ -706,10 +663,10 @@ export function InventarioPanel({
   function quitarFiltro(clave: ClaveFiltro) {
     if (clave === "categoria") setCategoria(TODAS);
     else if (clave === "marca") setMarca(TODAS);
-    else if (clave === "talla") setTalla(TODAS);
-    else if (clave === "color") setColor(TODAS);
-    else if (clave === "accion") setAccion(TODAS);
-    else setCondicion(TODAS);
+    else if (clave === "talla") aplicar({ talla: null });
+    else if (clave === "color") aplicar({ color: null, familia: null });
+    else if (clave === "hoy") aplicar({ hoy: null });
+    else aplicar({ condicion: null });
   }
 
   const hrefBajarMarcadas = puedeBajarAlPiso ? urlBajarAlPiso(filasMarcadas) : null;
@@ -801,165 +758,57 @@ export function InventarioPanel({
           son la tarjeta y las prendas van debajo, cada una en la suya. */}
       <div ref={tarjetaTablaRef} className={`scroll-mt-24 ${verDetalle ? "card-cayla overflow-hidden" : ""}`}>
       {stock.length > 0 && (
-        // Diseño aprobado (2026-09-28): buscador, cinco combos, el resumen de lo que falta colgar y el selector de vista, uno bajo
-        // otro y con poco aire; la tabla arranca justo debajo. Sin píldora «Por colgar» ni texto explicativo sobre la lista.
-        <div className={`flex flex-col px-4 pt-4 sm:px-3 sm:pt-3 ${verDetalle ? "" : "card-cayla"}`}>
-          {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario, y el subrayado rojo
-              sugería que estaba mal escrito lo que era una marca. */}
-          <label className="caja-cayla order-1 flex h-[38px] items-center gap-3 px-3.5">
-            <span className="sr-only">Buscar</span>
-            <Search aria-hidden className="h-[18px] w-[18px] shrink-0 text-tinta/65" strokeWidth={1.6} />
-            <input
-              id={ID_BUSCADOR}
-              type="text"
-              placeholder={mostrarMarca ? "Buscar prenda, marca, código, color o talla..." : "Buscar prenda, código, color o talla..."}
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda. Si no
-              // (un nombre, un pedazo), Enter no hace nada y la lista sigue filtrada por lo escrito.
-              onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                if (tallaPorCodigo(stock, busqueda)) abrirPorCodigo(busqueda);
-              }}
-              enterKeyHint="search"
-              spellCheck={false}
-              autoComplete="off"
-              className="h-full w-full bg-transparent text-[13px] text-tinta outline-none placeholder:text-tinta/55"
-            />
-          </label>
-          {/* En computadora `sm:grid` deja cada combo en su celda; en el celular es una columna que se pliega tras «Filtros» (tarea
-              #6) y se ve DEBAJO de la fila del resumen (`order`): así, al abrirla, el botón no se mueve bajo el dedo (ADR-0185). */}
-          <div id="existencias-combos" className={`${filtrosAbiertos ? "grid" : "hidden"} order-2 mt-3.5 gap-x-3.5 gap-y-2 max-sm:order-3 sm:grid ${COLUMNAS_FILTROS[3 + (separa ? 2 : 0) + (mostrarMarca ? 1 : 0)]}`}>
-            {/* La marca, junto al buscador: es lo primero que se sabe de una prenda y la forma más rápida de encontrarla. */}
-            {mostrarMarca && (
-              <FiltroCombo
-                etiqueta="Marca"
-                valor={marca}
-                onValor={setMarca}
-                marcador="Todas"
-                opciones={[{ valor: TODAS, texto: "Marca: todas" }, ...marcas.map((m) => ({ valor: m, texto: m }))]}
-              />
-            )}
-            <FiltroCombo
-              etiqueta="Categoría"
-              valor={categoria}
-              onValor={setCategoria}
-              marcador="Todas"
-              opciones={[{ valor: TODAS, texto: "Categoría: todas" }, ...categorias.map((c) => ({ valor: c, texto: c }))]}
-            />
-            <FiltroCombo
-              etiqueta="Talla"
-              valor={talla}
-              onValor={setTalla}
-              marcador="Todas"
-              opciones={[{ valor: TODAS, texto: "Talla: todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
-              pie={dichoEnLaBusqueda.talla && talla !== TODAS ? "Se usa lo que escribiste" : undefined}
-            />
-            <FiltroCombo
-              etiqueta="Color"
-              valor={color}
-              onValor={setColor}
-              marcador="Todos"
-              opciones={[{ valor: TODAS, texto: "Color: todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
-              pie={dichoEnLaBusqueda.color && color !== TODAS ? "Se usa lo que escribiste" : undefined}
-            />
-            {/* «Acción» filtra SOLO por `TipoAccionHoy` (qué debería hacer la vendedora) — «Estado»
-                es la condición del inventario (dañado/cuarentena, por colgar), un eje aparte (2026-09-25:
-                mezclarlos en un solo dropdown confundía «qué hacer» con «en qué condición está»). */}
-            {separa && (
-              <FiltroCombo
-                etiqueta="Acción"
-                valor={accion}
-                onValor={setAccion}
-                marcador="Todas"
-                opciones={[{ valor: TODAS, texto: "Acción: todas" }, ...OPCIONES_FILTRO_ACCION.map((a) => ({ valor: a, texto: TEXTO_ACCION_HOY[a] }))]}
-              />
-            )}
-            {separa && (
-              <FiltroCombo
-                etiqueta="Estado"
-                valor={condicion}
-                onValor={setCondicion}
-                marcador="Todos"
-                opciones={[
-                  { valor: TODAS, texto: "Estado: todos" },
-                  { valor: DANADO, texto: "Dañado / cuarentena" },
-                  { valor: POR_COLGAR, texto: "Por colgar" },
-                ]}
-              />
-            )}
-          </div>
-          {/* Una sola fila: a la izquierda cuánto falta colgar (el filtro «Por colgar» sigue en «Estado»); a la derecha, «Limpiar
-              filtros» y el selector de vista. Existe antes de filtrar, así que activar un filtro no empuja la tabla. */}
-          <div className="order-3 mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 pb-2.5 max-sm:order-2 max-sm:mt-3 max-sm:pb-3 sm:col-span-full">
-            {/* Solo en el celular: abre y cierra los combos (tarea #6), con cuántos hay puestos para que un filtro plegado no
-                esconda filas en silencio. */}
-            <button
-              type="button"
-              aria-expanded={filtrosAbiertos}
-              aria-controls="existencias-combos"
-              onClick={() => setFiltrosAbiertos((a) => !a)}
-              className="pildora-cayla sm:hidden"
-            >
-              <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
-              Filtros
-              {combosActivos > 0 && <span className="font-normal tabular-nums">· {combosActivos}</span>}
-            </button>
-            {/* Cuántas prendas se ven (modelo + color). Las tallas por reponer, con sus unidades en el almacén, ya las dice la
-                tarjeta «Reponer a piso hoy». */}
-            <p className="text-[13px] text-taupe" aria-live="polite">
-              {modelosOrdenados.length} {modelosOrdenados.length === 1 ? "producto" : "productos"} · {separa ? "Vista de piso y almacén" : "Vista de la sede"}
-            </p>
-            {/* La aclaración de «Por colgar», solo si ese estado está elegido y hay algo por colgar (sobre una lista vacía,
-                «elige cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
-                · si otro filtro esconde tallas, cuántas se ven de las que cuenta el resumen — mira toda la sede, y ver 3 filas
-                  bajo «22 tallas» sin saber por qué es un callejón;
-                · si se ven todas, que no es una orden de bajar todo (riesgo que nombró el plan): hay tallas que se guardan a
-                  propósito, la lista es para decidir. */}
-            {separa && condicion === POR_COLGAR && cuentaPorColgar.tallas > 0 && (
-              <p className="min-w-[16rem] flex-1 text-xs leading-snug text-taupe">
-                {filtradas.length < cuentaPorColgar.tallas ? (
-                  <>
-                    Ves {filtradas.length} de {cuentaPorColgar.tallas}: la búsqueda u otro filtro esconde el resto.{" "}
-                    <button type="button" onClick={quitarFiltrosMenosEstado} className="btn-enlace text-xs">
-                      Ver todas
-                    </button>
-                  </>
-                ) : (
-                  "Algunas se guardan a propósito (fin de temporada): no es una orden de bajar todo, elige cuáles van al piso."
-                )}
-              </p>
-            )}
-            <span className="ml-auto flex items-center gap-3">
-              {hayFiltrosActivos && (
-                <span className="flex items-center gap-1.5">
-                  <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
-                  <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
-                    Limpiar filtros
-                  </button>
-                </span>
-              )}
-              {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
-              <button
-                type="button"
-                aria-pressed={verDetalle}
-                title={verDetalle ? "Volver a las tarjetas" : "Ver el detalle en una tabla"}
-                onClick={() => {
-                  // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
-                  if (verDetalle) setAbierta(null);
-                  setVerDetalle((d) => !d);
-                  setPagina(1);
-                }}
-                className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
-              >
-                {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
-                {verDetalle ? "Ver tarjetas" : "Ver detalle"}
-              </button>
-              {verDetalle ? (
-                // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
-                <span className="flex items-center gap-2.5 text-[13px] text-taupe">
-                  Vista:
+        // La barra de filtros con la estructura de Productos (2026-10-03, `FiltrosExistencias`): buscador, «Filtros · N», panel de
+        // píldoras en dos filas, chips de lo puesto, y en la fila del conteo «Copiar enlace», la vista y «Ordenar por».
+        <div className={`px-4 pb-3 pt-4 sm:px-5 ${verDetalle ? "" : "card-cayla"}`}>
+          <FiltrosExistencias
+            busqueda={busqueda}
+            onTeclear={teclear}
+            onSoltar={soltarBusqueda}
+            // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda. Si no (un nombre,
+            // un pedazo), Enter no hace nada y la lista sigue filtrada por lo escrito.
+            onEnter={() => {
+              if (tallaPorCodigo(stock, busqueda)) abrirPorCodigo(busqueda);
+            }}
+            placeholder={mostrarMarca ? "Prenda, marca, código, color o talla…" : "Prenda, código, color o talla…"}
+            separa={separa}
+            categorias={categorias}
+            tallas={tallas}
+            colores={coloresConMuestra}
+            marcas={mostrarMarca ? marcas : null}
+            elegidos={elegidos}
+            conteos={conteos}
+            onCambiar={(cambios) => aplicar(cambios)}
+            onLimpiar={limpiarFiltros}
+            total={modelosOrdenados.length}
+            detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
+            panelInicial={panelFiltros}
+            // `orden` solo ordena las tarjetas: la tabla conserva su orden.
+            orden={
+              verDetalle
+                ? null
+                : { valor: ordenEfectivo, porDefecto: "relevancia", opciones: opcionesDeOrden, onValor: (v) => setOrden(v as OrdenPrendas) }
+            }
+            vista={
+              <>
+                {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
+                <button
+                  type="button"
+                  aria-pressed={verDetalle}
+                  title={verDetalle ? "Volver a las tarjetas" : "Ver el detalle en una tabla"}
+                  onClick={() => {
+                    // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
+                    if (verDetalle) setAbierta(null);
+                    setVerDetalle((d) => !d);
+                    setPagina(1);
+                  }}
+                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                >
+                  {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
+                  {verDetalle ? "Ver tarjetas" : "Ver detalle"}
+                </button>
+                {verDetalle && (
+                  // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
                   <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
                     {(
                       [
@@ -981,25 +830,34 @@ export function InventarioPanel({
                       </button>
                     ))}
                   </span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2.5 text-[13px] text-taupe">
-                  Ordenar por:
-                  <span className="w-44">
-                    <Desplegable
-                      valor={ordenEfectivo}
-                      onValor={setOrden}
-                      opciones={opcionesDeOrden.map((o) => ({ valor: o.valor, texto: o.texto }))}
-                      marcador="Más relevantes"
-                      forma="cajaBaja"
-                      alineacion="derecha"
-                      etiquetaAccesible="Ordenar por"
-                    />
-                  </span>
-                </span>
-              )}
-            </span>
-          </div>
+                )}
+              </>
+            }
+            nota={
+              <>
+                {/* La aclaración de «Por colgar», solo si ese caso de «Hoy» está elegido y hay algo por colgar (sobre una lista vacía,
+                    «elige cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
+                    · si otro filtro esconde tallas, cuántas se ven de las que cuenta el resumen — mira toda la sede, y ver 3 filas
+                      bajo «22 tallas» sin saber por qué es un callejón;
+                    · si se ven todas, que no es una orden de bajar todo (riesgo que nombró el plan): hay tallas que se guardan a
+                      propósito, la lista es para decidir. */}
+                {separa && porColgarElegido && cuentaPorColgar.tallas > 0 && (
+                  <p className="text-xs leading-snug text-taupe">
+                    {filtradas.length < cuentaPorColgar.tallas ? (
+                      <>
+                        Ves {filtradas.length} de {cuentaPorColgar.tallas}: la búsqueda u otro filtro esconde el resto.{" "}
+                        <button type="button" onClick={quitarFiltrosMenosHoy} className="btn-enlace text-xs">
+                          Ver todas
+                        </button>
+                      </>
+                    ) : (
+                      "Algunas se guardan a propósito (fin de temporada): no es una orden de bajar todo, elige cuáles van al piso."
+                    )}
+                  </p>
+                )}
+              </>
+            }
+          />
         </div>
       )}
 
@@ -1064,6 +922,7 @@ export function InventarioPanel({
             modelos={paginaTarjetas.filas}
             separa={separa}
             mostrarMarca={mostrarMarca}
+            tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
             onReponer={(prenda, origen) => {
@@ -1180,7 +1039,7 @@ export function InventarioPanel({
                     { titulo: "Ritmo reciente", alinear: "centro" as const, ayuda: "Ventas comerciales ÷ días de exposición en piso, últimos 7 días — toca para ver el detalle" },
                     { titulo: "En camino", alinear: "centro" as const },
                     // Tarjeta angosta: «En la red» vive debajo del chip de esta misma columna (ver la fila), y el título lo dice.
-                    { titulo: <>Acción hoy<span className="@min-[1070px]:hidden"> · En la red</span></> },
+                    { titulo: <>Hoy<span className="@min-[1070px]:hidden"> · En la red</span></> },
                     { titulo: "En la red", clase: "hidden @min-[1070px]:block" },
                     { titulo: "", clase: "hidden @min-[1070px]:block" },
                   ]
@@ -1315,29 +1174,11 @@ export function InventarioPanel({
                   {separa && (
                     <span className={celda("izq", "col-start-2 row-start-1 overflow-visible whitespace-normal sm:[grid-area:auto]")}>
                       <span className="flex flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
-                        <span className="label-cayla text-[10px] text-tinta/45 sm:hidden">Acción hoy</span>
-                        {/* Solo el diagnóstico, nunca un botón (diseño aprobado). «Por colgar» es lo más específico de «Reponer a piso»
-                            (piso en 0 y algo atrás), así que cuando aplica es el chip; si no, «Reponer a piso» o «Mantener». La cifra es lo
-                            que se puede bajar (disponible, neto de apartados): la suma de estos chips es la del resumen de arriba. */}
-                        {!f.accionHoy ? (
-                          <span className="text-xs text-tinta/40">N/D</span>
-                        ) : porColgar(f) ? (
-                          <ChipAlerta
-                            titulo={`En el piso no queda ninguna para vender; en el almacén hay ${f.almacenDisponible} que se ${f.almacenDisponible === 1 ? "puede" : "pueden"} colgar`}
-                          >
-                            Por colgar · {f.almacenDisponible} {f.almacenDisponible === 1 ? "ud" : "uds"}
-                          </ChipAlerta>
-                        ) : f.accionHoy.tipo === "sin_accion" ? (
-                          <ChipMantener titulo={AYUDA_ACCION_HOY.sin_accion}>{f.accionHoy.texto}</ChipMantener>
-                        ) : (
-                          <Chip tono={TONO_ACCION_HOY[f.accionHoy.tipo]} className="text-xs">
-                            <span title={AYUDA_ACCION_HOY[f.accionHoy.tipo]}>{f.accionHoy.texto}</span>
-                          </Chip>
-                        )}
-                        {/* Contexto (2026-09-25, tercera ronda): «Sin stock en almacén», «Sin stock en almacén · 8 uds en camino» — nota
-                            corta, nunca reemplaza al chip: la necesidad de piso sigue siendo «Reponer a piso» aunque no haya de dónde
-                            bajarlo hoy. */}
-                        {f.accionHoy?.contexto && <span className="basis-full text-[11px] leading-tight text-taupe">{f.accionHoy.contexto}</span>}
+                        <span className="label-cayla text-[10px] text-tinta/45 sm:hidden">Hoy</span>
+                        {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS cuatro palabras del filtro «Hoy» y de la
+                            tarjeta (`lib/existencias-hoy.ts`, Felipe 2026-10-03). En «Por colgar», lo que se puede bajar (disponible, neto
+                            de apartados): la suma de estos chips es la del resumen de arriba. En «Sin stock atrás», si viene algo en camino. */}
+                        <ChipHoy f={f} />
                         {/* Independiente de «Acción hoy»: una prenda puede no pedir nada y tener unidades dañadas en cuarentena al
                             mismo tiempo — no son el mismo eje. Solo informa; resolverlas vive en la tarjeta «Incidencias». */}
                         {!!f.danado && (
@@ -1388,16 +1229,10 @@ export function InventarioPanel({
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-rojo" />
-                  <span className="text-tinta/80">Por colgar</span>
-                  <span className="hidden text-taupe lg:inline">· piso en cero y algo en el almacén</span>
-                </span>
-                {(["reponer_a_piso", "sin_accion"] as TipoAccionHoy[]).map((a) => (
-                  <span key={a} className="inline-flex items-center gap-1.5" title={AYUDA_ACCION_HOY[a]}>
-                    <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${a === "sin_accion" ? "bg-verde" : "bg-ambar"}`} />
-                    <span className="text-tinta/80">{TEXTO_ACCION_HOY[a]}</span>
-                    <span className="hidden text-taupe lg:inline">· {AYUDA_ACCION_HOY[a]}</span>
+                {TIPOS_HOY.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1.5" title={AYUDA_HOY[t]}>
+                    <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_HOY[TONO_HOY[t]]}`} />
+                    <span className="text-tinta/80">{TEXTO_HOY[t]}</span>
                   </span>
                 ))}
               </span>

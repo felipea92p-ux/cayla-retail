@@ -6,6 +6,9 @@
 // la dejó, sin que el panel aparezca y desaparezca al hidratar. Es una preferencia de pantalla de esta máquina.
 
 export const COOKIE_PANEL_FILTROS = "cayla_filtros_panel";
+/** Existencias tiene la misma barra (2026-10-03) pero su propia preferencia: cerrar el panel en Existencias no lo cierra en
+ *  Productos (la tablet que solo busca prendas puede querer los filtros de stock a la vista). */
+export const COOKIE_PANEL_FILTROS_EXISTENCIAS = "cayla_filtros_panel_existencias";
 export type EstadoPanelFiltros = "abierto" | "cerrado";
 
 /** Solo «cerrado» lo cierra: una cookie que falta o trae otra cosa deja el de fábrica, abierto. */
@@ -14,6 +17,6 @@ export function leerPanelFiltros(valor: string | null | undefined): EstadoPanelF
 }
 
 /** Guarda la preferencia (solo desde el navegador). Un año; `SameSite=Lax` alcanza: el servidor solo la lee al pintar. */
-export function guardarPanelFiltros(estado: EstadoPanelFiltros) {
-  document.cookie = `${COOKIE_PANEL_FILTROS}=${estado}; path=/; max-age=31536000; samesite=lax`;
+export function guardarPanelFiltros(estado: EstadoPanelFiltros, cookie: string = COOKIE_PANEL_FILTROS) {
+  document.cookie = `${cookie}=${estado}; path=/; max-age=31536000; samesite=lax`;
 }

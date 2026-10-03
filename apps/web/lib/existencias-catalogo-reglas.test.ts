@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conEstadoProducto, conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
+import { conEstadoProducto, conFamiliaDeColor, conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
 
 // Los productos reales de producción al 2026-09-26.
 const p = (id: string, referencia: string, marca: string | null, extra: Partial<ProductoDeCatalogo> = {}): ProductoDeCatalogo => ({
@@ -104,5 +104,14 @@ describe("marcasDeLaSede", () => {
 
   it("sin marcas leídas, ninguna", () => {
     expect(marcasDeLaSede([{}, { marca: null }])).toEqual([]);
+  });
+});
+
+describe("conFamiliaDeColor", () => {
+  it("pone la familia por el nombre del color; un color que no llegó, o sin color, queda en null", () => {
+    const colores = [{ nombre: "Azul marino", familia: "azul" }, { nombre: "Estampado", familia: null }];
+    const filas = [{ id: "a", color: "Azul marino" }, { id: "b", color: "Estampado" }, { id: "c", color: "Verde nuevo" }, { id: "d", color: null }];
+    expect(conFamiliaDeColor(filas, colores).map((f) => [f.id, f.colorFamilia])).toEqual([["a", "azul"], ["b", null], ["c", null], ["d", null]]);
+    expect(conFamiliaDeColor(filas, []).every((f) => f.colorFamilia === null)).toBe(true);
   });
 });
