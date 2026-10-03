@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
-import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
-import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
+import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { motivoNoCobrable, type MotivoCaja, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
-import { Badge } from "@/components/ui/badge";
+import { motivoNoCobrable, type MotivoCaja, textoStockDeFila } from "@/lib/vender-stock-local";
 import { FotoPrenda } from "@/components/apartados/piezas";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -67,18 +66,18 @@ type Props = {
   /** Filtro «Solo con stock» de la grilla; apagado, las sin stock se ven atenuadas. */
   soloConStock: boolean;
   onSoloConStock: (valor: boolean) => void;
-  /** Cuántas tarjetas esconde el filtro ahora mismo (0 si está apagado). */
+  /** Cuántos COLORES esconde el filtro ahora mismo (0 si está apagado; ADR-0323). */
   ocultasSinStock: number;
-  /** De esas, cuántas tienen prendas en el almacén de esta sede: no están agotadas, falta bajarlas (D-40). */
+  /** De esos, cuántos tienen prendas en el almacén de esta sede: no están agotados, falta bajarlos (D-40). */
   ocultasEnAlmacen: number;
-  /** Tocar el cuerpo de una tarjeta: el padre abre el modal de talla. */
-  onElegirTalla: (clave: string) => void;
+  /** Tocar el cuerpo de una tarjeta: el padre abre «Todo de la prenda» en el color que se estaba viendo. */
+  onAbrirPrenda: (clave: string, colorClave: string | undefined) => void;
   /** Tarjeta a la que se le acaba de pedir más de lo que hay. `pulso` sube en cada intento,
    *  así el resaltado se re-monta y vuelve a sonar aunque sea la misma tarjeta. */
   topeTarjeta: { clave: string; pulso: number } | null;
-  /** Una tarjeta por prenda + color, con sus tallas adentro; ya viene filtrado por
-   *  categoría y por `soloConStock` (`lib/catalogo-grupos.ts`, memo del padre). */
-  grupos: GrupoCatalogo<VarianteBusqueda>[];
+  /** Una tarjeta por PRENDA, con sus colores y tallas adentro (ADR-0323); ya viene filtrado por categoría y por
+   *  `soloConStock` y ordenado por nombre (`lib/catalogo-grupos.ts`, memo del padre). */
+  prendas: PrendaCatalogo<VarianteBusqueda>[];
   /** Solo para el globito "N" de cada tarjeta. */
   carrito: ItemCarrito[];
   // Ventas de hoy (vive dentro del <section>, bajo la grilla)
@@ -148,9 +147,9 @@ export function PuntoDeVentaCatalogo({
   onSoloConStock,
   ocultasSinStock,
   ocultasEnAlmacen,
-  onElegirTalla,
+  onAbrirPrenda,
   topeTarjeta,
-  grupos,
+  prendas,
   carrito,
 }: Props) {
   // Colapsado por defecto SOLO en celular (la vendedora escanea; explorar el catálogo a mano
@@ -171,8 +170,8 @@ export function PuntoDeVentaCatalogo({
     setFiltroPrevio({ categoria, soloConStock });
     setCuantas(TANDA_GRILLA);
   }
-  const gruposVisibles = grupos.slice(0, cuantas);
-  const faltanMas = cuantas < grupos.length;
+  const prendasVisibles = prendas.slice(0, cuantas);
+  const faltanMas = cuantas < prendas.length;
   // Centinela propio (no `useEnVista`, pensado para animación de CSS): acá cruzar el umbral debe
   // SUMAR una tanda, y eso es un efecto secundario real sobre un sistema externo (el scroll),
   // no un valor derivado para pintar — por eso `setCuantas` vive en el callback del propio
@@ -183,13 +182,13 @@ export function PuntoDeVentaCatalogo({
     if (!el || !faltanMas) return;
     const io = new IntersectionObserver(
       (entradas) => {
-        if (entradas[0]?.isIntersecting) setCuantas((n) => Math.min(n + TANDA_GRILLA, grupos.length));
+        if (entradas[0]?.isIntersecting) setCuantas((n) => Math.min(n + TANDA_GRILLA, prendas.length));
       },
       { rootMargin: "200px" },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [faltanMas, grupos.length]);
+  }, [faltanMas, prendas.length]);
   return (
     // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
     // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
@@ -423,14 +422,14 @@ export function PuntoDeVentaCatalogo({
               <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
             </button>
             {soloConStock && ocultasSinStock > 0 && (
-              // Una tarjeta escondida porque su piso está en 0 no está «agotada» si tiene prendas en el almacén de esta
-              // sede (D-40): se dice cuántas, para que se sepa que apagando el filtro aparecen. «N con stock en el
-              // almacén» cuenta PRENDAS (tarjetas), no unidades. `leading-tight`: en dos líneas cabe en el alto del
-              // interruptor, y la fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
+              // Un color escondido porque su piso está en 0 no está «agotado» si tiene prendas en el almacén de esta sede
+              // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
+              // las tarjetas, ADR-0323), no unidades. `leading-tight`: en dos líneas cabe en el alto del interruptor, y la
+              // fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
               <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
-                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda oculta" : "prendas ocultas"} (${ocultasEnAlmacen} con stock en el almacén)`
-                  : `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}`}
+                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} (${ocultasEnAlmacen} con stock en el almacén)`
+                  : `${ocultasSinStock} ${ocultasSinStock === 1 ? "color agotado oculto" : "colores agotados ocultos"}`}
               </span>
             )}
           </div>
@@ -459,194 +458,27 @@ export function PuntoDeVentaCatalogo({
             la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
         <div id="venta-catalogo-grilla" className={`@container ${catalogoAbierto ? "" : "hidden sm:block"}`}>
         <TooltipProvider delayDuration={250}>
-          {/* Más prendas por pantalla (spike 2026-09-26, hallazgo 10): foto cuadrada y hasta 5 columnas. */}
+          {/* Una tarjeta por prenda (ADR-0323), foto cuadrada y de 2 a 5 columnas según el ancho del catálogo, no de la
+              ventana: con el lateral abierto o cerrado, en una laptop o a 320 px, cada tarjeta mide parecido. */}
           <div className="grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
-            {grupos.length === 0 && (
+            {prendas.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-tinta/60">
                 {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}
                 {categoria === "Todo" ? "." : ` en ${categoria}.`}
               </p>
             )}
-            {gruposVisibles.map((g, i) => {
-              const sinStock = g.stockTotal === 0;
-              // Sin nada en el piso pero con prendas en el almacén de esta sede: no se cobra todavía, pero no está agotada.
-              const soloEnAlmacen = sinStock && g.almacenTotal > 0;
-              const enCarrito = g.tallas.reduce(
-                (acc, t) => acc + (carrito.find((it) => it.claveLinea === t.variante.varianteId)?.cantidad ?? 0),
-                0
-              );
-              const nombre = [g.referencia, g.color].filter(Boolean).join(" ");
-              return (
-                // Sin reveal al scroll a propósito (decisión de Felipe, 2026-09-14): la
-                // atenuación de "sin stock" es la única de la grilla y no puede confundirse
-                // con una tarjeta a medio entrar. `RevelarAlScroll` sigue en ui/ para tableros.
-                <article
-                  key={g.clave}
-                  aria-label={nombre}
-                  style={{ "--i": Math.min(i, 11) } as CSSProperties}
-                  // «Solo en el almacén» NO se atenúa entera: al 55 % el ámbar sobre crema bajaba de 6,5:1 a ~2,5:1 y la
-                  // tarjeta se leía igual de muerta que una agotada. Se apaga solo la foto; el texto queda legible.
-                  className={`anim-entra group relative flex h-full flex-col rounded-xl border p-3 ${
-                    soloEnAlmacen
-                      ? "border-ambar/60 bg-crema"
-                      : sinStock
-                        ? "border-rojo-profundo/40 bg-crema opacity-55"
-                        : "alza-cayla border-sand bg-papel"
-                  }`}
-                >
-                  {/* Toda la tarjeta es tocable: abre el modal de talla. Antes solo lo eran
-                      los chips y tocar la prenda no hacía nada (`alza-cayla` incluso la
-                      levantaba al pasar, prometiendo un clic). Botón superpuesto y no
-                      `<article onClick>` para que sea alcanzable con teclado y lo lean los
-                      lectores de pantalla; los chips van por encima (`z-10`) y siguen siendo
-                      el atajo de un toque. */}
-                  <button
-                    type="button"
-                    onClick={() => onElegirTalla(g.clave)}
-                    disabled={bloqueado}
-                    aria-label={`Elegir talla de ${nombre}`}
-                    className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 disabled:cursor-default"
-                  />
-                  {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
-                      color no tenga foto, el dibujo de su categoría es el plan B — nunca un ícono
-                      de "foto rota". */}
-                  {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
-                      de la tarjeta y se comía el clic. */}
-                  {g.fotoUrl ? (
-                    <div className={`pointer-events-none relative mb-2.5 aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
-                      <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
-                    </div>
-                  ) : (
-                    // Sin foto: el ícono de su categoría sobre el COLOR de la prenda, con su categoría debajo (Felipe 2026-10-03;
-                    // antes era un tono por familia, igual para todos los colores). `MosaicoPrenda` es el mismo de la lista del
-                    // buscador. El nombre va en el flujo y no pegado a una esquina: en una tarjeta de 95 px (celular de 320)
-                    // una esquina lo cortaba en «CAMISAS Y…»; aquí baja a dos líneas. Sin color, cae al tono de su familia.
-                    <MosaicoPrenda
-                      colorHex={g.tallas[0]?.variante.colorHex}
-                      prefijo={g.tallas[0]?.variante.categoriaPrefijo}
-                      familia={g.tallas[0]?.variante.categoriaFamilia ?? null}
-                      categoria={g.tallas[0]?.variante.categoria}
-                      forma="grilla"
-                      className={`mb-2.5 ${soloEnAlmacen ? "opacity-55" : ""}`}
-                    />
-                  )}
-                  {/* Dos líneas: en un celular de 320 la tarjeta mide ~120 px y una sola dejaba «Pantalón…» sin decir cuál. */}
-                  <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{g.referencia}</p>
-                  <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
-
-                  {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
-                      tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
-                      «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
-                      almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
-                      el aviso dice cuántas hay y ofrece agregarla registrando la bajada (ADR-0321) — en el
-                      celular el tooltip no se ve. */}
-                  <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
-                    {g.tallas.map((t) =>
-                      t.stockAqui <= 0 && t.almacenAqui > 0 ? (
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => onAgregar(t.variante)}
-                              disabled={bloqueado}
-                              aria-label={`Talla ${t.talla} de ${nombre}: ${t.almacenAqui} en el almacén`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-ambar/60 px-1.5 text-[11px] text-ambar-profundo transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-ambar/10 active:translate-y-px"
-                            >
-                              {t.talla}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · si la tienes en la mano, tócala: se registra la bajada`}</TooltipContent>
-                        </Tooltip>
-                      ) : t.stockAqui > 0 ? (
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => onAgregar(t.variante)}
-                              disabled={bloqueado}
-                              aria-label={`Agregar ${nombre} talla ${t.talla}`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-sand bg-crema px-1.5 text-[11px] text-tinta transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-tinta/40 hover:bg-sand/50 active:translate-y-px"
-                            >
-                              {t.talla}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>
-                            {[
-                              `${t.stockAqui} aquí`,
-                              textoOtrasSedes(t.variante.stockOtrasSedes ?? []),
-                              t.variante.precio !== g.precioMin ? money(t.variante.precio) : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        // Talla agotada aquí: el tooltip dice dónde sí hay. `tabIndex` para que
-                        // también se lea con teclado; no es un botón porque no agrega nada.
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <span
-                              tabIndex={0}
-                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para un cliente" : "sin stock aquí"}`}
-                              className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
-                                // Agotada: tachada. Apartada para un cliente: SIN tachar y en el token informativo — la
-                                // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
-                                motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
-                              }`}
-                            >
-                              {t.talla}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>
-                            {tooltipTallaSinPiso(t.variante, textoOtrasSedes(t.variante.stockOtrasSedes ?? []))}
-                          </TooltipContent>
-                        </Tooltip>
-                      )
-                    )}
-                  </div>
-
-                  {/* `flex-wrap` + `whitespace-nowrap`: a 375 px la tarjeta mide ~140 px; si precio y stock no caben en
-                      una fila, el stock baja entero a la siguiente en vez de partirse en dos encima del precio. */}
-                  <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-3">
-                    <span className="text-sm font-bold text-tinta">
-                      {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
-                    </span>
-                    {/* En una tienda `stockTotal` es solo el PISO: «3 en sede» junto a una talla «2 en el almacén» hacía
-                        creer que en la tienda había 3 en total. En el Taller (sin almacén) sí es todo lo de la sede. */}
-                    <span className={`whitespace-nowrap text-[11px] ${soloEnAlmacen ? "text-ambar-profundo" : sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                      {soloEnAlmacen ? `${g.almacenTotal} en almacén` : sinStock ? "Sin stock" : `${g.stockTotal} ${g.separaPiso ? "en piso" : "en sede"}`}
-                    </span>
-                  </div>
-
-                  {/* Tope de stock: un velo rojo suave que respira dos veces con un barrido de
-                      luz, y se apaga solo (`anim-tope`). Decorativo — el aviso de arriba es el
-                      que se lee con lector de pantalla —, y sin `pointer-events` para no
-                      estorbar los chips. */}
-                  {topeTarjeta?.clave === g.clave && (
-                    <span
-                      // Prefijo en la `key`: es hermana del globito de abajo; con `pulso` 1 y 1 prenda en el carrito ambas
-                      // valían `1` y React avisaba «two children with the same key».
-                      key={`tope-${topeTarjeta.pulso}`}
-                      aria-hidden
-                      className="anim-tope pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
-                    >
-                      <span className="anim-tope-barrido absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-rojo/15 to-transparent" />
-                      <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] text-rojo-profundo">
-                        Máximo alcanzado
-                      </span>
-                    </span>
-                  )}
-
-                  {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
-                      nota que cambió sin releerlo. */}
-                  {enCarrito > 0 && (
-                    <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
-                      {enCarrito}
-                    </Badge>
-                  )}
-                </article>
-              );
-            })}
+            {prendasVisibles.map((p, i) => (
+              <TarjetaPrenda
+                key={p.clave}
+                prenda={p}
+                indice={i}
+                bloqueado={bloqueado}
+                carrito={carrito}
+                pulsoTope={topeTarjeta?.clave === p.clave ? topeTarjeta.pulso : null}
+                onAgregar={onAgregar}
+                onAbrir={onAbrirPrenda}
+              />
+            ))}
           </div>
           {/* Centinela mudo: cuando entra a la vista, revela la próxima tanda (auditoría 2026-09-29).
               Sin tamaño propio — solo dispara el efecto de arriba — y no existe si ya se ve todo. */}
