@@ -1,6 +1,6 @@
 # Spike v3 · Inicio del Admin · «Observatorio» (2026-10-03)
 
-> **Estado: la A de la v2, elegida por Felipe y ajustada a lo que pidió.** No toca la web ni la base.
+> **Estado: aprobada y aplicada en el ERP el 2026-10-03 (ADR-0322, `components/observatorio/`).** La A de la v2, ajustada a lo que pidió Felipe.
 > `inicio-admin-v3.html` es un solo archivo; se abre con el servidor `maquetas` de `.claude/launch.json`
 > (`http://localhost:8791/inicio-admin-v3-2026-10/inicio-admin-v3.html`) o con doble clic.
 
