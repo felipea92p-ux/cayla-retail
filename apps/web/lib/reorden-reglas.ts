@@ -1,6 +1,6 @@
 // Reglas de punto de reorden e indicador de rotación (20260916100000), sin
 // nada de servidor: las lecturas contra Postgres viven en `catalogo-v2.ts`
-// (`fn_productos`/`fn_productos_resumen` ya calculan demanda/lead time/punto
+// (`fn_productos_listado`, ADR-0308, ya calcula demanda/lead time/punto
 // de reorden — acá solo se formatea lo que ya llegó calculado).
 
 /** "Vende ~2.3/día" si se mueve rápido, "cada ~12 días" si se mueve lento,

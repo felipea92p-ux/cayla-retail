@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   armarMatriz,
+  cambiosDeStock,
   cantidadDeCelda,
   conPaso,
+  fijarCelda,
+  grupoDeStockEnHoja,
+  hrefEtiquetasDeSubidas,
+  juntarSubidas,
   lineasDelLote,
   minimoDeCelda,
   pasoDeCelda,
   rangoDePrecios,
   resumenVariantes,
-  textoDelLote,
   tonoDeBarra,
   totalesMatriz,
 } from "./matriz-ficha-reglas";
@@ -142,10 +146,52 @@ describe("textos", () => {
     expect(rangoDePrecios([69.9, 69.9])).toBe("S/ 69.90");
     expect(resumenVariantes([fila("CRU", "s"), fila("NEG", "s", { precio: "89" }), fila("NEG", "m", { activo: false })])).toBe("2 variantes activas · S/ 69–89");
   });
+});
 
-  it("el aviso de un lote", () => {
-    expect(textoDelLote([{ talla: "S", color: "Beige", delta: 1, resultado: 1 }], "Conteo físico")).toBe("+1 S · Beige (Conteo físico) — ahora 1");
-    expect(textoDelLote([{ talla: "M", color: "Crudo", delta: -2, resultado: 7 }], "Merma")).toBe("−2 M · Crudo (Merma) — ahora 7");
-    expect(textoDelLote([{ talla: "S", color: "A", delta: 1, resultado: 1 }, { talla: "M", color: "A", delta: 1, resultado: 2 }], "Otro")).toBe("2 tallas ajustadas (Otro)");
+describe("stock que espera a «Revisar y guardar» (ADR-0313, act. 2026-10-02 noche)", () => {
+  it("fijarCelda: lo escrito a mano es lo tocado contra el stock de hoy; nunca debajo de lo apartado ni algo que no es un entero", () => {
+    expect(fijarCelda(4, 6, 0)).toBe(2);
+    expect(fijarCelda(4, 1, 0)).toBe(-3);
+    expect(fijarCelda(4, 4, 0)).toBe(0);
+    expect(fijarCelda(4, 1, 2)).toBeNull();
+    expect(fijarCelda(4, 2, 2)).toBe(-2);
+    expect(fijarCelda(4, -1, 0)).toBeNull();
+    expect(fijarCelda(4, 1.5, 0)).toBeNull();
+  });
+
+  it("cambiosDeStock: de cuánto a cuánto en el lugar que se ajusta, solo lo tocado", () => {
+    const vs = [variante("a", { talla: "S", color: "Blanco", stockAlmacen: 4 }), variante("b", { talla: "M", color: "Blanco", stockAlmacen: 3 })];
+    expect(cambiosDeStock(vs, { a: 2 }, "almacen")).toEqual([{ varianteId: "a", color: "Blanco", talla: "S", antes: 4, despues: 6 }]);
+    expect(cambiosDeStock(vs, { b: -1 }, "piso")).toEqual([{ varianteId: "b", color: "Blanco", talla: "M", antes: 0, despues: -1 }]);
+    expect(cambiosDeStock(vs, {}, "almacen")).toEqual([]);
+  });
+
+  it("grupoDeStockEnHoja: una línea por talla y la nota con motivo, lugar y las etiquetas si algo sube", () => {
+    expect(grupoDeStockEnHoja([], "Conteo físico", "en el almacén")).toBeNull();
+    const g = grupoDeStockEnHoja(
+      [
+        { varianteId: "a", color: "Blanco", talla: "S", antes: 4, despues: 6 },
+        { varianteId: "b", color: "Rojo", talla: null, antes: 3, despues: 2 },
+      ],
+      "Conteo físico",
+      "en el almacén"
+    )!;
+    expect(g.lineas).toEqual([
+      { texto: "S · Blanco", antes: "4", despues: "6" },
+      { texto: "Única · Rojo", antes: "3", despues: "2" },
+    ]);
+    expect(g.nota).toBe("Se registra como «Conteo físico» en el almacén. Entran 2 unidades: al guardar te propone imprimir sus etiquetas.");
+    expect(grupoDeStockEnHoja([{ varianteId: "b", color: "Rojo", talla: "M", antes: 3, despues: 2 }], "Merma", "en esta sede")!.nota).toBe(
+      "Se registra como «Merma» en esta sede."
+    );
+  });
+
+  it("juntarSubidas y hrefEtiquetasDeSubidas: una etiqueta por unidad nueva, sumando lo que se repite", () => {
+    const una = juntarSubidas([], [{ varianteId: "a", color: "Blanco", talla: "S", unidades: 2 }, { varianteId: "b", color: "Rojo", talla: "M", unidades: 0 }]);
+    const dos = juntarSubidas(una, [{ varianteId: "a", color: "Blanco", talla: "S", unidades: 1 }, { varianteId: "c", color: "Rojo", talla: "L", unidades: 4 }]);
+    expect(dos.map((s) => [s.varianteId, s.unidades])).toEqual([["a", 3], ["c", 4]]);
+    expect(una[0].unidades).toBe(2);
+    expect(hrefEtiquetasDeSubidas(dos)).toBe("/etiquetas-de-precio?unidades=a:3,c:4");
+    expect(hrefEtiquetasDeSubidas([])).toBeNull();
   });
 });

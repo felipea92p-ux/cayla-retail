@@ -200,8 +200,10 @@ export function ElegirMarcaProveedor({
     : totalProv === 0 ? "Escribe el proveedor…" : totalProv === 1 ? "Toca para ver el proveedor…" : `Toca para ver los ${totalProv} proveedores…`;
 
   return (
-    <div className="space-y-2">
-      <div className="grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
+    // `@container`: marca y proveedor van lado a lado solo si caben, según el ancho de este bloque y no el de la ventana (en
+    // Editar producto, con el menú lateral abierto, dos columnas de 165 px cortaban «Toca para ver la ma…»).
+    <div className="@container space-y-2">
+      <div className="grid gap-x-3 gap-y-2.5 @lg:grid-cols-2">
         <div className="space-y-1">
           <div className="flex items-baseline justify-between gap-2">
             <label htmlFor="buscar-marca" className="label-cayla text-[11px] text-tinta/70">
@@ -277,7 +279,7 @@ export function ElegirMarcaProveedor({
       {puedeCrear ? (
         <p className="text-xs text-taupe">
           ¿No está?{" "}
-          <button type="button" onClick={() => setCreando({ nombre: "" })} className="btn-cayla btn-enlace text-xs">
+          <button type="button" onClick={() => setCreando({ nombre: "" })} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
             + Registrar una marca o un proveedor nuevo
           </button>
         </p>

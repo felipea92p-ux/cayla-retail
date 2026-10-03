@@ -4,6 +4,8 @@ import {
   temporadaDeUrl,
   disponibilidadDeUrl,
   rotuloDisponibilidad,
+  alternarColor,
+  estadoDeColor,
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
@@ -146,11 +148,17 @@ describe("productos-filtros — varias opciones", () => {
 });
 
 describe("productos-filtros — color agrupado por familia", () => {
+  // Llegan MEZCLADOS y por nombre (como los pide `productos/page.tsx`): la lista tiene que reordenarlos sola. Fixture autocontenido: prueba
+  // el orden por claridad dentro de una familia, no el catálogo (en producción Beige y Arena son tierra desde el ADR-0317).
   const colores = [
-    { id: "NEG", nombre: "Negro", familia: "neutro" },
-    { id: "AZM", nombre: "Azul marino", familia: "azul" },
-    { id: "CEL", nombre: "Celeste", familia: "azul" },
-    { id: "RARO", nombre: "Raro", familia: null },
+    { id: "ARN", nombre: "Arena", hex: "#CCA67F", familia: "neutro" },
+    { id: "BEI", nombre: "Beige", hex: "#D5BA98", familia: "neutro" },
+    { id: "BLA", nombre: "Blanco", hex: "#F4F9FF", familia: "neutro" },
+    { id: "CRU", nombre: "Crudo", hex: "#F3ECE0", familia: "neutro" },
+    { id: "NEG", nombre: "Negro", hex: "#2D2C2F", familia: "neutro" },
+    { id: "AZM", nombre: "Azul marino", hex: "#2A304E", familia: "azul" },
+    { id: "CEL", nombre: "Celeste", hex: "#A9CADA", familia: "azul" },
+    { id: "RARO", nombre: "Raro", hex: "#123456", familia: null },
   ];
   const familias = [
     { valor: "neutro", texto: "Neutro" },
@@ -161,12 +169,47 @@ describe("productos-filtros — color agrupado por familia", () => {
   it("cada familia con colores abre su grupo con «Toda la familia …»; sin colores, no aparece", () => {
     expect(opcionesDeColor(colores, familias).map((o) => o.texto)).toEqual([
       "Toda la familia Neutro",
+      "Blanco",
+      "Crudo",
+      "Beige",
+      "Arena",
       "Negro",
       "Toda la familia Azul",
-      "Azul marino",
       "Celeste",
+      "Azul marino",
       "Raro",
     ]);
+  });
+
+  it("los colores de cada familia van en la escala de la carta (de claro a oscuro), NO en orden alfabético", () => {
+    const neutros = opcionesDeColor(colores, familias).filter((o) => !o.familia && o.de === "familia:neutro").map((o) => o.texto);
+    expect(neutros).toEqual(["Blanco", "Crudo", "Beige", "Arena", "Negro"]);
+    expect(neutros).not.toEqual([...neutros].sort((a, b) => a.localeCompare(b, "es")));
+    // llegue la lista como llegue
+    const alReves = opcionesDeColor([...colores].reverse(), familias).map((o) => o.texto);
+    expect(alReves).toEqual(opcionesDeColor(colores, familias).map((o) => o.texto));
+  });
+
+  it("cada tono sabe de qué familia es y cada familia sabe qué tonos abarca", () => {
+    const ops = opcionesDeColor(colores, familias);
+    const neutro = ops.find((o) => o.valor === "familia:neutro")!;
+    expect(neutro.familia && neutro.hijos).toEqual(["BLA", "CRU", "BEI", "ARN", "NEG"]);
+    expect(ops.find((o) => o.valor === "CEL")).toMatchObject({ familia: false, de: "familia:azul" });
+    expect(ops.find((o) => o.valor === "RARO")).toMatchObject({ familia: false, de: null });
+  });
+
+  it("una familia que la web aún no conoce sale con su propio nombre, no escondida ni como «sin familia»", () => {
+    const ops = opcionesDeColor([...colores, { id: "TUR", nombre: "Turquesa", hex: "#33BECC", familia: "turquesa" }], familias);
+    const i = ops.findIndex((o) => o.texto === "Toda la familia Turquesa");
+    expect(i).toBeGreaterThan(-1);
+    expect(ops[i + 1]).toMatchObject({ valor: "TUR", de: "familia:turquesa" });
+    // y los colores sin familia siguen al final
+    expect(ops[ops.length - 1].texto).toBe("Raro");
+  });
+
+  it("INVARIANTE: todo color de la entrada sale exactamente una vez", () => {
+    const ids = opcionesDeColor(colores, familias).flatMap((o) => (o.familia ? [] : [o.valor]));
+    expect(ids.sort()).toEqual(colores.map((c) => c.id).sort());
   });
 
   it("lo marcado va a la URL separado y vuelve igual (ida y vuelta)", () => {
@@ -175,6 +218,76 @@ describe("productos-filtros — color agrupado por familia", () => {
     expect(url).toEqual({ color: "NEG", familia: "azul" });
     expect(marcadosDeColor(`color=${url.color}&familia=${url.familia}`)).toEqual(marcado);
     expect(separarColor([])).toEqual({ color: "", familia: "" });
+  });
+
+  describe("las casillas dicen lo mismo que la base (marcar la familia incluye todos sus tonos)", () => {
+    const ops = opcionesDeColor(colores, familias);
+    const NEUTRO = "familia:neutro";
+    const TONOS_NEUTRO = ["BLA", "CRU", "BEI", "ARN", "NEG"];
+
+    it("sin nada marcado, todo está libre", () => {
+      for (const e of estadoDeColor([], ops).values()) expect(e).toBe("libre");
+    });
+
+    it("marcada la familia, sus tonos se ven cubiertos y los de otra familia no", () => {
+      const e = estadoDeColor([NEUTRO], ops);
+      expect(e.get(NEUTRO)).toBe("marcada");
+      for (const t of TONOS_NEUTRO) expect(e.get(t), t).toBe("cubierta");
+      expect(e.get("CEL")).toBe("libre");
+      expect(e.get("familia:azul")).toBe("libre");
+    });
+
+    it("con algunos tonos marcados, la familia queda parcial; con uno solo de otra, la suya no", () => {
+      const e = estadoDeColor(["BEI", "CEL"], ops);
+      expect(e.get(NEUTRO)).toBe("parcial");
+      expect(e.get("BEI")).toBe("marcada");
+      expect(e.get("familia:azul")).toBe("parcial");
+      expect(e.get("ARN")).toBe("libre");
+    });
+
+    it("tocar la familia la marca entera y suelta los tonos sueltos (ya no hacen falta)", () => {
+      expect(alternarColor(["BEI", "CEL"], NEUTRO, ops)).toEqual(["CEL", NEUTRO]);
+      expect(alternarColor([], NEUTRO, ops)).toEqual([NEUTRO]);
+    });
+
+    it("tocar una familia ya marcada la desmarca", () => {
+      expect(alternarColor([NEUTRO, "CEL"], NEUTRO, ops)).toEqual(["CEL"]);
+    });
+
+    it("tocar un tono de una familia marcada abre la familia en sus otros tonos (saca solo ese)", () => {
+      const r = alternarColor([NEUTRO], "BEI", ops);
+      expect(r).not.toContain(NEUTRO);
+      expect(r.sort()).toEqual(["ARN", "BLA", "CRU", "NEG"]);
+    });
+
+    it("tocar un tono suelto lo marca y lo desmarca", () => {
+      expect(alternarColor([], "BEI", ops)).toEqual(["BEI"]);
+      expect(alternarColor(["BEI", "CEL"], "BEI", ops)).toEqual(["CEL"]);
+    });
+
+    it("al marcar el ÚLTIMO tono que faltaba, los tonos pasan a ser «toda la familia»", () => {
+      const casiTodos = ["BLA", "CRU", "BEI", "ARN"];
+      const r = alternarColor(casiTodos, "NEG", ops);
+      expect(r).toEqual([NEUTRO]);
+      expect(estadoDeColor(r, ops).get("NEG")).toBe("cubierta");
+    });
+
+    it("un color sin familia se alterna sin más, y un valor desconocido también", () => {
+      expect(alternarColor([], "RARO", ops)).toEqual(["RARO"]);
+      expect(alternarColor(["RARO"], "RARO", ops)).toEqual([]);
+      expect(alternarColor([], "XXX", ops)).toEqual(["XXX"]);
+    });
+
+    it("INVARIANTE: tocar dos veces un tono (suelto o dentro de una familia marcada) vuelve a lo mismo que se pide a la base", () => {
+      // «Lo mismo» = los mismos tonos elegidos de verdad (familia expandida o no): se compara lo que trae el filtro.
+      const trae = (m: string[]) => new Set(m.flatMap((v) => (v === NEUTRO ? TONOS_NEUTRO : [v])));
+      for (const inicio of [[], ["CEL"], [NEUTRO], ["BEI"], ["BLA", "CRU"]]) {
+        for (const t of ["BEI", "NEG", "CEL"]) {
+          const dosVeces = alternarColor(alternarColor(inicio, t, ops), t, ops);
+          expect([...trae(dosVeces)].sort(), `${inicio} · ${t}`).toEqual([...trae(inicio)].sort());
+        }
+      }
+    });
   });
 });
 

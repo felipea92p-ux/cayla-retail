@@ -9,10 +9,13 @@ import { enEscala, type ColorEnEscala } from "./color-escala";
 //
 // QUÉ ENTRA EN CADA FAMILIA — tres criterios con una prioridad escrita, de mayor a menor:
 //   1. ACABADO: metálico (el color es el metal; da igual su matiz) y estampado (no tiene un tono).
-//   2. ROL: neutro (sin matiz, o un blanco/arena roto: de Blanco a Negro, con Crudo, Nude, Beige y Arena) y tierra (los
-//      marrones apagados de matiz cálido, de Caqui a Chocolate). Entre uno y otro no hay un hueco natural de matiz —es un
-//      continuo— y la frontera se puso donde el salto entre vecinos es mayor (Arena→Camel, ΔE2000 9,3), no en medio de una
-//      pareja que se confunde (Beige–Arena, 6,0).
+//   2. ROL: neutro (blancos, grises y negro, con Crudo, Perla, Nude y Gris piedra) y tierra (los beiges y marrones cálidos: de
+//      Beige, Arena y Topo hasta Chocolate). LA FAMILIA ES UN DATO (`colores.familia_color`), no un cálculo. La croma OKLab sirve
+//      de guía (neutros < 0,03; tierras ≥ 0,034, con Chocolate, 0,0347, en el borde) pero NO manda, y tiene dos excepciones que
+//      decidió Felipe (2026-10-02): Topo (0,023, un marrón grisáceo) es Tierra aunque tenga menos croma que Gris piedra (0,026), y
+//      Nude (0,047, el más tintado de los neutros) se queda en Neutro porque quien busca «nude» lo busca entre los neutros. Una
+//      regla por croma no podía decir ninguna de las dos cosas; por eso la frontera se escribe aquí y se prueba contra la carta,
+//      no se deduce.
 //   3. MATIZ: todo lo demás, por el ángulo que ocupa en el círculo (OKLCH). Rosado = rojos claros o magenta vivo; naranja =
 //      el matiz entre el rojo y el amarillo, vivo o pastel.
 // Si un color cumple dos, manda el de menor número.
@@ -51,8 +54,36 @@ export function enLaCarta(a: ColorEnEscala, b: ColorEnEscala): number {
   return (fa < 0 ? FAMILIAS_COLOR.length : fa) - (fb < 0 ? FAMILIAS_COLOR.length : fb) || enEscala(a, b);
 }
 
+/**
+ * El nombre de una familia. Una que este archivo no conoce (la base la agregó antes de que el código se desplegara, o un Líder la
+ * creó sin deploy) se lee por su propio valor, con mayúscula —«Turquesa»—, y no «Sin familia»: «Sin familia» es solo para el color
+ * que de verdad no tiene. Así un desfase entre la base y la web degrada a un orden distinto, nunca a una mentira.
+ */
 export function textoDeFamilia(valor: string | null | undefined): string {
-  return FAMILIAS_COLOR.find((f) => f.valor === valor)?.texto ?? "Sin familia";
+  const conocida = FAMILIAS_COLOR.find((f) => f.valor === valor);
+  if (conocida) return conocida.texto;
+  return valor ? valor.charAt(0).toLocaleUpperCase("es") + valor.slice(1) : "Sin familia";
+}
+
+/**
+ * Agrupa colores por familia, UNA sola vez para todas las pantallas (Nuevo producto, Atributos y el filtro de Productos): primero
+ * las familias que el código conoce, en su orden de espectro; luego cada familia desconocida con su propio nombre; al final, los
+ * colores sin familia. Nunca se pierde ni se repite un color. Una familia sin colores no aparece.
+ */
+export function agruparPorFamilia<C>(
+  colores: readonly C[],
+  familiaDe: (c: C) => string | null | undefined,
+  familias: readonly { valor: string; texto: string }[] = FAMILIAS_COLOR,
+): { familia: string; texto: string; colores: C[] }[] {
+  const grupos = familias
+    .map((f) => ({ familia: f.valor, texto: f.texto, colores: colores.filter((c) => familiaDe(c) === f.valor) }))
+    .filter((g) => g.colores.length > 0);
+  const conocidas = new Set(familias.map((f) => f.valor));
+  const ajenas = [...new Set(colores.map(familiaDe).filter((v): v is string => !!v && !conocidas.has(v)))];
+  for (const v of ajenas) grupos.push({ familia: v, texto: textoDeFamilia(v), colores: colores.filter((c) => familiaDe(c) === v) });
+  const sin = colores.filter((c) => !familiaDe(c));
+  if (sin.length > 0) grupos.push({ familia: "sin-familia", texto: "Sin familia", colores: [...sin] });
+  return grupos;
 }
 
 /** Una mota de luz (crema) o de sombra (tinta) a cierta opacidad: con lo único que se dibuja el jaspeado sobre el #hex. */

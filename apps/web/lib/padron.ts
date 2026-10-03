@@ -174,7 +174,7 @@ export function normalizarRespuestaPadron(tipo: TipoConsulta, numero: string, d:
 //   nada → {"error":"No existen datos para los filtros seleccionados"}  (HTTP 200, no 404)
 // Content-Type llega como text/plain; `respuesta.json()` no lo mira, por eso sirve.
 // El DNI usa la misma estructura (`apenomdenunciado`); el caso de éxito del DNI NO se
-// verificó con un número real. Por eso el lector es tolerante y, ante cualquier forma
+// verificó con un número real (el 2026-10-03 resultó usar `nombresapellidos`). Por eso el lector es tolerante y, ante cualquier forma
 // que no reconoce, devuelve `sin_respuesta` → la consulta cae al proveedor de pago.
 // Un formato desconocido nunca produce un nombre inventado.
 const URL_SUNAT_PUBLICO = "https://ww1.sunat.gob.pe/ol-ti-itfisdenreg/itfisdenreg.htm";
@@ -241,7 +241,10 @@ export function leerSunatPublico(tipo: TipoConsulta, numero: string, json: unkno
   if (!fila || typeof fila !== "object") return inesperado;
   const f = fila as Record<string, unknown>;
   // El nombre y la dirección vienen rellenados con espacios hasta un ancho fijo.
-  const nombre = texto(f, "apenomdenunciado");
+  // RUC → `apenomdenunciado`. DNI → `nombresapellidos` con forma «APELLIDOS,NOMBRES»
+  // (verificado con un DNI real 2026-10-03: "ESPINOZA SANTIAGO,MARIA FERNANDA"); la coma
+  // se vuelve espacio para quedar igual que el nombre de los proveedores (apellidos primero).
+  const nombre = texto(f, "apenomdenunciado") ?? texto(f, "nombresapellidos")?.replace(/\s*,\s*/g, " ") ?? null;
   const direccion = texto(f, "direstablecimiento");
   const datos = normalizarRespuestaPadron(tipo, numero, {
     ...f,

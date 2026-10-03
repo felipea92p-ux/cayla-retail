@@ -60,19 +60,21 @@ import { PuntoColor, type ContextoFicha } from "./piezas";
 type ModalAbierto = { tipo: "corregir"; claves: string[]; ejes: EjesCorreccion } | { tipo: "agregar-color" } | { tipo: "agregar-talla" } | null;
 
 const NUMERO =
-  "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-1.5 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-tinta sm:text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-1.5 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-tinta @lg:text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 /** El mismo campo con la línea de abajo en ámbar: cambió y todavía no se guardó (ADR-0257). Se arma cambiando la clase, no
  *  sumando otra: dos colores de borde en el mismo elemento los resuelve el orden de la hoja de estilos, no el del atributo. */
 const NUMERO_CAMBIADO = NUMERO.replace("border-tinta/25", "border-ambar");
 
-/** En celular la fila es una tarjeta (identidad y menú arriba; precio, costo y margen; stock). En escritorio, una línea. */
+/** Angosta, la fila es una tarjeta (identidad y menú arriba; precio, costo y margen; stock); con lugar, una línea. Lo decide
+ *  el ancho de la sección (`@container` en la raíz), no el de la ventana: con el menú lateral abierto, una ventana de laptop
+ *  deja la columna de la ficha más angosta que un celular apaisado, y las columnas fijas se salían. */
 function columnas(conStock: boolean): string {
   return conStock
-    ? "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_3.5rem_4.5rem_2.5rem]"
-    : "sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_3.5rem_2.5rem]";
+    ? "@lg:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_3.5rem_4.5rem_2.5rem]"
+    : "@lg:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_3.5rem_2.5rem]";
 }
 
-const ROTULO = "block text-[10.5px] font-medium uppercase tracking-wide text-taupe sm:sr-only";
+const ROTULO = "block text-[10.5px] font-medium uppercase tracking-wide text-taupe @lg:sr-only";
 
 export function VariantesFicha({
   ctx,
@@ -195,7 +197,7 @@ export function VariantesFicha({
   );
 
   return (
-    <section className={detalle ? "space-y-4" : "card-cayla space-y-4 p-4 sm:p-5"} aria-labelledby="variantes-titulo">
+    <section className={detalle ? "@container space-y-4" : "@container card-cayla space-y-4 p-4 sm:p-5"} aria-labelledby="variantes-titulo">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 id="variantes-titulo" className="label-cayla text-[11px] text-tinta/65">
           Variantes (talla × color)
@@ -324,7 +326,7 @@ export function VariantesFicha({
                 )}
                 {ctx.puedeCorregir && bloqueo && <p className="w-full text-[11.5px] text-taupe">{bloqueo}</p>}
               </header>
-              <div className={`hidden gap-x-3 px-3 pt-2 sm:grid ${columnas(conStock)}`}>
+              <div className={`hidden gap-x-3 px-3 pt-2 @lg:grid ${columnas(conStock)}`}>
                 {["Talla · código", "Precio", "Costo", "Margen", ...(conStock ? ["Stock"] : []), ""].map((t, i) => (
                   <span key={i} className={`text-[10.5px] font-medium uppercase tracking-wide text-taupe ${i > 0 ? "text-right" : ""}`}>
                     {t}
@@ -402,7 +404,7 @@ export function VariantesFicha({
 
 function Eje({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-1.5 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center">
+    <div className="grid gap-1.5 @lg:grid-cols-[4.5rem_minmax(0,1fr)] @lg:items-center">
       <p className="text-[12.5px] font-semibold text-tinta">{titulo}</p>
       <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
@@ -511,9 +513,9 @@ function FilaVariante({
         tocada ? "-mx-3 bg-ambar/[0.08] px-3 shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
       }`}
     >
-      <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 sm:items-center ${columnas(conStock)}`}>
+      <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 @lg:items-center ${columnas(conStock)}`}>
         {/* Qué variante es */}
-        <div className="col-span-2 min-w-0 sm:col-span-1">
+        <div className="col-span-2 min-w-0 @lg:col-span-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {mostrarColor && <PuntoColor codigo={f.colorCodigo} colores={ctx.colores} />}
             <span className="text-sm font-semibold text-tinta">{mostrarColor ? nombre : n.talla(f.tallaId) || "Sin talla"}</span>
@@ -527,7 +529,7 @@ function FilaVariante({
         </div>
 
         {/* El menú: en celular arriba a la derecha; en escritorio, al final de la línea. */}
-        <div className="col-start-3 row-start-1 flex justify-end sm:order-last sm:col-auto sm:row-auto">
+        <div className="col-start-3 row-start-1 flex justify-end @lg:order-last @lg:col-auto @lg:row-auto">
           <MenuAcciones etiqueta={`Acciones de ${nombre}`} items={items} deshabilitado={deshabilitado} />
         </div>
 
@@ -551,11 +553,11 @@ function FilaVariante({
         <div className="min-w-0">
           <span className={ROTULO}>Costo</span>
           {!ctx.veCosto ? (
-            <span className="block py-1.5 text-sm text-tinta/45 sm:text-right" title="El costo solo lo ve quien tiene permiso de ver el dinero">
+            <span className="block py-1.5 text-sm text-tinta/45 @lg:text-right" title="El costo solo lo ve quien tiene permiso de ver el dinero">
               —
             </span>
           ) : f.costoFijo ? (
-            <span className="block py-1.5 text-sm tabular-nums text-tinta/70 sm:text-right" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
+            <span className="block py-1.5 text-sm tabular-nums text-tinta/70 @lg:text-right" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
               {g?.costo ? Number(g.costo).toFixed(2) : "—"}
             </span>
           ) : (
@@ -577,7 +579,7 @@ function FilaVariante({
         <div className="min-w-0">
           <span className={ROTULO}>Margen</span>
           <span
-            className={`block py-1.5 text-sm tabular-nums sm:text-right ${
+            className={`block py-1.5 text-sm tabular-nums @lg:text-right ${
               nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar-profundo" : "text-tinta/60"
             }`}
             title={nivel === "negativo" ? "Con este precio se pierde dinero en cada venta" : nivel === "bajo" ? "Menos de 30 %: un descuento de campaña ya se come la ganancia" : undefined}
@@ -587,9 +589,9 @@ function FilaVariante({
         </div>
 
         {conStock && (
-          <div className="col-span-3 min-w-0 sm:col-span-1">
+          <div className="col-span-3 min-w-0 @lg:col-span-1">
             <span className={ROTULO}>Stock</span>
-            <span className="block py-1.5 text-sm tabular-nums sm:text-right" title={e ? textoSedes(e) : undefined}>
+            <span className="block py-1.5 text-sm tabular-nums @lg:text-right" title={e ? textoSedes(e) : undefined}>
               {e ? `${e.stock} u.` : g ? "0 u." : "—"}
               {e && e.apartado > 0 && <span className="text-taupe"> · {e.apartado} ap.</span>}
               {g && (
@@ -602,7 +604,7 @@ function FilaVariante({
                 />
               )}
             </span>
-            {e && e.sedes.length > 0 && <span className="block text-[11px] text-taupe sm:hidden">{textoSedes(e)}</span>}
+            {e && e.sedes.length > 0 && <span className="block text-[11px] text-taupe @lg:hidden">{textoSedes(e)}</span>}
           </div>
         )}
       </div>

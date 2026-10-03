@@ -9,7 +9,6 @@ import { leerVariantesParaAjuste } from "@/components/AjustarInventarioModal";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
-  MOTIVOS_AJUSTE,
   argumentosDeAjuste,
   armarVariantesAjuste,
   cargaInicialAlPiso,
@@ -22,27 +21,39 @@ import {
   type MotivoAjuste,
   type VarianteAjuste,
 } from "@/lib/ajuste-reglas";
-import { cantidadDeCelda, conPaso, lineasDelLote, minimoDeCelda, pasoDeCelda, textoDelLote, type Pendientes } from "@/lib/matriz-ficha-reglas";
+import {
+  cambiosDeStock,
+  cantidadDeCelda,
+  conPaso,
+  fijarCelda,
+  juntarSubidas,
+  lineasDelLote,
+  minimoDeCelda,
+  pasoDeCelda,
+  type CambioDeStock,
+  type Pendientes,
+  type Subida,
+} from "@/lib/matriz-ficha-reglas";
 import type { AjusteStockFicha } from "./piezas";
 
-// El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» ES un ajuste de inventario —el mismo de
-// `AjustarInventarioModal` (ADR-0240, `ajustar_inventario`)—, INMEDIATO y aparte de «Revisar y guardar»: un stock que se movió es
-// un hecho, no un borrador (principio 4). Lo que cambia frente al modal es el gesto, no el camino:
+// El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» (o el número escrito en la celda) es un
+// ajuste de inventario —el mismo de `AjustarInventarioModal` (ADR-0240, `ajustar_inventario`)— que ESPERA a «Revisar y guardar»
+// como cualquier otro cambio de la ficha (ADR-0313, act. 2026-10-02 noche; Felipe: «se debe mostrar el botón de guardar cambios»).
+// Antes viajaba solo a los 900 ms de cada toque; ahora la barra lo cuenta, la hoja lo lista («S · Blanco 4 → 6») y sale en UNA
+// llamada al confirmar. Lo que se mantiene:
 //
 //  · El motivo, el lugar (almacén o piso) y quién lo hace se eligen UNA vez por visita (la línea «Registrar los ajustes de stock de
 //    esta visita como…»), no en un formulario por cada toque.
-//  · Los toques se juntan en un lote: a los 900 ms del último sale UNA llamada (un movimiento por talla, no uno por clic), sin el
-//    loader de pantalla completa (`x-espera: no`, como Conteo): el aviso dice «Guardado ya».
-//  · Si la base dice que no (o la respuesta no llega), se vuelve a leer el stock de la base: la celda muestra la verdad y nada se
-//    reenvía solo (reenviar a ciegas podría sumar dos veces).
+//  · Si la respuesta no llega, no se sabe si se aplicó: se vuelve a leer el stock de la base y lo tocado se suelta (reenviarlo a
+//    ciegas podría sumar dos veces). Si la base dijo que no, no se aplicó nada: lo tocado queda en la ficha para volver a guardar.
 //  · Una talla que faltó en un conteo cerrado (ADR-0291) no se suma a ciegas: «no se adivina». Ese «+» abre el modal de siempre,
-//    que pregunta si es la que faltó.
+//    que pregunta si es la que faltó (ese modal sí guarda al confirmarlo: es su propio formulario).
 //  · Una variante NUEVA (todavía sin guardar) no existe en la base: su número se junta aparte y entra como stock inicial justo
-//    después de «Revisar y guardar» (`cargarNuevas`).
-//  · Lo que subió se junta para el recordatorio de etiquetas y se entrega al SALIR de la ficha (Felipe: «luego de guardar los
-//    cambios, no antes»), donde la franja queda a la vista hasta cambiar de módulo.
+//    después de crearla (`cargarNuevas`).
+//  · Lo que subió (cuántas unidades por talla) se entrega para imprimir sus etiquetas: el aviso de «guardado» lo ofrece y, al salir
+//    de la ficha, queda la franja del módulo hasta imprimirlas o cambiar de módulo.
 
-const ESPERA_LOTE_MS = 900;
+/** Un guardado de stock que no responde en 20 s se da por cortado: se vuelve a leer la base (ver arriba). */
 const TOPE_ESPERA_MS = 20_000;
 
 export type StockFicha = {
@@ -57,19 +68,32 @@ export type StockFicha = {
   cambiarMotivo: (m: MotivoAjuste) => void;
   motivos: readonly { valor: MotivoAjuste; texto: string }[];
   responsable: ControlResponsable;
-  /** Hay toques sin confirmar por la base (en espera o viajando). */
+  /** Hay stock tocado en variantes guardadas que todavía no se guarda. */
   hayPendientes: boolean;
+  /** Lo tocado en variantes guardadas, de cuánto a cuánto (la hoja y la cuenta de la barra). */
+  cambios: CambioDeStock[];
   /** El número de la celda de una variante guardada (stock de hoy en el lugar + lo tocado). */
   numero: (varianteId: string) => number;
+  /** El stock de hoy en el lugar, sin lo tocado (para marcar la celda que cambió). */
+  numeroGuardado: (varianteId: string) => number;
   puedeBajar: (varianteId: string) => boolean;
-  /** «+»/«−» sobre una variante guardada. Devuelve el color a abrir en el modal si esa talla faltó en un conteo. */
+  /** «+»/«−» sobre una variante guardada. `abrirModal`: esa talla faltó en un conteo y se pregunta en el modal. */
   paso: (varianteId: string, paso: 1 | -1) => { abrirModal: boolean };
+  /** El número escrito en la celda. `abrirModal` como en `paso`; `rechazado` si queda bajo lo apartado. */
+  fijar: (varianteId: string, objetivo: number) => { abrirModal: boolean; rechazado: boolean };
   /** El número de una variante nueva (sin guardar): lo que entra como stock inicial al guardar. */
   numeroNueva: (clave: string) => number;
   pasoNueva: (clave: string, paso: 1 | -1) => void;
+  fijarNueva: (clave: string, objetivo: number) => void;
   nuevasConStock: number;
-  /** Tras «Revisar y guardar»: carga como stock inicial lo puesto en las variantes nuevas (ya con id). */
+  /** «Revisar y guardar»: manda lo tocado en las variantes guardadas en UNA llamada. `ok: false` ya avisó del error. */
+  guardar: () => Promise<{ ok: boolean }>;
+  /** Tras crear las variantes nuevas: carga como stock inicial lo puesto en ellas (ya con id). Devuelve las unidades. */
   cargarNuevas: (idsPorClave: ReadonlyMap<string, string>, nombres: ReadonlyMap<string, { color: string | null; talla: string | null }>) => Promise<number>;
+  /** Lo que subió en los guardados de esta visita, por talla (para «Imprimir etiquetas»). Se lee una vez y se vacía. */
+  tomarSubidas: () => Subida[];
+  /** «Descartar»: suelta todo lo tocado. Devuelve cómo deshacerlo. */
+  descartar: () => () => void;
   /** Volver a leer el stock de la base (tras el modal). */
   recargar: () => void;
 };
@@ -102,22 +126,16 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   const responsable = useResponsable(undefined, { recordarEn: productoId ? `ficha-stock:${productoId}` : undefined });
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
 
-  // El lote sale con lo de ESE momento: refs para que el temporizador no lea un render viejo.
-  const estado = useRef({ variantes, pendientes, motivo, lugar, ubicado });
-  const responsableRef = useRef(responsable);
-  useEffect(() => {
-    estado.current = { variantes, pendientes, motivo, lugar, ubicado };
-    responsableRef.current = responsable;
-  });
-  const temporizador = useRef<number | null>(null);
-  const enVuelo = useRef(false);
-  // El envío vuelve a programarse a sí mismo si llegaron toques durante el viaje: se llama por esta referencia.
-  const enviarRef = useRef<() => void>(() => {});
-  const otraVez = useRef(false);
-  // Lo que subió en la visita, para el recordatorio de etiquetas (se entrega al salir de la ficha).
-  const subieron = useRef(new Map<string, { varianteId: string; color: string | null; talla: string | null }>());
+  // Lo que subió en la visita, por talla: para el recordatorio del módulo al salir (`subieron`) y para el aviso del guardado
+  // que se está haciendo (`delGuardado`, se lee una vez).
+  const subieron = useRef<Subida[]>([]);
+  const delGuardado = useRef<Subida[]>([]);
+  function anotarSubidas(s: Subida[]) {
+    subieron.current = juntarSubidas(subieron.current, s);
+    delGuardado.current = juntarSubidas(delGuardado.current, s);
+  }
 
-  // Cada lectura de la base sube este número (al abrir, y cuando la base dijo que no o la respuesta no llegó).
+  // Cada lectura de la base sube este número (al abrir, y cuando la respuesta de un guardado no llegó).
   const [lectura, setLectura] = useState(0);
   const leer = useCallback(() => setLectura((n) => n + 1), []);
 
@@ -148,27 +166,20 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   // Al salir de la ficha (guardó y volvió a la lista, o se fue por el menú): lo que subió pasa al recordatorio del módulo.
   useEffect(
     () => () => {
-      if (subieron.current.size > 0) agregarRecordatorio([...subieron.current.values()]);
+      if (subieron.current.length > 0) agregarRecordatorio(subieron.current);
     },
     [agregarRecordatorio]
   );
 
-  const enviar = useCallback(async () => {
-    temporizador.current = null;
-    if (enVuelo.current) {
-      otraVez.current = true;
-      return;
-    }
-    const { variantes: vs, pendientes: lote, motivo: mot, lugar: lug, ubicado: ubi } = estado.current;
-    if (!vs || !ubicacionId || Object.keys(lote).length === 0) return;
-    const resp = responsableRef.current;
-    const lineas = lineasDelLote(vs, lote, lug, mot);
+  async function guardar(): Promise<{ ok: boolean }> {
+    if (!variantes || !ubicacionId || Object.keys(pendientes).length === 0) return { ok: true };
+    const lote = pendientes;
+    const lineas = lineasDelLote(variantes, lote, lugar, motivo);
     if (lineas.length === 0) {
       setPendientes({});
-      return;
+      return { ok: true };
     }
     const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
-    enVuelo.current = true;
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     const { error } = await firmar(
@@ -177,69 +188,41 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
           "ajustar_inventario",
           argumentosDeAjuste({
             ubicacionId,
-            sububicacionId: separaPisoAlmacen ? (ubi === "piso" ? pisoId! : almacenId!) : null,
+            sububicacionId: separaPisoAlmacen ? (ubicado === "piso" ? pisoId! : almacenId!) : null,
             ajustes,
             cargaInicial,
-            motivo: mot,
-            alPiso: cargaInicialAlPiso(ubi, separaPisoAlmacen, !!ajuste?.puedeBajarAlPiso),
+            motivo,
+            alPiso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, !!ajuste?.puedeBajarAlPiso),
             nota: "",
             token: crypto.randomUUID(),
           })
         )
         .abortSignal(control.signal)
         .setHeader("x-espera", "no"),
-      resp.firma()
+      responsable.firma()
     );
     window.clearTimeout(tope);
-    resp.despues(error);
-    enVuelo.current = false;
-    // Lo que viajó deja de estar pendiente (lo tocado DURANTE el viaje se queda para el lote siguiente).
-    const restar = (p: Pendientes) => {
-      const salida: Record<string, number> = { ...p };
-      for (const [id, d] of Object.entries(lote)) {
-        const queda = (salida[id] ?? 0) - d;
-        if (queda === 0) delete salida[id];
-        else salida[id] = queda;
-      }
-      return salida;
-    };
+    responsable.despues(error);
     if (error) {
-      setPendientes(restar);
-      avisar.error(
-        esRespuestaIncierta(error)
-          ? "Se cortó la conexión y no sabemos si el ajuste llegó: la ficha volvió a leer el stock de la base, y ese es el número de cada talla ahora."
-          : traducirError(error, "ajustar el stock")
-      );
-      leer();
-    } else {
-      // La base aplicó EXACTAMENTE este lote: la copia local se corrige igual, sin otra lectura ni el loader.
-      const porId = new Map(lineas.map((l) => [l.variante.varianteId, l.delta]));
-      setVariantes((actuales) => (actuales ?? []).map((v) => (porId.has(v.varianteId) ? conDelta(v, lug, porId.get(v.varianteId)!) : v)));
-      setPendientes(restar);
-      for (const l of lineas) {
-        if (l.delta > 0) subieron.current.set(l.variante.varianteId, { varianteId: l.variante.varianteId, color: l.variante.color, talla: l.variante.talla });
+      if (esRespuestaIncierta(error)) {
+        // No se sabe si llegó: lo tocado se suelta y se lee la base (reenviarlo podría sumar dos veces).
+        setPendientes({});
+        leer();
+        avisar.error("Se cortó la conexión y no sabemos si el stock se guardó: la ficha volvió a leerlo de la base, y ese es el número de cada talla ahora.");
+      } else {
+        avisar.error(traducirError(error, "guardar el stock"), { detalle: "Lo que tocaste sigue en la ficha: corrígelo y vuelve a guardar." });
       }
-      const textoMotivo = MOTIVOS_AJUSTE.find((m) => m.valor === mot)?.texto ?? "";
-      avisar.exito(textoDelLote(lineas.map((l) => ({ talla: l.variante.talla, color: l.variante.color, delta: l.delta, resultado: l.resultado })), textoMotivo), {
-        detalle: "Guardado ya — no es parte de «Revisar y guardar».",
-      });
+      return { ok: false };
     }
-    if (otraVez.current) {
-      otraVez.current = false;
-      temporizador.current = window.setTimeout(() => enviarRef.current(), ESPERA_LOTE_MS);
-    }
-  }, [ubicacionId, separaPisoAlmacen, pisoId, almacenId, ajuste?.puedeBajarAlPiso, leer]);
-
-  useEffect(() => {
-    enviarRef.current = () => void enviar();
-  }, [enviar]);
-
-  useEffect(
-    () => () => {
-      if (temporizador.current !== null) window.clearTimeout(temporizador.current);
-    },
-    []
-  );
+    // La base aplicó EXACTAMENTE este lote: la copia local se corrige igual, sin otra lectura ni el loader.
+    const porId = new Map(lineas.map((l) => [l.variante.varianteId, l.delta]));
+    setVariantes((actuales) => (actuales ?? []).map((v) => (porId.has(v.varianteId) ? conDelta(v, lugar, porId.get(v.varianteId)!) : v)));
+    setPendientes({});
+    anotarSubidas(
+      lineas.filter((l) => l.delta > 0).map((l) => ({ varianteId: l.variante.varianteId, color: l.variante.color, talla: l.variante.talla, unidades: l.delta }))
+    );
+    return { ok: true };
+  }
 
   const varianteDe = (id: string) => variantes?.find((v) => v.varianteId === id);
 
@@ -254,10 +237,6 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
 
   function paso(varianteId: string, p: 1 | -1): { abrirModal: boolean } {
     if (!ajuste || !variantes) return { abrirModal: false };
-    if (!responsable.listo) {
-      avisar.error(responsable.motivo ?? "Elige quién hace el ajuste.", { enfocar: "ficha-stock-responsable" });
-      return { abrirModal: false };
-    }
     const v = varianteDe(varianteId);
     if (p > 0 && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) return { abrirModal: true };
     // Sobre lo pendiente MÁS reciente (no el del render): dos toques en el mismo instante cuentan dos.
@@ -265,19 +244,27 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
       const siguiente = pasoDeCelda(cantidadDeCelda(v, lugar, 0), actual[varianteId] ?? 0, p, minimoDeCelda(v, lugar));
       return siguiente === null ? actual : conPaso(actual, varianteId, siguiente);
     });
-    if (temporizador.current !== null) window.clearTimeout(temporizador.current);
-    temporizador.current = window.setTimeout(() => void enviar(), ESPERA_LOTE_MS);
     return { abrirModal: false };
   }
 
+  function fijar(varianteId: string, objetivo: number): { abrirModal: boolean; rechazado: boolean } {
+    if (!ajuste || !variantes) return { abrirModal: false, rechazado: true };
+    const v = varianteDe(varianteId);
+    const hoy = cantidadDeCelda(v, lugar, 0);
+    if (objetivo > numero(varianteId) && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) return { abrirModal: true, rechazado: false };
+    const siguiente = fijarCelda(hoy, objetivo, minimoDeCelda(v, lugar));
+    if (siguiente === null) return { abrirModal: false, rechazado: true };
+    setPendientes((actual) => conPaso(actual, varianteId, siguiente));
+    return { abrirModal: false, rechazado: false };
+  }
+
   function pasoNueva(clave: string, p: 1 | -1) {
-    setNuevas((actual) => {
-      const siguiente = Math.max(0, (actual[clave] ?? 0) + p);
-      const salida = { ...actual };
-      if (siguiente === 0) delete salida[clave];
-      else salida[clave] = siguiente;
-      return salida;
-    });
+    setNuevas((actual) => conPaso(actual, clave, Math.max(0, (actual[clave] ?? 0) + p)));
+  }
+
+  function fijarNueva(clave: string, objetivo: number) {
+    if (!Number.isInteger(objetivo) || objetivo < 0) return;
+    setNuevas((actual) => conPaso(actual, clave, objetivo));
   }
 
   async function cargarNuevas(idsPorClave: ReadonlyMap<string, string>, nombres: ReadonlyMap<string, { color: string | null; talla: string | null }>): Promise<number> {
@@ -310,12 +297,24 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
       });
       return 0;
     }
-    for (const c of cargas) {
-      const nom = nombres.get(c.clave);
-      subieron.current.set(c.variante.varianteId, { varianteId: c.variante.varianteId, color: nom?.color ?? null, talla: nom?.talla ?? null });
-    }
+    anotarSubidas(
+      cargas.map((c) => {
+        const nom = nombres.get(c.clave);
+        return { varianteId: c.variante.varianteId, color: nom?.color ?? null, talla: nom?.talla ?? null, unidades: c.delta };
+      })
+    );
     setNuevas({});
     return cargas.reduce((s, c) => s + c.delta, 0);
+  }
+
+  function descartar(): () => void {
+    const antes = { pendientes, nuevas };
+    setPendientes({});
+    setNuevas({});
+    return () => {
+      setPendientes(antes.pendientes);
+      setNuevas(antes.nuevas);
+    };
   }
 
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
@@ -336,13 +335,24 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
     motivos,
     responsable,
     hayPendientes: Object.keys(pendientes).length > 0,
+    cambios: variantes ? cambiosDeStock(variantes, pendientes, lugar) : [],
     numero,
+    numeroGuardado: (id) => cantidadDeCelda(varianteDe(id), lugar, 0),
     puedeBajar,
     paso,
+    fijar,
     numeroNueva: (clave) => nuevas[clave] ?? 0,
     pasoNueva,
+    fijarNueva,
     nuevasConStock: Object.keys(nuevas).length,
+    guardar,
     cargarNuevas,
+    tomarSubidas: () => {
+      const s = delGuardado.current;
+      delGuardado.current = [];
+      return s;
+    },
+    descartar,
     recargar: leer,
   };
 }

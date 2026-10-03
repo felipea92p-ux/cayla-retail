@@ -253,8 +253,7 @@ body {
    capa, sin importar la especificidad ni el orden. Las utilidades de Tailwind v4
    viven en `@layer utilities`, así que mientras `.card-cayla` estuviera suelta,
    `card-cayla border-l-2 border-l-rojo` pintaba el borde de 1px sand y el acento
-   rojo de "esta tarjeta pide algo" nunca se veía (TarjetaCifra, InventarioPanel,
-   RevisarAltaBanner…). Lo mismo le pasaba a `hover:bg-*` y `focus:border-rojo`
+   rojo de "esta tarjeta pide algo" nunca se veía (TarjetaCifra, InventarioPanel…). Lo mismo le pasaba a `hover:bg-*` y `focus:border-rojo`
    sobre una tarjeta: el hover y el foco de teclado no existían.
 
    Dentro de `components` el orden es: base < components < utilities. La clase

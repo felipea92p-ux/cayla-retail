@@ -1017,6 +1017,8 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           codigo: string
+          combina_con: string[]
+          descripcion: string | null
           estado: string
           familia_color: string | null
           hex: string | null
@@ -1034,6 +1036,8 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           codigo: string
+          combina_con?: string[]
+          descripcion?: string | null
           estado?: string
           familia_color?: string | null
           hex?: string | null
@@ -1051,6 +1055,8 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           codigo?: string
+          combina_con?: string[]
+          descripcion?: string | null
           estado?: string
           familia_color?: string | null
           hex?: string | null
