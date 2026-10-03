@@ -251,6 +251,29 @@ export function CajaAbiertaPanel({
   const cierresAncho = modoCierres === "tabla" || modoCierres === "grafico";
   const abrirGasto = gasto ? () => setModal("gasto") : null;
 
+  // En celular estas acciones viven en la barra fija de abajo. En escritorio van a la derecha del título (diseño nuevo) o bajo la frase.
+  const accionesCabecera = (
+    <div className="hidden flex-wrap items-center justify-end gap-3 sm:flex">
+      {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
+      {comparativa && abrirGasto && (
+        <button type="button" onClick={abrirGasto} className="btn-cayla btn-secundario">
+          Registrar gasto
+        </button>
+      )}
+      {comparativa && (
+        <button type="button" onClick={() => setModal("movimiento")} className="btn-cayla btn-secundario">
+          Depósito o retiro
+        </button>
+      )}
+      {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
+      {puedeCerrar ? (
+        <BotonCerrarCaja estado={estadoCierre} onCerrar={() => setModal("cerrar")} />
+      ) : (
+        <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+      )}
+    </div>
+  );
+
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
           <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
@@ -335,33 +358,16 @@ export function CajaAbiertaPanel({
             titulo="Caja"
             subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
             sinHora
-            acciones={
-              // En celular estas acciones viven en la barra fija de abajo. En escritorio bajan solas bajo la frase: la
-              // derecha es del turno y de la cola sin conexión (`EncabezadoPagina`, ADR-0220).
-              <div className="hidden items-center gap-3 sm:flex">
-                {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
-                {comparativa && abrirGasto && (
-                  <button type="button" onClick={abrirGasto} className="btn-cayla btn-secundario">
-                    Registrar gasto
-                  </button>
-                )}
-                {comparativa && (
-                  <button type="button" onClick={() => setModal("movimiento")} className="btn-cayla btn-secundario">
-                    Depósito o retiro
-                  </button>
-                )}
-                {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
-                {puedeCerrar ? (
-                  <BotonCerrarCaja estado={estadoCierre} onCerrar={() => setModal("cerrar")} />
-                ) : (
-                  <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
-                )}
-              </div>
-            }
+            acciones={comparativa ? undefined : accionesCabecera}
           >
+            <div className="flex w-full flex-col sm:w-auto sm:items-end">
             <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
               <EstadoSync pendientes={cola.length} />
               <TurnoCompacto abiertaEn={caja.abiertaEn} />
+            </div>
+            {/* Con «hoy contra ayer» las acciones suben a la derecha, bajo el estado del turno: el título queda limpio y no hay
+                un hueco entre la frase y los botones (ADR-0319). */}
+            {comparativa && <div className="mt-3 hidden sm:block">{accionesCabecera}</div>}
             </div>
           </EncabezadoPagina>
         </div>
