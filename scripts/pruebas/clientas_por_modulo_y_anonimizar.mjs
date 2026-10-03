@@ -720,8 +720,9 @@ caso(
     `create function pg_temp.mensaje(p_sql text) returns text language plpgsql as $f$ declare m text; begin execute p_sql; return 'SIN_ERROR'; exception when others then get stacked diagnostics m = message_text; return m; end; $f$;\n` +
     `grant execute on function pg_temp.mensaje(text) to authenticated;\n` +
     como(T_ALMACEN) + `select pg_temp.mensaje($q$select retail.buscar_clienta('x')$q$);\n`,
-  // El nombre sale de retail.modulos: «Clientes» desde 20261002160000 (ADR-0288 act. k).
-  "f|f\nTu rol no tiene el módulo «Clientes». Pídele al líder que lo active en Roles y accesos."
+  // El nombre sale de retail.modulos: «Clientes» desde 20261002160000 (ADR-0288 act. k) y «Fichas de clientes» desde
+  // 20261004010000 (grupo propio «Clientes» en Roles y accesos).
+  "f|f\nTu rol no tiene el módulo «Fichas de clientes». Pídele al líder que lo active en Roles y accesos."
 );
 caso(
   "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",

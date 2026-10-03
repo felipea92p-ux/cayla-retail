@@ -383,9 +383,9 @@ export const ARBOL: readonly Nodo[] = [
     ],
   },
   // Clientas, paso 2 del acta (D-92, docs/datos/DECISIONES-2026-09-26-clientas.md): «crecer
-  // Clientas... como grupo propio del menú», no anidada bajo Ventas — aunque en Roles y accesos
-  // (`modulos.ts`) su grupo sigue siendo «Ventas» (D-92 pidió un grupo propio del MENÚ, no
-  // recategorizar el módulo). Fue HOJA hasta que nació su segunda pantalla: con Avisos (ADR-0288
+  // Clientas... como grupo propio del menú», no anidada bajo Ventas. Desde 20261004010000 (Felipe
+  // 2026-10-03) Roles y accesos (`modulos.ts`) lo agrupa igual: grupo «Clientes» con «Fichas de
+  // clientes» y «Avisos del club». Fue HOJA hasta que nació su segunda pantalla: con Avisos (ADR-0288
   // act. g, tanda 1g, módulo `avisos_club`) pasa a GRUPO, como lo dejó anotado el paso 2.
   // Las fichas conservan el corazón de siempre y la cabecera estrena uno propio (como «Venta» y
   // «Posventa»): quien solo ve las fichas sigue viendo la misma fila, con el mismo ícono, porque un

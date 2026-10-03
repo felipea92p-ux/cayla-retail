@@ -14,6 +14,10 @@ documento se construyó tal cual, con una corrección estadística que se agrega
 > `reasignar_asesora`) — por eso la objeción abierta de este documento (la encargada corrigiéndose a sí misma) sigue
 > sin resolver, porque el mecanismo que la haría posible no existe todavía.
 >
+> **Actualización 2026-10-03 (auditoría; Felipe eligió la opción C).** El centro de la contracción ya no es el promedio del «resto» sin la propia persona sino el de TODA la tienda, y el ranking «vende más por hora» se ordena por una
+> cota prudente del número contraído (el número menos dos errores estándar), no por el número. Motivo, números y alternativas descartadas: [ADR-0325, «El centro de la contracción»](0325-meta-por-persona-en-rendimiento-e-inicio.md).
+> Lo que dice arriba sobre el «resto» queda como historia.
+
 > **La corrección que este documento no tenía: contracción de Efron-Morris/James-Stein en «soles por hora».** La
 > sección 3 decía «ordena por soles por hora» (el número crudo). Con 12 integrantes en TRU y 2 en AQP, el crudo de
 > alguien con pocas horas es en gran parte ruido de muestra chica —la propia D-66/D-115 ya lo reconocía con la marca
@@ -32,6 +36,13 @@ documento se construyó tal cual, con una corrección estadística que se agrega
 > **De paso**, la migración corrige `fn_exigir_rol_de_terminal`: le faltaba `cayla_global` en su lista de «solo
 > personas» desde ADR-0275 (20260929140000) sin que nadie lo hubiera notado — se arregla junto con sumar
 > `rendimiento`, con guarda de md5 sobre el cuerpo vivo.
+
+> **Actualización 2026-09-29 (metas por persona).** [ADR-0325](0325-meta-por-persona-en-rendimiento-e-inicio.md) y la acta
+> [`DECISIONES-2026-09-29-meta-por-persona.md`](../datos/DECISIONES-2026-09-29-meta-por-persona.md) **levantan el «metas por persona: todavía no»** (respuesta 17, D-125):
+> la meta de la sede se reparte sola por horas programadas y la líder de la sede o el Admin la ajustan, con motivo e historial. Rendimiento suma
+> Hoy · Semana · Mes, la meta y el avance de cada persona, y un gráfico Semana | Mes; y **la integrante ve lo suyo en el Inicio** (cambia la respuesta 3 en
+> ese punto: el módulo Rendimiento sigue siendo de las encargadas y el Admin). La segunda mitad de este ADR (ficha por persona, `venta_reasignaciones`,
+> `reasignar_asesora`) sigue sin construir.
 **Afecta (cuando se construya):** una migración nueva (módulo `rendimiento`, `fn_rendimiento_ubicaciones`,
 `fn_rendimiento_equipo`, `fn_rendimiento_persona`, tabla `venta_reasignaciones` y función `reasignar_asesora`),
 `apps/web/lib/modulos.ts`, `apps/web/lib/menu.ts`, `apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento-reglas.ts`
@@ -217,8 +228,8 @@ sola nota. Muestra cifras medidas, cada una con su nombre.
 
 ## Fuera de alcance, y por qué
 
-- **Que la colaboradora vea sus cifras (D-68):** respuesta 3, por ahora.
-- **Metas por persona (D-64):** respuesta 17.
+- **Que la colaboradora vea sus cifras (D-68):** respuesta 3, por ahora. *(Retomado el 2026-09-29 en el Inicio: ADR-0325, D-149.)*
+- **Metas por persona (D-64):** respuesta 17. *(Levantado el 2026-09-29: ADR-0325, D-142 a D-148.)*
 - **Recompra y clientas nuevas (D-63, D-66):** la venta no guarda a la clienta, porque el Punto de venta nunca manda
   `p_cliente_id` (solo lo llena la entrega de un apartado).
 - **Devoluciones como columna informativa:** posible en una versión 2. Nunca ordenan nada (D-78).
