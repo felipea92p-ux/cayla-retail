@@ -400,7 +400,7 @@ caso(
 select clave || ':' || grupo || ':' || orden || ':' || solo_lider || ':' || delegable from retail.modulos where clave = 'avisos_club';
 select count(*) from retail.rol_modulos where modulo = 'avisos_club';
 `,
-  "deshacer_aviso_enviado:true/false,fn_club_avisos_enviados_hoy:true/false,fn_club_avisos_pendientes:true/false,registrar_aviso_enviado:true/false\navisos_club:Ventas:75:false:true\n0"
+  "deshacer_aviso_enviado:true/false,fn_club_avisos_enviados_hoy:true/false,fn_club_avisos_pendientes:true/false,registrar_aviso_enviado:true/false\navisos_club:Clientes:75:false:true\n0"
 );
 
 // =====================================================================================================================
