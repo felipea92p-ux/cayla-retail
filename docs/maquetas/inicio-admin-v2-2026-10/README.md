@@ -1,6 +1,6 @@
 # Spike v2 · Inicio del Admin (2026-10-03)
 
-> **Estado: tres maquetas para elegir.** Reemplazan a las de `inicio-admin-2026-10/`, que Felipe descartó. No tocan la web
+> **Estado: Felipe eligió la A (2026-10-03), que sigue en `inicio-admin-v3-2026-10/`** (en claro, con zoom por departamento). Reemplazan a las de `inicio-admin-2026-10/`, que Felipe descartó. No tocan la web
 > ni la base. `inicio-admin-v2.html` es un solo archivo; se abre con el servidor `maquetas` de `.claude/launch.json`
 > (`http://localhost:8791/inicio-admin-v2-2026-10/inicio-admin-v2.html`) o con doble clic.
 
