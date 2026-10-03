@@ -26,6 +26,8 @@
 .cmp-anillo-centro b { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 34px; line-height: 1; }
 .cmp-anillo-centro span { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
 @container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } .cmp-anillo { width: 132px; height: 132px; } }
+/* En el celular el anillo solo repite lo que dicen el titular y las etiquetas: se oculta y queda un titular más compacto. */
+@container (max-width: 560px) { .cmp-anillo { display: none; } .cmp-frase { font-size: 34px; } }
 
 /* Cambios: ▲ verde si sube, ▼ ámbar si baja ("aún no llegas" no es "vas mal": nunca rojo). */
 .cmp-delta { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }

@@ -137,7 +137,20 @@ function Delta({ a, b }: { a: number; b: number }) {
 /** Venta acumulada del día: hoy (hasta ahora) contra ayer (día completo), con la brecha sombreada y un cursor que lee cada hora. */
 export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) {
   const curva = useMemo(() => curvaAcumulada(hoy, ayer, ahoraMin, horaCierreMin), [hoy, ayer, ahoraMin, horaCierreMin]);
-  const W = 640, H = 240, L = 44, R = 14, T = 16, B = 26;
+  // El gráfico mide su ancho real: así en el celular el texto y los puntos conservan su tamaño en vez de encogerse con el dibujo.
+  const [ancho, setAncho] = useState(640);
+  const caja = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const medir = () => setAncho(Math.max(260, Math.min(640, Math.round(el.getBoundingClientRect().width))));
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const W = ancho, H = 240, L = ancho < 420 ? 36 : 44, R = 14, T = 16, B = 26;
+  const pasoHoras = ancho < 420 ? 240 : 120;
   const max = Math.max(4000, Math.ceil(Math.max(...curva.hoy.map((p) => p.monto), ...curva.ayer.map((p) => p.monto), 1) / 2000) * 2000);
   const x = (m: number) => L + ((m - curva.desdeMin) / (curva.hastaMin - curva.desdeMin)) * (W - L - R);
   const y = (v: number) => T + (H - T - B) * (1 - v / max);
@@ -171,14 +184,14 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
   const cA = cursor === null ? null : valorEn(curva.ayer, cursor);
 
   const horas: number[] = [];
-  for (let m = curva.desdeMin; m <= curva.hastaMin; m += 120) horas.push(m);
+  for (let m = curva.desdeMin; m <= curva.hastaMin; m += pasoHoras) horas.push(m);
   const lineas = [0, 1, 2, 3, 4].map((i) => (max / 4) * i);
 
   return (
     <div className="card-cayla anim-sube p-5" style={{ "--i": 4 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Venta acumulada del día</p>
       <p className="text-xs text-tinta/50">Pasa el mouse por la línea: cada hora te dice cuánto ganas o pierdes</p>
-      <div className="relative mt-2">
+      <div ref={caja} className="relative mt-2">
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="block w-full overflow-visible" role="img" aria-label="Venta acumulada por hora, hoy contra ayer" onMouseMove={alMover} onMouseLeave={() => setCursor(null)}>
           <defs>
             <clipPath id="cmp-revelar"><rect x="0" y="0" height={H} width={revelado ? W : 0} className="cmp-revelar" /></clipPath>
