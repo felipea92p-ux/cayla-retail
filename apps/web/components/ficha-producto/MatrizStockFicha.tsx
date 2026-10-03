@@ -14,7 +14,7 @@ import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz } from "@/lib/matriz-ficha-reglas";
+import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
 import type { MotivoAjuste } from "@/lib/ajuste-reglas";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
@@ -30,7 +30,8 @@ import type { StockFicha } from "./useStockFicha";
 //
 // Desde el 2026-10-03 (ADR-0313, act.) TODO se hace desde esta tabla: «Más de cada variante» desapareció. Cada color tiene un
 // lápiz (corregirlo) y un tacho (quitarlo), la cabecera de una talla la corrige, y la pestaña «Etiquetas» pone o quita una
-// etiqueta en una talla o en todas, con las etiquetas dibujadas como en Atributos DEBAJO de la tabla.
+// etiqueta en una talla o en todas, con las etiquetas dibujadas como en Atributos DEBAJO de la tabla. Una celda «—» (esa
+// combinación no se vende) se toca para agregarla (`comoLlenarHueco`): era lo único que la tabla no podía hacer.
 
 /** Lo que ofrecen los dos botones de un color: corregirlo (lápiz; `null` si la base no sabe corregir) y quitarlo (tacho). */
 export type BotonesDeColor = {
@@ -90,6 +91,7 @@ export function MatrizStockFicha({
   onEtiqueta,
   botonesDeColor,
   onCorregirTalla,
+  huecos,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -116,6 +118,8 @@ export function MatrizStockFicha({
   botonesDeColor: (color: string | null) => BotonesDeColor;
   /** Corregir una talla desde su cabecera; `null` = no se ofrece (la base todavía no sabe, o no hay permiso). */
   onCorregirTalla: ((talla: string | null) => void) | null;
+  /** La celda «—» (esa combinación no se vende): qué pasaría al tocarla y cómo se agrega (`comoLlenarHueco`). */
+  huecos: { como: (color: string | null, talla: string | null) => Hueco; onLlenar: (color: string | null, talla: string | null) => void };
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
@@ -125,6 +129,9 @@ export function MatrizStockFicha({
   const [tocadas, setTocadas] = useState<ReadonlySet<string>>(new Set());
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
   const [borrador, setBorrador] = useState<Record<string, string>>({});
+  // Celdas cuyo número escrito quedó bajo lo apartado. Se avisa al SALIR de la celda, no con cada tecla: al escribir «10» sobre una
+  // talla con 2 apartadas, la tecla «1» no es un error (revisión del 2026-10-03).
+  const bajoApartado = useRef(new Set<string>());
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
@@ -169,6 +176,7 @@ export function MatrizStockFicha({
   function escribir(f: FilaFicha, valor: string) {
     const limpio = limpiarCantidad(valor);
     setBorrador((b) => ({ ...b, [f.clave]: limpio }));
+    bajoApartado.current.delete(f.clave);
     if (limpio === "") return;
     const objetivo = Number(limpio);
     if (f.id && f.guardada) {
@@ -177,8 +185,14 @@ export function MatrizStockFicha({
         setBorrador((b) => sinClave(b, f.clave));
         return onAbrirModal(f.guardada.colorCodigo);
       }
-      if (r.rechazado) avisar.error("Esa talla tiene unidades apartadas para clientes: no puede quedar en menos.");
+      if (r.rechazado) bajoApartado.current.add(f.clave);
     } else stock.fijarNueva(f.clave, objetivo);
+  }
+
+  /** Al salir de la celda vuelve a su número; si lo escrito quedó bajo lo apartado, recién ahí se dice por qué no se tomó. */
+  function salirDeCelda(f: FilaFicha) {
+    if (bajoApartado.current.delete(f.clave)) avisar.error("Esa talla tiene unidades apartadas para clientes: no puede quedar en menos.");
+    setBorrador((b) => sinClave(b, f.clave));
   }
 
   const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
@@ -195,6 +209,9 @@ export function MatrizStockFicha({
     ["etiquetas", "Etiquetas"],
   ];
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
+  // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.
+  const activas = filas.filter((f) => f.activo);
+  const costosTodosFijos = activas.length > 0 && activas.every((f) => f.costoFijo);
 
   /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
   function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): string {
@@ -230,13 +247,14 @@ export function MatrizStockFicha({
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
         <p className={`col-start-1 row-start-1 ${enUnidades ? "" : "invisible"}`} aria-hidden={!enUnidades}>
-          Lo que hay hoy {donde}. Toca − / + o escribe el número: se guarda con «Revisar y guardar». <span className="text-tinta/45">—</span> = no existe.
+          Lo que hay hoy {donde}.{stock.puedeAjustar ? " Toca − / + o escribe el número: se guarda con «Revisar y guardar»." : ""}{" "}
+          <span className="text-tinta/45">—</span> = no existe: tócala para agregarla.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "precio" ? "" : "invisible"}`} aria-hidden={vista !== "precio"}>
           Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
-          Escribe el costo de cada talla; debajo, el margen.{" "}
+          {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
           {filas.some((f) => f.activo && f.costoFijo) ? `${textosCostoFijo(ctx.costoSinComprobar).nota} Se ve sin caja.` : ""}
         </p>
         <p className={`col-start-1 row-start-1 ${enEtiquetas ? "" : "invisible"}`} aria-hidden={!enEtiquetas}>
@@ -244,8 +262,17 @@ export function MatrizStockFicha({
         </p>
       </div>
 
+      {stock.fallaLectura && (
+        <p role="alert" className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-ambar-profundo">
+          No se pudo leer el stock de esta sede: las tallas siguen en «…».
+          <button type="button" onClick={stock.recargar} className="btn-cayla btn-enlace text-[12.5px]">
+            Reintentar
+          </button>
+        </p>
+      )}
+
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
-      {bloque && <div hidden={enUnidades || enEtiquetas}>{bloque}</div>}
+      {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos)}>{bloque}</div>}
 
       <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         {/* Columnas de ancho FIJO (table-fixed + colgroup): agregar un color de nombre largo («Gris perla · nueva») o cambiar de
@@ -338,9 +365,7 @@ export function MatrizStockFicha({
                     if (!f) {
                       return (
                         <td key={t ?? "x"} className={`border-t border-sand p-0 ${fondoFila}`}>
-                          <span title="Esta combinación no existe" className={`flex h-12 items-center justify-center @lg:h-[52px] ${RAYADO_FUERA}`}>
-                            —
-                          </span>
+                          {celdaHueco(c, t, nombreColor)}
                         </td>
                       );
                     }
@@ -433,15 +458,55 @@ export function MatrizStockFicha({
     );
   }
 
+  /** La celda «—»: esa combinación no se vende. Si se puede, tocarla la agrega (nueva en 0, o la que existió desactivada vuelve);
+   *  si no, dice por qué al tocarla (un `title` no llega al celular). Mide lo mismo que una celda con stepper: nada se corre. */
+  function celdaHueco(c: string | null, t: string | null, nombreColor: string) {
+    const h = huecos.como(c, t);
+    const donde = `${nombreColor} en ${n.talla(t) || "Única"}`;
+    const titulo = h.puede
+      ? h.queHace === "reactiva"
+        ? `${donde} existió y está desactivada: tócala para que vuelva a venderse (se guarda con «Revisar y guardar»)`
+        : `${donde} no existe: tócala para agregarla (nace en 0 y se guarda con «Revisar y guardar»)`
+      : h.motivo;
+    return (
+      <button
+        type="button"
+        aria-label={h.puede ? `Agregar ${donde}` : `${donde} no existe. ${h.motivo}`}
+        aria-disabled={!h.puede || undefined}
+        title={titulo}
+        disabled={deshabilitado}
+        onClick={() => (h.puede ? huecos.onLlenar(c, t) : avisar.error(h.motivo))}
+        className={`group flex h-12 w-full items-center justify-center text-tinta/25 transition-colors duration-200 ease-cayla @lg:h-[52px] ${RAYADO_FUERA} ${
+          h.puede ? "hover:bg-hueso hover:text-tinta focus-visible:bg-hueso focus-visible:text-tinta" : "cursor-help"
+        } disabled:pointer-events-none`}
+      >
+        <span aria-hidden className={h.puede ? "group-hover:hidden group-focus-visible:hidden" : ""}>
+          —
+        </span>
+        {h.puede && (
+          <span aria-hidden className="hidden items-center gap-1 text-[12px] font-semibold group-hover:inline-flex group-focus-visible:inline-flex">
+            <Plus strokeWidth={2.5} className="h-3 w-3" />
+            {h.queHace === "reactiva" ? "Volver" : "Agregar"}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   /** La caja − N + de la celda: el stock de HOY en el lugar que se ajusta, más lo tocado (en ámbar hasta guardarlo). */
   function celdaUnidades(f: FilaFicha, etiqueta: string) {
     const guardada = !!(f.id && f.guardada);
     const u = numero(f);
     // Mientras llega el stock de la base, «…»: un 0 de relleno se lee como «no hay nada» (Felipe, 2026-10-02).
     const esperando = guardada && stock.cargando;
-    if (guardada && !stock.puedeAjustar) {
+    // Sin «Ajustar stock» se ve el número, no la caja. Una variante nueva también: nace en 0 y no se le puede poner stock inicial
+    // (la carga es un ajuste: `cargarNuevas` no podría hacerla y se perdería en silencio).
+    if (!stock.puedeAjustar) {
       return (
-        <span className="px-2 text-sm tabular-nums text-tinta" title="Tu rol ve el stock; para ajustarlo hace falta el módulo «Ajustar stock»">
+        <span
+          className="px-2 text-sm tabular-nums text-tinta"
+          title={guardada ? "Tu rol ve el stock; para ajustarlo hace falta el módulo «Ajustar stock»" : "Nace sin unidades: para cargarlas hace falta el módulo «Ajustar stock»"}
+        >
           {esperando ? "…" : u}
         </span>
       );
@@ -473,7 +538,7 @@ export function MatrizStockFicha({
           disabled={deshabilitado || esperando}
           onChange={(e) => escribir(f, e.target.value)}
           onFocus={(e) => e.currentTarget.select()}
-          onBlur={() => setBorrador((b) => sinClave(b, f.clave))}
+          onBlur={() => salirDeCelda(f)}
           className={`w-8 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums outline-none placeholder:text-tinta/25 @lg:w-9 ${
             cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"
           }`}

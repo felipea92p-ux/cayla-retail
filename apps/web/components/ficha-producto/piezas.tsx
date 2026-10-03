@@ -24,6 +24,9 @@ export type AjusteStockFicha = {
   puedeBajarAlPiso: boolean;
 };
 
+/** De dónde se LEE el stock de la ficha (la sede activa), tenga o no la cuenta «Ajustar stock»: sin el módulo se ve, no se toca. */
+export type LecturaStockFicha = { ubicacionId: string; sububicaciones: Sububicacion[] };
+
 /** Lo que toda la sección necesita saber de la prenda y de quien la edita. */
 export type ContextoFicha = {
   nombres: NombresFicha;

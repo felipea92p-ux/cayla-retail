@@ -283,13 +283,17 @@ export function correccionesPendientes(filas: readonly FilaFicha[], n: NombresFi
  */
 export function quitarColor(filas: readonly FilaFicha[], colorCodigo: string | null): FilaFicha[] {
   const delColor = (f: FilaFicha) => f.activo && f.colorCodigo === colorCodigo;
-  return filas
-    .filter((f) => !delColor(f) || f.guardada !== null)
-    .map((f) => {
-      if (!delColor(f) || !f.guardada) return f;
-      const g = f.guardada;
-      return { ...f, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
-    });
+  const quedan = filas.filter((f) => !delColor(f) || f.guardada !== null);
+  return quedan.map((f) => {
+    if (!delColor(f) || !f.guardada) return f;
+    const g = f.guardada;
+    // Una corrección de color o talla hecha en la visita también se suelta (revisión 2026-10-03): si no, guardar desactivaba Y
+    // corregía (código nuevo, fotos y temporada mudadas, «reimprime todo») un color que la persona quiso quitar. Solo si su lugar
+    // de antes sigue libre: si otra fila ya lo ocupa, se queda donde está (y la base no ve un choque).
+    const libre = !quedan.some((o) => o !== f && o.colorCodigo === g.colorCodigo && o.tallaId === g.tallaId);
+    const identidad = libre ? { colorCodigo: g.colorCodigo, tallaId: g.tallaId } : {};
+    return { ...f, ...identidad, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
+  });
 }
 
 /** Una línea de la hoja «Etiquetas de lo que entró»: una talla de un color, cuántas unidades entraron y con qué precio. */
@@ -333,4 +337,34 @@ export function lineasParaImprimir(subidas: readonly Subida[], filas: readonly F
     unidades: l.unidades,
     etiquetaIds: l.etiquetaIds,
   }));
+}
+
+/**
+ * Qué pasa al tocar una celda «—» de la matriz (esa combinación no se vende). Felipe 2026-10-03: un hueco no se podía llenar desde
+ * la ficha —«+ Agregar color» no ofrece un color que la prenda ya vende y «+ Agregar talla» no ofrece una talla que ya vende—, así
+ * que «Crudo 32» quedaba imposible si Crudo nació solo en 28 y 30. Ahora la celda misma la agrega:
+ * - `reactiva`: la combinación existió y está desactivada → vuelve a venderse con su historia (no se duplica).
+ * - `nueva`: nunca existió → nace en 0, como las de «+ Agregar color», y se guarda con «Revisar y guardar».
+ * - no se puede: la base rechazaría el guardado entero si nace en un color inactivo en Colores o en una talla que la categoría
+ *   ya no habilita (las mismas dos reglas de `coloresParaAgregarTalla` y `tallasParaAgregarColor`); se dice por qué.
+ */
+export type Hueco = { puede: true; queHace: "nueva" | "reactiva" } | { puede: false; motivo: string };
+
+export function comoLlenarHueco(
+  filas: readonly FilaFicha[],
+  color: string | null,
+  talla: string | null,
+  permitidos: { coloresActivos: readonly string[]; tallasHabilitadas: readonly string[] },
+  n: NombresFicha,
+): Hueco {
+  const existe = filas.find((f) => f.colorCodigo === color && f.tallaId === talla);
+  if (existe?.activo) return { puede: false, motivo: `${n.color(color)} en ${n.talla(talla) || "Única"} ya se vende.` };
+  if (existe) return { puede: true, queHace: "reactiva" };
+  if (color !== null && !permitidos.coloresActivos.includes(color)) {
+    return { puede: false, motivo: `${n.color(color)} está desactivado en Colores: no puede nacer en otra talla.` };
+  }
+  if (talla !== null && !permitidos.tallasHabilitadas.includes(talla)) {
+    return { puede: false, motivo: `La talla ${n.talla(talla)} ya no está habilitada en la categoría: no puede nacer en otro color.` };
+  }
+  return { puede: true, queHace: "nueva" };
 }

@@ -1025,6 +1025,12 @@ export function leerEstadoVariantes(data: unknown): Record<string, EstadoVariant
  */
 export const NACEN_SIN_UNIDADES = "Nacen sin unidades: lo que llegó se registra al recibirlo, en «Recibir mercadería».";
 
+/** Lo mismo, dicho en los modales «Agregar color/talla» a quien SÍ puede poner stock desde la tabla (tiene «Ajustar stock»). Antes
+ *  el modal mandaba a «Recibir mercadería» y, al cerrarlo, el cartel de la ficha decía «toca + en la tabla»: dos caminos que se
+ *  contradecían (revisión 2026-10-03). Los dos son ciertos; cada uno para su caso. */
+export const NACEN_EN_CERO_CARGABLES =
+  "Nacen en 0: si las prendas ya están en la tienda, ponlas con «+» en la tabla y entran al guardar; si llegan de un proveedor, regístralas en «Recibir mercadería».";
+
 /**
  * El único círculo de candados que el orden de ADR-0263 T8 no cierra: una venta o un traslado de VARIAS tallas de esta
  * prenda (en otro orden que el id) en el mismo instante en que la ficha corrige esas tallas. Postgres lo corta con 40P01 y

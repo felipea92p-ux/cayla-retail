@@ -34,7 +34,7 @@ import {
   type Pendientes,
   type Subida,
 } from "@/lib/matriz-ficha-reglas";
-import type { AjusteStockFicha } from "./piezas";
+import type { AjusteStockFicha, LecturaStockFicha } from "./piezas";
 
 // El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» (o el número escrito en la celda) es un
 // ajuste de inventario —el mismo de `AjustarInventarioModal` (ADR-0240, `ajustar_inventario`)— que ESPERA a «Revisar y guardar»
@@ -60,6 +60,8 @@ export type StockFicha = {
   /** `false` = la cuenta no tiene «Ajustar stock»: los números se ven, los botones no. */
   puedeAjustar: boolean;
   cargando: boolean;
+  /** No se pudo leer el stock de la sede (las celdas siguen en «…»): `recargar` lo vuelve a intentar. */
+  fallaLectura: boolean;
   lugar: LugarAjuste;
   separaPisoAlmacen: boolean;
   ubicado: "piso" | "almacen";
@@ -112,15 +114,29 @@ function conDelta(v: VarianteAjuste, lugar: LugarAjuste, delta: number): Variant
   };
 }
 
-export function useStockFicha({ productoId, ajuste }: { productoId: string | null; ajuste: AjusteStockFicha | null | undefined }): StockFicha {
+export function useStockFicha({
+  productoId,
+  ajuste,
+  lecturaStock,
+}: {
+  productoId: string | null;
+  ajuste: AjusteStockFicha | null | undefined;
+  /** De dónde se lee el stock si la cuenta no tiene «Ajustar stock» (se ve, no se toca). */
+  lecturaStock?: LecturaStockFicha | null;
+}): StockFicha {
   const { agregar: agregarRecordatorio } = useRecordatorioEtiquetas();
-  const sububicaciones = ajuste?.sububicaciones ?? [];
+  const fuente = ajuste ?? lecturaStock ?? null;
+  const sububicaciones = fuente?.sububicaciones ?? [];
   const pisoId = sububicaciones.find((s) => s.tipo === "piso_venta")?.id;
   const almacenId = sububicaciones.find((s) => s.tipo === "almacen_tienda")?.id;
   const separaPisoAlmacen = !!pisoId && !!almacenId;
-  const ubicacionId = ajuste?.ubicacionId ?? null;
+  const ubicacionId = fuente?.ubicacionId ?? null;
+  const puedeTocar = !!ajuste;
 
   const [variantes, setVariantes] = useState<VarianteAjuste[] | null>(null);
+  // En qué lectura falló la base: la matriz lo dice y ofrece «Reintentar» (antes quedaba en «…» para siempre, sin salida). Al
+  // reintentar sube el número de lectura y el aviso se va solo.
+  const [fallaEn, setFallaEn] = useState<number | null>(null);
   const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
   const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste>("conteo_fisico");
@@ -147,13 +163,19 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
     let vigente = true;
     const supabase = createClient();
     // La MISMA lectura que «Ajustar inventario» (ADR-0270: una sola lectura de `stock` para ajustar), sin el loader.
+    const estaLectura = lectura;
     leerVariantesParaAjuste(productoId, ubicacionId, { sinLoader: true })
       .then(({ data, error }) => {
         if (!vigente) return;
-        if (error) return void avisar.error(traducirError(error, "leer el stock de la prenda"));
+        if (error) {
+          setFallaEn(estaLectura);
+          return void avisar.error(traducirError(error, "leer el stock de la prenda"));
+        }
         const vs = armarVariantesAjuste(data ?? [], pisoId, almacenId);
         setVariantes(vs);
-        // Lectura opcional: sin la función (o si falla) no se pregunta nada y el stepper sigue como siempre.
+        // Lectura opcional: sin la función (o si falla) no se pregunta nada y el stepper sigue como siempre. Sin «Ajustar stock»
+        // no hay stepper: no hace falta.
+        if (!puedeTocar) return;
         supabase
           .rpc("fn_faltantes_de_conteo", { p_ubicacion_id: ubicacionId, p_variante_ids: vs.map((v) => v.varianteId) })
           .setHeader("x-espera", "no")
@@ -164,7 +186,7 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
     return () => {
       vigente = false;
     };
-  }, [productoId, ubicacionId, pisoId, almacenId, lectura]);
+  }, [productoId, ubicacionId, pisoId, almacenId, lectura, puedeTocar]);
 
   // Al salir de la ficha (guardó y volvió a la lista, o se fue por el menú): lo que subió pasa al recordatorio del módulo.
   useEffect(
@@ -175,7 +197,7 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   );
 
   async function guardar(): Promise<{ ok: boolean }> {
-    if (!variantes || !ubicacionId || Object.keys(pendientes).length === 0) return { ok: true };
+    if (!ajuste || !variantes || !ubicacionId || Object.keys(pendientes).length === 0) return { ok: true };
     const lote = pendientes;
     const lineas = lineasDelLote(variantes, lote, lugar, motivo);
     if (lineas.length === 0) {
@@ -241,6 +263,8 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   function paso(varianteId: string, p: 1 | -1): { abrirModal: boolean } {
     if (!ajuste || !variantes) return { abrirModal: false };
     const v = varianteDe(varianteId);
+    // Una variante que no está en la lectura (recién creada, antes de releer) no se toca: su paso no viajaría en ningún lote.
+    if (!v) return { abrirModal: false };
     if (p > 0 && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) return { abrirModal: true };
     // Sobre lo pendiente MÁS reciente (no el del render): dos toques en el mismo instante cuentan dos.
     setPendientes((actual) => {
@@ -253,20 +277,29 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   function fijar(varianteId: string, objetivo: number): { abrirModal: boolean; rechazado: boolean } {
     if (!ajuste || !variantes) return { abrirModal: false, rechazado: true };
     const v = varianteDe(varianteId);
+    if (!v) return { abrirModal: false, rechazado: true };
     const hoy = cantidadDeCelda(v, lugar, 0);
-    if (objetivo > numero(varianteId) && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) return { abrirModal: true, rechazado: false };
+    // Contra lo de HOY, no contra el número de la celda: al escribir «20» la tecla «2» ya dejó la celda en 2, y «20» > 2 abría el
+    // modal con un −13 que nadie pidió. Si se abre el modal, lo escrito en la celda se suelta (el modal es el que pregunta).
+    if (objetivo > hoy && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) {
+      setPendientes((actual) => conPaso(actual, varianteId, 0));
+      return { abrirModal: true, rechazado: false };
+    }
     const siguiente = fijarCelda(hoy, objetivo, minimoDeCelda(v, lugar));
     if (siguiente === null) return { abrirModal: false, rechazado: true };
     setPendientes((actual) => conPaso(actual, varianteId, siguiente));
     return { abrirModal: false, rechazado: false };
   }
 
+  // Sin «Ajustar stock», una variante nueva nace en 0 y no se le pone nada: `cargarNuevas` no podría cargarlo y se perdería en
+  // silencio (la hoja diría «entran con 3 unidades» y el aviso, «nacen sin unidades»).
   function pasoNueva(clave: string, p: 1 | -1) {
+    if (!ajuste) return;
     setNuevas((actual) => conPaso(actual, clave, Math.max(0, (actual[clave] ?? 0) + p)));
   }
 
   function fijarNueva(clave: string, objetivo: number) {
-    if (!Number.isInteger(objetivo) || objetivo < 0) return;
+    if (!ajuste || !Number.isInteger(objetivo) || objetivo < 0) return;
     setNuevas((actual) => conPaso(actual, clave, objetivo));
   }
 
@@ -274,7 +307,12 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
     const cargas = Object.entries(nuevas)
       .filter(([clave, n]) => n > 0 && idsPorClave.has(clave))
       .map(([clave, n]) => ({ clave, variante: { varianteId: idsPorClave.get(clave)! }, delta: n }));
-    if (cargas.length === 0 || !ubicacionId) return 0;
+    if (cargas.length === 0 || !ubicacionId || !ajuste) return 0;
+    // El mismo tope y el mismo trato de la respuesta incierta que `guardar` (revisión 2026-10-03): sin tope, una base que no
+    // responde dejaba el guardado colgado; y si la red caía DESPUÉS de que la base cargó, el aviso pedía cargarlas de nuevo
+    // desde «Ajustar stock» y entraban dos veces.
+    const control = new AbortController();
+    const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     const { error } = await firmar(
       createClient()
         .rpc(
@@ -290,14 +328,24 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
             token: crypto.randomUUID(),
           })
         )
+        .abortSignal(control.signal)
         .setHeader("x-espera", "no"),
       responsable.firma()
     );
+    window.clearTimeout(tope);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "cargar el stock de las variantes nuevas"), {
-        detalle: "La prenda ya quedó guardada; carga sus unidades desde «Ajustar stock».",
-      });
+      // Lo puesto en las nuevas se suelta en los dos casos: ya existen con su id, y la ficha relee el stock al terminar.
+      setNuevas({});
+      if (esRespuestaIncierta(error)) {
+        avisar.error("La prenda quedó guardada, pero se cortó la conexión y no sabemos si entró el stock de las variantes nuevas.", {
+          detalle: "Mira el número de cada talla en la tabla (se vuelve a leer de la base) antes de cargarlas otra vez.",
+        });
+      } else {
+        avisar.error(traducirError(error, "cargar el stock de las variantes nuevas"), {
+          detalle: "La prenda ya quedó guardada; carga sus unidades con «+» en la tabla y vuelve a guardar.",
+        });
+      }
       return 0;
     }
     anotarSubidas(
@@ -323,8 +371,9 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
 
   return {
-    puedeAjustar: !!ajuste,
-    cargando: !!ajuste && variantes === null,
+    puedeAjustar: puedeTocar,
+    cargando: !!fuente && variantes === null,
+    fallaLectura: fallaEn === lectura,
     lugar,
     separaPisoAlmacen,
     ubicado,
