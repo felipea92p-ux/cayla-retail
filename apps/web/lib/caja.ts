@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigirOpcional, exigir } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
+import { leerPagos, type PagoDelDia } from "@/lib/caja-comparativa-reglas";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
 // `getTableroCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas) desde
@@ -414,4 +415,23 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     usuarioId: m.usuario_id,
     registradoPorNombre: m.usuario_id ? (nombrePorId.get(m.usuario_id) ?? null) : null,
   }));
+}
+
+
+/**
+ * Los pagos de las ventas de una sede en un día de Lima (`fn_comparativa_caja`, ADR-0319), para comparar hoy contra ayer.
+ * `null` si la base todavía no tiene la función o falla: la pantalla de Caja vuelve entonces a su diseño anterior, nunca se cae.
+ */
+export async function getPagosDelDia(ubicacionId: string, dia: string): Promise<PagoDelDia[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_comparativa_caja" as never, { p_ubicacion_id: ubicacionId, p_dia: dia } as never);
+  if (error) return null;
+  return leerPagos(data);
+}
+
+/** «2026-10-03» → «2026-10-02». Sobre el texto de la fecha de Lima: sin zonas horarias de por medio. */
+export function diaAnterior(dia: string): string {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
 }

@@ -430,7 +430,9 @@ function alturaBarraInferior(isla: HTMLElement): number {
     for (let n: Element | null = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
       if (vistos.has(n)) break;
       vistos.add(n);
-      if (getComputedStyle(n).position !== "fixed") continue;
+      // `sticky` también: la barra «Cerrar caja» de escritorio (ADR-0318) se pega al borde de abajo igual que una fija.
+      const pos = getComputedStyle(n).position;
+      if (pos !== "fixed" && pos !== "sticky") continue;
       const alto = window.innerHeight - n.getBoundingClientRect().top;
       if (alto > 0 && alto < window.innerHeight * 0.4) return Math.round(alto);
       break; // una capa a pantalla completa: se sigue con lo que hay debajo
