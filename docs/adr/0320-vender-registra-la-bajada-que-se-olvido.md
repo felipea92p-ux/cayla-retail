@@ -1,6 +1,6 @@
 # ADR-0320 · Vender registra la bajada al piso que se olvidó, sin frenar la venta
 
-- **Fecha:** 2026-10-03 · **Estado:** construido en la rama `claude/prenda-no-registrada-piso-cbbfbf`, PR abierto. **Producción: la migración
+- **Fecha:** 2026-10-03 · **Estado:** construido en la rama `claude/prenda-no-registrada-piso-cbbfbf` (commits locales, PR por abrir). **Producción: la migración
   `20261003233000_bajar_al_piso_desde_vender.sql` NO está pegada** (pide el ok de Felipe; va ANTES de publicar la web, ver «Cómo se pega»).
 - **Pedido:** Felipe, 2026-10-03: «a veces están bajando prendas sin registrar en el sistema que se bajaron a piso. Después, al escanear el QR en el
   punto de venta, no les permite. Debe salir un aviso que diga que la prenda no se registró como bajada a piso y darle clic para que igual la agregue
