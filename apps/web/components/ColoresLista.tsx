@@ -136,9 +136,9 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
         </p>
       )}
       {companeros.length > 0 && (
-        <p className="flex items-center gap-1.5 text-[11px] text-tinta/60">
-          <span>Combina con</span>
-          <span className="flex items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-tinta/60">
+          <span className="whitespace-nowrap">Combina con</span>
+          <span className="flex flex-wrap items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
             {companeros.map((x) => (
               <span
                 key={x.codigo}
