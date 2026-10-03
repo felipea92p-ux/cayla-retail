@@ -82,9 +82,16 @@ La maqueta tenía datos inventados; con los reales:
 
 ## Producción
 
-`supabase/migrations/20261004020000_observatorio_inicio_del_admin.sql` (**sin pegar**): solo funciones (`create or replace`), sin
-`alter` ni políticas, con `set lock_timeout = '3s'`; se pega en una sola parte (regla de ADR-0195) o va por `db push`. Hasta que esté,
-el Admin ve el Inicio de siempre.
+`supabase/migrations/20261004020000_observatorio_inicio_del_admin.sql` (renombrada desde `20261004010000`, que `main` ya usaba):
+solo funciones (`create or replace`), sin `alter` ni políticas, con `set lock_timeout = '3s'`; una sola parte (regla de ADR-0195).
+**Aplicada en producción el 2026-10-03** por el MCP de Supabase, a pedido de Felipe; `apply_migration` la registró con la versión
+`20261003220357` (la hora de aplicación, no la del archivo). Verificada: los md5 de los tres cuerpos coinciden con el archivo,
+`anon` no las ejecuta y `authenticated` sí; corrida como la cuenta Admin de Felipe, `fn_observatorio` respondió en 63 ms con las
+tres tiendas y `fn_observatorio_tienda` en 7–10 ms por tienda.
+
+Lo que esa corrida mostró de producción: **ninguna tienda tiene meta configurada** (el Observatorio dice «Sin meta configurada»
+y ordena el ranking por lo vendido hasta que se cargue en Configuración) y **el mismo día de la semana pasada no tuvo ventas**
+(dice «Sin comparación» hasta que haya una semana de historia).
 
 ## Cómo se verificó
 
