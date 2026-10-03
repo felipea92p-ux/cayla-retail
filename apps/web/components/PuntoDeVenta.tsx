@@ -97,6 +97,12 @@ import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/docum
 import { CampoCelular } from "@/components/clientas/club-piezas";
 import { ajustarCelular } from "@/lib/club-reglas";
 import { problemaCelularOpcional } from "@/lib/club-caja-reglas";
+import {
+  celularParaLaFicha,
+  notaDelCelularDeLaBoleta,
+  resultadoDeGuardarCelular,
+  type CelularEnFicha,
+} from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
 import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
@@ -253,6 +259,8 @@ export type VentaOk = {
   ventaId?: string | null;
   /** El celular del cliente de la venta (el de su ficha, el más fresco), para ofrecer «Enviar por WhatsApp». Sin cliente, null. */
   celular?: string | null;
+  /** Qué pasó al guardar ese celular en la ficha (`agregar_celular_clienta`, ADR-0288 act. o): `null` = no se intentó o ya tenía uno. */
+  celularEnFicha?: CelularEnFicha | null;
 };
 
 const MAX_RESULTADOS = 6;
@@ -1248,6 +1256,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     ? (problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) ??
       (tipoComprobante === "nota_venta" ? null : problemaCelularOpcional(celularBoleta)))
     : null;
+  // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
+  const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
   const motivoBloqueo = motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
@@ -1607,6 +1617,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       }
     }
 
+    // El celular de la boleta, si el cliente no tenía uno, se guarda TAMBIÉN en su ficha (ADR-0288 act. o, actividad 2): una llamada
+    // aparte, DESPUÉS de que la venta ya quedó guardada. Si falla (red, módulo, función aún sin pegar en producción), la venta
+    // sigue bien y solo se avisa que la ficha quedó sin celular; la base nunca cambia el celular de una ficha que ya lo tiene.
+    let celularEnFicha: CelularEnFicha | null = null;
+    const celularParaFicha = ventaId && clienta ? celularParaLaFicha({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta }) : null;
+    if (celularParaFicha && clienta) {
+      try {
+        celularEnFicha = resultadoDeGuardarCelular(
+          await firmar(supabase.rpc("agregar_celular_clienta", { p_id: clienta.id, p_celular: celularParaFicha }), responsable.firma()),
+        );
+      } catch {
+        celularEnFicha = "no_se_pudo";
+      }
+    }
+
     setLoading(false);
     token.current = crypto.randomUUID();
     responsable.despues(null);
@@ -1623,6 +1648,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       ventaId: ventaId ?? null,
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
+      celularEnFicha,
     });
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
@@ -1693,6 +1719,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 />
               </div>
             )}
+            {/* La nota va FUERA de la caja del campo a propósito: ese `div` debe seguir con un solo hijo (ver arriba). */}
+            {notaCelularBoleta && <p className="mt-1 text-xs text-tinta/60">{notaCelularBoleta}</p>}
           </fieldset>
         )
       }

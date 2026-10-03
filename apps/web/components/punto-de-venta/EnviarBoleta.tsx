@@ -10,6 +10,7 @@ import {
   envioDeLaBoleta,
   pdfUrlDeRespuesta,
 } from "@/lib/comprobante-whatsapp-reglas";
+import { textoCelularEnFicha, type CelularEnFicha } from "@/lib/celular-ficha-reglas";
 
 type Lectura = { estado: EstadoComprobante; entorno: EntornoTransmision; pdfUrl: string | null };
 
@@ -68,10 +69,13 @@ export function EnviarBoleta({
   ventaId,
   celular,
   comprobante,
+  enFicha = null,
 }: {
   ventaId: string | null;
   celular: string | null;
   comprobante: { tipo: TipoComprobante; serie: string; numero: number };
+  /** Qué pasó al guardar este celular en la ficha del cliente (`agregar_celular_clienta`); `null` = nada que decir. */
+  enFicha?: CelularEnFicha | null;
 }) {
   const { lectura, esperadoMs } = useLecturaDelPdf(ventaId, Boolean(celular));
   const envio = envioDeLaBoleta({
@@ -102,6 +106,8 @@ export function EnviarBoleta({
         </p>
       )}
       {envio.fase === "sin_pdf" && <p className="text-[12px] leading-snug text-tinta/65">{envio.motivo}</p>}
+      {/* Lo que pasó con la ficha, aparte del envío: el celular se guarda igual aunque el PDF todavía no llegue. */}
+      {textoCelularEnFicha(enFicha) && <p className="border-t border-sand pt-2 text-[11.5px] leading-snug text-tinta/60">{textoCelularEnFicha(enFicha)}</p>}
     </div>
   );
 }
