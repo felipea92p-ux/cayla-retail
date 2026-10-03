@@ -5,19 +5,16 @@ import { Lock } from "lucide-react";
 import type { EstadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 
 // El botón «Cerrar caja» que se nota (ADR-0318). Dos piezas que dicen lo mismo con el mismo estado:
-//  · `BotonCerrarCaja`: el de la cabecera —grande, rojo, con candado— y «Abierta hace 6 h 38 min» debajo.
+//  · `BotonCerrarCaja`: el de la cabecera —grande, rojo, con candado—.
 //  · `BarraCierreCaja`: la barra que se queda pegada abajo en escritorio, y sube de color con la hora de cierre.
 // En el celular lo hace el cuadrado «Cerrar» de `BarraCajaMovil` (ya es una barra fija). No es el recordatorio: la «Isla»
 // (ADR-0305) avisa desde otra pantalla; esto es que el propio botón esté a la vista dentro de Caja, todo el día.
 
-export function BotonCerrarCaja({ estado, onCerrar }: { estado: EstadoBotonCierre | null; onCerrar: () => void }) {
+export function BotonCerrarCaja({ onCerrar }: { onCerrar: () => void }) {
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <button type="button" onClick={onCerrar} className="cc-boton">
-        <Lock size={18} aria-hidden /> Cerrar caja
-      </button>
-      {estado && <small className="text-[11.5px] text-tinta/65">{estado.abiertaHace}</small>}
-    </div>
+    <button type="button" onClick={onCerrar} className="cc-boton">
+      <Lock size={18} aria-hidden /> Cerrar caja
+    </button>
   );
 }
 

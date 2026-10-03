@@ -14,8 +14,6 @@ export type EstadoBotonCierre = {
   titulo: string;
   /** La línea de abajo: lo que pasa o lo que hay que hacer. */
   bajada: string;
-  /** «Abierta hace 6 h 38 min», debajo del botón. */
-  abiertaHace: string;
 };
 
 export function estadoBotonCierre({
@@ -29,8 +27,6 @@ export function estadoBotonCierre({
   horaCierre: string | null;
   puedeCerrar: boolean;
 }): EstadoBotonCierre {
-  const abierta = Math.max(0, Math.floor((ahora.getTime() - Date.parse(abiertaEn)) / 60_000));
-  const abiertaHace = Number.isFinite(abierta) ? `Abierta hace ${formatoDuracion(abierta)}` : "";
   // Sin hora de cierre en la tienda no hay «tarde» que medir: el botón es notorio igual, pero no sube de nivel.
   const r = estadoRecordatorio({ ahora, abiertaEn, horaCierre });
   const nivel: NivelBotonCierre = r.nivel === 0 ? 0 : r.nivel === 1 ? 1 : 2;
@@ -41,7 +37,6 @@ export function estadoBotonCierre({
       nivel,
       titulo: nivel === 0 ? "Cuando termines tu turno, avisa a un líder" : "Es hora de cerrar la caja: avisa a un líder",
       bajada: "La caja la cierra un líder de equipo.",
-      abiertaHace,
     };
   }
   if (nivel === 0) {
@@ -49,17 +44,16 @@ export function estadoBotonCierre({
       nivel,
       titulo: "Cuando termines tu turno, cierra la caja",
       // «p. m.» ya termina en punto: a la hora no se le suma otro.
-      bajada: h ? `Tu caja lleva ${formatoDuracion(abierta)} abierta. Cierra a las ${h}` : `Tu caja lleva ${formatoDuracion(abierta)} abierta.`,
-      abiertaHace,
+      // El tiempo que lleva abierta ya lo dice la cabecera («lleva 6 h»): aquí solo lo que falta por hacer.
+      bajada: h ? `La caja de hoy se cierra a las ${h}` : "Al terminar el turno, ciérrala para cuadrar el cajón.",
     };
   }
   if (nivel === 1) {
-    return { nivel, titulo: "Es hora de cerrar la caja", bajada: `Pasó la hora de cierre (${h}). Cuenta el cajón y ciérrala.`, abiertaHace };
+    return { nivel, titulo: "Es hora de cerrar la caja", bajada: `Pasó la hora de cierre (${h}). Cuenta el cajón y ciérrala.` };
   }
   return {
     nivel,
     titulo: `La caja sigue abierta · pasó la hora de cierre hace ${formatoDuracion(r.minutos)}`,
     bajada: "Si pasa la noche abierta, las ventas de hoy y de mañana se mezclan y el cajón no cuadra día por día.",
-    abiertaHace,
   };
 }

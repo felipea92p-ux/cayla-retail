@@ -10,7 +10,6 @@ import {
   metodosComparados,
   valorEn,
   veredicto,
-  vendidoHasta,
   type HoraComparada,
   type PagoDelDia,
 } from "@/lib/caja-comparativa-reglas";
@@ -82,8 +81,8 @@ export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMi
         )}
         <p className="cmp-chips">
           <span>Vendido hoy <b><Cuenta valor={v.hoy} formato={soles} /></b></span>
-          <span>Tickets <b>{v.ticketsHoy}</b></span>
-          <span>Ticket promedio <b>{soles(v.ticketPromedio)}</b></span>
+          <span>Ventas <b>{v.ticketsHoy}</b></span>
+          <span>Venta promedio <b>{soles(v.ticketPromedio)}</b></span>
         </p>
       </div>
       <div className="cmp-anillo" role="img" aria-label={`Llevas ${soles(v.hoy)} de los ${soles(v.ayerDia)} de ayer`}>
@@ -106,20 +105,20 @@ export function ClientesYTicket({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierre
   const tpAyer = v.ticketsAyerAEstaHora > 0 ? v.ayerAEstaHora / v.ticketsAyerAEstaHora : 0;
   return (
     <div className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
-      <p className="text-sm font-bold text-tinta">Clientes y ticket</p>
-      <p className="text-xs text-tinta/50">Hoy contra ayer a esta misma hora</p>
+      <p className="text-sm font-bold text-tinta">Ventas hechas</p>
+      <p className="text-xs text-tinta/50">Hoy, comparado con ayer a esta misma hora</p>
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
-          <p className="label-cayla text-[10.5px] text-tinta/50">Tickets</p>
+          <p className="label-cayla text-[10.5px] text-tinta/50">Número de ventas</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketsHoy} formato={(n) => String(Math.round(n))} /></p>
           <Delta a={v.ticketsHoy} b={v.ticketsAyerAEstaHora} />
-          <p className="mt-1 text-[12.5px] text-tinta/65">{v.ticketsAyerAEstaHora} ayer</p>
+          <p className="mt-1 text-[12.5px] text-tinta/65">ayer a esta hora: {v.ticketsAyerAEstaHora}</p>
         </div>
         <div>
-          <p className="label-cayla text-[10.5px] text-tinta/50">Ticket promedio</p>
+          <p className="label-cayla text-[10.5px] text-tinta/50">Cuánto vale cada venta</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketPromedio} formato={soles} /></p>
           <Delta a={v.ticketPromedio} b={tpAyer} />
-          <p className="mt-1 text-[12.5px] text-tinta/65">{soles(tpAyer)} ayer</p>
+          <p className="mt-1 text-[12.5px] text-tinta/65">ayer a esta hora: {soles(tpAyer)}</p>
         </div>
       </div>
     </div>
@@ -220,8 +219,8 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-tinta/65">
         <span><i className="cmp-leyenda" style={{ borderColor: "var(--color-tinta)" }} />Hoy, hasta ahora</span>
         <span><i className="cmp-leyenda cmp-leyenda-raya" style={{ borderColor: "var(--color-taupe)" }} />Ayer, día completo</span>
-        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-verde) 30%, transparent)" }} />vas arriba</span>
-        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-grafico-baja) 32%, transparent)" }} />vas abajo</span>
+        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-verde) 30%, transparent)" }} />hoy vas por encima de ayer</span>
+        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-grafico-baja) 32%, transparent)" }} />hoy vas por debajo de ayer</span>
       </p>
     </div>
   );
@@ -239,7 +238,7 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
   return (
     <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Cómo te pagaron</p>
-      <p className="text-xs text-tinta/50">Hoy contra el día completo de ayer</p>
+      <p className="text-xs text-tinta/50">Lo que cobraste hoy por cada medio, y lo que cobraste ayer en todo el día</p>
       {filas.length === 0 ? (
         <p className="mt-4 text-xs text-tinta/50">Sin ventas todavía.</p>
       ) : (
@@ -249,14 +248,14 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
               <span className="inline-flex items-center gap-1.5 text-[13px]"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
               <span className="cmp-pista">
                 <span className="cmp-pista-barra" style={{ width: dentro ? `${(f.hoy / mx) * 100}%` : 0, background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)", transitionDelay: `${i * 70}ms` }} />
-                <span className="cmp-pista-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Lo que vendió ayer en todo el día" />
+                <span className="cmp-pista-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Dónde terminó ayer este medio" />
               </span>
-              <span className="text-right text-[13px] tabular-nums"><b>{soles(f.hoy)}</b><br /><Delta a={f.hoy} b={f.ayerDia} /></span>
+              <span className="text-right text-[13px] tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="text-[11.5px] text-tinta/60">ayer {soles(f.ayerDia)}</span></span>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-tinta/65">La barra es hoy; la marca negra es lo que vendió ayer en todo el día.</p>
+      <p className="mt-2 text-xs text-tinta/65">La barra de color es hoy. La marca negra es dónde terminó ayer ese medio.</p>
     </div>
   );
 }
@@ -267,12 +266,11 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
   const { mejor, peor } = mejorYPeorHora(filas);
   const mx = Math.max(1, ...filas.map((f) => Math.abs(f.diferencia)));
   const rotulo = (f: HoraComparada) => (f.enCurso ? `${f.hora}:00–${horaTexto(ahoraMin)}` : `${f.hora}–${f.hora + 1}h`);
-  const ej = filas[0];
   return (
     <div className="card-cayla anim-sube p-5" style={{ "--i": 6 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Dónde ganas y dónde pierdes</p>
-      <p className="text-xs text-tinta/65">Cada barra es una hora: <b>lo que vendiste hoy menos lo que vendiste ayer en esa misma hora</b></p>
-      <p className="mt-2 flex flex-wrap gap-x-4 text-xs font-semibold"><span className="text-verde-profundo">▲ Barra hacia arriba: vendiste MÁS que ayer</span><span className="text-ambar">▼ Hacia abajo: vendiste MENOS</span></p>
+      <p className="text-xs text-tinta/65">Cada barra es una hora: lo que vendiste hoy en ella, menos lo que vendiste ayer en esa misma hora</p>
+      <p className="mt-2 flex flex-wrap gap-x-4 text-xs font-semibold"><span className="text-verde-profundo">▲ Hacia arriba: vendiste más que ayer</span><span className="text-ambar">▼ Hacia abajo: vendiste menos que ayer</span></p>
       <div className="cmp-horas" style={{ gridTemplateColumns: `repeat(${filas.length}, minmax(0, 1fr))` }}>
         <div className="cmp-horas-eje" aria-hidden />
         {filas.map((f, i) => {
@@ -291,12 +289,7 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
           );
         })}
       </div>
-      {ej && (
-        <p className="mt-3 text-xs text-tinta/65">
-          Así se lee la primera barra: en <b>{ej.hora}:00–{ej.hora}:59</b> vendiste <b>{soles(ej.hoy)}</b>; ayer en esa hora, <b>{soles(ej.ayer)}</b>. Diferencia: <b>{ej.diferencia >= 0 ? "+" : "−"}{soles(Math.abs(ej.diferencia))}</b>.
-        </p>
-      )}
-      <p className="mt-1 text-xs text-tinta/65"><b>La barra rayada es la hora en curso:</b> como aún no termina, ayer se cuenta solo hasta los mismos minutos, no la hora entera.</p>
+      <p className="mt-3 text-xs text-tinta/65"><b>La barra rayada es la hora que aún no termina:</b> se compara solo hasta los mismos minutos de ayer.</p>
       <p className="mt-3 rounded-xl bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">
         {mejor ? <>Tu mejor hora fue la de las <b>{mejor.hora}:00</b> (+{soles(mejor.diferencia)}). </> : <>Todavía no superas a ayer en ninguna hora. </>}
         {peor ? <>La más floja, las <b>{peor.hora}:00</b> (−{soles(-peor.diferencia)}).</> : <>No has cedido terreno en ninguna hora.</>}
@@ -307,15 +300,9 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
 
 /** El tramo de comparativa de la pantalla de Caja: titular, referencia, clientes y ticket, gráfico, medios de pago y horas. */
 export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon, movimientos }: Props & { cajon: React.ReactNode; movimientos: React.ReactNode }) {
-  const vendidoAyer = vendidoHasta(ayer, null);
   return (
     <div className="space-y-3">
       <VeredictoCaja hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
-      <div className="card-cayla anim-sube flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-[13px]" style={{ "--i": 1 } as CSSProperties}>
-        <b className="text-tinta">Comparando con ayer</b>
-        <span className="cmp-delta cmp-delta-info">día completo · {soles(vendidoAyer)}</span>
-        <span className="text-tinta/65 sm:ml-auto">Hoy se mide contra el día completo de ayer: así ves cuánto te falta para igualarlo.</span>
-      </div>
       <div className="grid gap-3 @[900px]:grid-cols-2">
         {cajon}
         <ClientesYTicket hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />

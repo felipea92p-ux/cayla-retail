@@ -267,7 +267,7 @@ export function CajaAbiertaPanel({
       )}
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
       {puedeCerrar ? (
-        <BotonCerrarCaja estado={estadoCierre} onCerrar={() => setModal("cerrar")} />
+        <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
       ) : (
         <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
       )}
