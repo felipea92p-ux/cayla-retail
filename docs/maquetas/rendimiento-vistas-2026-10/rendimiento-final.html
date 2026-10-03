@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento: propuesta final · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Rendimiento, PROPUESTA FINAL (2026-10-03): pestañas por tienda + proyección del mes, ventas por hora y prendas por venta
+   Pregunta de Felipe: ¿tres vistas (una por tienda, abriendo la de la sesión activa) o todas apiladas como hoy?
+   A · Pestañas por tienda (la idea de Felipe)   B · Tienda activa + las otras al costado
+   C · Tablero de la cadena (comparar)           D · Día en vivo, hora a hora
+   Reglas que NO se tocan (acta 2026-09-26 / 2026-09-29): reconocer y acompañar, sin dinero ni bono; las devoluciones no
+   restan; el rojo no se usa para juzgar (solo «Adelante / En ritmo / Por debajo»); una líder ve solo su tienda.
+   NO es una implementación: no toca la web ni la base. Datos INVENTADOS. Tokens = apps/web/app/globals.css (ADR-0169).
+   La barra oscura de arriba no existe en el ERP.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.15}
+
+/* barra del demo */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk label{display:flex;gap:6px;align-items:center;color:rgba(245,240,232,.85);cursor:pointer}
+
+.mundo{padding:22px;display:grid;gap:18px;justify-items:center}
+.marco{width:100%;max-width:1180px;background:var(--crema);border-radius:14px;box-shadow:0 20px 50px -20px rgba(26,26,24,.35);overflow:hidden;transition:max-width .35s var(--ease)}
+.marco.cel{max-width:395px;border:10px solid #1a1a18;border-radius:38px}
+.cab-erp{height:54px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:12px;padding:0 24px;font-size:13px}
+.cab-erp .esp{flex:1}
+.chipcab{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:11px;letter-spacing:.1em;font-weight:600;text-transform:uppercase}
+.vista{container-type:inline-size;padding:26px 30px 40px}
+.cel .vista{padding:18px 14px 30px}
+.sobre{color:var(--rojo);text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.vista h1{font-size:34px;margin-top:4px}
+.bajada{color:var(--taupe);font-size:14px;margin-top:6px;max-width:620px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.sec{margin-top:24px}
+.sec h3{font-size:21px;margin-bottom:10px}
+.mt{margin-top:14px}
+
+/* píldoras y pestañas */
+.pil{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pil button{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80);transition:background-color .2s var(--ease),border-color .2s var(--ease)}
+.pil button:hover{border-color:var(--taupe)}
+.pil button[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.ctl{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap;margin-top:18px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;border-radius:99px;padding:0 8px;background:var(--hueso);white-space:nowrap;line-height:19px}
+.chip.pz{background:rgba(76,93,110,.14);color:var(--pizarra)}
+.chip.am{background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip.vd{background:rgba(72,96,63,.14);color:var(--verde)}
+.chip.tx{background:rgba(128,92,76,.14);color:var(--taupe)}
+.pto{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--t30)}
+.pto.vd{background:var(--verde)}.pto.am{background:var(--ambar)}.pto.pz{background:var(--pizarra)}
+
+/* barras de avance */
+.bar{height:8px;border-radius:9px;background:var(--t10);position:relative}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--verde);transition:width .5s var(--ease)}
+.bar i.pz{background:var(--pizarra)}.bar i.am{background:var(--ambar)}
+.bar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tinta);border-radius:2px}
+
+/* cifras */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+@container (max-width:700px){.cifras{grid-template-columns:1fr 1fr}}
+.cifra{padding:14px 16px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:28px;line-height:1.1;margin-top:4px}
+.cifra .d{font-size:12.5px;color:var(--t65);margin-top:3px}
+.cifra .bar{margin-top:9px}
+
+/* pestañas por tienda (variante A) */
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+@container (max-width:700px){.tabs{gap:6px}.tab{padding:10px}.tab .t1{flex-direction:column;align-items:flex-start;gap:4px;font-size:13px}.tab .t2{font-size:19px}.tab .t3{display:none}}
+.tab{text-align:left;padding:13px 16px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);position:relative;transition:border-color .2s var(--ease),background-color .2s var(--ease)}
+.tab:hover{border-color:var(--taupe)}
+.tab[aria-selected=true]{border-color:var(--tinta);box-shadow:inset 0 -3px 0 var(--tinta)}
+.tab .t1{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.tab .t2{font-family:'EB Garamond',serif;font-size:26px;line-height:1.1;margin-top:2px}
+.tab .t3{font-size:12px;color:var(--t65);margin-top:2px}
+.tab .bar{margin-top:8px}
+
+/* tabla de personas */
+.tp{overflow:hidden}
+.fp,.cab-t{display:grid;grid-template-columns:minmax(0,1.6fr) 100px 100px minmax(0,1.4fr) 92px;gap:10px;align-items:center;padding:12px 16px}
+.cab-t{background:var(--hueso);font-size:12px;color:var(--t65);padding-top:9px;padding-bottom:9px}
+.fp+.fp{border-top:1px solid var(--t10)}
+.avt{width:34px;height:34px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;flex:none}
+.per{display:flex;gap:11px;align-items:center;min-width:0}
+.per .nom{font-size:14px;font-weight:500;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.per .sub{font-size:12px;color:var(--t65)}
+.cv{font-size:14px}.cv small{display:block;font-size:11px;color:var(--t65)}
+@container (max-width:700px){
+  .cab-t{display:none}
+  .fp{grid-template-columns:1fr 1fr;row-gap:8px}
+  .fp .per{grid-column:1/-1}
+  .fp .av{grid-column:1/-1}
+}
+
+/* gráfico */
+.graf{padding:16px 18px}
+.graf svg{width:100%;height:200px;display:block}
+.graf .ejes text{font-size:11px;fill:var(--t65);font-family:'DM Sans'}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--t65);margin-top:8px}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* variante B */
+.dosCol{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;margin-top:18px;align-items:start}
+@container (max-width:900px){.dosCol{grid-template-columns:1fr}}
+.otra{padding:14px 16px;text-align:left;width:100%;border:1px solid var(--sand);border-radius:12px;background:var(--papel);display:block;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.otra:hover{border-color:var(--taupe);transform:translateY(-1px)}
+.otra+.otra{margin-top:10px}
+.otra .t1{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.otra .t2{font-family:'EB Garamond',serif;font-size:24px;margin-top:2px}
+.otra .t3{font-size:12px;color:var(--t65)}
+.otra svg{width:100%;height:34px;display:block;margin-top:6px}
+
+/* variante C */
+.cad{overflow:hidden}
+.cad .filaT{display:grid;grid-template-columns:minmax(0,1.2fr) 120px minmax(0,1.6fr) 110px 40px;gap:12px;align-items:center;padding:14px 16px;width:100%;text-align:left}
+.cad .filaT.cab{background:var(--hueso);font-size:12px;color:var(--t65);padding:9px 16px}
+.cad .bloque+.bloque{border-top:1px solid var(--t10)}
+.cad .det{padding:4px 16px 16px 16px;border-top:1px dashed var(--sand);background:rgba(251,248,242,.6)}
+.cad .flecha{transition:transform .25s var(--ease);justify-self:end;color:var(--t50)}
+.cad .abierto .flecha{transform:rotate(90deg)}
+@container (max-width:700px){.cad .filaT{grid-template-columns:1fr 1fr}.cad .filaT.cab{display:none}.cad .filaT .barra{grid-column:1/-1}}
+
+/* variante D */
+.cinta{padding:14px 16px}
+.turno{display:grid;grid-template-columns:130px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:7px 0;font-size:13px}
+.turno+.turno{border-top:1px solid var(--t06)}
+.pista{height:22px;border-radius:7px;background:var(--t06);position:relative;overflow:hidden}
+.pista .tr{position:absolute;top:0;bottom:0;background:rgba(72,96,63,.2);border-left:2px solid var(--verde);border-radius:4px}
+.pista .ahora{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--tinta)}
+@container (max-width:700px){.turno{grid-template-columns:90px 1fr 70px}}
+
+/* bloques extra */
+.ext{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:10px}
+.ext .card{padding:14px 16px}
+.ext .v{font-family:'EB Garamond',serif;font-size:26px;line-height:1.1;margin:4px 0}
+.ext .d{font-size:12.5px;color:var(--t65)}
+.hh{display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:8px}
+.hh i{flex:1;background:var(--sand);border-radius:3px 3px 0 0;position:relative}
+.hh i.top{background:var(--taupe)}
+
+.nota{margin-top:22px;background:var(--hueso);border-radius:12px;padding:14px 18px;font-size:13px;color:var(--t80)}
+.skel{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--t06),var(--t10),var(--t06));background-size:200% 100%;animation:sk 1.1s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}.bar i,.otra,.tab{transition:none}}
+
+/* panel «por qué» (solo del demo) */
+.porque{width:100%;max-width:1180px;background:var(--papel);border:1px dashed var(--taupe);border-radius:12px;padding:16px 20px;font-size:13.5px;color:var(--t80)}
+.porque h4{font-family:'EB Garamond',serif;font-weight:400;font-size:20px;margin-bottom:6px}
+.porque .dos{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+@media (max-width:760px){.porque .dos{grid-template-columns:1fr}}
+.porque b{font-weight:600}
+.porque ul{margin:4px 0 0 18px}
+</style>
+</head>
+<body>
+
+<div class="spk" id="barra">
+  <span class="tit">Rendimiento · propuesta final</span>
+  <div class="g"><span>Ver como</span><div class="seg" data-k="rol"><button data-v="admin">Admin (3 tiendas)</button><button data-v="lider">Líder de una tienda</button></div></div>
+  <div class="g"><span>Sesión activa en</span><div class="seg" data-k="sesion"><button data-v="TRU">TRU</button><button data-v="AQP">AQP</button><button data-v="LIM">LIM</button></div></div>
+  <div class="g"><span>Período</span><div class="seg" data-k="per"><button data-v="hoy">Hoy</button><button data-v="sem">Semana</button><button data-v="mes">Mes</button></div></div>
+  <div class="g"><span>Hora de hoy</span><div class="seg" data-k="hora"><button data-v="11">11:00 a. m.</button><button data-v="17">5:40 p. m.</button></div></div>
+  <div class="g"><span>Ancho</span><div class="seg" data-k="ancho"><button data-v="pc">Computadora</button><button data-v="cel">Celular 375</button></div></div>
+</div>
+
+<div class="mundo">
+  <div class="marco" id="marco">
+    <div class="cab-erp"><b style="letter-spacing:.24em;font-size:13px">CAYLA</b><span class="esp"></span><span class="chipcab" id="chipSesion"></span></div>
+    <div class="vista" id="vista"></div>
+  </div>
+  <div class="porque" id="porque"></div>
+</div>
+
+<script>
+/* ---------- Datos INVENTADOS ---------- */
+// persona: [nombre, rol, turno, hoy, sem, mes, metaMes, nVentasMes, prendasMes]
+const T = {
+  TRU:{n:'Tienda TRU', metaMes:14000, metaHoy:540, horario:true, gente:[
+    ['Chiara','Encargada','9:00 – 18:00',150,650,2650,3000,31,58],
+    ['Mateo','','10:00 – 19:00',120,600,2480,2800,28,52],
+    ['Lucía','','Descanso',0,520,2210,2800,25,44],
+    ['Renzo','','12:00 – 20:00',80,450,1980,2600,22,36],
+    ['Valeria','','10:00 – 19:00',90,540,2260,2800,26,47]]},
+  AQP:{n:'Tienda AQP', metaMes:16000, metaHoy:615, horario:false, gente:[
+    ['Camila','Encargada','9:00 – 18:00',250,1500,6240,6000,41,83],
+    ['Diego','','10:00 – 19:00',150,1020,4310,5000,29,51],
+    ['Sofía','','10:00 – 19:00',130,1180,4890,5000,33,60]]},
+  LIM:{n:'Tienda LIM', metaMes:5000, metaHoy:192, horario:false, gente:[
+    ['Andrea','','10:00 – 19:00',80,520,2100,2500,12,21],
+    ['Joaquín','','10:00 – 19:00',50,400,1650,2500,9,15]]}
+};
+const DIA_MES = 23, DIAS = 30;               // «hoy» es el día 23 de 30
+const SEMANA = [290,330,350,380,420,520,440];  // TRU, últimos 7 días (hoy = último)
+const HORAS = [0,15,50,95,140,185,235,300,390,470,520,550,560]; // acumulado de 9 a 21 h; a las 17:40 lleva S/ 440
+const CURVA = [0,.03,.09,.17,.25,.33,.42,.54,.70,.84,.93,.98,1]; // cuánto de la venta del día suele estar hecho a cada hora // acumulado TRU de 9 a 20 h (hoy)
+const S = {vista:'A',rol:'admin',sesion:'TRU',per:'hoy',hora:'17',ancho:'pc',tab:'TRU',cargadas:new Set(['TRU']),abierta:'TRU',x:{proy:true,hora:true,prend:true}};
+const f = n => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+const frac = () => S.hora==='11' ? CURVA[2] : CURVA[8]+(CURVA[9]-CURVA[8])*.67;   // cuánto de la venta del día ya debería estar hecho
+const hoyK = () => S.hora==='11' ? HORAS[2]/440 : 1;   // cuánto de lo vendido hoy ya está a esa hora
+const $ = s => document.querySelector(s);
+
+/* ---------- Cálculos ---------- */
+function persona(p,escala=1){ // → cifras de una persona en el período elegido
+  const [nom,rol,turno,h,s,m,metaM,nv,pr]=p;
+  const descanso=turno==='Descanso'&&S.per==='hoy';
+  const k = S.per==='hoy' ? h*hoyK() : S.per==='sem' ? s : m;
+  const meta = S.per==='hoy' ? (descanso?0:metaM/26*escala) : S.per==='sem' ? metaM/26*6 : metaM;
+  const esp = S.per==='hoy' ? meta*frac() : S.per==='sem' ? meta*(5.2/6) : meta*(DIA_MES/DIAS);
+  const nvp = Math.max(k>0?1:0,Math.round(nv/DIA_MES*(S.per==='hoy'?hoyK():S.per==='sem'?6:DIA_MES)));
+  return {nom,rol,turno,vend:k,meta,esp,nv:nvp,pr:Math.round(pr*nvp/nv),descanso};
+}
+function tienda(id){
+  const t=T[id], act=t.gente.filter(g=>g[2]!=='Descanso').reduce((a,g)=>a+g[6],0), escala=t.metaMes/act, ps=t.gente.map(g=>persona(g,escala));
+  const vend=ps.reduce((a,p)=>a+p.vend,0), meta=ps.reduce((a,p)=>a+p.meta,0), esp=ps.reduce((a,p)=>a+p.esp,0);
+  const nv=ps.reduce((a,p)=>a+p.nv,0), pr=ps.reduce((a,p)=>a+p.pr,0);
+  const mesV=t.gente.reduce((a,g)=>a+g[5],0);
+  return {id,t,ps,vend,meta,esp,nv,pr,ticket:vend/nv,pct:meta?vend/meta:0,estado:estado(vend,esp),mesV,
+    proy:mesV/(DIA_MES/DIAS)};
+}
+function estado(v,e){ if(!e) return ['sin meta','']; const r=v/e; return r>=1.05?['Adelante','vd']:r>=.9?['En ritmo','pz']:['Por debajo','am']; }
+const visibles = () => S.rol==='admin' ? ['TRU','AQP','LIM'] : [S.sesion];
+const orden = () => { const v=visibles(); return [S.sesion,...v.filter(x=>x!==S.sesion)].filter(x=>v.includes(x)); }; // la de la sesión primero
+
+/* ---------- Piezas ---------- */
+const chip=(e)=>`<span class="chip ${e[1]}"><i class="pto ${e[1]}"></i>${e[0]}</span>`;
+const barra=(v,meta,esp,cls='')=>`<div class="bar"><i class="${cls}" style="width:${Math.min(100,meta?v/meta*100:0)}%"></i>${esp?`<b style="left:${Math.min(100,esp/meta*100)}%"></b>`:''}</div>`;
+const perTxt = () => S.per==='hoy'?'hoy':S.per==='sem'?'la semana':'el mes';
+
+function cifras(d){
+  return `<div class="cifras">
+    <div class="card cifra"><div class="lbl">Vendido ${perTxt()}</div><div class="v num">${f(d.vend)}</div><div class="d">de ${f(d.meta)} · ${Math.round(d.pct*100)} %</div>${barra(d.vend,d.meta,d.esp,d.estado[1])}</div>
+    <div class="card cifra"><div class="lbl">Cómo va</div><div class="v" style="font-size:22px;margin-top:8px">${chip(d.estado)}</div><div class="d">a esta hora tocaba ${f(d.esp)}</div></div>
+    <div class="card cifra"><div class="lbl">Ventas</div><div class="v num">${d.nv}</div><div class="d">${d.ps.filter(p=>p.vend>0).length} personas vendieron</div></div>
+    <div class="card cifra"><div class="lbl">Ticket promedio</div><div class="v num">${f(d.ticket)}</div><div class="d">${(d.pr/Math.max(1,d.nv)).toFixed(1)} prendas por venta</div></div>
+  </div>`;
+}
+function personas(d){
+  const filas=[...d.ps].sort((a,b)=>b.vend-a.vend).map(p=>{
+    const e=p.descanso?['Descanso','']:estado(p.vend,p.esp);
+    return `<div class="fp">
+      <div class="per"><span class="avt">${p.nom[0]}</span><div><div class="nom">${p.nom}${p.rol?`<span class="chip tx">${p.rol}</span>`:''}</div><div class="sub">${S.per==='hoy'?p.turno:''}</div></div></div>
+      <div class="cv num">${f(p.vend)}<small>vendió</small></div>
+      <div class="cv num">${p.meta?f(p.meta):'—'}<small>meta ${d.t.horario?'por horas':'en partes iguales'}</small></div>
+      <div class="av">${p.meta?barra(p.vend,p.meta,p.esp,e[1]):'<span class="sub">Sin meta hoy</span>'}</div>
+      <div>${chip(e)}</div></div>`;
+  }).join('');
+  return `<div class="card tp"><div class="cab-t"><span>Integrante</span><span>Vendió</span><span>Meta</span><span>Avance (la marca es «a esta hora tocaba»)</span><span>Cómo va</span></div>${filas}</div>`;
+}
+function graficoSemana(d){
+  const w=640,h=200,pad=26,n=7,bw=(w-pad*2)/n, max=1000, metaDia=d.t.metaHoy;
+  const dias=['hace 6','hace 5','hace 4','hace 3','hace 2','ayer','hoy'];
+  const k=d.id==='TRU'?1:d.t.metaHoy/540;
+  const bars=SEMANA.map((v,i)=>{const vv=v*k, y=h-24-(vv/max)*(h-44); return `<rect x="${pad+i*bw+bw*.2}" y="${y}" width="${bw*.6}" height="${h-24-y}" rx="4" fill="${i===6?'#805c4c':'#e8e0d0'}"/><text x="${pad+i*bw+bw/2}" y="${h-8}" text-anchor="middle">${dias[i]}</text>`}).join('');
+  const ym=h-24-(metaDia/max)*(h-44);
+  return `<div class="card graf"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Ventas de los últimos 7 días contra la meta diaria"><g class="ejes">${bars}<line x1="${pad}" x2="${w-pad}" y1="${ym}" y2="${ym}" stroke="#1a1a18" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${w-pad}" y="${ym-6}" text-anchor="end">meta del día ${f(metaDia)}</text></g></svg>
+  <div class="leyenda"><span><i style="background:#805c4c"></i>Hoy</span><span><i style="background:#e8e0d0"></i>Días anteriores</span><span><i style="background:#1a1a18"></i>Meta del día</span></div></div>`;
+}
+function extras(d){
+  const b=[];
+  if(S.x.proy){const pr=d.proy/d.t.metaMes; b.push(`<div class="card"><div class="lbl">Proyección del mes</div><div class="v num">${f(d.proy)}</div><div class="d">A este ritmo cierras en ${Math.round(pr*100)} % de la meta del mes (${f(d.t.metaMes)}). Faltan ${DIAS-DIA_MES} días.</div></div>`);}
+  if(S.x.hora){const mx=Math.max(...HORAS.map((v,i)=>i?v-HORAS[i-1]:0)); const barras=HORAS.map((v,i)=>{ if(!i) return ''; const x=v-HORAS[i-1]; return `<i class="${x===mx?'top':''}" style="height:${x/mx*100}%" title="${8+i}:00 · ${f(x)}"></i>`}).join(''); b.push(`<div class="card"><div class="lbl">Ventas por hora (hoy)</div><div class="hh">${barras}</div><div class="d" style="margin-top:6px">Tu mejor franja fue la de las 5 p. m. Sirve para repartir turnos, no para juzgar a nadie.</div></div>`);}
+  if(S.x.prend){b.push(`<div class="card"><div class="lbl">Prendas por venta</div><div class="v num">${(d.pr/Math.max(1,d.nv)).toFixed(1)}</div><div class="d">Cuántas prendas se llevan en cada compra de la tienda. Las devoluciones no restan (D-79).</div></div>`);}
+  return b.length?`<div class="ext">${b.join('')}</div>`:'';
+}
+function skeleton(){return `<div class="mt"><div class="skel" style="width:40%"></div><div class="skel mt" style="width:100%;height:90px"></div><div class="skel mt" style="width:80%"></div></div>`;}
+function cabecera(){
+  return `<div class="sobre">Gestión</div><h1>Rendimiento</h1>
+  <p class="bajada">Las ventas de cada persona de cada tienda. Para reconocer y acompañar — sin comisión ni bono.</p>
+  <div class="ctl"><div class="pil" role="group" aria-label="Período">${[['hoy','Hoy'],['sem','Semana'],['mes','Mes']].map(([k,l])=>`<button data-act="per" data-v="${k}" aria-pressed="${S.per===k}">${l}</button>`).join('')}</div>
+  <span class="chip tx">Corregido por tamaño de muestra (Efron-Morris)</span></div>`;
+}
+function panelTienda(id){
+  const d=tienda(id);
+  return `<div class="sec" style="margin-top:26px"><h3>${d.t.n}</h3></div>${cifras(d)}
+  <div class="sec"><h3>Cómo va cada integrante</h3>${personas(d)}</div>
+  <div class="sec"><h3>Ventas contra la meta</h3>${graficoSemana(d)}</div>${extras(d)}`;
+}
+
+/* ---------- Variantes ---------- */
+function vA(){
+  const ids=orden();
+  if(ids.length===1) return `${cabecera()}<div class="nota" style="margin-top:16px">Como líder de una sola tienda no hay pestañas: ves solo ${T[ids[0]].n}. Las pestañas aparecen cuando la cuenta ve más de una tienda (Admin).</div>${panelTienda(ids[0])}`;
+  const tabs=ids.map(id=>{const d=tienda(id); const act=S.tab===id;
+    return `<button class="tab" role="tab" aria-selected="${act}" data-act="tab" data-v="${id}">
+      <div class="t1"><span>${id}${id===S.sesion?' <span class="chip tx">tu sesión</span>':''}</span>${chip(d.estado)}</div>
+      <div class="t2 num">${f(d.vend)}</div><div class="t3">${Math.round(d.pct*100)} % de ${f(d.meta)}</div>${barra(d.vend,d.meta,d.esp,d.estado[1])}</button>`}).join('');
+  const cargada=S.cargadas.has(S.tab);
+  return `${cabecera()}<div class="tabs" role="tablist">${tabs}</div>
+    <div id="cuerpoTab">${cargada?panelTienda(S.tab):skeleton()}</div>
+    <div class="nota">Solo se pide a la base la tienda que estás mirando: la de tu sesión primero y las otras al tocar su pestaña. Las tres tarjetas de arriba son un comparativo que siempre se ve.</div>`;
+}
+function vB(){
+  const ids=orden(), act=ids.includes(S.tab)?S.tab:ids[0], otras=ids.filter(i=>i!==act);
+  const spark=id=>{const k=id==='TRU'?1:T[id].metaHoy/540; const pts=SEMANA.map((v,i)=>`${i*(100/6)},${32-(v*k/1000*28)}`).join(' '); return `<svg viewBox="0 0 100 34" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#805c4c" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`};
+  const lado=otras.length?`<div><div class="lbl" style="margin-bottom:8px">Las otras tiendas</div>${otras.map(id=>{const d=tienda(id);return `<button class="otra" data-act="tab" data-v="${id}"><div class="t1"><span>${id}</span>${chip(d.estado)}</div><div class="t2 num">${f(d.vend)}</div><div class="t3">${Math.round(d.pct*100)} % de la meta · ${d.nv} ventas</div>${spark(id)}</button>`}).join('')}</div>`:'';
+  return `${cabecera()}<div class="${otras.length?'dosCol':''}"><div>${panelTienda(act)}</div>${lado}</div>`;
+}
+function vC(){
+  const ids=visibles(), ds=ids.map(tienda);
+  const tot=ds.reduce((a,d)=>({v:a.v+d.vend,m:a.m+d.meta,e:a.e+d.esp,n:a.n+d.nv}),{v:0,m:0,e:0,n:0});
+  const lider=d=>[...d.ps].sort((a,b)=>b.vend-a.vend)[0];
+  const filas=ds.map(d=>{const ab=S.abierta===d.id; return `<div class="bloque ${ab?'abierto':''}"><button class="filaT" data-act="abrir" data-v="${d.id}" aria-expanded="${ab}">
+      <span><b>${d.t.n}</b>${d.id===S.sesion?' <span class="chip tx">tu sesión</span>':''}<br><span class="sub" style="font-size:12px;color:var(--t65)">${d.ps.length} integrantes</span></span>
+      <span class="num"><b>${f(d.vend)}</b><br><span style="font-size:12px;color:var(--t65)">de ${f(d.meta)}</span></span>
+      <span class="barra">${barra(d.vend,d.meta,d.esp,d.estado[1])}<span style="font-size:12px;color:var(--t65)">${Math.round(d.pct*100)} % · a esta hora tocaba ${Math.round(d.esp/d.meta*100)} %</span></span>
+      <span>${chip(d.estado)}</span><span class="flecha">›</span></button>
+      ${ab?`<div class="det">${personas(d)}</div>`:''}</div>`}).join('');
+  return `${cabecera()}
+   <div class="cifras"><div class="card cifra"><div class="lbl">Toda la cadena</div><div class="v num">${f(tot.v)}</div><div class="d">de ${f(tot.m)} · ${Math.round(tot.v/tot.m*100)} %</div>${barra(tot.v,tot.m,tot.e,estado(tot.v,tot.e)[1])}</div>
+   <div class="card cifra"><div class="lbl">Cómo va</div><div class="v" style="font-size:22px;margin-top:8px">${chip(estado(tot.v,tot.e))}</div><div class="d">tiendas con meta: ${ds.length}</div></div>
+   <div class="card cifra"><div class="lbl">Ventas</div><div class="v num">${tot.n}</div><div class="d">en ${perTxt()}</div></div>
+   <div class="card cifra"><div class="lbl">Mayor avance</div><div class="v">${[...ds].sort((a,b)=>b.pct-a.pct)[0].id}</div><div class="d">${Math.round([...ds].sort((a,b)=>b.pct-a.pct)[0].pct*100)} % de su meta</div></div></div>
+   <div class="sec"><h3>Las tiendas, lado a lado</h3><div class="card cad"><div class="filaT cab"><span>Tienda</span><span>Vendido</span><span>Avance contra la meta</span><span>Cómo va</span><span></span></div>${filas}</div></div>${extras(ds.find(d=>d.id===S.sesion)||ds[0])}`;
+}
+function vD(){
+  const id=S.sesion, d=tienda(id), fr=frac();
+  const w=640,h=190,pad=28,n=HORAS.length-1,bw=(w-pad*2)/n,max=720;
+  const hasta=S.hora==='11'?2:8, tope=S.hora==='11'?HORAS[2]:440;
+  const kk=T[id].gente.reduce((a,g)=>a+g[3],0)/440;
+  const pts=HORAS.map((v,i)=>[i,v*kk]).filter(x=>x[0]<=hasta); if(S.hora==='17') pts.push([8.67,440*kk]);
+  const real=pts.map(x=>`${pad+x[0]*bw},${h-24-(x[1]/max)*(h-44)}`).join(' ');
+  const esp=CURVA.map((x,i)=>`${pad+i*bw},${h-24-(x*(T[id].metaMes/26)/max)*(h-44)}`).join(' ');
+  const horas=Array.from({length:n+1},(_,i)=>`<text x="${pad+i*bw}" y="${h-6}" text-anchor="middle">${9+i}</text>`).join('');
+  const turnos=T[id].gente.map(g=>{const p=persona(g,T[id].metaMes/T[id].gente.filter(x=>x[2]!=='Descanso').reduce((a,x)=>a+x[6],0)); const [a,b]=g[2]==='Descanso'?[0,0]:g[2].split(' – ').map(x=>parseInt(x)); const l=(a-9)/12*100, wd=(b-a)/12*100; const ahora=(S.hora==='11'?11:17.67); return `<div class="turno"><span><b>${g[0]}</b><br><span style="font-size:11px;color:var(--t65)">${g[2]}</span></span>
+    <div class="pista">${g[2]==='Descanso'?'':`<div class="tr" style="left:${l}%;width:${wd}%"></div>`}<div class="ahora" style="left:${(ahora-9)/12*100}%"></div></div>
+    <span class="num" style="text-align:right">${f(p.vend)}</span></div>`}).join('');
+  return `${cabecera()}
+   <div class="nota" style="margin-top:16px">Vista de la tienda de tu sesión (${d.t.n}) enfocada en <b>hoy</b>: es la pantalla que una encargada deja abierta mientras trabaja. Las otras tiendas están en el selector de arriba (Admin).</div>
+   ${cifras(d)}
+   <div class="sec"><h3>Ventas del día, hora a hora</h3><div class="card graf"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Ventas acumuladas hoy contra el ritmo esperado"><g class="ejes">${horas}<polyline points="${esp}" fill="none" stroke="#1a1a18" stroke-width="1.5" stroke-dasharray="5 4"/><polyline points="${real}" fill="none" stroke="#805c4c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+    <div class="leyenda"><span><i style="background:#805c4c"></i>Vendido acumulado</span><span><i style="background:#1a1a18"></i>Ritmo esperado del día</span></div></div></div>
+   <div class="sec"><h3>Quién está y cuánto lleva</h3><div class="card cinta">${turnos}<div class="leyenda"><span><i style="background:rgba(72,96,63,.35)"></i>Turno programado</span><span><i style="background:#1a1a18;width:3px"></i>Ahora</span></div></div></div>${extras(d)}`;
+}
+
+/* ---------- «Por qué» (solo del demo) ---------- */
+const PQ={
+A:{t:'A · Pestañas por tienda (tu idea)',g:['Una sola tienda a la vez: pantalla corta y sin ruido.','Abre en la tienda de la sesión y pide a la base solo lo que miras (hoy se piden las 3 juntas).','Las tres tarjetas de arriba dan el comparativo sin entrar a nada.'],p:['Para ver el detalle de dos tiendas hay que ir y volver (se pierde el lado a lado).','Un líder de una sola tienda no ve pestañas: la vista queda igual que hoy.','Una pestaña por tienda no escala si un día hay 8 sedes: ahí convendría un combo.']},
+B:{t:'B · Tienda activa + las otras al costado',g:['La tienda de la sesión ocupa lo importante y las otras se ven resumidas con su tendencia de 7 días.','Cambiar de tienda es un toque, y la que dejas pasa al costado (nunca desaparece).'],p:['En celular el costado cae debajo y se pierde la gracia.','Pide dos o tres lecturas a la vez (la activa y los resúmenes).']},
+C:{t:'C · Tablero de la cadena',g:['Responde «¿cómo va la cadena?» en un vistazo: una fila por tienda, con la marca de «a esta hora tocaba».','El detalle de las personas se abre en el lugar, sin cambiar de pantalla.','Es la única vista que suma las tres tiendas.'],p:['Solo tiene sentido para un Admin; una líder vería una fila.','Compara tiendas con tamaños distintos (LIM es chica): hay que leerlo como avance contra su meta, no como soles.']},
+D:{t:'D · Día en vivo, hora a hora',g:['Es la vista de operación: ventas acumuladas contra el ritmo esperado y quién está en turno.','Responde «¿vamos bien AHORA?» mientras todavía se puede hacer algo.'],p:['Solo habla de hoy; Semana y Mes no cambian nada aquí (por eso es complemento, no reemplazo).','Necesita ventas con hora: ya existen, pero hay que medir cuánto cuesta leerlas por hora.']}
+};
+function porque(){ $('#porque').innerHTML=`<h4>Lo que decidió Felipe (2026-10-03)</h4><div class="dos"><div><b>Pantalla</b><ul><li>Pestañas por tienda: abre en la tienda de la sesión y las otras se piden al tocarlas.</li><li>Tres tarjetas arriba con el comparativo de las tiendas, siempre a la vista.</li><li>Una líder de una sola tienda no ve pestañas: ve su tienda.</li></ul></div><div><b>Medidas nuevas (las tres, siempre)</b><ul><li><b>Proyección del mes:</b> a este ritmo, dónde cierra.</li><li><b>Ventas por hora:</b> la mejor franja del día, para repartir turnos.</li><li><b>Prendas por venta:</b> cuántas se lleva cada compra.</li></ul></div></div>`; }
+
+/* ---------- Pintar ---------- */
+function pintar(){
+  if(!visibles().includes(S.tab)) S.tab=orden()[0];
+  $('#marco').classList.toggle('cel',S.ancho==='cel');
+  $('#chipSesion').textContent='Tienda '+S.sesion;
+  $('#vista').innerHTML=vA();
+  document.querySelectorAll('#barra .seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(S[s.dataset.k]===b.dataset.v))));
+  porque();
+}
+document.addEventListener('click',e=>{
+  const sg=e.target.closest('#barra .seg button');
+  if(sg){const k=sg.parentElement.dataset.k; S[k]=sg.dataset.v; if(k==='sesion'||k==='rol'){S.tab=S.sesion;S.cargadas=new Set([S.sesion]);S.abierta=S.sesion;} pintar(); return;}
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const y=window.scrollY, act=a.dataset.act, v=a.dataset.v;
+  if(act==='per'){S.per=v;pintar();}
+  if(act==='tab'){S.tab=v; if(S.vista==='A'&&!S.cargadas.has(v)){pintar(); setTimeout(()=>{S.cargadas.add(v); pintar(); window.scrollTo(0,y);},650);} else pintar();}
+  if(act==='abrir'){S.abierta=S.abierta===v?null:v;pintar();}
+  window.scrollTo(0,y);
+});
+document.querySelectorAll('[data-x]').forEach(c=>c.addEventListener('change',()=>{S.x[c.dataset.x]=c.checked;pintar();}));
+pintar();
+</script>
+</body>
+</html>

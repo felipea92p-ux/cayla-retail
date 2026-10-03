@@ -23,3 +23,10 @@ las devoluciones no restan (D-79) · sin rojo para juzgar: «Adelante / En ritmo
 - Ventas con la **hora de cada venta**, por persona (B del Inicio, D de Rendimiento).
 - «El ticket subió X % frente al mes pasado» (D del Inicio): no hay lectura que compare meses.
 - La curva «cómo suele ir un día normal» sale de ventas históricas por hora de la tienda: hoy el «ritmo esperado» es solo la parte del turno que pasó.
+
+## Propuesta final (Felipe, 2026-10-03)
+- `rendimiento-final.html`: variante **A** (pestañas por tienda, abre en la de la sesión, comparativo arriba) con las tres medidas siempre visibles: proyección del mes, ventas por hora y prendas por venta.
+- `inicio-final.html`: **anillo del día** + **«Lo que va bien»** + «Tu mes» (con el próximo hito dicho en días de su promedio). Accesos: «Nuevo producto» entra en lugar de «Apartados» para quien puede dar de alta productos; sin ese permiso queda «Apartados».
+
+Qué datos hay hoy para construirlo: el Inicio entero sale de `fn_mis_ventas_por_dia` (día, total, ventas) y `fn_mi_meta` (mejor día, racha, ticket contra el mes pasado). En Rendimiento, la proyección sale de `fn_rendimiento_serie`.
+**Falta una lectura nueva** para «ventas por hora» (`ventas.created_at` existe, nadie la devuelve por hora) y para «prendas por venta» de la tienda (`fn_rendimiento_equipo` no trae prendas).
