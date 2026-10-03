@@ -58,3 +58,13 @@ export function productosSinStockEnSede(productos: readonly ProductoDeCatalogo[]
 export function marcasDeLaSede(filas: readonly { marca?: string | null }[]): string[] {
   return Array.from(new Set(filas.map((f) => f.marca).filter((m): m is string => !!m))).sort((a, b) => a.localeCompare(b, "es"));
 }
+
+/** Pone a cada fila la familia de su color (por el nombre del color, que es único en la base). Un color que no llegó (la lectura
+ *  falló o es nuevo) queda con `colorFamilia: null`: se filtra solo por su nombre, nunca se pierde. */
+export function conFamiliaDeColor<T extends { color: string | null }>(
+  filas: readonly T[],
+  colores: readonly { nombre: string; familia: string | null }[]
+): (T & { colorFamilia: string | null })[] {
+  const familiaDe = new Map(colores.map((c) => [c.nombre, c.familia]));
+  return filas.map((f) => ({ ...f, colorFamilia: (f.color && familiaDe.get(f.color)) || null }));
+}
