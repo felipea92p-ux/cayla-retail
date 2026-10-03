@@ -11,5 +11,6 @@
 - [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) en el próximo volcado.
 - [ ] **Sin probar con la terminal real:** el último clic necesita a alguien de almacén con su entrada marcada en el kiosco. En local
       no hay marcajes de Dynamic y no se pudo dar.
-- [ ] **Por decidir (Felipe):** Existencias ▸ detalle de la prenda sigue mostrando «Eliminar el producto» solo a un Admin
-      (`lib/existencias-permisos.ts`). Con la regla nueva podría ser también de quien edita el catálogo.
+- [x] **Decidido (Felipe, 2026-10-03):** en Existencias ▸ detalle de la prenda, «Eliminar el producto» también lo ve quien edita
+      el catálogo, no solo un Admin (`permisosDelDetalle` con `editaCatalogo`; rama `claude/admiring-wiles-a32176`, solo web,
+      ADR-0252 «Existencias sigue la misma regla»).

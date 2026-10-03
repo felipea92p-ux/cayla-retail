@@ -105,7 +105,7 @@ export function CajonPrendaExistencias({
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
-  /** Solo un Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
+  /** Quien edita el catálogo, en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
    *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
   puedeEliminar?: boolean;
   /** «Reponer prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`ReponerPrendaModal`, ADR-0317). */
