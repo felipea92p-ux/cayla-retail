@@ -32,7 +32,7 @@ const COLUMNAS: Columna[] = [{ titulo: "Integrante" }, { titulo: "Ventas", aline
 export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ vista?: string; sede?: string }> }) {
   const persona = await exigirModulo("rendimiento");
   const { vista, sede } = await searchParams;
-  const { hoy, sedes: todas } = await leerPantallaRendimiento(sede ?? null);
+  const { hoy, sedes: todas } = await leerPantallaRendimiento();
   // La tienda de la sesión va primera y es la que abre si la URL no pide otra (Felipe, 2026-10-03).
   const sedes = [...todas].sort((a, b) => Number(b.ubicacionId === persona.ubicacionId) - Number(a.ubicacionId === persona.ubicacionId));
   const varias = sedes.length > 1;

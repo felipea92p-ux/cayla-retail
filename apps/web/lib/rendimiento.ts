@@ -8,6 +8,7 @@ import {
   type FilaRankingSolesPorHora,
   type FilaRendimientoCruda,
 } from "@/lib/rendimiento-reglas";
+import { dejarCausa, leerLecturasDeSede, type ResultadoRpc } from "@/lib/rendimiento-lectura";
 import { rangoDeLectura, type CambioMeta, type DiaSerie, type FilaDetalle, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
 
 // La parte que LEE de Postgres para Rendimiento (ADR-0219, ADR-0318). Dos cosas distintas:
@@ -144,6 +145,21 @@ function personaDeFila(f: FilaMetasCruda): PersonaMeta {
   };
 }
 
+type FilaSerieCruda = { fecha: string; total: number | string; ventas: number | string; meta_sede: number | string | null; meta_asignada: number | string | null };
+type FilaHistorialCruda = {
+  id: number | string;
+  persona_id: string;
+  persona: string;
+  mes: string;
+  meta_antes: number | string;
+  meta: number | string | null;
+  motivo: string;
+  detalle: string | null;
+  cambiado_por: string;
+  creado_en: string;
+};
+type FilaDetalleCruda = { fecha: string; hora: number | string; ventas: number | string; total: number | string; prendas: number | string };
+
 export type SedeDeRendimiento = {
   ubicacionId: string;
   nombre: string;
@@ -166,17 +182,20 @@ export type PantallaRendimiento = {
 
 /**
  * Todo lo que necesita la pantalla en UNA lectura: por cada tienda, quiénes son, cuánto llevan contra su
- * meta, la serie de ventas de la semana y del mes, y (de la tienda elegida) el historial de cambios de meta.
+ * meta, la serie de ventas de la semana y del mes, las ventas por hora y el historial de cambios de meta. TODO de cada tienda que la
+ * cuenta ve (son 3 lecturas chicas por tienda): cambiar de tienda se hace en el navegador, sin volver a pedir nada.
  * Las tres vistas —Hoy, Semana, Mes— salen de esto: cambiar de una a otra no vuelve a preguntarle nada a la base.
- * `sedeElegida`: la tienda de la que se pide el historial; con una sola tienda visible, esa.
  */
-export async function leerPantallaRendimiento(sedeElegida: string | null): Promise<PantallaRendimiento> {
+export async function leerPantallaRendimiento(): Promise<PantallaRendimiento> {
   const hoy = hoyLima();
   const supabase = await createClient();
 
   const [equipoCrudo, metas] = await Promise.all([
     leerEquipoCrudo(),
-    supabase.rpc("fn_metas_equipo", {}).then((r) => tolerar({ data: r.data as FilaMetasCruda[] | null, error: r.error }, "las metas de cada persona")),
+    supabase.rpc("fn_metas_equipo", {}).then((r) => {
+      dejarCausa("las metas de cada persona", r.error);
+      return tolerar({ data: r.data as FilaMetasCruda[] | null, error: r.error }, "las metas de cada persona");
+    }),
   ]);
 
   const filasMetas = metas.datos ?? [];
@@ -204,20 +223,19 @@ export async function leerPantallaRendimiento(sedeElegida: string | null): Promi
       };
       if (metas.fallo !== null) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
 
-      const quiereHistorial = ids.length === 1 || ubicacionId === sedeElegida;
-      const [serie, historial, detalle] = await Promise.all([
-        supabase.rpc("fn_rendimiento_serie", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
-        quiereHistorial ? supabase.rpc("fn_metas_historial", { p_ubicacion_id: ubicacionId }) : Promise.resolve(null),
-        // Un extra (etapa 2): si la función no existe todavía en la base, o falla, queda en `null` y el panel sigue sin esas dos medidas.
-        supabase.rpc("fn_rendimiento_detalle", { p_ubicacion_id: ubicacionId, p_desde: desde, p_hasta: hasta }),
-      ]);
+      const { serie, historial, detalle } = await leerLecturasDeSede(
+        (nombre, args) => supabase.rpc(nombre as never, args as never) as unknown as PromiseLike<ResultadoRpc>,
+        ubicacionId,
+        desde,
+        hasta,
+      );
       // La serie es la base del gráfico y de las cifras: sin ella el panel no se dibuja a medias, se deja para otro día.
       if (serie.error) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
 
       return {
         ...base,
         personas,
-        serie: (serie.data ?? []).map((d) => ({
+        serie: ((serie.data ?? []) as FilaSerieCruda[]).map((d) => ({
           fecha: String(d.fecha).slice(0, 10),
           total: Number(d.total),
           ventas: Number(d.ventas),
@@ -225,7 +243,7 @@ export async function leerPantallaRendimiento(sedeElegida: string | null): Promi
           metaAsignada: num(d.meta_asignada),
         })),
         // El historial es un extra: si falla, el panel sigue y la lista queda vacía.
-        historial: (historial?.data ?? []).map((h) => ({
+        historial: ((historial.data ?? []) as FilaHistorialCruda[]).map((h) => ({
           id: Number(h.id),
           personaId: h.persona_id,
           persona: h.persona,
@@ -239,7 +257,7 @@ export async function leerPantallaRendimiento(sedeElegida: string | null): Promi
         })),
         detalle: detalle.error
           ? null
-          : (detalle.data ?? []).map((d) => ({
+          : ((detalle.data ?? []) as FilaDetalleCruda[]).map((d) => ({
               fecha: String(d.fecha).slice(0, 10),
               hora: Number(d.hora),
               ventas: Number(d.ventas),
