@@ -200,3 +200,29 @@ Verificado en local (puerto 3070, «Blazer Demo Franja», 4 colores × 3 tallas)
 barra «11 cambios» → hoja con las 11 líneas → guardado (11 filas en `variante_etiquetas`) y revertido igual (0). «Quitar color» Rojo →
 la línea con 9 u. → «Deshacer». Lápiz de la talla S → «Corregir talla» a XS → línea «Talla S → XS (4 colores)» → «Deshacer». Costos con
 margen. A 375 px las cuatro pestañas caben (303/303 px) y la página no se desplaza de lado. `tsc`, `eslint` y las 312 pruebas en verde.
+
+### Segunda vuelta del 2026-10-03 (Felipe vio la primera en local)
+
+- **Quitar un color suelta lo que se le tocó (opción B).** Precio, costo y etiquetas tocados en la visita vuelven a lo guardado
+  (`quitarColor` de `lib/matriz-ficha-reglas.ts`, que reemplaza a `desactivarColor`). Así, si ese color vuelve meses después con
+  «+ Agregar color», no vuelve con un precio o un «Nuevo» de una visita que nadie recuerda, y la hoja no pide confirmar líneas sobre un
+  color que se está quitando. Lo que se pierde: «Deshacer» la vuelve a la venta tal como está guardada, sin esos toques.
+- **Lápiz y tacho en vez del «⋯».** Cada color lleva dos botones a la vista: lápiz (corregir el color) y tacho en `rojo-profundo` (el
+  token de lo destructivo, no el acento `rojo` de la marca). Un lápiz bloqueado (ya se vendió y no eres líder) no se apaga en silencio:
+  al tocarlo dice por qué (`aria-disabled` + aviso), porque un `title` no llega al celular.
+- **Al entrar, todo plegado menos «Variantes y precios»**, que es lo que más se usa. Llegar con `#fotos` (el éxito de Nuevo producto)
+  abre también Fotos, y la guía («Falta …») abre la sección a la que lleva, como ya hacía.
+- **Las etiquetas, debajo de la tabla y dibujadas como en Atributos** (`EtiquetasDeLaMatriz.tsx`: `MuestraEtiqueta`, los grupos de
+  `lib/etiqueta-grupos.ts`, «2 de 12 tallas» y una barra que se llena). La celda que la lleva se pinta con el tono de su grupo. Al abrir
+  la pestaña, la vista baja hasta la tabla para que se vean la tabla y las tarjetas juntas. La página trae `etiquetas.estilo`.
+- **«Etiquetas de lo que entró»** (`ImprimirLoQueEntro.tsx`): al terminar un guardado en que entraron unidades (una talla que subió o
+  un color nuevo con stock) y sin correcciones, sale una hoja grande en vez del botón chico del aviso: la cifra que cuenta, el «visto»
+  que se dibuja y una etiqueta de papel por talla (color, talla, precio, sus etiquetas comerciales, «× 2») que sale de la ranura de la
+  impresora. «Imprimir N etiquetas» lleva a `/etiquetas-de-precio?unidades=…` (una por unidad que entró); «Más tarde» vuelve a Productos,
+  donde sigue la franja del recordatorio. Tras una corrección de color o talla se reimprime todo: eso sigue en el aviso.
+  Movimiento: solo respuesta al guardado (ADR-0136): cada pieza entre 200 y 500 ms, sin rebote ni bucle, quieto con reduced-motion. Felipe
+  pidió «muchas animaciones»; las que la regla no permite (en bucle o decorativas) no se hicieron.
+
+Verificado en local: Etiquetas «Nuevo» en todas → Rojo con tacho → la hoja lista 9 etiquetas y ninguna de Rojo. +2 Blanco S y +1 Verde L
+→ guardar → aviso y hoja «3 etiquetas por imprimir» con dos etiquetas (× 2, × 1) → «Imprimir» abre `/etiquetas-de-precio?unidades=…:2,…:1`.
+El stock de prueba se devolvió (−2, −1; al bajar no sale la hoja). A 375 px, lápiz, tacho y tarjetas caben sin desplazamiento lateral.

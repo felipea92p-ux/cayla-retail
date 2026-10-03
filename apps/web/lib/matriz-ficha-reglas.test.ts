@@ -14,10 +14,12 @@ import {
   grupoDeStockEnHoja,
   hrefEtiquetasDeSubidas,
   juntarSubidas,
+  lineasParaImprimir,
   lineasDelLote,
   minimoDeCelda,
   pasoDeCelda,
   ponerEtiqueta,
+  quitarColor,
   rangoDePrecios,
   resumenVariantes,
   tonoDeBarra,
@@ -275,5 +277,55 @@ describe("correccionesPendientes", () => {
 
   it("sin correcciones (o solo nuevas), nada", () => {
     expect(correccionesPendientes([fila("CRU", "s"), { ...fila("NEG", "s"), guardada: null }], n)).toEqual([]);
+  });
+});
+
+describe("quitarColor — opción B (Felipe 2026-10-03)", () => {
+  it("desactiva el color y devuelve a lo guardado su precio, su costo y sus etiquetas tocados", () => {
+    const filas = [
+      fila("ROJ", "s", { precio: "5", costo: "9", etiquetaIds: ["et-nuevo"] }),
+      fila("ROJ", "m", { etiquetaIds: ["et-nuevo"] }),
+      fila("CRU", "s", { precio: "99" }),
+    ];
+    const r = quitarColor(filas, "ROJ");
+    expect(r.map((f) => [f.clave, f.activo, f.precio, f.costo, f.etiquetaIds])).toEqual([
+      ["ROJ-s", false, "69", "30", []],
+      ["ROJ-m", false, "69", "30", []],
+      ["CRU-s", true, "99", "30", []],
+    ]);
+  });
+
+  it("una talla nueva del color se va; un costo que viene de compras no se toca", () => {
+    const nueva = { ...fila("ROJ", "l"), id: null, clave: "nueva:ROJ-l", guardada: null };
+    const fija = fila("ROJ", "s", { costoFijo: true, costo: "31" });
+    const r = quitarColor([fija, nueva], "ROJ");
+    expect(r).toHaveLength(1);
+    expect(r[0].costo).toBe("31");
+    expect(r[0].activo).toBe(false);
+  });
+
+  it("deshacer la vuelve a la venta tal como está guardada", () => {
+    const r = devolverColor(quitarColor([fila("ROJ", "s", { precio: "5" })], "ROJ"), "ROJ");
+    expect(r[0].activo).toBe(true);
+    expect(r[0].precio).toBe("69");
+  });
+});
+
+describe("lineasParaImprimir", () => {
+  it("cruza lo que entró con la ficha, en el orden de la tabla", () => {
+    const filas = [fila("CRU", "m", { precio: "140", etiquetaIds: ["et-nuevo"] }), fila("CRU", "s"), fila("NEG", "s", { precio: "0" })];
+    const r = lineasParaImprimir(
+      [
+        { varianteId: "NEG-s", color: "NEG", talla: "S", unidades: 2 },
+        { varianteId: "CRU-m", color: "CRU", talla: "M", unidades: 3 },
+        { varianteId: "CRU-s", color: "CRU", talla: "S", unidades: 1 },
+        { varianteId: "x", color: "Lila", talla: null, unidades: 1 },
+        { varianteId: "CRU-s", color: "CRU", talla: "S", unidades: 0 },
+      ],
+      filas,
+      n
+    );
+    expect(r.map((l) => `${l.color} ${l.talla} ×${l.unidades} ${l.precio}`)).toEqual(["CRU S ×1 69", "CRU M ×3 140", "NEG S ×2 null", "Lila Única ×1 null"]);
+    expect(r[1].etiquetaIds).toEqual(["et-nuevo"]);
   });
 });

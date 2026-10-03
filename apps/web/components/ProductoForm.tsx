@@ -59,7 +59,6 @@ import {
   esChoqueDeCandados,
   bloqueoPorVenta,
   choqueDeCorreccion,
-  desactivarColor,
   etiquetasComunes,
   filasDelEje,
   filasDeProducto,
@@ -86,13 +85,13 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
-import { MatrizStockFicha, MotivoDeLaVisita, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
+import { MatrizStockFicha, MotivoDeLaVisita, type BotonesDeColor, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
 import { AgregarColoresModal, type ResultadoAgregarColores } from "@/components/ficha-producto/AgregarColoresModal";
 import { AgregarTallasModal } from "@/components/ficha-producto/AgregarTallasModal";
 import { CorregirVarianteModal, type EjesCorreccion } from "@/components/ficha-producto/CorregirVarianteModal";
-import type { ItemMenu } from "@/components/ui/MenuAcciones";
+import { ImprimirLoQueEntro } from "@/components/ficha-producto/ImprimirLoQueEntro";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { FotoSubida } from "@/components/ficha-producto/useSubirFotos";
 import {
@@ -102,8 +101,11 @@ import {
   devolverColor,
   grupoDeStockEnHoja,
   hrefEtiquetasDeSubidas,
+  lineasParaImprimir,
   ponerEtiqueta,
+  quitarColor,
   resumenVariantes,
+  type LineaParaImprimir,
 } from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
@@ -237,7 +239,7 @@ export function ProductoForm({
   /** La imagen elegida en Atributos para cada tejido y patrón (ADR-0256); sin ella, el dibujo automático. */
   imagenes: ImagenesMuestra;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
-  etiquetas: ValorVocabulario[];
+  etiquetas: (ValorVocabulario & { estilo: string })[];
   /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
   avisoEtiquetas?: string;
   /** Marcas, proveedores y parejas registradas (ADR-0109). */
@@ -346,7 +348,7 @@ export function ProductoForm({
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
   // Editar una prenda es Catálogo; desde 2026-09-29 se guarda sin elegir responsable: todas las llamadas de «Confirmar y
   // guardar» van con la misma firma soltada (`producto_confirmar_cambios`): son un solo gesto.
-  const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto }));
+  const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto, estilo: e.estilo }));
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
   // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
@@ -434,7 +436,13 @@ export function ProductoForm({
   // Cuatro secciones plegables (abiertas al entrar, como la maqueta), la matriz color × talla con el stepper del stock y, a la
   // derecha, el panel del taller. Plegar no saca nada de la página: quien lleva a un campo abre antes su sección (`abrir`).
   type Seccion = "producto" | "tejido" | "fotos" | "variantes";
-  const [abiertas, setAbiertas] = useState<Record<Seccion, boolean>>({ producto: true, tejido: true, fotos: true, variantes: true });
+  // Al entrar, todo plegado menos «Variantes y precios»: es lo que más se usa (Felipe 2026-10-03). Llegar con #fotos (la pantalla de
+  // éxito de Nuevo producto enlaza así) abre también Fotos. Lo demás se abre al tocarlo, o solo cuando la guía lleva a un campo.
+  const [abiertas, setAbiertas] = useState<Record<Seccion, boolean>>({ producto: false, tejido: false, fotos: false, variantes: true });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el #fotos solo lo sabe el navegador: leerlo al iniciar el estado rompería la hidratación (misma decisión que BajarAlPisoForm)
+    if (window.location.hash === "#fotos") setAbiertas((a) => ({ ...a, fotos: true }));
+  }, []);
   const abrir = (sec: Seccion) => setAbiertas((a) => (a[sec] ? a : { ...a, [sec]: true }));
   // Qué se escribe en la matriz (Unidades de hoy · Precios · Costos): las pestañas de la tabla, como en «Unidades de hoy» del alta.
   const [vista, setVista] = useState<VistaMatriz>("unidades");
@@ -446,6 +454,8 @@ export function ProductoForm({
   }
   const [agregandoColor, setAgregandoColor] = useState(false);
   const [agregandoTalla, setAgregandoTalla] = useState(false);
+  // La hoja «Etiquetas de lo que entró», al terminar un guardado en que entraron unidades.
+  const [imprimir, setImprimir] = useState<{ nombre: string; lineas: LineaParaImprimir[]; href: string } | null>(null);
   // «Corregir color» (del «⋯» de un color) o «Corregir talla» (de la cabecera de una talla): las filas que corrige y de qué eje.
   const [corrigiendo, setCorrigiendo] = useState<{ claves: string[]; ejes: EjesCorreccion } | null>(null);
   // `undefined` = cerrado; un color (o `null`, sin color) = el ajuste de siempre abierto para ese color (ADR-0291: una talla que
@@ -675,7 +685,7 @@ export function ProductoForm({
       cerrarProceso();
       setLoading(false);
       setHojaAbierta(false);
-      if (ok) terminarGuardado(referencia.trim(), [], false, 0, 0);
+      if (ok) terminarGuardado(referencia.trim(), [], false, 0, 0, filas);
       return true;
     }
     const firma = firmaOmitida("producto_confirmar_cambios");
@@ -865,22 +875,44 @@ export function ProductoForm({
     const { correcciones: huboCorrecciones, nuevas: creadas, cargadas, frases } = logrado.current;
     logrado.current = { correcciones: false, nuevas: 0, cargadas: 0, frases: [] };
     setHojaAbierta(false);
-    terminarGuardado(nombrePrenda, [...new Set([...frases, ...hecho])], huboCorrecciones, creadas, cargadas);
+    terminarGuardado(nombrePrenda, [...new Set([...frases, ...hecho])], huboCorrecciones, creadas, cargadas, actuales);
     return true;
   }
 
   /** El final de un guardado completo: la barra baja, el aviso dice qué se guardó y, si entraron unidades, ofrece imprimir justo
    *  sus etiquetas (Felipe, 2026-10-02: «luego de guardados, el sistema te sugiere imprimir ese ticket»). Al volver a Productos
    *  queda además la franja «prendas nuevas sin etiquetar» hasta imprimirlas o cambiar de módulo (`RecordatorioEtiquetas`). */
-  function terminarGuardado(nombrePrenda: string, hechoTodo: string[], huboCorrecciones: boolean, creadas: number, cargadas: number) {
+  function terminarGuardado(
+    nombrePrenda: string,
+    hechoTodo: string[],
+    huboCorrecciones: boolean,
+    creadas: number,
+    cargadas: number,
+    /** Las filas como quedaron (las nuevas ya con id): de ahí salen el color, la talla y el precio de lo que entró. */
+    filasFinales: readonly FilaFicha[]
+  ) {
     if (!producto) return;
     // Lo que se confirmó en la hoja (esta función es del render en que se pulsó «Confirmar y guardar»).
     const ajustadas = grupoStock?.lineas.length ?? 0;
     const subidas = stock.tomarSubidas();
     const unidadesNuevas = subidas.reduce((s, x) => s + x.unidades, 0);
     const hrefSubidas = hrefEtiquetasDeSubidas(subidas);
+    // Entró stock (subió una talla o un color nuevo nació con unidades) y no hubo correcciones: la hoja grande «Etiquetas de lo
+    // que entró» (Felipe 2026-10-03), con una etiqueta por cada prenda que entró. Tras corregir color o talla se reimprime TODO
+    // (lo pegado ya no dice lo correcto): eso sigue siendo el botón del aviso.
+    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
+    if (lineas.length > 0 && hrefSubidas) {
+      avisar.exito(`${nombrePrenda} guardado`, {
+        detalle: [hechoTodo.length > 0 ? hechoTodo.join(", ") : null, `entraron ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"}`]
+          .filter(Boolean)
+          .join(" · "),
+      });
+      salida.soltar();
+      setImprimir({ nombre: nombrePrenda, lineas, href: conDesde(hrefSubidas, volverA) });
+      return;
+    }
     avisar.exito(`${nombrePrenda} guardado`, {
       detalle:
         [
@@ -1043,32 +1075,32 @@ export function ProductoForm({
     setColorElegido(c);
   }
 
-  /** «Quitar color» (el «⋯» de un color en la matriz): deja de venderse. Nunca se borra nada: las variantes que ya existen se
-   *  desactivan y conservan su stock y su historia; las nuevas, que todavía no existen, simplemente no se crean. Lo tocado en su
-   *  stock se suelta (no se ajusta una talla que se está quitando). Se guarda con «Revisar y guardar» y hasta entonces se deshace. */
-  function quitarColor(c: string | null) {
-    const claves = filas.filter((f) => f.activo && f.colorCodigo === c).map((f) => f.clave);
-    stock.soltar(filas.filter((f) => claves.includes(f.clave)).map((f) => f.id ?? f.clave));
-    setFilas((actual) => desactivarColor(actual, claves));
+  /** «Quitar color» (el tacho de un color en la matriz): deja de venderse. Nunca se borra nada: las variantes que ya existen se
+   *  desactivan y conservan su stock y su historia; las nuevas, que todavía no existen, no se crean. Lo que se le tocó en esta
+   *  visita —stock, precio, costo, etiquetas— se suelta (opción B, Felipe 2026-10-03: `quitarColor` de matriz-ficha-reglas). Se
+   *  guarda con «Revisar y guardar» y hasta entonces se deshace. */
+  function quitarElColor(c: string | null) {
+    const delColor = filas.filter((f) => f.activo && f.colorCodigo === c);
+    stock.soltar(delColor.map((f) => f.id ?? f.clave));
+    setFilas((actual) => quitarColor(actual, c));
   }
 
-  /** El «⋯» de cada color de la matriz: corregirlo si se registró mal (conserva stock e historia) o quitarlo. */
-  function accionesDeColor(c: string | null): ItemMenu[] {
+  /** El lápiz (corregir el color si se registró mal: conserva stock e historia) y el tacho (quitarlo) de cada color. */
+  function botonesDeColor(c: string | null): BotonesDeColor {
     const delColor = filasDelEje(filas, "color", c);
     const nuevo = todasNuevas(delColor);
-    const bloqueo = bloqueoPorVenta(delColor, estadoVariantes, esLider, nombres);
-    const items: ItemMenu[] = [];
-    if (puedeCorregir) {
-      items.push({
-        clave: "corregir",
-        // «Corregir» si ya existe (se registró mal); «Cambiar» si es nuevo y todavía no existe (D-136).
-        etiqueta: nuevo ? "Cambiar color" : "Corregir color (se registró mal)",
-        onSelect: () => setCorrigiendo({ claves: delColor.map((f) => f.clave), ejes: "color" }),
-        motivo: nuevo ? undefined : (bloqueo ?? undefined),
-      });
-    }
-    items.push({ clave: "quitar", etiqueta: nuevo ? "Quitar este color nuevo" : "Quitar color", onSelect: () => quitarColor(c), peligro: true });
-    return items;
+    const nombre = nombres.color(c);
+    return {
+      // «Corregir» si ya existe (se registró mal); «Cambiar» si es nuevo y todavía no existe (D-136).
+      corregir: puedeCorregir
+        ? {
+            titulo: nuevo ? `Cambiar el color ${nombre}` : `Corregir el color ${nombre} (si se registró mal)`,
+            motivo: nuevo ? null : bloqueoPorVenta(delColor, estadoVariantes, esLider, nombres),
+            onClick: () => setCorrigiendo({ claves: delColor.map((f) => f.clave), ejes: "color" }),
+          }
+        : null,
+      quitar: { titulo: nuevo ? `Quitar ${nombre} (recién agregado)` : `Quitar ${nombre}: deja de venderse al guardar`, onClick: () => quitarElColor(c) },
+    };
   }
 
   // Lo que dice la línea bajo la tabla: los colores que se quitan al guardar (con su «Deshacer» y, si tienen unidades, cuántas
@@ -1445,7 +1477,7 @@ export function ProductoForm({
               etiquetas={opcionesEtiqueta}
               avisoEtiquetas={avisoEtiquetas}
               onEtiqueta={(id, poner, claves) => setFilas((actual) => ponerEtiqueta(actual, id, poner, claves))}
-              accionesDeColor={accionesDeColor}
+              botonesDeColor={botonesDeColor}
               onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
               deshabilitado={loading}
             />
@@ -1561,6 +1593,20 @@ export function ProductoForm({
           etiquetasTexto={etiquetasTexto}
           onConfirmar={(r) => setFilas(agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }))}
           onClose={() => setAgregandoTalla(false)}
+        />
+      )}
+      {imprimir && (
+        <ImprimirLoQueEntro
+          prenda={imprimir.nombre}
+          lineas={imprimir.lineas}
+          colores={colores}
+          nombreEtiqueta={(id) => etiquetas.find((e) => e.id === id)?.texto ?? null}
+          onImprimir={() => router.push(imprimir.href)}
+          onDespues={() => {
+            setImprimir(null);
+            router.replace(volverA);
+            router.refresh();
+          }}
         />
       )}
       {corrigiendo && (

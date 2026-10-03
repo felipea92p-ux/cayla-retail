@@ -650,13 +650,6 @@ export function cambiarFila(filas: readonly FilaFicha[], clave: string, cambio: 
   return filas.map((f) => (f.clave === clave ? { ...f, ...cambio } : f));
 }
 
-/** «Desactivar color»: desactiva TODAS las tallas del color de una vez. Las que ya existen se desactivan (nunca se borran: guardan
- *  stock e historia); las nuevas, que todavía no existen, simplemente se quitan. */
-export function desactivarColor(filas: readonly FilaFicha[], claves: readonly string[]): FilaFicha[] {
-  const grupo = new Set(claves);
-  return filas.filter((f) => !grupo.has(f.clave) || f.id !== null).map((f) => (grupo.has(f.clave) ? { ...f, activo: false } : f));
-}
-
 // ---------------------------------------------------------------------------
 // Precio y costo: de a una o en bloque
 // ---------------------------------------------------------------------------

@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Minus, Pencil, Plus } from "lucide-react";
+import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { TONOS } from "@/components/MuestraEtiqueta";
+import { estiloConocido } from "@/lib/etiqueta-grupos";
+import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./EtiquetasDeLaMatriz";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
-import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
-import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, cuentaEtiqueta, etiquetaCambiada, totalesMatriz } from "@/lib/matriz-ficha-reglas";
+import { armarMatriz, etiquetaCambiada, totalesMatriz } from "@/lib/matriz-ficha-reglas";
 import type { MotivoAjuste } from "@/lib/ajuste-reglas";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
@@ -27,9 +28,15 @@ import type { StockFicha } from "./useStockFicha";
 // en ámbar punteado, el color que se toca para verlo en el panel, y la talla que faltó en un conteo (su «+» abre el ajuste de
 // siempre, ADR-0291).
 //
-// Desde el 2026-10-03 (ADR-0313, act.) TODO se hace desde esta tabla: «Más de cada variante» desapareció. Cada color tiene su «⋯»
-// (corregir o quitar el color), la cabecera de una talla la corrige, y la pestaña «Etiquetas» pone o quita una etiqueta en una
-// talla o en todas.
+// Desde el 2026-10-03 (ADR-0313, act.) TODO se hace desde esta tabla: «Más de cada variante» desapareció. Cada color tiene un
+// lápiz (corregirlo) y un tacho (quitarlo), la cabecera de una talla la corrige, y la pestaña «Etiquetas» pone o quita una
+// etiqueta en una talla o en todas, con las etiquetas dibujadas como en Atributos DEBAJO de la tabla.
+
+/** Lo que ofrecen los dos botones de un color: corregirlo (lápiz; `null` si la base no sabe corregir) y quitarlo (tacho). */
+export type BotonesDeColor = {
+  corregir: { titulo: string; motivo: string | null; onClick: () => void } | null;
+  quitar: { titulo: string; onClick: () => void };
+};
 //
 // NADA de esta tabla se guarda solo: ni el stock ni el precio. Todo espera a «Revisar y guardar» (ADR-0257; el stock desde el
 // 2026-10-02 noche, ADR-0313) y lo que cambió se ve en ámbar hasta guardarlo.
@@ -67,7 +74,7 @@ export function MatrizStockFicha({
   etiquetas,
   avisoEtiquetas,
   onEtiqueta,
-  accionesDeColor,
+  botonesDeColor,
   onCorregirTalla,
   deshabilitado,
 }: {
@@ -87,12 +94,12 @@ export function MatrizStockFicha({
   /** Una talla que faltó en un conteo cerrado: el «+» abre el ajuste de siempre, que pregunta si es esa (ADR-0291). */
   onAbrirModal: (color: string | null) => void;
   /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
-  etiquetas: readonly { valor: string; texto: string }[];
+  etiquetas: readonly EtiquetaMatriz[];
   avisoEtiquetas?: string;
   /** Pone o quita una etiqueta en esas variantes; sin `claves`, en todas las activas. */
   onEtiqueta: (etiquetaId: string, poner: boolean, claves?: string[]) => void;
-  /** Lo que ofrece el «⋯» de cada color (corregir, quitar). */
-  accionesDeColor: (color: string | null) => ItemMenu[];
+  /** El lápiz y el tacho de cada color. */
+  botonesDeColor: (color: string | null) => BotonesDeColor;
   /** Corregir una talla desde su cabecera; `null` = no se ofrece (la base todavía no sabe, o no hay permiso). */
   onCorregirTalla: ((talla: string | null) => void) | null;
   deshabilitado: boolean;
@@ -107,8 +114,19 @@ export function MatrizStockFicha({
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
-  const etiquetaElegida = etiquetas.some((e) => e.valor === etiquetaPedida) ? etiquetaPedida : (etiquetas[0]?.valor ?? null);
+  const etiquetaElegida = etiquetas.some((e) => e.valor === etiquetaPedida) ? etiquetaPedida : (ordenarEtiquetas(etiquetas)[0]?.valor ?? null);
   const textoEtiqueta = (id: string) => etiquetas.find((e) => e.valor === id)?.texto ?? null;
+  // La celda que lleva la etiqueta se pinta con el tono de su grupo (el mismo de su dibujo): se reconoce de un vistazo.
+  const estiloElegida = estiloConocido(etiquetas.find((e) => e.valor === etiquetaElegida)?.estilo ?? "neutral");
+  const acentoElegida = TONOS[estiloElegida].acento;
+  // Al abrir «Etiquetas», la tabla y las tarjetas de abajo quedan a la vista (Felipe: «que se pueda apreciar bien»).
+  const raiz = useRef<HTMLDivElement>(null);
+  function cambiarVista(v: VistaMatriz) {
+    onVista(v);
+    if (v !== "etiquetas" || vista === "etiquetas") return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(() => raiz.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }), 40);
+  }
 
   useEffect(() => {
     const r = relojes.current;
@@ -160,20 +178,19 @@ export function MatrizStockFicha({
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
     ["etiquetas", "Etiquetas"],
   ];
-  const cuenta = etiquetaElegida ? cuentaEtiqueta(filas, etiquetaElegida) : null;
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
 
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
   return (
-    <div className="space-y-2">
+    <div className="scroll-mt-20 space-y-2" ref={raiz}>
       <div role="group" aria-label="Qué se escribe en la tabla" className="flex w-full rounded-[9px] border border-sand bg-crema p-[3px] @lg:inline-flex @lg:w-auto">
         {pestanas.map(([v, t]) => (
           <button
             key={v}
             type="button"
             aria-pressed={vista === v}
-            onClick={() => onVista(v)}
+            onClick={() => cambiarVista(v)}
             className={`flex-auto whitespace-nowrap rounded-[7px] px-1.5 py-1.5 text-[12.5px] font-medium transition-colors @lg:flex-none @lg:px-3 ${
               vista === v ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
             }`}
@@ -196,57 +213,12 @@ export function MatrizStockFicha({
           {filas.some((f) => f.activo && f.costoFijo) ? `${textosCostoFijo(ctx.costoSinComprobar).nota} Se ve sin caja.` : ""}
         </p>
         <p className={`col-start-1 row-start-1 ${enEtiquetas ? "" : "invisible"}`} aria-hidden={!enEtiquetas}>
-          Elige una etiqueta y toca cada talla para ponérsela o quitársela (✓ = la lleva), o ponla en todas. Se guarda con «Revisar y guardar».
+          Elige una etiqueta abajo y toca cada talla para ponérsela o quitársela (✓ = la lleva), o ponla en todas. Se guarda con «Revisar y guardar».
         </p>
       </div>
 
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
       {bloque && <div hidden={enUnidades || enEtiquetas}>{bloque}</div>}
-
-      {enEtiquetas && (
-        <div className="space-y-2" id="matriz-etiquetas">
-          {etiquetas.length === 0 ? (
-            <p className="text-[12.5px] italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
-          ) : (
-            <>
-              <div role="group" aria-label="Qué etiqueta se pone o se quita" className="flex flex-wrap gap-1.5">
-                {etiquetas.map((et) => {
-                  const c = cuentaEtiqueta(filas, et.valor);
-                  return (
-                    <ChipOpcion key={et.valor} elegido={et.valor === etiquetaElegida} onClick={() => setEtiquetaPedida(et.valor)} className="min-h-8 py-1 text-[12.5px]">
-                      {et.texto}
-                      <span className="tabular-nums text-taupe">
-                        {c.con}/{c.de}
-                      </span>
-                    </ChipOpcion>
-                  );
-                })}
-              </div>
-              {etiquetaElegida && cuenta && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <button
-                    type="button"
-                    disabled={deshabilitado || cuenta.con === cuenta.de}
-                    onClick={() => onEtiqueta(etiquetaElegida, true)}
-                    className="btn-cayla btn-enlace text-[12.5px]"
-                  >
-                    Poner «{nombreElegida}» en todas
-                  </button>
-                  <button
-                    type="button"
-                    disabled={deshabilitado || cuenta.con === 0}
-                    onClick={() => onEtiqueta(etiquetaElegida, false)}
-                    className="btn-cayla btn-enlace text-[12.5px]"
-                  >
-                    Quitar «{nombreElegida}» de todas
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-          {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
-        </div>
-      )}
 
       <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         <table className="w-full border-separate border-spacing-0 text-[13px]" id="matriz-variantes">
@@ -312,7 +284,7 @@ export function MatrizStockFicha({
                       {nombreColor}
                       {esNuevo && <span className="ml-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                     </button>
-                    <MenuAcciones etiqueta={`Acciones del color ${nombreColor}`} items={accionesDeColor(c)} deshabilitado={deshabilitado} />
+                    {botonesColor(botonesDeColor(c), nombreColor)}
                     </span>
                   </th>
                   {m.tallas.map((t) => {
@@ -369,8 +341,53 @@ export function MatrizStockFicha({
           )}
         </table>
       </div>
+
+      {enEtiquetas && (
+        <EtiquetasDeLaMatriz
+          etiquetas={etiquetas}
+          filas={filas}
+          elegida={etiquetaElegida}
+          onElegir={setEtiquetaPedida}
+          onEnTodas={(poner) => etiquetaElegida && onEtiqueta(etiquetaElegida, poner)}
+          avisoEtiquetas={avisoEtiquetas}
+          deshabilitado={deshabilitado}
+        />
+      )}
     </div>
   );
+
+  /** El lápiz (corregir el color, si se registró mal) y el tacho (quitarlo) de una fila. Un lápiz bloqueado (ya se vendió y
+   *  no eres líder) no se apaga en silencio: al tocarlo dice por qué (un `title` no llega al celular). */
+  function botonesColor(b: BotonesDeColor, nombreColor: string) {
+    return (
+      <span className="flex shrink-0 items-center gap-1">
+        {b.corregir && (
+          <button
+            type="button"
+            aria-label={b.corregir.titulo}
+            title={b.corregir.motivo ?? b.corregir.titulo}
+            aria-disabled={!!b.corregir.motivo || undefined}
+            disabled={deshabilitado}
+            onClick={() => (b.corregir!.motivo ? avisar.error(b.corregir!.motivo) : b.corregir!.onClick())}
+            className="grid h-8 w-8 place-items-center rounded-lg border border-tinta/15 bg-papel text-tinta/60 transition-colors duration-200 ease-cayla hover:border-tinta/45 hover:text-tinta disabled:opacity-40 aria-disabled:opacity-45"
+          >
+            <Pencil aria-hidden className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label={b.quitar.titulo}
+          title={b.quitar.titulo}
+          disabled={deshabilitado}
+          onClick={b.quitar.onClick}
+          data-color={nombreColor}
+          className="grid h-8 w-8 place-items-center rounded-lg border border-rojo-profundo/25 bg-papel text-rojo-profundo transition-colors duration-200 ease-cayla hover:border-rojo-profundo hover:bg-rojo-profundo/[0.07] disabled:opacity-40"
+        >
+          <Trash2 aria-hidden className="h-3.5 w-3.5" />
+        </button>
+      </span>
+    );
+  }
 
   /** La caja − N + de la celda: el stock de HOY en el lugar que se ajusta, más lo tocado (en ámbar hasta guardarlo). */
   function celdaUnidades(f: FilaFicha, etiqueta: string) {
@@ -446,8 +463,9 @@ export function MatrizStockFicha({
         disabled={deshabilitado}
         onClick={() => onEtiqueta(etiquetaElegida, !lleva, [f.clave])}
         data-cambiada={cambiada || undefined}
-        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-[13px] font-semibold transition-colors duration-200 ease-cayla disabled:opacity-40 ${
-          lleva ? "border-tinta bg-tinta text-crema hover:bg-tinta/85" : "border-sand bg-hueso text-transparent hover:border-taupe"
+        style={lleva ? { backgroundColor: acentoElegida, borderColor: acentoElegida } : undefined}
+        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-[13px] font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
+          lleva ? "text-crema hover:opacity-90" : "border-sand bg-hueso text-transparent hover:border-taupe"
         } ${cambiada ? "ring-2 ring-ambar ring-offset-1 ring-offset-papel" : ""} ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-offset-2 outline-ambar"}`}
       >
         ✓

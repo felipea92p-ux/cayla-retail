@@ -9,7 +9,6 @@ import {
   avisoBloqueSinAplicar,
   bloqueoPorVenta,
   cambiarFila,
-  desactivarColor,
   choqueDeCorreccion,
   clasificarCombinaciones,
   codigoPrevisto,
@@ -153,22 +152,6 @@ describe("filasDeProducto — la prenda por ejes, como en el alta", () => {
   it("una que se desactiva AHORA sigue en su grupo (con su aviso); no salta al final", () => {
     const filas = cambiarFila(BOD(), "v-s", { activo: false });
     expect(enGrupo(filas.find((f) => f.id === "v-s")!)).toBe(true);
-  });
-
-  it("«Desactivar color» desactiva todas las tallas del color: las que existen se desactivan, no se borran", () => {
-    const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m"), variante("c", "AZU", "t-s")], N);
-    const r = desactivarColor(filas, filas.filter((f) => f.colorCodigo === "NEG").map((f) => f.clave));
-    expect(r).toHaveLength(3);
-    expect(r.filter((f) => !f.activo).map((f) => f.id)).toEqual(["a", "b"]);
-    expect(r.find((f) => f.id === "c")!.activo).toBe(true);
-  });
-
-  it("«Desactivar color» quita las filas nuevas (todavía no existen) y desactiva las guardadas", () => {
-    const base = filasDeProducto([variante("a", "NEG", "t-s")], N);
-    const nueva = { ...base[0], clave: "nueva-1", id: null, guardada: undefined } as unknown as typeof base[0];
-    const r = desactivarColor([...base, nueva], [base[0].clave, "nueva-1"]);
-    expect(r.map((f) => f.id)).toEqual(["a"]);
-    expect(r[0].activo).toBe(false);
   });
 
   it("los ejes son lo que se VENDE: variantes activas, tallas ordenadas", () => {

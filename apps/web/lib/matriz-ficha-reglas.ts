@@ -274,3 +274,63 @@ export function correccionesPendientes(filas: readonly FilaFicha[], n: NombresFi
     return { ...c, texto };
   });
 }
+
+/**
+ * «Quitar color» (opción B, Felipe 2026-10-03): el color deja de venderse y lo que se le tocó en esta visita (precio, costo,
+ * etiquetas) vuelve a lo guardado. Si algún día ese color vuelve con «+ Agregar color», vuelve como estaba, no con un precio o
+ * un «Nuevo» de una visita que nadie recuerda. Las que ya existen se desactivan (nunca se borran: guardan stock e historia);
+ * las nuevas, que todavía no existen, se van. «Deshacer» (`devolverColor`) la vuelve a la venta, sin lo que se le había tocado.
+ */
+export function quitarColor(filas: readonly FilaFicha[], colorCodigo: string | null): FilaFicha[] {
+  const delColor = (f: FilaFicha) => f.activo && f.colorCodigo === colorCodigo;
+  return filas
+    .filter((f) => !delColor(f) || f.guardada !== null)
+    .map((f) => {
+      if (!delColor(f) || !f.guardada) return f;
+      const g = f.guardada;
+      return { ...f, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
+    });
+}
+
+/** Una línea de la hoja «Etiquetas de lo que entró»: una talla de un color, cuántas unidades entraron y con qué precio. */
+export type LineaParaImprimir = {
+  varianteId: string;
+  colorCodigo: string | null;
+  color: string;
+  talla: string;
+  precio: number | null;
+  unidades: number;
+  etiquetaIds: string[];
+};
+
+/** Lo que entró en el guardado (las `Subida`s del stock), con lo que la ficha sabe de cada variante: su color, su talla, su precio
+ *  y sus etiquetas. En el orden de la tabla: por color como aparecen, y por talla en curva. Una variante que la ficha no conoce
+ *  (no debería pasar) sale con lo que trae la subida. */
+export function lineasParaImprimir(subidas: readonly Subida[], filas: readonly FilaFicha[], n: NombresFicha): LineaParaImprimir[] {
+  const lineas = subidas
+    .filter((s) => s.unidades > 0)
+    .map((s) => {
+      const f = filas.find((x) => x.id === s.varianteId);
+      const precio = f ? Number(f.precio) : NaN;
+      return {
+        varianteId: s.varianteId,
+        colorCodigo: f ? f.colorCodigo : null,
+        color: f ? n.color(f.colorCodigo) : (s.color ?? "Sin color"),
+        talla: f ? n.talla(f.tallaId) || "Única" : (s.talla ?? "Única"),
+        precio: Number.isFinite(precio) && precio > 0 ? precio : null,
+        unidades: s.unidades,
+        etiquetaIds: f ? [...f.etiquetaIds] : [],
+        orden: f ? filas.findIndex((x) => x.colorCodigo === f.colorCodigo) : Number.MAX_SAFE_INTEGER,
+      };
+    });
+  lineas.sort((a, b) => a.orden - b.orden || compararTallas(a.talla, b.talla));
+  return lineas.map((l) => ({
+    varianteId: l.varianteId,
+    colorCodigo: l.colorCodigo,
+    color: l.color,
+    talla: l.talla,
+    precio: l.precio,
+    unidades: l.unidades,
+    etiquetaIds: l.etiquetaIds,
+  }));
+}
