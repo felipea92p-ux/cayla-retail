@@ -44,6 +44,19 @@ describe("historia del permiso (CL-26)", () => {
     );
   });
 
+  it("una miembro que vuelve a aceptar textos nuevos no «se une» otra vez (20261003235000)", () => {
+    expect(ev({ medio: "pagina_cartel", registrado_por: null, texto_tipo: "terminos", texto_version: 3, nota: "volvió a aceptar los textos nuevos · privacidad v2" })).toMatchObject({
+      titulo: "Volvió a aceptar los textos del club",
+      punto: "taupe",
+    });
+    expect(
+      ev({ finalidad: "publicidad_whatsapp", medio: "pagina_cartel", registrado_por: null, texto_tipo: "casilla_publicidad", texto_version: 3, nota: "volvió a aceptar el texto nuevo" }),
+    ).toMatchObject({ titulo: "Volvió a aceptar el texto de la publicidad", punto: "verde" });
+    // La unión de verdad, con su nota de siempre, y una revocación aunque su nota diga lo mismo, no cambian.
+    expect(ev({ medio: "pagina_cartel", registrado_por: null, nota: "aceptó también la privacidad v2" }).titulo).toBe("Se unió al club");
+    expect(ev({ accion: "revoca", medio: "anonimizar", nota: "volvió a aceptar" }).titulo).toBe("Salió del club");
+  });
+
   it("anonimizar y el legado; los eventos de otra ficha lo dicen", () => {
     expect(ev({ accion: "revoca", medio: "anonimizar", texto_tipo: null, texto_version: null }).titulo).toBe("Salió del club");
     expect(ev({ medio: "legado", registrado_por: null, sede: null, texto_tipo: null, texto_version: null }).detalle).toBe("2026-09-30 · marcado en caja antes del club");
