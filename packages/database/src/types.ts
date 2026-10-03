@@ -6138,6 +6138,12 @@ export type Database = {
           inicio: string
         }[]
       }
+      fn_observatorio: { Args: { p_dias?: number }; Returns: Json }
+      fn_observatorio_tienda: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_observatorio_turno: { Args: { p_ubicacion_id: string }; Returns: Json }
       fn_ocurrencia_temporada: {
         Args: { p_fecha: string; p_temporada: string }
         Returns: { desde: string; hasta: string | null }[]

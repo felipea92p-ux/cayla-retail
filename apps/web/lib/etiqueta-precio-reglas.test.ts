@@ -86,6 +86,27 @@ describe("armarEtiquetas · la marca de la prenda (Felipe, 2026-09-29)", () => {
   });
 });
 
+describe("armarEtiquetas · la muestra del color, para la lista (Felipe, 2026-10-03)", () => {
+  it("cada fila lleva la muestra de SU color, aunque el modelo sea el mismo", () => {
+    const { etiquetas } = armarEtiquetas(
+      new Map([["a", 1], ["g", 1]]),
+      [
+        blusa("a", "U", { colorCodigo: "AZD", color: "Azul denim", colorMuestra: "#4A6C8C" }),
+        blusa("g", "U", { colorCodigo: "GRA", color: "Gris antracita", colorMuestra: "#3B3D40" }),
+      ],
+      [hermana("U", "AZD"), hermana("U", "GRA")],
+    );
+    expect(etiquetas.map((e) => [e.color, e.colorMuestra])).toEqual([
+      ["Azul denim", "#4A6C8C"],
+      ["Gris antracita", "#3B3D40"],
+    ]);
+  });
+  it("un color sin hex (Estampado) o una variante armada sin él quedan en null: la cápsula sale de varios tonos", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["e", 1], ["v", 1]]), [blusa("e", "M", { color: "Estampado", colorMuestra: null }), blusa("v", "S")], []);
+    expect(etiquetas.map((e) => e.colorMuestra)).toEqual([null, null]);
+  });
+});
+
 describe("armarEtiquetas", () => {
   it("una fila por prenda con lo que entró, ordenada por modelo, color y talla", () => {
     const entradas = new Map([

@@ -1,0 +1,88 @@
+/* ==================================================================
+   GRILLA DE VENDER POR PRENDA (ADR-0323, maqueta docs/maquetas/grilla-vender-2026-10/)
+   Una tarjeta por prenda: los colores son puntos que eligen, la tarjeta cambia de color con un fundido y las
+   tallas del color elegido van debajo. La ventana «Todo de la prenda» marca con un visto lo que se agregó.
+   Movimiento de ADR-0136: solo en respuesta a un toque, 200–450 ms con `--ease-cayla`, sin rebote ni bucle, y
+   con movimiento reducido se colapsa a un instante. Solo tokens: ningún color suelto.
+   ================================================================== */
+
+/* Punto de color: el círculo es el color; el anillo de afuera dice cuál está elegido. */
+.vg-punto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  flex: none;
+  border-radius: 9999px;
+  outline: none;
+}
+.vg-punto > i {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent);
+  transition: transform 250ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
+}
+.vg-punto::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-tinta);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
+}
+.vg-punto[aria-checked="true"]::after { opacity: 1; transform: none; }
+.vg-punto:hover > i { transform: scale(1.12); }
+.vg-punto:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-rojo) 35%, transparent); }
+/* Solo en el almacén de esta sede (D-40): anillo punteado ámbar siempre a la vista, el color atenuado. */
+.vg-punto[data-estado="almacen"]::after { border-style: dashed; border-color: var(--color-ambar); opacity: 1; transform: none; }
+.vg-punto[data-estado="almacen"][aria-checked="true"]::after { border-width: 2px; }
+.vg-punto[data-estado="almacen"] > i { opacity: 0.55; }
+/* Sin nada aquí (solo con «Solo con stock» apagado): el color casi se borra. */
+.vg-punto[data-estado="agotado"] > i { opacity: 0.3; }
+
+/* Fundido entre colores: la capa nueva aparece sobre la anterior, que se va al terminar. */
+.vg-capa { position: absolute; inset: 0; }
+.vg-capa-entra { animation: vg-capa 300ms var(--ease-cayla) both; }
+.vg-capa-entra .vg-capa-nombre { animation: vg-nombre 320ms var(--ease-cayla) 60ms backwards; }
+@keyframes vg-capa {
+  from { opacity: 0; }
+}
+@keyframes vg-nombre {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+}
+
+/* Tallas y «Agregar» del color elegido: entran en cascada corta cuando cambia el color. */
+.vg-entra { animation: vg-entra 320ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes vg-entra {
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+}
+
+/* «Todo de la prenda»: la casilla que se acaba de agregar dibuja un visto que se apaga solo. */
+.vg-visto path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: vg-trazo 450ms var(--ease-cayla) forwards; }
+@keyframes vg-trazo {
+  to { stroke-dashoffset: 0; }
+}
+.vg-visto { animation: vg-visto-sale 300ms var(--ease-salida) 1300ms forwards; }
+@keyframes vg-visto-sale {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vg-capa-entra,
+  .vg-capa-entra .vg-capa-nombre,
+  .vg-entra,
+  .vg-visto,
+  .vg-visto path {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .vg-punto > i,
+  .vg-punto::after {
+    transition-duration: 1ms;
+  }
+}

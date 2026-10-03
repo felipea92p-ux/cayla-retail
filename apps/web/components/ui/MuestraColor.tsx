@@ -15,7 +15,23 @@
    ==================================================================== */
 
 /** Para los colores sin hex: varios tonos del propio catálogo, en rueda. */
-const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
+export const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
+
+/** La cápsula sola, sin el nombre: para cuando el nombre ya está escrito al lado (Etiquetas de precio). Decorativa: no se
+ *  enfoca ni la lee el lector de pantalla. `fondo` es un hex o lo que da `fondoDeMuestra` (metálico, jaspeado). */
+export function CapsulaColor({ fondo, compacta = false, className = "" }: { fondo: string | null; compacta?: boolean; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      // Cápsula, no círculo: `rounded-full` sobre un rectángulo más ancho
+      // que alto cierra en semicírculo a cada lado — la forma de una
+      // etiqueta de tela, no de un punto. Borde tenue para que Blanco y
+      // Crudo se vean sobre crema; el brillo interior le da volumen.
+      className={`h-3.5 ${compacta ? "w-[18px]" : "w-7"} shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] ${className}`}
+      style={{ background: fondo ?? VARIOS_COLORES }}
+    />
+  );
+}
 
 export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string | null; hex: string | null; compacta?: boolean }) {
   if (!nombre) return <span className="text-tinta/45">—</span>;
@@ -28,14 +44,10 @@ export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string
       tabIndex={0}
       aria-label={`Color ${nombre}`}
     >
-      <span
-        aria-hidden
-        // Cápsula, no círculo: `rounded-full` sobre un rectángulo más ancho
-        // que alto cierra en semicírculo a cada lado — la forma de una
-        // etiqueta de tela, no de un punto. Borde tenue para que Blanco y
-        // Crudo se vean sobre crema; el brillo interior le da volumen.
-        className={`h-3.5 ${compacta ? "w-[18px]" : "w-7"} shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none`}
-        style={{ background: hex ?? VARIOS_COLORES }}
+      <CapsulaColor
+        fondo={hex}
+        compacta={compacta}
+        className="transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
       />
       <span
         // Escritorio: pastilla flotante a la derecha, aparece deslizándose
