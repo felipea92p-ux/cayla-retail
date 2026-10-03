@@ -80,7 +80,7 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
 }
 
 /**
- * Mi meta (ADR-0286): SU meta de hoy y del mes y SUS ventas de cada día, para el Inicio de una integrante. Todo por funciones de
+ * Mi meta (ADR-0318): SU meta de hoy y del mes y SUS ventas de cada día, para el Inicio de una integrante. Todo por funciones de
  * «solo lo mío» (`fn_mi_meta`, `fn_mis_ventas_por_dia`): nunca lo de otra persona. `null` = no hay nada que mostrar: la tienda no
  * tiene meta cargada, ella no tiene horas ni asistencia, la base todavía no tiene las funciones o no respondió; en cualquiera de esos
  * casos el Inicio queda como estaba, sin «0 %» ni cifras inventadas (principio 9: una lectura secundaria no tumba la pantalla).

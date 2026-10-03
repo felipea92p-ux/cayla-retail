@@ -22,7 +22,7 @@ import {
 } from "@/lib/rendimiento-meta-reglas";
 
 /* ====================================================================
-   Cambiar la meta de una persona (ADR-0286, D-146 a D-148)
+   Cambiar la meta de una persona (ADR-0318, D-146 a D-148)
 
    Se cambia la meta DEL MES; la del día se recalcula sola en la misma proporción. Quién puede lo decide la base
    (`fijar_meta_persona`: la tienda tiene que ser de las que Rendimiento le muestra a la cuenta, nadie cambia la

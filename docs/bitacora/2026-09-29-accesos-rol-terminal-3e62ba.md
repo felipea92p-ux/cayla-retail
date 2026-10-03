@@ -53,8 +53,8 @@ habría sido falsa. Se agregó una función en vez de cambiar la de siempre porq
 Felipe se lleva: la meta que ve la integrante queda **encendida por defecto** (decisión suya; se descartó el módulo «Mi meta»). Antes de pegar en producción hay que
 decirle a las integrantes que su cifra bajará al total de lo suyo, y la migración va antes que la web.
 
-## 2026-09-29 (Paso 0 de la meta por persona: ADR-0286 y el acta D-142 a D-160)
-Qué hice: escribí el ADR-0286 y el acta con las decisiones de Felipe sobre la meta por persona, y anoté la actualización en D-64, D-68, D-113, D-125, ADR-0219 y ADR-0225.
+## 2026-09-29 (Paso 0 de la meta por persona: ADR-0318 y el acta D-142 a D-160)
+Qué hice: escribí el ADR-0318 y el acta con las decisiones de Felipe sobre la meta por persona, y anoté la actualización en D-64, D-68, D-113, D-125, ADR-0219 y ADR-0225.
 Por qué así: la decisión estructural no puede vivir solo en el chat (principio 8); quedaron separadas las que Felipe decidió, las que Claude propuso y las que siguen abiertas.
 Felipe se lleva: hay 7 puntos abiertos en el acta; los que más pesan son el permiso para cambiar metas, qué hacer sin horario vigente y el rol de las encargadas (hoy son «Líder de equipo»).
 

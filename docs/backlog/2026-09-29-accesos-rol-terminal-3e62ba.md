@@ -89,7 +89,7 @@
 
 ## ✅ Paso 0 del plan: los papeles (2026-09-29) — solo documentos
 
-- [x] **ADR-0286** (`docs/adr/0286-meta-por-persona-en-rendimiento-e-inicio.md`) y el acta **D-142 a D-160** (`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`), con las 8 preguntas, lo
+- [x] **ADR-0318** (`docs/adr/0318-meta-por-persona-en-rendimiento-e-inicio.md`) y el acta **D-142 a D-160** (`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`), con las 8 preguntas, lo
   que se midió y lo que sigue abierto. Números verificados libres en `main`, ramas remotas, PR abiertos, worktrees y `SESIONES-ACTIVAS`.
 - [x] Notas fechadas (sin borrar lo anterior) en D-64, D-68, D-113 y D-125, en ADR-0219 y en ADR-0225 (accesos por función del rol). Enlaces revisados, la suite de la web en verde.
 - [ ] **Abierto para Felipe (detalle en el acta, «Abierto»):** permiso para cambiar metas (propuesta: módulo `rendimiento`); qué hacer sin horario vigente (partes iguales entre quienes marcaron

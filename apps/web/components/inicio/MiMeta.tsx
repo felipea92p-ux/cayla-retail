@@ -5,7 +5,7 @@ import { resumirMiMeta, type MiMeta } from "@/lib/mi-meta-reglas";
 import { serieParaGrafico } from "@/lib/rendimiento-meta-reglas";
 import { formatoSoles } from "@/lib/resumen-formato";
 
-// ── Mi meta (ADR-0286: la integrante ve SOLO lo suyo; la meta es para acompañar, no para pagar ni evaluar) ─────────────────
+// ── Mi meta (ADR-0318: la integrante ve SOLO lo suyo; la meta es para acompañar, no para pagar ni evaluar) ─────────────────
 
 export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta; cajaAbierta: boolean | null; titulo: string }) {
   const r = resumirMiMeta(miMeta);

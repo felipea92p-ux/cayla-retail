@@ -67,7 +67,7 @@ export default async function InicioPage() {
 
   const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
-    // Su meta (ADR-0286): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
+    // Su meta (ADR-0318): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
     !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
     // Total (nunca lanza): la misma cifra del número del menú.
     ve("traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
@@ -193,7 +193,7 @@ export default async function InicioPage() {
 
 function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boolean; miMeta: MiMeta | null }) {
   const titulo = esLider ? "Hoy" : "Tu día";
-  // Una integrante con meta (ADR-0286) ve SU meta de hoy y de su mes en vez de las cifras sueltas: lo que necesita saber es cómo va.
+  // Una integrante con meta (ADR-0318) ve SU meta de hoy y de su mes en vez de las cifras sueltas: lo que necesita saber es cómo va.
   if (!esLider && miMeta) return <SeccionMiMeta miMeta={miMeta} cajaAbierta={hoy.cajaAbierta} titulo={titulo} />;
   if (hoy.totales === null) {
     return (

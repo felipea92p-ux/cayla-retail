@@ -105,7 +105,7 @@ export const AVIARIO = [
       // escribir en ella no la hace de Garza, igual que escribir en `movimientos` no hace a nadie dueño de Halcón.
       // Asignadas en el refresco del volcado del 2026-09-25.
       "ubicacion_metas_dia", "campana_efecto_caja", "configuracion_historial",
-      // Meta por persona (ADR-0286): cada cambio que la líder de la sede o un Admin hace a la meta del mes de una persona, con su motivo
+      // Meta por persona (ADR-0318): cada cambio que la líder de la sede o un Admin hace a la meta del mes de una persona, con su motivo
       // (solo se agregan filas). Baja de la meta de cada día de la tienda, que es de Colibrí, y la lee la caja de Rendimiento.
       // Aplicada en producción el 2026-09-29.
       "metas_persona_ajustes",

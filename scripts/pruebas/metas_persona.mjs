@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de `20260930050000_metas_por_persona.sql` — la meta de la sede baja a cada persona por sus horas programadas (ADR-0286).
+ * Prueba de `20260930050000_metas_por_persona.sql` — la meta de la sede baja a cada persona por sus horas programadas (ADR-0318).
  *
  * QUÉ CUBRE
  *   · REPARTO: las partes de un día suman EXACTO la meta de la sede (con una meta múltiplo de 10 y con una que no lo es), cada una según

@@ -1,5 +1,5 @@
 /**
- * Rendimiento con meta por persona (ADR-0286): las reglas puras que convierten lo que devuelven
+ * Rendimiento con meta por persona (ADR-0318): las reglas puras que convierten lo que devuelven
  * `fn_metas_equipo`, `fn_rendimiento_serie` y `fn_metas_historial` en lo que muestra la pantalla —
  * las cuatro cifras de arriba, la tabla «Cómo va», el gráfico y el pie «asignado a las N».
  * Sin React ni supabase: las usa `rendimiento.ts` en el servidor y el panel en el navegador, y se

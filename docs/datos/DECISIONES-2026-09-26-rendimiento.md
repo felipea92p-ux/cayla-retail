@@ -86,7 +86,7 @@ después de hablar con el gerente: «esto generaría más caos actualmente». Lo
 Una terminal compartida nunca lo ve. **Cambia D-68 y deja en pausa el top 3 visible entre compañeras de D-66.**
 *(Preguntas 3 y 7.)*
 
-> **Actualización (2026-09-29, Felipe; D-149 y D-150 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0286):** la integrante **sí ve lo suyo** (su meta y sus
+> **Actualización (2026-09-29, Felipe; D-149 y D-150 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0318):** la integrante **sí ve lo suyo** (su meta y sus
 > ventas) **en el Inicio**, por defecto. El módulo Rendimiento sigue siendo de las encargadas y el Admin, y ella sigue sin ver a sus compañeras.
 
 **D-114 · Quién es la encargada** → quien tiene un **rol de Roles y accesos con el módulo encendido**. Ve la tienda a la
@@ -133,7 +133,7 @@ por el tráfico de la tienda, no por el equipo. *(Pregunta 16.)*
 **D-125 · Metas por persona** → **todavía no** (D-64 sigue sin construir). El módulo muestra el avance de la tienda
 contra su meta del mes y cuánto aportó cada persona. *(Pregunta 17.)*
 
-> **Actualización (2026-09-29, Felipe; D-142 a D-148 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0286):** **las metas por persona se construyen.** La meta de la
+> **Actualización (2026-09-29, Felipe; D-142 a D-148 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0318):** **las metas por persona se construyen.** La meta de la
 > sede se reparte sola por horas programadas y la líder de la sede o el Admin la ajustan, con motivo e historial. Rendimiento muestra la meta y el avance de cada persona.
 
 **D-126 · Dynamic** → **ninguna relación por ahora** con el «rendimiento del mes» (`rendimiento_mensual`) ni con los

@@ -1,5 +1,5 @@
 /**
- * Barra fina de avance contra una meta (ADR-0286): lo vendido sobre lo que tocaba, con una marca opcional para «a hoy tocaba».
+ * Barra fina de avance contra una meta (ADR-0318): lo vendido sobre lo que tocaba, con una marca opcional para «a hoy tocaba».
  * Sin JavaScript (sirve en Server Components): el ancho lo pone el estilo y `role="progressbar"` la lee un lector de pantalla.
  * Pasada de 100 % la barra se queda llena; el número de al lado es el que dice cuánto.
  */

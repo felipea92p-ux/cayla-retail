@@ -35,7 +35,7 @@ import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
 
 /* ====================================================================
-   El panel de Rendimiento de UNA tienda (ADR-0286, spike docs/maquetas/rendimiento-meta-2026-09/)
+   El panel de Rendimiento de UNA tienda (ADR-0318, spike docs/maquetas/rendimiento-meta-2026-09/)
 
    Cifras → nota → «Cómo va» (una fila por persona, con su meta editable) → ventas contra la meta → cambios de meta.
    Los rankings del mes van DESPUÉS, en la página (servidor).

@@ -10,7 +10,7 @@ import {
 } from "@/lib/rendimiento-reglas";
 import { rangoDeLectura, type CambioMeta, type DiaSerie, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
 
-// La parte que LEE de Postgres para Rendimiento (ADR-0219, ADR-0286). Dos cosas distintas:
+// La parte que LEE de Postgres para Rendimiento (ADR-0219, ADR-0318). Dos cosas distintas:
 //   · los RANKINGS del mes (`fn_rendimiento_equipo`, 20260929160000): solo quien vendió, con las reglas
 //     puras de `rendimiento-reglas.ts`;
 //   · el PANEL de la meta (`fn_metas_equipo`, `fn_rendimiento_serie`, `fn_metas_historial`,
@@ -94,7 +94,7 @@ export async function leerRendimientoEquipo(mes?: string): Promise<RendimientoDe
   return armarRankings(await leerEquipoCrudo(mes));
 }
 
-// ───────────────────────── el panel de la meta (ADR-0286) ─────────────────────────
+// ───────────────────────── el panel de la meta (ADR-0318) ─────────────────────────
 
 /** Una fila cruda de `fn_metas_equipo`. */
 type FilaMetasCruda = {
