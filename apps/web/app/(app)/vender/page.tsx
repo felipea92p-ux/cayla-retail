@@ -107,6 +107,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       referencia: v.referencia,
       talla: v.talla,
       color: v.color,
+      colorHex: v.colorHex ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
