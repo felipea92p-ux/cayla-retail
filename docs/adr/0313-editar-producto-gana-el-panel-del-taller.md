@@ -165,3 +165,78 @@ antes de salir, `useSalidaSinGuardar`, igual que con un precio).
 Cómo verificarlo: en una ficha con stock, + dos veces en una talla y escribir un número en otra → barra «Tienes 2 cambios» → «Revisar y
 guardar» → la hoja lista «Stock 2» con «3 → 5» → confirmar → aviso «stock ajustado en 2 tallas · Imprimir 4 etiquetas» y franja en
 Productos → la página de etiquetas propone 2 + 2.
+
+## Actualización 2026-10-03: todo se hace desde la matriz; «Más de cada variante» desaparece
+
+Felipe pidió poder editar las **etiquetas de cada variante (una o todas)** y que la sección plegada «Más de cada variante» desaparezca:
+«todo se debe poder hacer desde la tabla de arriba […] lo único que falta es poder borrar un color». Sin migración ni RPC nueva: cada
+gesto cambia las filas de la ficha y viaja con «Revisar y guardar» (ADR-0257), como el precio.
+
+- **Pestaña «Etiquetas»** en la matriz (`MatrizStockFicha.tsx`), junto a Unidades de hoy · Precios · Costos. Se elige UNA etiqueta
+  (chips con su cuenta, «Nuevo 4/12») y cada celda es un ✓ que se toca para ponérsela o quitársela a esa talla; «Poner «X» en todas» /
+  «Quitar «X» de todas» para las activas. Lo que cambió contra lo guardado lleva anillo ámbar. Reglas puras en
+  `lib/matriz-ficha-reglas.ts` (`cuentaEtiqueta`, `ponerEtiqueta`, `etiquetaCambiada`, con prueba). Se guarda por la misma
+  `actualizar_variantes_etiquetas` de siempre.
+  DESCARTÉ un popover por celda con todas las etiquetas: una lista flotante dentro de una tabla con scroll pide `useDestinoFlotante` y
+  esconde lo que importa (qué tallas llevan «Nuevo»). Con una etiqueta a la vez, la matriz entera responde «¿quién la lleva?» de un vistazo.
+- **«⋯» de cada color** (`MenuAcciones` en la cabecera de la fila): «Corregir color (se registró mal)» y **«Quitar color»**. Quitar NO
+  borra (regla de `CLAUDE.md`): las variantes que ya existen se desactivan y conservan stock e historia (`desactivarColor`); las nuevas
+  simplemente no se crean; lo tocado en su stock se suelta (`useStockFicha.soltar`). Bajo la tabla queda «Rojo deja de venderse al
+  guardar… · Deshacer» (`coloresQueSeQuitan`, `devolverColor`), con la advertencia si tiene unidades. Los colores que ya no se vendían
+  se nombran («vuelven con + Agregar color», que los reactiva con su historia: `agregarCombinaciones`).
+- **Lo que solo vivía en «Más de cada variante» no se pierde:** corregir una talla (lápiz en la cabecera de su columna), «+ Agregar
+  talla» (al lado de «+ Agregar color»), el margen (debajo de cada costo, en Costos) y las correcciones pendientes con su «Deshacer»
+  («Se corrige al guardar: Talla S → XS (4 colores)», `correccionesPendientes`). El texto del costo fijo vuelve a decir la verdad
+  cuando no se pudo comprobar (`textosCostoFijo`; la matriz tenía «viene de compras» escrito a mano).
+- **Lo que sí se pierde, a propósito:** reactivar UNA talla suelta de un color que sigue a la venta (ahora es «+ Agregar talla», que
+  la reactiva) y el detalle por fila («Antes: Gris XS», «Precio: antes S/ 90»): la matriz marca en ámbar lo que cambió y la hoja de
+  «Revisar y guardar» lo lista con su antes.
+- `VariantesFicha.tsx` se borra; con él, las reglas que solo él usaba (`agruparPorColor`, `quitarNueva`, `textoSedes`,
+  `avisoDesactivar`, `cambiosDeVariante`, `textoPendienteDeVariante`; lo exige `lib/reglas-sin-uso.test.ts`).
+- **SE ROMPE SI** alguien agrega a la matriz un gesto que guarda al instante (un «Quitar color» que llame a la base): la ficha entera
+  se guarda con UN gesto y se deshace hasta entonces; el stock de la matriz ya pasó por eso (actualización de la noche del 2026-10-02).
+
+Verificado en local (puerto 3070, «Blazer Demo Franja», 4 colores × 3 tallas): Etiquetas → «Nuevo» en todas, quitado en Rojo M →
+barra «11 cambios» → hoja con las 11 líneas → guardado (11 filas en `variante_etiquetas`) y revertido igual (0). «Quitar color» Rojo →
+la línea con 9 u. → «Deshacer». Lápiz de la talla S → «Corregir talla» a XS → línea «Talla S → XS (4 colores)» → «Deshacer». Costos con
+margen. A 375 px las cuatro pestañas caben (303/303 px) y la página no se desplaza de lado. `tsc`, `eslint` y las 312 pruebas en verde.
+
+### Segunda vuelta del 2026-10-03 (Felipe vio la primera en local)
+
+- **Quitar un color suelta lo que se le tocó (opción B).** Precio, costo y etiquetas tocados en la visita vuelven a lo guardado
+  (`quitarColor` de `lib/matriz-ficha-reglas.ts`, que reemplaza a `desactivarColor`). Así, si ese color vuelve meses después con
+  «+ Agregar color», no vuelve con un precio o un «Nuevo» de una visita que nadie recuerda, y la hoja no pide confirmar líneas sobre un
+  color que se está quitando. Lo que se pierde: «Deshacer» la vuelve a la venta tal como está guardada, sin esos toques.
+- **Lápiz y tacho en vez del «⋯».** Cada color lleva dos botones a la vista: lápiz (corregir el color) y tacho en `rojo-profundo` (el
+  token de lo destructivo, no el acento `rojo` de la marca). Un lápiz bloqueado (ya se vendió y no eres líder) no se apaga en silencio:
+  al tocarlo dice por qué (`aria-disabled` + aviso), porque un `title` no llega al celular.
+- **Al entrar, todo plegado menos «Variantes y precios»**, que es lo que más se usa. Llegar con `#fotos` (el éxito de Nuevo producto)
+  abre también Fotos, y la guía («Falta …») abre la sección a la que lleva, como ya hacía.
+- **Las etiquetas, debajo de la tabla y dibujadas como en Atributos** (`EtiquetasDeLaMatriz.tsx`: `MuestraEtiqueta`, los grupos de
+  `lib/etiqueta-grupos.ts`, «2 de 12 tallas» y una barra que se llena). La celda que la lleva se pinta con el tono de su grupo. Al abrir
+  la pestaña, la vista baja hasta la tabla para que se vean la tabla y las tarjetas juntas. La página trae `etiquetas.estilo`.
+- **«Etiquetas de lo que entró»** (`ImprimirLoQueEntro.tsx`): al terminar un guardado en que entraron unidades (una talla que subió o
+  un color nuevo con stock) y sin correcciones, sale una hoja grande en vez del botón chico del aviso: la cifra que cuenta, el «visto»
+  que se dibuja y una etiqueta de papel por talla (color, talla, precio, sus etiquetas comerciales, «× 2») que sale de la ranura de la
+  impresora. «Imprimir N etiquetas» lleva a `/etiquetas-de-precio?unidades=…` (una por unidad que entró); «Más tarde» vuelve a Productos,
+  donde sigue la franja del recordatorio. Tras una corrección de color o talla se reimprime todo: eso sigue en el aviso.
+  Movimiento: solo respuesta al guardado (ADR-0136): cada pieza entre 200 y 500 ms, sin rebote ni bucle, quieto con reduced-motion. Felipe
+  pidió «muchas animaciones»; las que la regla no permite (en bucle o decorativas) no se hicieron.
+
+Verificado en local: Etiquetas «Nuevo» en todas → Rojo con tacho → la hoja lista 9 etiquetas y ninguna de Rojo. +2 Blanco S y +1 Verde L
+→ guardar → aviso y hoja «3 etiquetas por imprimir» con dos etiquetas (× 2, × 1) → «Imprimir» abre `/etiquetas-de-precio?unidades=…:2,…:1`.
+El stock de prueba se devolvió (−2, −1; al bajar no sale la hoja). A 375 px, lápiz, tacho y tarjetas caben sin desplazamiento lateral.
+
+### Tercera vuelta del 2026-10-03: la tabla no se mueve
+
+Felipe: «cuando agrego un color se mueve todo y debe estar todo en el mismo lugar, aparte de ser muy responsive». La tabla medía cada
+columna por su contenido: «Gris perla · NUEVA» ensanchaba la columna Color y corría las tallas; cambiar de pestaña también las corría
+(cada pestaña tenía otro ancho de celda, y «Total» solo existía en Unidades).
+- `table-fixed` + `<colgroup>`: la columna Color es una parte fija de la tabla que depende SOLO de cuántas tallas hay (36 % / 30 % /
+  24 %), nunca de los colores; el nombre largo se corta con «…» (entero en su `title`) y «nueva» va debajo del nombre. DESCARTÉ
+  `clamp()` en el `<col>`: el navegador lo ignora (medido: la columna quedaba igual que las tallas).
+- Una celda de talla mide lo mismo en las cuatro pestañas (mínimo 80 px), y la columna de la derecha está en todas: Total (unidades),
+  Precio y Costo (el rango del color), Llevan (cuántas tallas del color llevan la etiqueta elegida).
+- Mínimo de la tabla = color 168 px + 80 px por talla + 60: debajo de eso se desliza de lado (color fijo a la izquierda), nunca aprieta.
+Medido con «Azul eléctrico» agregado sin guardar: las tallas en el mismo lugar antes y después, y en las cuatro pestañas. A 1024, 1280,
+1440 y 1920 la tabla entra entera sin desplazarse; a 768 y 375 se desliza dentro de su caja; la página nunca se desplaza de lado.
