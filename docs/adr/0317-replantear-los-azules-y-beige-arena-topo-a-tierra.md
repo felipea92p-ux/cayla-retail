@@ -138,6 +138,8 @@ la pantalla **se bloquea y dice cuántas variantes activas lo usan** (no las lis
 
 ## SQL para producción
 
+**Pegado y verificado en producción el 2026-10-02 (Felipe pegó; yo verifiqué con consultas de solo lectura).** Cambiaron solo las 8 filas previstas de las 95 (AME, AMM, ARN, AZE, BEI, PER, TOP, VIO); las 4 fichas nuevas son idénticas a las del archivo (`c7ce7b3f…`) y las otras 87 no se tocaron (`886c3148…`); el `orden` coincide con el esperado (`7d416d4a…`); 0 combinaciones huérfanas; y la huella de hex y familia de los 91 colores activos (`331eff83…`) es idéntica a la de la carta de la prueba más Intermedio, que sigue activo hasta que se funda. Familias: neutro 10, tierra 11, azul 13. Lo que queda son las dos acciones en pantalla y archivar Intermedio.
+
 Tres archivos, sin políticas ni `alter`, idempotentes; se pegan **una sola vez, en este orden** (cada uno entero) y **antes o después**
 de desplegar la web (nada se rompe: solo cambian el círculo, la fila y la ficha de unos colores):
 

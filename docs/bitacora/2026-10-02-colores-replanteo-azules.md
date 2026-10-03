@@ -8,5 +8,5 @@ Por qué así: la familia ahora es un dato y no una regla de croma, porque Topo 
 los separa. El cambio de color de las variantes de Intermedio lo hace una cuenta con permiso de catálogo desde Editar producto, porque ese es
 el camino que recalcula el código de la variante, conserva las etiquetas ya pegadas y deja historial; el SQL no lo impide, pero se perdería eso.
 Tres revisores independientes y uno que intentó romper la fusión encontraron 23 cosas; las comprobé una por una y corregí las ciertas.
-Felipe se lleva: tres SQL por pegar, una sola vez y en orden (ver el backlog), dos acciones suyas en la pantalla (pasar las 3 variantes del
+Felipe se lleva: los tres SQL ya pegados y verificados (solo cambiaron las 8 filas previstas), dos acciones suyas en la pantalla (pasar las 3 variantes del
 JEA-0013 de Intermedio a Medio y desactivar Intermedio), y la lista de lo que pidió para después (mostrador, alta, sugerencias con stock).
