@@ -116,7 +116,59 @@ describe("accesosRapidos", () => {
 
   it("la terminal administrativa (no vende): lo que su rol ve, como antes en «Ir a»", () => {
     const admin = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["existencias", "conteos", "traslados", "movimientos", "recibir", "productos"] });
-    expect(admin.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Buscar"]);
+    expect(admin.map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Conteo"]);
+  });
+
+  describe("«Nuevo producto»", () => {
+    const integrante = ["vender", "caja", "apartados", "existencias", "cambios", "traslados", "productos"] as const;
+
+    it("a quien puede escribir en el catálogo se lo ofrece, antes que Caja", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante, permisos: ["editarCatalogo"] });
+      expect(r.map((a) => a.etiqueta)).toEqual(["Apartados", "Stock", "Cambios", "Nuevo producto"]);
+      expect(r.at(-1)!.href).toBe("/productos/nuevo");
+    });
+
+    it("ver Productos sin poder escribir (rol limitado) no basta: el guardado fallaría al final", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante, permisos: [] });
+      expect(r.map((a) => a.etiqueta)).toEqual(["Apartados", "Stock", "Cambios", "Caja"]);
+      // Sin la lista de permisos (quien llama no la pasó) se comporta igual: nunca se ofrece por defecto.
+      expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante }).map((a) => a.etiqueta)).not.toContain("Nuevo producto");
+    });
+
+    it("poder editar por «Categorías y atributos» sin ver Productos no lo muestra: la ruta caería en «Sin acceso»", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["apartados", "existencias", "atributos"], permisos: ["editarCatalogo"] });
+      expect(r.map((a) => a.etiqueta)).not.toContain("Nuevo producto");
+    });
+
+    it("la terminal de almacén (no vende) lo tiene a mano junto a lo que recibe", () => {
+      const admin = accesosRapidos({
+        esLider: false,
+        ubicacionTipo: "tienda",
+        modulos: ["existencias", "conteos", "traslados", "movimientos", "recibir", "productos"],
+        permisos: ["editarCatalogo"],
+      });
+      expect(admin.map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Nuevo producto"]);
+    });
+
+    it("la líder lo tiene en lugar de Apartados; el almacén no cambia", () => {
+      const lider = accesosRapidos({ esLider: true, ubicacionTipo: "tienda", modulos: [...integrante], permisos: ["editarCatalogo"] });
+      expect(lider.map((a) => a.etiqueta)).toEqual(["Caja", "Nuevo producto", "Traslados", "Cambios"]);
+      // Si por algún motivo no puede escribir en el catálogo, no se le ofrece y Apartados recupera su lugar.
+      const sinPermiso = accesosRapidos({ esLider: true, ubicacionTipo: "tienda", modulos: [...integrante], permisos: [] });
+      expect(sinPermiso.map((a) => a.etiqueta)).toEqual(["Caja", "Traslados", "Cambios", "Stock"]);
+      const almacen = accesosRapidos({ esLider: false, ubicacionTipo: "almacen", modulos: ["traslados", "recibir", "productos"], permisos: ["editarCatalogo"] });
+      expect(almacen.map((a) => a.etiqueta)).toEqual(["Traslados", "Recibir", "Buscar"]);
+    });
+  });
+
+  it("la lista sale de lo que hace el rol, no de su nombre: si vende es del mostrador, si no, de la trastienda", () => {
+    const mismos = ["existencias", "traslados", "cambios", "apartados", "recibir"] as const;
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: [...mismos, "vender"] }).map((a) => a.etiqueta)).toEqual(["Apartados", "Stock", "Cambios", "Traslados"]);
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: [...mismos] }).map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Buscar"]);
+  });
+
+  it("un rol nuevo sin nada que coincida no se queda sin lista: al menos «Buscar»", () => {
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["analisis"] }).map((a) => a.etiqueta)).toEqual(["Buscar"]);
   });
 
   it("sin módulos, al menos «Buscar»", () => {

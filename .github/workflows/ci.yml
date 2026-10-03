@@ -332,6 +332,19 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad
 
+      # «Tus ventas» del Inicio (fn_mis_ventas_del_dia): cada persona ve solo lo que atendió, ni el total de la tienda (tampoco
+      # una líder), ni ventas de prueba, anuladas o de ayer; una terminal, 0 filas; `fn_ventas_del_dia` no cambia. ROLLBACK.
+      - name: pruebas:mis-ventas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:mis-ventas
+
+      # Metas por persona (ADR-0286): el reparto de la meta de la sede suma exacto; un descanso, un turno y el «sin horarios» se comportan como
+      # dicen; la líder de la sede y el Admin cambian la meta del mes con motivo y con historial que no se borra; cada estado imposible se rechaza;
+      # `fn_mi_meta` da solo lo mío. Crea las tablas de horarios de Dynamic DENTRO de cada transacción. ROLLBACK.
+      - name: pruebas:metas-persona
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:metas-persona
+
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja
