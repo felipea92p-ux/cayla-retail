@@ -301,3 +301,13 @@ con `Z = 1,64` la veterana y la nueva del caso empatan, y con `Z = 2` la veteran
 propiedad «con las mismas horas y ventas, el orden del crudo se respeta» se barre en 96 combinaciones de personas, horas y ventas, y el caso que lo mostró (100 h, 30 ventas, crudo 15 y 9) sale 13,29 y 10,71.
 **Límite que no se arregla acá:** `fn_rendimiento_equipo` solo devuelve a quien vendió, así que quien trabajó horas y no vendió nada no entra al promedio de la tienda (lo infla un poco).
 **Efecto visible:** los números de «Vende más por hora» cambian (la veterana deja de salir «corregida» por encima de lo que vende) y el orden ya no sigue al número mostrado cuando hay poca evidencia.
+
+## Actualización 2026-10-03 (c): el SQL ya está en producción
+
+Felipe dio su OK puntual el 2026-10-03 y se aplicó desde la integración de Supabase: ensayo del archivo más chico dentro de una transacción deshecha (el md5 del cuerpo coincidió con el probado en local, o sea que la herramienta no
+altera el texto de la función), y luego los tres archivos, uno por uno: `fn_mis_ventas_del_dia` (`20260930040100`), las partes 2 a 4 de `20260930050200` (4 funciones internas, 4 lecturas y `fijar_meta_persona`) y
+`fn_rendimiento_detalle` (`20261003180000`). Antes de aplicar se comprobó en solo lectura que producción tenía las dependencias (`fn_ubicacion_de_partida`, `fn_parametros_caja`, `fn_meta_mes`, `fn_actividad_anotar` con sus 12
+parámetros, `fn_terminal_actual`, `fn_es_admin`) y la tabla `metas_persona_ajustes` (0 filas, con RLS). **Verificación (`scripts/migraciones/verificar-meta-por-persona-produccion.sql`): 32 chequeos, 0 diferencias** — las 12 funciones con el
+mismo md5 que en local, `anon` sin acceso, la tabla cerrada y el historial que no se edita.
+**Lo que sigue abierto:** TRU tiene 11 personas con horas programadas hoy pero **ninguna meta de la tienda cargada** (el reparto da 0 filas), así que ni el panel ni el Inicio de una integrante mostrarán metas hasta que alguien la cargue en
+Configuración ▸ Tiendas y caja. Falta refrescar el diccionario (`pnpm datos:generar:produccion` desde un volcado nuevo) y fusionar la web.

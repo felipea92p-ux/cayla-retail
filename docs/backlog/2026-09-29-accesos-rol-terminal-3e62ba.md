@@ -127,3 +127,9 @@
 - [ ] La cota usa `Z = 2` y `CV = 1`: con `Z = 1,64` el caso de la prueba empata. Revisar con datos reales de TRU cuando haya más de un mes.
 - [ ] `fn_rendimiento_equipo` solo devuelve a quien vendió: quien trabajó horas sin vender no entra al promedio de la tienda.
 - [ ] `reasignar_asesora`, `venta_reasignaciones` y `fn_rendimiento_persona` NO existen (solo nombradas en la cabecera de `20260929160000`): una venta mal atribuida no tiene cómo corregirse.
+
+## ✅ Paso 5 cerrado en lo del SQL (2026-10-03)
+- [x] Las 12 funciones están en producción (ADR-0318, act. (c)); verificación de solo lectura en 0 diferencias.
+- [ ] **Cargar la meta de TRU** (Configuración ▸ Tiendas y caja): hoy el reparto sale vacío y las integrantes no verían su meta (D-150).
+- [ ] Refrescar el diccionario de datos (`pnpm datos:generar:produccion` con un volcado nuevo) y `pnpm datos:comparar`.
+- [ ] Fusionar la web (PR #639) y verla con una cuenta de integrante real.
