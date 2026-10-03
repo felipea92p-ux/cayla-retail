@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { CampoCelular, CamposCumpleanos, ID_ANIO_CLUB, ID_CELULAR_CLUB, ID_DIA_CLUB } from "@/components/clientas/club-piezas";
@@ -39,6 +41,8 @@ import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
  *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». */
 type Modo = "ver" | "editar" | "archivar" | "unir" | "baja";
+/** Las pestañas de la ficha: lo del club (permisos y preferencias) por un lado y lo que hizo en las tiendas por otro. */
+type Vista = "club" | "actividad";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric" });
 function fecha(iso: string): string {
@@ -154,8 +158,21 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
   const [resultadosUnir, setResultadosUnir] = useState<Clienta[] | null>(null);
   const [aFusionar, setAFusionar] = useState<Clienta | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // La pestaña de la ficha («ver»). `null` = la de siempre: «Club» si es miembro y «Actividad» si no.
+  const [vista, setVista] = useState<Vista | null>(null);
+  const raiz = useRef<HTMLDivElement>(null);
   const responsable = useResponsable();
   const anioActual = new Date().getFullYear();
+
+  // Cambiar de vista (ver → editar, Club → Actividad) acorta o alarga el contenido SIN cambiar de URL. `PaginaEstable`
+  // (ADR-0185) lo toma por «un bloque que se acortó bajo el mouse» y reserva aire al fondo para no mover la vista: en
+  // «Editar», tras bajar por la ficha, eso era un blanco enorme bajo el botón Guardar. Aquí es otra pantalla: se suelta la
+  // reserva antes de pintar y la hoja empieza arriba, como una navegación.
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    const hoja = raiz.current?.closest<HTMLElement>('[role="dialog"]');
+    if (hoja) hoja.scrollTop = 0;
+  }, [modo, vista]);
 
   useEffect(() => {
     void cargar();
@@ -196,6 +213,10 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
   // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
   const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
   const enClub = estadoClub(c);
+  // Solo una miembro tiene pestaña «Club» (permisos y preferencias); una ficha anonimizada no tiene nada del club que mostrar.
+  const conClub = enClub !== "no_socia" && !c.anonimizada;
+  const vistaActual: Vista = vista === "club" && !conClub ? "actividad" : (vista ?? (conClub ? "club" : "actividad"));
+  const totalActividad = ficha.compras.length + ficha.cambios.length + ficha.devoluciones.length + ficha.separaciones.length;
   // Tanda 1g: se une desde el cartel con su documento; sin documento en esta ficha, se crearía otra.
   const faltaParaElClub = faltaParaSerSocia(c);
   // Al editar el celular de una socia con novedades, lo que pierde, ANTES de guardar (la base se las quita sola).
@@ -346,12 +367,11 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
       ancho="max-w-2xl"
     >
       {() => (
-        <div className="space-y-6">
+        <div ref={raiz} className="space-y-5">
           {modo === "ver" && (
             <>
-              {/* En el orden del spike del club (docs/maquetas/club-clientas-spike-2026-09/, `modalFicha` de 50-clientas.js): los
-                  datos, el estado en insignias, la talla, las preferencias (tanda 1f), la tarjeta del club con lo que se puede
-                  registrar y la historia del permiso (tanda 1f, `fn_clienta_permisos`). */}
+              {/* Lo primero, lo que más se busca (spike del club, `modalFicha`): los datos de un vistazo. Lo demás se reparte en dos
+                  pestañas —Club y Actividad— en vez de apilar nueve bloques, y «Editar» queda arriba, sin tener que bajar. */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
                 <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es miembro"} />
@@ -359,161 +379,180 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 <Dato etiqueta="Su sede" valor={suSede.valor} detalle={suSede.detalle} />
               </div>
 
-              {!c.anonimizada && (
-                <div className="flex flex-wrap gap-1.5">
-                  {enClub === "no_socia" ? (
-                    <Chip tono="pizarra">Identificado</Chip>
-                  ) : (
-                    <Chip tono={frecuente.esFrecuente ? "verde" : "neutro"}>{frecuente.esFrecuente ? "Miembro frecuente" : "Miembro"}</Chip>
-                  )}
-                  {enClub === "socia_con_publicidad" && <Chip tono="verde">Publicidad</Chip>}
-                  {/* Ya no es tocable (tanda 1g, G-1): sin QR personal, la publicidad la pide ella desde el cartel. */}
-                  {enClub === "socia" && <Chip tono="neutro">Sin publicidad</Chip>}
-                </div>
-              )}
-
-              {tallas.length > 0 && (
-                <div className="card-cayla p-4">
-                  <p className="label-cayla text-[11px] text-tinta/65">Talla deducida de lo que compra</p>
-                  <p className="mt-1 text-sm text-tinta">{tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}</p>
-                </div>
-              )}
-
-              {enClub !== "no_socia" && !c.anonimizada && (
-                <PreferenciasClienta
-                  clientaId={c.id}
-                  version={c.version}
-                  guardadas={c.preferencias ?? {}}
-                  soloLectura={!activa}
-                  onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
+              <div className="flex items-end justify-between gap-3 border-b border-sand">
+                <TabsSubrayado
+                  etiqueta="Qué ver de este cliente"
+                  valor={vistaActual}
+                  onCambio={(clave) => setVista(clave as Vista)}
+                  clasePestana="pb-2.5 text-sm"
+                  className="-mb-px"
+                  items={[
+                    ...(conClub ? [{ clave: "club", etiqueta: "Club" }] : []),
+                    { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined },
+                  ]}
                 />
-              )}
-
-              {!c.anonimizada &&
-                (enClub === "no_socia" ? (
-                  <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
-                    <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
-                    {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
-                  </div>
-                ) : (
-                  <div className="card-cayla space-y-3 p-4">
-                    <p className="label-cayla text-[11px] text-tinta/65">Permisos · dos cosas distintas</p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="label-cayla w-32 shrink-0 text-[10.5px] text-tinta/55">Club</span>
-                      <Chip tono="verde">Miembro</Chip>
-                      <span className="text-xs text-tinta/60">
-                        desde {fecha(c.clubDesde!)}
-                        {c.codigoClub ? ` · ${c.codigoClub}` : ""} · su cupón de cumpleaños y su vale de aniversario, en tienda
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="label-cayla w-32 shrink-0 text-[10.5px] text-tinta/55">Publicidad</span>
-                      {c.publicidadDesde ? (
-                        <>
-                          <Chip tono="verde">Con publicidad</Chip>
-                          <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)} · la pidió por su cuenta</span>
-                        </>
-                      ) : (
-                        <>
-                          <Chip tono="neutro">Sin publicidad</Chip>
-                          <span className="text-xs text-tinta/60">no la pidió: es miembro sin mensajes</span>
-                        </>
-                      )}
-                    </div>
-                    {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
-                    {activa && c.publicidadDesde && c.telefonoWhatsapp && (
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
-                        <Boton type="button" className="!py-2" onClick={() => setModo("baja")}>
-                          Registrar su BAJA
-                        </Boton>
-                      </div>
-                    )}
-                    <p className="text-xs text-tinta/55">
-                      La publicidad solo la puede dar el cliente: marcando la casilla al unirse desde el cartel. Aquí no se marca. «Registrar su
-                      BAJA» es para cuando te escribe BAJA: efecto inmediato, vale para las 3 tiendas.
-                    </p>
-                  </div>
-                ))}
-
-              <HistoriaPermisos clientaId={c.id} clave={c.version} />
-
-              <SeccionActividad titulo="Compras" vacio="Todavía no tiene compras registradas.">
-                {ficha.compras.map((compra) => (
-                  <FilaActividad
-                    key={compra.ventaId}
-                    fecha={fecha(compra.fecha)}
-                    texto={compra.ubicacion}
-                    detalle={compra.items.map((i) => `${i.cantidad}× ${i.categoria ?? "prenda"}${i.talla ? ` (${i.talla})` : ""}`).join(", ")}
-                    monto={soles(compra.total)}
-                  />
-                ))}
-              </SeccionActividad>
-
-              <SeccionActividad titulo="Cambios" vacio="Sin cambios de prenda.">
-                {ficha.cambios.map((cambio) => (
-                  <FilaActividad key={cambio.id} fecha={fecha(cambio.fecha)} texto={cambio.ubicacion} detalle={cambio.motivo ?? "—"} />
-                ))}
-              </SeccionActividad>
-
-              <SeccionActividad titulo="Devoluciones" vacio="Sin devoluciones.">
-                {ficha.devoluciones.map((d) => (
-                  <FilaActividad key={d.id} fecha={fecha(d.fecha)} texto={d.estado} detalle={d.motivo ?? "—"} />
-                ))}
-              </SeccionActividad>
-
-              <SeccionActividad titulo="Apartados" vacio="Sin apartados.">
-                {ficha.separaciones.map((s) => (
-                  <FilaActividad key={s.id} fecha={fecha(s.fecha)} texto={s.codigo} detalle={s.estado} monto={soles(s.total)} />
-                ))}
-              </SeccionActividad>
-
-              <div className="flex flex-wrap justify-end gap-3 border-t border-tinta/10 pt-4">
-                {activa ? (
-                  <>
-                    <Boton
-                      type="button"
-                      onClick={() => {
-                        setMotivoArchivo("");
-                        setAnonimizar(false);
-                        setModo("archivar");
-                      }}
-                    >
-                      Archivar
-                    </Boton>
-                    <Boton
-                      type="button"
-                      onClick={() => {
-                        setTerminoUnir("");
-                        setResultadosUnir(null);
-                        setAFusionar(null);
-                        setModo("unir");
-                      }}
-                    >
-                      Unir con otra ficha
-                    </Boton>
-                    <Boton
-                      type="button"
-                      peso="primario"
-                      onClick={() => {
-                        setEdicion(datosDeEdicion(c));
-                        setModo("editar");
-                      }}
-                    >
-                      Editar
-                    </Boton>
-                  </>
-                ) : (
-                  !c.anonimizada &&
-                  !c.fusionadaEnId && (
-                    <>
-                      <ComboResponsable control={responsable} deshabilitado={guardando} compacto />
-                      <Boton type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
-                        Reactivar
-                      </Boton>
-                    </>
-                  )
+                {activa && (
+                  <Boton
+                    type="button"
+                    peso="primario"
+                    className="mb-2 shrink-0 !py-2"
+                    onClick={() => {
+                      setEdicion(datosDeEdicion(c));
+                      setModo("editar");
+                    }}
+                  >
+                    Editar
+                  </Boton>
                 )}
               </div>
+
+              {vistaActual === "club" && conClub && (
+                <div className="space-y-4">
+                  <div className="card-cayla divide-y divide-sand">
+                    <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
+                      <span className="label-cayla text-[10.5px] text-tinta/55">Club</span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <Chip tono="verde">Miembro</Chip>
+                        <span className="text-xs text-tinta/60">
+                          desde {fecha(c.clubDesde!)}
+                          {c.codigoClub ? ` · ${c.codigoClub}` : ""}
+                        </span>
+                      </div>
+                      <span className="text-xs text-tinta/55 sm:col-start-2">Su cupón de cumpleaños y su vale de aniversario, en tienda.</span>
+                    </div>
+                    <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
+                      <span className="label-cayla text-[10.5px] text-tinta/55">Publicidad</span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        {c.publicidadDesde ? (
+                          <>
+                            <Chip tono="verde">Con publicidad</Chip>
+                            <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Chip tono="neutro">Sin publicidad</Chip>
+                            <span className="text-xs text-tinta/60">no la pidió: es miembro sin mensajes</span>
+                          </>
+                        )}
+                        {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
+                        {activa && c.publicidadDesde && c.telefonoWhatsapp && (
+                          <Boton type="button" className="!py-1.5 sm:ml-auto" onClick={() => setModo("baja")}>
+                            Registrar su BAJA
+                          </Boton>
+                        )}
+                      </div>
+                      <span className="text-xs text-tinta/55 sm:col-start-2">
+                        Solo el cliente la acepta, desde el cartel. Si te escribe BAJA, regístralo aquí: vale para las 3 tiendas.
+                      </span>
+                    </div>
+                  </div>
+
+                  <PreferenciasClienta
+                    clientaId={c.id}
+                    version={c.version}
+                    guardadas={c.preferencias ?? {}}
+                    soloLectura={!activa}
+                    onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
+                  />
+
+                  <HistoriaPermisos clientaId={c.id} clave={c.version} />
+                </div>
+              )}
+
+              {vistaActual === "actividad" && (
+                <div className="space-y-5">
+                  {!c.anonimizada && !conClub && (
+                    <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+                      <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
+                      {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
+                    </div>
+                  )}
+
+                  {tallas.length > 0 && (
+                    <p className="text-sm text-tinta/75">
+                      <span className="label-cayla mr-2 text-[10.5px] text-tinta/55">Talla que suele comprar</span>
+                      {tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}
+                    </p>
+                  )}
+
+                  {totalActividad === 0 ? (
+                    <p className="rounded-xl border border-dashed border-sand px-4 py-6 text-center text-sm text-tinta/55">
+                      Todavía no tiene compras, cambios, devoluciones ni apartados.
+                    </p>
+                  ) : (
+                    <>
+                      <SeccionActividad titulo="Compras" total={ficha.compras.length}>
+                        {ficha.compras.map((compra) => (
+                          <FilaActividad
+                            key={compra.ventaId}
+                            fecha={fecha(compra.fecha)}
+                            texto={compra.ubicacion}
+                            detalle={compra.items.map((i) => `${i.cantidad}× ${i.categoria ?? "prenda"}${i.talla ? ` (${i.talla})` : ""}`).join(", ")}
+                            monto={soles(compra.total)}
+                          />
+                        ))}
+                      </SeccionActividad>
+
+                      <SeccionActividad titulo="Cambios" total={ficha.cambios.length}>
+                        {ficha.cambios.map((cambio) => (
+                          <FilaActividad key={cambio.id} fecha={fecha(cambio.fecha)} texto={cambio.ubicacion} detalle={cambio.motivo ?? "—"} />
+                        ))}
+                      </SeccionActividad>
+
+                      <SeccionActividad titulo="Devoluciones" total={ficha.devoluciones.length}>
+                        {ficha.devoluciones.map((d) => (
+                          <FilaActividad key={d.id} fecha={fecha(d.fecha)} texto={d.estado} detalle={d.motivo ?? "—"} />
+                        ))}
+                      </SeccionActividad>
+
+                      <SeccionActividad titulo="Apartados" total={ficha.separaciones.length}>
+                        {ficha.separaciones.map((s) => (
+                          <FilaActividad key={s.id} fecha={fecha(s.fecha)} texto={s.codigo} detalle={s.estado} monto={soles(s.total)} />
+                        ))}
+                      </SeccionActividad>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
+              {activa ? (
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3">
+                  <button
+                    type="button"
+                    className="btn-cayla btn-sutil"
+                    onClick={() => {
+                      setTerminoUnir("");
+                      setResultadosUnir(null);
+                      setAFusionar(null);
+                      setModo("unir");
+                    }}
+                  >
+                    Unir con otra ficha
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-cayla btn-sutil"
+                    onClick={() => {
+                      setMotivoArchivo("");
+                      setAnonimizar(false);
+                      setModo("archivar");
+                    }}
+                  >
+                    Archivar
+                  </button>
+                </div>
+              ) : (
+                !c.anonimizada &&
+                !c.fusionadaEnId && (
+                  <div className="flex flex-wrap justify-end gap-3 border-t border-sand pt-4">
+                    <ComboResponsable control={responsable} deshabilitado={guardando} compacto />
+                    <Boton type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
+                      Reactivar
+                    </Boton>
+                  </div>
+                )
+              )}
             </>
           )}
 
@@ -556,7 +595,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo para guardar." />
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="pie-hoja-fijo flex justify-end gap-3 pt-2">
                 {volverAVer}
                 <Boton
                   type="submit"
@@ -708,12 +747,24 @@ function Dato({ etiqueta, valor, tono, detalle }: { etiqueta: string; valor: str
   );
 }
 
-function SeccionActividad({ titulo, vacio, children }: { titulo: string; vacio: string; children: React.ReactNode }) {
-  const hayContenido = Array.isArray(children) ? children.length > 0 : Boolean(children);
+const FILAS_VISIBLES = 5;
+
+/** Una lista de lo que hizo (compras, cambios…): sin filas no se dibuja (antes cada vacía ocupaba su título y su «Sin …»), y
+ *  con muchas muestra las 5 más recientes y el resto a un toque. */
+function SeccionActividad({ titulo, total, children }: { titulo: string; total: number; children: React.ReactNode[] }) {
+  const [todas, setTodas] = useState(false);
+  if (total === 0) return null;
   return (
     <div>
-      <p className="label-cayla text-[11px] text-tinta/65">{titulo}</p>
-      <div className="mt-2 space-y-1.5">{hayContenido ? children : <p className="text-sm text-tinta/50">{vacio}</p>}</div>
+      <p className="label-cayla text-[11px] text-tinta/65">
+        {titulo} <span className="tabular-nums text-tinta/45">· {total}</span>
+      </p>
+      <div className="mt-2 space-y-1.5">{todas ? children : children.slice(0, FILAS_VISIBLES)}</div>
+      {total > FILAS_VISIBLES && (
+        <button type="button" className="btn-cayla btn-sutil mt-1" onClick={() => setTodas((t) => !t)}>
+          {todas ? "Ver menos" : `Ver las ${total}`}
+        </button>
+      )}
     </div>
   );
 }
