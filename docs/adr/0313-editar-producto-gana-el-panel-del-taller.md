@@ -226,3 +226,17 @@ margen. A 375 px las cuatro pestañas caben (303/303 px) y la página no se desp
 Verificado en local: Etiquetas «Nuevo» en todas → Rojo con tacho → la hoja lista 9 etiquetas y ninguna de Rojo. +2 Blanco S y +1 Verde L
 → guardar → aviso y hoja «3 etiquetas por imprimir» con dos etiquetas (× 2, × 1) → «Imprimir» abre `/etiquetas-de-precio?unidades=…:2,…:1`.
 El stock de prueba se devolvió (−2, −1; al bajar no sale la hoja). A 375 px, lápiz, tacho y tarjetas caben sin desplazamiento lateral.
+
+### Tercera vuelta del 2026-10-03: la tabla no se mueve
+
+Felipe: «cuando agrego un color se mueve todo y debe estar todo en el mismo lugar, aparte de ser muy responsive». La tabla medía cada
+columna por su contenido: «Gris perla · NUEVA» ensanchaba la columna Color y corría las tallas; cambiar de pestaña también las corría
+(cada pestaña tenía otro ancho de celda, y «Total» solo existía en Unidades).
+- `table-fixed` + `<colgroup>`: la columna Color es una parte fija de la tabla que depende SOLO de cuántas tallas hay (36 % / 30 % /
+  24 %), nunca de los colores; el nombre largo se corta con «…» (entero en su `title`) y «nueva» va debajo del nombre. DESCARTÉ
+  `clamp()` en el `<col>`: el navegador lo ignora (medido: la columna quedaba igual que las tallas).
+- Una celda de talla mide lo mismo en las cuatro pestañas (mínimo 80 px), y la columna de la derecha está en todas: Total (unidades),
+  Precio y Costo (el rango del color), Llevan (cuántas tallas del color llevan la etiqueta elegida).
+- Mínimo de la tabla = color 168 px + 80 px por talla + 60: debajo de eso se desliza de lado (color fijo a la izquierda), nunca aprieta.
+Medido con «Azul eléctrico» agregado sin guardar: las tallas en el mismo lugar antes y después, y en las cuatro pestañas. A 1024, 1280,
+1440 y 1920 la tabla entra entera sin desplazarse; a 768 y 375 se desliza dentro de su caja; la página nunca se desplaza de lado.

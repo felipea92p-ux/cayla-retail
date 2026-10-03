@@ -14,7 +14,7 @@ import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, etiquetaCambiada, totalesMatriz } from "@/lib/matriz-ficha-reglas";
+import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz } from "@/lib/matriz-ficha-reglas";
 import type { MotivoAjuste } from "@/lib/ajuste-reglas";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
@@ -42,6 +42,20 @@ export type BotonesDeColor = {
 // 2026-10-02 noche, ADR-0313) y lo que cambió se ve en ámbar hasta guardarlo.
 
 export type VistaMatriz = "unidades" | CampoBloque | "etiquetas";
+
+/** El mínimo de cada talla: lo que pide la caja − N + (la más ancha de las cuatro pestañas). Igual en todas: no se corre nada. */
+const ANCHO_CELDA_PX = 80;
+/** La columna de la derecha (Total, Precio, Costo, Llevan). */
+const ANCHO_RESUMEN_PX = 60;
+/** La columna Color nunca baja de lo que pide un nombre corto con su lápiz y su tacho (la tabla se desliza antes de apretarla). */
+const ANCHO_COLOR_MIN_PX = 168;
+/** Qué parte de la tabla es la columna Color: un tercio con pocas tallas, menos con muchas (no se come la pantalla). Depende SOLO de
+ *  cuántas tallas hay, nunca de los colores ni de sus nombres: agregar un color no la mueve. (`clamp()` en un `<col>` no lo respeta
+ *  el navegador: se probó, y la columna quedaba igual que las tallas.) */
+function anchoColor(tallas: number): string {
+  return tallas <= 3 ? "36%" : tallas <= 5 ? "30%" : "24%";
+}
+const TITULO_RESUMEN: Record<VistaMatriz, string> = { unidades: "Total", precio: "Precio", costo: "Costo", etiquetas: "Llevan" };
 
 const BOTON_PASO =
   "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
@@ -170,7 +184,9 @@ export function MatrizStockFicha({
   const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const enUnidades = vista === "unidades";
   const enEtiquetas = vista === "etiquetas";
-  const conColumnaTotal = enUnidades && m.tallas.length > 1;
+  // La columna de la derecha está en TODAS las pestañas (Felipe 2026-10-03: «debe estar todo en el mismo lugar»): si apareciera solo
+  // en «Unidades de hoy», cambiar de pestaña correría las tallas. Cada pestaña pone ahí lo suyo (`resumenDeFila`).
+  const conColumnaTotal = m.tallas.length > 1;
   const conFilaTotal = enUnidades && m.colores.length > 1;
   const pestanas: [VistaMatriz, string][] = [
     ["unidades", "Unidades de hoy"],
@@ -179,6 +195,17 @@ export function MatrizStockFicha({
     ["etiquetas", "Etiquetas"],
   ];
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
+
+  /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
+  function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): string {
+    if (enUnidades) return stock.cargando ? "…" : String(totales.porColor.get(c) || "");
+    if (enEtiquetas) {
+      if (!etiquetaElegida) return "";
+      return `${delColor.filter((f) => f.etiquetaIds.includes(etiquetaElegida)).length}/${delColor.length}`;
+    }
+    const montos = delColor.map((f) => Number(vista === "precio" ? f.precio : f.costo)).filter((x) => x > 0);
+    return montos.length > 0 ? rangoDePrecios(montos) : "—";
+  }
 
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
@@ -221,7 +248,21 @@ export function MatrizStockFicha({
       {bloque && <div hidden={enUnidades || enEtiquetas}>{bloque}</div>}
 
       <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
-        <table className="w-full border-separate border-spacing-0 text-[13px]" id="matriz-variantes">
+        {/* Columnas de ancho FIJO (table-fixed + colgroup): agregar un color de nombre largo («Gris perla · nueva») o cambiar de
+            pestaña no corre las tallas. El color tiene su ancho y su nombre se corta con «…»; las tallas se reparten lo que queda,
+            y en una pantalla angosta la tabla no se aprieta: se desliza de lado (el mínimo de abajo), con el color fijo a la izquierda. */}
+        <table
+          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+          style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * ANCHO_CELDA_PX + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
+          id="matriz-variantes"
+        >
+          <colgroup>
+            <col style={{ width: anchoColor(m.tallas.length) }} />
+            {m.tallas.map((t) => (
+              <col key={t ?? "sin-talla"} />
+            ))}
+            {conColumnaTotal && <col style={{ width: `${ANCHO_RESUMEN_PX}px` }} />}
+          </colgroup>
           <thead>
             <tr>
               <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
@@ -246,8 +287,8 @@ export function MatrizStockFicha({
                 </th>
               ))}
               {conColumnaTotal && (
-                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe @lg:px-3">
-                  Total
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold text-taupe">
+                  {TITULO_RESUMEN[vista]}
                 </th>
               )}
             </tr>
@@ -267,7 +308,7 @@ export function MatrizStockFicha({
                 <tr key={c ?? "sin-color"} id={`matriz-color-${c ?? "sin-color"}`} className={esNuevo ? "taller-fila-nueva" : undefined}>
                   <th
                     scope="row"
-                    className={`sticky left-0 z-[1] relative border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta @lg:whitespace-nowrap @lg:py-2 @lg:pl-4 @lg:pr-2.5 @lg:text-[13.5px] ${fondoFila}`}
+                    className={`sticky left-0 z-[1] relative overflow-hidden border-r border-t border-sand py-1.5 pl-3 pr-1.5 text-left text-[12.5px] font-semibold text-tinta @lg:py-2 @lg:pl-3.5 @lg:pr-2 @lg:text-[13.5px] ${fondoFila}`}
                   >
                     <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]" style={{ background: franja }} />
                     <span className="flex items-center justify-between gap-1.5">
@@ -278,11 +319,16 @@ export function MatrizStockFicha({
                       onClick={() => onElegirColor(c)}
                       onMouseEnter={() => onVerColor(c)}
                       onMouseLeave={() => onVerColor(undefined)}
-                      className="-mx-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-hueso aria-pressed:bg-hueso"
+                      className="-ml-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-hueso aria-pressed:bg-hueso"
                     >
                       {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />}
-                      {nombreColor}
-                      {esNuevo && <span className="ml-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
+                      {/* «nueva» va DEBAJO del nombre: al lado le quitaba espacio y «Azul eléctrico» salía cortado. */}
+                      <span className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate" title={nombreColor}>
+                          {nombreColor}
+                        </span>
+                        {esNuevo && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
+                      </span>
                     </button>
                     {botonesColor(botonesDeColor(c), nombreColor)}
                     </span>
@@ -292,7 +338,7 @@ export function MatrizStockFicha({
                     if (!f) {
                       return (
                         <td key={t ?? "x"} className={`border-t border-sand p-0 ${fondoFila}`}>
-                          <span title="Esta combinación no existe" className={`flex h-12 min-w-11 items-center justify-center @lg:h-[52px] @lg:min-w-[54px] ${RAYADO_FUERA}`}>
+                          <span title="Esta combinación no existe" className={`flex h-12 items-center justify-center @lg:h-[52px] ${RAYADO_FUERA}`}>
                             —
                           </span>
                         </td>
@@ -302,9 +348,7 @@ export function MatrizStockFicha({
                     return (
                       <td key={f.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
                         <span
-                          className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${vista === "costo" && ctx.veCosto ? "flex-col gap-px" : ""} ${
-                            enUnidades ? "min-w-[88px] @lg:min-w-[98px]" : "min-w-[66px] @lg:min-w-[76px]"
-                          }`}
+                          className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${vista === "costo" && ctx.veCosto ? "flex-col gap-px" : ""}`}
                         >
                           {enUnidades ? celdaUnidades(f, etiqueta) : enEtiquetas ? celdaEtiqueta(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
                         </span>
@@ -312,8 +356,8 @@ export function MatrizStockFicha({
                     );
                   })}
                   {conColumnaTotal && (
-                    <td className={`border-l border-t border-sand px-2 text-center tabular-nums text-taupe @lg:px-3 ${fondoFila}`}>
-                      {stock.cargando ? "…" : totales.porColor.get(c) || ""}
+                    <td className={`truncate border-l border-t border-sand px-1 text-center text-[12px] tabular-nums text-taupe ${fondoFila}`}>
+                      {resumenDeFila(c, delColor)}
                     </td>
                   )}
                 </tr>
@@ -332,7 +376,7 @@ export function MatrizStockFicha({
                   </td>
                 ))}
                 {conColumnaTotal && (
-                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta @lg:px-3">
+                  <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-1 py-2 text-center font-semibold tabular-nums text-tinta">
                     {stock.cargando ? "…" : totales.total}
                   </td>
                 )}
@@ -369,7 +413,7 @@ export function MatrizStockFicha({
             aria-disabled={!!b.corregir.motivo || undefined}
             disabled={deshabilitado}
             onClick={() => (b.corregir!.motivo ? avisar.error(b.corregir!.motivo) : b.corregir!.onClick())}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-tinta/15 bg-papel text-tinta/60 transition-colors duration-200 ease-cayla hover:border-tinta/45 hover:text-tinta disabled:opacity-40 aria-disabled:opacity-45"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-tinta/15 bg-papel text-tinta/60 transition-colors duration-200 ease-cayla hover:border-tinta/45 hover:text-tinta disabled:opacity-40 aria-disabled:opacity-45"
           >
             <Pencil aria-hidden className="h-3.5 w-3.5" />
           </button>
@@ -381,7 +425,7 @@ export function MatrizStockFicha({
           disabled={deshabilitado}
           onClick={b.quitar.onClick}
           data-color={nombreColor}
-          className="grid h-8 w-8 place-items-center rounded-lg border border-rojo-profundo/25 bg-papel text-rojo-profundo transition-colors duration-200 ease-cayla hover:border-rojo-profundo hover:bg-rojo-profundo/[0.07] disabled:opacity-40"
+          className="grid h-7 w-7 place-items-center rounded-lg border border-rojo-profundo/25 bg-papel text-rojo-profundo transition-colors duration-200 ease-cayla hover:border-rojo-profundo hover:bg-rojo-profundo/[0.07] disabled:opacity-40"
         >
           <Trash2 aria-hidden className="h-3.5 w-3.5" />
         </button>
