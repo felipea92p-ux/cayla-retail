@@ -1,6 +1,6 @@
 # Spike · Inicio del Admin (2026-10-03)
 
-> **Estado: tres maquetas para elegir.** No toca la web ni la base. `inicio-admin.html` es un solo archivo, con el CSS y el
+> **Estado: descartadas por Felipe (2026-10-03).** El Admin no vende: quiere ver cómo va el negocio, comparar tiendas y ver avisos, lo más visual posible y con poco texto. Las reemplaza `inicio-admin-v2-2026-10/`. No toca la web ni la base. `inicio-admin.html` es un solo archivo, con el CSS y el
 > JS adentro; solo pide las fuentes a Google Fonts. Se abre con el servidor `maquetas` de `.claude/launch.json`
 > (`http://localhost:8791/inicio-admin-2026-10/inicio-admin.html`) o haciendo doble clic.
 
