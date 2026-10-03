@@ -19,6 +19,7 @@
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:actividad-inventario": "node scripts/pruebas/actividad_inventario.mjs",
     "pruebas:actividad-productos": "node scripts/pruebas/actividad_productos.mjs",
+    "pruebas:actividad-gestion": "node scripts/pruebas/actividad_gestion.mjs",
     "pruebas:concurrencia-linea-venta": "node scripts/pruebas/concurrencia_linea_de_venta.mjs",
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:caja-cierre-traslado": "node scripts/pruebas/caja_cierre_traslado.mjs",
