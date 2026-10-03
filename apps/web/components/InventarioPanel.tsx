@@ -417,7 +417,7 @@ export function InventarioPanel({
   );
   // Cuántos productos trae cada opción de la barra, con los demás filtros puestos (se esconden las que vaciarían la lista).
   const conteos = useMemo(() => conteosDeFiltros(indiceBusqueda, elegidos), [indiceBusqueda, elegidos]);
-  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
+  const { filas: filtradas } = useMemo(() => {
     const resultado = filtrarExistencias(
       indiceBusqueda,
       elegidos,
@@ -651,7 +651,8 @@ export function InventarioPanel({
           vocabulario: indiceBusqueda.vocabulario,
           palabras: palabrasBuscables(stock),
           // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
-          contar: (consulta, omitir) => filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.length,
+          // En productos (modelos), la misma unidad del «N productos» de arriba: «Quitar Color · 2 productos» trae 2 productos.
+          contar: (consulta, omitir) => new Set(filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.map((f) => f.productoId)).size,
           sinStock,
           filtroMarca: filtroMarcaElegida,
           filtroCategoria: filtroCategoriaElegida,
@@ -832,12 +833,6 @@ export function InventarioPanel({
             }
             nota={
               <>
-                {/* Mientras el buscador mande sobre Talla y Color (lo que escribiste gana), se dice: la píldora sigue mostrando lo elegido. */}
-                {(dichoEnLaBusqueda.talla && tallasElegidas.length > 0) || (dichoEnLaBusqueda.color && coloresTexto.length > 0) ? (
-                  <p className="text-xs leading-snug text-taupe">
-                    {dichoEnLaBusqueda.talla && tallasElegidas.length > 0 ? "Talla" : "Color"}: se usa lo que escribiste en el buscador.
-                  </p>
-                ) : null}
                 {/* La aclaración de «Por colgar», solo si ese caso de «Hoy» está elegido y hay algo por colgar (sobre una lista vacía,
                     «elige cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
                     · si otro filtro esconde tallas, cuántas se ven de las que cuenta el resumen — mira toda la sede, y ver 3 filas

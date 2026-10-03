@@ -1,6 +1,6 @@
 import type { TipoAccionHoy } from "./existencias-recomendaciones";
 import { compararTallas } from "./tallas";
-import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, interpretarBusquedaEspecial, type DimensionesExpresadas, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
+import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
 import { listaDeUrl } from "./productos-filtros";
 import { textoDeFamilia } from "./colores-familias";
 import { hoyDeTalla, TEXTO_HOY, TIPOS_HOY, type TipoHoy } from "./existencias-hoy";
@@ -181,13 +181,13 @@ function coincideColor(f: FilaFiltrable, elegidos: FiltrosElegidos): boolean {
 }
 
 /** Los filtros visuales que NO son texto. `omitir` = los que se ignoran: el estado vacío los «relaja» de a uno para decir cuál
- *  deja la pantalla en blanco, y los conteos ignoran el suyo. `dichas`: si el texto ya dice una talla o un color, el texto manda
- *  sobre esa píldora. «Hoy» y «Condición» son dos ejes: qué pide la talla y en qué condición está. */
-export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>, dichas?: DimensionesExpresadas): boolean {
+ *  deja la pantalla en blanco, y los conteos ignoran el suyo. «Hoy» y «Condición» son dos ejes: qué pide la talla y en qué
+ *  condición está. */
+export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>): boolean {
   if (!omitir?.has("categoria") && elegidos.categoria !== null && f.categoria !== elegidos.categoria) return false;
   if (!omitir?.has("marca") && elegidos.marca !== null && f.marca !== elegidos.marca) return false;
-  if (!omitir?.has("talla") && !dichas?.talla && elegidos.tallas.length > 0 && !elegidos.tallas.includes(f.talla ?? "")) return false;
-  if (!omitir?.has("color") && !dichas?.color && !coincideColor(f, elegidos)) return false;
+  if (!omitir?.has("talla") && elegidos.tallas.length > 0 && !elegidos.tallas.includes(f.talla ?? "")) return false;
+  if (!omitir?.has("color") && !coincideColor(f, elegidos)) return false;
   if (!omitir?.has("hoy") && elegidos.hoy !== null && hoyDeTalla(f) !== elegidos.hoy) return false;
   if (!omitir?.has("condicion") && elegidos.condicion !== null && !tieneCondicion(f, elegidos.condicion)) return false;
   return true;
@@ -197,17 +197,17 @@ function tieneCondicion(f: FilaFiltrable, c: Condicion): boolean {
   return c === "danadas" ? (f.danado ?? 0) > 0 : f.apartado > 0;
 }
 
-/** La lista filtrada: el texto (que manda sobre Talla y Color si los dice) más los demás filtros. `omitir` ignora los que se
- *  pidan; `opciones` solo cambia el orden. */
+/** La lista filtrada: el texto Y las píldoras, todo a la vez, como en Productos (2026-10-03). Antes, si el texto decía una talla
+ *  o un color, mandaba sobre esa píldora en silencio: con «azul» escrito y Color en «Beige», el combo seguía diciendo «Beige»
+ *  pero la lista traía azules. Ahora lo que se ve es lo que filtra; si no queda nada, el estado vacío dice qué quitar.
+ *  `omitir` ignora los filtros que se pidan; `opciones` solo cambia el orden. */
 export function filtrarExistencias<F extends FilaFiltrable>(
   indice: IndiceBusquedaEspecial<F>,
   elegidos: FiltrosElegidos,
   omitir?: ReadonlySet<ClaveFiltro>,
   opciones?: OpcionesDeOrden<F>
 ) {
-  // Talla y Color (de varias) los aplica `pasaFiltros`; el buscador solo dice si el texto ya nombró una talla o un color.
-  const dichas = interpretarBusquedaEspecial(elegidos.q, indice.vocabulario).dimensiones;
-  return filtrarConBusquedaEspecial(indice, elegidos.q, { otros: (f) => pasaFiltros(f, elegidos, omitir, dichas) }, opciones);
+  return filtrarConBusquedaEspecial(indice, elegidos.q, { otros: (f) => pasaFiltros(f, elegidos, omitir) }, opciones);
 }
 
 /* ====================================================================

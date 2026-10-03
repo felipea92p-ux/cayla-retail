@@ -477,8 +477,8 @@ describe("ExistenciasVacio (render)", () => {
     expect(html).toContain("(color)");
     expect(html).toContain("Prueba con:");
     expect(html).toContain("Quitar «m»");
-    expect(html).toContain("1 prenda</button>"); // singular
-    expect(html).toContain("2 prendas");
+    expect(html).toContain("1 producto</button>"); // singular
+    expect(html).toContain("2 productos");
     expect(html).toContain("Limpiar la búsqueda"); // solo texto: no dice «filtros»
     expect(html).not.toContain("En el catálogo, pero");
     expect(html).not.toContain("Filtros activos");
@@ -489,7 +489,7 @@ describe("ExistenciasVacio (render)", () => {
     expect(html).toContain("Filtros activos:");
     expect(html).toContain('aria-label="Quitar el filtro Marca: Miramhe"');
     expect(html).toContain("Marca: Miramhe");
-    expect(html).toContain("Quitar el filtro Marca: Miramhe · 1 prenda");
+    expect(html).toContain("Quitar el filtro Marca: Miramhe · 1 producto");
     expect(html).toContain("Limpiar búsqueda y filtros");
   });
 

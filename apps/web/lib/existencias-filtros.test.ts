@@ -162,6 +162,7 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     "apartadas en M": { ...nada, condicion: "apartadas", tallas: ["M"] },
     "texto «polo» y color Beige": { ...nada, q: "polo", colores: ["Beige"] },
     "dañadas en L": { ...nada, condicion: "danadas", tallas: ["L"] },
+    "texto «m» (dice una talla) y Krisstell": { ...nada, q: "m", marca: "Krisstell" },
   };
   for (const [nombre, escena] of Object.entries(escenas)) {
     it(nombre, () => {
@@ -192,8 +193,12 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     expect(productos({ ...nada, colores: ["Negro"], familias: ["azul"] })).toBe(3);
   });
 
-  it("si el texto ya dice una talla, manda sobre la píldora Talla (hasta que se decida otra cosa)", () => {
-    expect(productos({ ...nada, q: "m", tallas: ["30"] })).toBe(2); // «m» es la talla M: Evaluna y Lucky
+  it("el texto y las píldoras se suman: «m» escrito con Talla 30 no trae nada (antes el texto pisaba la píldora en silencio)", () => {
+    expect(productos({ ...nada, q: "m" })).toBe(2); // «m» es la talla M: Evaluna y Lucky
+    expect(productos({ ...nada, q: "m", tallas: ["30"] })).toBe(0);
+    expect(productos({ ...nada, q: "m", tallas: ["M", "30"] })).toBe(2);
+    expect(productos({ ...nada, q: "beige", colores: ["Azul marino"] })).toBe(0);
+    expect(productos({ ...nada, q: "beige", familias: ["neutro"] })).toBe(2);
   });
 
   it("el prefijo de familia es el mismo de la lista de color de Productos (si cambia allá, el conteo deja de encontrarse)", () => {
