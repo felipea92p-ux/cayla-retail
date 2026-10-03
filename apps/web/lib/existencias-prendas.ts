@@ -7,6 +7,7 @@ import { clavePercha, porColgar } from "./inventario-reglas";
 import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
+import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
 export type FilaPrenda = Pick<
@@ -184,23 +185,19 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
   return distintas.size === 1 ? coinciden[0] : null;
 }
 
-/** «Qué hacer» de una prenda en la lista «Por prenda» (diseño aprobado, 2026-09-28): SOLO el diagnóstico, nunca un botón —la
- *  acción se hace en el cajón de la prenda—. No decide nada nuevo: cuenta lo que ya dicen las cifras libres y «Acción hoy».
- *  - «N tallas sin stock en piso»: las que no tienen ni una libre colgada (piso libre en 0). `critico` cuando alguna no tiene
- *    NADA en ningún lado (ni atrás para bajar): ahí no basta con colgar, y el chip lleva el triángulo rojo.
- *  - «N tallas por reponer»: con todas colgadas, las que la regla física de piso ya pide reponer (piso libre ≤ umbral).
- *  - «Mantener»: nada que hacer hoy con esta prenda. */
-export type QueHacerPrenda =
-  | { tipo: "sin_stock_piso"; n: number; critico: boolean }
-  | { tipo: "por_reponer"; n: number }
-  | { tipo: "mantener" };
+/** «Qué hacer» de una prenda (un color de un modelo): SOLO el diagnóstico, nunca un botón —la acción se hace en el cajón—. Es el
+ *  caso de «Hoy» (`lib/existencias-hoy.ts`) más urgente entre sus tallas y cuántas tallas están en él, con las MISMAS palabras
+ *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (la clienta no la ve y se arregla hoy), luego «Por reponer» y
+ *  «Sin stock atrás» (no se arregla en la tienda); si ninguna pide nada, «Mantener». Lo usan la tarjeta, la lista «Por prenda»
+ *  y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y «Piso al día» para lo mismo. */
+export type QueHacerPrenda = { tipo: TipoHoy; n: number };
 
 export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda {
-  const sinPiso = tallas.filter((f) => f.pisoDisponible !== null && f.pisoDisponible <= 0);
-  if (sinPiso.length > 0) return { tipo: "sin_stock_piso", n: sinPiso.length, critico: sinPiso.some((f) => f.disponible <= 0) };
-  const porReponer = tallas.filter((f) => f.accionHoy?.tipo === "reponer_a_piso").length;
-  if (porReponer > 0) return { tipo: "por_reponer", n: porReponer };
-  return { tipo: "mantener" };
+  for (const tipo of ["por_colgar", "por_reponer", "sin_stock_atras"] as const) {
+    const n = tallas.filter((f) => hoyDeTalla(f) === tipo).length;
+    if (n > 0) return { tipo, n };
+  }
+  return { tipo: "mantener", n: 0 };
 }
 
 /** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo

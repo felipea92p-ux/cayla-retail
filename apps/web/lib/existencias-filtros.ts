@@ -1,37 +1,21 @@
-import { ORDEN_ACCION_HOY, type TipoAccionHoy } from "./existencias-recomendaciones";
+import type { TipoAccionHoy } from "./existencias-recomendaciones";
 import { compararTallas } from "./tallas";
-import { porColgar } from "./inventario-reglas";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, interpretarBusquedaEspecial, type DimensionesExpresadas, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
 import { listaDeUrl } from "./productos-filtros";
 import { textoDeFamilia } from "./colores-familias";
+import { hoyDeTalla, TEXTO_HOY, TIPOS_HOY, type TipoHoy } from "./existencias-hoy";
 import type { ClaveFiltro } from "./existencias-vacio";
 
 /* ====================================================================
-   existencias-filtros · el filtro «Acción» de Existencias (2026-09-25)
+   existencias-filtros · la barra de filtros de Existencias
 
-   Separación conceptual pedida por Felipe: «Acción» (qué debería hacer la vendedora hoy) y
-   «Estado» (en qué condición está el inventario — dañado/cuarentena) son DOS preguntas
-   distintas. Antes vivían mezcladas en un solo dropdown/estado de React; ahora el filtro
-   «Acción» lee EXCLUSIVAMENTE de `TipoAccionHoy` — nunca una unión con un estado de inventario —
-   y «Dañado»/«Cuarentena» vive como su propio eje («Estado», en `InventarioPanel.tsx`).
+   Dos preguntas distintas sobre una talla, dos filtros (separadas el 2026-09-25, renombradas el 2026-10-03):
+     · «Hoy»: qué pide la talla (Por colgar · Por reponer · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
+       cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Reponer a piso» / «Mantener») y
+       «Por colgar» escondido en «Estado»: elegir «Mantener» + «Por colgar» siempre daba vacío.
+     · «Condición»: en qué condición está el inventario (Dañadas · Apartadas). No excluye a «Hoy»: una talla puede pedir
+       reponer y tener una apartada a la vez.
    ==================================================================== */
-
-/** Las opciones reales del filtro «Acción»: exactamente `TipoAccionHoy`, en el mismo orden que ya
- *  usa la columna y la leyenda de la tabla (`ORDEN_ACCION_HOY`) — nunca "Dañado" mezclado acá. */
-export const OPCIONES_FILTRO_ACCION: readonly TipoAccionHoy[] = (Object.keys(ORDEN_ACCION_HOY) as TipoAccionHoy[]).sort(
-  (a, b) => ORDEN_ACCION_HOY[a] - ORDEN_ACCION_HOY[b]
-);
-
-/** ¿Esta fila coincide con el filtro «Acción»? `filtro === null` = «Acción: todas». */
-export function coincideConFiltroAccion(tipoAccionHoy: TipoAccionHoy | null | undefined, filtro: TipoAccionHoy | null): boolean {
-  return filtro === null || tipoAccionHoy === filtro;
-}
-
-/** ¿Esta fila coincide con el filtro «Estado» (dañado/cuarentena)? Eje INDEPENDIENTE de Acción
- *  hoy: dañado es una condición del inventario, no algo que la vendedora deba decidir hoy. */
-export function coincideConFiltroDanado(unidadesDanadas: number | null | undefined, filtroActivo: boolean): boolean {
-  return !filtroActivo || (unidadesDanadas ?? 0) > 0;
-}
 
 /* ====================================================================
    Los filtros viven en la URL (2026-10-03, misma estructura que Productos, ADR-0308)
@@ -45,12 +29,13 @@ export function coincideConFiltroDanado(unidadesDanadas: number | null | undefin
 
 /** Las claves de la URL que son filtros de Existencias. Lo demás (`ubicacion`, `variante`, `danados`) no es un filtro:
  *  ni se limpia ni se cuenta. */
-export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "familia", "accion", "estado", "orden"] as const;
+export const CLAVES_FILTRO = ["q", "cat", "marca", "talla", "color", "familia", "hoy", "condicion", "orden"] as const;
 export type ClaveUrl = (typeof CLAVES_FILTRO)[number];
 
-/** «Dañado / cuarentena» y «Por colgar»: las dos opciones del filtro «Estado». */
-export const ESTADOS_FILTRO = ["danado", "por_colgar"] as const;
-export type EstadoFiltro = (typeof ESTADOS_FILTRO)[number];
+/** Las dos opciones de «Condición». */
+export const CONDICIONES = ["danadas", "apartadas"] as const;
+export type Condicion = (typeof CONDICIONES)[number];
+export const ROTULO_CONDICION: Record<Condicion, string> = { danadas: "Dañadas / cuarentena", apartadas: "Apartadas" };
 
 /** Lo que dice la URL, ya validado. `null` o lista vacía = sin elegir. Categoría, marca, talla y color van por su NOMBRE (lo
  *  que la fila trae; el nombre de un color es único en la base): un nombre que esta sede no tiene lo descarta la pantalla,
@@ -63,18 +48,18 @@ export type FiltrosExistencias = {
   tallas: string[];
   colores: string[];
   familias: string[];
-  accion: TipoAccionHoy | null;
-  estado: EstadoFiltro | null;
+  hoy: TipoHoy | null;
+  condicion: Condicion | null;
   orden: string | null;
 };
 
-/** Lee la URL (sin «?»). `separa`: Acción y Estado solo existen donde se separa piso y almacén; en el Taller, un
- *  `accion=` que vino en un enlace de una tienda se ignora en vez de dejar la lista vacía sin un control que lo diga. */
+/** Lee la URL (sin «?»). `separa`: Hoy y Condición solo existen donde se separa piso y almacén; en el Taller, un
+ *  `hoy=` que vino en un enlace de una tienda se ignora en vez de dejar la lista vacía sin un control que lo diga. */
 export function filtrosDeUrl(consulta: string, { separa }: { separa: boolean }): FiltrosExistencias {
   const p = new URLSearchParams(consulta);
   const texto = (k: ClaveUrl) => p.get(k)?.trim() || null;
-  const accion = p.get("accion");
-  const estado = p.get("estado");
+  const hoy = p.get("hoy");
+  const condicion = p.get("condicion");
   return {
     q: p.get("q") ?? "",
     categoria: texto("cat"),
@@ -82,8 +67,8 @@ export function filtrosDeUrl(consulta: string, { separa }: { separa: boolean }):
     tallas: listaDeUrl(p.get("talla")),
     colores: listaDeUrl(p.get("color")),
     familias: listaDeUrl(p.get("familia")),
-    accion: separa && (OPCIONES_FILTRO_ACCION as readonly string[]).includes(accion ?? "") ? (accion as TipoAccionHoy) : null,
-    estado: separa && (ESTADOS_FILTRO as readonly string[]).includes(estado ?? "") ? (estado as EstadoFiltro) : null,
+    hoy: separa && (TIPOS_HOY as readonly string[]).includes(hoy ?? "") ? (hoy as TipoHoy) : null,
+    condicion: separa && (CONDICIONES as readonly string[]).includes(condicion ?? "") ? (condicion as Condicion) : null,
     orden: texto("orden"),
   };
 }
@@ -123,24 +108,21 @@ export function tallasEnCurva(filas: readonly { talla: string | null }[]): strin
   return [...new Set(filas.map((f) => f.talla).filter((t): t is string => !!t))].sort(compararTallas);
 }
 
-/** Lo que dice cada opción de «Estado». */
-export const ROTULO_ESTADO_FILTRO: Record<EstadoFiltro, string> = { danado: "Dañado / cuarentena", por_colgar: "Por colgar" };
-
 /** Lo que de verdad filtra la lista, ya resuelto contra lo que la sede ofrece (`valorOfrecido`): lo mismo que dicen las
  *  píldoras, para que una etiqueta nunca nombre un filtro que no está actuando. */
 export type FiltrosElegidos = Omit<FiltrosExistencias, "orden">;
 
 /** Un chip por cosa puesta, siempre «Nombre: valor» como la píldora (igual que Productos); la búsqueda, entre comillas.
  *  `quitar` son las claves de la URL que lo apagan. */
-export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHoy) => string): { texto: string; quitar: ClaveUrl[] }[] {
+export function chipsDeFiltros(f: FiltrosElegidos): { texto: string; quitar: ClaveUrl[] }[] {
   const chips: { texto: string; quitar: ClaveUrl[] }[] = [];
   if (f.q.trim()) chips.push({ texto: `«${f.q.trim()}»`, quitar: ["q"] });
   if (f.categoria) chips.push({ texto: `Categoría: ${f.categoria}`, quitar: ["cat"] });
   if (f.tallas.length) chips.push({ texto: `Talla: ${f.tallas.join(", ")}`, quitar: ["talla"] });
   const colores = [...f.familias.map((x) => `Familia ${textoDeFamilia(x)}`), ...f.colores];
   if (colores.length) chips.push({ texto: `Color: ${colores.join(", ")}`, quitar: ["color", "familia"] });
-  if (f.accion) chips.push({ texto: `Acción: ${textoAccion(f.accion)}`, quitar: ["accion"] });
-  if (f.estado) chips.push({ texto: `Estado: ${ROTULO_ESTADO_FILTRO[f.estado]}`, quitar: ["estado"] });
+  if (f.hoy) chips.push({ texto: `Hoy: ${TEXTO_HOY[f.hoy]}`, quitar: ["hoy"] });
+  if (f.condicion) chips.push({ texto: `Condición: ${ROTULO_CONDICION[f.condicion]}`, quitar: ["condicion"] });
   if (f.marca) chips.push({ texto: `Marca: ${f.marca}`, quitar: ["marca"] });
   return chips;
 }
@@ -149,7 +131,7 @@ export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHo
 export function contarFiltrosActivos(f: FiltrosElegidos): number {
   // Color y familia son un mismo filtro (el de color, con su lista agrupada por familia): cuentan una vez.
   const color = f.colores.length > 0 || f.familias.length > 0 ? 1 : 0;
-  return [f.categoria, f.marca, f.accion, f.estado].filter((v) => v !== null).length + (f.tallas.length > 0 ? 1 : 0) + color;
+  return [f.categoria, f.marca, f.hoy, f.condicion].filter((v) => v !== null).length + (f.tallas.length > 0 ? 1 : 0) + color;
 }
 
 /* ====================================================================
@@ -173,6 +155,8 @@ export type FilaFiltrable = {
   colorFamilia?: string | null;
   accionHoy?: { tipo: TipoAccionHoy } | null;
   danado: number | null;
+  /** Unidades apartadas para clientes (siguen en la tienda, no se venden ni se mueven). */
+  apartado: number;
   pisoDisponible: number | null;
   almacenDisponible: number | null;
 };
@@ -198,16 +182,19 @@ function coincideColor(f: FilaFiltrable, elegidos: FiltrosElegidos): boolean {
 
 /** Los filtros visuales que NO son texto. `omitir` = los que se ignoran: el estado vacío los «relaja» de a uno para decir cuál
  *  deja la pantalla en blanco, y los conteos ignoran el suyo. `dichas`: si el texto ya dice una talla o un color, el texto manda
- *  sobre esa píldora. «Acción» y «Estado» son dos ejes (2026-09-25): qué hacer hoy con la talla y en qué condición está. */
+ *  sobre esa píldora. «Hoy» y «Condición» son dos ejes: qué pide la talla y en qué condición está. */
 export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>, dichas?: DimensionesExpresadas): boolean {
   if (!omitir?.has("categoria") && elegidos.categoria !== null && f.categoria !== elegidos.categoria) return false;
   if (!omitir?.has("marca") && elegidos.marca !== null && f.marca !== elegidos.marca) return false;
   if (!omitir?.has("talla") && !dichas?.talla && elegidos.tallas.length > 0 && !elegidos.tallas.includes(f.talla ?? "")) return false;
   if (!omitir?.has("color") && !dichas?.color && !coincideColor(f, elegidos)) return false;
-  if (!omitir?.has("accion") && !coincideConFiltroAccion(f.accionHoy?.tipo, elegidos.accion)) return false;
-  if (omitir?.has("estado")) return true;
-  if (!coincideConFiltroDanado(f.danado, elegidos.estado === "danado")) return false;
-  return elegidos.estado !== "por_colgar" || porColgar(f);
+  if (!omitir?.has("hoy") && elegidos.hoy !== null && hoyDeTalla(f) !== elegidos.hoy) return false;
+  if (!omitir?.has("condicion") && elegidos.condicion !== null && !tieneCondicion(f, elegidos.condicion)) return false;
+  return true;
+}
+
+function tieneCondicion(f: FilaFiltrable, c: Condicion): boolean {
+  return c === "danadas" ? (f.danado ?? 0) > 0 : f.apartado > 0;
 }
 
 /** La lista filtrada: el texto (que manda sobre Talla y Color si los dice) más los demás filtros. `omitir` ignora los que se
@@ -231,7 +218,7 @@ export function filtrarExistencias<F extends FilaFiltrable>(
    Se cuenta en el navegador sobre lo que ya llegó: TRU tiene ~2.300 tallas y seis pasadas son ~14.000 filas, milisegundos.
    ==================================================================== */
 
-export const CLAVES_CONTEO: readonly ClaveFiltro[] = ["categoria", "marca", "talla", "color", "accion", "estado"];
+export const CLAVES_CONTEO: readonly ClaveFiltro[] = ["categoria", "marca", "talla", "color", "hoy", "condicion"];
 /** filtro → { opción → cuántos productos }. Una opción que no está tiene 0. */
 export type ConteosFiltros = Record<ClaveFiltro, Record<string, number>>;
 
@@ -239,8 +226,8 @@ export type ConteosFiltros = Record<ClaveFiltro, Record<string, number>>;
  *  el conteo y la opción se encuentren (lo vigila la prueba). */
 export const PREFIJO_FAMILIA = "familia:";
 
-/** Lo que vale una fila en cada filtro. En «Estado» puede valer dos cosas a la vez (dañada y por colgar); en «Color», su color
- *  y su familia (cada una es una opción de la lista). */
+/** Lo que vale una fila en cada filtro. En «Condición» puede valer dos cosas a la vez (dañada y apartada); en «Color», su
+ *  color y su familia (cada una es una opción de la lista). */
 function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undefined)[] {
   switch (clave) {
     case "categoria":
@@ -251,10 +238,10 @@ function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undef
       return [f.talla];
     case "color":
       return [f.color, f.colorFamilia ? PREFIJO_FAMILIA + f.colorFamilia : null];
-    case "accion":
-      return [f.accionHoy?.tipo];
-    case "estado":
-      return [(f.danado ?? 0) > 0 ? "danado" : null, porColgar(f) ? "por_colgar" : null];
+    case "hoy":
+      return [hoyDeTalla(f)];
+    case "condicion":
+      return CONDICIONES.filter((c) => tieneCondicion(f, c));
   }
 }
 

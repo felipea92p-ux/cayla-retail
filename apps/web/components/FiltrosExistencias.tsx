@@ -8,17 +8,16 @@ import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
-import { TEXTO_ACCION_HOY } from "@/lib/existencias-recomendaciones";
+import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
+  CONDICIONES,
   contarFiltrosActivos,
-  ESTADOS_FILTRO,
-  OPCIONES_FILTRO_ACCION,
   PREFIJO_FAMILIA,
-  ROTULO_ESTADO_FILTRO,
+  ROTULO_CONDICION,
   type ClaveUrl,
   type ConteosFiltros,
   type FiltrosElegidos,
@@ -78,7 +77,7 @@ export function FiltrosExistencias({
   /** Enter en el buscador (la pistola escribe el código y manda Enter). */
   onEnter: () => void;
   placeholder: string;
-  /** La sede separa piso y almacén: solo ahí hay «Acción» y «Estado». */
+  /** La sede separa piso y almacén: solo ahí hay «Hoy» y «Condición». */
   separa: boolean;
   categorias: readonly string[];
   /** Ya en su curva (XS · S · M · L, luego la numeración). */
@@ -149,7 +148,7 @@ export function FiltrosExistencias({
     }
   }
 
-  const chips = chipsDeFiltros(elegidos, (a) => TEXTO_ACCION_HOY[a]);
+  const chips = chipsDeFiltros(elegidos);
   const activos = contarFiltrosActivos(elegidos);
   const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
   const opcion = (v: string) => ({ valor: v, texto: v });
@@ -217,20 +216,21 @@ export function FiltrosExistencias({
       </FilaPildoras>
       {hayGestion && (
         <FilaPildoras titulo="Gestión">
-          {/* «Acción» (qué hacer hoy con la talla) y «Estado» (en qué condición está) son dos preguntas (2026-09-25). */}
+          {/* «Hoy» (qué pide la talla: las mismas cuatro palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
+              dos preguntas (Felipe, 2026-10-03). Cada talla cae en un solo «Hoy»: no hay combinación que se vacíe sola. */}
           {separa && (
             <DesplegablePildora
               icono={ListChecks}
-              etiqueta="Acción"
-              valor={elegidos.accion ?? TODOS}
-              onValor={(v) => onCambiar({ accion: v === TODOS ? null : v })}
+              etiqueta="Hoy"
+              valor={elegidos.hoy ?? TODOS}
+              onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
               rotuloCantidad="Productos con alguna talla así"
               opciones={[
-                { valor: TODOS, texto: "Todas" },
+                { valor: TODOS, texto: "Todo" },
                 ...contar(
-                  OPCIONES_FILTRO_ACCION.map((a) => ({ valor: a as string, texto: TEXTO_ACCION_HOY[a] })),
-                  "accion",
-                  elegidos.accion
+                  TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
+                  "hoy",
+                  elegidos.hoy
                 ),
               ]}
             />
@@ -238,16 +238,16 @@ export function FiltrosExistencias({
           {separa && (
             <DesplegablePildora
               icono={CircleAlert}
-              etiqueta="Estado"
-              valor={elegidos.estado ?? TODOS}
-              onValor={(v) => onCambiar({ estado: v === TODOS ? null : v })}
+              etiqueta="Condición"
+              valor={elegidos.condicion ?? TODOS}
+              onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
               rotuloCantidad="Productos con alguna talla así"
               opciones={[
-                { valor: TODOS, texto: "Todos" },
+                { valor: TODOS, texto: "Cualquiera" },
                 ...contar(
-                  ESTADOS_FILTRO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO_FILTRO[e] })),
-                  "estado",
-                  elegidos.estado
+                  CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
+                  "condicion",
+                  elegidos.condicion
                 ),
               ]}
             />

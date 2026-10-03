@@ -151,7 +151,7 @@ describe("quitar una cosa: relajaciones", () => {
     const cifras: Record<string, number> = { "": 4, "a b": 0, a: 0, b: 7 };
     const filtros: FiltroActivo[] = [
       { clave: "marca", etiqueta: "Marca", valor: "X" },
-      { clave: "estado", etiqueta: "Estado", valor: "Agotado" },
+      { clave: "condicion", etiqueta: "Condición", valor: "Apartadas" },
     ];
     const e = explicarVacio({
       consulta: "a b",
@@ -160,15 +160,15 @@ describe("quitar una cosa: relajaciones", () => {
       // «a» y «b» no son tallas ni colores: los dos son texto.
       vocabulario: { tallas: new Set(), palabrasDeColor: new Set() },
       palabras: [],
-      // Quitar «a» → «b» = 7; quitar «b» → «a» = 0 (no se ofrece); filtros: marca = 4 (igual que...), estado = 7 (empata con «b»).
-      contar: (consulta, omitir) => (omitir.has("marca") ? 4 : omitir.has("estado") ? 7 : (cifras[consulta] ?? 0)),
+      // Quitar «a» → «b» = 7; quitar «b» → «a» = 0 (no se ofrece); filtros: marca = 4 (igual que...), condición = 7 (empata con «b»).
+      contar: (consulta, omitir) => (omitir.has("marca") ? 4 : omitir.has("condicion") ? 7 : (cifras[consulta] ?? 0)),
       sinStock: [],
       filtroMarca: null,
       filtroCategoria: null,
     });
     expect(e.relajaciones.map((r) => [r.texto, r.prendas])).toEqual([
       ["Quitar «a»", 7],
-      ["Quitar el filtro Estado: Agotado", 7],
+      ["Quitar el filtro Condición: Apartadas", 7],
       ["Quitar el filtro Marca: X", 4],
     ]);
     // Cuarta candidata: con un tercer filtro habría cuatro; se cortan en tres.

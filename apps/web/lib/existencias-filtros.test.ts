@@ -1,75 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { opcionesDeColor } from "./productos-filtros";
+import { TIPOS_HOY } from "./existencias-hoy";
 import {
   chipsDeFiltros,
-  coincideConFiltroAccion,
-  coincideConFiltroDanado,
   consultaConCambios,
+  CONDICIONES,
   consultaSinFiltros,
   conteosDeFiltros,
   contarFiltrosActivos,
   filtrarExistencias,
   filtrosDeUrl,
   indiceDeExistencias,
-  OPCIONES_FILTRO_ACCION,
   PREFIJO_FAMILIA,
   tallasEnCurva,
   valorOfrecido,
 } from "./existencias-filtros";
 
-// El filtro «Acción» de Existencias (Felipe, 2026-09-25): separado de «Estado» (dañado/cuarentena)
-// — dos preguntas distintas («qué hacer hoy» vs. «en qué condición está el inventario») que antes
-// vivían mezcladas en un solo dropdown.
-
-describe("OPCIONES_FILTRO_ACCION — Caso A/B del pedido", () => {
-  it("Caso A — contiene exactamente Reponer a piso y Sin acción", () => {
-    expect(OPCIONES_FILTRO_ACCION).toEqual(["reponer_a_piso", "sin_accion"]);
-  });
-
-  it("Caso B — NO contiene Dañado ni Cuarentena: son un eje de Estado, no de Acción", () => {
-    expect(OPCIONES_FILTRO_ACCION).not.toContain("danado");
-    expect(OPCIONES_FILTRO_ACCION).not.toContain("cuarentena");
-    expect(OPCIONES_FILTRO_ACCION).toHaveLength(2);
-  });
-});
-
-describe("coincideConFiltroAccion — Caso D/E del pedido", () => {
-  it("Caso D — filtro «Reponer a piso» devuelve exactamente accionHoy.tipo === \"reponer_a_piso\"", () => {
-    expect(coincideConFiltroAccion("reponer_a_piso", "reponer_a_piso")).toBe(true);
-    expect(coincideConFiltroAccion("sin_accion", "reponer_a_piso")).toBe(false);
-  });
-
-  it("Caso E — filtro «Sin acción» devuelve exactamente accionHoy.tipo === \"sin_accion\"", () => {
-    expect(coincideConFiltroAccion("sin_accion", "sin_accion")).toBe(true);
-    expect(coincideConFiltroAccion("reponer_a_piso", "sin_accion")).toBe(false);
-  });
-
-  it("«Acción: todas» (filtro null) deja pasar cualquier tipo, incluida una fila sin accionHoy (N/D)", () => {
-    expect(coincideConFiltroAccion("reponer_a_piso", null)).toBe(true);
-    expect(coincideConFiltroAccion("sin_accion", null)).toBe(true);
-    expect(coincideConFiltroAccion(undefined, null)).toBe(true);
-  });
-});
-
-describe("coincideConFiltroDanado — Caso C del pedido: eje independiente de Acción hoy", () => {
-  it("con el filtro activo, solo pasan las filas con unidades dañadas — sin importar su Acción hoy", () => {
-    expect(coincideConFiltroDanado(3, true)).toBe(true);
-    expect(coincideConFiltroDanado(0, true)).toBe(false);
-    expect(coincideConFiltroDanado(null, true)).toBe(false);
-  });
-
-  it("con el filtro apagado, cualquier fila pasa (dañada o no)", () => {
-    expect(coincideConFiltroDanado(3, false)).toBe(true);
-    expect(coincideConFiltroDanado(0, false)).toBe(true);
-    expect(coincideConFiltroDanado(null, false)).toBe(true);
-  });
-});
-
 // Los filtros viven en la URL (2026-10-03): recargar, volver de otra pantalla o abrir un enlace copiado los trae puestos.
 
 describe("filtrosDeUrl", () => {
   it("lee cada filtro por su nombre y deja en null lo que no está", () => {
-    const f = filtrosDeUrl("q=polo&cat=Polos&marca=Krisstell&talla=M,L&color=Azul+marino&familia=neutro&accion=reponer_a_piso&estado=por_colgar&orden=nombre", { separa: true });
+    const f = filtrosDeUrl("q=polo&cat=Polos&marca=Krisstell&talla=M,L&color=Azul+marino&familia=neutro&hoy=por_colgar&condicion=apartadas&orden=nombre", { separa: true });
     expect(f).toEqual({
       q: "polo",
       categoria: "Polos",
@@ -77,23 +28,23 @@ describe("filtrosDeUrl", () => {
       tallas: ["M", "L"],
       colores: ["Azul marino"],
       familias: ["neutro"],
-      accion: "reponer_a_piso",
-      estado: "por_colgar",
+      hoy: "por_colgar",
+      condicion: "apartadas",
       orden: "nombre",
     });
-    expect(filtrosDeUrl("", { separa: true })).toEqual({ q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], accion: null, estado: null, orden: null });
+    expect(filtrosDeUrl("", { separa: true })).toEqual({ q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], hoy: null, condicion: null, orden: null });
   });
 
-  it("una acción o un estado que no existen no filtran", () => {
-    const f = filtrosDeUrl("accion=borrar&estado=perdido", { separa: true });
-    expect(f.accion).toBeNull();
-    expect(f.estado).toBeNull();
+  it("un «Hoy» o una condición que no existen no filtran (tampoco los nombres viejos «accion» y «estado»)", () => {
+    const f = filtrosDeUrl("hoy=borrar&condicion=perdida&accion=reponer_a_piso&estado=danado", { separa: true });
+    expect(f.hoy).toBeNull();
+    expect(f.condicion).toBeNull();
   });
 
-  it("donde no se separa piso y almacén (Taller), Acción y Estado de un enlace de tienda se ignoran", () => {
-    const f = filtrosDeUrl("accion=reponer_a_piso&estado=danado&talla=M", { separa: false });
-    expect(f.accion).toBeNull();
-    expect(f.estado).toBeNull();
+  it("donde no se separa piso y almacén (Taller), Hoy y Condición de un enlace de tienda se ignoran", () => {
+    const f = filtrosDeUrl("hoy=por_reponer&condicion=danadas&talla=M", { separa: false });
+    expect(f.hoy).toBeNull();
+    expect(f.condicion).toBeNull();
     expect(f.tallas).toEqual(["M"]);
   });
 });
@@ -106,9 +57,9 @@ describe("consultaConCambios y consultaSinFiltros", () => {
   });
 
   it("limpiar deja la sede que mira el líder y el orden; con «conservar», también lo pedido", () => {
-    const url = "ubicacion=u1&q=polo&cat=Polos&talla=M&estado=por_colgar&orden=nombre&variante=v9";
+    const url = "ubicacion=u1&q=polo&cat=Polos&talla=M&hoy=por_colgar&orden=nombre&variante=v9";
     expect(consultaSinFiltros(url)).toBe("ubicacion=u1&orden=nombre&variante=v9");
-    expect(consultaSinFiltros(url, ["estado", "orden"])).toBe("ubicacion=u1&estado=por_colgar&orden=nombre&variante=v9");
+    expect(consultaSinFiltros(url, ["hoy", "orden"])).toBe("ubicacion=u1&hoy=por_colgar&orden=nombre&variante=v9");
   });
 });
 
@@ -132,25 +83,24 @@ describe("tallasEnCurva", () => {
 });
 
 describe("chipsDeFiltros y contarFiltrosActivos", () => {
-  const nada = { q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], accion: null, estado: null };
-  const texto = (a: string) => (a === "reponer_a_piso" ? "Reponer a piso" : "Mantener");
+  const nada = { q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], hoy: null, condicion: null };
 
   it("sin nada puesto no hay chips ni cuenta", () => {
-    expect(chipsDeFiltros(nada, texto)).toEqual([]);
+    expect(chipsDeFiltros(nada)).toEqual([]);
     expect(contarFiltrosActivos(nada)).toBe(0);
   });
 
   it("cada chip dice «Nombre: valor» y sabe qué clave apaga; la búsqueda no cuenta en «Filtros · N»", () => {
-    const f = { ...nada, q: " polo ", tallas: ["M", "L"], familias: ["azul"], colores: ["Beige"], accion: "reponer_a_piso" as const, estado: "por_colgar" as const, marca: "Krisstell" };
-    expect(chipsDeFiltros(f, texto)).toEqual([
+    const f = { ...nada, q: " polo ", tallas: ["M", "L"], familias: ["azul"], colores: ["Beige"], hoy: "sin_stock_atras" as const, condicion: "apartadas" as const, marca: "Krisstell" };
+    expect(chipsDeFiltros(f)).toEqual([
       { texto: "«polo»", quitar: ["q"] },
       { texto: "Talla: M, L", quitar: ["talla"] },
       { texto: "Color: Familia Azul, Beige", quitar: ["color", "familia"] },
-      { texto: "Acción: Reponer a piso", quitar: ["accion"] },
-      { texto: "Estado: Por colgar", quitar: ["estado"] },
+      { texto: "Hoy: Sin stock atrás", quitar: ["hoy"] },
+      { texto: "Condición: Apartadas", quitar: ["condicion"] },
       { texto: "Marca: Krisstell", quitar: ["marca"] },
     ]);
-    expect(contarFiltrosActivos(f)).toBe(5); // talla, color (con su familia, una vez), acción, estado y marca
+    expect(contarFiltrosActivos(f)).toBe(5); // talla, color (con su familia, una vez), hoy, condición y marca
   });
 });
 
@@ -169,15 +119,16 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     colorFamilia: { "Azul marino": "azul", "Azul claro": "azul", Beige: "neutro", Negro: "neutro" }[color] ?? null,
     accionHoy: { tipo: piso <= 1 ? "reponer_a_piso" : "sin_accion" },
     danado: 0,
+    apartado: 0,
     pisoDisponible: piso,
     almacenDisponible: almacen,
     ...extra,
   });
   const filas: Fila[] = [
     fila("p1", "Polo Evaluna", "Polos", "Krisstell", "Azul marino", "S", 0, 2),
-    fila("p1", "Polo Evaluna", "Polos", "Krisstell", "Azul marino", "M", 3, 1),
+    fila("p1", "Polo Evaluna", "Polos", "Krisstell", "Azul marino", "M", 1, 1),
     fila("p1", "Polo Evaluna", "Polos", "Krisstell", "Beige", "M", 0, 0, { danado: 1 }),
-    fila("p2", "Polo Lucky", "Polos", "Lucky Girl", "Azul claro", "M", 1, 0),
+    fila("p2", "Polo Lucky", "Polos", "Lucky Girl", "Azul claro", "M", 1, 0, { apartado: 1 }),
     fila("p2", "Polo Lucky", "Polos", "Lucky Girl", "Azul claro", "L", 4, 2),
     fila("p3", "Blusa Emma", "Blusas", "Krisstell", "Beige", "S", 0, 3),
     fila("p3", "Blusa Emma", "Blusas", "Krisstell", "Beige", "L", 2, 0, { danado: 2 }),
@@ -186,7 +137,7 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
   ];
   const indice = indiceDeExistencias(filas);
   type Elegidos = Parameters<typeof filtrarExistencias>[1];
-  const nada: Elegidos = { q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], accion: null, estado: null };
+  const nada: Elegidos = { q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], hoy: null, condicion: null };
   const productos = (e: Elegidos) => new Set(filtrarExistencias(indice, e).filas.map((f) => f.productoId)).size;
   /** La escena con ESA sola opción elegida en ese filtro (lo que hace un clic en la lista). */
   const conOpcion = (e: Elegidos, clave: string, v: string): Elegidos => {
@@ -199,17 +150,18 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     marca: ["Krisstell", "Lucky Girl"],
     talla: ["S", "M", "L", "30", "32"],
     color: ["Azul marino", "Beige", "Azul claro", "Negro", "familia:azul", "familia:neutro"],
-    accion: ["reponer_a_piso", "sin_accion"],
-    estado: ["danado", "por_colgar"],
+    hoy: [...TIPOS_HOY],
+    condicion: [...CONDICIONES],
   };
   const escenas: Record<string, Elegidos> = {
     "sin filtros": { ...nada },
     "talla M": { ...nada, tallas: ["M"] },
     "tallas S y L, familia azul": { ...nada, tallas: ["S", "L"], familias: ["azul"] },
-    "Krisstell por colgar": { ...nada, marca: "Krisstell", estado: "por_colgar" as const },
-    "Polos que piden reponer": { ...nada, categoria: "Polos", accion: "reponer_a_piso" as const },
+    "Krisstell por colgar": { ...nada, marca: "Krisstell", hoy: "por_colgar" },
+    "Polos sin stock atrás": { ...nada, categoria: "Polos", hoy: "sin_stock_atras" },
+    "apartadas en M": { ...nada, condicion: "apartadas", tallas: ["M"] },
     "texto «polo» y color Beige": { ...nada, q: "polo", colores: ["Beige"] },
-    "dañadas en L": { ...nada, estado: "danado" as const, tallas: ["L"] },
+    "dañadas en L": { ...nada, condicion: "danadas", tallas: ["L"] },
   };
   for (const [nombre, escena] of Object.entries(escenas)) {
     it(nombre, () => {
@@ -227,7 +179,9 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     const c = conteosDeFiltros(indice, nada);
     expect(c.color["Azul marino"]).toBe(2); // Polo Evaluna y Pantalón Carla
     expect(c.color["Beige"]).toBe(2); // Polo Evaluna y Blusa Emma (dos tallas, un producto)
-    expect(c.estado).toEqual({ por_colgar: 3, danado: 2 });
+    // Por colgar: Evaluna S, Emma S y Carla 32 · Por reponer: Evaluna M · Sin stock atrás: Evaluna M Beige y Lucky M.
+    expect(c.hoy).toEqual({ por_colgar: 3, por_reponer: 1, sin_stock_atras: 2, mantener: 3 });
+    expect(c.condicion).toEqual({ danadas: 2, apartadas: 1 });
     expect(c.color["familia:azul"]).toBe(3); // Evaluna y Carla (Azul marino) y Lucky (Azul claro)
   });
 

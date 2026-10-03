@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
+import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
@@ -88,18 +89,15 @@ const TONO_PASTILLA = {
   rojo: { caja: "bg-rojo/10 text-rojo-profundo", punto: "bg-rojo ring-rojo/25" },
 } as const;
 
-/** El diagnóstico de la prenda (`queHacerPrenda`) como pastilla con punto. Donde no se separa piso y almacén no hay diagnóstico. */
+/** El diagnóstico de la prenda (`queHacerPrenda`) como pastilla con punto: las MISMAS palabras del filtro «Hoy» (Felipe,
+ *  2026-10-03): filtrar «Por colgar» muestra tarjetas que dicen «N tallas por colgar». Donde no se separa piso y almacén no hay
+ *  diagnóstico. */
 function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const q = queHacerPrenda(prenda.tallas);
-  const [tono, texto] =
-    q.tipo === "sin_stock_piso"
-      ? ([q.critico ? "rojo" : "ambar", `${q.n} ${q.n === 1 ? "talla" : "tallas"} sin stock en piso`] as const)
-      : q.tipo === "por_reponer"
-        ? (["ambar", `${q.n} ${q.n === 1 ? "talla" : "tallas"} por reponer`] as const)
-        : (["verde", "Mantener"] as const);
-  const t = TONO_PASTILLA[tono];
+  const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
+  const texto = textoHoyDePrenda(q.tipo, q.n);
   return (
-    <span className={`flex min-h-[34px] items-center gap-2.5 rounded-[17px] px-3 py-1 text-[11px] font-medium leading-tight ${t.caja}`}>
+    <span title={AYUDA_HOY[q.tipo]} className={`flex min-h-[34px] items-center gap-2.5 rounded-[17px] px-3 py-1 text-[11px] font-medium leading-tight ${t.caja}`}>
       <i aria-hidden className={`h-3 w-3 shrink-0 rounded-full ring-4 ${t.punto}`} />
       <span className="min-w-0">{texto}</span>
     </span>
