@@ -242,7 +242,7 @@
    un rectángulo claro dentro del marco en hueso. */
 :is(.hilo-fila, .hilo-luz)[data-estado="ahora"] :is(
     .caja-cayla,
-    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input):not([data-matriz-mover] input),
     textarea:not(.caja-cayla textarea),
     [role="combobox"]:not(.caja-cayla [role="combobox"]),
     button[aria-haspopup]:not(.caja-cayla button)
