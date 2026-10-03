@@ -124,7 +124,11 @@ export const AVIARIO = [
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
       // Qué comprobantes de anticipo descuenta una boleta o factura final (ADR-0236: el apartado se cobra en abonos). Es
       // una relación entre comprobantes, así que responde quien responde por ellos. Refresco del 2026-09-26.
-      "comprobante_anticipos"] },
+      "comprobante_anticipos",
+      // Respaldo de las boletas B002 que se renumeraron a la serie 04 de AQP (ADR-0310,
+      // `pegar-en-produccion-aqp-serie-04-lima-serie-05-2026-10-02.sql`): la serie, el número y lo que SUNAT respondió
+      // ANTES, para poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-03.
+      "respaldo_b002_renumeradas_20261002"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.

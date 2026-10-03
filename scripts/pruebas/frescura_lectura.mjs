@@ -801,6 +801,7 @@ select retail.fn_aplicar_movimiento(:'ot2') as _19 \\gset
 -- frescura_bajadas T26, se corre 1 minuto atrás (las DOS filas, siguen en el mismo instante): el núcleo lee hasta now()
 -- sin incluirlo.
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vcp', 'cantidad', 4)), null, true, gen_random_uuid()) as _20 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute' where variante_id = :'vcp';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -1738,6 +1739,7 @@ select pg_temp.producto('T4i Bikini solo carga', 'verano') as pc \\gset
 select pg_temp.variante('ZZ-FL-T4I-C-S', :'pc', :'c1') as vcs \\gset
 select pg_temp.variante('ZZ-FL-T4I-C-M', :'pc', :'c1') as vcm \\gset
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vcs', 'cantidad', 2)), null, true, gen_random_uuid()) as _5 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = '2026-01-15 10:00-05' where variante_id = :'vcs';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -2664,6 +2666,7 @@ select pg_temp.bajada(:'vvi', 2, now() - interval '40 days') as _v2 \\gset
 -- Blusa de la carga inicial: por la puerta real, hace 5 días (edad desconocida).
 select pg_temp.talla(pg_temp.variante('ZZ-FX-CARGA-M', pg_temp.producto('FX Blusa carga inicial', null, :'cat_a'), :'c2'), :'t_m') as vca \\gset
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vca', 'cantidad', 2)), null, true, gen_random_uuid()) as _c1 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '5 days' where variante_id = :'vca';
 alter table retail.movimientos enable always trigger movimientos_inmutables;

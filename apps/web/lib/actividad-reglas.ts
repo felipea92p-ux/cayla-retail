@@ -10,8 +10,15 @@
 import { ARBOL, rutaActiva, type Nodo } from "./menu";
 import { MODULOS, type ClaveModulo } from "./modulos";
 
-/** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo. */
-export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = ["vender", "historial", "caja", "cambios", "apartados"];
+/** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo, y sale en el
+ *  orden del catálogo (el de Roles y accesos). `actividad-reglas.test.ts` falla si una migración anota en un módulo que
+ *  no está aquí: Clientes, Avisos del club y Productos anotaban desde setiembre y el panel decía «todavía no anota» y no
+ *  mostraba nada (2026-10-02). */
+const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
+  "vender", "historial", "apartados", "caja", "cambios", "clientas", "avisos_club",
+  "existencias", "conteos", "traslados", "productos", "rendimiento",
+]);
+export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 
 export function anotaActividad(clave: ClaveModulo): boolean {
   return MODULOS_CON_ACTIVIDAD.includes(clave);
