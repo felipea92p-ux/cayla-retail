@@ -107,6 +107,12 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
   });
 }
 
+/** Todos los colores de un MODELO (las prendas del mismo producto), en el orden en que las agrupa la lista. «Reponer prenda» y «Subir
+ *  prenda» (ADR-0317) abren esta lista entera: un Polo en azul, blanco y negro se mueve en UNA ventana, no en tres. */
+export function coloresDelModelo<F extends FilaPrenda>(filas: readonly F[], productoId: string): PrendaAgrupada<F>[] {
+  return agruparPorPrenda(filas.filter((f) => f.productoId === productoId));
+}
+
 /** `id:cantidad,id:cantidad`: el formato que ya leen «Mover mercadería» (`parsearLineasPrellenadas`) y ahora «Bajar al piso». */
 export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: number }[]): string {
   return lineas

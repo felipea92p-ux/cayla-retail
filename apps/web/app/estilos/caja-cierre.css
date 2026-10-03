@@ -1,0 +1,40 @@
+/* ==================================================================
+   «Cerrar caja» que se nota (ADR-0318). Solo tokens de globals.css.
+   Nivel 0 = rojo de acento · nivel 1 = tinta (pasó la hora de cierre) · nivel 2 = rojo profundo (30 min o más).
+   Movimiento (ADR-0136): UN destello cuando el botón sube de nivel; nada en bucle. Con reduced-motion no hay destello.
+   ================================================================== */
+.cc-boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: 11px; padding: 15px 28px;
+  background: var(--color-rojo); color: var(--color-crema);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 75%, transparent);
+  transition: background-color 200ms var(--ease-cayla), transform 150ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+.cc-boton:hover { background: var(--color-rojo-profundo); }
+.cc-boton:active { transform: scale(0.98); }
+.cc-boton:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+
+/* La barra fija de escritorio: se pega al borde de abajo mientras se recorre la pantalla. */
+.cc-barra-pie { position: sticky; bottom: 0; z-index: 20; padding: 10px 0 14px; background: linear-gradient(to top, var(--color-crema) 60%, transparent); }
+.cc-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--color-papel); color: var(--color-tinta);
+  border: 1px solid var(--color-sand); border-radius: 16px; padding: 12px 14px 12px 20px;
+  transition: background-color 400ms var(--ease-cayla), border-color 400ms var(--ease-cayla), color 400ms var(--ease-cayla);
+}
+.cc-barra b { display: block; font-size: 14px; font-weight: 700; }
+.cc-barra span.cc-bajada { font-size: 12.5px; opacity: 0.72; }
+.cc-barra[data-nivel="1"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+.cc-barra[data-nivel="2"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
+.cc-barra[data-nivel="1"] .cc-boton, .cc-barra[data-nivel="2"] .cc-boton { background: var(--color-crema); color: var(--color-tinta); box-shadow: none; }
+.cc-barra[data-nivel="2"] .cc-boton { color: var(--color-rojo-profundo); }
+.cc-barra[data-nivel="1"] .cc-boton:hover, .cc-barra[data-nivel="2"] .cc-boton:hover { background: var(--color-papel); }
+
+@keyframes cc-destello { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-crema) 70%, transparent); } 100% { box-shadow: 0 0 0 16px transparent; } }
+.cc-destello { animation: cc-destello 900ms var(--ease-cayla) 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-boton, .cc-barra { transition-duration: 1ms !important; }
+  .cc-destello { animation: none; }
+}

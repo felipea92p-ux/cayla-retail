@@ -33,7 +33,7 @@ import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -364,21 +364,21 @@ export function InventarioPanel({
   const [condicion, setCondicion] = useState(TODAS);
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
-  // «Reponer» abre la ventana de la PRENDA entera (`ReponerPrendaModal`, ADR-0295). Se guardan los ids de sus tallas y no
-  // una copia de las filas: tras guardar o chocar con otra persona, `router.refresh()` trae las cifras nuevas y la ventana
-  // las lee de `stock`, no de lo que había al abrirla.
-  const [reponiendo, setReponiendo] = useState<string[] | null>(null);
-  const prendaReponiendo = reponiendo ? agruparPorPrenda(stock.filter((f) => reponiendo.includes(f.varianteId)))[0] : undefined;
+  // «Reponer prenda» abre la ventana del MODELO entero (`ReponerPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
+  // uno. Se guarda el producto y no una copia de las filas: tras guardar o chocar con otra persona, `router.refresh()` trae las cifras
+  // nuevas y la ventana las lee de `stock`, no de lo que había al abrirla.
+  const [reponiendo, setReponiendo] = useState<string | null>(null);
+  const prendasReponiendo = reponiendo ? coloresDelModelo(stock, reponiendo) : [];
   function abrirReponer(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
     volverFoco.current = origen;
-    setReponiendo(prenda.tallas.map((t) => t.varianteId));
+    setReponiendo(prenda.productoId);
   }
-  // «Subir a almacén» (ADR-0300): la misma idea del lado contrario, con la ventana `SubirAAlmacenModal`.
-  const [subiendo, setSubiendo] = useState<string[] | null>(null);
-  const prendaSubiendo = subiendo ? agruparPorPrenda(stock.filter((f) => subiendo.includes(f.varianteId)))[0] : undefined;
+  // «Subir prenda» (ADR-0300, ADR-0317): la misma idea del lado contrario, con la ventana `SubirAAlmacenModal`.
+  const [subiendo, setSubiendo] = useState<string | null>(null);
+  const prendasSubiendo = subiendo ? coloresDelModelo(stock, subiendo) : [];
   function abrirSubir(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
     volverFoco.current = origen;
-    setSubiendo(prenda.tallas.map((t) => t.varianteId));
+    setSubiendo(prenda.productoId);
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
@@ -1407,9 +1407,9 @@ export function InventarioPanel({
       )}
       </div>
 
-      {prendaReponiendo && (
+      {prendasReponiendo.length > 0 && (
         <ReponerPrendaModal
-          prenda={prendaReponiendo}
+          prendas={prendasReponiendo}
           ubicacionId={ubicacionId}
           sede={sedeNombre}
           alCerrarEnfocar={volverFoco}
@@ -1417,9 +1417,9 @@ export function InventarioPanel({
         />
       )}
 
-      {prendaSubiendo && (
+      {prendasSubiendo.length > 0 && (
         <SubirAAlmacenModal
-          prenda={prendaSubiendo}
+          prendas={prendasSubiendo}
           ubicacionId={ubicacionId}
           sede={sedeNombre}
           politica={politica}
