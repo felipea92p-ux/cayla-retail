@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   agregarCombinaciones,
-  agruparPorColor,
   alcancesDeBloque,
   anclar,
   anclarFotos,
   aplicarEnBloque,
   asignacionesDeEtiquetas,
   avisoBloqueSinAplicar,
-  avisoDesactivar,
   bloqueoPorVenta,
   cambiarFila,
   desactivarColor,
@@ -49,11 +47,9 @@ import {
   precioYCostoPorDefecto,
   problemasVariantes,
   puedeQuedarSinColor,
-  quitarNueva,
   tallasParaAgregarColor,
   textoChoque,
   textosCostoFijo,
-  textoSedes,
   textoTallasApagadas,
   todasNuevas,
   ubicar,
@@ -70,7 +66,6 @@ import {
 } from "./variantes-ficha-reglas";
 import {
   agruparCambios,
-  cambiosDeVariante,
   NOTA_CORREGIDAS,
   NOTA_DESACTIVADAS_CON_STOCK,
   resumenDeCambios,
@@ -149,24 +144,15 @@ function cuenta(filas: readonly FilaFicha[], estado: Record<string, EstadoVarian
   return resumenDeCambios(ficha(guardadas), ficha(ahora), NOMBRES_CAMBIOS);
 }
 
-describe("filasDeProducto y agruparPorColor — la prenda por ejes, como en el alta", () => {
+describe("filasDeProducto — la prenda por ejes, como en el alta", () => {
   it("ordena «Sin color» primero y cada color por talla (S, M, L; no alfabético)", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-l"), variante("b", null, "t-m"), variante("c", "AZU", "t-s"), variante("d", "NEG", "t-s")], N);
     expect(filas.map((f) => nombreVariante(f, N))).toEqual(["Sin color M", "Azul S", "Negro S", "Negro L"]);
   });
 
-  it("un grupo por color; las desactivadas al abrir van aparte, plegadas", () => {
-    const filas = filasDeProducto([variante("a", "NEG", "t-m"), variante("b", "NEG", "t-s"), variante("c", "AZU", "t-s", { activo: false })], N);
-    const { grupos, desactivadas } = agruparPorColor(filas, N);
-    expect(grupos.map((g) => g.colorCodigo)).toEqual(["NEG"]);
-    expect(grupos[0].filas.map((f) => N.talla(f.tallaId))).toEqual(["S", "M"]);
-    expect(desactivadas.map((f) => f.id)).toEqual(["c"]);
-  });
-
   it("una que se desactiva AHORA sigue en su grupo (con su aviso); no salta al final", () => {
     const filas = cambiarFila(BOD(), "v-s", { activo: false });
     expect(enGrupo(filas.find((f) => f.id === "v-s")!)).toBe(true);
-    expect(agruparPorColor(filas, N).desactivadas).toEqual([]);
   });
 
   it("«Desactivar color» desactiva todas las tallas del color: las que existen se desactivan, no se borran", () => {
@@ -571,7 +557,6 @@ describe("agregar colores y tallas", () => {
     filas = corregir(filas, [filas[0].clave], { tallaId: "t-m" });
     filas = agregarCombinaciones(filas, [{ colorCodigo: "NEG", tallaId: "t-s" }], { precio: "1", costo: "", etiquetaIds: [] });
     expect(new Set(claves(filas)).size).toBe(2);
-    expect(quitarNueva(filas, filas[0].clave)).toHaveLength(1);
   });
 
   it("precio y costo por defecto: los más comunes entre las activas", () => {
@@ -786,7 +771,6 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
   it("el índice de cada cambio es el de su fila: la marca de la fila sale de la misma cuenta que la barra", () => {
     const filas = cambiarFila(corregir(BOD(), ["v-m"], { tallaId: "t-xs" }), "v-l", { precio: "70" });
     const r = cuenta(filas);
-    expect(filas.map((f) => cambiosDeVariante(r, filas.indexOf(f)).map((c) => c.tipo))).toEqual([[], ["identidad"], ["precio"]]);
     expect(agruparCambios(r.cambios)[0].lineas).toEqual([{ texto: "1 variante pasa de talla M a XS" }]);
   });
 
@@ -860,19 +844,9 @@ describe("stock visible (fn_variantes_estado)", () => {
     expect(leerEstadoVariantes([{ nada: 1 }])).toBeNull();
   });
 
-  it("las sedes y lo apartado, en una línea; la suma del grupo", () => {
-    expect(textoSedes(ESTADO_BOD["v-l"])).toBe("Tienda TRU 4 · 1 apartada");
+  it("la suma del grupo", () => {
     expect(unidadesEnStock(BOD(), ESTADO_BOD)).toBe(17);
     expect(unidadesEnStock(BOD(), null)).toBeNull();
-  });
-
-  it("desactivar una con unidades lo dice en la fila (no bloquea)", () => {
-    const filas = cambiarFila(BOD(), "v-s", { activo: false });
-    // Desactivar no saca las unidades del inventario: solo deja de venderlas (hallazgo 10 de la revisión 2026-09-28).
-    expect(avisoDesactivar(filas.find((f) => f.id === "v-s")!, ESTADO_BOD)).toBe(
-      "Sus 8 u. en Tienda TRU siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.",
-    );
-    expect(avisoDesactivar(filas.find((f) => f.id === "v-m")!, ESTADO_BOD)).toBeNull();
   });
 });
 

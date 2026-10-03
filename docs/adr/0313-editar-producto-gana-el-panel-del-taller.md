@@ -165,3 +165,38 @@ antes de salir, `useSalidaSinGuardar`, igual que con un precio).
 Cómo verificarlo: en una ficha con stock, + dos veces en una talla y escribir un número en otra → barra «Tienes 2 cambios» → «Revisar y
 guardar» → la hoja lista «Stock 2» con «3 → 5» → confirmar → aviso «stock ajustado en 2 tallas · Imprimir 4 etiquetas» y franja en
 Productos → la página de etiquetas propone 2 + 2.
+
+## Actualización 2026-10-03: todo se hace desde la matriz; «Más de cada variante» desaparece
+
+Felipe pidió poder editar las **etiquetas de cada variante (una o todas)** y que la sección plegada «Más de cada variante» desaparezca:
+«todo se debe poder hacer desde la tabla de arriba […] lo único que falta es poder borrar un color». Sin migración ni RPC nueva: cada
+gesto cambia las filas de la ficha y viaja con «Revisar y guardar» (ADR-0257), como el precio.
+
+- **Pestaña «Etiquetas»** en la matriz (`MatrizStockFicha.tsx`), junto a Unidades de hoy · Precios · Costos. Se elige UNA etiqueta
+  (chips con su cuenta, «Nuevo 4/12») y cada celda es un ✓ que se toca para ponérsela o quitársela a esa talla; «Poner «X» en todas» /
+  «Quitar «X» de todas» para las activas. Lo que cambió contra lo guardado lleva anillo ámbar. Reglas puras en
+  `lib/matriz-ficha-reglas.ts` (`cuentaEtiqueta`, `ponerEtiqueta`, `etiquetaCambiada`, con prueba). Se guarda por la misma
+  `actualizar_variantes_etiquetas` de siempre.
+  DESCARTÉ un popover por celda con todas las etiquetas: una lista flotante dentro de una tabla con scroll pide `useDestinoFlotante` y
+  esconde lo que importa (qué tallas llevan «Nuevo»). Con una etiqueta a la vez, la matriz entera responde «¿quién la lleva?» de un vistazo.
+- **«⋯» de cada color** (`MenuAcciones` en la cabecera de la fila): «Corregir color (se registró mal)» y **«Quitar color»**. Quitar NO
+  borra (regla de `CLAUDE.md`): las variantes que ya existen se desactivan y conservan stock e historia (`desactivarColor`); las nuevas
+  simplemente no se crean; lo tocado en su stock se suelta (`useStockFicha.soltar`). Bajo la tabla queda «Rojo deja de venderse al
+  guardar… · Deshacer» (`coloresQueSeQuitan`, `devolverColor`), con la advertencia si tiene unidades. Los colores que ya no se vendían
+  se nombran («vuelven con + Agregar color», que los reactiva con su historia: `agregarCombinaciones`).
+- **Lo que solo vivía en «Más de cada variante» no se pierde:** corregir una talla (lápiz en la cabecera de su columna), «+ Agregar
+  talla» (al lado de «+ Agregar color»), el margen (debajo de cada costo, en Costos) y las correcciones pendientes con su «Deshacer»
+  («Se corrige al guardar: Talla S → XS (4 colores)», `correccionesPendientes`). El texto del costo fijo vuelve a decir la verdad
+  cuando no se pudo comprobar (`textosCostoFijo`; la matriz tenía «viene de compras» escrito a mano).
+- **Lo que sí se pierde, a propósito:** reactivar UNA talla suelta de un color que sigue a la venta (ahora es «+ Agregar talla», que
+  la reactiva) y el detalle por fila («Antes: Gris XS», «Precio: antes S/ 90»): la matriz marca en ámbar lo que cambió y la hoja de
+  «Revisar y guardar» lo lista con su antes.
+- `VariantesFicha.tsx` se borra; con él, las reglas que solo él usaba (`agruparPorColor`, `quitarNueva`, `textoSedes`,
+  `avisoDesactivar`, `cambiosDeVariante`, `textoPendienteDeVariante`; lo exige `lib/reglas-sin-uso.test.ts`).
+- **SE ROMPE SI** alguien agrega a la matriz un gesto que guarda al instante (un «Quitar color» que llame a la base): la ficha entera
+  se guarda con UN gesto y se deshace hasta entonces; el stock de la matriz ya pasó por eso (actualización de la noche del 2026-10-02).
+
+Verificado en local (puerto 3070, «Blazer Demo Franja», 4 colores × 3 tallas): Etiquetas → «Nuevo» en todas, quitado en Rojo M →
+barra «11 cambios» → hoja con las 11 líneas → guardado (11 filas en `variante_etiquetas`) y revertido igual (0). «Quitar color» Rojo →
+la línea con 9 u. → «Deshacer». Lápiz de la talla S → «Corregir talla» a XS → línea «Talla S → XS (4 colores)» → «Deshacer». Costos con
+margen. A 375 px las cuatro pestañas caben (303/303 px) y la página no se desplaza de lado. `tsc`, `eslint` y las 312 pruebas en verde.

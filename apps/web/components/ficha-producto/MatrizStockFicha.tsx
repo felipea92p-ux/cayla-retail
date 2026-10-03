@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Pencil, Plus } from "lucide-react";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
-import { limpiarCantidad } from "@/lib/alta-producto";
+import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
+import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
-import type { CampoBloque, FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, totalesMatriz } from "@/lib/matriz-ficha-reglas";
+import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
+import { armarMatriz, cuentaEtiqueta, etiquetaCambiada, totalesMatriz } from "@/lib/matriz-ficha-reglas";
 import type { MotivoAjuste } from "@/lib/ajuste-reglas";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
@@ -20,14 +22,19 @@ import type { StockFicha } from "./useStockFicha";
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
 // se escribe) y la fila «Total» fija abajo. Quien cargó la prenda en el alta reconoce la tabla al volver a editarla.
 //
-// Lo que Editar tiene y el alta no, sigue aquí: las pestañas «Unidades de hoy · Precios · Costos» (el costo solo si la cuenta lo
-// ve), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada en ámbar punteado, el color que se toca para
-// verlo en el panel, y la talla que faltó en un conteo (su «+» abre el ajuste de siempre, ADR-0291).
+// Lo que Editar tiene y el alta no, sigue aquí: las pestañas «Unidades de hoy · Precios · Costos · Etiquetas» (el costo solo si la
+// cuenta lo ve; con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
+// en ámbar punteado, el color que se toca para verlo en el panel, y la talla que faltó en un conteo (su «+» abre el ajuste de
+// siempre, ADR-0291).
+//
+// Desde el 2026-10-03 (ADR-0313, act.) TODO se hace desde esta tabla: «Más de cada variante» desapareció. Cada color tiene su «⋯»
+// (corregir o quitar el color), la cabecera de una talla la corrige, y la pestaña «Etiquetas» pone o quita una etiqueta en una
+// talla o en todas.
 //
 // NADA de esta tabla se guarda solo: ni el stock ni el precio. Todo espera a «Revisar y guardar» (ADR-0257; el stock desde el
 // 2026-10-02 noche, ADR-0313) y lo que cambió se ve en ámbar hasta guardarlo.
 
-export type VistaMatriz = "unidades" | CampoBloque;
+export type VistaMatriz = "unidades" | CampoBloque | "etiquetas";
 
 const BOTON_PASO =
   "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
@@ -57,6 +64,11 @@ export function MatrizStockFicha({
   onVerColor,
   onCambioFila,
   onAbrirModal,
+  etiquetas,
+  avisoEtiquetas,
+  onEtiqueta,
+  accionesDeColor,
+  onCorregirTalla,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -74,6 +86,15 @@ export function MatrizStockFicha({
   onCambioFila: (clave: string, cambio: Partial<Pick<FilaFicha, CampoBloque>>) => void;
   /** Una talla que faltó en un conteo cerrado: el «+» abre el ajuste de siempre, que pregunta si es esa (ADR-0291). */
   onAbrirModal: (color: string | null) => void;
+  /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
+  etiquetas: readonly { valor: string; texto: string }[];
+  avisoEtiquetas?: string;
+  /** Pone o quita una etiqueta en esas variantes; sin `claves`, en todas las activas. */
+  onEtiqueta: (etiquetaId: string, poner: boolean, claves?: string[]) => void;
+  /** Lo que ofrece el «⋯» de cada color (corregir, quitar). */
+  accionesDeColor: (color: string | null) => ItemMenu[];
+  /** Corregir una talla desde su cabecera; `null` = no se ofrece (la base todavía no sabe, o no hay permiso). */
+  onCorregirTalla: ((talla: string | null) => void) | null;
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
@@ -84,6 +105,10 @@ export function MatrizStockFicha({
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
   const [borrador, setBorrador] = useState<Record<string, string>>({});
   const relojes = useRef(new Map<string, number>());
+  // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
+  const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
+  const etiquetaElegida = etiquetas.some((e) => e.valor === etiquetaPedida) ? etiquetaPedida : (etiquetas[0]?.valor ?? null);
+  const textoEtiqueta = (id: string) => etiquetas.find((e) => e.valor === id)?.texto ?? null;
 
   useEffect(() => {
     const r = relojes.current;
@@ -126,13 +151,17 @@ export function MatrizStockFicha({
 
   const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const enUnidades = vista === "unidades";
+  const enEtiquetas = vista === "etiquetas";
   const conColumnaTotal = enUnidades && m.tallas.length > 1;
   const conFilaTotal = enUnidades && m.colores.length > 1;
   const pestanas: [VistaMatriz, string][] = [
     ["unidades", "Unidades de hoy"],
     ["precio", "Precios"],
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
+    ["etiquetas", "Etiquetas"],
   ];
+  const cuenta = etiquetaElegida ? cuentaEtiqueta(filas, etiquetaElegida) : null;
+  const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
 
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
@@ -145,7 +174,7 @@ export function MatrizStockFicha({
             type="button"
             aria-pressed={vista === v}
             onClick={() => onVista(v)}
-            className={`flex-auto whitespace-nowrap rounded-[7px] px-2.5 py-1.5 text-[12.5px] font-medium transition-colors @lg:flex-none @lg:px-3 ${
+            className={`flex-auto whitespace-nowrap rounded-[7px] px-1.5 py-1.5 text-[12.5px] font-medium transition-colors @lg:flex-none @lg:px-3 ${
               vista === v ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
             }`}
           >
@@ -163,12 +192,61 @@ export function MatrizStockFicha({
           Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
-          Escribe el costo de cada talla. El que viene de Compras no se corrige a mano: se ve sin caja.
+          Escribe el costo de cada talla; debajo, el margen.{" "}
+          {filas.some((f) => f.activo && f.costoFijo) ? `${textosCostoFijo(ctx.costoSinComprobar).nota} Se ve sin caja.` : ""}
+        </p>
+        <p className={`col-start-1 row-start-1 ${enEtiquetas ? "" : "invisible"}`} aria-hidden={!enEtiquetas}>
+          Elige una etiqueta y toca cada talla para ponérsela o quitársela (✓ = la lleva), o ponla en todas. Se guarda con «Revisar y guardar».
         </p>
       </div>
 
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
-      {bloque && <div hidden={enUnidades}>{bloque}</div>}
+      {bloque && <div hidden={enUnidades || enEtiquetas}>{bloque}</div>}
+
+      {enEtiquetas && (
+        <div className="space-y-2" id="matriz-etiquetas">
+          {etiquetas.length === 0 ? (
+            <p className="text-[12.5px] italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+          ) : (
+            <>
+              <div role="group" aria-label="Qué etiqueta se pone o se quita" className="flex flex-wrap gap-1.5">
+                {etiquetas.map((et) => {
+                  const c = cuentaEtiqueta(filas, et.valor);
+                  return (
+                    <ChipOpcion key={et.valor} elegido={et.valor === etiquetaElegida} onClick={() => setEtiquetaPedida(et.valor)} className="min-h-8 py-1 text-[12.5px]">
+                      {et.texto}
+                      <span className="tabular-nums text-taupe">
+                        {c.con}/{c.de}
+                      </span>
+                    </ChipOpcion>
+                  );
+                })}
+              </div>
+              {etiquetaElegida && cuenta && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <button
+                    type="button"
+                    disabled={deshabilitado || cuenta.con === cuenta.de}
+                    onClick={() => onEtiqueta(etiquetaElegida, true)}
+                    className="btn-cayla btn-enlace text-[12.5px]"
+                  >
+                    Poner «{nombreElegida}» en todas
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deshabilitado || cuenta.con === 0}
+                    onClick={() => onEtiqueta(etiquetaElegida, false)}
+                    className="btn-cayla btn-enlace text-[12.5px]"
+                  >
+                    Quitar «{nombreElegida}» de todas
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
+        </div>
+      )}
 
       <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         <table className="w-full border-separate border-spacing-0 text-[13px]" id="matriz-variantes">
@@ -179,7 +257,20 @@ export function MatrizStockFicha({
               </th>
               {m.tallas.map((t) => (
                 <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
-                  {n.talla(t) || "Única"}
+                  {onCorregirTalla ? (
+                    <button
+                      type="button"
+                      disabled={deshabilitado}
+                      title={`Corregir la talla ${n.talla(t) || "Única"}, si se registró mal`}
+                      onClick={() => onCorregirTalla(t)}
+                      className="group inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
+                    >
+                      {n.talla(t) || "Única"}
+                      <Pencil aria-hidden className="h-2.5 w-2.5 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                    </button>
+                  ) : (
+                    n.talla(t) || "Única"
+                  )}
                 </th>
               ))}
               {conColumnaTotal && (
@@ -207,6 +298,7 @@ export function MatrizStockFicha({
                     className={`sticky left-0 z-[1] relative border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta @lg:whitespace-nowrap @lg:py-2 @lg:pl-4 @lg:pr-2.5 @lg:text-[13.5px] ${fondoFila}`}
                   >
                     <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]" style={{ background: franja }} />
+                    <span className="flex items-center justify-between gap-1.5">
                     <button
                       type="button"
                       aria-pressed={c === colorActivo}
@@ -220,6 +312,8 @@ export function MatrizStockFicha({
                       {nombreColor}
                       {esNuevo && <span className="ml-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
                     </button>
+                    <MenuAcciones etiqueta={`Acciones del color ${nombreColor}`} items={accionesDeColor(c)} deshabilitado={deshabilitado} />
+                    </span>
                   </th>
                   {m.tallas.map((t) => {
                     const f = m.celda(c, t);
@@ -235,8 +329,12 @@ export function MatrizStockFicha({
                     const etiqueta = `${nombreColor} en ${n.talla(t) || "Única"}`;
                     return (
                       <td key={f.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
-                        <span className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${enUnidades ? "min-w-[88px] @lg:min-w-[98px]" : "min-w-[66px] @lg:min-w-[76px]"}`}>
-                          {enUnidades ? celdaUnidades(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
+                        <span
+                          className={`flex h-12 items-center justify-center px-0.5 @lg:h-[52px] ${vista === "costo" && ctx.veCosto ? "flex-col gap-px" : ""} ${
+                            enUnidades ? "min-w-[88px] @lg:min-w-[98px]" : "min-w-[66px] @lg:min-w-[76px]"
+                          }`}
+                        >
+                          {enUnidades ? celdaUnidades(f, etiqueta) : enEtiquetas ? celdaEtiqueta(f, etiqueta) : celdaDinero(f, etiqueta, vista)}
                         </span>
                       </td>
                     );
@@ -333,6 +431,44 @@ export function MatrizStockFicha({
     );
   }
 
+  /** ✓ si la variante lleva la etiqueta elegida; tocarla se la pone o se la quita (en ámbar si cambió contra lo guardado). */
+  function celdaEtiqueta(f: FilaFicha, etiqueta: string) {
+    if (!etiquetaElegida) return <span className="text-tinta/30">—</span>;
+    const lleva = f.etiquetaIds.includes(etiquetaElegida);
+    const cambiada = etiquetaCambiada(f, etiquetaElegida);
+    const todas = f.etiquetaIds.map(textoEtiqueta).filter(Boolean).join(", ");
+    return (
+      <button
+        type="button"
+        aria-pressed={lleva}
+        aria-label={`${nombreElegida} en ${etiqueta}`}
+        title={`${etiqueta}: ${todas ? `lleva ${todas}` : "sin etiquetas"}${cambiada ? " · se guarda con «Revisar y guardar»" : ""}`}
+        disabled={deshabilitado}
+        onClick={() => onEtiqueta(etiquetaElegida, !lleva, [f.clave])}
+        data-cambiada={cambiada || undefined}
+        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-[13px] font-semibold transition-colors duration-200 ease-cayla disabled:opacity-40 ${
+          lleva ? "border-tinta bg-tinta text-crema hover:bg-tinta/85" : "border-sand bg-hueso text-transparent hover:border-taupe"
+        } ${cambiada ? "ring-2 ring-ambar ring-offset-1 ring-offset-papel" : ""} ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-offset-2 outline-ambar"}`}
+      >
+        ✓
+      </button>
+    );
+  }
+
+  /** El margen bajo el costo (en Costos): en rojo profundo si se pierde, en ámbar si es bajo. */
+  function margenBajo(f: FilaFicha) {
+    const margen = margenDeFila(f);
+    const nivel = nivelMargen(margen);
+    return (
+      <span
+        className={`text-[10.5px] leading-none tabular-nums ${nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar-profundo" : "text-taupe"}`}
+        title={nivel === "negativo" ? "Con este precio se pierde dinero en cada venta" : nivel === "bajo" ? "Menos de 30 %: un descuento de campaña ya se come la ganancia" : "Margen"}
+      >
+        {margen === null ? "—" : `${margen.toFixed(0)} %`}
+      </span>
+    );
+  }
+
   /** La caja de precio o de costo de la celda (en ámbar si cambió). Un costo que viene de Compras se ve, no se corrige. */
   function celdaDinero(f: FilaFicha, etiqueta: string, campo: CampoBloque) {
     const valor = campo === "precio" ? f.precio : f.costo;
@@ -340,12 +476,16 @@ export function MatrizStockFicha({
     const cambiado = antes !== null && Number(antes) !== Number(valor);
     if (campo === "costo" && f.costoFijo) {
       return (
-        <span className="px-1 text-[13px] tabular-nums text-tinta/60" title="Este costo viene de compras: no se corrige a mano">
-          {texto(valor)}
-        </span>
+        <>
+          <span className="px-1 text-[13px] tabular-nums text-tinta/60" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
+            {texto(valor)}
+          </span>
+          {margenBajo(f)}
+        </>
       );
     }
     return (
+      <>
       <input
         type="text"
         inputMode="decimal"
@@ -361,6 +501,8 @@ export function MatrizStockFicha({
           cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
         } ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-ambar"}`}
       />
+      {campo === "costo" && margenBajo(f)}
+      </>
     );
   }
 }

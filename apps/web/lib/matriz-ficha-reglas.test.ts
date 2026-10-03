@@ -3,7 +3,13 @@ import {
   armarMatriz,
   cambiosDeStock,
   cantidadDeCelda,
+  coloresQueSeQuitan,
+  coloresYaDesactivados,
   conPaso,
+  correccionesPendientes,
+  cuentaEtiqueta,
+  devolverColor,
+  etiquetaCambiada,
   fijarCelda,
   grupoDeStockEnHoja,
   hrefEtiquetasDeSubidas,
@@ -11,6 +17,7 @@ import {
   lineasDelLote,
   minimoDeCelda,
   pasoDeCelda,
+  ponerEtiqueta,
   rangoDePrecios,
   resumenVariantes,
   tonoDeBarra,
@@ -193,5 +200,80 @@ describe("stock que espera a «Revisar y guardar» (ADR-0313, act. 2026-10-02 no
     expect(una[0].unidades).toBe(2);
     expect(hrefEtiquetasDeSubidas(dos)).toBe("/etiquetas-de-precio?unidades=a:3,c:4");
     expect(hrefEtiquetasDeSubidas([])).toBeNull();
+  });
+});
+
+describe("etiquetas y colores que se quitan (ADR-0313, act. 2026-10-03)", () => {
+  const NUEVO = "et-nuevo";
+  const OFERTA = "et-oferta";
+
+  it("cuenta solo las activas", () => {
+    const filas = [fila("CRU", "s", { etiquetaIds: [NUEVO] }), fila("CRU", "m"), fila("NEG", "s", { activo: false, etiquetaIds: [NUEVO] })];
+    expect(cuentaEtiqueta(filas, NUEVO)).toEqual({ con: 1, de: 2 });
+  });
+
+  it("pone en todas las activas sin tocar las otras etiquetas ni las desactivadas", () => {
+    const filas = [fila("CRU", "s", { etiquetaIds: [OFERTA] }), fila("CRU", "m", { etiquetaIds: [NUEVO] }), fila("NEG", "s", { activo: false })];
+    const r = ponerEtiqueta(filas, NUEVO, true);
+    expect(r[0].etiquetaIds).toEqual([OFERTA, NUEVO]);
+    expect(r[1]).toBe(filas[1]); // ya la tenía: misma fila, sin cambio fantasma
+    expect(r[2].etiquetaIds).toEqual([]);
+  });
+
+  it("quita de una sola variante", () => {
+    const filas = [fila("CRU", "s", { etiquetaIds: [NUEVO, OFERTA] }), fila("CRU", "m", { etiquetaIds: [NUEVO] })];
+    const r = ponerEtiqueta(filas, NUEVO, false, ["CRU-s"]);
+    expect(r[0].etiquetaIds).toEqual([OFERTA]);
+    expect(r[1].etiquetaIds).toEqual([NUEVO]);
+  });
+
+  it("marca el cambio contra lo guardado, no en una nueva", () => {
+    const tocada = fila("CRU", "s", { etiquetaIds: [NUEVO] });
+    expect(etiquetaCambiada(tocada, NUEVO)).toBe(true);
+    expect(etiquetaCambiada(tocada, OFERTA)).toBe(false);
+    expect(etiquetaCambiada({ ...tocada, guardada: null }, NUEVO)).toBe(false);
+  });
+
+  it("un color que se vendía y quedó sin tallas activas se quita; uno ya apagado no", () => {
+    const filas = [
+      fila("CRU", "s"),
+      fila("NEG", "s", { activo: false }),
+      fila("NEG", "m", { activo: false }),
+      fila("ROJ", "s", { activo: false, guardada: { ...fila("ROJ", "s").guardada!, activo: false } }),
+    ];
+    expect(coloresQueSeQuitan(filas)).toEqual(["NEG"]);
+    expect(coloresYaDesactivados(filas)).toEqual(["ROJ"]);
+  });
+
+  it("con una talla todavía activa, el color no se quita", () => {
+    expect(coloresQueSeQuitan([fila("NEG", "s", { activo: false }), fila("NEG", "m")])).toEqual([]);
+  });
+
+  it("devolver el color reactiva solo lo que estaba activo en la base", () => {
+    const apagadaAntes = fila("NEG", "l", { activo: false, guardada: { ...fila("NEG", "l").guardada!, activo: false } });
+    const r = devolverColor([fila("NEG", "s", { activo: false }), apagadaAntes, fila("CRU", "s", { activo: false })], "NEG");
+    expect(r.map((f) => f.activo)).toEqual([true, false, false]);
+  });
+});
+
+describe("correccionesPendientes", () => {
+  it("junta las tallas de un color corregido y las de una talla corregida", () => {
+    const filas = [
+      fila("ARN", "s", { colorCodigo: "BEI" }),
+      fila("ARN", "m", { colorCodigo: "BEI" }),
+      fila("CRU", "s", { tallaId: "m" }),
+      fila("NEG", "s", { colorCodigo: "CRU", tallaId: "l" }),
+      fila("NEG", "m"),
+    ];
+    const r = correccionesPendientes(filas, n);
+    expect(r.map((c) => c.texto)).toEqual(["ARN → BEI (2 tallas)", "Talla S → M en CRU", "NEG S → CRU L"]);
+    expect(r[0].claves).toEqual(["ARN-s", "ARN-m"]);
+    expect(r[0].destino).toEqual({ colorCodigo: "ARN" });
+    expect(r[1].destino).toEqual({ tallaId: "s" });
+    expect(r[2].destino).toEqual({ colorCodigo: "NEG", tallaId: "s" });
+  });
+
+  it("sin correcciones (o solo nuevas), nada", () => {
+    expect(correccionesPendientes([fila("CRU", "s"), { ...fila("NEG", "s"), guardada: null }], n)).toEqual([]);
   });
 });

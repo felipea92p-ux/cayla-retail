@@ -147,25 +147,6 @@ export function enGrupo(f: FilaFicha): boolean {
   return f.activo || !!f.guardada?.activo;
 }
 
-export type GrupoColor = { colorCodigo: string | null; filas: FilaFicha[] };
-
-/** Las filas agrupadas por color (en el orden de las filas) y ordenadas por talla; aparte, las desactivadas de antes. */
-export function agruparPorColor(filas: readonly FilaFicha[], n: NombresFicha): { grupos: GrupoColor[]; desactivadas: FilaFicha[] } {
-  const porTalla = (a: FilaFicha, b: FilaFicha) => compararTallas(n.talla(a.tallaId), n.talla(b.tallaId));
-  const grupos: GrupoColor[] = [];
-  for (const f of filas) {
-    if (!enGrupo(f)) continue;
-    let g = grupos.find((x) => x.colorCodigo === f.colorCodigo);
-    if (!g) grupos.push((g = { colorCodigo: f.colorCodigo, filas: [] }));
-    g.filas.push(f);
-  }
-  for (const g of grupos) g.filas.sort(porTalla);
-  const desactivadas = filas.filter((f) => !enGrupo(f));
-  const ordenColor = (c: string | null) => filas.findIndex((f) => f.colorCodigo === c);
-  desactivadas.sort((a, b) => ordenColor(a.colorCodigo) - ordenColor(b.colorCodigo) || porTalla(a, b));
-  return { grupos, desactivadas };
-}
-
 function ejesDe(filas: readonly FilaFicha[], n: NombresFicha): { colores: (string | null)[]; tallas: (string | null)[] } {
   const colores: (string | null)[] = [];
   const tallas: (string | null)[] = [];
@@ -669,11 +650,6 @@ export function cambiarFila(filas: readonly FilaFicha[], clave: string, cambio: 
   return filas.map((f) => (f.clave === clave ? { ...f, ...cambio } : f));
 }
 
-/** Quita una fila NUEVA (una que ya existe no se quita: se desactiva). */
-export function quitarNueva(filas: readonly FilaFicha[], clave: string): FilaFicha[] {
-  return filas.filter((f) => f.clave !== clave || f.id !== null);
-}
-
 /** «Desactivar color»: desactiva TODAS las tallas del color de una vez. Las que ya existen se desactivan (nunca se borran: guardan
  *  stock e historia); las nuevas, que todavía no existen, simplemente se quitan. */
 export function desactivarColor(filas: readonly FilaFicha[], claves: readonly string[]): FilaFicha[] {
@@ -886,8 +862,6 @@ export function consolidar(filas: readonly FilaFicha[], deLaBase: readonly Varia
 // Lo que va a pasar al guardar, y lo que falta
 // ---------------------------------------------------------------------------
 
-const plural = (k: number, uno: string, varios: string) => (k === 1 ? uno : varios);
-
 /**
  * Las variantes como las compara `resumenDeCambios` de `lib/producto-cambios-reglas.ts` (ADR-0257, guardar en dos
  * tiempos): la barra «Tienes N cambios sin guardar», la marca de cada fila y la hoja «Revisa y guarda los cambios» salen
@@ -1049,28 +1023,6 @@ export function leerEstadoVariantes(data: unknown): Record<string, EstadoVariant
     salida[x.variante_id] = { stock: Number(x.stock) || 0, apartado: Number(x.apartado) || 0, sedes, vendida: x.vendida === true };
   }
   return salida;
-}
-
-/** «TRU 8 · AQP 2 · 1 apartada»: lo que se lee al pasar el mouse por las unidades de una fila. */
-export function textoSedes(e: EstadoVariante): string {
-  const partes = e.sedes.map((s) => `${s.nombre} ${s.cantidad}`);
-  if (e.apartado > 0) partes.push(`${e.apartado} ${plural(e.apartado, "apartada", "apartadas")}`);
-  return partes.length > 0 ? partes.join(" · ") : "Sin unidades en ninguna sede";
-}
-
-/**
- * Una fila que se desactiva con unidades lo dice en la fila (no bloquea: desactivar se permite siempre, Felipe). Dice la
- * verdad: desactivar NO saca las unidades del inventario —siguen en el stock de la ficha, en /productos y en el conteo—,
- * solo deja de venderlas (Vender ya no la encuentra). Y deja de venderlas en TODAS las sedes: `activo` es de la variante,
- * no de la sede, así que trasladarlas antes no sirve (la receta vieja decía «trasládalas»). Si las prendas están, que se
- * vendan antes o un ajuste las pase a otra variante; si no están, un ajuste las deja en 0.
- */
-export function avisoDesactivar(f: FilaFicha, estado: Readonly<Record<string, EstadoVariante>> | null): string | null {
-  if (f.activo || !f.guardada?.activo || !f.id || !estado) return null;
-  const e = estado[f.id];
-  if (!e || e.stock <= 0) return null;
-  const donde = e.sedes.length === 1 ? `en ${e.sedes[0].nombre}` : e.sedes.length > 1 ? `en ${e.sedes.length} sedes` : "";
-  return `Sus ${e.stock} u.${donde ? ` ${donde}` : ""} siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.`;
 }
 
 /**

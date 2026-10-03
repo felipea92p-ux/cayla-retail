@@ -57,6 +57,9 @@ import {
   costosSinComprobar,
   elegirTemporada,
   esChoqueDeCandados,
+  bloqueoPorVenta,
+  choqueDeCorreccion,
+  desactivarColor,
   etiquetasComunes,
   filasDelEje,
   filasDeProducto,
@@ -69,25 +72,39 @@ import {
   payloadVariantes,
   problemasVariantes,
   cambiarFila,
+  textoChoque,
+  todasNuevas,
   ubicar,
   ubicarTemporadas,
   variantesParaResumen,
   type CampoBloque,
+  type Destino,
   type EstadoVariante,
   type FilaFicha,
   type NombresFicha,
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
-import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
 import { MatrizStockFicha, MotivoDeLaVisita, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
 import { AgregarColoresModal, type ResultadoAgregarColores } from "@/components/ficha-producto/AgregarColoresModal";
+import { AgregarTallasModal } from "@/components/ficha-producto/AgregarTallasModal";
+import { CorregirVarianteModal, type EjesCorreccion } from "@/components/ficha-producto/CorregirVarianteModal";
+import type { ItemMenu } from "@/components/ui/MenuAcciones";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { FotoSubida } from "@/components/ficha-producto/useSubirFotos";
-import { grupoDeStockEnHoja, hrefEtiquetasDeSubidas, resumenVariantes } from "@/lib/matriz-ficha-reglas";
+import {
+  coloresQueSeQuitan,
+  coloresYaDesactivados,
+  correccionesPendientes,
+  devolverColor,
+  grupoDeStockEnHoja,
+  hrefEtiquetasDeSubidas,
+  ponerEtiqueta,
+  resumenVariantes,
+} from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
@@ -419,7 +436,6 @@ export function ProductoForm({
   type Seccion = "producto" | "tejido" | "fotos" | "variantes";
   const [abiertas, setAbiertas] = useState<Record<Seccion, boolean>>({ producto: true, tejido: true, fotos: true, variantes: true });
   const abrir = (sec: Seccion) => setAbiertas((a) => (a[sec] ? a : { ...a, [sec]: true }));
-  const [verDetalle, setVerDetalle] = useState(false);
   // Qué se escribe en la matriz (Unidades de hoy · Precios · Costos): las pestañas de la tabla, como en «Unidades de hoy» del alta.
   const [vista, setVista] = useState<VistaMatriz>("unidades");
   /** Muestra la pestaña y, ya dibujada (el campo a enfocar recién existe), hace lo que sigue: el foco de un error. */
@@ -429,6 +445,9 @@ export function ProductoForm({
     window.setTimeout(luego, 30);
   }
   const [agregandoColor, setAgregandoColor] = useState(false);
+  const [agregandoTalla, setAgregandoTalla] = useState(false);
+  // «Corregir color» (del «⋯» de un color) o «Corregir talla» (de la cabecera de una talla): las filas que corrige y de qué eje.
+  const [corrigiendo, setCorrigiendo] = useState<{ claves: string[]; ejes: EjesCorreccion } | null>(null);
   // `undefined` = cerrado; un color (o `null`, sin color) = el ajuste de siempre abierto para ese color (ADR-0291: una talla que
   // faltó en un conteo no se suma a ciegas desde el stepper).
   const [ajusteDeColor, setAjusteDeColor] = useState<string | null | undefined>(undefined);
@@ -509,8 +528,8 @@ export function ProductoForm({
   // El guardado principal ya salió bien y falló lo que sigue (etiquetas, temporada, o la corrección no se aplicó): la barra
   // lo dice («lo demás ya quedó guardado») en vez de «Aún no se guardó nada», que contradecía al aviso de error.
   const [seGuardoParte, setSeGuardoParte] = useState(false);
-  // Sube con «Descartar» (y su «Deshacer»): la sección de variantes vuelve a nacer, y con ella lo que guarda por su cuenta
-  // («Precio puesto en N variantes…» de «Cambiar en bloque», las etiquetas abiertas, «Mostrar desactivadas»).
+  // Sube con «Descartar» (y su «Deshacer»): «Cambiar en bloque» vuelve a nacer, y con él lo que guarda por su cuenta («Precio
+  // puesto en N variantes…»).
   const [reinicio, setReinicio] = useState(0);
 
   // Lo que impide guardar de las variantes (y un monto escrito en «Cambiar en bloque» sin aplicar): «Revisar y guardar» lo
@@ -1024,6 +1043,48 @@ export function ProductoForm({
     setColorElegido(c);
   }
 
+  /** «Quitar color» (el «⋯» de un color en la matriz): deja de venderse. Nunca se borra nada: las variantes que ya existen se
+   *  desactivan y conservan su stock y su historia; las nuevas, que todavía no existen, simplemente no se crean. Lo tocado en su
+   *  stock se suelta (no se ajusta una talla que se está quitando). Se guarda con «Revisar y guardar» y hasta entonces se deshace. */
+  function quitarColor(c: string | null) {
+    const claves = filas.filter((f) => f.activo && f.colorCodigo === c).map((f) => f.clave);
+    stock.soltar(filas.filter((f) => claves.includes(f.clave)).map((f) => f.id ?? f.clave));
+    setFilas((actual) => desactivarColor(actual, claves));
+  }
+
+  /** El «⋯» de cada color de la matriz: corregirlo si se registró mal (conserva stock e historia) o quitarlo. */
+  function accionesDeColor(c: string | null): ItemMenu[] {
+    const delColor = filasDelEje(filas, "color", c);
+    const nuevo = todasNuevas(delColor);
+    const bloqueo = bloqueoPorVenta(delColor, estadoVariantes, esLider, nombres);
+    const items: ItemMenu[] = [];
+    if (puedeCorregir) {
+      items.push({
+        clave: "corregir",
+        // «Corregir» si ya existe (se registró mal); «Cambiar» si es nuevo y todavía no existe (D-136).
+        etiqueta: nuevo ? "Cambiar color" : "Corregir color (se registró mal)",
+        onSelect: () => setCorrigiendo({ claves: delColor.map((f) => f.clave), ejes: "color" }),
+        motivo: nuevo ? undefined : (bloqueo ?? undefined),
+      });
+    }
+    items.push({ clave: "quitar", etiqueta: nuevo ? "Quitar este color nuevo" : "Quitar color", onSelect: () => quitarColor(c), peligro: true });
+    return items;
+  }
+
+  // Lo que dice la línea bajo la tabla: los colores que se quitan al guardar (con su «Deshacer» y, si tienen unidades, cuántas
+  // quedan en el inventario) y los que ya no se vendían.
+  const seQuitan = coloresQueSeQuitan(filas);
+  const correcciones = correccionesPendientes(filas, nombres);
+  /** «Deshacer» de una corrección: vuelve a su color o talla guardados, salvo que esa combinación ya la ocupe otra variante. */
+  function deshacerCorreccion(claves: string[], destino: Destino) {
+    const choque = choqueDeCorreccion(filas, claves, destino);
+    if (choque) return void avisar.error(textoChoque(choque, destino, filas, ctx));
+    setFilas(corregir(filas, claves, destino));
+  }
+  const yaDesactivados = coloresYaDesactivados(filas);
+  const unidadesDe = (c: string | null) =>
+    filas.reduce((s, f) => s + (f.colorCodigo === c && f.guardada?.activo && f.id ? (estadoVariantes?.[f.id]?.stock ?? 0) : 0), 0);
+
   return (
     <form
       onSubmit={revisar}
@@ -1358,7 +1419,7 @@ export function ProductoForm({
               onVista={(v) => {
                 setVista(v);
                 // Un monto escrito sin aplicar sigue avisando, ahora con el campo de la pestaña nueva.
-                if (v !== "unidades" && bloquePendiente) setBloquePendiente(v);
+                if ((v === "precio" || v === "costo") && bloquePendiente) setBloquePendiente(v);
               }}
               bloque={
                 filas.some((f) => f.activo) ? (
@@ -1381,14 +1442,67 @@ export function ProductoForm({
               onVerColor={setColorVisto}
               onCambioFila={(clave, cambio) => setFilas((actual) => cambiarFila(actual, clave, cambio))}
               onAbrirModal={(c) => setAjusteDeColor(c)}
+              etiquetas={opcionesEtiqueta}
+              avisoEtiquetas={avisoEtiquetas}
+              onEtiqueta={(id, poner, claves) => setFilas((actual) => ponerEtiqueta(actual, id, poner, claves))}
+              accionesDeColor={accionesDeColor}
+              onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
               deshabilitado={loading}
             />
 
             {vista === "unidades" && <MotivoDeLaVisita stock={stock} deshabilitado={loading} />}
 
-            <button type="button" id="variantes-agregar-color" className="taller-agregar-color" disabled={loading} onClick={() => setAgregandoColor(true)}>
-              + Agregar color
-            </button>
+            {correcciones.length > 0 && (
+              <ul className="mt-2.5 space-y-1.5" aria-label="Correcciones de color o talla que se guardan">
+                {correcciones.map((c) => (
+                  <li key={c.clave} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                    <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                    <span className="min-w-0">
+                      Se corrige al guardar: <b className="font-semibold">{c.texto}</b>. Conserva su stock y su historia.{" "}
+                      <button type="button" disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="btn-cayla btn-enlace text-[12px]">
+                        Deshacer
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {seQuitan.length > 0 && (
+              <ul className="mt-2.5 space-y-1.5" aria-label="Colores que se quitan al guardar">
+                {seQuitan.map((c) => {
+                  const u = unidadesDe(c);
+                  return (
+                    <li key={c ?? "sin-color"} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                      <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                      <span className="min-w-0">
+                        <b className="font-semibold">{nombres.color(c)}</b> deja de venderse al guardar: sus variantes se desactivan y conservan su historia
+                        {u > 0
+                          ? `. Sus ${u} u. siguen en el inventario, pero ya no se podrán vender en ninguna sede: si existen, véndelas antes o pide un ajuste.`
+                          : "."}{" "}
+                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="btn-cayla btn-enlace text-[12px]">
+                          Deshacer
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {yaDesactivados.length > 0 && (
+              <p className="mt-2 text-[12px] text-taupe">
+                Ya no se venden: {yaDesactivados.map((c) => nombres.color(c)).join(", ")}. Para volver a venderlos, «+ Agregar color» los reactiva con su
+                historia.
+              </p>
+            )}
+
+            <div className="grid gap-x-2.5 @lg:grid-cols-2">
+              <button type="button" id="variantes-agregar-color" className="taller-agregar-color" disabled={loading} onClick={() => setAgregandoColor(true)}>
+                + Agregar color
+              </button>
+              <button type="button" className="taller-agregar-color" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
+                + Agregar talla
+              </button>
+            </div>
 
             {/* «Nacen sin unidades» (NACEN_SIN_UNIDADES): una variante nueva arranca en 0 a propósito. El banner hace obvio el paso
                 siguiente: el mismo stepper de arriba, y lo puesto entra como stock inicial al guardar. */}
@@ -1405,38 +1519,6 @@ export function ProductoForm({
               </div>
             )}
 
-            <div className="mt-4 border-t border-sand pt-3">
-              <button
-                type="button"
-                aria-expanded={verDetalle}
-                onClick={() => setVerDetalle((v) => !v)}
-                className="label-cayla inline-flex items-center gap-1 text-[11px] text-tinta/65 hover:text-tinta"
-              >
-                Más de cada variante: corregir color o talla, agregar talla, etiquetas, margen
-                <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${verDetalle ? "rotate-180" : ""}`} />
-              </button>
-              {verDetalle && (
-                <div className="mt-3">
-                  <VariantesFicha
-                    key={reinicio}
-                    detalle
-                    ctx={ctx}
-                    filas={filas}
-                    problemas={problemas}
-                    onFilas={setFilas}
-                    onBloquePendiente={setBloquePendiente}
-                    tallasCategoria={tallasCategoria}
-                    categoriaNombre={categoriaActual?.nombre}
-                    onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
-                    onFotosDeColores={sumarFotosDeColores}
-                    etiquetas={opcionesEtiqueta}
-                    avisoEtiquetas={avisoEtiquetas}
-                    deshabilitado={loading}
-                    resumen={resumen}
-                  />
-                </div>
-              )}
-            </div>
           </SeccionFicha>
         </div>
 
@@ -1468,6 +1550,28 @@ export function ProductoForm({
           onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
           onConfirmar={agregarColores}
           onClose={() => setAgregandoColor(false)}
+        />
+      )}
+      {agregandoTalla && (
+        <AgregarTallasModal
+          ctx={ctx}
+          filas={filas}
+          tallas={tallasCategoria}
+          categoriaNombre={categoriaActual?.nombre}
+          etiquetasTexto={etiquetasTexto}
+          onConfirmar={(r) => setFilas(agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }))}
+          onClose={() => setAgregandoTalla(false)}
+        />
+      )}
+      {corrigiendo && (
+        <CorregirVarianteModal
+          ctx={ctx}
+          filas={filas}
+          claves={corrigiendo.claves}
+          ejes={corrigiendo.ejes}
+          tallas={tallasCategoria}
+          onConfirmar={(destino) => setFilas(corregir(filas, corrigiendo.claves, destino))}
+          onClose={() => setCorrigiendo(null)}
         />
       )}
       {ajusteDeColor !== undefined && ajusteStock && producto && (

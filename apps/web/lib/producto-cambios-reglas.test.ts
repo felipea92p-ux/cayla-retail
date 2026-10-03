@@ -4,7 +4,6 @@ import {
   agruparCambios,
   CAMPOS_CUBIERTOS,
   cambioDeDato,
-  cambiosDeVariante,
   formatoCosto,
   formatoPrecio,
   NOTA_CORREGIDAS,
@@ -12,7 +11,6 @@ import {
   resumenDeCambios,
   SIN_CAMBIOS,
   textoDeSalidaDeFicha,
-  textoPendienteDeVariante,
   type FichaEditable,
   type NombresFicha,
   type VarianteFicha,
@@ -129,7 +127,6 @@ describe("resumenDeCambios — variantes", () => {
     expect(r.cambios).toEqual([{ tipo: "identidad", indice: 1, nombre: "Gris XS", antes: "Gris XS", despues: "Gris S" }]);
     expect(r.frases).toEqual(["1 variante cambia de color o talla"]);
     expect(r.frasesPasado).toEqual(["1 variante corregida de color o talla"]);
-    expect(textoPendienteDeVariante(cambiosDeVariante(r, 1))).toBe("Color y talla: antes Gris XS");
     expect(agruparCambios(r.cambios)).toEqual([
       {
         clave: "identidad",
@@ -399,26 +396,6 @@ describe("agruparCambios — correcciones, precios en bloque y variantes nuevas 
   it("sin unidades no hay nota: no hay nada que siga en el inventario", () => {
     const ahora = prenda(antes.variantes.map((v) => (v.id === "a" ? { ...v, activo: false } : v)));
     expect(agruparCambios(resumenDeCambios(antes, ahora, nombres).cambios)[0].nota).toBeUndefined();
-  });
-});
-
-describe("las filas de la tabla", () => {
-  it("cada fila recibe solo sus cambios, y dice qué le va a pasar", () => {
-    const r = resumen((f) => {
-      f.variantes[1].activo = false;
-      f.variantes[1].precio = "95";
-      f.variantes[2].costo = "40";
-    });
-    expect(cambiosDeVariante(r, 0)).toEqual([]);
-    expect(textoPendienteDeVariante(cambiosDeVariante(r, 1))).toBe("Se desactiva al guardar · Precio: antes S/ 90");
-    expect(textoPendienteDeVariante(cambiosDeVariante(r, 2))).toBe("Costo: antes sin costo");
-    expect(textoPendienteDeVariante([])).toBe("");
-  });
-
-  it("una fila nueva dice que se agrega", () => {
-    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [], identidad: id("Rojo M") }));
-    const r = resumenDeCambios(ficha(), conFila, nombres);
-    expect(textoPendienteDeVariante(cambiosDeVariante(r, 3))).toBe("Se agrega al guardar");
   });
 });
 
