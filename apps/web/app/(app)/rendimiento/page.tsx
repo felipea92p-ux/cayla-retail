@@ -7,7 +7,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
 import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
 
-// Rendimiento (ADR-0219, ADR-0318). Arriba, el PANEL de la meta de la tienda (`PanelRendimiento`, en el
+// Rendimiento (ADR-0219, ADR-0325). Arriba, el PANEL de la meta de la tienda (`PanelRendimiento`, en el
 // navegador): cifras, cómo va cada persona contra su meta —que la líder de la sede o el Admin pueden cambiar—,
 // las ventas contra la meta y el historial de cambios. Abajo, los dos RANKINGS del mes: «Soles por hora» ordena por
 // el número CONTRAÍDO hacia el resto de la tienda (Efron-Morris/James-Stein, `rendimiento-reglas.ts`) — no por el

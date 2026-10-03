@@ -89,7 +89,7 @@
 
 ## ✅ Paso 0 del plan: los papeles (2026-09-29) — solo documentos
 
-- [x] **ADR-0318** (`docs/adr/0318-meta-por-persona-en-rendimiento-e-inicio.md`) y el acta **D-142 a D-160** (`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`), con las 8 preguntas, lo
+- [x] **ADR-0325** (`docs/adr/0325-meta-por-persona-en-rendimiento-e-inicio.md`) y el acta **D-142 a D-160** (`docs/datos/DECISIONES-2026-09-29-meta-por-persona.md`), con las 8 preguntas, lo
   que se midió y lo que sigue abierto. Números verificados libres en `main`, ramas remotas, PR abiertos, worktrees y `SESIONES-ACTIVAS`.
 - [x] Notas fechadas (sin borrar lo anterior) en D-64, D-68, D-113 y D-125, en ADR-0219 y en ADR-0225 (accesos por función del rol). Enlaces revisados, la suite de la web en verde.
 - [ ] **Abierto para Felipe (detalle en el acta, «Abierto»):** permiso para cambiar metas (propuesta: módulo `rendimiento`); qué hacer sin horario vigente (partes iguales entre quienes marcaron
@@ -111,7 +111,7 @@
 - [ ] **Pendiente:** la carrera REAL de dos conexiones (exige commitear datos: solo en una base desechable, `BASE_DESECHABLE=1`); probada solo la segunda edición con la meta vieja.
 - [ ] **Siguiente: paso 3** (Rendimiento web).
 
-## ✅ Propuesta final de Rendimiento e Inicio — etapa 1 (2026-10-03, ADR-0318 «Actualización 2026-10-03»)
+## ✅ Propuesta final de Rendimiento e Inicio — etapa 1 (2026-10-03, ADR-0325 «Actualización 2026-10-03»)
 - [x] Rendimiento abre en la tienda de la sesión; tarjetas comparativas del mes que son pestañas; proyección del mes. Pruebas: `proyectarMes` (6 casos).
 - [x] Inicio de la integrante: anillo del día, «Lo que va bien», «Tu mes»; accesos con «Nuevo producto» en lugar de «Apartados». Pruebas: `reconocer` y `rangoDeMiLectura`; accesos.
 - [ ] **Falta verlo en el navegador local con sesión** (el login lo inicia Felipe) y a 375 px el Inicio.
@@ -122,14 +122,14 @@
 ## ✅ Auditoría de Rendimiento (2026-10-03) — correcciones hechas
 - [x] Historial de metas leído para cada tienda y causa de las lecturas fallidas en el log (`lib/rendimiento-lectura.ts`).
 - [x] Cambiar de tienda es instantáneo (`TiendasRendimiento`), sin loader.
-- [x] Ranking «Vende más por hora» con cota prudente y centro en la tienda (opción C de Felipe; ADR-0318 «El centro de la contracción»).
+- [x] Ranking «Vende más por hora» con cota prudente y centro en la tienda (opción C de Felipe; ADR-0325 «El centro de la contracción»).
 - [ ] **Falta verlo en el navegador con sesión** (las tres correcciones están probadas por pruebas, no vistas en pantalla).
 - [ ] La cota usa `Z = 2` y `CV = 1`: con `Z = 1,64` el caso de la prueba empata. Revisar con datos reales de TRU cuando haya más de un mes.
 - [ ] `fn_rendimiento_equipo` solo devuelve a quien vendió: quien trabajó horas sin vender no entra al promedio de la tienda.
 - [ ] `reasignar_asesora`, `venta_reasignaciones` y `fn_rendimiento_persona` NO existen (solo nombradas en la cabecera de `20260929160000`): una venta mal atribuida no tiene cómo corregirse.
 
 ## ✅ Paso 5 cerrado en lo del SQL (2026-10-03)
-- [x] Las 12 funciones están en producción (ADR-0318, act. (c)); verificación de solo lectura en 0 diferencias.
+- [x] Las 12 funciones están en producción (ADR-0325, act. (c)); verificación de solo lectura en 0 diferencias.
 - [ ] **Cargar la meta de TRU** (Configuración ▸ Tiendas y caja): hoy el reparto sale vacío y las integrantes no verían su meta (D-150).
 - [ ] Refrescar el diccionario de datos (`pnpm datos:generar:produccion` con un volcado nuevo) y `pnpm datos:comparar`.
 - [ ] Fusionar la web (PR #639) y verla con una cuenta de integrante real.

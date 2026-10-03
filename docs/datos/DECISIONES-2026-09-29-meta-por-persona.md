@@ -17,12 +17,12 @@ sede pueda modificarlo si lo ve oportuno. Que también una líder pueda cambiar 
 sus ventas semanales y cómo va su día.» Y sobre el Inicio: «Si es integrante, que se vea la meta individual, algo simple».
 
 **Dónde sigue:** el diseño técnico, el orden de construcción y el despliegue están en
-[ADR-0318](../adr/0318-meta-por-persona-en-rendimiento-e-inicio.md); la referencia visual, en
+[ADR-0325](../adr/0325-meta-por-persona-en-rendimiento-e-inicio.md); la referencia visual, en
 [`docs/maquetas/rendimiento-meta-2026-09/`](../maquetas/rendimiento-meta-2026-09/) y
 [`docs/maquetas/inicio-bloques-por-rol-2026-09/`](../maquetas/inicio-bloques-por-rol-2026-09/). **Construido hasta hoy (2026-09-29):** los pasos 1 a 4 —«mis ventas de hoy», las metas en la base, el panel de Rendimiento y el Inicio de la integrante— y los accesos del
 Inicio por función del rol, todo en la rama `claude/accesos-rol-terminal-3e62ba` con sus pruebas. **En producción está solo la tabla del historial** (`metas_persona_ajustes`); las 11 funciones
 (`20260930040100` y las partes 2 a 4 de `20260930050200`) **se pegaron en producción el 2026-10-03**, y hasta que Felipe las pegue el panel no aparece (la pantalla cae a los rankings de siempre). El detalle y lo que falta:
-ADR-0318, «Orden de construcción y despliegue».
+ADR-0325, «Orden de construcción y despliegue».
 
 ---
 
@@ -112,7 +112,7 @@ Felipe: «en integrante debería ver tanto semanal como mensual».)*
   Cualquiera de los dos habría dejado las metas sin revisar apagadas mientras las encargadas las ajustan.
 - **SE ROMPE SI:** la primera semana una integrante ve «41 % de tu meta» con una meta que nadie revisó. Por eso queda una
   **condición de despliegue**: cargar y revisar las metas de TRU con las encargadas **antes** de publicar el Inicio de la
-  integrante (paso 4 del ADR-0318).
+  integrante (paso 4 del ADR-0325).
 - **Si no hay meta cargada o no hay horario, el bloque no se dibuja** (no muestra «0 %»). *(Decisión de Felipe, 2026-09-29.)*
 
 **D-151 · Qué ve la líder en Rendimiento** → **Hoy · Semana · Mes, abre en Hoy:** las cifras (soles, meta y avance de la sede,
@@ -143,7 +143,7 @@ la integrante verá que su cifra baja del total de la tienda a lo suyo; conviene
 **D-156 · Orden de construcción y despliegue** → seis pasos, cada uno probable por separado (principio 7): **0** estos papeles ·
 **1** «Mis ventas de hoy» (hecho en local) · **2** metas en la base · **3** Rendimiento web · **4** Inicio de la integrante ·
 **5** producción y datos. Las migraciones de producción se ensayan con rollback y se pegan solo con el ok puntual de Felipe,
-**siempre antes que la web**, que oculta el bloque de meta si la base todavía no lo tiene. Detalle en ADR-0318.
+**siempre antes que la web**, que oculta el bloque de meta si la base todavía no lo tiene. Detalle en ADR-0325.
 
 **D-157 · Permiso para cambiar metas** → **se reutiliza el módulo `rendimiento`.** Quien lo ve cambia las metas de su tienda; el Admin, las de todas;
 y nadie cambia la suya (la de la encargada la cambia un Admin). **No hay módulo nuevo.** Felipe: «reutiliza el módulo». *(Decidido el 2026-09-29, después del acta.)*

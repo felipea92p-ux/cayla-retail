@@ -80,7 +80,7 @@ describe("contraerSolesPorHora", () => {
   });
 });
 
-describe("construirRankingSolesPorHora: el orden respeta al crudo cuando la exposición es la misma (ADR-0318, «El centro de la contracción»)", () => {
+describe("construirRankingSolesPorHora: el orden respeta al crudo cuando la exposición es la misma (ADR-0325, «El centro de la contracción»)", () => {
   // Antes del 2026-10-03, con el centro en «el resto», 100 h y 30 ventas cada una, crudo 15 y 9, salían 11,57 y 12,43: invertido.
   it("con las MISMAS horas y las MISMAS ventas, quien tiene el crudo más alto no queda por debajo de quien lo tiene más bajo", () => {
     const crudos = ["A", "E", "C", "D", "B"]; // de mayor a menor crudo: 90, 80, 75, 70, 60 por venta

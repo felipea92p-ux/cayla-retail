@@ -36,7 +36,7 @@
  * llegar a esas 40 ventas. Es la misma idea que ya usa Frescura para su vara por categoría
  * (contraerElResto: cuando una categoría no tiene evidencia propia, pesa la del resto).
  *
- * ACTUALIZACIÓN 2026-10-03 (Felipe eligió la opción C de la auditoría; ADR-0318, «El centro de la contracción»):
+ * ACTUALIZACIÓN 2026-10-03 (Felipe eligió la opción C de la auditoría; ADR-0325, «El centro de la contracción»):
  *   1. El centro de la contracción pasa a ser el promedio de TODA la tienda (con la persona adentro), no el del «resto» sin ella.
  *      Con el «resto», dos personas con las mismas horas y menos de 40 ventas cada una salían en orden CONTRARIO al crudo
  *      (el peso w de cada una era menor que 0,5 y cada una se jalaba más allá de la otra), y con dos personas el «resto» de una es solo la

@@ -5,7 +5,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { acumulado, avance, type DiaGrafico } from "@/lib/rendimiento-meta-reglas";
 
 /* ====================================================================
-   «Ventas contra la meta» (ADR-0318, spike docs/maquetas/rendimiento-meta-2026-09/)
+   «Ventas contra la meta» (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
 
    Semana | Mes; el mes se ve Acumulado (¿llego o no llego?) o Por día. Lo dibujan la líder (la tienda) y, más
    adelante, la integrante (solo lo suyo): por eso todo el texto llega por props.

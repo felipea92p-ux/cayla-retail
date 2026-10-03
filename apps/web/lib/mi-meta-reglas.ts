@@ -1,5 +1,5 @@
 /**
- * «Mi meta» en el Inicio de una integrante (ADR-0318, D-149 y D-150): las reglas puras que arman lo que ve de SÍ MISMA —su
+ * «Mi meta» en el Inicio de una integrante (ADR-0325, D-149 y D-150): las reglas puras que arman lo que ve de SÍ MISMA —su
  * meta de hoy, su mes y su gráfico— con lo que devuelven `fn_mi_meta` y `fn_mis_ventas_por_dia`. Sin React ni supabase: las
  * usa `inicio.ts` en el servidor y se prueban en `mi-meta-reglas.test.ts`.
  *

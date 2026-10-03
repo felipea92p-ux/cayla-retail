@@ -93,7 +93,7 @@ mensual por tienda, el líder la reparte.**
 > Rendimiento muestra el avance de la tienda contra su meta del mes y cuánto aportó cada persona. El reparto se retoma el
 > día que la colaboradora pueda ver sus cifras. *El texto de arriba se conserva como quedó el 2026-09-21.*
 
-> **Actualización (2026-09-29, Felipe; D-142 a D-148 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0318):** **la meta por persona se construye.**
+> **Actualización (2026-09-29, Felipe; D-142 a D-148 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0325):** **la meta por persona se construye.**
 > Sale de la meta de la sede repartida por **horas programadas** (Dynamic), se fija **mensual** y se calcula cada día; **la líder de la sede y el
 > Admin pueden cambiarla, con motivo e historial**; y se mide con quién atendió cada venta. Sigue **sin dinero**: no se usa para pagar ni evaluar
 > (D-65, D-142). *La regla de «mensual por tienda, el líder la reparte» de arriba se cumple con un reparto automático que el líder ajusta.*
@@ -140,7 +140,7 @@ las de su sede; Felipe, todas. Nunca entre compañeras salvo el top 3 (D-66).
 >
 > *El texto de arriba se conserva como quedó el 2026-09-21.*
 
-> **Actualización (2026-09-29, Felipe; D-149 y D-150 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0318):** **la integrante vuelve a ver lo suyo**, y solo
+> **Actualización (2026-09-29, Felipe; D-149 y D-150 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0325):** **la integrante vuelve a ver lo suyo**, y solo
 > lo suyo: su meta de hoy, su mes y su gráfico Semana | Mes en el Inicio, **encendido por defecto**. Sigue sin ver a sus compañeras ni un ranking (el top 3 de
 > D-66 sigue en pausa), y el módulo Rendimiento sigue siendo de las encargadas y el Admin.
 

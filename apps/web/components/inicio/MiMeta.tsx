@@ -5,7 +5,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { reconocer, resumirMiMeta, type MiMeta } from "@/lib/mi-meta-reglas";
 import { formatoSoles } from "@/lib/resumen-formato";
 
-// ── Mi meta (ADR-0318: la integrante ve SOLO lo suyo; la meta es para acompañar, no para pagar ni evaluar) ─────────────────
+// ── Mi meta (ADR-0325: la integrante ve SOLO lo suyo; la meta es para acompañar, no para pagar ni evaluar) ─────────────────
 // Propuesta final de Felipe, 2026-10-03 (docs/maquetas/rendimiento-vistas-2026-10/inicio-final.html): el anillo del día arriba,
 // «Lo que va bien» debajo y «Tu mes» al final. Los tres son Server Components: no necesitan JavaScript.
 

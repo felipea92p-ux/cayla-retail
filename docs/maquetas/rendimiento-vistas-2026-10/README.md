@@ -1,7 +1,7 @@
 # Rendimiento e Inicio de la integrante: cuatro vistas cada uno (spike, 2026-10-03)
 
 Dos archivos autocontenidos (se abren en el navegador). **Datos inventados.** No tocan la web ni la base. La barra oscura de arriba
-(variante, rol, hora, ancho) no existe en el ERP. Extienden `../rendimiento-meta-2026-09/` (ADR-0318, D-142 a D-160).
+(variante, rol, hora, ancho) no existe en el ERP. Extienden `../rendimiento-meta-2026-09/` (ADR-0325, D-142 a D-160).
 
 | Archivo | Pregunta que responde |
 |---|---|

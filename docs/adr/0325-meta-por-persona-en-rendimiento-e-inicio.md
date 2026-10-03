@@ -1,4 +1,4 @@
-# ADR-0318 — Meta por persona: se reparte sola desde la de la sede, la ajusta la líder de sede y la integrante ve la suya
+# ADR-0325 — Meta por persona: se reparte sola desde la de la sede, la ajusta la líder de sede y la integrante ve la suya
 
 **Fecha:** 2026-09-29
 **Estado:** **Diseño aprobado por Felipe con un spike interactivo; construidos y probados los pasos 1 a 4 (la base, el panel de Rendimiento y el Inicio de la integrante), en la rama
