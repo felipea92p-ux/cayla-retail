@@ -109,6 +109,11 @@ describe("metodosComparados y leerPagos", () => {
     expect(metodosComparados(HOY, AYER).map((m) => m.metodo)).toEqual(["efectivo", "yape", "tarjeta"]);
     expect(metodosComparados(HOY, AYER)[1]).toEqual({ metodo: "yape", hoy: 170, ayerDia: 600 });
   });
+  it("el redondeo del efectivo suma en el total vendido pero no sale como un medio de pago", () => {
+    const hoyConRedondeo = [p("r1", "10:00", 99.9), p("r1", "10:00", 0.1, "redondeo")];
+    expect(vendidoHasta(hoyConRedondeo, null)).toBeCloseTo(100, 5);
+    expect(metodosComparados(hoyConRedondeo, []).map((m) => m.metodo)).toEqual(["efectivo"]);
+  });
   it("lee montos que llegan como texto", () => {
     expect(leerPagos([{ venta_id: "v", minuto: "605", metodo: "yape", monto: "12.50" }])).toEqual([{ ventaId: "v", minuto: 605, metodo: "yape", monto: 12.5 }]);
     expect(leerPagos(null)).toEqual([]);

@@ -118,11 +118,14 @@ export function horasComparadas(hoy: readonly PagoDelDia[], ayer: readonly PagoD
 
 export type MetodoComparado = { metodo: string; hoy: number; ayerDia: number };
 
-/** Cómo te pagaron, hoy contra el día completo de ayer. Orden fijo del sistema; solo los medios que alguno de los dos usó. */
+/**
+ * Cómo te pagaron, hoy contra el día completo de ayer. Orden fijo del sistema; solo los medios que alguno de los dos usó.
+ * El «redondeo» del efectivo (ADR-0311) no es un medio de pago: cuenta en el total vendido, pero no sale como una fila aquí.
+ */
 export function metodosComparados(hoy: readonly PagoDelDia[], ayer: readonly PagoDelDia[]): MetodoComparado[] {
   const orden = ["efectivo", "yape", "tarjeta", "plin", "transferencia"];
   const por = (xs: readonly PagoDelDia[], m: string) => suma(xs.filter((p) => p.metodo === m));
-  const otros = [...new Set([...hoy, ...ayer].map((p) => p.metodo))].filter((m) => !orden.includes(m));
+  const otros = [...new Set([...hoy, ...ayer].map((p) => p.metodo))].filter((m) => !orden.includes(m) && m !== "redondeo");
   return [...orden, ...otros].map((metodo) => ({ metodo, hoy: por(hoy, metodo), ayerDia: por(ayer, metodo) })).filter((m) => m.hoy > 0 || m.ayerDia > 0);
 }
 

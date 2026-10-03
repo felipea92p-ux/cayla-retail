@@ -19,6 +19,9 @@ BASE:      `retail.fn_comparativa_caja(p_ubicacion_id, p_dia)`: un pago por fila
            Sin ventas anuladas; todas las cajas de la sede ese día; líder (cualquier sede) o la sede de la cuenta.
 DESCARTÉ:  (a) prorratear la hora en curso: se compara por minutos reales (a las 15:10, 15:00–15:10 de hoy contra 15:00–15:10 de ayer);
            (b) comparar el cajón: es un estado, no un resultado del día; (c) rojo para «aún no llegas»: es ámbar (informativo).
+REDONDEO:   (ADR-0311) la función devuelve la fila `redondeo` como una más: el total vendido la incluye (coincide con Vender y el
+           historial) y «Cómo te pagaron» la deja fuera, porque no es un medio de pago. Anotado en `REVISADAS` de
+           `scripts/pruebas/redondeo_efectivo.mjs` (la auditoría de lectores de `venta_pagos` fallaba sin esa nota).
 SE ROMPE SI: la base no tiene la función → `getPagosDelDia` devuelve null y Caja se ve como antes (respaldo, nunca se cae).
            «Vendido» aquí es la suma de pagos, no de ítems: puede diferir en el redondeo (ADR-0311) de lo que muestra Vender.
 ```
