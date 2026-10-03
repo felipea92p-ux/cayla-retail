@@ -7,7 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SinFoto } from "@/components/ui/PrendaCelda";
-import { estadoTalla, queHacerPrenda, tallaParaReponer, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 
@@ -140,6 +140,7 @@ export function ExistenciasTarjetas({
   puedeReponer,
   puedeAjustar,
   mostrarMarca,
+  tallasDePrenda,
   onReponer,
   onSubir,
   onAjustar,
@@ -150,6 +151,9 @@ export function ExistenciasTarjetas({
   puedeReponer: boolean;
   puedeAjustar: boolean;
   mostrarMarca: boolean;
+  /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
+   *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras grandes suman solo las que se ven. */
+  tallasDePrenda?: ReadonlyMap<string, number>;
   /** «Reponer prenda» abre la ventana del MODELO entero (todos sus colores y tallas, ADR-0317); `prenda` es el color que se ve. */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Reponer prenda». */
@@ -175,6 +179,10 @@ export function ExistenciasTarjetas({
           // Hasta 4 tallas por renglón; cada renglón lleva sus propios rótulos «Piso» y «Almacén».
           const renglones = Array.from({ length: Math.ceil(p.tallas.length / 4) }, (_, i) => p.tallas.slice(i * 4, i * 4 + 4));
           const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
+          const recortada = textoTallasRecortadas(
+            p.tallas.map((f) => f.talla),
+            tallasDePrenda?.get(p.clave) ?? p.tallas.length
+          );
           return (
             <article
               key={m.productoId}
@@ -277,6 +285,15 @@ export function ExistenciasTarjetas({
                     </div>
                     <div className="mt-[9px] flex w-[162px] shrink-0 flex-col gap-1.5 max-sm:mt-0 max-sm:w-full">
                       {separa && <Pastilla prenda={p} />}
+                      {/* Bajo las cifras de Piso y Almacén: un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
+                      {recortada && (
+                        <span
+                          className="px-1 text-[11px] leading-snug text-taupe"
+                          title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla, Hoy o Condición para ver todas."
+                        >
+                          {recortada}
+                        </span>
+                      )}
                       {(p.apartado > 0 || p.danado > 0) && (
                         <span className="flex flex-wrap gap-1.5">
                           {p.danado > 0 && (

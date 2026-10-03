@@ -8,6 +8,8 @@ import {
   MAX_VARIANTES_EN_URL,
   ordenarPorUrgencia,
   queHacerPrenda,
+  tallasPorPrenda,
+  textoTallasRecortadas,
   sePuedeBajar,
   tallaParaReponer,
   tallaPorCodigo,
@@ -243,5 +245,27 @@ describe("queHacerPrenda — el diagnóstico de la prenda, con las palabras del 
   });
   it("donde no se separa piso y almacén (Taller) no hay diagnóstico de piso", () => {
     expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: null, almacenDisponible: null, disponible: 5, accionHoy: null })])).toEqual({ tipo: "mantener", n: 0 });
+  });
+});
+
+describe("textoTallasRecortadas y tallasPorPrenda — la tarjeta dice qué tallas está sumando (2026-10-03)", () => {
+  it("con todas las tallas a la vista no dice nada", () => {
+    expect(textoTallasRecortadas(["S", "M", "L"], 3)).toBeNull();
+    expect(textoTallasRecortadas([], 3)).toBeNull();
+  });
+  it("con un filtro que dejó algunas, las nombra y dice de cuántas", () => {
+    expect(textoTallasRecortadas(["M", "L"], 4)).toBe("Solo M · L (de 4 tallas)");
+    expect(textoTallasRecortadas([null], 2)).toBe("Solo Única (de 2 tallas)");
+  });
+  it("cuenta las tallas por modelo y color, sin filtros", () => {
+    const cuenta = tallasPorPrenda([
+      { productoId: "p1", color: "Beige" },
+      { productoId: "p1", color: "Beige" },
+      { productoId: "p1", color: "Negro" },
+      { productoId: "p2", color: "Beige" },
+    ]);
+    expect(cuenta.get(JSON.stringify(["p1", "Beige"]))).toBe(2);
+    expect(cuenta.get(JSON.stringify(["p1", "Negro"]))).toBe(1);
+    expect(cuenta.get(JSON.stringify(["p2", "Beige"]))).toBe(1);
   });
 });

@@ -217,3 +217,21 @@ export function ordenarPorUrgencia<F extends FilaPrenda>(prendas: readonly Prend
     .sort((a, b) => urgenciaDePrenda(a.p) - urgenciaDePrenda(b.p) || b.p.tallasPorColgar - a.p.tallasPorColgar || a.i - b.i)
     .map(({ p }) => p);
 }
+
+/** «Solo M · L (de 4 tallas)»: lo que dice una tarjeta cuando un filtro (Talla, Hoy, Condición o una talla escrita) dejó solo
+ *  algunas de sus tallas. Sus cifras grandes (Piso, Almacén) suman solo esas, y sin esta línea «Piso 0» parecía el total del
+ *  modelo en ese color. `null` cuando se ven todas: no hay nada que aclarar. */
+export function textoTallasRecortadas(tallasVistas: readonly (string | null)[], totalTallas: number): string | null {
+  if (tallasVistas.length === 0 || tallasVistas.length >= totalTallas) return null;
+  return `Solo ${tallasVistas.map((t) => t ?? "Única").join(" · ")} (de ${totalTallas} ${totalTallas === 1 ? "talla" : "tallas"})`;
+}
+
+/** Cuántas tallas tiene cada prenda (modelo + color) en la sede, sin filtros: contra esto se mide si una tarjeta está recortada. */
+export function tallasPorPrenda(filas: readonly Pick<FilaPrenda, "productoId" | "color">[]): Map<string, number> {
+  const cuenta = new Map<string, number>();
+  for (const f of filas) {
+    const k = clavePercha(f);
+    cuenta.set(k, (cuenta.get(k) ?? 0) + 1);
+  }
+  return cuenta;
+}

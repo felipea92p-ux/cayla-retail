@@ -31,7 +31,7 @@ import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -434,6 +434,8 @@ export function InventarioPanel({
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
   // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
   const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
+  // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
+  const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
@@ -920,6 +922,7 @@ export function InventarioPanel({
             modelos={paginaTarjetas.filas}
             separa={separa}
             mostrarMarca={mostrarMarca}
+            tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
             onReponer={(prenda, origen) => {
