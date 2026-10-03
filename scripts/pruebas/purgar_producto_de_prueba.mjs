@@ -56,6 +56,10 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 // El script tal cual, sin su begin/commit: la prueba lo envuelve en su propia transacción con ROLLBACK.
 // `PURGA_SCRIPT`: apunta la prueba a una copia mutada del script (prueba de mutación: la prueba TIENE que ponerse en rojo).
 const CUERPO = readFileSync(process.env.PURGA_SCRIPT ?? join(RAIZ, "scripts/purga/purgar-producto-de-prueba.sql"), "utf8").replace(/^(begin|commit);.*\[\[transaccion\]\].*$/gm, "").split("-- [[resumen-final]]")[0];
+// En producción el script corre en su propia transacción, con la escena ya confirmada: se disparan antes los disparadores
+// diferidos de Actividad (ADR-0207), o su «alter table … disable trigger» choca con los eventos pendientes de la escena.
+// Solo esos: las demás comprobaciones diferidas siguen al final, como en producción.
+const CUERPO_TRAS_LA_ESCENA = `set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate;\n${CUERPO}`;
 const RESTAURAR = readFileSync(process.env.RESTAURAR_SCRIPT ?? join(RAIZ, "scripts/purga/restaurar-purga.sql"), "utf8").replace(/^(begin|commit);.*\[\[transaccion\]\].*$/gm, "");
 // Para volver a correrlo dentro de la misma transacción (lo temporal del script ya existe).
 const LIMPIAR = `drop table if exists zz_prod, zz_var, zz_venta, zz_sep, zz_compra, zz_item, zz_compra_item, zz_comp, zz_mov, zz_borrar, zz_hoja,
@@ -293,8 +297,8 @@ const DOCS = {
 };
 const paramsDocs = (extra = {}) => params({ ...DOCS, ...extra });
 
-const purgaDefinitiva = () => `${params({ definitivo: true })}${CUERPO}`;
-const purgaDocsDefinitiva = () => `${paramsDocs({ definitivo: true })}${CUERPO}`;
+const purgaDefinitiva = () => `${params({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`;
+const purgaDocsDefinitiva = () => `${paramsDocs({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`;
 
 // Lo que queda de la ficha y de la venta (todo en cero si la purga corrió).
 const RESTOS = `select concat_ws(',',
@@ -381,7 +385,7 @@ function main() {
 ${RESTOS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint antes_del_ensayo;
-${params()}${CUERPO}
+${params()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint antes_del_ensayo;
 ${RESTOS}
 select count(*) from respaldo_purgas.filas;
@@ -469,7 +473,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) ||
     const r = correr(`${escena()}
 ${purgaDefinitiva()}
 ${LIMPIAR}
-${params({ definitivo: true })}${CUERPO}`);
+${params({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("repetir la purga: se rechaza — ya no hay un producto con ese código", !r.ok && /No encuentro exactamente un producto con código/.test(r.err), r);
   }
 
@@ -477,7 +481,7 @@ ${params({ definitivo: true })}${CUERPO}`);
   const rechazo = (nombre, preparar, patron, opciones = {}) => {
     const r = correr(`${escena(opciones)}
 ${preparar}
-${params()}${CUERPO}`);
+${params()}${CUERPO_TRAS_LA_ESCENA}`);
     esperar(nombre, !r.ok && patron.test(r.err), r.err.slice(0, 1200));
     // Lo importante: nada quedó borrado. Misma corrida hasta la excepción, con un savepoint, y se compara lo de antes con lo de después.
     const s = correr(
@@ -485,7 +489,7 @@ ${params()}${CUERPO}`);
 ${preparar}
 ${RESTOS}
 savepoint s1;
-${params()}${CUERPO}
+${params()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint s1;
 ${RESTOS}`,
       true
@@ -555,11 +559,11 @@ select (select siguiente_numero from retail.series_comprobantes where tipo = 'bo
 
   // 6. Parámetros y producto inexistente.
   {
-    const r = correr(`${escena()}\n${params({ producto: null, ventas: null })}${CUERPO}`);
+    const r = correr(`${escena()}\n${params({ producto: null, ventas: null })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("parámetros faltantes: se rechaza con instrucciones", !r.ok && /Faltan parámetros/.test(r.err), r.err.slice(0, 600));
-    const s = correr(`${escena()}\n${params({ producto: "'ZZZ-9999'" })}${CUERPO}`);
+    const s = correr(`${escena()}\n${params({ producto: "'ZZZ-9999'" })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("un código de producto que no existe se rechaza", !s.ok && /No encuentro exactamente un producto con código «ZZZ-9999»/.test(s.err), s.err.slice(0, 600));
-    const t = correr(`${escena()}\n${params({ ventas: "gen_random_uuid()::text" })}${CUERPO}`);
+    const t = correr(`${escena()}\n${params({ ventas: "gen_random_uuid()::text" })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("un id de venta que no existe se rechaza (pedí 1 y encontré 0)", !t.ok && /Pedí 1 venta\(s\) y encontré 0/.test(t.err), t.err.slice(0, 600));
   }
 
@@ -594,7 +598,7 @@ select ${LIBRO};`
 ${RESTOS_DOCS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint antes_del_ensayo;
-${paramsDocs()}${CUERPO}
+${paramsDocs()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint antes_del_ensayo;
 ${RESTOS_DOCS}
 select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
@@ -724,7 +728,7 @@ ${preparar}
 ${RESTOS_DOCS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint s1;
-${paramsDocs(extra)}${CUERPO}
+${paramsDocs(extra)}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint s1;
 ${RESTOS_DOCS}
 select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
