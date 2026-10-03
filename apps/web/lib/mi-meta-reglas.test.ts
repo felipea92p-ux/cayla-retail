@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { armarMiMeta, resumirMiMeta, type FilaMiMeta, type FilaMisVentas } from "./mi-meta-reglas";
+import {
+  armarMiMeta,
+  rangoDeMiLectura,
+  reconocer,
+  resumirMiMeta,
+  type FilaMiMeta,
+  type FilaMisVentas,
+} from "./mi-meta-reglas";
 
 const HOY = "2026-09-29";
 
@@ -98,5 +105,118 @@ describe("resumirMiMeta", () => {
     const r = resumirMiMeta(armarMiMeta("2026-10-02", meta, v)!);
     expect(r.mes.vendido).toBe(500);
     expect(r.mes.ventas).toBe(3);
+  });
+});
+
+// ── «Lo que va bien» ───────────────────────────────────────────────────────────────────────────────
+
+/** Arma una `MiMeta` a mano: `dias` = [fecha, vendió, ventas, meta del día | null]. */
+function miMeta(dias: [string, number, number, number | null][], metaMes = 13000, hoy = HOY) {
+  return {
+    hoy,
+    metaMes,
+    base: "horas" as const,
+    serie: dias.map(([fecha, total, ventas, metaSede]) => ({ fecha, total, ventas, metaSede, metaAsignada: null })),
+  };
+}
+
+describe("rangoDeMiLectura: pide también el mes anterior para comparar el ticket", () => {
+  it("desde el primer día del mes pasado hasta el último de este", () => {
+    expect(rangoDeMiLectura("2026-09-29")).toEqual({ desde: "2026-08-01", hasta: "2026-09-30" });
+  });
+  it("en enero, el mes pasado es diciembre del año anterior", () => {
+    expect(rangoDeMiLectura("2026-01-10")).toEqual({ desde: "2025-12-01", hasta: "2026-01-31" });
+  });
+});
+
+describe("reconocer: mejor día", () => {
+  it("es el día del mes con más ventas, contra SU meta de ese día", () => {
+    const r = reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-12", 650, 4, 500], ["2026-09-29", 100, 1, 500]]));
+    expect(r.mejorDia).toEqual({ fecha: "2026-09-12", total: 650, pctMeta: 130, esHoy: false });
+  });
+  it("si el mejor día es hoy lo dice", () => {
+    expect(reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-29", 700, 5, 500]])).mejorDia?.esHoy).toBe(true);
+  });
+  it("sin una sola venta en el mes no hay mejor día (no se inventa)", () => {
+    expect(reconocer(miMeta([["2026-09-10", 0, 0, 500]])).mejorDia).toBeNull();
+  });
+  it("no mira el mes pasado: un día de agosto no es el mejor de setiembre", () => {
+    expect(reconocer(miMeta([["2026-08-20", 900, 6, null], ["2026-09-10", 300, 2, 500]])).mejorDia?.fecha).toBe("2026-09-10");
+  });
+});
+
+describe("reconocer: racha", () => {
+  const dia = (n: number, total: number, meta: number | null) => [`2026-09-${String(n).padStart(2, "0")}`, total, total > 0 ? 2 : 0, meta] as [string, number, number, number | null];
+  it("cuenta días seguidos hacia atrás desde ayer, con 85 % de la meta o más", () => {
+    expect(reconocer(miMeta([dia(25, 300, 500), dia(26, 430, 500), dia(27, 500, 500), dia(28, 450, 500)])).racha).toBe(3);
+  });
+  it("un día de descanso (sin parte de la meta) no corta la racha ni suma", () => {
+    expect(reconocer(miMeta([dia(25, 450, 500), dia(26, 0, null), dia(27, 480, 500), dia(28, 500, 500)])).racha).toBe(3);
+  });
+  it("una racha de un solo día no se nombra", () => {
+    expect(reconocer(miMeta([dia(27, 300, 500), dia(28, 500, 500)])).racha).toBe(0);
+  });
+  it("hoy no la corta ni la alarga: todavía está en juego", () => {
+    expect(reconocer(miMeta([dia(27, 500, 500), dia(28, 500, 500), dia(29, 0, 500)])).racha).toBe(2);
+  });
+  it("exactamente 85 % cuenta; 84 % no", () => {
+    expect(reconocer(miMeta([dia(27, 425, 500), dia(28, 425, 500)])).racha).toBe(2);
+    expect(reconocer(miMeta([dia(27, 420, 500), dia(28, 420, 500)])).racha).toBe(0);
+  });
+});
+
+describe("reconocer: ticket contra el mes pasado", () => {
+  it("lo dice solo si SUBIÓ y hay muestra en los dos meses", () => {
+    const r = reconocer(miMeta([["2026-08-10", 600, 10, null], ["2026-09-10", 700, 10, 500]]));
+    expect(r.ticket).toMatchObject({ actual: 70, anterior: 60, subioPct: 17 });
+  });
+  it("si bajó, calla (no es un logro y la pantalla no lo dibuja)", () => {
+    expect(reconocer(miMeta([["2026-08-10", 700, 10, null], ["2026-09-10", 600, 10, 500]])).ticket).toBeNull();
+  });
+  it("con muy pocas ventas en cualquiera de los dos meses, calla", () => {
+    expect(reconocer(miMeta([["2026-08-10", 600, 4, null], ["2026-09-10", 700, 10, 500]])).ticket).toBeNull();
+    expect(reconocer(miMeta([["2026-08-10", 600, 10, null], ["2026-09-10", 700, 4, 500]])).ticket).toBeNull();
+  });
+  it("una subida menor a 1 % tampoco se dice", () => {
+    expect(reconocer(miMeta([["2026-08-10", 1000, 10, null], ["2026-09-10", 1004, 10, 500]])).ticket).toBeNull();
+  });
+});
+
+describe("reconocer: próximo hito", () => {
+  it("lo que falta dicho en días de su promedio por día trabajado", () => {
+    const r = reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-11", 600, 4, 500], ["2026-09-12", 500, 4, 500]], 3000));
+    expect(r.hito.falta).toBe(1500);
+    expect(r.hito.promedio).toBe(500);
+    expect(r.hito.diasDePromedio).toBe(3);
+    expect(r.hito.diasQueQuedan).toBe(1); // hoy es 29 de 30
+  });
+  it("si ya llegó a la meta del mes, no hay días de promedio que decir", () => {
+    const r = reconocer(miMeta([["2026-09-10", 2000, 8, 500], ["2026-09-11", 2000, 8, 500], ["2026-09-12", 2000, 8, 500]], 3000));
+    expect(r.hito.falta).toBe(0);
+    expect(r.hito.diasDePromedio).toBeNull();
+  });
+  it("sin ventas no hay promedio ni proyección: no se divide por cero", () => {
+    const r = reconocer(miMeta([["2026-09-10", 0, 0, 500]]));
+    expect(r.hito.promedio).toBeNull();
+    expect(r.hito.diasDePromedio).toBeNull();
+    expect(r.hito.proyeccion).toBeNull();
+  });
+  it("proyecta el cierre solo con 3 o más días con ventas", () => {
+    expect(reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-11", 600, 4, 500]])).hito.proyeccion).toBeNull();
+    expect(reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-11", 600, 4, 500], ["2026-09-12", 500, 4, 500]])).hito.proyeccion).not.toBeNull();
+  });
+  it("la proyección nunca queda por debajo de lo ya vendido", () => {
+    const r = reconocer(miMeta([["2026-09-10", 400, 3, 500], ["2026-09-11", 600, 4, 500], ["2026-09-12", 500, 4, 500]], 3000, "2026-09-30"));
+    expect(r.hito.proyeccion).toBeGreaterThanOrEqual(1500);
+  });
+});
+
+describe("reconocer: hoy llegó a su meta", () => {
+  it("con lo vendido igual o mayor a la meta del día", () => {
+    expect(reconocer(miMeta([["2026-09-29", 500, 3, 500]])).hoyLograda).toBe(true);
+    expect(reconocer(miMeta([["2026-09-29", 499, 3, 500]])).hoyLograda).toBe(false);
+  });
+  it("sin parte de la meta hoy (descanso) nunca es «lograda»", () => {
+    expect(reconocer(miMeta([["2026-09-29", 300, 2, null]])).hoyLograda).toBe(false);
   });
 });

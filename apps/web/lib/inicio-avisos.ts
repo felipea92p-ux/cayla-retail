@@ -422,9 +422,12 @@ const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | n
 /** La líder: «Nuevo producto» en lugar de Apartados (Felipe, 2026-09-29). Apartados sigue a un toque: el aviso «Apartados que
  *  vencen» de «Te toca» lleva ahí, y el menú de Ventas también. */
 const LISTA_LIDER: ClaveAccesoIcono[] = ["caja", "nuevoProducto", "traslados", "cambios", "stock", "apartados", "buscar"];
-/** Quien vende: lo que la clienta le pide en el mostrador. «Nuevo producto» va cuarto y saca a Caja de esa fila para quien
- *  puede cargar catálogo (Caja sigue en el menú y en «Tu día»); quien no puede, conserva Caja. */
-const LISTA_MOSTRADOR: ClaveAccesoIcono[] = ["apartados", "stock", "cambios", "nuevoProducto", "caja", "traslados", "recibir", "buscar"];
+/** Quien vende: lo que el cliente le pide en el mostrador. «Nuevo producto» ocupa el lugar de «Apartados» para quien puede cargar
+ *  catálogo (Felipe, 2026-10-03; Apartados sigue a un toque: el aviso «Apartados que vencen» de «Te toca» y el menú de Ventas); quien
+ *  no puede, conserva Apartados. Ver `LUGAR_DE`. */
+const LISTA_MOSTRADOR: ClaveAccesoIcono[] = ["stock", "cambios", "nuevoProducto", "apartados", "caja", "traslados", "recibir", "buscar"];
+/** «X ocupa el lugar de Y»: si X llegó a la lista, Y se retira (no se suman los dos). Solo en la lista del mostrador. */
+const LUGAR_DE: Partial<Record<ClaveAccesoIcono, ClaveAccesoIcono>> = { nuevoProducto: "apartados" };
 /** Quien no vende y está en una tienda (la terminal de almacén, un rol administrativo): la mercadería que entra y se mueve.
  *  «Conteo» va después porque se hace por temporadas, no cada día. */
 const LISTA_TRASTIENDA: ClaveAccesoIcono[] = ["recibir", "traslados", "stock", "nuevoProducto", "conteo", "buscar"];
@@ -451,9 +454,14 @@ export function accesosRapidos(perfil: {
         : perfil.esLider ? LISTA_LIDER
           : perfil.modulos.includes("vender") ? LISTA_MOSTRADOR
             : LISTA_TRASTIENDA;
-  return orden
+  const disponibles = orden.filter((k) => {
+    const a = ACCESOS[k];
+    return (a.modulo === null || perfil.modulos.includes(a.modulo)) && (!a.permiso || !!perfil.permisos?.includes(a.permiso));
+  });
+  const reemplazados = orden === LISTA_MOSTRADOR ? new Set(disponibles.map((k) => LUGAR_DE[k]).filter(Boolean)) : new Set();
+  return disponibles
+    .filter((k) => !reemplazados.has(k))
     .map((k) => ACCESOS[k])
-    .filter((a) => (a.modulo === null || perfil.modulos.includes(a.modulo)) && (!a.permiso || !!perfil.permisos?.includes(a.permiso)))
     .slice(0, 4)
     .map(({ href, etiqueta, icono }) => ({ href, etiqueta, icono }));
 }

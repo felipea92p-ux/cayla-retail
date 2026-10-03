@@ -237,3 +237,30 @@ Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU
 2. **Web:** pruebas de las reglas puras; en el navegador, los tres roles, con datos y sin datos, a 1440 y a 375 px; y que cambiar de período
    no mueva la posición de la pantalla.
 3. **Producción:** solo lectura después de cada migración (existencia, `md5` del cuerpo, permisos), y refrescar el diccionario.
+
+
+## Actualización 2026-10-03 (Felipe, con spike): propuesta final de la pantalla — etapa 1
+
+Felipe comparó cuatro vistas de Rendimiento y cuatro del Inicio (`docs/maquetas/rendimiento-vistas-2026-10/`) y eligió. **Rendimiento:** pestañas por
+tienda (variante A) con tres medidas nuevas. **Inicio de la integrante:** el anillo del día + «Lo que va bien»; los accesos con «Nuevo producto» en el
+lugar de «Apartados».
+
+DECIDÍ: construir en dos etapas, la primera sin SQL nuevo.
+DESCARTÉ: construir las tres medidas de una vez, porque «ventas por hora» (`ventas.created_at` existe pero ninguna función la devuelve por hora) y «prendas por
+venta» de la tienda (`fn_rendimiento_equipo` no trae prendas) piden una lectura nueva, y eso alarga el SQL que ya está pendiente de pegar en producción.
+SE ROMPE SI: la proyección del mes se lee como una promesa. Por eso dice «cerca de», no proyecta con menos de 3 días cerrados con ventas y no cuenta los días sin parte de la meta.
+
+**Etapa 1 (hecha, sin SQL nuevo):**
+- Rendimiento: la pantalla abre en la **tienda de la sesión** (antes, «Todas»). Arriba, `ComparativoTiendas`: una tarjeta por tienda con su avance **del mes** contra su
+  meta (marca «a hoy tocaba», palabras de D-159) que a la vez es la pestaña (`?sede=`). Se compara el mes y no el período del panel porque el período (Hoy · Semana · Mes) es estado
+  del panel de la tienda elegida. Quien lleva una sola tienda no ve pestañas. **Proyección del mes** en el panel (`proyectarMes`, pura y probada).
+  Se desvía del spike en un punto: el spike pedía solo la tienda mirada para cargar menos; con 3 tiendas son 3 lecturas chicas, así que se siguen leyendo todas.
+- Inicio de la integrante: `SeccionMiMeta` es ahora el **anillo del día**; `SeccionLoQueVaBien` (mejor día del mes, racha, ticket contra el mes pasado) y `SeccionTuMes`
+  (con lo que falta dicho en días de SU promedio). `reconocer` (`lib/mi-meta-reglas.ts`, pura y probada) **calla** lo que no tiene base: sin muestra (menos de 5 ventas en
+  alguno de los dos meses), si el ticket bajó, sin racha de 2 días o más. Sale el gráfico «Tus ventas contra tu meta» del Inicio (el de Rendimiento se queda). La lectura pide ahora
+  también el mes pasado (`rangoDeMiLectura`).
+- Accesos: en la lista del mostrador, «Nuevo producto» (quien puede dar de alta productos) retira a «Apartados»; sin ese permiso queda «Apartados». «Apartados» sigue en el menú de
+  Ventas y en el aviso «Apartados que vencen» de «Te toca».
+
+**Etapa 2 (pendiente):** «ventas por hora» y «prendas por venta» en Rendimiento, con una lectura nueva de solo lectura que se pega junto al SQL pendiente. Y la **marca de ritmo** del anillo
+(«dónde solías ir a esta hora»): el spike la dibujaba con una curva típica del día que sale de las ventas por hora; sin esa lectura el anillo no la muestra y no inventa una.

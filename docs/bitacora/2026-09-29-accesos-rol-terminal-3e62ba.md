@@ -84,3 +84,10 @@ Dejé un paquete nuevo (aplicar + verificar, sin archivo de deshacer), refresqu�
 Por qué así: aplicar SQL a producción desde esta sesión fue bloqueado por el clasificador y se respeta: lo pega Felipe, y `main` no debe fusionarse antes porque Vercel publica al fusionar.
 Felipe se lleva: falta pegar `20260930040100` y la parte 2 en adelante de `20260930050200` (instrucciones en el backlog), y pegar la verificación (debe decir 0).
 
+
+## 2026-10-03 (propuesta final de Rendimiento e Inicio, etapa 1)
+Qué hice: con Felipe elegimos en un spike (`docs/maquetas/rendimiento-vistas-2026-10/`) las pestañas por tienda para Rendimiento y el anillo del día con «Lo que va bien» para el Inicio de la
+integrante; construí la etapa 1 sin SQL nuevo: tarjetas comparativas que son pestañas (abre en la tienda de la sesión), proyección del mes, anillo, logros que callan si no tienen base, «Tu mes» en días de su
+promedio, y «Nuevo producto» en lugar de «Apartados» en los accesos. También resolví los choques con `main` (versiones de migración, Aviario, ci.yml) y renumeré el ADR a 0318.
+Por qué así: el spike costó menos que construir una pantalla que la integrante no entiende de pie; la etapa 2 espera porque pide una lectura nueva y el SQL pendiente ya es largo.
+Qué se rompería sin esto: seguir con «Todas» apilado (la tienda de la sesión quedaba abajo) y un Inicio que mostraba un gráfico que nadie pidió.

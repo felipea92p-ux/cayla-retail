@@ -18,6 +18,7 @@ import {
   minutosEnLima,
   ordenarPersonas,
   primerDiaDelMes,
+  proyectarMes,
   puedeEditarMeta,
   repartePorHoras,
   resumenDeSede,
@@ -93,6 +94,7 @@ export function PanelRendimiento({
   }, []);
 
   const res = useMemo(() => resumenDeSede(serie, vista, hoy), [serie, vista, hoy]);
+  const proyeccion = useMemo(() => proyectarMes(serie, hoy), [serie, hoy]);
   const resMes = useMemo(() => resumenDeSede(serie, "mes", hoy), [serie, hoy]);
   const grafico = useMemo(() => serieParaGrafico(serie, hoy), [serie, hoy]);
   const filas = useMemo(() => ordenarPersonas(personas, vista, orden), [personas, vista, orden]);
@@ -190,6 +192,22 @@ export function PanelRendimiento({
           {res.ticket !== null ? "por venta" : "Sin ventas todavía"}
         </TarjetaCifra>
       </div>
+
+      {proyeccion && (
+        <div className="card-cayla p-4 sm:p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Proyección del mes</p>
+          <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:text-3xl">{SOLES.format(proyeccion.proyeccion)}</p>
+          <p className="mt-1 text-xs text-tinta/65">
+            A este ritmo ({SOLES.format(proyeccion.ritmoPorDia)} por día de trabajo) {nombre} cierra el mes cerca de esa cifra
+            {proyeccion.pctDeMeta !== null && proyeccion.metaMes !== null && (
+              <>
+                : <b className="font-semibold text-tinta">{proyeccion.pctDeMeta} %</b> de su meta de {SOLES.format(proyeccion.metaMes)}
+              </>
+            )}
+            . {proyeccion.diasQueQuedan > 0 ? `Quedan ${proyeccion.diasQueQuedan} ${plural(proyeccion.diasQueQuedan, "día de trabajo", "días de trabajo")}.` : "Es el último día de trabajo del mes."}
+          </p>
+        </div>
+      )}
 
       {res.meta === null && (
         <p className="nota-cayla">

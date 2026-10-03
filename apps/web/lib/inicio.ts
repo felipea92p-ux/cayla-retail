@@ -5,8 +5,7 @@ import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
-import { armarMiMeta, type MiMeta } from "@/lib/mi-meta-reglas";
-import { rangoDeLectura } from "@/lib/rendimiento-meta-reglas";
+import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
@@ -89,7 +88,7 @@ export async function getMiMeta(): Promise<MiMeta | null> {
   return tolerarLectura("su meta", async () => {
     const supabase = await createClient();
     const hoy = hoyLima();
-    const { desde, hasta } = rangoDeLectura(hoy);
+    const { desde, hasta } = rangoDeMiLectura(hoy);
     const [meta, ventas] = await Promise.all([
       supabase.rpc("fn_mi_meta"),
       supabase.rpc("fn_mis_ventas_por_dia", { p_desde: desde, p_hasta: hasta }),

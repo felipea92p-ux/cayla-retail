@@ -11,6 +11,7 @@ import {
   ordenarPersonas,
   primerDiaDelMes,
   puedeEditarMeta,
+  proyectarMes,
   rangoDeLectura,
   repartePorHoras,
   resumenDeSede,
@@ -339,5 +340,61 @@ describe("ritmo esperado (D-159): cuánto del turno ya pasó y cómo va contra e
     expect(lecturaDeRitmo(0, 500, null)).toBeNull();
     expect(lecturaDeRitmo(100, null, 0.5)).toBeNull();
     expect(lecturaDeRitmo(100, 0, 0.5)).toBeNull();
+  });
+});
+
+// ── Proyección del mes ────────────────────────────────────────────────────────────────────────────
+
+describe("proyectarMes", () => {
+  /** Setiembre 2026: [día, vendido, meta]. Los días que no se listan no existen en la serie. */
+  const dia = (n: number, total: number, meta: number | null) => ({
+    fecha: `2026-09-${String(n).padStart(2, "0")}`,
+    total,
+    ventas: total > 0 ? 3 : 0,
+    metaSede: meta,
+    metaAsignada: null,
+  });
+  const MES = (vendidos: Record<number, number>, meta: number | null = 500) =>
+    Array.from({ length: 30 }, (_, i) => dia(i + 1, vendidos[i + 1] ?? 0, meta));
+
+  it("lo vendido + el promedio de los días cerrados × los días que quedan", () => {
+    // Del 1 al 9 vendió 400 por día (3.600); hoy es el 10 y lleva 100; quedan 20 días de trabajo.
+    const p = proyectarMes(MES({ 1: 400, 2: 400, 3: 400, 4: 400, 5: 400, 6: 400, 7: 400, 8: 400, 9: 400, 10: 100 }), "2026-09-10")!;
+    expect(p.vendido).toBe(3700);
+    expect(p.ritmoPorDia).toBe(400);
+    expect(p.diasQueQuedan).toBe(20);
+    expect(p.proyeccion).toBe(3700 + 400 * 20);
+    expect(p.metaMes).toBe(15000);
+    expect(p.pctDeMeta).toBe(Math.round(((3700 + 8000) / 15000) * 100));
+  });
+
+  it("hoy no entra al promedio: un día a medias no lo baja", () => {
+    const serie = MES({ 1: 400, 2: 400, 3: 400, 10: 0 });
+    expect(proyectarMes(serie, "2026-09-10")!.ritmoPorDia).toBeCloseTo((400 * 3) / 9, 5);
+  });
+
+  it("con menos de 3 días cerrados con ventas no proyecta (no se inventa)", () => {
+    expect(proyectarMes(MES({ 1: 400, 2: 400 }), "2026-09-10")).toBeNull();
+    expect(proyectarMes(MES({}), "2026-09-10")).toBeNull();
+  });
+
+  it("los días sin parte de la meta (cerrado) no cuentan: ni bajan el promedio ni suman días", () => {
+    const serie = MES({ 1: 400, 2: 400, 3: 400 }).map((d) => (d.fecha.endsWith("-07") || d.fecha.endsWith("-14") ? { ...d, metaSede: null } : d));
+    const p = proyectarMes(serie, "2026-09-10")!;
+    expect(p.ritmoPorDia).toBeCloseTo(1200 / 8, 5); // del 1 al 9 son 9 días, menos el 7 cerrado
+    expect(p.diasQueQuedan).toBe(19); // del 11 al 30 son 20, menos el 14 cerrado
+  });
+
+  it("sin ninguna meta cargada proyecta igual (con todos los días) y no dice porcentaje", () => {
+    const p = proyectarMes(MES({ 1: 400, 2: 400, 3: 400 }, null), "2026-09-10")!;
+    expect(p.metaMes).toBeNull();
+    expect(p.pctDeMeta).toBeNull();
+    expect(p.diasQueQuedan).toBe(20);
+  });
+
+  it("el último día del mes proyecta exactamente lo vendido", () => {
+    const p = proyectarMes(MES({ 1: 400, 2: 400, 3: 400, 30: 100 }), "2026-09-30")!;
+    expect(p.diasQueQuedan).toBe(0);
+    expect(p.proyeccion).toBe(p.vendido);
   });
 });

@@ -110,3 +110,10 @@
 - [x] **`fn_rendimiento_equipo.es_encargada` no reconoce a las encargadas que son Líder (D-160): resuelto en la web sin tocar la función de producción.** El panel manda la insignia «Encargada» de `fn_metas_equipo` (que sí las reconoce) sobre la de los rankings (`armarRankings` en `lib/rendimiento.ts`).
 - [ ] **Pendiente:** la carrera REAL de dos conexiones (exige commitear datos: solo en una base desechable, `BASE_DESECHABLE=1`); probada solo la segunda edición con la meta vieja.
 - [ ] **Siguiente: paso 3** (Rendimiento web).
+
+## ✅ Propuesta final de Rendimiento e Inicio — etapa 1 (2026-10-03, ADR-0318 «Actualización 2026-10-03»)
+- [x] Rendimiento abre en la tienda de la sesión; tarjetas comparativas del mes que son pestañas; proyección del mes. Pruebas: `proyectarMes` (6 casos).
+- [x] Inicio de la integrante: anillo del día, «Lo que va bien», «Tu mes»; accesos con «Nuevo producto» en lugar de «Apartados». Pruebas: `reconocer` y `rangoDeMiLectura`; accesos.
+- [ ] **Falta verlo en el navegador local con sesión** (el login lo inicia Felipe) y a 375 px el Inicio.
+- [ ] **Etapa 2:** «ventas por hora» y «prendas por venta» en Rendimiento (lectura nueva, SQL) y la marca de ritmo del anillo (necesita ventas por hora).
+- [ ] Probar las dos pantallas con 2 o 3 integrantes de TRU, sin explicarles nada.

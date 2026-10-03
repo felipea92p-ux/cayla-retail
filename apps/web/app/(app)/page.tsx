@@ -32,7 +32,7 @@ import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-
 import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
-import { SeccionMiGrafico, SeccionMiMeta } from "@/components/inicio/MiMeta";
+import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -169,7 +169,12 @@ export default async function InicioPage() {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {hoy && <SeccionHoy hoy={hoy} esLider={esLider} miMeta={miMeta} />}
-          {miMeta && !esLider && <SeccionMiGrafico miMeta={miMeta} />}
+          {miMeta && !esLider && (
+            <>
+              <SeccionLoQueVaBien miMeta={miMeta} />
+              <SeccionTuMes miMeta={miMeta} />
+            </>
+          )}
           <TeToca visibles={visibles} ajustar={ajustar} />
         </div>
         <div className="space-y-6">

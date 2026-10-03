@@ -141,6 +141,47 @@ export function resumenDeSede(serie: DiaSerie[], vista: Vista, hoy: string): Res
   return { soles, ventas, meta, tocabaPct, ticket: ventas > 0 ? soles / ventas : null };
 }
 
+// ───────────────────────── proyección del mes (Felipe, 2026-10-03) ─────────────────────────
+
+/** Días con ventas, ANTES de hoy, que hacen falta para proyectar: con menos, el promedio lo decide un solo día. */
+export const MIN_DIAS_PARA_PROYECTAR_TIENDA = 3;
+
+export type ProyeccionMes = {
+  /** Lo vendido en el mes hasta hoy (con lo que lleva hoy). */
+  vendido: number;
+  /** Dónde cierra el mes a su ritmo: lo vendido + el promedio de los días ya cerrados × los días de trabajo que quedan. */
+  proyeccion: number;
+  /** La meta del mes (suma de la parte de cada día); `null` si ningún día tiene meta. */
+  metaMes: number | null;
+  /** La proyección como porcentaje de la meta del mes; `null` sin meta. */
+  pctDeMeta: number | null;
+  /** Días de trabajo que quedan después de hoy. */
+  diasQueQuedan: number;
+  /** El promedio por día de trabajo ya cerrado (sin hoy: hoy todavía no termina y lo bajaría). */
+  ritmoPorDia: number;
+};
+
+/**
+ * ¿Dónde cierra el mes a este ritmo? Solo cuentan los días de trabajo —los que tienen parte de la meta de la sede: un domingo
+ * cerrado no baja el promedio ni suma días—; si ningún día tiene meta, cuentan todos. `null` sin base: menos de 3 días cerrados con
+ * ventas (no se inventa una proyección con un solo día). Es una estimación: la pantalla la dice «cerca de».
+ */
+export function proyectarMes(serie: DiaSerie[], hoy: string): ProyeccionMes | null {
+  const ini = primerDiaDelMes(hoy);
+  const fin = ultimoDiaDelMes(hoy);
+  const mes = serie.filter((d) => d.fecha >= ini && d.fecha <= fin);
+  const hayMetas = mes.some((d) => (d.metaSede ?? 0) > 0);
+  const cuenta = (d: DiaSerie) => (hayMetas ? (d.metaSede ?? 0) > 0 : true);
+  const cerrados = mes.filter((d) => d.fecha < hoy && cuenta(d));
+  if (cerrados.filter((d) => d.total > 0).length < MIN_DIAS_PARA_PROYECTAR_TIENDA) return null;
+  const ritmoPorDia = cerrados.reduce((s, d) => s + d.total, 0) / cerrados.length;
+  const vendido = mes.filter((d) => d.fecha <= hoy).reduce((s, d) => s + d.total, 0);
+  const diasQueQuedan = mes.filter((d) => d.fecha > hoy && cuenta(d)).length;
+  const proyeccion = vendido + ritmoPorDia * diasQueQuedan;
+  const metaMes = hayMetas ? mes.reduce((s, d) => s + (d.metaSede ?? 0), 0) : null;
+  return { vendido, proyeccion, metaMes, pctDeMeta: avance(proyeccion, metaMes), diasQueQuedan, ritmoPorDia };
+}
+
 // ───────────────────────── tabla «Cómo va» ─────────────────────────
 
 export type Orden = "nombre" | "ventas" | "avance";
