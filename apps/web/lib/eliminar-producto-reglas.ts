@@ -3,16 +3,17 @@
  *
  * La REGLA de qué se puede eliminar no vive aquí: vive en la base (`fn_producto_historia`, la única definición de
  * «historia» de un producto, que usan `fn_producto_como_eliminar` y las dos funciones que borran). Este archivo solo
- * redacta lo que se le dice al líder o al Admin con lo que la base contestó: qué se borra, o por qué no y qué hacer.
+ * redacta lo que se le dice a quien edita el catálogo con lo que la base contestó: qué se borra, o por qué no y qué hacer.
  */
 
 import { fechaLima } from "./colaboradores-reglas";
 
 /**
  * Los cuatro casos que distingue la base (`fn_producto_como_eliminar`):
- *  - `libre`: nunca se movió. Lo elimina un Líder o un Admin (`eliminar_producto`).
- *  - `con_historia`: su historia es solo de stock (carga, ajustes, bajadas, conteos…). Solo un Admin, con respaldo
+ *  - `libre`: nunca se movió (`eliminar_producto`).
+ *  - `con_historia`: su historia es solo de stock (carga, ajustes, bajadas, conteos…). Con respaldo
  *    (`eliminar_producto_con_historia`).
+ * Los dos los elimina quien edita el catálogo (`fn_puede_editar_catalogo`; ADR-0252, act. 2026-10-03).
  *  - `con_documentos`: tiene ventas, compras, traslados, separaciones… Nadie lo elimina desde aquí: se desactiva.
  *  - `sistema`: la pieza «Monto manual» del punto de venta. Nunca.
  */
@@ -87,7 +88,7 @@ export function textoQuienLoCargo(cargadoPor: string | null, cargadoEl: string |
   return `Lo cargó ${cargadoPor ?? "alguien sin nombre registrado"} el ${fechaLima(cargadoEl)}.`;
 }
 
-/** Qué se borra si un Admin confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
+/** Qué se borra si se confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
 export function textoSeBorraConHistoria(numVariantes: number | null, prendas: number, movimientos: number): string {
   const cuanto = [prendas > 0 ? plural(prendas, "prenda en stock", "prendas en stock") : null, plural(movimientos, "movimiento", "movimientos")]
     .filter(Boolean)
@@ -114,7 +115,9 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
     case "con_documentos":
       return `«${referencia}» ${razon}. Del otro lado hay un cliente, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
     case "con_historia": {
-      const quien = "Solo una cuenta Admin puede eliminarlo con su historia.";
+      // Desde el 2026-10-03 quien abre esta ventana ya puede (la base responde `puedes` en true); la frase queda para una
+      // base que todavía no tiene la migración `20261003232000`, donde con historia era solo del Admin.
+      const quien = "Tu cuenta no puede eliminarlo con su historia.";
       if (como.prendas > 0 || !razon.startsWith("tiene ")) return `«${referencia}» ${razon}. ${quien}`;
       return `«${referencia}» no tiene unidades en stock, pero ya tiene historia: ${razon.replace(/^tiene /, "")}. ${quien}`;
     }

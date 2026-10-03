@@ -61,7 +61,7 @@ export function ProductosGrilla({
   ubicacionId: string;
   /** El nombre de la sede de `ubicacionId`: el stock por talla de la vista rápida y las etiquetas son de ella. */
   sede: string;
-  /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
+  /** Quien edita el catálogo (`fn_puede_editar_catalogo`, ADR-0252 act. 2026-10-03). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
@@ -388,7 +388,7 @@ function VistaRapidaModal({
             </table>
           </div>
 
-          {/* flex-wrap: con los cuatro botones (líder), a 375 px no caben en una fila y sacaban «Eliminar» de la hoja. */}
+          {/* flex-wrap: con los cuatro botones, a 375 px no caben en una fila y sacaban «Eliminar» de la hoja. */}
           <div className="mt-auto flex flex-wrap gap-2 pt-2">
             <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={`${botonCancelar} text-center`}>
               Editar
@@ -417,7 +417,8 @@ function VistaRapidaModal({
                 Ver en Existencias
               </Link>
             )}
-            {/* Solo Admin y Líder. Abre una ventana que pregunta a la base si nunca se movió; con historia explica por qué no. */}
+            {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o
+                traslados explica por qué no y ofrece descontinuarlo. */}
             {puedeEliminar && (
               <button type="button" onClick={onEliminar} className={botonCancelar}>
                 Eliminar
