@@ -115,8 +115,9 @@ export const AVIARIO = [
       // de la ficha. Son de quien responde por `clientas`. Refresco del volcado del 2026-10-02.
       "club_permisos", "club_textos", "club_invitaciones", "club_canjes", "club_aniversario_escala", "club_avisos_enviados",
       "club_intentos_registro", "club_etiquetas",
-      // La meta de cada persona por mes y sus ajustes, junto a la de la tienda (`ubicacion_metas_dia`). OJO: está en
-      // producción (0 filas el 2026-10-02) pero NINGUNA migración del repo la crea: se pegó a mano. Refresco del 2026-10-02.
+      // La meta de cada persona por mes y sus ajustes, junto a la de la tienda (`ubicacion_metas_dia`). Cada cambio a la meta del mes de
+      // una persona queda como fila (solo se agregan; ADR-0325). Está en producción desde el 2026-09-29 (la parte 1 de `20260930050200`).
+      // Refresco del 2026-10-02.
       "metas_persona_ajustes",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",

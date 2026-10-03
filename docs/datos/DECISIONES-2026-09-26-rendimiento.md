@@ -86,6 +86,9 @@ después de hablar con el gerente: «esto generaría más caos actualmente». Lo
 Una terminal compartida nunca lo ve. **Cambia D-68 y deja en pausa el top 3 visible entre compañeras de D-66.**
 *(Preguntas 3 y 7.)*
 
+> **Actualización (2026-09-29, Felipe; D-149 y D-150 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0325):** la integrante **sí ve lo suyo** (su meta y sus
+> ventas) **en el Inicio**, por defecto. El módulo Rendimiento sigue siendo de las encargadas y el Admin, y ella sigue sin ver a sus compañeras.
+
 **D-114 · Quién es la encargada** → quien tiene un **rol de Roles y accesos con el módulo encendido**. Ve la tienda a la
 que está asignada (`ubicacion_asignada_id`). No se lee el `supervisor_sede` de Dynamic: el acceso lo decide el líder en
 retail, como en todo módulo (ADR-0161). Y no se construye D-69 para esto. *(Pregunta 6.)*
@@ -130,6 +133,9 @@ por el tráfico de la tienda, no por el equipo. *(Pregunta 16.)*
 **D-125 · Metas por persona** → **todavía no** (D-64 sigue sin construir). El módulo muestra el avance de la tienda
 contra su meta del mes y cuánto aportó cada persona. *(Pregunta 17.)*
 
+> **Actualización (2026-09-29, Felipe; D-142 a D-148 en `DECISIONES-2026-09-29-meta-por-persona.md`, ADR-0325):** **las metas por persona se construyen.** La meta de la
+> sede se reparte sola por horas programadas y la líder de la sede o el Admin la ajustan, con motivo e historial. Rendimiento muestra la meta y el avance de cada persona.
+
 **D-126 · Dynamic** → **ninguna relación por ahora** con el «rendimiento del mes» (`rendimiento_mensual`) ni con los
 objetivos del mes. Retail muestra lo que se mide en la tienda; DO evalúa en Dynamic. Por eso Rendimiento nunca resume a
 una persona en una sola nota: así no hay dos notas distintas para la misma persona. *(Pregunta 18.)*
@@ -158,7 +164,7 @@ va en el grupo Gestión. Clave del módulo: `rendimiento`. *(Pregunta 20 y el pe
 |---|---|
 | El ok al diseño técnico del ADR-0219 y a la objeción de D-117 | Felipe |
 | Filtro de tienda de la pantalla y sede de la cabecera: para el Admin, ¿la pantalla abre en «Todas» o en la sede elegida arriba? El spike abre en «Todas» | Felipe, al ver el spike |
-| Inicio le muestra a cada colaboradora «Tus ventas» con el total de toda su tienda: `fn_ventas_del_dia` filtra por tienda, no por persona (verificado en producción). Hay una tarea aparte para corregirlo | Felipe decide qué debe mostrar |
+| Inicio le muestra a cada colaboradora «Tus ventas» con el total de toda su tienda: `fn_ventas_del_dia` filtra por tienda, no por persona (verificado en producción). **Corregido en local el 2026-09-29** con `fn_mis_ventas_del_dia` (D-155); falta pegar la migración en producción | Felipe (el ok para producción) |
 | Tienda Lima no tiene personal ni asistencia cargados en Dynamic (D-62). Sin eso no hay soles por hora ni quién atendió | DO |
-| El día que las colaboradoras vean sus cifras: retomar D-68, el top 3 de D-66 y la meta por persona de D-64 | Felipe con el gerente |
+| El día que las colaboradoras vean sus cifras: retomar D-68, el top 3 de D-66 y la meta por persona de D-64 | **Retomado el 2026-09-29** (D-149 y D-142 a D-148); el top 3 de D-66 sigue en pausa |
 | «Clientas que vuelven» por persona (D-66): entra a Rendimiento cuando la venta guarde a la clienta. Depende de lo que se construya del acta de Clientas del mismo día, cuya corrección F.2 (pendiente de un «sí») deja esa categoría y saca «clientas nuevas identificadas», como ya pide D-76 | Felipe |

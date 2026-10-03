@@ -27,6 +27,16 @@ export function mostrarHoy(perfil: Pick<PerfilInicio, "ubicacionTipo" | "termina
   return perfil.ubicacionTipo === "tienda" && !perfil.terminal;
 }
 
+/**
+ * Qué función de la base lee «las ventas de hoy» de cada perfil. La líder ve el día de TODA la sede; una integrante,
+ * SOLO lo que ella atendió (`ventas.asesora_id`). Es una regla aparte, y con prueba, porque `fn_ventas_del_dia` le devolvía
+ * a una integrante todas las ventas de su tienda y el Inicio las mostraba como «Tus ventas» y «Tu ticket» (verificado en
+ * producción el 2026-09-29). Caja, Vender y Comprobantes siguen usando `fn_ventas_del_dia`: necesitan el día de la tienda.
+ */
+export function fuenteVentasDeHoy(esLider: boolean): "fn_ventas_del_dia" | "fn_mis_ventas_del_dia" {
+  return esLider ? "fn_ventas_del_dia" : "fn_mis_ventas_del_dia";
+}
+
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
 
 /** Nombre del día de HOY en hora de Lima (fija UTC−5, Perú no cambia la hora: mismo criterio que `panel-serie.ts`).
@@ -49,8 +59,9 @@ export type ResumenHoy = {
 };
 
 /**
- * @param totales    el `total` de cada venta del día (lo que devuelve `fn_ventas_del_dia`; una colaboradora
- *                   recibe solo las suyas, así que «Tus ventas» sale sin filtrar nada acá).
+ * @param totales    el `total` de cada venta del día: el de TODA la sede para la líder (`fn_ventas_del_dia`) y solo el de las
+ *                   ventas atendidas por la persona para una integrante (`fn_mis_ventas_del_dia`), así que «Tus ventas» sale
+ *                   sin filtrar nada acá.
  * @param semanaAnterior lo vendido el mismo día de la semana pasada hasta esta misma hora; null si no aplica.
  */
 export function resumirHoy(
