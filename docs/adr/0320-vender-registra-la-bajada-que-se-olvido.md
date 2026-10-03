@@ -1,7 +1,8 @@
 # ADR-0320 · Vender registra la bajada al piso que se olvidó, sin frenar la venta
 
-- **Fecha:** 2026-10-03 · **Estado:** construido en la rama `claude/prenda-no-registrada-piso-cbbfbf` (commits locales, PR por abrir). **Producción: la migración
-  `20261003233000_bajar_al_piso_desde_vender.sql` NO está pegada** (pide el ok de Felipe; va ANTES de publicar la web, ver «Cómo se pega»).
+- **Fecha:** 2026-10-03 · **Estado:** construido en la rama `claude/prenda-no-registrada-piso-cbbfbf`, PR abierto. **Producción: la migración
+  `20261003233000_bajar_al_piso_desde_vender.sql` está pegada desde el 2026-10-03** (con el ok de Felipe; versión `20261003194152`, ver «Aplicación en
+  producción»). La web que la llama **todavía no está publicada**: nadie ve el botón hasta fusionar.
 - **Pedido:** Felipe, 2026-10-03: «a veces están bajando prendas sin registrar en el sistema que se bajaron a piso. Después, al escanear el QR en el
   punto de venta, no les permite. Debe salir un aviso que diga que la prenda no se registró como bajada a piso y darle clic para que igual la agregue
   al ticket y desde ahí mismo actualizar las existencias […] para no interrumpir la venta cuando hay ese tipo de errores humanos».
@@ -76,6 +77,18 @@ la web**. Solo `create or replace function` + `comment` + `revoke` + `grant`: no
 Vender todavía no está activo. Regístrala en Inventario ▸ Existencias ▸ Reponer…» (probado quitando la función en local): no se pierde ninguna venta.
 Verificación: `select pg_get_function_identity_arguments(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname =
 'bajar_al_piso_desde_vender';` → una fila, «p_ubicacion_id uuid, p_variante_id uuid, p_piso_necesario integer, p_token uuid».
+
+## Aplicación en producción (2026-10-03)
+
+Felipe dio el ok («pega la migración y abre el PR»). Antes, solo lectura: la función no existía; `mover_interno` (7 parámetros, con la misma clave de
+candado de marca y `fn_actor_persona_id(true)`), `fn_bloquear_en_orden` (con sus valores por defecto), `fn_prenda_corta`, `fn_ve_modulo`,
+`fn_puede_operar_ubicacion`, `movimientos_internos_intentos` y el módulo `vender` estaban como la función los usa. Y el dato que confirma el problema:
+**la Terminal de ventas de producción tiene Vender y no Existencias**. Se aplicó el archivo tal cual por `apply_migration` (queda como
+`20261003194152 bajar_al_piso_desde_vender` en `supabase_migrations.schema_migrations`). Después: una sola firma, `security definer` con el
+`search_path` de la casa, anon no la ejecuta y authenticated sí, **el md5 del cuerpo vivo es idéntico al de una base armada desde el archivo**
+(`562d05c0cc63a7a88bc96089acd09c69`), y dos llamadas sin sesión rechazan sin escribir nada (`bajada_vender_sin_token`, `bajada_vender_sin_modulo`).
+El volcado de `docs/datos/generado/` se refrescó por diferencia en el mismo PR (foto 19:50 UTC: 154 relaciones, 795 funciones; entraron esta función
+y `fn_comparativa_caja`, que otra rama pegó el mismo día).
 
 ## Cómo se verificó (2026-10-03)
 
