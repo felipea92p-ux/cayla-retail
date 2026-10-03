@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { TONOS } from "@/components/MuestraEtiqueta";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
@@ -30,7 +30,8 @@ import type { StockFicha } from "./useStockFicha";
 //
 // Desde el 2026-10-03 (ADR-0313, act.) TODO se hace desde esta tabla: «Más de cada variante» desapareció. Cada color tiene un
 // lápiz (corregirlo) y un tacho (quitarlo), la cabecera de una talla la corrige, y la pestaña «Etiquetas» pone o quita una
-// etiqueta en una talla o en todas, con las etiquetas dibujadas como en Atributos DEBAJO de la tabla. Una celda «—» (esa
+// etiqueta en una talla o en todas, con las etiquetas dibujadas como en Atributos DEBAJO de la tabla. Cada talla tiene también su
+// lápiz y su tacho en la cabecera (quitarla de todos los colores, `quitarTalla`). Una celda «—» (esa
 // combinación no se vende) se toca para agregarla (`comoLlenarHueco`): era lo único que la tabla no podía hacer.
 
 /** Lo que ofrecen los dos botones de un color: corregirlo (lápiz; `null` si la base no sabe corregir) y quitarlo (tacho). */
@@ -91,6 +92,7 @@ export function MatrizStockFicha({
   onEtiqueta,
   botonesDeColor,
   onCorregirTalla,
+  onQuitarTalla,
   huecos,
   deshabilitado,
 }: {
@@ -118,6 +120,8 @@ export function MatrizStockFicha({
   botonesDeColor: (color: string | null) => BotonesDeColor;
   /** Corregir una talla desde su cabecera; `null` = no se ofrece (la base todavía no sabe, o no hay permiso). */
   onCorregirTalla: ((talla: string | null) => void) | null;
+  /** El tacho de la cabecera de una talla: deja de venderse en todos los colores (`quitarTalla`); se deshace hasta guardar. */
+  onQuitarTalla: (talla: string | null) => void;
   /** La celda «—» (esa combinación no se vende): qué pasaría al tocarla y cómo se agrega (`comoLlenarHueco`). */
   huecos: { como: (color: string | null, talla: string | null) => Hueco; onLlenar: (color: string | null, talla: string | null) => void };
   deshabilitado: boolean;
@@ -283,10 +287,13 @@ export function MatrizStockFicha({
           style={{ minWidth: ANCHO_COLOR_MIN_PX + m.tallas.length * ANCHO_CELDA_PX + (conColumnaTotal ? ANCHO_RESUMEN_PX : 0) }}
           id="matriz-variantes"
         >
+          {/* Desde `@lg` el color es una parte fija de la tabla (`anchoColor`). En una tarjeta angosta (celular) las tallas miden
+              su mínimo y el color se queda con el resto, que el `minWidth` de la tabla garantiza ≥ 168 px: con un 36 % fijo, a 375 px
+              y una sola talla la columna medía 110 px y el lápiz y el tacho dejaban el nombre en una letra (revisión 2026-10-03). */}
           <colgroup>
-            <col style={{ width: anchoColor(m.tallas.length) }} />
+            <col className="@lg:w-(--ancho-color)" style={{ "--ancho-color": anchoColor(m.tallas.length) } as CSSProperties} />
             {m.tallas.map((t) => (
-              <col key={t ?? "sin-talla"} />
+              <col key={t ?? "sin-talla"} className="w-20 @lg:w-auto" />
             ))}
             {conColumnaTotal && <col style={{ width: `${ANCHO_RESUMEN_PX}px` }} />}
           </colgroup>
@@ -295,24 +302,50 @@ export function MatrizStockFicha({
               <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta @lg:pl-3.5">
                 Color
               </th>
-              {m.tallas.map((t) => (
-                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
-                  {onCorregirTalla ? (
-                    <button
-                      type="button"
-                      disabled={deshabilitado}
-                      title={`Corregir la talla ${n.talla(t) || "Única"}, si se registró mal`}
-                      onClick={() => onCorregirTalla(t)}
-                      className="group inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
-                    >
-                      {n.talla(t) || "Única"}
-                      <Pencil aria-hidden className="h-2.5 w-2.5 text-tinta/30 transition-colors group-hover:text-tinta/70" />
-                    </button>
-                  ) : (
-                    n.talla(t) || "Única"
-                  )}
-                </th>
-              ))}
+              {m.tallas.map((t) => {
+                const nombreTalla = n.talla(t) || "Única";
+                // Todas sus variantes son nuevas: se marca «nueva» como un color recién agregado, y quitarla no deja nada pendiente.
+                const tallaNueva = filas.filter((f) => f.activo && f.tallaId === t).every((f) => !f.guardada);
+                const quitarTitulo = tallaNueva
+                  ? `Quitar la talla ${nombreTalla} (recién agregada)`
+                  : `Quitar la talla ${nombreTalla}: deja de venderse en todos los colores al guardar`;
+                return (
+                  <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-1.5 text-center text-xs font-semibold tabular-nums text-tinta @lg:px-1.5">
+                    {/* El nombre (con su lápiz, si se puede corregir) y el tacho, como la fila de un color. En una columna angosta el tacho
+                        baja a una segunda línea en vez de empujar la tabla. */}
+                    <span className="inline-flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+                      <span className="inline-flex flex-col items-center leading-tight">
+                        {onCorregirTalla ? (
+                          <button
+                            type="button"
+                            disabled={deshabilitado}
+                            title={`Corregir la talla ${nombreTalla}, si se registró mal`}
+                            onClick={() => onCorregirTalla(t)}
+                            className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
+                          >
+                            {nombreTalla}
+                            <Pencil aria-hidden className="h-2.5 w-2.5 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                          </button>
+                        ) : (
+                          <span className="whitespace-nowrap px-1.5 py-0.5">{nombreTalla}</span>
+                        )}
+                        {tallaNueva && <span className="text-[9.5px] font-bold uppercase tracking-wide text-ambar-profundo">nueva</span>}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={quitarTitulo}
+                        title={quitarTitulo}
+                        disabled={deshabilitado}
+                        onClick={() => onQuitarTalla(t)}
+                        data-talla={nombreTalla}
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-rojo-profundo/25 bg-papel text-rojo-profundo transition-colors duration-200 ease-cayla hover:border-rojo-profundo hover:bg-rojo-profundo/[0.07] disabled:opacity-40"
+                      >
+                        <Trash2 aria-hidden className="h-3 w-3" />
+                      </button>
+                    </span>
+                  </th>
+                );
+              })}
               {conColumnaTotal && (
                 <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1 py-2 text-center text-xs font-semibold text-taupe">
                   {TITULO_RESUMEN[vista]}

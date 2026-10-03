@@ -21,6 +21,9 @@ import {
   pasoDeCelda,
   ponerEtiqueta,
   quitarColor,
+  quitarTalla,
+  tallasQueSeQuitan,
+  devolverTalla,
   rangoDePrecios,
   resumenVariantes,
   tonoDeBarra,
@@ -383,5 +386,52 @@ describe("quitarColor también suelta una corrección de la visita (revisión 20
     const filas = [fila("Negro", "s", { colorCodigo: "Azul" }), fila("Negro", "s", { clave: "otra", id: "otra", guardada: null })];
     const r = quitarColor(filas, "Azul");
     expect(r.find((f) => f.clave === "Negro-s")?.colorCodigo).toBe("Azul");
+  });
+});
+
+describe("quitarTalla — el tacho de la cabecera de una talla (Felipe 2026-10-03)", () => {
+  const prenda = () => [fila("Rojo", "s"), fila("Rojo", "m"), fila("Azul", "s"), fila("Azul", "m")];
+
+  it("desactiva la talla en todos los colores y no toca las demás", () => {
+    const r = quitarTalla(prenda(), "s");
+    expect(r.map((f) => [f.clave, f.activo])).toEqual([
+      ["Rojo-s", false],
+      ["Rojo-m", true],
+      ["Azul-s", false],
+      ["Azul-m", true],
+    ]);
+    expect(tallasQueSeQuitan(r, n)).toEqual(["s"]);
+    expect(coloresQueSeQuitan(r)).toEqual([]);
+  });
+
+  it("suelta lo tocado en la visita (precio, etiquetas) y una corrección de talla", () => {
+    const filas = [fila("Rojo", "s", { precio: "99", etiquetaIds: ["nuevo"] }), fila("Rojo", "m", { tallaId: "l" })];
+    const r = quitarTalla(quitarTalla(filas, "s"), "l");
+    expect(r[0]).toMatchObject({ activo: false, precio: "69", etiquetaIds: [] });
+    expect(r[1]).toMatchObject({ activo: false, tallaId: "m" });
+    expect(correccionesPendientes(r, n)).toEqual([]);
+  });
+
+  it("una talla recién agregada (sin guardar) simplemente se va", () => {
+    const nueva = fila("Rojo", "xl", { clave: "nueva:xl", id: null, guardada: null });
+    const r = quitarTalla([...prenda(), nueva], "xl");
+    expect(r.some((f) => f.clave === "nueva:xl")).toBe(false);
+    expect(tallasQueSeQuitan(r, n)).toEqual([]);
+  });
+
+  it("si un color se queda sin tallas, también se dice que ese color se quita", () => {
+    const r = quitarTalla([fila("Rojo", "s"), fila("Azul", "s"), fila("Azul", "m")], "s");
+    expect(coloresQueSeQuitan(r)).toEqual(["Rojo"]);
+  });
+
+  it("«Deshacer» la devuelve a la venta", () => {
+    const r = devolverTalla(quitarTalla(prenda(), "m"), "m");
+    expect(r.every((f) => f.activo)).toBe(true);
+    expect(tallasQueSeQuitan(r, n)).toEqual([]);
+  });
+
+  it("varias tallas quitadas se listan en orden de curva", () => {
+    const r = quitarTalla(quitarTalla(prenda(), "m"), "s");
+    expect(tallasQueSeQuitan(r, n)).toEqual(["s", "m"]);
   });
 });

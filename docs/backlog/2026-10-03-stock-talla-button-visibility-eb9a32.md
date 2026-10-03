@@ -11,9 +11,10 @@
 - [x] Etiquetas con descuento en la ficha para quien edita Productos (ADR-0293).
 - [x] Textos: «Nacen en 0» coherente con la tabla, «72 u. contando todas las sedes», leyenda del «—», «Reintentar» si falla la lectura.
 - [ ] **Sin probar en el navegador:** una cuenta SIN «Ajustar stock» (no hay credenciales de prueba de otro rol en local), una prenda «Sin color» y la lectura de stock que falla. Cubierto por tipos y código; falta verlo.
-- [ ] **Decisión de Felipe — quitar una talla:** los colores tienen tacho; las tallas no. Una talla recién agregada (sin guardar) solo se va con «Descartar» todo. ¿Tacho también en la cabecera de la talla (desactiva esa talla en todos los colores, igual que «Quitar color»)?
+- [x] **Tacho en la talla** (Felipe: «sí, ponle tacho a la talla»): `quitarTalla` + línea «Deshacer»; verificado con la 30 de «Pantalón Carla» (hoja «Se desactivan: Beige 30, Negro 30», «Deshacer») y una 26 recién agregada (se va sin dejar nada).
+- [x] La cabecera de una talla recién agregada dice «nueva».
+- [x] Celular: la columna Color ya no deja el nombre en una letra con pocas tallas (medido a 375 px; escritorio sin cambios).
 - [ ] **Decisión de Felipe — salto grande de stock:** escribir 9999 sobre 6 («Conteo físico») se guarda sin pregunta; la hoja lo muestra («6 → 9999»). ¿Un aviso cuando el salto es grande (p. ej. más de 10 veces o más de 100 u.)?
-- [ ] La cabecera de una talla recién agregada no dice «nueva» (el color sí).
 - [ ] La barra del panel mide contra la talla más alta del MISMO color: 2 u. llenan la barra (en ámbar). Si se prefiere contra un umbral fijo, es una línea.
 - [ ] Bajo: «Agregar color» sobre un color quitado en la visita dice «ya existían desactivadas» (en la base siguen activas; es un «Deshacer»). En la hoja, el stock dice «28 · Negro» y lo demás «Negro 28».
 - [ ] Bajo (revisor): si un primer intento guardó correcciones y solo falló el stock, el reintento cae en la rama «solo stock» y su aviso no ofrece reimprimir todo (`ProductoForm.tsx`, rama `resumen.total === 0`).

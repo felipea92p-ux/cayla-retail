@@ -280,3 +280,15 @@ unidades, 375/1024/1615 px) y un revisor leyó el código caso por caso. Sin mig
   cuenta todas las sedes, no la tabla. La leyenda «— = no existe» dice que se toca. Si la lectura del stock falla, «Reintentar».
 
 Lo que quedó sin hacer, con su porqué: `docs/backlog/2026-10-03-stock-talla-button-visibility-eb9a32.md`.
+
+**Tacho en la talla (Felipe, mismo día: «sí, ponle tacho a la talla»).** La cabecera de cada talla lleva su lápiz (corregirla) y un
+tacho, como la fila de un color: `quitarTalla` hace sobre una columna lo mismo que `quitarColor` sobre una fila (las dos usan
+`quitarFilas`): la talla deja de venderse en TODOS los colores, las que existen se desactivan (nunca se borran) y sueltan lo tocado
+en la visita, corrección incluida; las nuevas no se crean. Bajo la tabla, «La talla S deja de venderse en todos los colores al
+guardar… · Deshacer» (`tallasQueSeQuitan`, `devolverTalla`). Una talla recién agregada lleva «nueva» en su cabecera y su tacho la
+quita sin dejar nada pendiente. Si un color se queda sin tallas, también se dice que ese color se quita. En una columna angosta el
+tacho baja a una segunda línea en vez de empujar la tabla.
+
+**La columna Color en celular.** Con pocas tallas, a 375 px la columna Color medía su 36 % (110 px) y el lápiz y el tacho dejaban el
+nombre en una letra, aunque el mínimo declarado era 168 px. Debajo de `@lg` las tallas miden su mínimo (80 px) y el color se queda
+con el resto, que el `minWidth` de la tabla ya garantiza ≥ 168 px; desde `@lg` todo sigue igual (medido: 241 / 126 px a 1615).

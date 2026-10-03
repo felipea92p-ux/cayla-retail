@@ -282,18 +282,47 @@ export function correccionesPendientes(filas: readonly FilaFicha[], n: NombresFi
  * las nuevas, que todavía no existen, se van. «Deshacer» (`devolverColor`) la vuelve a la venta, sin lo que se le había tocado.
  */
 export function quitarColor(filas: readonly FilaFicha[], colorCodigo: string | null): FilaFicha[] {
-  const delColor = (f: FilaFicha) => f.activo && f.colorCodigo === colorCodigo;
-  const quedan = filas.filter((f) => !delColor(f) || f.guardada !== null);
+  return quitarFilas(filas, (f) => f.colorCodigo === colorCodigo);
+}
+
+/**
+ * «Quitar talla» (el tacho de la cabecera de una talla, Felipe 2026-10-03: «ponle tacho a la talla»): lo mismo que «Quitar color»,
+ * sobre una columna. La talla deja de venderse en TODOS los colores: las variantes que existen se desactivan (nunca se borran) y
+ * sueltan lo tocado en la visita; las nuevas no se crean. «Deshacer» (`devolverTalla`) la vuelve a la venta.
+ */
+export function quitarTalla(filas: readonly FilaFicha[], tallaId: string | null): FilaFicha[] {
+  return quitarFilas(filas, (f) => f.tallaId === tallaId);
+}
+
+/** Lo común a quitar un color o una talla: `deEse` dice qué filas (activas) se quitan. */
+function quitarFilas(filas: readonly FilaFicha[], deEse: (f: FilaFicha) => boolean): FilaFicha[] {
+  const seQuita = (f: FilaFicha) => f.activo && deEse(f);
+  const quedan = filas.filter((f) => !seQuita(f) || f.guardada !== null);
   return quedan.map((f) => {
-    if (!delColor(f) || !f.guardada) return f;
+    if (!seQuita(f) || !f.guardada) return f;
     const g = f.guardada;
     // Una corrección de color o talla hecha en la visita también se suelta (revisión 2026-10-03): si no, guardar desactivaba Y
-    // corregía (código nuevo, fotos y temporada mudadas, «reimprime todo») un color que la persona quiso quitar. Solo si su lugar
+    // corregía (código nuevo, fotos y temporada mudadas, «reimprime todo») lo que la persona quiso quitar. Solo si su lugar
     // de antes sigue libre: si otra fila ya lo ocupa, se queda donde está (y la base no ve un choque).
     const libre = !quedan.some((o) => o !== f && o.colorCodigo === g.colorCodigo && o.tallaId === g.tallaId);
     const identidad = libre ? { colorCodigo: g.colorCodigo, tallaId: g.tallaId } : {};
     return { ...f, ...identidad, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
   });
+}
+
+/** Las tallas que se quitan al guardar: se vendían (en algún color) y ya no les queda ninguna variante activa. En orden de curva. */
+export function tallasQueSeQuitan(filas: readonly FilaFicha[], n: NombresFicha): (string | null)[] {
+  const salida: (string | null)[] = [];
+  for (const f of filas) {
+    if (salida.includes(f.tallaId) || !f.guardada?.activo) continue;
+    if (!filas.some((o) => o.tallaId === f.tallaId && o.activo)) salida.push(f.tallaId);
+  }
+  return salida.sort((a, b) => compararTallas(n.talla(a), n.talla(b)));
+}
+
+/** «Deshacer» de «Quitar talla»: vuelven a la venta las variantes de esa talla que estaban activas en la base. */
+export function devolverTalla(filas: readonly FilaFicha[], tallaId: string | null): FilaFicha[] {
+  return filas.map((f) => (f.tallaId === tallaId && f.guardada?.activo && !f.activo ? { ...f, activo: true } : f));
 }
 
 /** Una línea de la hoja «Etiquetas de lo que entró»: una talla de un color, cuántas unidades entraron y con qué precio. */

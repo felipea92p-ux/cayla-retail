@@ -106,6 +106,9 @@ import {
   lineasParaImprimir,
   ponerEtiqueta,
   quitarColor,
+  quitarTalla,
+  tallasQueSeQuitan,
+  devolverTalla,
   resumenVariantes,
   type LineaParaImprimir,
 } from "@/lib/matriz-ficha-reglas";
@@ -1120,6 +1123,14 @@ export function ProductoForm({
     setFilas((actual) => quitarColor(actual, c));
   }
 
+  /** «Quitar talla» (el tacho de la cabecera de una talla, Felipe 2026-10-03): lo mismo que «Quitar color», sobre una columna. La
+   *  talla deja de venderse en todos los colores; lo tocado en su stock se suelta, y hasta guardar se deshace. */
+  function quitarLaTalla(t: string | null) {
+    const deTalla = filas.filter((f) => f.activo && f.tallaId === t);
+    stock.soltar(deTalla.map((f) => f.id ?? f.clave));
+    setFilas((actual) => quitarTalla(actual, t));
+  }
+
   /** El lápiz (corregir el color si se registró mal: conserva stock e historia) y el tacho (quitarlo) de cada color. */
   function botonesDeColor(c: string | null): BotonesDeColor {
     const delColor = filasDelEje(filas, "color", c);
@@ -1151,6 +1162,10 @@ export function ProductoForm({
   const yaDesactivados = coloresYaDesactivados(filas);
   const unidadesDe = (c: string | null) =>
     filas.reduce((s, f) => s + (f.colorCodigo === c && f.guardada?.activo && f.id ? (estadoVariantes?.[f.id]?.stock ?? 0) : 0), 0);
+  // Lo mismo para las tallas que se quitan (el tacho de su cabecera).
+  const tallasSeQuitan = tallasQueSeQuitan(filas, nombres);
+  const unidadesDeTalla = (t: string | null) =>
+    filas.reduce((s, f) => s + (f.tallaId === t && f.guardada?.activo && f.id ? (estadoVariantes?.[f.id]?.stock ?? 0) : 0), 0);
 
   return (
     <form
@@ -1511,6 +1526,7 @@ export function ProductoForm({
               onEtiqueta={(id, poner, claves) => setFilas((actual) => ponerEtiqueta(actual, id, poner, claves))}
               botonesDeColor={botonesDeColor}
               onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
+              onQuitarTalla={quitarLaTalla}
               huecos={{ como: (c, t) => comoLlenarHueco(filas, c, t, permitidosHueco, nombres), onLlenar: llenarHueco }}
               deshabilitado={loading}
             />
@@ -1545,6 +1561,28 @@ export function ProductoForm({
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
                         <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="btn-cayla btn-enlace text-[12px]">
+                          Deshacer
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {tallasSeQuitan.length > 0 && (
+              <ul className="mt-2.5 space-y-1.5" aria-label="Tallas que se quitan al guardar">
+                {tallasSeQuitan.map((t) => {
+                  const u = unidadesDeTalla(t);
+                  return (
+                    <li key={t ?? "sin-talla"} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                      <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                      <span className="min-w-0">
+                        La talla <b className="font-semibold">{nombres.talla(t) || "Única"}</b> deja de venderse en todos los colores al guardar: sus
+                        variantes se desactivan y conservan su historia
+                        {u > 0
+                          ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
+                          : "."}{" "}
+                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="btn-cayla btn-enlace text-[12px]">
                           Deshacer
                         </button>
                       </span>
