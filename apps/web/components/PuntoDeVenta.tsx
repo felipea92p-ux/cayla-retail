@@ -136,6 +136,8 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** Prefijo y familia de la categoría: dibujan su ícono en la tarjeta sin foto. Ausentes = el ícono de reserva. */
   categoriaPrefijo?: string | null;
   categoriaFamilia?: string | null;
+  /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
+  colorHex?: string | null;
   precio: number;
   /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
    *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
