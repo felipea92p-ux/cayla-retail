@@ -138,6 +138,10 @@ type Comun = {
    *  de compras y en Inventario para quien no (ADR-0113); las dos filas apuntan a `/recibir` y nunca salen a la vez (parado en
    *  el Taller, quien ve el dinero no tiene ninguna: allí Compras no se muestra). */
   soloSinPermiso?: Permiso;
+  /** Si esta fila queda SOLA bajo su grupo de primer nivel, conserva su propio nombre en vez de tomar el del grupo. Existe por UN
+   *  caso: «Recibir mercadería» en Inventario. Un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
+   *  (la pantalla no se parece a Existencias): parecía que Recibir no existía hasta darle otro módulo (Felipe, 2026-10-03). */
+  conservaNombre?: true;
   /** Tipos de ubicación donde aplica; sin esto, en todas. */
   ubicaciones?: readonly TipoUbicacion[];
   /**
@@ -313,7 +317,7 @@ export const ARBOL: readonly Nodo[] = [
       // Compras llega a 7, y para ese caso `menu.test.ts` tiene la excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`).
       { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila" },
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
-      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras" },
+      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras", conservaNombre: true },
     ],
   },
 
@@ -569,7 +573,12 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu 
     const hijos = n.hijos.map((h) => construirFila(h, false)).filter((f): f is FilaMenu => f !== undefined);
     // Un grupo sin hijas visibles no agrupa nada; con una sola, se disuelve: sube esa hija (ver la nota de arriba).
     if (hijos.length === 0) return undefined;
-    if (hijos.length === 1) return esRaiz ? { ...hijos[0], id: n.id, etiqueta: n.etiqueta } : hijos[0];
+    if (hijos.length === 1) {
+      if (!esRaiz) return hijos[0];
+      // `conservaNombre`: la hija que quedó sola sigue llamándose como ella misma, no como el grupo (solo «Recibir mercadería»).
+      const propia = n.hijos.some((h) => h.id === hijos[0].id && "conservaNombre" in h && h.conservaNombre);
+      return propia ? { ...hijos[0], id: n.id } : { ...hijos[0], id: n.id, etiqueta: n.etiqueta };
+    }
     return { id: n.id, etiqueta: n.etiqueta, icono: n.icono, hijos };
   };
 
