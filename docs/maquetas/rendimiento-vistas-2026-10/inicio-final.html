@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inicio de la integrante: propuesta final · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Inicio de la integrante, PROPUESTA FINAL (2026-10-03): anillo del día + «Lo que va bien»; accesos con Nuevo producto en vez de Apartados
+   A · Anillo del día   B · Mi turno en línea   C · Mi mes en calendario   D · Reconocer (lo que va bien)
+   Reglas que NO se tocan (D-112, D-149, D-150): la integrante ve SOLO lo suyo, jamás a una compañera; la meta es para
+   acompañar y reconocer, no para pagar ni evaluar; sin dinero ni bono; sin rojo y sin «semáforo»; si no tiene meta, el
+   Inicio queda como estaba y lo dice. Es la pantalla que más veces abre al día: debe leerse en 3 segundos, de pie.
+   NO es una implementación. Datos INVENTADOS. Tokens = apps/web/app/globals.css (ADR-0169). La barra oscura no existe en el ERP.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.15}
+
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+
+.mundo{padding:22px;display:grid;gap:18px;justify-items:center}
+.marco{width:100%;max-width:1100px;background:var(--crema);border-radius:14px;box-shadow:0 20px 50px -20px rgba(26,26,24,.35);overflow:hidden;position:relative;transition:max-width .35s var(--ease)}
+.marco.cel{max-width:395px;border:10px solid #1a1a18;border-radius:38px}
+.cab-erp{height:54px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:12px;padding:0 22px}
+.cab-erp .esp{flex:1}
+.chipcab{display:flex;align-items:center;height:30px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:11px;letter-spacing:.1em;font-weight:600;text-transform:uppercase}
+.vista{container-type:inline-size;padding:26px 30px 40px}
+.cel .vista{padding:16px 14px 96px}
+.sobre{color:var(--rojo);text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.vista h1{font-size:34px;margin-top:4px}
+.cel .vista h1{font-size:28px}
+.bajada{color:var(--taupe);font-size:14px;margin-top:4px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.rejilla{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+@container (max-width:760px){.rejilla{grid-template-columns:1fr}}
+.col{display:grid;gap:18px}
+.sec>.lbl{display:block;margin-bottom:8px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;border-radius:99px;padding:0 9px;background:var(--hueso);white-space:nowrap;line-height:20px}
+.chip.pz{background:rgba(76,93,110,.14);color:var(--pizarra)}
+.chip.am{background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip.vd{background:rgba(72,96,63,.14);color:var(--verde)}
+.chip.tx{background:rgba(128,92,76,.14);color:var(--taupe)}
+.pto{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--t30)}
+.pto.vd{background:var(--verde)}.pto.am{background:var(--ambar)}.pto.pz{background:var(--pizarra)}
+
+.bar{height:8px;border-radius:9px;background:var(--t10);position:relative}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--verde);transition:width .6s var(--ease)}
+.bar i.pz{background:var(--pizarra)}.bar i.am{background:var(--ambar)}
+.bar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tinta);border-radius:2px}
+
+.tarj{padding:18px 18px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{padding:13px 15px}
+.mini .v{font-family:'EB Garamond',serif;font-size:26px;line-height:1.1;margin-top:3px}
+.mini .d{font-size:12.5px;color:var(--t65);margin-top:2px}
+
+/* A · anillo */
+.anillo{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+@container (max-width:420px){.anillo{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.anillo svg{width:150px;height:150px;transform:rotate(-90deg)}
+.anillo .pista{stroke:var(--t10)}
+.anillo .prog{stroke:var(--verde);stroke-linecap:round;transition:stroke-dashoffset .8s var(--ease)}
+.anillo .prog.pz{stroke:var(--pizarra)}.anillo .prog.am{stroke:var(--ambar)}
+.anillo .centro{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.anillo .centro b{font-family:'EB Garamond',serif;font-weight:400;font-size:30px;line-height:1}
+.anillo .centro span{font-size:12px;color:var(--t65)}
+.rel{position:relative;width:150px;height:150px}
+.frase{font-family:'EB Garamond',serif;font-size:22px;line-height:1.2}
+
+/* B · turno en línea */
+.linea svg{width:100%;height:170px;display:block}
+.linea text{font-family:'DM Sans';font-size:10.5px;fill:var(--t65)}
+.ventas-hoy{margin-top:12px;display:grid;gap:0}
+.vrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:14px;border-top:1px solid var(--t06)}
+.vrow small{color:var(--t65);font-size:12px}
+
+/* C · calendario */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .dn{font-size:10.5px;text-align:center;color:var(--t65);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.dia{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;font-size:12.5px;position:relative;background:transparent;border:1px solid transparent;transition:transform .15s var(--ease)}
+.dia:hover:not(.fut):not(.vac){transform:scale(1.06)}
+.dia.cum{background:rgba(72,96,63,.30)}
+.dia.casi{background:rgba(76,93,110,.20)}
+.dia.baj{background:rgba(116,80,26,.16)}
+.dia.des{background:repeating-linear-gradient(45deg,var(--t06),var(--t06) 4px,transparent 4px,transparent 8px);color:var(--t50)}
+.dia.fut{color:var(--t30)}
+.dia.hoy{border-color:var(--tinta);font-weight:700}
+.dia.sel{box-shadow:0 0 0 2px var(--taupe)}
+.dia.vac{visibility:hidden}
+.leyc{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--t65);margin-top:10px}
+.leyc i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.detdia{margin-top:12px;background:var(--hueso);border-radius:10px;padding:10px 14px;font-size:13.5px;min-height:46px}
+
+/* D · reconocer */
+.logro{display:grid;grid-template-columns:42px 1fr;gap:12px;padding:14px 0;align-items:start}
+.logro+.logro{border-top:1px solid var(--t06)}
+.logro .ico{width:42px;height:42px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:19px}
+.logro b{font-weight:600}
+.logro .s{font-size:13px;color:var(--t65);margin-top:2px}
+.hito{margin-top:6px}
+
+/* Te toca y accesos */
+.toca .it{display:flex;gap:10px;padding:13px 16px;align-items:flex-start;font-size:14px}
+.toca .it+.it{border-top:1px solid var(--t10)}
+.toca .pt{margin-top:7px;flex:none}
+.toca small{display:block;color:var(--t65);font-size:12px}
+.acc{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.acc div{padding:12px 6px;text-align:center;font-size:12px;border:1px solid var(--sand);border-radius:12px;background:var(--papel)}
+.nota{margin-top:6px;background:var(--hueso);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--t80)}
+.fijo{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 14px;background:linear-gradient(to top,var(--crema) 70%,rgba(245,240,232,0));z-index:6;display:none}
+.cel .fijo{display:block}
+.btn-fijo{height:52px;border-radius:14px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;width:100%}
+.btn-vender{display:inline-flex;align-items:center;height:42px;padding:0 18px;border-radius:10px;background:var(--tinta);color:var(--crema);font-weight:500;font-size:14px}
+.cel .btn-vender{display:none}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+@media (prefers-reduced-motion:reduce){.bar i,.anillo .prog,.dia{transition:none}}
+
+.porque{width:100%;max-width:1100px;background:var(--papel);border:1px dashed var(--taupe);border-radius:12px;padding:16px 20px;font-size:13.5px;color:var(--t80)}
+.porque h4{font-family:'EB Garamond',serif;font-weight:400;font-size:20px;margin-bottom:6px}
+.porque .dosc{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+@media (max-width:760px){.porque .dosc{grid-template-columns:1fr}}
+.porque b{font-weight:600}.porque ul{margin:4px 0 0 18px}
+</style>
+</head>
+<body>
+
+<div class="spk" id="barra">
+  <span class="tit">Inicio de la integrante · propuesta final</span>
+  <div class="g"><span>Su rol</span><div class="seg" data-k="perm"><button data-v="si">Puede dar de alta productos</button><button data-v="no">No puede</button></div></div>
+  <div class="g"><span>Momento</span><div class="seg" data-k="mom"><button data-v="am">9:30 a. m.</button><button data-v="med">1:00 p. m.</button><button data-v="pm">5:40 p. m.</button></div></div>
+  <div class="g"><span>Datos</span><div class="seg" data-k="datos"><button data-v="meta">Con meta</button><button data-v="supera">Meta superada</button><button data-v="sin">Sin meta aún</button></div></div>
+  <div class="g"><span>Ancho</span><div class="seg" data-k="ancho"><button data-v="cel">Celular 375</button><button data-v="pc">Computadora</button></div></div>
+</div>
+
+<div class="mundo">
+  <div class="marco cel" id="marco">
+    <div class="cab-erp"><b style="letter-spacing:.24em;font-size:13px">CAYLA</b><span class="esp"></span><span class="chipcab">Tienda TRU</span></div>
+    <div class="vista" id="vista"></div>
+    <div class="fijo"><div class="btn-fijo">Vender</div></div>
+  </div>
+  <div class="porque" id="porque"></div>
+</div>
+
+<script>
+/* ---------- Datos INVENTADOS de «Mateo» (integrante de TRU) ---------- */
+const HOY_DIA = 23, DIAS_MES = 30, METAMES = 2800, METADIA = 135;   // meta de hoy por horas programadas
+const RAW = [118,96,131,null,122,140,155,null,110,127,99,134,null,145,128,115,null,138,142,104,126,null]; // días 1..22 (null = descanso)
+const SUMA_PREV = 2360, brutas = RAW.filter(x=>x).reduce((a,b)=>a+b,0);
+const PREV = RAW.map(x=>x?Math.round(x*SUMA_PREV/brutas):null);        // ventas por día (suma ≈ 2,360)
+const VENTAS_HOY = [[ '10:48',38 ],[ '12:15',27 ],[ '14:40',31 ],[ '16:10',24 ]];   // solo las suyas
+const CURVA = [0,.03,.09,.17,.25,.33,.42,.54,.70,.84,.93,.98,1];                 // de 9 a 21 h: cuánto del día suele estar hecho
+const MOM = {am:{h:9.5,txt:'9:30 a. m.'},med:{h:13,txt:'1:00 p. m.'},pm:{h:17.67,txt:'5:40 p. m.'}};
+const S={vista:'A',mom:'pm',datos:'meta',ancho:'cel',perm:'si',sel:null};
+const f=n=>'S/ '+Math.round(n).toLocaleString('es-PE');
+const $=s=>document.querySelector(s);
+const chip=(t,c)=>`<span class="chip ${c}"><i class="pto ${c}"></i>${t}</span>`;
+
+/* ---------- Cálculos ---------- */
+function curva(h){ const x=Math.max(0,Math.min(12,h-9)); const i=Math.floor(x); return i>=12?1:CURVA[i]+(CURVA[i+1]-CURVA[i])*(x-i); }
+function ventasHasta(h){ return VENTAS_HOY.filter(([t])=>{const [a,b]=t.split(':').map(Number);return a+b/60<=h}).reduce((s,[,m])=>s+m,0); }
+function calc(){
+  const h=MOM[S.mom].h, extra=S.datos==='supera'?80:0;                      // «Meta superada»: un día fuerte
+  const hoy=ventasHasta(h)+(h>=17?extra:Math.round(extra*(h-9.5)/8));
+  const esp=METADIA*curva(h), pctDia=hoy/METADIA;
+  const mes=SUMA_PREV+hoy, pctMes=mes/METAMES, espMes=METAMES*(HOY_DIA-1+curva(h))/DIAS_MES;
+  const est=hoy>=METADIA?['Meta lograda','vd']:h<10?['Tu turno empieza a las 10:00','']:hoy>=esp*1.05?['Adelante','vd']:hoy>=esp*.9?['En ritmo','pz']:['Por debajo','am'];
+  const trabajados=PREV.filter(Boolean).length+(hoy>0?1:0);
+  const prom=mes/Math.max(1,trabajados);
+  const diasQueFaltan=Math.max(0,DIAS_MES-HOY_DIA), proy=mes+prom*Math.round(diasQueFaltan*.73)   // ~73 % de los días son de trabajo;
+  return {h,hoy,esp,pctDia,mes,pctMes,espMes,est,prom,proy,faltaMes:Math.max(0,METAMES-mes)};
+}
+function estDia(v){ return v==null?'des':v>=METADIA?'cum':v>=METADIA*.85?'casi':'baj'; }
+function racha(){ let r=0; for(let i=PREV.length-1;i>=0;i--){ if(PREV[i]==null) continue; if(PREV[i]>=METADIA*.85) r++; else break; } return r; }
+
+/* ---------- Piezas ---------- */
+const barra=(v,m,e,c='')=>`<div class="bar"><i class="${c}" style="width:${Math.min(100,v/m*100)}%"></i>${e?`<b style="left:${Math.min(100,e/m*100)}%"></b>`:''}</div>`;
+function sinMeta(){ return `<div class="sec"><span class="lbl">Tu día</span><div class="dos"><div class="card mini"><div class="lbl">Tus ventas</div><div class="v num">${f(calc().hoy)}</div><div class="d">${VENTAS_HOY.filter(([t])=>{const [a,b]=t.split(':').map(Number);return a+b/60<=MOM[S.mom].h}).length} ventas</div></div><div class="card mini"><div class="lbl">Tu ticket</div><div class="v num">${f(calc().hoy/Math.max(1,VENTAS_HOY.filter(([t])=>{const [a,b]=t.split(':').map(Number);return a+b/60<=MOM[S.mom].h}).length))}</div><div class="d">por venta</div></div></div>
+  <div class="nota">Tu encargada todavía no cargó tu meta del mes, así que aquí solo ves lo tuyo del día. Cuando la cargue, esta pantalla te dirá cómo vas. <b>No hace falta que hagas nada.</b></div></div>`; }
+
+function tuMes(c){ const dias=c.faltaMes/Math.max(1,c.prom);
+  return `<div class="card tarj"><div class="lbl">Tu mes</div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;gap:8px;flex-wrap:wrap"><span class="num" style="font-family:'EB Garamond',serif;font-size:30px">${f(c.mes)}</span><span style="font-size:13px;color:var(--t65)">de ${f(METAMES)} · ${Math.round(c.pctMes*100)} %</span></div><div style="margin-top:10px">${barra(c.mes,METAMES,c.espMes,c.pctMes>=c.espMes/METAMES*1.05?'':'pz')}</div>
+  <div style="font-size:13px;color:var(--t80);margin-top:10px">${c.faltaMes>0?`Te faltan <b>${f(c.faltaMes)}</b>: como ${dias.toFixed(1)} días de tu promedio (${f(c.prom)} por día trabajado). Quedan ${DIAS_MES-HOY_DIA} días.`:'Ya llegaste a tu meta del mes.'}</div>
+  <div style="font-size:12.5px;color:var(--t65);margin-top:4px">A este ritmo cierras cerca de ${f(c.proy)}.</div></div>`; }
+
+function vA(){ const c=calc(), r=54, L=2*Math.PI*r, p=Math.min(1,c.pctDia), tono=c.est[1]==='vd'?'':c.est[1];
+  const frase = c.hoy>=METADIA ? 'Ya pasaste tu meta de hoy.' : c.h<10 ? 'Hoy empiezas a las 10:00. Tu meta de hoy es '+f(METADIA)+'.' : c.est[0]==='Adelante' ? 'Vas adelante de lo que tocaba.' : c.est[0]==='En ritmo' ? 'Vas en ritmo con tu día.' : 'Hoy va más lento: todavía hay turno.';
+  return `<div class="sec"><span class="lbl">Tu meta de hoy</span><div class="card tarj"><div class="anillo">
+    <div class="rel"><svg viewBox="0 0 130 130"><circle class="pista" cx="65" cy="65" r="${r}" fill="none" stroke-width="12"/><circle class="prog ${tono}" cx="65" cy="65" r="${r}" fill="none" stroke-width="12" stroke-dasharray="${L}" stroke-dashoffset="${L*(1-p)}"/>
+      ${c.h>=10&&c.hoy<METADIA?`<g transform="rotate(${c.esp/METADIA*360} 65 65)"><line x1="65" y1="${65-r-9}" x2="65" y2="${65-r+9}" stroke="#1a1a18" stroke-width="2.5" stroke-linecap="round"/></g>`:''}</svg>
+      <div class="centro"><div><b class="num">${f(c.hoy)}</b><br><span>de ${f(METADIA)}</span></div></div></div>
+    <div><div class="frase">${frase}</div><div style="margin-top:10px">${chip(c.est[0],c.est[1])}</div>${c.h>=10&&c.hoy<METADIA?`<div style="font-size:12.5px;color:var(--t65);margin-top:8px">La marca negra es dónde solías ir a esta hora: ${f(c.esp)}.</div>`:''}</div></div></div></div>
+`; }
+
+function vB(){ const c=calc(), w=S.ancho==='cel'?340:640,h=S.ancho==='cel'?190:170,pad=S.ancho==='cel'?22:26,x0=10,x1=19,bw=(w-pad*2)/(x1-x0), X=t=>pad+(t-x0)*bw, max=Math.max(METADIA*1.25, c.hoy*1.15), Y=v=>h-26-(v/max)*(h-46);
+  const esp=[]; for(let t=x0;t<=x1;t+=.5) esp.push(`${X(t)},${Y(METADIA*curva(t))}`);
+  const pts=[[x0,0]]; let acu=0; VENTAS_HOY.forEach(([t,m])=>{const [a,b]=t.split(':').map(Number); const tt=a+b/60; if(tt<=c.h){pts.push([tt,acu]);acu+=m;pts.push([tt,acu]);}}); if(c.h>=x0) pts.push([Math.min(c.h,x1),acu]);
+  const real=pts.map(([t,v])=>`${X(t)},${Y(v)}`).join(' ');
+  const hrs=(S.ancho==='cel'?[10,13,16,19]:[10,12,14,16,18]).map(t=>`<text x="${X(t)}" y="${h-8}" text-anchor="middle">${t}:00</text>`).join('');
+  const lista=VENTAS_HOY.filter(([t])=>{const [a,b]=t.split(':').map(Number);return a+b/60<=c.h});
+  return `<div class="sec"><span class="lbl">Tu turno de hoy · 10:00 a 19:00</span><div class="card tarj linea">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="num" style="font-family:'EB Garamond',serif;font-size:30px">${f(c.hoy)}</span><span style="font-size:13px;color:var(--t65)">de ${f(METADIA)}</span>${chip(c.est[0],c.est[1])}</div>
+    <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Tus ventas de hoy contra el ritmo de un día normal">${hrs}<line x1="${pad}" x2="${w-pad}" y1="${Y(METADIA)}" y2="${Y(METADIA)}" stroke="#48603f" stroke-width="1" stroke-dasharray="2 4"/><text x="${w-pad}" y="${Y(METADIA)-5}" text-anchor="end">tu meta</text>
+      <polyline points="${esp.join(' ')}" fill="none" stroke="#1a1a18" stroke-width="1.5" stroke-dasharray="5 4"/><polyline points="${real}" fill="none" stroke="#805c4c" stroke-width="3" stroke-linejoin="round"/>${lista.map(([t,m])=>{const [a,b]=t.split(':').map(Number);const tt=a+b/60;let ac=0;VENTAS_HOY.forEach(([t2,m2])=>{const [a2,b2]=t2.split(':').map(Number);if(a2+b2/60<=tt)ac+=m2});return `<circle cx="${X(tt)}" cy="${Y(ac)}" r="4.5" fill="#fbf8f2" stroke="#805c4c" stroke-width="2.5"/>`}).join('')}</svg>
+    <div style="font-size:12px;color:var(--t65);margin-top:6px"><b style="font-weight:600;color:var(--tinta)">- - -</b> cómo suele ir un día normal en esta tienda · <b style="font-weight:600;color:#805c4c">——</b> tus ventas</div>
+    <div class="ventas-hoy">${lista.length?lista.slice().reverse().map(([t,m])=>`<div class="vrow"><span>${t} <small>venta</small></span><span class="num">${f(m)}</span></div>`).join(''):'<div class="vrow"><span style="color:var(--t65)">Todavía no registraste ventas hoy.</span><span></span></div>'}</div></div></div>
+    <div class="sec">${tuMes(c)}</div>`; }
+
+function vC(){ const c=calc(), nombres=['L','M','M','J','V','S','D'];
+  const primero=2; // el 1 de octubre cae miércoles (0=lunes)
+  const celdas=[]; for(let i=0;i<primero;i++) celdas.push('<div class="dia vac"></div>');
+  for(let d=1;d<=DIAS_MES;d++){ let cls='fut', v=null;
+    if(d<HOY_DIA){ v=PREV[d-1]; cls=estDia(v); } else if(d===HOY_DIA){ v=c.hoy; cls=c.hoy?estDia(c.hoy):'fut'; cls+=' hoy'; }
+    celdas.push(`<button class="dia ${cls}${S.sel===d?' sel':''}" data-act="dia" data-v="${d}" aria-label="Día ${d}">${d}</button>`); }
+  const sel=S.sel, vs=sel?(sel<HOY_DIA?PREV[sel-1]:sel===HOY_DIA?c.hoy:null):null;
+  const det=sel?(sel>HOY_DIA?`El ${sel} todavía no llega.`:vs==null?`El ${sel} fue tu día de descanso.`:`El ${sel} vendiste <b>${f(vs)}</b>; tu meta era ${f(METADIA)} (${Math.round(vs/METADIA*100)} %).`):'Toca un día para ver cómo te fue.';
+  const cumplidos=PREV.filter(v=>v&&v>=METADIA).length;
+  return `<div class="sec"><span class="lbl">Tu mes · octubre</span><div class="card tarj"><div class="cal">${nombres.map(n=>`<div class="dn">${n}</div>`).join('')}${celdas.join('')}</div>
+    <div class="leyc"><span><i style="background:rgba(72,96,63,.45)"></i>Llegaste a tu meta</span><span><i style="background:rgba(76,93,110,.35)"></i>Casi (85 % o más)</span><span><i style="background:rgba(116,80,26,.28)"></i>Día más lento</span><span><i style="background:repeating-linear-gradient(45deg,#ddd 0 3px,#fff 3px 6px)"></i>Descanso</span></div>
+    <div class="detdia" id="detdia">${det}</div><div style="font-size:13px;color:var(--t65);margin-top:10px">Llegaste a tu meta ${cumplidos} ${cumplidos===1?'día':'días'} este mes${racha()>1?` · llevas ${racha()} días seguidos cerca de tu meta`:''}.</div></div></div>
+    <div class="sec">${tuMes(c)}</div>`; }
+
+function logros(c){ const mejorPrev=Math.max(...PREV.filter(Boolean)), esHoy=c.hoy>mejorPrev, mejor=esHoy?c.hoy:mejorPrev, dMejor=esHoy?HOY_DIA:PREV.indexOf(mejorPrev)+1, rk=racha();
+  return `<div class="sec"><span class="lbl">Lo que va bien</span><div class="card tarj" style="padding-top:6px;padding-bottom:6px">
+    ${c.hoy>=METADIA?`<div class="logro"><span class="ico">✓</span><div><b>Hoy llegaste a tu meta</b><div class="s">Y todavía queda turno. Buen día.</div></div></div>`:''}
+    <div class="logro"><span class="ico">★</span><div><b>${esHoy?'Hoy es tu mejor día del mes':'Tu mejor día del mes fue el '+dMejor}</b><div class="s">Vendiste ${f(mejor)}, ${Math.round(mejor/METADIA*100)} % de la meta de un día.</div></div></div>
+    ${rk>1?`<div class="logro"><span class="ico">↗</span><div><b>${rk} días seguidos cerca de tu meta</b><div class="s">Constancia: ningún día por debajo del 85 % de tu meta en esa racha.</div></div></div>`:''}
+    <div class="logro"><span class="ico">%</span><div><b>Tu ticket subió 6 % frente al mes pasado</b><div class="s">Cada cliente se lleva un poco más. Eso lo hiciste tú.</div></div></div></div></div>`; }
+function vFinal(){ return vA()+logros(calc())+`<div class="sec">${tuMes(calc())}</div>`; }
+
+function lateral(){ const acc=['Vender','Existencias','Cambios', S.perm==='si'?'Nuevo producto':'Apartados'];
+  return `<div class="sec"><span class="lbl">Te toca</span><div class="card toca"><div class="it"><i class="pto pz pt"></i><div>1 traslado por recibir<small>Viene de Lima · 4 prendas</small></div></div><div class="it"><i class="pto am pt"></i><div>Cierra caja a las 7:00 p. m.<small>Tu encargada lo revisa después</small></div></div></div></div>
+  <div class="sec"><span class="lbl">Accesos</span><div class="acc">${acc.map(x=>`<div${x==='Nuevo producto'?' style="border-color:var(--taupe)"':''}>${x}</div>`).join('')}</div>
+  <div class="nota" style="margin-top:8px">${S.perm==='si'?'«Nuevo producto» aparece porque su rol puede dar de alta productos; cambiarle el rol cambia el acceso, sin tocar código.':'Su rol no da de alta productos: en ese lugar queda «Apartados», como antes.'}</div></div>`; }
+
+function porque(){ $('#porque').innerHTML=`<h4>Lo que decidió Felipe (2026-10-03)</h4><div class="dosc"><div><b>Pantalla</b><ul><li>Arriba, el <b>anillo del día</b> (su meta de hoy, con la marca de dónde solía ir a esta hora).</li><li>Debajo, <b>Lo que va bien</b>: su mejor día, su racha y su ticket. Reconocer y acompañar.</li><li><b>Tu mes</b> al final, con lo que le falta dicho en días de su promedio.</li></ul></div><div><b>Accesos</b><ul><li>«Nuevo producto» entra en lugar de «Apartados» (quien puede dar de alta productos).</li><li>Sin ese permiso, el cuarto acceso sigue siendo «Apartados».</li><li>«Apartados» sigue en el menú de la izquierda: solo sale de esta cuadrícula.</li></ul></div></div>`; }
+function pintar(){
+  $('#marco').classList.toggle('cel',S.ancho==='cel');
+  const principal = S.datos==='sin' ? sinMeta() : vFinal();
+  const cab=`<div class="cab"><div><div class="sobre">sábado 3 de octubre</div><h1>Hola, Mateo</h1><div class="bajada">Integrante · Tienda TRU</div></div><span class="btn-vender">Vender</span></div>`;
+  $('#vista').innerHTML=`${cab}<div class="rejilla"><div class="col">${principal}</div><div class="col">${lateral()}</div></div>`;
+  document.querySelectorAll('#barra .seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(S[s.dataset.k]===b.dataset.v))));
+  porque();
+}
+document.addEventListener('click',e=>{
+  const sg=e.target.closest('#barra .seg button'); if(sg){S[sg.parentElement.dataset.k]=sg.dataset.v; pintar(); return;}
+  const a=e.target.closest('[data-act=dia]'); if(a){const y=window.scrollY; S.sel=+a.dataset.v; pintar(); window.scrollTo(0,y);}
+});
+pintar();
+</script>
+</body>
+</html>

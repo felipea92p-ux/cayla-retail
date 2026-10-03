@@ -36,10 +36,24 @@
  * llegar a esas 40 ventas. Es la misma idea que ya usa Frescura para su vara por categoría
  * (contraerElResto: cuando una categoría no tiene evidencia propia, pesa la del resto).
  *
+ * ACTUALIZACIÓN 2026-10-03 (Felipe eligió la opción C de la auditoría; ADR-0325, «El centro de la contracción»):
+ *   1. El centro de la contracción pasa a ser el promedio de TODA la tienda (con la persona adentro), no el del «resto» sin ella.
+ *      Con el «resto», dos personas con las mismas horas y menos de 40 ventas cada una salían en orden CONTRARIO al crudo
+ *      (el peso w de cada una era menor que 0,5 y cada una se jalaba más allá de la otra), y con dos personas el «resto» de una es solo la
+ *      otra: la veterana salía «corregida» a 28,58 por hora cuando vende 18.
+ *   2. El ranking se ORDENA por una cota prudente —el número contraído menos dos errores estándar, «lo que podemos asegurar»—, no por el
+ *      número contraído. El número que se MUESTRA sigue siendo el contraído. Así quien tiene poca evidencia no pasa adelante de quien tiene
+ *      mucha solo por un golpe de suerte, aunque su número sea mayor (la expectativa de D-115/D-66 que el centro solo no alcanzaba a cumplir).
+ *
  * DECIDÍ: contracción bayesiana con fuerza de prior fija en horas-equivalentes al umbral de
  * D-66, no el estimador de varianza entre personas de Efron-Morris clásico.
  * DESCARTÉ: estimar la varianza entre personas (τ²) de los propios datos del mes — con
  * k = 2 en AQP, la estimación es ruido puro, y con k = 1 no está ni definida.
+ * DESCARTÉ (2026-10-03): el centro en el «resto» sin la propia persona (invierte el orden con la misma exposición) y ordenar solo por el número
+ * contraído (con un centro en la tienda, la nueva con una venta grande pasa al frente de la veterana). Hay UN límite que no se arregla acá:
+ * `fn_rendimiento_equipo` solo devuelve a quien vendió, así que quien trabajó horas y no vendió nada no entra al promedio de la tienda.
+ * SE ROMPE SI (cota): el ticket de una persona varía mucho más que su promedio (el supuesto es CV = 1) o alguien cuestiona los 2 errores estándar:
+ * con Z = 1,64 la veterana y la nueva del caso de la prueba empatan; con Z = 2 la veterana queda adelante por poco (13,73 contra 12,91).
  * SE ROMPE SI: una tienda no tiene NINGUNA persona con horas>0 en el mes — no hay de dónde
  * sacar el ritmo típico ni el promedio de la tienda; en ese caso la contracción no corre y
  * el ranking de soles por hora queda vacío (como ya lo deja ADR-0219 sin este cambio).
@@ -47,6 +61,14 @@
 
 /** Umbral de D-66: menos de esta cantidad de ventas en el mes es «muestra chica». */
 export const UMBRAL_MUESTRA_VENTAS = 40;
+
+/** Cuántos errores estándar se le restan al número contraído para ORDENAR el ranking (2: «lo que podemos asegurar»; ver la cabecera). */
+export const Z_COTA_PRUDENTE = 2;
+/**
+ * Cuánto varía el ticket de una venta respecto de su promedio (coeficiente de variación). No se conoce por persona (la base entrega soles y
+ * conteo, no cada venta): se asume 1, el de una cola de tickets típica del retail. Sube la incertidumbre de todos por igual.
+ */
+export const CV_TICKET = 1;
 
 /** Una fila de `retail.fn_rendimiento_equipo`: lo crudo de una persona en un mes, en una tienda. */
 export interface FilaRendimientoCruda {
@@ -71,6 +93,8 @@ export interface FilaRankingSolesPorHora {
   solesPorHoraContraido: number | null;
   sinHoras: boolean;
   horas: number | null;
+  /** Lo que ORDENA el ranking: el número contraído menos `Z_COTA_PRUDENTE` errores estándar (nunca negativa). `null` = `sinHoras`. */
+  cotaPrudente: number | null;
 }
 
 export interface FilaRankingNumeroVentas {
@@ -90,22 +114,22 @@ export function esMuestraChica(ventas: number): boolean {
  * La contracción de Efron-Morris/James-Stein de `solesPorHora` hacia el promedio de la
  * tienda, con la fuerza del prior anclada a D-66 (ver el comentario del archivo).
  *
- * `θ̂ᵢ = (horasᵢ · yᵢ + horasPrior · ȳ₋ᵢ) / (horasᵢ + horasPrior)`
+ * `θ̂ᵢ = (horasᵢ · yᵢ + horasPrior · ȳ) / (horasᵢ + horasPrior)`
  *
- * con `ȳ₋ᵢ` el promedio del RESTO de la tienda SIN esa persona (soles del resto ÷ horas del
- * resto) y `horasPrior` las horas que le toma a la tienda entera, a su propio ritmo de
- * ventas por hora, juntar `UMBRAL_MUESTRA_VENTAS` ventas.
+ * con `ȳ` el promedio de TODA la tienda (soles ÷ horas, con la persona adentro) y `horasPrior` las
+ * horas que le toma a la tienda entera, a su propio ritmo de ventas por hora, juntar
+ * `UMBRAL_MUESTRA_VENTAS` ventas.
  *
- * `ȳ` se calcula SIN la propia persona (el mismo principio que `contraElResto` de Frescura:
- * con ella adentro, quien tuvo un mes muy bueno infla el promedio contra el que se lo
- * compara, y se «esconde detrás» de su propio número — más notorio cuanto menos personas
- * tenga la tienda, que es justo el caso de AQP con 2). `horasPrior` sí usa el total de la
- * tienda entera: es una escala de cuánto pesa la evidencia, no un valor que se le compare a
- * cada persona, y no tiene el mismo problema.
+ * Hasta el 2026-10-03 `ȳ` era el promedio del RESTO sin la propia persona (el principio de
+ * `contraElResto` de Frescura). Se cambió porque con ese centro, cuando el peso de la persona es
+ * menor que 0,5 —las mismas horas y menos de 40 ventas cada una—, cada una se jala más allá de
+ * la otra y el orden sale invertido. Con el promedio de la tienda, `θ̂` crece siempre con `y` a
+ * igual exposición: el orden del crudo se respeta. Lo que el centro solo no resuelve (la nueva con
+ * una venta grande) lo resuelve la cota prudente que ORDENA el ranking (`cotaPrudente`).
  *
  * Devuelve un mapa `personaId → número contraído`, solo de quienes tienen `horas > 0` Y al
- * menos otra persona con horas en la misma tienda (sin nadie más, no hay «resto» del que
- * partir, y el número queda tal cual — se marca aparte, ver `construirRankingSolesPorHora`).
+ * menos otra persona con horas en la misma tienda (sin nadie más, no hay con quién comparar, y el
+ * número queda tal cual — ver `construirRankingSolesPorHora`).
  */
 export function contraerSolesPorHora(
   filas: readonly FilaRendimientoCruda[],
@@ -130,23 +154,38 @@ export function contraerSolesPorHora(
       : horasTotales;
 
   const resultado = new Map<string, number>();
+  // Sola con horas en su tienda: sin con quién compararse, no se contrae (queda el crudo; ver `construirRankingSolesPorHora`).
+  if (conHoras.length < 2) return resultado;
+  // El centro es el promedio de TODA la tienda, con la persona adentro: así el orden entre quienes tienen la misma exposición nunca se invierte.
+  const promedioTienda = solesTotales / horasTotales;
   for (const f of conHoras) {
-    const horasResto = horasTotales - f.horas;
-    if (horasResto <= 0) continue; // sola con horas en su tienda: sin resto, sin contracción
-    const promedioResto = (solesTotales - f.soles) / horasResto;
     const solesPorHora = f.soles / f.horas;
-    const contraido =
-      (f.horas * solesPorHora + horasPrior * promedioResto) /
-      (f.horas + horasPrior);
+    const contraido = (f.horas * solesPorHora + horasPrior * promedioTienda) / (f.horas + horasPrior);
     resultado.set(f.personaId, contraido);
   }
   return resultado;
 }
 
 /**
+ * La cota prudente de una persona: el número contraído menos `Z_COTA_PRUDENTE` errores estándar, o sea «lo que podemos asegurar que vende por
+ * hora». Es lo que ORDENA el ranking; el número que se muestra sigue siendo el contraído.
+ *
+ * El error estándar relativo de una tasa de ventas con `N` ventas de evidencia es `1 / √N` (conteo de Poisson); como lo que se mide son soles y no
+ * ventas, se infla por la variación del ticket: `√((1 + CV²) / N)`. `N` es lo que la persona vendió MÁS las `UMBRAL_MUESTRA_VENTAS` ventas
+ * de evidencia del prior de la tienda (la contracción las suma: sin ellas, una sola venta daría una incertidumbre infinita); quien no se contrajo
+ * (sola con horas en su tienda) no tiene prior y usa solo sus ventas. Con 0 ventas no hay cota (0). Nunca es negativa.
+ */
+export function cotaPrudente(contraido: number, ventas: number, contraida: boolean): number {
+  const evidencia = ventas + (contraida ? UMBRAL_MUESTRA_VENTAS : 0);
+  if (!(evidencia > 0) || !(contraido > 0)) return 0;
+  const errorRelativo = Math.sqrt((1 + CV_TICKET ** 2) / evidencia);
+  return contraido * Math.max(0, 1 - Z_COTA_PRUDENTE * errorRelativo);
+}
+
+/**
  * El ranking «vende más por hora» de ADR-0219 (D-121): ordena por el número CONTRAÍDO, no
  * por el crudo (el ADR decía «ordena por soles por hora»; la contracción es la corrección
- * de esta ficha). Solo entran personas con al menos una venta (D-121). Quien no tiene horas
+ * de esta ficha) y, desde el 2026-10-03, ordena por la COTA prudente de ese número (`cotaPrudente`). Solo entran personas con al menos una venta (D-121). Quien no tiene horas
  * va al final, marcado `sinHoras`, en el mismo orden que traía `filas` — igual que hoy.
  */
 export function construirRankingSolesPorHora(
@@ -171,13 +210,24 @@ export function construirRankingSolesPorHora(
         : (contraidos.get(f.personaId) ?? f.soles / (f.horas as number)),
       sinHoras,
       horas: f.horas,
+      cotaPrudente: sinHoras
+        ? null
+        : cotaPrudente(
+            contraidos.get(f.personaId) ?? f.soles / (f.horas as number),
+            f.ventas,
+            contraidos.has(f.personaId),
+          ),
     };
   });
 
   const conHoras = filasArmadas.filter((f) => !f.sinHoras);
   const sinHoras = filasArmadas.filter((f) => f.sinHoras);
+  // Ordena por la COTA prudente (no por el número que se muestra); en un empate, por el número contraído. `sort` es estable: un empate total
+  // conserva el orden en que llegó (la RPC ordena por tienda y nombre, así que es determinista).
   conHoras.sort(
-    (a, b) => (b.solesPorHoraContraido ?? 0) - (a.solesPorHoraContraido ?? 0),
+    (a, b) =>
+      (b.cotaPrudente ?? 0) - (a.cotaPrudente ?? 0) ||
+      (b.solesPorHoraContraido ?? 0) - (a.solesPorHoraContraido ?? 0),
   );
   return [...conHoras, ...sinHoras];
 }
