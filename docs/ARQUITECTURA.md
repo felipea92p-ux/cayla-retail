@@ -261,12 +261,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
   `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
-  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer» (tarjeta y cajón) abre
-  `ReponerPrendaModal.tsx` (ADR-0295: la prenda entera con todas sus tallas y UNA llamada a `bajar_al_piso`, todo o nada, con
-  marca) y «Subir a almacén» (entre «Reponer» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
-  (la prenda entera y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
+  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer prenda» (tarjeta y cajón) abre
+  `ReponerPrendaModal.tsx` (ADR-0295 y ADR-0320: el MODELO entero —una fila por color, una columna por talla, `MatrizMover.tsx`— y UNA llamada a `bajar_al_piso`, todo o nada, con
+  marca) y «Subir prenda» (entre «Reponer prenda» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
+  (el modelo entero y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
   alcanza, y cada talla es un `mover_interno` piso→almacén con una marca derivada de la de la lista; nota opcional y aviso de
-  «Existencias va a pedir bajar de nuevo»). Las dos ventanas comparten `SelectorDeTallas.tsx`; su lógica pura vive en
+  «Existencias va a pedir bajar de nuevo»). Las dos ventanas comparten `MatrizMover.tsx` (la misma tabla color × talla de Nuevo/Editar producto, todo en 0 al abrir); su lógica pura vive en
   `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
   de la tarjeta es un icono con tooltip. Ambas solo si la sede que se mira es la activa, porque firman con su Responsable;
   `<Modal bloqueado>` no deja cerrar mientras guarda, y tras un corte de red las cifras quedan fijas hasta «Confirmar de nuevo»; y

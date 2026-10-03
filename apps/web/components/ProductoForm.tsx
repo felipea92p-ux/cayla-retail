@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Undo2 } from "lucide-react";
+import { ChevronDown, Plus, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -16,7 +16,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ImagenesMuestra, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosPorColor } from "@/components/ficha-producto/FotosPorColor";
-import { comoPrincipal, conFotosNuevas, fotosDelColor, primeraEnSuColor, vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
+import { comoPrincipal, conFotosNuevas, fotosDelColor, primeraEnSuColor, sinLaFoto, vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
@@ -69,6 +69,7 @@ import {
   mudanzasAlGuardar,
   NACEN_SIN_UNIDADES,
   payloadVariantes,
+  precioYCostoPorDefecto,
   problemasVariantes,
   cambiarFila,
   textoChoque,
@@ -95,6 +96,7 @@ import { ImprimirLoQueEntro } from "@/components/ficha-producto/ImprimirLoQueEnt
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { FotoSubida } from "@/components/ficha-producto/useSubirFotos";
 import {
+  comoLlenarHueco,
   coloresQueSeQuitan,
   coloresYaDesactivados,
   correccionesPendientes,
@@ -104,6 +106,9 @@ import {
   lineasParaImprimir,
   ponerEtiqueta,
   quitarColor,
+  quitarTalla,
+  tallasQueSeQuitan,
+  devolverTalla,
   resumenVariantes,
   type LineaParaImprimir,
 } from "@/lib/matriz-ficha-reglas";
@@ -113,7 +118,7 @@ import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
 import type { EstadoCampo } from "@/lib/alta-producto-guia";
 import { pendientesDeFicha, type IdPendiente, type PendienteFicha } from "@/lib/producto-ficha-guia";
-import type { AjusteStockFicha, ContextoFicha } from "@/components/ficha-producto/piezas";
+import type { AjusteStockFicha, ContextoFicha, LecturaStockFicha } from "@/components/ficha-producto/piezas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -228,6 +233,7 @@ export function ProductoForm({
   esLider,
   puedeCorregir = true,
   ajusteStock = null,
+  lecturaStock = null,
   producto,
   volverA = "/productos",
 }: {
@@ -254,6 +260,8 @@ export function ProductoForm({
   puedeCorregir?: boolean;
   /** Ajustar el stock de la sede activa desde la ficha (2026-09-29). `null` = la cuenta no tiene «Ajustar stock». */
   ajusteStock?: AjusteStockFicha | null;
+  /** La sede de la que se LEE el stock aunque la cuenta no pueda ajustarlo (sin «Ajustar stock» se ve, no se toca). */
+  lecturaStock?: LecturaStockFicha | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
@@ -461,7 +469,7 @@ export function ProductoForm({
   // `undefined` = cerrado; un color (o `null`, sin color) = el ajuste de siempre abierto para ese color (ADR-0291: una talla que
   // faltó en un conteo no se suma a ciegas desde el stepper).
   const [ajusteDeColor, setAjusteDeColor] = useState<string | null | undefined>(undefined);
-  const stock = useStockFicha({ productoId: producto?.id ?? null, ajuste: ajusteStock });
+  const stock = useStockFicha({ productoId: producto?.id ?? null, ajuste: ajusteStock, lecturaStock });
   const coloresPanel = coloresFicha.filter((c) => c !== "");
   const [colorElegido, setColorElegido] = useState<string | null>(coloresPanel[0] ?? null);
   // Con el mouse encima de un color de la matriz, el panel lo muestra sin elegirlo (`undefined` = vuelve al elegido).
@@ -785,6 +793,17 @@ export function ProductoForm({
     logrado.current.nuevas += nuevas;
     let actuales = consolidar(filas, deLaBase);
     setFilas(actuales);
+    // Junto con las filas consolidadas, y ANTES de cualquier paso que pueda fallar (stock, etiquetas, temporada): si una corrección
+    // ya se aplicó y el stock falla después, las fotos y la temporada no pueden quedarse ancladas al color viejo (el reintento las
+    // mandaría a un color que la prenda ya no tiene; revisión del 2026-10-03).
+    if (sinAplicar.length === 0) {
+      // La base corrigió y mudó fotos y temporada de los colores que se quedaron sin variantes: lo que se veía pasa a ser
+      // lo guardado, y a la vez (en la misma pintada) su origen, porque las filas consolidadas ya no tienen mudanzas.
+      // Si la base no corrigió (sin el SQL), tampoco mudó nada: todo sigue anclado como estaba.
+      setPorColorBase(porColorGuardado);
+      setFotos(fotosVista.map((f) => ({ ...f, fijo: false })));
+      setTemporadaEditada(Object.entries(temporadaUbicada).map(([color, clave]) => ({ origen: color, fijo: false, clave })));
+    }
     // Lo que se puso con el stepper en las variantes NUEVAS entra ahora como stock inicial (ya existen y tienen id). Va aparte del
     // guardado de la prenda: si falla, la prenda igual quedó guardada y el aviso lo dice.
     const eranNuevas = new Set(filas.filter((f) => !f.id).map((f) => f.clave));
@@ -796,19 +815,14 @@ export function ProductoForm({
     // El stock tocado en las variantes que ya existían: UNA llamada, con el motivo y el responsable de la visita. Si falla, la
     // prenda igual quedó guardada; lo tocado sigue en la ficha (la barra lo cuenta) y «Revisar y guardar» lo vuelve a intentar.
     const { ok: stockOk } = await stock.guardar();
+    // Las recién creadas no estaban en el stock leído al abrir: sin releerlo, si la ficha sigue abierta (algo de abajo falla) se ven
+    // en 0 aunque su stock inicial entró, y un «+» sobre ellas no viajaría. Se relee DESPUÉS del guardado de stock (sin carrera).
+    if (recienCreadas.length > 0) stock.recargar();
     if (!stockOk) {
       cerrarProceso();
       setLoading(false);
       setHojaAbierta(false);
       return true;
-    }
-    if (sinAplicar.length === 0) {
-      // La base corrigió y mudó fotos y temporada de los colores que se quedaron sin variantes: lo que se veía pasa a ser
-      // lo guardado, y a la vez (en la misma pintada) su origen, porque las filas consolidadas ya no tienen mudanzas.
-      // Si la base no corrigió (sin el SQL), tampoco mudó nada: todo sigue anclado como estaba.
-      setPorColorBase(porColorGuardado);
-      setFotos(fotosVista.map((f) => ({ ...f, fijo: false })));
-      setTemporadaEditada(Object.entries(temporadaUbicada).map(([color, clave]) => ({ origen: color, fijo: false, clave })));
     }
     const mudanzasTras = mudanzasAlGuardar(actuales);
 
@@ -1050,6 +1064,22 @@ export function ProductoForm({
     if (r.fotos.length > 0) sumarFotosDeColores(r.fotos);
   }
 
+  /** La celda «—» de la matriz (esa combinación no se vende): la agrega o la reactiva (`comoLlenarHueco`). Nace con el precio y el
+   *  costo de su color (lo que la persona ya decidió para él) o, si el color no los tiene, los de la prenda; y con las etiquetas
+   *  que llevan todas. */
+  const permitidosHueco = { coloresActivos: colores.map((c) => c.codigo), tallasHabilitadas: tallasCategoria.map((t) => t.id) };
+  function llenarHueco(c: string | null, t: string | null) {
+    const delColor = precioYCostoPorDefecto(filas.filter((f) => f.activo && f.colorCodigo === c));
+    const dePrenda = precioYCostoPorDefecto(filas);
+    setFilas(
+      agregarCombinaciones(filas, [{ colorCodigo: c, tallaId: t }], {
+        precio: delColor.precio || dePrenda.precio,
+        costo: delColor.costo || dePrenda.costo,
+        etiquetaIds: comunes,
+      })
+    );
+  }
+
   /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). */
   function fotosDesdePanel(nuevas: FotoSubida[]) {
     if (nuevas.length === 0) return;
@@ -1082,7 +1112,23 @@ export function ProductoForm({
   function quitarElColor(c: string | null) {
     const delColor = filas.filter((f) => f.activo && f.colorCodigo === c);
     stock.soltar(delColor.map((f) => f.id ?? f.clave));
+    // Un color que la prenda nunca tuvo (todo nuevo, sin variantes guardadas) se va con las fotos que se le subieron en esta visita:
+    // si no, quedaban huérfanas, se guardaban igual y hasta podían ser la principal de la prenda (revisión 2026-10-03). Las de un
+    // color que ya existía se quedan: el color se desactiva, no desaparece.
+    const nuncaExistio = c !== null && !filas.some((f) => f.colorCodigo === c && f.guardada);
+    if (nuncaExistio) {
+      const suyas = fotosVista.filter((f) => !f.id && f.colorCodigo === c);
+      if (suyas.length > 0) cambiarFotos(suyas.reduce((acc, f) => sinLaFoto(acc, f.clientKey), fotosVista));
+    }
     setFilas((actual) => quitarColor(actual, c));
+  }
+
+  /** «Quitar talla» (el tacho de la cabecera de una talla, Felipe 2026-10-03): lo mismo que «Quitar color», sobre una columna. La
+   *  talla deja de venderse en todos los colores; lo tocado en su stock se suelta, y hasta guardar se deshace. */
+  function quitarLaTalla(t: string | null) {
+    const deTalla = filas.filter((f) => f.activo && f.tallaId === t);
+    stock.soltar(deTalla.map((f) => f.id ?? f.clave));
+    setFilas((actual) => quitarTalla(actual, t));
   }
 
   /** El lápiz (corregir el color si se registró mal: conserva stock e historia) y el tacho (quitarlo) de cada color. */
@@ -1116,6 +1162,10 @@ export function ProductoForm({
   const yaDesactivados = coloresYaDesactivados(filas);
   const unidadesDe = (c: string | null) =>
     filas.reduce((s, f) => s + (f.colorCodigo === c && f.guardada?.activo && f.id ? (estadoVariantes?.[f.id]?.stock ?? 0) : 0), 0);
+  // Lo mismo para las tallas que se quitan (el tacho de su cabecera).
+  const tallasSeQuitan = tallasQueSeQuitan(filas, nombres);
+  const unidadesDeTalla = (t: string | null) =>
+    filas.reduce((s, f) => s + (f.tallaId === t && f.guardada?.activo && f.id ? (estadoVariantes?.[f.id]?.stock ?? 0) : 0), 0);
 
   return (
     <form
@@ -1448,11 +1498,8 @@ export function ProductoForm({
               filas={filas}
               stock={stock}
               vista={vista}
-              onVista={(v) => {
-                setVista(v);
-                // Un monto escrito sin aplicar sigue avisando, ahora con el campo de la pestaña nueva.
-                if ((v === "precio" || v === "costo") && bloquePendiente) setBloquePendiente(v);
-              }}
+              // Un monto escrito sin aplicar sigue avisando con SU campo: `CambiarEnBloque` guarda uno por campo y lo informa solo.
+              onVista={setVista}
               bloque={
                 filas.some((f) => f.activo) ? (
                   <div className="mb-1">
@@ -1479,6 +1526,8 @@ export function ProductoForm({
               onEtiqueta={(id, poner, claves) => setFilas((actual) => ponerEtiqueta(actual, id, poner, claves))}
               botonesDeColor={botonesDeColor}
               onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
+              onQuitarTalla={quitarLaTalla}
+              huecos={{ como: (c, t) => comoLlenarHueco(filas, c, t, permitidosHueco, nombres), onLlenar: llenarHueco }}
               deshabilitado={loading}
             />
 
@@ -1509,9 +1558,31 @@ export function ProductoForm({
                       <span className="min-w-0">
                         <b className="font-semibold">{nombres.color(c)}</b> deja de venderse al guardar: sus variantes se desactivan y conservan su historia
                         {u > 0
-                          ? `. Sus ${u} u. siguen en el inventario, pero ya no se podrán vender en ninguna sede: si existen, véndelas antes o pide un ajuste.`
+                          ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
                         <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="btn-cayla btn-enlace text-[12px]">
+                          Deshacer
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {tallasSeQuitan.length > 0 && (
+              <ul className="mt-2.5 space-y-1.5" aria-label="Tallas que se quitan al guardar">
+                {tallasSeQuitan.map((t) => {
+                  const u = unidadesDeTalla(t);
+                  return (
+                    <li key={t ?? "sin-talla"} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                      <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                      <span className="min-w-0">
+                        La talla <b className="font-semibold">{nombres.talla(t) || "Única"}</b> deja de venderse en todos los colores al guardar: sus
+                        variantes se desactivan y conservan su historia
+                        {u > 0
+                          ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
+                          : "."}{" "}
+                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="btn-cayla btn-enlace text-[12px]">
                           Deshacer
                         </button>
                       </span>
@@ -1528,17 +1599,29 @@ export function ProductoForm({
             )}
 
             <div className="grid gap-x-2.5 @lg:grid-cols-2">
-              <button type="button" id="variantes-agregar-color" className="taller-agregar-color" disabled={loading} onClick={() => setAgregandoColor(true)}>
-                + Agregar color
+              <button type="button" id="variantes-agregar-color" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading} onClick={() => setAgregandoColor(true)}>
+                <span aria-hidden className="taller-agregar-icono">
+                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                </span>
+                <span className="taller-agregar-texto">
+                  <b>Agregar color</b>
+                  <small>Una fila nueva, con sus tallas</small>
+                </span>
               </button>
-              <button type="button" className="taller-agregar-color" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
-                + Agregar talla
+              <button type="button" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
+                <span aria-hidden className="taller-agregar-icono">
+                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                </span>
+                <span className="taller-agregar-texto">
+                  <b>Agregar talla</b>
+                  <small>Una columna nueva, en cada color</small>
+                </span>
               </button>
             </div>
 
             {/* «Nacen sin unidades» (NACEN_SIN_UNIDADES): una variante nueva arranca en 0 a propósito. El banner hace obvio el paso
                 siguiente: el mismo stepper de arriba, y lo puesto entra como stock inicial al guardar. */}
-            {colorSinUnidades && (
+            {colorSinUnidades && stock.puedeAjustar && (
               <div className="taller-banner-nueva" role="status">
                 <span aria-hidden>●</span>
                 <span>
