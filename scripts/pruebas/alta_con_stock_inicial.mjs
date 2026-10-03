@@ -13,9 +13,9 @@
  *   F4 doble clic: el mismo token devuelve el mismo producto y no carga dos veces.
  *   F5 sin cantidades: el alta de siempre, sin tienda y sin movimientos.
  *   F6 cantidades mal escritas (decimal, negativa, texto, 10000): no se crea nada.
- *   F7 todo o nada: cantidades sin tienda, otra tienda, un Taller sin piso con «al piso», un rol sin Existencias (bajar al piso es de Existencias, ADR-0306):
- *      en todos, ni producto ni stock.
- *   F8 permisos: integrante con Productos carga en SU tienda (firma ella); sin Productos no crea nada.
+ *   F7 todo o nada: cantidades sin tienda, otra tienda, un Taller sin piso con «al piso»: en todos, ni producto ni stock.
+ *   F8 permisos: integrante con Productos carga en SU tienda (firma ella) y puede colgarlas «al piso» sin tener Existencias
+ *      (ADR-0306 act. 2026-10-03); reponer por su cuenta sí sigue pidiendo Existencias; sin Productos no crea nada.
  *   F9 terminal: con responsable presente firma la responsable; sin responsable, 42501 y nada.
  *   F10 el candado: la carga inicial es solo para una prenda SIN movimientos en esa tienda (en otra tienda, sí);
  *       y una prenda repetida en la lista se rechaza.
@@ -402,11 +402,18 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${cant("t1", "c1",
   "true,2,0,1"
 );
 caso(
-  "F8 · integrante con Productos pero SIN Existencias, pidiendo «al piso» → rechazada por la bajada y nada",
-  `${soloModulos("integrante", ["productos"])}select ${CONTADORES} as antes \\gset
-${sesion(MICAELA)}${COMO_API}select ${crear(REF, celdas(2, 0, 0, 0), ":'tok1'", "tru", true)};
-${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
-  (l) => error(l.at(-2), "bajada_sin_modulo") && l.at(-1) === "t"
+  "F8 · integrante con Productos pero SIN Existencias, pidiendo «al piso» → carga y deja las prendas en el piso (quien ve Productos hace todo lo de Productos), firmada por ella",
+  `${soloModulos("integrante", ["productos"])}${sesion(MICAELA)}${COMO_API}select ${crear(REF, celdas(2, 0, 0, 0), ":'tok1'", "tru", true)} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${cant("t1", "c1", "piso_t")}, ${cant("t1", "c1", "alm_t")},
+  (select count(*) from retail.bajadas_piso where token_cliente = :'tok1' and persona_id = :'micaela'));`,
+  "true,2,0,1"
+);
+caso(
+  "F8 · la marca de la carga inicial no queda puesta: después del alta, esa misma cuenta (sin Existencias) NO puede bajar prendas al piso por su cuenta",
+  `${soloModulos("integrante", ["productos"])}${sesion(MICAELA)}${COMO_API}select ${crear(REF, celdas(2, 0, 0, 0), ":'tok1'", "tru")} as r \\gset
+select pg_temp.intento(format('select retail.bajar_al_piso(%L, %L::jsonb, %L)', :'tru',
+  jsonb_build_array(jsonb_build_object('variante_id', ${vid("t1", "c1")}, 'cantidad', 1)), :'tok2'));`,
+  (l) => error(l.at(-1), "bajada_sin_modulo")
 );
 caso(
   "F8 · integrante SIN Productos → no puede crear (candado de catálogo) y nada se escribe",

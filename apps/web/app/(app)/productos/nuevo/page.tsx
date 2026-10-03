@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
@@ -24,7 +24,6 @@ export default async function NuevoProductoPage() {
     ubicacionId: persona.ubicacionId,
     etiqueta: persona.ubicacionEtiqueta,
     separaPiso: encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null,
-    puedeBajar: veModulo(persona, "existencias"),
   };
 
   return (
