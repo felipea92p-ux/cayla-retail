@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CircleCheck, TriangleAlert } from "lucide-react";
-import { Boton } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
@@ -11,6 +10,8 @@ import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
+import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
+import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import {
   AccesosCajaEscritorio,
@@ -158,6 +159,9 @@ export function CajaAbiertaPanel({
   // En vivo: sondea la caja cada pocos segundos y, si entró algo, Next vuelve a leer la pantalla y llegan props
   // nuevas. Lo que sigue solo detecta QUÉ es nuevo para que cada pieza lo muestre; nada de esto pide datos.
   useCajaEnVivo(caja.id);
+  // El botón «Cerrar caja» cambia de nivel con la hora de cierre de la tienda (ADR-0318); se mira cada minuto.
+  const ahoraCierre = useAhora(60_000);
+  const estadoCierre = ahoraCierre ? estadoBotonCierre({ ahora: ahoraCierre, abiertaEn: caja.abiertaEn, horaCierre, puedeCerrar }) : null;
   const ventasNuevas = useIdsNuevos(ventasHoy, idVenta);
   const movimientosNuevos = useIdsNuevos(movimientos, idMovimiento);
   const idsNuevos = new Set([...ventasNuevas.ids, ...movimientosNuevos.ids]);
@@ -263,9 +267,7 @@ export function CajaAbiertaPanel({
               <div className="hidden items-center gap-3 sm:flex">
                 {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
                 {puedeCerrar ? (
-                  <Boton peso="primario" onClick={() => setModal("cerrar")}>
-                    Cerrar caja
-                  </Boton>
+                  <BotonCerrarCaja estado={estadoCierre} onCerrar={() => setModal("cerrar")} />
                 ) : (
                   <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
                 )}
@@ -422,6 +424,9 @@ export function CajaAbiertaPanel({
           <CierresAnteriores cierres={cierresUbicacion} esLider={personaRol === "lider"} indice={8} onModo={alCambiarModo} />
         </div>
       </div>
+
+      {/* Escritorio: la barra de cierre se queda a la vista (en el celular, el «Cerrar» de la barra de abajo). */}
+      <BarraCierreCaja estado={estadoCierre} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
