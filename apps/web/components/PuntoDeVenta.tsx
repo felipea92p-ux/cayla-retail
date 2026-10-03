@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
@@ -39,7 +39,7 @@ import {
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, llevaCanje, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
-import { firmar } from "@/lib/responsable-reglas";
+import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -62,7 +62,10 @@ import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/components/VentasDeHoy";
 import {
+  ACCION_BAJAR_Y_AGREGAR,
+  accionBajarYAgregar,
   avisoAgregada,
+  avisoBajadaRegistrada,
   avisoCortas,
   avisoQuedaronEnAlmacen,
   avisoSinPiso,
@@ -75,6 +78,13 @@ import {
   motivoNoCobrable,
   quedoEnAlmacen,
 } from "@/lib/vender-stock-local";
+import {
+  argumentosDeBajadaDesdeVender,
+  leerRespuestaBajadaDesdeVender,
+  RPC_BAJADA_DESDE_VENDER,
+  textoErrorBajadaDesdeCaja,
+  TOPE_ESPERA_BAJADA_MS,
+} from "@/lib/bajada-desde-vender";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
@@ -103,6 +113,7 @@ import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/E
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
+import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 
@@ -422,6 +433,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
+  // ADR-0321: las prendas cuya bajada al piso se va a registrar desde la caja y esperan que se elija quién atiende (la
+  // bajada va firmada). Con el responsable ya elegido no se usa: la bajada sale directo.
+  const [bajadaPorConfirmar, setBajadaPorConfirmar] = useState<string[] | null>(null);
   const [buscarPorTexto, setBuscarPorTexto] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
@@ -512,7 +526,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta;
+    manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -780,7 +794,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (motivo !== "cobrable") {
       if (!silencioso) {
         const { titulo, detalle } = avisoSinPiso(datosAviso);
-        avisar.aviso(titulo, { detalle });
+        // ADR-0321: si el sistema la tiene en el almacén de esta tienda, lo que falta es el registro de la bajada (la
+        // colgaron sin registrar): el botón la agrega y la registra ahí mismo, sin mandar a Existencias.
+        avisar.aviso(titulo, { detalle, ...accionDeBajada(motivo, v) });
       }
       setAviso(null);
       setQ("");
@@ -833,7 +849,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       resaltarTope(v.varianteId);
       if (!silencioso) {
         const { titulo, detalle } = avisoTope(datosAviso);
-        avisar.aviso(titulo, { detalle });
+        avisar.aviso(titulo, { detalle, ...accionDeBajada("tope", v) });
       }
     }
     setAviso(null);
@@ -841,6 +857,93 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setActivo(0);
     buscador.current?.focus();
     return tope ? "tope" : "agregada";
+  }
+
+  // --- La bajada que se olvidó, desde la caja (ADR-0321) ---------------------------------------------------------------
+  // Colgaron la prenda sin registrar la bajada y en el sistema el piso está en 0: el aviso ofrece agregarla registrando la
+  // bajada (`bajar_al_piso_desde_vender`, que pide Vender y firma quien atiende). La venta no se corta por un error de
+  // registro (D-40). Si todavía no se eligió quién atiende, primero se pregunta (`RegistrarBajadaModal`).
+
+  /** El aviso de una prenda frenada lleva botón solo si lo que la frena es el almacén de ESTA tienda (`quedoEnAlmacen`).
+   *  El botón dura más (15 s): hay que leer y decidir con la clienta delante. */
+  function accionDeBajada(estado: string, v: VarianteBusqueda): { accion?: { texto: string; onClick: () => void }; duracion?: number } {
+    if (!quedoEnAlmacen(estado, v.almacenAqui)) return {};
+    return { accion: { texto: ACCION_BAJAR_Y_AGREGAR, onClick: () => alDia.current.pedirBajada([v.varianteId]) }, duracion: 15_000 };
+  }
+
+  /** Lo más reciente de esta pantalla para el botón de un aviso (que se dibujó hace unos segundos: el responsable pudo
+   *  elegirse después) y para lo que sigue a la respuesta de la base (el ticket pudo cambiar mientras tanto). */
+  const alDia = useRef({ pedirBajada, agregar });
+  useEffect(() => {
+    alDia.current = { pedirBajada, agregar };
+  });
+
+  function pedirBajada(ids: string[]) {
+    if (bloqueado || ids.length === 0) return;
+    if (!responsable.listo) {
+      setBajadaPorConfirmar(ids);
+      return;
+    }
+    void registrarBajadas(ids);
+  }
+
+  /** Una por una, en orden: cada prenda que entra lo dice; si la base rechaza por el responsable o se cae la red, se
+   *  detiene (las siguientes fallarían igual). Una que no alcanza en el almacén no detiene a las demás. */
+  async function registrarBajadas(ids: string[]) {
+    const supabase = createClient();
+    for (const id of ids) {
+      const seguir = await registrarBajada(supabase, id);
+      if (!seguir) break;
+    }
+  }
+
+  async function registrarBajada(supabase: ReturnType<typeof createClient>, varianteId: string): Promise<boolean> {
+    const v = variantesConOverlay.find((x) => x.varianteId === varianteId);
+    if (!v) return true;
+    const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
+    // Lo vendido sin conexión que aún no subió: la pantalla ya lo descontó del piso y la base todavía lo cuenta.
+    const comprometidoEnCola = Math.max(0, (variantesAjustadas.find((x) => x.varianteId === varianteId)?.stockAqui ?? v.stockAqui) - v.stockAqui);
+    const enTicket = carrito.find((it) => it.claveLinea === varianteId)?.cantidad ?? 0;
+    // Una conexión colgada no deja el loader encima de la caja: a los 20 s se corta y se dice que no se sabe (volver a
+    // escanear es seguro: la base baja solo lo que falta).
+    const control = new AbortController();
+    const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_BAJADA_MS);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const respuesta = await firmar(
+        supabase
+          .rpc(RPC_BAJADA_DESDE_VENDER as never, argumentosDeBajadaDesdeVender(ubicacionId, varianteId, { enTicket, comprometidoEnCola }, crypto.randomUUID()) as never)
+          .abortSignal(control.signal),
+        responsable.firma(),
+      );
+      data = respuesta.data;
+      error = respuesta.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    } finally {
+      window.clearTimeout(tope);
+    }
+    const r = error ? null : leerRespuestaBajadaDesdeVender(data);
+    if (!error && !r) error = { message: "La respuesta de la base no trae lo que la caja espera." };
+    if (error || !r) {
+      // Rechazo por el responsable (salió de turno): el combo se vacía y relee la lista, como al cobrar.
+      if (error) responsable.despues(error);
+      avisar.error(textoErrorBajadaDesdeCaja(error, nombre));
+      // Otra persona la bajó, vendió o apartó mientras tanto: la pantalla se pone al día con la base.
+      if (error?.hint === "bajada_vender_sin_almacen") void releerStock([varianteId]);
+      return !error || !(esErrorDeResponsable(error) || esFalloDeRed(error));
+    }
+    // Lo libre DESPUÉS, según la base: queda en el stock de la pantalla sin releer (la base es la que manda).
+    setAjustesStock((prev) => new Map(prev).set(varianteId, r.piso));
+    setAjustesAlmacen((prev) => new Map(prev).set(varianteId, r.almacen));
+    // `agregar` del render más reciente: el ticket pudo cambiar mientras la base respondía.
+    const estado = alDia.current.agregar({ ...v, stockAqui: Math.max(0, r.piso - comprometidoEnCola), almacenAqui: r.almacen });
+    if (estado === "agregada") {
+      const { titulo, detalle } = avisoBajadaRegistrada({ nombre, sede: ubicacionEtiqueta, bajadas: r.bajadas });
+      avisar.exito(titulo, { detalle });
+    }
+    return true;
   }
 
   /** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (por prenda, sin repetir).
@@ -867,9 +970,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   /** Cierra la cámara y, si algo quedó fuera por estar en el almacén, lo dice una sola vez (ya sin la hoja encima). */
   function cerrarCamara() {
     setCamaraAbierta(false);
+    const fuera = [...quedaronEnAlmacen.current.keys()];
     const aviso = avisoQuedaronEnAlmacen([...quedaronEnAlmacen.current.values()], ubicacionEtiqueta);
     quedaronEnAlmacen.current.clear();
-    if (aviso) avisar.aviso(aviso.titulo, { detalle: aviso.detalle });
+    // ADR-0321: el mismo botón que en el lector, para todas las que quedaron fuera de una vez.
+    if (aviso) {
+      avisar.aviso(aviso.titulo, {
+        detalle: aviso.detalle,
+        accion: { texto: accionBajarYAgregar(fuera.length), onClick: () => alDia.current.pedirBajada(fuera) },
+        duracion: 15_000,
+      });
+    }
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1879,6 +1990,19 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             setBuscarPorTexto(true);
           }}
           onClose={cerrarCamara}
+        />
+      )}
+
+      {bajadaPorConfirmar && (
+        <RegistrarBajadaModal
+          nombres={bajadaPorConfirmar.map((id) => {
+            const v = variantesConOverlay.find((x) => x.varianteId === id);
+            return v ? [v.referencia, v.talla].filter(Boolean).join(" · ") : "La prenda";
+          })}
+          sede={ubicacionEtiqueta}
+          responsable={responsable}
+          onConfirmar={() => void registrarBajadas(bajadaPorConfirmar)}
+          onClose={() => setBajadaPorConfirmar(null)}
         />
       )}
 
