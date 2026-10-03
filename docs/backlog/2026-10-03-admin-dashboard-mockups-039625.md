@@ -8,7 +8,8 @@
 - [x] Inicio en CAYLA Global (ADR-0275 act.): `vista-global.ts`, `proxy.ts`, selector de sede que se queda en el Inicio.
 - [x] Verificado en el navegador con ventas de demostración (base local devuelta idéntica a la foto): 1440, 1920, 375 px; sin las funciones, el Inicio de siempre.
 - [x] **Producción:** aplicada el 2026-10-03 por MCP (versión registrada `20261003220357`; archivo `20261004020000_observatorio_inicio_del_admin.sql`). md5 de los tres cuerpos iguales al archivo; corrida como Admin: 63 ms, tres tiendas, turno leído.
-- [ ] Refrescar el volcado (`pnpm datos:refrescar` por MCP, ver memoria «refrescar el volcado») y después `pnpm datos:generar:produccion` y `pnpm datos:comparar`, para que el diccionario tenga las tres funciones; regenerar los tipos para quitar los `as never` de `lib/observatorio.ts`.
+- [x] Diccionario refrescado contra producción (foto del 2026-10-03 22:09 UTC, por MCP en rondas de huellas): 1086 huellas iguales a producción, 15 funciones nuevas (las 3 del Observatorio y 12 de Meta por persona, que producción ya tenía), nada quitado. `datos:comparar` limpio, aviario y `diccionario-datos` en verde.
+- [ ] Regenerar los tipos de `packages/database` para quitar los `as never` de `lib/observatorio.ts`.
 - [ ] **Felipe: cargar la meta de cada tienda en Configuración.** En producción ninguna tiene (corrida del 2026-10-03): sin meta, el Observatorio dice «Sin meta configurada» y el ranking va por lo vendido. Las tres tiendas (Tienda AQP, LIM, TRU) se ubican en el mapa por su sigla.
 - [ ] **No visto en vivo:** el movimiento a velocidad real (el panel del navegador estaba oculto y se verificó con los cuadros simulados); la onda de una venta que llega durante la lectura de 30 s; la transición de vista del detalle de un aviso.
 - [ ] Decisión de Felipe, si la quiere: qué hace el mapa con una tienda nueva de otra ciudad (hoy sale en el ranking y en el panel, sin punto).
