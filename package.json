@@ -139,6 +139,7 @@
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",
     "pruebas:clientas-modulo": "node scripts/pruebas/clientas_por_modulo_y_anonimizar.mjs",
+    "pruebas:agregar-celular": "node scripts/pruebas/agregar_celular_clienta.mjs",
     "pruebas:club-venta-ligada": "node scripts/pruebas/club_venta_ligada.mjs",
     "pruebas:club-permisos": "node scripts/pruebas/club_permisos.mjs",
     "pruebas:club-cumpleanos": "node scripts/pruebas/club_cumpleanos.mjs",
