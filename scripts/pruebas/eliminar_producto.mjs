@@ -8,7 +8,8 @@
  *   · un producto con historia NO se elimina —movimientos de stock, líneas de venta, un pedido que no se pudo atender…—,
  *     lo dice con palabras del negocio, sugiere desactivar, y no se lleva nada consigo (todo o nada);
  *   · la pieza «Monto manual» del punto de venta NO se elimina aunque no tenga historia (así está en producción);
- *   · solo un líder: sin persona, un integrante —aunque vea Productos y pueda editar el catálogo— y `anon` no eliminan; un Admin sí;
+ *   · quien edita el catálogo (ADR-0252, act. 2026-10-03; antes solo un líder): una integrante con Productos elimina y el
+ *     rastro queda a su nombre; sin persona, un rol sin Productos ni Categorías/atributos y `anon` no eliminan; un Admin sí;
  *   · un producto que ya no existe (doble clic, otra persona lo eliminó) lo dice;
  *   · la red de seguridad: si otra tabla cita al producto y la función no la conoce, la llave lo frena y no queda nada a medias;
  *   · DERIVA: si mañana nace una tabla que cita `productos`/`variantes`, esta prueba falla hasta que alguien decida si es «suya»
@@ -28,6 +29,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 const NADIE = "99999999-9999-4999-8999-000000000009"; // sesión sin persona en retail
 const CENTINELA = "11111111-1111-4111-8111-111111111111"; // el producto de «Monto manual»
+const SIN_PERMISO = "42501|-|No puedes eliminar productos: tu rol no edita el catálogo (módulo «Productos»). Pídele al líder que lo active.";
 
 function psql(sql) {
   return execFileSync(
@@ -213,12 +215,13 @@ select pg_temp.huella('${CENTINELA}');`);
   esperar("y sigue existiendo con su variante", r.ok && despues.startsWith("1|1|"), r);
 }
 
-// 8. Permisos: solo un líder (y un Admin es un líder). Es más estricto que editar el catálogo.
+// 8. Permisos: quien edita el catálogo (`fn_puede_editar_catalogo`). Un rol que no ve Productos ni Categorías/atributos no
+//    elimina, ni siquiera pregunta; una sesión sin persona y `anon`, tampoco.
 {
   const r = correr(`${ESCENA}
 update retail.roles set limitado_como_hoy = false where clave = 'integrante';
 delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
-insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'existencias');
 select pg_temp.huella(:'va');
 ${sesion(NADIE)}
 select pg_temp.intento(format('select retail.eliminar_producto(%L)', :'va'));
@@ -234,16 +237,40 @@ reset role;
 ${sesion(FELIPE)}
 select pg_temp.huella(:'va');`);
   const [antes, nadie, nadieLee, puedeEditar, micaela, micaelaLee, anon, sigue] = lineas(r);
-  esperar("una sesión sin persona no elimina (42501)", r.ok && nadie === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("ni siquiera consulta si se puede", r.ok && nadieLee === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("(contraste) una integrante con Productos SÍ puede editar el catálogo", r.ok && puedeEditar === "true", r);
-  esperar("…y aun así no elimina: borrar un producto es solo del líder", r.ok && micaela === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("…ni consulta si se puede", r.ok && micaelaLee === "42501|-|Solo un líder puede eliminar productos.", r);
+  esperar("una sesión sin persona no elimina (42501)", r.ok && nadie === SIN_PERMISO, r);
+  esperar("ni siquiera consulta si se puede", r.ok && nadieLee === SIN_PERMISO, r);
+  esperar("(contraste) una integrante que solo ve Existencias NO edita el catálogo", r.ok && puedeEditar === "false", r);
+  esperar("…y por eso no elimina (42501)", r.ok && micaela === SIN_PERMISO, r);
+  esperar("…ni consulta si se puede", r.ok && micaelaLee === SIN_PERMISO, r);
   esperar("anon ni siquiera puede llamar la función", r.ok && anon.includes("permission denied for function eliminar_producto"), r);
   esperar("y el producto sigue completo", r.ok && sigue === antes && antes.startsWith("1|2|"), r);
 }
 
-// 9. Un Admin (Líder activo con rol admin en Dynamic) elimina: «adm y líderes» = quienes pasan fn_es_lider().
+// 8b. Una integrante que ve Productos edita el catálogo y, desde el 2026-10-03, también elimina (la cuenta de almacén registró
+//     productos que no eran y no podía deshacerlos). El rastro queda a SU nombre, no al del líder.
+{
+  const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+select p.id as ella from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text || '|' || retail.fn_es_lider()::text;
+select pg_temp.puede(:'va');
+select retail.eliminar_producto(:'va');
+select pg_temp.huella(:'va');
+select pg_temp.huella(:'vb');
+select count(*) || '|' || (max(usuario_id::text) = :'ella')::text
+  from retail.historial_producto_cambios where entidad = 'producto' and entidad_id = :'va' and campo = 'eliminado';`);
+  const [perfil, puede, devuelto, despues, otro, rastro] = lineas(r);
+  esperar("(preparación) la integrante edita el catálogo y no es líder", r.ok && perfil === "true|false", r);
+  esperar("la función le dice que se puede", r.ok && puede === "true|", r);
+  esperar("lo elimina completo", r.ok && devuelto === "Virgen A" && despues === "0|0|0|0|0", r);
+  esperar("el otro producto no se toca", r.ok && /^1\|1\|[1-9]\d*\|0\|0$/.test(otro), r);
+  esperar("el rastro queda a nombre de ella", r.ok && rastro === "1|true", r);
+}
+
+// 9. Un Admin (Líder activo con rol admin en Dynamic) elimina: un Admin es un Líder y un Líder edita el catálogo.
 {
   const r = correr(`${ESCENA}
 update public.personas set rol = 'admin' where auth_user_id = '${FELIPE}';

@@ -108,7 +108,7 @@ export function ProductosTabla({
   puedeEditar: boolean;
   /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
-  /** Solo Admin y Líder (`fn_es_lider()`). La ventana pregunta a la base antes de ofrecerlo. */
+  /** Quien edita el catálogo (`fn_puede_editar_catalogo`, ADR-0252 act. 2026-10-03). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos_listado` ya manda el costo vacío: aquí solo se esconden las columnas. */
   veDinero: boolean;

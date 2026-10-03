@@ -1075,3 +1075,17 @@ escaneo. Basta con «¿Qué talla pidió?» en el modal de talla («Anotar que n
   y `lib/se-probo-reglas.ts`. Las filas ya guardadas se siguen leyendo y describiendo; no hay migración.
 - **Se pierde:** ya no hay dónde anotar «Precio», «Color», «No le quedó» o «Lo piensa» (el informe CL-14 de razones queda sin
   datos nuevos). Si hace falta, se agrega otra puerta, no esta.
+
+## Actualización 2026-10-03 (n): actualizar los datos desde el cartel no deja otro «Se unió al club»
+
+Felipe, 2026-10-03, mirando la historia de permisos de C-0003: «Se unió al club» salía dos veces. Quien ya es miembro y vuelve a
+escanear el cartel con su mismo documento **actualiza sus datos** (G-4: la función la encuentra por documento, no crea otra clienta,
+y conserva su código y su fecha; la página le dice «Actualizamos tus datos»). Ese camino es el de «quiero actualizar mis datos»: no
+hace falta otro. Lo que estaba mal era que cada vez dejaba otra fila «club · otorga» (y otra «publicidad · otorga» si volvía a marcar la casilla).
+- **Base:** `20261003235000_club_no_repetir_permiso_al_actualizar_datos.sql` corta `registrarse_en_el_club` (dos anclas, huella
+  `757afd3b…` → `e62ada5c…`). Si ya era miembro y aceptó los MISMOS textos, no hay fila nueva; con textos nuevos sí, con la nota
+  «volvió a aceptar…». La primera unión y la publicidad que vuelve tras un cambio de celular siguen dejando su fila.
+- **Web:** `historia-permisos-reglas.ts` llama «Volvió a aceptar los textos del club / de la publicidad» a esas filas.
+- **Se queda:** las filas duplicadas que ya existen (la tabla es de solo agregar). Pruebas: `club_registro_cartel.mjs` (casos «m»).
+- **Descartado:** un botón «Actualizar mis datos» aparte o un código para entrar: sería otro camino con otro formulario y otras
+  validaciones; el cartel ya identifica por documento. Mejorar el aviso de la página para quien ya es miembro, si hace falta, es de la web.
