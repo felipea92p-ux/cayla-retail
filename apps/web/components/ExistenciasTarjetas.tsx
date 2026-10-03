@@ -152,9 +152,9 @@ export function ExistenciasTarjetas({
   puedeReponer: boolean;
   puedeAjustar: boolean;
   mostrarMarca: boolean;
-  /** «Reponer» abre la ventana de la PRENDA entera (todas las tallas que la tarjeta muestra), no la de una talla. */
+  /** «Reponer prenda» abre la ventana del MODELO entero (todos sus colores y tallas, ADR-0317); `prenda` es el color que se ve. */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
-  /** «Subir a almacén» abre la ventana de la PRENDA entera (todas las tallas con algo libre en el piso). Mismo permiso que «Reponer». */
+  /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Reponer prenda». */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   onAjustar: (fila: FilaExistencias) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
@@ -169,9 +169,11 @@ export function ExistenciasTarjetas({
       <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,32rem),1fr))]">
         {modelos.map((m) => {
           const p = m.colores.find((c) => c.clave === elegida[m.productoId]) ?? m.colores[0];
-          const talla = puedeReponer ? tallaParaReponer(p.tallas) : null;
-          // «Subir a almacén»: alguna talla con algo LIBRE en el piso (lo apartado para una clienta no se sube).
-          const hayEnElPiso = p.tallas.some((t) => (t.pisoDisponible ?? 0) > 0);
+          // «Reponer prenda» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
+          // algo que mover, no solo el que se está viendo.
+          const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
+          // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
+          const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
           // Hasta 4 tallas por renglón; cada renglón lleva sus propios rótulos «Piso» y «Almacén».
           const renglones = Array.from({ length: Math.ceil(p.tallas.length / 4) }, (_, i) => p.tallas.slice(i * 4, i * 4 + 4));
           const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
@@ -292,31 +294,31 @@ export function ExistenciasTarjetas({
                 </div>
               </div>
               {/* Acciones: las mismas del cajón de la tabla, con sus mismos permisos. Bajo la foto y la columna: en el celular, a todo el ancho.
-                  Reponer · Subir a almacén · Ajustar, y «Ver detalle» solo con su icono (al pasar el mouse dice su nombre): así los tres
+                  Reponer prenda · Subir prenda · Ajustar, y «Ver detalle» solo con su icono (al pasar el mouse dice su nombre): así los tres
                   botones con texto caben en la columna, y donde no caben bajan a otro renglón en vez de cortarse. */}
               <div className="mt-3 flex flex-wrap gap-2 pl-[113px] max-sm:pl-0">
                 {puedeReponer && (
                   <button
                     type="button"
-                    disabled={!talla}
-                    title={talla ? "Bajar prendas del almacén al piso" : "No hay nada libre en el almacén para bajar al piso"}
-                    onClick={(e) => talla && onReponer(p, e.currentTarget)}
+                    disabled={!hayQueBajar}
+                    title={hayQueBajar ? "Bajar prendas del almacén al piso, de todos los colores" : "No hay nada libre en el almacén para bajar al piso"}
+                    onClick={(e) => hayQueBajar && onReponer(p, e.currentTarget)}
                     className="btn-cayla btn-primario min-h-[34px] min-w-[6.5rem] flex-1 px-3 py-1.5 text-[12.5px]"
                   >
                     <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    Reponer
+                    Reponer prenda
                   </button>
                 )}
                 {puedeReponer && (
                   <button
                     type="button"
                     disabled={!hayEnElPiso}
-                    title={hayEnElPiso ? "Subir prendas del piso al almacén" : "No hay nada libre en el piso para subir al almacén"}
+                    title={hayEnElPiso ? "Subir prendas del piso al almacén, de todos los colores" : "No hay nada libre en el piso para subir al almacén"}
                     onClick={(e) => hayEnElPiso && onSubir(p, e.currentTarget)}
                     className="btn-cayla btn-secundario min-h-[34px] min-w-[9.5rem] flex-[1.5] px-3 py-1.5 text-[12.5px] text-taupe"
                   >
                     <Warehouse aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    Subir a almacén
+                    Subir prenda
                   </button>
                 )}
                 {puedeAjustar && (
