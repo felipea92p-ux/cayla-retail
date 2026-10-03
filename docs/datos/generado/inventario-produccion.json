@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-10-03T14:59:45.612237+00:00",
-  "funciones_en_produccion": 784,
+  "leido_en": "2026-10-03T16:01:51.365463+00:00",
+  "funciones_en_produccion": 793,
   "tablas": [
     {
       "esquema": "retail",
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 593,
+      "filas_estimadas": 720,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -616,7 +616,7 @@
       "tabla": "ajustes_inventario_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 90,
+      "filas_estimadas": 91,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1093,7 +1093,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 96,
+      "filas_estimadas": 106,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1189,7 +1189,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 103,
+      "filas_estimadas": 113,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2411,7 +2411,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 173,
+      "filas_estimadas": 174,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4339,7 +4339,7 @@
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 696,
+      "filas_estimadas": 704,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -7631,7 +7631,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 73,
+      "filas_estimadas": 75,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13076,7 +13076,7 @@
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 192,
+      "filas_estimadas": 220,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14417,7 +14417,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 697,
+      "filas_estimadas": 719,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17652,7 +17652,7 @@
       "tabla": "producto_origen",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 93,
+      "filas_estimadas": 95,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17743,7 +17743,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 94,
+      "filas_estimadas": 96,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21605,7 +21605,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 605,
+      "filas_estimadas": 623,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23839,7 +23839,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 696,
+      "filas_estimadas": 704,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24132,7 +24132,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 146,
+      "filas_estimadas": 149,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24353,7 +24353,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 73,
+      "filas_estimadas": 75,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24488,7 +24488,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 72,
+      "filas_estimadas": 74,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
