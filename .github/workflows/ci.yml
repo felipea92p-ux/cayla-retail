@@ -344,6 +344,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-productos
 
+      # Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
+      # sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
+      - name: pruebas:actividad-gestion
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad-gestion
+
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja

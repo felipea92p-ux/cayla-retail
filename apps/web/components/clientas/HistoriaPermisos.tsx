@@ -30,9 +30,17 @@ export function HistoriaPermisos({ clientaId, clave }: { clientaId: string; clav
 
   if (!eventos || eventos.length === 0) return null;
 
+  // Plegada: es para cuando alguien pregunta «¿cuándo aceptó?», no para leerla cada vez que se abre la ficha.
   return (
-    <div className="card-cayla p-4">
-      <p className="label-cayla text-[11px] text-tinta/65">Historia de los permisos</p>
+    <details className="card-cayla group p-4">
+      <summary className="label-cayla flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] text-tinta/65 [&::-webkit-details-marker]:hidden">
+        <span>
+          Historial de permisos <span className="tabular-nums text-tinta/45">· {eventos.length}</span>
+        </span>
+        <span aria-hidden className="text-base leading-none text-tinta/45 transition-transform duration-200 ease-cayla group-open:rotate-45">
+          +
+        </span>
+      </summary>
       <ul className="relative mt-3 border-l border-sand pl-0 [&>li]:ml-[3px]">
         {eventos.map((e) => (
           <li key={e.id} className="relative pb-3 pl-5 text-sm last:pb-0">
@@ -43,6 +51,6 @@ export function HistoriaPermisos({ clientaId, clave }: { clientaId: string; clav
         ))}
       </ul>
       <p className="mt-3 text-xs text-tinta/55">No se edita: cada paso queda con el medio, la hora, la tienda y la versión del texto que vio el cliente.</p>
-    </div>
+    </details>
   );
 }

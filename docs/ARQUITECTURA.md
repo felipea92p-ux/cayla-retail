@@ -530,7 +530,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   y un bloque para las fotos de un color sin variantes activas. Las reglas —qué ve cada color, la principal, el orden, pasar de
   color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → revisar (`RevisarFotosModal`, ADR-0228) → subir
   es el hook `components/ficha-producto/useSubirFotos.tsx`, que también usa `AgregarColoresModal` (casilla «Foto de cada
-  color»; sus fotos suben a la ficha por `VariantesFicha.onFotosDeColores` → `ProductoForm.sumarFotosDeColores`). Recibe las
+  color»; sus fotos suben a la ficha por `ProductoForm.agregarColores` → `sumarFotosDeColores`). Recibe las
   fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
   `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
   **Maqueta B (ADR-0313 y su actualización, 2026-10-02):** la ficha son cuatro secciones plegables (`ficha-producto/SeccionFicha.tsx`)
@@ -538,8 +538,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   con un stepper por celda. Cada toque es un ajuste de inventario por `ajustar_inventario` (`ficha-producto/useStockFicha.ts`: lotes de
   900 ms, `x-espera: no`, motivo/lugar/responsable de la visita), leyendo el stock con `leerVariantesParaAjuste` de
   `AjustarInventarioModal.tsx` (la única lectura de `stock` para ajustar, ADR-0270). A la derecha, `ficha-producto/PanelDelTaller.tsx`
-  (foto por color con subida directa, colores, barras de stock con stepper, precio, «Falta …»). Lo que no está en la matriz (corregir,
-  agregar talla, etiquetas, margen) sigue en `VariantesFicha` modo `detalle`, plegado. Lo que subió de stock va al
+  (foto por color con subida directa, colores, barras de stock con stepper, precio, «Falta …»). Desde el 2026-10-03 todo se hace en la
+  matriz (pestañas Unidades · Precios · Costos con margen · Etiquetas; «⋯» por color para corregirlo o quitarlo; lápiz en cada talla;
+  «+ Agregar talla»): `VariantesFicha` y «Más de cada variante» ya no existen (ADR-0313, act. 2026-10-03). Lo que subió de stock va al
   `RecordatorioEtiquetasProvider` (`app/(app)/productos/layout.tsx`) al salir de la ficha.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la

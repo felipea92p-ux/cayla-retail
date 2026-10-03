@@ -92,6 +92,9 @@ export type StockFicha = {
   cargarNuevas: (idsPorClave: ReadonlyMap<string, string>, nombres: ReadonlyMap<string, { color: string | null; talla: string | null }>) => Promise<number>;
   /** Lo que subió en los guardados de esta visita, por talla (para «Imprimir etiquetas»). Se lee una vez y se vacía. */
   tomarSubidas: () => Subida[];
+  /** Suelta lo tocado en estas variantes (ids de las guardadas o claves de las nuevas): «Quitar color» no deja stock pendiente
+   *  en una variante que deja de venderse, ni stock inicial en una nueva que ya no se crea. */
+  soltar: (claves: readonly string[]) => void;
   /** «Descartar»: suelta todo lo tocado. Devuelve cómo deshacerlo. */
   descartar: () => () => void;
   /** Volver a leer el stock de la base (tras el modal). */
@@ -341,6 +344,10 @@ export function useStockFicha({ productoId, ajuste }: { productoId: string | nul
     puedeBajar,
     paso,
     fijar,
+    soltar: (claves) => {
+      setPendientes((actual) => claves.reduce((p, k) => conPaso(p, k, 0), actual));
+      setNuevas((actual) => claves.reduce((p, k) => conPaso(p, k, 0), actual));
+    },
     numeroNueva: (clave) => nuevas[clave] ?? 0,
     pasoNueva,
     fijarNueva,
