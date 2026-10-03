@@ -11,6 +11,7 @@ import {
   type EtiquetaPrecio,
 } from "@/lib/etiqueta-precio-reglas";
 import { vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { fondoDeMuestra } from "@/lib/colores-familias";
 
 type Cliente = Awaited<ReturnType<typeof crearCliente>>;
 
@@ -98,7 +99,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     await supabase
       .from("variantes")
       .select(
-        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
       )
       .in("id", [...entradas.keys()]),
     "las prendas a etiquetar",
@@ -140,6 +141,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         precio: Number(v.precio),
         colorCodigo: v.color_codigo,
         color: v.color?.nombre ?? null,
+        colorMuestra: fondoDeMuestra(v.color?.hex ?? null, v.color?.familia_color, v.color?.tipo) ?? null,
         talla: v.talla?.valor ?? null,
         marca: v.producto?.marca?.nombre ?? null,
       })),

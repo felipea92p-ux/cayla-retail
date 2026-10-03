@@ -119,7 +119,7 @@ describe("controles del editor", () => {
   it("los módulos se agrupan como en el spike", () => {
     // General nació el 2026-09-25 con Inicio (20260925220000): va primero, por su `orden` (5). Finanzas nació el
     // 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
-    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["General", "Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
+    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["General", "Ventas", "Clientes", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
   });
 });
 
