@@ -257,13 +257,19 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 
 /* la tarjeta principal: mapa a la izquierda, panel a la derecha. Al elegir una tienda, las columnas se reparten distinto
    (el mapa se corre a la izquierda) y la transición la hace el propio grid. */
-.heroe{display:grid;padding:0;overflow:hidden;grid-template-columns:minmax(0,1fr)}
-.h-mapa{position:relative;padding:18px;min-width:0;display:flex;align-items:flex-start;justify-content:center}
+.heroe{display:grid;padding:0;overflow:clip;grid-template-columns:minmax(0,1fr)}
+.h-mapa{position:relative;min-width:0}
 .h-panel{position:relative;padding:24px 26px;border-top:1px solid var(--linea);min-width:0}
 @container cont (min-width:1000px){
   .h-panel{border-top:0;border-left:1px solid var(--linea)}
+  .a-mapa-in{height:100%;min-height:max(560px,calc(var(--alto) - 310px))}
+  .pn-in.global{height:100%;display:flex;flex-direction:column;justify-content:space-between}
+  .pn-in.global .raya{margin:18px 0}
+  .zoom .a-mapa-in{position:sticky;top:60px;max-height:calc(var(--alto) - 60px)}
 }
-.a-mapa-in{position:sticky;top:78px;aspect-ratio:725.7/780;width:min(100%,max(330px,calc((var(--alto) - 330px) * .93)));overflow:hidden;border-radius:14px}
+/* El mapa ocupa todo su lado de la tarjeta, a cualquier tamaño: el encuadre (viewBox) se calcula con la proporción real
+   del espacio, así nunca quedan márgenes vacíos. En una columna, alto según el ancho; en dos, el alto de la fila. */
+.a-mapa-in{position:relative;width:100%;height:clamp(380px,96cqw,660px);overflow:hidden}
 .a-mapa-in>svg{position:absolute;inset:0;width:100%;height:100%}
 .a-mapa-in .ret{stroke:var(--m-ret);stroke-width:1;vector-effect:non-scaling-stroke}
 .a-mapa-in .ret2{stroke:var(--m-ret2);stroke-width:1;vector-effect:non-scaling-stroke;opacity:0;transition:opacity 1s var(--ease)}
@@ -308,11 +314,11 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 .refoco .a-et{animation:aparece .6s var(--ease) both .9s}
 .a-et-t{position:absolute;transform:translateY(-50%);font-size:11.5px;color:var(--tx2);white-space:nowrap;pointer-events:none}
 .a-et-t b{display:block;font-family:'EB Garamond',serif;font-size:18px;font-weight:500;color:var(--tx)}
-.a-tk{position:absolute;left:14px;top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);max-width:calc(100% - 28px)}
+.a-tk{position:absolute;left:22px;top:20px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);max-width:calc(100% - 28px)}
 .a-tk span{white-space:nowrap}
 .a-tk .nuevo{animation:sube .6s var(--ease) both}
 /* en zoom: nombre del departamento, ciudad, volver y mini mapa de ubicación */
-.dep{position:absolute;left:18px;top:14px;display:flex;flex-direction:column;gap:2px;pointer-events:none}
+.dep{position:absolute;left:24px;top:22px;display:flex;flex-direction:column;gap:2px;pointer-events:none}
 .dep b{font-family:'EB Garamond',serif;font-style:italic;font-weight:400;font-size:clamp(28px,2.6cqw,40px);line-height:1;color:var(--tx)}
 .dep span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);font-weight:600}
 .refoco .dep{animation:depE 1s var(--ease) both .75s}
@@ -321,10 +327,10 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 .ciudad b{font-size:12px;font-weight:700;letter-spacing:.06em}
 .ciudad span{font-size:11.5px;color:var(--tx2)}
 .refoco .ciudad{animation:aparece .6s var(--ease) both 1.3s}
-.volver{position:absolute;right:14px;top:14px;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 13px;border-radius:999px;background:color-mix(in oklab,var(--sup) 85%,transparent);border:1px solid var(--borde);font-size:12px;font-weight:600;backdrop-filter:blur(8px);transition:border-color .25s}
+.volver{position:absolute;right:20px;top:20px;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 13px;border-radius:999px;background:color-mix(in oklab,var(--sup) 85%,transparent);border:1px solid var(--borde);font-size:12px;font-weight:600;backdrop-filter:blur(8px);transition:border-color .25s}
 .volver:hover{border-color:var(--tx)}
 .refoco .volver{animation:aparece .5s var(--ease) both .6s}
-.ubic{position:absolute;left:14px;bottom:14px;width:62px;height:66px;border-radius:10px;background:color-mix(in oklab,var(--sup) 80%,transparent);border:1px solid var(--borde);padding:5px;backdrop-filter:blur(6px)}
+.ubic{position:absolute;left:20px;bottom:20px;width:62px;height:66px;border-radius:10px;background:color-mix(in oklab,var(--sup) 80%,transparent);border:1px solid var(--borde);padding:5px;backdrop-filter:blur(6px)}
 .ubic svg{width:100%;height:100%}
 .ubic .pe{fill:none;stroke:var(--tx3);stroke-width:12}
 .ubic .dp{fill:var(--foco);stroke:none}
@@ -340,6 +346,7 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 .kp b{display:block;font-family:'EB Garamond',serif;font-size:clamp(26px,2.2cqw,34px);font-weight:500;line-height:1.1;margin-top:6px}
 .kp small{display:block;font-size:12px;color:var(--tx3)}
 .spark{height:30px;margin-top:8px}
+@container cont (min-width:1500px){.spark{height:46px}.kp b{font-size:40px}.rk-f{padding:13px 10px}.dl{gap:14px}}
 .raya{height:1px;background:var(--linea);margin:20px 0}
 .rk{display:grid;gap:6px}
 .rk-f{display:grid;grid-template-columns:30px 56px minmax(0,1fr) 54px;align-items:center;gap:12px;padding:9px 10px;margin:0 -10px;border-radius:12px;text-align:left;transition:background .3s}
@@ -464,7 +471,7 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 @container cont (max-width:520px){
   .sd .largo{display:none}
   .sd button{padding:0 10px}
-  .a-tk{display:none}
+  .a-tk,.a-mapa-in .mar{display:none}
   .orbe{width:88px}.orbe .c{width:80px;height:80px}.orbe .c b{font-size:26px}
   .kp{grid-template-columns:1fr}.kp>div+div{border-left:0;border-top:1px solid var(--linea);padding:12px 0 0;margin-top:12px}
   .a-et{padding:4px 6px}.a-et .p i{display:none}
@@ -668,7 +675,6 @@ function capturar(root){const p={k:{},o:{},a:{},p:{},f:{}};
   $$('[data-a]',root).forEach(e=>p.a[e.dataset.a]=JSON.parse(e.dataset.fin));
   $$('[data-p]',root).forEach(e=>p.p[e.dataset.p]=JSON.parse(e.dataset.pts));
   $$('[data-flip]',root).forEach(e=>p.f[e.dataset.flip]=e.getBoundingClientRect());
-  const sv=root.querySelector('svg[data-vb]');if(sv){p.vb=sv._vb||JSON.parse(sv.dataset.vb);const fo=sv.querySelector('[data-forma]');p.forma=fo._pts||JSON.parse(fo.dataset.forma)}
   return p}
 const dur=n=>S.rapido?110:n;
 function contar(e,from,to,f,d,delay){const t0=performance.now()+delay,ease=x=>1-Math.pow(1-x,3);e.textContent=fmt(f,from);
@@ -686,29 +692,39 @@ function rodar(e,prevV,entrada,delay){
   requestAnimationFrame(()=>requestAnimationFrame(()=>out.forEach(([t,to,dl,du])=>{t.style.transition=`transform ${du}ms ${S.rapido?'linear':'cubic-bezier(.16,.84,.28,1)'} ${dl}ms`;t.style.transform=`translateY(${-to*100/30}%)`})))}
 function retrasoDe(e){const c=e.closest('[style*="--i"]');const i=c?parseFloat(c.style.getPropertyValue('--i'))||0:0;return 200+i*70}
 function cuando(e,fn,entrada){const sec=entrada&&e.closest('.revelar');if(sec&&!sec.classList.contains('visto')){(sec._cola||(sec._cola=[])).push(fn)}else fn()}
-// El zoom: el viewBox viaja (ancho en escala logarítmica, para que el zoom se sienta parejo) y el contorno del Perú se
-// transforma en el del departamento, punto por punto. Entre dos tiendas, a mitad de camino se aleja un poco y vuelve.
-function animarMapa(root,prev,entrada){
-  const sv=root.querySelector('svg[data-vb]');if(!sv)return;
-  const vbN=JSON.parse(sv.dataset.vb),fo=sv.querySelector('[data-forma]'),ptsN=JSON.parse(fo.dataset.forma),marcas=$$('.marca',sv),cometas=$$('.cometa',sv);
-  const poner=(vb,pts)=>{sv.setAttribute('viewBox',vb.map(v=>v.toFixed(2)).join(' '));sv._vb=vb;if(pts){fo.setAttribute('d',poligono(pts));fo._pts=pts}
-    const k=vb[2]/MW;marcas.forEach(m=>m.setAttribute('transform',`translate(${m.dataset.x} ${m.dataset.y}) scale(${k.toFixed(4)})`));cometas.forEach(c=>c.setAttribute('r',(3.4*k).toFixed(2)))};
-  const vbP=prev.vb,ptsP=prev.forma;
-  if(entrada||reducido()||!vbP||(igual(vbP.map(Math.round),vbN.map(Math.round))&&igual(ptsP,ptsN))){poner(vbN,null);return}
-  const entreTiendas=vbP[2]<MW*.9&&vbN[2]<MW*.9&&!igual(vbP.map(Math.round),vbN.map(Math.round));
-  const d=entreTiendas?1900:1500,t0=performance.now(),ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
-  const cxP=vbP[0]+vbP[2]/2,cyP=vbP[1]+vbP[3]/2,cxN=vbN[0]+vbN[2]/2,cyN=vbN[1]+vbN[3]/2,lwP=Math.log(vbP[2]),lwN=Math.log(vbN[2]),asp=vbN[3]/vbN[2];
-  const mismo=ptsP.length===ptsN.length;
-  poner(vbP,ptsP);
-  const paso=now=>{const x=Math.min(1,(now-t0)/d),k=ease(x);
-    let w=Math.exp(lwP+(lwN-lwP)*k);if(entreTiendas)w=Math.min(MW,w*(1+1.5*Math.sin(Math.PI*k)));
-    const cx=cxP+(cxN-cxP)*k,cy=cyP+(cyN-cyP)*k,h=w*asp;
-    poner([cx-w/2,cy-h/2,w,h],mismo?ptsP.map((p,i)=>[p[0]+(ptsN[i][0]-p[0])*k,p[1]+(ptsN[i][1]-p[1])*k]):ptsN);
-    if(x<1)requestAnimationFrame(paso);else poner(vbN,ptsN)};
+// EL MAPA. Su estado vive fuera del DOM (MAPA): la «caja» que se quiere mostrar y el contorno. El viewBox se calcula en
+// cada cuadro con la proporción real del espacio (ajustar), así el mapa llena su lado de la tarjeta aunque las columnas
+// se estén reacomodando. El zoom interpola la caja (el ancho en escala logarítmica, para que se sienta parejo) y
+// transforma el contorno del Perú en el del departamento, punto por punto. Entre dos tiendas se aleja a mitad de camino.
+const MAPA={caja:null,pts:null,fin:null,id:0};
+let roMapa=null;
+function aplicarMapa(){
+  const sv=$('#mapa-sv');if(!sv||!MAPA.caja)return;const box=sv.parentElement,w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;
+  const asp=h/w,vb=ajustar(MAPA.caja,asp),vbT=ajustar(CAJA_TODAS,asp),k=vb[2]/vbT[2];MAPA.asp=asp;
+  sv.setAttribute('viewBox',vb.map(v=>v.toFixed(2)).join(' '));
+  const fo=sv.querySelector('.forma');if(fo._pts!==MAPA.pts){fo.setAttribute('d',poligono(MAPA.pts));fo._pts=MAPA.pts}
+  $$('.marca',sv).forEach(m=>m.setAttribute('transform',`translate(${m.dataset.x} ${m.dataset.y}) scale(${k.toFixed(4)})`));
+  $$('.cometa',sv).forEach(c=>c.setAttribute('r',(3.4*k).toFixed(2)));
+  $$('[data-ux]',box).forEach(el=>{const x=(+el.dataset.ux-vb[0])/vb[2]*100,y=(+el.dataset.uy-vb[1])/vb[3]*100;
+    if(el.dataset.ancla==='der'){el.style.right=(100-x).toFixed(2)+'%';el.style.left='auto'}else el.style.left=x.toFixed(2)+'%';el.style.top=y.toFixed(2)+'%'})}
+function mapaTras(entrada){
+  const sv=$('#mapa-sv');if(!sv)return;
+  roMapa&&roMapa.disconnect();roMapa=new ResizeObserver(()=>aplicarMapa());roMapa.observe(sv.parentElement);
+  const cN=cajaDe(S.foco),pN=FORMAS[S.foco];
+  if(!MAPA.caja||entrada||reducido()||S.rapido){MAPA.id++;MAPA.caja=cN;MAPA.pts=pN;MAPA.fin=cN;aplicarMapa();return}
+  if(igual(MAPA.fin,cN)){aplicarMapa();return}          // nada cambió, o ya va camino a esa caja: sigue
+  const cP=MAPA.caja,pP=MAPA.pts,id=++MAPA.id;MAPA.fin=cN;
+  const entreTiendas=cP[2]<420&&cN[2]<420,d=entreTiendas?1900:1500,t0=performance.now(),ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+  const cxP=cP[0]+cP[2]/2,cyP=cP[1]+cP[3]/2,cxN=cN[0]+cN[2]/2,cyN=cN[1]+cN[3]/2,lw=[Math.log(cP[2]),Math.log(cN[2])],lh=[Math.log(cP[3]),Math.log(cN[3])],mismo=pP.length===pN.length;
+  aplicarMapa();
+  const paso=now=>{if(MAPA.id!==id)return;const x=Math.min(1,(now-t0)/d),k=ease(x),b=entreTiendas?1+1.5*Math.sin(Math.PI*k):1;
+    const w=Math.min(CAJA_TODAS[2],Math.exp(lw[0]+(lw[1]-lw[0])*k)*b),h=Math.min(CAJA_TODAS[3],Math.exp(lh[0]+(lh[1]-lh[0])*k)*b),cx=cxP+(cxN-cxP)*k,cy=cyP+(cyN-cyP)*k;
+    MAPA.caja=[cx-w/2,cy-h/2,w,h];MAPA.pts=x<1&&mismo?pP.map((p,i)=>[p[0]+(pN[i][0]-p[0])*k,p[1]+(pN[i][1]-p[1])*k]):pN;
+    if(x>=1)MAPA.caja=cN;aplicarMapa();if(x<1)requestAnimationFrame(paso)};
   requestAnimationFrame(paso)}
 function animar(root,prev,entrada){
   const rm=reducido();
-  animarMapa(root,prev,entrada);
+  mapaTras(entrada);
   $$('[data-k]',root).forEach(e=>{const to=+e.dataset.v,ant=prev.k[e.dataset.k],from=entrada?0:(ant??to);
     if(!entrada&&ant!==undefined&&Math.round(ant)!==Math.round(to)&&!S.rapido)e.classList.add('cambio');
     if(rm||from===to)return;if(entrada)e.textContent=fmt(e.dataset.f,0);cuando(e,()=>contar(e,from,to,e.dataset.f,entrada?1200:dur(700),entrada?retrasoDe(e):0),entrada)});
@@ -796,16 +812,22 @@ function remuestrear(geo,N=160){
   const out=[];let i=0,acc=0;for(let k=0;k<N;k++){const t=k*L/N;while(acc+seg[i]<t){acc+=seg[i];i++}const f=seg[i]?(t-acc)/seg[i]:0;out.push([P2[i][0]+(P2[i+1][0]-P2[i][0])*f,P2[i][1]+(P2[i+1][1]-P2[i][1])*f])}
   let top=0;out.forEach((p,j)=>{if(p[1]<out[top][1])top=j});return [...out.slice(top),...out.slice(0,top)].map(r2)}
 const FORMAS={TODAS:remuestrear(PERU),TRU:remuestrear(DEPS.TRU),LIM:remuestrear(DEPS.LIM),AQP:remuestrear(DEPS.AQP)};
-function vbDe(F){if(F==='TODAS')return [0,0,MW,MH];
-  const pts=FORMAS[F],xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
-  const pad=.34;let w=(x1-x0)*(1+pad),h=(y1-y0)*(1+pad*1.2);const asp=MH/MW;if(h/w>asp)w=h/asp;else h=w*asp;const cx=(x0+x1)/2,cy=(y0+y1)/2+h*.04;
-  return [cx-w/2,cy-h/2,w,h].map(v=>+v.toFixed(2))}
+// Lo que hay que mostrar: el Perú con la franja de mar donde van las etiquetas, o el departamento con aire alrededor.
+const CAJA_TODAS=[52,12,690,768];
+function cajaDe(F){if(F==='TODAS')return CAJA_TODAS;
+  const pts=FORMAS[F],xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),w=x1-x0,h=y1-y0,pad=.28;
+  return [x0-w*pad,y0-h*pad-h*.18,w*(1+2*pad),h*(1+2*pad)+h*.18].map(v=>+v.toFixed(2))}
+// Encuadre: la caja centrada y estirada hasta la proporción real del espacio (alto/ancho).
+function ajustar(c,asp){let [x,y,w,h]=c;if(h/w>asp){const nw=h/asp;x-=(nw-w)/2;w=nw}else{const nh=w*asp;y-=(nh-h)/2;h=nh}return [x,y,w,h]}
 const TALLER_XY=px(-75.7,-11.25),TALLER_LIM=px(-76.94,-11.96);
-function marcaHTML(cls,x,y,inner,extra=''){return `<g class="marca ${cls}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(vbDe(S.foco)[2]/MW).toFixed(4)})" ${extra}>${inner}</g>`}
+function marcaHTML(cls,x,y,inner,extra=''){return `<g class="marca ${cls}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})" ${extra}>${inner}</g>`}
 function mapaHTML(){
-  const F=S.foco,zoom=F!=='TODAS',vb=vbDe(F),cs=Object.fromEntries(ORDEN.map(s=>[s,calc(s)])),vmax=Math.max(...ORDEN.map(s=>cs[s].total),1);
-  let ret='';for(let lo=-86;lo<=-68;lo+=2){const x=px(lo,0)[0];ret+=`<line class="ret" x1="${x}" y1="0" x2="${x}" y2="${MH}"/>`}for(let la=0;la>=-18;la-=2){const y=px(0,la)[1];ret+=`<line class="ret" x1="0" y1="${y}" x2="${MW}" y2="${y}"/>`}
-  let ret2='';for(let lo=-81.5;lo<=-69;lo+=.5){if(lo%2===0)continue;const x=px(lo,0)[0];ret2+=`<line class="ret2" x1="${x}" y1="0" x2="${x}" y2="${MH}"/>`}for(let la=-.5;la>=-18.5;la-=.5){if(la%2===0)continue;const y=px(0,la)[1];ret2+=`<line class="ret2" x1="0" y1="${y}" x2="${MW}" y2="${y}"/>`}
+  const F=S.foco,zoom=F!=='TODAS',vb=ajustar(MAPA.caja||cajaDe(F),MAPA.asp||.9),cs=Object.fromEntries(ORDEN.map(s=>[s,calc(s)])),vmax=Math.max(...ORDEN.map(s=>cs[s].total),1);
+  // la cuadrícula cubre mucho más que el Perú, para que el mapa llene cualquier proporción sin bordes
+  let r1='',r2='';const [X0,Y0]=px(-104,16),[X1,Y1]=px(-50,-36);
+  for(let lo=-104;lo<=-50;lo+=2){const x=px(lo,0)[0].toFixed(1);r1+=`M${x} ${Y0.toFixed(0)}V${Y1.toFixed(0)}`}for(let la=16;la>=-36;la-=2){const y=px(0,la)[1].toFixed(1);r1+=`M${X0.toFixed(0)} ${y}H${X1.toFixed(0)}`}
+  for(let lo=-83.5;lo<=-67;lo+=1){const x=px(lo,0)[0].toFixed(1);r2+=`M${x} ${px(0,2)[1].toFixed(0)}V${px(0,-20)[1].toFixed(0)}`}for(let la=1;la>=-19;la-=1){if(la%2===0)continue;const y=px(0,la)[1].toFixed(1);r2+=`M${px(-84,0)[0].toFixed(0)} ${y}H${px(-66,0)[0].toFixed(0)}`}
+  const ret=`<path class="ret" d="${r1}"/>`,ret2=`<path class="ret2" d="${r2}"/>`;
   const P0=px(SEDES.TRU.lon,SEDES.TRU.lat),P1=px(SEDES.LIM.lon,SEDES.LIM.lat),P2=px(SEDES.AQP.lon,SEDES.AQP.lat);
   const arco1=`M${P0[0]} ${P0[1]} Q ${P0[0]+150} ${(P0[1]+P1[1])/2-10} ${P1[0]} ${P1[1]}`,arco2=`M${P1[0]} ${P1[1]} Q ${P1[0]+150} ${P1[1]+40} ${P2[0]} ${P2[1]}`;
   const LX=250;
@@ -816,28 +838,29 @@ function mapaHTML(){
     return marcaHTML(zoom&&!f?'otra':'',x,y,inner,`data-pulso="${s}" onclick="enfocar('${s}')" data-tip="${s}" style="cursor:pointer"`)}).join('');
   const guias=zoom?'':ORDEN.map(s=>{const c=cs[s],[x,y]=px(SEDES[s].lon,SEDES[s].lat),r=8+20*Math.sqrt(c.total/vmax);return `<line class="guia" x1="${LX+6}" y1="${y}" x2="${x-r-10}" y2="${y}"/>`}).join('');
   const etiquetas=zoom?'':ORDEN.map((s,d)=>{const c=cs[s],[,y]=px(SEDES[s].lon,SEDES[s].lat);
-    return `<button class="a-et" style="right:${(100-LX/MW*100).toFixed(2)}%;top:${(y/MH*100).toFixed(2)}%;--d:${d}" onclick="enfocar('${s}')" data-tip="${s}"><span class="lbl">${s}<span class="ciu"> · ${SEDES[s].ciudad}</span></span><b>${O('m-'+s,c.total)}</b><span class="p"><i><i ${A('mp-'+s,{width:Math.min(100,c.pct).toFixed(1)+'%'},{width:'0%'},1600+d*160)}></i></i>${K('mpk-'+s,c.pct,'p')}</span></button>`}).join('');
+    return `<button class="a-et" data-ux="${LX}" data-uy="${y.toFixed(1)}" data-ancla="der" style="right:${((1-(LX-vb[0])/vb[2])*100).toFixed(2)}%;top:${((y-vb[1])/vb[3]*100).toFixed(2)}%;--d:${d}" onclick="enfocar('${s}')" data-tip="${s}"><span class="lbl">${s}<span class="ciu"> · ${SEDES[s].ciudad}</span></span><b>${O('m-'+s,c.total)}</b><span class="p"><i><i ${A('mp-'+s,{width:Math.min(100,c.pct).toFixed(1)+'%'},{width:'0%'},1600+d*160)}></i></i>${K('mpk-'+s,c.pct,'p')}</span></button>`}).join('');
   const enVb=([x,y])=>[((x-vb[0])/vb[2]*100).toFixed(2),((y-vb[1])/vb[3]*100).toFixed(2)];
   const ult=eventos()[0];
   let extras='';
-  if(zoom){const [cx,cy]=enVb(px(SEDES[F].lon,SEDES[F].lat)),loc=FORMAS[F];
+  const enU=([x,y],extra='')=>{const [a,b]=enVb([x,y]);return `data-ux="${x.toFixed(1)}" data-uy="${y.toFixed(1)}" style="left:${a}%;top:${b}%;${extra}"`};
+  if(zoom){const loc=FORMAS[F];
     extras=`<div class="dep"><span>Departamento</span><b>${SEDES[F].dep}</b></div>
       <button class="volver" onclick="enfocar('TODAS')">${ic('chevL','s')} Toda CAYLA</button>
-      <span class="ciudad" style="left:${cx}%;top:${cy}%"><b>${F}</b><span>${SEDES[F].ciudad}</span></span>
-      ${F==='LIM'?(()=>{const [tx,ty]=enVb(TALLER_LIM);return `<span class="ciudad" style="left:${tx}%;top:${ty}%;transform:translate(14px,-120%)"><b>Taller</b><span>${S.momento==='tarde'?38:0} prendas</span></span>`})():''}
+      <span class="ciudad" ${enU(px(SEDES[F].lon,SEDES[F].lat))}><b>${F}</b><span>${SEDES[F].ciudad}</span></span>
+      ${F==='LIM'?`<span class="ciudad" ${enU(TALLER_LIM,'transform:translate(14px,-120%)')}><b>Taller</b><span>${S.momento==='tarde'?38:0} prendas</span></span>`:''}
       <div class="ubic" aria-hidden="true"><svg viewBox="0 0 ${MW} ${MH}"><path class="pe" d="${poligono(FORMAS.TODAS)}"/><path class="dp" d="${poligono(loc)}"/></svg></div>`}
-  else extras=`${etiquetas}<span class="a-et-t" style="left:${(TALLER_XY[0]/MW*100+2.2).toFixed(2)}%;top:${(TALLER_XY[1]/MH*100).toFixed(2)}%">Taller<b>${S.momento==='tarde'?38:0} prendas</b></span>
+  else extras=`${etiquetas}<span class="a-et-t" ${enU([TALLER_XY[0]+14,TALLER_XY[1]])}>Taller<b>${S.momento==='tarde'?38:0} prendas</b></span>
       ${ult?`<div class="a-tk"><span class="punto late"></span><span class="${esNuevo(ult.id)?'nuevo':''}">${hora12(ult.t)} · ${ult.sede} · <b>+${fmtS(ult.monto)}</b></span></div>`:''}`;
   return `<div class="a-mapa-in">
-    <svg viewBox="${vb.join(' ')}" data-vb='${JSON.stringify(vb)}' preserveAspectRatio="xMidYMid meet" aria-label="Mapa de las sedes">
+    <svg id="mapa-sv" viewBox="${vb.map(v=>v.toFixed(2)).join(' ')}" preserveAspectRatio="xMidYMid slice" aria-label="Mapa de las sedes">
       <defs><radialGradient id="tierra" cx="55%" cy="40%" r="75%"><stop offset="0" style="stop-color:var(--m-tierra)"/><stop offset="1" style="stop-color:var(--m-tierra2)"/></radialGradient>
       <filter id="halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="14"/></filter></defs>
       ${ret}${ret2}
-      <text class="mar" x="34" y="232">Océano Pacífico</text>
-      <path class="forma" data-forma='${JSON.stringify(FORMAS[F])}' d="${poligono(FORMAS[F])}"/>
+      <text class="mar" x="70" y="752">Océano Pacífico</text>
+      <path class="forma" d="${poligono(MAPA.pts||FORMAS[F])}"/>
       ${guias}
       <path class="arco" d="${arco1}"/><path class="estela" pathLength="1" d="${arco1}"/>
-      ${S.bucle&&!reducido()?`<circle class="cometa" r="${(3.4*vb[2]/MW).toFixed(2)}"><animateMotion dur="3.4s" repeatCount="indefinite" path="${arco1}"/></circle>`:''}
+      ${S.bucle&&!reducido()?`<circle class="cometa" r="3.4"><animateMotion dur="3.4s" repeatCount="indefinite" path="${arco1}"/></circle>`:''}
       <path class="arco prep" d="${arco2}"/>
       ${marcaHTML(F==='LIM'?'oculta':'',TALLER_XY[0],TALLER_XY[1],`<rect class="taller" x="-6" y="-6" width="12" height="12" rx="2"/>`,'data-tip="TALLER"')}
       ${marcaHTML(F==='LIM'?'':'oculta',TALLER_LIM[0],TALLER_LIM[1],`<rect class="taller" x="-7" y="-7" width="14" height="14" rx="2.5"/>`,'data-tip="TALLER"')}
@@ -855,7 +878,7 @@ function rankingHTML(){const rk=rankear(),mx=Math.max(110,...rk.map(c=>c.pct));
 function deltasHTML(){const cs=ORDEN.map(s=>calc(s)),mx=Math.max(20,...cs.map(c=>Math.abs(c.delta||0)));
   return `<div class="dl">${cs.map((c,i)=>{const v=c.delta||0;return `<div class="dl-f" data-tip="${c.F}"><span>${c.F}</span><span class="eje izq">${v<0?`<i ${A('dl-'+c.F,{width:(-v/mx*100).toFixed(1)+'%'},{width:'0%'},300+i*110)}></i>`:''}</span><span class="eje der">${v>0?`<i ${A('dl-'+c.F,{width:(v/mx*100).toFixed(1)+'%'},{width:'0%'},300+i*110)}></i>`:''}</span><span class="v">${c.delta===null?'—':K('dlk-'+c.F,v,'v')}</span></div>`}).join('')}</div>`}
 function panelGlobal(){const c=calc('TODAS');
-  return `<div class="pn-in">
+  return `<div class="pn-in global">
     <div style="--i:0"><div class="tcab"><span class="lbl">De un vistazo</span></div><div class="kp">
       <div><span class="lbl">Tickets</span><b>${K('tk',c.tickets,'n')}</b>${sparkHTML('sp1',c.slots.map(v=>v/(c.medio||150)))}</div>
       <div><span class="lbl">Ticket medio</span><b>${c.medio?K('md',c.medio):'—'}</b><small>${c.ppt?fmtD(c.ppt)+' prendas por ticket':'sin ventas'}</small></div>
@@ -941,7 +964,7 @@ function orbesHTML(){const ab=S.alerta,F=S.foco;
 function anchoHeroe(){const c=$('#cont');if(!c)return true;const cs=getComputedStyle(c);return (S.ancho=c.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)>=1000)}
 function pintaA(){
   const F=S.foco,c=calc(F),zoom=F!=='TODAS',urg=ALERTAS.filter(a=>a.niv==='urg').length;
-  const cols=zoom?'minmax(0,.86fr) minmax(0,1.3fr)':'minmax(0,1.2fr) minmax(0,1fr)';
+  const cols=zoom?'minmax(0,.95fr) minmax(0,1.25fr)':'minmax(0,1.4fr) minmax(0,1fr)';
   return `<div class="m mA ${zoom?'zoom':''}">
     <header class="a-cab">
       <div class="ent" style="--i:0"><p class="a-sobre"><span class="punto late ${c.abiertas?'':'no'}"></span><span class="lbl">${nombreFoco(F)} · ${periodoTxt()}</span></p>

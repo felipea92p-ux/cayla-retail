@@ -27,8 +27,14 @@
   - Entre dos tiendas (con ‹ › del panel o con las flechas del teclado), el mapa se aleja a mitad de camino y vuelve a
     acercarse al otro departamento.
   - Escape, la × o «‹ Toda CAYLA» vuelven al país.
-- **El mapa se corre a la izquierda.** La tarjeta principal reparte sus dos columnas de otra forma: el mapa pasa de 1.2fr a
-  0.86fr y el panel de 1fr a 1.3fr. La transición la hace el propio grid. El mapa queda fijo arriba mientras se baja por el
+- **El mapa llena todo su lado, a cualquier tamaño** (pedido de Felipe, misma tarde: «que no quede tanto espacio en
+  blanco»). Ya no tiene una proporción fija centrada con aire alrededor. El encuadre (`viewBox`) se calcula en cada cuadro con
+  la proporción real de su espacio: en pantalla ancha aparece más mar a los lados y en una angosta, más arriba y abajo. La
+  cuadrícula cubre mucho más que el Perú, así que no se ven bordes. En escritorio, la tarjeta principal ocupa el alto de la
+  pantalla (menos la cabecera) y el panel de la derecha reparte su contenido en ese alto. En una columna, el mapa es tan
+  alto como ancho (380 a 660 px). Las tiendas y sus anillos crecen con el mapa, pero no con el zoom.
+- **El mapa se corre a la izquierda.** La tarjeta principal reparte sus dos columnas de otra forma: el mapa pasa de 1.4fr a
+  0.95fr y el panel de 1fr a 1.25fr. La transición la hace el propio grid. El mapa queda fijo arriba mientras se baja por el
   panel.
 - **En el zoom, el mapa muestra:** el nombre del departamento en grande, la ciudad junto a la tienda, el Taller (en Lima), un
   mapa chico del Perú con el departamento pintado y una cuadrícula más fina que aparece al acercarse.
