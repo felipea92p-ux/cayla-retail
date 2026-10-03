@@ -191,9 +191,9 @@ esta misma regla; Felipe lo acepta. Lo mitigan la ventana (dice quién lo cargó
 (`restaurar-purga.sql`) y la línea en Actividad con el nombre de quien lo hizo. Y si alguien vuelve a pegar
 `20260926220000` o `20260928230000`, vuelve «solo Líder / solo Admin»; lo detectan las dos pruebas.
 
-**Existencias no cambió:** el «Eliminar el producto» del detalle de una prenda sigue solo para un Admin (`permisosDelDetalle`).
-El motivo de entonces («un Líder vería un botón que nunca funciona») ya no vale, pero el pedido era la tarjeta del catálogo.
-Queda como pendiente para decidir.
+**Existencias no cambió en este primer corte:** el «Eliminar el producto» del detalle de una prenda siguió solo para un Admin
+(`permisosDelDetalle`). El motivo de entonces («un Líder vería un botón que nunca funciona») ya no valía, pero el pedido era la
+tarjeta del catálogo. Felipe lo decidió el mismo día: ver «Existencias sigue la misma regla», al final.
 
 **Verificación:** `pnpm pruebas:eliminar-producto` 39/40 y `pnpm pruebas:eliminar-producto-con-historia` 60/60 en la base local,
 con la migración aplicada dentro de cada transacción y deshecha al final (el único rojo, «Blusa Emma» con 2 líneas de venta
@@ -212,3 +212,26 @@ Recién entonces `apply_migration` (versión `20261003183002`). Verificado por e
 (`eliminar_producto`), `0736b4b3…` (`fn_producto_como_eliminar`) y `0b4745df…` (`fn_producto_se_puede_eliminar`). Las tres
 terminales «Almacén Trujillo», «Almacén Lima» y «Almacén Arequipa» (rol «Terminal Almacén») ven Productos y Atributos, así
 que les aparece el botón.
+
+### Existencias sigue la misma regla (Felipe, 2026-10-03, más tarde)
+
+**Pedido:** decidir el pendiente de arriba. Felipe eligió entre tres: *quien edita el catálogo* ← elegida; *solo Admin, como
+hasta ahora* (Existencias como pantalla de operar stock, no de corregir el catálogo); *solo desde Catálogo* (Felipe perdía el
+atajo que había pedido el 28-sep).
+
+**DECIDÍ:** `permisosDelDetalle` recibe `editaCatalogo` (`puede(persona, "editarCatalogo")`, que `inventario/page.tsx` le pasa a
+`InventarioPanel`) en vez de `esAdmin`, y `eliminar` sigue exigiendo la sede activa como todo lo que escribe. Es la misma
+pregunta que hace la tarjeta de Catálogo y que hace la base desde `20261003232000`. Solo web, sin migración.
+
+**SE ROMPE SI:** quien mira Existencias de su sede borra un producto que también tiene stock en otra: la ventana lo dice
+(«Se borra todo: … su stock en todas las sedes», quién lo cargó y cuándo, en rojo). Es el mismo costo que ya se aceptó para
+Catálogo, con el mismo respaldo y la misma línea en Actividad. Una terminal que solo vende (sin Productos ni Atributos completos)
+no ve el botón.
+
+**Verificación:** `existencias-permisos.test.ts` (11/11): sin `editaCatalogo` no hay botón; con él sí, aunque no tenga ninguno de
+los otros módulos y también en el Taller; mirando otra sede, no. `tsc` y `eslint` limpios. **Navegador** (local, 1440 px): Micaela,
+integrante de Tienda Trujillo, no Admin, con Productos y Atributos completos, ve «Eliminar el producto» en el cajón de «Blazer Demo
+Franja». Con la base local en la regla vieja, la ventana dice «No se pudo comprobar»: es el síntoma de una web que llega antes
+que la base, y producción ya tiene la migración. Con `20261003232000` aplicada en local, la ventana le ofrece «Eliminar con su
+historia» (54 prendas, 22 movimientos, «Lo cargó Felipe Alvarez el 02/10/2026») y pide responsable de turno. No se confirmó. Después,
+las cuatro funciones volvieron a su versión anterior, con md5 de definición y comentario idénticos a los de antes.
