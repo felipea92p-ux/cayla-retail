@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
-import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
+import { motivoNoCobrable } from "@/lib/vender-stock-local";
 
 type Props = {
   grupo: GrupoCatalogo<VarianteBusqueda>;
@@ -29,8 +29,8 @@ type Props = {
  *
  * Elegir una talla AGREGA esa variante y cierra (con la misma animación que Escape);
  * una talla agotada se queda a la vista y dice dónde sí hay. Una talla con el piso en 0
- * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y
- * que la bajen, sin tacharla — todavía no entra al ticket (la venta descuenta el piso).
+ * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y se
+ * puede tocar — el aviso de la caja ofrece agregarla registrando la bajada (ADR-0320).
  */
 export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
   const nombre = [grupo.referencia, grupo.color].filter(Boolean).join(" ");
@@ -61,20 +61,22 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
               // Ya se llevó todo lo que hay: agregar otra no haría nada, y un botón que no
               // hace nada es justo lo que esta pantalla vino a quitar.
               const tope = motivo === "cobrable" && enTicket >= t.stockAqui;
+              // Lo que la frena es el almacén de esta tienda: se puede tocar y el aviso ofrece registrar la bajada (ADR-0320).
+              const bajable = enAlmacen || (tope && t.almacenAqui > 0);
               const otras = textoOtrasSedes(t.variante.stockOtrasSedes ?? []);
               return (
                 <button
                   key={t.variante.varianteId}
                   type="button"
-                  disabled={motivo !== "cobrable" || tope}
+                  disabled={!bajable && (motivo !== "cobrable" || tope)}
                   onClick={() => {
                     onAgregar(t.variante);
                     cerrar();
                   }}
-                  aria-label={`Agregar ${nombre} talla ${t.talla}`}
+                  aria-label={bajable ? `Agregar ${nombre} talla ${t.talla}: no figura en el piso` : `Agregar ${nombre} talla ${t.talla}`}
                   className={`rounded-xl border p-3 text-left transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] ${
-                    enAlmacen
-                      ? "cursor-not-allowed border-dashed border-ambar/60 bg-crema text-tinta/70"
+                    bajable
+                      ? "border-dashed border-ambar/60 bg-crema text-tinta/70 hover:bg-ambar/10 active:translate-y-px"
                       : agotada || apartada || tope
                         ? "cursor-not-allowed border-dashed border-sand bg-crema text-tinta/45"
                         : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40 active:translate-y-px"
@@ -100,9 +102,8 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                             : `${t.stockAqui} aquí`}
                   </span>
                   {(agotada || apartada) && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
-                  {/* Dónde se REGISTRA el paso al piso: «que la bajen» a secas se leía como traerla, y con la prenda ya
-                      en la mano no alcanza (`DONDE_SE_BAJA`). */}
-                  {enAlmacen && <span className="mt-0.5 block text-[11px]">Que la bajen en {DONDE_SE_BAJA}</span>}
+                  {/* Con la prenda en la mano lo que falta es el registro de la bajada: tocarla lo ofrece (ADR-0320). */}
+                  {enAlmacen && <span className="mt-0.5 block text-[11px]">Si la tienes en la mano, tócala: se registra la bajada</span>}
                   {tope && t.almacenAqui > 0 && <span className="mt-0.5 block text-[11px]">{t.almacenAqui} más en el almacén</span>}
                   {t.variante.precio !== grupo.precioMin && <span className="mt-0.5 block text-xs font-semibold">{money(t.variante.precio)}</span>}
                 </button>

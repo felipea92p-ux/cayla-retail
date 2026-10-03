@@ -6,7 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
+import { motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { tonoDeCategoria } from "@/components/MuestraCategoria";
@@ -526,7 +526,8 @@ export function PuntoDeVentaCatalogo({
                       tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
                       «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
                       almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
-                      el aviso dice cuántas hay y que la bajen — en el celular el tooltip no se ve. */}
+                      el aviso dice cuántas hay y ofrece agregarla registrando la bajada (ADR-0320) — en el
+                      celular el tooltip no se ve. */}
                   <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
                     {g.tallas.map((t) =>
                       t.stockAqui <= 0 && t.almacenAqui > 0 ? (
@@ -542,7 +543,7 @@ export function PuntoDeVentaCatalogo({
                               {t.talla}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · que la bajen en ${DONDE_SE_BAJA}`}</TooltipContent>
+                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · si la tienes en la mano, tócala: se registra la bajada`}</TooltipContent>
                         </Tooltip>
                       ) : t.stockAqui > 0 ? (
                         <Tooltip key={t.variante.varianteId}>
