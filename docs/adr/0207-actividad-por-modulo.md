@@ -115,8 +115,10 @@ Actividad; las demás comprobaciones diferidas siguen al final). Una prueba nuev
 
 **Producción.** Una sola parte (sin políticas). Toma candados breves de `movimientos`, `conteos` y `transferencias` al
 crear los disparadores: pegar fuera del horario de tienda; `lock_timeout = 3s`. **Aplicada el 2026-10-02** (18:01 Lima,
-a pedido de Felipe), y A4 enseguida en un segundo paso; las 133 líneas de Existencias reconstruidas entre los dos pasos
-quedaron con la descripción larga (decisión pendiente de Felipe: rehacerlas o dejarlas).
+a pedido de Felipe), y A4 enseguida en un segundo paso. Las 133 líneas de Existencias reconstruidas entre los dos pasos
+quedaron con la descripción larga; Felipe las rehízo en el SQL Editor el 2026-10-03 (respaldo de las originales en
+`respaldo_purgas.filas`, purga `actividad-nombre-de-prenda-2026-10-02`). Es la única vez que se apagó el candado de solo
+agregar de `actividad`, y solo para filas reconstruidas minutos antes, nunca para algo anotado en vivo.
 
 ### Etapa Productos (2026-10-02, mismo día)
 
