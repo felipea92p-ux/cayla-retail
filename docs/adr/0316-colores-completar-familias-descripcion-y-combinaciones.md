@@ -99,6 +99,10 @@ Comprobación después: `select familia_color, count(*) from retail.colores wher
 naranja 7, amarillo 7, verde 12, azul 13, morado 10, metalico 8 (91); y `select count(*) from retail.colores where activo and descripcion is
 not null and cardinality(combina_con) > 0` → 91.
 
+## Aplicado
+
+Pegadas en producción el 2026-10-02, en orden, y verificadas con consultas de solo lectura: 91 colores activos con las familias de arriba, 91 con descripción y 5–6 compañeros, 0 combinaciones huérfanas, a sí mismo, a inactivos ni repetidas, los dos candados (`colores_descripcion_largo`, `colores_combina_con_maximo`) y el disparador presentes, y la huella md5 de las 91 fichas idéntica a la del archivo de contenido del repo. La web (PR #749) sigue en borrador.
+
 ## Cómo deshacerlo
 
 Web: `git revert` del PR (no toca datos). Base: los 16 colores se desactivan (no se borran: pueden tener variantes) con `update retail.colores

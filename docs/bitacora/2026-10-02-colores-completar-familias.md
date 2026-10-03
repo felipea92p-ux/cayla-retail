@@ -10,3 +10,4 @@ espacio ya está ocupado: llenar por llenar habría partido las cuentas de tende
 Felipe se lleva: dos partes de SQL ensayadas (en este orden: `20261003190000` y `20261003190100`) que él pega **antes** de fusionar —el PR
 va en borrador por eso—, la lista de los 16 colores para aprobar, y dos decisiones suyas: qué hacer con los 4 colores creados a mano (ya
 tienen 23 variantes; por eso no se recomiendan como compañeros) y en qué orden fusionar este PR y el #742.
+Estado al cierre: Felipe pegó las dos partes de SQL y las verifiqué contra producción (91 colores, 91 fichas, cero combinaciones rotas, huella idéntica a la del repo). Queda la web en borrador (#749) y las dos decisiones suyas.
