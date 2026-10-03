@@ -1,3 +1,4 @@
+import { Ayuda } from "@/components/Ayuda";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { celda, Encabezado, fila, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
@@ -43,11 +44,19 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
         sobretitulo="Gestión"
         titulo="Rendimiento"
         bajada={
-          varias
-            ? "Las ventas de cada persona de cada tienda, contra su meta. Para reconocer y acompañar — sin comisión ni bono."
-            : elegida
-              ? `Las ventas de cada persona de ${elegida.nombre}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
-              : `Las ventas de cada persona de ${persona.ubicacionEtiqueta}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
+          // Una frase corta y el «!» con el resto (Felipe, 2026-10-03, como Productos): las notas de abajo explicaban cada cifra y no se leían.
+          <>
+            {varias
+              ? "Las ventas de cada persona de cada tienda, contra su meta."
+              : `Las ventas de cada persona de ${elegida?.nombre ?? persona.ubicacionEtiqueta}, contra su meta.`}{" "}
+            Para reconocer y acompañar — sin comisión ni bono.
+            <Ayuda titulo="Cómo se lee Rendimiento">
+              <span className="block">Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta.</span>
+              <span className="mt-2 block">
+                La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.
+              </span>
+            </Ayuda>
+          </>
         }
       />
 
@@ -88,7 +97,19 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-taupe">Vende más por hora</h3>
+          <h3 className="mb-2 text-sm font-semibold text-taupe">
+            Vende más por hora
+            <Ayuda titulo="Vende más por hora">
+              <span className="block">
+                El número no es el crudo: se corrige hacia el promedio de la tienda, tanto menos cuanto más horas tenga cada persona (contracción de Efron-Morris).
+              </span>
+              <span className="mt-2 block">
+                <b>El orden</b> no es por ese número sino por lo que podemos asegurar de él (el número menos su margen de error): quien tiene poca evidencia queda más
+                abajo que quien tiene mucha, aunque su número sea mayor.
+              </span>
+              <span className="mt-2 block">«Muestra chica» es menos de 40 ventas en el mes.</span>
+            </Ayuda>
+          </h3>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
             {porHora.length === 0 && <p className={TABLA.vacio}>Nadie vendió este mes.</p>}
@@ -116,15 +137,16 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
               </div>
             ))}
           </Tabla>
-          <p className="nota-cayla">
-            El número no es el crudo: se corrige hacia el promedio de la tienda, tanto menos cuanto más horas tenga cada persona (contracción de
-            Efron-Morris). <b>El orden</b> no es por ese número sino por lo que podemos asegurar de él (el número menos su margen de error): quien tiene
-            poca evidencia queda más abajo que quien tiene mucha, aunque su número sea mayor. «Muestra chica» es menos de 40 ventas en el mes.
-          </p>
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-taupe">Cierra más ventas</h3>
+          <h3 className="mb-2 text-sm font-semibold text-taupe">
+            Cierra más ventas
+            <Ayuda titulo="Cierra más ventas">
+              <span className="block">Número de ventas del mes, sin corregir: funciona igual con o sin horas registradas.</span>
+              <span className="mt-2 block">«Muestra chica» es menos de 40 ventas en el mes.</span>
+            </Ayuda>
+          </h3>
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
             {porVentas.length === 0 && <p className={TABLA.vacio}>Nadie vendió este mes.</p>}
@@ -147,14 +169,8 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
               </div>
             ))}
           </Tabla>
-          <p className="nota-cayla">Número de ventas del mes, sin corregir: funciona igual con o sin horas registradas.</p>
         </div>
       </div>
-
-      <p className="nota-cayla">
-        <b>Cómo se lee.</b> Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta. La meta es para{" "}
-        <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.
-      </p>
     </section>
   );
 }
