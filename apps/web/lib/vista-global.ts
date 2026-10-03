@@ -24,11 +24,13 @@ export const NOMBRE_VISTA_GLOBAL = "CAYLA Global";
 
 export type Vista = "sede" | "global";
 
-/** Los módulos que funcionan en CAYLA Global: los que ya leen toda la empresa. El tablero, Clientas (una sola lista para
- *  todas las sedes), las seis pantallas de Finanzas (ya tenían «todas» para el líder), Configuración (metas y presupuesto
- *  de cada tienda) y Actividad (la del líder ya es de todas las sedes). Existencias, Movimientos, Análisis, Traslados y
- *  Producción entran cuando aprendan a sumar la red (ADR-0275, fase 3). */
+/** Los módulos que funcionan en CAYLA Global: los que ya leen toda la empresa. El Inicio (para el Admin es el Observatorio,
+ *  que mira todas las tiendas: ADR-0322), el tablero, Clientas (una sola lista para todas las sedes), las seis pantallas de
+ *  Finanzas (ya tenían «todas» para el líder), Configuración (metas y presupuesto de cada tienda) y Actividad (la del líder
+ *  ya es de todas las sedes). Existencias, Movimientos, Análisis, Traslados y Producción entran cuando aprendan a sumar la
+ *  red (ADR-0275, fase 3). */
 export const MODULOS_DE_LA_VISTA_GLOBAL = [
+  "inicio",
   "cayla_global",
   "clientas",
   "reportes_financieros",
@@ -45,8 +47,9 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
 
 /** Las rutas que se pueden abrir estando en CAYLA Global (y todo lo que cuelga de ellas). Tienen que coincidir con las
  *  pantallas de los módulos de arriba —lo vigila la prueba contra el árbol del menú—, más dos que no son de un módulo:
- *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). */
-export const RUTAS_DE_LA_VISTA_GLOBAL = ["/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso"] as const;
+ *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). «/» es solo el
+ *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. */
+export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso"] as const;
 
 /** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
  *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde

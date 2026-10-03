@@ -9,7 +9,7 @@ import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
-import { agruparCatalogo } from "@/lib/catalogo-grupos";
+import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
@@ -45,7 +45,7 @@ import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
-import { ElegirTallaModal } from "@/components/ElegirTallaModal";
+import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
 import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
@@ -361,10 +361,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  no hay en la tienda; la fila del filtro dice cuántas esconde. Solo afecta a `catalogo`;
    *  el escáner sigue reconociéndolas. No se recuerda entre visitas a propósito. */
   const [soloConStock, setSoloConStock] = useState(true);
-  // Tarjeta de la grilla cuyo modal de talla está abierto (su `clave`). Se guarda la clave y
-  // no el grupo: el grupo se vuelve a buscar en `grupos` en cada render, así nunca muestra
-  // un stock viejo.
-  const [tarjetaElegida, setTarjetaElegida] = useState<string | null>(null);
+  // La prenda abierta en «Todo de la prenda» (ADR-0323) y el color que se estaba viendo en su tarjeta. Se guarda la
+  // clave y no la prenda: se vuelve a buscar en `prendas` en cada render, así nunca muestra un stock viejo.
+  const [tarjetaElegida, setTarjetaElegida] = useState<{ clave: string; color?: string } | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? repeticion?.lineas ?? []);
   // La proforma en cobro (ADR-0167): se suelta al cobrar o con «Soltar». Una vencida pide confirmar el precio.
   const [proformaActiva, setProformaActiva] = useState<ProformaEnCobro | null>(proforma);
@@ -486,30 +485,29 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }, [variantesVisibles]);
 
   // La grilla es el plan B (cuando la etiqueta no lee): filtra por categoría y agrupa
-  // una tarjeta por prenda + color con sus tallas adentro (`lib/catalogo-grupos.ts`).
-  // «Solo con stock» esconde la tarjeta entera cuando ninguna talla tiene stock — una
-  // talla agotada dentro de una prenda con stock sigue a la vista, tachada. `resultados`
+  // una tarjeta por PRENDA, ordenadas por nombre, con sus colores y tallas adentro (ADR-0323,
+  // `lib/catalogo-grupos.ts`). «Solo con stock» esconde los colores sin piso y la prenda que se
+  // queda sin ninguno — una talla agotada de un color con stock sigue a la vista, tachada. `resultados`
   // (el escáner) NO se filtra: una prenda sin stock escaneada debe decir «sin stock en
   // esta sede», no «no encontramos».
   const catalogo = useMemo(
     () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
     [variantesVisibles, categoria]
   );
-  const { grupos, ocultasSinStock, ocultasEnAlmacen } = useMemo(() => {
-    const todos = agruparCatalogo(catalogo);
-    const visibles = soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
-    // De las escondidas, las que tienen prendas en el almacén de esta sede no están agotadas (D-40): el contador lo dice.
-    const enAlmacen = soloConStock ? todos.filter((g) => g.stockTotal <= 0 && g.almacenTotal > 0).length : 0;
-    return { grupos: visibles, ocultasSinStock: todos.length - visibles.length, ocultasEnAlmacen: enAlmacen };
+  // `prendasGrilla` y no `prendas`: ese nombre ya es la cantidad de unidades del ticket.
+  const { prendasGrilla, ocultasSinStock, ocultasEnAlmacen } = useMemo(() => {
+    // De los colores escondidos, los que tienen prendas en el almacén de esta sede no están agotados (D-40): el contador lo dice.
+    const { prendas: visibles, ocultos, ocultosEnAlmacen } = filtrarConStock(agruparPorPrenda(catalogo), soloConStock);
+    return { prendasGrilla: visibles, ocultasSinStock: ocultos, ocultasEnAlmacen: ocultosEnAlmacen };
   }, [catalogo, soloConStock]);
-  const grupoElegido = tarjetaElegida ? grupos.find((g) => g.clave === tarjetaElegida) : undefined;
+  const prendaElegida = tarjetaElegida ? prendasGrilla.find((p) => p.clave === tarjetaElegida.clave) : undefined;
   // Tarjeta que se tiñe de rojo un momento cuando se pide más de lo que hay. `pulso` sube en
   // cada intento para que el resaltado vuelva a sonar aunque sea la misma tarjeta. Si la
   // prenda no está en la grilla (otra categoría), el aviso de arriba igual sale.
   const [topeTarjeta, setTopeTarjeta] = useState<{ clave: string; pulso: number } | null>(null);
   function resaltarTope(varianteId: string) {
-    const g = grupos.find((x) => x.tallas.some((t) => t.variante.varianteId === varianteId));
-    if (g) setTopeTarjeta((t) => ({ clave: g.clave, pulso: (t?.pulso ?? 0) + 1 }));
+    const p = prendasGrilla.find((x) => x.colores.some((c) => c.tallas.some((t) => t.variante.varianteId === varianteId)));
+    if (p) setTopeTarjeta((t) => ({ clave: p.clave, pulso: (t?.pulso ?? 0) + 1 }));
   }
 
   const term = q.trim();
@@ -1303,7 +1301,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Sin arreglo de dependencias a propósito: se vuelve a enganchar en cada render para leer los
   // pagos y el total de ESTE cuadro, sin cerrar sobre valores viejos; enganchar un `keydown` es barato.
   useEffect(() => {
-    if (bloqueado || hayModal || grupoElegido) return;
+    if (bloqueado || hayModal || prendaElegida) return;
     function alAtajo(e: KeyboardEvent) {
       // Esc cierra la hoja de cobro y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
       if (e.key === "Escape" && momento === "cobrar" && !e.defaultPrevented) {
@@ -1873,21 +1871,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ocultasSinStock={ocultasSinStock}
           ocultasEnAlmacen={ocultasEnAlmacen}
           topeTarjeta={topeTarjeta}
-          onElegirTalla={(clave) => {
-            // Con una sola talla vendible no hay nada que elegir: se agrega directo (Felipe,
-            // 2026-09-18). El modal es para elegir, y solo se abre con 2+ tallas con stock —
-            // o con ninguna, donde sirve para decir dónde sí hay (el almacén de esta sede u
-            // otra sede). Si esa única talla ya está
-            // al tope en el ticket, `agregar()` avisa cuántas quedan. Si OTRA talla está en el
-            // almacén, sí hay que elegir (D-40: también se vende): se abre el modal, que lo dice;
-            // si no, en el celular la S entraba sola y la clienta había pedido la M del almacén.
-            const tallas = grupos.find((g) => g.clave === clave)?.tallas ?? [];
-            const vendibles = tallas.filter((t) => t.stockAqui > 0);
-            const otraEnAlmacen = tallas.some((t) => motivoNoCobrable(t.variante) === "en_almacen");
-            if (vendibles.length === 1 && !otraEnAlmacen) agregar(vendibles[0].variante);
-            else setTarjetaElegida(clave);
-          }}
-          grupos={grupos}
+          // Tocar la prenda abre «Todo de la prenda» en el color que se estaba viendo (ADR-0323). Ya no agrega directo
+          // con una sola talla: la tarjeta trae sus propias tallas y «Agregar», y tocar la prenda es mirar todo.
+          onAbrirPrenda={(clave, color) => setTarjetaElegida({ clave, color })}
+          prendas={prendasGrilla}
           carrito={carrito}
         />
           </div>
@@ -1956,23 +1943,24 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
-      {grupoElegido && (
-        <ElegirTallaModal
-          grupo={grupoElegido}
+      {prendaElegida && (
+        <OpcionesDePrendaModal
+          prenda={prendaElegida}
+          colorClave={tarjetaElegida?.color}
           ubicacionEtiqueta={ubicacionEtiqueta}
           carrito={carrito}
           onAgregar={agregar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
-          pie={
-            // La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): el modal ya dice dónde hay; si a la
-            // clienta no le sirve esperar, se anota para Compras.
-            grupoElegido.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
+          pie={(color) =>
+            // La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): la ventana ya dice dónde hay; si al
+            // cliente no le sirve esperar, se anota para Compras. Del color que se está mirando.
+            color.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
               <AnotarNoHabia
-                key={grupoElegido.clave}
+                key={color.clave}
                 ubicacionId={ubicacionId}
-                descripcion={descripcionDePrenda(grupoElegido.referencia, grupoElegido.color)}
-                tallas={grupoElegido.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
+                descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
+                tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
                 clientaId={clienta?.id ?? null}
                 responsable={responsable}
               />
