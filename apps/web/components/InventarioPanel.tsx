@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Package, ScanLine, Table2, Tag, Truck, X } from "lucide-react";
-import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -38,7 +37,7 @@ import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
-import { coincideConFiltroAccion, coincideConFiltroDanado, tallasEnCurva, valorOfrecido } from "@/lib/existencias-filtros";
+import { filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -94,22 +93,6 @@ const DANADO = "__danado__";
  *  hoy se cuelga lo que hay atrás, y la Acción hoy sigue siendo reponer); el filtro de Estado y la
  *  píldora solo controlan qué se ve en la tabla. */
 const POR_COLGAR = "__por_colgar__";
-
-/** Los filtros visuales que NO son texto, en UN solo lugar: la tabla los aplica y el estado vacío los «relaja» de a uno para
- *  decir cuál está dejando la pantalla en blanco. `omitir` = los que se ignoran en esa cuenta. «Acción» y «Estado» son dos ejes
- *  (2026-09-25): qué hacer hoy con la talla y en qué condición está; el estado vacío puede quitar uno sin tocar el otro. */
-function pasaFiltros(
-  f: FilaExistencias,
-  filtros: { categoria: string; marca: string; accion: string; condicion: string },
-  omitir?: ReadonlySet<ClaveFiltro>
-): boolean {
-  if (!omitir?.has("categoria") && filtros.categoria !== TODAS && f.categoria !== filtros.categoria) return false;
-  if (!omitir?.has("marca") && filtros.marca !== TODAS && f.marca !== filtros.marca) return false;
-  if (!omitir?.has("accion") && !coincideConFiltroAccion(f.accionHoy?.tipo, filtros.accion === TODAS ? null : (filtros.accion as TipoAccionHoy))) return false;
-  if (omitir?.has("estado")) return true;
-  if (!coincideConFiltroDanado(f.danado, filtros.condicion === DANADO)) return false;
-  return filtros.condicion !== POR_COLGAR || porColgar(f);
-}
 
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
@@ -403,28 +386,25 @@ export function InventarioPanel({
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
   // marca, categoría, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
   // color, manda sobre el filtro visual de esa dimensión; Categoría, Marca, Acción y Estado siempre aplican (el texto no los pisa).
-  const indiceBusqueda = useMemo(
-    () =>
-      crearIndiceBusquedaEspecial(stock, (f) => ({
-        nombre: f.referencia,
-        sku: f.sku,
-        codigosBarras: f.codigosBarras,
-        color: f.color,
-        talla: f.talla,
-        marca: f.marca,
-        categoria: f.categoria,
-      })),
-    [stock]
+  const indiceBusqueda = useMemo(() => indiceDeExistencias(stock), [stock]);
+  // Lo que de verdad filtra la lista, ya resuelto contra lo que la sede ofrece: lo leen la lista, la barra y el estado vacío.
+  const elegidos: FiltrosElegidos = useMemo(
+    () => ({
+      q: busqueda,
+      categoria: categoria === TODAS ? null : categoria,
+      marca: marcaEfectiva === TODAS ? null : marcaEfectiva,
+      talla: talla === TODAS ? null : talla,
+      color: color === TODAS ? null : color,
+      accion: filtros.accion,
+      estado: filtros.estado,
+    }),
+    [busqueda, categoria, marcaEfectiva, talla, color, filtros.accion, filtros.estado]
   );
   const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
-    const resultado = filtrarConBusquedaEspecial(
+    const resultado = filtrarExistencias(
       indiceBusqueda,
-      busqueda,
-      {
-        talla: talla === TODAS ? null : talla,
-        color: color === TODAS ? null : color,
-        otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, accion, condicion }),
-      },
+      elegidos,
+      undefined,
       // Con texto escrito, lo que mejor coincide va primero (una marca entera antes que un trozo perdido en un código), y las
       // tallas de un producto no se separan. «Por colgar» trae su propio orden (por percha) y no se toca.
       condicion === POR_COLGAR ? {} : { ordenar: "relevancia", grupo: (f) => f.productoId }
@@ -432,7 +412,7 @@ export function InventarioPanel({
     // «Por colgar» se trabaja por percha (un modelo en un color), no por SKU: sus tallas salen juntas y
     // en su curva, para que la encargada baje la M y la L de la misma casaca en un solo viaje.
     return condicion === POR_COLGAR ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
-  }, [indiceBusqueda, busqueda, talla, color, categoria, marcaEfectiva, accion, condicion]);
+  }, [indiceBusqueda, elegidos, condicion]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
   // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
@@ -655,12 +635,7 @@ export function InventarioPanel({
           vocabulario: indiceBusqueda.vocabulario,
           palabras: palabrasBuscables(stock),
           // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
-          contar: (consulta, omitir) =>
-            filtrarConBusquedaEspecial(indiceBusqueda, consulta, {
-              talla: omitir.has("talla") || talla === TODAS ? null : talla,
-              color: omitir.has("color") || color === TODAS ? null : color,
-              otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, accion, condicion }, omitir),
-            }).filas.length,
+          contar: (consulta, omitir) => filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.length,
           sinStock,
           filtroMarca: filtroMarcaElegida,
           filtroCategoria: filtroCategoriaElegida,
@@ -782,15 +757,7 @@ export function InventarioPanel({
             tallas={tallas}
             colores={colores}
             marcas={mostrarMarca ? marcas : null}
-            elegidos={{
-              q: busqueda,
-              categoria: categoria === TODAS ? null : categoria,
-              marca: marcaEfectiva === TODAS ? null : marcaEfectiva,
-              talla: talla === TODAS ? null : talla,
-              color: color === TODAS ? null : color,
-              accion: filtros.accion,
-              estado: filtros.estado,
-            }}
+            elegidos={elegidos}
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
             total={modelosOrdenados.length}

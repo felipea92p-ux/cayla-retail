@@ -1,5 +1,8 @@
 import { ORDEN_ACCION_HOY, type TipoAccionHoy } from "./existencias-recomendaciones";
 import { compararTallas } from "./tallas";
+import { porColgar } from "./inventario-reglas";
+import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
+import type { ClaveFiltro } from "./existencias-vacio";
 
 /* ====================================================================
    existencias-filtros · el filtro «Acción» de Existencias (2026-09-25)
@@ -133,4 +136,71 @@ export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHo
 /** Cuántos filtros quitan prendas: lo dice el botón «Filtros · N». Ni la búsqueda (se ve en su caja) ni el orden (solo acomoda). */
 export function contarFiltrosActivos(f: FiltrosElegidos): number {
   return [f.categoria, f.marca, f.talla, f.color, f.accion, f.estado].filter((v) => v !== null).length;
+}
+
+/* ====================================================================
+   El filtro completo de Existencias, en UN solo lugar (2026-10-03): la lista, el estado vacío («¿cuántas se verían sin
+   esto?») y los números de cada opción lo usan igual. Antes vivía dentro de `InventarioPanel` y no se podía probar que un
+   número de la barra dijera lo mismo que la lista.
+   ==================================================================== */
+
+/** Lo que el filtro necesita leer de una fila de Existencias (una talla de un color de un modelo). */
+export type FilaFiltrable = {
+  productoId: string;
+  referencia: string;
+  sku: string;
+  codigosBarras: string[];
+  categoria: string | null;
+  marca?: string | null;
+  talla: string | null;
+  color: string | null;
+  accionHoy?: { tipo: TipoAccionHoy } | null;
+  danado: number | null;
+  pisoDisponible: number | null;
+  almacenDisponible: number | null;
+};
+
+/** El índice del buscador: nombre, código, códigos de barras, color, talla, marca y categoría, en cualquier orden. */
+export function indiceDeExistencias<F extends FilaFiltrable>(filas: readonly F[]): IndiceBusquedaEspecial<F> {
+  return crearIndiceBusquedaEspecial(filas, (f) => ({
+    nombre: f.referencia,
+    sku: f.sku,
+    codigosBarras: f.codigosBarras,
+    color: f.color,
+    talla: f.talla,
+    marca: f.marca,
+    categoria: f.categoria,
+  }));
+}
+
+/** Los filtros visuales que NO son texto ni talla/color (esos dos los resuelve el buscador, que puede mandar sobre ellos).
+ *  `omitir` = los que se ignoran: el estado vacío los «relaja» de a uno para decir cuál deja la pantalla en blanco. «Acción»
+ *  y «Estado» son dos ejes (2026-09-25): qué hacer hoy con la talla y en qué condición está. */
+export function pasaFiltros(f: FilaFiltrable, elegidos: FiltrosElegidos, omitir?: ReadonlySet<ClaveFiltro>): boolean {
+  if (!omitir?.has("categoria") && elegidos.categoria !== null && f.categoria !== elegidos.categoria) return false;
+  if (!omitir?.has("marca") && elegidos.marca !== null && f.marca !== elegidos.marca) return false;
+  if (!omitir?.has("accion") && !coincideConFiltroAccion(f.accionHoy?.tipo, elegidos.accion)) return false;
+  if (omitir?.has("estado")) return true;
+  if (!coincideConFiltroDanado(f.danado, elegidos.estado === "danado")) return false;
+  return elegidos.estado !== "por_colgar" || porColgar(f);
+}
+
+/** La lista filtrada: el texto (que manda sobre Talla y Color si los dice) más los demás filtros. `omitir` ignora los que se
+ *  pidan; `opciones` solo cambia el orden. */
+export function filtrarExistencias<F extends FilaFiltrable>(
+  indice: IndiceBusquedaEspecial<F>,
+  elegidos: FiltrosElegidos,
+  omitir?: ReadonlySet<ClaveFiltro>,
+  opciones?: OpcionesDeOrden<F>
+) {
+  return filtrarConBusquedaEspecial(
+    indice,
+    elegidos.q,
+    {
+      talla: omitir?.has("talla") ? null : elegidos.talla,
+      color: omitir?.has("color") ? null : elegidos.color,
+      otros: (f) => pasaFiltros(f, elegidos, omitir),
+    },
+    opciones
+  );
 }
