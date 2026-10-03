@@ -48,7 +48,7 @@
   desincronizar servidor y cliente.
 - [x] **Modal «Meta de…»** (`EditarMetaModal.tsx`): cambia la meta DEL MES con motivo obligatorio, «Volver a la meta automática», valida antes de enviar lo mismo que la base, manda `p_meta_esperada`; firma con
   el responsable (`ComboResponsable`; el Admin firma solo). Aplica la **Guía de foco** (ADR-0284: la meta, el motivo y quién lo hace). Probado de punta a punta en el navegador local con la sesión de Felipe.
-- [x] **Lecturas nuevas en la base** (en la migración `20260930050000`, todavía sin pegar): `fn_metas_equipo` suma lo vendido por persona (hoy, 7 días, mes); `fn_rendimiento_serie` trae la meta de la sede
+- [x] **Lecturas nuevas en la base** (en la migración `20260930050200`, todavía sin pegar): `fn_metas_equipo` suma lo vendido por persona (hoy, 7 días, mes); `fn_rendimiento_serie` trae la meta de la sede
   por día y lo ya asignado; `fn_metas_historial` lee el historial. Pruebas nuevas en `pnpm pruebas:metas-persona` (70 comprobaciones).
 - [x] **Si la base todavía no tiene el panel**, la pantalla sigue con los rankings de siempre y dice que las metas no se pudieron leer (no se cae). La suite de la web (`pnpm --filter web test`) en verde.
 - [ ] **A 375 px:** revisado con datos de ejemplo (sin desbordes, gráfico de 176 px); falta verlo con datos reales de TRU.
@@ -66,7 +66,7 @@
 - [x] **Verificado contra producción con una lectura (2026-09-29):** solo llegó la PARTE 1 (tabla `metas_persona_ajustes` y su disparador, 0 filas). Las 11 funciones **no existen**: el paquete de pegado incluía un
   archivo «deshacer» numerado junto a los demás, se pegó, y quitó las funciones (dejó la tabla, como estaba diseñado). No se perdió nada: ninguna pantalla las usaba. **Lección:** un archivo que deshace no va nunca en
   la misma carpeta ni con la misma numeración que el que aplica; el «cómo se revierte» vive en el encabezado de la migración.
-- [ ] **PEGAR en el SQL Editor de producción, una sola vez y todo junto:** `supabase/migrations/20260930040000_mis_ventas_del_dia.sql` completo, y `supabase/migrations/20260930050000_metas_por_persona.sql` **desde el
+- [ ] **PEGAR en el SQL Editor de producción, una sola vez y todo junto:** `supabase/migrations/20260930040100_mis_ventas_del_dia.sql` completo, y `supabase/migrations/20260930050200_metas_por_persona.sql` **desde el
   encabezado «PARTE 2 de 4» hasta el final** (la parte 1 ya está aplicada; volverla a pegar es inofensivo pero innecesario). Solo `create or replace function` de nombres nuevos: no toca tablas, políticas ni funciones existentes.
   Después pegar `scripts/migraciones/verificar-meta-por-persona-produccion.sql` (solo lee): la última fila debe decir 0.
 - [ ] Refrescar el diccionario tras pegar (`pnpm datos:refrescar`, ver `docs/datos/generado/COMO-REFRESCAR.md`): hoy `DRIFT.md` avisa, con razón, de las 6 llamadas que esperan estas funciones.
@@ -74,7 +74,7 @@
 - [x] Diccionario de datos refrescado con la foto del 2026-09-29 22:36 UTC (143 tablas): `metas_persona_ajustes` → Colibrí; `acciones_sin_responsable` (de otra sesión, sin dueño) → Ganso.
 - [ ] La carrera REAL de dos conexiones sigue sin probarse (exige una base desechable, `BASE_DESECHABLE=1`).
 
-## ✅ Paso 1 del plan: «Mis ventas de hoy» (2026-09-29) — migración `20260930040000` **la función NO está en producción todavía** (falta pegarla); rama `claude/accesos-rol-terminal-3e62ba`
+## ✅ Paso 1 del plan: «Mis ventas de hoy» (2026-09-29) — migración `20260930040100` **la función NO está en producción todavía** (falta pegarla); rama `claude/accesos-rol-terminal-3e62ba`
 
 - [x] `retail.fn_mis_ventas_del_dia(p_ubicacion_id default null)`: las ventas de hoy cuya asesora (`asesora_id`) es quien pregunta, completadas y no de prueba
   (la misma definición de Rendimiento, ADR-0219). Nunca las de otra persona, tampoco para un líder; una terminal recibe 0 filas. **No cambia `fn_ventas_del_dia`**
@@ -96,16 +96,16 @@
   asistencia); «ritmo esperado»; rol propio para las encargadas; tope y meses pasados; cuándo cargar las metas de TRU; aviso a las integrantes.
 - [ ] **Siguiente: paso 2** (metas en la base). Antes, leer la forma real de `horarios_asignados.horario_por_dia`.
 
-## ✅ Paso 2 del plan: las metas en la base (2026-09-29) — migración `20260930050000`: **la tabla SÍ está en producción (parte 1); las funciones NO (faltan las partes 2 a 4)**
+## ✅ Paso 2 del plan: las metas en la base (2026-09-29) — migración `20260930050200`: **la tabla SÍ está en producción (parte 1); las funciones NO (faltan las partes 2 a 4)**
 
 - [x] **Decididas por Felipe (2026-09-29):** permiso = módulo `rendimiento` (D-157); sin horario, partes iguales (D-158); «ritmo esperado» se queda (D-159); no se toca ningún rol y las encargadas
   siguen como Líder de equipo (D-160). Acta y ADR actualizados.
-- [x] **`20260930050000_metas_por_persona.sql`** (4 partes, re-ejecutable): tabla `retail.metas_persona_ajustes` (solo se agrega, RLS sin políticas); internas `fn_horas_programadas` (única puerta a
+- [x] **`20260930050200_metas_por_persona.sql`** (4 partes, re-ejecutable): tabla `retail.metas_persona_ajustes` (solo se agrega, RLS sin políticas); internas `fn_horas_programadas` (única puerta a
   `horarios_asignados`/`turnos` de Dynamic), `fn_asistencia_por_dia`, `fn_reparto_meta` (las partes suman EXACTO la meta de la sede), `fn_metas_por_dia`; lecturas `fn_metas_equipo`, `fn_mi_meta`,
   `fn_mis_ventas_por_dia`, `fn_rendimiento_serie`; y `fijar_meta_persona` (una transacción, candado por persona-tienda-mes, motivo, historial, actividad). No toca `roles`, `rol_modulos` ni `modulos`.
 - [x] **Prueba `pnpm pruebas:metas-persona`** (~55 comprobaciones, con ROLLBACK, en el CI) y tipos en `packages/database`; `tsc`, la suite de la web y las verificaciones de migraciones en verde;
   la migración se aplica dos veces sin error. Filas nuevas en `docs/ARQUITECTURA.md`.
-- [ ] **Para producción (pide el ok puntual de Felipe):** pegar `20260930040000` y `20260930050000` (solo agregan una tabla y funciones; la PARTE 1 toma un candado breve sobre `ubicaciones` y `personas`,
+- [ ] **Para producción (pide el ok puntual de Felipe):** pegar `20260930040100` y `20260930050200` (solo agregan una tabla y funciones; la PARTE 1 toma un candado breve sobre `ubicaciones` y `personas`,
   con `lock_timeout = '3s'`) **ANTES** de publicar la web; ensayo con rollback y `md5` del cuerpo; después `pnpm datos:generar:produccion`.
 - [x] **`fn_rendimiento_equipo.es_encargada` no reconoce a las encargadas que son Líder (D-160): resuelto en la web sin tocar la función de producción.** El panel manda la insignia «Encargada» de `fn_metas_equipo` (que sí las reconoce) sobre la de los rankings (`armarRankings` en `lib/rendimiento.ts`).
 - [ ] **Pendiente:** la carrera REAL de dos conexiones (exige commitear datos: solo en una base desechable, `BASE_DESECHABLE=1`); probada solo la segunda edición con la meta vieja.

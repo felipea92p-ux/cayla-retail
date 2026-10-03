@@ -1,5 +1,5 @@
 -- ============================================================================
--- VERIFICACIÓN de las migraciones 20260930040000 y 20260930050000 — SOLO LECTURA (no cambia nada).
+-- VERIFICACIÓN de las migraciones 20260930040100 y 20260930050200 — SOLO LECTURA (no cambia nada).
 -- Se pega DESPUÉS de `1-pegar-esto.sql` y devuelve UNA tabla. Lo que importa: la última fila («RESUMEN») debe decir 0.
 --   · «función …»  compara el cuerpo de cada función contra el de la que se probó en local (md5). «DISTINTA» = lo pegado no es igual a lo probado.
 --   · el resto comprueba la tabla, su candado (RLS sin políticas, historial que no se edita) y quién puede ejecutar qué.

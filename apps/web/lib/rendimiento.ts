@@ -14,7 +14,7 @@ import { rangoDeLectura, type CambioMeta, type DiaSerie, type PersonaMeta } from
 //   · los RANKINGS del mes (`fn_rendimiento_equipo`, 20260929160000): solo quien vendió, con las reglas
 //     puras de `rendimiento-reglas.ts`;
 //   · el PANEL de la meta (`fn_metas_equipo`, `fn_rendimiento_serie`, `fn_metas_historial`,
-//     20260930050000): una fila por persona aunque no haya vendido, con su meta y lo que lleva.
+//     20260930050200): una fila por persona aunque no haya vendido, con su meta y lo que lleva.
 // Todo llega ya filtrado por `fn_rendimiento_ubicaciones` DENTRO de la base — acá no se vuelve a decidir
 // quién ve qué.
 //

@@ -47,7 +47,7 @@ Actualización: la integrante también ve su semana y su mes (Semana | Mes, acum
 
 ## 2026-09-29 (Paso 1 de la meta por persona: «Tus ventas» del Inicio es lo que ella atendió)
 Qué hice: función nueva `fn_mis_ventas_del_dia` (solo lo que atendió quien mira, sin ventas de prueba ni anuladas) y el Inicio de una integrante la usa; la líder
-sigue viendo el día de toda la sede. Prueba `pnpm pruebas:mis-ventas` de 7 casos, ya en el CI. Migración `20260930040000`, sin pegar en producción.
+sigue viendo el día de toda la sede. Prueba `pnpm pruebas:mis-ventas` de 7 casos, ya en el CI. Migración `20260930040100`, sin pegar en producción.
 Por qué así: `fn_ventas_del_dia` le devolvía a cada integrante todas las ventas de su tienda y el Inicio las llamaba «Tus ventas»; una meta individual sobre ese número
 habría sido falsa. Se agregó una función en vez de cambiar la de siempre porque Caja, Vender y Comprobantes necesitan el día de la tienda.
 Felipe se lleva: la meta que ve la integrante queda **encendida por defecto** (decisión suya; se descartó el módulo «Mi meta»). Antes de pegar en producción hay que
@@ -59,7 +59,7 @@ Por qué así: la decisión estructural no puede vivir solo en el chat (principi
 Felipe se lleva: hay 7 puntos abiertos en el acta; los que más pesan son el permiso para cambiar metas, qué hacer sin horario vigente y el rol de las encargadas (hoy son «Líder de equipo»).
 
 ## 2026-09-29 (Paso 2 de la meta por persona: las metas en la base)
-Qué hice: escribí y probé en local la migración `20260930050000`: una tabla de ajustes que solo se agrega, el reparto de la meta de la sede por horas programadas (las partes suman exacto), las
+Qué hice: escribí y probé en local la migración `20260930050200`: una tabla de ajustes que solo se agrega, el reparto de la meta de la sede por horas programadas (las partes suman exacto), las
 lecturas para la líder de sede y para la integrante, y `fijar_meta_persona`. Registré las cuatro decisiones de Felipe (D-157 a D-160): se reutiliza el módulo Rendimiento, partes iguales sin horario,
 «ritmo esperado» se queda y no se toca ningún rol.
 Por qué así: el reparto vive en una sola función de la base para que la líder y la integrante no vean metas distintas de la misma persona, y la integrante solo recibe su parte sin ver las horas de las demás.
@@ -82,5 +82,5 @@ Felipe se lleva: antes de que las integrantes lo vean hay que cargar la meta de 
 Qué hice: consulté producción (solo lectura) y encontré que solo está la tabla del historial; las 11 funciones no existen. El paquete de pegado tenía un archivo «deshacer» al lado de los demás y se pegó junto con ellos.
 Dejé un paquete nuevo (aplicar + verificar, sin archivo de deshacer), refresqué el diccionario de datos (foto del 2026-09-29) y traje `main` a la rama.
 Por qué así: aplicar SQL a producción desde esta sesión fue bloqueado por el clasificador y se respeta: lo pega Felipe, y `main` no debe fusionarse antes porque Vercel publica al fusionar.
-Felipe se lleva: falta pegar `20260930040000` y la parte 2 en adelante de `20260930050000` (instrucciones en el backlog), y pegar la verificación (debe decir 0).
+Felipe se lleva: falta pegar `20260930040100` y la parte 2 en adelante de `20260930050200` (instrucciones en el backlog), y pegar la verificación (debe decir 0).
 

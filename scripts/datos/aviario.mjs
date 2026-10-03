@@ -105,10 +105,6 @@ export const AVIARIO = [
       // escribir en ella no la hace de Garza, igual que escribir en `movimientos` no hace a nadie dueño de Halcón.
       // Asignadas en el refresco del volcado del 2026-09-25.
       "ubicacion_metas_dia", "campana_efecto_caja", "configuracion_historial",
-      // Meta por persona (ADR-0318): cada cambio que la líder de la sede o un Admin hace a la meta del mes de una persona, con su motivo
-      // (solo se agregan filas). Baja de la meta de cada día de la tienda, que es de Colibrí, y la lee la caja de Rendimiento.
-      // Aplicada en producción el 2026-09-29.
-      "metas_persona_ajustes",
       // Apartados (ADR-0236, ADR-0233): abonos, avisos a la clienta, ediciones y prendas retiradas de una separación, las
       // opciones que cada tienda apaga y el pedido a otra sede para una clienta. Todo nace en el mostrador, igual que
       // `separaciones`. Asignadas en el refresco del volcado del 2026-09-26.
@@ -119,8 +115,9 @@ export const AVIARIO = [
       // de la ficha. Son de quien responde por `clientas`. Refresco del volcado del 2026-10-02.
       "club_permisos", "club_textos", "club_invitaciones", "club_canjes", "club_aniversario_escala", "club_avisos_enviados",
       "club_intentos_registro", "club_etiquetas",
-      // La meta de cada persona por mes y sus ajustes, junto a la de la tienda (`ubicacion_metas_dia`). OJO: está en
-      // producción (0 filas el 2026-10-02) pero NINGUNA migración del repo la crea: se pegó a mano. Refresco del 2026-10-02.
+      // La meta de cada persona por mes y sus ajustes, junto a la de la tienda (`ubicacion_metas_dia`). Cada cambio a la meta del mes de
+      // una persona queda como fila (solo se agregan; ADR-0318). Está en producción desde el 2026-09-29 (la parte 1 de `20260930050200`).
+      // Refresco del 2026-10-02.
       "metas_persona_ajustes",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",

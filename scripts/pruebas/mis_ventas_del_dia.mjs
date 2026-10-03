@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de `20260930040000_mis_ventas_del_dia.sql` — «Tus ventas» del Inicio deja de mostrar el total de la tienda.
+ * Prueba de `20260930040100_mis_ventas_del_dia.sql` — «Tus ventas» del Inicio deja de mostrar el total de la tienda.
  *
  * QUÉ CUBRE
  *   · cada persona ve SOLO las ventas de hoy cuya asesora es ella: no las de una compañera de la misma tienda, no las sin

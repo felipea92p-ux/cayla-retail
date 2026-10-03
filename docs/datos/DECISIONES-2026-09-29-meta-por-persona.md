@@ -21,7 +21,7 @@ sus ventas semanales y cómo va su día.» Y sobre el Inicio: «Si es integrante
 [`docs/maquetas/rendimiento-meta-2026-09/`](../maquetas/rendimiento-meta-2026-09/) y
 [`docs/maquetas/inicio-bloques-por-rol-2026-09/`](../maquetas/inicio-bloques-por-rol-2026-09/). **Construido hasta hoy (2026-09-29):** los pasos 1 a 4 —«mis ventas de hoy», las metas en la base, el panel de Rendimiento y el Inicio de la integrante— y los accesos del
 Inicio por función del rol, todo en la rama `claude/accesos-rol-terminal-3e62ba` con sus pruebas. **En producción está solo la tabla del historial** (`metas_persona_ajustes`); las 11 funciones
-(`20260930040000` y las partes 2 a 4 de `20260930050000`) **están sin pegar**, y hasta que Felipe las pegue el panel no aparece (la pantalla cae a los rankings de siempre). El detalle y lo que falta:
+(`20260930040100` y las partes 2 a 4 de `20260930050200`) **están sin pegar**, y hasta que Felipe las pegue el panel no aparece (la pantalla cae a los rankings de siempre). El detalle y lo que falta:
 ADR-0318, «Orden de construcción y despliegue».
 
 ---

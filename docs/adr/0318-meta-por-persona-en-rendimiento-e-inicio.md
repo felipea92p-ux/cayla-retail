@@ -2,8 +2,8 @@
 
 **Fecha:** 2026-09-29
 **Estado:** **Diseño aprobado por Felipe con un spike interactivo; construidos y probados los pasos 1 a 4 (la base, el panel de Rendimiento y el Inicio de la integrante), en la rama
-`claude/accesos-rol-terminal-3e62ba`.** **En producción está solo la tabla `metas_persona_ajustes` (la PARTE 1 de `20260930050000`, aplicada el 2026-09-29): las 11 funciones NO están** (`20260930040000` y las partes 2 a 4
-de `20260930050000`; ver «Lo que se descubrió al aplicar en producción»). Pegarlas lo hace Felipe, y la web no debe fusionarse a `main` antes. Las decisiones que estaban abiertas se cerraron el mismo día (D-157 a D-160);
+`claude/accesos-rol-terminal-3e62ba`.** **En producción está solo la tabla `metas_persona_ajustes` (la PARTE 1 de `20260930050200`, aplicada el 2026-09-29): las 11 funciones NO están** (`20260930040100` y las partes 2 a 4
+de `20260930050200`; ver «Lo que se descubrió al aplicar en producción»). Pegarlas lo hace Felipe, y la web no debe fusionarse a `main` antes. Las decisiones que estaban abiertas se cerraron el mismo día (D-157 a D-160);
 lo que sigue abierto está en el acta.
 **Decide:** Felipe, 2026-09-29.
 **Afecta (cuando se construya):** una migración nueva en partes (`retail.metas_persona_ajustes`, `fn_horas_programadas`,
@@ -177,7 +177,7 @@ de resultados. Los ajustes son pocos por persona por mes: **menos de 1.000 filas
 |---|---|---|---|
 | 0 | Estos papeles (ADR + acta + notas en D-64, D-68, D-113, D-125, ADR-0219 y ADR-0225) | Están escritos antes que el código | **Hecho** |
 | 1 | `fn_mis_ventas_del_dia` + `lib/inicio.ts` | `pnpm pruebas:mis-ventas` (7 casos, en el CI); con dos cuentas de la misma tienda cada una ve solo lo suyo | **Hecho y probado en local; la función NO está en producción** |
-| 2 | La migración de metas (`20260930050000`, 4 partes, con `retail.` y `set lock_timeout`) | `pnpm pruebas:metas-persona` (70 comprobaciones, en el CI): las partes suman exacto la meta de la sede (con una meta de 1.800 y con una de 1.845); un descanso, un turno y el «sin horarios» se comportan como dicen; cada estado imposible se rechaza; la segunda edición con la meta vieja se rechaza; nadie cambia la suya; la integrante no lee la de otra; una terminal no lee nada; la migración se aplica dos veces sin error | **Hecho y probado en local; en producción está la tabla (parte 1), NO las funciones (partes 2 a 4)** |
+| 2 | La migración de metas (`20260930050200`, 4 partes, con `retail.` y `set lock_timeout`) | `pnpm pruebas:metas-persona` (70 comprobaciones, en el CI): las partes suman exacto la meta de la sede (con una meta de 1.800 y con una de 1.845); un descanso, un turno y el «sin horarios» se comportan como dicen; cada estado imposible se rechaza; la segunda edición con la meta vieja se rechaza; nadie cambia la suya; la integrante no lee la de otra; una terminal no lee nada; la migración se aplica dos veces sin error | **Hecho y probado en local; en producción está la tabla (parte 1), NO las funciones (partes 2 a 4)** |
 | 3 | Rendimiento web | Comparar captura y spike al mismo ancho, y a 375 px | **Hecho** (commit `0d866e93` y el ritmo esperado): probado en el navegador local, con la sesión de Felipe (guardar, volver a la automática, tope) y con datos de ejemplo a 1280 y a 375 px |
 | 4 | Inicio de la integrante | Con una cuenta de prueba de TRU | **Hecho** (commit `65fbd364`): visto con datos de ejemplo; falta una sesión de una integrante real |
 | 5 | Producción y datos | Cargar las metas de TRU; ensayo revertible y `md5` del cuerpo; luego `pnpm datos:generar:produccion` y `pnpm datos:comparar` | **A medias:** diccionario refrescado (foto del 2026-09-29); **falta pegar las funciones** y cargar las metas de TRU |
@@ -208,7 +208,7 @@ Editor). **Condición de despliegue (D-150):** cargar y revisar las metas de TRU
   se borra). No se perdió nada, porque ninguna pantalla las usaba. **Diseño corregido:** el «cómo se revierte» vive en el encabezado de la migración y en este ADR; **nunca hay un archivo que
   deshace en la misma carpeta ni con la misma numeración que el que aplica.**
 - **Esta sesión no puede escribir en producción** (el clasificador bloqueó aplicar el SQL por la herramienta de Supabase): lo pega Felipe. Se dejó todo listo: el SQL exacto está en los dos archivos de
-  migración (`20260930040000` completo y `20260930050000` desde «PARTE 2 de 4»), y la verificación de solo lectura en `scripts/migraciones/verificar-meta-por-persona-produccion.sql` (compara el `md5`
+  migración (`20260930040100` completo y `20260930050200` desde «PARTE 2 de 4»), y la verificación de solo lectura en `scripts/migraciones/verificar-meta-por-persona-produccion.sql` (compara el `md5`
   del cuerpo de cada función contra el probado en local, y los permisos: la última fila debe decir 0).
 - **Orden:** las funciones **antes** de fusionar la web (Vercel publica al fusionar). Si la web saliera primero, no se rompe nada: el Inicio de una integrante dice «No se pudieron cargar las ventas de hoy»
   y Rendimiento muestra solo los rankings y avisa que las metas no se pudieron leer.
