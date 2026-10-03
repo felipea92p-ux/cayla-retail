@@ -39,7 +39,8 @@ import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
-import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
+import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION, tallasEnCurva, valorOfrecido } from "@/lib/existencias-filtros";
+import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
@@ -352,16 +353,23 @@ export function InventarioPanel({
   /** Es una tienda: entre tiendas se pide una prenda para una clienta (ADR-0233). */
   esTienda?: boolean;
 }) {
-  const [busqueda, setBusqueda] = useState("");
-  const [categoria, setCategoria] = useState(TODAS);
-  const [marca, setMarca] = useState(TODAS);
-  const [talla, setTalla] = useState(TODAS);
-  const [color, setColor] = useState(TODAS);
+  // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
+  // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
+  const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
+  const setBusqueda = fijarBusqueda;
+  const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
+  const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
+  const setTalla = (v: string) => aplicar({ talla: v === TODAS ? null : v });
+  const setColor = (v: string) => aplicar({ color: v === TODAS ? null : v });
   // Dos ejes independientes (2026-09-25): «Acción» es SOLO `TipoAccionHoy` (qué debería hacer la
   // vendedora); «Estado» es la condición del inventario (dañado/cuarentena) — no son la misma
   // pregunta, y mezclarlos en un solo dropdown confundía dos clasificaciones distintas.
-  const [accion, setAccion] = useState(TODAS);
-  const [condicion, setCondicion] = useState(TODAS);
+  const accion = filtros.accion ?? TODAS;
+  const setAccion = (v: string) => aplicar({ accion: v === TODAS ? null : v });
+  const condicion = filtros.estado === "danado" ? DANADO : filtros.estado === "por_colgar" ? POR_COLGAR : TODAS;
+  const setCondicion = (v: string) => aplicar({ estado: v === DANADO ? "danado" : v === POR_COLGAR ? "por_colgar" : null });
+  const orden = (filtros.orden ?? "relevancia") as OrdenPrendas;
+  const setOrden = (v: OrdenPrendas) => aplicar({ orden: v === "relevancia" ? null : v });
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
   // «Reponer prenda» abre la ventana del MODELO entero (`ReponerPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
@@ -395,7 +403,6 @@ export function InventarioPanel({
   // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
   // (`abrirPorCodigo`) entra por la tabla.
   const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
-  const [orden, setOrden] = useState<OrdenPrendas>("relevancia");
   // En el celular los combos de filtro viven plegados tras «Filtros» (tarea #6): seis cajas apiladas empujaban la primera
   // prenda dos pantallas más abajo. En computadora siempre están a la vista (la bandera no se usa desde `sm`).
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
@@ -419,13 +426,19 @@ export function InventarioPanel({
   const marcas = useMemo(() => marcasDeLaSede(stock), [stock]);
   const mostrarMarca = marcas.length >= 2;
   // Un filtro que no se ve no puede seguir filtrando: si la lectura de marcas falla tras un `router.refresh` (Reponer, Ajustar) el combo desaparece;
-  // sin esto la marca elegida antes seguía activa, invisible, y dejaba la tabla en blanco.
-  const marcaEfectiva = mostrarMarca && marcas.includes(marca) ? marca : TODAS;
-  const tallas = useMemo(() => Array.from(new Set(stock.map((f) => f.talla).filter((t): t is string => !!t))).sort(), [stock]);
+  // sin esto la marca elegida antes seguía activa, invisible, y dejaba la tabla en blanco. Lo mismo con un valor que llega en la URL y
+  // esta sede no tiene (un enlace de otra tienda): no filtra (`valorOfrecido`).
+  const marcaEfectiva = (mostrarMarca ? valorOfrecido(filtros.marca, marcas) : null) ?? TODAS;
+  const marca = marcaEfectiva;
+  // En su curva (XS · S · M · L, luego la numeración), como la tarjeta: antes iban como texto («10, 2, 4, L, M, S, XL, XS»).
+  const tallas = useMemo(() => tallasEnCurva(stock), [stock]);
   const colores = useMemo(
     () => Array.from(new Set(stock.map((f) => f.color).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
     [stock]
   );
+  const categoria = valorOfrecido(filtros.categoria, categorias) ?? TODAS;
+  const talla = valorOfrecido(filtros.talla, tallas) ?? TODAS;
+  const color = valorOfrecido(filtros.color, colores) ?? TODAS;
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
   // marca, categoría, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
   // color, manda sobre el filtro visual de esa dimensión; Categoría, Marca, Acción y Estado siempre aplican (el texto no los pisa).
@@ -519,17 +532,10 @@ export function InventarioPanel({
    *  piso»), y dejarla puesta podía trabar la lista: «Sin acción» + «Por colgar» no tiene ni una fila (dos filtros que se
    *  vacían entre sí, lo que esta pantalla no permite). */
   function quitarFiltrosMenosEstado() {
-    setBusqueda("");
-    setCategoria(TODAS);
-    setMarca(TODAS);
-    setTalla(TODAS);
-    setColor(TODAS);
-    setAccion(TODAS);
+    limpiar(["estado", "orden"]);
   }
   function limpiarFiltros() {
-    quitarFiltrosMenosEstado();
-    setAccion(TODAS);
-    setCondicion(TODAS);
+    limpiar();
   }
 
   const separaConSububicaciones = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
@@ -814,7 +820,8 @@ export function InventarioPanel({
               type="text"
               placeholder={mostrarMarca ? "Buscar prenda, marca, código, color o talla..." : "Buscar prenda, código, color o talla..."}
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => teclear(e.target.value)}
+              onBlur={soltarBusqueda}
               // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda. Si no
               // (un nombre, un pedazo), Enter no hace nada y la lista sigue filtrada por lo escrito.
               onKeyDown={(e) => {

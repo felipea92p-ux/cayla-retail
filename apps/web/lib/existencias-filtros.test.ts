@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "./existencias-filtros";
+import {
+  coincideConFiltroAccion,
+  coincideConFiltroDanado,
+  consultaConCambios,
+  consultaSinFiltros,
+  filtrosDeUrl,
+  OPCIONES_FILTRO_ACCION,
+  tallasEnCurva,
+  valorOfrecido,
+} from "./existencias-filtros";
 
 // El filtro «Acción» de Existencias (Felipe, 2026-09-25): separado de «Estado» (dañado/cuarentena)
 // — dos preguntas distintas («qué hacer hoy» vs. «en qué condición está el inventario») que antes
@@ -46,5 +55,70 @@ describe("coincideConFiltroDanado — Caso C del pedido: eje independiente de Ac
     expect(coincideConFiltroDanado(3, false)).toBe(true);
     expect(coincideConFiltroDanado(0, false)).toBe(true);
     expect(coincideConFiltroDanado(null, false)).toBe(true);
+  });
+});
+
+// Los filtros viven en la URL (2026-10-03): recargar, volver de otra pantalla o abrir un enlace copiado los trae puestos.
+
+describe("filtrosDeUrl", () => {
+  it("lee cada filtro por su nombre y deja en null lo que no está", () => {
+    const f = filtrosDeUrl("q=polo&cat=Polos&marca=Krisstell&talla=M&color=Azul+marino&accion=reponer_a_piso&estado=por_colgar&orden=nombre", { separa: true });
+    expect(f).toEqual({
+      q: "polo",
+      categoria: "Polos",
+      marca: "Krisstell",
+      talla: "M",
+      color: "Azul marino",
+      accion: "reponer_a_piso",
+      estado: "por_colgar",
+      orden: "nombre",
+    });
+    expect(filtrosDeUrl("", { separa: true })).toEqual({ q: "", categoria: null, marca: null, talla: null, color: null, accion: null, estado: null, orden: null });
+  });
+
+  it("una acción o un estado que no existen no filtran", () => {
+    const f = filtrosDeUrl("accion=borrar&estado=perdido", { separa: true });
+    expect(f.accion).toBeNull();
+    expect(f.estado).toBeNull();
+  });
+
+  it("donde no se separa piso y almacén (Taller), Acción y Estado de un enlace de tienda se ignoran", () => {
+    const f = filtrosDeUrl("accion=reponer_a_piso&estado=danado&talla=M", { separa: false });
+    expect(f.accion).toBeNull();
+    expect(f.estado).toBeNull();
+    expect(f.talla).toBe("M");
+  });
+});
+
+describe("consultaConCambios y consultaSinFiltros", () => {
+  it("un cambio pone o quita su clave sin tocar las demás", () => {
+    expect(consultaConCambios("ubicacion=u1&talla=M", { color: "Beige" })).toBe("ubicacion=u1&talla=M&color=Beige");
+    expect(consultaConCambios("ubicacion=u1&talla=M", { talla: null })).toBe("ubicacion=u1");
+    expect(consultaConCambios("talla=M", { talla: "" })).toBe("");
+  });
+
+  it("limpiar deja la sede que mira el líder y el orden; con «conservar», también lo pedido", () => {
+    const url = "ubicacion=u1&q=polo&cat=Polos&talla=M&estado=por_colgar&orden=nombre&variante=v9";
+    expect(consultaSinFiltros(url)).toBe("ubicacion=u1&orden=nombre&variante=v9");
+    expect(consultaSinFiltros(url, ["estado", "orden"])).toBe("ubicacion=u1&estado=por_colgar&orden=nombre&variante=v9");
+  });
+});
+
+describe("valorOfrecido", () => {
+  it("un valor que la sede no ofrece no filtra", () => {
+    expect(valorOfrecido("Krisstell", ["Krisstell", "Lucky Girl"])).toBe("Krisstell");
+    expect(valorOfrecido("CAYLA", ["Krisstell", "Lucky Girl"])).toBeNull();
+    expect(valorOfrecido(null, ["Krisstell"])).toBeNull();
+  });
+});
+
+describe("tallasEnCurva", () => {
+  it("ordena como la tarjeta (letras en curva, luego la numeración), no como texto", () => {
+    const filas = ["XL", "10", "S", "Estándar", "2", "M", "XS", "4", "L", "M", null].map((talla) => ({ talla }));
+    const curva = tallasEnCurva(filas);
+    expect(curva.slice(0, 5)).toEqual(["XS", "S", "M", "L", "XL"]);
+    expect(curva.indexOf("2")).toBeLessThan(curva.indexOf("4"));
+    expect(curva.indexOf("4")).toBeLessThan(curva.indexOf("10"));
+    expect(curva).toHaveLength(9);
   });
 });
