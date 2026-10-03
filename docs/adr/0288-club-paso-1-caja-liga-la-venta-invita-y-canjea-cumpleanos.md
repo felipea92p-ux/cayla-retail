@@ -1089,3 +1089,57 @@ hace falta otro. Lo que estaba mal era que cada vez dejaba otra fila «club · o
 - **Se queda:** las filas duplicadas que ya existen (la tabla es de solo agregar). Pruebas: `club_registro_cartel.mjs` (casos «m»).
 - **Descartado:** un botón «Actualizar mis datos» aparte o un código para entrar: sería otro camino con otro formulario y otras
   validaciones; el cartel ya identifica por documento. Mejorar el aviso de la página para quien ya es miembro, si hace falta, es de la web.
+
+## Actualización 2026-10-03 (o): el celular, opcional, para mandarle su boleta por WhatsApp — en «Registrar cliente» y en el paso Comprobante
+
+Felipe, 2026-10-03, en el punto de venta de Caja Trujillo: «un apartado donde pueda agregar el número del cliente para que automáticamente
+pueda enviarse su boleta». Contra lo que la tanda 1g (G-2) decidió —en caja, solo el documento—, el celular vuelve a «Registrar cliente»,
+pero **con otro oficio**: ya no es del club, es el destino de su boleta. Felipe eligió (con las opciones delante): que el envío sea **de un
+toque desde el WhatsApp de la tienda** y no automático (coherente con su decisión del 2026-09-30, sin bot:
+`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`). Sobre dónde se escribe el número eligió el modal «Registrar cliente»; al ver
+que el buscador de «Agregar cliente» ya recibe «documento, celular o nombre» —y que pedirlo otra vez al registrar se sentía repetido— pidió **ver las
+dos ubicaciones**. Por eso esta rama trae las dos, y **cuál se queda está por decidir** (recomendación abajo).
+
+DECIDÍ: el celular es un campo OPCIONAL en dos lugares, y cuando la venta tiene celular «Venta registrada» ofrece «Abrir WhatsApp con la boleta»:
+- **A. «Registrar cliente»** (`ClientaDelTicket` en Cobrar y `NuevaClientaModal` en Clientas, con la misma regla `camposDeRegistrar`): se pide una sola vez, al
+  crear la ficha, y queda en ella. Solo existe para clientes nuevos.
+- **B. El paso Comprobante del cobro** (`PuntoDeVenta` → `documento`; la nota de venta no lo lleva): «Celular para enviarle la boleta por WhatsApp (opcional)»,
+  ya puesto con el de la ficha. Es el celular de ESA boleta: no se escribe en la ficha. Sirve con o sin cliente registrado. A medias bloquea el cobro, como un
+  carné mal escrito (`problemaDelComprobante` alimenta `motivoBloqueoCobro` y la hoja).
+- **Sin migración.** `registrar_clienta` ya recibía `p_telefono_whatsapp` y lo normaliza y valida (`fn_exigir_celular`: 9 dígitos, empieza en 9).
+  La web usa la misma regla (`celularValido`, `ajustarCelular`, `problemaCelularOpcional`): vacío no bloquea; a medias sí (la base rechazaría la ficha entera).
+- **No es consentimiento.** El celular de caja no une al club ni da la publicidad (ADR-0288 D-4, Ley 32323): esos permisos siguen naciendo de
+  un acto de ella en el cartel. Se verificó en la base: la ficha queda con `club_desde` y `publicidad_desde` vacíos y 0 eventos en `club_permisos`.
+  Los avisos del club los decide la base por publicidad vigente: tener celular no suscribe a nada. El campo lo dice: «Solo sirve para la boleta».
+- **Un solo mensaje, sin nombre.** `lib/comprobante-whatsapp-reglas.ts` arma «Hola, gracias por tu compra en CAYLA. Aquí está tu boleta
+  B001-000123: <enlace>». Sin nombre porque el padrón trae «APELLIDO APELLIDO NOMBRE» (un «primer nombre» saludaría con el apellido) y porque
+  menos datos personales viajan a un chat que puede ser el equivocado.
+- **El PDF es el de Lucode** (`comprobantes.respuesta_sunat.pdfUrl`). «Venta registrada» lo busca cada 2 s hasta 20 s con una lectura
+  (`respuesta_sunat->>pdfUrl`: solo el enlace, no el JSON de SUNAT; un GET a Supabase no abre el loader global). Mientras llega dice
+  «Preparando el PDF…»; si pasan 20 s o SUNAT no la acepta, lo dice y deja el envío para Comprobantes (el botón WhatsApp que ya existía).
+  **La venta nunca espera por esto** (principio 9: Lucode caído = se degrada, no se pierde nada).
+- **Un PDF del sandbox no se manda.** Si el comprobante se transmitió a las pruebas de Lucode (`entorno_transmision <> 'produccion'`), ese PDF no
+  vale ante SUNAT: la tarjeta lo dice y no ofrece el botón.
+
+DESCARTÉ: el envío automático por la API de Meta, porque cuesta (≈US$0.03 por boleta, ≈US$60 al mes con 2.000), pide cuenta verificada,
+plantilla aprobada y proveedor, sale desde un número de API y no el de la tienda, contradice la decisión del 2026-09-30 y no se podía probar sin
+credenciales. Y no se eligió todavía entre A y B: **recomiendo dejar solo B** (se pide donde se decide a dónde va la boleta, sirve a nuevos, antiguos y
+ventas sin registro, y no repite el celular que el buscador ya recibió) **y guardar el celular en la ficha al cobrar** si el cliente no tenía (actividad 2).
+Lo que cuesta B sin esa actividad: el celular no queda en la ficha y la próxima compra lo vuelve a pedir.
+
+SE ROMPE SI: (1) alguien cambia el celular de una socia desde caja: `registrar_clienta` y `editar_clienta` le quitan la publicidad en la misma
+transacción (ajuste d); por eso en caja **solo se agrega** un celular a quien no tiene (actividad 2, pendiente: «Agregar celular» para un
+cliente ya registrado, con una función que solo llena si está vacío), nunca se cambia; (2) una venta sin cliente registrado (boleta a «Cliente
+varios») no tiene a quién ofrecerle el botón: el modal la registra primero; (3) la transmisión a SUNAT sigue en `LUCODE_ENTORNO=sandbox` y nadie lo
+nota: la tarjeta dirá «modo de pruebas» en cada boleta, que es la señal para cambiarlo; (4) el celular se escribió mal y la boleta llegó a otra persona:
+quien manda ve el nombre del contacto en su WhatsApp antes de enviar y el celular sale legible («987 654 321») en la tarjeta; el envío no se guarda
+(no hay registro de «se mandó»: se agregaría con una tabla propia si hace falta auditarlo).
+
+**Lo que no se tocó:** el modelo de datos, ninguna función de la base, los permisos del club ni el flujo de «ella se une sola». **Se encontró de paso:**
+los botones «WhatsApp» de Comprobantes (`ComprobantesPanel`, `OpcionesComprobante`) escriben cada uno su propio texto (uno con el primer nombre, otro con
+el nombre completo en mayúsculas) y mandan el PDF aunque sea del sandbox: pendiente unificarlos con `mensajeDelComprobante` y la misma regla.
+**Verificado** en el navegador (escritorio y 375 px, sin desborde) contra una pila Supabase propia con todas las migraciones: registro con celular
+(precargado desde el buscador), celular a medias frena el botón (en A y en B), la ficha queda sin permisos, búsqueda por celular, B con el celular de la ficha
+ya puesto, venta completa, tarjeta «esperando» →
+«sin PDF» a los 20 s (Lucode sin credenciales) y «Abrir WhatsApp con la boleta» al simular el PDF de producción en la base; el enlace abre
+`wa.me/51987654321` con el mensaje escrito. Pruebas: 313 archivos, 154.989, verdes.

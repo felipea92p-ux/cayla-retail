@@ -149,7 +149,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                 </p>
               </div>
 
-              {/* Si el cliente dejó su celular: «Abrir WhatsApp con la boleta» (ADR-0288, act. 2026-10-03). No frena nada: la venta ya quedó. */}
+              {/* Si el cliente dejó su celular: «Abrir WhatsApp con la boleta» (ADR-0288, act. 2026-10-03 (o)). No frena nada: la venta ya quedó. */}
               <EnviarBoleta ventaId={ok.ventaId ?? null} celular={ok.celular ?? null} comprobante={{ tipo: r.tipo, serie: r.serie, numero: r.numero }} />
 
               <details className="group rounded-xl border border-sand text-xs">

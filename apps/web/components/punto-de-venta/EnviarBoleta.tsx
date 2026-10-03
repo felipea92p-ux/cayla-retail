@@ -58,7 +58,7 @@ function useLecturaDelPdf(ventaId: string | null, activo: boolean): { lectura: L
 }
 
 /**
- * «Enviar por WhatsApp» en «Venta registrada» (ADR-0288, «Actualización 2026-10-03»). Si el cliente dejó su celular, la cajera ve a
+ * «Enviar por WhatsApp» en «Venta registrada» (ADR-0288, «Actualización 2026-10-03 (o)»). Si el cliente dejó su celular, la cajera ve a
  * quién va y un botón que abre el chat de la TIENDA con el mensaje y el enlace al PDF ya escritos: solo falta tocar «Enviar» en
  * WhatsApp. No es un envío automático (decisión de Felipe, 2026-09-30: sin bot); tampoco guarda que se mandó. Mientras Lucode no
  * entrega el PDF dice que lo prepara; si pasa de 20 s o SUNAT no la acepta, lo dice y deja el envío para Comprobantes: la venta

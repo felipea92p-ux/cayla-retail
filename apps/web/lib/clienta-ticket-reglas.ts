@@ -54,7 +54,7 @@ export function terminoBuscable(texto: string): string | null {
 }
 
 /** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9 y tanda 1g, G-2): su documento (con DNI, el nombre llega
- *  del padrón) y, opcional, el celular para mandarle su boleta («Actualización 2026-10-03»). Sin cumpleaños y sin permiso de
+ *  del padrón) y, opcional, el celular para mandarle su boleta («Actualización 2026-10-03 (o)»). Sin cumpleaños y sin permiso de
  *  WhatsApp: esos los escribe ella al unirse desde el cartel. `celular`: solo dígitos; vacío = sin celular. */
 export type AltaEnTicket = { documentoTipo: TipoDocumentoClienta; documentoNumero: string; nombre: string; celular: string };
 export const ALTA_VACIA: AltaEnTicket = { documentoTipo: "dni", documentoNumero: "", nombre: "", celular: "" };

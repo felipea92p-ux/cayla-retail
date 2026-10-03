@@ -1,4 +1,4 @@
-// Mandarle la boleta al cliente por WhatsApp, desde el WhatsApp de la tienda (ADR-0288, «Actualización 2026-10-03»).
+// Mandarle la boleta al cliente por WhatsApp, desde el WhatsApp de la tienda (ADR-0288, «Actualización 2026-10-03 (o)»).
 // Lógica pura, sin React ni red: la usan «Venta registrada» (Vender), Comprobantes y las opciones de un comprobante.
 //
 // CONTRATO

@@ -37,7 +37,7 @@ const ID_CELULAR = "nueva-clienta-celular";
  *  ADR-0288 tanda 1g (G-2): se registra SOLO con el documento, igual que en Cobrar —con DNI el nombre llega del padrón; con
  *  carné o pasaporte, se escribe— y quién registra. No pide cumpleaños ni une al club: ella se une sola escaneando el cartel,
  *  y ahí escribe su celular y su fecha de nacimiento (G-3). El celular que se anota aquí es OPCIONAL y solo sirve para mandarle
- *  su boleta por WhatsApp («Actualización 2026-10-03»): no da el club ni la publicidad. «Editar» de su ficha corrige todo.
+ *  su boleta por WhatsApp («Actualización 2026-10-03 (o)»): no da el club ni la publicidad. «Editar» de su ficha corrige todo.
  *  La guía y el botón miran la MISMA regla que Cobrar: `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas). */
 export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; onCreada: (clienta: Clienta) => void }) {
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);

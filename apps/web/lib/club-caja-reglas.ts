@@ -157,7 +157,7 @@ export const nombreSuficiente = (nombre: string) => nombre.trim().length >= 3;
  * unirse desde el cartel, y «Editar» de su ficha lo corrige. Y quién registra. Es la MISMA regla en Cobrar
  * (`ClientaDelTicket`) y en Clientas ▸ Nueva clienta (`NuevaClientaModal`).
  *
- * El CELULAR (opcional, ADR-0288 «Actualización 2026-10-03»): sirve SOLO para mandarle su boleta por WhatsApp. No une al club
+ * El CELULAR (opcional, ADR-0288 «Actualización 2026-10-03 (o)»): sirve SOLO para mandarle su boleta por WhatsApp. No une al club
  * ni da la publicidad —esos permisos solo nacen de un acto de ella en el cartel—, así que no es «sugerido» ni «falta»: vacío
  * no bloquea y no se lista. Escrito a medias sí bloquea: la base lo rechazaría (`celular_invalido`) y la ficha entera con él.
  */
