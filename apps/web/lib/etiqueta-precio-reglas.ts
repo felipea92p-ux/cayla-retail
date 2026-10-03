@@ -341,6 +341,20 @@ export function idsDeParam(param: string | string[] | undefined): string[] {
   return [...new Set(partes.map((p) => p.trim()).filter((p) => UUID.test(p)))];
 }
 
+/** Cuántas etiquetas por talla, como llegan por la URL (`?unidades=id:2,id:3`): las unidades que acaban de entrar desde Editar
+ *  producto, para imprimir justo esas y no todo el stock de la tienda. Solo pasan ids bien formados y enteros de 1 a
+ *  `MAX_POR_PRENDA`; un id repetido se suma. */
+export function unidadesDeParam(param: string | string[] | undefined): Map<string, number> {
+  const salida = new Map<string, number>();
+  for (const parte of (Array.isArray(param) ? param : [param ?? ""]).flatMap((p) => p.split(","))) {
+    const [id, n] = parte.trim().split(":");
+    const cantidad = Number(n);
+    if (!id || !UUID.test(id) || !Number.isInteger(cantidad) || cantidad < 1) continue;
+    salida.set(id, Math.min(MAX_POR_PRENDA, (salida.get(id) ?? 0) + cantidad));
+  }
+  return salida;
+}
+
 /** El origen, en lo que la pantalla necesita para hablar de él. */
 export type OrigenDeTexto =
   | { tipo: "lotes" }
@@ -350,7 +364,7 @@ export type OrigenDeTexto =
   /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
    *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
    *  «marcó» nada. */
-  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number }
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -390,6 +404,16 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         vacio: `En ${sede} no hay prendas de este modelo.`,
       };
     case "variantes":
+      // `?unidades=`: lo que acaba de entrar al guardar la ficha en Editar producto (una por unidad nueva, no todo el stock).
+      if (o.entraron) {
+        return {
+          ...base,
+          sobretitulo: "Productos · Lo que entró",
+          bajada: `Entraron ${prendas} de ${modelos} al guardar la ficha. Sale una etiqueta por cada prenda nueva.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que entró ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
       if (o.desdeProductos && o.tallas === 1) {
         return {
           ...base,

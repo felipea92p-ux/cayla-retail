@@ -16,6 +16,7 @@ import {
   precioEtiqueta,
   sumarEntradas,
   tallasDelModelo,
+  unidadesDeParam,
   urlEtiquetasDePrecio,
   volverDeEtiquetas,
   type EtiquetaDeLaPrenda,
@@ -526,5 +527,28 @@ describe("etiquetasDelAlta — «Imprimir etiquetas» en la pantalla de éxito d
   });
   it("guardado sin conexión (todavía sin id ni código) no ofrece nada, aunque traiga unidades", () => {
     expect(etiquetasDelAlta({ id: null, stock: { unidades: 5 } })).toBeNull();
+  });
+});
+
+describe("unidadesDeParam (lo que entró desde Editar producto, ADR-0313)", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  it("lee id:n, suma los repetidos y descarta lo mal formado", () => {
+    expect([...unidadesDeParam(`${A}:2,${B}:3,${A}:1`)]).toEqual([[A, 3], [B, 3]]);
+    expect([...unidadesDeParam(`${A}:0,${B}:-1,x:4,${A}:1.5,${B}`)]).toEqual([]);
+    expect([...unidadesDeParam([`${A}:2`, `${B}:1`])]).toEqual([[A, 2], [B, 1]]);
+    expect(unidadesDeParam(undefined).size).toBe(0);
+  });
+  it("no pasa del tope por prenda", () => {
+    expect(unidadesDeParam(`${A}:5000`).get(A)).toBe(999);
+  });
+});
+
+describe("encabezadoDeEtiquetas: lo que entró desde Editar producto (?unidades=)", () => {
+  it("habla de lo que entró y la columna dice «Entraron», no «En tienda»", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", desdeProductos: true, tallas: 2, entraron: true }, { unidades: 4, modelos: 1 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Lo que entró");
+    expect(e.columnaCantidad).toBe("Entraron");
+    expect(e.bajada).toBe("Entraron 4 prendas de 1 modelo al guardar la ficha. Sale una etiqueta por cada prenda nueva.");
   });
 });

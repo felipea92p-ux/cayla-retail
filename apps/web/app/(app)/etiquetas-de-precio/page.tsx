@@ -1,6 +1,6 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getEtiquetasDePrecio, type OrigenEtiquetas } from "@/lib/etiquetas-precio";
-import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, volverDeEtiquetas, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
+import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, unidadesDeParam, volverDeEtiquetas, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
@@ -12,12 +12,21 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
 //   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237), las marcadas en la Tabla de
 //     Productos o la impresora de UNA talla (Tabla y Grilla); con `?desde=` de Productos el encabezado habla de Productos.
+//   - las unidades que acaban de entrar desde Editar producto (`?unidades=id:n`): una etiqueta por unidad nueva (ADR-0313).
 // La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado exacto (ADR-0180 paso 2, ADR-0302).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
 // `exigirModulo`. Lo que cuida los datos es la base: `movimientos_select` y `stock_select` solo dejan ver lo de las
 // sedes que uno opera, y un id escrito a mano de otra tienda devuelve una lista vacía.
-type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[]; desde?: string | string[] };
+type Params = {
+  lotes?: string | string[];
+  produccion?: string;
+  campana?: string;
+  producto?: string;
+  variantes?: string | string[];
+  unidades?: string | string[];
+  desde?: string | string[];
+};
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
   const persona = await requirePersonaActualV2();
@@ -27,7 +36,8 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const [produccion] = idsDeParam(params.produccion);
   const [campana] = idsDeParam(params.campana);
   const [producto] = idsDeParam(params.producto);
-  const variantes = idsDeParam(params.variantes);
+  const unidades = unidadesDeParam(params.unidades);
+  const variantes = unidades.size > 0 ? [...unidades.keys()] : idsDeParam(params.variantes);
   const desde = desdeDeParams(params.desde);
 
   const origen: OrigenEtiquetas | null = produccion
@@ -39,7 +49,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
         : producto
           ? { tipo: "producto", id: producto, ubicacionId: persona.ubicacionId }
           : variantes.length > 0
-            ? { tipo: "variantes", ids: variantes, ubicacionId: persona.ubicacionId }
+            ? { tipo: "variantes", ids: variantes, ubicacionId: persona.ubicacionId, ...(unidades.size > 0 ? { unidades } : {}) }
             : null;
   const datos = origen ? await getEtiquetasDePrecio(origen, hoy) : { etiquetas: [], sinCodigo: [] };
 
@@ -49,7 +59,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
         : origen?.tipo === "variantes"
-          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length }
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0 }
           : origen
             ? { tipo: origen.tipo }
             : { tipo: "ninguno" };

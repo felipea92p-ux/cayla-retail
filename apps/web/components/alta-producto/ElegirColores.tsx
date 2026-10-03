@@ -20,8 +20,8 @@ import { useEnLinea } from "@/lib/useEnLinea";
 // Se elige de una sola manera, con dos entradas:
 //   1. el buscador («petróleo», «coral», o un sinónimo): la opción «+ Crear el color «X»» va primera y fija arriba de
 //      la lista, para que nadie baje 76 colores hasta el final para crear el que falta;
-//   2. la carta de colores, abierta de entrada: un renglón por familia (en el orden del espectro), de claro a oscuro y con un
-//      respiro entre gamas (`lib/color-escala.ts`). El nombre sale al instante bajo la carta al pasar el mouse, al llegar con
+//   2. la carta de colores, abierta de entrada: una fila por gama (las familias en el orden del espectro; Azul, Verde y Morado, que son
+//      anchas, en dos filas), de claro a oscuro (`lib/color-escala.ts`). El nombre sale al instante bajo la carta al pasar el mouse, al llegar con
 //      Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en tablet no salía), junto con su Pantone —la referencia real
 //      de la tela— y con qué otro color se confunde. El elegido lleva anillo y ✓.
 // «+ Nuevo color» abre un modal (`NuevoColorAlta`) sin salir de la pantalla; el color creado
@@ -181,8 +181,8 @@ export function ElegirColores({
       )}
 
       {carta && (
-        // La carta de color (ADR-0312). Cada familia es un renglón y dentro de cada renglón los colores van por gamas —un respiro
-        // entre una y otra— y de claro a oscuro. Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
+        // La carta de color (ADR-0312, ADR-0314). Cada familia es un bloque y cada gama, una FILA propia: cada fila es una escala
+        // pura de claro a oscuro (la claridad nunca «sube» a mitad de una fila). Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
         // que lo rodea, y uno chico se ve peor. El color adentro es EXACTO (el #hex de la base, sin velo); el borde es el mismo
         // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto
         // (`@container`, no la ventana), el nombre de la familia va arriba de sus círculos; si es muy ancho, las familias van en
@@ -192,12 +192,13 @@ export function ElegirColores({
             {grupos.map((g, i) => (
               <div
                 key={g.familia}
-                className={`grid gap-1 py-1.5 @md:grid-cols-[5rem_minmax(0,1fr)] @md:items-center @md:gap-2.5 ${
+                className={`grid gap-1 py-1.5 @md:grid-cols-[5rem_minmax(0,1fr)] @md:items-start @md:gap-2.5 ${
                   i === 0 ? "" : i === 1 ? "border-t border-sand @4xl:border-t-0" : "border-t border-sand"
                 }`}
               >
-                <p className="text-[11.5px] text-taupe">{g.texto}</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {/* El nombre se alinea con la PRIMERA fila (los círculos miden 32 px), no con el centro del bloque. */}
+                <p className="text-[11.5px] text-taupe @md:flex @md:h-8 @md:items-center">{g.texto}</p>
+                <div className="flex flex-col gap-1.5">
                   {partirEnGamas(g.colores).map((gama, k) => (
                     <div key={k} className="flex flex-wrap gap-1.5">
                       {gama.map((c) => {

@@ -81,13 +81,14 @@ import {
 import { VariantesFicha } from "@/components/ficha-producto/VariantesFicha";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
-import { MatrizStockFicha, MotivoDeLaVisita } from "@/components/ficha-producto/MatrizStockFicha";
+import { MatrizStockFicha, MotivoDeLaVisita, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
 import { AgregarColoresModal, type ResultadoAgregarColores } from "@/components/ficha-producto/AgregarColoresModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { FotoSubida } from "@/components/ficha-producto/useSubirFotos";
-import { resumenVariantes } from "@/lib/matriz-ficha-reglas";
+import { grupoDeStockEnHoja, hrefEtiquetasDeSubidas, resumenVariantes } from "@/lib/matriz-ficha-reglas";
+import { conDesde } from "@/lib/vuelta-productos";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
@@ -419,7 +420,14 @@ export function ProductoForm({
   const [abiertas, setAbiertas] = useState<Record<Seccion, boolean>>({ producto: true, tejido: true, fotos: true, variantes: true });
   const abrir = (sec: Seccion) => setAbiertas((a) => (a[sec] ? a : { ...a, [sec]: true }));
   const [verDetalle, setVerDetalle] = useState(false);
-  const [campoBloque, setCampoBloque] = useState<CampoBloque>("precio");
+  // Qué se escribe en la matriz (Unidades de hoy · Precios · Costos): las pestañas de la tabla, como en «Unidades de hoy» del alta.
+  const [vista, setVista] = useState<VistaMatriz>("unidades");
+  /** Muestra la pestaña y, ya dibujada (el campo a enfocar recién existe), hace lo que sigue: el foco de un error. */
+  function enVista(v: VistaMatriz, luego: () => void) {
+    if (vista === v) return luego();
+    setVista(v);
+    window.setTimeout(luego, 30);
+  }
   const [agregandoColor, setAgregandoColor] = useState(false);
   // `undefined` = cerrado; un color (o `null`, sin color) = el ajuste de siempre abierto para ese color (ADR-0291: una talla que
   // faltó en un conteo no se suma a ciegas desde el stepper).
@@ -561,10 +569,15 @@ export function ProductoForm({
     fichaEditable(datosDeLaPrenda(), fotosVista, conCambiosDeColor(porColorGuardado, cambiosColor), variantesResumen.ahora),
     nombresCambios
   );
-  const hayCambios = !guardado && resumen.total > 0;
+  // El stock tocado en la matriz también espera a «Revisar y guardar» (ADR-0313, act. 2026-10-02 noche): cuenta en la barra y va
+  // en la hoja como su propio grupo. El de las variantes NUEVAS ya cuenta con ellas («agregan»).
+  const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
+  const grupoStock = grupoDeStockEnHoja(stock.cambios, stock.motivos.find((m) => m.valor === stock.motivo)?.texto ?? "Ajuste", donde);
+  const totalCambios = resumen.total + stock.cambios.length;
+  const hayCambios = !guardado && totalCambios > 0;
   // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
   // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
-  const salida = useSalidaSinGuardar(hayCambios, textoDeSalidaDeFicha(resumen.total, producto?.referencia ?? referencia));
+  const salida = useSalidaSinGuardar(hayCambios, textoDeSalidaDeFicha(totalCambios, producto?.referencia ?? referencia));
 
   function recargar() {
     // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
@@ -613,15 +626,20 @@ export function ProductoForm({
     if ((exigeTejido && !tejidoId) || (exigePatron && !patronId)) abrir("tejido");
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
-    if (avisoBloque) {
+    if (avisoBloque && bloquePendiente) {
       abrir("variantes");
-      return void avisar.error(avisoBloque, { enfocar: "variantes-bloque-monto" });
+      return void enVista(bloquePendiente, () => avisar.error(avisoBloque, { enfocar: "variantes-bloque-monto" }));
     }
     const bloqueante = problemas.find((p) => p.bloquea);
     if (bloqueante) {
       abrir("variantes");
       const enfocar = bloqueante.clave ? `producto-variante-${bloqueante.clave}-precio` : filas.length === 0 ? "variantes-agregar-color" : undefined;
-      return void avisar.error(bloqueante.texto, enfocar ? { enfocar } : undefined);
+      return void enVista(bloqueante.clave ? "precio" : vista, () => avisar.error(bloqueante.texto, enfocar ? { enfocar } : undefined));
+    }
+    // El stock va firmado por quien hace el ajuste (el combo de la línea «Registrar los ajustes…»), como en el modal de siempre.
+    if ((stock.cambios.length > 0 || stock.nuevasConStock > 0) && !stock.responsable.listo) {
+      abrir("variantes");
+      return void enVista("unidades", () => avisar.error(stock.responsable.motivo ?? "Elige quién hace el ajuste de stock.", { enfocar: "ficha-stock-responsable" }));
     }
     setHojaAbierta(true);
   }
@@ -630,6 +648,17 @@ export function ProductoForm({
    *  nada que elegir ahí); con un error se cierra para que se vea la ficha y el campo a corregir. */
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
+    // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
+    if (resumen.total === 0) {
+      setLoading(true);
+      const cerrarProceso = avisar.proceso(`Guardando el stock de ${referencia.trim()}…`);
+      const { ok } = await stock.guardar();
+      cerrarProceso();
+      setLoading(false);
+      setHojaAbierta(false);
+      if (ok) terminarGuardado(referencia.trim(), [], false, 0, 0);
+      return true;
+    }
     const firma = firmaOmitida("producto_confirmar_cambios");
     // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
     const hecho = resumen.frasesPasado;
@@ -735,6 +764,15 @@ export function ProductoForm({
       new Map(recienCreadas.map((f) => [f.clave, f.id!])),
       new Map(recienCreadas.map((f) => [f.clave, { color: nombres.color(f.colorCodigo), talla: nombres.talla(f.tallaId) || null }]))
     );
+    // El stock tocado en las variantes que ya existían: UNA llamada, con el motivo y el responsable de la visita. Si falla, la
+    // prenda igual quedó guardada; lo tocado sigue en la ficha (la barra lo cuenta) y «Revisar y guardar» lo vuelve a intentar.
+    const { ok: stockOk } = await stock.guardar();
+    if (!stockOk) {
+      cerrarProceso();
+      setLoading(false);
+      setHojaAbierta(false);
+      return true;
+    }
     if (sinAplicar.length === 0) {
       // La base corrigió y mudó fotos y temporada de los colores que se quedaron sin variantes: lo que se veía pasa a ser
       // lo guardado, y a la vez (en la misma pintada) su origen, porque las filas consolidadas ya no tienen mudanzas.
@@ -807,25 +845,49 @@ export function ProductoForm({
     // El guardado terminó completo: lo logrado se lee (aunque haya llegado en un reintento) y se olvida.
     const { correcciones: huboCorrecciones, nuevas: creadas, cargadas, frases } = logrado.current;
     logrado.current = { correcciones: false, nuevas: 0, cargadas: 0, frases: [] };
-    const hechoTodo = [...new Set([...frases, ...hecho])];
-    // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó y quién lo firmó (la prueba de que quedó hecho).
-    setGuardado(true);
     setHojaAbierta(false);
+    terminarGuardado(nombrePrenda, [...new Set([...frases, ...hecho])], huboCorrecciones, creadas, cargadas);
+    return true;
+  }
+
+  /** El final de un guardado completo: la barra baja, el aviso dice qué se guardó y, si entraron unidades, ofrece imprimir justo
+   *  sus etiquetas (Felipe, 2026-10-02: «luego de guardados, el sistema te sugiere imprimir ese ticket»). Al volver a Productos
+   *  queda además la franja «prendas nuevas sin etiquetar» hasta imprimirlas o cambiar de módulo (`RecordatorioEtiquetas`). */
+  function terminarGuardado(nombrePrenda: string, hechoTodo: string[], huboCorrecciones: boolean, creadas: number, cargadas: number) {
+    if (!producto) return;
+    // Lo que se confirmó en la hoja (esta función es del render en que se pulsó «Confirmar y guardar»).
+    const ajustadas = grupoStock?.lineas.length ?? 0;
+    const subidas = stock.tomarSubidas();
+    const unidadesNuevas = subidas.reduce((s, x) => s + x.unidades, 0);
+    const hrefSubidas = hrefEtiquetasDeSubidas(subidas);
+    // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
+    setGuardado(true);
     avisar.exito(`${nombrePrenda} guardado`, {
       detalle:
         [
           hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
+          ajustadas > 0 ? `stock ajustado en ${ajustadas} ${ajustadas === 1 ? "talla" : "tallas"}` : null,
           cargadas > 0 ? `${cargadas} ${cargadas === 1 ? "unidad entró" : "unidades entraron"} como stock inicial` : creadas > 0 ? NACEN_SIN_UNIDADES : null,
         ]
           .filter(Boolean)
           .join(" · ") || undefined,
-      // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se ofrece reimprimir.
-      ...(huboCorrecciones ? { accion: { texto: "Imprimir etiquetas", onClick: () => router.push(`/etiquetas-de-precio?producto=${producto.id}`) } } : {}),
+      // Tras corregir color o talla, lo pegado en percha sigue sonando pero ya no dice lo correcto: se reimprime todo. Si no, y
+      // entraron unidades, una etiqueta por cada una nueva (las que ya estaban en la tienda ya tienen la suya).
+      ...(huboCorrecciones
+        ? { accion: { texto: "Imprimir etiquetas", onClick: () => router.push(`/etiquetas-de-precio?producto=${producto.id}`) }, duracion: 10000 }
+        : hrefSubidas
+          ? {
+              accion: {
+                texto: `Imprimir ${unidadesNuevas} ${unidadesNuevas === 1 ? "etiqueta" : "etiquetas"}`,
+                onClick: () => router.push(conDesde(hrefSubidas, volverA)),
+              },
+              duracion: 10000,
+            }
+          : {}),
     });
     salida.soltar();
     router.replace(volverA);
     router.refresh();
-    return true;
   }
 
   /** «Descartar»: todo vuelve a como estaba al abrir, y el aviso ofrece «Deshacer» (sin preguntar antes: 7 s alcanzan para arrepentirse). */
@@ -836,6 +898,7 @@ export function ProductoForm({
     }
     const antes = capturar();
     aplicar(inicial);
+    const deshacerStock = stock.descartar();
     setVersionCambiada(false);
     // Lo que la sección de variantes guarda por su cuenta también vuelve a cero (un «Precio puesto en 6 variantes» que ya
     // no es cierto, un monto escrito sin aplicar): nace de nuevo.
@@ -847,6 +910,7 @@ export function ProductoForm({
         texto: "Deshacer",
         onClick: () => {
           aplicar(antes);
+          deshacerStock();
           setReinicio((r) => r + 1);
         },
       },
@@ -970,7 +1034,11 @@ export function ProductoForm({
       }}
       className="pb-28 sm:pb-24"
     >
-      <div className="grid items-start gap-[26px] lg:grid-cols-[minmax(0,1fr)_340px]">
+      {/* El panel del taller va a la derecha solo si a la ficha le quedan ~430 px al lado: lo decide el ancho del formulario
+          (`@container`), no el de la ventana. Con `lg:` (1024 px de ventana) y el menú lateral abierto, la ficha quedaba en 291 px
+          —más angosta que un celular— para darle 340 al panel; ahora, en ese ancho, el panel baja debajo de la ficha. */}
+      <div className="@container">
+      <div className="grid items-start gap-[26px] @min-[50rem]:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">
           {/* ---------- 1 · Producto ---------- */}
           <SeccionFicha
@@ -983,7 +1051,7 @@ export function ProductoForm({
             onAbierta={(v) => setAbiertas((a) => ({ ...a, producto: v }))}
             retraso={40}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @lg:grid-cols-2">
             <CampoTexto
               etiqueta="Referencia"
               id="producto-referencia"
@@ -998,7 +1066,7 @@ export function ProductoForm({
               <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
             {nombreCambio && (
-              <div className="sm:col-span-2">
+              <div className="@lg:col-span-2">
                 {nombreNuevo && nombreNuevo !== referencia.trim() && (
                   <p className="mb-2 text-xs text-tinta/60">
                     Se guardará como <strong className="text-tinta">{nombreNuevo}</strong>
@@ -1007,7 +1075,7 @@ export function ProductoForm({
                 <AvisoParecidos parecidos={parecidos.items} confirmo={parecidos.confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
               </div>
             )}
-            <div className="sm:col-span-2" id="producto-marca">
+            <div className="@lg:col-span-2" id="producto-marca">
               <Campo etiqueta="Marca y proveedor" pie={antesDe("marcaProveedor")} tono={tonoDe("marcaProveedor")}>
                 <ElegirMarcaProveedor
                   opcional
@@ -1028,15 +1096,18 @@ export function ProductoForm({
                 />
               </Campo>
             </div>
-            <CampoTexto
-              etiqueta="Descripción (opcional)"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Detalle interno, no se muestra al cliente"
-              className="sm:col-span-2"
-              pie={antesDe("descripcion")}
-              tono={tonoDe("descripcion")}
-            />
+            {/* El ancho completo va en una caja propia: `CampoTexto` le pasa `className` al <input>, no a la celda de la grilla,
+                y con la clase ahí la descripción quedaba en media fila con el texto de ayuda cortado. */}
+            <div className="@lg:col-span-2">
+              <CampoTexto
+                etiqueta="Descripción (opcional)"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Detalle interno, no se muestra al cliente"
+                pie={antesDe("descripcion")}
+                tono={tonoDe("descripcion")}
+              />
+            </div>
           </div>
           </SeccionFicha>
 
@@ -1051,7 +1122,7 @@ export function ProductoForm({
             onAbierta={(v) => setAbiertas((a) => ({ ...a, tejido: v }))}
             retraso={90}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @lg:grid-cols-2">
             <div data-campo="tejido" className="hilo-caja">
             <Campo
               etiqueta={<ConMarca estado={marcaDe("tejido")}>{exigeTejido || familiaExigente ? "Tejido" : "Tejido (opcional)"}</ConMarca>}
@@ -1174,7 +1245,7 @@ export function ProductoForm({
               />
             </div>
             {ofreceTemporadaPorColor && (
-              <div className="border-t border-tinta/10 pt-3 sm:col-span-2">
+              <div className="border-t border-tinta/10 pt-3 @lg:col-span-2">
                 <button
                   type="button"
                   aria-expanded={verTemporadaColor}
@@ -1203,7 +1274,7 @@ export function ProductoForm({
                         y vuelve a abrir la ficha para verla o cambiarla.
                       </p>
                     )}
-                    <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
+                    <div className="mt-2 grid gap-x-4 @lg:grid-cols-2">
                       {coloresConTemporada.map((codigo) => {
                         const color = colores.find((c) => c.codigo === codigo);
                         return (
@@ -1279,26 +1350,32 @@ export function ProductoForm({
             onAbierta={(v) => setAbiertas((a) => ({ ...a, variantes: v }))}
             retraso={190}
           >
-            {filas.some((f) => f.activo) && (
-              <div className="mb-3">
-                <CambiarEnBloque
-                  key={reinicio}
-                  filas={filas}
-                  onFilas={setFilas}
-                  onPendiente={setBloquePendiente}
-                  nombres={nombres}
-                  veCosto={veCosto}
-                  deshabilitado={loading}
-                  onCampo={setCampoBloque}
-                />
-              </div>
-            )}
-
             <MatrizStockFicha
               ctx={ctx}
               filas={filas}
               stock={stock}
-              verCosto={campoBloque === "costo"}
+              vista={vista}
+              onVista={(v) => {
+                setVista(v);
+                // Un monto escrito sin aplicar sigue avisando, ahora con el campo de la pestaña nueva.
+                if (v !== "unidades" && bloquePendiente) setBloquePendiente(v);
+              }}
+              bloque={
+                filas.some((f) => f.activo) ? (
+                  <div className="mb-1">
+                    <CambiarEnBloque
+                      key={reinicio}
+                      filas={filas}
+                      onFilas={setFilas}
+                      onPendiente={setBloquePendiente}
+                      nombres={nombres}
+                      veCosto={veCosto}
+                      deshabilitado={loading}
+                      campoFijo={vista === "costo" ? "costo" : "precio"}
+                    />
+                  </div>
+                ) : undefined
+              }
               colorActivo={colorFijo}
               onElegirColor={(c) => setColorElegido(c)}
               onVerColor={setColorVisto}
@@ -1307,7 +1384,7 @@ export function ProductoForm({
               deshabilitado={loading}
             />
 
-            <MotivoDeLaVisita stock={stock} deshabilitado={loading} />
+            {vista === "unidades" && <MotivoDeLaVisita stock={stock} deshabilitado={loading} />}
 
             <button type="button" id="variantes-agregar-color" className="taller-agregar-color" disabled={loading} onClick={() => setAgregandoColor(true)}>
               + Agregar color
@@ -1379,6 +1456,7 @@ export function ProductoForm({
           deshabilitado={loading}
         />
       </div>
+      </div>
 
       {agregandoColor && (
         <AgregarColoresModal
@@ -1412,7 +1490,7 @@ export function ProductoForm({
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
       <BarraDeCambios
-        cantidad={hayCambios ? resumen.total : 0}
+        cantidad={hayCambios ? totalCambios : 0}
         versionCambiada={versionCambiada}
         sinLeerVariantes={hayQueRecargar}
         yaSeGuardoLoDemas={seGuardoParte}
@@ -1426,6 +1504,7 @@ export function ProductoForm({
           resumen={resumen}
           avisos={avisosSinBloquear}
           notaAgregan={notaAgregan}
+          extra={grupoStock}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}
         />

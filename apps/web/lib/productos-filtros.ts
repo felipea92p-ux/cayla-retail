@@ -1,3 +1,6 @@
+import { enEscala } from "./color-escala";
+import { agruparPorFamilia } from "./colores-familias";
+import { alternarEnLista, type EstadoCasilla } from "./pildora-reglas";
 import { leerMonto, textoRangoPrecio } from "./productos-filtro-precio";
 
 // La barra de filtros de /productos guarda TODO en la URL (ADR-0254): la URL es la única fuente de verdad y la pantalla
@@ -232,21 +235,81 @@ export function chipsDeFiltros(
 // ── Color agrupado por familia (Felipe, 2026-10-02: un solo filtro de color, no uno aparte de familia) ──────────────────
 const PREFIJO_FAMILIA = "familia:";
 
-/** Las opciones del filtro de color: por cada familia (en el orden de `FAMILIAS_COLOR`) primero «Toda la familia Azul» y
- *  debajo sus colores; al final, los colores sin familia. Una sola lista: elegir la familia o un tono exacto. */
-export function opcionesDeColor<C extends { id: string; nombre: string; familia: string | null }>(
+/** Una fila de la lista de color: la familia entera («Toda la familia Azul», con los tonos que abarca) o un tono (con la familia a la que
+ *  pertenece). `de` es `null` para un color sin familia: se lista suelto, sin encabezado. */
+export type OpcionDeColor<C> =
+  | { valor: string; texto: string; familia: true; hijos: string[] }
+  | { valor: string; texto: string; familia: false; color: C; de: string | null };
+
+/**
+ * Las opciones del filtro de color: por cada familia (en el orden de `FAMILIAS_COLOR`, el del espectro) primero «Toda la familia
+ * Azul» y debajo sus colores EN LA MISMA ESCALA de la carta y de Atributos —gama y de claro a oscuro, `lib/color-escala.ts`—, no
+ * alfabético: antes salían «Arena, Beige, Blanco, Crudo, Gris…» y la lista no se parecía a ninguna otra pantalla (Felipe, 2026-10-02).
+ * Una familia que la web aún no conoce sale con su propio nombre; al final, los colores sin familia. Una sola lista: elegir la familia
+ * o un tono exacto. `hijos` son TODOS los colores de la familia (también los que hoy no tienen prendas): «toda la familia» los incluye.
+ */
+export function opcionesDeColor<C extends { id: string; nombre: string; hex: string | null; familia: string | null }>(
   colores: readonly C[],
   familias: readonly { valor: string; texto: string }[],
-): ({ valor: string; texto: string; familia: true } | { valor: string; texto: string; familia: false; color: C })[] {
-  const salida: ({ valor: string; texto: string; familia: true } | { valor: string; texto: string; familia: false; color: C })[] = [];
-  for (const f of familias) {
-    const suyos = colores.filter((c) => c.familia === f.valor);
-    if (suyos.length === 0) continue;
-    salida.push({ valor: PREFIJO_FAMILIA + f.valor, texto: `Toda la familia ${f.texto}`, familia: true });
-    for (const c of suyos) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c });
+): OpcionDeColor<C>[] {
+  const salida: OpcionDeColor<C>[] = [];
+  for (const g of agruparPorFamilia(colores, (c) => c.familia, familias)) {
+    const enEscalaDeLaCarta = [...g.colores].sort((a, b) =>
+      enEscala({ nombre: a.nombre, hex: a.hex, familiaColor: a.familia }, { nombre: b.nombre, hex: b.hex, familiaColor: b.familia }),
+    );
+    if (g.familia === "sin-familia") {
+      for (const c of enEscalaDeLaCarta) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c, de: null });
+      continue;
+    }
+    const valorFamilia = PREFIJO_FAMILIA + g.familia;
+    salida.push({ valor: valorFamilia, texto: `Toda la familia ${g.texto}`, familia: true, hijos: enEscalaDeLaCarta.map((c) => c.id) });
+    for (const c of enEscalaDeLaCarta) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c, de: valorFamilia });
   }
-  for (const c of colores.filter((x) => !familias.some((f) => f.valor === x.familia))) salida.push({ valor: c.id, texto: c.nombre, familia: false, color: c });
   return salida;
+}
+
+export type { EstadoCasilla };
+type FilaDeColor = { valor: string; familia: boolean; hijos?: readonly string[]; de?: string | null };
+
+/**
+ * El estado de cada casilla, dicho como es en la base: marcar «Toda la familia Neutro» ya incluye Beige (el filtro suma: tonos
+ * elegidos O cualquier familia elegida, `fn_productos_listar`), así que Beige se ve marcado aunque nadie lo haya tocado. Sin esto
+ * la lista decía una cosa («Beige: sin marcar») y la base hacía otra («trae Beige»).
+ */
+export function estadoDeColor(marcados: readonly string[], opciones: readonly FilaDeColor[]): Map<string, EstadoCasilla> {
+  const estados = new Map<string, EstadoCasilla>();
+  for (const o of opciones) {
+    if (o.familia) {
+      estados.set(o.valor, marcados.includes(o.valor) ? "marcada" : (o.hijos ?? []).some((h) => marcados.includes(h)) ? "parcial" : "libre");
+    } else {
+      estados.set(o.valor, o.de && marcados.includes(o.de) ? "cubierta" : marcados.includes(o.valor) ? "marcada" : "libre");
+    }
+  }
+  return estados;
+}
+
+/**
+ * Qué queda marcado al tocar una fila (como un árbol de casillas):
+ *  · la familia: se marca entera —y se sueltan sus tonos sueltos, que ya no hacen falta— o, si ya estaba, se desmarca;
+ *  · un tono de una familia marcada: la familia se abre en sus otros tonos (saca solo este);
+ *  · un tono suelto: se marca o se desmarca; si con él quedan marcados TODOS los tonos de la familia, pasan a ser «la familia».
+ * Un color sin familia se alterna sin más.
+ */
+export function alternarColor(marcados: readonly string[], valor: string, opciones: readonly FilaDeColor[]): string[] {
+  const fila = opciones.find((o) => o.valor === valor);
+  if (!fila) return alternarEnLista(marcados, valor);
+  if (fila.familia) {
+    if (marcados.includes(valor)) return marcados.filter((v) => v !== valor);
+    const hijos = fila.hijos ?? [];
+    return [...marcados.filter((v) => !hijos.includes(v)), valor];
+  }
+  const padre = fila.de ? opciones.find((o) => o.valor === fila.de) : undefined;
+  if (!padre || !padre.familia) return alternarEnLista(marcados, valor);
+  const hermanos = padre.hijos ?? [];
+  if (marcados.includes(padre.valor)) return [...marcados.filter((v) => v !== padre.valor), ...hermanos.filter((h) => h !== valor)];
+  if (marcados.includes(valor)) return marcados.filter((v) => v !== valor);
+  const siguiente = [...marcados, valor];
+  return hermanos.every((h) => siguiente.includes(h)) ? [...siguiente.filter((v) => !hermanos.includes(v)), padre.valor] : siguiente;
 }
 
 /** Lo marcado en la lista de color, de vuelta a la URL: `color=` los tonos y `familia=` las familias. */

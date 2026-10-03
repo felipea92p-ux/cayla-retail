@@ -241,6 +241,12 @@ describe("leerSunatPublico", () => {
     expect(r.ok && r.datos.estado).toBeNull();
   });
 
+  it("un DNI real: SUNAT lo devuelve en `nombresapellidos` como «APELLIDOS,NOMBRES»", () => {
+    const r = leerSunatPublico("dni", "60816984", { message: "success", lista: [{ nombresapellidos: "ESPINOZA SANTIAGO,MARIA FERNANDA" }] });
+    expect(r.ok && r.datos.nombre).toBe("ESPINOZA SANTIAGO MARIA FERNANDA");
+    expect(r.ok && r.origen).toBe("sunat_publico");
+  });
+
   it("«No existen datos» es no_encontrado, no un error", () => {
     expect(leerSunatPublico("dni", "00000000", RESPUESTA_NO_EXISTE)).toEqual({
       ok: false,

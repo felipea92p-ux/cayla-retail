@@ -22,6 +22,7 @@ import {
   type FuenteMenu,
   type GrupoMenu,
   type Hoja,
+  type Menu,
   type Nodo,
   type Permiso,
   type PerfilDelMenu,
@@ -156,6 +157,12 @@ const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS.filter((p) => !FINANZAS_
   .flatMap((base) => [base, [...base, ...FINANZAS_JUNTOS]])
   .flatMap((permisos) => TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })));
 const nombreDe = (p: PerfilDelMenu) => `[${p.permisos.join(", ") || "sin permisos"}] en ${p.ubicacionTipo}`;
+// El menú de cada perfil se arma UNA vez y lo leen todas las pruebas que recorren PERFILES. Son 24 576 perfiles: volver a
+// armarlo dentro de cada prueba que los recorre era el 60 % de su tiempo, y con la máquina cargada por otras sesiones
+// (carga 16-19, 2026-10-02) la de los nodos futuros pasó de 1 s a 8-10 s y el límite de 5 s de vitest frenó commits del
+// pre-commit que solo cambiaban comentarios. Por la misma razón esas pruebas juntan lo que falla y lo comparan con UN
+// `expect` al final (24 576 `expect` sueltos eran otro 27 %): el mensaje sigue nombrando cada perfil que falla.
+const MENUS: readonly { perfil: PerfilDelMenu; menu: Menu }[] = PERFILES.map((perfil) => ({ perfil, menu: menuPara(perfil) }));
 
 function recorrer(nodos: readonly Nodo[]): Nodo[] {
   return nodos.flatMap((n) => [n, ...("hijos" in n && n.hijos ? recorrer(n.hijos) : [])]);
@@ -222,11 +229,11 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   const idsDe = (f: FilaMenu): string[] => [f.id, ...(esGrupoMenu(f) ? f.hijos.flatMap(idsDe) : [])];
 
   it("ningún perfil los ve: ni en el lateral, ni en el celular", () => {
-    for (const perfil of PERFILES) {
-      const menu = menuPara(perfil);
-      const emitidos = [...menu.riel.flatMap(idsDe), ...menu.movil.map((c) => c.id)];
-      expect(emitidos.filter((id) => futuros.has(id)), nombreDe(perfil)).toEqual([]);
-    }
+    const losVen = MENUS.flatMap(({ perfil, menu }) => {
+      const vistos = [...menu.riel.flatMap(idsDe), ...menu.movil.map((c) => c.id)].filter((id) => futuros.has(id));
+      return vistos.length ? [`${nombreDe(perfil)}: ${vistos.join(", ")}`] : [];
+    });
+    expect(losVen).toEqual([]);
   });
 });
 
@@ -258,8 +265,7 @@ const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE
 // y la misma regla de «con una sola hija no agrupa nada» que un grupo de primer nivel — no hay un caso especial para él.
 const gruposDe = (fs: readonly FilaMenu[]): GrupoMenu[] => fs.filter(esGrupoMenu).flatMap((f) => [f, ...gruposDe(f.hijos)]);
 
-describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú de %s", (_nombre, perfil) => {
-  const menu = menuPara(perfil);
+describe.each(MENUS.map(({ perfil, menu }) => [nombreDe(perfil), perfil, menu] as const))("forma del menú de %s", (_nombre, perfil, menu) => {
   const hrefs = menu.riel.flatMap(hojasDe).map((h) => h.href);
 
   it("ninguna ruta aparece dos veces en el lateral", () => {
@@ -383,9 +389,12 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 
   it("el menú y la puerta no pueden discrepar: Producción sale exactamente cuando la página abre", () => {
     expect(TIPOS_UBICACION.filter((t) => puedeVerProduccion({ ubicacionTipo: t }))).toEqual(["taller"]);
-    for (const perfil of PERFILES) {
-      expect(menuPara(perfil).riel.some((f) => f.id === "produccion"), nombreDe(perfil)).toBe(puedeVerProduccion(perfil));
-    }
+    const discrepan = MENUS.flatMap(({ perfil, menu }) => {
+      const enElMenu = menu.riel.some((f) => f.id === "produccion");
+      const abre = puedeVerProduccion(perfil);
+      return enElMenu === abre ? [] : [`${nombreDe(perfil)}: el menú ${enElMenu ? "lo muestra" : "no lo muestra"} y la puerta ${abre ? "abre" : "no abre"}`];
+    });
+    expect(discrepan).toEqual([]);
   });
 });
 

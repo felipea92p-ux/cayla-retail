@@ -8,7 +8,6 @@ import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
-import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 
@@ -104,8 +103,6 @@ export default async function EditarProductoPage({
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
         </h1>
       </div>
-
-      {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
 
       <ProductoForm
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}

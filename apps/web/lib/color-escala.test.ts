@@ -1,22 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { enEscala, esColorClaro, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
 import { bordeDeMuestra, enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR, fondoDeMuestra } from "./colores-familias";
+import { distanciaEntreHex } from "./color-parecido";
 
-// La carta de CAYLA al 2026-10-02: los 75 colores activos de producción, cada uno con la familia que le da la migración
-// 20261002180000. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
+// La carta de CAYLA: los 90 colores activos (los 75 de producción al 2026-10-02, los 16 de la migración 20261003190100 y ninguno de «Azul
+// Intermedio», que se funde en Azul medio y se archiva —ADR-0317—), con los hex y familias que dejan las migraciones 20261002190000,
+// 20261002191000 y 20261003200000 (Beige, Arena y Topo en Tierra; Eléctrico, Medio y Violeta corregidos). Cada uno con
+// su familia. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
 // qué color se movió de lugar, y entonces se decide —con Felipe— si el cambio es lo que se quería.
 const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string, familia: string]> = [
   ["BLA", "Blanco", "#F4F9FF", "neutro"],
   ["CRU", "Crudo", "#F3ECE0", "neutro"],
-  ["PER", "Perla", "#EAE6DD", "neutro"],
+  ["PER", "Perla", "#DBDDD9", "neutro"],
   ["NUD", "Nude", "#F2D3BC", "neutro"],
   ["GRP", "Gris perla", "#C5C5C5", "neutro"],
-  ["BEI", "Beige", "#D5BA98", "neutro"],
+  ["BEI", "Beige", "#D5BA98", "tierra"],
   ["GPI", "Gris piedra", "#C3BDAB", "neutro"],
-  ["ARN", "Arena", "#CCA67F", "neutro"],
+  ["ARN", "Arena", "#CCA67F", "tierra"],
   ["GRM", "Gris melange", "#A2A2A1", "neutro"],
   ["GRI", "Gris", "#848587", "neutro"],
-  ["TOP", "Topo", "#82776B", "neutro"],
+  ["TOP", "Topo", "#82776B", "tierra"],
   ["GRA", "Gris antracita", "#48464A", "neutro"],
   ["NEG", "Negro", "#2D2C2F", "neutro"],
   ["CAQ", "Caqui", "#A39264", "tierra"],
@@ -27,46 +30,61 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
   ["MAC", "Coñac", "#864C24", "tierra"],
   ["MAR", "Marrón", "#694833", "tierra"],
   ["CHO", "Chocolate", "#4B342F", "tierra"],
+  ["RPA", "Rosa pálido", "#F7D1D1", "rosado"],
   ["ROS", "Rosado", "#F0A1BF", "rosado"],
   ["PAL", "Palo rosa", "#D9A6A1", "rosado"],
+  ["RCH", "Rosa chicle", "#E96A97", "rosado"],
+  ["RSA", "Rosa sandía", "#CF6977", "rosado"],
   ["FUC", "Fucsia", "#CF2D71", "rosado"],
   ["COR", "Coral", "#EA6759", "rojo"],
+  ["RTO", "Rojo tomate", "#EB3C27", "rojo"],
   ["ROJ", "Rojo", "#BD332D", "rojo"],
+  ["MSA", "Marsala", "#964F4C", "rojo"],
   ["FRA", "Frambuesa", "#A52350", "rojo"],
   ["CER", "Cereza", "#9B1B30", "rojo"],
   ["VIN", "Vino", "#6C2831", "rojo"],
   ["DUR", "Durazno", "#FFBE98", "naranja"],
+  ["ALB", "Albaricoque", "#F7B26A", "naranja"],
   ["SAL", "Salmón", "#FAA181", "naranja"],
   ["MAN", "Mandarina", "#EE9626", "naranja"],
   ["NAR", "Naranja", "#E8703A", "naranja"],
-  ["AMM", "Amarrillo mantequilla", "#FFE68A", "amarillo"],
+  ["AMB", "Ámbar", "#BB7A2C", "naranja"],
+  ["NQU", "Naranja quemado", "#C46316", "naranja"],
+  ["AMM", "Amarillo mantequilla", "#FEDF87", "amarillo"],
   ["VAI", "Vainilla", "#F2E6B1", "amarillo"],
   ["AML", "Amarillo limón", "#EADA4F", "amarillo"],
   ["AMA", "Amarillo", "#F0C05A", "amarillo"],
+  ["GIR", "Girasol", "#FFB000", "amarillo"],
+  ["ACH", "Amarillo chartreuse", "#B8AF23", "amarillo"],
   ["MOS", "Mostaza", "#C89721", "amarillo"],
-  ["VEA", "Verde agua", "#A1D7C9", "verde"],
-  ["ESM", "Esmeralda", "#009B74", "verde"],
-  ["VER", "Verde", "#487D49", "verde"],
-  ["VEB", "Verde botella", "#264E36", "verde"],
   ["PIS", "Pistacho", "#BED38E", "verde"],
   ["VEL", "Verde limón", "#9FC131", "verde"],
   ["SAV", "Salvia", "#A1AD92", "verde"],
+  ["VHO", "Verde hoja", "#75A14F", "verde"],
   ["VOL", "Verde oliva", "#6A6F34", "verde"],
   ["VEM", "Verde militar", "#4B5335", "verde"],
+  ["MEN", "Menta", "#D2E8DF", "verde"],
+  ["VEA", "Verde agua", "#A1D7C9", "verde"],
+  ["VJA", "Verde jade", "#70A38D", "verde"],
+  ["ESM", "Esmeralda", "#009B74", "verde"],
+  ["VER", "Verde", "#487D49", "verde"],
+  ["VEB", "Verde botella", "#264E36", "verde"],
   ["CEL", "Celeste", "#A9CADA", "azul"],
   ["TUR", "Turquesa", "#33BECC", "azul"],
   ["AZP", "Azul petróleo", "#2A5C6A", "azul"],
   ["AZC", "Azul claro", "#80A0D4", "azul"],
+  ["AZU", "Azur", "#4D91C6", "azul"],
   ["AZD", "Azul denim", "#5979A2", "azul"],
-  ["AZE", "Azul eléctrico", "#4A5FA5", "azul"],
-  ["AZI", "Azul Intermedio", "#56626E", "azul"],
-  ["AME", "Azul medio", "#3936CD", "azul"],
+  ["AZE", "Azul eléctrico", "#2E5BF2", "azul"],
+  ["AME", "Azul medio", "#4A638D", "azul"],
   ["COB", "Cobalto", "#00539C", "azul"],
   ["IND", "Índigo", "#49516D", "azul"],
+  ["AZF", "Azul zafiro", "#203C7F", "azul"],
   ["AZM", "Azul marino", "#2A304E", "azul"],
   ["LAV", "Lavanda", "#D2C4D6", "morado"],
   ["LIL", "Lila", "#BCA4CB", "morado"],
-  ["VIO", "Violeta", "#775496", "morado"],
+  ["GLI", "Glicina", "#8B79B1", "morado"],
+  ["VIO", "Violeta", "#7A3FB6", "morado"],
   ["MOR", "Morado", "#563474", "morado"],
   ["MAL", "Malva", "#B88AAC", "morado"],
   ["ORQ", "Orquídea", "#AD5E99", "morado"],
@@ -85,16 +103,15 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
 
 // Cada fila como se ve en la carta: las gamas separadas, de menor a mayor matiz; dentro de cada una, de claro a oscuro.
 const ESPERADO: Record<string, string[][]> = {
-  neutro: [["BLA", "CRU", "PER", "NUD", "GRP", "BEI", "GPI", "ARN", "GRM", "GRI", "TOP", "GRA", "NEG"]],
-  tierra: [["CAQ", "CAM", "MOK", "TOS", "TER", "MAC", "MAR", "CHO"]],
-  rosado: [["ROS", "PAL", "FUC"]],
-  rojo: [["COR", "ROJ", "FRA", "CER", "VIN"]],
-  naranja: [["DUR", "SAL", "MAN", "NAR"]],
-  amarillo: [["AMM", "VAI", "AML", "AMA", "MOS"]],
-  // oliva y limón (matiz bajo) antes que verde y agua (matiz alto): la fila avanza por el círculo cromático.
-  verde: [["PIS", "VEL", "SAV", "VOL", "VEM"], ["VEA", "ESM", "VER", "VEB"]],
-  azul: [["CEL", "TUR", "AZP"], ["AZC", "AZD", "AZE", "AZI", "AME", "COB", "IND", "AZM"]],
-  morado: [["LAV", "LIL", "VIO", "MOR"], ["MAL", "ORQ", "MOA", "CIR", "BER"]],
+  neutro: [["BLA", "CRU", "PER", "NUD", "GRP", "GPI", "GRM", "GRI", "GRA", "NEG"]],
+  tierra: [["BEI", "ARN", "CAQ", "CAM", "MOK", "TOS", "TOP", "TER", "MAC", "MAR", "CHO"]],
+  rosado: [["RPA", "ROS", "PAL", "RCH", "RSA", "FUC"]],
+  rojo: [["COR", "RTO", "ROJ", "MSA", "FRA", "CER", "VIN"]],
+  naranja: [["DUR", "ALB", "SAL", "MAN", "NAR", "AMB", "NQU"]],
+  amarillo: [["VAI", "AMM", "AML", "AMA", "GIR", "ACH", "MOS"]],
+  verde: [["PIS", "VEL", "SAV", "VHO", "VOL", "VEM"], ["MEN", "VEA", "VJA", "ESM", "VER", "VEB"]],
+  azul: [["CEL", "TUR", "AZP"], ["AZC", "AZU", "AZD", "AZE", "AME", "COB", "IND", "AZF", "AZM"]],
+  morado: [["LAV", "LIL", "GLI", "VIO", "MOR"], ["MAL", "ORQ", "MOA", "CIR", "BER"]],
   metalico: [["CHA", "PLA", "ORR", "DOR", "ORV", "PLV", "COE", "BRO"]],
 };
 
@@ -104,17 +121,33 @@ const deFamilia = (familia: string) =>
 const comoSeVe = (lista: ReturnType<typeof deFamilia>) => partirEnGamas([...lista].sort(enEscala)).map((b) => b.map((c) => c.codigo));
 
 describe("la carta de colores de CAYLA", () => {
-  it("tiene los 75 colores y ninguna familia que FAMILIAS_COLOR no conozca", () => {
-    expect(CARTA).toHaveLength(75);
+  it("tiene los 90 colores y ninguna familia que FAMILIAS_COLOR no conozca", () => {
+    expect(CARTA).toHaveLength(90);
     const conocidas = new Set<string>(FAMILIAS_COLOR.map((f) => f.valor));
     for (const [, , , familia] of CARTA) expect(conocidas.has(familia)).toBe(true);
-    expect(new Set(CARTA.map((c) => c[0])).size).toBe(75);
+    expect(new Set(CARTA.map((c) => c[0])).size).toBe(90);
   });
 
   it("las filas siguen el espectro: neutros, rosado → morado, y al final lo que no es un matiz", () => {
     expect(FAMILIAS_COLOR.map((f) => f.valor)).toEqual([
       "neutro", "tierra", "rosado", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "metalico", "estampado",
     ]);
+  });
+
+  // «Mejor distinción» (Felipe, 2026-10-02, ADR-0314): el 2026-10-02, Crudo y Perla estaban a ΔE2000 2,1 —a simple vista, el mismo
+  // color— y Mantequilla a 7,2 de Limón. Se afinó el #hex de los dos colores creados a mano (Perla y Amarillo mantequilla) y el
+  // par más cercano sin metálicos pasó a ser Beige–Arena, 6,03, la pareja canónica que ya se aceptaba. Los metálicos quedan fuera:
+  // su reflejo los distingue aunque el hex plano se parezca (como Plata vieja y Gris).
+  it("dos colores que no son metálicos nunca quedan a menos de 6,0 de distancia (ΔE2000)", () => {
+    const planos = CARTA.filter((c) => c[3] !== "metalico");
+    const cercanas: string[] = [];
+    for (let i = 0; i < planos.length; i++) {
+      for (let j = i + 1; j < planos.length; j++) {
+        const d = distanciaEntreHex(planos[i][2], planos[j][2]);
+        if (d < 6.0) cercanas.push(`${planos[i][1]} ~ ${planos[j][1]}: ${d.toFixed(2)}`);
+      }
+    }
+    expect(cercanas).toEqual([]);
   });
 
   for (const [familia, esperado] of Object.entries(ESPERADO)) {
@@ -131,12 +164,12 @@ describe("la carta de colores de CAYLA", () => {
     }
   });
 
-  it("ningún color de la carta queda a menos de 6° de un corte de gama (los más cercanos son casi grises)", () => {
-    const cortes: Record<string, number> = { verde: 135, azul: 240, morado: 325 };
+  it("ningún color de la carta queda a menos de 5° de un corte de gama (cada corte está en el medio del mayor hueco de matiz)", () => {
+    const cortes: Record<string, number> = { verde: 138, azul: 236, morado: 327 };
     for (const [familia, corte] of Object.entries(cortes)) {
       for (const c of deFamilia(familia)) {
         const h = oklchDeHex(c.hex)!.h;
-        expect(Math.abs(h - corte), `${c.nombre} (${h.toFixed(1)}°)`).toBeGreaterThanOrEqual(6);
+        expect(Math.abs(h - corte), `${c.nombre} (${h.toFixed(1)}°)`).toBeGreaterThanOrEqual(5);
       }
     }
   });
@@ -218,7 +251,7 @@ describe("enLaCarta — toda la paleta en una lista (Atributos → Colores)", ()
     const ajeno = { codigo: "ZZZ", nombre: "Raro", hex: "#123456", familiaColor: "inexistente" };
     const r = [ajeno, ...todos].sort(enLaCarta);
     expect(r[r.length - 1].codigo).toBe("ZZZ");
-    expect(r).toHaveLength(76);
+    expect(r).toHaveLength(CARTA.length + 1);
   });
 });
 

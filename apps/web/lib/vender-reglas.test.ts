@@ -296,12 +296,17 @@ describe("desgloseIgv — subtotal + IGV = total, igual que el comprobante", () 
     expect(desgloseIgv(0, 0.18)).toEqual({ subtotal: 0, igv: 0 });
   });
 
+  // Junta los totales que descuadran y los compara con UN `expect` al final: 50 000 `expect` sueltos eran el 99 % del
+  // tiempo de la prueba (el cálculo cuesta 1-2 ms) y, con la máquina cargada por otras sesiones (carga ~100, 2026-10-02),
+  // la llevaban a 1,4 s, camino del límite de 5 s que frena el pre-commit. El mensaje sigue nombrando cada total que falla.
   it("nunca descuadra: para cada total de S/0.01 a S/500.00, subtotal + IGV = total al centavo", () => {
+    const descuadran: string[] = [];
     for (let c = 1; c <= 50_000; c++) {
       const total = c / 100;
       const { subtotal, igv } = desgloseIgv(total, 0.18);
-      expect(Math.round((subtotal + igv) * 100)).toBe(c);
+      if (Math.round((subtotal + igv) * 100) !== c) descuadran.push(`S/${total.toFixed(2)}: subtotal ${subtotal} + IGV ${igv}`);
     }
+    expect(descuadran).toEqual([]);
   });
 });
 

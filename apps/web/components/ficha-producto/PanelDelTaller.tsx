@@ -79,7 +79,7 @@ export function PanelDelTaller({
   const pendiente = pendientes[0];
 
   return (
-    <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 lg:sticky lg:top-6">
+    <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 @min-[50rem]:sticky @min-[50rem]:top-6">
       <div className="taller-panel-foto">
         <div className="taller-foto-grande">
           {foto ? (
