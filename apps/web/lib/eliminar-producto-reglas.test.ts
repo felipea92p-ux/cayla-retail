@@ -38,18 +38,18 @@ describe("leerComoEliminar", () => {
 });
 
 describe("ofreceEliminar y rpcParaEliminar", () => {
-  it("sin historia: eliminar_producto (Líder o Admin)", () => {
+  it("sin historia: eliminar_producto", () => {
     expect(ofreceEliminar(base)).toBe(true);
     expect(rpcParaEliminar(base)).toBe("eliminar_producto");
   });
 
-  it("con historia de stock y cuenta Admin: eliminar_producto_con_historia", () => {
+  it("con historia de stock y la base dice que puede: eliminar_producto_con_historia", () => {
     const c = { ...base, nivel: "con_historia" as const };
     expect(ofreceEliminar(c)).toBe(true);
     expect(rpcParaEliminar(c)).toBe("eliminar_producto_con_historia");
   });
 
-  it("con historia de stock y un Líder que no es Admin: ningún botón", () => {
+  it("con historia de stock y la base dice que esta cuenta no puede (una base sin 20261003232000): ningún botón", () => {
     const c = { ...base, nivel: "con_historia" as const, puedes: false };
     expect(ofreceEliminar(c)).toBe(false);
     expect(rpcParaEliminar(c)).toBeNull();
@@ -104,13 +104,13 @@ describe("textos", () => {
 
   it("con historia y en 0: dice primero que no hay unidades, para que el número no se lea como stock (caso «Fdhh», 2026-09-28)", () => {
     expect(textoNoSePuede("Fdhh", { nivel: "con_historia", razon: "tiene movimientos de stock (6)", prendas: 0 })).toBe(
-      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (6). Solo una cuenta Admin puede eliminarlo con su historia."
+      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (6). Tu cuenta no puede eliminarlo con su historia."
     );
   });
 
   it("con historia y con unidades: la razón se dice tal cual", () => {
     expect(textoNoSePuede("Fhfh", { nivel: "con_historia", razon: "tiene movimientos de stock (3)", prendas: 15 })).toBe(
-      "«Fhfh» tiene movimientos de stock (3). Solo una cuenta Admin puede eliminarlo con su historia."
+      "«Fhfh» tiene movimientos de stock (3). Tu cuenta no puede eliminarlo con su historia."
     );
   });
 });

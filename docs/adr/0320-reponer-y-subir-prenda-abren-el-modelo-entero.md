@@ -24,6 +24,15 @@ elegir al responsable, confirmar y esperar la recarga de la pantalla: tres veces
    `retirar_del_piso` (Subir), cada celda es una variante, y la marca de reintento, el candado de red incierta y el rechazo por tope
    quedan como estaban. Si la base rechaza una celda, esa celda se marca y no se guarda nada. **Sin migración.**
 
+## Corrección el mismo día (PR siguiente)
+
+La primera versión se vio mal en la pantalla real, aunque la maqueta estaba bien: (1) la hoja heredaba la **foto lateral** y el ancho
+angosto de «Reponer/Subir», así que la tabla quedaba apretada, con scroll propio y solo dos tallas a la vista; (2) la **guía de foco**
+(`alta-guia.css`) enciende todo `<input>` del bloque que sigue con fondo `papel`, y blanqueaba cada caja − N + (en Editar producto no
+pasa porque ahí no hay un `CampoGuiado` alrededor). Se arregló así: las dos ventanas son más anchas (`max-w-3xl`) y sin foto lateral
+(una miniatura junto al nombre del modelo), la tabla no tiene scroll vertical propio (la hoja es la que baja) y la regla de la luz
+excluye las cajas de `[data-matriz-mover]`. Lección: una pieza se verifica DENTRO del modal y de la guía, no sola.
+
 ## Lo que se descartó
 
 - **Marcar el modelo entero y bajarlo con la pistola** (propuesta B): ahorra buscar, no contar.

@@ -62,7 +62,7 @@ export function MatrizMover({
 
   return (
     <div className="space-y-2">
-      <div className="max-h-[420px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel" data-matriz-mover>
+      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-sand bg-papel" data-matriz-mover>
         <table className="w-full border-separate border-spacing-0 text-[13px]">
           <thead>
             <tr>

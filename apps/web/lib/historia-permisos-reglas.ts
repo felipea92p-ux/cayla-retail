@@ -4,7 +4,7 @@
 // React ni red, solo las palabras.
 //
 // CONTRATO
-//   PROMETE: toda combinación de finalidad, acción y medio tiene un título (un medio que la web no conoce se dice tal cual,
+//   PROMETE: toda combinación de finalidad, acción y medio tiene un título (y una fila «volvió a aceptar» de una miembro que ya estaba no se llama «Se unió») (un medio que la web no conoce se dice tal cual,
 //            nunca se esconde el evento); el punto del evento: club en taupe, publicidad que llega en verde, que se va en ámbar.
 //   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B y `pagina_cartel` de la 1g).
 //   NO HACE: no ordena (la base ya la trae de la más vieja a la más nueva).
@@ -41,8 +41,14 @@ export type PuntoEvento = "taupe" | "verde" | "ambar";
 
 export type EventoLegible = { id: string; titulo: string; detalle: string; punto: PuntoEvento; deOtraFicha: boolean };
 
-function titulo(f: Pick<FilaPermiso, "finalidad" | "accion" | "medio">): string {
-  if (f.finalidad === "club") return f.accion === "otorga" ? "Se unió al club" : "Salió del club";
+/** Lo que `registrarse_en_el_club` escribe en la nota cuando una miembro que ya estaba vuelve a aceptar textos NUEVOS (20261003235000):
+ *  no es una unión. Con los mismos textos no deja fila, así que «Se unió al club» sale una sola vez. */
+const VOLVIO_A_ACEPTAR = "volvió a aceptar";
+
+function titulo(f: Pick<FilaPermiso, "finalidad" | "accion" | "medio" | "nota">): string {
+  const vuelve = f.accion === "otorga" && (f.nota ?? "").startsWith(VOLVIO_A_ACEPTAR);
+  if (f.finalidad === "club") return vuelve ? "Volvió a aceptar los textos del club" : f.accion === "otorga" ? "Se unió al club" : "Salió del club";
+  if (vuelve) return "Volvió a aceptar el texto de la publicidad";
   if (f.accion === "otorga") return "Pidió la publicidad por WhatsApp";
   if (f.medio === "baja_whatsapp") return "Pidió BAJA de la publicidad";
   if (f.medio === "cambio_celular") return "Dejó la publicidad al cambiar de celular";
