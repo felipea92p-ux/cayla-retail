@@ -212,3 +212,11 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   flotando; colores solo con tokens; con `prefers-reduced-motion` todo se apaga y cada pieza queda en su estado final.
 - **Dónde vive:** `apps/web/app/estilos/club-publico.css` (sus `@keyframes`), sin tocar la «REGLA DE MODALES» de
   `globals.css`. No se copia a pantallas del ERP.
+
+## Actualización 2026-10-03 — el Observatorio del Admin: tres bucles que son señales
+
+- **Qué:** el Inicio del Admin (ADR-0322) repite tres cosas mientras está a la vista: el **latido** de una tienda con su caja abierta,
+  el **cometa** que recorre el arco de un traslado en camino y el **halo** que respira alrededor de un aviso urgente.
+- **Por qué se admiten:** cada uno dice algo que cambia («esta tienda está operando», «esto viene en camino», «esto no espera»); se
+  apagan solos cuando la señal deja de ser cierta. Nada más del Observatorio se repite.
+- **Dónde vive:** `apps/web/app/estilos/observatorio.css`; con `prefers-reduced-motion`, los tres se detienen.
