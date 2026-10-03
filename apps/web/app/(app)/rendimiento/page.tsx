@@ -70,7 +70,7 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
           vistaInicial={vistaDeUrl(vista)}
           personaCuentaId={persona.personaId}
           esAdmin={persona.esAdmin}
-          rankings={Object.fromEntries(sedes.map((s) => [s.ubicacionId, <Rankings key={s.ubicacionId} sede={s} />]))}
+          rankings={Object.fromEntries(sedes.map((s) => [s.ubicacionId, <Rankings key={`rankings-${s.ubicacionId}`} sede={s} />]))}
         />
       )}
     </div>
