@@ -739,3 +739,28 @@ describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
     expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual([]);
   });
 });
+
+describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre (Felipe, 2026-10-03)", () => {
+  const solo = (tipo: TipoUbicacion): Menu => {
+    const modulos: ClaveModulo[] = ["recibir"];
+    return menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: tipo, modulos });
+  };
+
+  it("la fila dice «Recibir mercadería» y abre /recibir, no «Inventario» (en tienda, almacén y taller)", () => {
+    for (const tipo of ["tienda", "almacen", "taller"] as const) {
+      const riel = solo(tipo).riel;
+      expect(riel.map((f) => f.etiqueta), tipo).toEqual(["Recibir mercadería"]);
+      expect(hojasDe(riel[0]).map((h) => h.href), tipo).toEqual(["/recibir"]);
+    }
+  });
+
+  it("y sigue ubicada en el grupo Inventario (aterrizar en /recibir lo abre)", () => {
+    expect(solo("tienda").grupoDe("/recibir")).toBe("inventario");
+  });
+
+  it("no cambia a quien ve Existencias solo: su fila sigue llamándose «Inventario»", () => {
+    const modulos: ClaveModulo[] = ["existencias"];
+    const m = menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+    expect(m.riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+  });
+});

@@ -212,11 +212,11 @@ export function NuevoProductoForm({
   // Paso 4 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
-  // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
-  // (la base hace la bajada con `bajar_al_piso`, que pide Existencias, ADR-0306): si no, van al almacén.
+  // Colgadas en el piso o guardadas en el almacén (la pregunta solo sale si la tienda los separa). NO pide Existencias: quien
+  // ve Productos hace todo lo que hay en Productos, y la base deja pasar la bajada de la carga inicial (migración
+  // 20261004000000, ADR-0306 act. 2026-10-03).
   // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
   // hereda por no mirar la pregunta.
-  const puedePiso = destino.separaPiso && destino.puedeBajar;
   const [alPiso, setAlPiso] = useState(false);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Quien abre el alta se identifica
@@ -395,7 +395,7 @@ export function NuevoProductoForm({
     cantidades,
     celdasIncluidas.map((c) => c.clave)
   );
-  const destinoTexto = textoDestinoStock(destino.etiqueta, puedePiso && alPiso, destino.separaPiso);
+  const destinoTexto = textoDestinoStock(destino.etiqueta, alPiso, destino.separaPiso);
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
@@ -554,7 +554,7 @@ export function NuevoProductoForm({
       p_proveedor_id: proveedorId || undefined,
       // Paso 4 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
       p_ubicacion_id: conStock ? destino.ubicacionId : undefined,
-      p_al_piso: conStock && puedePiso && alPiso,
+      p_al_piso: conStock && destino.separaPiso && alPiso,
     };
     const firma = responsable.firma();
     const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
@@ -1082,18 +1082,13 @@ export function NuevoProductoForm({
                 <div className="space-y-2">
                   <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
                   <div className="flex flex-wrap gap-1.5">
-                    <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
+                    <ChipOpcion elegido={!alPiso} onClick={() => setAlPiso(false)}>
                       Guardadas en el almacén
                     </ChipOpcion>
-                    <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                    <ChipOpcion elegido={alPiso} onClick={() => setAlPiso(true)}>
                       En piso de venta
                     </ChipOpcion>
                   </div>
-                  {!puedePiso && (
-                    <p className="text-xs text-taupe">
-                      Entran al almacén. Para colgarlas después, usa «Reponer» en Existencias.
-                    </p>
-                  )}
                 </div>
               )
             ) : (
